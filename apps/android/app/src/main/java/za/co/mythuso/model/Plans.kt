@@ -18,12 +18,14 @@ data class PlanSubscription(
 )
 
 /** `capability` is an id in packages/catalog/capabilities.json; `device` is set for MyThuso's own
- *  hardware, none of which has been built; `undecided` says so when the meaning is not written down. */
+ *  hardware, none of which has been built; `detail` is a sentence saying what the inclusion means, such
+ *  as priority SOS's wording, which is a Money setting. */
 data class MomInclusion(
-    val id: String, val text: String, val capability: String, val device: String?, val undecided: String?
+    val id: String, val text: String, val capability: String, val device: String?, val detail: String?
 )
 
-data class MomTier(val id: String, val name: String, val price: Int, val phase: Int, val cadence: String, val includes: List<MomInclusion>)
+/** `inherits` is "Everything in Essential" when Money's setting says tiers stack, and null otherwise. */
+data class MomTier(val id: String, val name: String, val price: Int, val phase: Int, val cadence: String, val inherits: String?, val includes: List<MomInclusion>)
 data class MomAddOn(val id: String, val name: String)
 data class MomRefusal(val id: String, val sentence: String)
 
@@ -33,7 +35,6 @@ data class MomPlan(
     val payerHeadline: String,
     val payerStatement: String,
     val tiers: List<MomTier>,
-    val openQuestions: List<String>,
     val addOnsStatement: String,
     val addOns: List<MomAddOn>,
     val splittingStatement: String,

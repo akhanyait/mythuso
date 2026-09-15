@@ -1,8 +1,9 @@
 import { createMoney, type Money, type Payout } from '../../../../packages/engines/src/money/domain/ledger.ts';
 import {
- doctorFees, earningsContract, isRefusal, money as contract, rangeOf, refusal, stateOf, type MethodId, type PaymentStateId
+ doctorFees, earningsContract, isRefusal, money as contract, refusal, stateOf, type MethodId, type PaymentStateId
 } from '../../../../packages/engines/src/money/domain/contract.ts';
 import { linesFromEarningsWeek } from '../../../../packages/engines/src/money/domain/payouts.ts';
+import { doctorOwedCents, type FeeInForce } from '../../../../packages/engines/src/money/domain/fees.ts';
 /* The web's door onto Thuso Money.
  *
  * ── The engine, not a second copy of it ──────────────────────────────────────────────────────
@@ -102,33 +103,52 @@ export function runWeek(weekId: string, partyRef: string, periodEnd: string): Pa
 
 /* ---- A doctor's fees ------------------------------------------------------------------------- */
 
+/** An amount in cents as rand, with the cents shown only when there are some: R48, R47,50. */
+export const randCents = (cents: number) =>
+ new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 }).format(cents / 100);
+
+/** The fee in force as the settings hand it: the amount, whether it is confirmed, and the range an admin may set it within. */
+export type FeeWithRange = FeeInForce & { readonly lowestCents: number; readonly highestCents: number };
+
 export type DoctorFeesView = {
  fee: typeof doctorFees[number];
- range: [number, number];
- cases: { reviewRef: string; on: string }[];
+ inForce: FeeWithRange;
+ /** Each case with the fee it was signed under, and whether that fee was confirmed. */
+ cases: { reviewRef: string; on: string; amountCents: number; confirmed: boolean }[];
  casesWords: string;
- /** What the ledger answers when asked to schedule the payout: the contract's refusal, today. */
- schedule: () => { refused: string } | { refused?: undefined; amount: number };
+ /** What the cases come to, or null while the ledger would refuse to pay them. */
+ owedCents: number | null;
+ /** What the ledger answers when asked to schedule the payout: its refusal, or what it scheduled. */
+ schedule: () => { refused: string } | { refused?: undefined; amountCents: number };
 };
 
 /**
  * The doctor's per-case fees, from a ledger that has heard the contract's signed sample cases as
  * review.billable carries them — a reference, the doctor and a fee code, and nothing about anybody.
+ *
+ * The fee in force is handed in by the screen, from apps/web/src/lib/settings.ts, rather than imported
+ * here: this module is also the patient's payment step, and a patient paying for a visit carries no
+ * settings code. The preview hears its sample cases when the screen is drawn, so each is signed under
+ * the fee in force at that moment; on the engine, a case is heard when it is signed.
  */
-export function doctorFeesFor(doctorRef: string, now = new Date()): DoctorFeesView {
- const ledger = createMoney({ simulation: true, clock: () => now });
+export function doctorFeesFor(doctorRef: string, feeNow: () => FeeWithRange, now = new Date()): DoctorFeesView {
+ const ledger = createMoney({ simulation: true, clock: () => now, doctorFee: feeNow });
  const fee = doctorFees[0]!;
  for (const sample of contract.sampleCases) {
   const at = new Date(now.getTime() + sample.onDays * 86_400_000);
   ledger.hear({ type: 'review.billable', version: 1, occurredAt: at.toISOString(), payload: { reviewRef: sample.reviewRef, reviewedByRef: doctorRef, feeCode: fee.feeCode } });
  }
  const periodEnd = new Date(now.getTime() + 7 * 86_400_000).toISOString().slice(0, 10);
+ const inForce = feeNow();
+ const signed = ledger.casesFor(doctorRef);
+ const owed = doctorOwedCents(signed, inForce);
  return {
-  fee, range: rangeOf(fee), casesWords: contract.casesWords,
-  cases: ledger.casesFor(doctorRef).map(c => ({ reviewRef: c.reviewRef, on: c.on })),
+  fee, inForce, casesWords: contract.casesWords,
+  cases: signed.map(c => ({ reviewRef: c.reviewRef, on: c.on, amountCents: c.fee?.amountCents ?? inForce.amountCents, confirmed: c.fee?.confirmed === true })),
+  owedCents: isRefusal(owed) ? null : owed,
   schedule: () => {
    const answer = ledger.scheduleDoctorPayout(doctorRef, periodEnd);
-   return isRefusal(answer) ? { refused: answer.statement } : { amount: answer.totalCents / 100 };
+   return isRefusal(answer) ? { refused: answer.statement } : { amountCents: answer.totalCents };
   }
  };
 }

@@ -11,13 +11,14 @@ import java.time.LocalDate
    Which ways to pay a visit are offered. A wallet is named and not offered, because a balance that
    nothing holds cannot pay for anything.
 
-   What a doctor is owed. Nothing, while the fee is undecided — not zero, which would be a figure,
-   but null, which the fee screen renders as the contract's own sentence. The range the documents give
-   is shown beside it as a range, never as the price, and it was read from the funding proposal's
-   model when this was generated rather than typed here.
+   What a doctor is owed. The fee is Money's setting, and this app has no admin surface, so it is the
+   default as generated: a proposal inside the range the documents give, which nobody has confirmed. A
+   proposal pays nobody, so while it is unconfirmed a doctor is owed nothing — not zero, which would be
+   a figure, but null, which the fee screen renders beside the contract's own sentence. The range is
+   shown beside the fee as a range, and it is the setting's bounds, generated rather than typed here.
 
-   The engine in packages/engines/src/money refuses to schedule a doctor's payout while the fee is
-   null. This file cannot schedule anything, so it only refuses to show a figure. */
+   The engine in packages/engines/src/money refuses to schedule a doctor's payout at a fee nobody has
+   confirmed. This file cannot schedule anything, so it only refuses to work out a figure. */
 
 data class MoneyMethod(val id: String, val name: String, val detail: String, val forVisit: Boolean, val forPlan: Boolean, val offered: Boolean)
 
@@ -26,18 +27,19 @@ data class MoneyPaymentState(val id: String, val name: String, val words: String
 data class DoctorFee(
     val feeCode: String,
     val name: String,
-    /** Null until somebody named decides it. There is no default. */
-    val amount: Int?,
-    val decidedBy: String?,
-    val decidedOn: String?,
-    val rangeLow: Int,
-    val rangeHigh: Int,
+    /** The fee in cents, as Money's setting gives it by default. */
+    val amountCents: Int,
+    /** Whether an admin has confirmed it. A proposal is shown and pays nobody. */
+    val confirmed: Boolean,
+    val rangeLowCents: Int,
+    val rangeHighCents: Int,
     val source: String,
-    val undecided: String,
-    val whoDecides: String
+    val unconfirmedWords: String,
+    val confirmedWords: String,
+    val whoSets: String
 ) {
-    val isDecided: Boolean
-        get() = amount != null && decidedBy != null && decidedOn != null && amount in rangeLow..rangeHigh
+    val isPayable: Boolean
+        get() = confirmed && amountCents in rangeLowCents..rangeHighCents
 }
 
 data class SignedCase(val reviewRef: String, val onDays: Int) {
@@ -51,9 +53,13 @@ object Money {
     fun refusal(id: String): String = MoneyData.refusals[id].orEmpty()
     val reviewFee: DoctorFee get() = MoneyData.doctorFees.first()
 
-    /** What a doctor is owed for these cases, or null while the fee is undecided. */
+    /** An amount in cents as rand, with the cents only when there are some. */
+    fun randCents(cents: Int): String =
+        if (cents % 100 == 0) "R ${cents / 100}" else "R ${cents / 100}.${(cents % 100).toString().padStart(2, '0')}"
+
+    /** What a doctor is owed for these cases, in cents, or null while the fee is not confirmed. */
     fun owed(cases: List<SignedCase>, fee: DoctorFee = reviewFee): Int? =
-        if (fee.isDecided) fee.amount!! * cases.size else null
+        if (fee.isPayable) fee.amountCents * cases.size else null
 
     /** What the payment step says once a visit is booked on a phone with no provider. */
     fun afterBooking(methodName: String): String =

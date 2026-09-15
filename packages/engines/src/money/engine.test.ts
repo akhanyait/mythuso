@@ -14,6 +14,7 @@ import { loadRuntimeContract } from '../runtime/contract.ts';
 import { engine, HEARD } from './engine.ts';
 import { attempt } from './domain/provider.ts';
 import { hearing, refusal, serviceById } from './domain/contract.ts';
+import { moneyBlock } from './domain/settings.ts';
 
 const FLAG = { MYTHUSO_ENGINES: 'synthetic-data-only' };
 const START = '2026-09-14T09:00:00+02:00'; // a Monday
@@ -224,6 +225,49 @@ test('through the door, the version a caller names decides which payments route 
  assert.equal(two.answeredBy, 'engine');
  assert.match(String(two.body['cashCode']), /^\d{6}$/);
  assert.equal(door('9').body['error'], 'route-version-not-declared');
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+/* ---- Settings ---------------------------------------------------------------------------------- */
+
+const ADMIN = { role: 'admin', ref: 'party-synthetic-901', purpose: 'audit' };
+const moneyDefaultsKeys = moneyBlock.items.map(s => s.key);
+const SETTINGS_READ = 'GET /v1/money/settings@1' as const;
+const SETTINGS_CHANGE = 'POST /v1/money/setting-changes@1' as const;
+
+test('an admin reads Money’s settings in force with who decided each, and a doctor or a nurse cannot', () => {
+ const { runtime } = world();
+ const answer = runtime.call(SETTINGS_READ, { ...ADMIN, fields: {} });
+ assert.equal(answer.status, 200, JSON.stringify(answer.body));
+ const rows = answer.body['settings'] as { setting: string; inForce: unknown; default: unknown; provenance: { decidedBy: string | null }; changedBy: string[] }[];
+ assert.deepEqual(rows.map(r => r.setting), moneyDefaultsKeys);
+ for (const row of rows) {
+  assert.deepEqual(row.inForce, row.default, row.setting);
+  assert.deepEqual(row.changedBy, ['admin'], row.setting);
+ }
+ assert.equal(rows.find(r => r.setting === 'doctor-fee-confirmed')!.inForce, false, 'the proposed fee is not confirmed');
+ for (const role of ['doctor', 'nurse']) assert.equal(runtime.call(SETTINGS_READ, { role, ref: 'party-synthetic-1', purpose: 'audit', fields: {} }).body['error'], 'caller-not-allowed', role);
+ runtime.close();
+});
+
+test('a change is refused in the shared sentences and in Money’s own, and an accepted one is recorded once', () => {
+ const { runtime, published } = world();
+ const changeOf = (fields: Record<string, unknown>) => runtime.call(SETTINGS_CHANGE, { ...ADMIN, fields: { reason: 'The share is not the same part of every visit.', expectedVersion: 1, ...fields } });
+ const fraction = changeOf({ idempotencyKey: 'fraction', setting: 'nurse-share-sentence', wording: 'Your share is three quarters of what the patient paid.' });
+ assert.deepEqual([fraction.status, fraction.body['error'], fraction.body['message']], [refusal('share-wording-states-a-fraction').status, 'share-wording-states-a-fraction', refusal('share-wording-states-a-fraction').statement]);
+ const below = changeOf({ idempotencyKey: 'below', setting: 'doctor-case-fee', wholeNumber: 1 });
+ assert.equal(below.body['error'], 'setting-out-of-range');
+ const week = changeOf({ idempotencyKey: 'week', setting: 'plus-urgent-callouts', parts: { count: 1, period: 'week' } });
+ assert.equal(week.body['error'], 'setting-out-of-range');
+
+ const confirmed = changeOf({ idempotencyKey: 'confirm', setting: 'doctor-fee-confirmed', switchedOn: true, reason: 'The review panel lead agreed the proposed fee.' });
+ assert.equal(confirmed.status, 200, JSON.stringify(confirmed.body));
+ assert.deepEqual(changeOf({ idempotencyKey: 'confirm', setting: 'doctor-fee-confirmed', switchedOn: true, reason: 'The review panel lead agreed the proposed fee.' }).body, confirmed.body, 'the same key replays rather than repeating');
+ const read = runtime.call(SETTINGS_READ, { ...ADMIN, fields: {} }).body;
+ assert.equal(read['settingsVersion'], 2);
+ assert.deepEqual((read['history'] as { setting: string; from: unknown; to: unknown; byRef: string }[]).map(h => [h.setting, h.from, h.to, h.byRef]), [['doctor-fee-confirmed', false, true, ADMIN.ref]]);
+ assert.equal(published('payout.scheduled@1').length, 0, 'confirming a fee schedules nothing by itself');
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
 });

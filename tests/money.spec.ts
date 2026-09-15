@@ -10,16 +10,17 @@ import { noticeFor } from './notices';
  * carrying its own copy of a payment sentence is one more place for the sentence to be wrong.
  *
  * What they hold is the half of the feature worth holding: no card fragment on the screen where a
- * person pays, cash booked as money owed rather than as nothing, and a doctor's fee that says it has
- * not been decided instead of showing a number somebody made up. */
+ * person pays, cash booked as money owed rather than as nothing, and a doctor's fee that is shown as the
+ * proposal it is and pays nobody until an admin confirms it. */
 const json = (path: string) => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
 const money = json('packages/catalog/money.json') as {
   methods: { id: string; name: string; detail: string; for: string[]; offered: boolean; notOfferedBecause?: string }[];
   states: { id: string; name: string; words: string }[];
   cash: { codeLength: number; pendingWords: string };
-  doctorFees: { name: string; undecided: string }[];
+  doctorFees: { name: string; amountSetting: string; unconfirmed: string }[];
   sampleCases: { reviewRef: string }[];
   casesWords: string;
+  settings: { items: { key: string; default: { value: unknown } }[] };
 };
 const moneyApi = json('packages/catalog/apis/money.json') as { refusals: { id: string; statement: string }[] };
 const model = json('packages/catalog/business-model.json') as { unitEconomics: { doctorReviewFee: [number, number] } };
@@ -76,25 +77,29 @@ test('cash is booked as money owed, with a code for the nurse and the contract�
   await expect(d.locator('.not-connected').filter({ hasText: noticeFor('payments')! })).toHaveCount(1);
 });
 
-test('a doctor’s per-case fee says it is not decided, and scheduling the payout is refused in the contract’s words', async ({ page }) => {
+test('a doctor’s per-case fee is shown as a proposal nobody has confirmed, and scheduling the payout is refused in the contract’s words', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await openWorkspace(page, 'Doctor');
   await page.locator('.tool-link').filter({ hasText: 'Per-case fees' }).click();
   const d = page.getByRole('dialog');
   const fee = money.doctorFees[0]!;
   const [low, high] = model.unitEconomics.doctorReviewFee;
+  /* The proposal, as the screen formats cents: the whole rand, and the cents only when there are some. */
+  const proposed = money.settings.items.find(s => s.key === fee.amountSetting)!.default.value as number;
+  const proposedText = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', minimumFractionDigits: proposed % 100 ? 2 : 0, maximumFractionDigits: 2 }).format(proposed / 100);
 
-  await expect(d.locator('.review-line').filter({ hasText: fee.name })).toContainText('Not decided');
+  await expect(d.locator('.review-line').filter({ hasText: fee.name })).toContainText(proposedText);
   const range = d.locator('.review-line').filter({ hasText: 'The range the documents give' });
   await expect(range).toContainText(rand(low));
   await expect(range).toContainText(rand(high));
-  await expect(d.getByText(fee.undecided)).toBeVisible();
+  await expect(d.getByText(fee.unconfirmed)).toBeVisible();
   await expect(d.locator('.not-connected').filter({ hasText: noticeFor('payouts')! })).toHaveCount(1);
+  await expect(d.locator('.review-line').filter({ hasText: /^Owed for/ })).toContainText('Not worked out');
 
   /* The cases are references and dates, and nobody's name: Money never hears who the patient was. */
   const rows = d.locator('table tbody tr');
   await expect(rows).toHaveCount(money.sampleCases.length);
-  for (const sample of money.sampleCases) await expect(rows.filter({ hasText: sample.reviewRef })).toContainText('Not decided');
+  for (const sample of money.sampleCases) await expect(rows.filter({ hasText: sample.reviewRef })).toContainText('not confirmed');
   await expect(d.getByText(money.casesWords)).toBeVisible();
 
   await d.getByRole('button', { name: /Schedule this week’s payout/ }).click();

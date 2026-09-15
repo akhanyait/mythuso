@@ -99,9 +99,9 @@ test('a line that arrives late for a week already closed is still scheduled, int
  assert.deepEqual(money.unscheduledClosedLines(), []);
 });
 
-test('no doctor payout is scheduled while the fee is undecided, even with no signed cases', () => {
+test('no doctor payout is scheduled while the fee is unconfirmed, even with no signed cases', () => {
  const money = createMoney({ clock, simulation: true });
  assert.deepEqual(money.scheduleDoctorPayout('D-999', '2026-09-20'), refusal('doctor-fee-undecided'));
- assert.deepEqual(doctorOwedCents([]), refusal('doctor-fee-undecided'));
- assert.equal(money.outbox().length, 0, 'an R0 payout was published under a fee nobody decided');
+ assert.deepEqual(doctorOwedCents([], null), refusal('doctor-fee-undecided'));
+ assert.equal(money.outbox().length, 0, 'an R0 payout was published under a fee nobody confirmed');
 });

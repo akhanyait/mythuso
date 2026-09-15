@@ -1,6 +1,7 @@
 {
- "_note": "Thuso Money's own contract: the ways a person may pay, the four states a payment can be in and the words a patient reads for each, the cash code, and the doctor's per-case fee. Read by packages/engines/src/money and the web; generated into Swift and Kotlin by scripts/emit-money.mjs. It holds no price. A visit's price and a nurse's share are packages/catalog/services.json's, a plan's price is packages/catalog/mom-plans.json's or packages/catalog/business-model.json's, the payout cycle and its sentences are packages/catalog/earnings.json's, and every refusal with a status is packages/catalog/apis/money.json's. Nothing here is a real service: no card is charged, no bank is contacted and no money moves.",
- "_honestyNote": "The valuable half of this file is what it will not state. The doctor's fee is null because the documents give a range and not a price, and a number typed here to make a screen look finished would be a promise about somebody's income that nobody made.",
+ "_note": "Thuso Money's own contract: the ways a person may pay, the four states a payment can be in and the words a patient reads for each, the cash code, the doctor's per-case fee, and Money's settings. Read by packages/engines/src/money and the web; generated into Swift and Kotlin by scripts/emit-money.mjs and scripts/emit-plans.mjs. It holds no price. A visit's price and a nurse's share are packages/catalog/services.json's, a plan's price is packages/catalog/mom-plans.json's or packages/catalog/business-model.json's, the payout cycle and its sentences are packages/catalog/earnings.json's, and every refusal with a status is packages/catalog/apis/money.json's. Nothing here is a real service: no card is charged, no bank is contacted and no money moves.",
+ "_honestyNote": "The valuable half of this file is what it will not state. The documents give a range for the doctor's fee and not a price, so the fee is a setting whose default is a proposal inside that range, and a proposal pays nobody: until an admin confirms the fee in force, every signed case is recorded and no doctor's payout is scheduled. A number left alone must not become somebody's income.",
+ "_settingsNote": "Why Money owns the settings below, including the ones about what MyThuso for Mom names. Of the twelve engines in packages/catalog/events.json, Money is the one whose contract a plan belongs to: it bills a plan (the debit-order method is for plans only, and planPriceRand reads the tier prices), and no engine owns a plan's content. Care dispatches the visits a tier names, Safety and Movement answer an SOS, and Access would carry a WhatsApp message, but none of them decides what a paid plan promises. So the plan's names, whether its tiers stack, Plus's urgent call-outs, the words for priority SOS and whether a report is announced on WhatsApp are what a family is sold, and they are Money's; the day a report channel is built, whether it is used moves to that channel's owner as a new version of both contracts rather than as a copy. The doctor's fee and how a nurse's share is worded are payouts, which are Money's already. packages/catalog/mom-plans.json holds the wording each plan setting is read into, and never a value.",
  "currency": "ZAR",
 
  "methods": [
@@ -63,16 +64,15 @@
   {
    "feeCode": "review-per-case",
    "name": "A doctor's review, per case",
-   "amount": null,
-   "decidedBy": null,
-   "decidedOn": null,
-   "rangeFrom": {"file": "packages/catalog/business-model.json", "path": "unitEconomics.doctorReviewFee"},
+   "amountSetting": "doctor-case-fee",
+   "confirmedSetting": "doctor-fee-confirmed",
    "source": "The Master Blueprint and the funding proposal give a range for a doctor's per-case review fee. They do not give a price.",
-   "undecided": "The fee for a doctor's review has not been decided, so no doctor's payout is scheduled. Every case you sign is recorded, and each one is paid once the fee is set.",
-   "whoDecides": "The founder, with the lead of the doctor review panel."
+   "unconfirmed": "The fee shown is a proposal nobody has confirmed, so no doctor's payout is scheduled at it. Every case you sign is recorded, and each one is paid once an admin confirms the fee.",
+   "confirmed": "An admin has confirmed the fee in force. A case is paid at the fee in force on the day you signed it.",
+   "whoSets": "An admin sets and confirms it on the back office, inside the range the documents give."
   }
  ],
- "doctorFeesNote": "A range is not a price. The engine refuses to schedule a doctor's payout while amount is null, and the build refuses an amount without decidedBy and decidedOn, or one outside the cited range.",
+ "doctorFeesNote": "A range is not a price, and a proposal is not a fee. The amount is the setting amountSetting names, bounded by the range packages/catalog/business-model.json gives, and whether it may be paid is the setting confirmedSetting names. A case keeps the fee in force on the day it was signed, confirmed or not. The engine schedules a doctor's payout only for cases whose fee was confirmed when they were signed, or at a fee confirmed now; anything else is refused as doctor-fee-undecided, and nothing is scheduled.",
 
  "sampleCases": [
   {"reviewRef": "RV-3107", "onDays": -1},
@@ -80,5 +80,258 @@
   {"reviewRef": "RV-3098", "onDays": -4}
  ],
  "casesWords": "Each case is a reference and the day you signed it. Money is never told who the patient was or why the review was needed.",
- "sampleCasesNote":"Three signed reviews, as review.billable@1 carries them: a reference, a doctor and a fee code. No patient and no reason, because Money never hears either — which is why the doctor's fee screen names none."
+ "sampleCasesNote":"Three signed reviews, as review.billable@1 carries them: a reference, a doctor and a fee code. No patient and no reason, because Money never hears either — which is why the doctor's fee screen names none.",
+
+ "nurseShareSetting": "nurse-share-sentence",
+ "nurseShareNote": "The sentence a nurse reads about her share is the setting this names. The figure beside it on every visit is packages/catalog/services.json's nurseShare, to the rand, and never the sentence's.",
+
+ "wordingRules": [
+  {
+   "id": "share-is-never-a-fraction",
+   "settings": ["nurse-share-sentence"],
+   "pattern": "%|\\bper ?cents?\\b|\\bpercent(age)?s?\\b|\\d+\\s*(/|out of|in)\\s*\\d+|\\b(half|halves|thirds?|quarters?|fifths?|sixths?|sevenths?|eighths?|ninths?|tenths?)\\b|[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]|\\b(one|two|three|four|five|six|seven|eight|nine|ten)\\s+(in|out of)\\s+(every\\s+)?(two|three|four|five|six|seven|eight|nine|ten)\\b",
+   "flags": "i",
+   "refusal": "share-wording-states-a-fraction",
+   "why": "packages/catalog/services.json pays a nurse three quarters of most visits and less of a screening bundle and of Thuso SOS. A fraction or a percentage in the sentence is true of some visits and a broken promise on the others, so the sentence never states one and the rand on each visit does."
+  },
+  {
+   "id": "a-plan-name-is-not-cover",
+   "settings": ["plan-family-name", "tier-name-essential", "tier-name-plus", "tier-name-premium"],
+   "pattern": "\\b(medical aids?|medical schemes?|schemes?|cover(ed|s|age)?|insur\\w*|claim\\w*|benefits?)\\b",
+   "flags": "i",
+   "refusal": "plan-name-claims-cover",
+   "why": "packages/catalog/mom-plans.json refuses a plan being read as medical aid. A name is the first thing a family reads, so a name that sounds like cover is that refusal broken before a sentence is read."
+  }
+ ],
+ "wordingRulesNote": "Money's own rules on wording, beside the shared ones in packages/catalog/settings.json. packages/engines/src/money/domain/settings.ts asks each rule of the setting it names whenever a change is proposed, after the shared rules, and refuses in the sentence its refusal has on POST /v1/money/setting-changes@1.",
+
+ "settings": {
+  "_note": "Money's settings, in the shape packages/catalog/settings.json gives every setting. They were open questions until 15 September 2026, when the founder instructed that open questions become admin settings: MyThuso for Mom's two open questions and its undecided priority SOS, the doctor's undecided fee, and a nurse's share sentence that was untrue for two services. Every default is a proposal by the integrator except the plan's and the tiers' names, which the founder confirmed with the Blueprint's tiers on 14 September 2026. GET /v1/money/settings@1 and POST /v1/money/setting-changes@1 answer through packages/engines/src/settings; no Money setting waits on a clinical review, so no review route is declared.",
+  "heading": "Money settings",
+  "intro": "What MyThuso for Mom is called and brings, what a doctor is paid for a signed case and whether that fee may be paid yet, and how a nurse is told what her share is.",
+  "items": [
+   {
+    "key": "plan-family-name",
+    "label": "Name of the plan for a parent",
+    "help": "What is the plan a son or daughter pays for a parent called, wherever it is sold?",
+    "_separateProgrammes": "MamaThuso, which the Blueprint's roadmap ships beside Mom Plus and Premium, and Thuso Senior (Gogo) in packages/catalog/business-model.json are separate programmes, not names for this plan or its tiers. Nothing here names or describes them.",
+    "owner": "money",
+    "type": "text",
+    "unit": "characters",
+    "default": {
+     "value": "MyThuso for Mom",
+     "decidedBy": "Founder",
+     "decidedOn": "2026-09-14",
+     "why": "The founder confirmed on 14 September 2026 that the Master Blueprint v4's MyThuso for Mom, Part D, replaces the single R249 Thuso Mom, and the name is the Blueprint's."
+    },
+    "maxLength": {"value": 40, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Forty characters is the name as it is twice over, and still fits one line of a plan card on a 390-pixel phone at the base text size."},
+    "changedBy": "admin",
+    "appliesTo": "A change applies to every plan screen opened after it. No plan can be bought yet, so nobody's plan is renamed under them.",
+    "guardrail": {
+     "statement": "No name makes the plan sound like medical aid, a scheme, cover or insurance.",
+     "forbids": ["MyThuso Medical Aid for Mom", "Mom Cover", "MyThuso Insurance for Mom"]
+    }
+   },
+   {
+    "key": "tier-name-essential",
+    "label": "Name of the monthly tier",
+    "help": "What is the tier with a nurse every month called?",
+    "owner": "money",
+    "type": "text",
+    "unit": "characters",
+    "default": {"value": "Essential", "decidedBy": "Founder", "decidedOn": "2026-09-14", "why": "The Blueprint's name for the tier, confirmed with its price on 14 September 2026."},
+    "maxLength": {"value": 20, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Twenty characters fits a tier's name above its price in one of three choices across a phone, without wrapping at the base text size."},
+    "changedBy": "admin",
+    "appliesTo": "A change applies to every plan screen opened after it. No plan can be bought yet, so nobody's tier is renamed under them.",
+    "guardrail": {"statement": "No tier's name sounds like medical aid, a scheme, cover or insurance.", "forbids": ["Essential Cover", "Scheme"]}
+   },
+   {
+    "key": "tier-name-plus",
+    "label": "Name of the fortnightly tier",
+    "help": "What is the tier with a nurse every fortnight called?",
+    "owner": "money",
+    "type": "text",
+    "unit": "characters",
+    "default": {"value": "Plus", "decidedBy": "Founder", "decidedOn": "2026-09-14", "why": "The Blueprint's name for the tier, confirmed with its price on 14 September 2026."},
+    "maxLength": {"value": 20, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Twenty characters fits a tier's name above its price in one of three choices across a phone, without wrapping at the base text size."},
+    "changedBy": "admin",
+    "appliesTo": "A change applies to every plan screen opened after it. No plan can be bought yet, so nobody's tier is renamed under them.",
+    "guardrail": {"statement": "No tier's name sounds like medical aid, a scheme, cover or insurance.", "forbids": ["Plus Cover", "Insured Plus"]}
+   },
+   {
+    "key": "tier-name-premium",
+    "label": "Name of the weekly tier",
+    "help": "What is the tier with a nurse every week called?",
+    "owner": "money",
+    "type": "text",
+    "unit": "characters",
+    "default": {"value": "Premium", "decidedBy": "Founder", "decidedOn": "2026-09-14", "why": "The Blueprint's name for the tier, confirmed with its price on 14 September 2026."},
+    "maxLength": {"value": 20, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Twenty characters fits a tier's name above its price in one of three choices across a phone, without wrapping at the base text size."},
+    "changedBy": "admin",
+    "appliesTo": "A change applies to every plan screen opened after it. No plan can be bought yet, so nobody's tier is renamed under them.",
+    "guardrail": {"statement": "No tier's name sounds like medical aid, a scheme, cover or insurance.", "forbids": ["Premium Medical Aid", "Premium Benefits"]}
+   },
+   {
+    "key": "tiers-stack",
+    "label": "Each tier brings the tier below it",
+    "help": "Does Plus also bring everything Essential names, and Premium everything Plus names?",
+    "owner": "money",
+    "type": "boolean",
+    "unit": null,
+    "default": {"value": true, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "A family moving a parent to a dearer tier expects to keep what they had. A Plus that dropped the medicine collection and the report after each visit would be a downgrade sold at a higher price, and the Blueprint lists what each tier adds rather than everything it holds."},
+    "allowed": [
+     {"value": true, "label": "Yes: each tier brings everything the tier below it names", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "The proposal, and how a family reads three rising prices."},
+     {"value": false, "label": "No: each tier brings only what it names", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Allowed, because each tier's own list is still true on its own; every plan screen then lists only that tier's items."}
+    ],
+    "changedBy": "admin",
+    "appliesTo": "A change applies to every plan screen opened after it. No plan can be bought yet, so nobody's plan loses or gains anything under them."
+   },
+   {
+    "key": "plus-urgent-callouts",
+    "label": "Urgent call-outs on Plus",
+    "help": "How many urgent nurse call-outs does Plus bring, and over what period are they counted?",
+    "owner": "money",
+    "type": "record",
+    "unit": null,
+    "parts": [
+     {"key": "count", "label": "Call-outs", "type": "count", "unit": "call-outs", "positive": false,
+      "bounds": {
+       "lowest": {"value": 0, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Nought is allowed, because a Plus with no urgent call-out is a plan that promises none, and it then lists none rather than a line that says nothing."},
+       "highest": {"value": 4, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Four is one a week at most. More is a promise of urgent nurses that a pilot roster in one city cannot keep for every Plus family at once."}
+      }},
+     {"key": "period", "label": "Counted per", "type": "enum", "unit": null,
+      "allowed": [
+       {"value": "month", "label": "Month", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "The plan is paid monthly, so a month is the period a family already counts in."},
+       {"value": "year", "label": "Year", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Allowed, because the Blueprint gives no period and a yearly allowance is the other honest reading of one call-out."}
+      ]}
+    ],
+    "default": {"value": {"count": 1, "period": "month"}, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "The Blueprint names one urgent call-out on Plus and no period. A month matches the plan being paid monthly, so no family is told in March that January's call-out was the year's."},
+    "changedBy": "admin",
+    "appliesTo": "A change applies to every plan screen opened after it, which reads the number and the period in words. No plan can be bought yet, so no call-out already promised is taken back.",
+    "guardrail": {
+     "statement": "Plus never promises more than one urgent call-out a week, and never counts them over a period shorter than the month it is paid for.",
+     "forbids": [{"count": 5, "period": "month"}, {"count": 1, "period": "week"}, {"count": -1, "period": "month"}]
+    }
+   },
+   {
+    "key": "priority-sos-wording",
+    "label": "What priority SOS means",
+    "help": "What does the priority SOS that Premium brings mean, in the words a family reads?",
+    "owner": "money",
+    "type": "text",
+    "unit": "characters",
+    "default": {"value": "When you press SOS, a person at our desk picks up first among calls of the same urgency, and we tell your family straight away. It never means being seen ahead of someone more unwell.", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "The Blueprint names priority SOS and does not say what it adds. Being picked up first among calls that are equally urgent, and the family being told at once, is something a paid plan can honestly add; being seen ahead of somebody more unwell is not, and the last sentence says so."},
+    "maxLength": {"value": 280, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Two short sentences, and room to reword them, below an inclusion on a phone without a wall of text."},
+    "mustKeep": [{"words": "It never means being seen ahead of someone more unwell.", "why": "packages/catalog/mom-plans.json refuses a plan buying a place ahead of somebody else. Whatever priority SOS is reworded to, this sentence travels with it."}],
+    "changedBy": "admin",
+    "appliesTo": "A change applies to every plan screen opened after it. Nothing an SOS already did is changed by it.",
+    "guardrail": {
+     "statement": "The wording never claims a Premium parent is seen ahead of somebody more unwell.",
+     "forbids": ["When you press SOS, you are seen before anybody else.", "Premium parents are answered first, whoever else is waiting and however unwell they are."]
+    }
+   },
+   {
+    "key": "visit-reports-whatsapp",
+    "label": "WhatsApp after a visit",
+    "help": "What, if anything, is sent to a family on WhatsApp after a visit?",
+    "owner": "money",
+    "type": "enum",
+    "unit": null,
+    "default": {"value": "off", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "A visit report is health information, which is special personal information under POPIA, and WhatsApp is a third party nobody has assessed. Until a data protection impact assessment says otherwise nothing about a visit goes there, and even a message that a report is ready tells somebody's contacts that a parent is being nursed."},
+    "allowed": [
+     {"value": "off", "label": "Nothing is sent on WhatsApp", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "The proposal: the report and the photo are in the app, and nothing leaves it."},
+     {"value": "notify-only", "label": "A WhatsApp message that a report is ready, with nothing about their health", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Allowed once a DPIA has been done, because the message carries no health content and sends the family to the app, where the report is read under the parent's consent."}
+    ],
+    "changedBy": "admin",
+    "appliesTo": "A change applies to every plan screen opened after it and to visits after it. No message has ever been sent, because no WhatsApp channel is connected.",
+    "guardrail": {
+     "statement": "No report, photo or reading ever leaves through WhatsApp. At most a message says a report is ready, with nothing about anybody's health.",
+     "forbids": ["full-report", "summary", "photo", "readings"]
+    }
+   },
+   {
+    "key": "doctor-case-fee",
+    "label": "Doctor's fee per case",
+    "help": "What is a doctor paid for one signed review?",
+    "owner": "money",
+    "type": "moneyCents",
+    "unit": "cents",
+    "default": {"value": 4800, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "The middle of the range the documents give, R47.50, rounded to the whole rand. It is shown to doctors as a proposal and pays nobody until an admin confirms the fee, so a number nobody agreed to cannot become somebody's income by being left alone."},
+    "bounds": {
+     "lowest": {"value": 3500, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "The bottom of the range the Master Blueprint and the funding proposal give for a doctor's per-case review."},
+     "highest": {"value": 6000, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "The top of the range the documents give. A fee above it is a change to the business model, not a setting."},
+     "citedFrom": {"file": "packages/catalog/business-model.json", "path": "unitEconomics.doctorReviewFee"}
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to cases signed after it. A case already signed keeps the fee in force on the day it was signed, and a fee nobody has confirmed schedules no payout, however long it is left in force.",
+    "guardrail": {
+     "statement": "No fee is nought, and none sits outside the range the documents give.",
+     "forbids": [0, 3499, 6001, 4750.5]
+    }
+   },
+   {
+    "key": "doctor-fee-confirmed",
+    "label": "Doctor's fee confirmed for payouts",
+    "help": "Has an admin confirmed the doctor's fee in force, so that a doctor's payout may be scheduled at it?",
+    "owner": "money",
+    "type": "boolean",
+    "unit": null,
+    "default": {"value": false, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "The fee in force is a proposal. A proposal left in force must not schedule real preview payouts, so it is shown to doctors and pays nobody until somebody who answers for it confirms it. This is a setting of its own because a change to the fee alone cannot confirm the proposed amount: a change that changes nothing is refused."},
+    "allowed": [
+     {"value": false, "label": "Not confirmed: every case is recorded and no payout is scheduled", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "The proposal, while the fee in force is one."},
+     {"value": true, "label": "Confirmed: payouts are scheduled at the fee in force", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "An admin confirms the fee by switching this on, with a reason, and is recorded as having done so."}
+    ],
+    "changedBy": "admin",
+    "appliesTo": "A change applies to cases signed after it and to payouts scheduled after it. A case signed while the fee was confirmed keeps that fee and is paid whatever is changed later, and a case signed before is paid at the fee confirmed when its payout is scheduled."
+   },
+   {
+    "key": "nurse-share-sentence",
+    "label": "What a nurse is told about her share",
+    "help": "In what words is a nurse told how much of a visit's price is hers?",
+    "owner": "money",
+    "type": "text",
+    "unit": "characters",
+    "default": {"value": "Your share is most of what the patient pays for the visit, shown to the rand on each visit.", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "The sentence it replaces said three quarters of what the patient paid, which is untrue of a screening bundle and of Thuso SOS. Most of the price is true of every visit in packages/catalog/services.json, and the exact figure is on each visit, where it is worked out rather than claimed."},
+    "maxLength": {"value": 200, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "One sentence before the rule it opens, which a nurse reads on a phone between visits."},
+    "changedBy": "admin",
+    "appliesTo": "A change applies to every earnings screen opened after it. It changes no figure: what a nurse is paid for a visit is its share in packages/catalog/services.json.",
+    "guardrail": {
+     "statement": "The wording never states the share as a fraction or a percentage, because it is not the same part of every visit.",
+     "forbids": ["three quarters", "Your share is 75% of what the patient paid.", "Your share is three quarters of what the patient paid, shown to the rand on each visit.", "You keep 3 in 4 rand of every visit."]
+    }
+   }
+  ],
+  "defaults": {
+   "version": 2,
+   "changelog": [
+    {
+     "version": 1,
+     "on": "2026-09-14",
+     "by": "Founder",
+     "changed": [
+      {"setting": "plan-family-name", "from": null, "to": "MyThuso for Mom"},
+      {"setting": "tier-name-essential", "from": null, "to": "Essential"},
+      {"setting": "tier-name-plus", "from": null, "to": "Plus"},
+      {"setting": "tier-name-premium", "from": null, "to": "Premium"}
+     ],
+     "why": "The founder confirmed the Master Blueprint v4's MyThuso for Mom and its three tiers, replacing the single R249 Thuso Mom. The names were carried in packages/catalog/mom-plans.json until they became settings on 15 September 2026."
+    },
+    {
+     "version": 2,
+     "on": "2026-09-15",
+     "by": "Integrator (Wave 3)",
+     "changed": [
+      {"setting": "tiers-stack", "from": null, "to": true},
+      {"setting": "plus-urgent-callouts", "from": null, "to": {"count": 1, "period": "month"}},
+      {"setting": "priority-sos-wording", "from": null, "to": "When you press SOS, a person at our desk picks up first among calls of the same urgency, and we tell your family straight away. It never means being seen ahead of someone more unwell."},
+      {"setting": "visit-reports-whatsapp", "from": null, "to": "off"},
+      {"setting": "doctor-case-fee", "from": null, "to": 4800},
+      {"setting": "doctor-fee-confirmed", "from": null, "to": false},
+      {"setting": "nurse-share-sentence", "from": null, "to": "Your share is most of what the patient pays for the visit, shown to the rand on each visit."}
+     ],
+     "why": "The founder instructed that open questions become admin settings: \"All the questions you are asking please factor them as the admin setup on config so that they are dynamic.\" MyThuso for Mom's two open questions, its undecided priority SOS, the doctor's undecided fee and a nurse's share sentence that was untrue of two services became settings, each with a proposal an admin may change."
+    }
+   ]
+  }
+ }
 }

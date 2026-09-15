@@ -6,6 +6,7 @@ import {
 import { settingsEngines } from '../../../../packages/engines/src/settings/registry.ts';
 import { inForce, panicWindowOf, type PanicWindow, type SettingsInForce } from '../../../../packages/engines/src/safety/domain/settings.ts';
 import { careInForceOf, type CareInForce } from '../../../../packages/engines/src/care/domain/settings.ts';
+import { doctorFeeOf, nurseShareSentenceOf, planTermsOf, type DoctorFeeInForce, type PlanTerms } from '../../../../packages/engines/src/money/domain/settings.ts';
 import { rotaOf } from '../../../../packages/engines/src/core/domain/settings.ts';
 import type { KeptRota } from '../../../../packages/engines/src/core/domain/loops.ts';
 import { accessInForce, accessInForceAt, type AccessSettingsInForce } from '../../../../packages/engines/src/access/domain/settings.ts';
@@ -29,6 +30,13 @@ import { can } from './vetting';
  * or a visit starts, and what it answered is kept by the thing that asked; nothing already running asks
  * again, so a change made in the back office and then seen from the nurse's workspace in the same tab
  * reaches the next visit, panic and offer and never the one already under way.
+ *
+ * Money's readers are asked the same way. The MyThuso for Mom panel asks momPlanNow() when it is drawn,
+ * and is handed the plan already read into its words, so it types no name, no call-out and no wording.
+ * The doctor's fee screen hands doctorFeeNow() to the ledger, which writes the fee in force onto each case
+ * it hears. The nurse's earnings ask nurseShareSentenceNow(). None of these screens is on the patient's
+ * first load: the plans panel is a dynamic import, and the fee and earnings screens are in the clinical
+ * workspace.
  *
  * WHO. The admin a change is recorded against is the party the back office opens as, and the reviewer a
  * confirmation is recorded against is the party the doctor's workspace opens as — each read from the role
@@ -71,6 +79,9 @@ export const snapshotNow = (engine: string): Snapshot => snapshotOf(engineOf(eng
 export const safetySettingsNow = (): SettingsInForce => inForce(historyOf('safety'));
 export const panicWindowNow = (): PanicWindow => panicWindowOf(historyOf('safety'));
 export const careSettingsNow = (): CareInForce => careInForceOf(snapshotNow('care'));
+export const momPlanNow = (): PlanTerms => planTermsOf(snapshotNow('money'));
+export const doctorFeeNow = (): DoctorFeeInForce => doctorFeeOf(snapshotNow('money'));
+export const nurseShareSentenceNow = (): string => nurseShareSentenceOf(snapshotNow('money'));
 /* The escalation rota and its minutes in force, for the Control Tower's concerns: asked once when a concern
    is opened, and kept by the concern. */
 export const escalationRotaNow = (): KeptRota => rotaOf(snapshotNow('core'));

@@ -47,6 +47,10 @@ import za.co.mythuso.model.momPrices
  * that capability is connected. Nothing here joins a plan: there is no button for it, and the payments
  * notice sits above the prices. The heading says "would bring" rather than "includes" because a plan
  * does not include a device that has not been built.
+ *
+ * The names, "Everything in Essential", Plus's call-outs, the report's wording and what priority SOS
+ * means are Money's settings. This app has no admin surface, so it shows their defaults as generated,
+ * and the two questions this screen used to list as not decided are those settings.
  */
 @Composable fun MomPlanScreen() {
     var chosen by rememberSaveable { mutableStateOf(momPlan.tiers.first().id) }
@@ -62,6 +66,7 @@ import za.co.mythuso.model.momPrices
                 "What ${tier.name} would bring · Phase ${tier.phase}", style = MaterialTheme.typography.titleMedium,
                 color = Charcoal, modifier = Modifier.semantics { heading() }
             )
+            tier.inherits?.let { Text(it, style = MaterialTheme.typography.titleSmall, color = Charcoal) }
             momGroups(tier).forEach { group ->
                 Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
                     group.items.forEach { InclusionRow(it) }
@@ -78,7 +83,6 @@ import za.co.mythuso.model.momPrices
                 )
             }
         }
-        Section("Not decided yet") { momPlan.openQuestions.forEach { Note(it) } }
         Section("Add-ons") {
             Note(momPlan.addOnsStatement)
             momPlan.addOns.forEach { Text(it.name, style = MaterialTheme.typography.bodyMedium, color = Charcoal) }
@@ -113,7 +117,7 @@ import za.co.mythuso.model.momPrices
         Text("•", style = MaterialTheme.typography.bodyMedium, color = Charcoal)
         Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
             Text(item.text, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
-            item.undecided?.let { Note(it) }
+            item.detail?.let { Note(it) }
         }
     }
 }

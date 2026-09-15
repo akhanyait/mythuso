@@ -34,7 +34,7 @@ val payLineKinds = listOf(
 /* Rendered word for word. A rule paraphrased on one platform is a different promise on that
    platform, which is the whole reason these live in one file. */
 val payRules = listOf(
-    PayRule("share-is-not-reduced", "Nothing comes off your share", "Your share is three quarters of what the patient paid. The card fee, the doctor's review and everything it costs to run MyThuso come out of MyThuso's quarter — never out of yours."),
+    PayRule("share-is-not-reduced", "Nothing comes off your share", "The card fee, the doctor's review and everything it costs to run MyThuso come out of what MyThuso keeps — never out of your share."),
     PayRule("suspension-is-not-confiscation", "A suspension does not touch what you have earned", "A lapsed check stops new visits reaching you. It does not touch money you have already earned. Work done is work paid, and the payout goes out on its normal day."),
     PayRule("accrued-is-not-paid", "This week is an estimate", "A visit can still be cancelled and a reading can still be reversed. Nothing on this screen is money until it says paid."),
     PayRule("no-tax-withheld", "No tax has been taken off", "MyThuso withholds no tax. You are paid your full share as an independent contractor, and your provisional tax is yours to arrange. We show you the totals. We do not advise you on them, and nobody here is your accountant."),

@@ -30,9 +30,11 @@ export type Service = { id: string; name: string; price: number; nurseShare: num
 import { methodById, methods, type Method, type MethodId, type PayableKind, type PaymentStateId } from './methods.ts';
 export { methodById, methods, type Method, type MethodId, type PayableKind, type PaymentStateId };
 export type DoorOutcome = 'authorised' | 'declined' | 'reversed' | 'settled';
+/* A fee names the two settings that hold its amount and whether it is confirmed, and never a number:
+   the amount, its range and the confirmation are Money's settings, read through ./settings.ts. */
 export type DoctorFee = {
- feeCode: string; name: string; amount: number | null; decidedBy: string | null; decidedOn: string | null;
- rangeFrom: { file: string; path: string }; source: string; undecided: string; whoDecides: string;
+ feeCode: string; name: string; amountSetting: string; confirmedSetting: string;
+ source: string; unconfirmed: string; confirmed: string; whoSets: string;
 };
 
 export const money = moneyContract;
@@ -68,16 +70,6 @@ export function planPriceRand(planId: string, tierId?: string): number | null {
  }
  const plan = businessModel.subscriptions.find(s => s.id === planId);
  return plan && typeof plan.price === 'number' ? plan.price : null;
-}
-
-/** The cited range for a fee, read from the file the contract names — never typed beside it. */
-export function rangeOf(fee: DoctorFee): [number, number] {
- const root: Record<string, unknown> = fee.rangeFrom.file === 'packages/catalog/business-model.json' ? businessModel as Record<string, unknown> : {};
- const value = fee.rangeFrom.path.split('.').reduce<unknown>((at, key) => (at as Record<string, unknown> | undefined)?.[key], root);
- if (!Array.isArray(value) || value.length !== 2 || !value.every(n => typeof n === 'number')) {
-  throw new Error(`The fee "${fee.feeCode}" cites ${fee.rangeFrom.file}#${fee.rangeFrom.path}, which is not a range of two numbers.`);
- }
- return [value[0] as number, value[1] as number];
 }
 
 export function feeByCode(code: string): DoctorFee | undefined {

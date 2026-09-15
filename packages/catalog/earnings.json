@@ -73,7 +73,8 @@
   {
    "id": "share-is-not-reduced",
    "title": "Nothing comes off your share",
-   "sentence": "Your share is three quarters of what the patient paid. The card fee, the doctor's review and everything it costs to run MyThuso come out of MyThuso's quarter — never out of yours."
+   "opensWith": {"engine": "money", "setting": "nurse-share-sentence", "why": "The sentence before this one says what the share is, and it is Money's setting since 15 September 2026. It used to say three quarters, which is untrue of a screening bundle and of Thuso SOS, so every screen reads the wording in force and puts this rule after it."},
+   "sentence": "The card fee, the doctor's review and everything it costs to run MyThuso come out of what MyThuso keeps — never out of your share."
   },
   {
    "id": "suspension-is-not-confiscation",

@@ -14,16 +14,20 @@
  * WHAT A PHONE MAY BE HANDED, by the setting's own type, and a default that is not that is refused here
  * rather than written as something a phone would misread:
  *   minutes, count, moneyCents, percentage   a whole number above nought, or with list a list of them — the
- *             field-safety timings, Care's offer expiry, the thread's longest message; a count whose setting
- *             allows nought may be nought — the hours a thread stays open after its visit
+ *             field-safety timings, Care's offer expiry, the doctor's fee, the thread's longest message; a
+ *             count whose setting allows nought may be nought — the hours a thread stays open after its visit
  *   roleList  role ids from the vetting register, each once and at least one — Care's scope settings, who
  *             answers a handover
  *   boolean   true or false, one of its allowed values if it names them — whether an Encounter entry counts
- *             as signed, photos in a thread
- *   enum      a word that is one of its allowed values — the named-nurse fallback
- *   schedule  a rota of { post, days, from, to }, each window ending after it starts — the handover desk
+ *             as signed, whether the doctor's fee is confirmed, photos in a thread
+ *   enum      a word that is one of its allowed values — Money's choices, the named-nurse fallback
+ *   text      wording that is never empty — Money's settings
+ *   record    whole numbers, choices and on-or-offs changed together — Money's settings
+ *   schedule  a rota of { post, days, from, to }, each window ending after it starts — the handover desk.
+ *             Core's escalation rota is not written for a phone; no native screen shows escalation.
  * An emitter that needs another type for a phone extends this function, so the refusal and the sentence
- * stay in one place.
+ * stay in one place. settingBounds gives a phone the range an admin may set a number within, for a screen
+ * that shows it, from the same place.
  *
  * WHY A PHONE IS TOLD WHETHER THE DEFAULT WAS REVIEWED, AND NOTHING ELSE ABOUT A REVIEW. A phone uses the
  * default and never the value an admin puts in force on the web, so the only value it can honestly describe
@@ -32,39 +36,63 @@
  * the day a reviewed default is written into the contract and emitted again — never because a doctor
  * confirmed a value on the web that the phone is not using.
  */
+const NUMBERS = new Set(['minutes', 'count', 'moneyCents', 'percentage']);
 const HHMM = /^([01]\d|2[0-4]):[0-5]\d$/;
+const isRecord = value => typeof value === 'object' && value !== null && !Array.isArray(value);
 
-export function settingDefault(source, contract, key, { list = false } = {}) {
+function settingOf(source, contract, key) {
  const setting = contract.settings?.items?.find(item => item.key === key);
  if (!setting) throw new Error(`${source} has no setting "${key}" in its settings block.`);
+ return setting;
+}
+
+export function settingDefault(source, contract, key, { list = false } = {}) {
+ const setting = settingOf(source, contract, key);
  const entry = setting.default;
  if (!entry || !('decidedBy' in entry)) throw new Error(`${source} setting ${key} has lost its decidedBy. A default nobody decided must say so.`);
  const decided = entry.decidedBy !== null;
  if (decided ? !(String(entry.decidedBy).trim() && /^\d{4}-\d{2}-\d{2}$/.test(entry.decidedOn ?? '')) : !(entry.proposedBy?.trim() && entry.proposedBecause?.trim())) {
   throw new Error(`${source} setting ${key} ${decided ? 'says it was decided without naming who decided it and on what day' : 'is a proposal that does not say who proposed it and why'}.`);
  }
+ const value = entry.value;
  const allowed = (setting.allowed ?? []).map(choice => choice.value);
  if (setting.type === 'roleList') {
-  if (!Array.isArray(entry.value) || !entry.value.length || new Set(entry.value).size !== entry.value.length || !entry.value.every(role => typeof role === 'string' && /^[a-z][a-z-]*$/.test(role))) {
+  if (!Array.isArray(value) || !value.length || new Set(value).size !== value.length || !value.every(role => typeof role === 'string' && /^[a-z][a-z-]*$/.test(role))) {
    throw new Error(`${source} setting ${key} must name at least one role, each once and each a vetting register id, to be written for a phone.`);
   }
  } else if (setting.type === 'boolean') {
-  if (typeof entry.value !== 'boolean' || (allowed.length && !allowed.includes(entry.value))) throw new Error(`${source} setting ${key} must be true or false, and one of its allowed values, to be written for a phone.`);
- } else if (setting.type === 'enum') {
-  if (typeof entry.value !== 'string' || !allowed.includes(entry.value)) throw new Error(`${source} setting ${key} must be one of its allowed choices to be written for a phone.`);
+  if (typeof value !== 'boolean' || (allowed.length && !allowed.includes(value))) throw new Error(`${source} setting ${key} must be true or false, and one of its allowed values, to be written for a phone.`);
+ } else if (setting.type === 'enum' || setting.type === 'text') {
+  if (typeof value !== 'string' || !value.trim()) throw new Error(`${source} setting ${key} must be wording that is not empty to be written for a phone.`);
+  if (setting.type === 'enum' && allowed.length && !allowed.includes(value)) throw new Error(`${source} setting ${key} must be one of its allowed choices to be written for a phone.`);
+ } else if (setting.type === 'record') {
+  if (!isRecord(value) || !Object.values(value).every(v => Number.isInteger(v) || typeof v === 'boolean' || (typeof v === 'string' && v.trim()))) {
+   throw new Error(`${source} setting ${key} must be a record of whole numbers, choices and on-or-offs to be written for a phone.`);
+  }
  } else if (setting.type === 'schedule') {
-  if (!Array.isArray(entry.value) || !entry.value.length || !entry.value.every(w => typeof w?.post === 'string' && Array.isArray(w.days) && w.days.length && HHMM.test(w.from) && HHMM.test(w.to) && w.from < w.to)) {
+  if (!Array.isArray(value) || !value.length || !value.every(w => typeof w?.post === 'string' && Array.isArray(w.days) && w.days.length && HHMM.test(w.from) && HHMM.test(w.to) && w.from < w.to)) {
    throw new Error(`${source} setting ${key} must be a rota of windows that each end after they start to be written for a phone.`);
   }
- } else {
+ } else if (NUMBERS.has(setting.type) || (setting.type === 'list' && NUMBERS.has(setting.of))) {
   const least = setting.type === 'count' && setting.positive === false ? 0 : 1;
-  const values = list ? entry.value : [entry.value];
+  const values = list ? value : [value];
   if (!Array.isArray(values) || !values.length || !values.every(v => Number.isInteger(v) && v >= least)) {
    throw new Error(`${source} setting ${key} must be ${list ? 'a list of whole numbers' : 'a whole number'} ${least ? 'above nought' : 'of nought or more'} to be written for a phone.`);
   }
+ } else {
+  throw new Error(`${source} setting ${key} is a ${setting.type}, which is not written for a phone.`);
  }
  const whose = decided ? `Decided by the ${entry.decidedBy}.` : 'A proposal nobody has decided.';
  const unreviewed = Boolean(setting.reviewRequired) && !(entry.reviewedBy?.trim() && /^\d{4}-\d{2}-\d{2}$/.test(entry.reviewedOn ?? ''));
  const review = setting.reviewRequired ? (unreviewed ? ' Not clinically reviewed.' : ` Clinically reviewed by the ${entry.reviewedBy} on ${entry.reviewedOn}.`) : '';
- return { value: entry.value, unreviewed, note: `${whose}${review} A default an admin may change on the web; this app has no admin surface and uses it as written here.` };
+ return { value, unreviewed, note: `${whose}${review} A default an admin may change on the web; this app has no admin surface and uses it as written here.` };
+}
+
+/** The lowest and highest an admin may set a number to, for a phone that shows the range beside it. */
+export function settingBounds(source, contract, key) {
+ const bounds = settingOf(source, contract, key).bounds;
+ if (!Number.isInteger(bounds?.lowest?.value) || !Number.isInteger(bounds?.highest?.value) || bounds.lowest.value > bounds.highest.value) {
+  throw new Error(`${source} setting ${key} has no bounds of two whole numbers, lowest first, to be written for a phone.`);
+ }
+ return { lowest: bounds.lowest.value, highest: bounds.highest.value };
 }

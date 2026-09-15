@@ -40,20 +40,30 @@ const windowsText = (row: TimingRow, windows: Window[]) => windows.length ? wind
 const valueText = (row: TimingRow, value: unknown): string => {
   if (row.type === 'minutes' || (row.type === 'list' && row.of === 'minutes')) return minutesText(value as number | number[]);
   if (row.type === 'count') return fill(say.values.count, { value: String(value), unit: row.unit ?? '' });
+  if (row.type === 'moneyCents') return fill(say.values.moneyCents, { rand: ((value as number) / 100).toFixed(2) });
   if (row.type === 'boolean') return row.allowed?.find(choice => choice.value === value)?.label ?? (value ? say.values.on : say.values.off);
   if (row.type === 'enum') return row.allowed!.find(choice => choice.value === value)!.label;
+  if (row.type === 'text') return `“${String(value)}”`;
   if (row.type === 'roleList') return (value as string[]).map(roleName).join(', ');
+  if (row.type === 'record') return row.parts!.map(part => `${part.label} ${valueText(part, (value as Record<string, unknown>)[part.key])}`).join(' · ');
   if (row.type === 'schedule') return windowsText(row, value as Window[]);
   throw new Error(`${row.key} is a ${row.type}, which this journey does not read yet.`);
 };
-/* A bound reads in its own setting's unit: minutes for a timing, characters or hours for a count. */
-const limitsTexts = (row: TimingRow): string[] => [
-  ...(row.posts ? [fill(say.posts, { posts: row.posts.map(post => post.role === null ? fill(say.postWithoutRole, { post: post.label }) : post.label).join(', ') })] : []),
-  ...(row.bounds ? [fill(say.range, { lowest: valueText(row, row.bounds.lowest.value), highest: valueText(row, row.bounds.highest.value) })] : []),
-  ...(row.allowed ? [fill(say.choices, { values: row.allowed.map(choice => choice.label).join(', ') })] : []),
-  ...(row.allowedRoles ? [fill(say.roles, { roles: row.allowedRoles.roles.map(roleName).join(', ') })] : []),
-  ...(row.items ? [fill(say.listLength, { lowest: String(row.items.lowest.value), highest: String(row.items.highest.value) })] : [])
-];
+/* What the screen says an admin may set, one text per limit. A record's parts are one text, each part's
+   limits after its label, as the screen joins them; a rota's posts say which have no role. A bound reads
+   in its own setting's unit: minutes for a timing, characters or hours for a count, rand for money. */
+const limitsTexts = (row: TimingRow): string[] => {
+  if (row.type === 'record') return [row.parts!.map(part => `${part.label}: ${limitsTexts(part).join(' · ')}`).join(' · ')];
+  const inUnits = (value: number) => row.type === 'list' ? minutesText(value) : valueText(row, value);
+  return [
+    ...(row.posts ? [fill(say.posts, { posts: row.posts.map(post => post.role === null ? fill(say.postWithoutRole, { post: post.label }) : post.label).join(', ') })] : []),
+    ...(row.bounds ? [fill(say.range, { lowest: inUnits(row.bounds.lowest.value), highest: inUnits(row.bounds.highest.value) })] : []),
+    ...(row.allowed ? [fill(say.choices, { values: row.allowed.map(choice => choice.label).join(', ') })] : []),
+    ...(row.maxLength ? [fill(say.maxLength, { count: String(row.maxLength.value) })] : []),
+    ...(row.allowedRoles ? [fill(say.roles, { roles: row.allowedRoles.roles.map(roleName).join(', ') })] : []),
+    ...(row.items ? [fill(say.listLength, { lowest: String(row.items.lowest.value), highest: String(row.items.highest.value) })] : [])
+  ];
+};
 const sources = (settingsContract.sources as { engine: string; file: string }[]).map(s => ({ engine: s.engine, block: json(`../${s.file}`).settings as { heading: string; intro: string; items: TimingRow[] } }));
 const total = String(sources.reduce((sum, s) => sum + s.block.items.length, 0));
 const expiry = (care.settings.items as TimingRow[]).find(s => s.key === 'offer-expiry')!;

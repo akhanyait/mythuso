@@ -187,6 +187,8 @@ object ApisData {
     val POST_MONEY_GROUPS = Route("postMoneyGroups", "POST", "/v1/money/groups", "/v1/money/groups", 1, "money", listOf("patient", "sponsor", "employer"), listOf("billing"), true, "proposed")
     val POST_MONEY_CLAIMS_V2 = Route("postMoneyClaimsV2", "POST", "/v1/money/claims", "/v1/money/claims", 2, "money", listOf("admin"), listOf("billing"), true, "proposed")
     val POST_MONEY_MARKET_ORDERS = Route("postMoneyMarketOrders", "POST", "/v1/money/market-orders", "/v1/money/market-orders", 1, "money", listOf("patient", "caregiver"), listOf("billing"), true, "proposed")
+    val GET_MONEY_SETTINGS = Route("getMoneySettings", "GET", "/v1/money/settings", "/v1/money/settings", 1, "money", listOf("admin"), listOf("audit"), false, "built")
+    val POST_MONEY_SETTING_CHANGES = Route("postMoneySettingChanges", "POST", "/v1/money/setting-changes", "/v1/money/setting-changes", 1, "money", listOf("admin"), listOf("audit"), true, "built")
 
     val routes = listOf(
         POST_CORE_EVENTS,
@@ -353,7 +355,9 @@ object ApisData {
         POST_MONEY_GIFTS,
         POST_MONEY_GROUPS,
         POST_MONEY_CLAIMS_V2,
-        POST_MONEY_MARKET_ORDERS
+        POST_MONEY_MARKET_ORDERS,
+        GET_MONEY_SETTINGS,
+        POST_MONEY_SETTING_CHANGES
     )
 
     data class PostCoreEventsRequest(
@@ -1666,5 +1670,29 @@ object ApisData {
     data class PostMoneyMarketOrdersResponse(
         val marketOrderRef: String,
         val totalCents: Int
+    )
+    class GetMoneySettingsRequest
+    data class GetMoneySettingsResponse(
+        val settingsVersion: Int,
+        val settings: List<Map<String, Any?>>,
+        val history: List<Map<String, Any?>>
+    )
+    data class PostMoneySettingChangesRequest(
+        val idempotencyKey: String,
+        val setting: String,
+        val wholeNumber: Int? = null,
+        val switchedOn: Boolean? = null,
+        val choice: String? = null,
+        val wording: String? = null,
+        val roles: List<String>? = null,
+        val windows: List<Map<String, Any?>>? = null,
+        val items: List<String>? = null,
+        val parts: Map<String, Any?>? = null,
+        val reason: String? = null,
+        val expectedVersion: Int
+    )
+    data class PostMoneySettingChangesResponse(
+        val settingsVersion: Int,
+        val appliesFrom: String
     )
 }

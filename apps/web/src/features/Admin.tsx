@@ -7,8 +7,14 @@ import { useVettingState, VettingConsole, type VettingState } from './Vetting';
 import { summarise, type VettingSubject } from '../lib/vetting';
 import { businessModel, money, bigMoney, platformMargin, services, type Service } from '../lib/catalog';
 import { momPlan, subscriptionLines } from '../lib/mom-plans';
+import { escalationRotaNow, momPlanNow } from '../lib/settings';
 import { Configuration } from './Configuration';
 import { settingsScreen } from '../../../../packages/engines/src/settings/shape.ts';
+/* How long the desk has to acknowledge an incident before it moves up the rota: the first rung of Core's
+   setting escalation-minutes, in force. The console used to type five minutes in three places, which is a
+   number an admin's change on the Configuration tab would never have reached. Read when a tab draws. */
+const acknowledgeWithinMinutes = () => Math.round(escalationRotaNow().stepsMs[0]! / 60_000);
+
 export const adminTabs = ['Overview', 'Vetting', 'Operations', 'Clinical', 'Catalogue', 'Growth', 'Finance', 'Compliance', 'Configuration'] as const;
 export type AdminTab = typeof adminTabs[number];
 /* What each tab is for, in one line, in the words somebody in this office would use. It replaces the
@@ -99,7 +105,7 @@ function Overview({ vetting }: { vetting: VettingState }) {
    <Kpi label="Revenue this month" value={bigMoney(actual.revenue)} note={`Plan ${bigMoney(plan.revenue)} · costs ${bigMoney(actual.costs)}`}/>
    <Kpi label="Nurses dispatchable" value={String(nurses.length - blocking(vetting.subjects, 'nurse'))} note={`Of ${nurses.length} in the vetting pipeline · read from the vetting module, not typed here`}/>
    <Kpi label="Reviews awaiting a doctor" value="12" note="2 flagged urgent · target 15 minutes"/>
-   <Kpi label="Open incidents" value={String(tower.incidents)} note={`${tower.critical} critical · SLA acknowledged within 5 minutes`} flagged={tower.critical > 0}/>
+   <Kpi label="Open incidents" value={String(tower.incidents)} note={`${tower.critical} critical · SLA acknowledged within ${acknowledgeWithinMinutes()} minutes`} flagged={tower.critical > 0}/>
   </Metrics></div>
   <SectionTitle title="Against the funding plan"/>
   {/* Five columns of figures cannot be squeezed into 320 pixels, and they were not: the table sat
@@ -132,7 +138,7 @@ function Operations({ open, vetting, openSettings }: { open: (s: string) => void
   <div className="c-figures"><Metrics>
    <Kpi label="Parties blocking work" value={String(stopped)} note={`Of ${vetting.subjects.length} vetted parties · decided in the Vetting tab`}/>
    <Kpi label="Nurses blocked" value={String(blocking(vetting.subjects, 'nurse'))} note="Not offered on the board below, with the reason shown"/>
-   <Kpi label="Open incidents" value={String(tower.incidents)} note={`${tower.critical} critical · SLA acknowledged within 5 minutes`} flagged={tower.critical > 0}/>
+   <Kpi label="Open incidents" value={String(tower.incidents)} note={`${tower.critical} critical · SLA acknowledged within ${acknowledgeWithinMinutes()} minutes`} flagged={tower.critical > 0}/>
   </Metrics></div>
   <DispatchBoard subjects={vetting.subjects} heading={false}/>
   <SectionTitle title="Open incidents"/>
@@ -207,8 +213,10 @@ function Catalogue() {
 function Growth() {
  /* One line per price a person could pay each month. MyThuso for Mom is three lines, because a range
     cannot be multiplied by a subscriber count; its 120 sample subscribers are divided across the
-    tiers here, and like every count on this tab they are illustrative rather than anybody's. */
- const subs = subscriptionLines();
+    tiers here, and like every count on this tab they are illustrative rather than anybody's. The plan's
+    and tiers' names are the ones in force, so a name changed on the Configuration tab is the name here. */
+ const plan = momPlanNow();
+ const subs = subscriptionLines(plan);
  const active: Record<string, number> = { chronic: 980, planning: 410, 'mom-essential': 84, 'mom-plus': 28, 'mom-premium': 8, senior: 74, recover: 26, alert: 10, cover: 0 };
  const mrr = subs.reduce((t, s) => t + (s.price ?? 0) * (active[s.id] ?? 0), 0);
  const [retainLow, retainHigh] = momPlan.economics.retainsPerParentMonthly;
@@ -227,7 +235,7 @@ function Growth() {
     <td>Phase {s.phase}</td>
    </tr>)}</tbody>
   </table></div>
-  <div className="privacy-note space-top"><Banknote size={19}/>{momPlan.name} retains {money(retainLow)} to {money(retainHigh)} per parent per month in the Blueprint’s own model. It is an indicative figure rather than a trading result, and no visit cost is worked out from it.</div>
+  <div className="privacy-note space-top"><Banknote size={19}/>{plan.name} retains {money(retainLow)} to {money(retainHigh)} per parent per month in the Blueprint’s own model. It is an indicative figure rather than a trading result, and no visit cost is worked out from it.</div>
   <SectionTitle title="Thuso Screen packages"/>
   <div className="panel">{businessModel.screening.map(p => <div className="record-row static" key={p.id}>
    <span className="service-icon"><ShieldCheck size={20}/></span>
@@ -306,7 +314,7 @@ function Compliance() {
   { name: 'Append-only access and decision audit', detail: 'Not built: the vetting log lives in memory and dies on reload. A server-side record with integrity protection, that a person with database access still cannot rewrite, does not exist', state: 'Not built', icon: FileText },
   { name: 'SA hosting, encryption at rest and in transit', detail: 'Needs a backend before it can be true', state: 'Not built', icon: LockKeyhole },
   { name: 'Information Officer and POPIA request handling', detail: 'Correction, deletion and access requests', state: 'Not built', icon: Users },
-  { name: 'Incident escalation within 5 minutes', detail: 'Acknowledged, then Clinical Lead review within 24 hours', state: 'Designed', icon: Radio },
+  { name: `Incident escalation within ${acknowledgeWithinMinutes()} minutes`, detail: 'Acknowledged, then Clinical Lead review within 24 hours', state: 'Designed', icon: Radio },
   { name: 'SAHPRA registration for devices and diagnostic software', detail: 'Required before any device or model ships', state: 'Not built', icon: CircleAlert }
  ];
  return <>

@@ -30,7 +30,7 @@ extension Earnings {
     /* Rendered word for word. A rule paraphrased on one platform is a different promise on that
        platform, which is the whole reason these live in one file. */
     static let rules: [PayRule] = [
-        .init(id: "share-is-not-reduced", title: "Nothing comes off your share", sentence: "Your share is three quarters of what the patient paid. The card fee, the doctor's review and everything it costs to run MyThuso come out of MyThuso's quarter — never out of yours."),
+        .init(id: "share-is-not-reduced", title: "Nothing comes off your share", sentence: "The card fee, the doctor's review and everything it costs to run MyThuso come out of what MyThuso keeps — never out of your share."),
         .init(id: "suspension-is-not-confiscation", title: "A suspension does not touch what you have earned", sentence: "A lapsed check stops new visits reaching you. It does not touch money you have already earned. Work done is work paid, and the payout goes out on its normal day."),
         .init(id: "accrued-is-not-paid", title: "This week is an estimate", sentence: "A visit can still be cancelled and a reading can still be reversed. Nothing on this screen is money until it says paid."),
         .init(id: "no-tax-withheld", title: "No tax has been taken off", sentence: "MyThuso withholds no tax. You are paid your full share as an independent contractor, and your provisional tax is yours to arrange. We show you the totals. We do not advise you on them, and nobody here is your accountant."),

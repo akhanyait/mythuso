@@ -1,12 +1,12 @@
 import SwiftUI
 
-/* What a doctor is paid for reviewing a case, which is: not decided.
+/* What a doctor is paid for reviewing a case, and whether it may be paid yet.
  *
- * The documents give a range for a doctor's per-case review and no price. A screen like this is where a
- * made-up number would be most tempting and do the most harm — a figure a doctor reads as her rate,
- * which nobody agreed to. So the fee is the contract's nil, rendered as the contract's sentence; the
- * range is shown as a range and labelled as one, read from the funding proposal's model when MoneyData
- * was generated; and the one button asks to schedule the payout and shows the refusal, word for word,
+ * The documents give a range for a doctor's per-case review and no price. The fee is Money's setting,
+ * and this app has no admin surface, so it shows the default as generated: a proposal inside that range,
+ * which nobody has confirmed. A proposal pays nobody, so the screen shows the fee beside the contract's
+ * sentence saying it is not confirmed; the range is shown as a range and labelled as one, from the
+ * setting's bounds; and the one button asks to schedule the payout and shows the refusal, word for word,
  * rather than being disabled with no reason given.
  *
  * The cases carry a reference and a date and nothing else. Money hears review.billable, which names the
@@ -17,7 +17,7 @@ struct DoctorFeesView: View {
     private let fee = Money.reviewFee
     private let cases = Money.sampleCases
 
-    private var feeText: String { fee.amount.map { Earnings.rand($0) } ?? "Not decided" }
+    private var feeText: String { Money.randCents(fee.amountCents) + (fee.confirmed ? "" : " · not confirmed") }
 
     var body: some View {
         ScrollView {
@@ -25,10 +25,10 @@ struct DoctorFeesView: View {
                 CareHeading(eyebrow: "Doctor", title: "Per-case fees", subtitle: fee.name)
                 CapabilityNotice(of: "payouts")
                 CareCard(padding: ThusoSpacing.space16) {
-                    LabeledContent(fee.name, value: feeText)
-                    LabeledContent("The range the documents give", value: "\(Earnings.rand(fee.rangeLow)) to \(Earnings.rand(fee.rangeHigh))")
-                    muted(fee.undecided)
-                    muted("\(fee.source) Who decides it: \(fee.whoDecides)")
+                    LabeledContent(fee.name, value: Money.randCents(fee.amountCents))
+                    LabeledContent("The range the documents give", value: "\(Money.randCents(fee.rangeLowCents)) to \(Money.randCents(fee.rangeHighCents))")
+                    muted(fee.confirmed ? fee.confirmedWords : fee.unconfirmedWords)
+                    muted("\(fee.source) \(fee.whoSets)")
                 }
                 Text("Cases recorded").font(.headline).foregroundStyle(ThusoTheme.charcoal).accessibilityAddTraits(.isHeader)
                 CareCard(padding: ThusoSpacing.space16) {
@@ -38,16 +38,16 @@ struct DoctorFeesView: View {
                     muted(Money.casesWords)
                 }
                 CareCard(padding: ThusoSpacing.space16) {
-                    LabeledContent("Owed for \(cases.count) cases", value: Money.owed(for: cases, fee: fee).map { Earnings.rand($0) } ?? "Not worked out")
+                    LabeledContent("Owed for \(cases.count) cases", value: Money.owed(for: cases, fee: fee).map(Money.randCents) ?? "Not worked out")
                     if let answer {
                         Text(answer).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityIdentifier("doctor-fee-refusal")
                     } else {
-                        /* The phone cannot schedule anything; the engine refuses while the fee is nil,
-                           and this shows that refusal in its words rather than a figure. */
+                        /* The phone cannot schedule anything; the engine refuses at a fee nobody has
+                           confirmed, and this shows that refusal in its words rather than a figure. */
                         Button("Schedule this week’s payout") {
-                            answer = fee.isDecided ? nil : Money.refusal("doctor-fee-undecided")
+                            answer = fee.isPayable ? nil : Money.refusal("doctor-fee-undecided")
                         }.buttonStyle(QuietButton())
                     }
                 }

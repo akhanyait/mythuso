@@ -8,6 +8,7 @@
  "sources": [
   { "engine": "safety", "file": "packages/catalog/field-safety.json" },
   { "engine": "care", "file": "packages/catalog/care.json" },
+  { "engine": "money", "file": "packages/catalog/money.json" },
   { "engine": "core", "file": "packages/catalog/closed-loop.json" },
   { "engine": "access", "file": "packages/catalog/booking.json" }
  ],

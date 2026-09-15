@@ -10,7 +10,11 @@ import SwiftUI
  * CapabilityNotice for the capability it waits on, so the sentence is the contract's and disappears
  * the day that capability is connected. There is no button that joins: nothing can be bought, and the
  * payments notice sits above the prices rather than under them. The heading says "would bring" rather
- * than "includes" because a plan does not include a device that has not been built. */
+ * than "includes" because a plan does not include a device that has not been built.
+ *
+ * The names, "Everything in Essential", Plus's call-outs, the report's wording and what priority SOS
+ * means are Money's settings. This app has no admin surface, so it shows their defaults as generated,
+ * and the two questions this screen used to list as not decided are those settings. */
 struct MomPlansView: View {
     @State private var chosen = Plans.mom.tiers.first?.id ?? ""
     private var tier: MomTier { Plans.mom.tiers.first { $0.id == chosen } ?? Plans.mom.tiers[0] }
@@ -26,6 +30,11 @@ struct MomPlansView: View {
                         .font(.headline).foregroundStyle(ThusoTheme.charcoal)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
+                    if let inherits = tier.inherits {
+                        Text(inherits).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("mom-inherits")
+                    }
                     ForEach(Plans.groups(tier)) { group in
                         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
                             ForEach(group.items) { item in inclusionRow(item) }
@@ -40,9 +49,6 @@ struct MomPlansView: View {
                             .padding(.leading, ThusoSpacing.space12)
                             .overlay(alignment: .leading) { Rectangle().fill(ThusoTheme.charcoal).frame(width: 2) }
                     }
-                }
-                section("Not decided yet") {
-                    ForEach(Plans.mom.openQuestions, id: \.self) { question in muted(question) }
                 }
                 section("Add-ons") {
                     muted(Plans.mom.addOnsStatement)
@@ -101,7 +107,7 @@ struct MomPlansView: View {
             VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
                 Text(item.text).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
-                if let undecided = item.undecided { muted(undecided) }
+                if let detail = item.detail { muted(detail) }
             }
         }
         .accessibilityElement(children: .combine)

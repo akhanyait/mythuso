@@ -1497,6 +1497,32 @@ export interface PostMoneyMarketOrdersResponse {
  readonly totalCents: number;
 }
 
+export type GetMoneySettingsRequest = Record<string, never>;
+export interface GetMoneySettingsResponse {
+ readonly settingsVersion: number;
+ readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostMoneySettingChangesRequest {
+ readonly idempotencyKey: string;
+ readonly setting: string;
+ readonly wholeNumber?: number;
+ readonly switchedOn?: boolean;
+ readonly choice?: string;
+ readonly wording?: string;
+ readonly roles?: readonly string[];
+ readonly windows?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly items?: readonly string[];
+ readonly parts?: Readonly<Record<string, unknown>>;
+ readonly reason?: string;
+ readonly expectedVersion: number;
+}
+export interface PostMoneySettingChangesResponse {
+ readonly settingsVersion: number;
+ readonly appliesFrom: string;
+}
+
 export const apiRoutes = {
  postCoreEvents: { name: "postCoreEvents", method: "POST", path: "/v1/core/events", mountedPath: "/v1/core/events", version: 1, engine: "core", callers: ["engine:access","engine:pulse","engine:care","engine:clinical","engine:safety","engine:movement","engine:trust","engine:record","engine:medicines","engine:devices","engine:money"], purpose: ["audit"], idempotent: false, status: "proposed" },
  postCoreLoops: { name: "postCoreLoops", method: "POST", path: "/v1/core/loops", mountedPath: "/v1/core/loops", version: 1, engine: "core", callers: ["engine:care","engine:safety","engine:medicines","engine:access","engine:movement"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
@@ -1662,5 +1688,7 @@ export const apiRoutes = {
  postMoneyGifts: { name: "postMoneyGifts", method: "POST", path: "/v1/money/gifts", mountedPath: "/v1/money/gifts", version: 1, engine: "money", callers: ["caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "proposed" },
  postMoneyGroups: { name: "postMoneyGroups", method: "POST", path: "/v1/money/groups", mountedPath: "/v1/money/groups", version: 1, engine: "money", callers: ["patient","sponsor","employer"], purpose: ["billing"], idempotent: true, status: "proposed" },
  postMoneyClaimsV2: { name: "postMoneyClaimsV2", method: "POST", path: "/v1/money/claims", mountedPath: "/v1/money/claims", version: 2, engine: "money", callers: ["admin"], purpose: ["billing"], idempotent: true, status: "proposed" },
- postMoneyMarketOrders: { name: "postMoneyMarketOrders", method: "POST", path: "/v1/money/market-orders", mountedPath: "/v1/money/market-orders", version: 1, engine: "money", callers: ["patient","caregiver"], purpose: ["billing"], idempotent: true, status: "proposed" }
+ postMoneyMarketOrders: { name: "postMoneyMarketOrders", method: "POST", path: "/v1/money/market-orders", mountedPath: "/v1/money/market-orders", version: 1, engine: "money", callers: ["patient","caregiver"], purpose: ["billing"], idempotent: true, status: "proposed" },
+ getMoneySettings: { name: "getMoneySettings", method: "GET", path: "/v1/money/settings", mountedPath: "/v1/money/settings", version: 1, engine: "money", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
+ postMoneySettingChanges: { name: "postMoneySettingChanges", method: "POST", path: "/v1/money/setting-changes", mountedPath: "/v1/money/setting-changes", version: 1, engine: "money", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" }
 } as const satisfies Record<string, ApiRoute>;

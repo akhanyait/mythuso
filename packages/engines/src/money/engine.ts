@@ -23,15 +23,27 @@
  * `tick` runs whenever the simulated clock moves. It closes every week that has ended and still has
  * unscheduled lines — not only the last one, so a week the runtime slept through is still paid — sends
  * a closed week to the simulated bank on its paysOn, and sends a returned week again with the next run.
- * It never schedules a doctor's payout: the fee is undecided and the ledger refuses.
+ * It never schedules a doctor's payout. That is asked of the ledger, which refuses it at a fee nobody
+ * has confirmed.
+ *
+ * ── Settings ─────────────────────────────────────────────────────────────────────────────────
+ *
+ * GET /v1/money/settings@1 and POST /v1/money/setting-changes@1, through packages/engines/src/settings,
+ * with the history in this store's settings_history: MyThuso for Mom's names and terms, the doctor's fee
+ * and whether it is confirmed, and a nurse's share sentence. The ledger is handed the fee in force from
+ * that history whenever it hears a signed case or is asked for a payout, and writes it onto the case, so
+ * a change reaches cases signed after it and never one already signed. No Money setting waits on a
+ * clinical review, so no review route is bound.
  */
 import {
  defineEngine, ok, refuse,
  type EngineContext, type EngineStore, type EventKey, type HandlerRequest, type SubscriptionHandler
 } from '../runtime/index.ts';
+import { SETTINGS_SCHEMA, settingsIn, settingsRoutes } from '../settings/routes.ts';
 import { canonical, cardSpellings, isRefusal } from './domain/contract.ts';
 import { createMoney, TABLE_NAMES, type MoneyTables, type Payout, type Table } from './domain/ledger.ts';
 import { isoDateInSouthAfrica, paysOnFor } from './domain/payouts.ts';
+import { doctorFeeOf, moneySettings } from './domain/settings.ts';
 
 const SQL_NAME: Record<typeof TABLE_NAMES[number], string> = {
  payables: 'payables', payments: 'payments', cashCodes: 'cash_codes', cashAudit: 'cash_audit', attempts: 'payment_attempts', keys: 'payment_keys',
@@ -41,7 +53,7 @@ const SQL_NAME: Record<typeof TABLE_NAMES[number], string> = {
 /* Every table is a reference and a document. Money's rows are billing facts — a payable, an attempt,
    a week — and none of them is health information; the names above are the whole schema. The cash
    code table holds a salt and a digest, never a code. */
-const schema = TABLE_NAMES.map(name => `CREATE TABLE IF NOT EXISTS ${SQL_NAME[name]} (ref TEXT PRIMARY KEY, doc TEXT NOT NULL);`).join('\n');
+const schema = [...TABLE_NAMES.map(name => `CREATE TABLE IF NOT EXISTS ${SQL_NAME[name]} (ref TEXT PRIMARY KEY, doc TEXT NOT NULL);`), SETTINGS_SCHEMA].join('\n');
 
 function storeTables(store: EngineStore): MoneyTables {
  const table = <T,>(name: string): Table<T> => ({
@@ -57,6 +69,7 @@ const ledgerFor = (ctx: EngineContext) => createMoney({
  tables: storeTables(ctx.store),
  clock: () => ctx.clock.now(),
  simulation: true,
+ doctorFee: () => doctorFeeOf(settingsIn(moneySettings, ctx.store)),
  publish: (key, payload, subjectRef) => { ctx.publish(key as EventKey, payload, { subjectRef, purposeOfUse: 'billing' }); }
 });
 
@@ -102,7 +115,8 @@ export const engine = defineEngine({
    const answer = ledgerFor(ctx).payoutsFor({ role: ctx.caller.role, subjectRef: ctx.caller.ref ?? '' }, periodEnd);
    if (isRefusal(answer)) return refuse(answer.id);
    return ok({ payouts: answer.map(shown) });
-  }
+  },
+  ...settingsRoutes(moneySettings, { read: 'GET /v1/money/settings@1', change: 'POST /v1/money/setting-changes@1' })
  },
  subscriptions: Object.fromEntries(HEARD.map(key => [key, onEvent])),
  tick: ctx => {

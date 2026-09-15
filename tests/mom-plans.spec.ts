@@ -5,19 +5,41 @@ import { noticeFor } from './notices';
 /* MyThuso for Mom, the plan a child pays for a parent, at the three prices the founder confirmed on
  * 14 September 2026.
  *
- * Every figure and sentence here is read from packages/catalog/mom-plans.json rather than typed. A spec
- * that carried "R399" would pass on the day the contract said R449 and the screen said R449 too, and
- * the only thing it would have proved is that somebody typed the same number twice.
+ * Every figure and sentence here is read from the contracts rather than typed: the prices, inclusions and
+ * refusals from packages/catalog/mom-plans.json, and the names, the stacking, Plus's call-outs, the report's
+ * wording and priority SOS's sentence from Money's settings in packages/catalog/money.json, read into
+ * mom-plans.json's words as the screen reads them. A spec that carried "R399" would pass on the day the
+ * contract said R449 and the screen said R449 too, and the only thing it would have proved is that
+ * somebody typed the same number twice.
  *
  * What is asserted is the half of the feature that matters: the panel is not downloaded until somebody
  * opens Care plans, the prices render, every inclusion stands beside the notice of the capability it
  * waits on, the refusals are on the screen word for word, and nothing on the screen offers to take
- * anybody's money. */
-type Inclusion = { id: string; text: string; capability: string; undecided?: string };
-type Tier = { id: string; name: string; price: number; phase: number; cadence: string; includes: Inclusion[] };
-const plan = JSON.parse(readFileSync(new URL('../packages/catalog/mom-plans.json', import.meta.url), 'utf8')) as {
-  name: string; tiers: Tier[]; refusals: { id: string; sentence: string }[]; openQuestions: string[];
+ * anybody's money. An admin's change reaching this screen is tests/money-settings.spec.ts's. */
+type RawInclusion = { id: string; text?: string; textFrom?: string; textBy?: { setting: string; values: Record<string, string> }; detailFrom?: string; capability: string };
+type RawTier = { id: string; nameFrom: string; price: number; phase: number; cadence: string; includes: RawInclusion[] };
+const json = (path: string) => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
+const contract = json('packages/catalog/mom-plans.json') as {
+  nameFrom: string; tiers: RawTier[]; refusals: { id: string; sentence: string }[];
+  stacking: { setting: string; inherits: string };
+  callOuts: { setting: string; counts: string[]; one: string; many: string; per: Record<string, string> };
   addOns: { statement: string; items: { id: string; name: string }[] }; splitting: { statement: string };
+};
+const settings = json('packages/catalog/money.json').settings.items as { key: string; default: { value: unknown } }[];
+const byDefault = (key: string) => settings.find(s => s.key === key)!.default.value;
+/* The plan as the defaults read it, the way packages/engines/src/money/domain/settings.ts does. */
+const callOuts = ({ count, period }: { count: number; period: string }) =>
+  count === 0 ? null : `${contract.callOuts.counts[count - 1]} ${count === 1 ? contract.callOuts.one : contract.callOuts.many} ${contract.callOuts.per[period]}`;
+const textOf = (i: RawInclusion) => i.text ?? (i.textFrom ? callOuts(byDefault(i.textFrom) as { count: number; period: string }) : i.textBy!.values[byDefault(i.textBy!.setting) as string]!);
+const names = contract.tiers.map(t => byDefault(t.nameFrom) as string);
+const plan = {
+  ...contract,
+  name: byDefault(contract.nameFrom) as string,
+  tiers: contract.tiers.map((t, i) => ({
+    ...t, name: names[i]!,
+    inherits: byDefault(contract.stacking.setting) === true && i > 0 ? contract.stacking.inherits.replace('{tier}', names[i - 1]!) : null,
+    includes: t.includes.flatMap(item => { const text = textOf(item); return text === null ? [] : [{ ...item, text, detail: item.detailFrom ? byDefault(item.detailFrom) as string : null }]; })
+  }))
 };
 const money = (n: number) => new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(n);
 
@@ -54,7 +76,7 @@ test('if the plan panel does not arrive, the screen says so and loading it again
   await page.route(/MomPlans/, route => (blocked ? route.abort() : route.continue()));
   await openPlans(page);
   const main = page.getByRole('main');
-  await expect(main.getByRole('alert')).toContainText('MyThuso for Mom did not load');
+  await expect(main.getByRole('alert')).toContainText(`${plan.name} did not load`);
   await expect(main.locator('.not-connected').first()).toHaveText(noticeFor('payments'));
   await expect(main.locator('.plan-card')).toHaveCount(4);
   blocked = false;
@@ -82,18 +104,21 @@ test('the three tiers and their prices render from the contract, and one is chos
   await expect(choices.nth(0)).toHaveAttribute('aria-pressed', 'false');
 });
 
-test('every inclusion stands beside the notice of the capability it depends on', async ({ page }) => {
+test('every inclusion stands beside the notice of the capability it depends on, in the words the settings in force give it', async ({ page }) => {
   await openPlans(page);
   const section = page.getByRole('region', { name: plan.name });
   const choices = section.getByRole('group', { name: `${plan.name} plans` }).getByRole('button');
   for (const [i, tier] of plan.tiers.entries()) {
     await choices.nth(i).click();
     await expect(section.getByRole('heading', { name: new RegExp(`What ${tier.name} would bring`) })).toBeVisible();
+    /* The tier below is named once rather than its lines repeated, when tiers stack. */
+    if (tier.inherits) await expect(section.locator('.mom-inherits')).toHaveText(tier.inherits);
+    else await expect(section.locator('.mom-inherits')).toHaveCount(0);
     await expect(section.locator('.mom-inclusion')).toHaveCount(tier.includes.length);
     for (const inclusion of tier.includes) {
       const row = section.locator(`[data-inclusion="${inclusion.id}"]`);
       await expect(row).toContainText(inclusion.text);
-      if (inclusion.undecided) await expect(row).toContainText(inclusion.undecided);
+      if (inclusion.detail) await expect(row).toContainText(inclusion.detail);
       /* The group this row belongs to carries that capability's own sentence, from capabilities.json.
          The inner locator is built from the page, not from `section`: a `has` locator is resolved
          inside the element it filters, so one that starts at the section looks for the section again
@@ -105,16 +130,17 @@ test('every inclusion stands beside the notice of the capability it depends on',
   }
 });
 
-test('the refusals, the open questions and the unpriced add-ons are on the screen word for word', async ({ page }) => {
+test('the refusals and the unpriced add-ons are on the screen word for word, and nothing is left as an open question', async ({ page }) => {
   await openPlans(page);
   const section = page.getByRole('region', { name: plan.name });
   for (const refusal of plan.refusals) await expect(section.locator(`[data-refusal="${refusal.id}"]`)).toHaveText(refusal.sentence);
-  for (const question of plan.openQuestions) await expect(section.getByText(question, { exact: true })).toBeVisible();
   await expect(section.getByText(plan.addOns.statement, { exact: true })).toBeVisible();
   for (const addOn of plan.addOns.items) await expect(section.getByText(addOn.name, { exact: true })).toBeVisible();
   await expect(section.getByText(plan.splitting.statement, { exact: true })).toBeVisible();
   // an add-on has no price, because none has been set
   await expect(section.locator('.mom-addons')).not.toContainText('R');
+  // the questions this panel used to list are Money's settings now, each with a proposal in force
+  await expect(section.getByRole('heading', { name: 'Not decided yet' })).toHaveCount(0);
 });
 
 test('nothing on the care-plans screen can be bought', async ({ page }) => {

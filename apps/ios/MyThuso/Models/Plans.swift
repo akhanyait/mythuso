@@ -28,8 +28,8 @@ struct MomInclusion: Identifiable, Hashable {
     let capability: String
     /// Set when the inclusion is one of MyThuso's own devices, none of which has been built.
     let device: String?
-    /// Set when what the inclusion means has not been decided, and says so.
-    let undecided: String?
+    /// Set when a sentence says what the inclusion means — priority SOS's wording, a Money setting.
+    let detail: String?
 }
 
 struct MomTier: Identifiable, Hashable {
@@ -38,6 +38,8 @@ struct MomTier: Identifiable, Hashable {
     let price: Int
     let phase: Int
     let cadence: String
+    /// "Everything in Essential", when Money's setting says tiers stack; nil for the first tier or when they do not.
+    let inherits: String?
     let includes: [MomInclusion]
 }
 
@@ -50,7 +52,6 @@ struct MomPlan {
     let payerHeadline: String
     let payerStatement: String
     let tiers: [MomTier]
-    let openQuestions: [String]
     let addOnsStatement: String
     let addOns: [MomAddOn]
     let splittingStatement: String
