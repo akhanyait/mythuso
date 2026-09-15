@@ -55,6 +55,8 @@ export type AppointmentToFill = {
  readonly previousClinicianRefs?: readonly string[];
  /** For a supervised service: the registered nurse who already holds this appointment. */
  readonly supervisorRef?: string | null;
+ /** The booking in Access that asked for this visit, kept so completion can name it. Null for a visit no booking asked for. */
+ readonly bookingRef?: string | null;
 };
 
 export type Continuity = 'named' | 'previous' | null;

@@ -37,20 +37,21 @@
  * stored as given, and a phone that read the window before an admin changed it is answered with the
  * window in force rather than refused. The only refusals are the two about the window.
  *
- * HEARD: appointment.in_progress@1. Safety records that a visit is under way, and only one whose code
+ * HEARD: appointment.in_progress@2. Safety records that a visit is under way, and only one whose code
  * matched, because the event carries visitCodeMatched so that a subscriber can refuse one that says
- * otherwise. It records the settings in force with it. That is the first half of a timer.
+ * otherwise. It records the settings in force with it. That is the first half of a timer. Version one
+ * was withdrawn on 15 September for carrying no service; version two carries serviceId, and this store
+ * does not keep it yet — keeping it is a change to the timer's table, which is Safety's own to make.
  *
  * NOT BUILT, AND WHY (the Wave 3 report lists what each needs):
  *  - POST /v1/safety/checkins@1 sends expectedMinutes and no service. A visit is timed by the service
- *    booked, from packages/catalog/services.json, and nothing Safety hears carries one before the visit
- *    ends: appointment.in_progress@1 has no serviceId and Safety does not hear appointment.requested@1.
- *    Building it would mean timing a visit by a number a phone sent, which is the refusal
- *    expected-minutes-not-the-service. It needs checkins@2 with serviceId, or appointment.in_progress@2.
+ *    booked, from packages/catalog/services.json. appointment.in_progress@2 now carries the service, so the
+ *    timer can be started from what Safety hears rather than from a number a phone sent, which is the
+ *    refusal expected-minutes-not-the-service; the route itself still needs checkins@2.
  *  - POST /v1/safety/checkins/{checkinRef}/extend@1 has no field for a reason, and an extension without
  *    one is refused. It needs extend@2 with reasonId.
  *  - POST /v1/safety/checkins/{checkinRef}/close@1 closes a timer nothing can start.
- *  - appointment.completed@1 does not list safety as a subscriber, so the binder would refuse it.
+ *  - appointment.completed@2 does not list safety as a subscriber, so the binder would refuse it.
  * The arithmetic for all of it is written and tested in domain/, and the web and native previews run it.
  */
 import { randomUUID } from 'node:crypto';
@@ -119,7 +120,7 @@ export const engine = defineEngine({
   ...settingsRoutes(safetySettings, { read: 'GET /v1/safety/settings@2', change: 'POST /v1/safety/setting-changes@2' })
  },
  subscriptions: {
-  'appointment.in_progress@1': (event, ctx) => {
+  'appointment.in_progress@2': (event, ctx) => {
    if (event.payload.visitCodeMatched !== true || typeof event.payload.appointmentRef !== 'string') return;
    /* The settings in force when the visit started, kept with it. OR IGNORE keeps the first: the same
       visit heard again is not a new start, and must not pick up a change made since. */

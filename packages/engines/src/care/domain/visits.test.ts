@@ -29,7 +29,7 @@ test('a visit starts only with the code, and a wrong code changes nothing and em
  const right = visits.start({ appointmentRef: 'TH-3107', visitCode: CODE }, me, DAY);
  assert.ok(right.ok);
  if (!right.ok) return;
- assert.deepEqual(right.events.map(e => [e.type, e.payload]), [['appointment.in_progress', { appointmentRef: 'TH-3107', visitCodeMatched: true }]]);
+ assert.deepEqual(right.events.map(e => [e.type, e.version, e.payload]), [['appointment.in_progress', 2, { appointmentRef: 'TH-3107', visitCodeMatched: true, serviceId: 'wound' }]]);
  assert.equal(JSON.stringify(right.events).includes(CODE), false, 'the code never leaves the visit');
 });
 
@@ -107,10 +107,21 @@ test('completion needs the code again and a signed encounter, and tells Money it
  const done = visits.complete({ appointmentRef: 'TH-3107', visitCode: CODE, encounterRef: 'enc' }, me, DAY);
  assert.ok(done.ok);
  if (!done.ok) return;
- assert.deepEqual(done.events.map(e => e.type), ['appointment.completed', 'visit.billable']);
- assert.deepEqual(done.events[0]!.payload, { appointmentRef: 'TH-3107', encounterRef: 'enc', serviceId: 'wound' });
+ assert.deepEqual(done.events.map(e => `${e.type}@${e.version}`), ['appointment.completed@2', 'visit.billable@1']);
+ assert.deepEqual(done.events[0]!.payload, { appointmentRef: 'TH-3107', encounterRef: 'enc', serviceId: 'wound' }, 'a visit no booking asked for names no booking');
  assert.deepEqual(done.events[1]!.payload, { appointmentRef: 'TH-3107', serviceId: 'wound', clinicianRef: 'N-205' });
  assert.equal('encounterRef' in done.events[1]!.payload, false);
+});
+
+test('a visit a booking asked for is completed with that booking’s reference, for Access to close its thread by', () => {
+ const visits = new VisitDesk({ contract: careContract, settings: () => careByDefault, record: { encounterComplete: () => true, encounterSigned: () => true } });
+ visits.hold({ appointmentRef: 'apt-bk-1', subjectRef: 'sub', serviceId: 'vitals', clinicianRef: 'N-205', scheduledFor: '2026-09-14T16:00:00+02:00', bookingRef: 'bk-1' }, CODE);
+ const started = visits.start({ appointmentRef: 'apt-bk-1', visitCode: CODE }, me, DAY);
+ assert.ok(started.ok);
+ if (started.ok) assert.equal(started.events[0]!.payload.serviceId, 'vitals');
+ const done = visits.complete({ appointmentRef: 'apt-bk-1', visitCode: CODE, encounterRef: 'enc' }, me, DAY);
+ assert.ok(done.ok);
+ if (done.ok) assert.deepEqual(done.events[0]!.payload, { appointmentRef: 'apt-bk-1', encounterRef: 'enc', serviceId: 'vitals', bookingRef: 'bk-1' });
 });
 
 test('a nurse’s location is shared on the visit’s day until completion, and refused either side of that', () => {

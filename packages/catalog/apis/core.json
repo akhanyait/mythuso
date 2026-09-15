@@ -404,7 +404,7 @@
    "version": 1,
    "summary": "Check role × scope × purpose before an engine acts.",
    "callers": ["engine:care", "engine:medicines", "engine:movement", "engine:access", "engine:clinical"],
-   "callerJustifications": {"engine:care": "appointment.booked@1", "engine:medicines": "prescription.prescribed@1", "engine:movement": "trip.accepted@1", "engine:access": "booking.requested@2", "engine:clinical": "review.signed@1"},
+   "callerJustifications": {"engine:care": "appointment.booked@2", "engine:medicines": "prescription.prescribed@1", "engine:movement": "trip.accepted@1", "engine:access": "booking.requested@2", "engine:clinical": "review.signed@1"},
    "purpose": ["audit"],
    "request": [
     {"field": "roleId", "type": "string", "required": true, "why": "The role asking."},

@@ -77,7 +77,7 @@ test('the visit is offered to the previous nurse first, and is personal to her',
  const mine = asNurse(runtime, P.clinicianRef, ACCEPT, 'dispatch', { idempotencyKey: 'a-1', offerRef });
  assert.deepEqual([mine.status, mine.body.appointmentRef], [200, P.appointmentRef]);
  assert.equal(published(runtime, 'appointment.offered@1').length, 1);
- assert.equal(published(runtime, 'appointment.booked@1').length, 1);
+ assert.equal(published(runtime, 'appointment.booked@2').length, 1);
  runtime.close();
 });
 
@@ -92,7 +92,7 @@ test('two nurses using the same idempotency key get two independent answers, nev
  /* And each one replays as itself. */
  assert.equal(asNurse(runtime, P.clinicianRef, ACCEPT, 'dispatch', { idempotencyKey: 'shared-key', offerRef }).status, 200);
  assert.equal(asNurse(runtime, 'N-206', ACCEPT, 'dispatch', { idempotencyKey: 'shared-key', offerRef }).status, 403);
- assert.equal(published(runtime, 'appointment.booked@1').length, 1, 'the replay booked nothing twice');
+ assert.equal(published(runtime, 'appointment.booked@2').length, 1, 'the replay booked nothing twice');
  const declineStranger = asNurse(runtime, 'N-201', DECLINE, 'dispatch', { idempotencyKey: 'shared-key', offerRef });
  assert.equal(declineStranger.body.error, 'not-your-offer');
  assert.deepEqual(runtime.faults(), []);
@@ -149,7 +149,7 @@ test('the visit: the code to start, no checklist under a draft, handover and com
  assert.equal(wrongEnd.body.message, 'The visit code did not match, so the visit is not complete.');
  assert.equal(visit('POST /v1/care/visits/{appointmentRef}/complete@1', { visitCode: P.visitCode, encounterRef: P.encounterRef }).status, 200);
 
- for (const key of ['appointment.in_progress@1', 'visit.handover.submitted@1', 'appointment.completed@1', 'visit.billable@1']) assert.equal(published(runtime, key).length, 1, key);
+ for (const key of ['appointment.in_progress@2', 'visit.handover.submitted@1', 'appointment.completed@2', 'visit.billable@1']) assert.equal(published(runtime, key).length, 1, key);
  assert.ok(runtime.trail.all().every(e => !e.body.includes(P.visitCode)), 'the visit code is never written to the trail');
  assert.deepEqual(runtime.faults(), []);
  runtime.close();

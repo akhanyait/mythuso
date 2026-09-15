@@ -62,6 +62,8 @@ export type Booking = {
  readonly serviceId: string;
  readonly clinicianRef: string;
  readonly scheduledFor: string;
+ /** The booking in Access this visit was asked for through, as booking.requested carried it. Absent for a visit no booking asked for. */
+ readonly bookingRef?: string | null;
 };
 export type Caller = { readonly clinicianRef: string };
 export type OfferBook = { readonly appointments: readonly AppointmentToFill[]; readonly offers: readonly Offer[]; readonly bookings: readonly Booking[] };
@@ -234,13 +236,16 @@ export class OfferDesk {
   offer.state = 'accepted';
   const booking: Booking = {
    appointmentRef: appointment.appointmentRef, subjectRef: appointment.subjectRef,
-   serviceId: appointment.serviceId, clinicianRef: offer.clinicianRef, scheduledFor: appointment.scheduledFor
+   serviceId: appointment.serviceId, clinicianRef: offer.clinicianRef, scheduledFor: appointment.scheduledFor,
+   bookingRef: appointment.bookingRef ?? null
   };
   this.#bookings.set(appointment.appointmentRef, booking);
+  /* Version two names the service held, so Money prices what it opens from services.json and nobody asks Care
+     what the visit is for. It still carries no price and no place. */
   const event: CareEvent = {
-   type: 'appointment.booked', version: 1,
+   type: 'appointment.booked', version: 2,
    subjectRef: appointment.subjectRef, actorRole: 'nurse', purposeOfUse: purposeOf(this.#contract, ROUTES.accept),
-   payload: { appointmentRef: appointment.appointmentRef, clinicianRef: offer.clinicianRef, scheduledFor: appointment.scheduledFor }
+   payload: { appointmentRef: appointment.appointmentRef, clinicianRef: offer.clinicianRef, scheduledFor: appointment.scheduledFor, serviceId: appointment.serviceId }
   };
   return answer({ appointmentRef: booking.appointmentRef, scheduledFor: booking.scheduledFor }, [event]);
  }

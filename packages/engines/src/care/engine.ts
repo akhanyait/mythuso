@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS care_offers (offer_ref TEXT PRIMARY KEY, appointment_
 CREATE TABLE IF NOT EXISTS care_visits (appointment_ref TEXT PRIMARY KEY, document TEXT NOT NULL, visit_code TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS care_badges (subject_ref TEXT PRIMARY KEY, badge_tier TEXT NOT NULL, hard_gates_passed INTEGER NOT NULL, occurred_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS care_encounters (entry_ref TEXT PRIMARY KEY, author_ref TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS care_booking_requests (appointment_ref TEXT PRIMARY KEY, booking_ref TEXT NOT NULL UNIQUE, named_nurse_fallback TEXT);
 INSERT OR IGNORE INTO care_appointments (appointment_ref, subject_ref, service_id, zone_id, day_offset, slot, named_clinician_ref, previous_clinician_refs, visit_code)
  VALUES (${sql(preview.appointmentRef)}, ${sql(preview.subjectRef)}, ${sql(preview.serviceId)}, ${sql(preview.zone)}, ${preview.dayOffset}, ${sql(preview.slot)},
          ${sql(preview.namedClinicianRef)}, ${sql(JSON.stringify(preview.previousClinicianRefs))}, ${sql(preview.visitCode)});
@@ -84,10 +85,16 @@ function load(ctx: EngineContext): Desks {
      then kept, so advancing the clock past midnight does not move the visit with it. */
   if (row.scheduled_for === null && row.day_offset !== null && row.slot) row.scheduled_for = instantAt(now, row.day_offset, row.slot, careContract.timezone);
  }
+ /* What a booking asked for, beside the appointment it opened: its own reference, which completion carries back
+    to Access, and the patient's answer to what happens if the nurse asked for by name cannot take it. A separate
+    table rather than new columns, so a development store written before either existed is read, not rewritten. */
+ const requested = new Map((ctx.store.prepare('SELECT appointment_ref, booking_ref, named_nurse_fallback FROM care_booking_requests').all() as { appointment_ref: string; booking_ref: string; named_nurse_fallback: string | null }[])
+  .map(r => [r.appointment_ref, r]));
  const appointments: AppointmentToFill[] = rows.map(row => ({
   appointmentRef: row.appointment_ref, subjectRef: row.subject_ref, serviceId: row.service_id, zone: zoneAt(row.zone_id),
   scheduledFor: row.scheduled_for ?? '', namedClinicianRef: row.named_clinician_ref,
-  previousClinicianRefs: JSON.parse(row.previous_clinician_refs) as string[]
+  previousClinicianRefs: JSON.parse(row.previous_clinician_refs) as string[],
+  bookingRef: requested.get(row.appointment_ref)?.booking_ref ?? null
  }));
  const offers = (ctx.store.prepare('SELECT document FROM care_offers ORDER BY rowid').all() as { document: string }[]).map(r => JSON.parse(r.document) as Offer);
  const held = (ctx.store.prepare('SELECT document, visit_code FROM care_visits').all() as { document: string; visit_code: string }[])
@@ -232,6 +239,9 @@ export const engine = defineEngine({
    const fresh = ctx.store.prepare('INSERT OR IGNORE INTO care_appointments (appointment_ref, subject_ref, service_id, zone_id, scheduled_for, named_clinician_ref) VALUES (?, ?, ?, ?, ?, ?)')
     .run(appointmentRef, event.subjectRef, String(event.payload.serviceId), String(event.payload.zoneId), requestedFor, named);
    if (!fresh.changes) return;
+   const answer = named !== null && typeof event.payload.namedNurseFallback === 'string' ? event.payload.namedNurseFallback : null;
+   ctx.store.prepare('INSERT INTO care_booking_requests (appointment_ref, booking_ref, named_nurse_fallback) VALUES (?, ?, ?)')
+    .run(appointmentRef, String(event.payload.bookingRef), answer);
    ctx.publish('appointment.requested@1', {
     appointmentRef, serviceId: String(event.payload.serviceId), mode: String(event.payload.mode), ...(requestedFor ? { preferredFrom: requestedFor } : {})
    }, { subjectRef: event.subjectRef, purposeOfUse: 'dispatch', causationId: event.eventId });

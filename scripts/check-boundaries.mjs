@@ -6859,19 +6859,24 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  }
 
  /* 12. A visit thread is closed by the engine after Care completes the visit, for the hours in force at completion.
-        Care names the appointment it opens for a booking one way, booking.json's careAppointmentRef, and Access finds
-        the thread by that name; if Care renamed it, every completion would close nothing and every thread would stay
-        open indefinitely, so the name Care builds and the name Access reads are held to the one template. */
+        Until 15 September Access found the thread through booking.json's careAppointmentRef — how Care names the
+        appointment it opens for a booking — because appointment.completed@1 carried only Care's appointment. That
+        coupling is retired rather than retargeted onto a new name: appointment.completed@2 carries the bookingRef,
+        so what is held now is that Care keeps the booking's reference from booking.requested and completes with
+        it, that Access reads it from the event and finds its own booking by it, and that no convention for Care's
+        appointment names is written anywhere Access reads. */
  const careEngineForAccess = read('packages/engines/src/care/engine.ts');
- const careTemplate = bookingForAccess.careAppointmentRef;
- if (typeof careTemplate !== 'string' || !careTemplate.includes('{bookingRef}') || !careEngineForAccess.includes('`' + careTemplate.replace('{bookingRef}', '${String(event.payload.bookingRef)}') + '`')) throw new Error(`packages/engines/src/care/engine.ts no longer names the appointment it opens for a booking as packages/catalog/booking.json's careAppointmentRef (${JSON.stringify(careTemplate)}), so Access's engine could close no visit thread on completion.`);
- const completedAt = subscriptionsBlock.indexOf("'appointment.completed@1':");
+ const completedEvent = eventsForAccess.events.find(e => e.type === 'appointment.completed' && e.version === 2);
+ if (!completedEvent || completedEvent.withdrawn || completedEvent.payload.find(f => f.field === 'bookingRef')?.type !== 'string' || !completedEvent.subscribers.includes('access')) throw new Error('appointment.completed@2 does not carry a bookingRef that Access hears, so a completed visit\'s thread could be found only by how Care names an appointment.');
+ if ('careAppointmentRef' in bookingForAccess || /careAppointmentRef/.test(accessEngineForAccess)) throw new Error('packages/catalog/booking.json or the Access engine still names careAppointmentRef. Access finds a completed visit\'s thread by the bookingRef appointment.completed@2 carries, and knows nothing about how Care names an appointment.');
+ if (!careEngineForAccess.includes('String(event.payload.bookingRef)') || !read('packages/engines/src/care/domain/visits.ts').includes('bookingRef: visit.bookingRef')) throw new Error('The Care engine no longer keeps the bookingRef booking.requested@2 carries and completes the visit with it, so Access would close no thread.');
+ const completedAt = subscriptionsBlock.indexOf("'appointment.completed@2':");
  const completedBody = completedAt < 0 ? '' : subscriptionsBlock.slice(completedAt);
- for (const need of ["booking.careAppointmentRef.replace('{bookingRef}', bookingRef)", 'accessInForceAt(historyOf(ctx.store), at).threadOpenHoursAfterVisit', 'completeThread(']) {
-  if (!accessEngineForAccess.includes(need) || (need !== "booking.careAppointmentRef.replace('{bookingRef}', bookingRef)" && !completedBody.includes(need))) throw new Error(`packages/engines/src/access/engine.ts no longer closes a visit thread on appointment.completed@1 with ${need}. The hours a thread stays open are the setting in force when the visit was completed, read from the engine's own history.`);
+ for (const need of ['event.payload.bookingRef', 'b.bookingRef === bookingRef', 'accessInForceAt(historyOf(ctx.store), at).threadOpenHoursAfterVisit', 'completeThread(']) {
+  if (!completedBody.includes(need)) throw new Error(`packages/engines/src/access/engine.ts no longer closes a visit thread on appointment.completed@2 with ${need}. The thread is found by the booking's own reference, and the hours it stays open are the setting in force when the visit was completed, read from the engine's own history.`);
  }
 
- console.log(`Access: ${bookingForAccess.routeRefusals.length} route refusals booking.json names are declared on their routes, the cancel route and cancellation.json say one sentence about a visit already under way, the handover carries ${assistantForAccess.answers.handover.fields.map(f => f.id).join(', ')} and never the words, ${bookingSentences.size} booking sentences are typed in none of ${handWrittenForBooking.length} hand-written files, the booking flow is a dynamic import, and no visit thread offers an attachment. ${HANDOVER_TWO} is built and evaluated against the desk's hours in force, never refusing because it is shut; booking.requested@2 says the suburb by its zone id and never an address; no engine registers any of ${routesForWithdrawal.filter(x => x.withdrawn).length} withdrawn routes; ${BOOK_TWO} carries the named-nurse answer in its own field and no slot under any of ${bookingForAccess.person.fallback.rules.length} rules folds it into a reference; and a completed visit's thread is found by the one name Care gives its appointment.`);
+ console.log(`Access: ${bookingForAccess.routeRefusals.length} route refusals booking.json names are declared on their routes, the cancel route and cancellation.json say one sentence about a visit already under way, the handover carries ${assistantForAccess.answers.handover.fields.map(f => f.id).join(', ')} and never the words, ${bookingSentences.size} booking sentences are typed in none of ${handWrittenForBooking.length} hand-written files, the booking flow is a dynamic import, and no visit thread offers an attachment. ${HANDOVER_TWO} is built and evaluated against the desk's hours in force, never refusing because it is shut; booking.requested@2 says the suburb by its zone id and never an address; no engine registers any of ${routesForWithdrawal.filter(x => x.withdrawn).length} withdrawn routes; ${BOOK_TWO} carries the named-nurse answer in its own field and no slot under any of ${bookingForAccess.person.fallback.rules.length} rules folds it into a reference; and a completed visit's thread is found by the bookingRef appointment.completed@2 carries, never by how Care names an appointment.`);
 }
 /* ==== end of Access (Wave 3) ========================================================================= */
 
@@ -7448,7 +7453,10 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  for (const file of careCode) {
   const source = read(file);
   for (const m of source.matchAll(/type: '([a-z_.]+)', version: (\d+),[^]*?payload: \{([^}]*)\}/g)) published.push({ file, key: `${m[1]}@${m[2]}`, keys: m[3], viaRoute: true });
-  for (const m of source.matchAll(/#event\(visit, '([a-z_.]+)', ROUTES\.\w+, \{([^}]*)\}\)/g)) published.push({ file, key: `${m[1]}@1`, keys: m[2], viaRoute: true });
+  /* The version is written at each call, so the key is read from the call and never assumed; a payload may hold one
+     nested object, a field spread in only when the visit has it. */
+  for (const m of source.matchAll(/#event\(visit, '([a-z_.]+)', (\d+), ROUTES\.\w+, \{((?:[^{}]|\{[^{}]*\})*)\}\)/g)) published.push({ file, key: `${m[1]}@${m[2]}`, keys: m[3], viaRoute: true });
+  if (/#event\(visit, '[a-z_.]+', ROUTES\./.test(source)) throw new Error(`${file} publishes a visit event without writing its version. A version left to a default is how a withdrawn one keeps being published.`);
   for (const m of source.matchAll(/ctx\.publish\('([a-z_.]+@\d+)', \{([^}]*)\}/g)) published.push({ file, key: m[1], keys: m[2], viaRoute: false });
   if (/visitCode\s*[:,}][^\n]*\bpublish\(|publish\([^)]*visitCode|payload: \{[^}]*visitCode/.test(source)) throw new Error(`${file} puts the visit code on an event. The code is the proof at the door and is never broadcast.`);
  }

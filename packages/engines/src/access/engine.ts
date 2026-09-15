@@ -11,7 +11,7 @@
 
    Nine routes: book, read a booking, cancel one, read a visit thread and write in it, hand a Gilbert
    conversation to the nurse queue, and Access's settings — read them, change one, confirm the clinical
-   review of one. And one subscription: appointment.completed@1, from Care.
+   review of one. And one subscription: appointment.completed@2, from Care.
 
    POST /v1/access/bookings@2 is the booking route. Version one was withdrawn on 15 September: it had no
    field for what happens if a nurse asked for by name cannot take the visit, so the answer rode inside the
@@ -44,9 +44,11 @@
 
    ── A thread after its visit ─────────────────────────────────────────────────────────────────────
 
-   Access hears appointment.completed@1. Care names the appointment it opens for a booking by booking.json's
-   careAppointmentRef, so the thread is found by that name; a completion for an appointment no booking here
-   opened — the preview visit — closes nothing. The thread stays open for the hours the setting
+   Access hears appointment.completed@2, which carries the bookingRef Care heard on booking.requested, so the
+   thread is found by this engine's own booking reference and nothing here knows how Care names an appointment.
+   Version one carried only Care's appointment, and Access found the thread through a naming rule in booking.json
+   that is retired with it. A completion with no bookingRef, or one no booking here holds — the preview visit —
+   closes nothing. The thread stays open for the hours the setting
    visit-thread-open-hours-after-visit held at the moment of completion, read from this store's history as it
    stood then, so an admin's change afterwards never moves it. A cancelled booking's thread closes at once,
    in the cancel route.
@@ -113,9 +115,6 @@ const keepHandover = (ctx: EngineContext, subjectRef: string, kept: Kept) =>
 
 /* The emergency numbers are sos.json's, filled into booking.json's sentence by their ids. Nothing here types one. */
 const withNumbers = (text: string) => text.replace(/\{(\w+)\}/g, (token, id: string) => sos.emergency.numbers.find(n => n.id === id)?.number ?? token);
-/* The appointment Care opens for a booking, named as booking.json says Care names it. */
-const careAppointmentOf = (bookingRef: string) => booking.careAppointmentRef.replace('{bookingRef}', bookingRef);
-
 const publishAll = (ctx: EngineContext, events: readonly AccessEvent[]) => {
  for (const event of events) ctx.publish(`${event.type}@${event.version}` as EventKey, { ...event.payload }, { subjectRef: event.subjectRef, actorRole: event.actorRole });
 };
@@ -151,9 +150,9 @@ export const engine = defineEngine({
   /* Care completed a visit. The thread of the booking it came from stays open for the hours in force at that
      moment and then closes; the instant it closes is written once, so a redelivery or a later change to the
      setting moves nothing. */
-  'appointment.completed@1': (event, ctx) => {
-   const appointmentRef = String(event.payload.appointmentRef);
-   const held = ledgerOf(ctx).bookings.find(b => careAppointmentOf(b.bookingRef) === appointmentRef);
+  'appointment.completed@2': (event, ctx) => {
+   const bookingRef = typeof event.payload.bookingRef === 'string' ? event.payload.bookingRef : null;
+   const held = bookingRef === null ? undefined : ledgerOf(ctx).bookings.find(b => b.bookingRef === bookingRef);
    if (!held) return;
    const at = Date.parse(event.occurredAt);
    const thread = threadOf(ctx, held);

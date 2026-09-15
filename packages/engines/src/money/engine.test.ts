@@ -52,7 +52,7 @@ test('Money subscribes only to events on its moneyHears list', () => {
 
 test('a booked visit is priced by visit.billable, paid once, and refused in the contract’s words', () => {
  const { care, runtime, published } = world();
- care.queue.push({ key: 'appointment.booked@1', subjectRef: 'subj-lerato', payload: { appointmentRef: 'APT-1', clinicianRef: 'N-205', scheduledFor: '2026-09-15T09:00:00+02:00' } });
+ care.queue.push({ key: 'appointment.booked@2', subjectRef: 'subj-lerato', payload: { appointmentRef: 'APT-1', clinicianRef: 'N-205', scheduledFor: '2026-09-15T09:00:00+02:00', serviceId: 'vitals' } });
  runtime.advance(1000);
 
  /* Before the visit is billable the payable has no price, and nothing is charged. */
@@ -143,7 +143,7 @@ test('the tick closes a nurse’s week, pays it on the contract’s day, and sch
    used key, the ledger's own behind it, and a key two people happen to choose being two payments. */
 function billableFor(care: ReturnType<typeof publisher>, runtime: ReturnType<typeof createRuntime>, patients: [string, string][]) {
  for (const [appointmentRef, subjectRef] of patients) {
-  care.queue.push({ key: 'appointment.booked@1', subjectRef, payload: { appointmentRef, clinicianRef: 'N-205', scheduledFor: '2026-09-15T09:00:00+02:00' } });
+  care.queue.push({ key: 'appointment.booked@2', subjectRef, payload: { appointmentRef, clinicianRef: 'N-205', scheduledFor: '2026-09-15T09:00:00+02:00', serviceId: 'vitals' } });
  }
  runtime.advance(1000);
  for (const [appointmentRef, subjectRef] of patients) {

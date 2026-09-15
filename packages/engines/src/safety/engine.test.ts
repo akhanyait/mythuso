@@ -125,12 +125,12 @@ test('a patient cannot press a nurse’s panic, and an unknown visit never stops
 
 test('Safety hears a visit under way', () => {
  const care = defineEngine({ id: 'care', routes: {}, subscriptions: {}, store: { schema: '' },
-  tick: ctx => { ctx.publish('appointment.in_progress@1', { appointmentRef: 'appointment-synthetic-2', visitCodeMatched: true }, { subjectRef: 'subject-synthetic-2', purposeOfUse: 'treatment' }); } });
+  tick: ctx => { ctx.publish('appointment.in_progress@2', { appointmentRef: 'appointment-synthetic-2', visitCodeMatched: true, serviceId: 'wound' }, { subjectRef: 'subject-synthetic-2', purposeOfUse: 'treatment' }); } });
  const runtime = runtimeWith([care]);
  runtime.advance(1);
  const delivered = runtime.trail.all().filter(entry => entry.kind === 'delivered' && entry.engine === 'safety');
  assert.equal(delivered.length, 1);
- assert.equal(delivered[0].eventKey, 'appointment.in_progress@1');
+ assert.equal(delivered[0].eventKey, 'appointment.in_progress@2');
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
 });
@@ -209,7 +209,7 @@ test('a visit that started before a change keeps the grace its deadline is count
  try {
   const pending: string[] = [];
   const care = defineEngine({ id: 'care', routes: {}, subscriptions: {}, store: { schema: '' },
-   tick: ctx => { for (const appointmentRef of pending.splice(0)) ctx.publish('appointment.in_progress@1', { appointmentRef, visitCodeMatched: true }, { subjectRef: `subject-${appointmentRef}`, purposeOfUse: 'treatment' }); } });
+   tick: ctx => { for (const appointmentRef of pending.splice(0)) ctx.publish('appointment.in_progress@2', { appointmentRef, visitCodeMatched: true, serviceId: 'wound' }, { subjectRef: `subject-${appointmentRef}`, purposeOfUse: 'treatment' }); } });
   const runtime = runtimeWith([care], directory);
   pending.push('appointment-before');
   runtime.advance(MINUTE);

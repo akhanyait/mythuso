@@ -314,10 +314,12 @@ test('Care’s completion closes the booking’s thread after the hours in force
  const hours = accessInForce([]).threadOpenHoursAfterVisit;
  const shorter = Math.floor(hours / 2);
  assert.equal(changeSetting(runtime, 'hours-shorter', { setting: 'visit-thread-open-hours-after-visit', wholeNumber: shorter }).status, 200);
- const complete = (appointmentRef: string) => asCare(ctx => ctx.publish('appointment.completed@1', { appointmentRef, encounterRef: 'enc-synthetic-1', serviceId: 'wound' }, { subjectRef: 'subject-lerato', purposeOfUse: 'treatment' }));
- complete(booking.careAppointmentRef.replace('{bookingRef}', String(bookingRef)));
- // An appointment no booking here opened — the preview visit — closes nothing and is no fault.
+ /* Care's appointment is named however Care likes; Access finds the thread by the bookingRef version two carries. */
+ const complete = (appointmentRef: string, carried: Record<string, string> = {}) => asCare(ctx => ctx.publish('appointment.completed@2', { appointmentRef, encounterRef: 'enc-synthetic-1', serviceId: 'wound', ...carried }, { subjectRef: 'subject-lerato', purposeOfUse: 'treatment' }));
+ complete('appointment-named-by-care-synthetic', { bookingRef: String(bookingRef) });
+ // A completion carrying no booking — the preview visit — or a booking no store here holds closes nothing and is no fault.
  complete('TH-3107');
+ complete('appointment-synthetic-2', { bookingRef: 'booking-nobody-here-holds' });
  assert.equal(changeSetting(runtime, 'hours-back', { setting: 'visit-thread-open-hours-after-visit', wholeNumber: hours }, 2).status, 200);
 
  runtime.advance(shorter * HOUR - 60_000);

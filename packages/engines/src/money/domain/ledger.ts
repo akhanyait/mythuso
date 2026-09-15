@@ -43,7 +43,7 @@ export type Actor = { role: string; subjectRef: string };
 
 export type Payable = {
  payableRef: string; kind: PayableKind;
- /** Null for a visit booked through appointment.booked@1, which names no service, until visit.billable@1 does. */
+ /** Null until visit.billable@1 names the service. appointment.booked@2 names it too; pricing the payable from it is Money's to decide. */
  amountCents: number | null;
  subjectRef: string; payers: string[];
  serviceId?: string; planId?: string; tierId?: string; appointmentRef?: string; bookingRef?: string; cancelled: boolean;

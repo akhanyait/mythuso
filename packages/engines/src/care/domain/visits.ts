@@ -91,7 +91,7 @@ export class VisitDesk {
      she started under, so a change made while she is in the house never strands her there. */
   const { settingsVersion, encounterEntryCountsAsSigned } = this.#settings();
   visit.startedUnder = { settingsVersion, encounterEntryCountsAsSigned };
-  return answer({ startedAt: visit.startedAt }, [this.#event(visit, 'appointment.in_progress', ROUTES.start, { appointmentRef: visit.appointmentRef, visitCodeMatched: true })]);
+  return answer({ startedAt: visit.startedAt }, [this.#event(visit, 'appointment.in_progress', 2, ROUTES.start, { appointmentRef: visit.appointmentRef, visitCodeMatched: true, serviceId: visit.serviceId })]);
  }
 
  checklist(request: { appointmentRef: string; protocolVersionId: string; completedItems: readonly string[] }, caller: Caller, now: Date): Answer<{ recordedAt: string }> {
@@ -127,7 +127,7 @@ export class VisitDesk {
   if (visit.startedUnder?.encounterEntryCountsAsSigned === false) return refuseForEngine(this.#contract, ROUTES.handover, 'encounter-signature-unconfirmed');
   if (!this.#record.encounterComplete(request.encounterRef)) return refuse(this.#contract, ROUTES.handover, 'encounter-incomplete');
   visit.handover = { encounterRef: request.encounterRef, submittedAt: now.toISOString() };
-  return answer({ reviewQueued: true }, [this.#event(visit, 'visit.handover.submitted', ROUTES.handover, { appointmentRef: visit.appointmentRef, encounterRef: request.encounterRef })]);
+  return answer({ reviewQueued: true }, [this.#event(visit, 'visit.handover.submitted', 1, ROUTES.handover, { appointmentRef: visit.appointmentRef, encounterRef: request.encounterRef })]);
  }
 
  complete(request: { appointmentRef: string; visitCode: string; encounterRef: string }, caller: Caller, now: Date): Answer<{ completedAt: string }> {
@@ -140,9 +140,12 @@ export class VisitDesk {
   if (!this.#record.encounterSigned(request.encounterRef)) return refuse(this.#contract, ROUTES.complete, 'encounter-unsigned');
   visit.state = 'completed';
   visit.completedAt = now.toISOString();
+  /* The booking a visit was asked for through travels on completion by its own reference, so Access closes
+     that booking's thread without knowing how Care names an appointment. A visit no booking asked for — the
+     preview's seeded one — has none, and the field is left off rather than invented. */
   return answer({ completedAt: visit.completedAt }, [
-   this.#event(visit, 'appointment.completed', ROUTES.complete, { appointmentRef: visit.appointmentRef, encounterRef: request.encounterRef, serviceId: visit.serviceId }),
-   this.#event(visit, 'visit.billable', ROUTES.complete, { appointmentRef: visit.appointmentRef, serviceId: visit.serviceId, clinicianRef: visit.clinicianRef })
+   this.#event(visit, 'appointment.completed', 2, ROUTES.complete, { appointmentRef: visit.appointmentRef, encounterRef: request.encounterRef, serviceId: visit.serviceId, ...(visit.bookingRef ? { bookingRef: visit.bookingRef } : {}) }),
+   this.#event(visit, 'visit.billable', 1, ROUTES.complete, { appointmentRef: visit.appointmentRef, serviceId: visit.serviceId, clinicianRef: visit.clinicianRef })
   ]);
  }
 
@@ -161,7 +164,9 @@ export class VisitDesk {
   return held.length > 0 && difference === 0;
  }
 
- #event(visit: Visit, type: string, path: typeof ROUTES[keyof typeof ROUTES], payload: Record<string, string | boolean>): CareEvent {
-  return { type, version: 1, subjectRef: visit.subjectRef, actorRole: 'nurse', purposeOfUse: purposeOf(this.#contract, path), payload };
+ /* The version is written at every call rather than defaulted, because a default of one kept publishing
+    the first versions of appointment.in_progress and appointment.completed after both were withdrawn for what they left out. */
+ #event(visit: Visit, type: string, version: number, path: typeof ROUTES[keyof typeof ROUTES], payload: Record<string, string | boolean>): CareEvent {
+  return { type, version, subjectRef: visit.subjectRef, actorRole: 'nurse', purposeOfUse: purposeOf(this.#contract, path), payload };
  }
 }

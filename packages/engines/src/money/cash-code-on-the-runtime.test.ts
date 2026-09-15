@@ -81,7 +81,7 @@ function world() {
  const dir = mkdtempSync(join(tmpdir(), 'mythuso-engines-money-cash-'));
  const publisher = care();
  const runtime = createRuntime({ env: FLAG, engines: [publisher.module, withEntry], dataDirectory: dir, clock: createClock(START) });
- publisher.queue.push({ key: 'appointment.booked@1', payload: { appointmentRef: 'APT-1', clinicianRef: 'N-205', scheduledFor: '2026-09-15T09:00:00+02:00' } });
+ publisher.queue.push({ key: 'appointment.booked@2', payload: { appointmentRef: 'APT-1', clinicianRef: 'N-205', scheduledFor: '2026-09-15T09:00:00+02:00', serviceId: 'vitals' } });
  runtime.advance(1000);
  publisher.queue.push({ key: 'visit.billable@1', payload: { appointmentRef: 'APT-1', serviceId: 'vitals', clinicianRef: 'N-205' } });
  runtime.advance(1000);

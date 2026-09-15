@@ -124,10 +124,25 @@
   {
    "type": "appointment.booked", "version": 1, "owner": "care",
    "summary": "A clinician has accepted and a time is held.",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "appointment.booked@2", "formerSubscribers": ["core", "record", "money"], "why": "It named the appointment, the nurse and the hour held and not the service, so Money opened a payable it could not price until the visit was over, and Core and the record learnt that a visit was held without learning what for. Version two carries the serviceId from packages/catalog/services.json, which the booking that asked for the visit had already said."},
    "payload": [
     { "field": "appointmentRef", "type": "string", "required": true, "why": "The appointment now held." },
     { "field": "clinicianRef", "type": "string", "required": true, "why": "Who accepted it." },
     { "field": "scheduledFor", "type": "instant", "required": true, "why": "The time held, so the closed loop can open its expectation of an outcome." }
+   ],
+   "neverCarries": [
+    { "field": "priceCents", "why": "The price belongs to packages/catalog/services.json and the charge to Money. A price on the booking event is a second copy that disagrees the day the catalogue changes." }
+   ],
+   "subscribers": []
+  },
+  {
+   "type": "appointment.booked", "version": 2, "owner": "care",
+   "summary": "A clinician has accepted and a time is held, for the service that was booked.",
+   "payload": [
+    { "field": "appointmentRef", "type": "string", "required": true, "why": "The appointment now held." },
+    { "field": "clinicianRef", "type": "string", "required": true, "why": "Who accepted it." },
+    { "field": "scheduledFor", "type": "instant", "required": true, "why": "The time held, so the closed loop can open its expectation of an outcome." },
+    { "field": "serviceId", "type": "string", "required": true, "why": "An id from packages/catalog/services.json: what was held, so Money prices the payable it opens from the catalogue rather than from a number on the event, and no subscriber has to ask Care what the visit is for." }
    ],
    "neverCarries": [
     { "field": "priceCents", "why": "The price belongs to packages/catalog/services.json and the charge to Money. A price on the booking event is a second copy that disagrees the day the catalogue changes." }
@@ -162,9 +177,23 @@
   {
    "type": "appointment.in_progress", "version": 1, "owner": "care",
    "summary": "The clinician is with the patient and the visit code matched.",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "appointment.in_progress@2", "formerSubscribers": ["core", "record", "safety"], "why": "It said a visit had started and not which service it was, so Safety, which times a visit by the service booked, could start no timer from it without minutes a phone sent — the very number its refusal expected-minutes-not-the-service turns away. Version two carries the serviceId from packages/catalog/services.json."},
    "payload": [
     { "field": "appointmentRef", "type": "string", "required": true, "why": "The appointment under way." },
     { "field": "visitCodeMatched", "type": "boolean", "required": true, "why": "Always true when published. A failed visit code stops the visit, so there is no in-progress event for one; the field is here so a subscriber can refuse an event that says otherwise." }
+   ],
+   "neverCarries": [
+    { "field": "visitCode", "why": "The code itself is the proof the right person is at the right door. Broadcasting it would make it worthless for the next visit." }
+   ],
+   "subscribers": []
+  },
+  {
+   "type": "appointment.in_progress", "version": 2, "owner": "care",
+   "summary": "The clinician is with the patient and the visit code matched, for the service that was booked.",
+   "payload": [
+    { "field": "appointmentRef", "type": "string", "required": true, "why": "The appointment under way." },
+    { "field": "visitCodeMatched", "type": "boolean", "required": true, "why": "Always true when published. A failed visit code stops the visit, so there is no in-progress event for one; the field is here so a subscriber can refuse an event that says otherwise." },
+    { "field": "serviceId", "type": "string", "required": true, "why": "An id from packages/catalog/services.json, so Safety times the visit by the duration of the service booked, read from the catalogue, and never by minutes somebody sent." }
    ],
    "neverCarries": [
     { "field": "visitCode", "why": "The code itself is the proof the right person is at the right door. Broadcasting it would make it worthless for the next visit." }
@@ -174,10 +203,25 @@
   {
    "type": "appointment.completed", "version": 1, "owner": "care",
    "summary": "The visit is finished and the encounter is signed.",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "appointment.completed@2", "formerSubscribers": ["core", "record", "trust", "access"], "why": "It named Care's appointment and not the booking the visit was asked for through, so Access could find a completed visit's thread only by knowing how Care names its appointments — a rule written into packages/catalog/booking.json rather than onto the event, which would have closed nothing the day Care named one differently. Version two carries the bookingRef Care heard on booking.requested."},
    "payload": [
     { "field": "appointmentRef", "type": "string", "required": true, "why": "The appointment completed." },
     { "field": "encounterRef", "type": "string", "required": true, "why": "The signed encounter in the record, which is where what happened is kept." },
     { "field": "serviceId", "type": "string", "required": true, "why": "What was delivered, so Money pays the nurse's share from packages/catalog/services.json rather than from a number on the event." }
+   ],
+   "neverCarries": [
+    { "field": "findings", "why": "What the nurse found is the encounter. The event says the encounter exists and where; it does not repeat it." }
+   ],
+   "subscribers": []
+  },
+  {
+   "type": "appointment.completed", "version": 2, "owner": "care",
+   "summary": "The visit is finished and the encounter is signed, with the booking it was asked for through.",
+   "payload": [
+    { "field": "appointmentRef", "type": "string", "required": true, "why": "The appointment completed." },
+    { "field": "encounterRef", "type": "string", "required": true, "why": "The signed encounter in the record, which is where what happened is kept." },
+    { "field": "serviceId", "type": "string", "required": true, "why": "What was delivered, so Money pays the nurse's share from packages/catalog/services.json rather than from a number on the event." },
+    { "field": "bookingRef", "type": "string", "required": false, "why": "The booking this visit was asked for through, exactly as booking.requested carried it to Care, so Access closes that booking's thread by its own reference and never by how Care names an appointment. Absent for a visit no booking asked for, such as the preview's seeded visit, which has no thread to close." }
    ],
    "neverCarries": [
     { "field": "findings", "why": "What the nurse found is the encounter. The event says the encounter exists and where; it does not repeat it." }

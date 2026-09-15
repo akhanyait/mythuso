@@ -44,11 +44,11 @@ enum EventsData {
 
     static let appointmentRequestedV1 = EventKey("appointment.requested", 1, "care")
     static let appointmentOfferedV1 = EventKey("appointment.offered", 1, "care")
-    static let appointmentBookedV1 = EventKey("appointment.booked", 1, "care")
+    static let appointmentBookedV2 = EventKey("appointment.booked", 2, "care")
     static let appointmentConfirmedV1 = EventKey("appointment.confirmed", 1, "care")
     static let appointmentEnRouteV1 = EventKey("appointment.en_route", 1, "care")
-    static let appointmentInProgressV1 = EventKey("appointment.in_progress", 1, "care")
-    static let appointmentCompletedV1 = EventKey("appointment.completed", 1, "care")
+    static let appointmentInProgressV2 = EventKey("appointment.in_progress", 2, "care")
+    static let appointmentCompletedV2 = EventKey("appointment.completed", 2, "care")
     static let appointmentNoShowV1 = EventKey("appointment.no_show", 1, "care")
     static let appointmentCancelledV1 = EventKey("appointment.cancelled", 1, "care")
     static let appointmentFollowUpRequiredV1 = EventKey("appointment.follow_up_required", 1, "care")
@@ -157,11 +157,11 @@ enum EventsData {
     static let events: [EventKey] = [
         appointmentRequestedV1,
         appointmentOfferedV1,
-        appointmentBookedV1,
+        appointmentBookedV2,
         appointmentConfirmedV1,
         appointmentEnRouteV1,
-        appointmentInProgressV1,
-        appointmentCompletedV1,
+        appointmentInProgressV2,
+        appointmentCompletedV2,
         appointmentNoShowV1,
         appointmentCancelledV1,
         appointmentFollowUpRequiredV1,

@@ -21,11 +21,11 @@ object EventsData {
         companion object {
             val APPOINTMENT_REQUESTED_V1 = EventKey("appointment.requested", 1, "care")
             val APPOINTMENT_OFFERED_V1 = EventKey("appointment.offered", 1, "care")
-            val APPOINTMENT_BOOKED_V1 = EventKey("appointment.booked", 1, "care")
+            val APPOINTMENT_BOOKED_V2 = EventKey("appointment.booked", 2, "care")
             val APPOINTMENT_CONFIRMED_V1 = EventKey("appointment.confirmed", 1, "care")
             val APPOINTMENT_EN_ROUTE_V1 = EventKey("appointment.en_route", 1, "care")
-            val APPOINTMENT_IN_PROGRESS_V1 = EventKey("appointment.in_progress", 1, "care")
-            val APPOINTMENT_COMPLETED_V1 = EventKey("appointment.completed", 1, "care")
+            val APPOINTMENT_IN_PROGRESS_V2 = EventKey("appointment.in_progress", 2, "care")
+            val APPOINTMENT_COMPLETED_V2 = EventKey("appointment.completed", 2, "care")
             val APPOINTMENT_NO_SHOW_V1 = EventKey("appointment.no_show", 1, "care")
             val APPOINTMENT_CANCELLED_V1 = EventKey("appointment.cancelled", 1, "care")
             val APPOINTMENT_FOLLOW_UP_REQUIRED_V1 = EventKey("appointment.follow_up_required", 1, "care")
@@ -134,11 +134,11 @@ object EventsData {
             val all = listOf(
                 APPOINTMENT_REQUESTED_V1,
                 APPOINTMENT_OFFERED_V1,
-                APPOINTMENT_BOOKED_V1,
+                APPOINTMENT_BOOKED_V2,
                 APPOINTMENT_CONFIRMED_V1,
                 APPOINTMENT_EN_ROUTE_V1,
-                APPOINTMENT_IN_PROGRESS_V1,
-                APPOINTMENT_COMPLETED_V1,
+                APPOINTMENT_IN_PROGRESS_V2,
+                APPOINTMENT_COMPLETED_V2,
                 APPOINTMENT_NO_SHOW_V1,
                 APPOINTMENT_CANCELLED_V1,
                 APPOINTMENT_FOLLOW_UP_REQUIRED_V1,

@@ -64,7 +64,7 @@
     {"id": "offer-expired", "status": 410, "statement": "That offer has lapsed.", "why": "It went to the next clinician."},
     {"id": "not-your-offer", "status": 403, "statement": "That offer was made to somebody else.", "why": "An offer is personal."}
    ],
-   "emits": ["appointment.booked@1"],
+   "emits": ["appointment.booked@2"],
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": null,
@@ -117,7 +117,7 @@
     {"id": "visit-code-wrong", "status": 403, "statement": "The visit code did not match, so the visit has not started.", "why": "A failed code stops the visit."},
     {"id": "not-today", "status": 409, "statement": "That visit is not today.", "why": "A visit starts on its day."}
    ],
-   "emits": ["appointment.in_progress@1"],
+   "emits": ["appointment.in_progress@2"],
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E2", "what": "OTP start and completion"},
@@ -225,7 +225,7 @@
     {"id": "encounter-unsigned", "status": 409, "statement": "The encounter is not signed.", "why": "A visit is complete when its record is."},
     {"id": "complete-without-start", "status": 409, "statement": "A visit that never started cannot be completed.", "why": "Completion confirms a visit the code opened; without a start there is nothing to confirm."}
    ],
-   "emits": ["appointment.completed@1", "visit.billable@1"],
+   "emits": ["appointment.completed@2", "visit.billable@1"],
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E2", "what": "OTP start and completion"},

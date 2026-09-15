@@ -65,7 +65,7 @@ export type TimerStanding = 'running' | 'overdue' | 'closed';
 
 export type InProgress = { readonly appointmentRef: string; readonly visitCodeMatched: boolean };
 
-/* appointment.in_progress@1 does not carry the service, so the caller supplies it from the visit.
+/* appointment.in_progress carried no service until version two, so the caller supplies it from the visit.
    That is a gap in the event, reported rather than papered over: see the Wave 3 report. */
 export function startTimer(input: {
  readonly checkinRef: string; readonly event: InProgress; readonly serviceId: string; readonly nurseRef: string;
