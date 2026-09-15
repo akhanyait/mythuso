@@ -116,15 +116,27 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
     which is more honest than booking it as though nothing were. */
  const method = methodByName(payment) ?? visitMethods[0];
  const reference = visitReference(visit);
+ /* One payment in flight at a time. The ledger is fetched on the first press, so an answer is no longer
+    immediate — and while it was on its way the last decline and its "Try the payment again" button were
+    still on the screen, so a second press started a second attempt that raced the first. The button says
+    what is happening and is disabled until the answer arrives. */
+ const [paying, setPaying] = useState(false);
  const confirm = async () => {
-  if (offline) return;
-  const attempt = payAttempt + 1;
-  setPayAttempt(attempt);
-  /* Fetched on the first press and kept for the life of the dialog: one ledger per booking, and none
-     at all for somebody who only looked. */
-  const { bookingLedger, payForVisit } = await import('../lib/money');
-  ledger.current ??= bookingLedger();
-  const result = payForVisit(ledger.current, reference, service.id, method.id, attempt);
+  if (offline || paying) return;
+  setPaying(true);
+  try {
+   const attempt = payAttempt + 1;
+   setPayAttempt(attempt);
+   /* Fetched on the first press and kept for the life of the dialog: one ledger per booking, and none
+      at all for somebody who only looked. */
+   const { bookingLedger, payForVisit } = await import('../lib/money');
+   ledger.current ??= bookingLedger();
+   settle(payForVisit(ledger.current, reference, service.id, method.id, attempt));
+  } finally {
+   setPaying(false);
+  }
+ };
+ const settle = (result: PaymentView) => {
   setPaid(result);
   /* Booked on an authorisation, or on cash waiting for its code. A visit confirmed over a declined
      payment is the one outcome a booking screen must not produce: a nurse dispatched against nothing. */
@@ -305,7 +317,7 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
       <CircleAlert size={19}/><span>{paid.declineReason} {paid.words}</span></div>
     : null}
    <NotConnected of="booking"/>
-   <button className="primary full" disabled={!consent || offline} onClick={confirm}>{paid && paid.refused === undefined && paid.state === 'failed' ? <>Try the payment again<ArrowRight size={16}/></> : <>Confirm &amp; book<ArrowRight size={16}/></>}</button>
+   <button className="primary full" disabled={!consent || offline || paying} aria-busy={paying} onClick={() => { void confirm(); }}>{paying ? <>Taking the payment…</> : paid && paid.refused === undefined && paid.state === 'failed' ? <>Try the payment again<ArrowRight size={16}/></> : <>Confirm &amp; book<ArrowRight size={16}/></>}</button>
    <p className="helper">{ruleById('everything-survives-the-booking').sentence}</p>
    <button className="text-button" onClick={() => setStep(3)}><ArrowLeft size={15}/>Back</button>
   </div>}
