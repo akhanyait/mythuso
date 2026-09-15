@@ -34,6 +34,7 @@ import { emitCare } from './emit-care.mjs';
 import { emitFieldSafety } from './emit-field-safety.mjs';
 import { emitBooking } from './emit-booking.mjs';
 import { emitClinicalReviewPack } from './emit-clinical-review-pack.mjs';
+import { emitMedicines } from './emit-medicines.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -884,11 +885,16 @@ const generated = [
  { source: 'packages/catalog/booking.json', command: 'npm run booking', files: Object.values(emitBooking()) },
  { source: 'packages/catalog/apis/access.json', command: 'npm run booking', files: Object.values(emitBooking()) },
  { source: 'packages/catalog/trust.json', command: 'npm run booking', files: Object.values(emitBooking()) },
+ /* MedicinesData carries medicines.json's custody and hand-over words, dispensing.json's schedules and who drives,
+    and the refusals of the two routes a collector calls from apis/medicines.json. */
+ { source: 'packages/catalog/medicines.json', command: 'npm run medicines', files: emitMedicines() },
+ { source: 'packages/catalog/dispensing.json', command: 'npm run medicines', files: emitMedicines() },
+ { source: 'packages/catalog/apis/medicines.json', command: 'npm run medicines', files: emitMedicines() },
  /* The clinical review pack reads every contract a clinician has to review, so a change to any of them
     without regenerating is a failed build rather than a pack somebody signs against values no longer in force. */
  ...['settings.json', 'care.json', 'booking.json', 'field-safety.json', 'closed-loop.json', 'money.json', 'protocols.json',
   'gilbert-emergency-terms.json', 'assistant.json', 'vetting.json', 'vetting-proposals.json', 'records.json', 'sos.json',
-  'locales.json', 'events.json', 'apis/care.json', 'apis/access.json']
+  'locales.json', 'events.json', 'apis/care.json', 'apis/access.json', 'medicines.json', 'apis/medicines.json']
   .map(file => ({ source: `packages/catalog/${file}`, command: 'npm run review-pack', files: emitClinicalReviewPack() }))
 ];
 for(const {source,command,files} of generated) {

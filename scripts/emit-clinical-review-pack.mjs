@@ -64,7 +64,10 @@ const NOT_CLINICAL_SETTINGS = {
  'access:visit-thread-max-characters': 'How long one message in a visit thread may be.',
  'access:visit-thread-open-hours-after-visit': 'How long a visit thread stays open. Nobody watches a thread for emergencies however long it is open, and the thread says so.',
  'money:visit-reports-whatsapp': 'What reaches a family on WhatsApp is a privacy and third-party question for the Information Officer, and is in docs/governance/DPIA-DRAFT.md rather than here.',
- 'money:*': 'Money\'s plan names, prices, shares and wording are commercial decisions. None of them decides who may do what to a patient.'
+ 'money:*': 'Money\'s plan names, prices, shares and wording are commercial decisions. None of them decides who may do what to a patient.',
+ 'medicines:pin-lifetime': 'How long a hand-over PIN works is chain of custody: it decides when a sealed bag goes back to the pharmacy, not what is in it or who may take it. Whether a medicine may leave the pharmacy at all was decided by the prescriber and the pharmacist.',
+ 'medicines:pin-attempts': 'How many wrong PINs a collector may enter is a guard against guessing at the door. It decides when a bag goes back, never whether a patient is treated.',
+ 'medicines:collection-window': 'How long a patient\'s authorisation to collect lasts is custody and logistics. A sealed bag that goes back is dispensed again; nothing about the medicine changes.'
 };
 
 /* Proposals outside a settings block (decidedBy: null), classified by where they sit. */
@@ -73,7 +76,8 @@ const PROPOSALS = [
  { file: 'closed-loop.json', path: /^\.panic\.ladderRung$/, title: 'The rung a panic is given', clinical:'A nurse who presses panic is given the time the ladder gives this rung. Whether a nurse in danger and a patient in danger should share one number belongs with the field safety policy the Clinical Governance Lead signs (Full Scope v1.0, Engine 4).' },
  { file: 'closed-loop.json', path: /^\.snooze\.reasons$/, title: 'The reasons a concern may be snoozed', clinical:'A snooze lets a concern about a patient wait. Whether a reason is good enough for that is a clinical judgement.' },
  { file: 'closed-loop.json', path: /^\.outcomes$/, title: 'The outcomes a concern is closed with', clinical:'Every concern is closed with one of these and a review counts them. Whether they are enough to tell a harmful outcome from a safe one, without naming a condition, is a clinical governance question.' },
- { file: 'closed-loop.json', path: /^\.escalationReasons\.byCaller$/, notClinical: 'The reasons the desk moves a concern early say who answered and who can decide, not anything about the patient.' }
+ { file: 'closed-loop.json', path: /^\.escalationReasons\.byCaller$/, notClinical: 'The reasons the desk moves a concern early say who answered and who can decide, not anything about the patient.' },
+ { file: 'closed-loop.json', path: /^\.resultAcknowledged\.closesAs$/, title: 'The outcome an acknowledged lab result\'s concern is closed with', clinical: 'A clinician acknowledging a result closes the concern Core opened for it as dealt with. Whether acknowledging a result is enough to call its concern dealt with, before anybody has acted on what it says, is a clinical governance question (Full Scope v1.0, Engine 8: a result is not complete until acknowledged).' }
 ];
 const PROPOSED_ROLES = {
  carer: 'A carer is in a patient\'s home beside a registered nurse. What a carer may do, how they are trained, and when they must call the nurse rather than act are questions about the patient\'s care.',
