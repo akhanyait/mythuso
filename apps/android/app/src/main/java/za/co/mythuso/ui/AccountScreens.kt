@@ -349,6 +349,11 @@ import za.co.mythuso.model.mokoenaHousehold
         title == "First-run & recovery" -> firstRun()
         title == "Invite a guardian" -> InviteGuardianScreen(store) { open("My family") }
         title == "Visit assessment" -> VisitAssessmentScreen(store, close = { open("Nurse workspace") }, open = open)
+        /* The visit a nurse accepted from her schedule, and the assessment it is signed off in — opened
+           under the visit's own reference, so the sign-off it seals is the one handover and completion
+           ask for, and closing it returns to the visit. */
+        title == "Care visit" -> CareVisitScreen(store, open)
+        title == "Care assessment" -> VisitAssessmentScreen(store, reference = za.co.mythuso.model.CareData.Preview.appointmentRef, close = { open("Care visit") }, open = open)
         /* The whole visit, one level up from the readings. Its own route because it is worth opening
            when no instrument is anywhere near — it is where the morning’s work sits when there is no
            signal, and on this platform it is on the disk rather than in memory. */
@@ -825,6 +830,9 @@ private fun sectionDeck(role: String, section: String) =
         when {
             role == "Nurse" && section == "Schedule" -> {
                 CareCard { Setting("Available for visits", available) { available = it } }
+                /* An offer is a decision about the day, so it is read directly under whether she is
+                   taking visits at all. Off duty it shows nothing new; a visit she has taken still shows. */
+                CareOfferCard(store, available, open)
                 /* First, not last. A nurse coming out of a house with no signal wants one answer
                    before anything else on this screen: is my work safe? */
                 CareCard {
