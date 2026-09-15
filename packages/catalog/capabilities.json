@@ -152,7 +152,11 @@
    "surfaces": [
     "dispatch",
     "control-tower",
-    "incidents"
+    "incidents",
+    "thuso-ride",
+    "responder",
+    "admissions",
+    "facility-directory"
    ],
    "state": "simulated",
    "simulation": {
@@ -400,7 +404,8 @@
    "notice": "This does not call anybody. In a real emergency dial 10177 or 112 from your phone.",
    "surfaces": [
     "sos",
-    "alert"
+    "alert",
+    "p1-refusal"
    ],
    "neverSoften": "The ambulance number on this screen is real and always shown first, connected or not. The one refusal on this pathway that is not about MyThuso is the one that matters most.",
    "state": "simulated",

@@ -15,6 +15,7 @@ import type { Terms as CollectionTerms } from '../../../../packages/engines/src/
 import { trustInForce, type TrustInForce } from '../../../../packages/engines/src/trust/domain/settings.ts';
 import { sharingSettingsOf, type SharingInForce } from '../../../../packages/engines/src/record/domain/settings.ts';
 import { devicesInForce, type DevicesInForce } from '../../../../packages/engines/src/devices/domain/settings.ts';
+import { movementInForce, type MovementInForce } from '../../../../packages/engines/src/movement/domain/settings.ts';
 import { roleOf, whoIs } from './roles';
 import { can } from './vetting';
 /* Whether a rota's post is on duty, and when a shut one opens: the shared settings code's one rule, which the
@@ -115,6 +116,9 @@ export const recordSettingsNow = (): SharingInForce => sharingSettingsOf(snapsho
 /* Devices' three, read the same way: the kit's health and the registry ask devicesSettingsNow() whenever they
    work a device's health out, and a kit is issued with the deposit it answers, which the kit keeps. */
 export const devicesSettingsNow = (): DevicesInForce => devicesInForce(historyOf('devices'));
+/* Movement's five, read the same way: a trip asks movementSettingsNow() once when it is requested and keeps the
+   offers, the window and the retention it answered; the responder's phone asks it for the interval when it beats. */
+export const movementSettingsNow = (): MovementInForce => movementInForce(historyOf('movement'));
 
 /* Whether the value a setting held at a settings version has been clinically reviewed. Something that started
    under an older version — an offer on a nurse's screen — is described by the value it started under, not

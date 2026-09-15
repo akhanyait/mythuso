@@ -132,18 +132,23 @@ object ApisData {
     val GET_SAFETY_NEXT_OF_KIN = Route("getSafetyNextOfKin", "GET", "/v1/safety/next-of-kin", "/v1/safety/next-of-kin", 1, "safety", listOf("patient"), listOf("emergency"), false, "built")
     val POST_SAFETY_NEXT_OF_KIN_BY_NOMINATION_REF_WITHDRAW = Route("postSafetyNextOfKinByNominationRefWithdraw", "POST", "/v1/safety/next-of-kin/{nominationRef}/withdraw", "/v1/safety/next-of-kin/{nominationRef}/withdraw", 1, "safety", listOf("patient", "guardian"), listOf("emergency"), true, "built")
     val POST_SAFETY_NEXT_OF_KIN_BY_NOMINATION_REF_ALERT_V2 = Route("postSafetyNextOfKinByNominationRefAlertV2", "POST", "/v1/safety/next-of-kin/{nominationRef}/alert", "/v1/safety/next-of-kin/{nominationRef}/alert", 2, "safety", listOf("operator", "guardian"), listOf("emergency"), true, "built")
-    val POST_MOVEMENT_TRIPS = Route("postMovementTrips", "POST", "/v1/movement/trips", "/v1/movement/trips", 1, "movement", listOf("nurse", "doctor", "dispatcher", "thuso-line-agent"), listOf("dispatch"), true, "proposed")
-    val POST_MOVEMENT_RESPONDER_HEARTBEATS = Route("postMovementResponderHeartbeats", "POST", "/v1/movement/responder-heartbeats", "/v1/movement/responder-heartbeats", 1, "movement", listOf("responder"), listOf("dispatch"), true, "proposed")
-    val POST_MOVEMENT_TRIPS_BY_TRIP_REF_ACCEPT = Route("postMovementTripsByTripRefAccept", "POST", "/v1/movement/trips/{tripRef}/accept", "/v1/movement/trips/{tripRef}/accept", 1, "movement", listOf("responder"), listOf("dispatch"), true, "proposed")
-    val POST_MOVEMENT_TRIPS_BY_TRIP_REF_DECLINE = Route("postMovementTripsByTripRefDecline", "POST", "/v1/movement/trips/{tripRef}/decline", "/v1/movement/trips/{tripRef}/decline", 1, "movement", listOf("responder"), listOf("dispatch"), true, "proposed")
-    val POST_MOVEMENT_TRIPS_BY_TRIP_REF_HANDOVER = Route("postMovementTripsByTripRefHandover", "POST", "/v1/movement/trips/{tripRef}/handover", "/v1/movement/trips/{tripRef}/handover", 1, "movement", listOf("responder"), listOf("dispatch"), true, "proposed")
-    val GET_MOVEMENT_FACILITIES = Route("getMovementFacilities", "GET", "/v1/movement/facilities", "/v1/movement/facilities", 1, "movement", listOf("patient", "caregiver", "nurse", "doctor", "ops-desk", "thuso-line-agent"), listOf("dispatch"), false, "proposed")
-    val POST_MOVEMENT_ADMISSIONS = Route("postMovementAdmissions", "POST", "/v1/movement/admissions", "/v1/movement/admissions", 1, "movement", listOf("nurse", "doctor", "ops-desk"), listOf("dispatch"), true, "proposed")
-    val GET_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF = Route("getMovementAdmissionsByAdmissionRef", "GET", "/v1/movement/admissions/{admissionRef}", "/v1/movement/admissions/{admissionRef}", 1, "movement", listOf("patient", "caregiver", "nurse", "doctor", "ops-desk"), listOf("dispatch"), false, "proposed")
-    val POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_PACKET = Route("postMovementAdmissionsByAdmissionRefPacket", "POST", "/v1/movement/admissions/{admissionRef}/packet", "/v1/movement/admissions/{admissionRef}/packet", 1, "movement", listOf("nurse", "doctor", "ops-desk"), listOf("treatment"), false, "proposed")
-    val POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_DECISION = Route("postMovementAdmissionsByAdmissionRefDecision", "POST", "/v1/movement/admissions/{admissionRef}/decision", "/v1/movement/admissions/{admissionRef}/decision", 1, "movement", listOf("facility-desk", "ops-desk"), listOf("dispatch"), true, "proposed")
-    val POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_ARRIVAL = Route("postMovementAdmissionsByAdmissionRefArrival", "POST", "/v1/movement/admissions/{admissionRef}/arrival", "/v1/movement/admissions/{admissionRef}/arrival", 1, "movement", listOf("facility-desk"), listOf("treatment"), false, "proposed")
-    val POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_HANDOVER = Route("postMovementAdmissionsByAdmissionRefHandover", "POST", "/v1/movement/admissions/{admissionRef}/handover", "/v1/movement/admissions/{admissionRef}/handover", 1, "movement", listOf("facility-desk"), listOf("treatment"), false, "proposed")
+    val POST_MOVEMENT_TRIPS_BY_TRIP_REF_DECLINE = Route("postMovementTripsByTripRefDecline", "POST", "/v1/movement/trips/{tripRef}/decline", "/v1/movement/trips/{tripRef}/decline", 1, "movement", listOf("responder"), listOf("dispatch"), true, "built")
+    val POST_MOVEMENT_TRIPS_V2 = Route("postMovementTripsV2", "POST", "/v1/movement/trips", "/v1/movement/trips", 2, "movement", listOf("nurse", "doctor", "dispatcher", "thuso-line-agent"), listOf("dispatch"), true, "built")
+    val POST_MOVEMENT_RESPONDER_HEARTBEATS_V2 = Route("postMovementResponderHeartbeatsV2", "POST", "/v1/movement/responder-heartbeats", "/v1/movement/responder-heartbeats", 2, "movement", listOf("responder"), listOf("dispatch"), true, "built")
+    val POST_MOVEMENT_TRIPS_BY_TRIP_REF_ACCEPT_V2 = Route("postMovementTripsByTripRefAcceptV2", "POST", "/v1/movement/trips/{tripRef}/accept", "/v1/movement/trips/{tripRef}/accept", 2, "movement", listOf("responder"), listOf("dispatch"), true, "built")
+    val POST_MOVEMENT_TRIPS_BY_TRIP_REF_HANDOVER_V2 = Route("postMovementTripsByTripRefHandoverV2", "POST", "/v1/movement/trips/{tripRef}/handover", "/v1/movement/trips/{tripRef}/handover", 2, "movement", listOf("responder"), listOf("dispatch"), true, "built")
+    val GET_MOVEMENT_TRIPS_BY_TRIP_REF_POSITION = Route("getMovementTripsByTripRefPosition", "GET", "/v1/movement/trips/{tripRef}/position", "/v1/movement/trips/{tripRef}/position", 1, "movement", listOf("patient", "dispatcher", "ops-desk"), listOf("dispatch"), false, "built")
+    val POST_MOVEMENT_EMS_REQUESTS = Route("postMovementEmsRequests", "POST", "/v1/movement/ems-requests", "/v1/movement/ems-requests", 1, "movement", listOf("nurse", "doctor", "dispatcher", "ops-desk", "thuso-line-agent"), listOf("emergency"), false, "built")
+    val GET_MOVEMENT_FACILITIES_V2 = Route("getMovementFacilitiesV2", "GET", "/v1/movement/facilities", "/v1/movement/facilities", 2, "movement", listOf("patient", "caregiver", "nurse", "doctor", "ops-desk", "thuso-line-agent"), listOf("dispatch"), false, "built")
+    val POST_MOVEMENT_ADMISSIONS_V2 = Route("postMovementAdmissionsV2", "POST", "/v1/movement/admissions", "/v1/movement/admissions", 2, "movement", listOf("nurse", "doctor", "ops-desk"), listOf("dispatch"), true, "built")
+    val GET_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_V2 = Route("getMovementAdmissionsByAdmissionRefV2", "GET", "/v1/movement/admissions/{admissionRef}", "/v1/movement/admissions/{admissionRef}", 2, "movement", listOf("patient", "nurse", "doctor", "ops-desk"), listOf("dispatch"), false, "built")
+    val POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_PACKET_V2 = Route("postMovementAdmissionsByAdmissionRefPacketV2", "POST", "/v1/movement/admissions/{admissionRef}/packet", "/v1/movement/admissions/{admissionRef}/packet", 2, "movement", listOf("nurse", "doctor", "ops-desk"), listOf("treatment"), false, "built")
+    val POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_DECISION_V2 = Route("postMovementAdmissionsByAdmissionRefDecisionV2", "POST", "/v1/movement/admissions/{admissionRef}/decision", "/v1/movement/admissions/{admissionRef}/decision", 2, "movement", listOf("ops-desk"), listOf("dispatch"), true, "built")
+    val POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_MORE_INFORMATION = Route("postMovementAdmissionsByAdmissionRefMoreInformation", "POST", "/v1/movement/admissions/{admissionRef}/more-information", "/v1/movement/admissions/{admissionRef}/more-information", 1, "movement", listOf("ops-desk"), listOf("dispatch"), true, "built")
+    val POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_ARRIVAL_V2 = Route("postMovementAdmissionsByAdmissionRefArrivalV2", "POST", "/v1/movement/admissions/{admissionRef}/arrival", "/v1/movement/admissions/{admissionRef}/arrival", 2, "movement", listOf("ops-desk"), listOf("treatment"), false, "built")
+    val POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_HANDOVER_V2 = Route("postMovementAdmissionsByAdmissionRefHandoverV2", "POST", "/v1/movement/admissions/{admissionRef}/handover", "/v1/movement/admissions/{admissionRef}/handover", 2, "movement", listOf("ops-desk"), listOf("treatment"), false, "built")
+    val GET_MOVEMENT_SETTINGS = Route("getMovementSettings", "GET", "/v1/movement/settings", "/v1/movement/settings", 1, "movement", listOf("admin"), listOf("audit"), false, "built")
+    val POST_MOVEMENT_SETTING_CHANGES = Route("postMovementSettingChanges", "POST", "/v1/movement/setting-changes", "/v1/movement/setting-changes", 1, "movement", listOf("admin"), listOf("audit"), true, "built")
     val GET_TRUST_STANDING = Route("getTrustStanding", "GET", "/v1/trust/standing", "/v1/trust/standing", 1, "trust", listOf("self"), listOf("vetting"), false, "built")
     val GET_TRUST_PARTIES_BY_ID = Route("getTrustPartiesById", "GET", "/v1/trust/parties/{id}", "/v1/trust/parties/{id}", 1, "trust", listOf("admin"), listOf("vetting"), false, "built")
     val POST_TRUST_PARTIES = Route("postTrustParties", "POST", "/v1/trust/parties", "/v1/trust/parties", 1, "trust", listOf("admin"), listOf("vetting"), false, "built")
@@ -337,18 +342,23 @@ object ApisData {
         GET_SAFETY_NEXT_OF_KIN,
         POST_SAFETY_NEXT_OF_KIN_BY_NOMINATION_REF_WITHDRAW,
         POST_SAFETY_NEXT_OF_KIN_BY_NOMINATION_REF_ALERT_V2,
-        POST_MOVEMENT_TRIPS,
-        POST_MOVEMENT_RESPONDER_HEARTBEATS,
-        POST_MOVEMENT_TRIPS_BY_TRIP_REF_ACCEPT,
         POST_MOVEMENT_TRIPS_BY_TRIP_REF_DECLINE,
-        POST_MOVEMENT_TRIPS_BY_TRIP_REF_HANDOVER,
-        GET_MOVEMENT_FACILITIES,
-        POST_MOVEMENT_ADMISSIONS,
-        GET_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF,
-        POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_PACKET,
-        POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_DECISION,
-        POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_ARRIVAL,
-        POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_HANDOVER,
+        POST_MOVEMENT_TRIPS_V2,
+        POST_MOVEMENT_RESPONDER_HEARTBEATS_V2,
+        POST_MOVEMENT_TRIPS_BY_TRIP_REF_ACCEPT_V2,
+        POST_MOVEMENT_TRIPS_BY_TRIP_REF_HANDOVER_V2,
+        GET_MOVEMENT_TRIPS_BY_TRIP_REF_POSITION,
+        POST_MOVEMENT_EMS_REQUESTS,
+        GET_MOVEMENT_FACILITIES_V2,
+        POST_MOVEMENT_ADMISSIONS_V2,
+        GET_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_V2,
+        POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_PACKET_V2,
+        POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_DECISION_V2,
+        POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_MORE_INFORMATION,
+        POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_ARRIVAL_V2,
+        POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_HANDOVER_V2,
+        GET_MOVEMENT_SETTINGS,
+        POST_MOVEMENT_SETTING_CHANGES,
         GET_TRUST_STANDING,
         GET_TRUST_PARTIES_BY_ID,
         POST_TRUST_PARTIES,
@@ -1323,32 +1333,6 @@ object ApisData {
         val windowEndsAt: String,
         val wouldSay: String
     )
-    data class PostMovementTripsRequest(
-        val idempotencyKey: String,
-        val priorityClass: String,
-        val pickupWindowStart: String,
-        val prioritySetByRef: String? = null
-    )
-    data class PostMovementTripsResponse(
-        val tripRef: String,
-        val stateCode: String
-    )
-    data class PostMovementResponderHeartbeatsRequest(
-        val idempotencyKey: String,
-        val lat: Double,
-        val lng: Double,
-        val online: Boolean
-    )
-    data class PostMovementResponderHeartbeatsResponse(
-        val nextBeatSeconds: Int
-    )
-    data class PostMovementTripsByTripRefAcceptRequest(
-        val idempotencyKey: String,
-        val tripRef: String
-    )
-    data class PostMovementTripsByTripRefAcceptResponse(
-        val pickupPoint: String
-    )
     data class PostMovementTripsByTripRefDeclineRequest(
         val idempotencyKey: String,
         val tripRef: String
@@ -1356,72 +1340,172 @@ object ApisData {
     data class PostMovementTripsByTripRefDeclineResponse(
         val declined: Boolean
     )
-    data class PostMovementTripsByTripRefHandoverRequest(
+    data class PostMovementTripsV2Request(
+        val idempotencyKey: String,
+        val subjectRef: String,
+        val priorityClass: String,
+        val pickupWindowStart: String,
+        val zoneId: String,
+        val facilityRef: String,
+        val admissionRef: String? = null,
+        val priorityReasonCode: String? = null,
+        val prioritySetByRef: String? = null
+    )
+    data class PostMovementTripsV2Response(
+        val tripRef: String,
+        val stateCode: String,
+        val settingsVersion: Int
+    )
+    data class PostMovementResponderHeartbeatsV2Request(
+        val idempotencyKey: String,
+        val online: Boolean,
+        val tripRef: String? = null,
+        val lat: Double? = null,
+        val lng: Double? = null
+    )
+    data class PostMovementResponderHeartbeatsV2Response(
+        val nextBeatSeconds: Int,
+        val positionKept: Boolean,
+        val settingsVersion: Int
+    )
+    data class PostMovementTripsByTripRefAcceptV2Request(
+        val idempotencyKey: String,
+        val tripRef: String
+    )
+    data class PostMovementTripsByTripRefAcceptV2Response(
+        val zoneId: String,
+        val facilityRef: String,
+        val windowClosesAt: String
+    )
+    data class PostMovementTripsByTripRefHandoverV2Request(
         val idempotencyKey: String,
         val tripRef: String,
         val receivingRole: String,
         val checklistComplete: Boolean
     )
-    data class PostMovementTripsByTripRefHandoverResponse(
-        val handedOverAt: String
+    data class PostMovementTripsByTripRefHandoverV2Response(
+        val handedOverAt: String,
+        val windowClosedAt: String
     )
-    data class GetMovementFacilitiesRequest(
-        val zone: String? = null,
-        val capability: String? = null
+    data class GetMovementTripsByTripRefPositionRequest(
+        val tripRef: String
     )
-    data class GetMovementFacilitiesResponse(
+    data class GetMovementTripsByTripRefPositionResponse(
+        val lat: Double,
+        val lng: Double,
+        val reportedAt: String,
+        val windowClosesAt: String
+    )
+    data class PostMovementEmsRequestsRequest(
+        val subjectRef: String,
+        val zoneId: String
+    )
+    data class PostMovementEmsRequestsResponse(
+        val sentAt: String
+    )
+    data class GetMovementFacilitiesV2Request(
+        val zoneId: String? = null,
+        val bedCategory: String? = null
+    )
+    data class GetMovementFacilitiesV2Response(
         val facilities: List<Map<String, Any?>>
     )
-    data class PostMovementAdmissionsRequest(
+    data class PostMovementAdmissionsV2Request(
         val idempotencyKey: String,
+        val subjectRef: String,
         val facilityRef: String,
         val bedCategory: String,
         val priorityCode: String,
         val arrivalWindowStart: String
     )
-    data class PostMovementAdmissionsResponse(
+    data class PostMovementAdmissionsV2Response(
         val admissionRef: String,
-        val stateCode: String
+        val stateCode: String,
+        val pending: Boolean
     )
-    data class GetMovementAdmissionsByAdmissionRefRequest(
+    data class GetMovementAdmissionsByAdmissionRefV2Request(
         val admissionRef: String
     )
-    data class GetMovementAdmissionsByAdmissionRefResponse(
+    data class GetMovementAdmissionsByAdmissionRefV2Response(
         val stateCode: String,
-        val receivingPoint: String? = null
+        val pending: Boolean,
+        val destinationConfirmed: Boolean,
+        val receivingPoint: String? = null,
+        val decisionSimulated: Boolean,
+        val packetStateCode: String
     )
-    data class PostMovementAdmissionsByAdmissionRefPacketRequest(
+    data class PostMovementAdmissionsByAdmissionRefPacketV2Request(
         val admissionRef: String,
         val shareLinkRef: String
     )
-    data class PostMovementAdmissionsByAdmissionRefPacketResponse(
-        val sentAt: String
+    data class PostMovementAdmissionsByAdmissionRefPacketV2Response(
+        val sentAt: String,
+        val endsAt: String
     )
-    data class PostMovementAdmissionsByAdmissionRefDecisionRequest(
+    data class PostMovementAdmissionsByAdmissionRefDecisionV2Request(
         val idempotencyKey: String,
         val admissionRef: String,
         val decisionCode: String,
         val receivingPoint: String? = null,
-        val alternativeOffered: Boolean
+        val alternativeOffered: Boolean,
+        val reasonCode: String? = null,
+        val simulated: Boolean
     )
-    data class PostMovementAdmissionsByAdmissionRefDecisionResponse(
-        val stateCode: String
+    data class PostMovementAdmissionsByAdmissionRefDecisionV2Response(
+        val stateCode: String,
+        val pending: Boolean
     )
-    data class PostMovementAdmissionsByAdmissionRefArrivalRequest(
+    data class PostMovementAdmissionsByAdmissionRefMoreInformationRequest(
+        val idempotencyKey: String,
+        val admissionRef: String,
+        val informationCode: String,
+        val simulated: Boolean
+    )
+    data class PostMovementAdmissionsByAdmissionRefMoreInformationResponse(
+        val stateCode: String,
+        val pending: Boolean
+    )
+    data class PostMovementAdmissionsByAdmissionRefArrivalV2Request(
         val admissionRef: String,
         val receivingPoint: String,
-        val agreedWithPretriage: Boolean
+        val agreedWithPretriage: Boolean,
+        val simulated: Boolean
     )
-    data class PostMovementAdmissionsByAdmissionRefArrivalResponse(
+    data class PostMovementAdmissionsByAdmissionRefArrivalV2Response(
         val arrivedAt: String
     )
-    data class PostMovementAdmissionsByAdmissionRefHandoverRequest(
+    data class PostMovementAdmissionsByAdmissionRefHandoverV2Request(
         val admissionRef: String,
         val receivingRole: String,
-        val encounterRef: String
+        val encounterRef: String,
+        val simulated: Boolean
     )
-    data class PostMovementAdmissionsByAdmissionRefHandoverResponse(
+    data class PostMovementAdmissionsByAdmissionRefHandoverV2Response(
         val handedOverAt: String
+    )
+    class GetMovementSettingsRequest
+    data class GetMovementSettingsResponse(
+        val settingsVersion: Int,
+        val settings: List<Map<String, Any?>>,
+        val history: List<Map<String, Any?>>
+    )
+    data class PostMovementSettingChangesRequest(
+        val idempotencyKey: String,
+        val setting: String,
+        val wholeNumber: Int? = null,
+        val switchedOn: Boolean? = null,
+        val choice: String? = null,
+        val wording: String? = null,
+        val roles: List<String>? = null,
+        val windows: List<Map<String, Any?>>? = null,
+        val items: List<String>? = null,
+        val parts: Map<String, Any?>? = null,
+        val reason: String? = null,
+        val expectedVersion: Int
+    )
+    data class PostMovementSettingChangesResponse(
+        val settingsVersion: Int,
+        val appliesFrom: String
     )
     class GetTrustStandingRequest
     data class GetTrustStandingResponse(

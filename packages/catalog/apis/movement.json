@@ -1,18 +1,14 @@
 {
  "engine": "movement",
- "_note": "Movement is Thuso Ride and Access & Admission: trips, responder heartbeats, hand-over, the facility directory at level zero, admission requests at level one with the facility's decision, arrival and hand-over, and the pre-arrival packet through a Passport share link. Thuso Ride is transport, not an ambulance. Wave 2 contract; Wave 5 build.",
+ "_note": "Movement is Thuso Ride and Access & Admission: trips, responder heartbeats, hand-over, the facility directory at level zero, admission requests at level one with the facility's decision, arrival and hand-over, and the pre-arrival packet through a Passport share link. Thuso Ride is transport, not an ambulance. Wave 2 contract; built on the engine runtime in Wave 5, when every version-one route that could not refuse what the build needs was withdrawn for a version that can, decline was built as it was frozen, and the three supplier doors were added to packages/catalog/feeds.json. packages/catalog/movement.json holds the priorities, states, directory, packet rules, words and settings.",
  "version": 1,
- "resources": ["trips", "responder-heartbeats", "facilities", "admissions"],
- "doors": [],
- "doorsToAdd": [
-  {"id": "responder-position", "why": "A responder app's position stream from a fleet or telematics supplier is a door to add.", "capabilityNamed": {"section": "§12", "what": "Live GPS to family and care team"}},
-  {"id": "facility-decision", "why": "A facility system answering an admission (level 4) is a supplier callback; a door to add.", "capabilityNamed": {"section": "§15C", "what": "Provider accepts/declines/requests more information"}},
-  {"id": "ems-dispatch", "why": "The ambulance partner's dispatch messages arrive on a door to add.", "capabilityNamed": {"section": "§12", "what": "EMS partner call/API"}}
- ],
+ "resources": ["trips", "responder-heartbeats", "facilities", "admissions", "ems-requests", "settings", "setting-changes"],
+ "doors": ["responder-position", "facility-decision", "ems-dispatch"],
+ "doorsToAdd": [],
  "refusals": [
   {"id": "p1-not-an-ambulance", "status": 422, "statement": "A P1 goes to a licensed ambulance partner and never to Thuso Ride.", "why": "Only a licensed ambulance service may give care in transit (§12)."},
-  {"id": "self-assigned-p2", "status": 409, "statement": "A responder cannot assign themselves a P2.", "why": "A clinician sets the priority."},
-  {"id": "pending-bed-shown-as-booked", "status": 422, "statement": "A pending bed is never shown as booked.", "why": "§15C: requesting, accepted, wait-listed and alternative offered are four different things."},
+  {"id": "self-assigned-p2", "status": 409, "statement": "A responder cannot assign themselves a P2.", "why": "A clinician sets the priority.", "answeredBy": ["POST /v1/movement/trips/{tripRef}/accept@2"]},
+  {"id": "pending-bed-shown-as-booked", "status": 422, "statement": "A pending bed is never shown as booked.", "why": "§15C: requesting, accepted, wait-listed and alternative offered are four different things.", "answeredBy": ["POST /v1/movement/admissions@2"]},
   {"id": "responder-reads-more-than-the-summary", "status": 403, "statement": "A responder reads the emergency summary during a trip and nothing more.", "why": "Transport, not care."}
  ],
  "ownIds": [],
@@ -22,7 +18,7 @@
    "path": "/v1/movement/trips",
    "version": 1,
    "summary": "Request a trip: P3 scheduled, or P2 with a clinician-set priority.",
-   "callers": ["nurse", "doctor", "dispatcher", "thuso-line-agent"],
+   "callers": [],
    "purpose": ["dispatch"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -42,14 +38,15 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§12", "what": "P3 scheduled"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/movement/trips@2", "why": "It named no patient, no pick-up zone and no destination, took no reason for a P2, and could not refuse a P2 set by somebody whose vetting has lapsed, a P2 set in another person's name, a pick-up already passed or a zone MyThuso does not cover. Its P1 sentence did not say that no ambulance partner is connected."}
   },
   {
    "method": "POST",
    "path": "/v1/movement/responder-heartbeats",
    "version": 1,
    "summary": "A responder's heartbeat while online.",
-   "callers": ["responder"],
+   "callers": [],
    "purpose": ["dispatch"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -68,14 +65,15 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§12", "what": "GPS heartbeat every 10 s while online"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/movement/responder-heartbeats@2", "why": "It required a position on every heartbeat, so a responder's position would be kept between trips, which is surveillance of a worker rather than transport. It named no trip, so no position could be held to a trip's window, and it could not refuse a position sent after the window closed."}
   },
   {
    "method": "POST",
    "path": "/v1/movement/trips/{tripRef}/accept",
    "version": 1,
    "summary": "A responder accepts a trip.",
-   "callers": ["responder"],
+   "callers": [],
    "purpose": ["dispatch"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -92,7 +90,8 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§12", "what": "first to accept within 30 s gets the job"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/movement/trips/{tripRef}/accept@2", "why": "It released a pick-up point, which is an address in Movement's store, and could not refuse an unverified responder, a trip that was never offered, or a trip already closed. It could not announce transport.enroute for a trip that serves an admission."}
   },
   {
    "method": "POST",
@@ -116,14 +115,16 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§12", "what": "auto-cascade to the next three"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/movement/engine.ts", "handler": "'POST /v1/movement/trips/{tripRef}/decline@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
    "path": "/v1/movement/trips/{tripRef}/handover",
    "version": 1,
    "summary": "Confirm the hand-over at the destination.",
-   "callers": ["responder"],
+   "callers": [],
    "purpose": ["dispatch"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -142,14 +143,15 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§12", "what": "Facility handover confirmed in-app"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/movement/trips/{tripRef}/handover@2", "why": "It could not refuse a hand-over by a responder who never accepted the trip, one whose checklist was not followed, or a second hand-over of a closed trip, and it did not say when the trip's position window closed."}
   },
   {
    "method": "GET",
    "path": "/v1/movement/facilities",
    "version": 1,
    "summary": "Search the facility directory (level zero).",
-   "callers": ["patient", "caregiver", "nurse", "doctor", "ops-desk", "thuso-line-agent"],
+   "callers": [],
    "purpose": ["dispatch"],
    "request": [
     {"field": "zone", "type": "string", "required": false, "why": "Where."},
@@ -166,14 +168,15 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§15C", "what": "Facility/service directory"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "GET /v1/movement/facilities@2", "why": "Its facilities were described only in prose, including a telephone number a synthetic directory must never invent, and its zone was free text rather than a zone packages/catalog/geography.json holds."}
   },
   {
    "method": "POST",
    "path": "/v1/movement/admissions",
    "version": 1,
    "summary": "Request an admission (level one).",
-   "callers": ["nurse", "doctor", "ops-desk"],
+   "callers": [],
    "purpose": ["dispatch"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -193,14 +196,15 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§15C", "what": "Bed/admission request"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/movement/admissions@2", "why": "It named no patient, so no admission could be answered to the patient it is about, and it could not refuse a P1, a facility the directory does not hold, a bed category the facility does not list or an arrival already passed. Its answer did not say the request was pending."}
   },
   {
    "method": "GET",
    "path": "/v1/movement/admissions/{admissionRef}",
    "version": 1,
    "summary": "Read an admission's state.",
-   "callers": ["patient", "caregiver", "nurse", "doctor", "ops-desk"],
+   "callers": [],
    "purpose": ["dispatch"],
    "request": [
     {"field": "admissionRef", "type": "string", "required": true, "why": "The admission."}
@@ -217,14 +221,15 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§15C", "what": "never present a pending bed as booked"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "GET /v1/movement/admissions/{admissionRef}@2", "why": "It answered with a state code alone, so every screen had to work out for itself whether a state was pending, which is how a pending bed comes to be shown as booked. It said nothing of the pre-arrival packet or whether the facility's answer was simulated, and it took calls from a caregiver it had no way to tell was the patient's."}
   },
   {
    "method": "POST",
    "path": "/v1/movement/admissions/{admissionRef}/packet",
    "version": 1,
    "summary": "Send the pre-arrival packet as a scoped, expiring Passport share link.",
-   "callers": ["nurse", "doctor", "ops-desk"],
+   "callers": [],
    "purpose": ["treatment"],
    "request": [
     {"field": "admissionRef", "type": "string", "required": true, "why": "The admission."},
@@ -242,14 +247,15 @@
    "endpointNamed": null,
    "capabilityNamed": {"section": "§15C", "what": "pre-arrival packet"},
    "status": "proposed",
-   "through": "passport-gateway"
+   "through": "passport-gateway",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/movement/admissions/{admissionRef}/packet@2", "why": "It could not refuse a link the Passport was never heard to make, a link that outlives Record's own bound for an emergency card on a trip's grant, a link already ended, or a packet sent after the hand-over, and it did not say when the packet ends."}
   },
   {
    "method": "POST",
    "path": "/v1/movement/admissions/{admissionRef}/decision",
    "version": 1,
    "summary": "The facility desk accepts, wait-lists or declines.",
-   "callers": ["facility-desk", "ops-desk"],
+   "callers": [],
    "purpose": ["dispatch"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -268,14 +274,15 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§15C", "what": "admission.accepted / waitlisted / declined"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/movement/admissions/{admissionRef}/decision@2", "why": "A facility desk was a caller, and no facility is connected: a facility's answer arrives only through the facility-decision door, which refuses every payload. It took no reason code for a decline, could not refuse a decision on an admission that was not waiting for one, and could not mark a decision as simulated."}
   },
   {
    "method": "POST",
    "path": "/v1/movement/admissions/{admissionRef}/arrival",
    "version": 1,
    "summary": "The facility confirms arrival and verifies the pre-triage.",
-   "callers": ["facility-desk"],
+   "callers": [],
    "purpose": ["treatment"],
    "request": [
     {"field": "admissionRef", "type": "string", "required": true, "why": "The admission."},
@@ -292,14 +299,15 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§15C", "what": "admission.arrived / triage.verified"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/movement/admissions/{admissionRef}/arrival@2", "why": "A facility desk was the caller, and no facility is connected, so an arrival could only ever be simulated and nothing marked it so. It could not refuse a receiving point Movement does not record."}
   },
   {
    "method": "POST",
    "path": "/v1/movement/admissions/{admissionRef}/handover",
    "version": 1,
    "summary": "A named receiving clinician takes the hand-over.",
-   "callers": ["facility-desk"],
+   "callers": [],
    "purpose": ["treatment"],
    "request": [
     {"field": "admissionRef", "type": "string", "required": true, "why": "The admission."},
@@ -316,7 +324,572 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§15C", "what": "admission.handover_complete"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/movement/admissions/{admissionRef}/handover@2", "why": "A facility desk was the caller, and no facility is connected, so a hand-over could only ever be simulated and nothing marked it so. It could not refuse a hand-over before the patient arrived, and it did not end the pre-arrival packet."}
+  },
+
+  {
+   "method": "POST",
+   "path": "/v1/movement/trips",
+   "version": 2,
+   "summary": "Request a Thuso Ride trip for a patient: a P3 scheduled, or a P2 a nurse or doctor set in their own name with a reason. A P1 is refused and sent nowhere.",
+   "callers": ["nurse", "doctor", "dispatcher", "thuso-line-agent"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "subjectRef", "type": "string", "required": true, "why": "The patient the trip is for, as an opaque subject token."},
+    {"field": "priorityClass", "type": "string", "required": true, "why": "P2 or P3, from packages/catalog/movement.json priorities. A P1 is refused before anything else is read."},
+    {"field": "pickupWindowStart", "type": "instant", "required": true, "why": "When pick-up may begin. It has not started yet."},
+    {"field": "zoneId", "type": "string", "required": true, "why": "The pick-up zone, from packages/catalog/geography.json. A zone and never an address."},
+    {"field": "facilityRef", "type": "string", "required": true, "why": "The destination, from Movement's own facility directory."},
+    {"field": "admissionRef", "type": "string", "required": false, "why": "The admission the trip serves, when it serves one."},
+    {"field": "priorityReasonCode", "type": "string", "required": false, "why": "Why it is a P2, from packages/catalog/movement.json p2Reasons. Required for a P2. A code, never free text."},
+    {"field": "prioritySetByRef", "type": "string", "required": false, "why": "The nurse or doctor who set a P2, who must be the caller. Required for a P2."}
+   ],
+   "response": [
+    {"field": "tripRef", "type": "string", "required": true, "why": "The trip."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "requested, from packages/catalog/movement.json trips.states."},
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The Movement settings version the trip keeps: its offers at once, its window and its retention."}
+   ],
+   "refusals": [
+    {"id": "p1-refused-no-ambulance-partner", "status": 422, "statement": "Thuso Ride does not take a P1. A P1 needs a licensed ambulance service, no licensed ambulance partner is connected to MyThuso, and a P1 is never sent anywhere else.", "why": "Only a licensed ambulance service may give care in transit (§12), and counsel's opinion on the emergency medical services boundary does not exist."},
+    {"id": "priority-not-offered", "status": 422, "statement": "Thuso Ride takes a P3 scheduled trip, or a P2 a clinician set, and nothing else.", "why": "A priority nobody declared is a triage decision nobody made."},
+    {"id": "p2-not-set-by-a-vetted-clinician", "status": 422, "statement": "A P2 is set by a nurse or doctor whose vetting is current, in their own name. Nobody else sets one, and the app never does.", "why": "No triage protocol is ratified, so a P2 is a clinician's explicit choice. A dispatcher relaying somebody else's P2, or a clinician whose registration has lapsed, is not that choice."},
+    {"id": "p2-without-reason", "status": 422, "statement": "A P2 says why, as one of the reasons Thuso Ride records.", "why": "A same-day priority with no reason is an urgency nobody can review afterwards."},
+    {"id": "pickup-window-passed", "status": 422, "statement": "A trip is requested for a pick-up that has not started yet.", "why": "A pick-up already under way with no responder is somebody waiting at a door, which is the desk's to handle now, not a trip to offer."},
+    {"id": "zone-not-covered", "status": 422, "statement": "Thuso Ride picks up only in a zone MyThuso covers.", "why": "A zone packages/catalog/geography.json does not hold has no responder who could reach it."},
+    {"id": "facility-not-in-directory", "status": 404, "statement": "That facility is not in the directory.", "why": "A trip to a place the directory does not hold is a trip to nowhere anybody expects the patient."},
+    {"id": "not-found", "status": 404, "statement": "There is no admission of yours with that reference.", "why": "The answer says nothing about anybody else's."}
+   ],
+   "emits": ["trip.requested@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§12", "what": "P3 scheduled"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/movement/engine.ts", "handler": "'POST /v1/movement/trips@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/responder-heartbeats",
+   "version": 2,
+   "summary": "A responder's heartbeat: whether they are online, and a position only during a trip they accepted, kept only inside that trip's window.",
+   "callers": ["responder"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "online", "type": "boolean", "required": true, "why": "Whether the responder is available for offers."},
+    {"field": "tripRef", "type": "string", "required": false, "why": "The trip the responder accepted, when a position is sent."},
+    {"field": "lat", "type": "coordinate", "required": false, "why": "Latitude, sent only during an accepted trip, with its longitude. Rounded on receipt to packages/catalog/geography.json's precision."},
+    {"field": "lng", "type": "coordinate", "required": false, "why": "Longitude, sent only with its latitude."}
+   ],
+   "response": [
+    {"field": "nextBeatSeconds", "type": "integer", "required": true, "why": "When to send the next one: the heartbeat interval in force."},
+    {"field": "positionKept", "type": "boolean", "required": true, "why": "Whether a position was kept. Only the latest is kept, and never a track."},
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The Movement settings version the interval was read from."}
+   ],
+   "refusals": [
+    {"id": "not-verified", "status": 403, "statement": "A responder without a current verification is not online.", "why": "Zero unverified dispatches."},
+    {"id": "half-a-position", "status": 422, "statement": "A position is a latitude and a longitude together.", "why": "Half a position is a guess at where somebody is."},
+    {"id": "position-without-a-trip", "status": 422, "statement": "A position is sent only during a trip you accepted, and never between trips.", "why": "A worker's position between trips is surveillance, not transport, and a position filtered out after it arrived was still collected."},
+    {"id": "trip-not-yours", "status": 404, "statement": "That trip is not one you accepted.", "why": "A position sent against somebody else's trip is a position about nobody's trip."},
+    {"id": "position-after-the-window", "status": 410, "statement": "That trip's window has closed. Its position is no longer kept or read.", "why": "Once a patient is handed over, or the window in force at the request has run out, nobody needs to know where the vehicle is."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A position is not an event.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§12", "what": "GPS heartbeat every 10 s while online"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/movement/engine.ts", "handler": "'POST /v1/movement/responder-heartbeats@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/trips/{tripRef}/accept",
+   "version": 2,
+   "summary": "A verified responder accepts a trip that was offered to them. The trip's window opens, and a trip that serves an admission is announced as on its way.",
+   "callers": ["responder"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "tripRef", "type": "string", "required": true, "why": "The trip."}
+   ],
+   "response": [
+    {"field": "zoneId", "type": "string", "required": true, "why": "The pick-up zone. The door itself is released to the responder by the person who requested the trip, never kept in Movement."},
+    {"field": "facilityRef", "type": "string", "required": true, "why": "The destination, from the facility directory."},
+    {"field": "windowClosesAt", "type": "instant", "required": true, "why": "When the trip's position window closes if nobody hands the patient over first."}
+   ],
+   "refusals": [
+    {"id": "not-verified", "status": 403, "statement": "A responder without a current verification is not online.", "why": "Zero unverified dispatches."},
+    {"id": "trip-not-offered", "status": 404, "statement": "That trip was not offered to you.", "why": "A trip is taken from an offer, never picked off a board."},
+    {"id": "trip-taken", "status": 409, "statement": "Somebody else accepted that trip first.", "why": "First to accept within the window gets it."},
+    {"id": "trip-closed", "status": 409, "statement": "That trip is closed: it was handed over, or its window has run out.", "why": "A closed trip has nobody waiting for it."}
+   ],
+   "emits": ["trip.accepted@1", "transport.enroute@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§12", "what": "first to accept within 30 s gets the job"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/movement/engine.ts", "handler": "'POST /v1/movement/trips/{tripRef}/accept@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/trips/{tripRef}/handover",
+   "version": 2,
+   "summary": "The responder who accepted the trip confirms the hand-over at the destination, by the receiving role and the checklist. The trip closes and its position window with it.",
+   "callers": ["responder"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "tripRef", "type": "string", "required": true, "why": "The trip."},
+    {"field": "receivingRole", "type": "string", "required": true, "why": "Who received the patient, by role, from packages/catalog/movement.json trips.receivingRoles. Never a name."},
+    {"field": "checklistComplete", "type": "boolean", "required": true, "why": "Whether the hand-over checklist was followed."}
+   ],
+   "response": [
+    {"field": "handedOverAt", "type": "instant", "required": true, "why": "When."},
+    {"field": "windowClosedAt", "type": "instant", "required": true, "why": "When the trip's position window closed, which is the hand-over."}
+   ],
+   "refusals": [
+    {"id": "trip-not-yours", "status": 404, "statement": "That trip is not one you accepted.", "why": "Only the responder who took the trip can say they handed the patient over."},
+    {"id": "unnamed-receiver", "status": 422, "statement": "A hand-over names who received the patient.", "why": "A hand-over to nobody is a patient left at a door."},
+    {"id": "checklist-not-followed", "status": 422, "statement": "A hand-over is recorded only when its checklist was followed.", "why": "A hand-over recorded without the checklist says a patient was received when nobody checked."},
+    {"id": "trip-closed", "status": 409, "statement": "That trip is closed: it was handed over, or its window has run out.", "why": "A closed trip has nobody waiting for it."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "An admission's hand-over is recorded through the admission, which emits admission.handover_complete.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§12", "what": "Facility handover confirmed in-app"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/movement/engine.ts", "handler": "'POST /v1/movement/trips/{tripRef}/handover@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/movement/trips/{tripRef}/position",
+   "version": 1,
+   "summary": "Read a trip's latest position, only inside the trip's window and the retention it was requested with.",
+   "callers": ["patient", "dispatcher", "ops-desk"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "tripRef", "type": "string", "required": true, "why": "The trip."}
+   ],
+   "response": [
+    {"field": "lat", "type": "coordinate", "required": true, "why": "Latitude, rounded to packages/catalog/geography.json's precision."},
+    {"field": "lng", "type": "coordinate", "required": true, "why": "Longitude, rounded the same way."},
+    {"field": "reportedAt", "type": "instant", "required": true, "why": "When the position arrived, so an old one is never read as current."},
+    {"field": "windowClosesAt", "type": "instant", "required": true, "why": "When the position stops being kept or read."}
+   ],
+   "refusals": [
+    {"id": "trip-not-found", "status": 404, "statement": "There is no trip of yours with that reference.", "why": "The answer says nothing about anybody else's trip."},
+    {"id": "position-after-the-window", "status": 410, "statement": "That trip's window has closed. Its position is no longer kept or read.", "why": "Once a patient is handed over, or the window in force at the request has run out, nobody needs to know where the vehicle is."},
+    {"id": "no-position-yet", "status": 404, "statement": "No position has arrived for that trip yet.", "why": "Nobody is shown where a responder is when nothing has said so."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§12", "what": "Live GPS to family and care team"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/movement/engine.ts", "handler": "'GET /v1/movement/trips/{tripRef}/position@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/ems-requests",
+   "version": 1,
+   "summary": "Hand a P1 to a licensed ambulance partner. None is connected, so every request is refused and nothing is sent anywhere.",
+   "callers": ["nurse", "doctor", "dispatcher", "ops-desk", "thuso-line-agent"],
+   "purpose": ["emergency"],
+   "request": [
+    {"field": "subjectRef", "type": "string", "required": true, "why": "The patient the emergency is about, as an opaque subject token."},
+    {"field": "zoneId", "type": "string", "required": true, "why": "The zone, from packages/catalog/geography.json. A partner would be told the door by a person, never by Movement."}
+   ],
+   "response": [
+    {"field": "sentAt", "type": "instant", "required": true, "why": "When a partner was asked. Never answered while no partner is connected."}
+   ],
+   "refusals": [
+    {"id": "no-ambulance-partner-connected", "status": 503, "statement": "No licensed ambulance partner is connected to MyThuso, so nothing was sent and nobody is on the way. Call an ambulance directly.", "why": "The ems-dispatch door refuses every payload until a licensed partner is contracted, and a P1 that looked sent would be the most dangerous thing this product could show."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Nothing is sent: no ambulance partner is connected, and the ems-dispatch door refuses every payload.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§12", "what": "EMS partner call/API"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/movement/engine.ts", "handler": "'POST /v1/movement/ems-requests@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/movement/facilities",
+   "version": 2,
+   "summary": "Search the synthetic facility directory by zone and bed category. It lists what a facility offers and never says a bed is free.",
+   "callers": ["patient", "caregiver", "nurse", "doctor", "ops-desk", "thuso-line-agent"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "zoneId", "type": "string", "required": false, "why": "A zone from packages/catalog/geography.json."},
+    {"field": "bedCategory", "type": "string", "required": false, "why": "A bed category from packages/catalog/movement.json admissions.bedCategories."}
+   ],
+   "response": [
+    {"field": "facilities", "type": "list", "required": true, "why": "The facilities that match, in directory order.", "object": true, "fields": [
+     {"field": "facilityRef", "type": "string", "required": true, "why": "The facility's reference in the directory."},
+     {"field": "name", "type": "string", "required": true, "why": "A unit type and a suburb, never an organisation's name."},
+     {"field": "zoneId", "type": "string", "required": true, "why": "Its zone, from packages/catalog/geography.json."},
+     {"field": "bedCategories", "type": "list", "required": true, "why": "The bed categories it lists. A category listed is not a bed free."},
+     {"field": "hours", "type": "string", "required": true, "why": "When it takes admissions, in words."},
+     {"field": "synthetic", "type": "boolean", "required": true, "why": "Always true in this build: every facility is fictional."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "no-availability-claim", "status": 422, "statement": "The directory lists facilities; it never says a bed is free.", "why": "There is no universal South African bed API (§15C)."},
+    {"id": "zone-not-covered", "status": 422, "statement": "Thuso Ride picks up only in a zone MyThuso covers.", "why": "A zone packages/catalog/geography.json does not hold has no responder who could reach it."},
+    {"id": "bed-category-not-declared", "status": 422, "statement": "That is not a bed category Movement records.", "why": "A category nobody declared is free text by another name."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15C", "what": "Facility/service directory"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/movement/engine.ts", "handler": "'GET /v1/movement/facilities@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/admissions",
+   "version": 2,
+   "summary": "Request an admission at a facility in the directory, for a patient. It is pending until the facility answers.",
+   "callers": ["nurse", "doctor", "ops-desk"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "subjectRef", "type": "string", "required": true, "why": "The patient, as an opaque subject token. Why they need admitting is not here."},
+    {"field": "facilityRef", "type": "string", "required": true, "why": "The facility asked, from the directory."},
+    {"field": "bedCategory", "type": "string", "required": true, "why": "The bed category requested, which the facility must list."},
+    {"field": "priorityCode", "type": "string", "required": true, "why": "P2 or P3. A P1 is refused."},
+    {"field": "arrivalWindowStart", "type": "instant", "required": true, "why": "Requested arrival, which has not started yet."}
+   ],
+   "response": [
+    {"field": "admissionRef", "type": "string", "required": true, "why": "The admission."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "requesting."},
+    {"field": "pending", "type": "boolean", "required": true, "why": "True: nothing is held until the facility answers."}
+   ],
+   "refusals": [
+    {"id": "p1-refused-no-ambulance-partner", "status": 422, "statement": "Thuso Ride does not take a P1. A P1 needs a licensed ambulance service, no licensed ambulance partner is connected to MyThuso, and a P1 is never sent anywhere else.", "why": "An emergency is not an admission request to wait on. It goes to emergency services first."},
+    {"id": "priority-not-offered", "status": 422, "statement": "Thuso Ride takes a P3 scheduled trip, or a P2 a clinician set, and nothing else.", "why": "A priority nobody declared is a triage decision nobody made."},
+    {"id": "facility-not-in-directory", "status": 404, "statement": "That facility is not in the directory.", "why": "A request to a facility the directory does not hold is a request nobody receives."},
+    {"id": "bed-category-not-declared", "status": 422, "statement": "That is not a bed category Movement records.", "why": "A category nobody declared is free text by another name."},
+    {"id": "bed-category-not-offered", "status": 422, "statement": "That facility does not list that bed category.", "why": "Asking a maternity unit for an intensive care bed is a request that can only be declined."},
+    {"id": "arrival-window-passed", "status": 422, "statement": "An admission is requested for an arrival that has not started yet.", "why": "A patient already arriving is the desk's to handle on the telephone now."}
+   ],
+   "emits": ["admission.requested@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15C", "what": "Bed/admission request"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/movement/engine.ts", "handler": "'POST /v1/movement/admissions@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/movement/admissions/{admissionRef}",
+   "version": 2,
+   "summary": "Read where an admission stands: its state, whether it is pending, whether a destination is confirmed, whether the facility's answer was simulated, and the pre-arrival packet's state.",
+   "callers": ["patient", "nurse", "doctor", "ops-desk"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "admissionRef", "type": "string", "required": true, "why": "The admission."}
+   ],
+   "response": [
+    {"field": "stateCode", "type": "string", "required": true, "why": "A state from packages/catalog/movement.json admissions.states."},
+    {"field": "pending", "type": "boolean", "required": true, "why": "Whether the facility has yet to answer. A pending admission has no confirmed destination."},
+    {"field": "destinationConfirmed", "type": "boolean", "required": true, "why": "True only once the facility accepted. Never true while pending."},
+    {"field": "receivingPoint", "type": "string", "required": false, "why": "Only once accepted."},
+    {"field": "decisionSimulated", "type": "boolean", "required": true, "why": "Whether the facility's answer was simulated, which in this build it always is."},
+    {"field": "packetStateCode", "type": "string", "required": true, "why": "none, sent, opened or ended."}
+   ],
+   "refusals": [
+    {"id": "not-found", "status": 404, "statement": "There is no admission of yours with that reference.", "why": "The answer says nothing about anybody else's."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15C", "what": "never present a pending bed as booked"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/movement/engine.ts", "handler": "'GET /v1/movement/admissions/{admissionRef}@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/admissions/{admissionRef}/packet",
+   "version": 2,
+   "summary": "Send the pre-arrival packet: an emergency card link the Health Passport made under the patient's grant for the trip, bounded by Record's own ceiling and ended at the hand-over.",
+   "callers": ["nurse", "doctor", "ops-desk"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "admissionRef", "type": "string", "required": true, "why": "The admission."},
+    {"field": "shareLinkRef", "type": "string", "required": true, "why": "The link the Passport made, by reference. Never its secret."}
+   ],
+   "response": [
+    {"field": "sentAt", "type": "instant", "required": true, "why": "When."},
+    {"field": "endsAt", "type": "instant", "required": true, "why": "When the link ends, if the hand-over does not end the packet first."}
+   ],
+   "refusals": [
+    {"id": "not-found", "status": 404, "statement": "There is no admission of yours with that reference.", "why": "The answer says nothing about anybody else's."},
+    {"id": "packet-after-handover", "status": 409, "statement": "That admission has been handed over, and its packet has ended.", "why": "A facility that has the patient reads the record under its own grant, not through a packet."},
+    {"id": "packet-link-not-heard", "status": 422, "statement": "Movement has not heard the Health Passport make that link, so it is not sent.", "why": "A reference nobody saw the Passport make could open anything, or nothing."},
+    {"id": "unrestricted-access", "status": 422, "statement": "The facility gets a scoped, expiring link, never unrestricted record access.", "why": "§15C: the facility can ask for more rather than receive everything."},
+    {"id": "packet-link-ended", "status": 409, "statement": "That link has already ended.", "why": "A packet that opens nothing tells a facility it has been sent something it has not."},
+    {"id": "packet-link-outlives-its-bound", "status": 422, "statement": "That link lasts longer than an emergency card on a trip's grant may, so it is not sent.", "why": "The bound is Record's: the emergency card's highest lifetime, the founder's grant ceiling and the trip grant's own ceiling, whichever is shortest."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The share link is created by the Passport, which emits passport.share.link_created.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15C", "what": "pre-arrival packet"},
+   "status": "built",
+   "through": "passport-gateway",
+   "evidence": {"file": "packages/engines/src/movement/engine.ts", "handler": "'POST /v1/movement/admissions/{admissionRef}/packet@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/admissions/{admissionRef}/decision",
+   "version": 2,
+   "summary": "Record the facility's answer to an admission — accepted, wait-listed or declined — which in this build is only ever simulated by the ops desk, because a facility's answer arrives only through a door that is not connected.",
+   "callers": ["ops-desk"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "admissionRef", "type": "string", "required": true, "why": "The admission."},
+    {"field": "decisionCode", "type": "string", "required": true, "why": "accepted, waitlisted or declined, from packages/catalog/movement.json admissions.decisions."},
+    {"field": "receivingPoint", "type": "string", "required": false, "why": "Required when accepted, from admissions.receivingPoints."},
+    {"field": "alternativeOffered", "type": "boolean", "required": true, "why": "Whether an alternative was offered with a decline."},
+    {"field": "reasonCode", "type": "string", "required": false, "why": "Required with a decline, from admissions.declineReasons. A code, never free text."},
+    {"field": "simulated", "type": "boolean", "required": true, "why": "True, or the answer is refused: no facility is connected."}
+   ],
+   "response": [
+    {"field": "stateCode", "type": "string", "required": true, "why": "The new state."},
+    {"field": "pending", "type": "boolean", "required": true, "why": "Whether it is still pending, as a wait-list is."}
+   ],
+   "refusals": [
+    {"id": "not-found", "status": 404, "statement": "There is no admission of yours with that reference.", "why": "The answer says nothing about anybody else's."},
+    {"id": "facility-not-connected", "status": 422, "statement": "A facility answers only through the facility-decision door, which is not connected. Only an answer marked simulated is recorded here.", "why": "An answer typed by a desk and recorded as the facility's would be a bed nobody at the facility agreed to."},
+    {"id": "decision-not-pending", "status": 409, "statement": "That admission is not waiting on the facility's answer.", "why": "An answer to a request already decided would overwrite what the facility said."},
+    {"id": "decision-not-declared", "status": 422, "statement": "That is not an answer a facility gives: it accepts, wait-lists or declines.", "why": "A fourth answer is a state nobody designed a screen for."},
+    {"id": "acceptance-without-receiving-point", "status": 422, "statement": "An acceptance names where the patient goes.", "why": "An acceptance with no destination is still pending."},
+    {"id": "decline-without-reason", "status": 422, "statement": "A decline carries one of the reason codes Movement records.", "why": "A decline with no reason cannot be answered by trying somewhere better suited."}
+   ],
+   "emits": ["admission.accepted@1", "admission.waitlisted@1", "admission.declined@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15C", "what": "admission.accepted / waitlisted / declined"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/movement/engine.ts", "handler": "'POST /v1/movement/admissions/{admissionRef}/decision@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/admissions/{admissionRef}/more-information",
+   "version": 1,
+   "summary": "Record that the facility asked for more before it answers — the pre-arrival packet or a call from the referring clinician — which in this build is only ever simulated.",
+   "callers": ["ops-desk"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "admissionRef", "type": "string", "required": true, "why": "The admission."},
+    {"field": "informationCode", "type": "string", "required": true, "why": "What was asked for, from packages/catalog/movement.json admissions.informationAsked. A code, never free text."},
+    {"field": "simulated", "type": "boolean", "required": true, "why": "True, or the request is refused: no facility is connected."}
+   ],
+   "response": [
+    {"field": "stateCode", "type": "string", "required": true, "why": "more-information-requested."},
+    {"field": "pending", "type": "boolean", "required": true, "why": "True: asking for more is not an answer."}
+   ],
+   "refusals": [
+    {"id": "not-found", "status": 404, "statement": "There is no admission of yours with that reference.", "why": "The answer says nothing about anybody else's."},
+    {"id": "facility-not-connected", "status": 422, "statement": "A facility answers only through the facility-decision door, which is not connected. Only an answer marked simulated is recorded here.", "why": "A request typed by a desk and recorded as the facility's would be a question nobody at the facility asked."},
+    {"id": "decision-not-pending", "status": 409, "statement": "That admission is not waiting on the facility's answer.", "why": "A facility that has answered has nothing more to ask before it answers."},
+    {"id": "information-not-declared", "status": 422, "statement": "That is not something a facility asks for here.", "why": "What a facility may be sent is the packet or a clinician's call, never the whole record."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "No event in the contract carries a facility's request for more. The ops desk answers it with the pre-arrival packet, which the Passport announces when it makes the link.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15C", "what": "Provider accepts/declines/requests more information"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/movement/engine.ts", "handler": "'POST /v1/movement/admissions/{admissionRef}/more-information@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/admissions/{admissionRef}/arrival",
+   "version": 2,
+   "summary": "Record that the patient arrived at the facility's receiving point and whether the facility agreed with the priority, which in this build is only ever simulated.",
+   "callers": ["ops-desk"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "admissionRef", "type": "string", "required": true, "why": "The admission."},
+    {"field": "receivingPoint", "type": "string", "required": true, "why": "Where the patient was received, from admissions.receivingPoints."},
+    {"field": "agreedWithPretriage", "type": "boolean", "required": true, "why": "Whether the facility agreed with the priority the request was made at. Disagreement is reported, not hidden."},
+    {"field": "simulated", "type": "boolean", "required": true, "why": "True, or the arrival is refused: no facility is connected."}
+   ],
+   "response": [
+    {"field": "arrivedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "not-found", "status": 404, "statement": "There is no admission of yours with that reference.", "why": "The answer says nothing about anybody else's."},
+    {"id": "facility-not-connected", "status": 422, "statement": "A facility answers only through the facility-decision door, which is not connected. Only an answer marked simulated is recorded here.", "why": "An arrival typed by a desk and recorded as the facility's would be a patient nobody at the facility received."},
+    {"id": "arrival-before-acceptance", "status": 409, "statement": "An admission that was never accepted has no arrival.", "why": "The state machine is followed, not skipped."},
+    {"id": "receiving-point-not-declared", "status": 422, "statement": "That is not a receiving point Movement records.", "why": "A receiving point nobody declared is free text by another name."}
+   ],
+   "emits": ["admission.arrived@1", "triage.verified@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15C", "what": "admission.arrived / triage.verified"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/movement/engine.ts", "handler": "'POST /v1/movement/admissions/{admissionRef}/arrival@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/admissions/{admissionRef}/handover",
+   "version": 2,
+   "summary": "Record that a receiving clinician or desk took the hand-over, which in this build is only ever simulated. The pre-arrival packet ends.",
+   "callers": ["ops-desk"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "admissionRef", "type": "string", "required": true, "why": "The admission."},
+    {"field": "receivingRole", "type": "string", "required": true, "why": "The receiving clinician or desk, by role, from trips.receivingRoles. Never a name."},
+    {"field": "encounterRef", "type": "string", "required": true, "why": "The Passport encounter updated with the hand-over, by reference."},
+    {"field": "simulated", "type": "boolean", "required": true, "why": "True, or the hand-over is refused: no facility is connected."}
+   ],
+   "response": [
+    {"field": "handedOverAt", "type": "instant", "required": true, "why": "When, which is also when the pre-arrival packet ended."}
+   ],
+   "refusals": [
+    {"id": "not-found", "status": 404, "statement": "There is no admission of yours with that reference.", "why": "The answer says nothing about anybody else's."},
+    {"id": "facility-not-connected", "status": 422, "statement": "A facility answers only through the facility-decision door, which is not connected. Only an answer marked simulated is recorded here.", "why": "A hand-over typed by a desk and recorded as the facility's would close a loop on a person nobody named."},
+    {"id": "handover-before-arrival", "status": 409, "statement": "An admission is handed over after the patient arrived.", "why": "The state machine is followed, not skipped."},
+    {"id": "receiver-not-named", "status": 422, "statement": "A hand-over names the receiving clinician or desk.", "why": "The loop closes on a person, not on a building."}
+   ],
+   "emits": ["admission.handover_complete@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15C", "what": "admission.handover_complete"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/movement/engine.ts", "handler": "'POST /v1/movement/admissions/{admissionRef}/handover@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/movement/settings",
+   "version": 1,
+   "summary": "Read the Movement settings in force — how often a responder's phone sends its position during a trip, when a responder counts as offline, how many responders a trip is offered to at once, and how long a trip's position is kept — each with its default and who proposed it, what an admin may set, and every change made to them.",
+   "callers": ["admin"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The version in force. A change is made against it, and whatever starts now keeps it."},
+    {"field": "settings", "type": "list", "required": true, "why": "Each setting: its key, type, unit, the value in force and the version that set it, its default and provenance, its limits, who may change it, what a change reaches, its guardrail, and its clinical review.", "object": true, "fields": [
+     {"field": "setting", "type": "string", "required": true, "why": "The setting's key, which a change names."},
+     {"field": "label", "type": "string", "required": true, "why": "Its name on the Configuration screen."},
+     {"field": "help", "type": "string", "required": true, "why": "The question it answers, as a sentence."},
+     {"field": "type", "type": "string", "required": true, "why": "One of the types above."},
+     {"field": "unit", "type": "string", "required": true, "nullable": true, "why": "What the value is counted in, or null for a type that has none."},
+     {"field": "inForce", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The value in force: a number, a switch, a word, a list, a rota or a record, as its type gives."},
+     {"field": "setAtVersion", "type": "integer", "required": true, "why": "The settings version that set the value in force, 1 for the contract's default."},
+     {"field": "default", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The contract's default, of the same kind as the value in force."},
+     {"field": "provenance", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#provenance", "why": "Who decided the default, when and why, or who proposed it and why, and who reviewed it where somebody did."},
+     {"field": "limits", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#setting", "why": "What an admin may set — the bounds, allowed values, roles, posts, items or parts its type carries — with their provenance."},
+     {"field": "changedBy", "type": "list", "required": true, "why": "The roles that may change it, resolved from the contract and the settings in force."},
+     {"field": "appliesTo", "type": "string", "required": true, "why": "What a change reaches, as a sentence."},
+     {"field": "guardrail", "type": "string", "required": true, "nullable": true, "why": "The sentence no value may break, or null for a setting with none."},
+     {"field": "reviewRequired", "type": "string", "required": true, "nullable": true, "why": "The capability whose holder confirms its clinical review, or null for a setting that waits on nobody."},
+     {"field": "reviewed", "type": "string", "required": true, "nullable": true, "object": true, "why": "Who confirmed the clinical review of the value in force, or null while it is not clinically reviewed.", "fields": [
+      {"field": "byRef", "type": "string", "required": true, "why": "The reviewer's reference."},
+      {"field": "at", "type": "instant", "required": true, "nullable": true, "why": "When the review was confirmed through the review route, or null for a default reviewed before it shipped."},
+      {"field": "on", "type": "iso-date", "required": true, "nullable": true, "why": "The day a default was reviewed before it shipped, or null for a review confirmed through the route."}
+     ]}
+    ]},
+    {"field": "history", "type": "list", "required": true, "why": "Every accepted change, oldest first: which setting, from, to, who, when and why. Nothing in it is edited or removed.", "object": true, "fields": [
+     {"field": "settingsVersion", "type": "integer", "required": true, "why": "The version this change made."},
+     {"field": "setting", "type": "string", "required": true, "why": "The setting it changed."},
+     {"field": "from", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The value before, of the kind its type gives."},
+     {"field": "to", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The value after."},
+     {"field": "reason", "type": "string", "required": true, "why": "Why, as it was written."},
+     {"field": "byRole", "type": "string", "required": true, "why": "The role of the person who made it."},
+     {"field": "byRef", "type": "string", "required": true, "why": "The reference of the person who made it, from the caller the runtime admitted."},
+     {"field": "at", "type": "instant", "required": true, "why": "When it was made."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "settings-read-not-permitted", "status": 403, "statement": "Only somebody who may change these settings reads them and who changed them.", "why": "The history names the people who changed how an engine behaves. It is read by the roles that may change it."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/movement/engine.ts", "handler": "'GET /v1/movement/settings@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/setting-changes",
+   "version": 1,
+   "summary": "Change one Movement setting, with a reason, against the version in force. It applies to the heartbeats and trips after it, and never reaches a trip already requested.",
+   "callers": ["admin"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same change once, and the history gains one row."},
+    {"field": "setting", "type": "string", "required": true, "why": "The setting's key, from the settings block of the engine's own contract."},
+    {"field": "wholeNumber", "type": "integer", "required": false, "why": "The new value, for a setting in minutes, a count, cents or a percentage."},
+    {"field": "switchedOn", "type": "boolean", "required": false, "why": "The new value, for a setting that is on or off."},
+    {"field": "choice", "type": "string", "required": false, "why": "The new value, for a setting that is one of a few named choices."},
+    {"field": "wording", "type": "string", "required": false, "why": "The new wording, for a setting patients or nurses read."},
+    {"field": "roles", "type": "list", "required": false, "why": "The new roles, for a setting that names roles from packages/catalog/vetting.json."},
+    {"field": "windows", "type": "list", "required": false, "why": "The new rota, for a setting that is windows of a post, days and hours. A post, never a named person.", "object": true, "fields": [
+     {"field": "post", "type": "string", "required": true, "why": "The post the window is for, by its id in the setting's posts. Never a named person."},
+     {"field": "days", "type": "list", "required": true, "why": "The days of the week it covers, from the days packages/catalog/settings.json lists."},
+     {"field": "from", "type": "string", "required": true, "why": "When it opens, as hours and minutes from 00:00."},
+     {"field": "to", "type": "string", "required": true, "why": "When it closes, after it opens and no later than 24:00."}
+    ]},
+    {"field": "items", "type": "list", "required": false, "why": "The new values, for a setting that is a list."},
+    {"field": "parts", "type": "string", "required": false, "why": "The new values, for a setting whose parts change together.", "object": true, "shapeFrom": "packages/catalog/settings.json#partTypes"},
+    {"field": "reason", "type": "string", "required": false, "why": "Why. Asked for by the handler rather than the binder, so that a change without one is refused in its own sentence rather than the general one for a missing field."},
+    {"field": "expectedVersion", "type": "integer", "required": true, "why": "The settings version the admin was looking at. A change against an older one is refused."}
+   ],
+   "response": [
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The version this change made."},
+    {"field": "appliesFrom", "type": "instant", "required": true, "why": "When it took effect. Whatever started before it keeps the version it started under."}
+   ],
+   "refusals": [
+    {"id": "setting-change-not-permitted", "status": 403, "statement": "Only the role a setting names changes it, and the change is recorded against a named person.", "why": "A setting decides how the platform treats people. The role or capability the setting names changes it, and a change is recorded against somebody who can be asked about it; everybody else only reads what is in force."},
+    {"id": "setting-not-known", "status": 422, "statement": "There is no setting by that name.", "why": "An unknown setting is refused rather than stored, or the history fills with changes nothing reads."},
+    {"id": "setting-change-without-reason", "status": 422, "statement": "A change to a setting says why, or it is not made.", "why": "The history is read after something has gone wrong. A change with no reason is a number somebody moved."},
+    {"id": "settings-version-stale", "status": 409, "statement": "These settings changed after you opened them. Read what is in force now and decide against that.", "why": "Two admins changing one setting from screens opened at the same time would each overwrite a decision they never saw."},
+    {"id": "setting-value-wrong-type", "status": 422, "statement": "That is not the kind of value this setting holds.", "why": "A word where a number belongs, or a list where one choice belongs, is a guess at what the admin meant, and a setting is never set by a guess."},
+    {"id": "setting-not-above-zero", "status": 422, "statement": "This setting is never nought or less, whatever its range says.", "why": "A wait of nothing, an offer that lapses as it is made and a fee of nothing are never what anybody meant. The range is a proposal and could be set wrongly; this refusal does not depend on it."},
+    {"id": "setting-role-not-on-register", "status": 422, "statement": "Every role a setting names is a role on the vetting register.", "why": "A role the register does not hold is a gate nobody can be vetted through, which looks like a shortage rather than a mistake."},
+    {"id": "setting-text-too-long", "status": 422, "statement": "That wording is longer than this setting allows.", "why": "The maximum is the space the words are read in. Wording that does not fit is cut off where somebody reads it."},
+    {"id": "setting-text-loses-a-guardrail", "status": 422, "statement": "That wording drops a sentence this setting must always keep.", "why": "Some wording carries a promise that protects somebody. It may be reworded around that sentence and never without it."},
+    {"id": "setting-schedule-leaves-a-gap", "status": 422, "statement": "That rota leaves hours uncovered that must always have somebody on them.", "why": "A rota with a gap is an alert with nobody to go to, and nobody finds out until one arrives."},
+    {"id": "setting-out-of-range", "status": 422, "statement": "That is outside what an admin may set for this setting.", "why": "The bounds, the allowed values and the allowed roles sit beside the default in the engine's contract. Moving a setting past them is a change to that contract, not a setting."},
+    {"id": "setting-unchanged", "status": 409, "statement": "That is already the value in force, so there is nothing to change.", "why": "A change that changes nothing is a row in the history saying something happened when nothing did."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "No engine acts on a settings change. The engine that owns a setting reads the value in force when it starts something, and the event contract refuses an event nobody subscribes to. A change is the row it appends to the engine's own history, which the read route returns.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/movement/engine.ts", "handler": "'POST /v1/movement/setting-changes@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   }
  ]
 }

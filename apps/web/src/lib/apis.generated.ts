@@ -1022,35 +1022,6 @@ export interface PostSafetyNextOfKinByNominationRefAlertV2Response {
  readonly wouldSay: string;
 }
 
-export interface PostMovementTripsRequest {
- readonly idempotencyKey: string;
- readonly priorityClass: string;
- readonly pickupWindowStart: string;
- readonly prioritySetByRef?: string;
-}
-export interface PostMovementTripsResponse {
- readonly tripRef: string;
- readonly stateCode: string;
-}
-
-export interface PostMovementResponderHeartbeatsRequest {
- readonly idempotencyKey: string;
- readonly lat: number;
- readonly lng: number;
- readonly online: boolean;
-}
-export interface PostMovementResponderHeartbeatsResponse {
- readonly nextBeatSeconds: number;
-}
-
-export interface PostMovementTripsByTripRefAcceptRequest {
- readonly idempotencyKey: string;
- readonly tripRef: string;
-}
-export interface PostMovementTripsByTripRefAcceptResponse {
- readonly pickupPoint: string;
-}
-
 export interface PostMovementTripsByTripRefDeclineRequest {
  readonly idempotencyKey: string;
  readonly tripRef: string;
@@ -1059,79 +1030,187 @@ export interface PostMovementTripsByTripRefDeclineResponse {
  readonly declined: boolean;
 }
 
-export interface PostMovementTripsByTripRefHandoverRequest {
+export interface PostMovementTripsV2Request {
+ readonly idempotencyKey: string;
+ readonly subjectRef: string;
+ readonly priorityClass: string;
+ readonly pickupWindowStart: string;
+ readonly zoneId: string;
+ readonly facilityRef: string;
+ readonly admissionRef?: string;
+ readonly priorityReasonCode?: string;
+ readonly prioritySetByRef?: string;
+}
+export interface PostMovementTripsV2Response {
+ readonly tripRef: string;
+ readonly stateCode: string;
+ readonly settingsVersion: number;
+}
+
+export interface PostMovementResponderHeartbeatsV2Request {
+ readonly idempotencyKey: string;
+ readonly online: boolean;
+ readonly tripRef?: string;
+ readonly lat?: number;
+ readonly lng?: number;
+}
+export interface PostMovementResponderHeartbeatsV2Response {
+ readonly nextBeatSeconds: number;
+ readonly positionKept: boolean;
+ readonly settingsVersion: number;
+}
+
+export interface PostMovementTripsByTripRefAcceptV2Request {
+ readonly idempotencyKey: string;
+ readonly tripRef: string;
+}
+export interface PostMovementTripsByTripRefAcceptV2Response {
+ readonly zoneId: string;
+ readonly facilityRef: string;
+ readonly windowClosesAt: string;
+}
+
+export interface PostMovementTripsByTripRefHandoverV2Request {
  readonly idempotencyKey: string;
  readonly tripRef: string;
  readonly receivingRole: string;
  readonly checklistComplete: boolean;
 }
-export interface PostMovementTripsByTripRefHandoverResponse {
+export interface PostMovementTripsByTripRefHandoverV2Response {
  readonly handedOverAt: string;
+ readonly windowClosedAt: string;
 }
 
-export interface GetMovementFacilitiesRequest {
- readonly zone?: string;
- readonly capability?: string;
+export interface GetMovementTripsByTripRefPositionRequest {
+ readonly tripRef: string;
 }
-export interface GetMovementFacilitiesResponse {
+export interface GetMovementTripsByTripRefPositionResponse {
+ readonly lat: number;
+ readonly lng: number;
+ readonly reportedAt: string;
+ readonly windowClosesAt: string;
+}
+
+export interface PostMovementEmsRequestsRequest {
+ readonly subjectRef: string;
+ readonly zoneId: string;
+}
+export interface PostMovementEmsRequestsResponse {
+ readonly sentAt: string;
+}
+
+export interface GetMovementFacilitiesV2Request {
+ readonly zoneId?: string;
+ readonly bedCategory?: string;
+}
+export interface GetMovementFacilitiesV2Response {
  readonly facilities: ReadonlyArray<Readonly<Record<string, unknown>>>;
 }
 
-export interface PostMovementAdmissionsRequest {
+export interface PostMovementAdmissionsV2Request {
  readonly idempotencyKey: string;
+ readonly subjectRef: string;
  readonly facilityRef: string;
  readonly bedCategory: string;
  readonly priorityCode: string;
  readonly arrivalWindowStart: string;
 }
-export interface PostMovementAdmissionsResponse {
+export interface PostMovementAdmissionsV2Response {
  readonly admissionRef: string;
  readonly stateCode: string;
+ readonly pending: boolean;
 }
 
-export interface GetMovementAdmissionsByAdmissionRefRequest {
+export interface GetMovementAdmissionsByAdmissionRefV2Request {
  readonly admissionRef: string;
 }
-export interface GetMovementAdmissionsByAdmissionRefResponse {
+export interface GetMovementAdmissionsByAdmissionRefV2Response {
  readonly stateCode: string;
+ readonly pending: boolean;
+ readonly destinationConfirmed: boolean;
  readonly receivingPoint?: string;
+ readonly decisionSimulated: boolean;
+ readonly packetStateCode: string;
 }
 
-export interface PostMovementAdmissionsByAdmissionRefPacketRequest {
+export interface PostMovementAdmissionsByAdmissionRefPacketV2Request {
  readonly admissionRef: string;
  readonly shareLinkRef: string;
 }
-export interface PostMovementAdmissionsByAdmissionRefPacketResponse {
+export interface PostMovementAdmissionsByAdmissionRefPacketV2Response {
  readonly sentAt: string;
+ readonly endsAt: string;
 }
 
-export interface PostMovementAdmissionsByAdmissionRefDecisionRequest {
+export interface PostMovementAdmissionsByAdmissionRefDecisionV2Request {
  readonly idempotencyKey: string;
  readonly admissionRef: string;
  readonly decisionCode: string;
  readonly receivingPoint?: string;
  readonly alternativeOffered: boolean;
+ readonly reasonCode?: string;
+ readonly simulated: boolean;
 }
-export interface PostMovementAdmissionsByAdmissionRefDecisionResponse {
+export interface PostMovementAdmissionsByAdmissionRefDecisionV2Response {
  readonly stateCode: string;
+ readonly pending: boolean;
 }
 
-export interface PostMovementAdmissionsByAdmissionRefArrivalRequest {
+export interface PostMovementAdmissionsByAdmissionRefMoreInformationRequest {
+ readonly idempotencyKey: string;
+ readonly admissionRef: string;
+ readonly informationCode: string;
+ readonly simulated: boolean;
+}
+export interface PostMovementAdmissionsByAdmissionRefMoreInformationResponse {
+ readonly stateCode: string;
+ readonly pending: boolean;
+}
+
+export interface PostMovementAdmissionsByAdmissionRefArrivalV2Request {
  readonly admissionRef: string;
  readonly receivingPoint: string;
  readonly agreedWithPretriage: boolean;
+ readonly simulated: boolean;
 }
-export interface PostMovementAdmissionsByAdmissionRefArrivalResponse {
+export interface PostMovementAdmissionsByAdmissionRefArrivalV2Response {
  readonly arrivedAt: string;
 }
 
-export interface PostMovementAdmissionsByAdmissionRefHandoverRequest {
+export interface PostMovementAdmissionsByAdmissionRefHandoverV2Request {
  readonly admissionRef: string;
  readonly receivingRole: string;
  readonly encounterRef: string;
+ readonly simulated: boolean;
 }
-export interface PostMovementAdmissionsByAdmissionRefHandoverResponse {
+export interface PostMovementAdmissionsByAdmissionRefHandoverV2Response {
  readonly handedOverAt: string;
+}
+
+export type GetMovementSettingsRequest = Record<string, never>;
+export interface GetMovementSettingsResponse {
+ readonly settingsVersion: number;
+ readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostMovementSettingChangesRequest {
+ readonly idempotencyKey: string;
+ readonly setting: string;
+ readonly wholeNumber?: number;
+ readonly switchedOn?: boolean;
+ readonly choice?: string;
+ readonly wording?: string;
+ readonly roles?: readonly string[];
+ readonly windows?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly items?: readonly string[];
+ readonly parts?: Readonly<Record<string, unknown>>;
+ readonly reason?: string;
+ readonly expectedVersion: number;
+}
+export interface PostMovementSettingChangesResponse {
+ readonly settingsVersion: number;
+ readonly appliesFrom: string;
 }
 
 export type GetTrustStandingRequest = Record<string, never>;
@@ -2069,18 +2148,23 @@ export const apiRoutes = {
  getSafetyNextOfKin: { name: "getSafetyNextOfKin", method: "GET", path: "/v1/safety/next-of-kin", mountedPath: "/v1/safety/next-of-kin", version: 1, engine: "safety", callers: ["patient"], purpose: ["emergency"], idempotent: false, status: "built" },
  postSafetyNextOfKinByNominationRefWithdraw: { name: "postSafetyNextOfKinByNominationRefWithdraw", method: "POST", path: "/v1/safety/next-of-kin/{nominationRef}/withdraw", mountedPath: "/v1/safety/next-of-kin/{nominationRef}/withdraw", version: 1, engine: "safety", callers: ["patient","guardian"], purpose: ["emergency"], idempotent: true, status: "built" },
  postSafetyNextOfKinByNominationRefAlertV2: { name: "postSafetyNextOfKinByNominationRefAlertV2", method: "POST", path: "/v1/safety/next-of-kin/{nominationRef}/alert", mountedPath: "/v1/safety/next-of-kin/{nominationRef}/alert", version: 2, engine: "safety", callers: ["operator","guardian"], purpose: ["emergency"], idempotent: true, status: "built" },
- postMovementTrips: { name: "postMovementTrips", method: "POST", path: "/v1/movement/trips", mountedPath: "/v1/movement/trips", version: 1, engine: "movement", callers: ["nurse","doctor","dispatcher","thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
- postMovementResponderHeartbeats: { name: "postMovementResponderHeartbeats", method: "POST", path: "/v1/movement/responder-heartbeats", mountedPath: "/v1/movement/responder-heartbeats", version: 1, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
- postMovementTripsByTripRefAccept: { name: "postMovementTripsByTripRefAccept", method: "POST", path: "/v1/movement/trips/{tripRef}/accept", mountedPath: "/v1/movement/trips/{tripRef}/accept", version: 1, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
- postMovementTripsByTripRefDecline: { name: "postMovementTripsByTripRefDecline", method: "POST", path: "/v1/movement/trips/{tripRef}/decline", mountedPath: "/v1/movement/trips/{tripRef}/decline", version: 1, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
- postMovementTripsByTripRefHandover: { name: "postMovementTripsByTripRefHandover", method: "POST", path: "/v1/movement/trips/{tripRef}/handover", mountedPath: "/v1/movement/trips/{tripRef}/handover", version: 1, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
- getMovementFacilities: { name: "getMovementFacilities", method: "GET", path: "/v1/movement/facilities", mountedPath: "/v1/movement/facilities", version: 1, engine: "movement", callers: ["patient","caregiver","nurse","doctor","ops-desk","thuso-line-agent"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
- postMovementAdmissions: { name: "postMovementAdmissions", method: "POST", path: "/v1/movement/admissions", mountedPath: "/v1/movement/admissions", version: 1, engine: "movement", callers: ["nurse","doctor","ops-desk"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
- getMovementAdmissionsByAdmissionRef: { name: "getMovementAdmissionsByAdmissionRef", method: "GET", path: "/v1/movement/admissions/{admissionRef}", mountedPath: "/v1/movement/admissions/{admissionRef}", version: 1, engine: "movement", callers: ["patient","caregiver","nurse","doctor","ops-desk"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
- postMovementAdmissionsByAdmissionRefPacket: { name: "postMovementAdmissionsByAdmissionRefPacket", method: "POST", path: "/v1/movement/admissions/{admissionRef}/packet", mountedPath: "/v1/movement/admissions/{admissionRef}/packet", version: 1, engine: "movement", callers: ["nurse","doctor","ops-desk"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postMovementAdmissionsByAdmissionRefDecision: { name: "postMovementAdmissionsByAdmissionRefDecision", method: "POST", path: "/v1/movement/admissions/{admissionRef}/decision", mountedPath: "/v1/movement/admissions/{admissionRef}/decision", version: 1, engine: "movement", callers: ["facility-desk","ops-desk"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
- postMovementAdmissionsByAdmissionRefArrival: { name: "postMovementAdmissionsByAdmissionRefArrival", method: "POST", path: "/v1/movement/admissions/{admissionRef}/arrival", mountedPath: "/v1/movement/admissions/{admissionRef}/arrival", version: 1, engine: "movement", callers: ["facility-desk"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postMovementAdmissionsByAdmissionRefHandover: { name: "postMovementAdmissionsByAdmissionRefHandover", method: "POST", path: "/v1/movement/admissions/{admissionRef}/handover", mountedPath: "/v1/movement/admissions/{admissionRef}/handover", version: 1, engine: "movement", callers: ["facility-desk"], purpose: ["treatment"], idempotent: false, status: "proposed" },
+ postMovementTripsByTripRefDecline: { name: "postMovementTripsByTripRefDecline", method: "POST", path: "/v1/movement/trips/{tripRef}/decline", mountedPath: "/v1/movement/trips/{tripRef}/decline", version: 1, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ postMovementTripsV2: { name: "postMovementTripsV2", method: "POST", path: "/v1/movement/trips", mountedPath: "/v1/movement/trips", version: 2, engine: "movement", callers: ["nurse","doctor","dispatcher","thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ postMovementResponderHeartbeatsV2: { name: "postMovementResponderHeartbeatsV2", method: "POST", path: "/v1/movement/responder-heartbeats", mountedPath: "/v1/movement/responder-heartbeats", version: 2, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ postMovementTripsByTripRefAcceptV2: { name: "postMovementTripsByTripRefAcceptV2", method: "POST", path: "/v1/movement/trips/{tripRef}/accept", mountedPath: "/v1/movement/trips/{tripRef}/accept", version: 2, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ postMovementTripsByTripRefHandoverV2: { name: "postMovementTripsByTripRefHandoverV2", method: "POST", path: "/v1/movement/trips/{tripRef}/handover", mountedPath: "/v1/movement/trips/{tripRef}/handover", version: 2, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ getMovementTripsByTripRefPosition: { name: "getMovementTripsByTripRefPosition", method: "GET", path: "/v1/movement/trips/{tripRef}/position", mountedPath: "/v1/movement/trips/{tripRef}/position", version: 1, engine: "movement", callers: ["patient","dispatcher","ops-desk"], purpose: ["dispatch"], idempotent: false, status: "built" },
+ postMovementEmsRequests: { name: "postMovementEmsRequests", method: "POST", path: "/v1/movement/ems-requests", mountedPath: "/v1/movement/ems-requests", version: 1, engine: "movement", callers: ["nurse","doctor","dispatcher","ops-desk","thuso-line-agent"], purpose: ["emergency"], idempotent: false, status: "built" },
+ getMovementFacilitiesV2: { name: "getMovementFacilitiesV2", method: "GET", path: "/v1/movement/facilities", mountedPath: "/v1/movement/facilities", version: 2, engine: "movement", callers: ["patient","caregiver","nurse","doctor","ops-desk","thuso-line-agent"], purpose: ["dispatch"], idempotent: false, status: "built" },
+ postMovementAdmissionsV2: { name: "postMovementAdmissionsV2", method: "POST", path: "/v1/movement/admissions", mountedPath: "/v1/movement/admissions", version: 2, engine: "movement", callers: ["nurse","doctor","ops-desk"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ getMovementAdmissionsByAdmissionRefV2: { name: "getMovementAdmissionsByAdmissionRefV2", method: "GET", path: "/v1/movement/admissions/{admissionRef}", mountedPath: "/v1/movement/admissions/{admissionRef}", version: 2, engine: "movement", callers: ["patient","nurse","doctor","ops-desk"], purpose: ["dispatch"], idempotent: false, status: "built" },
+ postMovementAdmissionsByAdmissionRefPacketV2: { name: "postMovementAdmissionsByAdmissionRefPacketV2", method: "POST", path: "/v1/movement/admissions/{admissionRef}/packet", mountedPath: "/v1/movement/admissions/{admissionRef}/packet", version: 2, engine: "movement", callers: ["nurse","doctor","ops-desk"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postMovementAdmissionsByAdmissionRefDecisionV2: { name: "postMovementAdmissionsByAdmissionRefDecisionV2", method: "POST", path: "/v1/movement/admissions/{admissionRef}/decision", mountedPath: "/v1/movement/admissions/{admissionRef}/decision", version: 2, engine: "movement", callers: ["ops-desk"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ postMovementAdmissionsByAdmissionRefMoreInformation: { name: "postMovementAdmissionsByAdmissionRefMoreInformation", method: "POST", path: "/v1/movement/admissions/{admissionRef}/more-information", mountedPath: "/v1/movement/admissions/{admissionRef}/more-information", version: 1, engine: "movement", callers: ["ops-desk"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ postMovementAdmissionsByAdmissionRefArrivalV2: { name: "postMovementAdmissionsByAdmissionRefArrivalV2", method: "POST", path: "/v1/movement/admissions/{admissionRef}/arrival", mountedPath: "/v1/movement/admissions/{admissionRef}/arrival", version: 2, engine: "movement", callers: ["ops-desk"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postMovementAdmissionsByAdmissionRefHandoverV2: { name: "postMovementAdmissionsByAdmissionRefHandoverV2", method: "POST", path: "/v1/movement/admissions/{admissionRef}/handover", mountedPath: "/v1/movement/admissions/{admissionRef}/handover", version: 2, engine: "movement", callers: ["ops-desk"], purpose: ["treatment"], idempotent: false, status: "built" },
+ getMovementSettings: { name: "getMovementSettings", method: "GET", path: "/v1/movement/settings", mountedPath: "/v1/movement/settings", version: 1, engine: "movement", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
+ postMovementSettingChanges: { name: "postMovementSettingChanges", method: "POST", path: "/v1/movement/setting-changes", mountedPath: "/v1/movement/setting-changes", version: 1, engine: "movement", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
  getTrustStanding: { name: "getTrustStanding", method: "GET", path: "/v1/trust/standing", mountedPath: "/v1/trust/standing", version: 1, engine: "trust", callers: ["self"], purpose: ["vetting"], idempotent: false, status: "built" },
  getTrustPartiesById: { name: "getTrustPartiesById", method: "GET", path: "/v1/trust/parties/{id}", mountedPath: "/v1/trust/parties/{id}", version: 1, engine: "trust", callers: ["admin"], purpose: ["vetting"], idempotent: false, status: "built" },
  postTrustParties: { name: "postTrustParties", method: "POST", path: "/v1/trust/parties", mountedPath: "/v1/trust/parties", version: 1, engine: "trust", callers: ["admin"], purpose: ["vetting"], idempotent: false, status: "built" },

@@ -1180,7 +1180,9 @@
     { "field": "arrivalWindowStart", "type": "instant", "required": true, "why": "The start of the requested arrival window." }
    ],
    "neverCarries": [
-    { "field": "packetContents", "why": "The facility opens the packet through a share link; the bus carries none of it." }
+    { "field": "packetContents", "why": "The facility opens the packet through a share link; the bus carries none of it." },
+    { "field": "linkSecret", "why": "The packet is a Passport link whose secret opens it. Movement never holds the secret and the bus never carries it. Named at Movement (Wave 5); the payload is unchanged." },
+    { "field": "clinicalSummary", "why": "Why a patient needs admitting is in the Health Passport under the clinician's own grant. Movement holds references and states only. Named at Movement (Wave 5); the payload is unchanged." }
    ],
    "subscribers": ["core", "access"]
   },
@@ -1230,7 +1232,8 @@
     { "field": "expectedArrivalAt", "type": "instant", "required": true, "why": "An estimate the facility and family can be told." }
    ],
    "neverCarries": [
-    { "field": "vehiclePosition", "why": "Live position is shared with the care team and family under consent, not on the bus." }
+    { "field": "vehiclePosition", "why": "Live position is shared with the care team and family under consent, not on the bus." },
+    { "field": "positionAfterTheWindow", "why": "A trip's position is kept only inside its window and dropped when the window closes; no event keeps one for longer. Named at Movement (Wave 5); the payload is unchanged." }
    ],
    "subscribers": ["core", "access", "care"]
   },
@@ -1280,7 +1283,8 @@
     { "field": "pickupWindowStart", "type": "instant", "required": true, "why": "When pick-up may begin." }
    ],
    "neverCarries": [
-    { "field": "address", "why": "The responder receives the pick-up point on accepting, not on the bus." }
+    { "field": "address", "why": "The responder receives the pick-up point on accepting, not on the bus." },
+    { "field": "pickupPosition", "why": "A pick-up is a zone in Movement's store, and the door is told to the responder by a person. Named at Movement (Wave 5); the payload is unchanged." }
    ],
    "subscribers": ["core", "care"]
   },

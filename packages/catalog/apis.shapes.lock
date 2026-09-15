@@ -102,3 +102,6 @@ POST /v1/record/setting-changes@1 a1eb322e6bd6c16a
 GET /v1/devices/settings@1 d36af35b57f71c3d
 POST /v1/devices/setting-changes@1 0021ed001782a1fc
 POST /v1/devices/setting-changes@2 665edcfd8bcf6edb
+GET /v1/movement/facilities@2 a511aa21026b3ac0
+GET /v1/movement/settings@1 fd4619e1b023abae
+POST /v1/movement/setting-changes@1 4b26b10cc14f50f7

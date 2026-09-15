@@ -38,6 +38,7 @@ import { emitMedicines } from './emit-medicines.mjs';
 import { emitVerifyInService } from './emit-verify-in-service.mjs';
 import { emitPassportSharing } from './emit-passport-sharing.mjs';
 import { emitDevices } from './emit-devices.mjs';
+import { emitMovement } from './emit-movement.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -911,11 +912,16 @@ const generated = [
  { source: 'packages/catalog/apis/devices.json', command: 'npm run devices', files: emitDevices() },
  { source: 'packages/catalog/records.json', command: 'npm run devices', files: emitDevices() },
  { source: 'packages/catalog/consent.json', command: 'npm run devices', files: emitDevices() },
+ /* MovementData carries the responder's side of movement.json — the priorities, the trip states, the receiving roles,
+    the checklist, the facilities, the words and the heartbeat interval's default — the refusals the responder's routes
+    declare in apis/movement.json, and each zone's name from geography.json. */
+ ...['movement.json', 'apis/movement.json', 'geography.json']
+  .map(file => ({ source: `packages/catalog/${file}`, command: 'npm run movement', files: emitMovement() })),
  /* The clinical review pack reads every contract a clinician has to review, so a change to any of them
     without regenerating is a failed build rather than a pack somebody signs against values no longer in force. */
  ...['settings.json', 'care.json', 'booking.json', 'field-safety.json', 'closed-loop.json', 'money.json', 'protocols.json',
   'gilbert-emergency-terms.json', 'assistant.json', 'vetting.json', 'vetting-proposals.json', 'records.json', 'sos.json',
-  'locales.json', 'events.json', 'apis/care.json', 'apis/access.json', 'medicines.json', 'apis/medicines.json', 'verify-in-service.json', 'devices.json']
+  'locales.json', 'events.json', 'apis/care.json', 'apis/access.json', 'medicines.json', 'apis/medicines.json', 'verify-in-service.json', 'devices.json', 'movement.json']
   .map(file => ({ source: `packages/catalog/${file}`, command: 'npm run review-pack', files: emitClinicalReviewPack() }))
 ];
 for(const {source,command,files} of generated) {
