@@ -1,0 +1,165 @@
+{
+ "_note": "The nurse safety suite, Wave 3: a timer on every visit, a panic button that shows the desk where a nurse is for a fixed window, and the desk queue that works both. MyThuso Master Blueprint v4's Engine 4 seed scope ships the 'nurse safety suite from day one', and ThusoIQ Master v3.5 section 58 item 4 names what it must hold: 'check-in/check-out on every visit, panic button and live location to the ops desk'. This file holds the states, the numbers and the refusal sentences; packages/engines/src/safety/domain holds the arithmetic; scripts/emit-field-safety.mjs writes both native copies. Nothing here is a running service. No timer reaches a desk, no panic reaches a person, no position is read from a device, and the nurse-position door in packages/catalog/feeds.json stays shut.",
+ "version": 1,
+ "engine": "safety",
+ "api": "packages/catalog/apis/safety.json",
+
+ "_numbersNote": "Every number below that is a policy is a proposal. `decidedBy: null` means nobody with the authority to set it has set it: ThusoIQ Master v3.5's readiness review (58A) marks 'Nurse workforce & field safety' RED, and its next step is to 'approve employment/flex model, caseload, pay, routing, buddy/no-go rules and panic/escort policy'. The numbers are here so the screens can be built and tested against something; the build refuses a proposal that loses its `decidedBy` key, so a number cannot quietly become policy by having the question deleted around it.",
+ "timer": {
+  "expectedMinutesFrom": "packages/catalog/services.json#duration",
+  "whyFromTheService": "A visit is timed by the service that was booked. A number typed on a screen or sent with a request is a timer that can be set to anything; the duration in the catalogue is the one the patient was quoted and the nurse's day is drawn from.",
+  "graceMinutes": {
+   "value": 15,
+   "decidedBy": null,
+   "proposedBecause": "Long enough that a visit running a little over does not page the desk; short enough that a nurse in trouble is noticed inside a quarter of an hour of when she should have left.",
+   "question": "How long after a visit's booked duration the desk is told a nurse has not checked out."
+  },
+  "extensionMinutes": {
+   "value": [10, 20, 30],
+   "decidedBy": null,
+   "proposedBecause": "Three choices a nurse can press with one hand at a door, rather than a number field.",
+   "question": "The extensions a nurse may choose from."
+  },
+  "maxExtensionMinutes": {
+   "value": 60,
+   "decidedBy": null,
+   "proposedBecause": "An hour beyond the booked time is as long as a visit should run before a person at the desk speaks to the nurse, whatever the reason.",
+   "question": "The most a visit may be extended in total before only the desk can let it run on."
+  }
+ },
+
+ "panic": {
+  "windowMinutes": {
+   "value": 60,
+   "decidedBy": null,
+   "proposedBecause": "Long enough for the desk to reach a nurse, send help and hear back. The window does not stretch: a nurse who still needs help when it ends presses again and a new window starts, which leaves a record of both.",
+   "question": "How long the desk sees a nurse's position after she presses panic."
+  },
+  "press": "Panic",
+  "confirmQuestion": "Alert the desk that you need help?",
+  "confirm": "Yes, alert the desk",
+  "cancel": "Not now",
+  "pressedAt": "Pressed at {at}",
+  "whatHappens": "The desk is alerted and can see where you are until {ends}. Nobody else can: not the patient, not other nurses, and not any other part of MyThuso.",
+  "whatDoesNotHappen": "Pressing panic does not call the police or an ambulance. A person at the desk decides that. If you can, call {police} for the police or {ambulance} for an ambulance yourself.",
+  "_emergencyNumbersNote": "{police} and {ambulance} are the numbers in packages/catalog/sos.json, filled in by the domain rules on the web and by scripts/emit-field-safety.mjs for the native apps. An emergency number typed twice is one that can be typed wrong twice.",
+  "sharingUntil": "The desk can see your position until {ends}.",
+  "sharingStopped": "The desk stopped seeing your position at {ended}.",
+  "pressAgain": "If you still need help, press panic again. A new window starts.",
+  "sameVisit": "A second press by the same nurse for the same visit while its window is open is the same panic, answered again. It is never refused, and a press by anybody else is never folded into it."
+ },
+
+ "simulation": {
+  "positionEverySeconds": 15,
+  "why": "How often the simulated feed produces a position while a window is open. It is the simulation's cadence, not a policy: no device reports anything, and the feed is generated on the machine that draws the desk.",
+  "positionFrom": "packages/catalog/geography.json#zones",
+  "positionRule": "The simulated position is the centre of the suburb the nurse works in, at the precision packages/catalog/geography.json declares. It is never the patient's address, because the preview has no address to give."
+ },
+
+ "states": {
+  "timer": [
+   { "id": "running", "label": "On a visit", "means": "The timer is counting down to when she should have checked out." },
+   { "id": "overdue", "label": "Past check-out", "means": "The time plus the grace has passed and she has neither checked out nor extended." },
+   { "id": "closed", "label": "Checked out", "means": "She checked out, or the visit was completed and signed." }
+  ],
+  "panic": [
+   { "id": "raised", "label": "Waiting for the desk", "means": "Pressed, and nobody at the desk has picked it up." },
+   { "id": "acknowledged", "label": "The desk has it", "means": "A person at the desk has picked it up." },
+   { "id": "resolved", "label": "Resolved", "means": "The desk recorded what happened. Sharing has stopped." }
+  ]
+ },
+
+ "extensionReasons": [
+  { "id": "running-long", "label": "The visit is taking longer than booked" },
+  { "id": "waiting-for-household", "label": "Waiting for the patient or the family" },
+  { "id": "waiting-for-doctor", "label": "Waiting for a doctor to call back" },
+  { "id": "paperwork", "label": "Finishing up before leaving" }
+ ],
+ "_extensionReasonsNote": "A reason is what the desk reads beside an extended timer, so none of them says anything about the patient's health. 'Waiting for a doctor to call back' names who, never why.",
+
+ "silenceReasons": [
+  { "id": "reached-by-phone", "label": "I reached the nurse by phone and she is safe", "needsNurseAnswer": false },
+  { "id": "nurse-answered", "label": "The nurse checked in, extended or checked out herself", "needsNurseAnswer": true },
+  { "id": "colleague-confirmed", "label": "A colleague confirmed she is safe", "needsNurseAnswer": false }
+ ],
+
+ "outcomes": [
+  { "id": "safe-no-help", "label": "Safe. No help was needed.", "humanCalledServices": false },
+  { "id": "safe-after-desk-call", "label": "Safe after the desk spoke to her", "humanCalledServices": false },
+  { "id": "desk-called-services", "label": "A person at the desk called the police or an ambulance", "humanCalledServices": true },
+  { "id": "pressed-by-mistake", "label": "Pressed by mistake, confirmed with the nurse", "humanCalledServices": false }
+ ],
+
+ "nurse": {
+  "heading": "Your safety",
+  "due": "Check out by {due}",
+  "left": "{minutes} min left. If you have not checked out by then, the desk is told.",
+  "overdue": "Past check-out since {since}. The desk has been told.",
+  "answered": "You said you were safe at {at}.",
+  "closedByNurse": "You checked out at {at}.",
+  "closedBySigning": "Checked out when the visit was signed at {at}.",
+  "checkIn": "I am safe",
+  "extend": "More time",
+  "extendQuestion": "Why do you need more time?",
+  "extendStep": "Add {minutes} min",
+  "extendLeft": "Up to {minutes} more minutes can be added to this visit.",
+  "checkOut": "Check out"
+ },
+
+ "desk": {
+  "heading": "Nurses in the field",
+  "empty": "No nurse is past check-out and nobody has pressed panic. The queue fills itself; there is nothing to refresh.",
+  "waiting": "{waiting} waiting to be picked up · {open} open",
+  "kinds": { "panic": "Panic", "overdue": "Past check-out" },
+  "raisedAt": "raised {at}",
+  "age": "{minutes} min",
+  "notPickedUp": "Nobody has picked this up",
+  "pickUp": "Pick up",
+  "pickedUp": "Picked up at {at}",
+  "answered": "The nurse answered at {at}.",
+  "reasonQuestion": "Why is it safe to close?",
+  "outcomeQuestion": "What happened?",
+  "choose": "Choose…",
+  "close": "Close",
+  "resolve": "Resolve",
+  "closedLine": "Closed · {outcome}",
+  "position": "Where she is",
+  "positionNotYet": "No position has arrived yet.",
+  "positionUpdated": "Updated {seconds} s ago",
+  "sharingUntil": "shared with the desk until {ends}",
+  "carries": ["kind", "reference", "nurse", "suburb", "raisedAt", "ageMinutes", "acknowledgement", "answeredAt", "outcome", "sharingEndsAt", "sharing", "open"],
+  "neverCarries": [
+   { "field": "service", "why": "What the visit was for is clinical. A queue of 'Family planning' and 'Mental-health check-in' rows is a disclosure to everybody standing behind the desk." },
+   { "field": "patient", "why": "The desk needs to know which nurse and which suburb. The patient's name is in the visit, for the nurse, not on a board." },
+   { "field": "address", "why": "geography.json's address-is-not-a-pin, read at the desk: a suburb is enough to send somebody, and the nurse's position is shown during a panic and nowhere else." }
+  ],
+  "order": "A panic nobody has picked up, then a timer nobody has picked up, then everything the desk already has. Oldest first inside each."
+ },
+
+ "refusals": [
+  { "id": "timer-without-a-matched-code", "status": 409, "statement": "A visit whose code did not match has not started, so it has no timer.", "why": "appointment.in_progress carries visitCodeMatched so that a subscriber can refuse one that says otherwise." },
+  { "id": "timer-for-an-unknown-service", "status": 422, "statement": "That visit's service is not in the catalogue, so there is nothing to time it by.", "why": "A timer with a guessed duration is a timer that fires at the wrong time." },
+  { "id": "extension-without-reason", "status": 422, "statement": "An extension says why, in one of the reasons the desk can read.", "why": "The desk decides whether to call from the reason. An extension with none is a snooze." },
+  { "id": "extension-not-offered", "status": 422, "statement": "Extensions come in the steps the desk offers.", "why": "A free number is how a timer is set to a day." },
+  { "id": "checkin-after-close", "status": 409, "statement": "That visit is checked out. Nothing is being timed.", "why": "A closed timer does not reopen; a new visit starts a new one." },
+  { "id": "overdue-silenced-without-reason", "status": 422, "statement": "An overdue check-in is closed with a reason, or it stays open.", "why": "An alarm silenced without a reason is an alarm somebody made stop." },
+  { "id": "silence-reason-untrue", "status": 409, "statement": "The nurse has not checked in, extended or checked out, so that cannot be the reason.", "why": "The reason is checked against the timer, not taken on trust." },
+  { "id": "nothing-to-silence", "status": 409, "statement": "That check-in is not overdue, so there is nothing here for the desk.", "why": "A reason recorded against nothing is noise in the record." },
+  { "id": "overdue-acknowledged-first", "status": 409, "statement": "Somebody at the desk picks an overdue check-in up before it is closed.", "why": "The record has to say that a person saw it, for a timer exactly as for a panic." },
+  { "id": "position-after-the-window", "status": 410, "statement": "This position is no longer shared. Sharing ended at {ended}.", "why": "The window always ends, and the desk is told when rather than shown the last place she was." },
+  { "id": "panic-resolved-without-outcome", "status": 422, "statement": "A panic is resolved with what happened, or it stays open.", "why": "A panic closed with no outcome leaves nothing to review. ThusoIQ Master v3.5 section 55 names an incident review within 24 hours for harm to a patient or responder during a Thuso Ride trip; holding a nurse's panic to the same review is this contract's proposal, not the document's, and it needs the outcome written down." },
+  { "id": "panic-resolved-before-acknowledged", "status": 409, "statement": "Somebody at the desk picks a panic up before it is resolved.", "why": "The record has to say that a person saw it." },
+  { "id": "panic-already-resolved", "status": 409, "statement": "That panic is already resolved. If she needs help again, a new panic starts.", "why": "A resolved panic does not reopen, and its window does not come back." },
+  { "id": "window-does-not-stretch", "status": 409, "statement": "The window does not stretch. A nurse who still needs help presses panic again.", "why": "A share that can be extended from the desk is a share with no end." },
+  { "id": "location-retained", "status": 409, "statement": "A position is gone when sharing stops. Nothing keeps where she was.", "why": "geography.json's no-history-drawn: a safety feature that keeps positions is a tracking system." }
+ ],
+ "routeRefusals": [
+  { "route": "POST /v1/safety/checkins/{checkinRef}/extend", "id": "extension-limit" },
+  { "route": "POST /v1/safety/checkins/{checkinRef}/close", "id": "already-closed" },
+  { "route": "POST /v1/safety/checkins", "id": "expected-minutes-not-the-service" },
+  { "route": "POST /v1/safety/panics", "id": "share-without-end" },
+  { "route": "POST /v1/safety/panics", "id": "window-not-the-declared-one" },
+  { "route": "POST /v1/safety/panics", "id": "dispatch-from-a-panic-without-a-person" }
+ ],
+ "_routeRefusalsNote": "Refusals that already belong to a route are named by route and id and read from packages/catalog/apis/safety.json, so the sentence the API returns and the sentence a screen shows are one string."
+}

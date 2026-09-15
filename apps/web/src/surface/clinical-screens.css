@@ -722,3 +722,131 @@
    and seventy-five pixels of box for one digit, six times. A code field is read as one object and
    should look like one, so the row takes the width the six boxes actually need. */
 .clinical .code-input { max-width: 380px; }
+
+/* ---- Field safety: the nurse's strip and the desk's queue (Wave 3) ------------------------------
+ *
+ * The strip sits between the visit's deck and its stage, and it is deliberately the quietest panel on
+ * the sheet except for one control. A nurse reads it at a glance and presses it without reading, so it
+ * is one line of time, three plain buttons, and panic — the only danger-coloured thing on the visit,
+ * outlined until it is the thing being confirmed, when it fills. Past check-out turns the rule beside
+ * the time to the danger colour and says so in words as well, because colour is never the only
+ * difference between two states.
+ *
+ * The desk queue borrows the incident board's grid, so a controller reads both the same way: a rule
+ * and a word for what kind, the reference, who and where, how long, and where it stands. A panic nobody
+ * has picked up carries the danger rule, an overdue the mango-ink one, a row the desk holds the faint
+ * one, and a closed row none. */
+.clinical .fs-visit {
+ display: grid; gap: var(--space-12);
+ margin-block: var(--space-16);
+ padding: var(--space-12) var(--space-16);
+ background: var(--surface);
+ border: 1px solid var(--line);
+ border-radius: var(--r-card);
+}
+.clinical .fs-visit-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12) var(--space-16); }
+.clinical .fs-rule { align-self: stretch; width: 3px; min-height: 40px; border-radius: 2px; background: var(--stone); flex-shrink: 0; }
+.clinical .fs-visit.is-overdue .fs-rule { background: var(--danger); }
+.clinical .fs-visit.is-closed .fs-rule { background: var(--line); }
+.clinical .fs-visit-say { flex: 1 1 260px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.clinical .fs-kicker { font-size: 13px; font-weight: 500; color: var(--faint); }
+.clinical .fs-visit-say strong { font-size: 18px; font-weight: 600; line-height: 1.3; color: var(--charcoal); font-variant-numeric: tabular-nums; }
+.clinical .fs-visit-say small { font-size: 13px; line-height: 1.45; color: var(--faint); }
+.clinical .fs-visit.is-overdue .fs-visit-say small { color: var(--danger); font-weight: 500; }
+.clinical .fs-visit-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+.clinical .fs-visit-actions > button, .clinical .fs-steps > button, .clinical .fs-confirm-actions > button { min-height: 44px; }
+.clinical .fs-panic {
+ display: inline-flex; align-items: center; justify-content: center; gap: var(--space-8);
+ min-height: 44px; padding: 0 var(--space-16);
+ border: 2px solid var(--danger); border-radius: var(--r-control);
+ background: var(--surface); color: var(--danger);
+ font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.clinical .fs-panic:hover { background: var(--danger-soft); }
+/* Panic takes a row of its own at every width. In the assessment dialog on a desktop it wrapped under
+   the three plain buttons at the size of any other button, which is the opposite of findable without
+   looking; the phone and both native apps already give it the full width. */
+.clinical .fs-visit-actions { width: 100%; }
+.clinical .fs-visit-actions > .fs-panic { flex: 1 1 100%; }
+.clinical .fs-panic.is-solid { background: var(--danger); color: var(--surface); }
+.clinical .fs-extend { margin: 0; padding: var(--space-12) 0 0; border: 0; border-top: 1px solid var(--line); display: grid; gap: var(--space-12); min-width: 0; }
+.clinical .fs-extend legend { float: left; width: 100%; padding: 0; font-size: 15px; font-weight: 500; color: var(--charcoal); }
+.clinical .fs-reasons { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: var(--space-8); }
+.clinical .fs-choice { display: flex; align-items: center; gap: var(--space-8); min-height: 44px; padding: 0 var(--space-12); border: 1px solid var(--line); border-radius: var(--r-control); font-size: 14px; color: var(--charcoal); cursor: pointer; }
+.clinical .fs-choice:has(input:checked) { border-color: var(--charcoal); box-shadow: inset 0 0 0 1px var(--charcoal); }
+/* The radio keeps its own size. The shared input rule makes every input a full-width, 48px field, which
+   turned four reasons into four large empty circles with the words squeezed into the margin; the
+   44px target is the whole label, not the dot. */
+.clinical .fs-choice input { flex: none; width: 18px; height: 18px; min-height: 0; margin: 0; padding: 0; accent-color: var(--charcoal); }
+.clinical .fs-choice span { flex: 1; min-width: 0; }
+.clinical .fs-steps { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.clinical .fs-confirm { display: grid; gap: var(--space-8); padding: var(--space-16); border: 2px solid var(--danger); border-radius: var(--r-card); background: var(--danger-soft); }
+.clinical .fs-confirm strong { font-size: 16px; color: var(--charcoal); }
+.clinical .fs-confirm p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--charcoal); }
+.clinical .fs-confirm-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-8); margin-top: var(--space-4); }
+.clinical .fs-pressed { display: grid; gap: 2px; padding: var(--space-12); border-left: 3px solid var(--danger); background: var(--danger-soft); border-radius: var(--r-control); }
+.clinical .fs-pressed strong { font-size: 15px; color: var(--charcoal); }
+.clinical .fs-pressed p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--charcoal); }
+.clinical .fs-refused { margin: 0; font-size: 14px; font-weight: 500; color: var(--danger); }
+
+.clinical .fs-desk { display: grid; gap: var(--space-12); margin-bottom: var(--space-32); max-width: 1080px; }
+.clinical .fs-desk-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-4) var(--space-16); }
+.clinical .fs-desk-head h2 { margin: 0; font-size: 20px; font-weight: 600; color: var(--charcoal); }
+.clinical .fs-desk-head p { margin: 0; font-size: 14px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.clinical .fs-desk-empty { margin: 0; font-size: 14px; color: var(--faint); }
+.clinical .fs-desk-list {
+ list-style: none; margin: 0; padding: var(--space-8);
+ background: var(--pane); backdrop-filter: var(--pane-blur); -webkit-backdrop-filter: var(--pane-blur);
+ border: 1px solid var(--pane-line); border-radius: var(--r-panel); box-shadow: var(--pane-shadow);
+}
+.clinical .fs-row { display: grid; gap: var(--space-8); padding: var(--space-12); border-radius: var(--r-control); }
+.clinical .fs-row + .fs-row { box-shadow: 0 -1px 0 var(--pane-line); }
+.clinical .fs-row-line { display: grid; grid-template-columns: 132px 84px minmax(0, 1fr) 72px minmax(0, 220px); align-items: center; gap: var(--space-16); font-size: 14px; color: var(--faint); }
+.clinical .fs-row-kind { display: flex; align-items: center; gap: var(--space-8); font-size: 13px; font-weight: 500; color: var(--charcoal); white-space: nowrap; }
+.clinical .fs-row-kind > i { width: 3px; height: 28px; border-radius: 2px; background: transparent; flex-shrink: 0; }
+.clinical .fs-row.is-panic .fs-row-kind > i { background: var(--danger); }
+.clinical .fs-row.is-overdue .fs-row-kind > i { background: var(--mango-ink); }
+.clinical .fs-row.is-held .fs-row-kind > i { background: var(--faint); }
+.clinical .fs-row-ref { font-size: 13px; font-weight: 500; letter-spacing: .4px; font-variant-numeric: tabular-nums; color: var(--charcoal); white-space: nowrap; }
+.clinical .fs-row-who { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.clinical .fs-row-who strong { font-size: 15px; font-weight: 500; color: var(--charcoal); }
+.clinical .fs-row-who small, .clinical .fs-row-age { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--faint); }
+.clinical .fs-row-age { justify-self: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.clinical .fs-row-state { font-size: 13px; line-height: 1.45; color: var(--charcoal); }
+.clinical .fs-row.is-closed .fs-row-who strong, .clinical .fs-row.is-closed .fs-row-state { color: var(--faint); }
+.clinical .fs-row-note { margin: 0; font-size: 13px; line-height: 1.45; color: var(--charcoal); padding-left: calc(132px + var(--space-16)); }
+.clinical .fs-position {
+ display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-4) var(--space-12);
+ margin-left: calc(132px + var(--space-16)); padding: var(--space-8) var(--space-12);
+ border: 1px solid var(--line); border-radius: var(--r-control); background: var(--surface);
+}
+.clinical .fs-position-label { font-size: 13px; font-weight: 500; color: var(--faint); }
+.clinical .fs-position-at { display: flex; flex-direction: column; gap: 2px; font-size: 15px; font-weight: 500; color: var(--charcoal); font-variant-numeric: tabular-nums; }
+.clinical .fs-position-at small { font-size: 13px; font-weight: 400; color: var(--faint); }
+.clinical .fs-row-act { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); padding-left: calc(132px + var(--space-16)); }
+.clinical .fs-row-act > button, .clinical .fs-row-act > select { min-height: 44px; }
+.clinical .fs-row-act > select { width: auto; min-width: min(320px, 100%); max-width: 100%; }
+/* A refusal under a row starts where the row's own lines start, so it reads as that row's answer. */
+.clinical .fs-row > .fs-refused { padding-left: calc(132px + var(--space-16)); }
+.clinical .fs-row-choose { font-size: 14px; color: var(--charcoal); }
+
+@media (max-width: 760px) {
+ .clinical .fs-visit { padding: var(--space-12); }
+ .clinical .fs-visit-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+ .clinical .fs-visit-actions > .secondary { padding-inline: var(--space-8); font-size: 14px; }
+ .clinical .fs-visit-actions > .secondary svg { display: none; }
+ .clinical .fs-panic { grid-column: 1 / -1; }
+ .clinical .fs-confirm-actions > button { flex: 1 1 auto; }
+ .clinical .fs-row-line { grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-4) var(--space-12); }
+ .clinical .fs-row-kind { order: 1; }
+ .clinical .fs-row-age { order: 2; }
+ .clinical .fs-row-who { order: 3; grid-column: 1 / -1; }
+ .clinical .fs-row-ref { order: 4; }
+ /* The standing gets its own line on a phone. Beside the reference it squeezed the reference column to
+    nothing, and a long outcome ran over the reference it belongs to. */
+ .clinical .fs-row-state { order: 5; grid-column: 1 / -1; }
+ .clinical .fs-row-note, .clinical .fs-row-act { padding-left: 0; }
+ .clinical .fs-position { margin-left: 0; }
+ .clinical .fs-row-act > select { flex: 1 1 100%; }
+ .clinical .fs-row-act > button { flex: 1 1 auto; }
+}

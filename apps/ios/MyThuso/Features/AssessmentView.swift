@@ -140,6 +140,7 @@ struct VisitAssessmentView: View {
                 SurfaceHeading(eyebrow: "Visit assessment", title: stages[stage],
                                subtitle: "\(reference) · \(patient)")
                 whoIsRecording
+                VisitSafetyPanel(reference: reference)
                 switch stage {
                 case 0: identityStage
                 case 1: consentStage
@@ -463,6 +464,10 @@ struct VisitAssessmentView: View {
                    detail: [VisitPartFact(label: "Visit code", value: "Six digits, matched"),
                             VisitPartFact(label: "Identity", value: "Document seen by the nurse")],
                    by: subject)
+        /* appointment.in_progress, as the preview has it: the code matched, so the visit has started and
+           so has its timer, timed by the visit's own service rather than a number typed here. */
+        let serviceId = WorkspaceDay.nurseVisits.first(where: { visit in visit.id == reference })?.serviceId ?? WorkspaceDay.nurseVisits[0].serviceId
+        FieldSafetyStore.shared.startVisit(reference, serviceId: serviceId, codeMatched: true)
         stage = 1
     }
     private func holdConsent() {
@@ -493,6 +498,8 @@ struct VisitAssessmentView: View {
                    by: subject)
         sealedReadings = kit.seal(visit: reference)
         sealedParts = queue.seal(visit: reference)
+        /* appointment.completed, as the preview has it: signed, so nobody is left in the house to time. */
+        FieldSafetyStore.shared.visitSigned(reference)
         signed = true
     }
 
