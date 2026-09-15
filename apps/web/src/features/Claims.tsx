@@ -42,7 +42,9 @@ export function ClaimsOnRecord() {
    {claim.said ? <p className="claim-said" role="status"><Info size={15} aria-hidden="true"/>{claim.said}</p> : null}
   </section>
 
-  <SectionTitle title={words.heading}/>
+  {/* Its own heading, not the screen's again: a section that repeats the page's name says nothing and reads as a
+      second page. What a scheme is never told is the half of this screen worth a heading of its own. */}
+  <SectionTitle title={words.neverHeading}/>
   <ul className="claim-never">
    <li><Ban size={15} aria-hidden="true"/>{claimConsent.never}</li>
    <li><Ban size={15} aria-hidden="true"/>{codeSets.statement}</li>

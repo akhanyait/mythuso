@@ -79,6 +79,7 @@
    "agree": "Agree to send this claim",
    "agreed": "You agreed on {day}. Your agreement lasts until {until}.",
    "amount": "Owed for the visit",
+   "neverHeading": "What your scheme is never told",
    "empty": "No claim has been drafted for any of your visits."
   },
   "doctor": {

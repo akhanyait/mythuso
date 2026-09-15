@@ -16,7 +16,12 @@ const claims = json('packages/catalog/claims.json') as {
   preauthorisation: { words: string };
   screen: { patient: Record<string, string>; doctor: Record<string, string>; preview: string };
 };
+const moneyApi = json('packages/catalog/apis/money.json') as { routes: { path: string; version: number; refusals: { id: string; statement: string }[] }[] };
 const stateOf = (id: string) => claims.states.find(s => s.id === id)!;
+/* What a claim nobody has agreed to is answered with. The doctor's draft says this until the patient agrees; the
+   switching partner is the reason only once she has, which is what the patient's journey below sees. */
+const withoutConsent = moneyApi.routes.find(r => r.path === '/v1/money/claims/{claimRef}/submit' && r.version === 1)!
+  .refusals.find(r => r.id === 'claim-without-consent')!.statement;
 
 test('the doctor\'s claim draft says no adopted code set, and asking for it to be sent is refused in the contract\'s words', async ({ page }) => {
   const errors: string[] = [];
@@ -27,12 +32,14 @@ test('the doctor\'s claim draft says no adopted code set, and asking for it to b
   await expect(draft.locator('.claim-no-code')).toHaveText(claims.codeSets.doctorWords);
   await expect(draft.getByText(claims.codeSets.doctorDetail)).toBeVisible();
   await expect(draft.getByText(noticeFor('scheme-claims')!)).toBeVisible();
-  /* Drafted, and the reason it has not been sent is on the screen before anybody presses anything. */
+  /* Drafted, and the reason it has not been sent is on the screen before anybody presses anything. Until the patient
+     agrees that reason is her agreement, not the switching partner: the gates are asked in the contract's order, and
+     the first one missing is the one she is told about. */
   await expect(draft.locator('.claim-state')).toContainText(stateOf('drafted').doctorWords);
-  await expect(draft.locator('.claim-not-sent')).toContainText(claims.stop.words);
+  await expect(draft.locator('.claim-not-sent')).toContainText(withoutConsent);
 
   await draft.getByRole('button', { name: claims.screen.doctor.send }).click();
-  await expect(draft.locator('.claim-said')).toContainText(claims.stop.words);
+  await expect(draft.locator('.claim-said')).toContainText(withoutConsent);
   /* A pre-authorisation would stop at the same door, and the draft says so rather than offering one. */
   await expect(draft.getByText(claims.preauthorisation.words)).toBeVisible();
   expect(errors).toEqual([]);
