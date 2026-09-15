@@ -230,7 +230,8 @@
    "capabilityNamed": null,
    "status": "built",
    "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/second-factor/begin'"},
-   "enforcedBy": {"mechanism": "identity-session"}
+   "enforcedBy": {"mechanism": "identity-session"},
+   "secretResponseFields": [{"field": "secret", "shownOnce": "The authenticator secret was shown once, when the second factor was set up, and is not shown again. Setting up the second factor again gives a new one."}]
   },
   {
    "method": "POST",

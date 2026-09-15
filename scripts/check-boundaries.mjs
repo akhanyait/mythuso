@@ -6346,9 +6346,11 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  for (const file of engineSources) {
   const source = read(file);
   const [top] = posix.relative('packages/engines/src', file).split('/');
-  /* The trail's own test opens the trail file to tamper with it, which is the point of the test. */
+  /* Two tests open a store file themselves, and it is the point of each: the trail's test tampers with the
+     trail to prove the chain notices, and the replay-and-refusal test reads the replay table raw to prove a
+     one-time code is not at rest there. No engine and no other runtime module opens one. */
   const opensDatabase = /new DatabaseSync\(/.test(source) || /^import (?!type)[^;]*from 'node:sqlite'/m.test(source);
-  if (opensDatabase && file !== 'packages/engines/src/runtime/store.ts' && file !== 'packages/engines/src/runtime/runtime.test.ts') throw new Error(`${file} opens a SQLite database itself. Only packages/engines/src/runtime/store.ts opens a store, and it hands each engine its own.`);
+  if (opensDatabase && file !== 'packages/engines/src/runtime/store.ts' && file !== 'packages/engines/src/runtime/runtime.test.ts' && file !== 'packages/engines/src/runtime/replay-and-refusal.test.ts') throw new Error(`${file} opens a SQLite database itself. Only packages/engines/src/runtime/store.ts opens a store, and it hands each engine its own.`);
   if (engineIdsForRuntime.includes(top) && /_runtime_/.test(source)) throw new Error(`${file} names a _runtime_ table. The replay table in an engine's store is the binder's, and an engine that edits it can make a second charge look like a replay.`);
   for (const m of source.matchAll(/(?:^|\n)\s*(?:import|export)\s[^;]*?from\s+'([^']+)'|import\(\s*'([^']+)'\s*\)/g)) {
    const spec = m[1] ?? m[2];
@@ -6396,6 +6398,46 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  const storeEscapes = ['COMMIT', "attach database 'x' as y", "/* only a read */ ATTACH 'x' AS y", 'DETACH y', 'BEGIN', 'end', 'ROLLBACK', 'SAVEPOINT s', 'RELEASE s', "VACUUM INTO 'x'", 'EXPLAIN SELECT 1', 'PRAGMA writable_schema = 1', 'PRAGMA other.table_info(t)', 'SELECT * FROM _runtime_replays', 'SELECT * FROM "_RUNTIME_replays"', 'SELECT * FROM [_runtime_replays]', "SELECT * FROM '_runtime_replays'", 'SELECT 1; SELECT 2'];
  for (const sql of storeEscapes) if (!refusalFor(sql)) throw new Error(`packages/engines/src/runtime/facade.ts lets a handler run ${JSON.stringify(sql)} against its store. ${runtimeRefusalOf('store-statement-refused')?.why ?? ''}`);
  for (const sql of ['SELECT ref FROM notes', "INSERT INTO notes (ref) VALUES ('a; COMMIT; b')", 'PRAGMA table_info(notes)', 'SELECT 1;', 'CREATE TABLE IF NOT EXISTS notes (ref TEXT)']) if (refusalFor(sql)) throw new Error(`packages/engines/src/runtime/facade.ts refuses ${JSON.stringify(sql)}, which only touches the engine's own tables. A facade that refuses ordinary work is one somebody routes around.`);
+
+ /* 3d. What the runtime keeps, and what it must not. The Money lead found the replay table kept whole
+        response bodies, so a one-time cash code sat at rest in plain text while Money itself kept only a
+        salted digest; and that a refusal rolled back the attempt counter that should have made an attempt
+        limit bite. So a response field named like a secret must be declared in its route's
+        secretResponseFields with the sentence a replay answers with in its place, and the runtime must write
+        the replay without it. A route that keeps writes on a refusal names those refusals, which must be its
+        own, and the tables, which must not be the runtime's, and the runtime keeps them only then. The seam
+        that lets the runtime's own tests add synthetic routes is refused anywhere but a test. */
+ const secretNames = runtimeSettings.secretResponseNames;
+ if (!Array.isArray(secretNames) || !secretNames.length || !runtimeSettings._secretResponseNamesNote?.trim()) throw new Error('packages/catalog/apis.json#engineRuntime no longer lists the secret-shaped response names and why, so a one-time code could be declared as an ordinary field and kept at rest in the replay table.');
+ const { routes: routesForSecrets } = loadApis();
+ let secretFieldsDeclared = 0, refusalKeepers = 0;
+ for (const r of routesForSecrets.filter(x => !x.withdrawn)) {
+  const where = `${routeKey(r)} in ${r.file}`;
+  const declaredSecrets = new Set();
+  for (const s of r.secretResponseFields ?? []) {
+   const field = (r.response ?? []).find(f => f.field === s.field);
+   if (!field || field.type !== 'string' || field.object) throw new Error(`${where} declares ${JSON.stringify(s.field)} a secret response field, and its response has no string field of that name for a replay's sentence to stand in for.`);
+   if (!s.shownOnce?.trim()) throw new Error(`${where} declares ${s.field} a secret without the sentence a replay answers with in its place.`);
+   declaredSecrets.add(s.field);
+   secretFieldsDeclared++;
+  }
+  for (const f of r.response ?? []) {
+   if (secretNames.some(n => f.field.endsWith(n) || f.field.toLowerCase() === n.toLowerCase()) && !declaredSecrets.has(f.field)) throw new Error(`${where} answers with ${f.field}, which is named like a secret shown once, and does not declare it in secretResponseFields. The runtime would keep it at rest in the replay table and hand it back on every replay.`);
+  }
+  if (r.keptOnRefusal !== undefined) {
+   const k = r.keptOnRefusal;
+   if (!Array.isArray(k.refusals) || !k.refusals.length || !Array.isArray(k.tables) || !k.tables.length || !k.why?.trim()) throw new Error(`${where} declares keptOnRefusal without the refusals that keep writes, the tables those writes may touch, and why.`);
+   const ownRefusals = new Set((r.refusals ?? []).map(x => x.id));
+   for (const id of k.refusals) if (!ownRefusals.has(id)) throw new Error(`${where} keeps writes for the refusal "${id}", which is not one of its own refusals.`);
+   if (k.tables.some(t => /^_runtime_/i.test(String(t)))) throw new Error(`${where} lets a refusal keep writes to a runtime table. The replay table is the binder's.`);
+   refusalKeepers++;
+  }
+ }
+ if (!/JSON\.stringify\(withoutSecrets\(route, result\.body\)\)/.test(runtimeSource) || !/withSecretsReplaced\(route, JSON\.parse\(row\.body\)\)/.test(runtimeSource)) throw new Error('packages/engines/src/runtime/runtime.ts no longer writes a replay without its secret response fields, or no longer answers a replay with their sentences. A one-time code kept at rest is a code anybody who reads the store can use.');
+ if (!/\(route\.keptOnRefusal\?\.refusals \?\? \[\]\)\.includes\(answer\.refuse\)/.test(runtimeSource) || !/const target = recordTargetFor\(sql\);/.test(runtimeSource) || !/route\.keptOnRefusal\?\.tables/.test(runtimeSource)) throw new Error(`packages/engines/src/runtime/runtime.ts no longer keeps a refused handler's recorded writes only for a refusal its route names, into a table its route names. ${runtimeRefusalOf('refusal-record-refused')?.why ?? ''}`);
+ for (const file of engineSources.filter(f => !f.endsWith('.test.ts'))) {
+  if (/createRuntime\(\{[^}]*\bcontract\s*:/.test(read(file))) throw new Error(`${file} hands createRuntime a contract of its own. Only the runtime's tests add synthetic routes; the dev server and every engine answer to packages/catalog/apis.`);
+ }
 
  /* 4. A route built on the runtime names a handler in its own engine's directory that registers it. */
  const { routes: routesForRuntime } = loadApis();

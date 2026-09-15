@@ -31,9 +31,9 @@ import type { DatabaseSync } from 'node:sqlite';
 import { createMock, match, needsIdempotencyKey } from '../../../mock-api/src/mock.ts';
 import { BindingRefused, BusRefused, recipientsOf, refusalFrom, validatePublish, validateSubscription, valueOfType } from './bus.ts';
 import { createClock } from './clock.ts';
-import { loadRuntimeContract, repositoryRoot, routeKeyOf, type ContractRoute, type Field, type Refusal } from './contract.ts';
+import { loadRuntimeContract, repositoryRoot, routeKeyOf, type ContractRoute, type Field, type Refusal, type RuntimeContract } from './contract.ts';
 import { openDatabase, openEngineStore, requestDigest } from './store.ts';
-import { StoreRefused, storeFacade } from './facade.ts';
+import { StoreRefused, recordTargetFor, storeFacade } from './facade.ts';
 import { createTrail } from './trail.ts';
 import type { BusEvent, Caller, Clock, EngineContext, EngineModule, RouteHandler, RouteKey, RuntimeAnswer, SubscriptionHandler, TrailEntry, TrailReader } from './types.ts';
 
@@ -47,6 +47,12 @@ export type RuntimeOptions = {
  /** A directory for one SQLite file per engine and the bus trail, or ":memory:". */
  dataDirectory?: string;
  clock?: Clock;
+ /**
+  * The runtime's own tests only: a copy of the loaded contract with synthetic routes added, so a feature
+  * of the runtime can be tested on a route that is not, and never becomes, part of packages/catalog/apis.
+  * Every binder rule still applies to it. The boundary check refuses this option in anything but a test.
+  */
+ contract?: RuntimeContract;
 };
 export type Fault = { engine: string; where: string; error: unknown };
 export type Runtime = {
@@ -61,7 +67,7 @@ export type Runtime = {
 };
 
 export function createRuntime(options: RuntimeOptions): Runtime {
- const contract = loadRuntimeContract();
+ const contract = options.contract ?? loadRuntimeContract();
  const settings = contract.settings;
  if (options.env[settings.flag] !== settings.flagValue) throw new RuntimeRefusedToStart(`The engines answer with synthetic data only, and nothing runs until ${settings.flag}=${settings.flagValue} says so.`);
  const clock = options.clock ?? createClock();
@@ -125,11 +131,21 @@ export function createRuntime(options: RuntimeOptions): Runtime {
   outbox.length = 0;
  }
 
- function context(engine: string, caller: Caller, purpose: string, idempotencyKey: string | null, outbox: BusEvent[]): EngineContext {
+ /* A write a handler recorded for a refusal to keep. Only a route handler is given a route and a list to
+    record into; a tick and a delivery refuse nothing, so they have neither. */
+ type RecordedWrite = { sql: string; params: (string | number | bigint | null | Uint8Array)[] };
+ function context(engine: string, caller: Caller, purpose: string, idempotencyKey: string | null, outbox: BusEvent[], route: ContractRoute | null = null, records: RecordedWrite[] | null = null): EngineContext {
   const actor = caller.role.startsWith('engine:') ? 'system' : caller.role;
   return {
    engine, caller, purpose, idempotencyKey,
    store: facades.get(engine)!,
+   recordRefusal(sql, ...params) {
+    if (!route || !records) throw new StoreRefused(runtimeRefusal('refusal-record-refused'), 'Only a route handler records what a refusal keeps.');
+    const target = recordTargetFor(sql);
+    if (!target) throw new StoreRefused(runtimeRefusal('refusal-record-refused'), "A refusal keeps one insert or update into one of the engine's own tables.");
+    if (!(route.keptOnRefusal?.tables ?? []).some(table => table.toLowerCase() === target.table)) throw new StoreRefused(runtimeRefusal('refusal-record-refused'), `${route.key} does not name ${target.table} among the tables a refusal keeps.`);
+    records.push({ sql, params });
+   },
    clock: { now: () => clock.now(), iso: () => clock.iso() },
    publish(key, payload, publishOptions) {
     try {
@@ -213,25 +229,58 @@ export function createRuntime(options: RuntimeOptions): Runtime {
   if (replayKey && !engineCaller && !caller.ref) return render(runtimeRefusal('caller-unidentified'));
   const callerRef = engineCaller ? caller.role : caller.ref ?? '';
   const digest = requestDigest(fields);
+  /* A declared secret is removed before an answer is stored, and a replay answers with the contract's
+     sentence in its place. The first answer, and only the first, carries the secret itself. */
+  const withoutSecrets = (declared: ContractRoute, body: Record<string, unknown>): Record<string, unknown> => {
+   const kept = { ...body };
+   for (const secret of declared.secretResponseFields ?? []) delete kept[secret.field];
+   return kept;
+  };
+  const withSecretsReplaced = (declared: ContractRoute, body: Record<string, unknown>): Record<string, unknown> => {
+   const replayed = { ...body };
+   for (const secret of declared.secretResponseFields ?? []) replayed[secret.field] = secret.shownOnce;
+   return replayed;
+  };
   if (replayKey) {
    const row = db.prepare('SELECT request_digest, status, body FROM _runtime_replays WHERE route = ? AND role = ? AND caller_ref = ? AND idempotency_key = ?').get(route.key, caller.role, callerRef, replayKey) as { request_digest: string; status: number; body: string } | undefined;
    if (row && row.request_digest !== digest) return render(shared('idempotency-key-reused'));
-   if (row) return { status: row.status, body: JSON.parse(row.body), answeredBy: 'engine' };
+   if (row) return { status: row.status, body: withSecretsReplaced(route, JSON.parse(row.body)), answeredBy: 'engine' };
   }
   const outbox: BusEvent[] = [];
+  /* What the handler recorded for a refusal to keep. Applied on its own after the rollback when the
+     refusal is one the route's keptOnRefusal names; written with everything else on an answer that is
+     not a refusal; dropped with everything else on a fault. A recorded write for any other refusal is a
+     fault, because a way to keep an attempt counter must not quietly become a way to keep anything. */
+  const records: RecordedWrite[] = [];
+  const keep = (writes: RecordedWrite[]) => { for (const write of writes) db.prepare(write.sql).run(...write.params); };
   db.exec('BEGIN');
   try {
-   const answer = bound.handler({ route: route.key, fields: Object.freeze(fields), undeclared }, context(bound.engine, caller, purpose, typeof key === 'string' ? key : null, outbox));
+   const answer = bound.handler({ route: route.key, fields: Object.freeze(fields), undeclared }, context(bound.engine, caller, purpose, typeof key === 'string' ? key : null, outbox, route, records));
    if (!answer || typeof answer !== 'object') throw new Error(`${route.key} answered with neither ok nor refuse.`);
    if ('refuse' in answer) {
     db.exec('ROLLBACK');
     const refusal = declaredRefusal(route, answer.refuse);
-    return refusal ? render(refusal) : fault(bound.engine, route.key, new Error(`${route.key} refused with "${answer.refuse}", which neither the route, its engine nor the shared list declares.`));
+    if (!refusal) return fault(bound.engine, route.key, new Error(`${route.key} refused with "${answer.refuse}", which neither the route, its engine nor the shared list declares.`));
+    if (records.length) {
+     if (!(route.keptOnRefusal?.refusals ?? []).includes(answer.refuse)) return fault(bound.engine, route.key, new Error(`${route.key} recorded writes for the refusal "${answer.refuse}", which its keptOnRefusal does not name, so nothing it recorded is kept.`));
+     db.exec('BEGIN');
+     try {
+      keep(records);
+      db.exec('COMMIT');
+     } catch (error) {
+      if (db.isTransaction) db.exec('ROLLBACK');
+      return fault(bound.engine, route.key, error);
+     }
+    }
+    return render(refusal);
    }
    const problem = responseProblem(route, answer.ok);
    if (problem) throw new Error(problem);
+   keep(records);
    const result: RuntimeAnswer = { status: 200, body: answer.ok, answeredBy: 'engine' };
-   if (replayKey) db.prepare('INSERT INTO _runtime_replays (route, role, caller_ref, idempotency_key, request_digest, status, body) VALUES (?, ?, ?, ?, ?, ?, ?)').run(route.key, caller.role, callerRef, replayKey, digest, result.status, JSON.stringify(result.body));
+   /* A secret the contract names is shown to this caller now and never kept: the replay row holds the
+      answer without it, and a replay answers with the contract's sentence in its place. */
+   if (replayKey) db.prepare('INSERT INTO _runtime_replays (route, role, caller_ref, idempotency_key, request_digest, status, body) VALUES (?, ?, ?, ?, ?, ?, ?)').run(route.key, caller.role, callerRef, replayKey, digest, result.status, JSON.stringify(withoutSecrets(route, result.body)));
    /* The facade refuses every statement that could end the transaction; this is the second lock on
       the same door, so a handler that found a way round the first still cannot commit half of itself. */
    if (!db.isTransaction) throw new Error('The transaction the binder began was no longer open when the work finished, so nothing it did is kept.');
