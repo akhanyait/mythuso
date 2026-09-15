@@ -905,6 +905,133 @@ for(const {source,command,files} of generated) {
  }
 }
 
+/* ==== Medicines & Labs (Wave 4) ====================================================================
+
+   Eight things the Medicines & Labs build must never stop being, each asked of the code that decides it rather
+   than of a sentence that describes it. The domain in packages/engines/src/medicines/domain is run here, with the
+   contracts it reads, because the web preview runs the same functions: a rule that holds for this check holds on
+   the engine runtime and in the browser. Placed beside the generated list, ahead of the lock checks, so a
+   deliberate break of one of these is reported as itself rather than as the lock line it would also move.
+
+   1. Whoever prescribed never verifies, worked out from the references that acted, whatever role they call in.
+   2. No schedule a driver may not carry is ever authorised to a driver, from dispensing.json's schedules.
+   3. With no licensed source, a check's only outcome is not-checked, and nothing anywhere says there were no
+      interactions.
+   4. A lab order does not close until a clinician acknowledged its result.
+   5. A pharmacy's queue carries exactly partnerQueue.carries and nothing about the patient.
+   6. No event about a prescription, a dispense, a delivery or a result carries a medicine, a dose or a value,
+      and the engine's store has no column for one.
+   7. Nothing rewards taking a medicine, collecting a script or finishing a course.
+   8. No hand-written medicines screen or lib types a collection setting's number. */
+{
+ const mContract = JSON.parse(read('packages/catalog/medicines.json'));
+ const mSchedules = JSON.parse(read('packages/catalog/dispensing.json')).schedules;
+ const mApi = JSON.parse(read('packages/catalog/apis/medicines.json'));
+ const mRewards = JSON.parse(read('packages/catalog/rewards.json'));
+ const mEvents = JSON.parse(read('packages/catalog/events.json')).events;
+ const mRoute = key => mApi.routes.find(r => `${r.method} ${r.path}@${r.version}` === key && !r.withdrawn);
+ const { namedLike: mNamedLike } = await import('../packages/engines/src/runtime/contract.ts');
+ const mPrescriptions = await import('../packages/engines/src/medicines/domain/prescriptions.ts');
+ const mCollections = await import('../packages/engines/src/medicines/domain/collections.ts');
+ const mLabs = await import('../packages/engines/src/medicines/domain/labs.ts');
+ const mDomain = await import('../packages/engines/src/medicines/domain/contract.ts');
+ const refusedWith = (answer, id) => answer && answer.ok === false && answer.refusal.id === id;
+ const sample = {
+  prescriptionRef: 'prescription-check', subjectRef: 'subject-check', medicationRequestRef: 'medication-request-check', prescriberRef: 'party-prescriber',
+  pharmacyRef: 'party-pharmacy', scheduleCode: mSchedules.items[0].id, prescribeCheckRef: 'check-check', prescribeCheckOutcomeCode: mDomain.NOT_CHECKED.code, prescribedAt: 0,
+  verifiedByRef: null, verifiedAt: null, dispensedByRef: null, dispensedAt: null, dispenseEntryRef: null, dispenseCheckRef: null, sealRef: null, collectedAt: null, deliveredAt: null
+ };
+
+ /* 1. Separation of duties, run against a verifier who is fully cleared: the only thing wrong is who they are. */
+ if (!refusedWith(mPrescriptions.verify(sample, { ref: sample.prescriberRef, cleared: true }, 1), 'prescriber-verifies-own-script')) throw new Error('packages/engines/src/medicines/domain/prescriptions.ts lets the reference that prescribed verify its own prescription, or refuses it in another sentence. Separation of duties is arithmetic on who acted, asked before anything about their standing (§5.4).');
+ if (!mApi.refusals.find(r => r.id === 'prescriber-verifies-own-script')?.answeredBy?.includes('POST /v1/medicines/prescriptions/{prescriptionRef}/verify@2')) throw new Error('packages/catalog/apis/medicines.json no longer lets the verification route answer prescriber-verifies-own-script.');
+
+ /* 2. §10, from the contract: every schedule a driver may not carry, to every role the contract calls a driver. */
+ const notForDrivers = mSchedules.items.filter(s => s.driverMayCarry !== true);
+ for (const id of ['S5', 'S6']) if (!notForDrivers.some(s => s.id === id)) throw new Error(`packages/catalog/dispensing.json lets a driver carry ${id}. ThusoIQ Master v3.5 §10: a driver never carries Schedule 5 or 6, and the refusal the routes answer says so in those words.`);
+ if (!mSchedules.drivers.roles.length) throw new Error('packages/catalog/dispensing.json names no driver, so the Schedule 5 and 6 rule refuses nobody.');
+ const terms = { settingsVersion: 1, pinLifetimeMs: 1, windowMs: 1, pinAttempts: 1 };
+ for (const schedule of notForDrivers) for (const role of mSchedules.drivers.roles) {
+  if (mDomain.mayCarry(role, schedule.id)) throw new Error(`packages/engines/src/medicines/domain/contract.ts lets a ${role} carry ${schedule.id}.`);
+  const asked = mCollections.authorise({ ...sample, scheduleCode: schedule.id }, { authorisationRef: 'a', collectorRef: 'party-driver', collectorRole: role, pinSalt: 's', pinDigest: 'd' }, { ref: sample.subjectRef }, { authorisation: undefined, voided: false }, terms, 0);
+  if (mContract.custody.collectorRoles.includes(role) && !refusedWith(asked, 'schedule-five-six-by-driver')) throw new Error(`A patient can authorise a ${role} to collect a ${schedule.id} bag. A driver never carries Schedule 5 or 6, and the schedule is the prescription's, never the carrier's to declare.`);
+ }
+
+ /* 3. The most important refusal in the engine. */
+ const checks = mContract.interactionChecks;
+ if (checks.licensedSource === null) {
+  if (checks.outcomes.map(o => o.code).join() !== 'not-checked') throw new Error(`packages/catalog/medicines.json declares the check outcomes ${checks.outcomes.map(o => o.code).join(', ')} with no licensed source named. With nothing to check against, the only honest answer is not-checked.`);
+  const ran = mPrescriptions.runCheck({ checkRef: 'c', subjectRef: 's', stageCode: checks.stages[0], byRef: null }, 0);
+  if (!ran.ok || ran.value.outcomeCode !== 'not-checked') throw new Error('packages/engines/src/medicines/domain/prescriptions.ts answers a check with no licensed source as something other than not-checked.');
+ }
+ const phrases = checks.neverSays.map(p => p.toLowerCase());
+ const { neverSays: _neverSays, ...checksWithoutTheList } = checks;
+ const saying = [
+  ['packages/catalog/medicines.json', JSON.stringify({ ...mContract, interactionChecks: checksWithoutTheList })],
+  ['packages/catalog/apis/medicines.json', read('packages/catalog/apis/medicines.json')],
+  ...[...files('packages/engines/src/medicines'), ...files('packages/engines/src/clinical'), ...files('apps/web/src'), ...files('apps/ios/MyThuso'), ...files('apps/android/app/src/main')]
+   .filter(f => /\.(ts|tsx|swift|kt|css)$/.test(f) && !/\.test\.ts$/.test(f)).map(f => [f, read(f)])
+ ];
+ for (const [file, text] of saying) {
+  const said = phrases.find(p => text.toLowerCase().includes(p));
+  if (said) throw new Error(`${file} says "${said}". ${checks.why}`);
+ }
+
+ /* 4. The Wave 4 exit test: a lab result cannot close unacknowledged. */
+ const order = { labOrderRef: 'l', subjectRef: 's', serviceRequestRef: 'r', collectionMode: mContract.labs.collectionModes[0].id, orderedByRef: 'party-clinician', orderedAt: 0, resultEntryRef: 'result-check', resultAt: 1, alertRung: 1, rungSettingsVersion: 1, acknowledgedAt: null, acknowledgedByRef: null, closedAt: null };
+ if (!refusedWith(mLabs.close(order, 2), 'lab-result-complete-before-acknowledgement')) throw new Error('packages/engines/src/medicines/domain/labs.ts closes a lab order whose result nobody acknowledged. A result is not complete until a clinician acknowledges it (Full Scope Engine 8).');
+ if (!mLabs.close({ ...order, acknowledgedAt: 2, acknowledgedByRef: 'party-clinician' }, 3).ok) throw new Error('packages/engines/src/medicines/domain/labs.ts refuses to close a lab order whose result was acknowledged.');
+ const resultAcknowledged = mEvents.find(e => e.type === 'result.acknowledged' && e.version === 1 && !e.withdrawn);
+ if (!resultAcknowledged || !['medicines', 'core'].every(s => resultAcknowledged.subscribers.includes(s))) throw new Error('result.acknowledged@1 no longer reaches Medicines and Core, so an acknowledged result closes nothing and its concern never stands down.');
+
+ /* 5. What a pharmacy is shown. */
+ const carries = [...mContract.partnerQueue.carries].sort().join();
+ const queueFields = (mRoute('GET /v1/medicines/orders@2')?.response ?? []).find(f => f.field === 'orders')?.fields?.map(f => f.field).sort().join();
+ const queueRow = Object.keys(mPrescriptions.queueRowOf(sample)).sort().join();
+ if (queueFields !== carries || queueRow !== carries) throw new Error(`A pharmacy's queue carries ${queueFields === carries ? queueRow : queueFields}, and packages/catalog/medicines.json partnerQueue.carries is ${carries}. ${mContract.partnerQueue.why}`);
+ const leak = mContract.partnerQueue.neverCarries.find(name => mContract.partnerQueue.carries.some(field => mNamedLike(field, name)));
+ if (leak) throw new Error(`packages/catalog/medicines.json lets a pharmacy's queue carry ${leak}. ${mContract.partnerQueue.why}`);
+
+ /* 6. The bus, and the store, read the way the event contract reads a field: by what its name ends in. */
+ const never = mContract.bus.neverCarries;
+ for (const event of mEvents.filter(e => !e.withdrawn && (e.owner === 'medicines' || (e.type === 'result.acknowledged' && e.owner === 'clinical')))) {
+  const carried = event.payload.find(f => never.some(name => mNamedLike(f.field, name)));
+  if (carried) throw new Error(`${event.type}@${event.version} carries "${carried.field}". ${mContract.bus.why}`);
+ }
+ for (const file of ['packages/engines/src/medicines/engine.ts', 'packages/engines/src/clinical/engine.ts']) {
+  for (const [, column] of read(file).matchAll(/[(,]\s*([a-z_]+) (?:TEXT|INTEGER)/g)) {
+   const camel = column.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+   if (never.some(name => mNamedLike(camel, name))) throw new Error(`${file} keeps a column "${column}". ${mContract.whereContentLives.why}`);
+  }
+ }
+
+ /* 7. Section 18A. */
+ const earning = mRewards.earnReasons.find(r => /medic|prescri|script|dose|dispens|adheren|pharmac|pill|tablet|course/i.test(`${r.id} ${r.name} ${r.discloses}`));
+ if (earning) throw new Error(`packages/catalog/rewards.json earns points for "${earning.name}". ${mRewards.refusals.find(r => r.id === 'no-adherence-reward')?.sentence ?? ''} ${mContract.adherence.why}`);
+ if (!mRewards.refusals.some(r => r.id === 'no-adherence-reward')) throw new Error('packages/catalog/rewards.json has lost its refusal of a reward for taking a medicine.');
+ if (mContract.adherence.rewarded !== false || mContract.adherence.tracked !== false || !mApi.refusals.some(r => r.id === mContract.adherence.refusal)) throw new Error(`packages/catalog/medicines.json says adherence is rewarded or tracked, or names a refusal the engine does not declare. ${mContract.adherence.why}`);
+
+ /* 8. The collection settings are read, never typed. Every number an admin may set them to is looked for beside
+       the words that would give it away, in every hand-written screen and lib that works a collection. */
+ const collectionFiles = [
+  'packages/engines/src/medicines/engine.ts', 'packages/engines/src/medicines/domain/collections.ts',
+  'apps/web/src/lib/medicines.ts', 'apps/web/src/features/Medicines.tsx',
+  'apps/ios/MyThuso/Models/Medicines.swift', 'apps/ios/MyThuso/Features/MedicinesView.swift',
+  'apps/android/app/src/main/java/za/co/mythuso/model/Medicines.kt', 'apps/android/app/src/main/java/za/co/mythuso/ui/MedicinesScreens.kt'
+ ];
+ for (const file of collectionFiles) if (!existsSync(file)) throw new Error(`${file} does not exist, and the collection hand-over is built on all three platforms from it.`);
+ const collectionSettings = mContract.settings.items.filter(s => ['pin-lifetime', 'pin-attempts', 'collection-window'].includes(s.key));
+ const numbers = [...new Set(collectionSettings.flatMap(s => [s.default.value, s.bounds?.lowest.value, s.bounds?.highest.value]).filter(n => Number.isInteger(n) && n > 1))];
+ const giveaway = new RegExp(`(?:pin|attempt|window|lifetime|expir|lapse|minute)[^\\n]{0,40}?\\b(${numbers.join('|')})\\b|\\b(${numbers.join('|')})\\b[^\\n]{0,20}?(?:attempt|minute|hour|min\\b)`, 'i');
+ for (const file of collectionFiles) {
+  const typed = read(file).split('\n').find(line => !/^\s*(\/\/|\/\*|\*)/.test(line) && giveaway.test(line));
+  if (typed) throw new Error(`${file} types a collection setting's number: ${typed.trim().slice(0, 120)}. The PIN lifetime, the attempts and the window are settings an admin changes, read from the settings in force (or, on a phone, the generated defaults), and kept by the collection they started.`);
+ }
+ for (const file of collectionFiles.filter(f => /\.(swift|kt)$/.test(f))) if (!/\bpinAttempts\b/.test(read(file)) && !/\bpinLifetimeMinutes\b/.test(read(file)) && /Models|model/.test(file)) throw new Error(`${file} reads none of the generated collection settings, so its hand-over is working to numbers of its own.`);
+
+ console.log(`Medicines & Labs: the prescriber is refused their own verification; ${notForDrivers.length} schedules are refused to ${mSchedules.drivers.roles.length} driving roles; a check with no licensed source answers only not-checked, and ${saying.length} files say none of ${phrases.length} phrases that would read as a clean check; a lab order is refused its close until its result is acknowledged; a pharmacy's queue carries its ${mContract.partnerQueue.carries.length} fields and no patient; ${mEvents.filter(e => e.owner === 'medicines' && !e.withdrawn).length} Medicines events and the acknowledgement carry none of ${never.length} clinical names; no reward touches a medicine; and ${collectionFiles.length} collection files type none of the ${numbers.length} numbers its settings may hold.`);
+}
+
 /* ==== Contracts & Core (Wave 1) ==================================================================
 
    Added by the Contracts & Core lead for three contracts other engines are being written against
