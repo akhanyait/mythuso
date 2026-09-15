@@ -20,12 +20,13 @@ import { engine as money } from './money/engine.ts';
 import { engine as safety } from './safety/engine.ts';
 import { engine as medicines } from './medicines/engine.ts';
 import { engine as clinicalEngine } from './clinical/engine.ts';
+import { engine as devices } from './devices/engine.ts';
 
 const FLAG = { MYTHUSO_ENGINES: 'synthetic-data-only' };
 const START = '2026-09-15T09:00:00+02:00';
 const CARER = 'carer';
 const CLINICAL = new Set(['treatment', 'diagnostics', 'dispensing']);
-const ENGINES: EngineModule[] = [access, care, core, money, safety, medicines, clinicalEngine];
+const ENGINES: EngineModule[] = [access, care, core, money, safety, medicines, clinicalEngine, devices];
 
 type Route = { method: string; path: string; version: number; callers: string[]; purpose: string[]; status: string; withdrawn?: unknown; evidence?: { file: string } };
 const routes = apis.engineFiles.flatMap(file => (JSON.parse(readFileSync(new URL(`../../../${file}`, import.meta.url), 'utf8')) as { routes: Route[] }).routes);

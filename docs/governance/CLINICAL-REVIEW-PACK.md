@@ -23,7 +23,7 @@ recommendation for the board.
 
 Writing in this pack changes nothing. A decision takes effect only through the contract's own process:
 
-- **Settings (sections A and E).** An admin puts a value in force on the Configuration tab (`POST /v1/safety/setting-changes@2`, `POST /v1/care/setting-changes@1`, `POST /v1/money/setting-changes@1`, `POST /v1/core/setting-changes@1`, `POST /v1/access/setting-changes@1`, `POST /v1/medicines/setting-changes@1`, `POST /v1/trust/setting-changes@2`, `POST /v1/record/setting-changes@1`). For a setting that waits on a clinical review, somebody holding `sign-clinical-review` (Sign a clinical decision) then confirms that exact value, with a reason, in the doctor workspace's "Settings waiting for clinical review" panel (`apps/web/src/features/SettingReviews.tsx`, `POST /v1/care/setting-reviews@1`, `POST /v1/access/setting-reviews@1`, `POST /v1/medicines/setting-reviews@1`). "Nobody confirms the clinical review of a change they made themselves." A default can instead be changed in the contract itself, naming the reviewer and the day (`packages/catalog/settings.json` `provenance.reviewed`) with a changelog entry, as `settings.json` `howToChange` describes.
+- **Settings (sections A and E).** An admin puts a value in force on the Configuration tab (`POST /v1/safety/setting-changes@2`, `POST /v1/care/setting-changes@1`, `POST /v1/money/setting-changes@1`, `POST /v1/core/setting-changes@1`, `POST /v1/access/setting-changes@1`, `POST /v1/medicines/setting-changes@1`, `POST /v1/trust/setting-changes@2`, `POST /v1/record/setting-changes@1`, `POST /v1/devices/setting-changes@2`). For a setting that waits on a clinical review, somebody holding `sign-clinical-review` (Sign a clinical decision) then confirms that exact value, with a reason, in the doctor workspace's "Settings waiting for clinical review" panel (`apps/web/src/features/SettingReviews.tsx`, `POST /v1/care/setting-reviews@1`, `POST /v1/access/setting-reviews@1`, `POST /v1/medicines/setting-reviews@1`). "Nobody confirms the clinical review of a change they made themselves." A default can instead be changed in the contract itself, naming the reviewer and the day (`packages/catalog/settings.json` `provenance.reviewed`) with a changelog entry, as `settings.json` `howToChange` describes.
 - **Who can confirm through the panel today:** Doctor (`doctor`), because only that role holds `sign-clinical-review` in `packages/catalog/vetting.json`. A Clinical Governance Lead who is a registered nurse could not confirm a setting through the panel. Their decision can still be recorded in the contract default, or the register can be changed — which is a question for the founder.
 - **Protocols (section B).** "A protocol is not ratified until the register names the role and the person who signed it off, and the day they did." "Changing a ratified protocol means adding a new version that names the one it supersedes. The ratified row is never edited." The row in `packages/catalog/protocols.json` changes status, ratifiedBy and ratifiedOn, and gains a contentRef once the text exists. Core announces a ratification as `protocol.ratified@1`.
 - **Gilbert's emergency terms (section C).** Only in `packages/catalog/gilbert-emergency-terms.json`: raise `version`, add a changelog entry (day, role, terms added and removed, why, the new `termsHash`), keep the shared fixtures passing on all three platforms, and record `clinicalReview.reviewedBy` and `reviewedOn`. `CLAUDE.md` holds the rule; `npm run check` replays the changelog.
@@ -40,9 +40,9 @@ Until a decision is recorded, the app shows "Not clinically reviewed" beside eve
 | B | Protocols in the registry that are not ratified | 12 |
 | C | Gilbert's emergency terms | 1 |
 | D | Clinical scopes and proposed clinical roles on the vetting register | 8 |
-| E | Other clinical proposals and safety numbers nobody clinical has decided | 19 |
+| E | Other clinical proposals and safety numbers nobody clinical has decided | 20 |
 | F | Clinical content with no clinical sign-off recorded | 3 |
-| | **Total** | **49** |
+| | **Total** | **50** |
 
 Each item gives the value in force by default, what an admin may set it to, why it was proposed and by whom,
 the question for the reviewer, and blank sign-off fields.
@@ -885,7 +885,30 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E11. Escalation ladder rung 1, Nudge: time to acknowledge
+#### E11. Stale after
+
+| | |
+|---|---|
+| Setting | `devices:stale-after-minutes` in `packages/catalog/devices.json` |
+| Why it is clinical | It decides how long a certified instrument may send nothing before it is shown as stale and announced, and Sentinel will read device silence against a patient's baseline in Wave 5. How long a patient's monitoring may go quiet unnoticed is a clinical question. |
+| What it decides | How long may a registered device send nothing before it is shown as stale, and a certified one announced? |
+| In force by default | 1440 minutes |
+| What an admin may set | An admin may set 60 minutes to 10080 minutes. These limits are proposals nobody has decided. |
+| Guardrail | A silent device is always shown as stale within a week, and never the moment it pauses. |
+| Why this default | A proposal nobody has decided. Proposed by the Devices lead (Wave 4): A day. A kit instrument syncs at every visit and a nurse visits most working days, so a day without a sync is the first silence worth a look, and anything shorter would announce every instrument left in a bag overnight. |
+| Who may change it | Internal admin staff (`admin`) |
+
+**Question for the reviewer:** is 1440 minutes safe, are the limits safe, and should this setting wait on a clinical review before a change takes effect?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### E12. Escalation ladder rung 1, Nudge: time to acknowledge
 
 | | |
 |---|---|
@@ -905,7 +928,7 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E12. Escalation ladder rung 2, Nurse review: time to acknowledge
+#### E13. Escalation ladder rung 2, Nurse review: time to acknowledge
 
 | | |
 |---|---|
@@ -925,7 +948,7 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E13. Escalation ladder rung 3, Clinician alert: time to acknowledge
+#### E14. Escalation ladder rung 3, Clinician alert: time to acknowledge
 
 | | |
 |---|---|
@@ -945,7 +968,7 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E14. Escalation ladder rung 4, Sentinel Dispatch: time to acknowledge
+#### E15. Escalation ladder rung 4, Sentinel Dispatch: time to acknowledge
 
 | | |
 |---|---|
@@ -965,7 +988,7 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E15. Escalation ladder rung 5, Family alert: time to acknowledge
+#### E16. Escalation ladder rung 5, Family alert: time to acknowledge
 
 | | |
 |---|---|
@@ -985,7 +1008,7 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E16. The rung a panic is given
+#### E17. The rung a panic is given
 
 | | |
 |---|---|
@@ -1004,7 +1027,7 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E17. The reasons a concern may be snoozed
+#### E18. The reasons a concern may be snoozed
 
 | | |
 |---|---|
@@ -1023,7 +1046,7 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E18. The outcomes a concern is closed with
+#### E19. The outcomes a concern is closed with
 
 | | |
 |---|---|
@@ -1042,7 +1065,7 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E19. The outcome an acknowledged lab result's concern is closed with
+#### E20. The outcome an acknowledged lab result's concern is closed with
 
 | | |
 |---|---|
@@ -1173,6 +1196,8 @@ Listed so that leaving them out is a decision a reviewer can disagree with.
 | `record:share-link-default-scope` | What a share link opens when the patient makes one without choosing its categories. | How long a share link or an emergency card lasts, how often each opens and what a link opens by default decide who may read a record and for how long. That is a privacy question for the Information Officer and the DPIA, not a clinical one, and none of them decides what is done to a patient. |
 | `record:emergency-card-lifetime-days` | How many days an emergency card stays open, if the grant it rides on lasts that long. | How long a share link or an emergency card lasts, how often each opens and what a link opens by default decide who may read a record and for how long. That is a privacy question for the Information Officer and the DPIA, not a clinical one, and none of them decides what is done to a patient. |
 | `record:emergency-card-max-uses` | How many times an emergency card can be scanned open before it stops opening. | How long a share link or an emergency card lasts, how often each opens and what a link opens by default decide who may read a record and for how long. That is a privacy question for the Information Officer and the DPIA, not a clinical one, and none of them decides what is done to a patient. |
+| `devices:calibration-due-days` | How many days before an instrument's calibration runs out is it shown as due? | How early a calibration is shown as due. An overdue calibration marks every reading taken while it lasts whatever this says, and the cadence itself is packages/catalog/capture.json's. |
+| `devices:kit-deposit` | What deposit is recorded against a kit when it is issued? | The deposit recorded against a kit. A commercial number, recorded and taken from nobody in this build. |
 | `closed-loop.json escalationReasons.byCaller` | The reasons the desk may give for escalating a concern before its deadline. | The reasons the desk moves a concern early say who answered and who can decide, not anything about the patient. |
 | `vetting-proposals.json head-of-operations` | Holds the last post on the escalation rota, and answers for a concern the desk and the nurse lead did not take on. | Operations authority over the desk's escalations. The register grants it no record, no summary and no dispatch. |
 

@@ -200,14 +200,18 @@ object ApisData {
     val GET_MEDICINES_SETTINGS = Route("getMedicinesSettings", "GET", "/v1/medicines/settings", "/v1/medicines/settings", 1, "medicines", listOf("admin", "doctor"), listOf("audit"), false, "built")
     val POST_MEDICINES_SETTING_CHANGES = Route("postMedicinesSettingChanges", "POST", "/v1/medicines/setting-changes", "/v1/medicines/setting-changes", 1, "medicines", listOf("admin"), listOf("audit"), true, "built")
     val POST_MEDICINES_SETTING_REVIEWS = Route("postMedicinesSettingReviews", "POST", "/v1/medicines/setting-reviews", "/v1/medicines/setting-reviews", 1, "medicines", listOf("doctor"), listOf("audit"), true, "built")
-    val POST_DEVICES_REGISTRY = Route("postDevicesRegistry", "POST", "/v1/devices/registry", "/v1/devices/registry", 1, "devices", listOf("operator"), listOf("treatment"), false, "proposed")
-    val POST_DEVICES_REGISTRY_BY_DEVICE_REF_RECALL = Route("postDevicesRegistryByDeviceRefRecall", "POST", "/v1/devices/registry/{deviceRef}/recall", "/v1/devices/registry/{deviceRef}/recall", 1, "devices", listOf("operator"), listOf("audit"), false, "proposed")
-    val GET_DEVICES_REGISTRY_BY_DEVICE_REF_HEALTH = Route("getDevicesRegistryByDeviceRefHealth", "GET", "/v1/devices/registry/{deviceRef}/health", "/v1/devices/registry/{deviceRef}/health", 1, "devices", listOf("nurse", "operator"), listOf("treatment"), false, "proposed")
-    val POST_DEVICES_READINGS = Route("postDevicesReadings", "POST", "/v1/devices/readings", "/v1/devices/readings", 1, "devices", listOf("patient", "nurse", "locum"), listOf("treatment"), false, "proposed")
-    val POST_DEVICES_WEARABLE_LINKS = Route("postDevicesWearableLinks", "POST", "/v1/devices/wearable-links", "/v1/devices/wearable-links", 1, "devices", listOf("patient"), listOf("treatment"), false, "proposed")
-    val POST_DEVICES_KITS = Route("postDevicesKits", "POST", "/v1/devices/kits", "/v1/devices/kits", 1, "devices", listOf("operator", "nurse"), listOf("audit"), false, "proposed")
-    val POST_DEVICES_KITS_BY_KIT_REF_RETURN = Route("postDevicesKitsByKitRefReturn", "POST", "/v1/devices/kits/{kitRef}/return", "/v1/devices/kits/{kitRef}/return", 1, "devices", listOf("operator"), listOf("audit"), false, "proposed")
-    val POST_DEVICES_KITS_BY_KIT_REF_LOSS = Route("postDevicesKitsByKitRefLoss", "POST", "/v1/devices/kits/{kitRef}/loss", "/v1/devices/kits/{kitRef}/loss", 1, "devices", listOf("operator", "nurse"), listOf("audit"), false, "proposed")
+    val POST_DEVICES_REGISTRY_V2 = Route("postDevicesRegistryV2", "POST", "/v1/devices/registry", "/v1/devices/registry", 2, "devices", listOf("operator"), listOf("treatment"), false, "built")
+    val POST_DEVICES_REGISTRY_BY_DEVICE_REF_RECALL_V2 = Route("postDevicesRegistryByDeviceRefRecallV2", "POST", "/v1/devices/registry/{deviceRef}/recall", "/v1/devices/registry/{deviceRef}/recall", 2, "devices", listOf("operator"), listOf("audit"), false, "built")
+    val GET_DEVICES_REGISTRY_BY_DEVICE_REF_HEALTH_V2 = Route("getDevicesRegistryByDeviceRefHealthV2", "GET", "/v1/devices/registry/{deviceRef}/health", "/v1/devices/registry/{deviceRef}/health", 2, "devices", listOf("nurse", "operator"), listOf("treatment"), false, "built")
+    val POST_DEVICES_READINGS_V2 = Route("postDevicesReadingsV2", "POST", "/v1/devices/readings", "/v1/devices/readings", 2, "devices", listOf("patient", "nurse", "locum"), listOf("treatment"), false, "built")
+    val POST_DEVICES_READINGS_BY_READING_REF_OBSERVATION = Route("postDevicesReadingsByReadingRefObservation", "POST", "/v1/devices/readings/{readingRef}/observation", "/v1/devices/readings/{readingRef}/observation", 1, "devices", listOf("patient", "nurse", "locum"), listOf("treatment"), false, "built")
+    val POST_DEVICES_WEARABLE_LINKS_V2 = Route("postDevicesWearableLinksV2", "POST", "/v1/devices/wearable-links", "/v1/devices/wearable-links", 2, "devices", listOf("patient"), listOf("treatment"), false, "built")
+    val POST_DEVICES_WEARABLE_LINKS_BY_LINK_REF_WITHDRAW = Route("postDevicesWearableLinksByLinkRefWithdraw", "POST", "/v1/devices/wearable-links/{linkRef}/withdraw", "/v1/devices/wearable-links/{linkRef}/withdraw", 1, "devices", listOf("patient"), listOf("treatment"), false, "built")
+    val POST_DEVICES_KITS_V2 = Route("postDevicesKitsV2", "POST", "/v1/devices/kits", "/v1/devices/kits", 2, "devices", listOf("operator"), listOf("audit"), false, "built")
+    val POST_DEVICES_KITS_BY_KIT_REF_RETURN_V2 = Route("postDevicesKitsByKitRefReturnV2", "POST", "/v1/devices/kits/{kitRef}/return", "/v1/devices/kits/{kitRef}/return", 2, "devices", listOf("operator"), listOf("audit"), false, "built")
+    val POST_DEVICES_KITS_BY_KIT_REF_LOSS_V2 = Route("postDevicesKitsByKitRefLossV2", "POST", "/v1/devices/kits/{kitRef}/loss", "/v1/devices/kits/{kitRef}/loss", 2, "devices", listOf("operator", "nurse"), listOf("audit"), false, "built")
+    val GET_DEVICES_SETTINGS = Route("getDevicesSettings", "GET", "/v1/devices/settings", "/v1/devices/settings", 1, "devices", listOf("admin"), listOf("audit"), false, "built")
+    val POST_DEVICES_SETTING_CHANGES_V2 = Route("postDevicesSettingChangesV2", "POST", "/v1/devices/setting-changes", "/v1/devices/setting-changes", 2, "devices", listOf("admin"), listOf("audit"), true, "built")
     val POST_MONEY_PAYMENTS = Route("postMoneyPayments", "POST", "/v1/money/payments", "/v1/money/payments", 1, "money", listOf("patient", "caregiver", "sponsor"), listOf("billing"), true, "built")
     val GET_MONEY_PAYOUTS = Route("getMoneyPayouts", "GET", "/v1/money/payouts", "/v1/money/payouts", 1, "money", listOf("nurse", "locum", "doctor"), listOf("billing"), false, "built")
     val POST_MONEY_PAYMENTS_V2 = Route("postMoneyPaymentsV2", "POST", "/v1/money/payments", "/v1/money/payments", 2, "money", listOf("patient", "caregiver", "sponsor"), listOf("billing"), true, "built")
@@ -401,14 +405,18 @@ object ApisData {
         GET_MEDICINES_SETTINGS,
         POST_MEDICINES_SETTING_CHANGES,
         POST_MEDICINES_SETTING_REVIEWS,
-        POST_DEVICES_REGISTRY,
-        POST_DEVICES_REGISTRY_BY_DEVICE_REF_RECALL,
-        GET_DEVICES_REGISTRY_BY_DEVICE_REF_HEALTH,
-        POST_DEVICES_READINGS,
-        POST_DEVICES_WEARABLE_LINKS,
-        POST_DEVICES_KITS,
-        POST_DEVICES_KITS_BY_KIT_REF_RETURN,
-        POST_DEVICES_KITS_BY_KIT_REF_LOSS,
+        POST_DEVICES_REGISTRY_V2,
+        POST_DEVICES_REGISTRY_BY_DEVICE_REF_RECALL_V2,
+        GET_DEVICES_REGISTRY_BY_DEVICE_REF_HEALTH_V2,
+        POST_DEVICES_READINGS_V2,
+        POST_DEVICES_READINGS_BY_READING_REF_OBSERVATION,
+        POST_DEVICES_WEARABLE_LINKS_V2,
+        POST_DEVICES_WEARABLE_LINKS_BY_LINK_REF_WITHDRAW,
+        POST_DEVICES_KITS_V2,
+        POST_DEVICES_KITS_BY_KIT_REF_RETURN_V2,
+        POST_DEVICES_KITS_BY_KIT_REF_LOSS_V2,
+        GET_DEVICES_SETTINGS,
+        POST_DEVICES_SETTING_CHANGES_V2,
         POST_MONEY_PAYMENTS,
         GET_MONEY_PAYOUTS,
         POST_MONEY_PAYMENTS_V2,
@@ -1913,73 +1921,134 @@ object ApisData {
         val settingsVersion: Int,
         val reviewedAt: String
     )
-    data class PostDevicesRegistryRequest(
+    data class PostDevicesRegistryV2Request(
         val serial: String,
         val model: String,
         val firmware: String,
-        val calibratedOn: String? = null,
-        val deviceClass: String
+        val deviceClass: String,
+        val instrumentKind: String? = null,
+        val calibratedOn: String? = null
     )
-    data class PostDevicesRegistryResponse(
-        val deviceRef: String
-    )
-    data class PostDevicesRegistryByDeviceRefRecallRequest(
+    data class PostDevicesRegistryV2Response(
         val deviceRef: String,
-        val reasonCode: String
+        val registeredAt: String
     )
-    data class PostDevicesRegistryByDeviceRefRecallResponse(
-        val holdersLinked: Int
+    data class PostDevicesRegistryByDeviceRefRecallV2Request(
+        val deviceRef: String,
+        val reasonCode: String,
+        val effectiveFrom: String
     )
-    data class GetDevicesRegistryByDeviceRefHealthRequest(
+    data class PostDevicesRegistryByDeviceRefRecallV2Response(
+        val recalledAt: String,
+        val marksAdded: Int,
+        val kitsHolding: Int
+    )
+    data class GetDevicesRegistryByDeviceRefHealthV2Request(
         val deviceRef: String
     )
-    data class GetDevicesRegistryByDeviceRefHealthResponse(
+    data class GetDevicesRegistryByDeviceRefHealthV2Response(
+        val stateCode: String,
+        val deviceClass: String,
         val lastSyncAt: String? = null,
         val stale: Boolean,
-        val recalled: Boolean
+        val recalled: Boolean,
+        val recalledFrom: String? = null,
+        val calibrationStateCode: String,
+        val calibrationDueOn: String? = null,
+        val batteryPercent: Int? = null,
+        val firmware: String,
+        val settingsVersion: Int
     )
-    data class PostDevicesReadingsRequest(
+    data class PostDevicesReadingsV2Request(
         val subjectRef: String,
         val deviceRef: String,
         val metric: String,
-        val value: Double,
         val unit: String,
         val takenAt: String,
-        val source: String,
-        val quality: String,
-        val consentState: String
+        val source: String? = null,
+        val quality: String? = null,
+        val consentState: String,
+        val intendedUse: String,
+        val simulated: Boolean,
+        val batteryPercent: Int? = null
     )
-    data class PostDevicesReadingsResponse(
+    data class PostDevicesReadingsV2Response(
+        val readingRef: String,
+        val clinicalUseCode: String,
+        val markCodes: List<String>,
+        val askedAt: String
+    )
+    data class PostDevicesReadingsByReadingRefObservationRequest(
         val readingRef: String,
         val observationRef: String
     )
-    data class PostDevicesWearableLinksRequest(
-        val platform: String,
-        val consentVersion: Int
+    data class PostDevicesReadingsByReadingRefObservationResponse(
+        val ingestedAt: String,
+        val clinicalUseCode: String,
+        val published: Boolean
     )
-    data class PostDevicesWearableLinksResponse(
+    data class PostDevicesWearableLinksV2Request(
+        val platform: String,
+        val consentVersion: Int,
+        val metrics: List<String>
+    )
+    data class PostDevicesWearableLinksV2Response(
+        val linkRef: String,
+        val stateCode: String,
+        val requestedAt: String
+    )
+    data class PostDevicesWearableLinksByLinkRefWithdrawRequest(
         val linkRef: String
     )
-    data class PostDevicesKitsRequest(
+    data class PostDevicesWearableLinksByLinkRefWithdrawResponse(
+        val withdrawnAt: String
+    )
+    data class PostDevicesKitsV2Request(
         val kitSerial: String,
         val holderRef: String,
-        val depositRef: String
+        val deviceRefs: List<String>
     )
-    data class PostDevicesKitsResponse(
+    data class PostDevicesKitsV2Response(
+        val kitRef: String,
+        val depositCents: Int,
+        val settingsVersion: Int
+    )
+    data class PostDevicesKitsByKitRefReturnV2Request(
         val kitRef: String
     )
-    data class PostDevicesKitsByKitRefReturnRequest(
-        val kitRef: String
-    )
-    data class PostDevicesKitsByKitRefReturnResponse(
+    data class PostDevicesKitsByKitRefReturnV2Response(
         val returnedAt: String
     )
-    data class PostDevicesKitsByKitRefLossRequest(
+    data class PostDevicesKitsByKitRefLossV2Request(
         val kitRef: String,
-        val reasonCode: String
+        val reasonCode: String? = null
     )
-    data class PostDevicesKitsByKitRefLossResponse(
+    data class PostDevicesKitsByKitRefLossV2Response(
         val recordedAt: String
+    )
+    class GetDevicesSettingsRequest
+    data class GetDevicesSettingsResponse(
+        val settingsVersion: Int,
+        val settings: List<Map<String, Any?>>,
+        val history: List<Map<String, Any?>>
+    )
+    data class PostDevicesSettingChangesV2Request(
+        val idempotencyKey: String,
+        val setting: String,
+        val wholeNumber: Int? = null,
+        val switchedOn: Boolean? = null,
+        val choice: String? = null,
+        val wording: String? = null,
+        val roles: List<String>? = null,
+        val windows: List<Map<String, Any?>>? = null,
+        val items: List<String>? = null,
+        val parts: Map<String, Any?>? = null,
+        val reason: String? = null,
+        val expectedVersion: Int
+    )
+    data class PostDevicesSettingChangesV2Response(
+        val settingsVersion: Int,
+        val appliesFrom: String
     )
     data class PostMoneyPaymentsRequest(
         val idempotencyKey: String,

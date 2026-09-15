@@ -335,6 +335,9 @@ import za.co.mythuso.model.mokoenaHousehold
         title == PassportSharingData.Card.TITLE_ROUTE -> EmergencyCardScreen(open)
         title == PassportSharingData.Log.TITLE_ROUTE -> PassportAccessLogScreen(open)
         isDevicePermissionScreen(title) -> DevicePermissionScreen(title, open)
+        /* A wearable link request, opened from the Health Connect permission screen. It records what the
+           patient agreed to and connects nothing. The title is the contract's heading, filled. */
+        title == za.co.mythuso.model.Devices.wearableLinkTitle("health-connect") -> WearableLinkScreen("health-connect")
         /* Live well is the patient's own diary and it is a route of its own rather than a tab
            inside the passport, because the passport is what clinicians measured and this is what
            the person said. Putting them behind one door is the blur wellbeing.json's

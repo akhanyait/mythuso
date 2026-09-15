@@ -144,13 +144,15 @@ for (const integration of integrations) {
 
     /* The contract's own sentence, above everything, because the decision this screen is asking
        about has not got a subject yet. */
-    await expect(sheet.getByText(noticeFor('devices'), { exact: false })).toBeVisible();
+    /* Apple Health and Health Connect are the wearables capability since the Devices wave; the kit is devices. */
+    const capabilityId = integration === 'Thuso Kit' ? 'devices' : 'wearables';
+    await expect(sheet.getByText(noticeFor(capabilityId), { exact: false }).first()).toBeVisible();
     await expect(sheet.getByRole('row', { name: /Blood pressure — systolic/ })).toContainText('90–140 mmHg');
     /* The half of a permission screen that is usually missing, and the reason this screen exists. */
     await expect(sheet.getByText('Anything in a protected category')).toBeVisible();
     await expect(sheet.getByText(/Sexual and reproductive health/)).toBeVisible();
     await expect(sheet.getByText(`Nothing on your MyThuso record is written back to ${integration}.`)).toBeVisible();
-    await expect(sheet.getByText(/No Bluetooth or eSIM permission is declared/)).toBeVisible();
+    await expect(sheet.getByText(capabilityId === 'devices' ? /No Bluetooth or eSIM permission is declared/ : /No HealthKit entitlement or Health Connect permission is declared/)).toBeVisible();
     /* No Connect button, disabled or otherwise: a greyed-out primary is the biggest thing on a
        screen promising the one thing the screen has just said it cannot do. */
     await expect(sheet.getByRole('button', { name: new RegExp(`^Connect ${integration}`) })).toHaveCount(0);

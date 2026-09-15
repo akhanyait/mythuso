@@ -13,8 +13,10 @@
   { "engine": "access", "file": "packages/catalog/booking.json" },
   { "engine": "medicines", "file": "packages/catalog/medicines.json" },
   { "engine": "trust", "file": "packages/catalog/verify-in-service.json" },
-  { "engine": "record", "file": "packages/catalog/passport-sharing.json" }
+  { "engine": "record", "file": "packages/catalog/passport-sharing.json" },
+  { "engine": "devices", "file": "packages/catalog/devices.json" }
  ],
+ "_innerShapesNote": "Added by the Devices lead on 15 September 2026. The change route's windows and parts were objects described only in prose, and the list of routes excused from declaring an object's inside was sealed the same day, so an engine adding its first setting after the seal could declare a change route in neither the shared shape nor a declared one: the first failed inner-shapes-are-data and the second failed the word-for-word rule. The shape now declares both insides. Medicines & Labs declared them the same day, with parts taken from settings.json#partTypes, and at the Wave 4 integration that declaration is the one kept: every live change route declares both insides as it does and is frozen so in apis.shapes.lock, Trust's and Devices' change routes moved to it at version two, and no live change route is on the sealed prose-only list, so none is compared with the insides left out.",
  "_sourcesNote": "Every contract that holds a settings block, and the engine that owns it. packages/engines/src/settings/blocks.ts imports exactly these, and the build fails on a settings block in a contract this list does not name. An engine adding its first setting adds its contract here.",
 
  "block": [

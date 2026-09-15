@@ -2,7 +2,7 @@
 // Do not edit by hand — run `npm run capabilities`. The build fails if this file and its source
 // disagree, so an edit here is lost rather than merely wrong.
 //
-// The 20 things MyThuso either does or only draws, and the sentence each one shows while it
+// The 21 things MyThuso either does or only draws, and the sentence each one shows while it
 // is not connected. No screen writes its own version of that sentence: it names a capability and
 // the sentence is rendered from here, word for word, or it is not rendered at all. When an
 // integration lands, one boolean changes in the contract and the notice disappears from every
@@ -340,6 +340,19 @@ val capabilities = listOf(
         "absent",
         null,
         listOf("lab-orders", "results"),
+        null,
+        emptyList()),
+    Capability("wearables", "Readings from your own watch, band or home device", false,
+        null,
+        listOf(
+            "A signed data protection impact assessment covering health data from another company's store or cloud (docs/governance/DPIA-DRAFT.md is unsigned).",
+            "A clinical reviewer who has read the wearable-readings consent scope, reading type by reading type.",
+            "No HealthKit entitlement or Health Connect permission is declared, and neither platform's library is in either app: adding one changes how the iOS app is signed and what either phone asks."
+        ),
+        "Apple Health, Health Connect and your own devices are not connected. A request to link one is recorded, and nothing is read from your phone or any device maker's cloud.",
+        "absent",
+        null,
+        listOf("wearable-link", "passport-devices"),
         null,
         emptyList())
 )

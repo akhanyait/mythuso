@@ -43,6 +43,9 @@ struct ThusoKitView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 deck
+                /* Whether each instrument is reporting, in date and not recalled, before any of them is paired:
+                   a nurse picks up the one that is sound, not the first one in the bag. */
+                KitHealthSection()
                 if mayWrite.allowed {
                     discovery
                     pairedInstruments

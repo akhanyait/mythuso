@@ -1977,6 +1977,324 @@
     "section72": "Liveness providers are often hosted offshore. Not determined.",
     "determined": false
    }
+  },
+  {
+   "id": "device-reading",
+   "name": "A reading from a device maker's cloud",
+   "capabilities": [
+    "wearables"
+   ],
+   "supplier": "A device maker whose cloud holds readings from a home device the patient owns. None is contracted.",
+   "route": "POST /feeds/device-reading",
+   "arrives": "One reading from one registered device, as its maker's cloud reports it.",
+   "derivedFrom": [
+    "packages/catalog/devices.json",
+    "packages/catalog/apis/devices.json"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "wearables",
+    "sample": [
+     "packages/catalog/devices.json"
+    ],
+    "unchanged": "A nurse measures what she needs at the visit with the kit she brings. Nothing from a patient's own device is taken in except through a registered device and the readings route, and nothing ever arrives from a maker's cloud."
+   },
+   "accepts": [
+    {
+     "field": "deviceRef",
+     "type": "string",
+     "required": true,
+     "why": "The device as the registry knows it. Never a serial number that joins to the maker's own account."
+    },
+    {
+     "field": "metric",
+     "type": "string",
+     "required": true,
+     "why": "Which measure, from packages/catalog/records.json observations.measures."
+    },
+    {
+     "field": "unit",
+     "type": "string",
+     "required": true,
+     "why": "The unit it was reported in, which must be the measure's own."
+    },
+    {
+     "field": "takenAt",
+     "type": "instant",
+     "required": true,
+     "why": "When the device says it took it. Ordering uses when it was received."
+    },
+    {
+     "field": "qualityCode",
+     "type": "string",
+     "required": true,
+     "why": "The sample quality, from packages/catalog/devices.json qualities."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "a-dpia-covers-third-party-health-data",
+     "must": "A signed data protection impact assessment covers health data arriving from another company's store or cloud.",
+     "why": "docs/governance/DPIA-DRAFT.md is a draft with nobody's signature on it, and readings are special personal information under POPIA.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-reviewer-has-read-the-consent-scope",
+     "must": "A clinical reviewer has read what the wearable-readings consent asks a patient to share, reading type by reading type.",
+     "why": "Readings arrive continuously; a consent specific enough for a single visit may not be specific enough for that.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-data-processing-agreement-is-signed",
+     "must": "A data processing agreement limits what the supplier may keep, for how long, and for what.",
+     "why": "The supplier becomes an operator under POPIA section 21 the moment it holds a patient's readings for MyThuso.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "hosting-is-south-african-or-approved",
+     "must": "Readings are processed in South Africa, or a section 72 determination names where.",
+     "why": "Device clouds usually process readings outside the country, and there is no named recipient to determine a transfer to.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "the-device-is-registered-as-consumer",
+     "must": "Every device this door would take readings from is registered in the Devices registry as a consumer device.",
+     "why": "A reading from a maker's cloud never carries clinical weight, never raises an alert and never sends anybody, and the registry's class is how the engine knows that by arithmetic rather than by trust.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "patientName",
+     "refusal": "A device reading may not name the patient.",
+     "why": "The device is the reference. Who the patient is lives in the identity service.",
+     "also": [
+      "fullName",
+      "firstName",
+      "lastName",
+      "surname",
+      "ownerName"
+     ]
+    },
+    {
+     "field": "accountEmail",
+     "refusal": "A device reading may not carry the maker's account for the patient.",
+     "why": "An account identifier joins MyThuso's copy of a person to the maker's, which is the join the reference exists to avoid.",
+     "also": [
+      "userEmail",
+      "makerAccountId",
+      "cloudUserId"
+     ]
+    },
+    {
+     "field": "location",
+     "refusal": "A device reading may not carry where it was taken.",
+     "why": "A reading beside a position tells anybody holding it where an ill person is.",
+     "also": [
+      "latitude",
+      "longitude",
+      "gps",
+      "geoPosition"
+     ]
+    },
+    {
+     "field": "clinicalInterpretation",
+     "refusal": "A device reading may not carry what a maker's software thinks it means.",
+     "why": "Whether a reading is concerning is clinical content only the clinical governance board decides. A maker's flag arriving with the number is a threshold nobody here set.",
+     "also": [
+      "interpretation",
+      "riskLevel",
+      "alertLevel",
+      "abnormalFlag",
+      "triageAdvice"
+     ]
+    },
+    {
+     "field": "rawWaveform",
+     "refusal": "A device reading may not carry a raw trace.",
+     "why": "A trace is a record in itself, and no route here has anywhere to keep one.",
+     "also": [
+      "waveform",
+      "ecgTrace",
+      "ppgSamples",
+      "rawSamples"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "Where a device maker's cloud processes a patient's readings, and whether that transfer is lawful, depends on a recipient nobody has named. Not determined.",
+    "determined": false
+   }
+  },
+  {
+   "id": "wearable-sync",
+   "name": "Readings from Apple Health or Health Connect through a partner's cloud",
+   "capabilities": [
+    "wearables"
+   ],
+   "supplier": "A partner that syncs Apple Health or Health Connect data to a server. None is contracted, and neither platform's library is in either app.",
+   "route": "POST /feeds/wearable-sync",
+   "arrives": "One reading of one type, from one patient's wearable link, as the partner reports it.",
+   "derivedFrom": [
+    "packages/catalog/devices.json",
+    "packages/catalog/consent.json"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "wearables",
+    "sample": [
+     "packages/catalog/devices.json"
+    ],
+    "unchanged": "A patient may record a request to link Apple Health or Health Connect, and the request says it is not connected. Nothing is read from a phone and nothing arrives here."
+   },
+   "accepts": [
+    {
+     "field": "linkRef",
+     "type": "string",
+     "required": true,
+     "why": "The wearable link the patient requested, which carries the consent version and the reading types they agreed to."
+    },
+    {
+     "field": "platform",
+     "type": "string",
+     "required": true,
+     "why": "apple-health or health-connect, from packages/catalog/devices.json."
+    },
+    {
+     "field": "metric",
+     "type": "string",
+     "required": true,
+     "why": "Which measure, and only one the link's scope names."
+    },
+    {
+     "field": "unit",
+     "type": "string",
+     "required": true,
+     "why": "The unit it was reported in, which must be the measure's own."
+    },
+    {
+     "field": "takenAt",
+     "type": "instant",
+     "required": true,
+     "why": "When the platform says it was taken."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "a-dpia-covers-third-party-health-data",
+     "must": "A signed data protection impact assessment covers health data arriving from another company's store or cloud.",
+     "why": "docs/governance/DPIA-DRAFT.md is a draft with nobody's signature on it, and readings are special personal information under POPIA.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-reviewer-has-read-the-consent-scope",
+     "must": "A clinical reviewer has read what the wearable-readings consent asks a patient to share, reading type by reading type.",
+     "why": "Readings arrive continuously; a consent specific enough for a single visit may not be specific enough for that.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-data-processing-agreement-is-signed",
+     "must": "A data processing agreement limits what the supplier may keep, for how long, and for what.",
+     "why": "The supplier becomes an operator under POPIA section 21 the moment it holds a patient's readings for MyThuso.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "hosting-is-south-african-or-approved",
+     "must": "Readings are processed in South Africa, or a section 72 determination names where.",
+     "why": "Device clouds usually process readings outside the country, and there is no named recipient to determine a transfer to.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "every-reading-is-checked-against-consent-on-arrival",
+     "must": "Every reading is checked against the wearable-readings consent at the moment it arrives, and nothing from a withdrawn link is taken in.",
+     "why": "§5.5: ingestion stops the moment consent is withdrawn, and a batch sync is exactly where that is forgotten. Moved here from the proposal in packages/catalog/open-source.json when this door was declared.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "every-reading-arrives-as-consumer-grade",
+     "must": "Every reading arrives labelled with its source and as consumer-grade, and is registered against a consumer device class.",
+     "why": "A consumer wearable guides conversation and carries no clinical weight or dispatch. Moved here from the proposal in packages/catalog/open-source.json when this door was declared.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "the-app-declares-the-platform-permission",
+     "must": "The iOS app carries a HealthKit entitlement and the Android app declares Health Connect permissions, each named under requiresPermissions in packages/catalog/capabilities.json.",
+     "why": "A HealthKit entitlement changes how the app is signed and what the phone asks. Neither exists in this build, and scripts/check-boundaries.mjs fails if either appears before this condition is met.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "patientName",
+     "refusal": "A wearable reading may not name the patient.",
+     "why": "The link is the reference. Who the patient is lives in the identity service.",
+     "also": [
+      "fullName",
+      "firstName",
+      "lastName",
+      "surname",
+      "ownerName"
+     ]
+    },
+    {
+     "field": "appleId",
+     "refusal": "A wearable reading may not carry the patient's platform account.",
+     "why": "A platform account joins MyThuso's copy of a person to Apple's or Google's.",
+     "also": [
+      "googleAccount",
+      "platformUserId",
+      "healthKitUserId"
+     ]
+    },
+    {
+     "field": "workoutRoute",
+     "refusal": "A wearable reading may not carry where it was taken.",
+     "why": "A reading beside a route or a position tells anybody holding it where an ill person goes.",
+     "also": [
+      "routeTrace",
+      "gpsTrack",
+      "geoTrack"
+     ]
+    },
+    {
+     "field": "reproductiveHealth",
+     "refusal": "A wearable reading may not carry reproductive or sexual health data.",
+     "why": "Protected categories are released by the patient entry by entry, and a platform sync cannot release one on their behalf.",
+     "also": [
+      "menstrualFlow",
+      "cycleTracking",
+      "ovulationTest",
+      "sexualActivity",
+      "pregnancyTest"
+     ]
+    },
+    {
+     "field": "sleepAnalysis",
+     "refusal": "A wearable reading may not carry a reading type the link's scope does not name.",
+     "why": "The scope is the reading types the patient agreed to, and nothing beside them arrives.",
+     "also": [
+      "mindfulMinutes",
+      "stepCount",
+      "audioExposure"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "Where a partner's cloud would process a patient's wearable data, and whether that transfer is lawful, depends on a recipient nobody has named. Not determined.",
+    "determined": false
+   }
   }
  ]
 }

@@ -399,6 +399,18 @@ private fun measureName(id: String): String {
 
         Section("Turning it off again") { Note(spec.withdraw) }
 
+        /* The one thing a person can do about Health Connect today is record that she would agree, to
+           which reading types, under the consent in force. The door says it connects nothing before it is
+           opened, in the contract's sentence, and it is an outlined button rather than a primary: it is not
+           a Connect button and must not look like the one the note below says there is not. */
+        if (spec.name == "Health Connect") {
+            Note(DevicesData.WearableText.notConnected)
+            OutlinedButton(
+                onClick = { open(Devices.wearableLinkTitle("health-connect")) },
+                Modifier.fillMaxWidth().heightIn(min = TouchTarget), shape = ThusoButtonShape
+            ) { Text(Devices.wearableLinkTitle("health-connect")) }
+        }
+
         /* Why it cannot be switched on today, in the contract's own words rather than in a
            paraphrase. There is no Connect button here, disabled or otherwise: a greyed-out primary
            is the biggest thing on a screen promising the one thing the screen has just said it

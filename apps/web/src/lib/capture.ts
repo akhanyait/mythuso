@@ -149,6 +149,8 @@ export type Capture = {
  serial?: string;
  calibration?: Calibration;
  context?: string;
+ /* The sample quality the instrument reported, from packages/catalog/devices.json qualities. Device readings only. */
+ quality?: string;
  /* Derived readings name their inputs, because a derived value whose inputs are unknown is not a
     value. Patient-reported readings name who said it. */
  inputs?: string[];

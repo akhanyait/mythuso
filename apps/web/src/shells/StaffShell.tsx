@@ -1,6 +1,6 @@
 import { ClinicalWorkbench } from '../features/ClinicalWorkbench';
 import framing from '../../../../packages/catalog/framing.json' with { type: 'json' };
-import { useEffect, useState, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
 import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bluetooth, BookOpen, CalendarDays, ClipboardPlus, CreditCard, FileText, FlaskConical, LogOut, Package, Radar, Repeat, ShieldAlert, ShieldCheck, Siren, Truck, Video } from 'lucide-react';
 import { Modal, SectionTitle } from '../components/UI';
 import { Metric, Metrics, NavRow } from '../surface/Surface';
@@ -40,6 +40,10 @@ import { SosDesk } from '../features/SosDesk';
    held payment is a phone call that can wait below it. */
 import { HeldCashPayments } from '../features/CashCode';
 import { ConcernBoard } from '../features/ConcernBoard';
+/* Thuso Kit's registry arrives when a nurse opens her kit or the Control Tower opens its incidents, and not
+   before: it carries the Devices contract and every engine's settings through lib/settings. */
+const KitHealth = lazy(() => import('../features/Devices').then(m => ({ default: m.KitHealth })));
+const DeviceRegistryDesk = lazy(() => import('../features/Devices').then(m => ({ default: m.DeviceRegistryDesk })));
 import { VettingApplication, VettingQueue } from '../features/Vetting';
 import { t } from '../lib/i18n';
 import { endSession } from '../lib/auth';
@@ -239,7 +243,7 @@ function renderSection(role: StaffRole, section: string, open: (m: string) => vo
  const head = <SectionHead role={role} section={section}/>;
  if (role === 'Nurse') {
   if (section === 'Assessments') return <OnDeck role={role}><VisitAssessment onClose={home}/></OnDeck>;
-  if (section === 'Thuso Kit') return <OnDeck role={role}><ThusoKit/></OnDeck>;
+  if (section === 'Thuso Kit') return <OnDeck role={role}><ThusoKit/><Suspense fallback={null}><KitHealth/></Suspense></OnDeck>;
   if (section === 'Earnings & payouts') return <OnDeck role={role}><Earnings/></OnDeck>;
   if (section === 'Vetting') return <OnDeck role={role}><VettingApplication roleId="nurse" onClose={home}/></OnDeck>;
  }
@@ -477,7 +481,7 @@ function sectionBody(section: string, open: (m: string) => void) {
  return section === 'Schedule' ? <NurseSchedule open={open}/>
   : section === 'Review queue' ? <><ReviewQueue open={open}/><SettingReviews/></>
    : section === 'Dispatch' ? <DispatchBoard/>
-    : section === 'Incidents' ? <><SafetyDesk/><SosDesk/><ConcernBoard/><IncidentBoard open={open} notice={false}/><HeldCashPayments/></>
+    : section === 'Incidents' ? <><SafetyDesk/><SosDesk/><ConcernBoard/><IncidentBoard open={open} notice={false}/><HeldCashPayments/><Suspense fallback={null}><DeviceRegistryDesk/></Suspense></>
      : section === 'Orders' || section === 'Collections' || section === 'Results' ? <FulfilmentQueue section={section} open={open}/>
       /* The last fallback. Protocols and Quality used to land here — a card whose only control
          opened a dialog saying nothing happens — and both are screens of their own now. What is left

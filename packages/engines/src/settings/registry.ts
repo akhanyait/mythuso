@@ -14,6 +14,7 @@ import { accessSettings } from '../access/domain/settings.ts';
 import { medicinesSettings } from '../medicines/domain/settings.ts';
 import { trustSettings } from '../trust/domain/settings.ts';
 import { recordSettings } from '../record/domain/settings.ts';
+import { devicesSettings } from '../devices/domain/settings.ts';
 
 export const settingsEngines: Readonly<Record<string, SettingsEngine>> = Object.freeze({
  safety: safetySettings,
@@ -23,5 +24,6 @@ export const settingsEngines: Readonly<Record<string, SettingsEngine>> = Object.
  access: accessSettings,
  medicines: medicinesSettings,
  trust: trustSettings,
- record: recordSettings
+ record: recordSettings,
+ devices: devicesSettings
 });

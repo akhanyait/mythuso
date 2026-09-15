@@ -1,0 +1,256 @@
+{
+ "_note": "Devices is Thuso Kit on the engine runtime, Wave 4: the device registry with its health and recalls, readings asked for and linked to where the record keeps them, wearable link requests that connect nothing, and kits issued, returned and lost. This file holds the kinds, the states, the rule that decides whether a reading may carry clinical weight, what a recall's mark means, the wearable link's words and the settings an admin changes. packages/catalog/apis/devices.json holds the routes and the refusal sentences; packages/engines/src/devices/domain holds the arithmetic; scripts/emit-devices.mjs writes both native copies. Nothing here is a real service. No instrument is contacted, no watch or phone is read, no deposit is taken and no recall reaches anybody who holds a device.",
+ "version": 1,
+ "engine": "devices",
+ "api": "packages/catalog/apis/devices.json",
+
+ "whereValuesLive": {
+  "decision": "references-and-states",
+  "sentence": "Devices never holds a reading's value. Whoever took the reading writes it to the Health Passport through its consent gateway, and Devices keeps where the reading came from, how good the sample was, whether it may carry clinical weight, what marks it carries and where in the record it went.",
+  "why": "A reading is special personal information under POPIA, and packages/catalog/apis.json says clinical content crosses an API only through the Passport gateway. The engine runtime is a development store with none of the record's controls, and no route lets an engine write an Observation: POST /fhir/{resourceType}@1 admits the patient and the grant roles and no engine. So the value never reaches Devices at all. The capturer asks Devices first, and every refusal is decided before anything is written; the capturer then writes the Observation under their own grant and tells Devices where it went. What Devices stores is references and states, and scripts/check-boundaries.mjs fails the build if its store grows a column a value could be written into or one of its events carries one."
+ },
+
+ "deviceClasses": [
+  { "id": "certified", "label": "Certified instrument", "carriesClinicalWeight": true, "why": "An instrument in a Thuso Kit, registered by serial and calibrated on the cadence packages/catalog/capture.json gives its kind. The only class whose readings may carry clinical weight, and only while nothing else takes that weight away." },
+  { "id": "consumer", "label": "Your own device", "carriesClinicalWeight": false, "why": "A watch, a band or a home device MyThuso did not issue. The Full Scope's Engine 9 lets it guide a conversation and nothing more: it never carries clinical weight, never raises an alert and never sends anybody, whatever the reading says." },
+  { "id": "simulator", "label": "Simulated instrument", "carriesClinicalWeight": false, "why": "An instrument that does not exist, run on this machine so the product can be walked end to end. Every reading it produces says it was simulated, wherever it is shown." }
+ ],
+
+ "sources": [
+  { "id": "kit-instrument", "label": "Thuso Kit instrument", "simulated": false, "classes": ["certified"], "why": "Read off a registered instrument the nurse brought." },
+  { "id": "own-device", "label": "The patient's own device", "simulated": false, "classes": ["consumer"], "why": "Read off a device the patient owns and registered." },
+  { "id": "simulator", "label": "Simulated, no instrument", "simulated": true, "classes": ["simulator"], "why": "Produced on this machine. Shown as simulated on every screen that shows the reading." }
+ ],
+ "_sourcesNote": "Apple Health, Health Connect and a device maker's cloud are not sources a route accepts. They would arrive through the wearable-sync and device-reading doors in packages/catalog/feeds.json, which refuse every payload, and a wearable link in this wave records a request and connects nothing.",
+
+ "qualities": [
+  { "id": "good", "label": "Good sample", "carriesClinicalWeight": true, "why": "The instrument reported a clean sample." },
+  { "id": "acceptable", "label": "Acceptable sample", "carriesClinicalWeight": true, "why": "Usable, with the caveat the instrument gave." },
+  { "id": "poor", "label": "Poor sample", "carriesClinicalWeight": false, "why": "§5.5 stages a poor sample rather than writing it as a finding. Here it is kept and marked, and it never carries clinical weight." }
+ ],
+
+ "consentStates": [
+  { "id": "granted", "label": "Consent stands", "why": "The person agreed to this reading being taken and recorded, and has not withdrawn." },
+  { "id": "withdrawn", "label": "Consent withdrawn", "why": "Nothing is ingested. packages/catalog/consent.json: withdrawal stops new readings immediately, and readings already in the record stay there." }
+ ],
+
+ "intendedUses": [
+  { "id": "clinical", "label": "For the clinical record", "why": "The capturer means the reading to be acted on. It is refused where it cannot carry that weight, rather than quietly filed without it." },
+  { "id": "guidance", "label": "To guide a conversation", "why": "The capturer asks for nothing to be done with it. It is kept, marked guidance only, and published on no event." }
+ ],
+
+ "metrics": {
+  "from": "packages/catalog/records.json#observations.measures",
+  "unitField": "unit",
+  "why": "A reading's measure and the unit it must be in come from the record contract, so a unit is never typed twice. A measure the record contract does not hold is not ingested. Devices reads the unit and nothing else from that list: the reference ranges beside it are the record's, and whether a reading is concerning is clinical content only the clinical governance board decides."
+ },
+
+ "clinicalWeight": {
+  "statement": "A reading carries clinical weight only when its device's class carries weight, its source is not simulated, its sample's quality carries weight, its device was not recalled when it was taken, and the capturer meant it for the clinical record.",
+  "requires": [
+   { "id": "class-carries-weight", "why": "A consumer device never carries it, and a simulator never does." },
+   { "id": "source-not-simulated", "why": "A simulated reading is shown as simulated and never acted on." },
+   { "id": "quality-carries-weight", "why": "A poor sample is kept and marked." },
+   { "id": "not-recalled-when-taken", "why": "A reading taken after a recall took effect is marked, whenever it arrives." },
+   { "id": "meant-for-the-record", "why": "A reading taken to guide a conversation asks for nothing to be done." }
+  ],
+  "publishes": "reading.ingested@1",
+  "neverPublishes": "A reading without clinical weight is kept with its marks and published on no event. Every subscriber of reading.ingested@1 raises, reviews or escalates, and the event carries no field that would let one of them tell a consumer reading from a certified one, so the only way to be sure none of them acts on a reading without weight is never to put that reading on the bus.",
+  "staleIsAnnouncedFor": "certified",
+  "staleWhy": "device.stale@1 justifies an alert to Core. A consumer or simulated device going quiet is shown on the kit screen and announced to nobody, because an alert about a device that carries no clinical weight is an alert raised by one."
+ },
+
+ "marks": [
+  { "id": "recalled", "label": "From a recalled device", "sentence": "Taken after this device's recall took effect. It is kept, unchanged, and it carries no clinical weight." },
+  { "id": "calibration-overdue", "label": "Calibration overdue", "sentence": "Taken while this instrument's calibration had run out. It is kept and carries its weight, with this caveat beside it wherever it is read." },
+  { "id": "poor-sample", "label": "Poor sample", "sentence": "The instrument reported a poor sample. It is kept, and it carries no clinical weight." },
+  { "id": "simulated", "label": "Simulated", "sentence": "Produced by a simulated instrument. Nothing was measured, and it carries no clinical weight." },
+  { "id": "consumer-device", "label": "Own device", "sentence": "From a device MyThuso did not issue. It guides a conversation and carries no clinical weight." },
+  { "id": "guidance-only", "label": "Guidance only", "sentence": "Taken to guide a conversation. Nothing is done because of it." }
+ ],
+ "marksMean": "A mark is a row added beside a reading, naming why the reading carries less than it would have. It is never removed, and nothing about the reading is changed, hidden or deleted to make room for it: the reading's references, times, source and quality stay exactly as they were asked, and the Observation in the Health Passport is not touched. A reading with a mark that takes its weight away is shown with that mark wherever it is shown, and it is never published afterwards. A reading that was already published before a recall took its weight away is not unpublished, because an event cannot be taken back; device.recalled@1 is the announcement, and the mark in the registry is what an engine reads.",
+
+ "recall": {
+  "reasons": [
+   { "id": "manufacturer-notice", "label": "The manufacturer recalled it" },
+   { "id": "regulator-notice", "label": "The regulator recalled it" },
+   { "id": "calibration-failed", "label": "It failed calibration" },
+   { "id": "damaged", "label": "It was damaged" }
+  ],
+  "effectiveFrom": "A recall names the moment from which the device is not trusted, which may be before the day it is recorded: a manufacturer's notice about a batch reaches back to when the fault began. Every reading from the device taken at or after that moment is marked recalled; a reading taken before it is not.",
+  "neverUndone": "A recall is made once and never taken back. A device that turns out to be sound is registered again under a new reference, so the marks on the old one stay true about what was known."
+ },
+
+ "health": {
+  "states": [
+   { "id": "reporting", "label": "Reporting" },
+   { "id": "stale", "label": "Stale" },
+   { "id": "recalled", "label": "Recalled" },
+   { "id": "never-synced", "label": "Not synced yet" }
+  ],
+  "calibration": [
+   { "id": "in-date", "label": "Calibration in date" },
+   { "id": "due", "label": "Calibration due" },
+   { "id": "overdue", "label": "Calibration overdue" },
+   { "id": "not-tracked", "label": "Calibration not tracked" }
+  ],
+  "_calibrationNote": "How often each kind of instrument is calibrated is packages/catalog/capture.json's calibrateEveryMonths. How early a calibration shows as due is the setting calibration-due-days below. A consumer device's calibration is not MyThuso's to track, and it says so rather than showing a date.",
+  "staleMeans": "A device is stale when it has sent nothing for longer than the stale interval in force. Staleness is worked out when a device's health is read, never stored on a reading, and a change to the interval never marks, unmarks or moves a reading.",
+  "calibrationNeverRefuses": "An overdue calibration marks the readings taken while it lasts and never refuses one. packages/catalog/capture.json: a nurse in a home with one instrument still needs the number, with the caveat beside it."
+ },
+
+ "wearableLinks": {
+  "platforms": [
+   { "id": "apple-health", "name": "Apple Health", "phone": "iPhone" },
+   { "id": "health-connect", "name": "Health Connect", "phone": "Android" }
+  ],
+  "consentPurpose": "wearable-readings",
+  "scopeFrom": "packages/catalog/records.json#observations.measures",
+  "state": { "id": "requested-not-connected", "label": "Requested · not connected" },
+  "notConnected": "Not connected. Your request is recorded with the readings you agreed to share, and nothing is read from your phone.",
+  "why": "Nothing is read until a data protection impact assessment covering health data from another company's store is signed, and a clinical reviewer has read what this consent asks for. Neither has happened.",
+  "notInThisBuild": "No HealthKit or Health Connect library, entitlement or permission prompt is in this build. Adding one changes how the app is signed and what the phone asks you, and it waits for the two decisions above.",
+  "withdraw": "Withdraw the request",
+  "withdrawn": "Withdrawn. Nothing was ever read through this link, and nothing from your own devices is taken in from now on.",
+  "request": "Record the request",
+  "scopeHeading": "What you would share",
+  "consentHeading": "What you would be agreeing to",
+  "heading": "Link {platform}"
+ },
+
+ "kits": {
+  "states": [
+   { "id": "issued", "label": "Issued" },
+   { "id": "returned", "label": "Returned" },
+   { "id": "lost", "label": "Reported lost" }
+  ],
+  "lossReasons": [
+   { "id": "stolen", "label": "Stolen" },
+   { "id": "left-behind", "label": "Left behind and not found" },
+   { "id": "destroyed", "label": "Destroyed" }
+  ],
+  "depositRecorded": "The deposit in force is recorded against the kit when it is issued. No money is taken, held or returned in this build.",
+  "lossNeverCharges": "A loss is recorded in the kit's audit and charges nobody. What a lost kit costs, and who pays it, is Money's to decide in Wave 5.",
+  "auditMeans": "Every issue, return and loss is a row added to the kit's audit with who, when and why. Nothing in it is edited or removed."
+ },
+
+ "screens": {
+  "nurse": {
+   "heading": "Your kit's instruments",
+   "intro": "Each instrument in your kit: whether it is reporting, whether its calibration is in date, and whether it has been recalled. Every figure is worked out from the registry and the settings in force.",
+   "lastSync": "Last synced {when}",
+   "neverSynced": "Not synced since it was registered",
+   "staleSince": "Nothing received for longer than {interval}, the interval in force",
+   "calibrationDue": "Calibration due on {on}",
+   "calibrationOverdue": "Calibration ran out on {on}",
+   "calibrationInDate": "Calibrated until {on}",
+   "calibrationNotTracked": "Calibration is not MyThuso's to track on this device",
+   "battery": "Battery {percent}%",
+   "batteryUnknown": "Battery not reported",
+   "firmware": "Firmware {version}",
+   "recalledFrom": "Recalled from {when}: {reason}",
+   "doNotUse": "Do not take readings with it for the record. Any taken since the recall are kept and marked.",
+   "readingSource": "Source",
+   "readingQuality": "Sample",
+   "readingWeight": "Clinical weight",
+   "carries": "Carries clinical weight",
+   "carriesNot": "Carries no clinical weight"
+  },
+  "ops": {
+   "heading": "Device registry",
+   "intro": "Every registered device, its health and its recall. A recall marks the readings taken after it took effect and deletes none.",
+   "recall": "Recall this device",
+   "reason": "Why",
+   "effectiveFrom": "Not trusted from",
+   "confirm": "Record the recall",
+   "cancel": "Not now",
+   "recorded": "Recalled from {when}. Readings from it taken since then, marked and kept: {count}. None was deleted.",
+   "marksMean": "What a mark means",
+   "readingsHeading": "Readings from this device"
+  },
+  "preview": "Every device, reading and kit here is fictional and held in this tab's memory. No instrument, phone or watch is contacted."
+ },
+
+ "settings": {
+  "_note": "Three open policy numbers the Devices lead proposed on 15 September 2026 under the founder's instruction that open questions become admin settings: how long a device may be silent before it is stale, how early a calibration shows as due, and the deposit recorded against a kit. None is decided and none is clinical content; the stale interval is in the clinical review pack because Sentinel will read it in Wave 5. An admin changes them on the Configuration tab, and a change reaches only what is worked out after it.",
+  "heading": "Device settings",
+  "intro": "How long a device may send nothing before it is stale, how early a calibration shows as due, and the deposit recorded when a kit is issued.",
+  "items": [
+   {
+    "key": "stale-after-minutes",
+    "label": "Stale after",
+    "help": "How long may a registered device send nothing before it is shown as stale, and a certified one announced?",
+    "owner": "devices",
+    "type": "minutes",
+    "unit": "minutes",
+    "default": { "value": 1440, "decidedBy": null, "proposedBy": "Devices lead (Wave 4)", "proposedBecause": "A day. A kit instrument syncs at every visit and a nurse visits most working days, so a day without a sync is the first silence worth a look, and anything shorter would announce every instrument left in a bag overnight." },
+    "bounds": {
+     "lowest": { "value": 60, "decidedBy": null, "proposedBy": "Devices lead (Wave 4)", "proposedBecause": "An hour. Shorter than that, a device between two readings in one visit is announced as silent, and the announcements stop meaning anything." },
+     "highest": { "value": 10080, "decidedBy": null, "proposedBy": "Devices lead (Wave 4)", "proposedBecause": "A week. A device silent for longer than that and still shown as reporting is a device nobody is watching." }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies the next time a device's health is worked out. A device already announced as stale keeps the announcement it was made under, and no reading is marked, unmarked or moved by a change.",
+    "guardrail": {
+     "statement": "A silent device is always shown as stale within a week, and never the moment it pauses.",
+     "forbids": [0, 59, 10081]
+    }
+   },
+   {
+    "key": "calibration-due-days",
+    "label": "Calibration shown as due",
+    "help": "How many days before an instrument's calibration runs out is it shown as due?",
+    "owner": "devices",
+    "type": "count",
+    "unit": "days",
+    "positive": true,
+    "default": { "value": 30, "decidedBy": null, "proposedBy": "Devices lead (Wave 4)", "proposedBecause": "A month: long enough to book a recalibration with the supplier before the instrument runs out, and short enough that due still means this month." },
+    "bounds": {
+     "lowest": { "value": 7, "decidedBy": null, "proposedBy": "Devices lead (Wave 4)", "proposedBecause": "A week is the least notice a supplier can be asked for. Less, and due and overdue arrive together." },
+     "highest": { "value": 90, "decidedBy": null, "proposedBy": "Devices lead (Wave 4)", "proposedBecause": "A quarter. Shown as due for longer than that, the warning is on every instrument in the kit and nobody reads it." }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to how a calibration is shown from now on. A reading keeps the calibration state it was taken under, and a change never marks, unmarks or refuses one.",
+    "guardrail": {
+     "statement": "A calibration is always shown as due before it runs out, and an overdue one never refuses a reading.",
+     "forbids": [0, 6, 91]
+    }
+   },
+   {
+    "key": "kit-deposit",
+    "label": "Kit deposit",
+    "help": "What deposit is recorded against a kit when it is issued?",
+    "owner": "devices",
+    "type": "moneyCents",
+    "unit": "cents",
+    "default": { "value": 50000, "decidedBy": null, "proposedBy": "Devices lead (Wave 4)", "proposedBecause": "R500: enough that a kit is not treated as nobody's, and small enough that a nurse in her first weeks can put it down. No document gives a kit deposit; it is recorded against a kit and taken from nobody in this build." },
+    "bounds": {
+     "lowest": { "value": 10000, "decidedBy": null, "proposedBy": "Devices lead (Wave 4)", "proposedBecause": "R100. Below it a deposit records nothing anybody would notice losing." },
+     "highest": { "value": 400000, "decidedBy": null, "proposedBy": "Devices lead (Wave 4)", "proposedBecause": "R4,000, half of what business-model.json's equipment.nurseKit says a nurse's kit costs. A deposit is never the price of the kit." },
+     "notCitedBecause": "No document gives a kit deposit or a range for one. The Full Scope's Engine 9 says a kit is issued against a deposit and names no amount."
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to kits issued after it. A kit already issued keeps the deposit recorded against it. No money is taken, held or charged in this build.",
+    "guardrail": {
+     "statement": "A deposit is never nought and never more than half a kit's cost, and none is taken in this build.",
+     "forbids": [0, 9999, 400001]
+    }
+   }
+  ],
+  "defaults": {
+   "version": 1,
+   "changelog": [
+    {
+     "version": 1,
+     "on": "2026-09-15",
+     "by": "Devices lead (Wave 4), proposed and not decided",
+     "changed": [
+      { "setting": "stale-after-minutes", "from": null, "to": 1440 },
+      { "setting": "calibration-due-days", "from": null, "to": 30 },
+      { "setting": "kit-deposit", "from": null, "to": 50000 }
+     ],
+     "why": "The first proposals, so the kit screens, the registry and the engine could be built and tested against something an admin can change."
+    }
+   ]
+  }
+ }
+}

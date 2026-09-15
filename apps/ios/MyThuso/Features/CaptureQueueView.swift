@@ -239,6 +239,7 @@ struct EntryCard: View {
             Text("\(entry.id) · \(entry.visitReference) · \(entry.patient)")
                 .font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
             ReadingRow(reading: entry.reading)
+            DeviceSampleTags(reading: entry.reading)
             FieldRow(label: "Captured by", value: "\(entry.capturedByName) · \(entry.capturedByReference)")
             if let countersigner = entry.countersignedBy, let reference = entry.countersignedByReference {
                 FieldRow(label: "Filed on the authority of", value: "\(countersigner) · \(reference)")

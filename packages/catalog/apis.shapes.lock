@@ -99,3 +99,6 @@ POST /v1/record/share-link-opens@1 34b58f4396aa15cb
 POST /export@2 d03669c225e5820f
 GET /v1/record/settings@1 46aa720414e965c3
 POST /v1/record/setting-changes@1 a1eb322e6bd6c16a
+GET /v1/devices/settings@1 d36af35b57f71c3d
+POST /v1/devices/setting-changes@1 0021ed001782a1fc
+POST /v1/devices/setting-changes@2 665edcfd8bcf6edb

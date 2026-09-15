@@ -52,7 +52,8 @@ const CLINICAL_SETTINGS = {
  'access:handover-answered-by': 'It decides which registered role answers when a patient\'s conversation with Gilbert is handed over, and a handover exists because the patient said something about their health.',
  'access:handover-hours': 'It decides the hours in which a handed-over conversation reaches that role, and so the hours in which it reaches nobody.',
  'money:priority-sos-wording': 'It tells a family what a paid plan changes about how an emergency is answered. Whether the words keep urgency ahead of payment is a triage question, not only a commercial one.',
- 'trust:complaint-review-hours': 'A complaint may be about the care a patient was given, and this decides how long it waits before anybody reads it. The Full Scope\'s Verify engine names the window (Engine 6).'
+ 'trust:complaint-review-hours': 'A complaint may be about the care a patient was given, and this decides how long it waits before anybody reads it. The Full Scope\'s Verify engine names the window (Engine 6).',
+ 'devices:stale-after-minutes': 'It decides how long a certified instrument may send nothing before it is shown as stale and announced, and Sentinel will read device silence against a patient\'s baseline in Wave 5. How long a patient\'s monitoring may go quiet unnoticed is a clinical question.'
 };
 
 /* Settings that were looked at and are not clinical, each with why, so their absence is a decision
@@ -73,7 +74,9 @@ const NOT_CLINICAL_SETTINGS = {
  'trust:door-code-lifetime': 'How long a door code works. It decides how a patient checks who is at her door, not what is done once the door is open.',
  'trust:door-code-attempts': 'How many wrong door codes a patient may type before the desk is told. A safety-desk threshold, not a clinical one.',
  'trust:settings-changed-by': 'Who may change the Verify in service settings. An authority question, not a clinical one.',
- 'record:*': 'How long a share link or an emergency card lasts, how often each opens and what a link opens by default decide who may read a record and for how long. That is a privacy question for the Information Officer and the DPIA, not a clinical one, and none of them decides what is done to a patient.'
+ 'record:*': 'How long a share link or an emergency card lasts, how often each opens and what a link opens by default decide who may read a record and for how long. That is a privacy question for the Information Officer and the DPIA, not a clinical one, and none of them decides what is done to a patient.',
+ 'devices:calibration-due-days': 'How early a calibration is shown as due. An overdue calibration marks every reading taken while it lasts whatever this says, and the cadence itself is packages/catalog/capture.json\'s.',
+ 'devices:kit-deposit': 'The deposit recorded against a kit. A commercial number, recorded and taken from nobody in this build.'
 };
 
 /* Proposals outside a settings block (decidedBy: null), classified by where they sit. */

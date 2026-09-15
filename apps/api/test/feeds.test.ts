@@ -135,6 +135,10 @@ describe('what must never arrive', () => {
   });
   test('every feed refuses every one of its own forbidden fields', async () => {
     for (const feed of FEEDS) {
+      /* Swept between doors for the reason it is swept between tests: every request here is one loopback caller,
+         and the doors' forbidden fields together outgrew the caller limit once Wave 4's engines each added their
+         own doors. The limit is still asserted at the foot of the file; this loop is about the refusals. */
+      store.sweep('write_attempts', Date.now() + 1);
       for (const never of feed.neverAccepts) {
         const response = await post(`/feeds/${feed.id}`, { ...wellFormed(feed), [never.field]: 'x' });
         const body = await response.json() as { error: string; forbidden: { field: string } };

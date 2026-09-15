@@ -37,6 +37,7 @@ import { emitClinicalReviewPack } from './emit-clinical-review-pack.mjs';
 import { emitMedicines } from './emit-medicines.mjs';
 import { emitVerifyInService } from './emit-verify-in-service.mjs';
 import { emitPassportSharing } from './emit-passport-sharing.mjs';
+import { emitDevices } from './emit-devices.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -904,11 +905,17 @@ const generated = [
     consent.json, so a change to either regenerates it as surely as a change to its own contract does. */
  ...['passport-sharing.json', 'passport-gateway.json', 'consent.json', 'records.json']
   .map(file => ({ source: `packages/catalog/${file}`, command: 'npm run passport-sharing', files: emitPassportSharing() })),
+ /* DevicesData carries devices.json's kinds, marks, words and setting defaults, the refusals apis/devices.json
+    declares, each measure's unit from records.json and the wearable consent version from consent.json. */
+ { source: 'packages/catalog/devices.json', command: 'npm run devices', files: emitDevices() },
+ { source: 'packages/catalog/apis/devices.json', command: 'npm run devices', files: emitDevices() },
+ { source: 'packages/catalog/records.json', command: 'npm run devices', files: emitDevices() },
+ { source: 'packages/catalog/consent.json', command: 'npm run devices', files: emitDevices() },
  /* The clinical review pack reads every contract a clinician has to review, so a change to any of them
     without regenerating is a failed build rather than a pack somebody signs against values no longer in force. */
  ...['settings.json', 'care.json', 'booking.json', 'field-safety.json', 'closed-loop.json', 'money.json', 'protocols.json',
   'gilbert-emergency-terms.json', 'assistant.json', 'vetting.json', 'vetting-proposals.json', 'records.json', 'sos.json',
-  'locales.json', 'events.json', 'apis/care.json', 'apis/access.json', 'medicines.json', 'apis/medicines.json', 'verify-in-service.json']
+  'locales.json', 'events.json', 'apis/care.json', 'apis/access.json', 'medicines.json', 'apis/medicines.json', 'verify-in-service.json', 'devices.json']
   .map(file => ({ source: `packages/catalog/${file}`, command: 'npm run review-pack', files: emitClinicalReviewPack() }))
 ];
 for(const {source,command,files} of generated) {
@@ -9411,4 +9418,191 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  if (qrLibrary) throw new Error(`A manifest declares "${qrLibrary[0]}". packages/catalog/open-source.json and §15D forbid adopting a component before its reviews; the web and Android draw the card's code with the encoder written here, held to codes an independent decoder read.`);
 
  console.log(`Record P1: ${sharing.links.kinds.length} link kinds, each ending by the ${ceiling}-day grant ceiling read from consent.json; ${payerIds.length} payers and every aggregate grant role refused a link, before any grant is looked up; the emergency card opens ${openedBy} alone on three platforms; ${linkEvents.length} live link events carry no secret, address or clinical field; ${Object.keys(readsTheSetting).length} P1 files type no lifetime or count; 4 P1 routes refuse in the gateway's sentences; the screens are off the first load; and ${vectorsHeld} QR codes the web draws are the ones Vision read back.`);
+}
+
+/* ---- Devices, Wave 4: Thuso Kit's registry, readings, wearable links and kits ----------------------------
+
+   Seven things this wave promises, each held here rather than trusted, and each proven to fire by breaking the
+   source it reads (scratchpad/wave4/devices-proofs.mjs):
+
+     1. A consumer device never carries clinical weight, and never triggers dispatch or an alert. The contract
+        declares it, the domain's one answer reads the declaration, the engine publishes a reading only on that
+        answer and calls no other engine, a stale consumer device is announced to nobody, and both phones ask
+        the same flags.
+     2. No reading is taken in without its source and quality.
+     3. Nothing is ingested after consent is withdrawn.
+     4. A simulator reading is never labelled real, and every screen that shows a reading shows its source.
+     5. Neither native app carries a HealthKit or Health Connect entitlement, permission, dependency or import.
+     6. No event Devices publishes, and no column in its store, can carry a reading's value.
+     7. No screen types a stale interval: the web, iOS and Android read the setting in force or its generated
+        default.
+
+   The domain is imported and run, not only read, so each refusal is checked by what the arithmetic answers. */
+{
+ const devicesContractFile = 'packages/catalog/devices.json';
+ const devicesContract = JSON.parse(read(devicesContractFile));
+ const devicesApi = JSON.parse(read('packages/catalog/apis/devices.json'));
+ const devicesEvents = collectEvents().events.filter(e => e.owner === 'devices');
+ const devicesEngineFile = 'packages/engines/src/devices/engine.ts';
+ const devicesEngineSource = read(devicesEngineFile);
+ const readingsFile = 'packages/engines/src/devices/domain/readings.ts';
+ const readingsSource = read(readingsFile);
+ const registrySource = read('packages/engines/src/devices/domain/registry.ts');
+ const bodyOf = (source, signature) => {
+  const at = source.indexOf(signature);
+  if (at < 0) return '';
+  /* The body's brace ends its line; a brace inside a parameter or return type does not. An arrow with no body
+     is read to the end of its statement. */
+  const open = source.indexOf('{\n', at);
+  const statementEnd = source.indexOf(';\n', at);
+  if (open < 0 || (statementEnd >= 0 && statementEnd < open)) return source.slice(at, statementEnd < 0 ? undefined : statementEnd);
+  let depth = 0;
+  for (let i = open; i < source.length; i++) {
+   if (source[i] === '{') depth++;
+   if (source[i] === '}' && --depth === 0) return source.slice(open, i + 1);
+  }
+  return source.slice(open);
+ };
+ const { refusal: devicesRefusal } = await import('../packages/engines/src/devices/domain/contract.ts');
+ const { ask: askReading, carriesWeight: weightOf, link: linkReading } = await import('../packages/engines/src/devices/domain/readings.ts');
+ const { register: registerDevice, staleToAnnounce: announcesStale } = await import('../packages/engines/src/devices/domain/registry.ts');
+ const { devicesByDefault } = await import('../packages/engines/src/devices/domain/settings.ts');
+ const REGISTERED_AT = Date.parse('2026-09-15T09:00:00+02:00');
+ const deviceOfClass = (deviceClass, instrumentKind) => {
+  const made = registerDevice({ deviceRef: `proof-${deviceClass}`, serial: `PROOF-${deviceClass}`, model: 'Proof', firmware: '1', deviceClass, instrumentKind, calibratedOn: '2026-09-01' }, false, REGISTERED_AT);
+  if (!made.ok) throw new Error(`packages/engines/src/devices/domain/registry.ts refused to register a ${deviceClass} device for the build's own checks: ${made.refusal.statement}`);
+  return made.value;
+ };
+ const askedAs = (device, fields, withdrawn = false) => askReading({
+  readingRef: 'proof-reading', subjectRef: 'subject-proof', deviceRef: device.deviceRef, metric: 'pulse', unit: 'bpm', takenAt: new Date(REGISTERED_AT).toISOString(),
+  source: 'kit-instrument', quality: 'good', consentState: 'granted', intendedUse: 'clinical', simulated: false, askedByRole: 'nurse', askedByRef: 'party-proof', ...fields
+ }, { device, withdrawnForSubject: withdrawn, now: REGISTERED_AT, settings: devicesByDefault });
+ const refusedAs = (answer, id, promise) => {
+  if (answer.ok || answer.refusal.id !== id) throw new Error(`${promise} packages/engines/src/devices/domain/readings.ts answered ${answer.ok ? 'with an accepted reading' : `"${answer.refusal.id}"`} where it must refuse with "${id}": "${devicesRefusal(id).statement}"`);
+ };
+
+ /* 1. A consumer device never carries clinical weight, and never triggers dispatch or an alert. */
+ const consumerPromise = 'A consumer device never carries clinical weight and never triggers dispatch or an alert (packages/catalog/devices.json clinicalWeight).';
+ const classSpec = id => devicesContract.deviceClasses.find(c => c.id === id);
+ if (classSpec('consumer')?.carriesClinicalWeight !== false || classSpec('simulator')?.carriesClinicalWeight !== false) throw new Error(`${devicesContractFile} declares a consumer or simulated device class with clinical weight. ${consumerPromise}`);
+ if (devicesContract.clinicalWeight?.publishes !== 'reading.ingested@1' || devicesContract.clinicalWeight?.staleIsAnnouncedFor !== 'certified') throw new Error(`${devicesContractFile} clinicalWeight no longer says a reading is published only on reading.ingested@1, and staleness announced only for a certified device. ${consumerPromise}`);
+ const weightBody = bodyOf(readingsSource, 'export function carriesWeight(');
+ if (!weightBody.includes('carriesClinicalWeight') || /['"](consumer|certified|simulator)['"]/.test(weightBody)) throw new Error(`${readingsFile} carriesWeight() no longer reads carriesClinicalWeight from the contract, or names a device class itself. The answer to whether a reading carries clinical weight is the contract's declaration, read in one place. ${consumerPromise}`);
+ for (const source of devicesContract.sources.map(s => s.id)) for (const quality of devicesContract.qualities.map(q => q.id)) for (const intendedUse of devicesContract.intendedUses.map(u => u.id)) {
+  if (weightOf({ deviceClass: 'consumer', source, quality, intendedUse, marks: [] })) throw new Error(`${readingsFile} gives a consumer reading clinical weight from ${source}, a ${quality} sample, meant for ${intendedUse}. ${consumerPromise}`);
+ }
+ const consumer = deviceOfClass('consumer');
+ refusedAs(askedAs(consumer, { source: 'own-device' }), 'consumer-device-clinical-weight', consumerPromise);
+ const guidance = askedAs(consumer, { source: 'own-device', intendedUse: 'guidance' });
+ if (!guidance.ok) throw new Error(`${readingsFile} refuses a consumer reading taken to guide a conversation ("${guidance.refusal.id}"). It is kept, marked and never published. ${consumerPromise}`);
+ const guidanceLinked = linkReading(guidance.value, { observationRef: 'Observation/proof', byRef: 'party-proof', withdrawnForSubject: false }, REGISTERED_AT);
+ if (!guidanceLinked.ok || guidanceLinked.value.publish !== false) throw new Error(`${readingsFile} would publish a consumer reading when it is linked to the record. ${consumerPromise}`);
+ if (!/const publish = carriesWeight\(reading\);/.test(bodyOf(readingsSource, 'export function link('))) throw new Error(`${readingsFile} link() no longer decides whether to publish by carriesWeight(). ${consumerPromise}`);
+ if ((devicesEngineSource.match(/ctx\.publish\('reading\.ingested@1'/g) ?? []).length !== 1 || !/if \(publish\) \{\s*ctx\.publish\('reading\.ingested@1'/.test(devicesEngineSource)) throw new Error(`${devicesEngineFile} publishes reading.ingested@1 other than once, behind the answer link() gives. ${consumerPromise}`);
+ if (/\bctx\.call\(|\/v1\/(core\/alerts|safety\/sentinel-deviations|movement|care\/offers)|alert\.raised|sentinel\.rung_raised/.test(devicesEngineSource)) throw new Error(`${devicesEngineFile} calls another engine or names an alert or dispatch route. Devices raises nothing in this wave; Sentinel reads what it publishes in Wave 5. ${consumerPromise}`);
+ const staleConsumer = { ...consumer, lastSyncAt: REGISTERED_AT - 30 * 24 * 60 * 60_000 };
+ if (announcesStale(staleConsumer, REGISTERED_AT, devicesByDefault.staleAfterMinutes, null) || !/deviceClass === 'certified'/.test(bodyOf(registrySource, 'export const staleToAnnounce'))) throw new Error(`packages/engines/src/devices/domain/registry.ts would announce a consumer device as stale. device.stale@1 justifies an alert to Core. ${consumerPromise}`);
+ for (const [file, flagRead] of [['apps/ios/MyThuso/Models/Devices.swift', 'carriesClinicalWeight'], ['apps/android/app/src/main/java/za/co/mythuso/model/Devices.kt', 'carriesClinicalWeight']]) {
+  if (!existsSync(file)) continue;
+  const native = read(file);
+  /* From the signature to the blank line that ends it: a Kotlin expression body has no brace to count. */
+  const nativeAt = native.indexOf(file.endsWith('.swift') ? 'func carriesWeight(' : 'fun carriesWeight(');
+  const nativeBody = nativeAt < 0 ? '' : native.slice(nativeAt, native.indexOf('\n\n', nativeAt) < 0 ? undefined : native.indexOf('\n\n', nativeAt));
+  if (!nativeBody || !nativeBody.includes(flagRead) || /"(consumer|certified|simulator)"/.test(nativeBody) || !nativeBody.includes('"recalled"') || !nativeBody.includes('"clinical"')) throw new Error(`${file} carriesWeight() does not ask the generated flags, the recalled mark and what the reading was meant for, or names a device class itself. The phone must answer as packages/engines/src/devices/domain/readings.ts does. ${consumerPromise}`);
+ }
+
+ /* 2. No reading without its source and quality. */
+ const sourcePromise = 'No reading is taken in without its source and quality (§5.5).';
+ const certified = deviceOfClass('certified', 'pulse-oximeter');
+ refusedAs(askedAs(certified, { source: undefined }), 'reading-without-source-and-quality', sourcePromise);
+ refusedAs(askedAs(certified, { quality: undefined }), 'reading-without-source-and-quality', sourcePromise);
+ refusedAs(askedAs(certified, { quality: 'unknown' }), 'reading-without-source-and-quality', sourcePromise);
+ const readingsRoute = devicesApi.routes.find(r => r.method === 'POST' && r.path === '/v1/devices/readings' && r.version === 2);
+ if (!readingsRoute || readingsRoute.withdrawn || !['source', 'quality'].every(name => readingsRoute.request.some(f => f.field === name)) || !(devicesApi.refusals.find(r => r.id === 'reading-without-source-and-quality')?.answeredBy ?? []).includes('POST /v1/devices/readings@2')) throw new Error(`packages/catalog/apis/devices.json no longer declares POST /v1/devices/readings@2 with a source and a quality, answering reading-without-source-and-quality. ${sourcePromise}`);
+
+ /* 3. Nothing ingested after consent is withdrawn. */
+ const withdrawalPromise = 'Nothing is ingested after consent is withdrawn (packages/catalog/consent.json wearable-readings).';
+ refusedAs(askedAs(certified, { consentState: 'withdrawn' }), 'ingestion-after-withdrawal', withdrawalPromise);
+ refusedAs(askedAs(consumer, { source: 'own-device', intendedUse: 'guidance' }, true), 'ingestion-after-withdrawal', withdrawalPromise);
+ if (guidance.ok) {
+  const late = linkReading(guidance.value, { observationRef: 'Observation/late', byRef: 'party-proof', withdrawnForSubject: true }, REGISTERED_AT);
+  if (late.ok) throw new Error(`${readingsFile} links a consumer reading to the record after its patient withdrew. ${withdrawalPromise}`);
+ }
+
+ /* 4. A simulator reading is never labelled real, and every screen that shows a reading shows its source. */
+ const simulatorPromise = 'A simulator reading is labelled and never presented as real (§5.5).';
+ if (devicesContract.sources.find(s => s.id === 'simulator')?.simulated !== true || devicesContract.sources.some(s => s.id !== 'simulator' && s.simulated !== false)) throw new Error(`${devicesContractFile} no longer marks the simulator, and only the simulator, as simulated. ${simulatorPromise}`);
+ const simulator = deviceOfClass('simulator', 'thermometer');
+ refusedAs(askedAs(simulator, { source: 'simulator', simulated: false, intendedUse: 'guidance', metric: 'temperature', unit: '°C' }), 'simulator-as-real', simulatorPromise);
+ refusedAs(askedAs(simulator, { source: 'simulator', simulated: true, metric: 'temperature', unit: '°C' }), 'simulator-as-real', simulatorPromise);
+ refusedAs(askedAs(certified, { source: 'simulator', simulated: false }), 'simulator-as-real', simulatorPromise);
+ const devicesScreen = read('apps/web/src/features/Devices.tsx');
+ if (!/sourceOf\(reading\.source\)\?\.label/.test(bodyOf(devicesScreen, 'export function ReadingFacts(')) || !/nurse\.readingSource/.test(bodyOf(devicesScreen, 'export function CaptureSource('))) throw new Error(`apps/web/src/features/Devices.tsx shows a reading without its source. ${simulatorPromise}`);
+
+ /* 5. No HealthKit or Health Connect, on either phone. */
+ const platformPromise = 'Importing health data from Apple Health or Health Connect waits on a signed DPIA and a consent scope a reviewer has read, and a HealthKit entitlement changes signing (packages/catalog/devices.json wearableLinks.notInThisBuild).';
+ const HEALTH_PLATFORM = /\bimport\s+HealthKit\b|\bHK(HealthStore|QuantityType|ObjectType|SampleType)\b|com\.apple\.developer\.healthkit|NSHealth(Share|Update|RequiredReadAuthorizationTypeIdentifiers|ClinicalHealthRecords)\w*|androidx\.health|android\.permission\.health\.|HealthConnectClient|com\.google\.android\.apps\.healthdata|health\.connect/i;
+ /* Walked here rather than with files(), which descends into Gradle's build output: what either app declares is
+    in its sources, manifests and build scripts, and a build directory is thousands of files none of which ship
+    a decision anybody made. */
+ const SKIP_NATIVE = new Set(['build', '.gradle', '.cxx', '.idea', 'DerivedData', 'xcuserdata', 'node_modules']);
+ const sourcesIn = dir => existsSync(dir) ? readdirSync(dir, { withFileTypes: true }).flatMap(e => SKIP_NATIVE.has(e.name) ? [] : e.isDirectory() ? sourcesIn(join(dir, e.name)) : [join(dir, e.name)]) : [];
+ const nativeHealthFiles = [
+  ...sourcesIn('apps/ios').filter(f => /\.(swift|pbxproj|plist|entitlements)$/.test(f)),
+  ...sourcesIn('apps/android').filter(f => /\.(kt|kts|xml|gradle|toml|properties)$/.test(f))
+ ];
+ for (const f of nativeHealthFiles) {
+  const found = read(f).match(HEALTH_PLATFORM);
+  if (found) throw new Error(`${f} names "${found[0]}". ${platformPromise}`);
+ }
+ const wearablesCapability = capabilities.capabilities.find(c => c.id === 'wearables');
+ if (!wearablesCapability || wearablesCapability.connected !== false || wearablesCapability.state !== 'absent' || !(wearablesCapability.blockedBy ?? []).some(b => /HealthKit/.test(b)) || (wearablesCapability.requiresPermissions ?? []).length) throw new Error(`packages/catalog/capabilities.json has lost the wearables capability, its absent state, the HealthKit condition among what blocks it, or has started naming a permission for it. ${platformPromise}`);
+ const { LINK_STATE } = await import('../packages/engines/src/devices/domain/links.ts');
+ if (LINK_STATE !== devicesContract.wearableLinks.state.id || devicesContract.wearableLinks.state.id !== 'requested-not-connected') throw new Error(`packages/engines/src/devices/domain/links.ts answers a wearable link in a state other than the contract's requested-not-connected. ${platformPromise}`);
+ for (const door of ['device-reading', 'wearable-sync']) {
+  const feed = JSON.parse(read('packages/catalog/feeds.json')).feeds.find(f => f.id === door);
+  if (!feed || feed.operator?.becomesAnOperator !== true || feed.operator?.determined !== false || !devicesApi.doors.includes(door)) throw new Error(`packages/catalog/feeds.json has lost the ${door} door, its named operator or its undetermined section 72 question, or packages/catalog/apis/devices.json no longer links it. A vendor's readings arrive on a door that refuses every payload.`);
+ }
+
+ /* 6. No event Devices publishes, and no column in its store, can carry a reading's value. */
+ const valuePromise = 'A reading\'s value lives in the Health Passport, never on the bus or in the Devices store (packages/catalog/devices.json whereValuesLive).';
+ const valueWords = [...JSON.parse(read('packages/catalog/apis.json')).clinicalContent.words, ...JSON.parse(read('packages/catalog/records.json')).observations.measures.map(m => m.id), 'result', 'lastValue', 'measurement'];
+ const wordsOfName = name => name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+ for (const e of devicesEvents) {
+  for (const f of e.payload) {
+   const last = wordsOfName(f.field).at(-1);
+   if (f.type === 'number' || (!/(ref|refs|id|ids|code)$/i.test(f.field) && valueWords.some(w => wordsOfName(w).at(-1) === last))) throw new Error(`${e.type}@${e.version} carries "${f.field}". ${valuePromise}`);
+  }
+ }
+ const devicesColumns = [...devicesEngineSource.matchAll(/^ ' ([a-z_]+) (TEXT|INTEGER|REAL|BLOB|NUMERIC)/gm)].map(m => m[1]);
+ if (devicesColumns.length < 30) throw new Error(`${devicesEngineFile} no longer declares its store in the shape this check reads, so no column could be checked for a value.`);
+ for (const column of devicesColumns) {
+  if (/(^|_)(value|values|reading|readings|result|results|observation|measurement|systolic|diastolic|pulse|oxygen|glucose|temperature|respiratory)$/.test(column)) throw new Error(`${devicesEngineFile} has the column "${column}". ${valuePromise}`);
+ }
+ if (/\bREAL\b/.test(devicesEngineSource)) throw new Error(`${devicesEngineFile} declares a REAL column, which is where a measured number would be kept. ${valuePromise}`);
+ if (readingsRoute?.request.some(f => ['value', 'reading'].includes(f.field))) throw new Error(`POST /v1/devices/readings@2 takes a value. ${valuePromise}`);
+
+ /* 7. No screen types a stale interval, a calibration window or a deposit. */
+ const setting = key => devicesContract.settings.items.find(s => s.key === key);
+ const devicesNumbers = ['stale-after-minutes', 'calibration-due-days', 'kit-deposit'].flatMap(key => [setting(key).default.value, setting(key).bounds.lowest.value, setting(key).bounds.highest.value]).filter(v => v >= 100);
+ const typedNumber = new RegExp(`(?<![\\w.])(${devicesNumbers.join('|')})(?![\\w.])|\\b(stale\\w*|calibrationDue\\w*|kitDeposit\\w*)\\s*[:=]\\s*\\d|(?<![\\w.])24\\s*\\*\\s*60\\s*\\*\\s*60_?000\\b|hoursAgo\\s*>\\s*24\\b`, 'i');
+ const devicesScreens = [
+  'apps/web/src/features/Devices.tsx', 'apps/web/src/lib/devices.ts', 'apps/web/src/features/Kit.tsx', 'apps/web/src/features/Passport.tsx',
+  'apps/ios/MyThuso/Features/DevicesView.swift', 'apps/ios/MyThuso/Models/Devices.swift', 'apps/ios/MyThuso/Features/KitView.swift',
+  'apps/android/app/src/main/java/za/co/mythuso/ui/DevicesScreens.kt', 'apps/android/app/src/main/java/za/co/mythuso/model/Devices.kt', 'apps/android/app/src/main/java/za/co/mythuso/ui/CaptureScreens.kt'
+ ].filter(existsSync);
+ for (const file of devicesScreens) {
+  const typed = read(file).match(typedNumber);
+  if (typed) throw new Error(`${file} types "${typed[0]}". How long a device may be silent, when a calibration shows as due and the kit deposit are Devices settings, read in force on the web and from the generated DevicesData on a phone.`);
+ }
+ for (const [file, reads] of [['apps/web/src/features/Devices.tsx', 'staleIntervalText()'], ['apps/web/src/lib/devices.ts', 'devicesSettingsNow()'], ['apps/ios/MyThuso/Features/DevicesView.swift', 'staleAfterMinutes'], ['apps/android/app/src/main/java/za/co/mythuso/ui/DevicesScreens.kt', 'staleAfterMinutes']]) {
+  if (existsSync(file) && !read(file).includes(reads)) throw new Error(`${file} no longer reads ${reads}, so the stale interval it shows is not the setting.`);
+ }
+
+ /* And none of it on a patient's first load: the registry carries every engine's settings. */
+ for (const f of ['apps/web/src/main.tsx', 'apps/web/src/App.tsx', 'apps/web/src/shells/PatientShell.tsx', 'apps/web/src/features/Kit.tsx', 'apps/web/src/features/Passport.tsx']) {
+  if (existsSync(f) && /^import (?!type\b)[^;]*from '[^']*(features\/Devices|\.\/Devices|lib\/devices)'/m.test(read(f))) throw new Error(`${f} imports the Devices screens or registry statically. They carry the Devices contract and every engine's settings, and a patient on metered data must not download them on the first load.`);
+ }
+
+ console.log(`Devices: a consumer device carries no clinical weight across ${devicesContract.sources.length * devicesContract.qualities.length * devicesContract.intendedUses.length} combinations and raises nothing; source, quality, withdrawal and the simulator are refused by the domain's own answers; ${nativeHealthFiles.length} native files name no HealthKit or Health Connect; ${devicesEvents.length} Devices events and ${devicesColumns.length} store columns carry no value; ${devicesScreens.length} screens type no stale interval, calibration window or deposit.`);
 }
