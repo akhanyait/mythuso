@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import za.co.mythuso.model.CaptureState
 import za.co.mythuso.model.FramingData
 import za.co.mythuso.model.Passport
+import za.co.mythuso.model.PassportSharingData
 import za.co.mythuso.model.PreviewStore
 import za.co.mythuso.model.Scheduling
 import za.co.mythuso.model.Earnings
@@ -160,6 +161,9 @@ import za.co.mythuso.model.mokoenaHousehold
                            picture of an unanswered question. */
                         PlainRow("What your readings mean", "What each measurement is, and who decides what it means for you") { open("What your readings mean") }
                         PlainRow("How your readings have changed", "${readingSets.size} visits over the last ${Passport.monthsCovered} months") { open("Health trends") }
+                        /* Health Passport P1: the emergency card and who opened the record. */
+                        PlainRow(PassportSharingData.Card.TITLE_ROUTE, PassportSharingData.Card.INTRO) { open(PassportSharingData.Card.TITLE_ROUTE) }
+                        PlainRow(PassportSharingData.Log.TITLE_ROUTE, PassportSharingData.Log.INTRO) { open(PassportSharingData.Log.TITLE_ROUTE) }
                         PlainRow("Your last completed visit", "What was measured, and what the doctor said") { open("Visit summary") }
                     }
                     Section("Do something with it") {
@@ -325,6 +329,10 @@ import za.co.mythuso.model.mokoenaHousehold
            what does this number mean. Written text with its own provenance on it — never a model. */
         title == "What your readings mean" -> ExplainReadingsScreen(open)
         title == "Visit summary" -> PastVisitScreen(store, Passport.latestSet.dayOffset, open)
+        /* Health Passport P1: the emergency card and who opened the record, routed by the names the generated
+           contract gives them, so a renamed screen cannot strand its door. */
+        title == PassportSharingData.Card.TITLE_ROUTE -> EmergencyCardScreen(open)
+        title == PassportSharingData.Log.TITLE_ROUTE -> PassportAccessLogScreen(open)
         isDevicePermissionScreen(title) -> DevicePermissionScreen(title, open)
         /* Live well is the patient's own diary and it is a route of its own rather than a tab
            inside the passport, because the passport is what clinicians measured and this is what
