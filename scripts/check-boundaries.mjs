@@ -6381,12 +6381,15 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  for (const file of engineSources) {
   const source = read(file);
   const [top] = posix.relative('packages/engines/src', file).split('/');
-  /* Two tests open a store file themselves, and it is the point of each: the trail's test tampers with the
-     trail to prove the chain notices, and the replay-and-refusal test reads the replay table raw to prove a
-     one-time code is not at rest there. No engine and no other runtime module opens one. */
+  /* Three tests open a store file themselves, and it is the point of each: the trail's test tampers with the
+     trail to prove the chain notices, the replay-and-refusal test reads the replay table raw to prove a
+     one-time code is not at rest there, and Money's cash-code test reads Money's own store raw to prove the
+     same of a real cash code. No engine and no other runtime module opens one. */
   const opensDatabase = /new DatabaseSync\(/.test(source) || /^import (?!type)[^;]*from 'node:sqlite'/m.test(source);
-  if (opensDatabase && file !== 'packages/engines/src/runtime/store.ts' && file !== 'packages/engines/src/runtime/runtime.test.ts' && file !== 'packages/engines/src/runtime/replay-and-refusal.test.ts') throw new Error(`${file} opens a SQLite database itself. Only packages/engines/src/runtime/store.ts opens a store, and it hands each engine its own.`);
-  if (engineIdsForRuntime.includes(top) && /_runtime_/.test(source)) throw new Error(`${file} names a _runtime_ table. The replay table in an engine's store is the binder's, and an engine that edits it can make a second charge look like a replay.`);
+  if (opensDatabase && file !== 'packages/engines/src/runtime/store.ts' && file !== 'packages/engines/src/runtime/runtime.test.ts' && file !== 'packages/engines/src/runtime/replay-and-refusal.test.ts' && file !== 'packages/engines/src/money/cash-code-on-the-runtime.test.ts') throw new Error(`${file} opens a SQLite database itself. Only packages/engines/src/runtime/store.ts opens a store, and it hands each engine its own.`);
+  /* Money's cash-code test is the one file in an engine's directory that names the replay table, and only
+     to read it raw through its own handle and prove a code is not there; it never reaches it through ctx. */
+  if (engineIdsForRuntime.includes(top) && /_runtime_/.test(source) && file !== 'packages/engines/src/money/cash-code-on-the-runtime.test.ts') throw new Error(`${file} names a _runtime_ table. The replay table in an engine's store is the binder's, and an engine that edits it can make a second charge look like a replay.`);
   for (const m of source.matchAll(/(?:^|\n)\s*(?:import|export)\s[^;]*?from\s+'([^']+)'|import\(\s*'([^']+)'\s*\)/g)) {
    const spec = m[1] ?? m[2];
    importsRead++;
