@@ -113,16 +113,26 @@ export const write = (habit: HabitId, words: string): Entry => {
  * every morning and true for the rest — the worst kind of bug, because it is a real defect that
  * looks like a flaky test. A sample on an earlier day keeps its hour, which is what makes the
  * timeline read like a week rather than a list. */
-const at = (dayOffset: number, hour: number, minute: number) => {
- const wanted = midnight(Date.now()) + dayOffset * DAY + hour * 3_600_000 + minute * 60_000;
+/* And pulled back no further than today's midnight. A few minutes into a day, "a few minutes ago" is yesterday, and
+ * the diary lost its Today and read as two days — a run that crossed midnight saw it as a flaky test, and anybody
+ * opening the app just after twelve saw it as their morning's notes filed under the night before. Floored at
+ * midnight, today's samples stay today and still sort in their written order (`7 - nudge` seconds keeps the later
+ * one newer, as the minutes do), and nothing is ever stamped after the moment the diary was made. One clock reading
+ * for the whole diary, so no two samples can land on opposite sides of midnight. */
+const at = (now: number, dayOffset: number, hour: number, minute: number) => {
+ const wanted = midnight(now) + dayOffset * DAY + hour * 3_600_000 + minute * 60_000;
  if (dayOffset < 0) return wanted;
  const nudge = (hour * 60 + minute) % 7;   /* keeps the samples in their written order */
- return Math.min(wanted, Date.now() - (3 + nudge) * 60_000);
+ const behindTheClock = Math.min(wanted, now - (3 + nudge) * 60_000);
+ return Math.min(now, Math.max(midnight(now) + (7 - nudge) * 1000, behindTheClock));
 };
-export const sampleEntries = (): Entry[] => [
- { id: 'wb-s1', habit: 'moving', words: 'Walked to the shops and back. Easier than last week — I did not have to stop at the corner.', at: at(0, 7, 40) },
- { id: 'wb-s2', habit: 'feeling', words: 'Tired, but not the heavy kind.', at: at(0, 7, 45) },
- { id: 'wb-s3', habit: 'medicines', words: 'Took the morning ones. Forgot the evening ones until it was late.', at: at(-1, 20, 5) },
- { id: 'wb-s4', habit: 'eating', words: 'Pap and morogo at lunch, which sat better than the bread has been.', at: at(-1, 13, 10) },
- { id: 'wb-s5', habit: 'sleeping', words: 'Woke twice in the night. Got up sore, and then the morning was alright.', at: at(-3, 6, 20) }
-];
+export const sampleEntries = (): Entry[] => {
+ const now = Date.now();
+ return [
+  { id: 'wb-s1', habit: 'moving', words: 'Walked to the shops and back. Easier than last week — I did not have to stop at the corner.', at: at(now, 0, 7, 40) },
+  { id: 'wb-s2', habit: 'feeling', words: 'Tired, but not the heavy kind.', at: at(now, 0, 7, 45) },
+  { id: 'wb-s3', habit: 'medicines', words: 'Took the morning ones. Forgot the evening ones until it was late.', at: at(now, -1, 20, 5) },
+  { id: 'wb-s4', habit: 'eating', words: 'Pap and morogo at lunch, which sat better than the bread has been.', at: at(now, -1, 13, 10) },
+  { id: 'wb-s5', habit: 'sleeping', words: 'Woke twice in the night. Got up sore, and then the morning was alright.', at: at(now, -3, 6, 20) }
+ ];
+};

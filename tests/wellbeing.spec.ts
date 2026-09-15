@@ -75,21 +75,37 @@ test('nothing on the screen is a figure, a unit or a field that takes one', asyn
   expect(words.replace(/\b\d{1,2}:\d{2}\b/g, '')).not.toMatch(/\d/);
 });
 
-test('a day nothing was written is just a day', async ({ page }) => {
+/* The sample diary has something today, something yesterday and something three days ago. The day between the last
+   two has nothing in it, and the record says nothing about it at all — no row, no outline, no count of what was missed.
+   "Two days ago" is read from the page's own clock and written in the page's own words, never worked out beside it in
+   the test runner: a run that crosses midnight between the two would be comparing two different days. */
+const aDayWithNothingIsJustADay = async (page: Page) => {
   await openLiveWell(page);
   const headings = page.locator('.wb-day > h3');
-  /* The sample diary has something today, something yesterday and something three days ago. The day
-     between the last two has nothing in it, and the record says nothing about it at all — no row,
-     no outline, no count of what was missed. */
   await expect(headings).toHaveCount(3);
   await expect(headings.nth(0)).toHaveText('Today');
   await expect(headings.nth(1)).toHaveText('Yesterday');
-  const twoDaysAgo = new Date(Date.now() - 2 * 86_400_000)
-    .toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' });
+  const twoDaysAgo = await page.evaluate(() => new Date(Date.now() - 2 * 86_400_000)
+    .toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' }));
   await expect(page.locator('main')).not.toContainText(twoDaysAgo);
   /* Nothing anywhere counts the run either. */
   await expect(page.locator('main')).not.toContainText(/in a row|consecutive|days running/i);
+};
+
+test('a day nothing was written is just a day', async ({ page }) => {
+  await aDayWithNothingIsJustADay(page);
 });
+
+/* The same diary on either side of midnight. Today's samples are pulled back behind the clock so that nothing written
+   now sorts beneath them, and a few minutes into a day that used to pull them back into yesterday: the diary lost its
+   Today and read as two days, which a run crossing midnight saw as a flaky test. The clock is local, like the screen's
+   own days, and neither the browser nor this runner is given a different zone. */
+for (const [when, clock] of [['a minute before midnight', new Date(2026, 8, 16, 23, 59, 30)], ['a minute after midnight', new Date(2026, 8, 17, 0, 1, 0)]] as const) {
+  test(`a day nothing was written is just a day, ${when}`, async ({ page }) => {
+    await page.clock.setFixedTime(clock);
+    await aDayWithNothingIsJustADay(page);
+  });
+}
 
 test('what you write goes to the top of your record, and can be taken back', async ({ page }) => {
   await openLiveWell(page);
