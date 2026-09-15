@@ -72,7 +72,8 @@ test('an unanswered offer lapses on the clock and passes on', async ({ page }, i
   await page.clock.install();
   await openWorkspace(page, 'Nurse');
   await expect(offerCard(page)).toBeVisible();
-  await page.clock.fastForward((care.offers.expiresAfterMinutes * 60 + 20) * 1000);
+  const expiry: number = care.settings.items.find((s: { key: string }) => s.key === 'offer-expiry').default.value;
+  await page.clock.fastForward((expiry * 60 + 20) * 1000);
   await expect(slot(page)).toContainText(care.offers.lapsed);
   await expect(offerCard(page)).toHaveCount(0);
   await shoot(page, 'lapsed', info);

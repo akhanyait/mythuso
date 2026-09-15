@@ -883,3 +883,52 @@
  .clinical .fs-row-act > select { flex: 1 1 100%; }
  .clinical .fs-row-act > button { flex: 1 1 auto; }
 }
+
+/* ---- Configuration: every engine's settings in one area -------------------------------------------
+ *
+ * The back office's Configuration tab draws every setting from the contracts, so it is drawn in the
+ * console's own pieces — the notes, the panel, the admin table, the confirm block the field safety
+ * settings already used — rather than a new look. A setting is still a row a person reads down: its
+ * name and the value in force on one line, what it answers, its default and who decided it, what an
+ * admin may set, what a change reaches and what no value may do, then its history folded away and the
+ * one control. The only new pieces are the ones a generic editor needs: a search above the groups, a
+ * list of choices, and a rota window. At a phone's width every two-column arrangement becomes one. */
+.clinical .cf-area { display: grid; gap: var(--space-12); max-width: 1080px; min-width: 0; }
+.clinical .cf-area > .privacy-note, .clinical .cf-area > .helper, .clinical .cf-area > .ss-version { margin: 0; }
+.clinical .cf-area > .ss-panel { margin-top: var(--space-16); }
+.clinical .cf-tools { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--space-12) var(--space-16); align-items: start; }
+.clinical .cf-tools > div { display: grid; gap: var(--space-4); min-width: 0; }
+.clinical .cf-tools label { font-size: 14px; font-weight: 500; color: var(--charcoal); }
+.clinical .cf-tools input, .clinical .cf-tools select { width: 100%; min-width: 0; min-height: 44px; }
+.clinical .cf-tools .helper { margin: 0; }
+.clinical .ss-help { margin: 0; font-size: 14px; line-height: 1.5; color: var(--charcoal); }
+.clinical .cf-rules { display: grid; gap: var(--space-4); margin: 0; }
+.clinical .cf-rules > div { display: grid; grid-template-columns: minmax(0, 12rem) minmax(0, 1fr); gap: var(--space-12); font-size: 13px; line-height: 1.5; }
+.clinical .cf-rules dt { color: var(--faint); }
+.clinical .cf-rules dd { margin: 0; color: var(--charcoal); }
+.clinical .cf-review { display: inline-flex; align-items: center; gap: var(--space-8); justify-self: start; font-size: 13px; }
+.clinical .cf-review.is-unreviewed { background: var(--mango-soft); border-color: var(--mango-ink); color: var(--mango-ink); }
+.clinical .cf-history > summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--charcoal); }
+/* A details element is a grid item that grows to its widest child, so an opened history's table widened
+   the whole setting and clipped its sentences at a phone's width. The fold may shrink, and the table
+   scrolls inside it, as the admin tables elsewhere do. */
+.clinical .cf-history { min-width: 0; max-width: 100%; }
+.clinical .cf-history > .table-scroll { max-width: 100%; margin-top: var(--space-4); overflow-x: auto; }
+.clinical .cf-history > .helper { margin: 0; }
+.clinical .cf-choices { display: grid; gap: var(--space-4); min-width: 0; margin: 0; padding: 0; border: 0; }
+.clinical .cf-choices > legend { margin-bottom: var(--space-4); padding: 0; font-size: 14px; font-weight: 500; color: var(--charcoal); }
+.clinical .cf-choice { display: flex; align-items: center; gap: var(--space-8); min-height: 44px; font-size: 14px; color: var(--charcoal); }
+.clinical .cf-choice > input { width: auto; min-height: 0; margin: 0; }
+.clinical .cf-days { display: flex; flex-wrap: wrap; gap: 0 var(--space-16); }
+.clinical .cf-days > legend { flex-basis: 100%; }
+.clinical .cf-window { display: grid; gap: var(--space-8); padding: var(--space-12); border: 1px solid var(--line); border-radius: var(--r-control); min-width: 0; }
+.clinical .cf-window > button { justify-self: start; min-height: 44px; }
+.clinical .cf-hours { display: grid; grid-template-columns: repeat(2, minmax(0, 9rem)); gap: var(--space-12); }
+.clinical .cf-hours > label { display: grid; gap: var(--space-4); font-size: 14px; color: var(--charcoal); }
+.clinical .cf-link { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8) var(--space-16); }
+.clinical .cf-link > span { flex: 1 1 18rem; min-width: 0; }
+.clinical .cf-link > button { min-height: 44px; }
+@media (max-width: 640px) {
+ .clinical .cf-tools { grid-template-columns: minmax(0, 1fr); }
+ .clinical .cf-rules > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}

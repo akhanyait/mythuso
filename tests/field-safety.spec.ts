@@ -16,7 +16,7 @@ import { changeTiming, openSettingsPanel, timingRow } from './safety-settings';
  *
  * Every expected sentence, minute and number is read from the contracts, and time is Playwright's clock,
  * so a grace or a window the founder changes moves these tests with it instead of breaking them. The grace
- * and window a fresh page runs on are the contract's defaults; tests/safety-settings.spec.ts walks the
+ * and window a fresh page runs on are the contract's defaults; tests/configuration.spec.ts walks the
  * back office that changes them. */
 const json = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
 const contract = json('../packages/catalog/field-safety.json');
@@ -31,8 +31,9 @@ const MINUTE = 60_000;
 const START = new Date('2026-09-15T08:00:00+02:00');
 const at = (minutes: number) => new Date(START.getTime() + minutes * MINUTE);
 const clock = (date: Date) => date.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Africa/Johannesburg' });
-const grace: number = contract.timer.graceMinutes.value;
-const window: number = contract.panic.windowMinutes.value;
+const settingDefault = (key: string) => contract.settings.items.find((s: { key: string }) => s.key === key).default.value;
+const grace: number = settingDefault('grace');
+const window: number = settingDefault('panic-window');
 /* The first visit on the nurse's day is the catalogue's first service; the schedule is drawn from it. */
 const visitMinutes = services[0].duration;
 
@@ -64,7 +65,7 @@ test('no strip before the code matches; after it, due at the service duration pl
   const strip = await startVisit(page);
   await expect(strip).toContainText(fill(contract.nurse.due, { due: clock(at(visitMinutes + grace)) }));
 
-  const step: number = contract.timer.extensionMinutes.value[0];
+  const step: number = settingDefault('extension-steps')[0];
   await strip.getByRole('button', { name: contract.nurse.extend }).click();
   await strip.getByRole('button', { name: fill(contract.nurse.extendStep, { minutes: String(step) }) }).click();
   await expect(strip.getByRole('alert')).toHaveText(statement('extension-without-reason'));
@@ -120,8 +121,8 @@ test('an admin change never moves a visit already running or a panic already ope
   /* In the same tab, the back office shortens the grace and lengthens the window. */
   const graceRow = timingRow('grace');
   const windowRow = timingRow('panic-window');
-  const shorterGrace = graceRow.lowest.value;
-  const longerWindow = windowRow.highest.value;
+  const shorterGrace = graceRow.bounds.lowest.value;
+  const longerWindow = windowRow.bounds.highest.value;
   await chooseRole(page, 'Back office');
   const panel = await openSettingsPanel(page);
   await changeTiming(panel, graceRow, grace, shorterGrace, 'The desk wants to look for a nurse sooner after a visit runs over.');

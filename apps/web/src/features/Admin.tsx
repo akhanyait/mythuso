@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { BadgeCheck, Banknote, CalendarClock, CircleAlert, FileText, Gauge, Landmark, LockKeyhole, Radio, ScrollText, ShieldCheck, Stethoscope, Users } from 'lucide-react';
+import { BadgeCheck, Banknote, CalendarClock, CircleAlert, FileText, Gauge, Landmark, LockKeyhole, Radio, ScrollText, ShieldCheck, Stethoscope, TimerReset, Users } from 'lucide-react';
 import { Pill, SectionTitle } from '../components/UI';
 import { Metric, Metrics } from '../surface/Surface';
 import { DispatchBoard, IncidentBoard, controlTowerCounts } from './Dispatch';
@@ -7,8 +7,9 @@ import { useVettingState, VettingConsole, type VettingState } from './Vetting';
 import { summarise, type VettingSubject } from '../lib/vetting';
 import { businessModel, money, bigMoney, platformMargin, services, type Service } from '../lib/catalog';
 import { momPlan, subscriptionLines } from '../lib/mom-plans';
-import { SafetySettings } from './SafetySettings';
-export const adminTabs = ['Overview', 'Vetting', 'Operations', 'Clinical', 'Catalogue', 'Growth', 'Finance', 'Compliance'] as const;
+import { Configuration } from './Configuration';
+import { settingsScreen } from '../../../../packages/engines/src/settings/shape.ts';
+export const adminTabs = ['Overview', 'Vetting', 'Operations', 'Clinical', 'Catalogue', 'Growth', 'Finance', 'Compliance', 'Configuration'] as const;
 export type AdminTab = typeof adminTabs[number];
 /* What each tab is for, in one line, in the words somebody in this office would use. It replaces the
    one sentence that listed all eight and therefore described none of them. */
@@ -20,7 +21,8 @@ const tabBlurb: Record<AdminTab, string> = {
  Catalogue: 'What a visit costs, what the nurse takes, and what is left to run the service on.',
  Growth: 'Subscriptions, screening packages and the contracted lines in the proposal.',
  Finance: 'The round, what each tranche is gated on, and what a visit actually leaves.',
- Compliance: 'What has to exist before real patient information touches this platform, and what does not yet.'
+ Compliance: 'What has to exist before real patient information touches this platform, and what does not yet.',
+ Configuration: settingsScreen.blurb
 };
 /* One party can be blocking in more than one place, so the console counts parties rather than
    checks: an operator wants to know how many names cannot be used today. */
@@ -36,6 +38,9 @@ export function AdminConsole({ open, tab, setTab }: { open: (s: string) => void;
  /* Held above the tabs on purpose: a decision taken in Vetting has to still be true when the
     Operations board is opened, or the gate is a screenshot of a gate. */
  const vetting = useVettingState();
+ /* Which engine's settings Configuration opens on. Held here so the link on the Operations tab can open
+    Configuration on the field-safety settings rather than on everything. */
+ const [settingsEngine, setSettingsEngine] = useState('');
  return <>
   {/* The name of the console is the eyebrow and the name of the section is the heading, which is
       the way round it was not. Eight tabs each opened on "Operations console" set at the largest
@@ -50,9 +55,9 @@ export function AdminConsole({ open, tab, setTab }: { open: (s: string) => void;
   <div className="underline-tabs console-tabs" role="group" aria-label="Console sections">
    {adminTabs.map(t => <button key={t} className={tab === t ? 'selected' : ''} aria-pressed={tab === t} onClick={() => setTab(t)}>{t}</button>)}
   </div>
-  {tab === 'Overview' ? <Overview vetting={vetting}/> : tab === 'Vetting' ? <VettingConsole vetting={vetting} open={open}/> : tab === 'Operations' ? <Operations open={open} vetting={vetting}/>
+  {tab === 'Overview' ? <Overview vetting={vetting}/> : tab === 'Vetting' ? <VettingConsole vetting={vetting} open={open}/> : tab === 'Operations' ? <Operations open={open} vetting={vetting} openSettings={() => { setSettingsEngine('safety'); setTab('Configuration'); }}/>
    : tab === 'Clinical' ? <Clinical open={open} vetting={vetting}/> : tab === 'Catalogue' ? <Catalogue/> : tab === 'Growth' ? <Growth/>
-   : tab === 'Finance' ? <Finance/> : <Compliance/>}
+   : tab === 'Finance' ? <Finance/> : tab === 'Compliance' ? <Compliance/> : <Configuration engine={settingsEngine} onEngine={setSettingsEngine}/>}
  </>;
 }
 /* A figure in the dashboard language: large, thin, tabular, with what it is underneath it. The icon
@@ -117,7 +122,7 @@ function Overview({ vetting }: { vetting: VettingState }) {
   <div className="privacy-note space-top"><Gauge size={19}/>Reporting against the plan is the point of this screen. A console that only shows today's numbers cannot tell an investor or a board whether the round is on track.</div>
  </>;
 }
-function Operations({ open, vetting }: { open: (s: string) => void; vetting: VettingState }) {
+function Operations({ open, vetting, openSettings }: { open: (s: string) => void; vetting: VettingState; openSettings: () => void }) {
  const stopped = blocking(vetting.subjects);
  const tower = controlTowerCounts();
  return <>
@@ -132,9 +137,10 @@ function Operations({ open, vetting }: { open: (s: string) => void; vetting: Vet
   <DispatchBoard subjects={vetting.subjects} heading={false}/>
   <SectionTitle title="Open incidents"/>
   <IncidentBoard open={open}/>
-  {/* Under the board and the incidents, because those are what the tab is opened for on a working day;
-      the timings the desk works to are changed rarely, and read before they are changed. */}
-  <SafetySettings/>
+  {/* The timings the desk works to are changed on the Configuration tab, with every other engine's settings,
+      so there is one place to change them and one history. The way there stays here, under the board and
+      the incidents, where somebody on the desk looks for it. */}
+  <div className="privacy-note space-top cf-link"><TimerReset size={19}/><span>{settingsScreen.operationsNote}</span><button className="secondary" onClick={openSettings}>{settingsScreen.operationsOpen}</button></div>
  </>;
 }
 const reviewQueue = [

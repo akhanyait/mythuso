@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Activity, ArrowRight, BarChart3, BookOpen, Landmark, LayoutGrid, LogOut, Radar, ShieldAlert, ShieldCheck, TrendingUp } from 'lucide-react';
+import { Activity, ArrowRight, BarChart3, BookOpen, Landmark, LayoutGrid, LogOut, Radar, ShieldAlert, ShieldCheck, SlidersHorizontal, TrendingUp } from 'lucide-react';
 import { Modal } from '../components/UI';
 import { AdminConsole, adminTabs, type AdminTab } from '../features/Admin';
 import { DemoBar, useRole } from '../features/DemoLogin';
@@ -38,7 +38,7 @@ const ADMIN_SUBJECT = 'A-901';
    section is, and the label says which. */
 const tabIcons: Record<AdminTab, typeof Radar> = {
  Overview: LayoutGrid, Vetting: ShieldCheck, Operations: Radar, Clinical: Activity,
- Catalogue: BookOpen, Growth: TrendingUp, Finance: Landmark, Compliance: BarChart3
+ Catalogue: BookOpen, Growth: TrendingUp, Finance: Landmark, Compliance: BarChart3, Configuration: SlidersHorizontal
 };
 
 export default function AdminWorkspace() {

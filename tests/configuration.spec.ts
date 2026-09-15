@@ -1,0 +1,217 @@
+import { test, expect, type Page, type TestInfo } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { chooseRole, openAdminConsole, openWorkspace } from './nav';
+import { changeTiming, editorLabel, fieldSafety, fill, minutesText, openChangeForm, openConfiguration, openSettingsPanel, say, settingsContract, timingItem, timingRow, type Bound, type TimingRow } from './safety-settings';
+
+/* Configuration, on the back office, on both viewports.
+ *
+ * The founder instructed on 15 September 2026 that the questions the programme kept asking become admin
+ * settings, and this is where an admin changes them. The journeys check what makes that safe rather than
+ * what makes it look finished: every engine's settings are drawn from its own contract, each saying what
+ * is in force, its default and who decided it, what an admin may set — itself a proposal — what a change
+ * reaches and what no value may do; a change is refused in the contract's own sentence when it is nought,
+ * out of bounds, the wrong kind of value, unexplained, unchanged, or steps out of order; a confirmed change
+ * is added to the setting's history with who and why and is what the next visit, panic or offer reads;
+ * and something already under way — a visit, an offer on a nurse's screen — keeps what it started with.
+ *
+ * This folds in tests/safety-settings.spec.ts, which walked the field safety panel on the Operations tab
+ * before the panel moved here, and keeps every one of its assertions. Every sentence, minute and bound is
+ * read from the contracts, so a new default or bound moves these journeys with it instead of breaking them.
+ *
+ * Set CONFIG_SHOTS to a directory to have the journeys leave the screenshots a reviewer looks at. */
+const json = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
+const care = json('../packages/catalog/care.json');
+const services = json('../packages/catalog/services.json') as { duration: number }[];
+const safetyApi = json('../packages/catalog/apis/safety.json') as { routes: { path: string; refusals: { id: string; statement: string }[] }[] };
+const visitCode: string = care.preview.visitCode;
+const shared = (id: string) => (settingsContract.refusals as { route: string; id: string; statement: string }[]).find(r => r.route === 'change' && r.id === id)!.statement;
+const safetyOwn = (id: string) => safetyApi.routes.find(r => r.path === '/v1/safety/setting-changes')!.refusals.find(r => r.id === id)!.statement;
+const sources = (settingsContract.sources as { engine: string; file: string }[]).map(s => ({ engine: s.engine, block: json(`../${s.file}`).settings as { heading: string; intro: string; items: TimingRow[] } }));
+const total = String(sources.reduce((sum, s) => sum + s.block.items.length, 0));
+const expiry = (care.settings.items as TimingRow[]).find(s => s.key === 'offer-expiry')!;
+
+const MINUTE = 60_000;
+const START = new Date('2026-09-15T08:00:00+02:00');
+const later = (minutes: number) => new Date(START.getTime() + minutes * MINUTE);
+const dayOf = (on: string) => new Date(`${on}T12:00:00+02:00`).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Johannesburg' });
+const clock = (date: Date) => date.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Africa/Johannesburg' });
+/* The offer card's own clock, as apps/web/src/features/CareVisit.tsx draws it. */
+const offerClock = (date: Date) => new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Johannesburg', hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
+const provenance = (p: Omit<Bound, 'value'>) => p.decidedBy && p.decidedOn ? fill(say.decided, { who: p.decidedBy, on: dayOf(p.decidedOn) }) : say.undecided;
+const group = (page: Page, heading: string) => page.getByRole('region', { name: heading });
+const shoot = async (page: Page, name: string, info: TestInfo) => {
+  if (process.env.CONFIG_SHOTS) await page.screenshot({ path: `${process.env.CONFIG_SHOTS}/${name}-${info.project.name}.png`, fullPage: true });
+};
+const noOverflow = (page: Page) => page.evaluate(() =>
+  [document.documentElement, document.querySelector('main')].filter((el): el is HTMLElement => Boolean(el)).every(el => el.scrollWidth <= el.clientWidth + 1));
+
+async function openSettings(page: Page) {
+  await page.clock.install({ time: START });
+  await openAdminConsole(page);
+  await openConfiguration(page);
+  return page.locator('.cf-area');
+}
+
+test('every engine’s settings are drawn from its contract: in force, the default and who decided it, what an admin may set, what a change reaches and what no value may do', async ({ page }, info) => {
+  const area = await openSettings(page);
+  await expect(area).toContainText(say.intro);
+  await expect(area).toContainText(say.preview);
+  await expect(area.locator(':scope > .ss-version')).toHaveText(fill(say.shown, { shown: total, total }));
+  for (const { block } of sources) {
+    const panel = group(page, block.heading);
+    await expect(panel).toContainText(block.intro);
+    await expect(panel).toContainText(fill(say.version, { version: '1' }));
+    for (const row of block.items) {
+      /* This journey reads minutes. A setting of another type is drawn by the same screen; teach the
+         journey its formatting when one lands, rather than letting it pass by skipping the row. */
+      expect(row.unit, `${row.key} is a type this journey does not format yet`).toBe('minutes');
+      const item = timingItem(panel, row);
+      await expect(item.locator('.ss-in-force')).toContainText(minutesText(row.default.value));
+      await expect(item).toContainText(row.help);
+      await expect(item).toContainText(fill(say.defaultIs, { value: minutesText(row.default.value) }));
+      await expect(item).toContainText(provenance(row.default));
+      await expect(item).toContainText(fill(say.range, { lowest: minutesText(row.bounds.lowest.value), highest: minutesText(row.bounds.highest.value) }));
+      await expect(item).toContainText(say.limitsAreProposals);
+      await expect(item).toContainText(row.appliesTo);
+      if (row.guardrail) await expect(item).toContainText(row.guardrail.statement);
+      await expect(item).toContainText(say.neverChanged);
+      await expect(item.locator('summary')).toHaveText(`${say.historyHeading} (0)`);
+      await expect(item).not.toContainText(say.notReviewed);
+    }
+  }
+  expect(await noOverflow(page), 'the Configuration area scrolls sideways').toBe(true);
+  await shoot(page, 'configuration', info);
+});
+
+test('a search or an engine narrows the settings, and it says so when nothing matches', async ({ page }) => {
+  const area = await openSettings(page);
+  const status = area.locator(':scope > .ss-version');
+  const search = area.getByLabel(say.search, { exact: true });
+  const window = timingRow('panic-window');
+  await search.fill(window.label);
+  await expect(status).toHaveText(fill(say.shown, { shown: '1', total }));
+  await expect(timingItem(group(page, fieldSafety.settings.heading), window)).toBeVisible();
+  await expect(group(page, care.settings.heading)).toHaveCount(0);
+
+  await search.fill('');
+  await area.getByLabel(say.engine, { exact: true }).selectOption({ label: care.settings.heading });
+  await expect(group(page, fieldSafety.settings.heading)).toHaveCount(0);
+  await expect(timingItem(group(page, care.settings.heading), expiry)).toBeVisible();
+  await search.fill('a setting nobody has made');
+  await expect(area).toContainText(say.noMatch);
+});
+
+test('a change is refused in the contract’s words: out of bounds, nought, the wrong kind of value, no reason, no change, steps out of order', async ({ page }, info) => {
+  await openSettings(page);
+  const panel = group(page, fieldSafety.settings.heading);
+  const grace = timingRow('grace');
+  const form = await openChangeForm(panel, grace);
+  const value = form.getByLabel(editorLabel(grace), { exact: true });
+  const reason = form.getByLabel(say.reason, { exact: true });
+  const review = () => form.getByRole('button', { name: say.review }).click();
+  await value.fill(String(grace.bounds.lowest.value - 1));
+  await reason.fill('Trying a shorter wait than the bounds allow.');
+  await review();
+  await expect(form.getByRole('alert')).toHaveText(shared('setting-out-of-range'));
+  await shoot(page, 'configuration-refused', info);
+  await value.fill('0');
+  await review();
+  await expect(form.getByRole('alert')).toHaveText(shared('setting-not-above-zero'));
+  await value.fill('soon');
+  await review();
+  await expect(form.getByRole('alert')).toHaveText(shared('setting-value-wrong-type'));
+  await value.fill(String(grace.bounds.highest.value));
+  await reason.fill('');
+  await review();
+  await expect(form.getByRole('alert')).toHaveText(shared('setting-change-without-reason'));
+  await value.fill(String(grace.default.value));
+  await reason.fill('Putting it back as it was.');
+  await review();
+  await expect(form.getByRole('alert')).toHaveText(shared('setting-unchanged'));
+  await form.getByRole('button', { name: say.cancel }).click();
+
+  const steps = timingRow('extension-steps');
+  const stepsForm = await openChangeForm(panel, steps);
+  await stepsForm.getByLabel(editorLabel(steps), { exact: true }).fill(`${steps.bounds.highest.value}, ${steps.bounds.lowest.value}`);
+  await stepsForm.getByLabel(say.reason, { exact: true }).fill('Largest first.');
+  await stepsForm.getByRole('button', { name: say.review }).click();
+  await expect(stepsForm.getByRole('alert')).toHaveText(safetyOwn('extension-steps-not-rising'));
+
+  await expect(timingItem(panel, grace).locator('summary')).toHaveText(`${say.historyHeading} (0)`);
+  await expect(panel).toContainText(fill(say.version, { version: '1' }));
+});
+
+test('a confirmed change is recorded with who and why, and the next visit a nurse starts reads it', async ({ page }, info) => {
+  await page.clock.install({ time: START });
+  await openAdminConsole(page);
+  const panel = await openSettingsPanel(page);
+  const grace = timingRow('grace');
+  const from = grace.default.value as number;
+  const to = grace.bounds.lowest.value;
+  const reason = 'Dressings are finishing inside the booked time, so the desk can look for a nurse sooner.';
+  await changeTiming(panel, grace, from, to, reason);
+
+  await expect(panel).toContainText(fill(say.version, { version: '2' }));
+  await expect(panel).toContainText(fill(say.applied, { version: '2', at: clock(START) }));
+  const item = timingItem(panel, grace);
+  await item.locator('summary').click();
+  const history = item.locator('table tbody tr');
+  await expect(history).toHaveCount(1);
+  for (const cell of [minutesText(from), minutesText(to), reason]) await expect(history.first()).toContainText(cell);
+  await expect(history.first().locator('td').nth(1)).not.toBeEmpty();
+  await expect(item).toContainText(say.historyNeverEdited);
+  await expect(item).toContainText(fill(say.defaultIs, { value: minutesText(from) }));
+  await expect(item).not.toContainText(say.neverChanged);
+  /* An opened history's table scrolls inside the setting rather than widening it past the screen. */
+  expect(await item.evaluate(element => element.scrollWidth <= element.clientWidth + 1), 'an opened history widens the setting past its card').toBe(true);
+  expect(await noOverflow(page), 'an opened history scrolls the page sideways').toBe(true);
+  await shoot(page, 'configuration-history', info);
+
+  /* The same tab, as the nurse: the visit she starts now is timed by the grace in force. */
+  await chooseRole(page, 'Nurse');
+  await page.getByRole('button', { name: 'Start this visit' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Visit code, digit 1 of 6').fill(visitCode);
+  await dialog.getByRole('checkbox').first().check();
+  await dialog.getByRole('button', { name: 'Confirm identity' }).click();
+  const strip = dialog.getByRole('region', { name: new RegExp(`^${fieldSafety.nurse.heading}`) });
+  await expect(strip).toContainText(fill(fieldSafety.nurse.due, { due: clock(later(services[0].duration + to)) }));
+});
+
+test('an offer already on a nurse’s screen keeps the expiry it was made with when an admin changes it', async ({ page }) => {
+  await page.clock.install({ time: START });
+  await openWorkspace(page, 'Nurse');
+  const card = page.locator('.care-offer');
+  const made = offerClock(later(expiry.default.value as number));
+  await expect(card).toContainText(made);
+
+  await chooseRole(page, 'Back office');
+  await openConfiguration(page);
+  const longer = expiry.bounds.highest.value;
+  await changeTiming(group(page, care.settings.heading), expiry, expiry.default.value, longer, 'Nurses in the outer suburbs need longer to read an offer.');
+
+  await chooseRole(page, 'Nurse');
+  await expect(card).toContainText(made);
+  await expect(card).not.toContainText(offerClock(later(longer)));
+});
+
+test('the next offer made reads the expiry in force', async ({ page }) => {
+  await page.clock.install({ time: START });
+  await openAdminConsole(page);
+  await openConfiguration(page);
+  const longer = expiry.bounds.highest.value;
+  await changeTiming(group(page, care.settings.heading), expiry, expiry.default.value, longer, 'Nurses in the outer suburbs need longer to read an offer.');
+  await chooseRole(page, 'Nurse');
+  await expect(page.locator('.care-offer')).toContainText(offerClock(later(longer)));
+});
+
+test('the Operations tab keeps the way to the field safety settings, and opens Configuration on them alone', async ({ page }) => {
+  await openAdminConsole(page);
+  await page.getByRole('button', { name: 'Operations', exact: true }).click();
+  await expect(page.locator('#main')).toContainText(say.operationsNote);
+  await page.getByRole('button', { name: say.operationsOpen }).click();
+  await expect(page.getByRole('heading', { level: 1, name: say.tab })).toBeVisible();
+  await expect(group(page, fieldSafety.settings.heading)).toBeVisible();
+  await expect(group(page, care.settings.heading)).toHaveCount(0);
+  await expect(page.getByLabel(say.engine, { exact: true })).toHaveValue('safety');
+});

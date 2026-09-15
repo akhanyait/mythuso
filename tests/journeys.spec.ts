@@ -93,7 +93,7 @@ const staffSections: Record<string, string[]> = {
   Partner: ['Orders', 'Substitution & repeats', 'Collections', 'Results'],
   'Control Tower': ['Dispatch', 'Incidents', 'Vetting queue', 'Quality']
 };
-const adminSections = ['Overview', 'Vetting', 'Operations', 'Clinical', 'Catalogue', 'Growth', 'Finance', 'Compliance'];
+const adminSections = ['Overview', 'Vetting', 'Operations', 'Clinical', 'Catalogue', 'Growth', 'Finance', 'Compliance', 'Configuration'];
 
 const applications: Application[] = [
   { app: 'Patient', enter: async page => { await page.goto('/app/'); },

@@ -4,7 +4,7 @@ import { acknowledgeOverdue, checkIn, close, completeVisit, extend, silenceOverd
 import { acknowledge, isSharing, openPanicFor, positionFor, raisePanic, receivePosition, resolve, sweep, type DeskActor, type Panic, type Position } from '../../../../packages/engines/src/safety/domain/panics.ts';
 import { deskQueue, type DeskItem } from '../../../../packages/engines/src/safety/domain/desk.ts';
 import { nurseById, rosterNurses } from './roster';
-import { panicWindowNow, settingsNow } from './safety-settings';
+import { panicWindowNow, safetySettingsNow } from './settings';
 
 /* The nurse safety suite's one store in the web preview.
  *
@@ -13,8 +13,8 @@ import { panicWindowNow, settingsNow } from './safety-settings';
  * app may not persist anything about a patient or a nurse, so a reload forgets every timer, which is
  * true of the preview and would be a defect in the product.
  *
- * THE TIMINGS ARE THE ONES IN FORCE, READ ONCE. A timer is started with settingsNow() and a panic is
- * pressed with panicWindowNow(), from lib/safety-settings.ts, which the back office changes; each keeps
+ * THE TIMINGS ARE THE ONES IN FORCE, READ ONCE. A timer is started with safetySettingsNow() and a panic is
+ * pressed with panicWindowNow(), from lib/settings.ts, which the back office's Configuration tab changes; each keeps
  * what it was handed. So a grace changed in the back office reaches the next visit this nurse starts,
  * never the one she is in, and no minute is typed here.
  *
@@ -52,7 +52,7 @@ const zoneOf = (nurseRef: string) => nurseById(nurseRef)?.zone?.at;
 function seed(now: number): SafetyState {
  const others = rosterNurses.filter(nurse => nurse.zone && nurse.id !== NURSE_ON_SHIFT);
  const [late, pressed, earlier] = [others[0], others[1] ?? others[0], others[2] ?? others[0]];
- const settings = settingsNow();
+ const settings = safetySettingsNow();
  const window = panicWindowNow();
  /* Twelve minutes past the deadline of an elderly-care visit: the service's own duration plus the
     grace in force, both read rather than typed. */
@@ -130,7 +130,7 @@ const onPanic = (reference: string, change: (panic: Panic, now: number) => Resul
 export function startVisit(appointmentRef: string, serviceId: string, visitCodeMatched: boolean): Refusal | null {
  const running = timerFor(current(), appointmentRef);
  if (running && running.closedAt === null) return null;
- return act((_, now) => startTimer({ checkinRef: `CHK-0${serial++}`, event: { appointmentRef, visitCodeMatched }, serviceId, nurseRef: NURSE_ON_SHIFT }, now, settingsNow()),
+ return act((_, now) => startTimer({ checkinRef: `CHK-0${serial++}`, event: { appointmentRef, visitCodeMatched }, serviceId, nurseRef: NURSE_ON_SHIFT }, now, safetySettingsNow()),
   (s, timer) => ({ ...s, timers: [...s.timers, timer] }));
 }
 export const checkInSafe = (appointmentRef: string) => onTimer(s => timerFor(s, appointmentRef), checkIn);

@@ -8,6 +8,7 @@ import {
 import { rosterNurses, mayTakeAVisit } from './roster';
 import { zoneById } from './geography';
 import { signOffFor, snapshot as queueSnapshot, subscribe as subscribeQueue } from './visit-queue';
+import { offerExpiryNow } from './settings';
 
 /* The Care engine's domain, driven in the browser for the one visit the nurse workspace walks.
  *
@@ -23,6 +24,9 @@ import { signOffFor, snapshot as queueSnapshot, subscribe as subscribeQueue } fr
  *   The record  An encounter is complete and signed when the visit assessment for this visit has
  *               been signed off on this device. That is the one fact the preview's record holds, so
  *               handover and completion are both answered by it until a gateway answers them apart.
+ *   Settings    How long an offer lasts is the one in force in lib/settings.ts, which the back office's
+ *               Configuration tab changes. The desk asks for it when it makes an offer and the offer
+ *               keeps it, so a change reaches the next offer and never the one on a nurse's screen.
  *   The bus     Nothing is published. The events each act produced are kept on the view so a screen
  *               can say what would have been told to whom, and nothing leaves the tab.
  *
@@ -84,7 +88,7 @@ function build(now: Date) {
   trust.learn({ ...HEARD, subjectRef: nurse.id, occurredAt: now.toISOString(), payload: { badgeTier: verifiedTier, hardGatesPassed: mayTakeAVisit(nurse).allowed } });
  }
  const candidates: Candidate[] = rosterNurses.map(n => ({ clinicianRef: n.id, roleId: 'nurse', scope: n.scope, base: n.zone?.at ?? null }));
- const offers = new OfferDesk({ contract: careContract, trust, candidates: () => candidates });
+ const offers = new OfferDesk({ contract: careContract, trust, candidates: () => candidates, expiry: offerExpiryNow });
  offers.register({
   appointmentRef: preview.appointmentRef, subjectRef: preview.subjectRef, serviceId: preview.serviceId,
   zone: zoneById(preview.zone)?.at ?? null,

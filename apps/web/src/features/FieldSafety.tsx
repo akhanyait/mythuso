@@ -6,7 +6,7 @@ import { extensionLeft, minutesLeft, standingOf, stepsOffered } from '../../../.
 import { isSharing, sharingEndsAt, standingOf as panicStandingOf } from '../../../../packages/engines/src/safety/domain/panics.ts';
 import { deskCounts, type DeskItem } from '../../../../packages/engines/src/safety/domain/desk.ts';
 import { checkInSafe, checkOut, closeOverdue, deskRows, extendVisit, panicFor, pickUp, positionOf, pressPanic, resolvePanic, timerFor, useFieldSafety } from '../lib/field-safety';
-import { panicWindowNow, useSettingsHistory } from '../lib/safety-settings';
+import { panicWindowNow, useSettingsHistories } from '../lib/settings';
 
 /* The nurse safety suite's two screens: the strip a nurse keeps on the visit she is in, and the queue
  * the desk works.
@@ -37,7 +37,7 @@ export function VisitSafety({ reference }: { reference: string }) {
  const s = useFieldSafety();
  /* Subscribed so the window the confirmation states is the one in force the moment it is drawn. The
     timer and a panic already pressed keep their own; only the sentence about the next press moves. */
- useSettingsHistory();
+ useSettingsHistories();
  const id = useId();
  const [extending, setExtending] = useState(false);
  const [reasonId, setReasonId] = useState('');
