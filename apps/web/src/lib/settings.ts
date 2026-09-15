@@ -6,7 +6,7 @@ import {
 import { settingsEngines } from '../../../../packages/engines/src/settings/registry.ts';
 import { inForce, panicWindowOf, sosSettingsOf, type PanicWindow, type SettingsInForce, type SosSettings } from '../../../../packages/engines/src/safety/domain/settings.ts';
 import { careInForceOf, type CareInForce } from '../../../../packages/engines/src/care/domain/settings.ts';
-import { doctorFeeOf, nurseShareSentenceOf, planTermsOf, voucherExpiryYearsOf, type DoctorFeeInForce, type PlanTerms } from '../../../../packages/engines/src/money/domain/settings.ts';
+import { claimConsentDaysOf, doctorFeeOf, groupMemberCapOf, groupMemberMonthlyLimitCentsOf, nurseShareSentenceOf, planTermsOf, voucherExpiryYearsOf, type DoctorFeeInForce, type PlanTerms } from '../../../../packages/engines/src/money/domain/settings.ts';
 import { rotaOf } from '../../../../packages/engines/src/core/domain/settings.ts';
 import type { KeptRota } from '../../../../packages/engines/src/core/domain/loops.ts';
 import { accessInForce, accessInForceAt, type AccessSettingsInForce } from '../../../../packages/engines/src/access/domain/settings.ts';
@@ -95,6 +95,11 @@ export const doctorFeeNow = (): DoctorFeeInForce => doctorFeeOf(snapshotNow('mon
 export const nurseShareSentenceNow = (): string => nurseShareSentenceOf(snapshotNow('money'));
 /* How many years a voucher issued now lasts. Handed to a ledger when a voucher is issued, and kept on the voucher. */
 export const voucherExpiryYearsNow = (): number => voucherExpiryYearsOf(snapshotNow('money'));
+/* Money's three for groups and claims, read the same way: the limit when a member asks her group to pay, the cap when a
+   group invites, and how long an agreement to send a claim lasts, asked when she gives it and kept by the claim. */
+export const groupMemberMonthlyLimitCentsNow = (): number => groupMemberMonthlyLimitCentsOf(snapshotNow('money'));
+export const groupMemberCapNow = (): number => groupMemberCapOf(snapshotNow('money'));
+export const claimConsentDaysNow = (): number => claimConsentDaysOf(snapshotNow('money'));
 /* The escalation rota and its minutes in force, for the Control Tower's concerns: asked once when a concern
    is opened, and kept by the concern. */
 export const escalationRotaNow = (): KeptRota => rotaOf(snapshotNow('core'));

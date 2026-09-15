@@ -305,6 +305,9 @@ export function Passport({open,navigate}:{open:(s:string)=>void;navigate:(s:stri
     <button className="shortcut-row" onClick={()=>navigate('Share part of your record')}><span className="service-icon"><Share2 size={20}/></span><span className="shortcut-text"><strong>Share links</strong><small>A link that rides on a grant you made, and ends when it does or sooner.</small></span><ChevronRight size={17}/></button>
     <button className="shortcut-row" onClick={()=>navigate('Your emergency card')}><span className="service-icon"><ShieldCheck size={20}/></span><span className="shortcut-text"><strong>Your emergency card</strong><small>Allergies and medicines on a card you can show or print. A preview.</small></span><ChevronRight size={17}/></button>
     <button className="shortcut-row" onClick={()=>navigate('Who opened your record')}><span className="service-icon"><History size={20}/></span><span className="shortcut-text"><strong>Who opened your record</strong><small>Every access, allowed or refused, with the reason.</small></span><ChevronRight size={17}/></button>
+    {/* Claims to a medical scheme, behind their own dynamic import: the state of each claim for a visit, and whether
+        anything has been sent. Nothing is sent without her agreement, and nothing has been. */}
+    <button className="shortcut-row" onClick={()=>navigate('Claims to your medical scheme')}><span className="service-icon"><FileText size={20}/></span><span className="shortcut-text"><strong>Claims to your medical scheme</strong><small>What was claimed, and whether anything was sent.</small></span><ChevronRight size={17}/></button>
     <button className="shortcut-row" onClick={()=>{const blob=new Blob([JSON.stringify({demo:true,patient:'Lerato Molefe',readings:[{bloodPressure:'118/78',heartRate:72,glucose:5.2}],notice:'Fictional data. Not a medical record.'},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='mythuso-demo-passport.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}}><span className="service-icon"><Download size={20}/></span><span className="shortcut-text"><strong>Export sample passport</strong><small>Downloads a JSON copy to your device. Nothing is sent anywhere.</small></span><ChevronRight size={17}/></button>
     <button className="shortcut-row" onClick={()=>navigate('Your care team')}><span className="service-icon"><Users size={20}/></span><span className="shortcut-text"><strong>Doctors</strong><small>The clinicians who have reviewed what is on your record.</small></span><ChevronRight size={17}/></button>
     {/* The ranges have been drawn here since this screen was written and nothing has ever said what
@@ -532,7 +535,7 @@ export function Privacy({open}:{open:(s:string)=>void}) {const [choices,setChoic
 /* The ledger and the balance both come from lib/wallet.ts. R500.00 used to be typed here and typed
    again in the booking's payment list, and the visit line beside it named its own amount rather than
    the catalogue's. */
-export function WalletPage({open}:{open:(s:string)=>void}){
+export function WalletPage({open,navigate}:{open:(s:string)=>void;navigate:(s:string)=>void}){
  const state:LoadState=useOffline()?'offline':'ready';
  return <><PageHeading eyebrow="THUSO WALLET" title="A little care, set aside." description="Support your own care or give someone a helping hand."/>
  {/* Before the balance, not after it. The number in the hero is the thing on this screen a person
@@ -541,6 +544,13 @@ export function WalletPage({open}:{open:(s:string)=>void}){
  {/* The reference's one signature move, on the one figure this screen is about: the amount set large
      and thin with a small label above it, rather than a small label above a heavy number. */}
  <div className="wallet-hero rise"><Wallet size={24}/><span>Balance</span><p className="wallet-figure"><strong>{money(walletBalance)}</strong><small>available</small></p><div className="button-row"><button className="secondary" onClick={()=>open('Top up wallet')}><Plus size={17}/>Top up</button><button className="secondary" onClick={()=>open('Sponsor care')}><Users size={17}/>Sponsor care</button></div></div>
+ {/* Group payers, both sides, behind their own dynamic import. A stokvel, a church or an employer pays for a member's
+     visits from its own account and holds nothing here, which is why neither row is under the balance above. */}
+ <SectionTitle title="Groups"/>
+ <div className="shortcut-list">
+  <button className="shortcut-row" onClick={()=>navigate('Groups that pay for you')}><span className="service-icon"><Users size={20}/></span><span className="shortcut-text"><strong>Groups that pay for you</strong><small>A stokvel, a church or your employer, if you agree.</small></span><ChevronRight size={17}/></button>
+  <button className="shortcut-row" onClick={()=>navigate('A group you pay for')}><span className="service-icon"><Wallet size={20}/></span><span className="shortcut-text"><strong>A group you pay for</strong><small>What it paid, and what it never sees.</small></span><ChevronRight size={17}/></button>
+ </div>
  <SectionTitle title="Recent activity"/>
  <StateBlock state={state} subject="Your wallet activity" permission="your payment provider">
   {walletActivity.length?<div className="panel">{walletActivity.map(line=><div className="record-row static" key={line.name}><span className="service-icon"><Wallet size={20}/></span><span><strong>{line.name}</strong><small>{line.date}</small></span><strong className="ledger">{line.delta>0?'+ ':'− '}{money(Math.abs(line.delta))}</strong></div>)}</div>

@@ -25,6 +25,8 @@ import { Academy, LocumShifts } from '../features/NurseTools';
 import { ThusoKit } from '../features/Kit';
 import { Earnings } from '../features/Earnings';
 import { DoctorFees } from '../features/DoctorFees';
+/* The doctor's claim draft, for a visit whose review she signed. It leads with the code set nobody has adopted. */
+import { ClaimDraft } from '../features/Claims';
 import { Dispensing } from '../features/Dispensing';
 import { CollectionHandover, DoctorPrescribe, LabResults, PharmacyQueue } from '../features/Medicines';
 import { words as medicinesWords } from '../lib/medicines';
@@ -559,6 +561,9 @@ function staffModalBody(modal: string, close: () => void, open: (m: string) => v
  /* The doctor's per-case fees: the cases Money has recorded and a fee nobody has decided, with the
     ledger's refusal to schedule a payout shown rather than a button quietly disabled. */
  if (modal === 'Per-case fees') return <DoctorFees/>;
+ /* The claim she could draft for a visit whose review she signed: no code set is adopted, so the draft says so and
+    asking for it to be sent answers with the refusal rather than a button that does nothing. */
+ if (modal === 'Claim draft') return <ClaimDraft/>;
  /* The nurse's own two More tools. Neither is a workflow and neither pretends to be one; what each
     says instead is what the module is for and the one thing it will not do — which for a shift
     market and a training record is the same thing in two shapes, and the thing a nurse should be
