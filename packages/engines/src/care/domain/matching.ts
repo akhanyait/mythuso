@@ -24,10 +24,11 @@
  *      stays inside Verify.
  *
  * THE ORDER OF THE ELIGIBLE. The patient's named nurse, then the nurses who saw her before (most
- * recent first), then everybody else nearest first, by the straight line between suburb centres in
- * packages/geo — a straight line and labelled as one wherever it is shown. Ties are broken by the
- * clinician reference so that the same roster produces the same order on every machine. */
-import { distanceKm, isInsideSouthAfrica, MAX_REALISTIC_DISPATCH_KM, type LatLng } from '../../../../geo/index.ts';
+ * recent first), then everybody else nearest first, by the straight line between suburb centres —
+ * packages/geo's arithmetic, ported beside this file as geo.ts — and labelled as a straight line
+ * wherever it is shown. Ties are broken by the clinician reference so that the same roster produces
+ * the same order on every machine. */
+import { distanceKm, isInsideSouthAfrica, MAX_REALISTIC_DISPATCH_KM, type LatLng } from './geo.ts';
 import { requirementFor, serviceFor, type CareContract, type Requirement } from './contract.ts';
 import type { TrustReader } from './trust.ts';
 
@@ -46,8 +47,8 @@ export type AppointmentToFill = {
  readonly appointmentRef: string;
  readonly subjectRef: string;
  readonly serviceId: string;
- /** The centre of the suburb the visit is in. Never the address. */
- readonly zone: LatLng;
+ /** The centre of the suburb the visit is in. Never the address; null until somebody has told Care. */
+ readonly zone: LatLng | null;
  readonly scheduledFor: string;
  readonly namedClinicianRef?: string | null;
  /** Most recent first. */
@@ -64,7 +65,8 @@ export type Withheld = { readonly candidate: Candidate; readonly reason: Withhel
 export type Match =
  | { readonly kind: 'matched'; readonly requirement: Requirement; readonly ranked: readonly Ranked[]; readonly withheld: readonly Withheld[] }
  | { readonly kind: 'service-not-offered' }
- | { readonly kind: 'carer-without-rn' };
+ | { readonly kind: 'carer-without-rn' }
+ | { readonly kind: 'visit-zone-unknown' };
 
 const trustStatement = (contract: CareContract) =>
  contract.routes.find(r => r.path === '/v1/care/offers')!.refusals.find(r => r.id === 'no-current-trust-score')!.statement;
@@ -85,6 +87,10 @@ export function match(
  /* A supervised service with nobody supervising it is refused as a whole. Matching anybody first
     and checking supervision afterwards is how a carer is offered a house on her own. */
  if (requirement.supervisedBy && !appointment.supervisorRef) return { kind: 'carer-without-rn' };
+ /* A distance to nowhere ranks nobody honestly. Until Care knows the suburb the visit waits, rather
+    than going to whoever happens to sort first. */
+ const zone = appointment.zone;
+ if (!isInsideSouthAfrica(zone)) return { kind: 'visit-zone-unknown' };
 
  const ranked: Ranked[] = [];
  const withheld: Withheld[] = [];
@@ -97,7 +103,7 @@ export function match(
   if (requirement.supervisedBy && candidate.supervisorRef !== appointment.supervisorRef) {
    withheld.push({ candidate, reason: 'carer-without-rn', statement: carerStatement(contract) }); continue;
   }
-  const km = candidate.base && isInsideSouthAfrica(candidate.base) ? distanceKm(candidate.base, appointment.zone) : null;
+  const km = isInsideSouthAfrica(candidate.base) ? distanceKm(candidate.base, zone) : null;
   if (km === null || !Number.isFinite(km) || km > MAX_REALISTIC_DISPATCH_KM) {
    withheld.push({ candidate, reason: 'no-base-to-measure-from', statement: contract.sentences.noBase }); continue;
   }

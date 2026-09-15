@@ -41,7 +41,9 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/offers@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
@@ -66,7 +68,9 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/offers/{offerRef}/accept@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
@@ -91,7 +95,9 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/offers/{offerRef}/decline@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
@@ -115,7 +121,9 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E2", "what": "OTP start and completion"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/visits/{appointmentRef}/start@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
@@ -141,7 +149,9 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/visits/{appointmentRef}/checklist@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
@@ -165,7 +175,9 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/visits/{appointmentRef}/capture@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
@@ -189,7 +201,9 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/visits/{appointmentRef}/handover@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
@@ -215,7 +229,9 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E2", "what": "OTP start and completion"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/visits/{appointmentRef}/complete@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",

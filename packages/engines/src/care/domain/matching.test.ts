@@ -81,6 +81,13 @@ test('nobody is given an invented distance: no base, or a base outside South Afr
  assert.ok(found.withheld.every(w => w.reason === 'no-base-to-measure-from'));
 });
 
+test('a visit whose suburb Care has not been told is offered to nobody, rather than to whoever sorts first', () => {
+ const trust = new TrustCache(careContract.badgeTiers);
+ badge(trust, 'n');
+ assert.equal(match({ ...visit, zone: null }, [nurse('n', 'parktown')], trust, careContract).kind, 'visit-zone-unknown');
+ assert.equal(match({ ...visit, zone: { lat: 37.33, lng: -122.03 } }, [nurse('n', 'parktown')], trust, careContract).kind, 'visit-zone-unknown');
+});
+
 test('a later-phase service is not offered to anybody, however eligible', () => {
  const trust = new TrustCache(careContract.badgeTiers);
  badge(trust, 'n');

@@ -8,17 +8,20 @@
  * one door is the failure an expiry exists to prevent.
  *
  * A DECLINE AND A LAPSE CASCADE. Either one asks the matcher again with everybody already asked
- * left out, and offers the visit to whoever is first now. The next offer is made through the offers
- * route, which is the route that emits appointment.offered — decline emits nothing of its own, as
- * packages/catalog/apis/care.json says. When nobody eligible is left the answer is the refusal that
- * sends the visit to a dispatcher; it is never an offer to somebody a gate withheld.
+ * left out, and offers the visit to whoever is first now. Where that happens is the caller's choice:
+ * the web preview passes it on at once, and the engine runtime passes it on from its tick, because
+ * the decline route emits nothing of its own (packages/catalog/apis/care.json) and the next offer's
+ * appointment.offered belongs to an act of offering, not to the act of saying no. When nobody eligible
+ * is left the answer is the refusal that sends the visit to a dispatcher; it is never an offer to
+ * somebody a gate withheld.
  *
  * THE SAME KEY TWICE IS THE SAME ACT ONCE. Offering, accepting and declining are dispatch writes, so
  * each carries the caller's idempotency key and a repeat returns the first answer with no events —
  * a retry on a bad connection must not become a second nurse driving to the same house.
  *
- * Nothing here reads a clock. Every act is handed `now`, which is what lets the lapse be tested at
- * the minute it happens rather than by waiting for it. */
+ * Nothing here reads a clock or a store. Every act is handed `now`, and the desk's state goes in
+ * through the constructor and comes out through `state()`, which is what lets the runtime keep it in
+ * its own SQLite store and roll it back with a refusal. */
 import { answer, type Answer, type CareEvent } from './outcome.ts';
 import { purposeOf, refuse, ROUTES, type CareContract } from './contract.ts';
 import { addMinutes } from './clock.ts';
@@ -45,9 +48,11 @@ export type Booking = {
  readonly scheduledFor: string;
 };
 export type Caller = { readonly clinicianRef: string };
+export type OfferBook = { readonly appointments: readonly AppointmentToFill[]; readonly offers: readonly Offer[]; readonly bookings: readonly Booking[] };
 
-type Made = { offerRef: string; offerExpiresAt: string };
-export type Cascade = { readonly declined: true; readonly next: Answer<Made> };
+export type Made = { offerRef: string; offerExpiresAt: string };
+export type Declined = { readonly declined: true; readonly next: Answer<Made> | null };
+export type PassedOn = { readonly offerRef: string; readonly next: Answer<Made> };
 
 export class OfferDesk {
  #contract: CareContract;
@@ -61,10 +66,21 @@ export class OfferDesk {
  #withheld = new Map<string, readonly Withheld[]>();
  #sequence = 0;
 
- constructor(options: { contract: CareContract; trust: TrustReader; candidates: () => readonly Candidate[] }) {
+ constructor(options: { contract: CareContract; trust: TrustReader; candidates: () => readonly Candidate[]; book?: OfferBook }) {
   this.#contract = options.contract;
   this.#trust = options.trust;
   this.#candidates = options.candidates;
+  for (const a of options.book?.appointments ?? []) this.#appointments.set(a.appointmentRef, a);
+  for (const o of options.book?.offers ?? []) {
+   this.#offers.set(o.offerRef, { ...o });
+   this.#asked.set(o.appointmentRef, (this.#asked.get(o.appointmentRef) ?? new Set<string>()).add(o.clinicianRef));
+  }
+  for (const b of options.book?.bookings ?? []) this.#bookings.set(b.appointmentRef, b);
+  this.#sequence = this.#offers.size;
+ }
+
+ state(): OfferBook {
+  return { appointments: [...this.#appointments.values()], offers: [...this.#offers.values()].map(o => ({ ...o })), bookings: [...this.#bookings.values()] };
  }
 
  /** The visit to be filled, as the booking that asked for it described it. */
@@ -84,36 +100,46 @@ export class OfferDesk {
   const seen = this.#keys.get(request.idempotencyKey) as Answer<{ appointmentRef: string; scheduledFor: string }> | undefined;
   if (seen) return seen.ok ? answer(seen.value) : seen;
   const result = this.#accept(request.offerRef, caller, now);
-  /* A refusal for lapsing is not remembered against the key: the same key after a later offer is a
-     different question. Everything else is. */
-  if (result.ok || result.id !== 'offer-expired') this.#keys.set(request.idempotencyKey, result);
+  this.#keys.set(request.idempotencyKey, result);
   return result;
  }
 
- decline(request: { idempotencyKey: string; offerRef: string }, caller: Caller, now: Date): Answer<Cascade> {
-  const seen = this.#keys.get(request.idempotencyKey) as Answer<Cascade> | undefined;
+ decline(request: { idempotencyKey: string; offerRef: string }, caller: Caller, now: Date, options: { passOn?: boolean } = {}): Answer<Declined> {
+  const seen = this.#keys.get(request.idempotencyKey) as Answer<Declined> | undefined;
   if (seen) return seen.ok ? answer(seen.value) : seen;
   const offer = this.#offers.get(request.offerRef);
-  let result: Answer<Cascade>;
+  let result: Answer<Declined>;
   if (!offer || offer.clinicianRef !== caller.clinicianRef) result = refuse(this.#contract, ROUTES.decline, 'not-your-offer');
   else if (offer.state !== 'open' || this.#lapsedAt(offer, now)) result = refuse(this.#contract, ROUTES.decline, 'offer-expired');
   else {
    offer.state = 'declined';
-   result = answer({ declined: true as const, next: this.#make(offer.appointmentRef, offer.serviceId, now) });
+   result = answer({ declined: true as const, next: options.passOn === false ? null : this.#make(offer.appointmentRef, offer.serviceId, now) });
   }
   this.#keys.set(request.idempotencyKey, result);
   return result;
  }
 
- /** Every open offer past its expiry lapses, and each one is passed on. */
- lapse(now: Date): readonly { offerRef: string; next: Answer<Made> }[] {
-  const lapsed: { offerRef: string; next: Answer<Made> }[] = [];
+ /** Every open offer past its expiry lapses and is passed on. */
+ lapse(now: Date): readonly PassedOn[] {
+  const passed: PassedOn[] = [];
   for (const offer of [...this.#offers.values()]) {
    if (offer.state !== 'open' || !this.#lapsedAt(offer, now)) continue;
    offer.state = 'lapsed';
-   lapsed.push({ offerRef: offer.offerRef, next: this.#make(offer.appointmentRef, offer.serviceId, now) });
+   passed.push({ offerRef: offer.offerRef, next: this.#make(offer.appointmentRef, offer.serviceId, now) });
   }
-  return lapsed;
+  return passed;
+ }
+
+ /** Every unbooked visit whose newest offer was declined and not yet passed on. */
+ passOnDeclined(now: Date): readonly PassedOn[] {
+  const passed: PassedOn[] = [];
+  for (const appointment of this.#appointments.values()) {
+   if (this.#bookings.has(appointment.appointmentRef)) continue;
+   const newest = this.offersFor(appointment.appointmentRef).at(-1);
+   if (newest?.state !== 'declined') continue;
+   passed.push({ offerRef: newest.offerRef, next: this.#make(appointment.appointmentRef, appointment.serviceId, now) });
+  }
+  return passed;
  }
 
  offerRef(ref: string): Offer | null { return this.#offers.get(ref) ?? null; }
@@ -122,6 +148,7 @@ export class OfferDesk {
   return [...this.#offers.values()].filter(o => o.clinicianRef === clinicianRef).at(-1) ?? null;
  }
  offersFor(appointmentRef: string): readonly Offer[] { return [...this.#offers.values()].filter(o => o.appointmentRef === appointmentRef); }
+ appointment(appointmentRef: string): AppointmentToFill | null { return this.#appointments.get(appointmentRef) ?? null; }
  booking(appointmentRef: string): Booking | null { return this.#bookings.get(appointmentRef) ?? null; }
  /** Who the last match withheld for this appointment, and why. A dispatcher's view; never a nurse's. */
  withheldFor(appointmentRef: string): readonly Withheld[] { return this.#withheld.get(appointmentRef) ?? []; }
@@ -132,17 +159,20 @@ export class OfferDesk {
   const appointment = this.#appointments.get(appointmentRef);
   if (!appointment || appointment.serviceId !== serviceId) return refuse(this.#contract, ROUTES.offer, 'required-field-missing');
   if (this.#bookings.has(appointmentRef)) return refuse(this.#contract, ROUTES.offer, 'no-eligible-clinician');
+  /* One open offer per visit. A second one while the first is still running is two nurses asked to
+     hold the same door, and whichever of them answers second has been lied to. */
+  const open = this.offersFor(appointmentRef).find(o => o.state === 'open' && !this.#lapsedAt(o, now));
+  if (open) return answer({ offerRef: open.offerRef, offerExpiresAt: open.expiresAt });
   const asked = this.#asked.get(appointmentRef) ?? new Set<string>();
   const found = match(appointment, this.#candidates(), this.#trust, this.#contract, asked);
-  if (found.kind === 'service-not-offered') return refuse(this.#contract, ROUTES.offer, 'service-not-offered');
-  if (found.kind === 'carer-without-rn') return refuse(this.#contract, ROUTES.offer, 'carer-without-rn');
+  if (found.kind !== 'matched') return refuse(this.#contract, ROUTES.offer, found.kind);
   this.#withheld.set(appointmentRef, found.withheld);
   const first = found.ranked[0];
   if (!first) {
-   /* Nobody ranked. If the only thing standing between this visit and every otherwise-eligible
-      candidate is the badge, the contract's sentence for that is the true one; otherwise the visit
-      has simply run out of people and goes to a dispatcher. */
-   const onlyTrust = found.withheld.length > 0 && asked.size === 0 && found.withheld.every(w => w.reason === 'no-current-trust-score');
+   /* Nobody ranked. When nobody has been asked yet and the badge is what withheld somebody whose scope
+      and place would otherwise have let her be asked, the contract's Trust Score sentence is the true
+      one; otherwise the visit has run out of people and goes to a dispatcher. */
+   const onlyTrust = asked.size === 0 && found.withheld.some(w => w.reason === 'no-current-trust-score');
    return refuse(this.#contract, ROUTES.offer, onlyTrust ? 'no-current-trust-score' : 'no-eligible-clinician');
   }
   this.#sequence += 1;
@@ -157,8 +187,7 @@ export class OfferDesk {
    state: 'open'
   };
   this.#offers.set(offer.offerRef, offer);
-  asked.add(offer.clinicianRef);
-  this.#asked.set(appointmentRef, asked);
+  this.#asked.set(appointmentRef, asked.add(offer.clinicianRef));
   /* appointment.offered carries who and until when, and never where the patient is: the suburb is
      released to the nurse who accepts, not to everybody who was asked. */
   const event: CareEvent = {

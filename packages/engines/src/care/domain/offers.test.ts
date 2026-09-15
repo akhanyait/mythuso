@@ -51,17 +51,44 @@ test('a decline cascades to the next eligible nurse; a nurse is never asked twic
  assert.ok(declined.ok);
  if (!declined.ok) return;
  assert.equal(declined.events.length, 0, 'decline emits nothing of its own');
- assert.ok(declined.value.next.ok);
- if (!declined.value.next.ok) return;
- assert.equal(declined.value.next.events[0]!.payload.clinicianRef, 'next');
- const second = declined.value.next.value.offerRef;
- const third = offers.decline({ idempotencyKey: 'd2', offerRef: second }, { clinicianRef: 'next' }, NOW);
- assert.ok(third.ok && third.value.next.ok);
- if (!third.ok || !third.value.next.ok) return;
- assert.equal(third.value.next.events[0]!.payload.clinicianRef, 'last');
- const out = offers.decline({ idempotencyKey: 'd3', offerRef: third.value.next.value.offerRef }, { clinicianRef: 'last' }, NOW);
+ const next = declined.value.next;
+ assert.ok(next?.ok);
+ if (!next?.ok) return;
+ assert.equal(next.events[0]!.payload.clinicianRef, 'next');
+ const third = offers.decline({ idempotencyKey: 'd2', offerRef: next.value.offerRef }, { clinicianRef: 'next' }, NOW);
+ const afterThird = third.ok ? third.value.next : null;
+ assert.ok(afterThird?.ok);
+ if (!afterThird?.ok) return;
+ assert.equal(afterThird.events[0]!.payload.clinicianRef, 'last');
+ const out = offers.decline({ idempotencyKey: 'd3', offerRef: afterThird.value.offerRef }, { clinicianRef: 'last' }, NOW);
  assert.ok(out.ok);
- if (out.ok) assert.deepEqual(out.value.next.ok ? null : out.value.next.id, 'no-eligible-clinician');
+ if (out.ok) assert.deepEqual(out.value.next && !out.value.next.ok ? out.value.next.id : null, 'no-eligible-clinician');
+});
+
+test('a decline that does not pass on leaves the visit for passOnDeclined, which asks the next nurse once', () => {
+ const offers = desk([nurse('near', 'parktown'), nurse('next', 'rosebank')]);
+ const made = offers.offer({ idempotencyKey: 'k', appointmentRef: 'TH-9', serviceId: 'wound' }, NOW);
+ assert.ok(made.ok);
+ if (!made.ok) return;
+ const declined = offers.decline({ idempotencyKey: 'd', offerRef: made.value.offerRef }, { clinicianRef: 'near' }, NOW, { passOn: false });
+ assert.ok(declined.ok && declined.value.next === null);
+ const passed = offers.passOnDeclined(NOW);
+ assert.equal(passed.length, 1);
+ assert.equal(passed[0]!.next.ok && passed[0]!.next.events[0]!.payload.clinicianRef, 'next');
+ assert.equal(offers.passOnDeclined(NOW).length, 0, 'an open offer is not passed on again');
+});
+
+test('a desk restored from its own state answers as the one it was taken from', () => {
+ const first = desk([nurse('near', 'parktown'), nurse('next', 'rosebank')]);
+ const made = first.offer({ idempotencyKey: 'k', appointmentRef: 'TH-9', serviceId: 'wound' }, NOW);
+ assert.ok(made.ok);
+ if (!made.ok) return;
+ const trust = new TrustCache(careContract.badgeTiers);
+ for (const ref of ['near', 'next']) trust.learn({ ...HEARD, subjectRef: ref, occurredAt: '2026-09-14T06:00:00+02:00', payload: { badgeTier: 'verified', hardGatesPassed: true } });
+ const again = new OfferDesk({ contract: careContract, trust, candidates: () => [nurse('near', 'parktown'), nurse('next', 'rosebank')], book: first.state() });
+ const stranger = again.accept({ idempotencyKey: 'x', offerRef: made.value.offerRef }, { clinicianRef: 'next' }, NOW);
+ assert.equal(stranger.ok ? null : stranger.id, 'not-your-offer');
+ assert.ok(again.accept({ idempotencyKey: 'a', offerRef: made.value.offerRef }, { clinicianRef: 'near' }, NOW).ok);
 });
 
 test('an unanswered offer lapses at its expiry, cannot then be accepted, and passes on', () => {
