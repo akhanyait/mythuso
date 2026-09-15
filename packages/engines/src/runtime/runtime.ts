@@ -32,7 +32,7 @@ import { createMock, match, needsIdempotencyKey } from '../../../mock-api/src/mo
 import { BindingRefused, BusRefused, recipientsOf, refusalFrom, validatePublish, validateSubscription, valueOfType } from './bus.ts';
 import { createClock } from './clock.ts';
 import { loadRuntimeContract, repositoryRoot, routeKeyOf, type ContractRoute, type Field, type Refusal } from './contract.ts';
-import { openDatabase, openEngineStore } from './store.ts';
+import { openDatabase, openEngineStore, requestDigest } from './store.ts';
 import { createTrail } from './trail.ts';
 import type { BusEvent, Caller, Clock, EngineContext, EngineModule, RouteHandler, RouteKey, RuntimeAnswer, SubscriptionHandler, TrailEntry, TrailReader } from './types.ts';
 
@@ -197,9 +197,20 @@ export function createRuntime(options: RuntimeOptions): Runtime {
   }
   const undeclared = Object.keys(given).filter(name => !route.request.some(f => f.field === name));
   const db = stores.get(bound.engine)!;
+  /* A stored reply is handed back only to the caller who asked for it, for the request it answered.
+     An engine is one caller under its own name; a person is identified by their reference, and an
+     idempotent write from a person the binder cannot tell apart from another is refused, because the
+     only alternative is a stored answer that could reach the wrong one. A reused key whose declared
+     fields differ is refused rather than replayed, so an engine's own "same key, different request"
+     refusal is never answered for it with somebody's earlier result. */
   const replayKey = route.idempotent && typeof key === 'string' && key ? key : null;
+  const engineCaller = caller.role.startsWith('engine:');
+  if (replayKey && !engineCaller && !caller.ref) return render(runtimeRefusal('caller-unidentified'));
+  const callerRef = engineCaller ? caller.role : caller.ref ?? '';
+  const digest = requestDigest(fields);
   if (replayKey) {
-   const row = db.prepare('SELECT status, body FROM _runtime_replays WHERE route = ? AND role = ? AND idempotency_key = ?').get(route.key, caller.role, replayKey) as { status: number; body: string } | undefined;
+   const row = db.prepare('SELECT request_digest, status, body FROM _runtime_replays WHERE route = ? AND role = ? AND caller_ref = ? AND idempotency_key = ?').get(route.key, caller.role, callerRef, replayKey) as { request_digest: string; status: number; body: string } | undefined;
+   if (row && row.request_digest !== digest) return render(shared('idempotency-key-reused'));
    if (row) return { status: row.status, body: JSON.parse(row.body), answeredBy: 'engine' };
   }
   const outbox: BusEvent[] = [];
@@ -215,7 +226,7 @@ export function createRuntime(options: RuntimeOptions): Runtime {
    const problem = responseProblem(route, answer.ok);
    if (problem) throw new Error(problem);
    const result: RuntimeAnswer = { status: 200, body: answer.ok, answeredBy: 'engine' };
-   if (replayKey) db.prepare('INSERT INTO _runtime_replays (route, role, idempotency_key, status, body) VALUES (?, ?, ?, ?, ?)').run(route.key, caller.role, replayKey, result.status, JSON.stringify(result.body));
+   if (replayKey) db.prepare('INSERT INTO _runtime_replays (route, role, caller_ref, idempotency_key, request_digest, status, body) VALUES (?, ?, ?, ?, ?, ?, ?)').run(route.key, caller.role, callerRef, replayKey, digest, result.status, JSON.stringify(result.body));
    db.exec('COMMIT');
    flush(outbox);
    return result;
