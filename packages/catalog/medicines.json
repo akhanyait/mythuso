@@ -147,7 +147,6 @@
    "heading": "Write a prescription",
    "intro": "Search the synthetic list, run the interaction check, and prescribe against the MedicationRequest you wrote through the Passport. A pharmacist who is not you verifies it next.",
    "search": "Search the synthetic list",
-   "schedule": "Schedule {schedule}",
    "pharmacy": "Pharmacy it is routed to",
    "check": "Run the interaction check",
    "checkResult": "Interaction check: {outcome}",
@@ -174,7 +173,8 @@
    "pinHeading": "Your hand-over PIN",
    "pinShownOnce": "It is shown once, now, and never again. Nobody from MyThuso will ask you for it.",
    "pinExpires": "It works until {at}.",
-   "windowEnds": "The collection lapses at {at} if the bag has not reached you."
+   "windowEnds": "The collection lapses at {at} if the bag has not reached you.",
+   "empty": "No prescription of yours is waiting to be collected."
   },
   "handover": {
    "heading": "Hand over a sealed bag",
@@ -185,7 +185,8 @@
    "pin": "The patient's PIN",
    "handOver": "Hand over",
    "attemptsLeft": "{left} wrong PINs left before the bag goes back to the pharmacy.",
-   "handedOver": "Handed over. The patient has their medicine."
+   "handedOver": "Handed over. The patient has their medicine.",
+   "empty": "No patient has authorised you to collect a bag."
   },
   "results": {
    "heading": "Results waiting for you",

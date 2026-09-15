@@ -745,6 +745,8 @@ struct WorkspaceSectionView: View {
                 pill("Thuso SOS · urgent care", "Emergency services first, then what MyThuso can do", "cross.case") { SosView() }
                 pill("Locum shifts", "", "clock.badge") { FeatureDetail(title: "Locum shifts") }
                 pill("Academy", "", "graduationcap") { FeatureDetail(title: "Academy") }
+                /* The contract's own heading, so the row and the screen it opens cannot say different things. */
+                pill(Medicines.HandoverText.heading, "", "shippingbox") { MedicinesView() }
             }
         }
     }

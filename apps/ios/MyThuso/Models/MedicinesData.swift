@@ -50,6 +50,7 @@ extension Medicines {
         static let handOver = "Hand over"
         static let attemptsLeft = "{left} wrong PINs left before the bag goes back to the pharmacy."
         static let handedOver = "Handed over. The patient has their medicine."
+        static let empty = "No patient has authorised you to collect a bag."
     }
 
     static let refusals: [MedicinesRefusal] = [

@@ -26,6 +26,8 @@ import { ThusoKit } from '../features/Kit';
 import { Earnings } from '../features/Earnings';
 import { DoctorFees } from '../features/DoctorFees';
 import { Dispensing } from '../features/Dispensing';
+import { CollectionHandover, DoctorPrescribe, LabResults, PharmacyQueue } from '../features/Medicines';
+import { words as medicinesWords } from '../lib/medicines';
 import { Programmes } from '../features/Programmes';
 import { Teleconsult } from '../features/Teleconsult';
 import { ConsultationComposer, ConsultationRecord } from '../features/Consultation';
@@ -538,6 +540,12 @@ function staffModalBody(modal: string, close: () => void, open: (m: string) => v
  if (modal === 'Thuso Kit' || modal === 'Thuso Kit connection' || modal === 'Diagnostic kit') return <ThusoKit onClose={close}/>;
  if (modal === 'Weekly payouts' || modal === 'Earnings & payouts') return <Earnings/>;
  if (modal === 'Substitution & repeats' || modal === 'Substitution') return <Dispensing/>;
+ /* Medicines & Labs: the doctor's prescription and results, the pharmacy's queue and the nurse's hand-over, each
+    opened by the contract heading its More tools link carries. */
+ if (modal === medicinesWords.prescribe.heading) return <DoctorPrescribe/>;
+ if (modal === medicinesWords.results.heading) return <LabResults/>;
+ if (modal === medicinesWords.pharmacy.heading) return <PharmacyQueue/>;
+ if (modal === medicinesWords.handover.heading) return <CollectionHandover/>;
  /* "Clinical protocols" is in two roles' More tools and was the roadmap fallback in both. It is a
     screen now, and the same screen — a protocol that differs by which door you came through is two
     protocols. */

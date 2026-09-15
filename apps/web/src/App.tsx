@@ -14,7 +14,11 @@ import { Dashboard } from './features/Dashboard';
 const BookingFlow = lazy(() => import('./features/Booking').then(m => ({ default: m.Booking })));
 const RescheduleFlow = lazy(() => import('./features/Booking').then(m => ({ default: m.Reschedule })));
 const CancelFlow = lazy(() => import('./features/Booking').then(m => ({ default: m.CancelVisit })));
+/* Choosing who collects a medicine carries the Medicines domain and its contract. A patient opens it from the
+   prescription page, never on the first view, so it arrives on its own dynamic import like booking. */
+const AuthoriseCollectorFlow = lazy(() => import('./features/Medicines').then(m => ({ default: m.AuthoriseCollector })));
 import { nurseOfVisit } from './lib/arrival';
+import { capability } from './lib/capabilities';
 import {
  Explore, Family, FamilyProfile, MoreHub, Notifications, Passport, PlanDetail, Plans, Privacy,
  Services, SponsorCare, TopUpWallet, VisitDetail, Visits, WalletPage, rowFor, sampleVisitRows,
@@ -250,6 +254,8 @@ function modalTitle(modal: string) {
  if (modal === 'Thuso Pass') return 'Health summary';
  if (modal === 'Visit summary') return 'What the nurse found';
  if (modal === 'Switch workspace') return 'Open MyThuso as';
+ /* The capability's own name, so the title needs no copy of the Medicines contract on the first load. */
+ if (modal === 'medicine-collection') return capability('medicine-collection').name;
  return modal;
 }
 type BodyProps = { modal: string; close: () => void; navigate: (s: string) => void; openOnboarding: () => void; reopen: (s: string) => void; locale: LocaleCode; setLocale: (l: LocaleCode) => void; query: string; setQuery: (q: string) => void; location: string; setLocation: (l: string) => void; people: string[]; addMember: (n: string) => void; addInvitation: (i: Invitation) => void; signOut: () => void; rows: VisitRow[]; invitations: Invitation[]; bookFor: (person: string) => void; viewVisit: (id: string) => void; revoke: (id: string) => void; openRole: (id: RoleId) => void };
@@ -273,6 +279,7 @@ function modalBody(p: BodyProps) {
  if (modal === 'Share my passport') return <Sharing/>;
  if (modal.startsWith('Prescription ') || modal === 'Pharmacy orders') return <PrescriptionDetail reference={modal.replace('Prescription ', '')}/>;
  if (modal.startsWith('Laboratory order ') || modal === 'Laboratory results') return <LabOrderDetail reference={modal.replace('Laboratory order ', '')}/>;
+ if (modal === 'medicine-collection') return <Suspense fallback={<p className="helper" role="status">{capability('medicine-collection').name}</p>}><AuthoriseCollectorFlow/></Suspense>;
  if (isKit(modal)) return <ThusoKit onClose={p.close}/>;
  /* Three integrations that could not be opened at all. Each one now says what would be read, what
     would never be, and — from the contract rather than from a paragraph of its own — that no device

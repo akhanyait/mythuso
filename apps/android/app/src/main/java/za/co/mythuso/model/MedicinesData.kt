@@ -50,6 +50,7 @@ object MedicinesData {
         const val handOver = "Hand over"
         const val attemptsLeft = "{left} wrong PINs left before the bag goes back to the pharmacy."
         const val handedOver = "Handed over. The patient has their medicine."
+        const val empty = "No patient has authorised you to collect a bag."
     }
 
     val refusals = listOf(

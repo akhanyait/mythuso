@@ -577,6 +577,9 @@ export function PrescriptionJourney({ navigate, open }: { navigate: (page: strin
   <p className="helper"><ShieldCheck size={14}/>{authorisation.endsWith}</p></div>
 
   <button className="primary full" onClick={() => open('Prescription RX-0081')}>See how a prescription reads<ArrowRight size={17}/></button>
+  {/* Who collects a dispensed bag is the patient's to say. The dialog is named by the capability, and its words and
+      rules arrive with it on a dynamic import rather than on this page. */}
+  <button className="secondary full" onClick={() => open('medicine-collection')}>{capability('medicine-collection').name}<ArrowRight size={17}/></button>
   <button className="secondary full" onClick={() => navigate('Health Passport')}>Back to your Health Passport<ArrowRight size={17}/></button>
  </>;
 }
