@@ -36,7 +36,10 @@ const MINUTE = 60_000;
 const START = new Date('2026-09-15T08:00:00+02:00');
 const clock = (at: number) => new Date(at).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: scheduling.timezone });
 
+/* The workspace arrives on a dynamic import, whether it is opened by its link or chosen in the same tab, so
+   the navigation is waited for before a section is chosen from it. */
 async function openBoard(page: Page): Promise<Locator> {
+  await expect(page.getByRole('navigation', { name: 'Primary' }).or(page.getByRole('navigation', { name: 'Main navigation' })).first()).toBeVisible();
   await goSection(page, 'Incidents');
   const board = page.getByRole('region', { name: screen.heading });
   await expect(board).toBeVisible();
