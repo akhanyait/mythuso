@@ -2252,6 +2252,54 @@ for(const capability of vetting.capabilities) if(!vetting.roles.some(r=>r.grants
  if (!/gateway\.createSubject\(tokenFor\(req, 'Developer'\)\)/.test(passportServerSource) || !/const developer = developerOf\(/.test(read('apps/passport/src/gateway.ts'))) throw new Error('apps/passport creates a synthetic subject without a developer credential. The loopback alone mints no patient.');
 }
 
+/* ==== SELF-ACTIONS ON THE VETTING REGISTER =========================================================
+   ADDED BY THE TRUST, RECORD & IDENTITY LEAD, after the runtime lead reproduced a nurse enrolling
+   herself as an admin and a suspended party lifting their own suspension. Three layers each held
+   the line wrongly, and each is now held on its own:
+
+     1. The vault's write methods refuse the party acting on themselves — enrol and restore before the
+        gate is asked, decide before it too, second and suspend as they always did — and enrol refuses
+        a party already on the register rather than rewriting them.
+     2. The gate's subject shortcut is reachable only for read and self-service operations, and an
+        operation nobody named is administrative.
+     3. putParty creates a party and never changes one: no role_id in its conflict clause.
+     4. Every gate request built in apps/api/src names its operation, at the call site. */
+{
+ const vaultSource = read('apps/api/src/vetting/index.ts');
+ const bodyOf = signature => {
+  const at = vaultSource.indexOf(`\n ${signature}`);
+  return at < 0 ? '' : vaultSource.slice(at, vaultSource.indexOf('\n }\n', at));
+ };
+ const beforeGate = (signature, guard) => {
+  const body = bodyOf(signature);
+  const guardAt = body.indexOf(guard), gateAt = body.indexOf('#gate.access(');
+  return guardAt >= 0 && gateAt >= 0 && guardAt < gateAt;
+ };
+ if (!beforeGate('enrol(actor: Actor', 'if (actor.id === party.id) return this.#refuseSelf(')) throw new Error('VettingVault.enrol() no longer refuses a party enrolling themselves before the gate is asked. A nurse on the register could make herself an admin.');
+ if (!bodyOf('enrol(actor: Actor').includes('SELF_REFUSALS.alreadyEnrolled')) throw new Error('VettingVault.enrol() no longer refuses a party already on the register. Enrolling again is how a role gets rewritten.');
+ if (!beforeGate('restore(actor: Actor', 'if (actor.id === partyId) return this.#refuseSelf(')) throw new Error('VettingVault.restore() no longer refuses a party lifting their own suspension before the gate is asked.');
+ if (!beforeGate('decide(request: Decision', 'if (request.actor.id === evidence.partyId)')) throw new Error('VettingVault.decide() no longer refuses a party deciding their own check before the gate is asked.');
+ if (!/actor\.id === evidence\.partyId/.test(bodyOf('second(actor: Actor')) || !/actor\.id === partyId/.test(bodyOf('suspend(actor: Actor'))) throw new Error('VettingVault.second() or suspend() no longer refuses the party it is about.');
+ const gateSource = read('apps/api/src/protection/gate.ts');
+ if (!/const SELF_OPERATIONS: ReadonlySet<string> = new Set\(\['read', 'self-service'\]\);/.test(gateSource)) throw new Error('apps/api/src/protection/gate.ts no longer limits the subject shortcut to exactly the read and self-service operations.');
+ const shortcut = gateSource.match(/const isSubjectThemselves = [^;]+;/g) ?? [];
+ if (shortcut.length !== 1 || shortcut[0] !== "const isSubjectThemselves = actingOnSelf && SELF_OPERATIONS.has(request.operation ?? 'administrative');") throw new Error(`The gate's subject shortcut is "${shortcut.join(' / ')}". It is reachable only for a read or self-service operation, and an operation nobody named is administrative — whose record it is decides nothing on its own.`);
+ const vettingStoreText = read('apps/api/src/vetting/store.ts');
+ const putPartyText = vettingStoreText.slice(vettingStoreText.indexOf('putParty(party) {'), vettingStoreText.indexOf('findParty,', vettingStoreText.indexOf('putParty(party) {')));
+ if (!putPartyText || /ON CONFLICT[\s\S]*role_id/.test(putPartyText) || !/ON CONFLICT \(id\) DO NOTHING/.test(putPartyText)) throw new Error('apps/api/src/vetting/store.ts putParty rewrites a party on conflict. It creates a party and never changes one: a role change is its own decision, and there is no route for one.');
+ const vaultCalls = [...vaultSource.matchAll(/this\.#request\(([^()]*)\)/g)].map(m => m[1]);
+ if (vaultCalls.length < 8 || vaultCalls.some(args => !/'(read|self-service|administrative)'\s*$/.test(args))) throw new Error('A gate request built in apps/api/src/vetting/index.ts does not name its operation. Every call says read, self-service or administrative, at the call site.');
+ const serverGateCalls = [...read('apps/api/src/server.ts').matchAll(/gate\.access\(\{[\s\S]*?\}\)/g)].map(m => m[0]);
+ if (!serverGateCalls.length || serverGateCalls.some(call => !/operation: '(read|self-service|administrative)'/.test(call))) throw new Error('A direct gate.access call in apps/api/src/server.ts does not name its operation.');
+ for (const file of ['apps/api/src/consent/index.ts', 'apps/api/src/capture/index.ts']) {
+  const source = read(file);
+  const builder = source.slice(source.indexOf(' #request('), source.indexOf('\n }\n', source.indexOf(' #request(')));
+  if (!/operation: '(read|self-service|administrative)'/.test(builder)) throw new Error(`The gate request built in ${file} does not name its operation.`);
+ }
+ const selfRefusals = vetting.selfActionRefusals ?? {};
+ for (const key of ['administrativeOnSelf', 'enrol', 'restore', 'alreadyEnrolled']) if (!(typeof selfRefusals[key] === 'string' && selfRefusals[key].split(' ').length > 8)) throw new Error(`packages/catalog/vetting.json has no selfActionRefusals.${key} sentence, so a party acting on their own register entry would be refused in words nobody wrote down.`);
+}
+
 /* What is left to check about the native vetting models is what is still written by hand. The
    tables themselves are generated above, so a refusal sentence cannot say one thing on iOS and
    another on Android — there is only one sentence and one writer of it. The lifecycle is a

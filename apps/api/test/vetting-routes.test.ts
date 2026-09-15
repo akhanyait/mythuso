@@ -24,6 +24,7 @@ import { openStore, type Store } from '../src/store.ts';
 import { loadConfig } from '../src/config.ts';
 import { createProtectionModule, mintBootstrapAuthorisation } from '../src/protection/index.ts';
 import { SEALED_COLUMNS, VettingVault, openVettingStore, roleChecks, vettingSource } from '../src/vetting/index.ts';
+import catalogue from '../../../packages/catalog/vetting.json' with { type: 'json' };
 
 const ORIGIN = 'http://localhost:5173';
 const config = loadConfig({
@@ -232,6 +233,37 @@ describe('what the routes refuse, in the contract\'s own words', () => {
     const response = await as('one', '/vetting/parties', { id: 'somebody-new', roleId: 'chiropractor' });
     assert.equal(response.status, 403);
     assert.match((await response.json() as { message: string }).message, /packages\/catalog\/vetting\.json has no role/);
+  });
+});
+
+describe('what a party may not do to their own register entry', () => {
+  /* The two reproductions the runtime lead found, as refusals. The nurse is the one the lifecycle test
+     enrolled and cleared; she is on the register, signed in as herself, and nothing she sends names
+     anybody but her. */
+  test('a nurse cannot enrol herself as an admin, and her stored role does not change', async () => {
+    const response = await as('nurse', '/vetting/parties', { id: person.nurse, roleId: 'admin' });
+    assert.equal(response.status, 403);
+    assert.equal((await response.json() as { message: string }).message, catalogue.selfActionRefusals.enrol);
+    assert.equal(vault.standing(person.nurse!)!.party.roleId, 'nurse');
+  });
+
+  test('a suspended nurse cannot lift her own suspension, and stays suspended', async () => {
+    const suspended = await as('one', '/vetting/parties/suspend', { partyId: person.nurse, reason: 'Synthetic suspension while a complaint is looked at.' });
+    assert.equal(suspended.status, 200, await suspended.text());
+    const response = await as('nurse', '/vetting/parties/restore', { partyId: person.nurse });
+    assert.equal(response.status, 403);
+    assert.equal((await response.json() as { message: string }).message, catalogue.selfActionRefusals.restore);
+    assert.notEqual(vault.standing(person.nurse!)!.party.suspendedAt, null);
+    /* And a reviewer still can, so the refusal is about who is asking rather than about the route. */
+    assert.equal((await as('one', '/vetting/parties/restore', { partyId: person.nurse })).status, 200);
+    assert.equal(vault.standing(person.nurse!)!.party.suspendedAt, null);
+  });
+
+  test('a reviewer cannot make a party a different role by enrolling them again', async () => {
+    const response = await as('one', '/vetting/parties', { id: person.nurse, roleId: 'admin' });
+    assert.equal(response.status, 403);
+    assert.equal((await response.json() as { message: string }).message, catalogue.selfActionRefusals.alreadyEnrolled);
+    assert.equal(vault.standing(person.nurse!)!.party.roleId, 'nurse');
   });
 });
 

@@ -357,7 +357,7 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
     if (protection) {
       const outcome = protection.gate.access({
         actorId: person.id, actorRole: 'subject', capability: 'view-patient-summary',
-        purpose: 'subject-access', recordType: 'patient', recordId: person.id, subjectId: person.id
+        purpose: 'subject-access', recordType: 'patient', recordId: person.id, subjectId: person.id, operation: 'read'
       });
       if (!outcome.allowed) return send(res, 403, { error: outcome.reason, audit: outcome.auditId });
       res.setHeader('x-mythuso-audit', outcome.auditId);
@@ -564,7 +564,7 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
     const outcome = protection!.gate.access({
       actorId: held.actor.party.id, actorRole: held.actor.party.roleId, capability: 'review-vetting',
       purpose: held.actor.actorFor(partyId).purpose, recordType: 'vetting-evidence',
-      recordId: partyId, subjectId: partyId, field: 'standing'
+      recordId: partyId, subjectId: partyId, field: 'standing', operation: 'read'
     });
     if (!outcome.allowed) return send(res, 403, { error: 'refused', message: outcome.reason, blockedBy: outcome.blockedBy, audit: outcome.auditId });
     res.setHeader('x-mythuso-audit', outcome.auditId);
@@ -694,7 +694,7 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
     if (protection) {
       const outcome = protection.gate.access({
         actorId: person.id, actorRole: 'subject', capability: 'view-patient-summary',
-        purpose: 'subject-access', recordType: 'patient', recordId: person.id, subjectId: person.id,
+        purpose: 'subject-access', recordType: 'patient', recordId: person.id, subjectId: person.id, operation: 'read',
         field: 'export'
       });
       if (!outcome.allowed) return send(res, 403, { error: 'refused', message: EXPORT_REFUSALS.gateRefused, reason: outcome.reason, audit: outcome.auditId });

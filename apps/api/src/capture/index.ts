@@ -492,7 +492,9 @@ export class CaptureIntake {
   return {
    actorId: actor.id, actorRole: actor.role, capability: entry.capability,
    purpose: actor.purpose, recordType: entry.recordType, recordId: entry.recordId,
-   subjectId: entry.subjectId, field: entry.field
+   subjectId: entry.subjectId, field: entry.field,
+   /* A clinician filing or settling a reading changes a record: never a subject's shortcut. */
+   operation: 'administrative'
   };
  }
 

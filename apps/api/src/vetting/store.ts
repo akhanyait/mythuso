@@ -293,10 +293,13 @@ export function openVettingStore(db: Database): VettingStore {
  const findEvidenceFor = (partyId: string, checkId: string): Evidence | null =>
   first(db.prepare(`SELECT ${EVIDENCE_COLUMNS} FROM vetting_evidence WHERE party_id = ? AND check_id = ?`).all(partyId, checkId), toEvidence);
  return {
+  /* Creates a party, and never changes one. It was an upsert that rewrote role_id on conflict, which
+     turned "enrol this id" into "make this id whatever role the request names" for anybody who could
+     reach enrol() with their own id. A role change is its own decision; there is no route for one. */
   putParty(party) {
    db.prepare(`INSERT INTO vetting_parties (id, role_id, reference, suspended_at, suspended_reason, declined_at, declined_reason, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT (id) DO UPDATE SET role_id = excluded.role_id, reference = excluded.reference`)
+    ON CONFLICT (id) DO NOTHING`)
     .run(party.id, party.roleId, party.reference, party.suspendedAt, party.suspendedReason, party.declinedAt, party.declinedReason, party.createdAt);
   },
   findParty,
