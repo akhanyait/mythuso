@@ -136,10 +136,10 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
  const scheduledOnly = choice.kind !== 'nearest' && !rule.offersAsap;
  useEffect(() => { if (scheduledOnly && kind === 'asap') setKind('scheduled'); }, [scheduledOnly, kind]);
  /* The hours on the chosen day that the domain offers for this choice. With whoever is nearest that is
-    every hour scheduling.json offers; with a named nurse, less the ones already held against her, each
-    carrying what happens if she cannot take it. */
+    every hour scheduling.json offers; with a named nurse, less the ones already held against her. A slot is
+    the hour and the nurse; what happens if she cannot take it is sent beside it, in its own field. */
  const hours = offeredSlots({ now: openedAt, serviceId: service.id, kind: 'scheduled', choice, holds: held, namedNurseFallback: inForce.access.namedNurseFallback })
-  .filter(s => s.date === date && s.fallback === fallback).map(s => s.start!);
+  .filter(s => s.date === date).map(s => s.start!);
  const hourOffered = hours.includes(slot);
  const chosenNurse = chosen ? nurseOfVisit({ address, nurse: { id: chosen.nurseRef } }) : null;
 
@@ -173,14 +173,17 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
  const requestTheBooking = (): Visit['booking'] | null => {
   const at = new Date();
   const wanted = offeredSlots({ now: at, serviceId: service.id, kind, choice, holds: held, namedNurseFallback: inForce.access.namedNurseFallback })
-   .find(s => (kind === 'asap' || (s.date === date && s.start === slot)) && s.fallback === fallback);
+   .find(s => kind === 'asap' || (s.date === date && s.start === slot));
+  /* The suburb goes as its zone id and nothing finer, and the answer to what happens if a named nurse cannot
+     take the visit goes in its own field, as POST /v1/access/bookings@2 carries both. An address that names no
+     zone geography.json holds sends none, and the domain refuses it as not offered where the visit would be. */
   const requested = requestBooking(emptyLedger,
-   { idempotencyKey: reference, subjectRef: subjectRefOf(person), serviceId: service.id, mode: 'home', slotRef: wanted?.slotRef ?? `${date}T${slot}~not-offered`, actorRole: 'patient' },
-   { now: at, candidates, visitCovered: Boolean(zoneInAddress(address)), held, namedNurseFallback: inForce.access.namedNurseFallback });
+   { idempotencyKey: reference, subjectRef: subjectRefOf(person), serviceId: service.id, mode: 'home', slotRef: wanted?.slotRef ?? `${date}T${slot}~not-offered`, zoneId: zoneInAddress(address)?.id ?? '', namedNurseFallback: fallback, actorRole: 'patient' },
+   { now: at, candidates, held, namedNurseFallback: inForce.access.namedNurseFallback });
   if (requested.refused) { setBookingRefusal(requested.statement); return null; }
   const accepted = kind === 'scheduled' ? confirmBooking(requested.value.ledger, requested.value.booking.bookingRef, at) : null;
   const settled = accepted && !accepted.refused ? accepted.value.booking : requested.value.booking;
-  return { bookingRef: settled.bookingRef, asap: kind === 'asap', history: settled.history };
+  return { bookingRef: settled.bookingRef, asap: kind === 'asap', history: settled.history, namedNurseFallback: settled.namedNurseFallback };
  };
  /* One payment in flight at a time. The ledger is fetched on the first press, so an answer is no longer
     immediate — and while it was on its way the last decline and its "Try the payment again" button were
@@ -262,6 +265,9 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
        presented as somebody on the way. A nurse asked for by name, or an hour the roster accepted, is named. */}
    <div className="booking-outcome">
     {(done.kind === 'scheduled' || done.nurse) && <div className="nurse-row"><span className="avatar nurse-avatar">{coming.initials}</span><div><strong>{coming.name}</strong><span>{coming.role} · {coming.area}</span></div></div>}
+    {/* What happens if she cannot take it, as the booking holds it rather than as the review last showed it:
+        the answer the booking was asked for with, in its own field, which a change to the setting never moves. */}
+    {done.booking?.namedNurseFallback && <div className="review-line booking-fallback-kept"><span>{personStep.fallback.reviewLabel}</span><strong>{personStep.fallback.choices.find(c => c.id === done.booking!.namedNurseFallback)!.sentence}</strong></div>}
     {done.booking && <BookingStatus history={done.booking.history} asap={done.booking.asap}/>}
    </div>
    <NotConnected of="booking"/>

@@ -256,8 +256,9 @@ object Booking {
  * same conversation sends something new only when its code outranks the one already held; an emergency
  * at the first message and a calm "can I talk to a nurse" at the tenth is still an emergency. */
 object Handovers {
-    /* When the handover desk answers, from Access's generated handover hours, in Johannesburg — Core's rule
-       for a rota, onDuty in packages/engines/src/core/domain/loops.ts, which the web imports and a phone cannot,
+    /* When the handover desk answers, from Access's generated handover hours, in Johannesburg — the shared rule
+       for a rota, onDuty and rotaAt in packages/engines/src/settings/shape.ts, which the web and the Access
+       engine import and a phone cannot,
        so it is mirrored here: a window covers the local day and a time from its start until before its end. It
        returns no words, so it has no way to leave out what Gilbert says first out of hours: nobody is there,
        and the numbers. */

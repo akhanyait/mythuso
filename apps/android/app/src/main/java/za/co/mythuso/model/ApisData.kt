@@ -65,10 +65,10 @@ object ApisData {
     val GET_ACCESS_VERIFICATION_STATUS = Route("getAccessVerificationStatus", "GET", "/v1/access/verification-status", "/v1/access/verification-status", 1, "access", listOf("loopback"), listOf("audit"), false, "built")
     val GET_ACCESS_RATE_LIMITS = Route("getAccessRateLimits", "GET", "/v1/access/rate-limits", "/v1/access/rate-limits", 1, "access", listOf("loopback"), listOf("audit"), false, "built")
     val GET_ACCESS_DOORS = Route("getAccessDoors", "GET", "/v1/access/doors", "/v1/access/doors", 1, "access", listOf("anonymous"), listOf("audit"), false, "built")
-    val POST_ACCESS_BOOKINGS = Route("postAccessBookings", "POST", "/v1/access/bookings", "/v1/access/bookings", 1, "access", listOf("patient", "caregiver", "guardian", "thuso-line-agent"), listOf("dispatch"), true, "built")
+    val POST_ACCESS_BOOKINGS_V2 = Route("postAccessBookingsV2", "POST", "/v1/access/bookings", "/v1/access/bookings", 2, "access", listOf("patient", "caregiver", "guardian", "thuso-line-agent"), listOf("dispatch"), true, "built")
     val GET_ACCESS_BOOKINGS_BY_BOOKING_REF = Route("getAccessBookingsByBookingRef", "GET", "/v1/access/bookings/{bookingRef}", "/v1/access/bookings/{bookingRef}", 1, "access", listOf("patient", "caregiver", "guardian", "thuso-line-agent"), listOf("subject-access", "dispatch"), false, "built")
     val POST_ACCESS_CONVERSATIONS_BY_CONVERSATION_REF_MESSAGES = Route("postAccessConversationsByConversationRefMessages", "POST", "/v1/access/conversations/{conversationRef}/messages", "/v1/access/conversations/{conversationRef}/messages", 1, "access", listOf("patient", "caregiver"), listOf("treatment"), false, "proposed")
-    val POST_ACCESS_CONVERSATIONS_BY_CONVERSATION_REF_HANDOVER = Route("postAccessConversationsByConversationRefHandover", "POST", "/v1/access/conversations/{conversationRef}/handover", "/v1/access/conversations/{conversationRef}/handover", 1, "access", listOf("patient", "caregiver"), listOf("treatment"), false, "proposed")
+    val POST_ACCESS_CONVERSATIONS_BY_CONVERSATION_REF_HANDOVER_V2 = Route("postAccessConversationsByConversationRefHandoverV2", "POST", "/v1/access/conversations/{conversationRef}/handover", "/v1/access/conversations/{conversationRef}/handover", 2, "access", listOf("patient", "caregiver"), listOf("treatment"), false, "built")
     val POST_ACCESS_TOOLS_BY_TOOL = Route("postAccessToolsByTool", "POST", "/v1/access/tools/{tool}", "/v1/access/tools/{tool}", 1, "access", listOf("patient", "caregiver"), listOf("treatment", "dispatch", "dispensing", "subject-access"), true, "proposed")
     val POST_ACCESS_HOUSEHOLDS = Route("postAccessHouseholds", "POST", "/v1/access/households", "/v1/access/households", 1, "access", listOf("patient", "caregiver"), listOf("subject-access"), false, "proposed")
     val POST_ACCESS_SPONSORS = Route("postAccessSponsors", "POST", "/v1/access/sponsors", "/v1/access/sponsors", 1, "access", listOf("patient", "sponsor"), listOf("billing"), false, "proposed")
@@ -234,10 +234,10 @@ object ApisData {
         GET_ACCESS_VERIFICATION_STATUS,
         GET_ACCESS_RATE_LIMITS,
         GET_ACCESS_DOORS,
-        POST_ACCESS_BOOKINGS,
+        POST_ACCESS_BOOKINGS_V2,
         GET_ACCESS_BOOKINGS_BY_BOOKING_REF,
         POST_ACCESS_CONVERSATIONS_BY_CONVERSATION_REF_MESSAGES,
-        POST_ACCESS_CONVERSATIONS_BY_CONVERSATION_REF_HANDOVER,
+        POST_ACCESS_CONVERSATIONS_BY_CONVERSATION_REF_HANDOVER_V2,
         POST_ACCESS_TOOLS_BY_TOOL,
         POST_ACCESS_HOUSEHOLDS,
         POST_ACCESS_SPONSORS,
@@ -677,16 +677,19 @@ object ApisData {
     data class GetAccessDoorsResponse(
         val feeds: List<Map<String, Any?>>
     )
-    data class PostAccessBookingsRequest(
+    data class PostAccessBookingsV2Request(
         val idempotencyKey: String,
         val subjectRef: String,
         val serviceId: String,
         val mode: String,
-        val slotRef: String
+        val slotRef: String,
+        val zoneId: String,
+        val namedNurseFallback: String? = null
     )
-    data class PostAccessBookingsResponse(
+    data class PostAccessBookingsV2Response(
         val bookingRef: String,
-        val stateCode: String
+        val stateCode: String,
+        val namedNurseFallback: String? = null
     )
     data class GetAccessBookingsByBookingRefRequest(
         val bookingRef: String
@@ -705,12 +708,20 @@ object ApisData {
         val interactionStateCode: String,
         val escalated: Boolean
     )
-    data class PostAccessConversationsByConversationRefHandoverRequest(
+    data class PostAccessConversationsByConversationRefHandoverV2Request(
         val conversationRef: String,
-        val summaryEntryRef: String
+        val summaryEntryRef: String,
+        val urgencyCode: String
     )
-    data class PostAccessConversationsByConversationRefHandoverResponse(
-        val handoverRef: String
+    data class PostAccessConversationsByConversationRefHandoverV2Response(
+        val handoverRef: String,
+        val urgencyCode: String,
+        val sentNow: Boolean,
+        val deskStateCode: String,
+        val answeredByRoles: List<String>,
+        val outOfHours: String? = null,
+        val outOfHoursNumbers: String? = null,
+        val callbackFrom: String? = null
     )
     data class PostAccessToolsByToolRequest(
         val idempotencyKey: String,

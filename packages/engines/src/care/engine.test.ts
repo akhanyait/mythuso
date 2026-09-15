@@ -13,6 +13,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import care from '../../../catalog/care.json' with { type: 'json' };
 import roster from '../../../catalog/roster.json' with { type: 'json' };
+import geography from '../../../catalog/geography.json' with { type: 'json' };
 import settingsContract from '../../../catalog/settings.json' with { type: 'json' };
 import careApi from '../../../catalog/apis/care.json' with { type: 'json' };
 import { MEMORY, createClock, createRuntime, defineEngine, type EngineContext, type RouteKey, type Runtime } from '../runtime/index.ts';
@@ -154,12 +155,30 @@ test('the visit: the code to start, no checklist under a draft, handover and com
  runtime.close();
 });
 
-test('a booking heard on the bus becomes an appointment Care owns, and waits for its suburb rather than being offered', () => {
+/* booking.requested@2 says which suburb a visit is in, so a real booking — not the preview's seeded visit — can
+   be offered. A zone geography.json does not hold is still refused, as visit-zone-unknown, rather than measured
+   from somewhere invented. */
+test('a booking heard with a zone geography.json holds becomes a real appointment Care offers, and one with a zone it does not hold waits for its suburb', () => {
  const { runtime, as } = setup(WOUND);
- as('access', ctx => ctx.publish('booking.requested@1', { bookingRef: 'bk-1', serviceId: 'wound', mode: 'home', requestedFor: '2026-09-15T10:00:00+02:00' }, { subjectRef: 'sub-bk-1', purposeOfUse: 'dispatch' }));
- assert.equal(published(runtime, 'appointment.requested@1').length, 1);
- const answer = offer(runtime, 'o-bk', 'apt-bk-1');
- assert.deepEqual([answer.status, answer.body.error], [409, 'visit-zone-unknown']);
+ const booking = (bookingRef: string, zoneId: string, named: Record<string, string> = {}) =>
+  as('access', ctx => ctx.publish('booking.requested@2', { bookingRef, serviceId: 'wound', mode: 'home', requestedFor: '2026-09-15T10:00:00+02:00', zoneId, ...named }, { subjectRef: `sub-${bookingRef}`, purposeOfUse: 'dispatch' }));
+ const known = geography.zones.find(z => z.id === P.zone)!.id;
+ const askedFor = WOUND[WOUND.length - 1]!;
+ booking('bk-1', known);
+ booking('bk-2', 'nowhere-synthetic');
+ booking('bk-3', known, { namedClinicianRef: askedFor, namedNurseFallback: 'wait' });
+ assert.equal(published(runtime, 'appointment.requested@1').length, 3);
+
+ const real = offer(runtime, 'o-bk-1', 'apt-bk-1');
+ assert.equal(real.status, 200, JSON.stringify(real.body));
+ assert.equal(published(runtime, 'appointment.offered@1').length, 1);
+ const nowhere = offer(runtime, 'o-bk-2', 'apt-bk-2');
+ assert.deepEqual([nowhere.status, nowhere.body.error], [409, 'visit-zone-unknown']);
+ /* The nurse asked for by name is offered it first. */
+ const named = offer(runtime, 'o-bk-3', 'apt-bk-3');
+ assert.equal(named.status, 200, JSON.stringify(named.body));
+ const [, offeredNamed] = published(runtime, 'appointment.offered@1');
+ assert.ok(offeredNamed!.body.includes(askedFor), offeredNamed!.body);
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
 });

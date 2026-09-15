@@ -381,16 +381,19 @@ export interface GetAccessDoorsResponse {
  readonly feeds: ReadonlyArray<Readonly<Record<string, unknown>>>;
 }
 
-export interface PostAccessBookingsRequest {
+export interface PostAccessBookingsV2Request {
  readonly idempotencyKey: string;
  readonly subjectRef: string;
  readonly serviceId: string;
  readonly mode: string;
  readonly slotRef: string;
+ readonly zoneId: string;
+ readonly namedNurseFallback?: string;
 }
-export interface PostAccessBookingsResponse {
+export interface PostAccessBookingsV2Response {
  readonly bookingRef: string;
  readonly stateCode: string;
+ readonly namedNurseFallback?: string;
 }
 
 export interface GetAccessBookingsByBookingRefRequest {
@@ -412,12 +415,20 @@ export interface PostAccessConversationsByConversationRefMessagesResponse {
  readonly escalated: boolean;
 }
 
-export interface PostAccessConversationsByConversationRefHandoverRequest {
+export interface PostAccessConversationsByConversationRefHandoverV2Request {
  readonly conversationRef: string;
  readonly summaryEntryRef: string;
+ readonly urgencyCode: string;
 }
-export interface PostAccessConversationsByConversationRefHandoverResponse {
+export interface PostAccessConversationsByConversationRefHandoverV2Response {
  readonly handoverRef: string;
+ readonly urgencyCode: string;
+ readonly sentNow: boolean;
+ readonly deskStateCode: string;
+ readonly answeredByRoles: readonly string[];
+ readonly outOfHours?: string;
+ readonly outOfHoursNumbers?: string;
+ readonly callbackFrom?: string;
 }
 
 export interface PostAccessToolsByToolRequest {
@@ -1567,10 +1578,10 @@ export const apiRoutes = {
  getAccessVerificationStatus: { name: "getAccessVerificationStatus", method: "GET", path: "/v1/access/verification-status", mountedPath: "/v1/access/verification-status", version: 1, engine: "access", callers: ["loopback"], purpose: ["audit"], idempotent: false, status: "built" },
  getAccessRateLimits: { name: "getAccessRateLimits", method: "GET", path: "/v1/access/rate-limits", mountedPath: "/v1/access/rate-limits", version: 1, engine: "access", callers: ["loopback"], purpose: ["audit"], idempotent: false, status: "built" },
  getAccessDoors: { name: "getAccessDoors", method: "GET", path: "/v1/access/doors", mountedPath: "/v1/access/doors", version: 1, engine: "access", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built" },
- postAccessBookings: { name: "postAccessBookings", method: "POST", path: "/v1/access/bookings", mountedPath: "/v1/access/bookings", version: 1, engine: "access", callers: ["patient","caregiver","guardian","thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ postAccessBookingsV2: { name: "postAccessBookingsV2", method: "POST", path: "/v1/access/bookings", mountedPath: "/v1/access/bookings", version: 2, engine: "access", callers: ["patient","caregiver","guardian","thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "built" },
  getAccessBookingsByBookingRef: { name: "getAccessBookingsByBookingRef", method: "GET", path: "/v1/access/bookings/{bookingRef}", mountedPath: "/v1/access/bookings/{bookingRef}", version: 1, engine: "access", callers: ["patient","caregiver","guardian","thuso-line-agent"], purpose: ["subject-access","dispatch"], idempotent: false, status: "built" },
  postAccessConversationsByConversationRefMessages: { name: "postAccessConversationsByConversationRefMessages", method: "POST", path: "/v1/access/conversations/{conversationRef}/messages", mountedPath: "/v1/access/conversations/{conversationRef}/messages", version: 1, engine: "access", callers: ["patient","caregiver"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postAccessConversationsByConversationRefHandover: { name: "postAccessConversationsByConversationRefHandover", method: "POST", path: "/v1/access/conversations/{conversationRef}/handover", mountedPath: "/v1/access/conversations/{conversationRef}/handover", version: 1, engine: "access", callers: ["patient","caregiver"], purpose: ["treatment"], idempotent: false, status: "proposed" },
+ postAccessConversationsByConversationRefHandoverV2: { name: "postAccessConversationsByConversationRefHandoverV2", method: "POST", path: "/v1/access/conversations/{conversationRef}/handover", mountedPath: "/v1/access/conversations/{conversationRef}/handover", version: 2, engine: "access", callers: ["patient","caregiver"], purpose: ["treatment"], idempotent: false, status: "built" },
  postAccessToolsByTool: { name: "postAccessToolsByTool", method: "POST", path: "/v1/access/tools/{tool}", mountedPath: "/v1/access/tools/{tool}", version: 1, engine: "access", callers: ["patient","caregiver"], purpose: ["treatment","dispatch","dispensing","subject-access"], idempotent: true, status: "proposed" },
  postAccessHouseholds: { name: "postAccessHouseholds", method: "POST", path: "/v1/access/households", mountedPath: "/v1/access/households", version: 1, engine: "access", callers: ["patient","caregiver"], purpose: ["subject-access"], idempotent: false, status: "proposed" },
  postAccessSponsors: { name: "postAccessSponsors", method: "POST", path: "/v1/access/sponsors", mountedPath: "/v1/access/sponsors", version: 1, engine: "access", callers: ["patient","sponsor"], purpose: ["billing"], idempotent: false, status: "proposed" },

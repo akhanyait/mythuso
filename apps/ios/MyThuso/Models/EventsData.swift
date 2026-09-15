@@ -85,8 +85,8 @@ enum EventsData {
     static let loopEscalatedV1 = EventKey("loop.escalated", 1, "core")
     static let loopClosedV1 = EventKey("loop.closed", 1, "core")
     static let protocolRatifiedV1 = EventKey("protocol.ratified", 1, "core")
-    static let bookingRequestedV1 = EventKey("booking.requested", 1, "access")
-    static let bookingConfirmedV1 = EventKey("booking.confirmed", 1, "access")
+    static let bookingRequestedV2 = EventKey("booking.requested", 2, "access")
+    static let bookingConfirmedV2 = EventKey("booking.confirmed", 2, "access")
     static let bookingCancelledV1 = EventKey("booking.cancelled", 1, "access")
     static let conversationHandoverV1 = EventKey("conversation.handover", 1, "access")
     static let visitHandoverSubmittedV1 = EventKey("visit.handover.submitted", 1, "care")
@@ -198,8 +198,8 @@ enum EventsData {
         loopEscalatedV1,
         loopClosedV1,
         protocolRatifiedV1,
-        bookingRequestedV1,
-        bookingConfirmedV1,
+        bookingRequestedV2,
+        bookingConfirmedV2,
         bookingCancelledV1,
         conversationHandoverV1,
         visitHandoverSubmittedV1,

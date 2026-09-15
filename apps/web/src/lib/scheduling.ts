@@ -92,7 +92,11 @@ export type Visit = {
  /** The nurse asked for by name at booking. Absent means whoever is nearest, which is an answer rather than a gap. */
  nurse?: { id: string; name: string };
  /** The booking behind the visit as packages/engines' Access domain answered it: where it stands and when each state was reached. */
- booking?: { bookingRef: string; asap: boolean; history: readonly { state: 'requested' | 'confirmed' | 'cancelled'; at: string }[] };
+ booking?: {
+  bookingRef: string; asap: boolean; history: readonly { state: 'requested' | 'confirmed' | 'cancelled'; at: string }[];
+  /** What happens if the nurse asked for by name cannot take it, as the booking keeps it. Null for whoever is nearest. */
+  namedNurseFallback: 'wait' | 'soonest' | null;
+ };
 };
 
 export const visitEnds = (visit: Visit) => (visit.start ? endTime(visit.start, visit.service.duration) : undefined);

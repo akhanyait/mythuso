@@ -62,8 +62,8 @@ object EventsData {
             val LOOP_ESCALATED_V1 = EventKey("loop.escalated", 1, "core")
             val LOOP_CLOSED_V1 = EventKey("loop.closed", 1, "core")
             val PROTOCOL_RATIFIED_V1 = EventKey("protocol.ratified", 1, "core")
-            val BOOKING_REQUESTED_V1 = EventKey("booking.requested", 1, "access")
-            val BOOKING_CONFIRMED_V1 = EventKey("booking.confirmed", 1, "access")
+            val BOOKING_REQUESTED_V2 = EventKey("booking.requested", 2, "access")
+            val BOOKING_CONFIRMED_V2 = EventKey("booking.confirmed", 2, "access")
             val BOOKING_CANCELLED_V1 = EventKey("booking.cancelled", 1, "access")
             val CONVERSATION_HANDOVER_V1 = EventKey("conversation.handover", 1, "access")
             val VISIT_HANDOVER_SUBMITTED_V1 = EventKey("visit.handover.submitted", 1, "care")
@@ -175,8 +175,8 @@ object EventsData {
                 LOOP_ESCALATED_V1,
                 LOOP_CLOSED_V1,
                 PROTOCOL_RATIFIED_V1,
-                BOOKING_REQUESTED_V1,
-                BOOKING_CONFIRMED_V1,
+                BOOKING_REQUESTED_V2,
+                BOOKING_CONFIRMED_V2,
                 BOOKING_CANCELLED_V1,
                 CONVERSATION_HANDOVER_V1,
                 VISIT_HANDOVER_SUBMITTED_V1,

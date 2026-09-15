@@ -53,10 +53,16 @@ export type Refusal = {
 /* The envelope fields a publisher knows. The runtime adds the event id, the owner and the time it was
    put on the bus; these are the facts only the act itself can supply. No name, no address, no words. */
 export type AccessEvent =
- | { readonly type: 'booking.requested'; readonly version: 1; readonly actorRole: string; readonly subjectRef: string; readonly occurredAt: string;
-     readonly payload: { readonly bookingRef: string; readonly serviceId: string; readonly mode: string; readonly requestedFor: string } }
- | { readonly type: 'booking.confirmed'; readonly version: 1; readonly actorRole: string; readonly subjectRef: string; readonly occurredAt: string;
-     readonly payload: { readonly bookingRef: string; readonly scheduledFor: string } }
+ | { readonly type: 'booking.requested'; readonly version: 2; readonly actorRole: string; readonly subjectRef: string; readonly occurredAt: string;
+     readonly payload: {
+      readonly bookingRef: string; readonly serviceId: string; readonly mode: string; readonly requestedFor: string;
+      /* The suburb by its geography.json id, and nothing finer. */
+      readonly zoneId: string;
+      /* Both present or both absent: a named nurse never reaches Care without the answer to what happens if she cannot come. */
+      readonly namedClinicianRef?: string; readonly namedNurseFallback?: string;
+     } }
+ | { readonly type: 'booking.confirmed'; readonly version: 2; readonly actorRole: string; readonly subjectRef: string; readonly occurredAt: string;
+     readonly payload: { readonly bookingRef: string; readonly scheduledFor: string; readonly serviceId: string } }
  | { readonly type: 'booking.cancelled'; readonly version: 1; readonly actorRole: string; readonly subjectRef: string; readonly occurredAt: string;
      readonly payload: { readonly bookingRef: string; readonly cancelledByRole: string; readonly reasonCode: string } }
  | { readonly type: 'conversation.handover'; readonly version: 1; readonly actorRole: string; readonly subjectRef: string; readonly occurredAt: string;
@@ -89,12 +95,12 @@ export function bookingRefusal(id: string): Refusal {
 }
 
 export const ROUTES = {
- book: 'POST /v1/access/bookings@1',
+ book: 'POST /v1/access/bookings@2',
  read: 'GET /v1/access/bookings/{bookingRef}@1',
  cancel: 'POST /v1/access/bookings/{bookingRef}/cancel@1',
  readThread: 'GET /v1/access/visit-threads/{bookingRef}@1',
  write: 'POST /v1/access/visit-threads/{bookingRef}/messages@1',
- handover: 'POST /v1/access/conversations/{conversationRef}/handover@1'
+ handover: 'POST /v1/access/conversations/{conversationRef}/handover@2'
 } as const;
 
 /* A reference that says it is simulated. The same rule the payment simulator follows for a receipt: a

@@ -44,8 +44,7 @@
  *
  * "Unacknowledged items escalate automatically." A concern somebody has taken on is waiting for its
  * outcome, and the clock that moves it is the acknowledgement's. The desk can still move it by hand. */
-import scheduling from '../../../../catalog/scheduling.json' with { type: 'json' };
-import type { Post, Window } from '../../settings/shape.ts';
+import { onDuty, type Post, type Window } from '../../settings/shape.ts';
 
 /** A unit, not a policy. */
 export const MINUTE_MS = 60_000;
@@ -109,21 +108,9 @@ export const isOpen = (loop: Loop): boolean => loop.closedAt === null;
 export const stateCodeOf = (loop: Loop): StateCode =>
  loop.closedAt !== null ? 'closed' : loop.exhaustedAt !== null ? 'exhausted' : loop.acknowledgedAt !== null ? 'acknowledged' : 'open';
 
-const local = new Intl.DateTimeFormat('en-GB', { timeZone: scheduling.timezone, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-
-/** The day of the week and the time of day a moment is where the rota is kept, as a window names them: "mon" and "02:10". */
-export function localTimeOf(at: number): { readonly day: string; readonly time: string } {
- const parts = local.formatToParts(new Date(at));
- const part = (type: Intl.DateTimeFormatPartTypes) => parts.find(p => p.type === type)?.value ?? '';
- return { day: part('weekday').toLowerCase(), time: `${part('hour')}:${part('minute')}` };
-}
-
-/* A window's hours run from 00:00 to 24:00 and end after they start, so a time of day compares with them as
-   text: "02:10" is before "06:00", and every time of day is before "24:00". */
-export const onDuty = (rota: KeptRota, post: string, at: number): boolean => {
- const { day, time } = localTimeOf(at);
- return rota.windows.some(w => w.post === post && w.days.includes(day) && w.from <= time && time < w.to);
-};
+/* Whether a post is on duty is the shared settings code's onDuty, not a rule of Core's own: the handover desk
+   on the Access engine asks the same question of its hours, and two copies are two answers about whether six
+   in the morning has begun. */
 
 /** Where a concern goes if it moves at a moment: its next holder and that holder's time, or null when nobody is left, and every post passed over. */
 export type Move = { readonly holder: Holder | null; readonly ownerRole: string | null; readonly spanMs: number; readonly skipped: readonly Skip[] };

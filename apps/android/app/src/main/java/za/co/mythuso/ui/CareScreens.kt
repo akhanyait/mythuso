@@ -563,6 +563,8 @@ fun serviceIcon(id: String) = when (id) {
     var nurseId by draft::nurseId
     var consent by remember { mutableStateOf(false) }
     var bookedHistory by remember { mutableStateOf<List<String>>(emptyList()) }
+    /* What happens if the named nurse cannot take it, as the booked visit keeps it, for the confirmation. */
+    var bookedFallback by remember { mutableStateOf<String?>(null) }
     val haptic = LocalHapticFeedback.current
     val days = remember { Scheduling.offeredDays() }
     val chosen = days.getOrElse(day) { days.first() }
@@ -668,6 +670,8 @@ fun serviceIcon(id: String) = when (id) {
                            the door, and anything else would have gone to a provider this phone does not have. */
                         Note(za.co.mythuso.model.Money.afterBooking(payment))
                         NotConnected("payments")
+                        /* What happens if she cannot take it, as the booked visit keeps it rather than as the review last showed it. */
+                        BookingData.Fallback.choices.firstOrNull { it.id == bookedFallback }?.let { ReviewLine(BookingData.Fallback.reviewLabel, it.sentence) }
                         BookingStatus(bookedHistory, asap = !scheduled)
                     }
                 }
@@ -678,11 +682,15 @@ fun serviceIcon(id: String) = when (id) {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     when (step) {
                         5 -> {
-                            /* The whole choice, and who was asked for, travel into the visit. */
+                            /* The whole choice, and who was asked for, travel into the visit — and what happens if she
+                               cannot take it, as its own field the way the booking route carries it: the patient's pick
+                               when the generated fallback asks, or the one it resolves to. */
+                            val answer = Booking.fallbackRule?.takeIf { nurse != null }?.let { if (it.asksPatient) fallbackPick else it.resolvesTo }
                             val visit = BookedVisit(service, person, address.trim(), kind, if (scheduled) chosen.date else null, if (scheduled) slot else null, payment,
-                                nurseId = nurse?.subject?.id, nurseName = nurse?.subject?.name)
+                                nurseId = nurse?.subject?.id, nurseName = nurse?.subject?.name, namedNurseFallback = answer)
                             store.visits.add(0, visit)
                             bookedHistory = Booking.history(visit, cancelled = false)
+                            bookedFallback = visit.namedNurseFallback
                             store.bookingDrafts.remove(service.id)
                             step = 6
                         }

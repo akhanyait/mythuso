@@ -10,7 +10,7 @@
 import Foundation
 
 enum BookingData {
-    static let publishes: [String] = ["booking.requested@1", "booking.confirmed@1", "booking.cancelled@1"]
+    static let publishes: [String] = ["booking.requested@2", "booking.confirmed@2", "booking.cancelled@1", "conversation.handover@1"]
 
     enum Person {
         static let stepLabel = "Nurse"
@@ -64,8 +64,8 @@ enum BookingData {
     }
 
     static let states: [BookingStateWords] = [
-        .init(id: "requested", name: "Asked for", patientWords: "You asked for this visit. Nothing is held until a nurse's hour is accepted.", event: "booking.requested@1"),
-        .init(id: "confirmed", name: "Accepted", patientWords: "The simulated roster accepted it and holds the hour. No real nurse did.", event: "booking.confirmed@1"),
+        .init(id: "requested", name: "Asked for", patientWords: "You asked for this visit. Nothing is held until a nurse's hour is accepted.", event: "booking.requested@2"),
+        .init(id: "confirmed", name: "Accepted", patientWords: "The simulated roster accepted it and holds the hour. No real nurse did.", event: "booking.confirmed@2"),
         .init(id: "cancelled", name: "Cancelled", patientWords: "This visit was called off. It stays here with the reason given.", event: "booking.cancelled@1")
     ]
     static let transitions: [BookingTransition] = [
@@ -88,8 +88,8 @@ enum BookingData {
         .init(id: "confirm-after-cancel", route: nil, status: nil, sentence: "A cancelled booking is not confirmed afterwards. Book again if the visit is still wanted."),
         .init(id: "confirm-without-a-time", route: nil, status: nil, sentence: "Nothing is accepted until there is an hour to hold."),
         .init(id: "nurse-badge-not-current", route: nil, status: nil, sentence: "A nurse is offered only while her badge is current, so this nurse is not offered."),
-        .init(id: "slot-not-offered", route: "POST /v1/access/bookings@1", status: 409, sentence: "That time was not offered, so it cannot be booked."),
-        .init(id: "service-not-here", route: "POST /v1/access/bookings@1", status: 422, sentence: "That service is not offered where the visit would be."),
+        .init(id: "slot-not-offered", route: "POST /v1/access/bookings@2", status: 409, sentence: "That time was not offered, so it cannot be booked."),
+        .init(id: "service-not-here", route: "POST /v1/access/bookings@2", status: 422, sentence: "That service is not offered where the visit would be."),
         .init(id: "booking-not-found", route: "GET /v1/access/bookings/{bookingRef}@1", status: 404, sentence: "There is no booking of yours with that reference."),
         .init(id: "cancel-after-arrival", route: "POST /v1/access/bookings/{bookingRef}/cancel@1", status: 409, sentence: "This visit has already started. Speak to the nurse who is with you, or call the Control Tower."),
         .init(id: "reason-not-listed", route: "POST /v1/access/bookings/{bookingRef}/cancel@1", status: 422, sentence: "Choose one of the listed reasons, or say you would rather not."),
@@ -97,7 +97,7 @@ enum BookingData {
         .init(id: "no-attachments", route: "POST /v1/access/visit-threads/{bookingRef}/messages@1", status: 422, sentence: "A visit thread carries words only. Nothing can be attached."),
         .init(id: "not-on-this-visit", route: "POST /v1/access/visit-threads/{bookingRef}/messages@1", status: 403, sentence: "Only the patient and the nurse on this visit write in its thread."),
         .init(id: "message-too-long", route: "POST /v1/access/visit-threads/{bookingRef}/messages@1", status: 422, sentence: "A message here is kept short. Say the rest to the nurse at the visit."),
-        .init(id: "no-summary", route: "POST /v1/access/conversations/{conversationRef}/handover@1", status: 422, sentence: "A handover goes with a structured summary, or it does not go.")
+        .init(id: "no-summary", route: "POST /v1/access/conversations/{conversationRef}/handover@2", status: 422, sentence: "A handover goes with a structured summary, or it does not go.")
     ]
 
     enum Thread {

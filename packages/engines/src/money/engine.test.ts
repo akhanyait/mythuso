@@ -13,7 +13,8 @@ import { MEMORY, createClock, createRuntime, defineEngine, type EventKey } from 
 import { loadRuntimeContract } from '../runtime/contract.ts';
 import { engine, HEARD } from './engine.ts';
 import { attempt } from './domain/provider.ts';
-import { hearing, refusal, serviceById } from './domain/contract.ts';
+import { hearing, isRefusal, refusal, serviceById } from './domain/contract.ts';
+import { createMoney } from './domain/ledger.ts';
 import { moneyBlock } from './domain/settings.ts';
 
 const FLAG = { MYTHUSO_ENGINES: 'synthetic-data-only' };
@@ -86,6 +87,25 @@ test('a booked visit is priced by visit.billable, paid once, and refused in the 
  assert.equal(runtime.call('GET /v1/money/payouts@1', { role: 'scheme', purpose: 'billing', fields: {} }).body['error'], 'caller-not-allowed');
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
+});
+
+/* booking.confirmed@2 names the service that was booked, so Money prices by service from the catalogue rather
+   than by asking Access. A confirmation is not a charge, so nothing is owed; what Money does with it is read the
+   service, and one packages/catalog/services.json does not sell is refused loudly rather than priced at nothing. */
+test('a confirmed booking is heard at version two and its serviceId is read, and a service nobody sells is refused rather than priced', () => {
+ const access = publisher('access');
+ const runtime = createRuntime({ env: FLAG, engines: [access.module, engine], dataDirectory: MEMORY, clock: createClock(START) });
+ assert.ok(HEARD.includes('booking.confirmed@2'));
+ access.queue.push({ key: 'booking.confirmed@2', subjectRef: 'subj-lerato', payload: { bookingRef: 'BK-1', scheduledFor: '2026-09-15T09:00:00+02:00', serviceId: 'wound' } });
+ runtime.advance(1000);
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+
+ const money = createMoney({ clock: () => new Date(START), simulation: true });
+ assert.ok(!isRefusal(money.hear({ type: 'booking.confirmed', version: 2, payload: { bookingRef: 'BK-2', scheduledFor: '2026-09-15T09:00:00+02:00', serviceId: 'wound' } })));
+ assert.throws(() => money.hear({ type: 'booking.confirmed', version: 2, payload: { bookingRef: 'BK-3', scheduledFor: '2026-09-15T09:00:00+02:00', serviceId: 'nothing-sold-synthetic' } }), /services\.json/);
+ /* Version one is withdrawn: Money no longer hears it, with or without a service on it. */
+ assert.deepEqual(money.hear({ type: 'booking.confirmed', version: 1, payload: { bookingRef: 'BK-4', scheduledFor: '2026-09-15T09:00:00+02:00' } }), refusal('hears-only-its-list'));
 });
 
 test('the tick closes a nurse’s week, pays it on the contract’s day, and schedules nothing for an undecided fee', () => {

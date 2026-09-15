@@ -181,3 +181,5 @@ POST /v1/core/setting-changes@1 c80982cbae4735b4
 GET /v1/access/settings@1 877af293b2f402fa
 POST /v1/access/setting-changes@1 995074f2284cabc1
 POST /v1/access/setting-reviews@1 f6bf985ab5c9836f
+POST /v1/access/bookings@2 7724d66e1e54b6dc
+POST /v1/access/conversations/{conversationRef}/handover@2 f06981056ff156cb

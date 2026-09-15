@@ -4,9 +4,9 @@
    settings code, so a changed default or a changed post moves these tests with it. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { proposeChange, snapshotOf, type Change } from '../../settings/shape.ts';
+import { localTimeOf, proposeChange, snapshotOf, type Change } from '../../settings/shape.ts';
 import { coreBlock, coreSettings, rotaOf } from './settings.ts';
-import { MINUTE_MS, everyPostOnDuty, holdersOf, localTimeOf, nextHolder, postOf, settle, stateCodeOf, towerOrder, type KeptRota, type Loop } from './loops.ts';
+import { MINUTE_MS, everyPostOnDuty, holdersOf, nextHolder, postOf, settle, stateCodeOf, towerOrder, type KeptRota, type Loop } from './loops.ts';
 
 /* A Tuesday, where the rota is kept. */
 const MORNING = Date.parse('2026-09-15T09:00:00+02:00');

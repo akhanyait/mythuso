@@ -13,10 +13,10 @@
  *   Badges      person.trust_updated at version 2, and nothing else. Until Verify publishes one about a
  *               nurse she has no badge here and is withheld — on a fresh runtime that is everybody, which
  *               is the rule working, not the engine broken.
- *   Visits      booking.requested registers one and publishes appointment.requested. The event carries
- *               no suburb, so such a visit is refused an offer until Care is told where it is. The one
- *               visit that can be walked end to end is packages/catalog/care.json's preview, seeded into
- *               the store with its suburb and scheduled against the runtime's own clock.
+ *   Visits      booking.requested at version 2 registers one, with its suburb's zone id and the nurse
+ *               asked for by name, and publishes appointment.requested. A zone geography.json does not
+ *               hold is refused an offer until Care is told where the visit is. packages/catalog/care.json's
+ *               preview is seeded into the store with its suburb and scheduled against the runtime's clock.
  *   Encounters  The record says one exists by publishing passport.entry.written for an Encounter. No
  *               record route admits engine:care, so that event is the only way Care can know an
  *               encounter is complete and signed, and until it arrives handover and completion refuse.
@@ -222,11 +222,15 @@ export const engine = defineEngine({
    ctx.store.prepare('INSERT OR IGNORE INTO care_encounters (entry_ref, author_ref) VALUES (?, ?)').run(String(event.payload.entryRef), String(event.payload.authorRef));
   },
 
-  'booking.requested@1': (event, ctx) => {
+  /* booking.requested@2 names the suburb by its zone id in geography.json, and the nurse asked for by name when
+     there was one. The zone is kept as its id and resolved to the zone's centre when an offer is made, so a zone
+     geography.json does not hold is refused an offer as visit-zone-unknown rather than guessed at. */
+  'booking.requested@2': (event, ctx) => {
    const appointmentRef = `apt-${String(event.payload.bookingRef)}`;
    const requestedFor = typeof event.payload.requestedFor === 'string' ? event.payload.requestedFor : null;
-   const fresh = ctx.store.prepare('INSERT OR IGNORE INTO care_appointments (appointment_ref, subject_ref, service_id, scheduled_for) VALUES (?, ?, ?, ?)')
-    .run(appointmentRef, event.subjectRef, String(event.payload.serviceId), requestedFor);
+   const named = typeof event.payload.namedClinicianRef === 'string' ? event.payload.namedClinicianRef : null;
+   const fresh = ctx.store.prepare('INSERT OR IGNORE INTO care_appointments (appointment_ref, subject_ref, service_id, zone_id, scheduled_for, named_clinician_ref) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(appointmentRef, event.subjectRef, String(event.payload.serviceId), String(event.payload.zoneId), requestedFor, named);
    if (!fresh.changes) return;
    ctx.publish('appointment.requested@1', {
     appointmentRef, serviceId: String(event.payload.serviceId), mode: String(event.payload.mode), ...(requestedFor ? { preferredFrom: requestedFor } : {})

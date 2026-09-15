@@ -389,6 +389,12 @@ export function createMoney(options: MoneyOptions = {}) {
       keeps the fee the first delivery recorded. */
    if (!row.cases.some(c => c.reviewRef === p['reviewRef'])) row.cases.push({ reviewRef: String(p['reviewRef']), feeCode, on, fee: feeNow() });
    t.cases.put(doctorRef, row);
+  } else if (envelope.type === 'booking.confirmed') {
+   /* A confirmed booking names its service, and its price is the catalogue's for that service. Nothing is owed
+      on a confirmation — a payable opens when Care holds the visit — so what is read here is that the service is
+      one packages/catalog/services.json sells: serviceById is loud about one it does not, and the delivery is
+      rolled back rather than a booking being confirmed for a price nobody set. */
+   serviceById(String(p['serviceId']));
   } else if (envelope.type === 'booking.cancelled') {
    refundWhere(payable => payable.bookingRef === p['bookingRef']);
   } else if (envelope.type === 'appointment.cancelled') {

@@ -24,10 +24,52 @@
  * parameter properties. Time is epoch milliseconds handed in by the caller, so a test is a clock.
  */
 import contract from '../../../catalog/settings.json' with { type: 'json' };
+import scheduling from '../../../catalog/scheduling.json' with { type: 'json' };
 import vetting from '../../../catalog/vetting.json' with { type: 'json' };
 
 export const settingsContract = contract;
 export const settingsScreen = contract.screen;
+
+/* ---- Whether a rota's post is on duty --------------------------------------------------------------
+   A schedule setting is a list of windows, and whether one covers a moment is one rule for every engine:
+   Core asks it of the escalation rota a concern kept, and Access asks it of the handover desk's hours in
+   force. It lived in Core's loops.ts until the Access engine needed it on its own handover route, and an
+   engine may not reach into another engine's directory; so it is here, where both may import it, and the
+   build fails if a second evaluation of a window's hours is written anywhere beside it. */
+
+const local = new Intl.DateTimeFormat('en-GB', { timeZone: scheduling.timezone, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+
+/** The day of the week and the time of day a moment is where the rota is kept, as a window names them: "mon" and "02:10". */
+export function localTimeOf(at: number): { readonly day: string; readonly time: string } {
+ const parts = local.formatToParts(new Date(at));
+ const part = (type: Intl.DateTimeFormatPartTypes) => parts.find(p => p.type === type)?.value ?? '';
+ return { day: part('weekday').toLowerCase(), time: `${part('hour')}:${part('minute')}` };
+}
+
+/* A window's hours run from 00:00 to 24:00 and end after they start, so a time of day compares with them as
+   text: "02:10" is before "06:00", and every time of day is before "24:00". A rota is anything with windows,
+   so Core hands in the rota a concern kept and Access the desk's hours, and neither is copied to fit. */
+export const onDuty = (rota: { readonly windows: readonly Window[] }, post: string, at: number): boolean => {
+ const { day, time } = localTimeOf(at);
+ return rota.windows.some(w => w.post === post && w.days.includes(day) && w.from <= time && time < w.to);
+};
+
+const DAY_MS = 86_400_000;
+
+/* Whether any post of a rota is on duty at a moment, and when the next window starts if none is: later the
+   same local day, or the first window of the next day that has one, looking a week ahead. A rota with no
+   window at all opens never, which the caller must say rather than invent an hour. */
+export function rotaAt(windows: readonly Window[], at: number): { readonly open: boolean; readonly opens: { readonly daysAhead: number; readonly at: number; readonly from: string } | null } {
+ const open = [...new Set(windows.map(w => w.post))].some(post => onDuty({ windows }, post, at));
+ const { time } = localTimeOf(at);
+ for (let ahead = 0; ahead <= 7; ahead++) {
+  const moment = at + ahead * DAY_MS;
+  const { day } = localTimeOf(moment);
+  const starts = windows.filter(w => w.days.includes(day) && (ahead > 0 || w.from > time)).map(w => w.from).sort();
+  if (starts.length) return { open, opens: { daysAhead: ahead, at: moment, from: starts[0]! } };
+ }
+ return { open, opens: null };
+}
 
 export type TypeId = 'minutes' | 'count' | 'moneyCents' | 'percentage' | 'boolean' | 'enum' | 'text' | 'roleList' | 'schedule' | 'list' | 'record';
 export type Scalar = number | boolean | string;

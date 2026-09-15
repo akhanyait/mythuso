@@ -10,7 +10,7 @@
 package za.co.mythuso.model
 
 object BookingData {
-    val publishes = listOf("booking.requested@1", "booking.confirmed@1", "booking.cancelled@1")
+    val publishes = listOf("booking.requested@2", "booking.confirmed@2", "booking.cancelled@1", "conversation.handover@1")
 
     object Person {
         const val stepLabel = "Nurse"
@@ -64,8 +64,8 @@ object BookingData {
     }
 
     val states = listOf(
-        BookingStateWords("requested", "Asked for", "You asked for this visit. Nothing is held until a nurse's hour is accepted.", "booking.requested@1"),
-        BookingStateWords("confirmed", "Accepted", "The simulated roster accepted it and holds the hour. No real nurse did.", "booking.confirmed@1"),
+        BookingStateWords("requested", "Asked for", "You asked for this visit. Nothing is held until a nurse's hour is accepted.", "booking.requested@2"),
+        BookingStateWords("confirmed", "Accepted", "The simulated roster accepted it and holds the hour. No real nurse did.", "booking.confirmed@2"),
         BookingStateWords("cancelled", "Cancelled", "This visit was called off. It stays here with the reason given.", "booking.cancelled@1")
     )
     val transitions = listOf(
@@ -88,8 +88,8 @@ object BookingData {
         BookingRefusal("confirm-after-cancel", null, null, "A cancelled booking is not confirmed afterwards. Book again if the visit is still wanted."),
         BookingRefusal("confirm-without-a-time", null, null, "Nothing is accepted until there is an hour to hold."),
         BookingRefusal("nurse-badge-not-current", null, null, "A nurse is offered only while her badge is current, so this nurse is not offered."),
-        BookingRefusal("slot-not-offered", "POST /v1/access/bookings@1", 409, "That time was not offered, so it cannot be booked."),
-        BookingRefusal("service-not-here", "POST /v1/access/bookings@1", 422, "That service is not offered where the visit would be."),
+        BookingRefusal("slot-not-offered", "POST /v1/access/bookings@2", 409, "That time was not offered, so it cannot be booked."),
+        BookingRefusal("service-not-here", "POST /v1/access/bookings@2", 422, "That service is not offered where the visit would be."),
         BookingRefusal("booking-not-found", "GET /v1/access/bookings/{bookingRef}@1", 404, "There is no booking of yours with that reference."),
         BookingRefusal("cancel-after-arrival", "POST /v1/access/bookings/{bookingRef}/cancel@1", 409, "This visit has already started. Speak to the nurse who is with you, or call the Control Tower."),
         BookingRefusal("reason-not-listed", "POST /v1/access/bookings/{bookingRef}/cancel@1", 422, "Choose one of the listed reasons, or say you would rather not."),
@@ -97,7 +97,7 @@ object BookingData {
         BookingRefusal("no-attachments", "POST /v1/access/visit-threads/{bookingRef}/messages@1", 422, "A visit thread carries words only. Nothing can be attached."),
         BookingRefusal("not-on-this-visit", "POST /v1/access/visit-threads/{bookingRef}/messages@1", 403, "Only the patient and the nurse on this visit write in its thread."),
         BookingRefusal("message-too-long", "POST /v1/access/visit-threads/{bookingRef}/messages@1", 422, "A message here is kept short. Say the rest to the nurse at the visit."),
-        BookingRefusal("no-summary", "POST /v1/access/conversations/{conversationRef}/handover@1", 422, "A handover goes with a structured summary, or it does not go.")
+        BookingRefusal("no-summary", "POST /v1/access/conversations/{conversationRef}/handover@2", 422, "A handover goes with a structured summary, or it does not go.")
     )
 
     object Thread {

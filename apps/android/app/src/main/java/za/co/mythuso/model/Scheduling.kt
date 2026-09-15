@@ -90,7 +90,11 @@ data class BookedVisit(
        scheduling.json's everything-survives-the-booking says the choice made at the review is the
        choice the visit keeps. */
     val nurseId: String? = null,
-    val nurseName: String? = null
+    val nurseName: String? = null,
+    /* What happens if the nurse asked for by name cannot take the visit — wait or soonest, from the generated
+       BookingData.Fallback.choices — kept as its own field, as POST /v1/access/bookings@2 carries it, and never
+       folded into anything else. Null for whoever is nearest. */
+    val namedNurseFallback: String? = null
 ) {
     val isScheduled: Boolean get() = kind == "scheduled"
     val status: String get() = if (isScheduled) "Confirmed" else SchedulingData.asapPending

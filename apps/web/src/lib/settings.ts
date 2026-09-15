@@ -12,6 +12,10 @@ import type { KeptRota } from '../../../../packages/engines/src/core/domain/loop
 import { accessInForce, accessInForceAt, type AccessSettingsInForce } from '../../../../packages/engines/src/access/domain/settings.ts';
 import { roleOf, whoIs } from './roles';
 import { can } from './vetting';
+/* Whether a rota's post is on duty, and when a shut one opens: the shared settings code's one rule, which the
+   escalation rota and the Access engine's handover route ask too. Handed on from here because a screen's lib
+   reaches the settings code through this file alone. */
+export { rotaAt } from '../../../../packages/engines/src/settings/shape.ts';
 
 /* Every setting in the web preview: one history per engine, in memory, shared by the back office that
  * changes them and by every screen that reads one — and beside it, the clinical reviews a doctor confirms.

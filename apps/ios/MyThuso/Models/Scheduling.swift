@@ -88,6 +88,10 @@ struct BookedVisit: Identifiable, Hashable {
        than a gap: nobody is named until the roster assigns her. */
     let nurseId: String?
     let nurseName: String?
+    /* What happens if the nurse asked for by name cannot take the visit — wait or soonest, from the generated
+       BookingData.Fallback.choices — kept as its own field, as POST /v1/access/bookings@2 carries it, and never
+       folded into anything else. Nil for whoever is nearest. */
+    let namedNurseFallback: String?
 
     /* The identity is a parameter with a default rather than a constant minted in place, because a
        moved visit has to be able to keep the one it already has. Moving a visit keeps its
@@ -96,7 +100,7 @@ struct BookedVisit: Identifiable, Hashable {
        cancellation and a fresh booking wearing a kinder word, which is what makes the interpreter
        held for it, the consent given for it and the record of it stop applying. */
     init(id: UUID = UUID(), service: CareService, patient: String, address: String, kind: String,
-         date: Date?, start: String?, payment: String, nurseId: String? = nil, nurseName: String? = nil) {
+         date: Date?, start: String?, payment: String, nurseId: String? = nil, nurseName: String? = nil, namedNurseFallback: String? = nil) {
         self.id = id
         self.service = service
         self.patient = patient
@@ -107,6 +111,7 @@ struct BookedVisit: Identifiable, Hashable {
         self.payment = payment
         self.nurseId = nurseId
         self.nurseName = nurseName
+        self.namedNurseFallback = nurseId == nil ? nil : namedNurseFallback
     }
 
     /* The same visit, on another day and at another hour. Nothing else about it changes.

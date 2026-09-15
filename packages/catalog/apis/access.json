@@ -803,7 +803,7 @@
    "path": "/v1/access/bookings",
    "version": 1,
    "summary": "Book a visit: service, person, time, review — from slots Care offered.",
-   "callers": ["patient", "caregiver", "guardian", "thuso-line-agent"],
+   "callers": [],
    "purpose": ["dispatch"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -826,6 +826,45 @@
    "capabilityNamed": null,
    "status": "built",
    "evidence": {"file": "packages/engines/src/access/engine.ts", "handler": "'POST /v1/access/bookings@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"},
+   "withdrawn": {
+    "on": "2026-09-15",
+    "supersededBy": "POST /v1/access/bookings@2",
+    "why": "It had no field for what happens if a nurse asked for by name cannot take the visit, so the patient's answer was folded into the slot reference to get past a frozen request — a reference a client is meant to hand back unread, carrying an instruction nobody could see in the contract. And it had no field for where the visit is, so the engine booked every visit as covered without being told, and booking.requested@1 left Care with no suburb to offer it in. Its callers are version two's. Version two carries the answer in namedNurseFallback, from the values the setting in force allows, and the zone id from packages/catalog/geography.json."
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/bookings",
+   "version": 2,
+   "summary": "Book a visit: service, person, time, review — from slots Care offered, in a suburb geography.json covers, with what happens if a nurse asked for by name cannot take it said in its own field.",
+   "callers": ["patient", "caregiver", "guardian", "thuso-line-agent"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "subjectRef", "type": "string", "required": true, "why": "Who the visit is for."},
+    {"field": "serviceId", "type": "string", "required": true, "why": "From packages/catalog/services.json."},
+    {"field": "mode", "type": "string", "required": true, "why": "home or video."},
+    {"field": "slotRef", "type": "string", "required": true, "why": "A slot that was offered: the hour and the nurse, and nothing else. A reference that carries anything more was never offered."},
+    {"field": "zoneId", "type": "string", "required": true, "why": "A zone id from packages/catalog/geography.json: the suburb the visit is in. Never the address, which the booking does not need and the bus must not carry."},
+    {"field": "namedNurseFallback", "type": "string", "required": false, "why": "What happens if the nurse named in the slot cannot take the visit within Care's offer window: wait or soonest, from packages/catalog/booking.json person.fallback.choices. Which may be sent is Access's setting named-nurse-fallback in force — either when the patient chooses, only the one it resolves to otherwise. Left out, it is the answer the setting in force gives: the one it resolves to, or waiting for her when the patient is asked, because she is who they asked for. Refused for whoever is nearest, who has no name to wait for."}
+   ],
+   "response": [
+    {"field": "bookingRef", "type": "string", "required": true, "why": "The booking."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "requested until Care confirms."},
+    {"field": "namedNurseFallback", "type": "string", "required": false, "why": "The answer this booking keeps for a nurse asked for by name, whatever the setting says afterwards. Absent for whoever is nearest."}
+   ],
+   "refusals": [
+    {"id": "slot-not-offered", "status": 409, "statement": "That time was not offered, so it cannot be booked.", "why": "A booking never invents a slot."},
+    {"id": "service-not-here", "status": 422, "statement": "That service is not offered where the visit would be.", "why": "Coverage is packages/catalog/geography.json's to decide: a zone it does not hold is a suburb dispatch does not reach, and a visit booked there is a nurse nobody can send."},
+    {"id": "fallback-not-offered", "status": 422, "statement": "What happens if the nurse cannot take the visit is answered only for a nurse asked for by name, and only with an answer this booking offers.", "why": "Access's setting named-nurse-fallback says which answers a patient may give. An answer outside them is a promise the booking cannot keep — waiting for a nurse when the setting sends the soonest, say — and an answer with nobody named is an instruction about a nurse nobody asked for."}
+   ],
+   "emits": ["booking.requested@2"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/access/engine.ts", "handler": "'POST /v1/access/bookings@2'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
@@ -886,7 +925,7 @@
    "path": "/v1/access/conversations/{conversationRef}/handover",
    "version": 1,
    "summary": "Hand a Gilbert episode to a nurse, with a structured summary.",
-   "callers": ["patient", "caregiver"],
+   "callers": [],
    "purpose": ["treatment"],
    "request": [
     {"field": "conversationRef", "type": "string", "required": true, "why": "The episode."},
@@ -902,7 +941,46 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {
+    "on": "2026-09-15",
+    "supersededBy": "POST /v1/access/conversations/{conversationRef}/handover@2",
+    "why": "Its request carried the conversation and the summary and no urgency, so no handler could publish conversation.handover@1 with the urgency the rules set without guessing one — and not-assessed guessed for a conversation that showed the ambulance numbers is the lowered emergency Access refuses. It could not say who answers or whether anybody is there either, so out of hours it would have handed a person to an empty desk in silence. It was never built. Its callers are version two's."
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/conversations/{conversationRef}/handover",
+   "version": 2,
+   "summary": "Hand a Gilbert episode to the nurse queue with a structured summary and the urgency the rules set, and answer who is on the desk — or, out of hours, that nobody is, the emergency numbers, and when a nurse would call back.",
+   "callers": ["patient", "caregiver"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "conversationRef", "type": "string", "required": true, "why": "The episode."},
+    {"field": "summaryEntryRef", "type": "string", "required": true, "why": "The summary written to the record through the gateway."},
+    {"field": "urgencyCode", "type": "string", "required": true, "why": "The urgency the rules set, on the device where the conversation is: one of packages/catalog/assistant.json answers.handover.urgency, none of them calm. The engine never lowers it — a calmer code for a conversation already handed over sends nothing, and the answer carries the higher one held."}
+   ],
+   "response": [
+    {"field": "handoverRef", "type": "string", "required": true, "why": "The handover."},
+    {"field": "urgencyCode", "type": "string", "required": true, "why": "The urgency the handover holds: the highest sent for this conversation, never lower."},
+    {"field": "sentNow", "type": "boolean", "required": true, "why": "Whether this call put anything in the queue. The same urgency again, or a calmer one, sends nothing new, and a screen says so truthfully."},
+    {"field": "deskStateCode", "type": "string", "required": true, "why": "open or out-of-hours, worked out by the engine from Access's setting handover-hours in force when the handover was asked for, by the shared rule a rota is read by."},
+    {"field": "answeredByRoles", "type": "list", "required": true, "why": "Role ids from Access's setting handover-answered-by in force: who reads a handover and calls back."},
+    {"field": "outOfHours", "type": "string", "required": false, "why": "Out of hours, said first: packages/catalog/booking.json handover.outOfHours, that nobody is on the desk. Absent while somebody is."},
+    {"field": "outOfHoursNumbers", "type": "string", "required": false, "why": "Out of hours, said second and always: booking.json handover.outOfHoursNumbers with the numbers from packages/catalog/sos.json. No setting takes them out, and they come before any call back."},
+    {"field": "callbackFrom", "type": "instant", "required": false, "why": "Out of hours, when the desk's rota next opens: the call back the handover records that it offered. In this preview nobody makes it."}
+   ],
+   "refusals": [
+    {"id": "no-summary", "status": 422, "statement": "A handover goes with a structured summary, or it does not go.", "why": "A nurse should not have to read a conversation to know why she is calling."},
+    {"id": "urgency-not-listed", "status": 422, "statement": "That is not an urgency Gilbert hands a nurse. The codes are the assistant contract's, and none of them is calm.", "why": "An urgency nobody can rank is one nobody can keep from being lowered, and a word like routine sent here would be the calm code Gilbert, which grades nothing, may never give."}
+   ],
+   "emits": ["conversation.handover@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/access/engine.ts", "handler": "'POST /v1/access/conversations/{conversationRef}/handover@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",

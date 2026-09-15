@@ -114,6 +114,8 @@ struct BookingView: View {
     /// Where the booking stood when it landed, for the confirmation.
     @State private var bookedState: BookingState = .requested
     @State private var bookedAsap = false
+    /// What happens if the named nurse cannot take it, as the booked visit keeps it, for the confirmation.
+    @State private var bookedFallback: String?
     private var draft: CareBookingDraft {
         CareBookingDraft(patient: patient, address: address, day: day, selectedDate: scheduled ? chosenDay.date : nil, slot: slot, payment: payment,
                          consent: consent, kind: kind, step: step, choice: choiceKind, nurseId: namedNurse)
@@ -407,12 +409,16 @@ struct BookingView: View {
        the visit. The booking is asked for and the simulated roster answers at once: an hour is accepted,
        and a request with no hour is refused acceptance and stays asked for. The confirmation says which. */
     private func confirm() {
+        /* The answer to what happens if she cannot take it travels as its own field on the visit, as the booking
+           route carries it: the patient's pick when the generated fallback asks, or the one it resolves to. */
+        let answer: String? = chosenNurse == nil ? nil : Booking.fallbackRule.flatMap { $0.asksPatient ? Optional(fallbackPick) : $0.resolvesTo }
         let visit = BookedVisit(service: service, patient: patient, address: address, kind: kind,
                                 date: scheduled ? chosenDay.date : nil, start: scheduled ? slot : nil, payment: payment,
-                                nurseId: chosenNurse?.id, nurseName: chosenNurse?.name)
+                                nurseId: chosenNurse?.id, nurseName: chosenNurse?.name, namedNurseFallback: answer)
         store.visits.insert(visit, at: 0)
         bookedState = Booking.state(of: visit)
         bookedAsap = !visit.isScheduled
+        bookedFallback = visit.namedNurseFallback
         booked = true
     }
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -436,6 +442,16 @@ struct BookingView: View {
                 .fixedSize(horizontal: false, vertical: true)
             CapabilityNotice(of: "payments")
         }.frame(maxWidth: .infinity)
+        /* What happens if she cannot take it, as the booked visit keeps it rather than as the review last showed it. */
+        if let kept = BookingData.Fallback.choices.first(where: { $0.id == bookedFallback }) {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
+                Text(BookingData.Fallback.reviewLabel).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                Text(kept.sentence).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+        }
         BookingStatusView(state: bookedState, asap: bookedAsap)
         NavigationLink { VisitsView() } label: { Text("View my visits") }.buttonStyle(CareButton())
     }

@@ -130,6 +130,12 @@ test('asking for a nurse by name keeps as soon as possible under the fallback in
   await d.getByRole('checkbox').check();
   await confirmBooking(d);
   await expect(d.locator('.nurse-row strong')).toHaveText(name);
+  /* The answer the booking holds, in its own field rather than folded into the slot it was booked against, is
+     what the confirmation repeats: the one the patient picked, or the one the rule in force resolves to. */
+  const kept = d.locator('.booking-fallback-kept');
+  await expect(kept.locator('span')).toHaveText(booking.person.fallback.reviewLabel);
+  await expect(kept.locator('strong')).toHaveText(rule.asksPatient ? soonest.sentence
+    : booking.person.fallback.choices.find((c: { id: string }) => c.id === rule.resolvesTo).sentence);
   const status = d.locator('.booking-status');
   await expect(status.getByRole('heading', { name: booking.statusHeading })).toBeVisible();
   const requested = booking.states.find((s: { id: string }) => s.id === 'requested');
