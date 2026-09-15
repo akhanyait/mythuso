@@ -36,6 +36,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import za.co.mythuso.model.CashCodeDoor
+import za.co.mythuso.model.Money
+import za.co.mythuso.model.MoneyData
 import za.co.mythuso.model.CareData
 import za.co.mythuso.model.CareOffer
 import za.co.mythuso.model.CareOfferState
@@ -147,6 +150,8 @@ private const val TICK_MILLIS = 15_000L
                 CareStrong(CareData.billable)
                 Note(care.locationSentence)
             }
+            /* Cash is recorded only against a completed visit, so the code is asked for here and nowhere earlier. */
+            CashAtTheDoor(store.cashDoor)
             return@ScreenColumn
         }
         when (care.stage) {
@@ -217,6 +222,35 @@ private const val TICK_MILLIS = 15_000L
                 care.complete(code)
                 code = ""
             }
+        }
+    }
+}
+
+/* On a completed visit: what the patient owes at the door, from the catalogue, and the nurse entering their cash
+   code. The patient's simulated screen shows its code once and forgets it as she enters anything; every refusal
+   is the route's sentence from MoneyData, and no amount is typed here. */
+@Composable private fun CashAtTheDoor(door: CashCodeDoor) {
+    var code by rememberSaveable { mutableStateOf("") }
+    CareCard {
+        CareTitle(MoneyData.cashNurseHeading)
+        door.amountCents?.let { CareStrong("${Money.state(if (door.recorded) "succeeded" else "pending").name} · ${Money.randCents(it)}") }
+        Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
+            Text(MoneyData.cashNursePatientPhone, style = MaterialTheme.typography.labelLarge, color = Charcoal)
+            door.patientCode?.let { Text(it, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, color = Charcoal) }
+            Note(if (door.patientCode != null) MoneyData.cashNurseShownOnce else MoneyData.cashNurseShownAlready)
+        }
+        if (door.recorded) {
+            CareStrong(MoneyData.cashNurseRecorded)
+        } else {
+            Note(MoneyData.cashNurseAsk)
+            CodeBoxes(code, { code = it }, invalid = door.refusal != null, label = MoneyData.cashNurseCodeLabel)
+            door.refusal?.let { CareRefusalText(it) }
+        }
+        NotConnected("payments")
+    }
+    if (!door.recorded) {
+        CareWide { modifier ->
+            StudioButton(onClick = { door.enter(code); code = "" }, enabled = code.length == MoneyData.cashCodeLength, modifier = modifier) { Text(MoneyData.cashNurseEnter) }
         }
     }
 }

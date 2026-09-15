@@ -175,6 +175,8 @@ struct CareVisitView: View {
                 careNote(CareData.billable, strong: true)
                 careNote(store.locationSentence)
             }
+            /* Cash is recorded only against a completed visit, so the code is asked for here and nowhere earlier. */
+            CashAtTheDoorPanel()
         } else {
             switch store.stage {
             case .route: routeStage
@@ -314,6 +316,51 @@ private func careFact(_ label: String, _ value: String, _ detail: String) -> som
 
 /* A refusal, beside the control it refused: the sentence in the text ink, and the danger colour only on
    the mark in front of it, so the words are readable and the state is not carried by colour alone. */
+/* On a completed visit: what the patient owes at the door, from the catalogue, and the nurse entering their cash
+   code. The patient's simulated screen shows its code once and forgets it as she enters anything; every refusal
+   is the route's sentence from MoneyData, and no amount is typed here. */
+private struct CashAtTheDoorPanel: View {
+    @ObservedObject private var door = CashCodeDoor.shared
+    @State private var code = ""
+
+    var body: some View {
+        SurfacePanel {
+            careTitle(Money.cashNurseHeading)
+            if let owed = door.amountCents {
+                careNote("\(Money.state(door.recorded ? "succeeded" : "pending").name) · \(Money.randCents(owed))", strong: true)
+            }
+            VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
+                Label(Money.cashNursePatientPhone, systemImage: "iphone")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(ThusoTheme.charcoal)
+                if let shown = door.patientCode {
+                    Text(shown)
+                        .font(.title2.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(ThusoTheme.charcoal)
+                }
+                Text(door.patientCode == nil ? Money.cashNurseShownAlready : Money.cashNurseShownOnce)
+                    .font(.footnote)
+                    .foregroundStyle(ThusoTheme.studioInkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityElement(children: .combine)
+            if door.recorded {
+                careNote(Money.cashNurseRecorded, strong: true)
+            } else {
+                careNote(Money.cashNurseAsk)
+                CodeBoxes(code: $code, invalid: door.refusal != nil, label: Money.cashNurseCodeLabel)
+                if let refusal = door.refusal { careRefusal(refusal) }
+            }
+            CapabilityNotice(of: "payments")
+        }
+        if !door.recorded {
+            Button(Money.cashNurseEnter) { door.enter(code); code = "" }
+                .buttonStyle(CareButton())
+                .disabled(code.count < Money.cashCodeLength)
+        }
+    }
+}
+
 private func careRefusal(_ text: String, why: String? = nil) -> some View {
     HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
         Image(systemName: "hand.raised").foregroundStyle(ThusoTheme.danger).accessibilityHidden(true)
