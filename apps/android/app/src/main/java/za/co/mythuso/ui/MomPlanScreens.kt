@@ -12,6 +12,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import za.co.mythuso.model.MomInclusion
 import za.co.mythuso.model.MomTier
 import za.co.mythuso.model.PlanSubscription
+import za.co.mythuso.model.momEssentialTitle
 import za.co.mythuso.model.momGroups
 import za.co.mythuso.model.momPlan
 import za.co.mythuso.model.momPrices
@@ -54,6 +56,9 @@ import za.co.mythuso.model.momPrices
  */
 @Composable fun MomPlanScreen() {
     var chosen by rememberSaveable { mutableStateOf(momPlan.tiers.first().id) }
+    /* The Essential journey opens under the plan, in the same column, rather than as a screen of its own: it is read
+       after the plan's refusals, and a back step that returns to the plan would lose the choices made in the journey. */
+    var journeyOpen by rememberSaveable { mutableStateOf(false) }
     val tier = momPlan.tiers.firstOrNull { it.id == chosen } ?: momPlan.tiers.first()
     ScreenColumn {
         Heading(momPlan.payerHeadline, momPlan.name, momPlan.payerStatement)
@@ -88,6 +93,12 @@ import za.co.mythuso.model.momPrices
             momPlan.addOns.forEach { Text(it.name, style = MaterialTheme.typography.bodyMedium, color = Charcoal) }
         }
         Section("Sharing the cost") { Note(momPlan.splittingStatement) }
+        /* The way into the Essential journey, under everything the plan says it will not do. A preview that charges
+           nothing, and the journey says so. */
+        if (journeyOpen) MomEssentialContent()
+        else OutlinedButton(onClick = { journeyOpen = true }, shape = ThusoButtonShape, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) {
+            Text(momEssentialTitle(), color = Charcoal)
+        }
     }
 }
 
