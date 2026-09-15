@@ -672,6 +672,8 @@ struct WorkspaceSectionView: View {
         VStack(spacing: ThusoSpacing.space8) {
             pill("Live dispatch board", "Who is where, who is cleared, and who is refused", "antenna.radiowaves.left.and.right") { DispatchBoardView() }
             pill("Operators on duty", "Suspend one here and the board stops assigning", "person.badge.shield.checkmark") { VettingRoleView(roleId: "operator") }
+            /* The responder's phone, as the desk sees it: Thuso Ride is transport, and its screen says so first. */
+            pill(Movement.ResponderText.heading, Movement.ResponderText.intro, "car") { ResponderView() }
         }
     }
 

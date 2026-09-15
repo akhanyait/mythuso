@@ -9650,3 +9650,229 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
 
  console.log(`Devices: a consumer device carries no clinical weight across ${devicesContract.sources.length * devicesContract.qualities.length * devicesContract.intendedUses.length} combinations and raises nothing; source, quality, withdrawal and the simulator are refused by the domain's own answers; ${nativeHealthFiles.length} native files name no HealthKit or Health Connect; ${devicesEvents.length} Devices events and ${devicesColumns.length} store columns carry no value; ${devicesScreens.length} screens type no stale interval, calibration window or deposit.`);
 }
+
+/* ---- Movement, Wave 5: Thuso Ride and Access & Admission ---------------------------------------------------
+
+   Nine things this wave promises, each held here rather than trusted, and each proven to fire by breaking the source
+   it reads (scratchpad/wave5/movement-proofs.mjs). Counsel's opinion on the emergency medical services boundary does
+   not exist, so every one of them stays on the transport side of a line nobody has drawn:
+
+     1. No copy calls Thuso Ride an ambulance.
+     2. A P1 is refused before anything else is read, and never routed anywhere.
+     3. No P2 is self-assigned: a nurse or doctor whose vetting is current sets one in their own name with a reason,
+        and a responder takes one only from an offer.
+     4. A pending bed is never shown as booked.
+     5. A position is refused after the trip's window, and dropped.
+     6. The packet is only an emergency-summary share link, its lifetime derived from Record's bound.
+     7. No Movement event carries a position, clinical content or a link secret.
+     8. Movement holds no clinical content.
+     9. No screen types a heartbeat interval or a window.
+
+   The domain is imported and run, not only read, so each refusal is checked by what the arithmetic answers. */
+{
+ const mvFile = 'packages/catalog/movement.json';
+ const mv = JSON.parse(read(mvFile));
+ const mvApiFile = 'packages/catalog/apis/movement.json';
+ const mvApi = JSON.parse(read(mvApiFile));
+ const mvEngineFile = 'packages/engines/src/movement/engine.ts';
+ const mvEngine = read(mvEngineFile);
+ const mvDomain = 'packages/engines/src/movement/domain';
+ const mvConsent = JSON.parse(read('packages/catalog/consent.json'));
+ const mvSharing = JSON.parse(read('packages/catalog/passport-sharing.json'));
+ const { refusal: mvRefusal, MINUTE: MV_MINUTE, DAY: MV_DAY } = await import('../packages/engines/src/movement/domain/contract.ts');
+ const mvTrips = await import('../packages/engines/src/movement/domain/trips.ts');
+ const mvPositions = await import('../packages/engines/src/movement/domain/positions.ts');
+ const mvAdmissions = await import('../packages/engines/src/movement/domain/admissions.ts');
+ const mvPacket = await import('../packages/engines/src/movement/domain/packet.ts');
+ const { movementByDefault } = await import('../packages/engines/src/movement/domain/settings.ts');
+ const MV_T0 = Date.parse('2026-09-15T09:00:00+02:00');
+ const mvIso = at => new Date(at).toISOString();
+ const mvRefused = (answer, id, promise) => {
+  if (answer.ok || answer.refusal.id !== id) throw new Error(`${promise} ${mvDomain} answered ${answer.ok ? 'with an accepted act' : `"${answer.refusal.id}"`} where it must refuse with "${id}": "${mvRefusal(id).statement}"`);
+ };
+ const mvLiveRoute = key => mvApi.routes.find(r => `${r.method} ${r.path}@${r.version}` === key && !r.withdrawn);
+ const mvScreens = [
+  'apps/web/src/features/Movement.tsx', 'apps/web/src/lib/movement.ts',
+  'apps/ios/MyThuso/Features/ResponderView.swift', 'apps/ios/MyThuso/Models/Movement.swift',
+  'apps/android/app/src/main/java/za/co/mythuso/ui/MovementScreens.kt', 'apps/android/app/src/main/java/za/co/mythuso/model/Movement.kt'
+ ];
+ for (const f of mvScreens) if (!existsSync(f)) throw new Error(`${f} is gone. Thuso Ride's screens and models are held to what they must not say or type, and a missing one is checked against nothing.`);
+ const mvWordsOf = name => String(name).replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+ const tripAsk = fields => ({ tripRef: 'proof-trip', subjectRef: 'subject-proof', priorityClass: 'P3', pickupWindowStart: mvIso(MV_T0 + 60 * MV_MINUTE), zoneId: mv.facilities.entries[0].zoneId, facilityRef: mv.facilities.entries[0].ref, byRole: 'nurse', byRef: 'party-proof', ...fields });
+ const tripContext = (callerCleared = true) => ({ now: MV_T0, settings: movementByDefault, callerCleared, admissionKnown: () => false });
+
+ /* 1. No copy calls Thuso Ride an ambulance. A phrase on the contract's list is refused outright; any sentence that
+       puts Thuso Ride, a trip or a responder beside the word ambulance must say it is not one. */
+ const ambulancePromise = `Thuso Ride is non-emergency transport and never an ambulance (${mvFile} notAnAmbulance).`;
+ const { forbiddenPhrases, ...notAnAmbulanceRest } = mv.notAnAmbulance;
+ if (!Array.isArray(forbiddenPhrases) || !forbiddenPhrases.length || !/\bnot an ambulance\b/i.test(notAnAmbulanceRest.sentence ?? '')) throw new Error(`${mvFile} no longer says in its own sentence that Thuso Ride is not an ambulance, or has lost the phrases no copy may use. ${ambulancePromise}`);
+ const movementDoors = JSON.parse(read('packages/catalog/feeds.json')).feeds.filter(f => mv.doors.includes(f.id));
+ const ambulanceSources = [
+  [mvFile, JSON.stringify({ ...mv, notAnAmbulance: notAnAmbulanceRest })],
+  [mvApiFile, read(mvApiFile)],
+  ['packages/catalog/feeds.json, the Movement doors', JSON.stringify(movementDoors)],
+  ...mvScreens.map(f => [f, read(f)]),
+  ...['apps/ios/MyThuso/Models/MovementData.swift', 'apps/android/app/src/main/java/za/co/mythuso/model/MovementData.kt'].filter(existsSync).map(f => [f, read(f)])
+ ];
+ let ambulanceSentences = 0;
+ for (const [file, text] of ambulanceSources) {
+  const phrase = forbiddenPhrases.find(p => text.toLowerCase().includes(p.toLowerCase()));
+  if (phrase) throw new Error(`${file} says "${phrase}". ${ambulancePromise}`);
+  for (const sentence of text.split(/[.!?](?=["\s]|$)|\\n|\n|","/)) {
+   if (!/\bambulance\b/i.test(sentence) || !/\b(thuso ride|trip|trips|responder|responders)\b/i.test(sentence)) continue;
+   ambulanceSentences++;
+   if (!/\b(not|never|no|nor|none|nothing|nobody)\b/i.test(sentence)) throw new Error(`${file} puts Thuso Ride, a trip or a responder beside the word ambulance without saying it is not one: "${sentence.trim().slice(0, 160)}". ${ambulancePromise}`);
+  }
+ }
+
+ /* 2. A P1 is refused before anything else is read, and never routed. */
+ const p1Promise = 'A P1 is refused before anything else is read and never routed: no licensed ambulance partner is connected, and Thuso Ride is not one.';
+ const p1Spec = mv.priorities.find(p => p.id === 'P1');
+ if (!p1Spec || p1Spec.takenByThusoRide !== false || p1Spec.routedTo !== null) throw new Error(`${mvFile} lets Thuso Ride take a P1 or routes one somewhere. ${p1Promise}`);
+ mvRefused(mvTrips.requestTrip(tripAsk({ priorityClass: 'P1', zoneId: 'nowhere', facilityRef: 'nothing', pickupWindowStart: 'yesterday' }), tripContext()), 'p1-refused-no-ambulance-partner', p1Promise);
+ mvRefused(mvAdmissions.requestAdmission({ admissionRef: 'proof-admission', subjectRef: 'subject-proof', facilityRef: 'nothing', bedCategory: 'nothing', priorityCode: 'P1', arrivalWindowStart: 'yesterday', byRole: 'nurse' }, MV_T0), 'p1-refused-no-ambulance-partner', p1Promise);
+ if (!/priority_class TEXT NOT NULL CHECK \(priority_class IN \('P2', 'P3'\)\)/.test(mvEngine) || !/priority_code TEXT NOT NULL CHECK \(priority_code IN \('P2', 'P3'\)\)/.test(mvEngine)) throw new Error(`${mvEngineFile} lets its trips or admissions table hold a P1. ${p1Promise}`);
+ if (/\bctx\.call\(/.test(mvEngine)) throw new Error(`${mvEngineFile} calls another engine. Movement routes nothing to anybody in this wave, a P1 least of all. ${p1Promise}`);
+ const emsHandler = (mvEngine.match(/'POST \/v1\/movement\/ems-requests@1': \(\) => \{([\s\S]*?)\n  \},/) ?? [])[1] ?? '';
+ if (!/return refuse\('no-ambulance-partner-connected'\);/.test(emsHandler) || /\bok\(|ctx\.publish/.test(emsHandler)) throw new Error(`${mvEngineFile} no longer refuses every P1 request with no-ambulance-partner-connected, or answers or publishes something for one. ${p1Promise}`);
+ const emsRoute = mvLiveRoute('POST /v1/movement/ems-requests@1');
+ if (!emsRoute || emsRoute.emits.length || !emsRoute.refusals.some(r => r.id === 'no-ambulance-partner-connected')) throw new Error(`${mvApiFile} no longer declares the P1 route as refusing every request and emitting nothing. ${p1Promise}`);
+
+ /* 3. No self-assigned P2. */
+ const p2Promise = 'No P2 is self-assigned: a nurse or doctor whose vetting is current sets one in their own name with a reason, and a responder takes one only from an offer. No triage protocol is ratified.';
+ const p2Spec = mv.priorities.find(p => p.id === 'P2');
+ if (!p2Spec?.setBy?.length || p2Spec.setBy.some(role => !['nurse', 'doctor'].includes(role)) || p2Spec.needsReason !== true) throw new Error(`${mvFile} lets somebody other than a nurse or doctor set a P2, or lets one be set without a reason. ${p2Promise}`);
+ const p2Ask = fields => tripAsk({ priorityClass: 'P2', priorityReasonCode: mv.p2Reasons[0].id, prioritySetByRef: 'party-proof', ...fields });
+ mvRefused(mvTrips.requestTrip(p2Ask({ byRole: 'dispatcher' }), tripContext()), 'p2-not-set-by-a-vetted-clinician', p2Promise);
+ mvRefused(mvTrips.requestTrip(p2Ask({ byRole: 'responder' }), tripContext()), 'p2-not-set-by-a-vetted-clinician', p2Promise);
+ mvRefused(mvTrips.requestTrip(p2Ask({}), tripContext(false)), 'p2-not-set-by-a-vetted-clinician', p2Promise);
+ mvRefused(mvTrips.requestTrip(p2Ask({ prioritySetByRef: 'party-somebody-else' }), tripContext()), 'p2-not-set-by-a-vetted-clinician', p2Promise);
+ mvRefused(mvTrips.requestTrip(p2Ask({ priorityReasonCode: 'because' }), tripContext()), 'p2-without-reason', p2Promise);
+ const p2Trip = mvTrips.requestTrip(p2Ask({}), tripContext());
+ if (!p2Trip.ok) throw new Error(`${mvDomain}/trips.ts refuses a P2 a cleared nurse set in her own name with a reason ("${p2Trip.refusal.id}"). ${p2Promise}`);
+ mvRefused(mvTrips.acceptTrip(p2Trip.value, undefined, { ref: 'responder-proof', cleared: true }, MV_T0), 'self-assigned-p2', p2Promise);
+ if (!(mvApi.refusals.find(r => r.id === 'self-assigned-p2')?.answeredBy ?? []).includes('POST /v1/movement/trips/{tripRef}/accept@2')) throw new Error(`${mvApiFile} no longer lets the accept route answer self-assigned-p2. ${p2Promise}`);
+
+ /* 4. A pending bed is never shown as booked. */
+ const bedPromise = `A pending bed is never shown as booked (§15C; ${mvFile} admissions.pendingNeverSays).`;
+ const neverSays = mv.admissions.pendingNeverSays;
+ if (!Array.isArray(neverSays) || !['booked', 'reserved', 'confirmed'].every(w => neverSays.includes(w))) throw new Error(`${mvFile} has lost the words a pending admission may never use. ${bedPromise}`);
+ for (const state of mv.admissions.states) {
+  const shown = mvAdmissions.presentationOf(state.id);
+  if (shown.pending && shown.destinationConfirmed) throw new Error(`${mvFile} admission state "${state.id}" is pending and confirms a destination. ${bedPromise}`);
+  const said = shown.pending ? mvAdmissions.saysBooked(`${shown.label} ${shown.sentence}`) : undefined;
+  if (said) throw new Error(`${mvFile} says "${said}" about the pending admission state "${state.id}". ${bedPromise}`);
+ }
+ const madeAdmission = mvAdmissions.requestAdmission({ admissionRef: 'proof-admission', subjectRef: 'subject-proof', facilityRef: mv.facilities.entries[0].ref, bedCategory: mv.facilities.entries[0].bedCategories[0], priorityCode: 'P3', arrivalWindowStart: mvIso(MV_T0 + 60 * MV_MINUTE), byRole: 'nurse' }, MV_T0);
+ if (!madeAdmission.ok || !mvAdmissions.isPending(madeAdmission.value.stateCode)) throw new Error(`${mvDomain}/admissions.ts does not make a new admission pending. ${bedPromise}`);
+ const waitlisted = mvAdmissions.decide(madeAdmission.value, { decisionCode: 'waitlisted', alternativeOffered: false, simulated: true }, MV_T0);
+ if (!waitlisted.ok || !mvAdmissions.isPending(waitlisted.value.admission.stateCode)) throw new Error(`${mvDomain}/admissions.ts does not keep a wait-listed admission pending. ${bedPromise}`);
+ mvRefused(mvAdmissions.decide(madeAdmission.value, { decisionCode: 'accepted', receivingPoint: mv.admissions.receivingPoints[0].id, alternativeOffered: false, simulated: false }, MV_T0), 'facility-not-connected', `${bedPromise} A facility's answer arrives only through the facility-decision door.`);
+ const readRoute = mvLiveRoute('GET /v1/movement/admissions/{admissionRef}@2');
+ if (!readRoute || !['pending', 'destinationConfirmed'].every(name => readRoute.response.some(f => f.field === name && f.type === 'boolean' && f.required))) throw new Error(`${mvApiFile} no longer answers an admission with whether it is pending and whether its destination is confirmed. ${bedPromise}`);
+ if (!/destinationConfirmed: shown\.destinationConfirmed/.test(mvEngine) || !/const shown = presentationOf\(admission\.stateCode\)/.test(mvEngine)) throw new Error(`${mvEngineFile} no longer answers pending and destinationConfirmed from presentationOf(). ${bedPromise}`);
+ const webMovement = read('apps/web/src/features/Movement.tsx');
+ if (!/const shown = presentationOf\(admission\.stateCode\)/.test(webMovement) || !/\{shown\.destinationConfirmed && </.test(webMovement)) throw new Error(`apps/web/src/features/Movement.tsx draws an admission without presentationOf(), or shows a confirmed destination other than when the state confirms one. ${bedPromise}`);
+ for (const f of ['apps/web/src/features/Movement.tsx', 'apps/web/src/lib/movement.ts']) {
+  const booked = read(f).match(/\b(booked|reserved|secured|guaranteed)\b/i);
+  if (booked) throw new Error(`${f} says "${booked[0]}". ${bedPromise}`);
+ }
+
+ /* 5. A position is refused after the trip's window, and dropped. */
+ const positionPromise = `A responder's position is kept only inside a trip's window and refused after it (${mvFile} position).`;
+ const p3Trip = mvTrips.requestTrip(tripAsk({}), tripContext());
+ if (!p3Trip.ok) throw new Error(`${mvDomain}/trips.ts refuses a plain P3 trip ("${p3Trip.refusal.id}").`);
+ const acceptedTrip = mvTrips.acceptTrip(p3Trip.value, { tripRef: 'proof-trip', responderRef: 'responder-proof', offeredAt: MV_T0, declinedAt: null }, { ref: 'responder-proof', cleared: true }, MV_T0);
+ if (!acceptedTrip.ok) throw new Error(`${mvDomain}/trips.ts refuses a verified responder accepting a trip offered to them ("${acceptedTrip.refusal.id}").`);
+ const closesAt = mvTrips.windowClosesAt(acceptedTrip.value), dropsAt = mvTrips.positionDropAt(acceptedTrip.value);
+ if (closesAt !== acceptedTrip.value.pickupWindowStart + movementByDefault.tripWindowMinutes * MV_MINUTE) throw new Error(`${mvDomain}/trips.ts closes a trip's window somewhere other than the window it was requested with. ${positionPromise}`);
+ const beatAt = now => mvPositions.heartbeat({ online: true, tripRef: 'proof-trip', lat: -26.1, lng: 28 }, { cleared: true, trip: acceptedTrip.value, byRef: 'responder-proof', now });
+ if (!beatAt(closesAt - 1).ok) throw new Error(`${mvDomain}/positions.ts refuses a position inside the trip's window. ${positionPromise}`);
+ mvRefused(beatAt(closesAt), 'position-after-the-window', positionPromise);
+ mvRefused(mvPositions.heartbeat({ online: true, lat: -26.1, lng: 28 }, { cleared: true, trip: undefined, byRef: 'responder-proof', now: MV_T0 }), 'position-without-a-trip', positionPromise);
+ const keptPosition = { tripRef: 'proof-trip', lat: -26.1, lng: 28, reportedAt: MV_T0 };
+ if (!mvPositions.readPosition(acceptedTrip.value, { role: 'ops-desk', ref: 'party-proof' }, keptPosition, dropsAt - 1).ok) throw new Error(`${mvDomain}/positions.ts refuses a read inside the trip's window. ${positionPromise}`);
+ mvRefused(mvPositions.readPosition(acceptedTrip.value, { role: 'ops-desk', ref: 'party-proof' }, keptPosition, dropsAt), 'position-after-the-window', positionPromise);
+ const mvTick = (mvEngine.match(/tick: ctx => \{([\s\S]*?)\n \}\n\}\);/) ?? [])[1] ?? '';
+ if (!/if \(mustDrop\(trip, now\)\) ctx\.store\.prepare\('DELETE FROM movement_positions WHERE trip_ref = \?'\)/.test(mvTick)) throw new Error(`${mvEngineFile} no longer drops a position in its tick once mustDrop() says the window and retention have passed. ${positionPromise}`);
+ if (!/'CREATE TABLE IF NOT EXISTS movement_positions \(',\n ' trip_ref TEXT PRIMARY KEY,'/.test(mvEngine)) throw new Error(`${mvEngineFile} lets a trip keep more than one position, which is a track. ${positionPromise}`);
+
+ /* 6. The packet is only an emergency-summary share link, its lifetime derived from Record's bound. */
+ const packetPromise = `The pre-arrival packet is only an emergency summary link the Health Passport made, its lifetime derived from Record's bound and ended at the hand-over (${mvFile} packet).`;
+ const packetRole = mvConsent.grants.recipientRoles.find(r => r.id === mv.packet.grantRole);
+ if (!packetRole || packetRole.gateway.reads !== 'emergency-summary' || packetRole.engine !== 'movement') throw new Error(`${mvFile} rides the packet on "${mv.packet.grantRole}", which is not the grant role whose gateway reads the emergency summary alone and which Movement serves. ${packetPromise}`);
+ const packetKind = mvSharing.links.kinds.find(k => k.id === mv.packet.kind);
+ if (!packetKind?.scopeFrom?.endsWith('#emergencySummary.openedBy') || mvSharing.links.lifetimeCeilingFrom !== 'packages/catalog/consent.json#grants.maximumExpiryDays') throw new Error(`${mvFile} makes the packet a "${mv.packet.kind}" link, which Record does not scope to the emergency summary, or Record no longer takes its ceiling from the founder's grant ceiling. ${packetPromise}`);
+ const packetPolicy = mvPacket.packetPolicyOf(mvConsent, mvSharing);
+ const packetBoundDays = Math.min(mvConsent.grants.maximumExpiryDays, packetRole.maxExpiryDays);
+ if (packetPolicy.boundDays !== packetBoundDays || [...packetPolicy.purposes].join() !== packetRole.allowedPurposes.join()) throw new Error(`${mvDomain}/packet.ts derives a bound of ${packetPolicy.boundDays} days for ${packetPolicy.purposes.join(', ')}, where Record's ceiling and the trip grant's give ${packetBoundDays} for ${packetRole.allowedPurposes.join(', ')}. ${packetPromise}`);
+ if (/\b\d+\s*\*\s*DAY\b|boundDays:\s*\d|Math\.min\([^)]*\b\d{1,3}\b/.test(read(`${mvDomain}/packet.ts`))) throw new Error(`${mvDomain}/packet.ts types a number of days. The packet's bound is derived from consent.json through Record's pointer, never restated. ${packetPromise}`);
+ const heardLink = (fields = {}) => ({ linkRef: 'link-proof', purpose: packetRole.allowedPurposes[0], expiresAt: MV_T0 + MV_MINUTE, heardAt: MV_T0, ...fields });
+ const sentPacket = mvPacket.sendPacket(madeAdmission.value, heardLink(), packetPolicy, MV_T0);
+ if (!sentPacket.ok) throw new Error(`${mvDomain}/packet.ts refuses a packet on a link the Passport made inside its bound ("${sentPacket.refusal.id}"). ${packetPromise}`);
+ mvRefused(mvPacket.sendPacket(madeAdmission.value, heardLink({ expiresAt: MV_T0 + packetBoundDays * MV_DAY + MV_MINUTE }), packetPolicy, MV_T0), 'packet-link-outlives-its-bound', packetPromise);
+ mvRefused(mvPacket.sendPacket(madeAdmission.value, heardLink({ purpose: 'treatment' }), packetPolicy, MV_T0), 'unrestricted-access', packetPromise);
+ mvRefused(mvPacket.sendPacket(madeAdmission.value, undefined, packetPolicy, MV_T0), 'packet-link-not-heard', packetPromise);
+ mvRefused(mvPacket.sendPacket({ ...madeAdmission.value, stateCode: 'handed-over', handedOverAt: MV_T0 }, heardLink(), packetPolicy, MV_T0), 'packet-after-handover', packetPromise);
+ if (mvPacket.packetStateOf(sentPacket.value, { ...madeAdmission.value, handedOverAt: MV_T0 }, MV_T0) !== 'ended') throw new Error(`${mvDomain}/packet.ts does not end a packet at the hand-over. ${packetPromise}`);
+ const packetRoute = mvLiveRoute('POST /v1/movement/admissions/{admissionRef}/packet@2');
+ if (!packetRoute || packetRoute.through !== 'passport-gateway' || packetRoute.request.map(f => f.field).join() !== 'admissionRef,shareLinkRef') throw new Error(`${mvApiFile} no longer sends the packet through the Passport gateway by the link's reference alone. ${packetPromise}`);
+
+ /* 7. No Movement event carries a position, clinical content or a link secret — as declared, and as published. */
+ const eventPromise = 'No Movement event carries a position, clinical content or a Passport link\'s secret.';
+ const mvEvents = collectEvents().events.filter(e => e.owner === 'movement' && !e.withdrawn);
+ const onTheBus = ['lat', 'lng', 'latitude', 'longitude', 'position', 'coordinate', 'track', 'trail', 'secret', 'passcode', 'url',
+  ...JSON.parse(read('packages/catalog/apis.json')).clinicalContent.words.map(w => w.toLowerCase()), ...JSON.parse(read('packages/catalog/records.json')).observations.measures.map(m => m.id)];
+ for (const e of mvEvents) for (const f of e.payload) {
+  const hit = mvWordsOf(f.field).find(w => onTheBus.includes(w));
+  if (hit) throw new Error(`${e.type}@${e.version} carries "${f.field}" ("${hit}"). ${eventPromise}`);
+ }
+ const mvPublishes = [...mvEngine.matchAll(/ctx\.publish\('([a-z_.]+@\d+)',\s*\{([^}]*)\}/g), ...read(`${mvDomain}/admissions.ts`).matchAll(/key: '([a-z_.]+@\d+)'; readonly payload: \{([^}]*)\}/g)];
+ if (mvPublishes.length < 10) throw new Error(`${mvEngineFile} and ${mvDomain}/admissions.ts no longer publish in the shape this check reads, so no payload could be checked. ${eventPromise}`);
+ for (const [, key, body] of mvPublishes) for (const name of [...body.matchAll(/([A-Za-z]+)\??:/g)].map(m => m[1]).filter(n => n !== 'readonly')) {
+  const hit = mvWordsOf(name).find(w => onTheBus.includes(w));
+  if (hit) throw new Error(`Movement publishes ${key} with "${name}". ${eventPromise}`);
+ }
+ for (const [type, field] of [['admission.requested', 'linkSecret'], ['transport.enroute', 'positionAfterTheWindow'], ['trip.requested', 'pickupPosition']]) {
+  if (!mvEvents.find(e => e.type === type)?.neverCarries?.some(n => n.field === field)) throw new Error(`${type}@1 no longer names ${field} among what it never carries. ${eventPromise}`);
+ }
+
+ /* 8. Movement holds no clinical content. */
+ const clinicalPromise = 'Movement holds references, codes, states and times, and never clinical content: why a patient travels or is admitted is in the Health Passport.';
+ const mvColumns = [...mvEngine.matchAll(/^ ' ([a-z_]+) (TEXT|INTEGER|REAL)/gm)].map(m => m[1]);
+ if (mvColumns.length < 60) throw new Error(`${mvEngineFile} no longer declares its store in the shape this check reads, so no column could be checked for clinical content.`);
+ const clinicalColumn = /(^|_)(diagnos\w*|symptoms?|findings?|observations?|readings?|values?|dose|dosage|allerg\w*|medic\w*|prescri\w*|conditions?|notes?|narrative|summary|content|reason_for\w*|clinical\w*|vitals?)($|_)/;
+ for (const column of mvColumns) if (clinicalColumn.test(column)) throw new Error(`${mvEngineFile} has the column "${column}". ${clinicalPromise}`);
+ for (const f of [mvEngineFile, ...files(mvDomain).filter(f => f.endsWith('.ts'))]) {
+  const imported = read(f).match(/from '[^']*catalog\/(records|passport-gateway|protocols|capture)\.json'/);
+  if (imported) throw new Error(`${f} imports packages/catalog/${imported[1]}.json, which describes what a record holds. ${clinicalPromise}`);
+ }
+ for (const r of mvApi.routes.filter(r => !r.withdrawn && r.through)) if (r.path !== '/v1/movement/admissions/{admissionRef}/packet') throw new Error(`${mvApiFile} sends ${r.method} ${r.path}@${r.version} through ${r.through}. Only the packet reaches the Passport, and only by a link's reference. ${clinicalPromise}`);
+
+ /* 9. No screen types a heartbeat interval or a window. */
+ const typedPromise = 'How often a responder\'s phone sends its position, who counts as online, how many responders a trip is offered to and how long a trip keeps its position are Movement settings, read in force on the web and from the generated MovementData on a phone.';
+ const mvSetting = key => mv.settings.items.find(s => s.key === key);
+ const windowWords = /\b(heartbeat\w*|interval\w*|tripWindow\w*|window\w*Minutes|retention\w*|offersAtOnce|missedBeats|offlineAfter\w*)\s*[:=]\s*\d/i;
+ const windowValues = new RegExp(`\\b(${[mvSetting('trip-window-minutes').default.value, mvSetting('trip-window-minutes').bounds.highest.value].join('|')})\\b|\\b${mvSetting('heartbeat-interval-seconds').default.value}\\s*(s|sec|secs|seconds)\\b`, 'i');
+ for (const f of mvScreens) {
+  const source = read(f);
+  const typed = source.match(windowWords) ?? source.match(windowValues);
+  if (typed) throw new Error(`${f} types "${typed[0]}". ${typedPromise}`);
+ }
+ for (const [f, reads] of [['apps/web/src/features/Movement.tsx', 'movementSettingsNow()'], ['apps/web/src/lib/movement.ts', 'movementSettingsNow()'], ['apps/ios/MyThuso/Models/Movement.swift', 'heartbeatIntervalSeconds'], ['apps/android/app/src/main/java/za/co/mythuso/model/Movement.kt', 'HEARTBEAT_INTERVAL_SECONDS']]) {
+  if (!read(f).includes(reads)) throw new Error(`${f} no longer reads ${reads}, so the interval it shows is not the setting. ${typedPromise}`);
+ }
+
+ /* The doors, the phones and the patient's first load. */
+ for (const door of ['responder-position', 'facility-decision', 'ems-dispatch']) {
+  const feed = movementDoors.find(f => f.id === door);
+  if (!feed || feed.operator?.becomesAnOperator !== true || feed.operator?.determined !== false || !mvApi.doors.includes(door)) throw new Error(`packages/catalog/feeds.json has lost the ${door} door, its named operator or its undetermined section 72 question, or ${mvApiFile} no longer links it. A supplier's answer arrives on a door that refuses every payload.`);
+ }
+ const mvPbx = read('apps/ios/MyThuso.xcodeproj/project.pbxproj');
+ for (const path of ['MyThuso/Models/Movement.swift', 'MyThuso/Models/MovementData.swift', 'MyThuso/Features/ResponderView.swift']) if (!mvPbx.includes(`path = "${path}"`)) throw new Error(`apps/ios/MyThuso.xcodeproj/project.pbxproj does not register ${path}, so the responder's phone is built without it.`);
+ for (const f of ['apps/web/src/main.tsx', 'apps/web/src/App.tsx', 'apps/web/src/shells/PatientShell.tsx']) {
+  if (existsSync(f) && /^import (?!type\b)[^;]*from '[^']*(features\/Movement|lib\/movement)'/m.test(read(f))) throw new Error(`${f} imports the Thuso Ride screens or store statically. They carry the Movement contract and every engine's settings, and a patient on metered data must not download them on the first load.`);
+ }
+
+ console.log(`Movement: ${ambulanceSentences} sentences beside the word ambulance each say Thuso Ride is not one; a P1 is refused before it is read and routed nowhere; a P2 is refused from ${['a dispatcher', 'a responder', 'an uncleared nurse', 'another name', 'no reason'].length} directions and taken only from an offer; ${mv.admissions.states.filter(s => s.pending).length} pending admission states confirm no destination and say no word of a booking; a position is refused at its window and dropped by the tick; the packet rides on ${mv.packet.grantRole} for at most ${packetBoundDays} day${packetBoundDays === 1 ? '' : 's'}, derived; ${mvEvents.length} Movement events and ${mvPublishes.length} publishes carry no position, clinical content or secret; ${mvColumns.length} store columns hold none; ${mvScreens.length} screens and models type no interval or window.`);
+}

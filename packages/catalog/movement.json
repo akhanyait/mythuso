@@ -6,7 +6,7 @@
 
  "notAnAmbulance": {
   "sentence": "Thuso Ride is non-emergency transport. It is not an ambulance service: nobody on a trip gives care in transit, and it never takes a P1.",
-  "why": "Only a licensed ambulance service may give care in transit (ThusoIQ Master §12). A responder drives a patient who can travel sitting up to a facility that expects them, and a word on any screen that makes that sound like an ambulance is a person choosing it over the emergency number.",
+  "why": "Only a licensed ambulance service may give care in transit (ThusoIQ Master §12). A responder drives a patient who can travel sitting up to a facility that expects them, and no screen may make that sound like an ambulance, or a person chooses it over the emergency number.",
   "forbiddenPhrases": ["Thuso Ride ambulance", "our ambulance", "your ambulance", "ambulance is on the way", "ambulance on the way", "ambulance is coming", "send an ambulance", "sends an ambulance", "paramedic", "sirens", "blue lights"],
   "_forbiddenPhrasesNote": "scripts/check-boundaries.mjs refuses each phrase in every Movement contract, screen and generated file, and refuses any sentence that names Thuso Ride, a trip or a responder beside the word ambulance without saying it is not one."
  },
@@ -258,6 +258,7 @@
    "intro": "Every trip requested, who accepted it and whether it was handed over. A position is shown only inside a trip's window.",
    "responderHeading": "The responder's phone",
    "responderIntro": "What responder {responder} sees, drawn here so the desk reads the same trip the phone does.",
+   "responderSynthetic": "{responder} is a synthetic responder the preview treats as verified and online. The vetting register has no responder role yet, so on the engine runtime nobody is, and every heartbeat is refused.",
    "noTrips": "No trip has been requested.",
    "windowCloses": "Window closes {when}"
   }
