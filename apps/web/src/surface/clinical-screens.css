@@ -932,3 +932,16 @@
  .clinical .cf-tools { grid-template-columns: minmax(0, 1fr); }
  .clinical .cf-rules > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
 }
+
+/* ---- Settings waiting for clinical review, on the doctor's queue ------------------------------------
+   A small panel under the queue rather than a second queue beside it: the cases are what a doctor opens
+   the workspace for, and a setting waiting on her is read after them. Each value is one card with who,
+   from, to and why above the reason she writes, drawn with the Configuration tab's own rules list. */
+.clinical .sr-panel { display: grid; gap: var(--space-12); padding: var(--space-16); margin-top: var(--space-24); min-width: 0; }
+.clinical .sr-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.clinical .sr-item { display: grid; gap: var(--space-8); padding: var(--space-16) 0; min-width: 0; }
+.clinical .sr-item + .sr-item { border-top: 1px solid var(--line); }
+.clinical .sr-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8); }
+.clinical .sr-confirmed { display: flex; align-items: center; gap: var(--space-8); margin: 0; font-weight: 600; color: var(--ink); }
+.clinical .sr-confirmed svg { flex: none; color: var(--teal-ink); }
+.care-marker.is-unreviewed svg { color: var(--mango-ink); }

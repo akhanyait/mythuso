@@ -17,6 +17,7 @@ export type TimingRow = {
   items?: { lowest: Bound; highest: Bound }; guardrail?: { statement: string };
   allowed?: (Omit<Bound, 'value'> & { value: boolean | string; label: string })[]; allowedRoles?: { roles: string[] };
   maxLength?: Bound; parts?: TimingRow[];
+  reviewRequired?: string;
 };
 export const timingRows = fieldSafety.settings.items as TimingRow[];
 export const timingRow = (key: string) => timingRows.find(row => row.key === key)!;

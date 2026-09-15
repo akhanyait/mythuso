@@ -33,7 +33,8 @@ const valueText = (row: TimingRow, value: unknown): string => {
   if (row.type === 'minutes' || (row.type === 'list' && row.of === 'minutes')) return minutesText(value as number | number[]);
   if (row.type === 'count') return fill(say.values.count, { value: String(value), unit: row.unit ?? '' });
   if (row.type === 'moneyCents') return fill(say.values.moneyCents, { rand: ((value as number) / 100).toFixed(2) });
-  if (row.type === 'boolean' || row.type === 'enum') return row.allowed!.find(choice => choice.value === value)!.label;
+  if (row.type === 'boolean') return row.allowed?.find(choice => choice.value === value)?.label ?? (value ? say.values.on : say.values.off);
+  if (row.type === 'enum') return row.allowed!.find(choice => choice.value === value)!.label;
   if (row.type === 'text') return `“${String(value)}”`;
   if (row.type === 'roleList') return (value as string[]).map(roleName).join(', ');
   if (row.type === 'record') return row.parts!.map(part => `${part.label} ${valueText(part, (value as Record<string, unknown>)[part.key])}`).join(' · ');
@@ -99,7 +100,10 @@ test('every engine’s settings are drawn from its contract: in force, the defau
       if (row.guardrail) await expect(item).toContainText(row.guardrail.statement);
       await expect(item).toContainText(say.neverChanged);
       await expect(item.locator('summary')).toHaveText(`${say.historyHeading} (0)`);
-      await expect(item).not.toContainText(say.notReviewed);
+      /* A default that waits on a clinical review and names no reviewer is shown as not reviewed from the first
+         load, because nobody has reviewed it; everything else never says it. */
+      if (row.reviewRequired && !row.default.reviewedBy) await expect(item).toContainText(say.notReviewed);
+      else await expect(item).not.toContainText(say.notReviewed);
     }
   }
   expect(await noOverflow(page), 'the Configuration area scrolls sideways').toBe(true);
@@ -273,4 +277,60 @@ test('who changes the field safety settings, and which window a stale panic open
   await expect(timingItem(panel, stale).locator('.ss-in-force')).toContainText(off.label);
   await expect(panel).toContainText(fill(say.version, { version: '3' }));
   expect(await noOverflow(page), 'the roles and choice editors scroll the page sideways').toBe(true);
+});
+
+/* Clinical scope. Who may be offered an injection is an admin setting that waits on a clinical review: the
+   admin's change is in force at once and says it is not clinically reviewed, a doctor confirms that exact
+   value from her review queue — refused without a reason, in the contract's sentence — and only that
+   setting stops saying it. Every word is the contracts'. */
+const reviewRefusal = (id: string) => (settingsContract.refusals as { route: string; id: string; statement: string }[]).find(r => r.route === 'review' && r.id === id)!.statement;
+const REVIEW_PANEL = 'Settings waiting for clinical review';
+
+test('an admin narrows who may be offered an injection, Configuration says it is not clinically reviewed, and a doctor confirms it', async ({ page }, info) => {
+  await page.clock.install({ time: START });
+  await openAdminConsole(page);
+  await openConfiguration(page);
+  const careItems = care.settings.items as TimingRow[];
+  const injections = careItems.find(s => s.key === 'injection-roles')!;
+  const planning = careItems.find(s => s.key === 'family-planning-roles')!;
+  const panel = group(page, care.settings.heading);
+  const item = timingItem(panel, injections);
+  await expect(item).toContainText(say.notReviewed);
+
+  const from = valueText(injections, injections.default.value);
+  const to = roleName('nurse');
+  const reason = 'Locum indemnity does not yet name injections.';
+  const form = await openChangeForm(panel, injections);
+  await form.getByRole('group', { name: say.editors.roleList }).getByRole('checkbox', { name: roleName('locum'), exact: true }).uncheck();
+  await form.getByLabel(say.reason, { exact: true }).fill(reason);
+  await form.getByRole('button', { name: say.review }).click();
+  const confirm = form.getByRole('group', { name: fill(say.confirmQuestion, { setting: injections.label, from, to }) });
+  await expect(confirm).toContainText(say.notReviewed);
+  await confirm.getByRole('button', { name: say.confirm }).click();
+  await expect(item.locator('.ss-in-force')).toContainText(to);
+  await expect(item).toContainText(say.notReviewed);
+  await shoot(page, 'configuration-not-reviewed', info);
+
+  await chooseRole(page, 'Doctor');
+  const reviews = page.getByRole('region', { name: REVIEW_PANEL });
+  const card = reviews.locator('.sr-item').filter({ has: page.locator('strong', { hasText: new RegExp(`^${injections.label}$`) }) });
+  await expect(card).toContainText(say.notReviewed);
+  for (const text of [from, to, reason, fill(say.version, { version: '2' })]) await expect(card).toContainText(text);
+  const confirmReview = card.getByRole('button', { name: `Confirm the clinical review of ${injections.label}` });
+  await confirmReview.click();
+  await expect(card.getByRole('alert')).toHaveText(reviewRefusal('setting-review-without-reason'));
+  await card.getByLabel('Why this value is clinically safe', { exact: true }).fill('Inside a registered nurse’s general scope while locum indemnity is confirmed.');
+  await confirmReview.click();
+  await expect(card).toHaveCount(0);
+  await expect(reviews.getByRole('status')).toContainText(injections.label);
+  await expect(reviews.locator('.sr-item').filter({ has: page.locator('strong', { hasText: new RegExp(`^${planning.label}$`) }) })).toContainText(say.notReviewed);
+  expect(await noOverflow(page), 'the review panel scrolls the page sideways').toBe(true);
+  await shoot(page, 'doctor-setting-reviews', info);
+
+  await chooseRole(page, 'Back office');
+  await openConfiguration(page);
+  const reviewed = timingItem(group(page, care.settings.heading), injections);
+  await expect(reviewed).not.toContainText(say.notReviewed);
+  await expect(reviewed.locator('.cf-review')).toContainText('D-401');
+  await expect(timingItem(group(page, care.settings.heading), planning)).toContainText(say.notReviewed);
 });

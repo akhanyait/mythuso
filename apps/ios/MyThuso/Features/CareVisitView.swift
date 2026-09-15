@@ -69,6 +69,16 @@ struct CareOfferCard: View {
                     .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            /* This app has no admin surface and never reads the value an admin puts in force on the web: it
+               offers by the generated default. So the marker describes that default and only that — shown
+               while the contract's default for who may be offered this service waits on a clinical review, and
+               gone the day a reviewed default is emitted, never because a doctor confirmed a web value this
+               phone is not using. It never withholds the offer. */
+            if CareData.scopeNotReviewed(CareData.Preview.serviceId) {
+                Label(CareData.notClinicallyReviewed, systemImage: "exclamationmark.shield")
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             careFact("When", "Today, \(CareVisitStore.clock(store.scheduledFor))", "\(store.service?.duration ?? 0) min")
             careFact("How far", String(format: "%.1f km", offer.distanceKm), CareData.distanceBasis)
             careFact("Lapses", CareVisitStore.clock(offer.expiresAt), store.minutesLeft == 0 ? "Now" : "In \(store.minutesLeft) min")

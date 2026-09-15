@@ -8,7 +8,7 @@ import {
 import { rosterNurses, mayTakeAVisit } from './roster';
 import { zoneById } from './geography';
 import { signOffFor, snapshot as queueSnapshot, subscribe as subscribeQueue } from './visit-queue';
-import { offerExpiryNow } from './settings';
+import { careSettingsNow, reviewStateAt, settingsScreen } from './settings';
 
 /* The Care engine's domain, driven in the browser for the one visit the nurse workspace walks.
  *
@@ -47,6 +47,16 @@ export const sentences = {
  billable: care.complete.billable
 };
 export const markerFor = (continuity: Offer['continuity']) => care.offers.order.find(o => o.id === continuity)?.marker ?? null;
+
+/* Whether the roles an offer was made under wait on a clinical review, for a service whose roles are a
+   setting. Asked of the settings version the offer carries rather than the one in force now, so the card
+   describes what the nurse was offered under. It never withholds or withdraws the offer: the value is in
+   force either way, and packages/engines/src/care/domain/settings.ts says why care is not stopped for it. */
+export const notClinicallyReviewed = settingsScreen.notReviewed;
+export function scopeNotReviewedFor(offer: Offer): boolean {
+ const key = careContract.requirements.find(r => r.serviceId === offer.serviceId)?.rolesFromSetting;
+ return key !== undefined && reviewStateAt('care', key, offer.settingsVersion).reviewed === null;
+}
 
 export type StageId = typeof care.stages[number]['id'];
 export type CareView = {
@@ -88,14 +98,14 @@ function build(now: Date) {
   trust.learn({ ...HEARD, subjectRef: nurse.id, occurredAt: now.toISOString(), payload: { badgeTier: verifiedTier, hardGatesPassed: mayTakeAVisit(nurse).allowed } });
  }
  const candidates: Candidate[] = rosterNurses.map(n => ({ clinicianRef: n.id, roleId: 'nurse', scope: n.scope, base: n.zone?.at ?? null }));
- const offers = new OfferDesk({ contract: careContract, trust, candidates: () => candidates, expiry: offerExpiryNow });
+ const offers = new OfferDesk({ contract: careContract, trust, candidates: () => candidates, settings: careSettingsNow });
  offers.register({
   appointmentRef: preview.appointmentRef, subjectRef: preview.subjectRef, serviceId: preview.serviceId,
   zone: zoneById(preview.zone)?.at ?? null,
   scheduledFor: instantAt(now, preview.dayOffset, preview.slot, careContract.timezone),
   namedClinicianRef: preview.namedClinicianRef, previousClinicianRefs: preview.previousClinicianRefs
  });
- const visits = new VisitDesk({ contract: careContract, record: { encounterComplete: encounterSigned, encounterSigned } });
+ const visits = new VisitDesk({ contract: careContract, settings: careSettingsNow, record: { encounterComplete: encounterSigned, encounterSigned } });
  const made = offers.offer({ idempotencyKey: `preview-${preview.appointmentRef}`, appointmentRef: preview.appointmentRef, serviceId: preview.serviceId }, now);
  if (made.ok) told = made.events.map(e => `${e.type}@${e.version}`);
  return { offers, visits, trust };
