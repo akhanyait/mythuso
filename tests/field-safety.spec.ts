@@ -24,7 +24,14 @@ const services = json('../packages/catalog/services.json') as { id: string; name
 const sos = json('../packages/catalog/sos.json') as { emergency: { numbers: { id: string; number: string }[] } };
 const visitCode: string = json('../packages/catalog/care.json').preview.visitCode;
 const emergencyNumber = (id: string) => sos.emergency.numbers.find(entry => entry.id === id)!.number;
-const statement = (id: string) => (contract.refusals as { id: string; statement: string }[]).find(entry => entry.id === id)!.statement;
+/* A refusal's sentence wherever the contract keeps it: field-safety.json's own, or the route it names at its version. */
+const safetyApi = json('../packages/catalog/apis/safety.json') as { routes: { method: string; path: string; version: number; refusals: { id: string; statement: string }[] }[] };
+const statement = (id: string): string => {
+  const own = (contract.refusals as { id: string; statement: string }[]).find(entry => entry.id === id);
+  if (own) return own.statement;
+  const named = (contract.routeRefusals as { route: string; id: string }[]).find(entry => entry.id === id)!;
+  return safetyApi.routes.find(r => `${r.method} ${r.path}@${r.version}` === named.route)!.refusals.find(entry => entry.id === id)!.statement;
+};
 const fill = (sentence: string, values: Record<string, string>) => sentence.replace(/\{(\w+)\}/g, (whole, key: string) => values[key] ?? whole);
 
 const MINUTE = 60_000;
@@ -73,6 +80,12 @@ test('no strip before the code matches; after it, due at the service duration pl
   await strip.getByRole('button', { name: fill(contract.nurse.extendStep, { minutes: String(step) }) }).click();
   await expect(strip).toContainText(fill(contract.nurse.due, { due: clock(at(visitMinutes + grace + step)) }));
   await expect(strip.getByRole('alert')).toHaveCount(0);
+
+  /* "I am safe" is said back with the sentence that it moved nothing, and the deadline is where the extension left it. */
+  await page.clock.fastForward(2 * MINUTE);
+  await strip.getByRole('button', { name: contract.nurse.checkIn }).click();
+  await expect(strip).toContainText(fill(contract.nurse.saidSafe, { at: clock(at(2)) }));
+  await expect(strip).toContainText(fill(contract.nurse.due, { due: clock(at(visitMinutes + grace + step)) }));
 });
 
 test('the deadline passing says so in words, "I am safe" is recorded without moving it, and checking out closes the timer', async ({ page }) => {
@@ -155,7 +168,13 @@ test('the desk sees a nurse and a suburb, never a service, and resolves or close
 
   const panicRow = rows.filter({ hasText: 'PNC-0088' });
   await expect(panicRow).toContainText(contract.desk.position);
+  /* Pick-up comes first: resolving before anybody picked it up is answered in the route's own sentence. */
+  await panicRow.getByLabel(contract.desk.outcomeQuestion).selectOption(contract.outcomes[0].id);
+  await panicRow.getByRole('button', { name: contract.desk.resolve }).click();
+  await expect(panicRow.getByRole('alert')).toHaveText(statement('panic-resolved-before-acknowledged'));
+  await panicRow.getByLabel(contract.desk.outcomeQuestion).selectOption('');
   await panicRow.getByRole('button', { name: contract.desk.pickUp }).click();
+  await expect(panicRow.getByRole('button', { name: contract.desk.pickUp })).toHaveCount(0);
   await panicRow.getByRole('button', { name: contract.desk.resolve }).click();
   await expect(panicRow.getByRole('alert')).toHaveText(statement('panic-resolved-without-outcome'));
   await panicRow.getByLabel(contract.desk.outcomeQuestion).selectOption(contract.outcomes[0].id);
@@ -164,9 +183,14 @@ test('the desk sees a nurse and a suburb, never a service, and resolves or close
   await expect(panicRow).toContainText(statement('position-after-the-window').split('{ended}')[0]);
 
   const overdueRow = rows.filter({ hasText: 'CHK-0412' });
-  await overdueRow.getByRole('button', { name: contract.desk.pickUp }).click();
   const untrue = contract.silenceReasons.find((reason: { needsNurseAnswer: boolean }) => reason.needsNurseAnswer);
   const reached = contract.silenceReasons.find((reason: { needsNurseAnswer: boolean }) => !reason.needsNurseAnswer);
+  /* A true reason does not close an overdue nobody picked up. */
+  await overdueRow.getByLabel(contract.desk.reasonQuestion).selectOption(reached.id);
+  await overdueRow.getByRole('button', { name: contract.desk.close, exact: true }).click();
+  await expect(overdueRow.getByRole('alert')).toHaveText(statement('overdue-acknowledged-first'));
+  await overdueRow.getByRole('button', { name: contract.desk.pickUp }).click();
+  await expect(overdueRow.getByRole('alert')).toHaveCount(0);
   await overdueRow.getByLabel(contract.desk.reasonQuestion).selectOption(untrue.id);
   await overdueRow.getByRole('button', { name: contract.desk.close, exact: true }).click();
   await expect(overdueRow.getByRole('alert')).toHaveText(statement('silence-reason-untrue'));

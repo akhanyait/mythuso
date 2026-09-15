@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { MINUTE, fieldSafety, refusal, serviceMinutes, type Refusal, type Result } from '../../../../packages/engines/src/safety/domain/rules.ts';
+import { MINUTE, deskRoles, fieldSafety, refusal, serviceMinutes, type Refusal, type Result } from '../../../../packages/engines/src/safety/domain/rules.ts';
 import { acknowledgeOverdue, checkIn, close, completeVisit, extend, silenceOverdue, startTimer, tick, type Timer } from '../../../../packages/engines/src/safety/domain/checkins.ts';
 import { acknowledge, isSharing, openPanicFor, positionFor, raisePanic, receivePosition, resolve, sweep, type DeskActor, type Panic, type Position } from '../../../../packages/engines/src/safety/domain/panics.ts';
 import { deskQueue, type DeskItem } from '../../../../packages/engines/src/safety/domain/desk.ts';
@@ -35,7 +35,8 @@ import { panicWindowNow, safetySettingsNow } from './settings';
 export type SafetyState = { readonly timers: readonly Timer[]; readonly panics: readonly Panic[]; readonly now: number };
 /** The nurse whose day the schedule draws, and the operator the Control Tower signs in as. */
 export const NURSE_ON_SHIFT = 'N-205';
-const DESK: DeskActor = { kind: 'person', role: 'ops-desk', ref: 'O-801' };
+/* The desk acts in the role the desk's routes admit, read from the contract rather than named here. */
+const DESK: DeskActor = { kind: 'person', role: deskRoles[0]!, ref: 'O-801' };
 const FEED_MS = fieldSafety.simulation.positionEverySeconds * 1000;
 
 let state: SafetyState | undefined;
@@ -155,7 +156,7 @@ export function pressPanic(appointmentRef: string | null): Refusal | null {
 /* ---- The desk -------------------------------------------------------------------------------- */
 
 export const deskRows = (s: SafetyState): DeskItem[] => deskQueue(s.timers, s.panics, s.now, ref => {
- const nurse = nurseById(ref);
+ const nurse = ref === null ? undefined : nurseById(ref);
  return { nurse: nurse?.name ?? ref, suburb: nurse?.zoneName ?? '' };
 });
 export const pickUp = (row: DeskItem) => row.kind === 'panic'

@@ -55,7 +55,11 @@ export function VisitSafety({ reference }: { reference: string }) {
  const sharing = panic ? isSharing(panic, s.now) : false;
  const detail = standing === 'overdue' ? fill(say.overdue, { since: clockOf(timer.dueAt) })
   : fill(say.left, { minutes: String(minutesLeft(timer, s.now)) });
- const answered = episode?.answeredAt ? ' ' + fill(say.answered, { at: clockOf(episode.answeredAt) }) : '';
+ /* Her word that she is safe is shown back with the sentence that it moved nothing, so "I am safe" is never read
+    as more time (field-safety.json checkInRule). */
+ const saidSafeAt = timer.checkIns.at(-1);
+ const answered = episode?.answeredAt ? ' ' + fill(say.answered, { at: clockOf(episode.answeredAt) })
+  : saidSafeAt !== undefined ? ' ' + fill(say.saidSafe, { at: clockOf(saidSafeAt) }) : '';
  return <section className={'fs-visit is-' + standing + (sharing ? ' is-sharing' : '')} aria-labelledby={id + '-head'}>
   <div className="fs-visit-bar">
    <span className="fs-rule" aria-hidden="true"/>
@@ -167,19 +171,18 @@ function DeskRow({ row }: { row: DeskItem }) {
     </div>
    : <p className="fs-row-note fs-position-gone">{position.refusal.statement}</p>)}
 
+  {/* Close and resolve stay on the row before anybody picks it up, quieter than Pick up, so that trying one first
+      is answered in the route's own sentence — pick-up comes first — rather than by a button that is not there. */}
   {row.open && <div className="fs-row-act">
-   {!row.acknowledgement
-    ? <button className="primary" onClick={() => setRefused(pickUp(row))}>{deskSay.pickUp}</button>
-    : <>
-     <label className="fs-row-choose" htmlFor={id + '-choice'}>{row.kind === 'panic' ? deskSay.outcomeQuestion : deskSay.reasonQuestion}</label>
-     <select id={id + '-choice'} value={choice} onChange={event => { setChoice(event.target.value); setRefused(null); }}>
-      <option value="">{deskSay.choose}</option>
-      {options.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
-     </select>
-     <button className="primary" onClick={() => setRefused(row.kind === 'panic' ? resolvePanic(row.reference, choice) : closeOverdue(row.reference, choice))}>
-      {row.kind === 'panic' ? deskSay.resolve : deskSay.close}
-     </button>
-    </>}
+   {!row.acknowledgement && <button className="primary" onClick={() => setRefused(pickUp(row))}>{deskSay.pickUp}</button>}
+   <label className="fs-row-choose" htmlFor={id + '-choice'}>{row.kind === 'panic' ? deskSay.outcomeQuestion : deskSay.reasonQuestion}</label>
+   <select id={id + '-choice'} value={choice} onChange={event => { setChoice(event.target.value); setRefused(null); }}>
+    <option value="">{deskSay.choose}</option>
+    {options.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+   </select>
+   <button className={row.acknowledgement ? 'primary' : 'secondary'} onClick={() => setRefused(row.kind === 'panic' ? resolvePanic(row.reference, choice) : closeOverdue(row.reference, choice))}>
+    {row.kind === 'panic' ? deskSay.resolve : deskSay.close}
+   </button>
   </div>}
   {refused && <p className="fs-refused" role="alert">{refused.statement}</p>}
  </li>;

@@ -190,8 +190,13 @@ struct VisitSafetyPanel: View {
         let base = standing == .overdue
             ? FieldSafety.fill(FieldSafety.NurseText.overdue, ["since": FieldSafety.clock(timer.dueAt)])
             : FieldSafety.fill(FieldSafety.NurseText.left, ["minutes": String(timer.minutesLeft(at: store.now))])
-        guard let episode = timer.overdue, episode.silencedReasonId == nil, let answered = episode.answeredAt else { return base }
-        return base + " " + FieldSafety.fill(FieldSafety.NurseText.answered, ["at": FieldSafety.clock(answered)])
+        if let episode = timer.overdue, episode.silencedReasonId == nil, let answered = episode.answeredAt {
+            return base + " " + FieldSafety.fill(FieldSafety.NurseText.answered, ["at": FieldSafety.clock(answered)])
+        }
+        /* Her word that she is safe is shown back with the sentence that it moved nothing, so a nurse never reads
+           "I am safe" as more time. */
+        guard let said = timer.checkIns.last else { return base }
+        return base + " " + FieldSafety.fill(FieldSafety.NurseText.saidSafe, ["at": FieldSafety.clock(said)])
     }
 }
 

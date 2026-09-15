@@ -337,26 +337,28 @@ enum FieldSafety {
     func pickUp(_ row: FieldSafety.DeskRow) -> FieldSafetyRefusal? {
         if row.isPanic {
             return changePanic(row.id) { panic, date in
-                guard panic.resolvedAt == nil else { return FieldSafety.refusal("panic-already-resolved") }
+                guard panic.resolvedAt == nil else { return FieldSafety.refusal("panic-resolved-nothing-to-pick-up") }
                 if panic.acknowledgedAt == nil { panic.acknowledgedAt = date }
                 return nil
             }
         }
         return changeTimer(where: { timer in timer.id == row.id }) { timer, date in
-            guard var episode = timer.overdue, episode.silencedReasonId == nil else { return FieldSafety.refusal("nothing-to-silence") }
+            guard var episode = timer.overdue, episode.silencedReasonId == nil else { return FieldSafety.refusal("nothing-to-pick-up") }
             if episode.acknowledgedAt == nil { episode.acknowledgedAt = date }
             timer.overdue = episode
             return nil
         }
     }
 
+    /* Pick-up comes first, as the engine asks it: whether a person picked the overdue up is asked before the
+       reason, so closing one nobody saw is always answered with that. */
     func closeOverdue(_ checkinRef: String, reasonId: String?) -> FieldSafetyRefusal? {
         changeTimer(where: { timer in timer.id == checkinRef }) { timer, _ in
             guard var episode = timer.overdue, episode.silencedReasonId == nil else { return FieldSafety.refusal("nothing-to-silence") }
+            guard episode.acknowledgedAt != nil else { return FieldSafety.refusal("overdue-acknowledged-first") }
             guard let reason = FieldSafety.silenceReasons.first(where: { reason in reason.id == reasonId }) else {
                 return FieldSafety.refusal("overdue-silenced-without-reason")
             }
-            guard episode.acknowledgedAt != nil else { return FieldSafety.refusal("overdue-acknowledged-first") }
             guard !reason.flag || episode.answeredAt != nil else { return FieldSafety.refusal("silence-reason-untrue") }
             episode.silencedReasonId = reason.id
             timer.overdue = episode
@@ -369,10 +371,10 @@ enum FieldSafety {
     func resolve(_ panicRef: String, outcomeId: String?) -> FieldSafetyRefusal? {
         changePanic(panicRef) { panic, date in
             guard panic.resolvedAt == nil else { return FieldSafety.refusal("panic-already-resolved") }
+            guard panic.acknowledgedAt != nil else { return FieldSafety.refusal("panic-resolved-before-acknowledged") }
             guard let outcomeId, FieldSafety.outcomes.contains(where: { outcome in outcome.id == outcomeId }) else {
                 return FieldSafety.refusal("panic-resolved-without-outcome")
             }
-            guard panic.acknowledgedAt != nil else { return FieldSafety.refusal("panic-resolved-before-acknowledged") }
             panic.resolvedAt = date
             panic.outcomeId = outcomeId
             panic.position = nil
