@@ -1,0 +1,60 @@
+/* Health Passport P1 — share links, the emergency card and who opened the record.
+   Imported by features/PassportSharing.tsx alone, so it arrives with the dynamic import and never on the patient's
+   first load. Built from the surface tokens every other patient screen uses; the one new thing is the card, which
+   has to survive being printed on a home printer in black and white. */
+
+.ps-preview { margin-block: var(--space-12, 12px) var(--space-16, 16px); }
+.ps-panel { display: grid; gap: var(--space-12, 12px); margin-block-end: var(--space-16, 16px); }
+.ps-panel h2 { margin: 0; font-size: 1.05rem; }
+
+.ps-grants, .ps-scope { display: grid; gap: var(--space-8, 8px); }
+.ps-grant, .ps-check {
+ display: flex; gap: var(--space-12, 12px); align-items: flex-start; padding: var(--space-12, 12px);
+ border: 1px solid var(--line, #d9dfdc); border-radius: 12px; background: var(--surface, #fff); cursor: pointer; min-height: 44px;
+}
+.ps-grant.is-chosen { border-color: var(--ink, #1d2b27); box-shadow: inset 0 0 0 1px var(--ink, #1d2b27); }
+.ps-grant input, .ps-check input { margin-block-start: 3px; width: 18px; height: 18px; flex: none; }
+.ps-grant span { display: grid; gap: 2px; }
+.ps-grant small { color: var(--muted, #5a6863); }
+
+.ps-terms { margin: 0; font-weight: 600; }
+.ps-refusal, .ps-made { display: flex; gap: var(--space-8, 8px); align-items: flex-start; margin: 0; }
+.ps-refusal { color: var(--danger, #9f2d20); }
+.ps-refusal svg, .ps-made svg { flex: none; margin-block-start: 3px; }
+
+.ps-links, .ps-log { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-8, 8px); }
+.ps-link, .ps-entry { display: grid; gap: var(--space-8, 8px); padding: var(--space-12, 12px); border: 1px solid var(--line, #d9dfdc); border-radius: 12px; }
+.ps-link small, .ps-entry small { display: block; color: var(--muted, #5a6863); }
+.ps-actions { display: flex; flex-wrap: wrap; gap: var(--space-8, 8px); }
+.ps-actions button { min-height: 44px; }
+.ps-entry-head { display: flex; flex-wrap: wrap; gap: var(--space-8, 8px); align-items: center; }
+.ps-entry p { margin: 0; }
+.ps-entry.is-refused { border-inline-start: 4px solid var(--amber, #8a5a00); }
+
+.emergency-card {
+ display: grid; gap: var(--space-12, 12px); padding: var(--space-16, 16px); margin-block-end: var(--space-16, 16px);
+ border: 2px solid var(--ink, #1d2b27); border-radius: 16px; background: #fff; color: #000; max-width: 560px;
+}
+.ps-card-head { display: flex; flex-wrap: wrap; gap: var(--space-8, 8px); align-items: center; justify-content: space-between; }
+.ps-card-head h2 { margin: 0; font-size: 1.15rem; }
+.ps-card-preview { margin: 0; font-weight: 600; }
+.ps-card-body { display: grid; grid-template-columns: minmax(0, 180px) 1fr; gap: var(--space-16, 16px); align-items: start; }
+.ps-qr { width: 100%; height: auto; aspect-ratio: 1; image-rendering: pixelated; border: 1px solid #000; }
+.ps-card-facts { margin: 0; display: grid; gap: var(--space-8, 8px); }
+.ps-card-facts dt { font-weight: 600; }
+.ps-card-facts dd { margin: 0; }
+.ps-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1.1rem; letter-spacing: 0.08em; }
+.ps-print { justify-self: start; min-height: 44px; }
+
+@media (max-width: 520px) {
+ .ps-card-body { grid-template-columns: 1fr; }
+ .ps-qr { max-width: 220px; }
+}
+
+/* Printed, the card is the whole page and nothing else: no sidebar, no tab bar, no assistant, and no print button. */
+@media print {
+ body * { visibility: hidden; }
+ .emergency-card, .emergency-card * { visibility: visible; }
+ .emergency-card { position: absolute; inset-block-start: 0; inset-inline-start: 0; border-color: #000; box-shadow: none; }
+ .ps-print { display: none; }
+}
