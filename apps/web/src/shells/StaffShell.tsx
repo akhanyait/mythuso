@@ -11,6 +11,9 @@ import '../surface/clinical.css';
 import '../surface/clinical-screens.css';
 import { NurseSchedule, ReviewQueue, nurseDayCounts, reviewQueueCounts, roleExtras, sectionDoor, sectionWorkflow } from '../features/Workspaces';
 import { SettingReviews } from '../features/SettingReviews';
+/* Wave 5, Clinical Intelligence: the inbox a review is signed from, the consultation frame, the triage and guidance
+   answers where a nurse or a doctor would start one, and outcome questions on the patient's record. */
+import { ConsultationFrame, GuidanceStart, PromSchedule, ReviewInbox, TriageStart } from '../features/ClinicalIntelligence';
 import { useVisitQueue } from '../features/VisitQueue';
 import type { Part } from '../lib/visit-queue';
 import { cycle, weeks } from '../lib/earnings';
@@ -242,16 +245,16 @@ const OnDeck = ({ role, children }: { role: StaffRole; children: ReactNode }) =>
 function renderSection(role: StaffRole, section: string, open: (m: string) => void, home: () => void) {
  const head = <SectionHead role={role} section={section}/>;
  if (role === 'Nurse') {
-  if (section === 'Assessments') return <OnDeck role={role}><VisitAssessment onClose={home}/></OnDeck>;
+  if (section === 'Assessments') return <OnDeck role={role}><VisitAssessment onClose={home}/><TriageStart/><GuidanceStart/></OnDeck>;
   if (section === 'Thuso Kit') return <OnDeck role={role}><ThusoKit/><Suspense fallback={null}><KitHealth/></Suspense></OnDeck>;
   if (section === 'Earnings & payouts') return <OnDeck role={role}><Earnings/></OnDeck>;
   if (section === 'Vetting') return <OnDeck role={role}><VettingApplication roleId="nurse" onClose={home}/></OnDeck>;
  }
  if (role === 'Doctor') {
-  if (section === 'Protocols') return <OnDeck role={role}><ClinicalProtocols/></OnDeck>;
+  if (section === 'Protocols') return <OnDeck role={role}><ClinicalProtocols/><TriageStart/><GuidanceStart/></OnDeck>;
   if (section === 'Teleconsultation') return <>{head}<Teleconsult/></>;
-  if (section === 'Patient context') return <OnDeck role={role}><PatientFile open={open}/></OnDeck>;
-  if (section === 'Consultation records') return <OnDeck role={role}><ConsultationRecord title="Consultation records"/></OnDeck>;
+  if (section === 'Patient context') return <OnDeck role={role}><PatientFile open={open}/><PromSchedule/></OnDeck>;
+  if (section === 'Consultation records') return <OnDeck role={role}><ConsultationFrame/><ConsultationRecord title="Consultation records"/></OnDeck>;
  }
  if (role === 'Partner' && section === 'Substitution & repeats') return <>{head}<Dispensing/></>;
  if (role === 'Control Tower') {
@@ -479,7 +482,7 @@ function StaffSection({ role, section, open }: { role: StaffRole; section: strin
    or hand it to the workbench to draw. */
 function sectionBody(section: string, open: (m: string) => void) {
  return section === 'Schedule' ? <NurseSchedule open={open}/>
-  : section === 'Review queue' ? <><ReviewQueue open={open}/><SettingReviews/></>
+  : section === 'Review queue' ? <><ReviewQueue open={open}/><ReviewInbox/><SettingReviews/></>
    : section === 'Dispatch' ? <DispatchBoard/>
     : section === 'Incidents' ? <><SafetyDesk/><SosDesk/><ConcernBoard/><IncidentBoard open={open} notice={false}/><HeldCashPayments/><Suspense fallback={null}><DeviceRegistryDesk/></Suspense></>
      : section === 'Orders' || section === 'Collections' || section === 'Results' ? <FulfilmentQueue section={section} open={open}/>
