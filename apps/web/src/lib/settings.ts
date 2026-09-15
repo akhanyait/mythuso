@@ -12,6 +12,7 @@ import type { KeptRota } from '../../../../packages/engines/src/core/domain/loop
 import { accessInForce, accessInForceAt, type AccessSettingsInForce } from '../../../../packages/engines/src/access/domain/settings.ts';
 import { resultRungOf, termsOf } from '../../../../packages/engines/src/medicines/domain/settings.ts';
 import type { Terms as CollectionTerms } from '../../../../packages/engines/src/medicines/domain/collections.ts';
+import { trustInForce, type TrustInForce } from '../../../../packages/engines/src/trust/domain/settings.ts';
 import { roleOf, whoIs } from './roles';
 import { can } from './vetting';
 /* Whether a rota's post is on duty, and when a shut one opens: the shared settings code's one rule, which the
@@ -100,6 +101,9 @@ export const accessSettingsAt = (at: number): AccessSettingsInForce => accessInF
    expiry, the window and the attempt limit it was given; a result asks resultRungNow() once when it arrives. */
 export const collectionTermsNow = (): CollectionTerms => termsOf(snapshotNow('medicines'));
 export const resultRungNow = (): { readonly rung: number; readonly settingsVersion: number } => resultRungOf(snapshotNow('medicines'));
+/* Verify's four, asked once when a shift starts, a door code is shown or a complaint arrives, and kept by that
+   shift, code or complaint: a change in the back office reaches the next one and never one already under way. */
+export const trustSettingsNow = (): TrustInForce => trustInForce(historyOf('trust'));
 
 /* Whether the value a setting held at a settings version has been clinically reviewed. Something that started
    under an older version — an offer on a nurse's screen — is described by the value it started under, not

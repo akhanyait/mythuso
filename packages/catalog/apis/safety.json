@@ -803,6 +803,36 @@
   },
   {
    "method": "POST",
+   "path": "/v1/safety/incidents",
+   "version": 3,
+   "summary": "Report a security incident, from any role on the vetting register as it stands, or from Verify when a patient cannot confirm who is at her door.",
+   "callers": ["nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin", "employer", "sponsor", "guardian", "corner", "carer", "head-of-operations", "engine:trust"],
+   "callerJustifications": {"engine:trust": "trust.door.mismatched@1"},
+   "purpose": ["audit"],
+   "request": [
+    {"field": "kind", "type": "string", "required": true, "why": "The kind."},
+    {"field": "whatHappened", "type": "string", "required": true, "why": "What happened."},
+    {"field": "informationReached", "type": "boolean", "required": true, "why": "Whether personal information was reached."},
+    {"field": "peopleAffected", "type": "integer", "required": false, "why": "How many, if known."},
+    {"field": "discoveredAt", "type": "integer", "required": false, "why": "When it was discovered, as epoch milliseconds."}
+   ],
+   "response": [
+    {"field": "incidentId", "type": "string", "required": true, "why": "The incident."},
+    {"field": "notificationOwed", "type": "boolean", "required": true, "why": "Whether notification is owed."}
+   ],
+   "refusals": [
+    {"id": "incident-refused", "status": 400, "statement": "That incident report could not be recorded.", "why": "An unknown kind is refused, not filed as something else. Reporting asks nothing about standing, so a carer or a party under suspension is refused only for what the report says, never for who sent it."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain. Verify publishes trust.door.mismatched@1 itself before it reports.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed",
+   "_versionNote": "Added by the Trust lead (Wave 4). A door the patient cannot confirm raises a safety incident through this register, and version two's callers are the register's roles as the identity service's handler works them out, which no engine is. Adding engine:trust widens who calls the route, so it is a new version rather than an edit. It stays proposed: the identity service's handler admits register roles only, and until an engine door exists in front of it the engine runtime's call is answered by the contract mock. Version two stays live and built for the register's own roles."
+  },
+  {
+   "method": "POST",
    "path": "/v1/safety/incidents/{incidentId}/contain",
    "version": 1,
    "summary": "Record how an incident was contained.",

@@ -132,6 +132,8 @@ object EventsData {
             val TRUST_DISPATCH_WITHHELD_V1 = EventKey("trust.dispatch.withheld", 1, "trust")
             val RECORD_BREAKGLASS_REVIEW_DUE_V1 = EventKey("record.breakglass.review_due", 1, "record")
             val RECORD_AUDIT_CHAIN_BROKEN_V1 = EventKey("record.audit.chain_broken", 1, "record")
+            val TRUST_SHIFT_START_UNMATCHED_V1 = EventKey("trust.shift_start.unmatched", 1, "trust")
+            val TRUST_COMPLAINT_RECEIVED_V1 = EventKey("trust.complaint.received", 1, "trust")
 
             val all = listOf(
                 APPOINTMENT_REQUESTED_V1,
@@ -246,7 +248,9 @@ object EventsData {
                 TRUST_WEIGHT_DECIDED_V2,
                 TRUST_DISPATCH_WITHHELD_V1,
                 RECORD_BREAKGLASS_REVIEW_DUE_V1,
-                RECORD_AUDIT_CHAIN_BROKEN_V1
+                RECORD_AUDIT_CHAIN_BROKEN_V1,
+                TRUST_SHIFT_START_UNMATCHED_V1,
+                TRUST_COMPLAINT_RECEIVED_V1
             )
         }
     }

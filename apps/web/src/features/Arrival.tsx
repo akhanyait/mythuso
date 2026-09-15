@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { ArrowRight, CalendarClock, Clock3, MapPin, Navigation, Radio, Route, ShieldCheck } from 'lucide-react';
 import { Pill, SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
@@ -14,6 +14,7 @@ import {
  precisionSentence
 } from '../lib/arrival';
 import type { VisitRow } from './Pages';
+const DoorCheckEntry = lazy(() => import('./VerifyInService').then(m => ({ default: m.DoorCheckEntry })));
 
 /* Where is she now.
  *
@@ -186,6 +187,8 @@ export function Arrival({ row, navigate, view }: {
    </div>
   </div>
 
+  {/* Checking who is at the door, from Verify. Its words arrive with its own chunk, so this screen does not carry them. */}
+  <Suspense fallback={null}><DoorCheckEntry onOpen={() => navigate('Door check')}/></Suspense>
   <button className="primary full" onClick={() => view(row.id)}><CalendarClock size={17}/>Open this visit</button>
   <button className="secondary full" onClick={() => navigate('My visits')}>Back to your visits<ArrowRight size={17}/></button>
  </>;

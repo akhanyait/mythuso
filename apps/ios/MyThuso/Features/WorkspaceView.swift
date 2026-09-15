@@ -476,6 +476,7 @@ struct WorkspaceSectionView: View {
             VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
                 deckRow("Nurse onboarding & vetting", "What a nurse must produce before a visit", "person.badge.plus") { VettingApplyView(roleId: "nurse") }
                 deckRow("Locum vetting", "The same bar, for a shift rather than a post", "clock.badge.checkmark") { VettingRoleView(roleId: "locum") }
+                deckRow(VerifyInService.ShiftText.heading, VerifyInService.ShiftText.intro, "person.badge.clock") { ShiftStartView() }
             }
         default: nurseSchedule
         }

@@ -51,7 +51,8 @@ const CLINICAL_SETTINGS = {
  'safety:extension-ceiling': 'It decides how long a visit may run past its booked time on the nurse\'s own word before the desk speaks to her.',
  'access:handover-answered-by': 'It decides which registered role answers when a patient\'s conversation with Gilbert is handed over, and a handover exists because the patient said something about their health.',
  'access:handover-hours': 'It decides the hours in which a handed-over conversation reaches that role, and so the hours in which it reaches nobody.',
- 'money:priority-sos-wording': 'It tells a family what a paid plan changes about how an emergency is answered. Whether the words keep urgency ahead of payment is a triage question, not only a commercial one.'
+ 'money:priority-sos-wording': 'It tells a family what a paid plan changes about how an emergency is answered. Whether the words keep urgency ahead of payment is a triage question, not only a commercial one.',
+ 'trust:complaint-review-hours': 'A complaint may be about the care a patient was given, and this decides how long it waits before anybody reads it. The Full Scope\'s Verify engine names the window (Engine 6).'
 };
 
 /* Settings that were looked at and are not clinical, each with why, so their absence is a decision
@@ -67,7 +68,11 @@ const NOT_CLINICAL_SETTINGS = {
  'money:*': 'Money\'s plan names, prices, shares and wording are commercial decisions. None of them decides who may do what to a patient.',
  'medicines:pin-lifetime': 'How long a hand-over PIN works is chain of custody: it decides when a sealed bag goes back to the pharmacy, not what is in it or who may take it. Whether a medicine may leave the pharmacy at all was decided by the prescriber and the pharmacist.',
  'medicines:pin-attempts': 'How many wrong PINs a collector may enter is a guard against guessing at the door. It decides when a bag goes back, never whether a patient is treated.',
- 'medicines:collection-window': 'How long a patient\'s authorisation to collect lasts is custody and logistics. A sealed bag that goes back is dispensed again; nothing about the medicine changes.'
+ 'medicines:collection-window': 'How long a patient\'s authorisation to collect lasts is custody and logistics. A sealed bag that goes back is dispensed again; nothing about the medicine changes.',
+ 'trust:unmatched-shift-start-dispatch': 'Whether somebody nobody could face match may be offered work is a fraud and identity question for Operations and the Information Officer (D-3), among people already vetted to attend.',
+ 'trust:door-code-lifetime': 'How long a door code works. It decides how a patient checks who is at her door, not what is done once the door is open.',
+ 'trust:door-code-attempts': 'How many wrong door codes a patient may type before the desk is told. A safety-desk threshold, not a clinical one.',
+ 'trust:settings-changed-by': 'Who may change the Verify in service settings. An authority question, not a clinical one.'
 };
 
 /* Proposals outside a settings block (decidedBy: null), classified by where they sit. */

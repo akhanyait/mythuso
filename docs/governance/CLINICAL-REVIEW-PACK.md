@@ -23,7 +23,7 @@ recommendation for the board.
 
 Writing in this pack changes nothing. A decision takes effect only through the contract's own process:
 
-- **Settings (sections A and E).** An admin puts a value in force on the Configuration tab (`POST /v1/safety/setting-changes@2`, `POST /v1/care/setting-changes@1`, `POST /v1/money/setting-changes@1`, `POST /v1/core/setting-changes@1`, `POST /v1/access/setting-changes@1`, `POST /v1/medicines/setting-changes@1`). For a setting that waits on a clinical review, somebody holding `sign-clinical-review` (Sign a clinical decision) then confirms that exact value, with a reason, in the doctor workspace's "Settings waiting for clinical review" panel (`apps/web/src/features/SettingReviews.tsx`, `POST /v1/care/setting-reviews@1`, `POST /v1/access/setting-reviews@1`, `POST /v1/medicines/setting-reviews@1`). "Nobody confirms the clinical review of a change they made themselves." A default can instead be changed in the contract itself, naming the reviewer and the day (`packages/catalog/settings.json` `provenance.reviewed`) with a changelog entry, as `settings.json` `howToChange` describes.
+- **Settings (sections A and E).** An admin puts a value in force on the Configuration tab (`POST /v1/safety/setting-changes@2`, `POST /v1/care/setting-changes@1`, `POST /v1/money/setting-changes@1`, `POST /v1/core/setting-changes@1`, `POST /v1/access/setting-changes@1`, `POST /v1/medicines/setting-changes@1`, `POST /v1/trust/setting-changes@2`). For a setting that waits on a clinical review, somebody holding `sign-clinical-review` (Sign a clinical decision) then confirms that exact value, with a reason, in the doctor workspace's "Settings waiting for clinical review" panel (`apps/web/src/features/SettingReviews.tsx`, `POST /v1/care/setting-reviews@1`, `POST /v1/access/setting-reviews@1`, `POST /v1/medicines/setting-reviews@1`). "Nobody confirms the clinical review of a change they made themselves." A default can instead be changed in the contract itself, naming the reviewer and the day (`packages/catalog/settings.json` `provenance.reviewed`) with a changelog entry, as `settings.json` `howToChange` describes.
 - **Who can confirm through the panel today:** Doctor (`doctor`), because only that role holds `sign-clinical-review` in `packages/catalog/vetting.json`. A Clinical Governance Lead who is a registered nurse could not confirm a setting through the panel. Their decision can still be recorded in the contract default, or the register can be changed — which is a question for the founder.
 - **Protocols (section B).** "A protocol is not ratified until the register names the role and the person who signed it off, and the day they did." "Changing a ratified protocol means adding a new version that names the one it supersedes. The ratified row is never edited." The row in `packages/catalog/protocols.json` changes status, ratifiedBy and ratifiedOn, and gains a contentRef once the text exists. Core announces a ratification as `protocol.ratified@1`.
 - **Gilbert's emergency terms (section C).** Only in `packages/catalog/gilbert-emergency-terms.json`: raise `version`, add a changelog entry (day, role, terms added and removed, why, the new `termsHash`), keep the shared fixtures passing on all three platforms, and record `clinicalReview.reviewedBy` and `reviewedOn`. `CLAUDE.md` holds the rule; `npm run check` replays the changelog.
@@ -40,9 +40,9 @@ Until a decision is recorded, the app shows "Not clinically reviewed" beside eve
 | B | Protocols in the registry that are not ratified | 12 |
 | C | Gilbert's emergency terms | 1 |
 | D | Clinical scopes and proposed clinical roles on the vetting register | 8 |
-| E | Other clinical proposals and safety numbers nobody clinical has decided | 18 |
+| E | Other clinical proposals and safety numbers nobody clinical has decided | 19 |
 | F | Clinical content with no clinical sign-off recorded | 3 |
-| | **Total** | **48** |
+| | **Total** | **49** |
 
 Each item gives the value in force by default, what an admin may set it to, why it was proposed and by whom,
 the question for the reviewer, and blank sign-off fields.
@@ -862,7 +862,30 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E10. Escalation ladder rung 1, Nudge: time to acknowledge
+#### E10. Complaint review window
+
+| | |
+|---|---|
+| Setting | `trust:complaint-review-hours` in `packages/catalog/verify-in-service.json` |
+| Why it is clinical | A complaint may be about the care a patient was given, and this decides how long it waits before anybody reads it. The Full Scope's Verify engine names the window (Engine 6). |
+| What it decides | Within how many hours of arriving a complaint is reviewed. |
+| In force by default | 24 hours |
+| What an admin may set | An admin may set 1 hours to 72 hours. These limits are proposals nobody has decided. |
+| Guardrail | Every complaint is reviewed, and within three days of arriving. |
+| Why this default | A proposal nobody has decided. Proposed by the Trust lead (Wave 4), citing MyThuso Full Scope v1.0, Engine 6 — Trust (Verify): The Full Scope's Verify engine reviews a complaint within a day (FS-E6), and POST /v1/trust/complaints@1 was frozen with that window in its summary. It is the document's number, and nobody has yet decided to hold the office to it, so it stays a proposal until somebody does. |
+| Who may change it | the roles named by the setting `settings-changed-by` |
+
+**Question for the reviewer:** is 24 hours safe, are the limits safe, and should this setting wait on a clinical review before a change takes effect?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### E11. Escalation ladder rung 1, Nudge: time to acknowledge
 
 | | |
 |---|---|
@@ -882,7 +905,7 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E11. Escalation ladder rung 2, Nurse review: time to acknowledge
+#### E12. Escalation ladder rung 2, Nurse review: time to acknowledge
 
 | | |
 |---|---|
@@ -902,7 +925,7 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E12. Escalation ladder rung 3, Clinician alert: time to acknowledge
+#### E13. Escalation ladder rung 3, Clinician alert: time to acknowledge
 
 | | |
 |---|---|
@@ -922,7 +945,7 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E13. Escalation ladder rung 4, Sentinel Dispatch: time to acknowledge
+#### E14. Escalation ladder rung 4, Sentinel Dispatch: time to acknowledge
 
 | | |
 |---|---|
@@ -942,7 +965,7 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E14. Escalation ladder rung 5, Family alert: time to acknowledge
+#### E15. Escalation ladder rung 5, Family alert: time to acknowledge
 
 | | |
 |---|---|
@@ -962,7 +985,7 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E15. The rung a panic is given
+#### E16. The rung a panic is given
 
 | | |
 |---|---|
@@ -981,7 +1004,7 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E16. The reasons a concern may be snoozed
+#### E17. The reasons a concern may be snoozed
 
 | | |
 |---|---|
@@ -1000,7 +1023,7 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E17. The outcomes a concern is closed with
+#### E18. The outcomes a concern is closed with
 
 | | |
 |---|---|
@@ -1019,7 +1042,7 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E18. The outcome an acknowledged lab result's concern is closed with
+#### E19. The outcome an acknowledged lab result's concern is closed with
 
 | | |
 |---|---|
@@ -1141,6 +1164,10 @@ Listed so that leaving them out is a decision a reviewer can disagree with.
 | `medicines:pin-lifetime` | How long after a patient authorises a collection the PIN they were shown still hands the bag over. | How long a hand-over PIN works is chain of custody: it decides when a sealed bag goes back to the pharmacy, not what is in it or who may take it. Whether a medicine may leave the pharmacy at all was decided by the prescriber and the pharmacist. |
 | `medicines:pin-attempts` | How many wrong PINs a collector may enter at the door before the hand-over is locked and the bag goes back to the pharmacy. | How many wrong PINs a collector may enter is a guard against guessing at the door. It decides when a bag goes back, never whether a patient is treated. |
 | `medicines:collection-window` | How long after a patient authorises a collection the bag may be collected and handed over before the authorisation lapses. | How long a patient's authorisation to collect lasts is custody and logistics. A sealed bag that goes back is dispensed again; nothing about the medicine changes. |
+| `trust:unmatched-shift-start-dispatch` | Whether somebody who started a shift with no face match performed may be offered work from that shift. | Whether somebody nobody could face match may be offered work is a fraud and identity question for Operations and the Information Officer (D-3), among people already vetted to attend. |
+| `trust:door-code-lifetime` | How long the code a nurse shows at a door keeps working after she shows it. | How long a door code works. It decides how a patient checks who is at her door, not what is done once the door is open. |
+| `trust:door-code-attempts` | How many times a patient may type a door code that does not match before the desk is told. | How many wrong door codes a patient may type before the desk is told. A safety-desk threshold, not a clinical one. |
+| `trust:settings-changed-by` | The roles that may change every Verify in service setting other than this one. | Who may change the Verify in service settings. An authority question, not a clinical one. |
 | `closed-loop.json escalationReasons.byCaller` | The reasons the desk may give for escalating a concern before its deadline. | The reasons the desk moves a concern early say who answered and who can decide, not anything about the patient. |
 | `vetting-proposals.json head-of-operations` | Holds the last post on the escalation rota, and answers for a concern the desk and the nurse lead did not take on. | Operations authority over the desk's escalations. The register grants it no record, no summary and no dispatch. |
 

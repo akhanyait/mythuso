@@ -86,3 +86,9 @@ POST /v1/care/setting-changes@1 17328c4a3a5354b9
 POST /v1/safety/setting-changes@2 4bfab8dc1ed2849a
 POST /v1/medicines/setting-changes@1 cb1622e3390d00ec
 POST /v1/money/setting-changes@1 bd9aa2fcacbf3923
+GET /v1/trust/shift-starts@1 bb804cdd35c7830a
+GET /v1/trust/complaints@1 9fdaf0590ea2a9e0
+GET /v1/trust/complaint-notices@1 5eeb94ece5dc0088
+GET /v1/trust/settings@1 8357b8ccd2b18278
+POST /v1/trust/setting-changes@1 3044fa09a16f8b15
+POST /v1/trust/setting-changes@2 53efb145ed85ddda

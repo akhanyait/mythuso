@@ -17,6 +17,9 @@ const CancelFlow = lazy(() => import('./features/Booking').then(m => ({ default:
 /* Choosing who collects a medicine carries the Medicines domain and its contract. A patient opens it from the
    prescription page, never on the first view, so it arrives on its own dynamic import like booking. */
 const AuthoriseCollectorFlow = lazy(() => import('./features/Medicines').then(m => ({ default: m.AuthoriseCollector })));
+/* The door check and the complaint form, from Verify, on a dynamic import too: neither is on the first view. */
+const DoorCheckPage = lazy(() => import('./features/VerifyInService').then(m => ({ default: m.DoorCheck })));
+const ComplaintPage = lazy(() => import('./features/VerifyInService').then(m => ({ default: m.ComplaintForm })));
 import { nurseOfVisit } from './lib/arrival';
 import { capability } from './lib/capabilities';
 import {
@@ -186,6 +189,8 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
        : page === 'Your care team' ? <CareTeam navigate={navigate} open={setModal}/>
        : page === 'What happens to a prescription' ? <PrescriptionJourney navigate={navigate} open={setModal}/>
        : page === 'Arrival' ? <Arrival row={rows.find(row => row.id === tracking) ?? rows.find(row => row.group === 'upcoming')} navigate={navigate} view={setViewing}/>
+       : page === 'Door check' ? <Suspense fallback={<p className="helper" role="status">Opening the door check.</p>}><DoorCheckPage row={rows.find(row => row.id === tracking) ?? rows.find(row => row.group === 'upcoming')} back={() => navigate('Arrival')}/></Suspense>
+       : page.startsWith('Complaint · ') ? <Suspense fallback={<p className="helper" role="status">Opening the complaint.</p>}><ComplaintPage row={rows.find(row => row.id === page.slice('Complaint · '.length))} back={() => navigate('My visits')}/></Suspense>
        : page === 'Help & support' ? <GettingHelp navigate={navigate} open={setModal}/>
        : page === 'Care you sponsor' ? <SponsoredCare person={people[1]} relation={relationOf(people[1], people)} navigate={navigate} open={setModal}/>
        : page === 'My family' ? <Family members={members} invitations={invitations} onRevoke={id => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i))} open={setModal} navigate={navigate}/>

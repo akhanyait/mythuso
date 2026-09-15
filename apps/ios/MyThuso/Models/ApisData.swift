@@ -123,6 +123,7 @@ enum ApisData {
     static let postSafetySentinelDeviations = Route(id: "postSafetySentinelDeviations", method: "POST", path: "/v1/safety/sentinel-deviations", mountedPath: "/v1/safety/sentinel-deviations", version: 1, engine: "safety", callers: ["engine:devices"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let getSafetyIncidentKinds = Route(id: "getSafetyIncidentKinds", method: "GET", path: "/v1/safety/incident-kinds", mountedPath: "/v1/safety/incident-kinds", version: 1, engine: "safety", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built")
     static let postSafetyIncidentsV2 = Route(id: "postSafetyIncidentsV2", method: "POST", path: "/v1/safety/incidents", mountedPath: "/v1/safety/incidents", version: 2, engine: "safety", callers: ["nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin", "employer", "sponsor", "guardian", "corner", "carer", "head-of-operations"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postSafetyIncidentsV3 = Route(id: "postSafetyIncidentsV3", method: "POST", path: "/v1/safety/incidents", mountedPath: "/v1/safety/incidents", version: 3, engine: "safety", callers: ["nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin", "employer", "sponsor", "guardian", "corner", "carer", "head-of-operations", "engine:trust"], purpose: ["audit"], idempotent: false, status: "proposed")
     static let postSafetyIncidentsByIncidentIdContain = Route(id: "postSafetyIncidentsByIncidentIdContain", method: "POST", path: "/v1/safety/incidents/{incidentId}/contain", mountedPath: "/v1/safety/incidents/{incidentId}/contain", version: 1, engine: "safety", callers: ["admin", "incident-reporter"], purpose: ["audit"], idempotent: false, status: "built")
     static let postSafetyIncidentsByIncidentIdNotified = Route(id: "postSafetyIncidentsByIncidentIdNotified", method: "POST", path: "/v1/safety/incidents/{incidentId}/notified", mountedPath: "/v1/safety/incidents/{incidentId}/notified", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built")
     static let postSafetyIncidentsByIncidentIdClose = Route(id: "postSafetyIncidentsByIncidentIdClose", method: "POST", path: "/v1/safety/incidents/{incidentId}/close", mountedPath: "/v1/safety/incidents/{incidentId}/close", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built")
@@ -149,11 +150,20 @@ enum ApisData {
     static let postTrustPartiesByPartyIdSuspend = Route(id: "postTrustPartiesByPartyIdSuspend", method: "POST", path: "/v1/trust/parties/{partyId}/suspend", mountedPath: "/v1/trust/parties/{partyId}/suspend", version: 1, engine: "trust", callers: ["admin"], purpose: ["vetting"], idempotent: false, status: "built")
     static let postTrustPartiesByPartyIdRestore = Route(id: "postTrustPartiesByPartyIdRestore", method: "POST", path: "/v1/trust/parties/{partyId}/restore", mountedPath: "/v1/trust/parties/{partyId}/restore", version: 1, engine: "trust", callers: ["admin"], purpose: ["vetting"], idempotent: false, status: "built")
     static let postTrustIdentityCallbacks = Route(id: "postTrustIdentityCallbacks", method: "POST", path: "/v1/trust/identity-callbacks", mountedPath: "/v1/trust/identity-callbacks", version: 1, engine: "trust", callers: ["kyc-provider"], purpose: ["vetting"], idempotent: false, status: "built")
-    static let getTrustPartiesByPartyIdGates = Route(id: "getTrustPartiesByPartyIdGates", method: "GET", path: "/v1/trust/parties/{partyId}/gates", mountedPath: "/v1/trust/parties/{partyId}/gates", version: 1, engine: "trust", callers: ["admin", "self"], purpose: ["vetting"], idempotent: false, status: "proposed")
-    static let getTrustPartiesByPartyIdBadge = Route(id: "getTrustPartiesByPartyIdBadge", method: "GET", path: "/v1/trust/parties/{partyId}/badge", mountedPath: "/v1/trust/parties/{partyId}/badge", version: 1, engine: "trust", callers: ["patient", "caregiver", "dispatcher", "nurse"], purpose: ["dispatch"], idempotent: false, status: "proposed")
-    static let postTrustShiftStarts = Route(id: "postTrustShiftStarts", method: "POST", path: "/v1/trust/shift-starts", mountedPath: "/v1/trust/shift-starts", version: 1, engine: "trust", callers: ["nurse", "locum", "responder", "courier"], purpose: ["vetting"], idempotent: false, status: "proposed")
-    static let postTrustDoorVerifications = Route(id: "postTrustDoorVerifications", method: "POST", path: "/v1/trust/door-verifications", mountedPath: "/v1/trust/door-verifications", version: 1, engine: "trust", callers: ["patient", "caregiver"], purpose: ["vetting"], idempotent: false, status: "proposed")
-    static let postTrustComplaints = Route(id: "postTrustComplaints", method: "POST", path: "/v1/trust/complaints", mountedPath: "/v1/trust/complaints", version: 1, engine: "trust", callers: ["patient", "caregiver", "thuso-line-agent"], purpose: ["vetting"], idempotent: false, status: "proposed")
+    static let getTrustPartiesByPartyIdGates = Route(id: "getTrustPartiesByPartyIdGates", method: "GET", path: "/v1/trust/parties/{partyId}/gates", mountedPath: "/v1/trust/parties/{partyId}/gates", version: 1, engine: "trust", callers: ["admin"], purpose: ["vetting"], idempotent: false, status: "built")
+    static let getTrustPartiesByPartyIdBadge = Route(id: "getTrustPartiesByPartyIdBadge", method: "GET", path: "/v1/trust/parties/{partyId}/badge", mountedPath: "/v1/trust/parties/{partyId}/badge", version: 1, engine: "trust", callers: ["patient", "caregiver", "dispatcher", "nurse"], purpose: ["dispatch"], idempotent: false, status: "built")
+    static let postTrustShiftStartsV2 = Route(id: "postTrustShiftStartsV2", method: "POST", path: "/v1/trust/shift-starts", mountedPath: "/v1/trust/shift-starts", version: 2, engine: "trust", callers: ["nurse", "locum", "responder", "courier"], purpose: ["vetting"], idempotent: false, status: "built")
+    static let getTrustShiftStarts = Route(id: "getTrustShiftStarts", method: "GET", path: "/v1/trust/shift-starts", mountedPath: "/v1/trust/shift-starts", version: 1, engine: "trust", callers: ["operator", "admin"], purpose: ["dispatch"], idempotent: false, status: "built")
+    static let postTrustDoorCodes = Route(id: "postTrustDoorCodes", method: "POST", path: "/v1/trust/door-codes", mountedPath: "/v1/trust/door-codes", version: 1, engine: "trust", callers: ["nurse", "locum"], purpose: ["vetting"], idempotent: false, status: "built")
+    static let postTrustDoorVerificationsV2 = Route(id: "postTrustDoorVerificationsV2", method: "POST", path: "/v1/trust/door-verifications", mountedPath: "/v1/trust/door-verifications", version: 2, engine: "trust", callers: ["patient", "caregiver"], purpose: ["vetting"], idempotent: false, status: "built")
+    static let postTrustDoorVerificationsByAppointmentRefAnswer = Route(id: "postTrustDoorVerificationsByAppointmentRefAnswer", method: "POST", path: "/v1/trust/door-verifications/{appointmentRef}/answer", mountedPath: "/v1/trust/door-verifications/{appointmentRef}/answer", version: 1, engine: "trust", callers: ["patient", "caregiver"], purpose: ["vetting"], idempotent: false, status: "built")
+    static let postTrustComplaintsV2 = Route(id: "postTrustComplaintsV2", method: "POST", path: "/v1/trust/complaints", mountedPath: "/v1/trust/complaints", version: 2, engine: "trust", callers: ["patient", "caregiver", "thuso-line-agent"], purpose: ["vetting"], idempotent: false, status: "built")
+    static let getTrustComplaints = Route(id: "getTrustComplaints", method: "GET", path: "/v1/trust/complaints", mountedPath: "/v1/trust/complaints", version: 1, engine: "trust", callers: ["admin"], purpose: ["vetting"], idempotent: false, status: "built")
+    static let getTrustComplaintsByComplaintRef = Route(id: "getTrustComplaintsByComplaintRef", method: "GET", path: "/v1/trust/complaints/{complaintRef}", mountedPath: "/v1/trust/complaints/{complaintRef}", version: 1, engine: "trust", callers: ["admin"], purpose: ["vetting"], idempotent: false, status: "built")
+    static let postTrustComplaintsByComplaintRefDecide = Route(id: "postTrustComplaintsByComplaintRefDecide", method: "POST", path: "/v1/trust/complaints/{complaintRef}/decide", mountedPath: "/v1/trust/complaints/{complaintRef}/decide", version: 1, engine: "trust", callers: ["admin"], purpose: ["vetting"], idempotent: false, status: "built")
+    static let getTrustComplaintNotices = Route(id: "getTrustComplaintNotices", method: "GET", path: "/v1/trust/complaint-notices", mountedPath: "/v1/trust/complaint-notices", version: 1, engine: "trust", callers: ["nurse", "locum"], purpose: ["vetting"], idempotent: false, status: "built")
+    static let getTrustSettings = Route(id: "getTrustSettings", method: "GET", path: "/v1/trust/settings", mountedPath: "/v1/trust/settings", version: 1, engine: "trust", callers: ["admin", "operator"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postTrustSettingChangesV2 = Route(id: "postTrustSettingChangesV2", method: "POST", path: "/v1/trust/setting-changes", mountedPath: "/v1/trust/setting-changes", version: 2, engine: "trust", callers: ["admin", "operator"], purpose: ["audit"], idempotent: true, status: "built")
     static let postRecordDevSubjects = Route(id: "postRecordDevSubjects", method: "POST", path: "/v1/record/dev-subjects", mountedPath: "/v1/record/dev-subjects", version: 1, engine: "record", callers: ["developer"], purpose: ["audit"], idempotent: false, status: "built")
     static let postRecordSessionEnds = Route(id: "postRecordSessionEnds", method: "POST", path: "/v1/record/session-ends", mountedPath: "/v1/record/session-ends", version: 1, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "built")
     static let postRecordConsentGrant = Route(id: "postRecordConsentGrant", method: "POST", path: "/consent/grant", mountedPath: "/v1/record/consent/grant", version: 1, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "built")
@@ -306,6 +316,7 @@ enum ApisData {
         postSafetySentinelDeviations,
         getSafetyIncidentKinds,
         postSafetyIncidentsV2,
+        postSafetyIncidentsV3,
         postSafetyIncidentsByIncidentIdContain,
         postSafetyIncidentsByIncidentIdNotified,
         postSafetyIncidentsByIncidentIdClose,
@@ -334,9 +345,18 @@ enum ApisData {
         postTrustIdentityCallbacks,
         getTrustPartiesByPartyIdGates,
         getTrustPartiesByPartyIdBadge,
-        postTrustShiftStarts,
-        postTrustDoorVerifications,
-        postTrustComplaints,
+        postTrustShiftStartsV2,
+        getTrustShiftStarts,
+        postTrustDoorCodes,
+        postTrustDoorVerificationsV2,
+        postTrustDoorVerificationsByAppointmentRefAnswer,
+        postTrustComplaintsV2,
+        getTrustComplaints,
+        getTrustComplaintsByComplaintRef,
+        postTrustComplaintsByComplaintRefDecide,
+        getTrustComplaintNotices,
+        getTrustSettings,
+        postTrustSettingChangesV2,
         postRecordDevSubjects,
         postRecordSessionEnds,
         postRecordConsentGrant,
@@ -1199,6 +1219,17 @@ enum ApisData {
         let incidentId: String
         let notificationOwed: Bool
     }
+    struct PostSafetyIncidentsV3Request {
+        let kind: String
+        let whatHappened: String
+        let informationReached: Bool
+        let peopleAffected: Int?
+        let discoveredAt: Int?
+    }
+    struct PostSafetyIncidentsV3Response {
+        let incidentId: String
+        let notificationOwed: Bool
+    }
     struct PostSafetyIncidentsByIncidentIdContainRequest {
         let incidentId: String
         let containment: String
@@ -1432,27 +1463,112 @@ enum ApisData {
         let badgeTier: String
         let verified: Bool
     }
-    struct PostTrustShiftStartsRequest {
-        let livenessCaptureRef: String
-    }
-    struct PostTrustShiftStartsResponse {
+    struct PostTrustShiftStartsV2Request {}
+    struct PostTrustShiftStartsV2Response {
+        let shiftStartRef: String
+        let matchOutcome: String
         let online: Bool
+        let dispatchRule: String
+        let settingsVersion: Int
+        let startedAt: String
     }
-    struct PostTrustDoorVerificationsRequest {
+    struct GetTrustShiftStartsRequest {}
+    struct GetTrustShiftStartsResponse {
+        let items: [[String: Any]]
+    }
+    struct PostTrustDoorCodesRequest {
         let appointmentRef: String
-        let lanyardCode: String
     }
-    struct PostTrustDoorVerificationsResponse {
-        let matched: Bool
+    struct PostTrustDoorCodesResponse {
+        let doorCode: String
+        let expiresAt: String
+        let attemptsAllowed: Int
+        let settingsVersion: Int
+    }
+    struct PostTrustDoorVerificationsV2Request {
+        let appointmentRef: String
+        let doorCode: String
+    }
+    struct PostTrustDoorVerificationsV2Response {
+        let codeMatched: Bool
+        let attemptsLeft: Int
+        let nurseName: String?
         let badgeTier: String?
+        let incidentRaised: Bool
     }
-    struct PostTrustComplaintsRequest {
+    struct PostTrustDoorVerificationsByAppointmentRefAnswerRequest {
+        let appointmentRef: String
+        let answer: String
+    }
+    struct PostTrustDoorVerificationsByAppointmentRefAnswerResponse {
+        let verified: Bool
+        let incidentRaised: Bool
+    }
+    struct PostTrustComplaintsV2Request {
         let partyRef: String
+        let appointmentRef: String
         let categoryCode: String
+        let whatHappened: String
     }
-    struct PostTrustComplaintsResponse {
+    struct PostTrustComplaintsV2Response {
         let complaintRef: String
         let reviewBy: String
+        let reviewWithinHours: Int
+        let settingsVersion: Int
+    }
+    struct GetTrustComplaintsRequest {}
+    struct GetTrustComplaintsResponse {
+        let items: [[String: Any]]
+    }
+    struct GetTrustComplaintsByComplaintRefRequest {
+        let complaintRef: String
+    }
+    struct GetTrustComplaintsByComplaintRefResponse {
+        let complaintRef: String
+        let partyRef: String
+        let appointmentRef: String
+        let categoryCode: String
+        let whatHappened: String
+        let state: String
+        let reviewBy: String
+        let outcomeCode: String?
+    }
+    struct PostTrustComplaintsByComplaintRefDecideRequest {
+        let complaintRef: String
+        let outcomeCode: String
+        let reason: String
+    }
+    struct PostTrustComplaintsByComplaintRefDecideResponse {
+        let outcomeCode: String
+        let decidedAt: String
+    }
+    struct GetTrustComplaintNoticesRequest {}
+    struct GetTrustComplaintNoticesResponse {
+        let items: [[String: Any]]
+    }
+    struct GetTrustSettingsRequest {}
+    struct GetTrustSettingsResponse {
+        let settingsVersion: Int
+        let settings: [[String: Any]]
+        let history: [[String: Any]]
+    }
+    struct PostTrustSettingChangesV2Request {
+        let idempotencyKey: String
+        let setting: String
+        let wholeNumber: Int?
+        let switchedOn: Bool?
+        let choice: String?
+        let wording: String?
+        let roles: [String]?
+        let windows: [[String: Any]]?
+        let items: [String]?
+        let parts: [String: Any]?
+        let reason: String?
+        let expectedVersion: Int
+    }
+    struct PostTrustSettingChangesV2Response {
+        let settingsVersion: Int
+        let appliesFrom: String
     }
     struct PostRecordDevSubjectsRequest {}
     struct PostRecordDevSubjectsResponse {

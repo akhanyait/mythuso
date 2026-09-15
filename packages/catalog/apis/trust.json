@@ -2,8 +2,8 @@
  "engine": "trust",
  "_note": "Trust is Verify: the vetting routes the identity service already answers (built), and the in-service monitoring the Full Scope adds — the gates and badge worked out on read, shift-start face match, the patient's QR check at the door, and complaints. The Trust Score's number never leaves this engine. Wave 2 contract; Wave 4 extends.",
  "version": 1,
- "resources": ["standing", "parties", "evidence", "identity-callbacks", "shift-starts", "door-verifications", "complaints"],
- "doors": ["credential-answer"],
+ "resources": ["standing", "parties", "evidence", "identity-callbacks", "shift-starts", "door-verifications", "complaints", "door-codes", "complaint-notices", "settings", "setting-changes"],
+ "doors": ["credential-answer", "face-match-result"],
  "doorsToAdd": [
   {"id": "kyc-result", "why": "Replaces the legacy identity callback route.", "capabilityNamed": {"section": "FS-E6", "what": "KYC and liveness provider"}},
   {"id": "afis-result", "why": "Criminal-record clearance results from the accredited AFIS partner.", "capabilityNamed": {"section": "FS-E6", "what": "AFIS clearance partner"}}
@@ -12,7 +12,9 @@
   {"id": "raw-score-leaves-verify", "status": 403, "statement": "A Trust Score's number never leaves Verify.", "why": "packages/catalog/trust.json: the number is the vetting team's; a roster sees the badge."},
   {"id": "weight-nobody-decided", "status": 409, "statement": "No score is built from a weight nobody decided.", "why": "While a weight is blank, only the Verified badge exists."},
   {"id": "activation-past-a-failed-gate", "status": 409, "statement": "Nobody is activated past a failed hard-stop gate.", "why": "A hard gate failing is score nought and offline (§11)."},
-  {"id": "clearance-document-stored", "status": 422, "statement": "A clearance is stored as its result, reference and date — never the document.", "why": "§11: vetting data is special personal information."}
+  {"id": "clearance-document-stored", "status": 422, "statement": "A clearance is stored as its result, reference and date — never the document.", "why": "§11: vetting data is special personal information."},
+  {"id": "no-such-complaint", "status": 404, "statement": "There is no complaint by that reference.", "why": "A reviewer reads and decides a complaint somebody made. A reference nobody was given is refused rather than guessed at.", "answeredBy": ["GET /v1/trust/complaints/{complaintRef}@1", "POST /v1/trust/complaints/{complaintRef}/decide@1"]},
+  {"id": "complaint-about-you", "status": 403, "statement": "A complaint about you is read and decided by another reviewer.", "why": "packages/catalog/vetting.json's selfActionRefusals, applied to complaints: a reviewer who decides a complaint about themselves has decided nothing, and one who reads it has read who complained, which the person complained about is never told.", "answeredBy": ["GET /v1/trust/complaints/{complaintRef}@1", "POST /v1/trust/complaints/{complaintRef}/decide@1"]}
  ],
  "ownIds": [
   {"field": "evidenceId", "why": "A piece of vetting evidence in the Verify store."},
@@ -315,7 +317,7 @@
    "path": "/v1/trust/parties/{partyId}/gates",
    "version": 1,
    "summary": "Read a party's seven gates, worked out on read.",
-   "callers": ["admin", "self"],
+   "callers": ["admin"],
    "purpose": ["vetting"],
    "request": [
     {"field": "partyId", "type": "string", "required": true, "why": "The party."}
@@ -332,7 +334,10 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E6", "what": "seven onboarding gates"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/trust/engine.ts", "handler": "'GET /v1/trust/parties/{partyId}/gates@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"},
+   "_narrowedNote": "Narrowed on 15 September 2026 from admin and self to admin, recorded in apis.callers.lock. The engine runtime cannot tell self apart from anybody, and a person reading her own gates already has GET /v1/trust/standing@1, which the identity service answers for her own session."
   },
   {
    "method": "GET",
@@ -356,14 +361,16 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§11", "what": "only as a badge tier"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/trust/engine.ts", "handler": "'GET /v1/trust/parties/{partyId}/badge@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
    "path": "/v1/trust/shift-starts",
    "version": 1,
    "summary": "Face match at shift start, before going online.",
-   "callers": ["nurse", "locum", "responder", "courier"],
+   "callers": [],
    "purpose": ["vetting"],
    "request": [
     {"field": "livenessCaptureRef", "type": "string", "required": true, "why": "The capture, held by the provider for the match and not by MyThuso."}
@@ -378,14 +385,15 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E6", "what": "Shift-start face match"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/trust/shift-starts@2", "why": "It asked the nurse's phone for a reference to a liveness capture and answered as if a face had been matched, refusing only a mismatch. No identity provider is contracted, so nothing can match a face, and whether matching one is biometric information is the Information Officer's undecided D-3: a route that carries a capture reference is a route that assumes the answer. Version two takes nothing about a face, asks the face-match door, which answers not-integrated, records the shift as not matched and applies the dispatch rule in force."}
   },
   {
    "method": "POST",
    "path": "/v1/trust/door-verifications",
    "version": 1,
    "summary": "A patient scans the lanyard QR at the door.",
-   "callers": ["patient", "caregiver"],
+   "callers": [],
    "purpose": ["vetting"],
    "request": [
     {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit expected."},
@@ -402,14 +410,15 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E6", "what": "patient-side QR"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/trust/door-verifications@2", "why": "A wrong code was answered as a refusal, and a refusal rolls back everything the handler started, so the mismatch event and the incident it should raise could never leave the engine. It had no expiry, no count of tries, no way for a patient to say the person at the door is not her nurse, and nothing of who the code belongs to beyond the badge. Version two answers a wrong code with the tries left, raises the mismatch when the tries run out, refuses an expired code, and hands the patient the name and badge to confirm on POST /v1/trust/door-verifications/{appointmentRef}/answer@1."}
   },
   {
    "method": "POST",
    "path": "/v1/trust/complaints",
    "version": 1,
    "summary": "Make a complaint about a person, reviewed within 24 hours.",
-   "callers": ["patient", "caregiver", "thuso-line-agent"],
+   "callers": [],
    "purpose": ["vetting"],
    "request": [
     {"field": "partyRef", "type": "string", "required": true, "why": "Who the complaint is about."},
@@ -426,7 +435,375 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E6", "what": "ratings, complaints, auto-suspend"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/trust/complaints@2", "why": "It published person.under_review@1 the moment a complaint arrived, which tells Care, Movement and Access that a nurse is under review before anybody has read a word, and invites a dispatch engine to act on a complaint nobody decided. That is the weight nobody decided in another form. It also carried no visit, no account of what happened and no way to say when the review is due under the window in force. Version two records the complaint, publishes trust.complaint.received@1 to Core alone with the review deadline, and changes nothing about the nurse."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/shift-starts",
+   "version": 2,
+   "summary": "A nurse starts her shift. The face-match door is asked and answers not-integrated, so the shift is recorded as not matched and the dispatch rule in force decides whether she is offered work.",
+   "callers": ["nurse", "locum", "responder", "courier"],
+   "purpose": ["vetting"],
+   "request": [],
+   "response": [
+    {"field": "shiftStartRef", "type": "string", "required": true, "why": "The shift start, in Verify's own store."},
+    {"field": "matchOutcome", "type": "string", "required": true, "why": "What the face-match door answered: not-integrated, while no provider is contracted. Never matched without one."},
+    {"field": "online", "type": "boolean", "required": true, "why": "Whether she may be offered work from this shift, under the dispatch rule in force when it started."},
+    {"field": "dispatchRule", "type": "string", "required": true, "why": "The rule that decided it, an allowed value of the unmatched-shift-start-dispatch setting."},
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The settings version the shift started under, which it keeps."},
+    {"field": "startedAt", "type": "instant", "required": true, "why": "When the shift started."}
+   ],
+   "refusals": [
+    {"id": "shift-start-carries-no-face", "status": 422, "statement": "A shift start carries nothing about a face. This one sent something else, and it was refused unread.", "why": "No photograph, template, embedding or capture reference is taken while D-3 is undecided, and a field a phone sends beside the start is where one would arrive. It is refused rather than ignored, because an ignored field has still been received."},
+    {"id": "shift-start-needs-who-you-are", "status": 400, "statement": "A shift is started by a person the engine can identify.", "why": "A shift start is about one nurse. One the runtime cannot tell apart from another would be recorded against nobody."},
+    {"id": "not-on-the-vetting-register", "status": 403, "statement": "You are not on the vetting register.", "why": "Only somebody Verify vets starts a shift it records."},
+    {"id": "no-current-verification-to-start", "status": 409, "statement": "You have no current verification, so a shift cannot start. Your vetting status says why.", "why": "No Trust Score, no dispatch. A shift started past a failing gate would put somebody on the desk's board who may not work."}
+   ],
+   "emits": ["trust.shift_start.unmatched@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E6", "what": "Shift-start face match"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/trust/engine.ts", "handler": "'POST /v1/trust/shift-starts@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/trust/shift-starts",
+   "version": 1,
+   "summary": "The desk reads today's shift starts: who started, that no face was matched, and what the dispatch rule in force did with each.",
+   "callers": ["operator", "admin"],
+   "purpose": ["dispatch"],
+   "request": [],
+   "response": [
+    {"field": "items", "type": "list", "required": true, "why": "Every shift started, newest first.", "object": true, "fields": [
+     {"field": "shiftStartRef", "type": "string", "required": true, "why": "The shift start."},
+     {"field": "partyRef", "type": "string", "required": true, "why": "Who started it, by the register's reference."},
+     {"field": "matchOutcome", "type": "string", "required": true, "why": "What the face-match door answered."},
+     {"field": "online", "type": "boolean", "required": true, "why": "Whether she may be offered work from it."},
+     {"field": "dispatchRule", "type": "string", "required": true, "why": "The rule it started under."},
+     {"field": "settingsVersion", "type": "integer", "required": true, "why": "The settings version it keeps."},
+     {"field": "startedAt", "type": "instant", "required": true, "why": "When."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "shift-start-board-takes-no-filter", "status": 400, "statement": "The shift-start board is read whole. It takes no filter.", "why": "A board filtered by suburb or by who is visiting whom is a way to look somebody up. The desk reads every shift or none."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading the board changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/trust/engine.ts", "handler": "'GET /v1/trust/shift-starts@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/door-codes",
+   "version": 1,
+   "summary": "A nurse shows a short-lived signed code for the visit she has arrived at. Verify keeps a keyed digest of it, never the digits.",
+   "callers": ["nurse", "locum"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit she is at the door of."}
+   ],
+   "response": [
+    {"field": "doorCode", "type": "string", "required": true, "why": "The digits to show, shown to her once and kept nowhere."},
+    {"field": "expiresAt", "type": "instant", "required": true, "why": "When the code stops working, from the lifetime in force."},
+    {"field": "attemptsAllowed", "type": "integer", "required": true, "why": "How many wrong tries the patient has before the desk is told, from the setting in force."},
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The settings version the code keeps."}
+   ],
+   "refusals": [
+    {"id": "door-code-needs-who-you-are", "status": 400, "statement": "A door code is shown by a nurse the engine can identify.", "why": "The code says who is at the door. A code for nobody in particular proves nothing to the person opening it."},
+    {"id": "no-badge-to-show-at-a-door", "status": 409, "statement": "You have no current verification, so there is no door code to show. Speak to the desk.", "why": "A patient told a code matches is told she can open the door. A nurse without a current badge may not be there."},
+    {"id": "door-check-already-done", "status": 409, "statement": "The patient has already checked who is at the door for this visit.", "why": "A new code after the check is finished is a second check nobody asked for, and a way to reopen a mismatch the desk has already been told about."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A code is shown on the nurse's own phone and no engine acts on one being shown. What happens at the door is published when the patient answers.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/trust/engine.ts", "handler": "'POST /v1/trust/door-codes@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/door-verifications",
+   "version": 2,
+   "summary": "A patient types the code the person at the door shows. A match hands her the nurse's name and badge to confirm; a miss says how many tries are left, and the last one tells the desk.",
+   "callers": ["patient", "caregiver"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit the patient is expecting."},
+    {"field": "doorCode", "type": "string", "required": true, "why": "The digits the person at the door showed."}
+   ],
+   "response": [
+    {"field": "codeMatched", "type": "boolean", "required": true, "why": "Whether the digits are the code shown for this visit."},
+    {"field": "attemptsLeft", "type": "integer", "required": true, "why": "How many wrong tries remain before the desk is told. A count of tries and nothing about the nurse."},
+    {"field": "nurseName", "type": "string", "required": false, "why": "The name of the nurse the code belongs to, when it matched."},
+    {"field": "badgeTier", "type": "string", "required": false, "why": "Her badge tier id from packages/catalog/trust.json, when it matched and she holds a current one. Never a score."},
+    {"field": "incidentRaised", "type": "boolean", "required": true, "why": "True when this was the last try, so the desk has been told and an incident raised."}
+   ],
+   "refusals": [
+    {"id": "no-door-code-for-this-visit", "status": 404, "statement": "No door code has been shown for this visit. Ask the person at the door to show one, or say they are not your nurse.", "why": "A code typed against a visit nobody has shown one for is a guess, and is refused rather than counted as a try."},
+    {"id": "door-code-expired", "status": 410, "statement": "That code has expired. Ask her to show a new one.", "why": "An expired code is not a mismatch: nothing about the person has changed, only the time. It is not counted as a try and the desk is not told."},
+    {"id": "door-check-closed", "status": 409, "statement": "This door check is finished. If you are worried about who is at your door, say they are not your nurse.", "why": "After a match is confirmed or the tries run out, another try is either a second answer to a question already answered or a guess after the desk was told."}
+   ],
+   "emits": ["trust.door.mismatched@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E6", "what": "patient-side QR"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/trust/engine.ts", "handler": "'POST /v1/trust/door-verifications@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/door-verifications/{appointmentRef}/answer",
+   "version": 1,
+   "summary": "The patient says whether the person at the door is her nurse. Yes needs a matched code; no is taken at any time, and raises a safety incident.",
+   "callers": ["patient", "caregiver"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit."},
+    {"field": "answer", "type": "string", "required": true, "why": "she-is-my-nurse or not-my-nurse, from packages/catalog/verify-in-service.json."}
+   ],
+   "response": [
+    {"field": "verified", "type": "boolean", "required": true, "why": "True when the patient confirmed a matched code."},
+    {"field": "incidentRaised", "type": "boolean", "required": true, "why": "True when the desk has been told and an incident raised."}
+   ],
+   "refusals": [
+    {"id": "door-answer-unknown", "status": 422, "statement": "Say whether she is your nurse, or that she is not.", "why": "Two answers exist. Anything else is a guess at what the patient meant, at the moment a guess matters most."},
+    {"id": "door-answer-before-code", "status": 409, "statement": "Type the code she shows before you say she is your nurse.", "why": "A yes without a matched code is a door opened on a name alone. A no needs no code, because a patient who sees a stranger should not have to ask one for digits."},
+    {"id": "door-check-closed", "status": 409, "statement": "This door check is finished. If you are worried about who is at your door, say they are not your nurse.", "why": "A second yes to a check already answered adds nothing; a no is always taken, and is not refused by this."}
+   ],
+   "emits": ["trust.door.verified@1", "trust.door.mismatched@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/trust/engine.ts", "handler": "'POST /v1/trust/door-verifications/{appointmentRef}/answer@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/complaints",
+   "version": 2,
+   "summary": "A patient or somebody caring for them complains about a visit. It is reviewed within the window in force when it arrives, and it changes nothing about the nurse until a reviewer decides it.",
+   "callers": ["patient", "caregiver", "thuso-line-agent"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "partyRef", "type": "string", "required": true, "why": "Who the complaint is about."},
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit it is about."},
+    {"field": "categoryCode", "type": "string", "required": true, "why": "What kind of complaint, a category id from packages/catalog/verify-in-service.json. None is a protected category."},
+    {"field": "whatHappened", "type": "string", "required": true, "why": "The complaint in the person's own words, read by a reviewer and never carried in a header, a notice or an event."}
+   ],
+   "response": [
+    {"field": "complaintRef", "type": "string", "required": true, "why": "The complaint."},
+    {"field": "reviewBy", "type": "instant", "required": true, "why": "When it will have been reviewed, under the window in force when it arrived."},
+    {"field": "reviewWithinHours", "type": "integer", "required": true, "why": "That window, as the setting in force gave it."},
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The settings version the complaint keeps."}
+   ],
+   "refusals": [
+    {"id": "unknown-party", "status": 404, "statement": "That person is not on the vetting register.", "why": "A complaint is about somebody Verify can review."},
+    {"id": "complaint-category-unknown", "status": 422, "statement": "Choose what the complaint is about from the list.", "why": "A category is what a reviewer's queue and the nurse's notice carry, and a category typed freely is where a diagnosis would arrive in a header."},
+    {"id": "complaint-account-empty-or-long", "status": 422, "statement": "Say what happened in your own words, in no more than the space the form gives.", "why": "A complaint with no account gives a reviewer nothing to decide, and one longer than the form is cut off where it is read."},
+    {"id": "complaint-about-yourself", "status": 403, "statement": "Nobody makes a complaint about themselves.", "why": "packages/catalog/vetting.json's selfActionRefusals: a party does not act on their own vetting file, and a complaint is an entry in it."},
+    {"id": "complaint-carries-no-weight", "status": 422, "statement": "A complaint carries what happened and nothing about what should happen to the nurse. It was refused unread.", "why": "A field beside the complaint — a score change, a suspension, a weight — is a decision made by the person complaining. The complaint rate's weight is null in packages/catalog/trust.json, and a complaint never changes a score by itself."}
+   ],
+   "emits": ["trust.complaint.received@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E6", "what": "ratings, complaints, auto-suspend"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/trust/engine.ts", "handler": "'POST /v1/trust/complaints@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/trust/complaints",
+   "version": 1,
+   "summary": "A reviewer reads the complaints queue, oldest first, each with its age against the review window it arrived under. A row carries no account, no complainant and no protected category.",
+   "callers": ["admin"],
+   "purpose": ["vetting"],
+   "request": [],
+   "response": [
+    {"field": "items", "type": "list", "required": true, "why": "Every complaint, oldest first.", "object": true, "fields": [
+     {"field": "complaintRef", "type": "string", "required": true, "why": "The complaint."},
+     {"field": "partyRef", "type": "string", "required": true, "why": "Who it is about."},
+     {"field": "categoryCode", "type": "string", "required": true, "why": "What kind, never what was written."},
+     {"field": "state", "type": "string", "required": true, "why": "awaiting-review or decided."},
+     {"field": "receivedAt", "type": "instant", "required": true, "why": "When it arrived."},
+     {"field": "reviewBy", "type": "instant", "required": true, "why": "When its window closes."},
+     {"field": "reviewWithinHours", "type": "integer", "required": true, "why": "The window it arrived under."},
+     {"field": "ageHours", "type": "integer", "required": true, "why": "Whole hours it has waited, or waited before it was decided."},
+     {"field": "overdue", "type": "boolean", "required": true, "why": "Whether it is undecided past its window."},
+     {"field": "settingsVersion", "type": "integer", "required": true, "why": "The settings version it keeps."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "complaint-queue-takes-no-filter", "status": 400, "statement": "The complaints queue is read whole, oldest first. It takes no filter.", "why": "A queue filtered by who complained, or by what, is a search of families and of conditions. The reviewer reads every complaint or none."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading the queue changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/trust/engine.ts", "handler": "'GET /v1/trust/complaints@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/trust/complaints/{complaintRef}",
+   "version": 1,
+   "summary": "A reviewer opens one complaint to read what happened.",
+   "callers": ["admin"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "complaintRef", "type": "string", "required": true, "why": "The complaint."}
+   ],
+   "response": [
+    {"field": "complaintRef", "type": "string", "required": true, "why": "The complaint."},
+    {"field": "partyRef", "type": "string", "required": true, "why": "Who it is about."},
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit it is about."},
+    {"field": "categoryCode", "type": "string", "required": true, "why": "What kind."},
+    {"field": "whatHappened", "type": "string", "required": true, "why": "The account, as it was written."},
+    {"field": "state", "type": "string", "required": true, "why": "awaiting-review or decided."},
+    {"field": "reviewBy", "type": "instant", "required": true, "why": "When its window closes."},
+    {"field": "outcomeCode", "type": "string", "required": false, "why": "The decision, once there is one."}
+   ],
+   "refusals": [
+    {"id": "complaint-read-takes-nothing-else", "status": 400, "statement": "A complaint is opened by its reference and nothing else.", "why": "A read that accepts more than a reference is a search by another name."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading a complaint changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/trust/engine.ts", "handler": "'GET /v1/trust/complaints/{complaintRef}@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/complaints/{complaintRef}/decide",
+   "version": 1,
+   "summary": "A reviewer records what was decided about a complaint, with a reason. It changes no Trust Score and suspends nobody.",
+   "callers": ["admin"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "complaintRef", "type": "string", "required": true, "why": "The complaint."},
+    {"field": "outcomeCode", "type": "string", "required": true, "why": "An outcome id from packages/catalog/verify-in-service.json."},
+    {"field": "reason", "type": "string", "required": true, "why": "Why, in the reviewer's words, kept beside who decided."}
+   ],
+   "response": [
+    {"field": "outcomeCode", "type": "string", "required": true, "why": "The decision."},
+    {"field": "decidedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "complaint-outcome-unknown", "status": 422, "statement": "Choose the decision from the list.", "why": "The outcomes are what the nurse is told, word for word. A decision typed freely is a sentence nobody wrote for her."},
+    {"id": "complaint-decision-without-reason", "status": 422, "statement": "A decision about a complaint says why, or it is not recorded.", "why": "A decision is read by the nurse's representative and by the next reviewer. One with no reason is a verdict."},
+    {"id": "complaint-already-decided", "status": 409, "statement": "That complaint has already been decided.", "why": "A second decision would replace the first under the nurse's notice without anybody saying so. A decision found wrong goes to the review panel."},
+    {"id": "complaint-decision-carries-no-weight", "status": 422, "statement": "A decision about a complaint records the outcome and the reason, and nothing about a score or a suspension. It was refused unread.", "why": "A suspension is POST /v1/trust/parties/{partyId}/suspend@1, a decision of its own on the register. A score change riding along on a complaint's decision is a weight nobody decided."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "No engine acts on a decided complaint. An upheld complaint reaches the Trust Score only through the complaint-rate input, whose weight nobody has decided, and a suspension is its own decision on the register, which publishes its own event.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/trust/engine.ts", "handler": "'POST /v1/trust/complaints/{complaintRef}/decide@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/trust/complaint-notices",
+   "version": 1,
+   "summary": "A nurse reads that complaints about her exist, what kind each is and what was decided — never who made one or what they wrote.",
+   "callers": ["nurse", "locum"],
+   "purpose": ["vetting"],
+   "request": [],
+   "response": [
+    {"field": "items", "type": "list", "required": true, "why": "Each complaint about the caller.", "object": true, "fields": [
+     {"field": "complaintRef", "type": "string", "required": true, "why": "The complaint, so a later notice about the same one reads as the same one."},
+     {"field": "categoryCode", "type": "string", "required": true, "why": "What kind."},
+     {"field": "state", "type": "string", "required": true, "why": "awaiting-review or decided."},
+     {"field": "outcomeCode", "type": "string", "required": true, "nullable": true, "why": "The decision, or null before one."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "complaint-notices-need-who-you-are", "status": 400, "statement": "Complaints about you are read by a nurse the engine can identify.", "why": "The notices are about one person. Answering somebody the runtime cannot tell apart would hand one nurse another's."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/trust/engine.ts", "handler": "'GET /v1/trust/complaint-notices@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/trust/settings",
+   "version": 1,
+   "summary": "Read the Verify in service settings in force — the unmatched shift-start dispatch rule, the door code's lifetime and tries, the complaint review window and who changes them — each with its default and who proposed it, what an admin may set, and every change made to them.",
+   "callers": ["admin", "operator"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [{"field": "settingsVersion", "type": "integer", "required": true, "why": "The version in force. A change is made against it, and whatever starts now keeps it."}, {"field": "settings", "type": "list", "required": true, "why": "Each setting: its key, type, unit, the value in force and the version that set it, its default and provenance, its limits, who may change it, what a change reaches, its guardrail, and its clinical review.", "object": true, "fields": [{"field": "setting", "type": "string", "required": true, "why": "The setting's key, which a change names."}, {"field": "label", "type": "string", "required": true, "why": "Its name on the Configuration screen."}, {"field": "help", "type": "string", "required": true, "why": "The question it answers, as a sentence."}, {"field": "type", "type": "string", "required": true, "why": "One of the types in packages/catalog/settings.json."}, {"field": "unit", "type": "string", "required": true, "nullable": true, "why": "What the value is counted in, or null for a type that has none."}, {"field": "inForce", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The value in force: a number, a switch, a word, a list, a rota or a record, as its type gives."}, {"field": "setAtVersion", "type": "integer", "required": true, "why": "The settings version that set the value in force, 1 for the contract's default."}, {"field": "default", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The contract's default, of the same kind as the value in force."}, {"field": "provenance", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#provenance", "why": "Who decided the default, when and why, or who proposed it and why, and who reviewed it where somebody did."}, {"field": "limits", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#setting", "why": "What an admin may set — the bounds, allowed values, roles, posts, items or parts its type carries — with their provenance."}, {"field": "changedBy", "type": "list", "required": true, "why": "The roles that may change it, resolved from the contract and the settings in force."}, {"field": "appliesTo", "type": "string", "required": true, "why": "What a change reaches, as a sentence."}, {"field": "guardrail", "type": "string", "required": true, "nullable": true, "why": "The sentence no value may break, or null for a setting with none."}, {"field": "reviewRequired", "type": "string", "required": true, "nullable": true, "why": "The capability whose holder confirms its clinical review, or null for a setting that waits on nobody."}, {"field": "reviewed", "type": "string", "required": true, "nullable": true, "object": true, "why": "Who confirmed the clinical review of the value in force, or null while it is not clinically reviewed.", "fields": [{"field": "byRef", "type": "string", "required": true, "why": "The reviewer's reference."}, {"field": "at", "type": "instant", "required": true, "nullable": true, "why": "When the review was confirmed through the review route, or null for a default reviewed before it shipped."}, {"field": "on", "type": "iso-date", "required": true, "nullable": true, "why": "The day a default was reviewed before it shipped, or null for a review confirmed through the route."}]}]}, {"field": "history", "type": "list", "required": true, "why": "Every accepted change, oldest first: which setting, from, to, who, when and why. Nothing in it is edited or removed.", "object": true, "fields": [{"field": "settingsVersion", "type": "integer", "required": true, "why": "The version this change made."}, {"field": "setting", "type": "string", "required": true, "why": "The setting it changed."}, {"field": "from", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The value before, of the kind its type gives."}, {"field": "to", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The value after."}, {"field": "reason", "type": "string", "required": true, "why": "Why, as it was written."}, {"field": "byRole", "type": "string", "required": true, "why": "The role of the person who made it."}, {"field": "byRef", "type": "string", "required": true, "why": "The reference of the person who made it, from the caller the runtime admitted."}, {"field": "at", "type": "instant", "required": true, "why": "When it was made."}]}],
+   "refusals": [{"id": "settings-read-not-permitted", "status": 403, "statement": "Only somebody who may change these settings reads them and who changed them.", "why": "The history names the people who changed how an engine behaves. It is read by the roles that may change it."}],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/trust/engine.ts", "handler": "'GET /v1/trust/settings@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/setting-changes",
+   "version": 1,
+   "summary": "Change one Verify in service setting, with a reason, against the version in force. It applies to the shifts, door codes and complaints that start after it.",
+   "callers": [],
+   "purpose": ["audit"],
+   "request": [{"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same change once, and the history gains one row."}, {"field": "setting", "type": "string", "required": true, "why": "The setting's key, from the settings block of the engine's own contract."}, {"field": "wholeNumber", "type": "integer", "required": false, "why": "The new value, for a setting in minutes, a count, cents or a percentage."}, {"field": "switchedOn", "type": "boolean", "required": false, "why": "The new value, for a setting that is on or off."}, {"field": "choice", "type": "string", "required": false, "why": "The new value, for a setting that is one of a few named choices."}, {"field": "wording", "type": "string", "required": false, "why": "The new wording, for a setting patients or nurses read."}, {"field": "roles", "type": "list", "required": false, "why": "The new roles, for a setting that names roles from packages/catalog/vetting.json."}, {"field": "windows", "type": "list", "required": false, "why": "The new rota, for a setting that is windows of a post, days and hours. A post, never a named person.", "object": true, "shapeFrom": "packages/catalog/settings.json#types"}, {"field": "items", "type": "list", "required": false, "why": "The new values, for a setting that is a list."}, {"field": "parts", "type": "string", "required": false, "why": "The new values, for a setting whose parts change together.", "object": true, "shapeFrom": "packages/catalog/settings.json#types"}, {"field": "reason", "type": "string", "required": false, "why": "Why. Asked for by the handler rather than the binder, so that a change without one is refused in its own sentence rather than the general one for a missing field."}, {"field": "expectedVersion", "type": "integer", "required": true, "why": "The settings version the admin was looking at. A change against an older one is refused."}],
+   "response": [{"field": "settingsVersion", "type": "integer", "required": true, "why": "The version this change made."}, {"field": "appliesFrom", "type": "instant", "required": true, "why": "When it took effect. Whatever started before it keeps the version it started under."}],
+   "refusals": [{"id": "setting-change-not-permitted", "status": 403, "statement": "Only the role a setting names changes it, and the change is recorded against a named person.", "why": "A setting decides how the platform treats people. The role or capability the setting names changes it, and a change is recorded against somebody who can be asked about it; everybody else only reads what is in force."}, {"id": "setting-not-known", "status": 422, "statement": "There is no setting by that name.", "why": "An unknown setting is refused rather than stored, or the history fills with changes nothing reads."}, {"id": "setting-change-without-reason", "status": 422, "statement": "A change to a setting says why, or it is not made.", "why": "The history is read after something has gone wrong. A change with no reason is a number somebody moved."}, {"id": "settings-version-stale", "status": 409, "statement": "These settings changed after you opened them. Read what is in force now and decide against that.", "why": "Two admins changing one setting from screens opened at the same time would each overwrite a decision they never saw."}, {"id": "setting-value-wrong-type", "status": 422, "statement": "That is not the kind of value this setting holds.", "why": "A word where a number belongs, or a list where one choice belongs, is a guess at what the admin meant, and a setting is never set by a guess."}, {"id": "setting-not-above-zero", "status": 422, "statement": "This setting is never nought or less, whatever its range says.", "why": "A wait of nothing, an offer that lapses as it is made and a fee of nothing are never what anybody meant. The range is a proposal and could be set wrongly; this refusal does not depend on it."}, {"id": "setting-role-not-on-register", "status": 422, "statement": "Every role a setting names is a role on the vetting register.", "why": "A role the register does not hold is a gate nobody can be vetted through, which looks like a shortage rather than a mistake."}, {"id": "setting-text-too-long", "status": 422, "statement": "That wording is longer than this setting allows.", "why": "The maximum is the space the words are read in. Wording that does not fit is cut off where somebody reads it."}, {"id": "setting-text-loses-a-guardrail", "status": 422, "statement": "That wording drops a sentence this setting must always keep.", "why": "Some wording carries a promise that protects somebody. It may be reworded around that sentence and never without it."}, {"id": "setting-schedule-leaves-a-gap", "status": 422, "statement": "That rota leaves hours uncovered that must always have somebody on them.", "why": "A rota with a gap is an alert with nobody to go to, and nobody finds out until one arrives."}, {"id": "setting-out-of-range", "status": 422, "statement": "That is outside what an admin may set for this setting.", "why": "The bounds, the allowed values and the allowed roles sit beside the default in the engine's contract. Moving a setting past them is a change to that contract, not a setting."}, {"id": "setting-unchanged", "status": 409, "statement": "That is already the value in force, so there is nothing to change.", "why": "A change that changes nothing is a row in the history saying something happened when nothing did."}],
+   "emits": [],
+   "emitsNoneBecause": "No engine acts on a settings change. The engine that owns a setting reads the value in force when it starts something, and the event contract refuses an event nobody subscribes to. A change is the row it appends to the engine's own history, which the read route returns.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/trust/setting-changes@2", "why": "It named the inside of windows and parts as packages/catalog/settings.json#types, and when it was merged with Medicines & Labs the shared change shape had come to declare a window's fields and to take parts from settings.json#partTypes, so it was no longer the one shape every engine's settings route is answered by. Version two is that shape, with the same callers, refusals and handler."},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/trust/engine.ts", "handler": "'POST /v1/trust/setting-changes@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/setting-changes",
+   "version": 2,
+   "summary": "Change one Verify in service setting, with a reason, against the version in force. It applies to the shifts, door codes and complaints that start after it.",
+   "callers": ["admin", "operator"],
+   "purpose": ["audit"],
+   "request": [{"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same change once, and the history gains one row."}, {"field": "setting", "type": "string", "required": true, "why": "The setting's key, from the settings block of the engine's own contract."}, {"field": "wholeNumber", "type": "integer", "required": false, "why": "The new value, for a setting in minutes, a count, cents or a percentage."}, {"field": "switchedOn", "type": "boolean", "required": false, "why": "The new value, for a setting that is on or off."}, {"field": "choice", "type": "string", "required": false, "why": "The new value, for a setting that is one of a few named choices."}, {"field": "wording", "type": "string", "required": false, "why": "The new wording, for a setting patients or nurses read."}, {"field": "roles", "type": "list", "required": false, "why": "The new roles, for a setting that names roles from packages/catalog/vetting.json."}, {"field": "windows", "type": "list", "required": false, "why": "The new rota, for a setting that is windows of a post, days and hours. A post, never a named person.", "object": true, "fields": [{"field": "post", "type": "string", "required": true, "why": "The post the window is for, by its id in the setting's posts. Never a named person."}, {"field": "days", "type": "list", "required": true, "why": "The days of the week it covers, from the days packages/catalog/settings.json lists."}, {"field": "from", "type": "string", "required": true, "why": "When it opens, as hours and minutes from 00:00."}, {"field": "to", "type": "string", "required": true, "why": "When it closes, after it opens and no later than 24:00."}]}, {"field": "items", "type": "list", "required": false, "why": "The new values, for a setting that is a list."}, {"field": "parts", "type": "string", "required": false, "why": "The new values, for a setting whose parts change together.", "object": true, "shapeFrom": "packages/catalog/settings.json#partTypes"}, {"field": "reason", "type": "string", "required": false, "why": "Why. Asked for by the handler rather than the binder, so that a change without one is refused in its own sentence rather than the general one for a missing field."}, {"field": "expectedVersion", "type": "integer", "required": true, "why": "The settings version the admin was looking at. A change against an older one is refused."}],
+   "response": [{"field": "settingsVersion", "type": "integer", "required": true, "why": "The version this change made."}, {"field": "appliesFrom", "type": "instant", "required": true, "why": "When it took effect. Whatever started before it keeps the version it started under."}],
+   "refusals": [{"id": "setting-change-not-permitted", "status": 403, "statement": "Only the role a setting names changes it, and the change is recorded against a named person.", "why": "A setting decides how the platform treats people. The role or capability the setting names changes it, and a change is recorded against somebody who can be asked about it; everybody else only reads what is in force."}, {"id": "setting-not-known", "status": 422, "statement": "There is no setting by that name.", "why": "An unknown setting is refused rather than stored, or the history fills with changes nothing reads."}, {"id": "setting-change-without-reason", "status": 422, "statement": "A change to a setting says why, or it is not made.", "why": "The history is read after something has gone wrong. A change with no reason is a number somebody moved."}, {"id": "settings-version-stale", "status": 409, "statement": "These settings changed after you opened them. Read what is in force now and decide against that.", "why": "Two admins changing one setting from screens opened at the same time would each overwrite a decision they never saw."}, {"id": "setting-value-wrong-type", "status": 422, "statement": "That is not the kind of value this setting holds.", "why": "A word where a number belongs, or a list where one choice belongs, is a guess at what the admin meant, and a setting is never set by a guess."}, {"id": "setting-not-above-zero", "status": 422, "statement": "This setting is never nought or less, whatever its range says.", "why": "A wait of nothing, an offer that lapses as it is made and a fee of nothing are never what anybody meant. The range is a proposal and could be set wrongly; this refusal does not depend on it."}, {"id": "setting-role-not-on-register", "status": 422, "statement": "Every role a setting names is a role on the vetting register.", "why": "A role the register does not hold is a gate nobody can be vetted through, which looks like a shortage rather than a mistake."}, {"id": "setting-text-too-long", "status": 422, "statement": "That wording is longer than this setting allows.", "why": "The maximum is the space the words are read in. Wording that does not fit is cut off where somebody reads it."}, {"id": "setting-text-loses-a-guardrail", "status": 422, "statement": "That wording drops a sentence this setting must always keep.", "why": "Some wording carries a promise that protects somebody. It may be reworded around that sentence and never without it."}, {"id": "setting-schedule-leaves-a-gap", "status": 422, "statement": "That rota leaves hours uncovered that must always have somebody on them.", "why": "A rota with a gap is an alert with nobody to go to, and nobody finds out until one arrives."}, {"id": "setting-out-of-range", "status": 422, "statement": "That is outside what an admin may set for this setting.", "why": "The bounds, the allowed values and the allowed roles sit beside the default in the engine's contract. Moving a setting past them is a change to that contract, not a setting."}, {"id": "setting-unchanged", "status": 409, "statement": "That is already the value in force, so there is nothing to change.", "why": "A change that changes nothing is a row in the history saying something happened when nothing did."}],
+   "emits": [],
+   "emitsNoneBecause": "No engine acts on a settings change. The engine that owns a setting reads the value in force when it starts something, and the event contract refuses an event nobody subscribes to. A change is the row it appends to the engine's own history, which the read route returns.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/trust/engine.ts", "handler": "'POST /v1/trust/setting-changes@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   }
  ]
 }

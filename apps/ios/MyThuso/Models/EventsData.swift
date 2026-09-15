@@ -155,6 +155,8 @@ enum EventsData {
     static let trustDispatchWithheldV1 = EventKey("trust.dispatch.withheld", 1, "trust")
     static let recordBreakglassReviewDueV1 = EventKey("record.breakglass.review_due", 1, "record")
     static let recordAuditChainBrokenV1 = EventKey("record.audit.chain_broken", 1, "record")
+    static let trustShiftStartUnmatchedV1 = EventKey("trust.shift_start.unmatched", 1, "trust")
+    static let trustComplaintReceivedV1 = EventKey("trust.complaint.received", 1, "trust")
 
     static let events: [EventKey] = [
         appointmentRequestedV1,
@@ -269,7 +271,9 @@ enum EventsData {
         trustWeightDecidedV2,
         trustDispatchWithheldV1,
         recordBreakglassReviewDueV1,
-        recordAuditChainBrokenV1
+        recordAuditChainBrokenV1,
+        trustShiftStartUnmatchedV1,
+        trustComplaintReceivedV1
     ]
 
     static func owner(of type: String) -> String? { events.first { $0.type == type }?.owner }
