@@ -1,14 +1,15 @@
 {
- "_note": "ThusoIQ Core's closed loop and alert router, Wave 3: the rungs an alert is routed by and how long each has to be acknowledged, the codes an escalation and a snooze are given, what happens when there is nobody left to escalate to, and the order the Control Tower reads concerns in. MyThuso Master Blueprint v4's Core table and ThusoIQ Master v3.5 §14 name what it must do: 'concern → owner → SLA → fallback → outcome', 'every alert has an owner and a response expectation', 'deduplication, suppression windows, severity tiers, snooze-with-reason'. packages/engines/src/core holds the arithmetic; every refusal sentence is packages/catalog/apis/core.json's. There is no emitter beside this file on purpose: no app renders Core, and the Control Tower reads it through GET /v1/core/loops@1. Nothing here is a running service. No alert reaches a person, no page is sent and nobody is on call.",
+ "_note": "ThusoIQ Core's closed loop and alert router, Wave 3: the rungs an alert is routed by and how long each has to be acknowledged, the codes an escalation and a snooze are given, who an unacknowledged concern goes to after its fallback, what a panic alerts, what happens when there is nobody left to escalate to, and the order the Control Tower reads concerns in. MyThuso Master Blueprint v4's Core table and ThusoIQ Master v3.5 §14 name what it must do: 'concern → owner → SLA → fallback → outcome', 'every alert has an owner and a response expectation', 'deduplication, suppression windows, severity tiers, snooze-with-reason'. The escalation rota and the minutes each post holds a concern are Core's settings, below, in the shape packages/catalog/settings.json gives every setting, because the founder instructed on 15 September 2026 that open questions become admin settings. packages/engines/src/core holds the arithmetic; every refusal sentence is packages/catalog/apis/core.json's. There is no emitter beside this file on purpose: no app renders Core, and the Control Tower reads it through GET /v1/core/loops@2. Nothing here is a running service. No alert reaches a person, no page is sent and nobody is on call.",
  "version": 1,
  "engine": "core",
  "api": "packages/catalog/apis/core.json",
 
- "_numbersNote": "Every number below is a proposal. `decidedBy: null` means nobody with the authority to set it has set it. ThusoIQ Master v3.5 names the ladder's response times and its readiness review names the missing 'rota and authority matrix'; the numbers are here so the router can be built and tested against something, and the build refuses a proposal that loses its `decidedBy`, its question or why it was proposed.",
+ "_numbersNote": "Every number below is a proposal. `decidedBy: null` means nobody with the authority to set it has set it. ThusoIQ Master v3.5 names the ladder's response times and its readiness review names the missing 'rota and authority matrix'; the numbers are here so the router can be built and tested against something, and the build refuses a proposal that loses its `decidedBy`, its question or why it was proposed. The rota and its minutes are settings, which an admin changes on the back office within bounds that are themselves proposals.",
 
  "ladder": {
   "source": "ThusoIQ Master v3.5 §13, Figure 8 — the escalation ladder",
-  "why": "A rung is how urgent a concern is. It decides how long the owner has to acknowledge it and nothing else: moving a concern up a rung is a clinician's decision on the ladder, not the router's when a deadline passes, and a deadline that passes moves the concern to its fallback.",
+  "why": "A rung is how urgent a concern is. It decides how long the owner has to acknowledge it and nothing else: moving a concern up a rung is a clinician's decision on the ladder, not the router's when a deadline passes, and a deadline that passes moves the concern to the next holder on its escalation — its fallback, then the posts of the rota.",
+  "_notTheRotaNote": "These rungs are not the rota's rungs, and escalation-minutes replaces none of them. acknowledgeWithinMinutes is how long an alert's first owner has to acknowledge it, by how urgent the alert is. escalation-minutes is how long each post on the rota holds a concern nobody has taken on before it goes to the next post, whatever the concern is. The five below answer the first question and are kept as they were; merging them with the second would make one number answer two questions, and the day one of them changed the other would change with it.",
   "rungs": [
    {"rung": 1, "name": "Nudge", "documentSays": "Immediate", "acknowledgeWithinMinutes": {"value": 5, "decidedBy": null, "proposedBecause": "The document says immediate, and a deadline of nought would move a concern on before anybody could press acknowledge. Five minutes is how long ThusoIQ Master v3.5's mental-health pathway lets a clinician be unreachable in a crisis before it goes to the next person, borrowed here for every rung the document calls immediate.", "question": "How long the owner of a rung-one concern has to acknowledge it."}},
    {"rung": 2, "name": "Nurse review", "documentSays": "Urgent <2h · Critical <15 min", "acknowledgeWithinMinutes": {"value": 15, "decidedBy": null, "proposedBecause": "The document gives two response times for this rung, and an alert carries nothing that tells an urgent one from a critical one. Holding every rung-two alert to the critical time means an urgent one is acknowledged early; the other choice means a critical one waits two hours.", "question": "How long the owner of a rung-two concern has to acknowledge it, while an alert cannot say whether it is urgent or critical."}},
@@ -26,7 +27,27 @@
 
  "fallbackDeadline": {
   "derivedFrom": "The concern's own span: the deadline it was opened with, less the moment it was opened. An alert's span is its rung's acknowledgeWithinMinutes.",
+  "lastPost": "The last post on the rota is given the concern's own span too. escalation-minutes holds the time a post has before the next post, one fewer than there are posts, and there is no post after the last to hand the concern to.",
   "why": "A fallback is given the time the owner was given. A second number for the fallback would be a second answer to how urgent the same concern is."
+ },
+
+ "escalation": {
+  "rotaSetting": "escalation-rota",
+  "minutesSetting": "escalation-minutes",
+  "order": ["The concern's owner, for its own span.", "Its fallback, for the same span.", "The posts of the rota it was opened under, in the setting's order, each for its minutes, and the last for the concern's own span."],
+  "fallbackRole": "An extra rung before the rota, never rung one's override. The engine that opened the concern named its fallback, and the desk is asked after it all the same, so a concern loses neither. As an override the desk would never hear of a concern whose fallback was somebody else, which is the concern lost the moment that somebody did not answer.",
+  "onDuty": "A post is asked only when one of its windows, in the rota the concern kept, covers the moment the concern reaches it: the day of the week and the time of day in packages/catalog/scheduling.json's timezone. A post that is not on duty, or that no role on the vetting register holds, is skipped and the skip is written to loop_audit, and the concern goes to the next post that is on duty. It is never handed to another role in that post's place.",
+  "keepsItsRota": "A concern keeps the rota, the minutes and the settings version in force when it was opened, and never reads them again. An admin who changes the rota mid-afternoon changes where the next concern goes, and a concern already on its second rung carries on up the rota it started on.",
+  "why": "ThusoIQ Master v3.5 says an unacknowledged concern goes 'to the next person on the rota'. The rota is who is on duty when, by post and never by name, and it is operations' to set, so it is a setting an admin changes rather than a list of roles guessed into this file."
+ },
+
+ "panic": {
+  "hears": "panic.raised@1",
+  "severity": "The last of severities.ids.",
+  "rule": "A panic alerts every post on duty in the rota in force at once, and walks nothing: nobody is asked after anybody else, and nothing waits for minutes to pass before the next post hears it.",
+  "notASetting": "It is written here as a rule and in packages/engines/src/core as code, and not in the settings block, on purpose. A nurse who has pressed panic is in danger now, and a rota that walked her panic one post at a time would be a setting that decides how long she waits for the second person to hear. No admin may choose that, so no setting says it, and the build fails if one does.",
+  "ladderRung": {"value": 4, "decidedBy": null, "proposedBecause": "Sentinel Dispatch is the rung the document gives to somebody in danger now, and it says immediate. Every post a panic alerts has that rung's acknowledgeWithinMinutes to take it on before the panic is exhausted, so a panic is given the time the ladder already gives dispatch rather than a second number for the same urgency.", "question": "How long the posts a panic alerts have to take it on before nobody is left to escalate it to."},
+  "why": "panic.raised@1 already names Core among its subscribers. Core opens the panic as a concern with every post on duty as its holders, at the highest severity, and one panic is one concern however often the bus delivers it."
  },
 
  "dedupe": {
@@ -54,19 +75,18 @@
   "why": "A code, never free text: the reason travels on loop.escalated@1 and alert.escalated@1, and words on the bus are words with none of the record's protections."
  },
 
+ "_reasonsNotSettingsNote": "The snooze reasons and the reasons the desk escalates by hand stay proposals in this file rather than becoming settings, on purpose. Each is a code that travels on the bus — alert.escalated@1 and loop.escalated@1 carry reasonCode — or is sent by an app a nurse already has. A code an admin added on the back office would be put on the bus to subscribers that were built and reviewed against the codes here and cannot read it; a code an admin removed would refuse the reason a nurse's phone still offers her. Neither is an admin choosing within bounds: both are a change to the contract every subscriber and every app is built against, made the way this file is changed. The question each asks stays open beside it until somebody with the authority answers it.",
+
  "exhaustion": {
   "event": "loop.exhausted@1",
   "declaredIn": null,
-  "_declaredInNote": "Not declared in packages/catalog/events.json, deliberately. The event contract refuses a live event with no subscribers, and no engine hears an exhausted concern today: Safety, Care and Access have no handler for it, and listing one to satisfy the rule would be a subscriber that reads nothing. The Control Tower learns of an exhausted concern through GET /v1/core/loops@1, first in the list, and needs no subscriber. It is declared the day an engine acts on it. Until then the bus refuses it; Core keeps the concern exhausted anyway, writes down that it has not been announced, and tries again on every tick, so a refusal of the announcement never becomes a concern that quietly stopped.",
+  "_declaredInNote": "Not declared in packages/catalog/events.json, deliberately. The event contract refuses a live event with no subscribers, and no engine hears an exhausted concern today: Safety, Care and Access have no handler for it, and listing one to satisfy the rule would be a subscriber that reads nothing. The Control Tower learns of an exhausted concern through GET /v1/core/loops@2, first in the list, and needs no subscriber. It is declared the day an engine acts on it. Until then the bus refuses it; Core keeps the concern exhausted anyway, writes down that it has not been announced, and tries again on every tick, so a refusal of the announcement never becomes a concern that quietly stopped.",
   "severity": "The last of severities.ids.",
-  "when": "A concern past its deadline, unacknowledged, and already with its fallback — or opened with no fallback to move to.",
+  "when": "A concern past its deadline, unacknowledged, with nobody after it: its fallback behind it and no post of the rota it was opened under left that is on duty and held by a role — or a panic nobody it alerted has taken on.",
   "stays": ["open", "exhausted, with the time", "first in what the Control Tower reads"],
   "never": ["closed by a tick", "closed without an outcome", "snoozed", "moved down a rung"],
-  "why": "Escalation goes to a concern's fallback and nowhere after it, because there is no rota to say who comes next. When that runs out, the honest thing is to say so loudly and keep saying it until a person closes the concern with an outcome."
+  "why": "Escalation goes to a concern's fallback and then up the rota it was opened under, and nowhere after the last post on duty. When that runs out, the honest thing is to say so loudly and keep saying it until a person closes the concern with an outcome."
  },
-
- "rota": null,
- "_rotaNote": "No rota exists. ThusoIQ Master v3.5 lists 'rota, escalation authority and downtime procedures' among the desk's open design work, and escalation here goes to a concern's fallbackRole and stops. A caller who asks to escalate further is refused with no-fallback-left, whose sentence names the missing rota. Do not replace this null with a list of roles: a rota is people on duty at a time, decided by operations, and a guessed order of roles would page somebody who is not on call.",
 
  "controlTower": {
   "order": ["exhausted, longest exhausted first", "unacknowledged, nearest deadline first", "acknowledged, nearest deadline first"],
@@ -76,5 +96,140 @@
  "safetyTiming": {
   "reads": [],
   "why": "Core reads no Safety timing. A Safety concern arrives with its deadline already worked out by Safety from the grace and the panic window in force, and Core's fallback deadline is that concern's own span. If Core ever needs the grace or the panic window, it reads the settings in force through Safety's settings route or safety.settings.changed@1, never a copy of the number."
+ },
+
+ "settings": {
+  "_note": "Core's settings, in the shape packages/catalog/settings.json gives every setting. The founder instructed on 15 September 2026 that open questions become admin settings, and 'who comes after the fallback' was the question this file used to answer with a null rota. Every default, bound and list length here is the integrator's proposal, with decidedBy: null. packages/engines/src/core reads the rota and the minutes in force when a concern is opened and keeps them on the concern, so a change never reaches a concern already open. GET /v1/core/settings@1 and POST /v1/core/setting-changes@1 answer through packages/engines/src/settings. No Core setting waits on a clinical review, so there is no review route.",
+  "_postsNote": "Each post is held by the closest role on packages/catalog/vetting.json. The desk operator is the Control Tower operator, who dispatches nurses, triages incidents and escalates. The on-call nurse lead is a registered nurse: leading is who holds the post this week, not a role anybody is vetted into. No role on the register is the Head of Operations — internal admin staff decide the catalogue, finance, growth and vetting, and the Control Tower operator is the desk itself — so that post has no role and says why, and a concern that reaches it is skipped rather than handed to somebody else. The on-call nurse lead rotates weekly between people. Who holds a post is never in a contract, and the settings shape has no way yet for an admin to assign a person to a post, so the names stay open.",
+  "heading": "Core escalation",
+  "intro": "Who a concern nobody has taken on goes to after its fallback, when each post is on duty, and how long each post holds it before the next.",
+  "items": [
+   {
+    "key": "escalation-rota",
+    "label": "Escalation rota",
+    "help": "Which posts an unacknowledged concern goes to after its fallback, in what order, and in which hours each post is on duty.",
+    "owner": "core",
+    "type": "schedule",
+    "unit": null,
+    "posts": [
+     {"id": "desk-operator", "label": "Desk operator", "role": "operator"},
+     {"id": "on-call-nurse-lead", "label": "On-call nurse lead", "role": "nurse"},
+     {"id": "head-of-operations", "label": "Head of Operations", "role": null, "roleMissing": "No role on the vetting register is the Head of Operations, so nobody holds this post and a concern that reaches it goes to the next post, or is exhausted."}
+    ],
+    "mustCover": [
+     {"post": "desk-operator", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "06:00", "to": "22:00", "why": "The desk is staffed from six in the morning to ten at night, every day of the week."},
+     {"post": "on-call-nurse-lead", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "00:00", "to": "24:00", "why": "A nurse lead is on call around the clock, so no hour of the week is left without a post a concern can reach."}
+    ],
+    "default": {
+     "value": [
+      {"post": "desk-operator", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "06:00", "to": "14:00"},
+      {"post": "desk-operator", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "14:00", "to": "22:00"},
+      {"post": "on-call-nurse-lead", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "00:00", "to": "24:00"}
+     ],
+     "decidedBy": null,
+     "proposedBy": "Integrator (Wave 3)",
+     "proposedBecause": "Two desk shifts of eight hours from six to ten, so the desk hears a concern first through the day; a nurse lead on call around the clock, so a concern at two in the morning reaches a clinician instead of an empty desk; and the Head of Operations last, with no hours, because no role on the vetting register holds that post yet."
+    },
+    "guardrail": {
+     "statement": "No hour of the week is left without a post a concern can reach: the on-call nurse lead covers every hour of every day, and the desk covers six in the morning to ten at night.",
+     "forbids": [
+      [
+       {"post": "desk-operator", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "06:00", "to": "14:00"},
+       {"post": "on-call-nurse-lead", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "00:00", "to": "24:00"}
+      ],
+      [
+       {"post": "desk-operator", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "06:00", "to": "14:00"},
+       {"post": "desk-operator", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "14:00", "to": "22:00"},
+       {"post": "on-call-nurse-lead", "days": ["mon", "tue", "wed", "thu", "fri", "sat"], "from": "00:00", "to": "24:00"}
+      ],
+      [
+       {"post": "desk-operator", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "06:00", "to": "14:00"},
+       {"post": "desk-operator", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "14:00", "to": "22:00"},
+       {"post": "on-call-nurse-lead", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "00:00", "to": "22:00"}
+      ]
+     ]
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to concerns opened after it. A concern already open keeps the rota it was opened under, whichever rung it has reached."
+   },
+   {
+    "key": "escalation-minutes",
+    "label": "Minutes at each rung of the rota",
+    "help": "How long each post holds an unacknowledged concern before it goes to the next post, rung one first.",
+    "owner": "core",
+    "type": "list",
+    "of": "minutes",
+    "unit": "minutes",
+    "default": {
+     "value": [5, 10],
+     "decidedBy": null,
+     "proposedBy": "Integrator (Wave 3)",
+     "proposedBecause": "The desk is at its screen and answers or passes a concern on in five minutes. The nurse lead is on call rather than at a desk, and ten more minutes is time to see the page, step away from a patient and ring in, so a concern nobody has taken on reaches the last post a quarter of an hour after it reached the desk."
+    },
+    "bounds": {
+     "lowest": {"value": 1, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "A minute is the least time in which somebody can see a concern and press acknowledge. Anything shorter moves a concern on before a person could have taken it."},
+     "highest": {"value": 60, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "An hour at one post is the longest a concern nobody has taken on may wait before somebody with more authority hears of it. Longer, and a concern raised at the start of a shift waits most of a morning to reach the last post."}
+    },
+    "items": {
+     "lowest": {"value": 2, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "One time for every post but the last: the rota has three posts, and the last has no post after it to hand a concern to."},
+     "highest": {"value": 2, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "As many as the lowest: a time for a post that is not on the rota is a number nothing reads, and a post without one is a rung with no deadline."}
+    },
+    "guardrail": {
+     "statement": "Every post but the last has a time of its own, of at least a minute and at most an hour, so a concern never sits at a post for nothing and never waits more than an hour to go up.",
+     "forbids": [[5], [5, 10, 15], [0, 10], [5, 61]]
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to concerns opened after it. A concern already open keeps the minutes it was opened under, whichever rung it has reached."
+   }
+  ],
+  "defaults": {
+   "version": 1,
+   "changelog": [
+    {
+     "version": 1,
+     "on": "2026-09-15",
+     "by": "Integrator (Wave 3)",
+     "changed": [
+      {"setting": "escalation-rota", "from": null, "to": [
+       {"post": "desk-operator", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "06:00", "to": "14:00"},
+       {"post": "desk-operator", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "14:00", "to": "22:00"},
+       {"post": "on-call-nurse-lead", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "00:00", "to": "24:00"}
+      ]},
+      {"setting": "escalation-minutes", "from": null, "to": [5, 10]}
+     ],
+     "why": "The rota the closed loop had no answer for, proposed as settings under the founder's instruction of 15 September 2026, with nobody's decision beside it yet."
+    }
+   ]
+  }
+ },
+
+ "preview": {
+  "_note": "The Control Tower's concerns in the web preview. Nothing here is a real concern and nobody here is on call. Each is opened some minutes before the preview first reads it, under the rota in force at that moment, and moved by the same arithmetic the engine uses up to now, so where each one is, and when it moves up, cannot disagree with the rules. Minutes are offsets from the moment the Control Tower is opened, so the preview never goes stale.",
+  "tickEverySeconds": 5,
+  "concerns": [
+   {"loopRef": "loop-preview-0417", "sourceEngine": "care", "purpose": "treatment", "ownerRole": "nurse", "fallbackRole": "doctor", "spanMinutes": 15, "openedMinutesAgo": 30},
+   {"loopRef": "loop-preview-0409", "sourceEngine": "safety", "purpose": "emergency", "ownerRole": "nurse", "fallbackRole": "ops-desk", "spanMinutes": 10, "openedMinutesAgo": 95}
+  ]
+ },
+
+ "screen": {
+  "heading": "Concerns on the escalation rota",
+  "intro": "Every open concern, who holds it now, which rung of the rota it has reached and when it moves up if nobody takes it on. The ones nobody is left to escalate to come first.",
+  "preview": "This preview holds these concerns in this tab's memory. Nobody is paged, no phone rings and nobody is on call.",
+  "count": "{open} open · {exhausted} with nobody left to escalate to",
+  "empty": "No concern is open.",
+  "from": "From {engine}",
+  "withOwner": "With its owner, before the rota",
+  "withFallback": "With its fallback, before the rota",
+  "onRung": "Rung {rung} of {rungs} of the rota",
+  "everyPost": "A panic: every post on duty was alerted at once",
+  "holds": "{holder} · {role}",
+  "movesUp": "Moves up at {at} unless somebody takes it on",
+  "lastRung": "Nobody comes after this. Not taken on by {at}, it has nobody left to escalate to",
+  "acknowledged": "Taken on at {at}",
+  "exhausted": "Exhausted at {at}. Nobody is left to escalate to, and it stays here, first, until somebody closes it with an outcome.",
+  "skippedOffDuty": "{post} was not on duty at {at}, so it went to the next post.",
+  "skippedNoRole": "{post} is held by no role on the vetting register, so it went to the next post.",
+  "rotaVersion": "Rota of settings version {version}"
  }
 }

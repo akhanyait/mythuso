@@ -4,7 +4,12 @@ import { labels as schedulingLabels, shortWhenText, type Visit } from './schedul
 import { recordById } from './records';
 import { EXPIRY_WARNING_DAYS } from './vetting';
 import { conditions, emergency as sosEmergency, numberById } from './sos';
-import { deskAt, summarise, urgencyWords, type ConversationTurn, type HandoverSummary } from '../../../../packages/engines/src/access/domain/handover.ts';
+import { summarise, urgencyWords, type ConversationTurn, type HandoverSummary } from '../../../../packages/engines/src/access/domain/handover.ts';
+import { localTimeOf, onDuty, type KeptRota } from '../../../../packages/engines/src/core/domain/loops.ts';
+/* A window of a rota, as Core's kept rota holds one. Named from Core rather than from the settings shape, because a
+   screen's lib reads settings through lib/settings.ts alone and never the shape directly. */
+type Window = KeptRota['windows'][number];
+import scheduling from '../../../../packages/catalog/scheduling.json';
 import booking from '../../../../packages/catalog/booking.json';
 import vetting from '../../../../packages/catalog/vetting.json';
 import { accessSettingsNow } from './settings';
@@ -244,17 +249,40 @@ export type DeskWords = {
 };
 const fillWords = (text: string, values: Record<string, string>) => text.replace(/\{(\w+)\}/g, (whole, key: string) => values[key] ?? whole);
 export const handoverDeskWords = booking.handover;
+/* When the handover desk answers, by Core's own rule for a rota: a post is on duty when one of its windows
+   covers the day and the time in scheduling.json's timezone, compared as Core compares them. Core's onDuty and
+   localTimeOf are that evaluation, imported rather than written a second time, so the handover desk and the
+   escalation rota can never disagree about whether six in the morning has begun. The one question Core never
+   asks is when a shut desk next opens, and it is asked here of the same local day and time, a day at a time.
+   The desk keeps no settings version of its own, so the rota handed to onDuty carries none; onDuty reads only
+   the windows. The Access engine does not evaluate the desk at all: its handover route is not built, and an
+   engine may not reach into Core's directory, so the day it is built this rule moves into the shared settings
+   code both engines may import. */
+const DAY_MS = 86_400_000;
+function deskOf(windows: readonly Window[], at: number): { readonly open: boolean; readonly opens: { readonly daysAhead: number; readonly at: number; readonly from: string } | null } {
+ const rota: KeptRota = { settingsVersion: 0, posts: [], windows, stepsMs: [] };
+ const open = [...new Set(windows.map(w => w.post))].some(post => onDuty(rota, post, at));
+ const { time } = localTimeOf(at);
+ for (let ahead = 0; ahead <= 7; ahead++) {
+  const moment = at + ahead * DAY_MS;
+  const { day } = localTimeOf(moment);
+  const starts = windows.filter(w => w.days.includes(day) && (ahead > 0 || w.from > time)).map(w => w.from).sort();
+  if (starts.length) return { open, opens: { daysAhead: ahead, at: moment, from: starts[0]! } };
+ }
+ return { open, opens: null };
+}
+
 export function handoverDesk(now: Date): DeskWords {
  const inForce = accessSettingsNow();
  const words = booking.handover;
  const answeredBy = inForce.handoverAnsweredBy.map(id => vetting.roles.find(role => role.id === id)?.name ?? id).join(', ');
- const desk = deskAt(inForce.handoverHours, now);
+ const desk = deskOf(inForce.handoverHours, now.getTime());
  if (desk.open) return { answeredBy, outOfHours: null };
  const opens = desk.opens;
  const when = !opens ? null
   : fillWords(opens.daysAhead === 0 ? words.opensToday : opens.daysAhead === 1 ? words.opensTomorrow : words.opensOn, {
    time: opens.from,
-   day: new Date(`${opens.date}T12:00:00Z`).toLocaleDateString('en-ZA', { weekday: 'long', timeZone: 'UTC' })
+   day: new Date(opens.at).toLocaleDateString('en-ZA', { weekday: 'long', timeZone: scheduling.timezone })
   });
  return {
   answeredBy,

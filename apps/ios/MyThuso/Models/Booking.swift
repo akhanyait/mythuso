@@ -395,9 +395,11 @@ struct GilbertHandoverRecord: Hashable {
 }
 
 enum HandoverQueue {
-    /* When the handover desk answers, from Access’s generated handover hours, in Johannesburg — the same
-       arithmetic as deskAt in packages/engines/src/access/domain/handover.ts. It returns no words, so it
-       has no way to leave out what Gilbert says first out of hours: nobody is there, and the numbers. */
+    /* When the handover desk answers, from Access’s generated handover hours, in Johannesburg — Core’s rule
+       for a rota, onDuty in packages/engines/src/core/domain/loops.ts, which the web imports and a phone cannot,
+       so it is mirrored here: a window covers the local day and a time from its start until before its end. It
+       returns no words, so it has no way to leave out what Gilbert says first out of hours: nobody is there,
+       and the numbers. */
     struct Desk {
         let open: Bool
         /// 0 for later today, 1 for tomorrow; the day it opens; the hour it opens.

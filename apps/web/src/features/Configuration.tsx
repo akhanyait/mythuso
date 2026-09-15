@@ -94,7 +94,7 @@ function limitsText(limits: Limits): string {
   case 'boolean': case 'enum': return limits.allowed ? fill(say.choices, { values: limits.allowed.map(choice => choice.label).join(', ') }) : '';
   case 'text': return limits.maxLength ? fill(say.maxLength, { count: String(limits.maxLength.value) }) : '';
   case 'roleList': return [fill(say.roles, { roles: (limits.allowedRoles?.roles ?? []).map(roleName).join(', ') }), limits.items ? fill(say.listLength, { lowest: String(limits.items.lowest.value), highest: String(limits.items.highest.value) }) : ''].filter(Boolean).join(' · ');
-  case 'schedule': return fill(say.posts, { posts: (limits.posts ?? []).map(post => post.label).join(', ') });
+  case 'schedule': return fill(say.posts, { posts: (limits.posts ?? []).map(post => post.role === null ? fill(say.postWithoutRole, { post: post.label }) : post.label).join(', ') });
   case 'list': return [limitsText(itemsOf(limits)), limits.items ? fill(say.listLength, { lowest: String(limits.items.lowest.value), highest: String(limits.items.highest.value) }) : ''].filter(Boolean).join(' · ');
   case 'record': return (limits.parts ?? []).map(part => `${part.label}: ${limitsText(part)}`).join(' · ');
  }
@@ -177,12 +177,15 @@ function Editor({ limits, raw, onRaw, id, label, disabled }: { limits: Limits; r
   case 'schedule': {
    const windows = raw as Window[];
    const put = (i: number, next: Partial<Window>) => onRaw(windows.map((w, j) => j === i ? { ...w, ...next } : w));
+   /* A post no role on the register holds is not offered: nobody could be on it, and the rules refuse a
+      window for it anyway. The limits line above says it is on the rota and why it has no hours. */
+   const held = (limits.posts ?? []).filter(post => post.role !== null);
    return <fieldset className="cf-choices" disabled={disabled}>
     <legend>{label}</legend>
     {windows.map((w, i) => <div className="cf-window" key={i}>
      <label htmlFor={`${id}-${i}-post`}>{say.editors.post}</label>
      <select id={`${id}-${i}-post`} value={w.post} onChange={event => put(i, { post: event.target.value })}>
-      {(limits.posts ?? []).map(post => <option key={post.id} value={post.id}>{post.label}</option>)}
+      {held.map(post => <option key={post.id} value={post.id}>{post.label}</option>)}
      </select>
      <fieldset className="cf-choices cf-days"><legend>{say.editors.days}</legend>
       {settingsContract.days.map(day => <label className="cf-choice" key={day}>
@@ -195,7 +198,7 @@ function Editor({ limits, raw, onRaw, id, label, disabled }: { limits: Limits; r
      </div>
      <button type="button" className="secondary" onClick={() => onRaw(windows.filter((_, j) => j !== i))}>{say.editors.removeWindow}</button>
     </div>)}
-    <button type="button" className="secondary" onClick={() => onRaw([...windows, { post: limits.posts?.[0]?.id ?? '', days: [...settingsContract.days], from: '', to: '' }])}>{say.editors.addWindow}</button>
+    <button type="button" className="secondary" onClick={() => onRaw([...windows, { post: held[0]?.id ?? '', days: [...settingsContract.days], from: '', to: '' }])}>{say.editors.addWindow}</button>
    </fieldset>;
   }
   case 'record': {
@@ -282,9 +285,9 @@ function SettingItem({ engine, setting, snapshot, history, open, onOpen, onClose
    ? <span className="pill cf-review"><ShieldCheck size={15}/>{fill(say.reviewed, { who: review.reviewed.byRef, on: review.reviewed.on ? dayOf(review.reviewed.on) : review.reviewed.at === null ? '' : whenOf(review.reviewed.at) })}</span>
    : <span className="pill cf-review is-unreviewed"><ShieldAlert size={15}/>{say.notReviewed}</span>)}
   <p className="ss-meta">{fill(say.defaultIs, { value: valueText(setting, setting.default.value) })} · {provenanceText(setting.default)}</p>
-  {/* Whether what an admin may set was decided is said only of limits that carry a decision or a proposal. A
-      rota's posts carry neither, and calling them decided would credit a decision nobody took. */}
-  {limits && <p className="ss-meta">{limits}.{bounds.length ? ` ${bounds.every(entry => entry.decidedBy === null) ? say.limitsAreProposals : say.limitsDecided}` : ''}</p>}
+  {/* Limits that carry no provenance — a rota's posts — were never decided by anybody, so they read as a
+      proposal rather than borrowing the word "decided" from an empty list. */}
+  {limits && <p className="ss-meta">{limits}. {bounds.every(entry => entry.decidedBy === null) ? say.limitsAreProposals : say.limitsDecided}</p>}
   <dl className="cf-rules">
    <div><dt>{say.appliesTo}</dt><dd>{setting.appliesTo}</dd></div>
    {setting.guardrail && <div><dt>{say.guardrail}</dt><dd>{setting.guardrail.statement}</dd></div>}

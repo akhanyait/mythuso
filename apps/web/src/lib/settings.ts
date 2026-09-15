@@ -6,6 +6,8 @@ import {
 import { settingsEngines } from '../../../../packages/engines/src/settings/registry.ts';
 import { inForce, panicWindowOf, type PanicWindow, type SettingsInForce } from '../../../../packages/engines/src/safety/domain/settings.ts';
 import { careInForceOf, type CareInForce } from '../../../../packages/engines/src/care/domain/settings.ts';
+import { rotaOf } from '../../../../packages/engines/src/core/domain/settings.ts';
+import type { KeptRota } from '../../../../packages/engines/src/core/domain/loops.ts';
 import { accessInForce, accessInForceAt, type AccessSettingsInForce } from '../../../../packages/engines/src/access/domain/settings.ts';
 import { roleOf, whoIs } from './roles';
 import { can } from './vetting';
@@ -69,6 +71,9 @@ export const snapshotNow = (engine: string): Snapshot => snapshotOf(engineOf(eng
 export const safetySettingsNow = (): SettingsInForce => inForce(historyOf('safety'));
 export const panicWindowNow = (): PanicWindow => panicWindowOf(historyOf('safety'));
 export const careSettingsNow = (): CareInForce => careInForceOf(snapshotNow('care'));
+/* The escalation rota and its minutes in force, for the Control Tower's concerns: asked once when a concern
+   is opened, and kept by the concern. */
+export const escalationRotaNow = (): KeptRota => rotaOf(snapshotNow('core'));
 /* Access's six, read the same way: the booking flow asks accessSettingsNow() once when it opens, the thread
    composer when a message is written, and Gilbert when a handover is asked for. A completed visit's thread
    asks accessSettingsAt() the moment it was completed, so a change afterwards never moves when it closes. */

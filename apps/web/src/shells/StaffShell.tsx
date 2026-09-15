@@ -33,6 +33,7 @@ import { PatientFile, PrescribingRoute, UploadDocument } from '../features/Patie
 import { LabOrderDetail, PrescriptionDetail } from '../features/Orders';
 import { IncidentDetail, NurseVetting } from '../features/Dispatch';
 import { SafetyDesk } from '../features/FieldSafety';
+import { ConcernBoard } from '../features/ConcernBoard';
 import { VettingApplication, VettingQueue } from '../features/Vetting';
 import { t } from '../lib/i18n';
 import { endSession } from '../lib/auth';
@@ -470,7 +471,7 @@ function sectionBody(section: string, open: (m: string) => void) {
  return section === 'Schedule' ? <NurseSchedule open={open}/>
   : section === 'Review queue' ? <><ReviewQueue open={open}/><SettingReviews/></>
    : section === 'Dispatch' ? <DispatchBoard/>
-    : section === 'Incidents' ? <><SafetyDesk/><IncidentBoard open={open} notice={false}/></>
+    : section === 'Incidents' ? <><SafetyDesk/><ConcernBoard/><IncidentBoard open={open} notice={false}/></>
      : section === 'Orders' || section === 'Collections' || section === 'Results' ? <FulfilmentQueue section={section} open={open}/>
       /* The last fallback. Protocols and Quality used to land here — a card whose only control
          opened a dialog saying nothing happens — and both are screens of their own now. What is left

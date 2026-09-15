@@ -19,6 +19,9 @@
    screens run the same domain function on the device, where the conversation is. The route needs a
    version that carries the urgency, or a server-side conversation, before it is built — and with it,
    who answers and when (the settings handover-answered-by and handover-hours) will be read here too.
+   Whether the desk is open is Core's rule for a rota, onDuty in packages/engines/src/core/domain/loops.ts,
+   which Gilbert's web lib uses today. An engine may not reach into Core's directory, so that rule moves
+   into the shared settings code first, rather than being written a second time here.
 
    ── Settings ─────────────────────────────────────────────────────────────────────────────────────
 

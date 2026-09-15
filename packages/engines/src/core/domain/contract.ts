@@ -1,8 +1,9 @@
 /* What Core reads, and from where. Nothing in this directory types a deadline, a reason code, a
- * severity, a role or a refusal sentence: the rungs, codes and severities are
- * packages/catalog/closed-loop.json's, the roles are the vetting register's and the API contract's,
- * the engines are the event contract's, and every sentence is packages/catalog/apis/core.json's,
- * rendered by the runtime from the id a handler refuses with.
+ * severity, a role, a post or a refusal sentence: the rungs, codes, severities and the panic rule are
+ * packages/catalog/closed-loop.json's, the rota and its minutes are the settings in force (./settings.ts),
+ * the roles are the vetting register's and the API contract's, the engines are the event contract's, and
+ * every sentence is packages/catalog/apis/core.json's, rendered by the runtime from the id a handler
+ * refuses with.
  *
  * WHY A MINUTE IS THE ONLY NUMBER HERE. It is a unit, not a policy. Every policy number is a proposal
  * in the contract with nobody's name beside it yet, and the build fails if this directory types one. */
@@ -11,8 +12,7 @@ import apis from '../../../../catalog/apis.json' with { type: 'json' };
 import vetting from '../../../../catalog/vetting.json' with { type: 'json' };
 import events from '../../../../catalog/events.json' with { type: 'json' };
 import type { EventKey } from '../../runtime/index.ts';
-
-const MINUTE_MS = 60_000;
+import { MINUTE_MS } from './loops.ts';
 
 export const contract = closedLoop;
 
@@ -26,6 +26,12 @@ export const highestSeverity: string = closedLoop.severities.ids[closedLoop.seve
 
 /** The event Core announces an exhausted concern with. It may not be declared yet; see closed-loop.json. */
 export const EXHAUSTED = closedLoop.exhaustion.event as EventKey;
+
+/** The panic Core hears, and how long the posts it alerts have to take it on: the time of the ladder rung the contract names for it. */
+export const PANIC = closedLoop.panic.hears as EventKey;
+const panicSpan = spanForRung(closedLoop.panic.ladderRung.value);
+if (panicSpan === undefined) throw new Error('packages/catalog/closed-loop.json gives a panic a ladder rung the ladder does not hold, so a panic would have no time anybody chose.');
+export const panicSpanMs: number = panicSpan;
 
 export const reasons = {
  deadlinePassed: closedLoop.escalationReasons.deadlinePassed,
