@@ -95,13 +95,16 @@ object ApisData {
     val GET_CARE_SETTINGS = Route("getCareSettings", "GET", "/v1/care/settings", "/v1/care/settings", 1, "care", listOf("admin", "doctor"), listOf("audit"), false, "built")
     val POST_CARE_SETTING_CHANGES = Route("postCareSettingChanges", "POST", "/v1/care/setting-changes", "/v1/care/setting-changes", 1, "care", listOf("admin"), listOf("audit"), true, "built")
     val POST_CARE_SETTING_REVIEWS = Route("postCareSettingReviews", "POST", "/v1/care/setting-reviews", "/v1/care/setting-reviews", 1, "care", listOf("doctor"), listOf("audit"), true, "built")
-    val GET_CLINICAL_REVIEWS = Route("getClinicalReviews", "GET", "/v1/clinical/reviews", "/v1/clinical/reviews", 1, "clinical", listOf("doctor"), listOf("treatment"), false, "proposed")
-    val POST_CLINICAL_REVIEWS_BY_REVIEW_REF_SIGN = Route("postClinicalReviewsByReviewRefSign", "POST", "/v1/clinical/reviews/{reviewRef}/sign", "/v1/clinical/reviews/{reviewRef}/sign", 1, "clinical", listOf("doctor"), listOf("treatment"), false, "proposed")
-    val POST_CLINICAL_CONSULTATIONS = Route("postClinicalConsultations", "POST", "/v1/clinical/consultations", "/v1/clinical/consultations", 1, "clinical", listOf("doctor", "nurse"), listOf("treatment"), false, "proposed")
-    val POST_CLINICAL_TRIAGE_V2 = Route("postClinicalTriageV2", "POST", "/v1/clinical/triage", "/v1/clinical/triage", 2, "clinical", listOf("nurse", "doctor"), listOf("treatment"), false, "proposed")
     val POST_CLINICAL_RESULTS_BY_RESULT_REF_ACKNOWLEDGE = Route("postClinicalResultsByResultRefAcknowledge", "POST", "/v1/clinical/results/{resultRef}/acknowledge", "/v1/clinical/results/{resultRef}/acknowledge", 1, "clinical", listOf("doctor", "nurse"), listOf("diagnostics"), false, "built")
-    val POST_CLINICAL_GUIDANCE = Route("postClinicalGuidance", "POST", "/v1/clinical/guidance", "/v1/clinical/guidance", 1, "clinical", listOf("nurse", "doctor", "engine:access"), listOf("treatment"), false, "proposed")
-    val POST_CLINICAL_PROMS = Route("postClinicalProms", "POST", "/v1/clinical/proms", "/v1/clinical/proms", 1, "clinical", listOf("patient"), listOf("treatment"), false, "proposed")
+    val POST_CLINICAL_GUIDANCE = Route("postClinicalGuidance", "POST", "/v1/clinical/guidance", "/v1/clinical/guidance", 1, "clinical", listOf("nurse", "doctor", "engine:access"), listOf("treatment"), false, "built")
+    val GET_CLINICAL_REVIEWS_V2 = Route("getClinicalReviewsV2", "GET", "/v1/clinical/reviews", "/v1/clinical/reviews", 2, "clinical", listOf("doctor", "nurse"), listOf("treatment"), false, "built")
+    val POST_CLINICAL_REVIEWS_BY_REVIEW_REF_SIGN_V2 = Route("postClinicalReviewsByReviewRefSignV2", "POST", "/v1/clinical/reviews/{reviewRef}/sign", "/v1/clinical/reviews/{reviewRef}/sign", 2, "clinical", listOf("doctor", "nurse"), listOf("treatment"), false, "built")
+    val POST_CLINICAL_CONSULTATIONS_V2 = Route("postClinicalConsultationsV2", "POST", "/v1/clinical/consultations", "/v1/clinical/consultations", 2, "clinical", listOf("doctor", "nurse"), listOf("treatment"), false, "built")
+    val POST_CLINICAL_TRIAGE_V3 = Route("postClinicalTriageV3", "POST", "/v1/clinical/triage", "/v1/clinical/triage", 3, "clinical", listOf("nurse", "doctor"), listOf("treatment"), false, "built")
+    val POST_CLINICAL_PROMS_V2 = Route("postClinicalPromsV2", "POST", "/v1/clinical/proms", "/v1/clinical/proms", 2, "clinical", listOf("patient"), listOf("treatment"), false, "built")
+    val GET_CLINICAL_SETTINGS = Route("getClinicalSettings", "GET", "/v1/clinical/settings", "/v1/clinical/settings", 1, "clinical", listOf("admin", "doctor"), listOf("audit"), false, "built")
+    val POST_CLINICAL_SETTING_CHANGES = Route("postClinicalSettingChanges", "POST", "/v1/clinical/setting-changes", "/v1/clinical/setting-changes", 1, "clinical", listOf("admin"), listOf("audit"), true, "built")
+    val POST_CLINICAL_SETTING_REVIEWS = Route("postClinicalSettingReviews", "POST", "/v1/clinical/setting-reviews", "/v1/clinical/setting-reviews", 1, "clinical", listOf("doctor"), listOf("audit"), true, "built")
     val GET_SAFETY_CHECKINS = Route("getSafetyCheckins", "GET", "/v1/safety/checkins", "/v1/safety/checkins", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), false, "built")
     val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND_V2 = Route("postSafetyCheckinsByCheckinRefExtendV2", "POST", "/v1/safety/checkins/{checkinRef}/extend", "/v1/safety/checkins/{checkinRef}/extend", 2, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "built")
     val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_SAFE = Route("postSafetyCheckinsByCheckinRefSafe", "POST", "/v1/safety/checkins/{checkinRef}/safe", "/v1/safety/checkins/{checkinRef}/safe", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "built")
@@ -300,13 +303,16 @@ object ApisData {
         GET_CARE_SETTINGS,
         POST_CARE_SETTING_CHANGES,
         POST_CARE_SETTING_REVIEWS,
-        GET_CLINICAL_REVIEWS,
-        POST_CLINICAL_REVIEWS_BY_REVIEW_REF_SIGN,
-        POST_CLINICAL_CONSULTATIONS,
-        POST_CLINICAL_TRIAGE_V2,
         POST_CLINICAL_RESULTS_BY_RESULT_REF_ACKNOWLEDGE,
         POST_CLINICAL_GUIDANCE,
-        POST_CLINICAL_PROMS,
+        GET_CLINICAL_REVIEWS_V2,
+        POST_CLINICAL_REVIEWS_BY_REVIEW_REF_SIGN_V2,
+        POST_CLINICAL_CONSULTATIONS_V2,
+        POST_CLINICAL_TRIAGE_V3,
+        POST_CLINICAL_PROMS_V2,
+        GET_CLINICAL_SETTINGS,
+        POST_CLINICAL_SETTING_CHANGES,
+        POST_CLINICAL_SETTING_REVIEWS,
         GET_SAFETY_CHECKINS,
         POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND_V2,
         POST_SAFETY_CHECKINS_BY_CHECKIN_REF_SAFE,
@@ -1008,42 +1014,6 @@ object ApisData {
         val settingsVersion: Int,
         val reviewedAt: String
     )
-    data class GetClinicalReviewsRequest(
-        val stateCode: String? = null
-    )
-    data class GetClinicalReviewsResponse(
-        val reviews: List<Map<String, Any?>>
-    )
-    data class PostClinicalReviewsByReviewRefSignRequest(
-        val reviewRef: String,
-        val encounterRef: String,
-        val protocolVersionId: String
-    )
-    data class PostClinicalReviewsByReviewRefSignResponse(
-        val signedAt: String
-    )
-    data class PostClinicalConsultationsRequest(
-        val subjectRef: String,
-        val encounterRef: String,
-        val subjective: String? = null,
-        val objective: String? = null,
-        val assessment: String? = null,
-        val plan: String? = null
-    )
-    data class PostClinicalConsultationsResponse(
-        val consultationEntryRef: String,
-        val signable: Boolean
-    )
-    data class PostClinicalTriageV2Request(
-        val intakeEntryRef: String,
-        val protocolVersionId: String
-    )
-    data class PostClinicalTriageV2Response(
-        val triageRef: String,
-        val priorityCode: String,
-        val careSetting: String,
-        val triageEntryRef: String
-    )
     data class PostClinicalResultsByResultRefAcknowledgeRequest(
         val resultRef: String
     )
@@ -1058,13 +1028,92 @@ object ApisData {
         val guidanceRef: String,
         val outcomeCode: String
     )
-    data class PostClinicalPromsRequest(
+    data class GetClinicalReviewsV2Request(
+        val stateCode: String? = null
+    )
+    data class GetClinicalReviewsV2Response(
+        val settingsVersion: Int,
+        val confirmers: List<String>,
+        val reviews: List<Map<String, Any?>>
+    )
+    data class PostClinicalReviewsByReviewRefSignV2Request(
+        val reviewRef: String,
+        val encounterRef: String,
+        val signingModeCode: String,
+        val protocolVersionId: String? = null
+    )
+    data class PostClinicalReviewsByReviewRefSignV2Response(
+        val signedAt: String,
+        val signingModeCode: String,
+        val protocolVersionId: String? = null,
+        val episodeRef: String
+    )
+    data class PostClinicalConsultationsV2Request(
+        val subjectRef: String,
+        val encounterRef: String,
+        val consultationEntryRef: String,
+        val sectionsWritten: List<String>,
+        val signOff: Boolean? = null
+    )
+    data class PostClinicalConsultationsV2Response(
+        val consultationRef: String,
+        val signable: Boolean,
+        val missingSections: List<String>,
+        val signedOffAt: String? = null
+    )
+    data class PostClinicalTriageV3Request(
+        val subjectRef: String,
+        val intakeEntryRef: String,
+        val protocolVersionId: String? = null,
+        val explanationPriorityCode: String? = null
+    )
+    data class PostClinicalTriageV3Response(
+        val triageRef: String,
+        val priorityCode: String,
+        val careSetting: String,
+        val triageEntryRef: String
+    )
+    data class PostClinicalPromsV2Request(
         val episodeRef: String,
         val dayMark: Int,
         val answers: List<Map<String, Any?>>
     )
-    data class PostClinicalPromsResponse(
+    data class PostClinicalPromsV2Response(
         val promEntryRef: String
+    )
+    class GetClinicalSettingsRequest
+    data class GetClinicalSettingsResponse(
+        val settingsVersion: Int,
+        val settings: List<Map<String, Any?>>,
+        val history: List<Map<String, Any?>>
+    )
+    data class PostClinicalSettingChangesRequest(
+        val idempotencyKey: String,
+        val setting: String,
+        val wholeNumber: Int? = null,
+        val switchedOn: Boolean? = null,
+        val choice: String? = null,
+        val wording: String? = null,
+        val roles: List<String>? = null,
+        val windows: List<Map<String, Any?>>? = null,
+        val items: List<String>? = null,
+        val parts: Map<String, Any?>? = null,
+        val reason: String? = null,
+        val expectedVersion: Int
+    )
+    data class PostClinicalSettingChangesResponse(
+        val settingsVersion: Int,
+        val appliesFrom: String
+    )
+    data class PostClinicalSettingReviewsRequest(
+        val idempotencyKey: String,
+        val setting: String,
+        val settingsVersion: Int,
+        val reason: String? = null
+    )
+    data class PostClinicalSettingReviewsResponse(
+        val settingsVersion: Int,
+        val reviewedAt: String
     )
     data class GetSafetyCheckinsRequest(
         val appointmentRef: String

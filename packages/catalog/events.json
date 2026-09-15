@@ -280,7 +280,7 @@
    "neverCarries": [
     { "field": "backgroundCheckResult", "why": "Criminal history is special personal information held in the segregated Verify store. Every other engine needs to know the gate passed, not what was behind it." }
    ],
-   "subscribers": ["care", "movement", "access", "medicines"]
+   "subscribers": ["care", "movement", "access", "medicines", "clinical"]
   },
   {
    "type": "person.probation", "version": 1, "owner": "trust",
@@ -344,7 +344,7 @@
    "neverCarries": [
     { "field": "payoutInstruction", "why": "A suspension never touches money already earned. The event has nowhere to say otherwise, and Money does not subscribe to it." }
    ],
-   "subscribers": ["care", "movement", "access", "record", "medicines"]
+   "subscribers": ["care", "movement", "access", "record", "medicines", "clinical"]
   },
   {
    "type": "person.reinstated", "version": 1, "owner": "trust",
@@ -356,7 +356,7 @@
    "neverCarries": [
     { "field": "panelMinutes", "why": "The panel's reasoning is the person's to read and the Verify store's to keep." }
    ],
-   "subscribers": ["care", "movement", "access", "record", "medicines"]
+   "subscribers": ["care", "movement", "access", "record", "medicines", "clinical"]
   },
   {
    "type": "person.deactivated", "version": 1, "owner": "trust",
@@ -368,7 +368,7 @@
    "neverCarries": [
     { "field": "payoutInstruction", "why": "What a person earned before they left is owed to them. Deactivation does not reach it." }
    ],
-   "subscribers": ["care", "movement", "access", "record", "medicines"]
+   "subscribers": ["care", "movement", "access", "record", "medicines", "clinical"]
   },
   {
    "type": "credential.expiring", "version": 1, "owner": "trust",
@@ -927,7 +927,10 @@
    "neverCarries": [
     { "field": "reasonCodes", "why": "The discriminators that fired name symptoms. A clinician reads them in the record." },
     { "field": "symptoms", "why": "The symptoms are in the intake entry." },
-    { "field": "diagnosis", "why": "Triage sets urgency. It does not diagnose." }
+    { "field": "diagnosis", "why": "Triage sets urgency. It does not diagnose." },
+    { "field": "clinicalNotes", "why": "Added by the Clinical Safety lead in Wave 5, when triage was built. A note is the record's, read there under a grant." },
+    { "field": "redFlagsMatched", "why": "Added in Wave 5. Which red flag fired names what the patient said; the priority it set is all an engine acting on it needs." },
+    { "field": "patientIdentity", "why": "Added in Wave 5. The patient is the envelope's opaque subject reference and nothing more." }
    ],
    "subscribers": ["access", "care", "safety", "core"]
   },
@@ -940,7 +943,11 @@
     { "field": "signedByRef", "type": "string", "required": true, "why": "The doctor who signed. Nothing auto-signs." }
    ],
    "neverCarries": [
-    { "field": "assessment", "why": "The doctor's assessment is in the record." }
+    { "field": "assessment", "why": "The doctor's assessment is in the record." },
+    { "field": "diagnosis", "why": "Added by the Clinical Safety lead in Wave 5, when signing was built. A diagnosis is written in the record by the clinician accountable for it." },
+    { "field": "clinicalNotes", "why": "Added in Wave 5. The consultation is the Passport's entry, and the signature points at it." },
+    { "field": "redFlagsMatched", "why": "Added in Wave 5. Nothing about what the patient said travels with a signature." },
+    { "field": "patientIdentity", "why": "Added in Wave 5. The patient is the envelope's opaque subject reference and nothing more." }
    ],
    "subscribers": ["care", "record", "core"]
   },
@@ -965,7 +972,11 @@
     { "field": "scriptRef", "type": "string", "required": true, "why": "The ratified script and its version." }
    ],
    "neverCarries": [
-    { "field": "scriptText", "why": "The words are the script, read from the registry at its version." }
+    { "field": "scriptText", "why": "The words are the script, read from the registry at its version." },
+    { "field": "diagnosis", "why": "Added by the Clinical Safety lead in Wave 5, when guidance was built. Guidance never tells a patient they have a condition, and nothing about one travels with it." },
+    { "field": "clinicalNotes", "why": "Added in Wave 5. The record is read in the Passport, never on the bus." },
+    { "field": "redFlagsMatched", "why": "Added in Wave 5. Which red flag led to an outcome names what the patient said." },
+    { "field": "patientIdentity", "why": "Added in Wave 5. The patient is the envelope's opaque subject reference and nothing more." }
    ],
    "subscribers": ["access", "core"]
   },

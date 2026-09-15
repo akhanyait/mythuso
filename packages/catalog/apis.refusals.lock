@@ -375,3 +375,11 @@ POST /v1/devices/kits/{kitRef}/loss@2 6e209e7cef8a580c
 GET /v1/devices/settings@1 b54f5f3782525231
 POST /v1/devices/setting-changes@1 71a7873f90e36070
 POST /v1/devices/setting-changes@2 17cc0dd72f0b3013
+GET /v1/clinical/reviews@2 a1ec705122281294
+POST /v1/clinical/reviews/{reviewRef}/sign@2 ae5c6977a9d8f964
+POST /v1/clinical/consultations@2 8e7df126b0b8d97a
+POST /v1/clinical/triage@3 d39c8d5c578c2d75
+POST /v1/clinical/proms@2 1156d5694ddcdba7
+GET /v1/clinical/settings@1 0cdd6daa9db8f694
+POST /v1/clinical/setting-changes@1 d01435c522b85dbf
+POST /v1/clinical/setting-reviews@1 71baa5cb9b710074

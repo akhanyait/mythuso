@@ -259,3 +259,11 @@ GET /v1/devices/settings@1 c3661f4d735a03b9
 POST /v1/devices/setting-changes@1 9d66ead0fa449c31
 POST /v1/devices/registry/{deviceRef}/recall@2 8572207ad2ddac88
 POST /v1/devices/setting-changes@2 3a4cbfa3ba6c66e0
+GET /v1/clinical/reviews@2 6aae7c4b8a35265b
+POST /v1/clinical/reviews/{reviewRef}/sign@2 f0ad691921d469cb
+POST /v1/clinical/consultations@2 abd8de9030037a8c
+POST /v1/clinical/triage@3 5e53855ba1ea14f5
+POST /v1/clinical/proms@2 090304330155504f
+GET /v1/clinical/settings@1 3a5a04a30e0732c3
+POST /v1/clinical/setting-changes@1 e1f50c9b5080dbe5
+POST /v1/clinical/setting-reviews@1 0d45444cc99e4930

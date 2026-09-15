@@ -670,46 +670,6 @@ export interface PostCareSettingReviewsResponse {
  readonly reviewedAt: string;
 }
 
-export interface GetClinicalReviewsRequest {
- readonly stateCode?: string;
-}
-export interface GetClinicalReviewsResponse {
- readonly reviews: ReadonlyArray<Readonly<Record<string, unknown>>>;
-}
-
-export interface PostClinicalReviewsByReviewRefSignRequest {
- readonly reviewRef: string;
- readonly encounterRef: string;
- readonly protocolVersionId: string;
-}
-export interface PostClinicalReviewsByReviewRefSignResponse {
- readonly signedAt: string;
-}
-
-export interface PostClinicalConsultationsRequest {
- readonly subjectRef: string;
- readonly encounterRef: string;
- readonly subjective?: string;
- readonly objective?: string;
- readonly assessment?: string;
- readonly plan?: string;
-}
-export interface PostClinicalConsultationsResponse {
- readonly consultationEntryRef: string;
- readonly signable: boolean;
-}
-
-export interface PostClinicalTriageV2Request {
- readonly intakeEntryRef: string;
- readonly protocolVersionId: string;
-}
-export interface PostClinicalTriageV2Response {
- readonly triageRef: string;
- readonly priorityCode: string;
- readonly careSetting: string;
- readonly triageEntryRef: string;
-}
-
 export interface PostClinicalResultsByResultRefAcknowledgeRequest {
  readonly resultRef: string;
 }
@@ -726,13 +686,99 @@ export interface PostClinicalGuidanceResponse {
  readonly outcomeCode: string;
 }
 
-export interface PostClinicalPromsRequest {
+export interface GetClinicalReviewsV2Request {
+ readonly stateCode?: string;
+}
+export interface GetClinicalReviewsV2Response {
+ readonly settingsVersion: number;
+ readonly confirmers: readonly string[];
+ readonly reviews: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostClinicalReviewsByReviewRefSignV2Request {
+ readonly reviewRef: string;
+ readonly encounterRef: string;
+ readonly signingModeCode: string;
+ readonly protocolVersionId?: string;
+}
+export interface PostClinicalReviewsByReviewRefSignV2Response {
+ readonly signedAt: string;
+ readonly signingModeCode: string;
+ readonly protocolVersionId?: string;
+ readonly episodeRef: string;
+}
+
+export interface PostClinicalConsultationsV2Request {
+ readonly subjectRef: string;
+ readonly encounterRef: string;
+ readonly consultationEntryRef: string;
+ readonly sectionsWritten: readonly string[];
+ readonly signOff?: boolean;
+}
+export interface PostClinicalConsultationsV2Response {
+ readonly consultationRef: string;
+ readonly signable: boolean;
+ readonly missingSections: readonly string[];
+ readonly signedOffAt?: string;
+}
+
+export interface PostClinicalTriageV3Request {
+ readonly subjectRef: string;
+ readonly intakeEntryRef: string;
+ readonly protocolVersionId?: string;
+ readonly explanationPriorityCode?: string;
+}
+export interface PostClinicalTriageV3Response {
+ readonly triageRef: string;
+ readonly priorityCode: string;
+ readonly careSetting: string;
+ readonly triageEntryRef: string;
+}
+
+export interface PostClinicalPromsV2Request {
  readonly episodeRef: string;
  readonly dayMark: number;
  readonly answers: ReadonlyArray<Readonly<Record<string, unknown>>>;
 }
-export interface PostClinicalPromsResponse {
+export interface PostClinicalPromsV2Response {
  readonly promEntryRef: string;
+}
+
+export type GetClinicalSettingsRequest = Record<string, never>;
+export interface GetClinicalSettingsResponse {
+ readonly settingsVersion: number;
+ readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostClinicalSettingChangesRequest {
+ readonly idempotencyKey: string;
+ readonly setting: string;
+ readonly wholeNumber?: number;
+ readonly switchedOn?: boolean;
+ readonly choice?: string;
+ readonly wording?: string;
+ readonly roles?: readonly string[];
+ readonly windows?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly items?: readonly string[];
+ readonly parts?: Readonly<Record<string, unknown>>;
+ readonly reason?: string;
+ readonly expectedVersion: number;
+}
+export interface PostClinicalSettingChangesResponse {
+ readonly settingsVersion: number;
+ readonly appliesFrom: string;
+}
+
+export interface PostClinicalSettingReviewsRequest {
+ readonly idempotencyKey: string;
+ readonly setting: string;
+ readonly settingsVersion: number;
+ readonly reason?: string;
+}
+export interface PostClinicalSettingReviewsResponse {
+ readonly settingsVersion: number;
+ readonly reviewedAt: string;
 }
 
 export interface GetSafetyCheckinsRequest {
@@ -2032,13 +2078,16 @@ export const apiRoutes = {
  getCareSettings: { name: "getCareSettings", method: "GET", path: "/v1/care/settings", mountedPath: "/v1/care/settings", version: 1, engine: "care", callers: ["admin","doctor"], purpose: ["audit"], idempotent: false, status: "built" },
  postCareSettingChanges: { name: "postCareSettingChanges", method: "POST", path: "/v1/care/setting-changes", mountedPath: "/v1/care/setting-changes", version: 1, engine: "care", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
  postCareSettingReviews: { name: "postCareSettingReviews", method: "POST", path: "/v1/care/setting-reviews", mountedPath: "/v1/care/setting-reviews", version: 1, engine: "care", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "built" },
- getClinicalReviews: { name: "getClinicalReviews", method: "GET", path: "/v1/clinical/reviews", mountedPath: "/v1/clinical/reviews", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postClinicalReviewsByReviewRefSign: { name: "postClinicalReviewsByReviewRefSign", method: "POST", path: "/v1/clinical/reviews/{reviewRef}/sign", mountedPath: "/v1/clinical/reviews/{reviewRef}/sign", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postClinicalConsultations: { name: "postClinicalConsultations", method: "POST", path: "/v1/clinical/consultations", mountedPath: "/v1/clinical/consultations", version: 1, engine: "clinical", callers: ["doctor","nurse"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postClinicalTriageV2: { name: "postClinicalTriageV2", method: "POST", path: "/v1/clinical/triage", mountedPath: "/v1/clinical/triage", version: 2, engine: "clinical", callers: ["nurse","doctor"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postClinicalResultsByResultRefAcknowledge: { name: "postClinicalResultsByResultRefAcknowledge", method: "POST", path: "/v1/clinical/results/{resultRef}/acknowledge", mountedPath: "/v1/clinical/results/{resultRef}/acknowledge", version: 1, engine: "clinical", callers: ["doctor","nurse"], purpose: ["diagnostics"], idempotent: false, status: "built" },
- postClinicalGuidance: { name: "postClinicalGuidance", method: "POST", path: "/v1/clinical/guidance", mountedPath: "/v1/clinical/guidance", version: 1, engine: "clinical", callers: ["nurse","doctor","engine:access"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postClinicalProms: { name: "postClinicalProms", method: "POST", path: "/v1/clinical/proms", mountedPath: "/v1/clinical/proms", version: 1, engine: "clinical", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "proposed" },
+ postClinicalGuidance: { name: "postClinicalGuidance", method: "POST", path: "/v1/clinical/guidance", mountedPath: "/v1/clinical/guidance", version: 1, engine: "clinical", callers: ["nurse","doctor","engine:access"], purpose: ["treatment"], idempotent: false, status: "built" },
+ getClinicalReviewsV2: { name: "getClinicalReviewsV2", method: "GET", path: "/v1/clinical/reviews", mountedPath: "/v1/clinical/reviews", version: 2, engine: "clinical", callers: ["doctor","nurse"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postClinicalReviewsByReviewRefSignV2: { name: "postClinicalReviewsByReviewRefSignV2", method: "POST", path: "/v1/clinical/reviews/{reviewRef}/sign", mountedPath: "/v1/clinical/reviews/{reviewRef}/sign", version: 2, engine: "clinical", callers: ["doctor","nurse"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postClinicalConsultationsV2: { name: "postClinicalConsultationsV2", method: "POST", path: "/v1/clinical/consultations", mountedPath: "/v1/clinical/consultations", version: 2, engine: "clinical", callers: ["doctor","nurse"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postClinicalTriageV3: { name: "postClinicalTriageV3", method: "POST", path: "/v1/clinical/triage", mountedPath: "/v1/clinical/triage", version: 3, engine: "clinical", callers: ["nurse","doctor"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postClinicalPromsV2: { name: "postClinicalPromsV2", method: "POST", path: "/v1/clinical/proms", mountedPath: "/v1/clinical/proms", version: 2, engine: "clinical", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "built" },
+ getClinicalSettings: { name: "getClinicalSettings", method: "GET", path: "/v1/clinical/settings", mountedPath: "/v1/clinical/settings", version: 1, engine: "clinical", callers: ["admin","doctor"], purpose: ["audit"], idempotent: false, status: "built" },
+ postClinicalSettingChanges: { name: "postClinicalSettingChanges", method: "POST", path: "/v1/clinical/setting-changes", mountedPath: "/v1/clinical/setting-changes", version: 1, engine: "clinical", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
+ postClinicalSettingReviews: { name: "postClinicalSettingReviews", method: "POST", path: "/v1/clinical/setting-reviews", mountedPath: "/v1/clinical/setting-reviews", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "built" },
  getSafetyCheckins: { name: "getSafetyCheckins", method: "GET", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: false, status: "built" },
  postSafetyCheckinsByCheckinRefExtendV2: { name: "postSafetyCheckinsByCheckinRefExtendV2", method: "POST", path: "/v1/safety/checkins/{checkinRef}/extend", mountedPath: "/v1/safety/checkins/{checkinRef}/extend", version: 2, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "built" },
  postSafetyCheckinsByCheckinRefSafe: { name: "postSafetyCheckinsByCheckinRefSafe", method: "POST", path: "/v1/safety/checkins/{checkinRef}/safe", mountedPath: "/v1/safety/checkins/{checkinRef}/safe", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "built" },

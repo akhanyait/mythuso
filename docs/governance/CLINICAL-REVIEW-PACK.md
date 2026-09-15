@@ -23,7 +23,7 @@ recommendation for the board.
 
 Writing in this pack changes nothing. A decision takes effect only through the contract's own process:
 
-- **Settings (sections A and E).** An admin puts a value in force on the Configuration tab (`POST /v1/safety/setting-changes@2`, `POST /v1/care/setting-changes@1`, `POST /v1/money/setting-changes@1`, `POST /v1/core/setting-changes@1`, `POST /v1/access/setting-changes@1`, `POST /v1/medicines/setting-changes@1`, `POST /v1/trust/setting-changes@2`, `POST /v1/record/setting-changes@1`, `POST /v1/devices/setting-changes@2`). For a setting that waits on a clinical review, somebody holding `sign-clinical-review` (Sign a clinical decision) then confirms that exact value, with a reason, in the doctor workspace's "Settings waiting for clinical review" panel (`apps/web/src/features/SettingReviews.tsx`, `POST /v1/care/setting-reviews@1`, `POST /v1/access/setting-reviews@1`, `POST /v1/medicines/setting-reviews@1`). "Nobody confirms the clinical review of a change they made themselves." A default can instead be changed in the contract itself, naming the reviewer and the day (`packages/catalog/settings.json` `provenance.reviewed`) with a changelog entry, as `settings.json` `howToChange` describes.
+- **Settings (sections A and E).** An admin puts a value in force on the Configuration tab (`POST /v1/safety/setting-changes@2`, `POST /v1/care/setting-changes@1`, `POST /v1/money/setting-changes@1`, `POST /v1/core/setting-changes@1`, `POST /v1/access/setting-changes@1`, `POST /v1/medicines/setting-changes@1`, `POST /v1/trust/setting-changes@2`, `POST /v1/record/setting-changes@1`, `POST /v1/devices/setting-changes@2`, `POST /v1/clinical/setting-changes@1`). For a setting that waits on a clinical review, somebody holding `sign-clinical-review` (Sign a clinical decision) then confirms that exact value, with a reason, in the doctor workspace's "Settings waiting for clinical review" panel (`apps/web/src/features/SettingReviews.tsx`, `POST /v1/care/setting-reviews@1`, `POST /v1/access/setting-reviews@1`, `POST /v1/medicines/setting-reviews@1`, `POST /v1/clinical/setting-reviews@1`). "Nobody confirms the clinical review of a change they made themselves." A default can instead be changed in the contract itself, naming the reviewer and the day (`packages/catalog/settings.json` `provenance.reviewed`) with a changelog entry, as `settings.json` `howToChange` describes.
 - **Who can confirm through the panel today:** Doctor (`doctor`), because only that role holds `sign-clinical-review` in `packages/catalog/vetting.json`. A Clinical Governance Lead who is a registered nurse could not confirm a setting through the panel. Their decision can still be recorded in the contract default, or the register can be changed — which is a question for the founder.
 - **Protocols (section B).** "A protocol is not ratified until the register names the role and the person who signed it off, and the day they did." "Changing a ratified protocol means adding a new version that names the one it supersedes. The ratified row is never edited." The row in `packages/catalog/protocols.json` changes status, ratifiedBy and ratifiedOn, and gains a contentRef once the text exists. Core announces a ratification as `protocol.ratified@1`.
 - **Gilbert's emergency terms (section C).** Only in `packages/catalog/gilbert-emergency-terms.json`: raise `version`, add a changelog entry (day, role, terms added and removed, why, the new `termsHash`), keep the shared fixtures passing on all three platforms, and record `clinicalReview.reviewedBy` and `reviewedOn`. `CLAUDE.md` holds the rule; `npm run check` replays the changelog.
@@ -36,13 +36,13 @@ Until a decision is recorded, the app shows "Not clinically reviewed" beside eve
 
 | Section | What waits on a clinician | Items |
 |---|---|---|
-| A | Settings that carry `reviewRequired` and name no reviewer | 6 |
+| A | Settings that carry `reviewRequired` and name no reviewer | 8 |
 | B | Protocols in the registry that are not ratified | 12 |
 | C | Gilbert's emergency terms | 1 |
 | D | Clinical scopes and proposed clinical roles on the vetting register | 8 |
 | E | Other clinical proposals and safety numbers nobody clinical has decided | 20 |
 | F | Clinical content with no clinical sign-off recorded | 3 |
-| | **Total** | **50** |
+| | **Total** | **52** |
 
 Each item gives the value in force by default, what an admin may set it to, why it was proposed and by whom,
 the question for the reviewer, and blank sign-off fields.
@@ -199,6 +199,56 @@ the question for the reviewer, and blank sign-off fields.
 | HPCSA/SANC number | |
 | Date | |
 
+### Clinical Intelligence settings (`packages/catalog/clinical.json`)
+
+#### A7. Who confirms a clinical review
+
+| | |
+|---|---|
+| Setting | `clinical:review-confirmer` |
+| What it decides | Which registered clinical roles may sign the review of a visit a nurse handed over. |
+| In force by default | Doctor (`doctor`) |
+| What an admin may set | Roles an admin may name: Doctor (`doctor`), Registered nurse (`nurse`). Roles named: from 1 to 2. These limits are proposals nobody has decided. |
+| Guardrail | A clinical review is always signed by a registered clinician who reads the record and writes the note: never an admin, an operator, a pharmacy, a laboratory, a carer, a guardian or a courier, and never nobody. |
+| Why this default | A proposal nobody has decided. Proposed by the Clinical Safety lead (Wave 5): It is what the vetting register already says: sign-clinical-review is granted to a doctor, and the planning documents put the review of a nurse's visit with a registered doctor. Whether a senior nurse may confirm some reviews is a clinical governance question, so the choice is here and the default is the documents' answer. |
+| Who may change it | Internal admin staff (`admin`) |
+| What a change reaches | A change applies to reviews read or signed after it. A review already signed keeps the signature it was given. |
+| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/clinical/setting-reviews@1` |
+
+**Question for the reviewer:** is Doctor (`doctor`) clinically safe as the answer to "Which registered clinical roles may sign the review of a visit a nurse handed over", and are the limits an admin may set safe as well?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### A8. When a patient is asked whether their care helped
+
+| | |
+|---|---|
+| Setting | `clinical:prom-days` |
+| What it decides | How many days after a review is signed a patient is asked the outcome questions for that episode of care. |
+| In force by default | 7 days, 30 days |
+| What an admin may set | Items: from 1 to 3. An admin may set 1 days to 90 days. These limits are proposals nobody has decided. |
+| Guardrail | A patient is always asked at least once, never on the day of their care, never twice on one day, never out of order and never after a consent grant could have ended. |
+| Why this default | A proposal nobody has decided. Proposed by the Clinical Safety lead (Wave 5): The planning documents give these days: MyThuso Full Scope v1.0 names PROMs at 7 and 30 days, and ThusoIQ Master v3.5 asks whether it fixed it at 7 and 30 days after every episode. Nobody with clinical authority has decided them for MyThuso, so they are proposed exactly as the documents give them. |
+| Who may change it | Internal admin staff (`admin`) |
+| What a change reaches | A change applies to episodes that start after it, when a review is signed. An episode already scheduled keeps the days it was scheduled with. |
+| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/clinical/setting-reviews@1` |
+
+**Question for the reviewer:** is 7 days, 30 days clinically safe as the answer to "How many days after a review is signed a patient is asked the outcome questions for that episode of care", and are the limits an admin may set safe as well?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
 ## B. Protocols not ratified
 
 From `packages/catalog/protocols.json`. Named and numbered. Not ratified, not in use, and carrying no content of any kind. "A draft protocol holds a name and a version number. It holds no content, no threshold, no dose and no number of any other kind."
@@ -231,7 +281,7 @@ From `packages/catalog/protocols.json`. Named and numbered. Not ratified, not in
 | Status | Draft. Ratified by: nobody. Content: none written |
 | Engine that would work under it | `care` |
 | What ratification would allow | A recommendation or act by the care engine may cite `wound-care@1` as the ratified protocol it followed. Until then nothing may claim to follow it. |
-| Other contracts that name it | `packages/catalog/care.json`, `packages/catalog/feeds.json` |
+| Other contracts that name it | `packages/catalog/care.json`, `packages/catalog/clinical.json`, `packages/catalog/feeds.json` |
 
 **Question for the reviewer:** what must the wound care protocol contain before it is ratified, who writes it, and should the board ratify it as version 1?
 
@@ -251,7 +301,7 @@ From `packages/catalog/protocols.json`. Named and numbered. Not ratified, not in
 | Status | Draft. Ratified by: nobody. Content: none written |
 | Engine that would work under it | `care` |
 | What ratification would allow | A recommendation or act by the care engine may cite `vitals-and-chronic-check@1` as the ratified protocol it followed. Until then nothing may claim to follow it. |
-| Other contracts that name it | `packages/catalog/care.json` |
+| Other contracts that name it | `packages/catalog/care.json`, `packages/catalog/clinical.json` |
 
 **Question for the reviewer:** what must the vitals and chronic check protocol contain before it is ratified, who writes it, and should the board ratify it as version 1?
 

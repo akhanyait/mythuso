@@ -95,13 +95,16 @@ enum ApisData {
     static let getCareSettings = Route(id: "getCareSettings", method: "GET", path: "/v1/care/settings", mountedPath: "/v1/care/settings", version: 1, engine: "care", callers: ["admin", "doctor"], purpose: ["audit"], idempotent: false, status: "built")
     static let postCareSettingChanges = Route(id: "postCareSettingChanges", method: "POST", path: "/v1/care/setting-changes", mountedPath: "/v1/care/setting-changes", version: 1, engine: "care", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
     static let postCareSettingReviews = Route(id: "postCareSettingReviews", method: "POST", path: "/v1/care/setting-reviews", mountedPath: "/v1/care/setting-reviews", version: 1, engine: "care", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "built")
-    static let getClinicalReviews = Route(id: "getClinicalReviews", method: "GET", path: "/v1/clinical/reviews", mountedPath: "/v1/clinical/reviews", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postClinicalReviewsByReviewRefSign = Route(id: "postClinicalReviewsByReviewRefSign", method: "POST", path: "/v1/clinical/reviews/{reviewRef}/sign", mountedPath: "/v1/clinical/reviews/{reviewRef}/sign", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postClinicalConsultations = Route(id: "postClinicalConsultations", method: "POST", path: "/v1/clinical/consultations", mountedPath: "/v1/clinical/consultations", version: 1, engine: "clinical", callers: ["doctor", "nurse"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postClinicalTriageV2 = Route(id: "postClinicalTriageV2", method: "POST", path: "/v1/clinical/triage", mountedPath: "/v1/clinical/triage", version: 2, engine: "clinical", callers: ["nurse", "doctor"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let postClinicalResultsByResultRefAcknowledge = Route(id: "postClinicalResultsByResultRefAcknowledge", method: "POST", path: "/v1/clinical/results/{resultRef}/acknowledge", mountedPath: "/v1/clinical/results/{resultRef}/acknowledge", version: 1, engine: "clinical", callers: ["doctor", "nurse"], purpose: ["diagnostics"], idempotent: false, status: "built")
-    static let postClinicalGuidance = Route(id: "postClinicalGuidance", method: "POST", path: "/v1/clinical/guidance", mountedPath: "/v1/clinical/guidance", version: 1, engine: "clinical", callers: ["nurse", "doctor", "engine:access"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postClinicalProms = Route(id: "postClinicalProms", method: "POST", path: "/v1/clinical/proms", mountedPath: "/v1/clinical/proms", version: 1, engine: "clinical", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "proposed")
+    static let postClinicalGuidance = Route(id: "postClinicalGuidance", method: "POST", path: "/v1/clinical/guidance", mountedPath: "/v1/clinical/guidance", version: 1, engine: "clinical", callers: ["nurse", "doctor", "engine:access"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let getClinicalReviewsV2 = Route(id: "getClinicalReviewsV2", method: "GET", path: "/v1/clinical/reviews", mountedPath: "/v1/clinical/reviews", version: 2, engine: "clinical", callers: ["doctor", "nurse"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postClinicalReviewsByReviewRefSignV2 = Route(id: "postClinicalReviewsByReviewRefSignV2", method: "POST", path: "/v1/clinical/reviews/{reviewRef}/sign", mountedPath: "/v1/clinical/reviews/{reviewRef}/sign", version: 2, engine: "clinical", callers: ["doctor", "nurse"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postClinicalConsultationsV2 = Route(id: "postClinicalConsultationsV2", method: "POST", path: "/v1/clinical/consultations", mountedPath: "/v1/clinical/consultations", version: 2, engine: "clinical", callers: ["doctor", "nurse"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postClinicalTriageV3 = Route(id: "postClinicalTriageV3", method: "POST", path: "/v1/clinical/triage", mountedPath: "/v1/clinical/triage", version: 3, engine: "clinical", callers: ["nurse", "doctor"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postClinicalPromsV2 = Route(id: "postClinicalPromsV2", method: "POST", path: "/v1/clinical/proms", mountedPath: "/v1/clinical/proms", version: 2, engine: "clinical", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let getClinicalSettings = Route(id: "getClinicalSettings", method: "GET", path: "/v1/clinical/settings", mountedPath: "/v1/clinical/settings", version: 1, engine: "clinical", callers: ["admin", "doctor"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postClinicalSettingChanges = Route(id: "postClinicalSettingChanges", method: "POST", path: "/v1/clinical/setting-changes", mountedPath: "/v1/clinical/setting-changes", version: 1, engine: "clinical", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
+    static let postClinicalSettingReviews = Route(id: "postClinicalSettingReviews", method: "POST", path: "/v1/clinical/setting-reviews", mountedPath: "/v1/clinical/setting-reviews", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "built")
     static let getSafetyCheckins = Route(id: "getSafetyCheckins", method: "GET", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: false, status: "built")
     static let postSafetyCheckinsByCheckinRefExtendV2 = Route(id: "postSafetyCheckinsByCheckinRefExtendV2", method: "POST", path: "/v1/safety/checkins/{checkinRef}/extend", mountedPath: "/v1/safety/checkins/{checkinRef}/extend", version: 2, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "built")
     static let postSafetyCheckinsByCheckinRefSafe = Route(id: "postSafetyCheckinsByCheckinRefSafe", method: "POST", path: "/v1/safety/checkins/{checkinRef}/safe", mountedPath: "/v1/safety/checkins/{checkinRef}/safe", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "built")
@@ -300,13 +303,16 @@ enum ApisData {
         getCareSettings,
         postCareSettingChanges,
         postCareSettingReviews,
-        getClinicalReviews,
-        postClinicalReviewsByReviewRefSign,
-        postClinicalConsultations,
-        postClinicalTriageV2,
         postClinicalResultsByResultRefAcknowledge,
         postClinicalGuidance,
-        postClinicalProms,
+        getClinicalReviewsV2,
+        postClinicalReviewsByReviewRefSignV2,
+        postClinicalConsultationsV2,
+        postClinicalTriageV3,
+        postClinicalPromsV2,
+        getClinicalSettings,
+        postClinicalSettingChanges,
+        postClinicalSettingReviews,
         getSafetyCheckins,
         postSafetyCheckinsByCheckinRefExtendV2,
         postSafetyCheckinsByCheckinRefSafe,
@@ -1008,42 +1014,6 @@ enum ApisData {
         let settingsVersion: Int
         let reviewedAt: String
     }
-    struct GetClinicalReviewsRequest {
-        let stateCode: String?
-    }
-    struct GetClinicalReviewsResponse {
-        let reviews: [[String: Any]]
-    }
-    struct PostClinicalReviewsByReviewRefSignRequest {
-        let reviewRef: String
-        let encounterRef: String
-        let protocolVersionId: String
-    }
-    struct PostClinicalReviewsByReviewRefSignResponse {
-        let signedAt: String
-    }
-    struct PostClinicalConsultationsRequest {
-        let subjectRef: String
-        let encounterRef: String
-        let subjective: String?
-        let objective: String?
-        let assessment: String?
-        let plan: String?
-    }
-    struct PostClinicalConsultationsResponse {
-        let consultationEntryRef: String
-        let signable: Bool
-    }
-    struct PostClinicalTriageV2Request {
-        let intakeEntryRef: String
-        let protocolVersionId: String
-    }
-    struct PostClinicalTriageV2Response {
-        let triageRef: String
-        let priorityCode: String
-        let careSetting: String
-        let triageEntryRef: String
-    }
     struct PostClinicalResultsByResultRefAcknowledgeRequest {
         let resultRef: String
     }
@@ -1058,13 +1028,92 @@ enum ApisData {
         let guidanceRef: String
         let outcomeCode: String
     }
-    struct PostClinicalPromsRequest {
+    struct GetClinicalReviewsV2Request {
+        let stateCode: String?
+    }
+    struct GetClinicalReviewsV2Response {
+        let settingsVersion: Int
+        let confirmers: [String]
+        let reviews: [[String: Any]]
+    }
+    struct PostClinicalReviewsByReviewRefSignV2Request {
+        let reviewRef: String
+        let encounterRef: String
+        let signingModeCode: String
+        let protocolVersionId: String?
+    }
+    struct PostClinicalReviewsByReviewRefSignV2Response {
+        let signedAt: String
+        let signingModeCode: String
+        let protocolVersionId: String?
+        let episodeRef: String
+    }
+    struct PostClinicalConsultationsV2Request {
+        let subjectRef: String
+        let encounterRef: String
+        let consultationEntryRef: String
+        let sectionsWritten: [String]
+        let signOff: Bool?
+    }
+    struct PostClinicalConsultationsV2Response {
+        let consultationRef: String
+        let signable: Bool
+        let missingSections: [String]
+        let signedOffAt: String?
+    }
+    struct PostClinicalTriageV3Request {
+        let subjectRef: String
+        let intakeEntryRef: String
+        let protocolVersionId: String?
+        let explanationPriorityCode: String?
+    }
+    struct PostClinicalTriageV3Response {
+        let triageRef: String
+        let priorityCode: String
+        let careSetting: String
+        let triageEntryRef: String
+    }
+    struct PostClinicalPromsV2Request {
         let episodeRef: String
         let dayMark: Int
         let answers: [[String: Any]]
     }
-    struct PostClinicalPromsResponse {
+    struct PostClinicalPromsV2Response {
         let promEntryRef: String
+    }
+    struct GetClinicalSettingsRequest {}
+    struct GetClinicalSettingsResponse {
+        let settingsVersion: Int
+        let settings: [[String: Any]]
+        let history: [[String: Any]]
+    }
+    struct PostClinicalSettingChangesRequest {
+        let idempotencyKey: String
+        let setting: String
+        let wholeNumber: Int?
+        let switchedOn: Bool?
+        let choice: String?
+        let wording: String?
+        let roles: [String]?
+        let windows: [[String: Any]]?
+        let items: [String]?
+        let parts: [String: Any]?
+        let reason: String?
+        let expectedVersion: Int
+    }
+    struct PostClinicalSettingChangesResponse {
+        let settingsVersion: Int
+        let appliesFrom: String
+    }
+    struct PostClinicalSettingReviewsRequest {
+        let idempotencyKey: String
+        let setting: String
+        let settingsVersion: Int
+        let reason: String?
+    }
+    struct PostClinicalSettingReviewsResponse {
+        let settingsVersion: Int
+        let reviewedAt: String
     }
     struct GetSafetyCheckinsRequest {
         let appointmentRef: String
