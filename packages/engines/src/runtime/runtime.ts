@@ -276,7 +276,13 @@ export function createRuntime(options: RuntimeOptions): Runtime {
   const engineCaller = caller.role.startsWith('engine:');
   if (replayKey && !engineCaller && !caller.ref) return render(runtimeRefusal('caller-unidentified'));
   const callerRef = engineCaller ? caller.role : caller.ref ?? '';
-  const digest = requestDigest(fields);
+  /* A secret the caller typed — a nurse's cash code — never reaches the replay table, not even as this digest:
+     an unsalted hash of six digits is the six digits to anybody holding the store file and a minute. So the
+     digest a reused key is compared by leaves every declared secret request field out, and a replay of an
+     accepted request answers as the first did whatever was sent in the secret's place. A refusal is never
+     stored, so nothing about a wrong secret is kept here either. */
+  const secretRequests = new Set((route.secretRequestFields ?? []).map(s => s.field));
+  const digest = requestDigest(Object.fromEntries(Object.entries(fields).filter(([name]) => !secretRequests.has(name))));
   /* A declared secret is removed before an answer is stored, and a replay answers with the contract's
      sentence in its place. The first answer, and only the first, carries the secret itself. */
   const withoutSecrets = (declared: ContractRoute, body: Record<string, unknown>): Record<string, unknown> => {

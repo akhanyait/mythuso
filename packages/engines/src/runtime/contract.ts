@@ -11,9 +11,11 @@ export type { Field, Refusal };
 export type SecretResponseField = { field: string; shownOnce: string };
 /* The refusals that keep the writes a handler recorded for them, and the only tables those writes may touch. */
 export type KeptOnRefusal = { refusals: string[]; tables: string[]; why: string };
+/* A request field that is a secret the caller types, left out of the digest of the request the replay table keeps. */
+export type SecretRequestField = { field: string; why: string };
 export type ContractRoute = Route & {
  key: RouteKey; file: string; callerJustifications?: Record<string, string>;
- secretResponseFields?: SecretResponseField[]; keptOnRefusal?: KeptOnRefusal;
+ secretResponseFields?: SecretResponseField[]; secretRequestFields?: SecretRequestField[]; keptOnRefusal?: KeptOnRefusal;
 };
 export type EventField = { field: string; type: string; required: boolean };
 export type ContractEvent = {
