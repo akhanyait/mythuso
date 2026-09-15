@@ -8799,6 +8799,8 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  const at = Date.UTC(2026, 8, 15, 9);
  const openedBy = gatewayForLinks.emergencySummary.openedBy;
  const defaultsInForce = sharingInForce([]);
+ const policyForLinks = links.policyOf(consentForLinks);
+ if (policyForLinks.ceilingDays !== ceiling) throw new Error(`packages/engines/src/record/domain/links.ts reads a link ceiling of ${policyForLinks.ceilingDays} days out of consent.json, whose grant ceiling is ${ceiling}.`);
 
  /* 1. The ceiling. */
  if (sharing.links.lifetimeCeilingFrom !== 'packages/catalog/consent.json#grants.maximumExpiryDays') throw new Error('packages/catalog/passport-sharing.json no longer says a link\'s lifetime ceiling comes from consent.json\'s grant ceiling.');
@@ -8808,32 +8810,35 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   const highest = s.bounds?.highest;
   if (highest?.value !== ceiling || highest.decidedBy !== decision.decidedBy || highest.decidedOn !== decision.decidedOn) throw new Error(`packages/catalog/passport-sharing.json lets "${s.key}" be set to ${highest?.value} days, decided by ${highest?.decidedBy} on ${highest?.decidedOn}. No link outlives the longest a consent grant may run: the highest bound is consent.json's grants.maximumExpiryDays (${ceiling}), with the founder's decision of ${decision.decidedOn} as its provenance.`);
  }
- if (!/export const LINK_CEILING_DAYS: number = consent\.grants\.maximumExpiryDays;/.test(linksSource) || !/const ceilingAt = now \+ LINK_CEILING_DAYS \* DAY;/.test(linksSource) || !/Math\.min\(now \+ lifetimeDays \* DAY, ceilingAt\)/.test(linksSource)) throw new Error('packages/engines/src/record/domain/links.ts no longer reads the grant ceiling from consent.json and applies it on top of the lifetime setting, so a lifetime set wrongly could lengthen a link past any grant.');
+ if (!/ceilingDays: consent\.grants\.maximumExpiryDays,/.test(linksSource) || /from '[^']*catalog\/consent\.json'/.test(linksSource) || !/const ceilingAt = now \+ policy\.ceilingDays \* DAY;/.test(linksSource) || !/Math\.min\(now \+ lifetimeDays \* DAY, ceilingAt\)/.test(linksSource)) throw new Error('packages/engines/src/record/domain/links.ts no longer reads the grant ceiling from consent.json and applies it on top of the lifetime setting, so a lifetime set wrongly could lengthen a link past any grant.');
+ const shareLinksLib = read('apps/web/src/lib/share-links.ts');
+ if (!/export const LINK_POLICY = policyOf\(consent\);/.test(read('apps/passport/src/contract.ts')) || !/from '[^']*packages\/catalog\/consent\.json\?raw'/.test(shareLinksLib) || !/const consent: ConsentText = JSON\.parse\(consentText\);/.test(shareLinksLib) || !/policyOf\(consent\)/.test(shareLinksLib) || /^import [^;]*from '[^']*packages\/catalog\/consent\.json';/m.test(shareLinksLib)) throw new Error('The Passport P0 or the web preview no longer builds its link policy out of packages/catalog/consent.json with policyOf, so the ceiling and the grant roles a link is held to could be a copy. The web reads the contract as text in its lazy chunk, so the first load is not handed the grant roles.');
  const longGrant = { recipientRole: 'next-of-kin', scope: [openedBy, 'allergy', 'maternal-health'], purpose: 'emergency', sealedIncluded: true, expiresAt: at + ceiling * 4 * DAY_MS, revokedAt: null };
- const drifted = links.linkTermsFor({ recipientRole: 'next-of-kin', kindCode: 'emergency-card' }, longGrant, { ...defaultsInForce, cardLifetimeDays: ceiling * 4, linkLifetimeDays: ceiling * 4 }, at);
- if (!drifted.ok || drifted.value.expiresAt !== at + ceiling * DAY_MS) throw new Error(`The link arithmetic let a lifetime set past the grant ceiling make a card that ends ${drifted.ok ? new Date(drifted.value.expiresAt).toISOString() : `refused as ${drifted.refusal}`}. A card never outlives the founder's ceiling of ${ceiling} days.`);
+ /* A share link with a scope of its own, so this asks the ceiling and nothing the card's scope decides. */
+ const drifted = links.linkTermsFor({ recipientRole: 'next-of-kin', kindCode: 'share-link', scope: ['allergy'] }, longGrant, { ...defaultsInForce, cardLifetimeDays: ceiling * 4, linkLifetimeDays: ceiling * 4 }, at, policyForLinks);
+ if (!drifted.ok || drifted.value.expiresAt !== at + ceiling * DAY_MS) throw new Error(`The link arithmetic let a lifetime set past the grant ceiling make a link that ends ${drifted.ok ? new Date(drifted.value.expiresAt).toISOString() : `refused as ${drifted.refusal}`}. No link outlives the founder's ceiling of ${ceiling} days.`);
 
  /* 2. Payers. */
  const payerIds = sharing.links.neverTo.map(payer => payer.id);
  for (const id of ['scheme-aggregate', 'insurer', 'employer']) if (!payerIds.includes(id)) throw new Error(`packages/catalog/passport-sharing.json links.neverTo no longer names "${id}". No share link is made for a scheme, an insurer or an employer, and neverTo is the list a reader checks.`);
  for (const role of consentForLinks.grants.recipientRoles) {
   const payer = role.gateway.reads === 'aggregate' || role.identifiable === false;
-  if (payer !== (links.payerRefusal(role.id) === 'link-to-a-payer')) throw new Error(`The link rules ${payer ? 'would make' : 'refuse'} a share link for the grant role ${role.id}, which ${payer ? 'reads aggregates or names nobody' : 'is an identifiable role'}.`);
+  if (payer !== (links.payerRefusal(role.id, policyForLinks) === 'link-to-a-payer')) throw new Error(`The link rules ${payer ? 'would make' : 'refuse'} a share link for the grant role ${role.id}, which ${payer ? 'reads aggregates or names nobody' : 'is an identifiable role'}.`);
  }
  for (const id of payerIds) {
-  const decided = links.linkTermsFor({ recipientRole: id, kindCode: 'share-link' }, { ...longGrant, recipientRole: id, expiresAt: at + DAY_MS }, defaultsInForce, at);
+  const decided = links.linkTermsFor({ recipientRole: id, kindCode: 'share-link' }, { ...longGrant, recipientRole: id, expiresAt: at + DAY_MS }, defaultsInForce, at, policyForLinks);
   if (decided.ok || decided.refusal !== 'link-to-a-payer') throw new Error(`The link rules made a share link for ${id}, or refused it as something other than a link to a payer.`);
  }
  const gatewayForP1 = read('apps/passport/src/gateway.ts');
  const createLinkBody = gatewayForP1.slice(gatewayForP1.indexOf('\n createLink('), gatewayForP1.indexOf('\n openLink('));
- const payerAsked = createLinkBody.indexOf("if (payerRefusal(body.recipientRole)) return this.#refuse(403, 'link-to-a-payer', who);");
+ const payerAsked = createLinkBody.indexOf("if (payerRefusal(body.recipientRole, LINK_POLICY)) return this.#refuse(403, 'link-to-a-payer', who);");
  if (payerAsked < 0 || payerAsked > createLinkBody.indexOf('this.#store.grant(')) throw new Error('apps/passport/src/gateway.ts no longer refuses a link to a payer before it looks the grant up, so the refusal could tell a caller which grants a patient holds.');
 
  /* 3. The card. */
  const cardKind = sharing.links.kinds.find(kind => kind.id === 'emergency-card');
  if (cardKind?.scopeFrom !== 'packages/catalog/passport-gateway.json#emergencySummary.openedBy' || JSON.stringify(links.EMERGENCY_SCOPE) !== JSON.stringify([openedBy])) throw new Error(`The emergency card opens ${JSON.stringify(links.EMERGENCY_SCOPE)}. It opens "${openedBy}", the category the gateway opens the emergency summary with, and nothing else.`);
  for (const asked of [{ scope: ['allergy'] }, { scope: [openedBy, 'allergy'] }, { sealedIncluded: true }, { scope: [openedBy, 'maternal-health'], sealedIncluded: true }]) {
-  const decided = links.linkTermsFor({ recipientRole: 'next-of-kin', kindCode: 'emergency-card', ...asked }, { ...longGrant, expiresAt: at + DAY_MS }, defaultsInForce, at);
+  const decided = links.linkTermsFor({ recipientRole: 'next-of-kin', kindCode: 'emergency-card', ...asked }, { ...longGrant, expiresAt: at + DAY_MS }, defaultsInForce, at, policyForLinks);
   if (decided.ok) throw new Error(`The link rules made an emergency card that opens ${JSON.stringify(asked)}. A card opens the emergency summary alone, and never a sealed category.`);
  }
  const webCardSource = read('apps/web/src/features/PassportSharing.tsx');

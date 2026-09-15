@@ -1,10 +1,10 @@
 import { useSyncExternalStore } from 'react';
-import consent from '../../../../packages/catalog/consent.json';
+import consentText from '../../../../packages/catalog/consent.json?raw';
 import gateway from '../../../../packages/catalog/passport-gateway.json';
 import records from '../../../../packages/catalog/records.json';
 import sharing from '../../../../packages/catalog/passport-sharing.json';
 import {
- EMERGENCY_SCOPE, defaultScopeFor, isSealedCategory, linkTermsFor, useRefusal, type GrantTerms, type LinkKindId, type LinkTerms
+ EMERGENCY_SCOPE, defaultScopeFor, isSealedCategory, linkTermsFor, policyOf, useRefusal, type GrantTerms, type LinkKindId, type LinkTerms
 } from '../../../../packages/engines/src/record/domain/links.ts';
 import { recordSettingsNow } from './settings';
 
@@ -18,9 +18,24 @@ import { recordSettingsNow } from './settings';
  * passport-sharing.json's preview block, and a place in this tab's memory to keep what the patient makes. Nothing
  * is kept anywhere else, a reload puts the preview back, and no link, code or card reaches anybody.
  *
+ * WHY consent.json IS READ AS TEXT. The patient's first load already carries consent.json for the consent screen,
+ * which uses only its purposes, and the bundler leaves the rest out. An import from this lazy file would keep the
+ * grant roles in that first-load chunk too — measured at four kilobytes a patient pays for without opening a link —
+ * so the contract is read here as text, parsed once, and handed to the Record engine's policyOf, and the copy stays
+ * in the chunk these screens load in. It is the same file, and nothing here restates a number from it.
+ *
  * Only the screens that are behind a dynamic import read this file, because it carries four contracts and the
  * patient's first view needs none of them.
  */
+
+type ConsentText = {
+ readonly grants: {
+  readonly maximumExpiryDays: number;
+  readonly recipientRoles: readonly { readonly id: string; readonly name: string; readonly identifiable?: boolean; readonly gateway: { readonly reads: string } }[];
+ };
+};
+const consent: ConsentText = JSON.parse(consentText);
+const linkPolicy = policyOf(consent);
 
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
@@ -156,7 +171,7 @@ export const defaultScopeNow = (grant: Grant, kindCode: LinkKindId): string[] =>
 
 /** What a link made now would be, without making it — so the screen shows the end and the uses before the patient presses. */
 export const wouldBe = (grant: Grant, kindCode: LinkKindId, scope?: readonly string[], sealedIncluded = false, now = Date.now()) =>
- linkTermsFor({ recipientRole: grant.recipientRole, kindCode, scope, sealedIncluded }, termsOf(grant), recordSettingsNow(), now);
+ linkTermsFor({ recipientRole: grant.recipientRole, kindCode, scope, sealedIncluded }, termsOf(grant), recordSettingsNow(), now, linkPolicy);
 
 export type Made = { readonly ok: true; readonly link: Link } | { readonly ok: false; readonly refusal: string };
 

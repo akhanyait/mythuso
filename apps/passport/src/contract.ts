@@ -11,6 +11,7 @@
 import consent from '../../../packages/catalog/consent.json' with { type: 'json' };
 import gateway from '../../../packages/catalog/passport-gateway.json' with { type: 'json' };
 import records from '../../../packages/catalog/records.json' with { type: 'json' };
+import { policyOf } from '../../../packages/engines/src/record/domain/links.ts';
 
 /* What a grant to a role can ever open, per the master document's section 21: records in its scope,
    routine records only, the emergency summary only, or aggregate figures (which P0 does not serve).
@@ -55,6 +56,9 @@ export const grantRoles = (): readonly GrantRole[] => GRANT_ROLES;
    role's own maxExpiryDays says. Read from consent.json, never typed, and applied on top of the role's
    ceiling rather than trusted to agree with it — a role edited past the ceiling is still held to it. */
 export const GRANT_CEILING_DAYS: number = consent.grants.maximumExpiryDays;
+/* The ceiling and the grant roles a share link is held to, read out of the same contract by the Record engine's own
+   policyOf, so the Passport and the web preview hold a link to one reading of one file. */
+export const LINK_POLICY = policyOf(consent);
 export const expiryCeilingDays = (role: Pick<GrantRole, 'maxExpiryDays'>, ceiling: number = GRANT_CEILING_DAYS): number => Math.min(role.maxExpiryDays, ceiling);
 export const statement = (id: StatementId): string => gateway.statements[id];
 

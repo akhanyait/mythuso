@@ -13,13 +13,19 @@
  * kind, the grant's own standing, whose the link is, and what it opens. The end last, because an end that is
  * too late is only worth saying about a link that would otherwise be made.
  *
+ * THE POLICY IS HANDED IN, NOT IMPORTED. The founder's grant ceiling and what each grant role may read are
+ * packages/catalog/consent.json's, read out of it by policyOf() below and nowhere else. The Passport P0 and the
+ * build hand it their own import of the contract. The web preview reads the contract as text in the lazy chunk
+ * these screens load in: the patient's first load already carries consent.json for the consent screen, and an
+ * import from here would keep its grant roles in that first-load chunk, which a patient on metered data would pay
+ * for without opening a single link.
+ *
  * WHAT IS NOT DECIDED HERE. Whether the grant belongs to the person asking — that is the gateway's, against the
  * patient's session, so a probe of somebody else's grant is written into their log. And the grant's own scope,
  * which the gateway already held to its role when the grant was made; a link inside it inherits that.
  *
  * Time is epoch milliseconds handed in by the caller, so a test is a clock. No enums, no namespaces.
  */
-import consent from '../../../../catalog/consent.json' with { type: 'json' };
 import gateway from '../../../../catalog/passport-gateway.json' with { type: 'json' };
 import records from '../../../../catalog/records.json' with { type: 'json' };
 import sharing from '../../../../catalog/passport-sharing.json' with { type: 'json' };
@@ -27,10 +33,23 @@ import type { SharingInForce } from './settings.ts';
 
 const DAY = 86_400_000;
 
-/* The founder's ceiling on every grant, read from consent.json and never restated. No link outlives it. */
-export const LINK_CEILING_DAYS: number = consent.grants.maximumExpiryDays;
 /* The one category an emergency card opens: the one that opens the emergency summary at the gateway. */
 export const EMERGENCY_SCOPE: readonly string[] = Object.freeze([gateway.emergencySummary.openedBy]);
+
+export type LinkRole = { readonly id: string; readonly reads: string; readonly identifiable: boolean };
+export type LinkPolicy = { readonly ceilingDays: number; readonly roles: readonly LinkRole[] };
+type ConsentContract = {
+ readonly grants: {
+  readonly maximumExpiryDays: number;
+  readonly recipientRoles: readonly { readonly id: string; readonly identifiable?: boolean; readonly gateway: { readonly reads: string } }[];
+ };
+};
+
+/* The founder's ceiling on every grant and what each grant role reads, out of consent.json and never restated. */
+export const policyOf = (consent: ConsentContract): LinkPolicy => Object.freeze({
+ ceilingDays: consent.grants.maximumExpiryDays,
+ roles: Object.freeze(consent.grants.recipientRoles.map(role => Object.freeze({ id: role.id, reads: role.gateway.reads, identifiable: role.identifiable !== false })))
+});
 
 export type LinkKindId = 'share-link' | 'emergency-card';
 export type LinkRefusalId =
@@ -80,16 +99,15 @@ export type LinkTerms = {
 const SENSITIVITY = new Map(records.records.map(record => [record.id, record.sensitivity] as const));
 const knownCategory = (category: unknown): category is string => typeof category === 'string' && SENSITIVITY.has(category);
 export const isSealedCategory = (category: string): boolean => SENSITIVITY.get(category) === gateway.sealed.sensitivity;
-const roleOf = (id: string) => consent.grants.recipientRoles.find(role => role.id === id) ?? null;
 
 /* A payer is a party named in passport-sharing.json's neverTo, or a grant role that reads aggregates and names
    nobody. Both, because the grant role list could one day gain an insurer under another name, and the neverTo
    list is where somebody reading the contract looks. */
-export function payerRefusal(recipient: unknown): 'link-to-a-payer' | null {
+export function payerRefusal(recipient: unknown, policy: LinkPolicy): 'link-to-a-payer' | null {
  const id = typeof recipient === 'string' ? recipient : '';
  if (sharing.links.neverTo.some(payer => payer.id === id)) return 'link-to-a-payer';
- const role = roleOf(id);
- return role && (role.gateway.reads === 'aggregate' || role.identifiable === false) ? 'link-to-a-payer' : null;
+ const role = policy.roles.find(candidate => candidate.id === id);
+ return role && (role.reads === 'aggregate' || !role.identifiable) ? 'link-to-a-payer' : null;
 }
 
 export const kindOf = (id: unknown) => sharing.links.kinds.find(kind => kind.id === id) ?? null;
@@ -105,18 +123,18 @@ export function defaultScopeFor(kindCode: LinkKindId, grant: GrantTerms, inForce
 export type Decided<T, R> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly refusal: R };
 const no = <R>(refusal: R): { ok: false; refusal: R } => ({ ok: false, refusal });
 
-export function linkTermsFor(request: LinkRequest, grant: GrantTerms, inForce: SharingInForce, now: number): Decided<LinkTerms, LinkRefusalId> {
- if (payerRefusal(request.recipientRole)) return no('link-to-a-payer');
+export function linkTermsFor(request: LinkRequest, grant: GrantTerms, inForce: SharingInForce, now: number, policy: LinkPolicy): Decided<LinkTerms, LinkRefusalId> {
+ if (payerRefusal(request.recipientRole, policy)) return no('link-to-a-payer');
  const kind = kindOf(request.kindCode);
  if (!kind) return no('link-kind-unknown');
  if (grant.revokedAt !== null) return no('revoked');
  if (grant.expiresAt <= now) return no('expired');
- if (payerRefusal(grant.recipientRole)) return no('link-to-a-payer');
+ if (payerRefusal(grant.recipientRole, policy)) return no('link-to-a-payer');
  if (request.recipientRole !== grant.recipientRole) return no('link-recipient-not-the-grants');
  const kindCode = kind.id as LinkKindId;
  const card = kindCode === 'emergency-card';
  /* A responder's grant reads the emergency summary and nothing else, so the only link it can carry is a card. */
- if (!card && roleOf(grant.recipientRole)?.gateway.reads === 'emergency-summary') return no('emergency-only');
+ if (!card && policy.roles.find(role => role.id === grant.recipientRole)?.reads === 'emergency-summary') return no('emergency-only');
 
  const scope = request.scope === undefined ? defaultScopeFor(kindCode, grant, inForce) : request.scope;
  if (!Array.isArray(scope) || !scope.length || !scope.every(knownCategory) || new Set(scope).size !== scope.length) return no('unknown-category');
@@ -131,7 +149,7 @@ export function linkTermsFor(request: LinkRequest, grant: GrantTerms, inForce: S
     for is refused rather than quietly shortened when it is later than any of the three, so the end they see is
     the end they get, and each refusal says which of the three it ran into. */
  const lifetimeDays = card ? inForce.cardLifetimeDays : inForce.linkLifetimeDays;
- const ceilingAt = now + LINK_CEILING_DAYS * DAY;
+ const ceilingAt = now + policy.ceilingDays * DAY;
  const allowedAt = Math.min(now + lifetimeDays * DAY, ceilingAt);
  let expiresAt = Math.min(allowedAt, grant.expiresAt);
  if (request.expiresAt !== undefined) {

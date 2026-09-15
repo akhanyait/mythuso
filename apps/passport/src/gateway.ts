@@ -58,7 +58,7 @@ import { sharingInForce, type SharingInForce } from '../../../packages/engines/s
 import { linkTermsFor, payerRefusal, statusOf, useRefusal, type GrantTerms } from '../../../packages/engines/src/record/domain/links.ts';
 import { AuditLog, type AuditEntry } from './audit.ts';
 import { PassportRefusedToStart, wasLoaded, type PassportConfig } from './config.ts';
-import { GATEWAY, expiryCeilingDays, grantScopeRefusal, isProtectedCategory, knownCategory, refusalOf, resourceRule, roleRule, sensitivityOf, statement, type GrantRole } from './contract.ts';
+import { GATEWAY, LINK_POLICY, expiryCeilingDays, grantScopeRefusal, isProtectedCategory, knownCategory, refusalOf, resourceRule, roleRule, sensitivityOf, statement, type GrantRole } from './contract.ts';
 import { PassportKeys, openBytes, readToken, sealBytes, signToken } from './keys.ts';
 import { developerOf, operatorOf } from './operator.ts';
 import { identityShaped } from './screen.ts';
@@ -484,7 +484,7 @@ export class PassportGateway {
   if (!session.ok) return this.#refuse(401, session.id, who);
   const body = fields && typeof fields === 'object' ? fields : {};
   /* A payer before any grant is looked at, so the refusal says nothing about which grants this patient holds. */
-  if (payerRefusal(body.recipientRole)) return this.#refuse(403, 'link-to-a-payer', who);
+  if (payerRefusal(body.recipientRole, LINK_POLICY)) return this.#refuse(403, 'link-to-a-payer', who);
   const row = this.#store.grant(String(body.grantId ?? ''));
   if (!row || row.subject !== session.subject) {
    if (row) this.#probe(row.subject, who);
@@ -493,7 +493,7 @@ export class PassportGateway {
   const grant = this.#grantTerms(row);
   if (!grant) return this.#refuse(404, 'not-found', who);
   who.purpose = grant.purpose;
-  const decided = linkTermsFor(body, grant, this.#settings(), at);
+  const decided = linkTermsFor(body, grant, this.#settings(), at, LINK_POLICY);
   if (!decided.ok) return this.#refuse(statusOf(decided.refusal), decided.refusal, who);
   const terms = decided.value;
   const id = `lnk_${randomUUID()}`;
