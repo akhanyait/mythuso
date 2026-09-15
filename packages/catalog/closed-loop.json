@@ -100,6 +100,19 @@
   "why": "Core opens a concern for every panic it hears, alerting every post on duty. When a person at Safety's desk resolves the panic, panic.resolved@1 carries the outcome's code, and Core closes that concern through the same closeRefusal rule the close route asks, with the outcome this map gives. A code the map does not name is not guessed at: the concern stays open for a person to close, and Core's audit says it was not stood down. The map lives here, beside the outcomes it names, because Core reads no Safety contract."
  },
 
+ "resultAcknowledged": {
+  "hears": "result.acknowledged@1",
+  "alertsFrom": "medicines",
+  "closesAs": {
+   "value": "dealt-with",
+   "decidedBy": null,
+   "proposedBy": "Medicines & Labs lead (Wave 4)",
+   "proposedBecause": "A clinician acknowledging a result is somebody who held the concern doing what it needed, which is what dealt-with means. Where it is written down is the result's own entry in the Health Passport, and the concern closes pointing at it.",
+   "question": "Which of the closed loop's outcomes the concern opened for an unacknowledged lab result is closed as when a clinician acknowledges the result."
+  },
+  "why": "Medicines raises an alert with Core when a lab result arrives (POST /v1/core/alerts@2, justified by lab.result.received@1), with the result's Passport entry as its dedupe key and its record entry, on the rung its own settings name. When the clinician who ordered the test acknowledges the result, Clinical publishes result.acknowledged@1 naming the same entry, and Core stands the alert down: closed through the closeRefusal rule the close route asks, with the outcome named here, by the role that acknowledged it and pointing at the entry. Only an open alert that the engine alertsFrom names raised under that key is touched, and nothing else about it moves. An alert nobody acknowledges is never closed this way: it escalates up the rota like any other, because a result nobody read is the concern the closed loop exists for."
+ },
+
  "_reasonsNotSettingsNote":"The snooze reasons and the reasons the desk escalates by hand stay proposals in this file rather than becoming settings, on purpose. Each is a code that travels on the bus — alert.escalated@1 and loop.escalated@1 carry reasonCode — or is sent by an app a nurse already has. A code an admin added on the back office would be put on the bus to subscribers that were built and reviewed against the codes here and cannot read it; a code an admin removed would refuse the reason a nurse's phone still offers her. Neither is an admin choosing within bounds: both are a change to the contract every subscriber and every app is built against, made the way this file is changed. The question each asks stays open beside it until somebody with the authority answers it.",
 
  "exhaustion": {

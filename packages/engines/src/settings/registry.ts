@@ -11,11 +11,13 @@ import { careSettings } from '../care/domain/settings.ts';
 import { moneySettings } from '../money/domain/settings.ts';
 import { coreSettings } from '../core/domain/settings.ts';
 import { accessSettings } from '../access/domain/settings.ts';
+import { medicinesSettings } from '../medicines/domain/settings.ts';
 
 export const settingsEngines: Readonly<Record<string, SettingsEngine>> = Object.freeze({
  safety: safetySettings,
  care: careSettings,
  money: moneySettings,
  core: coreSettings,
- access: accessSettings
+ access: accessSettings,
+ medicines: medicinesSettings
 });

@@ -77,3 +77,12 @@ GET /v1/money/settings@1 50f99e1f32406ec2
 POST /v1/care/sync-batches@2 25e913f326a7ff96
 GET /v1/safety/panics/{panicRef}/position@1 5eb8e3b227f0e7a8
 GET /v1/safety/desk-queue@1 0fe814590c296860
+GET /v1/medicines/formulary@2 02bda6b498693eb4
+GET /v1/medicines/orders@2 6ad8a23361b9ec1b
+GET /v1/medicines/settings@1 00b007b1395e16df
+POST /v1/core/setting-changes@1 5d30e3f932c8c847
+POST /v1/access/setting-changes@1 2dd355db71236bd9
+POST /v1/care/setting-changes@1 17328c4a3a5354b9
+POST /v1/safety/setting-changes@2 4bfab8dc1ed2849a
+POST /v1/medicines/setting-changes@1 cb1622e3390d00ec
+POST /v1/money/setting-changes@1 bd9aa2fcacbf3923

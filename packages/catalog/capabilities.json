@@ -474,6 +474,22 @@
     "plans"
    ],
    "state": "absent"
+  },
+  {
+   "id": "laboratory-results",
+   "name": "Laboratory orders and results",
+   "connected": false,
+   "evidence": null,
+   "blockedBy": [
+    "A laboratory accredited to ISO 15189 by SANAS, contracted to collect samples, run tests and release results.",
+    "A clinical governance decision on who acknowledges a result, and how quickly."
+   ],
+   "notice": "No laboratory is connected. No sample is taken and no test is run, and a result shown here is a synthetic reference to nothing.",
+   "surfaces": [
+    "lab-orders",
+    "results"
+   ],
+   "state": "absent"
   }
  ],
  "rules": [

@@ -99,7 +99,7 @@ enum ApisData {
     static let postClinicalReviewsByReviewRefSign = Route(id: "postClinicalReviewsByReviewRefSign", method: "POST", path: "/v1/clinical/reviews/{reviewRef}/sign", mountedPath: "/v1/clinical/reviews/{reviewRef}/sign", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let postClinicalConsultations = Route(id: "postClinicalConsultations", method: "POST", path: "/v1/clinical/consultations", mountedPath: "/v1/clinical/consultations", version: 1, engine: "clinical", callers: ["doctor", "nurse"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let postClinicalTriageV2 = Route(id: "postClinicalTriageV2", method: "POST", path: "/v1/clinical/triage", mountedPath: "/v1/clinical/triage", version: 2, engine: "clinical", callers: ["nurse", "doctor"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postClinicalResultsByResultRefAcknowledge = Route(id: "postClinicalResultsByResultRefAcknowledge", method: "POST", path: "/v1/clinical/results/{resultRef}/acknowledge", mountedPath: "/v1/clinical/results/{resultRef}/acknowledge", version: 1, engine: "clinical", callers: ["doctor", "nurse"], purpose: ["diagnostics"], idempotent: false, status: "proposed")
+    static let postClinicalResultsByResultRefAcknowledge = Route(id: "postClinicalResultsByResultRefAcknowledge", method: "POST", path: "/v1/clinical/results/{resultRef}/acknowledge", mountedPath: "/v1/clinical/results/{resultRef}/acknowledge", version: 1, engine: "clinical", callers: ["doctor", "nurse"], purpose: ["diagnostics"], idempotent: false, status: "built")
     static let postClinicalGuidance = Route(id: "postClinicalGuidance", method: "POST", path: "/v1/clinical/guidance", mountedPath: "/v1/clinical/guidance", version: 1, engine: "clinical", callers: ["nurse", "doctor", "engine:access"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let postClinicalProms = Route(id: "postClinicalProms", method: "POST", path: "/v1/clinical/proms", mountedPath: "/v1/clinical/proms", version: 1, engine: "clinical", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let postSafetyCheckins = Route(id: "postSafetyCheckins", method: "POST", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "proposed")
@@ -168,15 +168,20 @@ enum ApisData {
     static let getRecordEncounterStatusesByEncounterRef = Route(id: "getRecordEncounterStatusesByEncounterRef", method: "GET", path: "/v1/record/encounter-statuses/{encounterRef}", mountedPath: "/v1/record/encounter-statuses/{encounterRef}", version: 1, engine: "record", callers: ["engine:care"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let postRecordShareLink = Route(id: "postRecordShareLink", method: "POST", path: "/share/link", mountedPath: "/v1/record/share/link", version: 1, engine: "record", callers: ["patient", "responder-on-trip"], purpose: ["treatment", "emergency"], idempotent: false, status: "proposed")
     static let postRecordExport = Route(id: "postRecordExport", method: "POST", path: "/export", mountedPath: "/v1/record/export", version: 1, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "proposed")
-    static let getMedicinesFormulary = Route(id: "getMedicinesFormulary", method: "GET", path: "/v1/medicines/formulary", mountedPath: "/v1/medicines/formulary", version: 1, engine: "medicines", callers: ["doctor", "nurse", "pharmacist"], purpose: ["dispensing"], idempotent: false, status: "proposed")
-    static let postMedicinesInteractionChecks = Route(id: "postMedicinesInteractionChecks", method: "POST", path: "/v1/medicines/interaction-checks", mountedPath: "/v1/medicines/interaction-checks", version: 1, engine: "medicines", callers: ["doctor", "pharmacist"], purpose: ["dispensing", "treatment"], idempotent: false, status: "proposed")
-    static let postMedicinesPrescriptions = Route(id: "postMedicinesPrescriptions", method: "POST", path: "/v1/medicines/prescriptions", mountedPath: "/v1/medicines/prescriptions", version: 1, engine: "medicines", callers: ["doctor"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postMedicinesPrescriptionsByPrescriptionRefVerify = Route(id: "postMedicinesPrescriptionsByPrescriptionRefVerify", method: "POST", path: "/v1/medicines/prescriptions/{prescriptionRef}/verify", mountedPath: "/v1/medicines/prescriptions/{prescriptionRef}/verify", version: 1, engine: "medicines", callers: ["pharmacist"], purpose: ["dispensing"], idempotent: false, status: "proposed")
-    static let postMedicinesPrescriptionsByPrescriptionRefDispense = Route(id: "postMedicinesPrescriptionsByPrescriptionRefDispense", method: "POST", path: "/v1/medicines/prescriptions/{prescriptionRef}/dispense", mountedPath: "/v1/medicines/prescriptions/{prescriptionRef}/dispense", version: 1, engine: "medicines", callers: ["pharmacist", "pharmacy"], purpose: ["dispensing"], idempotent: false, status: "proposed")
-    static let postMedicinesCollections = Route(id: "postMedicinesCollections", method: "POST", path: "/v1/medicines/collections", mountedPath: "/v1/medicines/collections", version: 1, engine: "medicines", callers: ["nurse", "courier", "responder"], purpose: ["dispensing"], idempotent: false, status: "proposed")
-    static let postMedicinesCollectionsByCollectionRefHandover = Route(id: "postMedicinesCollectionsByCollectionRefHandover", method: "POST", path: "/v1/medicines/collections/{collectionRef}/handover", mountedPath: "/v1/medicines/collections/{collectionRef}/handover", version: 1, engine: "medicines", callers: ["nurse", "courier", "responder"], purpose: ["dispensing"], idempotent: false, status: "proposed")
-    static let getMedicinesOrders = Route(id: "getMedicinesOrders", method: "GET", path: "/v1/medicines/orders", mountedPath: "/v1/medicines/orders", version: 1, engine: "medicines", callers: ["pharmacy"], purpose: ["dispensing"], idempotent: false, status: "proposed")
-    static let postMedicinesLabOrders = Route(id: "postMedicinesLabOrders", method: "POST", path: "/v1/medicines/lab-orders", mountedPath: "/v1/medicines/lab-orders", version: 1, engine: "medicines", callers: ["doctor", "nurse"], purpose: ["diagnostics"], idempotent: false, status: "proposed")
+    static let postMedicinesLabOrders = Route(id: "postMedicinesLabOrders", method: "POST", path: "/v1/medicines/lab-orders", mountedPath: "/v1/medicines/lab-orders", version: 1, engine: "medicines", callers: ["doctor", "nurse"], purpose: ["diagnostics"], idempotent: false, status: "built")
+    static let getMedicinesFormularyV2 = Route(id: "getMedicinesFormularyV2", method: "GET", path: "/v1/medicines/formulary", mountedPath: "/v1/medicines/formulary", version: 2, engine: "medicines", callers: ["doctor", "nurse", "pharmacist"], purpose: ["dispensing", "treatment"], idempotent: false, status: "built")
+    static let postMedicinesInteractionChecksV2 = Route(id: "postMedicinesInteractionChecksV2", method: "POST", path: "/v1/medicines/interaction-checks", mountedPath: "/v1/medicines/interaction-checks", version: 2, engine: "medicines", callers: ["doctor", "pharmacist"], purpose: ["dispensing", "treatment"], idempotent: false, status: "built")
+    static let postMedicinesPrescriptionsV2 = Route(id: "postMedicinesPrescriptionsV2", method: "POST", path: "/v1/medicines/prescriptions", mountedPath: "/v1/medicines/prescriptions", version: 2, engine: "medicines", callers: ["doctor"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postMedicinesPrescriptionsByPrescriptionRefVerifyV2 = Route(id: "postMedicinesPrescriptionsByPrescriptionRefVerifyV2", method: "POST", path: "/v1/medicines/prescriptions/{prescriptionRef}/verify", mountedPath: "/v1/medicines/prescriptions/{prescriptionRef}/verify", version: 2, engine: "medicines", callers: ["pharmacist"], purpose: ["dispensing"], idempotent: false, status: "built")
+    static let postMedicinesPrescriptionsByPrescriptionRefDispenseV2 = Route(id: "postMedicinesPrescriptionsByPrescriptionRefDispenseV2", method: "POST", path: "/v1/medicines/prescriptions/{prescriptionRef}/dispense", mountedPath: "/v1/medicines/prescriptions/{prescriptionRef}/dispense", version: 2, engine: "medicines", callers: ["pharmacist", "pharmacy"], purpose: ["dispensing"], idempotent: false, status: "built")
+    static let postMedicinesCollectionAuthorisations = Route(id: "postMedicinesCollectionAuthorisations", method: "POST", path: "/v1/medicines/collection-authorisations", mountedPath: "/v1/medicines/collection-authorisations", version: 1, engine: "medicines", callers: ["patient"], purpose: ["dispensing"], idempotent: false, status: "built")
+    static let postMedicinesCollectionsV2 = Route(id: "postMedicinesCollectionsV2", method: "POST", path: "/v1/medicines/collections", mountedPath: "/v1/medicines/collections", version: 2, engine: "medicines", callers: ["nurse", "courier", "responder"], purpose: ["dispensing"], idempotent: false, status: "built")
+    static let postMedicinesCollectionsByCollectionRefHandoverV2 = Route(id: "postMedicinesCollectionsByCollectionRefHandoverV2", method: "POST", path: "/v1/medicines/collections/{collectionRef}/handover", mountedPath: "/v1/medicines/collections/{collectionRef}/handover", version: 2, engine: "medicines", callers: ["nurse", "courier", "responder"], purpose: ["dispensing"], idempotent: false, status: "built")
+    static let getMedicinesOrdersV2 = Route(id: "getMedicinesOrdersV2", method: "GET", path: "/v1/medicines/orders", mountedPath: "/v1/medicines/orders", version: 2, engine: "medicines", callers: ["pharmacy"], purpose: ["dispensing"], idempotent: false, status: "built")
+    static let postMedicinesLabOrdersByLabOrderRefClose = Route(id: "postMedicinesLabOrdersByLabOrderRefClose", method: "POST", path: "/v1/medicines/lab-orders/{labOrderRef}/close", mountedPath: "/v1/medicines/lab-orders/{labOrderRef}/close", version: 1, engine: "medicines", callers: ["doctor", "nurse"], purpose: ["diagnostics"], idempotent: false, status: "built")
+    static let getMedicinesSettings = Route(id: "getMedicinesSettings", method: "GET", path: "/v1/medicines/settings", mountedPath: "/v1/medicines/settings", version: 1, engine: "medicines", callers: ["admin", "doctor"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postMedicinesSettingChanges = Route(id: "postMedicinesSettingChanges", method: "POST", path: "/v1/medicines/setting-changes", mountedPath: "/v1/medicines/setting-changes", version: 1, engine: "medicines", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
+    static let postMedicinesSettingReviews = Route(id: "postMedicinesSettingReviews", method: "POST", path: "/v1/medicines/setting-reviews", mountedPath: "/v1/medicines/setting-reviews", version: 1, engine: "medicines", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "built")
     static let postDevicesRegistry = Route(id: "postDevicesRegistry", method: "POST", path: "/v1/devices/registry", mountedPath: "/v1/devices/registry", version: 1, engine: "devices", callers: ["operator"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let postDevicesRegistryByDeviceRefRecall = Route(id: "postDevicesRegistryByDeviceRefRecall", method: "POST", path: "/v1/devices/registry/{deviceRef}/recall", mountedPath: "/v1/devices/registry/{deviceRef}/recall", version: 1, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "proposed")
     static let getDevicesRegistryByDeviceRefHealth = Route(id: "getDevicesRegistryByDeviceRefHealth", method: "GET", path: "/v1/devices/registry/{deviceRef}/health", mountedPath: "/v1/devices/registry/{deviceRef}/health", version: 1, engine: "devices", callers: ["nurse", "operator"], purpose: ["treatment"], idempotent: false, status: "proposed")
@@ -346,15 +351,20 @@ enum ApisData {
         getRecordEncounterStatusesByEncounterRef,
         postRecordShareLink,
         postRecordExport,
-        getMedicinesFormulary,
-        postMedicinesInteractionChecks,
-        postMedicinesPrescriptions,
-        postMedicinesPrescriptionsByPrescriptionRefVerify,
-        postMedicinesPrescriptionsByPrescriptionRefDispense,
-        postMedicinesCollections,
-        postMedicinesCollectionsByCollectionRefHandover,
-        getMedicinesOrders,
         postMedicinesLabOrders,
+        getMedicinesFormularyV2,
+        postMedicinesInteractionChecksV2,
+        postMedicinesPrescriptionsV2,
+        postMedicinesPrescriptionsByPrescriptionRefVerifyV2,
+        postMedicinesPrescriptionsByPrescriptionRefDispenseV2,
+        postMedicinesCollectionAuthorisations,
+        postMedicinesCollectionsV2,
+        postMedicinesCollectionsByCollectionRefHandoverV2,
+        getMedicinesOrdersV2,
+        postMedicinesLabOrdersByLabOrderRefClose,
+        getMedicinesSettings,
+        postMedicinesSettingChanges,
+        postMedicinesSettingReviews,
         postDevicesRegistry,
         postDevicesRegistryByDeviceRefRecall,
         getDevicesRegistryByDeviceRefHealth,
@@ -1551,65 +1561,6 @@ enum ApisData {
     struct PostRecordExportResponse {
         let exportRef: String
     }
-    struct GetMedicinesFormularyRequest {
-        let query: String
-    }
-    struct GetMedicinesFormularyResponse {
-        let medicines: [[String: Any]]
-    }
-    struct PostMedicinesInteractionChecksRequest {
-        let subjectRef: String
-        let medicationCodes: [String]
-        let stageCode: String
-    }
-    struct PostMedicinesInteractionChecksResponse {
-        let flags: [[String: Any]]
-        let checkRef: String
-    }
-    struct PostMedicinesPrescriptionsRequest {
-        let subjectRef: String
-        let medicationCode: String
-        let dosage: String
-        let checkRef: String
-    }
-    struct PostMedicinesPrescriptionsResponse {
-        let prescriptionRef: String
-        let medicationRequestRef: String
-    }
-    struct PostMedicinesPrescriptionsByPrescriptionRefVerifyRequest {
-        let prescriptionRef: String
-    }
-    struct PostMedicinesPrescriptionsByPrescriptionRefVerifyResponse {
-        let verifiedAt: String
-    }
-    struct PostMedicinesPrescriptionsByPrescriptionRefDispenseRequest {
-        let prescriptionRef: String
-        let dispenseEntryRef: String
-    }
-    struct PostMedicinesPrescriptionsByPrescriptionRefDispenseResponse {
-        let dispensedAt: String
-    }
-    struct PostMedicinesCollectionsRequest {
-        let prescriptionRef: String
-        let authorisationRef: String
-        let sealRef: String
-        let scheduleClass: String
-    }
-    struct PostMedicinesCollectionsResponse {
-        let collectionRef: String
-    }
-    struct PostMedicinesCollectionsByCollectionRefHandoverRequest {
-        let collectionRef: String
-        let handoverPin: String
-        let sealIntact: Bool
-    }
-    struct PostMedicinesCollectionsByCollectionRefHandoverResponse {
-        let handedOverAt: String
-    }
-    struct GetMedicinesOrdersRequest {}
-    struct GetMedicinesOrdersResponse {
-        let orders: [[String: Any]]
-    }
     struct PostMedicinesLabOrdersRequest {
         let subjectRef: String
         let serviceRequestRef: String
@@ -1617,6 +1568,125 @@ enum ApisData {
     }
     struct PostMedicinesLabOrdersResponse {
         let labOrderRef: String
+    }
+    struct GetMedicinesFormularyV2Request {
+        let query: String
+    }
+    struct GetMedicinesFormularyV2Response {
+        let listStatus: String
+        let notice: String
+        let entries: [[String: Any]]
+    }
+    struct PostMedicinesInteractionChecksV2Request {
+        let subjectRef: String
+        let stageCode: String
+    }
+    struct PostMedicinesInteractionChecksV2Response {
+        let checkRef: String
+        let outcomeCode: String
+        let reason: String
+    }
+    struct PostMedicinesPrescriptionsV2Request {
+        let subjectRef: String
+        let medicationRequestRef: String
+        let checkRef: String
+        let scheduleCode: String
+        let pharmacyRef: String
+        let notCheckedRead: Bool?
+    }
+    struct PostMedicinesPrescriptionsV2Response {
+        let prescriptionRef: String
+        let stateCode: String
+    }
+    struct PostMedicinesPrescriptionsByPrescriptionRefVerifyV2Request {
+        let prescriptionRef: String
+    }
+    struct PostMedicinesPrescriptionsByPrescriptionRefVerifyV2Response {
+        let verifiedAt: String
+    }
+    struct PostMedicinesPrescriptionsByPrescriptionRefDispenseV2Request {
+        let prescriptionRef: String
+        let dispenseEntryRef: String
+        let checkRef: String
+        let sealRef: String
+        let notCheckedRead: Bool?
+    }
+    struct PostMedicinesPrescriptionsByPrescriptionRefDispenseV2Response {
+        let dispensedAt: String
+    }
+    struct PostMedicinesCollectionAuthorisationsRequest {
+        let prescriptionRef: String
+        let collectorRef: String
+        let collectorRole: String
+    }
+    struct PostMedicinesCollectionAuthorisationsResponse {
+        let authorisationRef: String
+        let handoverPin: String
+        let pinExpiresAt: String
+        let windowEndsAt: String
+    }
+    struct PostMedicinesCollectionsV2Request {
+        let prescriptionRef: String
+        let authorisationRef: String
+        let sealRef: String
+    }
+    struct PostMedicinesCollectionsV2Response {
+        let collectionRef: String
+        let windowEndsAt: String
+    }
+    struct PostMedicinesCollectionsByCollectionRefHandoverV2Request {
+        let collectionRef: String
+        let handoverPin: String
+        let sealIntact: Bool
+    }
+    struct PostMedicinesCollectionsByCollectionRefHandoverV2Response {
+        let handedOverAt: String
+    }
+    struct GetMedicinesOrdersV2Request {
+        let pharmacyRef: String
+    }
+    struct GetMedicinesOrdersV2Response {
+        let orders: [[String: Any]]
+    }
+    struct PostMedicinesLabOrdersByLabOrderRefCloseRequest {
+        let labOrderRef: String
+    }
+    struct PostMedicinesLabOrdersByLabOrderRefCloseResponse {
+        let closedAt: String
+    }
+    struct GetMedicinesSettingsRequest {}
+    struct GetMedicinesSettingsResponse {
+        let settingsVersion: Int
+        let settings: [[String: Any]]
+        let history: [[String: Any]]
+    }
+    struct PostMedicinesSettingChangesRequest {
+        let idempotencyKey: String
+        let setting: String
+        let wholeNumber: Int?
+        let switchedOn: Bool?
+        let choice: String?
+        let wording: String?
+        let roles: [String]?
+        let windows: [[String: Any]]?
+        let items: [String]?
+        let parts: [String: Any]?
+        let reason: String?
+        let expectedVersion: Int
+    }
+    struct PostMedicinesSettingChangesResponse {
+        let settingsVersion: Int
+        let appliesFrom: String
+    }
+    struct PostMedicinesSettingReviewsRequest {
+        let idempotencyKey: String
+        let setting: String
+        let settingsVersion: Int
+        let reason: String?
+    }
+    struct PostMedicinesSettingReviewsResponse {
+        let settingsVersion: Int
+        let reviewedAt: String
     }
     struct PostDevicesRegistryRequest {
         let serial: String

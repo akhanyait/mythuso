@@ -1340,73 +1340,6 @@ export interface PostRecordExportResponse {
  readonly exportRef: string;
 }
 
-export interface GetMedicinesFormularyRequest {
- readonly query: string;
-}
-export interface GetMedicinesFormularyResponse {
- readonly medicines: ReadonlyArray<Readonly<Record<string, unknown>>>;
-}
-
-export interface PostMedicinesInteractionChecksRequest {
- readonly subjectRef: string;
- readonly medicationCodes: readonly string[];
- readonly stageCode: string;
-}
-export interface PostMedicinesInteractionChecksResponse {
- readonly flags: ReadonlyArray<Readonly<Record<string, unknown>>>;
- readonly checkRef: string;
-}
-
-export interface PostMedicinesPrescriptionsRequest {
- readonly subjectRef: string;
- readonly medicationCode: string;
- readonly dosage: string;
- readonly checkRef: string;
-}
-export interface PostMedicinesPrescriptionsResponse {
- readonly prescriptionRef: string;
- readonly medicationRequestRef: string;
-}
-
-export interface PostMedicinesPrescriptionsByPrescriptionRefVerifyRequest {
- readonly prescriptionRef: string;
-}
-export interface PostMedicinesPrescriptionsByPrescriptionRefVerifyResponse {
- readonly verifiedAt: string;
-}
-
-export interface PostMedicinesPrescriptionsByPrescriptionRefDispenseRequest {
- readonly prescriptionRef: string;
- readonly dispenseEntryRef: string;
-}
-export interface PostMedicinesPrescriptionsByPrescriptionRefDispenseResponse {
- readonly dispensedAt: string;
-}
-
-export interface PostMedicinesCollectionsRequest {
- readonly prescriptionRef: string;
- readonly authorisationRef: string;
- readonly sealRef: string;
- readonly scheduleClass: string;
-}
-export interface PostMedicinesCollectionsResponse {
- readonly collectionRef: string;
-}
-
-export interface PostMedicinesCollectionsByCollectionRefHandoverRequest {
- readonly collectionRef: string;
- readonly handoverPin: string;
- readonly sealIntact: boolean;
-}
-export interface PostMedicinesCollectionsByCollectionRefHandoverResponse {
- readonly handedOverAt: string;
-}
-
-export type GetMedicinesOrdersRequest = Record<string, never>;
-export interface GetMedicinesOrdersResponse {
- readonly orders: ReadonlyArray<Readonly<Record<string, unknown>>>;
-}
-
 export interface PostMedicinesLabOrdersRequest {
  readonly subjectRef: string;
  readonly serviceRequestRef: string;
@@ -1414,6 +1347,138 @@ export interface PostMedicinesLabOrdersRequest {
 }
 export interface PostMedicinesLabOrdersResponse {
  readonly labOrderRef: string;
+}
+
+export interface GetMedicinesFormularyV2Request {
+ readonly query: string;
+}
+export interface GetMedicinesFormularyV2Response {
+ readonly listStatus: string;
+ readonly notice: string;
+ readonly entries: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostMedicinesInteractionChecksV2Request {
+ readonly subjectRef: string;
+ readonly stageCode: string;
+}
+export interface PostMedicinesInteractionChecksV2Response {
+ readonly checkRef: string;
+ readonly outcomeCode: string;
+ readonly reason: string;
+}
+
+export interface PostMedicinesPrescriptionsV2Request {
+ readonly subjectRef: string;
+ readonly medicationRequestRef: string;
+ readonly checkRef: string;
+ readonly scheduleCode: string;
+ readonly pharmacyRef: string;
+ readonly notCheckedRead?: boolean;
+}
+export interface PostMedicinesPrescriptionsV2Response {
+ readonly prescriptionRef: string;
+ readonly stateCode: string;
+}
+
+export interface PostMedicinesPrescriptionsByPrescriptionRefVerifyV2Request {
+ readonly prescriptionRef: string;
+}
+export interface PostMedicinesPrescriptionsByPrescriptionRefVerifyV2Response {
+ readonly verifiedAt: string;
+}
+
+export interface PostMedicinesPrescriptionsByPrescriptionRefDispenseV2Request {
+ readonly prescriptionRef: string;
+ readonly dispenseEntryRef: string;
+ readonly checkRef: string;
+ readonly sealRef: string;
+ readonly notCheckedRead?: boolean;
+}
+export interface PostMedicinesPrescriptionsByPrescriptionRefDispenseV2Response {
+ readonly dispensedAt: string;
+}
+
+export interface PostMedicinesCollectionAuthorisationsRequest {
+ readonly prescriptionRef: string;
+ readonly collectorRef: string;
+ readonly collectorRole: string;
+}
+export interface PostMedicinesCollectionAuthorisationsResponse {
+ readonly authorisationRef: string;
+ readonly handoverPin: string;
+ readonly pinExpiresAt: string;
+ readonly windowEndsAt: string;
+}
+
+export interface PostMedicinesCollectionsV2Request {
+ readonly prescriptionRef: string;
+ readonly authorisationRef: string;
+ readonly sealRef: string;
+}
+export interface PostMedicinesCollectionsV2Response {
+ readonly collectionRef: string;
+ readonly windowEndsAt: string;
+}
+
+export interface PostMedicinesCollectionsByCollectionRefHandoverV2Request {
+ readonly collectionRef: string;
+ readonly handoverPin: string;
+ readonly sealIntact: boolean;
+}
+export interface PostMedicinesCollectionsByCollectionRefHandoverV2Response {
+ readonly handedOverAt: string;
+}
+
+export interface GetMedicinesOrdersV2Request {
+ readonly pharmacyRef: string;
+}
+export interface GetMedicinesOrdersV2Response {
+ readonly orders: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostMedicinesLabOrdersByLabOrderRefCloseRequest {
+ readonly labOrderRef: string;
+}
+export interface PostMedicinesLabOrdersByLabOrderRefCloseResponse {
+ readonly closedAt: string;
+}
+
+export type GetMedicinesSettingsRequest = Record<string, never>;
+export interface GetMedicinesSettingsResponse {
+ readonly settingsVersion: number;
+ readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostMedicinesSettingChangesRequest {
+ readonly idempotencyKey: string;
+ readonly setting: string;
+ readonly wholeNumber?: number;
+ readonly switchedOn?: boolean;
+ readonly choice?: string;
+ readonly wording?: string;
+ readonly roles?: readonly string[];
+ readonly windows?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly items?: readonly string[];
+ readonly parts?: Readonly<Record<string, unknown>>;
+ readonly reason?: string;
+ readonly expectedVersion: number;
+}
+export interface PostMedicinesSettingChangesResponse {
+ readonly settingsVersion: number;
+ readonly appliesFrom: string;
+}
+
+export interface PostMedicinesSettingReviewsRequest {
+ readonly idempotencyKey: string;
+ readonly setting: string;
+ readonly settingsVersion: number;
+ readonly reason?: string;
+}
+export interface PostMedicinesSettingReviewsResponse {
+ readonly settingsVersion: number;
+ readonly reviewedAt: string;
 }
 
 export interface PostDevicesRegistryRequest {
@@ -1699,7 +1764,7 @@ export const apiRoutes = {
  postClinicalReviewsByReviewRefSign: { name: "postClinicalReviewsByReviewRefSign", method: "POST", path: "/v1/clinical/reviews/{reviewRef}/sign", mountedPath: "/v1/clinical/reviews/{reviewRef}/sign", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postClinicalConsultations: { name: "postClinicalConsultations", method: "POST", path: "/v1/clinical/consultations", mountedPath: "/v1/clinical/consultations", version: 1, engine: "clinical", callers: ["doctor","nurse"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postClinicalTriageV2: { name: "postClinicalTriageV2", method: "POST", path: "/v1/clinical/triage", mountedPath: "/v1/clinical/triage", version: 2, engine: "clinical", callers: ["nurse","doctor"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postClinicalResultsByResultRefAcknowledge: { name: "postClinicalResultsByResultRefAcknowledge", method: "POST", path: "/v1/clinical/results/{resultRef}/acknowledge", mountedPath: "/v1/clinical/results/{resultRef}/acknowledge", version: 1, engine: "clinical", callers: ["doctor","nurse"], purpose: ["diagnostics"], idempotent: false, status: "proposed" },
+ postClinicalResultsByResultRefAcknowledge: { name: "postClinicalResultsByResultRefAcknowledge", method: "POST", path: "/v1/clinical/results/{resultRef}/acknowledge", mountedPath: "/v1/clinical/results/{resultRef}/acknowledge", version: 1, engine: "clinical", callers: ["doctor","nurse"], purpose: ["diagnostics"], idempotent: false, status: "built" },
  postClinicalGuidance: { name: "postClinicalGuidance", method: "POST", path: "/v1/clinical/guidance", mountedPath: "/v1/clinical/guidance", version: 1, engine: "clinical", callers: ["nurse","doctor","engine:access"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postClinicalProms: { name: "postClinicalProms", method: "POST", path: "/v1/clinical/proms", mountedPath: "/v1/clinical/proms", version: 1, engine: "clinical", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postSafetyCheckins: { name: "postSafetyCheckins", method: "POST", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
@@ -1768,15 +1833,20 @@ export const apiRoutes = {
  getRecordEncounterStatusesByEncounterRef: { name: "getRecordEncounterStatusesByEncounterRef", method: "GET", path: "/v1/record/encounter-statuses/{encounterRef}", mountedPath: "/v1/record/encounter-statuses/{encounterRef}", version: 1, engine: "record", callers: ["engine:care"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postRecordShareLink: { name: "postRecordShareLink", method: "POST", path: "/share/link", mountedPath: "/v1/record/share/link", version: 1, engine: "record", callers: ["patient","responder-on-trip"], purpose: ["treatment","emergency"], idempotent: false, status: "proposed" },
  postRecordExport: { name: "postRecordExport", method: "POST", path: "/export", mountedPath: "/v1/record/export", version: 1, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "proposed" },
- getMedicinesFormulary: { name: "getMedicinesFormulary", method: "GET", path: "/v1/medicines/formulary", mountedPath: "/v1/medicines/formulary", version: 1, engine: "medicines", callers: ["doctor","nurse","pharmacist"], purpose: ["dispensing"], idempotent: false, status: "proposed" },
- postMedicinesInteractionChecks: { name: "postMedicinesInteractionChecks", method: "POST", path: "/v1/medicines/interaction-checks", mountedPath: "/v1/medicines/interaction-checks", version: 1, engine: "medicines", callers: ["doctor","pharmacist"], purpose: ["dispensing","treatment"], idempotent: false, status: "proposed" },
- postMedicinesPrescriptions: { name: "postMedicinesPrescriptions", method: "POST", path: "/v1/medicines/prescriptions", mountedPath: "/v1/medicines/prescriptions", version: 1, engine: "medicines", callers: ["doctor"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postMedicinesPrescriptionsByPrescriptionRefVerify: { name: "postMedicinesPrescriptionsByPrescriptionRefVerify", method: "POST", path: "/v1/medicines/prescriptions/{prescriptionRef}/verify", mountedPath: "/v1/medicines/prescriptions/{prescriptionRef}/verify", version: 1, engine: "medicines", callers: ["pharmacist"], purpose: ["dispensing"], idempotent: false, status: "proposed" },
- postMedicinesPrescriptionsByPrescriptionRefDispense: { name: "postMedicinesPrescriptionsByPrescriptionRefDispense", method: "POST", path: "/v1/medicines/prescriptions/{prescriptionRef}/dispense", mountedPath: "/v1/medicines/prescriptions/{prescriptionRef}/dispense", version: 1, engine: "medicines", callers: ["pharmacist","pharmacy"], purpose: ["dispensing"], idempotent: false, status: "proposed" },
- postMedicinesCollections: { name: "postMedicinesCollections", method: "POST", path: "/v1/medicines/collections", mountedPath: "/v1/medicines/collections", version: 1, engine: "medicines", callers: ["nurse","courier","responder"], purpose: ["dispensing"], idempotent: false, status: "proposed" },
- postMedicinesCollectionsByCollectionRefHandover: { name: "postMedicinesCollectionsByCollectionRefHandover", method: "POST", path: "/v1/medicines/collections/{collectionRef}/handover", mountedPath: "/v1/medicines/collections/{collectionRef}/handover", version: 1, engine: "medicines", callers: ["nurse","courier","responder"], purpose: ["dispensing"], idempotent: false, status: "proposed" },
- getMedicinesOrders: { name: "getMedicinesOrders", method: "GET", path: "/v1/medicines/orders", mountedPath: "/v1/medicines/orders", version: 1, engine: "medicines", callers: ["pharmacy"], purpose: ["dispensing"], idempotent: false, status: "proposed" },
- postMedicinesLabOrders: { name: "postMedicinesLabOrders", method: "POST", path: "/v1/medicines/lab-orders", mountedPath: "/v1/medicines/lab-orders", version: 1, engine: "medicines", callers: ["doctor","nurse"], purpose: ["diagnostics"], idempotent: false, status: "proposed" },
+ postMedicinesLabOrders: { name: "postMedicinesLabOrders", method: "POST", path: "/v1/medicines/lab-orders", mountedPath: "/v1/medicines/lab-orders", version: 1, engine: "medicines", callers: ["doctor","nurse"], purpose: ["diagnostics"], idempotent: false, status: "built" },
+ getMedicinesFormularyV2: { name: "getMedicinesFormularyV2", method: "GET", path: "/v1/medicines/formulary", mountedPath: "/v1/medicines/formulary", version: 2, engine: "medicines", callers: ["doctor","nurse","pharmacist"], purpose: ["dispensing","treatment"], idempotent: false, status: "built" },
+ postMedicinesInteractionChecksV2: { name: "postMedicinesInteractionChecksV2", method: "POST", path: "/v1/medicines/interaction-checks", mountedPath: "/v1/medicines/interaction-checks", version: 2, engine: "medicines", callers: ["doctor","pharmacist"], purpose: ["dispensing","treatment"], idempotent: false, status: "built" },
+ postMedicinesPrescriptionsV2: { name: "postMedicinesPrescriptionsV2", method: "POST", path: "/v1/medicines/prescriptions", mountedPath: "/v1/medicines/prescriptions", version: 2, engine: "medicines", callers: ["doctor"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postMedicinesPrescriptionsByPrescriptionRefVerifyV2: { name: "postMedicinesPrescriptionsByPrescriptionRefVerifyV2", method: "POST", path: "/v1/medicines/prescriptions/{prescriptionRef}/verify", mountedPath: "/v1/medicines/prescriptions/{prescriptionRef}/verify", version: 2, engine: "medicines", callers: ["pharmacist"], purpose: ["dispensing"], idempotent: false, status: "built" },
+ postMedicinesPrescriptionsByPrescriptionRefDispenseV2: { name: "postMedicinesPrescriptionsByPrescriptionRefDispenseV2", method: "POST", path: "/v1/medicines/prescriptions/{prescriptionRef}/dispense", mountedPath: "/v1/medicines/prescriptions/{prescriptionRef}/dispense", version: 2, engine: "medicines", callers: ["pharmacist","pharmacy"], purpose: ["dispensing"], idempotent: false, status: "built" },
+ postMedicinesCollectionAuthorisations: { name: "postMedicinesCollectionAuthorisations", method: "POST", path: "/v1/medicines/collection-authorisations", mountedPath: "/v1/medicines/collection-authorisations", version: 1, engine: "medicines", callers: ["patient"], purpose: ["dispensing"], idempotent: false, status: "built" },
+ postMedicinesCollectionsV2: { name: "postMedicinesCollectionsV2", method: "POST", path: "/v1/medicines/collections", mountedPath: "/v1/medicines/collections", version: 2, engine: "medicines", callers: ["nurse","courier","responder"], purpose: ["dispensing"], idempotent: false, status: "built" },
+ postMedicinesCollectionsByCollectionRefHandoverV2: { name: "postMedicinesCollectionsByCollectionRefHandoverV2", method: "POST", path: "/v1/medicines/collections/{collectionRef}/handover", mountedPath: "/v1/medicines/collections/{collectionRef}/handover", version: 2, engine: "medicines", callers: ["nurse","courier","responder"], purpose: ["dispensing"], idempotent: false, status: "built" },
+ getMedicinesOrdersV2: { name: "getMedicinesOrdersV2", method: "GET", path: "/v1/medicines/orders", mountedPath: "/v1/medicines/orders", version: 2, engine: "medicines", callers: ["pharmacy"], purpose: ["dispensing"], idempotent: false, status: "built" },
+ postMedicinesLabOrdersByLabOrderRefClose: { name: "postMedicinesLabOrdersByLabOrderRefClose", method: "POST", path: "/v1/medicines/lab-orders/{labOrderRef}/close", mountedPath: "/v1/medicines/lab-orders/{labOrderRef}/close", version: 1, engine: "medicines", callers: ["doctor","nurse"], purpose: ["diagnostics"], idempotent: false, status: "built" },
+ getMedicinesSettings: { name: "getMedicinesSettings", method: "GET", path: "/v1/medicines/settings", mountedPath: "/v1/medicines/settings", version: 1, engine: "medicines", callers: ["admin","doctor"], purpose: ["audit"], idempotent: false, status: "built" },
+ postMedicinesSettingChanges: { name: "postMedicinesSettingChanges", method: "POST", path: "/v1/medicines/setting-changes", mountedPath: "/v1/medicines/setting-changes", version: 1, engine: "medicines", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
+ postMedicinesSettingReviews: { name: "postMedicinesSettingReviews", method: "POST", path: "/v1/medicines/setting-reviews", mountedPath: "/v1/medicines/setting-reviews", version: 1, engine: "medicines", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "built" },
  postDevicesRegistry: { name: "postDevicesRegistry", method: "POST", path: "/v1/devices/registry", mountedPath: "/v1/devices/registry", version: 1, engine: "devices", callers: ["operator"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postDevicesRegistryByDeviceRefRecall: { name: "postDevicesRegistryByDeviceRefRecall", method: "POST", path: "/v1/devices/registry/{deviceRef}/recall", mountedPath: "/v1/devices/registry/{deviceRef}/recall", version: 1, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "proposed" },
  getDevicesRegistryByDeviceRefHealth: { name: "getDevicesRegistryByDeviceRefHealth", method: "GET", path: "/v1/devices/registry/{deviceRef}/health", mountedPath: "/v1/devices/registry/{deviceRef}/health", version: 1, engine: "devices", callers: ["nurse","operator"], purpose: ["treatment"], idempotent: false, status: "proposed" },

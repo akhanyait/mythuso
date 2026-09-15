@@ -1,17 +1,21 @@
 {
  "engine": "medicines",
- "_note": "Medicines & Labs is Thuso Pharmacy: the formulary, interaction checks at prescribe and dispense, prescriptions through the §5.4 states, collections with a chain of custody (§10), the partner pharmacy's queue and lab orders. Lab results arrive on a door to add. Wave 2 contract; Wave 4 build.",
+ "_note": "Medicines & Labs is Thuso Pharmacy: the formulary, interaction checks at prescribe and dispense, prescriptions through the §5.4 states, collections with a chain of custody (§10), the partner pharmacy's queue and lab orders whose results arrive on the lab-result door. Wave 2 contract; built in Wave 4 on packages/engines. The version ones the engine could not honestly answer are withdrawn, each naming its correction. Medicines keeps references and states, never a medicine, a dose or a result: packages/catalog/medicines.json#whereContentLives.",
  "version": 1,
- "resources": ["formulary", "interaction-checks", "prescriptions", "collections", "orders", "lab-orders"],
- "doors": ["pharmacy-order"],
- "doorsToAdd": [
-  {"id": "lab-result", "why": "The partner lab's results are supplier callbacks; a door to add.", "capabilityNamed": {"section": "FS-E8", "what": "Lab sample queue and result screens"}}
- ],
+ "resources": ["formulary", "interaction-checks", "prescriptions", "collection-authorisations", "collections", "orders", "lab-orders", "settings", "setting-changes", "setting-reviews"],
+ "doors": ["pharmacy-order", "lab-result"],
+ "doorsToAdd": [],
  "refusals": [
-  {"id": "prescriber-verifies-own-script", "status": 403, "statement": "The prescriber cannot verify their own script.", "why": "§5.4: separation of duties."},
-  {"id": "schedule-five-six-by-driver", "status": 403, "statement": "A driver never carries Schedule 5 or 6.", "why": "§10: controlled substances go nurse-only or with the patient present."},
-  {"id": "lab-result-complete-before-acknowledgement", "status": 409, "statement": "A lab result is not complete until it is acknowledged.", "why": "Full Scope Engine 8."},
-  {"id": "reward-for-taking-a-medicine", "status": 422, "statement": "Nothing rewards taking a medicine.", "why": "Section 18A of the Medicines and Related Substances Act; held pending counsel."}
+  {"id": "prescriber-verifies-own-script", "status": 403, "statement": "The prescriber cannot verify their own script.", "why": "§5.4: separation of duties. Worked out from the references that acted, never the roles: the reference that prescribed is refused whatever role it verifies in.", "answeredBy": ["POST /v1/medicines/prescriptions/{prescriptionRef}/verify@2"]},
+  {"id": "schedule-five-six-by-driver", "status": 403, "statement": "A driver never carries Schedule 5 or 6.", "why": "§10: controlled substances go nurse-only or with the patient present. Which schedules and which roles are packages/catalog/dispensing.json#schedules, and the schedule is the prescription's, never the carrier's to declare.", "answeredBy": ["POST /v1/medicines/collection-authorisations@1", "POST /v1/medicines/collections@2"]},
+  {"id": "lab-result-complete-before-acknowledgement", "status": 409, "statement": "A lab result is not complete until it is acknowledged.", "why": "Full Scope Engine 8.", "answeredBy": ["POST /v1/medicines/lab-orders/{labOrderRef}/close@1"]},
+  {"id": "reward-for-taking-a-medicine", "status": 422, "statement": "Nothing rewards taking a medicine.", "why": "Section 18A of the Medicines and Related Substances Act; held pending counsel, which is the founder's decision. No route offers a reward, so no route answers this: scripts/check-boundaries.mjs holds rewards.json, the engine and every screen to it instead."},
+  {"id": "no-such-prescription", "status": 404, "statement": "Medicines holds no prescription by that reference.", "why": "A reference Medicines never issued is refused rather than acted on, so a mistyped reference cannot become a verification, a dispense or a collection of nothing.", "answeredBy": ["POST /v1/medicines/prescriptions/{prescriptionRef}/verify@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@2", "POST /v1/medicines/collection-authorisations@1", "POST /v1/medicines/collections@2"]},
+  {"id": "not-vetted-for-this", "status": 403, "statement": "Only somebody the vetting register clears for this, today, may do it.", "why": "packages/catalog/vetting.json grants prescribe and dispense to roles, and Trust's events say whether the person or the pharmacy is verified today. A role the register does not grant, a person never heard verified, and one suspended or deactivated since, are each refused.", "answeredBy": ["POST /v1/medicines/prescriptions@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/verify@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@2"]},
+  {"id": "unnamed-caller", "status": 403, "statement": "This is done by a named person, and nobody was named.", "why": "Separation of duties, a patient's authorisation and a PIN's custody are arithmetic on who acted. A caller the runtime cannot name cannot be compared with anybody, so it is refused rather than treated as nobody in particular.", "answeredBy": ["POST /v1/medicines/prescriptions@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/verify@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@2", "POST /v1/medicines/collection-authorisations@1", "POST /v1/medicines/collections@2", "POST /v1/medicines/collections/{collectionRef}/handover@2", "GET /v1/medicines/orders@2"]},
+  {"id": "check-not-for-this", "status": 422, "statement": "That interaction check was not run for this patient at this stage.", "why": "A check at prescribe is not a check at dispense, and a check on one patient is not a check on another.", "answeredBy": ["POST /v1/medicines/prescriptions@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@2"]},
+  {"id": "check-already-cited", "status": 409, "statement": "That interaction check has already been cited.", "why": "One check stands behind one prescription or one dispense. A check cited twice is a second act that nobody checked.", "answeredBy": ["POST /v1/medicines/prescriptions@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@2"]},
+  {"id": "not-checked-not-read", "status": 422, "statement": "That check was not run. Say you have read why before you go on.", "why": "With no licensed source the check answers not checked, and a prescriber or a pharmacist who goes ahead does so knowing it, on the record, rather than reading an unrun check as a clean one.", "answeredBy": ["POST /v1/medicines/prescriptions@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@2"]}
  ],
  "ownIds": [],
  "routes": [
@@ -20,7 +24,7 @@
    "path": "/v1/medicines/formulary",
    "version": 1,
    "summary": "Search the coded medicine list.",
-   "callers": ["doctor", "nurse", "pharmacist"],
+   "callers": [],
    "purpose": ["dispensing"],
    "request": [
     {"field": "query", "type": "string", "required": true, "why": "What to look for."}
@@ -36,14 +40,15 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§9", "what": "Formulary: the medicines knowledge engine"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "GET /v1/medicines/formulary@2", "why": "Its answer had nowhere to say the list is synthetic, and its only refusal said the list is not licensed, so a development list answered through it would read as the licensed one. Its entries were described only in prose. Version two says the list is synthetic in every answer and declares the inside of an entry."}
   },
   {
    "method": "POST",
    "path": "/v1/medicines/interaction-checks",
    "version": 1,
    "summary": "Check allergies, interactions and duplicate therapy.",
-   "callers": ["doctor", "pharmacist"],
+   "callers": [],
    "purpose": ["dispensing", "treatment"],
    "request": [
     {"field": "subjectRef", "type": "string", "required": true, "why": "Whose medicines."},
@@ -63,14 +68,15 @@
    "reads": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§5.4", "what": "Allergy, drug-drug and duplicate-therapy checks"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/medicines/interaction-checks@2", "why": "It could answer only with a list of flags. With no licensed source to check against, the one honest answer it had was an empty list, which reads as nothing found; and it took the medicines' codes, which the Medicines engine may not hold. Version two answers not checked, with the reason in words."}
   },
   {
    "method": "POST",
    "path": "/v1/medicines/prescriptions",
    "version": 1,
    "summary": "Prescribe, after the interaction check.",
-   "callers": ["doctor"],
+   "callers": [],
    "purpose": ["treatment"],
    "request": [
     {"field": "subjectRef", "type": "string", "required": true, "why": "For whom."},
@@ -90,14 +96,15 @@
    "endpointNamed": null,
    "capabilityNamed": {"section": "§5.4", "what": "prescribed → pharmacist-verified"},
    "status": "proposed",
-   "through": "passport-gateway"
+   "through": "passport-gateway",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/medicines/prescriptions@2", "why": "It carried the medicine's code and the dose to the Medicines engine, whose store has none of the record's protections. The prescriber writes the MedicationRequest through the Passport gateway first, and version two cites it by reference with the schedule the custody rule needs."}
   },
   {
    "method": "POST",
    "path": "/v1/medicines/prescriptions/{prescriptionRef}/verify",
    "version": 1,
    "summary": "A pharmacist verifies the prescription.",
-   "callers": ["pharmacist"],
+   "callers": [],
    "purpose": ["dispensing"],
    "request": [
     {"field": "prescriptionRef", "type": "string", "required": true, "why": "The prescription."}
@@ -112,14 +119,15 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§5.4", "what": "Pharmacist verification is a distinct role"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/medicines/prescriptions/{prescriptionRef}/verify@2", "why": "It could refuse only the prescriber verifying their own prescription. A reference Medicines never issued, a second verification, an unnamed pharmacist and one the vetting register does not clear had no honest answer."}
   },
   {
    "method": "POST",
    "path": "/v1/medicines/prescriptions/{prescriptionRef}/dispense",
    "version": 1,
    "summary": "A licensed pharmacy dispenses.",
-   "callers": ["pharmacist", "pharmacy"],
+   "callers": [],
    "purpose": ["dispensing"],
    "request": [
     {"field": "prescriptionRef", "type": "string", "required": true, "why": "The prescription."},
@@ -136,14 +144,15 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§5.4", "what": "pharmacist-verified → dispensed"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@2", "why": "It cited no interaction check at dispense and no seal, so a bag could leave the pharmacy unchecked, with nothing to prove at the door that it arrived unopened."}
   },
   {
    "method": "POST",
    "path": "/v1/medicines/collections",
    "version": 1,
    "summary": "Collect a sealed, scanned bag with the patient's authorisation.",
-   "callers": ["nurse", "courier", "responder"],
+   "callers": [],
    "purpose": ["dispensing"],
    "request": [
     {"field": "prescriptionRef", "type": "string", "required": true, "why": "The prescription."},
@@ -162,14 +171,15 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§10", "what": "sealed tamper-evident bag with QR"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/medicines/collections@2", "why": "The schedule was the carrier's to declare, so the refusal that keeps Schedule 5 and 6 away from a driver depended on the driver saying which schedule the bag held, and nothing checked that the collector was the one the patient authorised. Version two reads the schedule from the prescription and the collector from the patient's authorisation."}
   },
   {
    "method": "POST",
    "path": "/v1/medicines/collections/{collectionRef}/handover",
    "version": 1,
    "summary": "Hand the bag over with the PIN.",
-   "callers": ["nurse", "courier", "responder"],
+   "callers": [],
    "purpose": ["dispensing"],
    "request": [
     {"field": "collectionRef", "type": "string", "required": true, "why": "The collection."},
@@ -187,14 +197,15 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§10", "what": "Hand-over signature or PIN"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/medicines/collections/{collectionRef}/handover@2", "why": "It had no attempt limit, no expiry and no check that the person at the door was the collector the patient authorised, so a PIN could be guessed at the door by anybody holding the bag."}
   },
   {
    "method": "GET",
    "path": "/v1/medicines/orders",
    "version": 1,
    "summary": "The partner pharmacy reads its queue.",
-   "callers": ["pharmacy"],
+   "callers": [],
    "purpose": ["dispensing"],
    "request": [],
    "response": [
@@ -208,7 +219,8 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "GET /v1/medicines/orders@2", "why": "Its orders were described only in prose, so nothing held a pharmacy's queue to what a pharmacy may see, and it could not say which pharmacy was asking. Version two declares every field of an order, carries nothing about the patient, and answers only the pharmacy the queue belongs to."}
   },
   {
    "method": "POST",
@@ -232,7 +244,412 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E8", "what": "Home sample collection"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'POST /v1/medicines/lab-orders@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/medicines/formulary",
+   "version": 2,
+   "summary": "Search the synthetic development formulary. No licensed list exists, and every answer says the list is synthetic.",
+   "callers": ["doctor", "nurse", "pharmacist"],
+   "purpose": ["dispensing", "treatment"],
+   "request": [
+    {"field": "query", "type": "string", "required": true, "why": "What to look for, in an entry's code or label."}
+   ],
+   "response": [
+    {"field": "listStatus", "type": "string", "required": true, "why": "synthetic, from packages/catalog/medicines.json, until a licensed list exists."},
+    {"field": "notice", "type": "string", "required": true, "why": "The sentence every screen shows above the list."},
+    {"field": "entries", "type": "list", "required": true, "why": "The entries that match.", "object": true, "fields": [{"field": "entryCode", "type": "string", "required": true, "why": "The synthetic entry's code. Never a NAPPI code."}, {"field": "label", "type": "string", "required": true, "why": "What the synthetic entry is called."}, {"field": "scheduleCode", "type": "string", "required": true, "why": "The schedule, from packages/catalog/dispensing.json#schedules, which the custody rule needs."}]}
+   ],
+   "refusals": [
+    {"id": "blank-query", "status": 422, "statement": "Say what to look for. The list is searched, never handed over whole.", "why": "A formulary read whole is an export nobody asked for, and a search box that answers blank with everything teaches a screen to download it."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Searching changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§9", "what": "Formulary: the medicines knowledge engine"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'GET /v1/medicines/formulary@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/interaction-checks",
+   "version": 2,
+   "summary": "Run the allergy, interaction and duplicate-therapy check at prescribe or at dispense. With no licensed source it answers not checked, with the reason, and never that nothing was found.",
+   "callers": ["doctor", "pharmacist"],
+   "purpose": ["dispensing", "treatment"],
+   "request": [
+    {"field": "subjectRef", "type": "string", "required": true, "why": "Whose check."},
+    {"field": "stageCode", "type": "string", "required": true, "why": "prescribe or dispense, from packages/catalog/medicines.json."}
+   ],
+   "response": [
+    {"field": "checkRef", "type": "string", "required": true, "why": "The check, cited once by the prescription or the dispense."},
+    {"field": "outcomeCode", "type": "string", "required": true, "why": "An outcome from packages/catalog/medicines.json. not-checked is the only one while no licensed source is named."},
+    {"field": "reason", "type": "string", "required": true, "why": "Why it came out as it did, as the contract's sentence."}
+   ],
+   "refusals": [
+    {"id": "stage-not-known", "status": 422, "statement": "An interaction check is run at prescribe or at dispense, and at no other stage.", "why": "A check at an unnamed stage cannot be cited by either act, so it is refused rather than stored."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A check tells no other engine anything. It is Medicines' own record, cited by the prescription or the dispense that stands on it.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§5.4", "what": "Allergy, drug-drug and duplicate-therapy checks"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'POST /v1/medicines/interaction-checks@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/prescriptions",
+   "version": 2,
+   "summary": "Prescribe against the MedicationRequest the prescriber wrote through the Passport gateway, citing the interaction check at prescribe and routing it to a verified pharmacy. Medicines keeps the references, the schedule and the state, never the medicine or the dose.",
+   "callers": ["doctor"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "subjectRef", "type": "string", "required": true, "why": "For whom."},
+    {"field": "medicationRequestRef", "type": "string", "required": true, "why": "The MedicationRequest already written into the Passport, where the medicine and the dose are."},
+    {"field": "checkRef", "type": "string", "required": true, "why": "The interaction check at prescribe."},
+    {"field": "scheduleCode", "type": "string", "required": true, "why": "The medicine's schedule, from packages/catalog/dispensing.json#schedules. Kept so a driver is never authorised to carry Schedule 5 or 6."},
+    {"field": "pharmacyRef", "type": "string", "required": true, "why": "The pharmacy the prescription is routed to."},
+    {"field": "notCheckedRead", "type": "boolean", "required": false, "why": "True when the prescriber has read why the check was not run."}
+   ],
+   "response": [
+    {"field": "prescriptionRef", "type": "string", "required": true, "why": "The prescription."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "prescribed."}
+   ],
+   "refusals": [
+    {"id": "no-interaction-check", "status": 422, "statement": "A prescription is written only after the interaction check.", "why": "§5.4: checks at prescribe time. A check Medicines never ran is no check."},
+    {"id": "schedule-not-handled", "status": 422, "statement": "That schedule is not one MyThuso prescribes.", "why": "packages/catalog/dispensing.json#schedules lists what is prescribed and carried here, and a schedule it does not list is refused rather than guessed at."},
+    {"id": "pharmacy-not-verified", "status": 403, "statement": "That pharmacy is not verified to receive a prescription today.", "why": "A prescription is never routed to a pharmacy whose licence or responsible pharmacist is not current (vetting.json, the pharmacy's dispense grant)."}
+   ],
+   "emits": ["prescription.prescribed@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§5.4", "what": "prescribed → pharmacist-verified"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'POST /v1/medicines/prescriptions@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/prescriptions/{prescriptionRef}/verify",
+   "version": 2,
+   "summary": "A pharmacist who is not the prescriber verifies the prescription, under the dispense grant of the pharmacy it was routed to.",
+   "callers": ["pharmacist"],
+   "purpose": ["dispensing"],
+   "request": [
+    {"field": "prescriptionRef", "type": "string", "required": true, "why": "The prescription."}
+   ],
+   "response": [
+    {"field": "verifiedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "already-verified", "status": 409, "statement": "That prescription has already been verified.", "why": "A verification is recorded once, by the pharmacist who made it."}
+   ],
+   "emits": ["prescription.verified@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§5.4", "what": "Pharmacist verification is a distinct role"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'POST /v1/medicines/prescriptions/{prescriptionRef}/verify@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/prescriptions/{prescriptionRef}/dispense",
+   "version": 2,
+   "summary": "A verified pharmacy dispenses a verified prescription, citing the interaction check at dispense and the seal on the bag.",
+   "callers": ["pharmacist", "pharmacy"],
+   "purpose": ["dispensing"],
+   "request": [
+    {"field": "prescriptionRef", "type": "string", "required": true, "why": "The prescription."},
+    {"field": "dispenseEntryRef", "type": "string", "required": true, "why": "The dispense record written into the Passport."},
+    {"field": "checkRef", "type": "string", "required": true, "why": "The interaction check at dispense."},
+    {"field": "sealRef", "type": "string", "required": true, "why": "The tamper-evident bag's QR, sealed now and read back at collection."},
+    {"field": "notCheckedRead", "type": "boolean", "required": false, "why": "True when the pharmacist has read why the check was not run."}
+   ],
+   "response": [
+    {"field": "dispensedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "not-verified", "status": 409, "statement": "Nothing is dispensed before a pharmacist verifies it.", "why": "The states are followed in order."},
+    {"id": "unlicensed-pharmacy", "status": 403, "statement": "Only a licensed pharmacy dispenses.", "why": "Full Scope Engine 8. The pharmacy the prescription was routed to is verified today, or nothing is dispensed from it."},
+    {"id": "already-dispensed", "status": 409, "statement": "That prescription has already been dispensed.", "why": "A dispense is recorded once, against one seal."}
+   ],
+   "emits": ["dispense.completed@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§5.4", "what": "pharmacist-verified → dispensed"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/collection-authorisations",
+   "version": 1,
+   "summary": "The patient authorises the one person who may collect their dispensed bag, and is shown a hand-over PIN once.",
+   "callers": ["patient"],
+   "purpose": ["dispensing"],
+   "request": [
+    {"field": "prescriptionRef", "type": "string", "required": true, "why": "The prescription."},
+    {"field": "collectorRef", "type": "string", "required": true, "why": "The person the patient authorises."},
+    {"field": "collectorRole", "type": "string", "required": true, "why": "The role they collect in, from packages/catalog/medicines.json custody.collectorRoles."}
+   ],
+   "response": [
+    {"field": "authorisationRef", "type": "string", "required": true, "why": "The authorisation, which the collector presents."},
+    {"field": "handoverPin", "type": "string", "required": true, "why": "The PIN the patient gives the collector at the door. Shown once."},
+    {"field": "pinExpiresAt", "type": "instant", "required": true, "why": "When the PIN stops working, from the settings in force now."},
+    {"field": "windowEndsAt", "type": "instant", "required": true, "why": "When the authorisation lapses if the bag has not been handed over."}
+   ],
+   "refusals": [
+    {"id": "not-your-prescription", "status": 403, "statement": "Only the patient a prescription is for authorises who collects it.", "why": "A collection on a patient's behalf is by their authority, and the runtime's reference for the caller is compared with the prescription's subject."},
+    {"id": "collector-role-not-allowed", "status": 422, "statement": "Only a nurse, a courier or a responder may be authorised to collect.", "why": "packages/catalog/medicines.json custody.collectorRoles, which are the callers the collection routes take."},
+    {"id": "collection-under-way", "status": 409, "statement": "A collection is already under way for this prescription.", "why": "One bag, one authorised collector at a time. A new authorisation is given once the last one lapsed or was voided."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The authorisation is Medicines' own record. No engine acts on it until the bag is collected, which publishes delivery.collected.",
+   "secretResponseFields": [{"field": "handoverPin", "shownOnce": "The hand-over PIN was shown once, to the patient who authorised the collection, and is not shown again. Medicines keeps only a salted digest of it."}],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'POST /v1/medicines/collection-authorisations@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/collections",
+   "version": 2,
+   "summary": "The collector the patient authorised collects the dispensed, sealed bag, scanning its seal.",
+   "callers": ["nurse", "courier", "responder"],
+   "purpose": ["dispensing"],
+   "request": [
+    {"field": "prescriptionRef", "type": "string", "required": true, "why": "The prescription."},
+    {"field": "authorisationRef", "type": "string", "required": true, "why": "The patient's authorisation."},
+    {"field": "sealRef", "type": "string", "required": true, "why": "The seal scanned on the bag, which must be the one it was sealed with."}
+   ],
+   "response": [
+    {"field": "collectionRef", "type": "string", "required": true, "why": "The collection."},
+    {"field": "windowEndsAt", "type": "instant", "required": true, "why": "When the authorisation lapses if the bag has not been handed over."}
+   ],
+   "refusals": [
+    {"id": "no-authorisation", "status": 403, "statement": "Nobody collects without the patient's authorisation.", "why": "Collection on behalf of a patient is by their authority."},
+    {"id": "not-the-authorised-collector", "status": 403, "statement": "Only the person the patient authorised collects or hands over this bag.", "why": "The authorisation names one person, and the runtime's reference for the caller is compared with it."},
+    {"id": "not-dispensed", "status": 409, "statement": "Nothing is collected before it is dispensed and sealed.", "why": "The states are followed in order."},
+    {"id": "seal-does-not-match", "status": 409, "statement": "That seal is not the one this bag was sealed with.", "why": "Chain of custody: the seal read at the counter is the seal written at dispense, or the bag is not the bag."},
+    {"id": "authorisation-lapsed", "status": 409, "statement": "The patient's authorisation has lapsed. They authorise a collection again.", "why": "An authorisation keeps the window it was given with, and a lapsed one hands over nothing."},
+    {"id": "already-collected", "status": 409, "statement": "That bag has already been collected.", "why": "One collection per authorisation."}
+   ],
+   "emits": ["delivery.collected@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§10", "what": "sealed tamper-evident bag with QR"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'POST /v1/medicines/collections@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/collections/{collectionRef}/handover",
+   "version": 2,
+   "summary": "The authorised collector hands the bag over at the door against the patient's PIN, with the seal unbroken.",
+   "callers": ["nurse", "courier", "responder"],
+   "purpose": ["dispensing"],
+   "request": [
+    {"field": "collectionRef", "type": "string", "required": true, "why": "The collection."},
+    {"field": "handoverPin", "type": "string", "required": true, "why": "The PIN the patient gives at the door."},
+    {"field": "sealIntact", "type": "boolean", "required": true, "why": "Whether the seal held."}
+   ],
+   "response": [
+    {"field": "handedOverAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "broken-seal", "status": 409, "statement": "A broken seal voids the delivery; the bag goes back to the pharmacy.", "why": "Chain of custody."},
+    {"id": "wrong-pin", "status": 403, "statement": "That PIN is not right.", "why": "The PIN proves the hand-over. Each wrong one is counted, and the count survives the refusal."},
+    {"id": "pin-attempts-exhausted", "status": 409, "statement": "Too many wrong PINs. The bag goes back to the pharmacy, and the patient authorises a collection again.", "why": "A PIN walked by guessing at the door is no PIN. The limit is the one the collection was authorised under."},
+    {"id": "pin-expired", "status": 409, "statement": "That PIN has expired. The bag goes back to the pharmacy, and the patient authorises a collection again.", "why": "A PIN keeps the expiry it was shown with, and an expired one opens nothing."},
+    {"id": "not-the-authorised-collector", "status": 403, "statement": "Only the person the patient authorised collects or hands over this bag.", "why": "Whoever is holding the bag is not, for that, the person the patient chose."},
+    {"id": "authorisation-lapsed", "status": 409, "statement": "The patient's authorisation has lapsed. They authorise a collection again.", "why": "An authorisation keeps the window it was given with, and a lapsed one hands over nothing."},
+    {"id": "no-such-collection", "status": 404, "statement": "Medicines holds no collection by that reference.", "why": "A reference Medicines never issued hands over nothing."},
+    {"id": "already-handed-over", "status": 409, "statement": "That bag has already been handed over.", "why": "One hand-over per collection."},
+    {"id": "collection-voided", "status": 409, "statement": "That collection was voided, and the bag goes back to the pharmacy.", "why": "A broken seal or too many wrong PINs ends a collection; only a new authorisation starts another."}
+   ],
+   "emits": ["delivery.handed_over@1"],
+   "secretRequestFields": [{"field": "handoverPin", "why": "The patient's hand-over PIN. The runtime keeps a digest of an accepted request's fields to refuse a reused key; a digest of six digits would be the six digits to anybody holding the store file, so the PIN is left out of it."}],
+   "keptOnRefusal": {"refusals": ["wrong-pin", "pin-attempts-exhausted", "broken-seal"], "tables": ["handover_attempts"], "why": "A wrong PIN and a broken seal are refused, and a refusal rolls back everything else the handler did. The row that counts a wrong PIN and the row that voids a collection for a broken seal must survive that refusal, or the attempt limit never bites and a voided bag can be handed over on the next try."},
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§10", "what": "Hand-over signature or PIN"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'POST /v1/medicines/collections/{collectionRef}/handover@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/medicines/orders",
+   "version": 2,
+   "summary": "A pharmacy reads what it must verify and dispense, and nothing about the patient beyond the reference the Passport gateway opens.",
+   "callers": ["pharmacy"],
+   "purpose": ["dispensing"],
+   "request": [
+    {"field": "pharmacyRef", "type": "string", "required": true, "why": "The pharmacy whose queue is asked for, which must be the pharmacy asking."}
+   ],
+   "response": [
+    {"field": "orders", "type": "list", "required": true, "why": "The prescriptions routed to this pharmacy that are not yet collected, oldest first, each carrying exactly packages/catalog/medicines.json partnerQueue.carries.", "object": true, "fields": [{"field": "prescriptionRef", "type": "string", "required": true, "why": "The prescription to verify and dispense."}, {"field": "medicationRequestRef", "type": "string", "required": true, "why": "The MedicationRequest in the Passport, opened through the gateway under the pharmacist's own grant. The medicine is there and nowhere in this queue."}, {"field": "scheduleCode", "type": "string", "required": true, "why": "The schedule, which decides who may carry the bag."}, {"field": "stateCode", "type": "string", "required": true, "why": "Where the prescription has got to."}, {"field": "prescribeCheckOutcomeCode", "type": "string", "required": true, "why": "What the interaction check at prescribe answered, so a pharmacist is told when it was not run."}, {"field": "prescribedAt", "type": "instant", "required": true, "why": "When it was prescribed."}, {"field": "verifiedAt", "type": "instant", "required": true, "nullable": true, "why": "When a pharmacist verified it, or null before."}, {"field": "dispensedAt", "type": "instant", "required": true, "nullable": true, "why": "When it was dispensed, or null before."}]}
+   ],
+   "refusals": [
+    {"id": "another-pharmacys-queue", "status": 403, "statement": "That queue belongs to another pharmacy.", "why": "A pharmacy sees its own orders."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'GET /v1/medicines/orders@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/lab-orders/{labOrderRef}/close",
+   "version": 1,
+   "summary": "Close a lab order once the clinician who ordered it has acknowledged its result. Nothing closes a result nobody acknowledged.",
+   "callers": ["doctor", "nurse"],
+   "purpose": ["diagnostics"],
+   "request": [
+    {"field": "labOrderRef", "type": "string", "required": true, "why": "The order."}
+   ],
+   "response": [
+    {"field": "closedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "no-such-lab-order", "status": 404, "statement": "Medicines holds no lab order by that reference.", "why": "A reference Medicines never issued closes nothing."},
+    {"id": "no-result-yet", "status": 409, "statement": "No result has come back for that order, so there is nothing to close.", "why": "An order is closed on its result. One cancelled before a result is a different act, not built here."},
+    {"id": "lab-order-closed", "status": 409, "statement": "That lab order is already closed.", "why": "A close is recorded once."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Closing is Medicines' own record. The acknowledgement that allows it was already published by Clinical as result.acknowledged.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E8", "what": "Lab sample queue and result screens"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'POST /v1/medicines/lab-orders/{labOrderRef}/close@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/medicines/settings",
+   "version": 1,
+   "summary": "Read Medicines' settings in force — how long a hand-over PIN works, how many wrong PINs a collector may enter, how long a collection may take and how urgently an unacknowledged result goes to a clinician — each with its default and who proposed it, what an admin may set, its clinical review, and every change made to them.",
+   "callers": ["admin", "doctor"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The version in force. A change is made against it, and whatever starts now keeps it."},
+    {"field": "settings", "type": "list", "required": true, "why": "Each setting: its key, type, unit, the value in force and the version that set it, its default and provenance, its limits, who may change it, what a change reaches, its guardrail, and its clinical review.", "object": true, "fields": [{"field": "setting", "type": "string", "required": true, "why": "The setting's key, which a change names."}, {"field": "label", "type": "string", "required": true, "why": "Its name on the Configuration screen."}, {"field": "help", "type": "string", "required": true, "why": "The question it answers, as a sentence."}, {"field": "type", "type": "string", "required": true, "why": "One of the types in packages/catalog/settings.json."}, {"field": "unit", "type": "string", "required": true, "nullable": true, "why": "What the value is counted in, or null for a type that has none."}, {"field": "inForce", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The value in force: a number, a switch, a word, a list, a rota or a record, as its type gives."}, {"field": "setAtVersion", "type": "integer", "required": true, "why": "The settings version that set the value in force, 1 for the contract's default."}, {"field": "default", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The contract's default, of the same kind as the value in force."}, {"field": "provenance", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#provenance", "why": "Who decided the default, when and why, or who proposed it and why, and who reviewed it where somebody did."}, {"field": "limits", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#setting", "why": "What an admin may set — the bounds, allowed values, roles, posts, items or parts its type carries — with their provenance."}, {"field": "changedBy", "type": "list", "required": true, "why": "The roles that may change it, resolved from the contract and the settings in force."}, {"field": "appliesTo", "type": "string", "required": true, "why": "What a change reaches, as a sentence."}, {"field": "guardrail", "type": "string", "required": true, "nullable": true, "why": "The sentence no value may break, or null for a setting with none."}, {"field": "reviewRequired", "type": "string", "required": true, "nullable": true, "why": "The capability whose holder confirms its clinical review, or null for a setting that waits on nobody."}, {"field": "reviewed", "type": "string", "required": true, "nullable": true, "object": true, "why": "Who confirmed the clinical review of the value in force, or null while it is not clinically reviewed.", "fields": [{"field": "byRef", "type": "string", "required": true, "why": "The reviewer's reference."}, {"field": "at", "type": "instant", "required": true, "nullable": true, "why": "When the review was confirmed through the review route, or null for a default reviewed before it shipped."}, {"field": "on", "type": "iso-date", "required": true, "nullable": true, "why": "The day a default was reviewed before it shipped, or null for a review confirmed through the route."}]}]},
+    {"field": "history", "type": "list", "required": true, "why": "Every accepted change, oldest first: which setting, from, to, who, when and why. Nothing in it is edited or removed.", "object": true, "fields": [{"field": "settingsVersion", "type": "integer", "required": true, "why": "The version this change made."}, {"field": "setting", "type": "string", "required": true, "why": "The setting it changed."}, {"field": "from", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The value before, of the kind its type gives."}, {"field": "to", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The value after."}, {"field": "reason", "type": "string", "required": true, "why": "Why, as it was written."}, {"field": "byRole", "type": "string", "required": true, "why": "The role of the person who made it."}, {"field": "byRef", "type": "string", "required": true, "why": "The reference of the person who made it, from the caller the runtime admitted."}, {"field": "at", "type": "instant", "required": true, "why": "When it was made."}]}
+   ],
+   "refusals": [
+    {"id": "settings-read-not-permitted", "status": 403, "statement": "Only somebody who may change these settings reads them and who changed them.", "why": "The history names the people who changed how an engine behaves. It is read by the roles that may change it."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'GET /v1/medicines/settings@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/setting-changes",
+   "version": 1,
+   "summary": "Change one Medicines setting, with a reason, against the version in force. It applies to collections authorised and results raised after it, and never to one already under way.",
+   "callers": ["admin"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same change once, and the history gains one row."},
+    {"field": "setting", "type": "string", "required": true, "why": "The setting's key, from the settings block of the engine's own contract."},
+    {"field": "wholeNumber", "type": "integer", "required": false, "why": "The new value, for a setting in minutes, a count, cents or a percentage."},
+    {"field": "switchedOn", "type": "boolean", "required": false, "why": "The new value, for a setting that is on or off."},
+    {"field": "choice", "type": "string", "required": false, "why": "The new value, for a setting that is one of a few named choices."},
+    {"field": "wording", "type": "string", "required": false, "why": "The new wording, for a setting patients or nurses read."},
+    {"field": "roles", "type": "list", "required": false, "why": "The new roles, for a setting that names roles from packages/catalog/vetting.json."},
+    {"field": "windows", "type": "list", "required": false, "why": "The new rota, for a setting that is windows of a post, days and hours. A post, never a named person.", "object": true, "fields": [{"field": "post", "type": "string", "required": true, "why": "The post the window is for, by its id in the setting's posts. Never a named person."}, {"field": "days", "type": "list", "required": true, "why": "The days of the week it covers, from the days packages/catalog/settings.json lists."}, {"field": "from", "type": "string", "required": true, "why": "When it opens, as hours and minutes from 00:00."}, {"field": "to", "type": "string", "required": true, "why": "When it closes, after it opens and no later than 24:00."}]},
+    {"field": "items", "type": "list", "required": false, "why": "The new values, for a setting that is a list."},
+    {"field": "parts", "type": "string", "required": false, "why": "The new values, for a setting whose parts change together.", "object": true, "shapeFrom": "packages/catalog/settings.json#partTypes"},
+    {"field": "reason", "type": "string", "required": false, "why": "Why. Asked for by the handler rather than the binder, so that a change without one is refused in its own sentence rather than the general one for a missing field."},
+    {"field": "expectedVersion", "type": "integer", "required": true, "why": "The settings version the admin was looking at. A change against an older one is refused."}
+   ],
+   "response": [
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The version this change made."},
+    {"field": "appliesFrom", "type": "instant", "required": true, "why": "When it took effect. Whatever started before it keeps the version it started under."}
+   ],
+   "refusals": [
+    {"id": "setting-change-not-permitted", "status": 403, "statement": "Only the role a setting names changes it, and the change is recorded against a named person.", "why": "A setting decides how the platform treats people. The role or capability the setting names changes it, and a change is recorded against somebody who can be asked about it; everybody else only reads what is in force."},
+    {"id": "setting-not-known", "status": 422, "statement": "There is no setting by that name.", "why": "An unknown setting is refused rather than stored, or the history fills with changes nothing reads."},
+    {"id": "setting-change-without-reason", "status": 422, "statement": "A change to a setting says why, or it is not made.", "why": "The history is read after something has gone wrong. A change with no reason is a number somebody moved."},
+    {"id": "settings-version-stale", "status": 409, "statement": "These settings changed after you opened them. Read what is in force now and decide against that.", "why": "Two admins changing one setting from screens opened at the same time would each overwrite a decision they never saw."},
+    {"id": "setting-value-wrong-type", "status": 422, "statement": "That is not the kind of value this setting holds.", "why": "A word where a number belongs, or a list where one choice belongs, is a guess at what the admin meant, and a setting is never set by a guess."},
+    {"id": "setting-not-above-zero", "status": 422, "statement": "This setting is never nought or less, whatever its range says.", "why": "A wait of nothing, an offer that lapses as it is made and a fee of nothing are never what anybody meant. The range is a proposal and could be set wrongly; this refusal does not depend on it."},
+    {"id": "setting-role-not-on-register", "status": 422, "statement": "Every role a setting names is a role on the vetting register.", "why": "A role the register does not hold is a gate nobody can be vetted through, which looks like a shortage rather than a mistake."},
+    {"id": "setting-text-too-long", "status": 422, "statement": "That wording is longer than this setting allows.", "why": "The maximum is the space the words are read in. Wording that does not fit is cut off where somebody reads it."},
+    {"id": "setting-text-loses-a-guardrail", "status": 422, "statement": "That wording drops a sentence this setting must always keep.", "why": "Some wording carries a promise that protects somebody. It may be reworded around that sentence and never without it."},
+    {"id": "setting-schedule-leaves-a-gap", "status": 422, "statement": "That rota leaves hours uncovered that must always have somebody on them.", "why": "A rota with a gap is an alert with nobody to go to, and nobody finds out until one arrives."},
+    {"id": "setting-out-of-range", "status": 422, "statement": "That is outside what an admin may set for this setting.", "why": "The bounds, the allowed values and the allowed roles sit beside the default in the engine's contract. Moving a setting past them is a change to that contract, not a setting."},
+    {"id": "setting-unchanged", "status": 409, "statement": "That is already the value in force, so there is nothing to change.", "why": "A change that changes nothing is a row in the history saying something happened when nothing did."},
+    {"id": "pin-outlives-the-window", "status": 422, "statement": "A hand-over PIN never works for longer than the collection it opens.", "why": "A PIN still working after its collection lapsed is a number that opens nothing honest and could be read out at the wrong door. Medicines' own rule between two of its settings, asked after the shared rules."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "No engine acts on a settings change. The engine that owns a setting reads the value in force when it starts something, and the event contract refuses an event nobody subscribes to. A change is the row it appends to the engine's own history, which the read route returns.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'POST /v1/medicines/setting-changes@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/setting-reviews",
+   "version": 1,
+   "summary": "Confirm the clinical review of the value in force for a Medicines setting that waits on one: how urgently an unacknowledged lab result goes to a clinician. A doctor holds sign-clinical-review.",
+   "callers": ["doctor"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same confirmation once."},
+    {"field": "setting", "type": "string", "required": true, "why": "The setting's key, from the settings block of the engine's own contract."},
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The version that set the value being confirmed: 1 for the contract's default, or the version of the change. A reviewer confirms a value they read, never whatever happens to be in force when the request lands."},
+    {"field": "reason", "type": "string", "required": false, "why": "Why the value is clinically safe. Asked for by the handler, so a confirmation without one is refused in its own sentence."}
+   ],
+   "response": [
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The version confirmed."},
+    {"field": "reviewedAt", "type": "instant", "required": true, "why": "When the confirmation was recorded."}
+   ],
+   "refusals": [
+    {"id": "setting-review-not-permitted", "status": 403, "statement": "Only somebody holding the capability this setting names confirms its clinical review, and the confirmation is recorded against a named person.", "why": "A clinical-scope setting decides who may do what to a patient. Confirming it is a clinician's act, attributed like a signed review."},
+    {"id": "setting-not-known", "status": 422, "statement": "There is no setting by that name.", "why": "An unknown setting is refused rather than stored, or the reviews fill with confirmations of nothing."},
+    {"id": "setting-review-not-needed", "status": 409, "statement": "This setting does not wait on a clinical review.", "why": "A confirmation of a setting nobody asked a clinician about reads, later, as if one had been needed."},
+    {"id": "setting-review-without-reason", "status": 422, "statement": "A clinical review says why the value is safe, or it is not recorded.", "why": "A confirmation with no reason is a signature under nothing."},
+    {"id": "setting-review-not-in-force", "status": 409, "statement": "That is not the value in force for this setting. Review what is in force now.", "why": "A reviewer confirms the value they read. A value replaced since is not the one patients are being treated under."},
+    {"id": "setting-review-already-confirmed", "status": 409, "statement": "That value has already been clinically reviewed.", "why": "Two confirmations of one value are one review recorded twice."},
+    {"id": "setting-review-own-change", "status": 403, "statement": "Nobody confirms the clinical review of a change they made themselves.", "why": "packages/catalog/vetting.json's selfActionRefusals, applied to settings: a review by the person who made the change is no review."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A confirmation changes no value, so nothing acts differently because of it. It is the row it appends to the engine's own reviews, which the read route returns.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'POST /v1/medicines/setting-reviews@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   }
  ]
 }

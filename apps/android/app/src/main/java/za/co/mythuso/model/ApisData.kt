@@ -99,7 +99,7 @@ object ApisData {
     val POST_CLINICAL_REVIEWS_BY_REVIEW_REF_SIGN = Route("postClinicalReviewsByReviewRefSign", "POST", "/v1/clinical/reviews/{reviewRef}/sign", "/v1/clinical/reviews/{reviewRef}/sign", 1, "clinical", listOf("doctor"), listOf("treatment"), false, "proposed")
     val POST_CLINICAL_CONSULTATIONS = Route("postClinicalConsultations", "POST", "/v1/clinical/consultations", "/v1/clinical/consultations", 1, "clinical", listOf("doctor", "nurse"), listOf("treatment"), false, "proposed")
     val POST_CLINICAL_TRIAGE_V2 = Route("postClinicalTriageV2", "POST", "/v1/clinical/triage", "/v1/clinical/triage", 2, "clinical", listOf("nurse", "doctor"), listOf("treatment"), false, "proposed")
-    val POST_CLINICAL_RESULTS_BY_RESULT_REF_ACKNOWLEDGE = Route("postClinicalResultsByResultRefAcknowledge", "POST", "/v1/clinical/results/{resultRef}/acknowledge", "/v1/clinical/results/{resultRef}/acknowledge", 1, "clinical", listOf("doctor", "nurse"), listOf("diagnostics"), false, "proposed")
+    val POST_CLINICAL_RESULTS_BY_RESULT_REF_ACKNOWLEDGE = Route("postClinicalResultsByResultRefAcknowledge", "POST", "/v1/clinical/results/{resultRef}/acknowledge", "/v1/clinical/results/{resultRef}/acknowledge", 1, "clinical", listOf("doctor", "nurse"), listOf("diagnostics"), false, "built")
     val POST_CLINICAL_GUIDANCE = Route("postClinicalGuidance", "POST", "/v1/clinical/guidance", "/v1/clinical/guidance", 1, "clinical", listOf("nurse", "doctor", "engine:access"), listOf("treatment"), false, "proposed")
     val POST_CLINICAL_PROMS = Route("postClinicalProms", "POST", "/v1/clinical/proms", "/v1/clinical/proms", 1, "clinical", listOf("patient"), listOf("treatment"), false, "proposed")
     val POST_SAFETY_CHECKINS = Route("postSafetyCheckins", "POST", "/v1/safety/checkins", "/v1/safety/checkins", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "proposed")
@@ -168,15 +168,20 @@ object ApisData {
     val GET_RECORD_ENCOUNTER_STATUSES_BY_ENCOUNTER_REF = Route("getRecordEncounterStatusesByEncounterRef", "GET", "/v1/record/encounter-statuses/{encounterRef}", "/v1/record/encounter-statuses/{encounterRef}", 1, "record", listOf("engine:care"), listOf("treatment"), false, "proposed")
     val POST_RECORD_SHARE_LINK = Route("postRecordShareLink", "POST", "/share/link", "/v1/record/share/link", 1, "record", listOf("patient", "responder-on-trip"), listOf("treatment", "emergency"), false, "proposed")
     val POST_RECORD_EXPORT = Route("postRecordExport", "POST", "/export", "/v1/record/export", 1, "record", listOf("patient"), listOf("subject-access"), false, "proposed")
-    val GET_MEDICINES_FORMULARY = Route("getMedicinesFormulary", "GET", "/v1/medicines/formulary", "/v1/medicines/formulary", 1, "medicines", listOf("doctor", "nurse", "pharmacist"), listOf("dispensing"), false, "proposed")
-    val POST_MEDICINES_INTERACTION_CHECKS = Route("postMedicinesInteractionChecks", "POST", "/v1/medicines/interaction-checks", "/v1/medicines/interaction-checks", 1, "medicines", listOf("doctor", "pharmacist"), listOf("dispensing", "treatment"), false, "proposed")
-    val POST_MEDICINES_PRESCRIPTIONS = Route("postMedicinesPrescriptions", "POST", "/v1/medicines/prescriptions", "/v1/medicines/prescriptions", 1, "medicines", listOf("doctor"), listOf("treatment"), false, "proposed")
-    val POST_MEDICINES_PRESCRIPTIONS_BY_PRESCRIPTION_REF_VERIFY = Route("postMedicinesPrescriptionsByPrescriptionRefVerify", "POST", "/v1/medicines/prescriptions/{prescriptionRef}/verify", "/v1/medicines/prescriptions/{prescriptionRef}/verify", 1, "medicines", listOf("pharmacist"), listOf("dispensing"), false, "proposed")
-    val POST_MEDICINES_PRESCRIPTIONS_BY_PRESCRIPTION_REF_DISPENSE = Route("postMedicinesPrescriptionsByPrescriptionRefDispense", "POST", "/v1/medicines/prescriptions/{prescriptionRef}/dispense", "/v1/medicines/prescriptions/{prescriptionRef}/dispense", 1, "medicines", listOf("pharmacist", "pharmacy"), listOf("dispensing"), false, "proposed")
-    val POST_MEDICINES_COLLECTIONS = Route("postMedicinesCollections", "POST", "/v1/medicines/collections", "/v1/medicines/collections", 1, "medicines", listOf("nurse", "courier", "responder"), listOf("dispensing"), false, "proposed")
-    val POST_MEDICINES_COLLECTIONS_BY_COLLECTION_REF_HANDOVER = Route("postMedicinesCollectionsByCollectionRefHandover", "POST", "/v1/medicines/collections/{collectionRef}/handover", "/v1/medicines/collections/{collectionRef}/handover", 1, "medicines", listOf("nurse", "courier", "responder"), listOf("dispensing"), false, "proposed")
-    val GET_MEDICINES_ORDERS = Route("getMedicinesOrders", "GET", "/v1/medicines/orders", "/v1/medicines/orders", 1, "medicines", listOf("pharmacy"), listOf("dispensing"), false, "proposed")
-    val POST_MEDICINES_LAB_ORDERS = Route("postMedicinesLabOrders", "POST", "/v1/medicines/lab-orders", "/v1/medicines/lab-orders", 1, "medicines", listOf("doctor", "nurse"), listOf("diagnostics"), false, "proposed")
+    val POST_MEDICINES_LAB_ORDERS = Route("postMedicinesLabOrders", "POST", "/v1/medicines/lab-orders", "/v1/medicines/lab-orders", 1, "medicines", listOf("doctor", "nurse"), listOf("diagnostics"), false, "built")
+    val GET_MEDICINES_FORMULARY_V2 = Route("getMedicinesFormularyV2", "GET", "/v1/medicines/formulary", "/v1/medicines/formulary", 2, "medicines", listOf("doctor", "nurse", "pharmacist"), listOf("dispensing", "treatment"), false, "built")
+    val POST_MEDICINES_INTERACTION_CHECKS_V2 = Route("postMedicinesInteractionChecksV2", "POST", "/v1/medicines/interaction-checks", "/v1/medicines/interaction-checks", 2, "medicines", listOf("doctor", "pharmacist"), listOf("dispensing", "treatment"), false, "built")
+    val POST_MEDICINES_PRESCRIPTIONS_V2 = Route("postMedicinesPrescriptionsV2", "POST", "/v1/medicines/prescriptions", "/v1/medicines/prescriptions", 2, "medicines", listOf("doctor"), listOf("treatment"), false, "built")
+    val POST_MEDICINES_PRESCRIPTIONS_BY_PRESCRIPTION_REF_VERIFY_V2 = Route("postMedicinesPrescriptionsByPrescriptionRefVerifyV2", "POST", "/v1/medicines/prescriptions/{prescriptionRef}/verify", "/v1/medicines/prescriptions/{prescriptionRef}/verify", 2, "medicines", listOf("pharmacist"), listOf("dispensing"), false, "built")
+    val POST_MEDICINES_PRESCRIPTIONS_BY_PRESCRIPTION_REF_DISPENSE_V2 = Route("postMedicinesPrescriptionsByPrescriptionRefDispenseV2", "POST", "/v1/medicines/prescriptions/{prescriptionRef}/dispense", "/v1/medicines/prescriptions/{prescriptionRef}/dispense", 2, "medicines", listOf("pharmacist", "pharmacy"), listOf("dispensing"), false, "built")
+    val POST_MEDICINES_COLLECTION_AUTHORISATIONS = Route("postMedicinesCollectionAuthorisations", "POST", "/v1/medicines/collection-authorisations", "/v1/medicines/collection-authorisations", 1, "medicines", listOf("patient"), listOf("dispensing"), false, "built")
+    val POST_MEDICINES_COLLECTIONS_V2 = Route("postMedicinesCollectionsV2", "POST", "/v1/medicines/collections", "/v1/medicines/collections", 2, "medicines", listOf("nurse", "courier", "responder"), listOf("dispensing"), false, "built")
+    val POST_MEDICINES_COLLECTIONS_BY_COLLECTION_REF_HANDOVER_V2 = Route("postMedicinesCollectionsByCollectionRefHandoverV2", "POST", "/v1/medicines/collections/{collectionRef}/handover", "/v1/medicines/collections/{collectionRef}/handover", 2, "medicines", listOf("nurse", "courier", "responder"), listOf("dispensing"), false, "built")
+    val GET_MEDICINES_ORDERS_V2 = Route("getMedicinesOrdersV2", "GET", "/v1/medicines/orders", "/v1/medicines/orders", 2, "medicines", listOf("pharmacy"), listOf("dispensing"), false, "built")
+    val POST_MEDICINES_LAB_ORDERS_BY_LAB_ORDER_REF_CLOSE = Route("postMedicinesLabOrdersByLabOrderRefClose", "POST", "/v1/medicines/lab-orders/{labOrderRef}/close", "/v1/medicines/lab-orders/{labOrderRef}/close", 1, "medicines", listOf("doctor", "nurse"), listOf("diagnostics"), false, "built")
+    val GET_MEDICINES_SETTINGS = Route("getMedicinesSettings", "GET", "/v1/medicines/settings", "/v1/medicines/settings", 1, "medicines", listOf("admin", "doctor"), listOf("audit"), false, "built")
+    val POST_MEDICINES_SETTING_CHANGES = Route("postMedicinesSettingChanges", "POST", "/v1/medicines/setting-changes", "/v1/medicines/setting-changes", 1, "medicines", listOf("admin"), listOf("audit"), true, "built")
+    val POST_MEDICINES_SETTING_REVIEWS = Route("postMedicinesSettingReviews", "POST", "/v1/medicines/setting-reviews", "/v1/medicines/setting-reviews", 1, "medicines", listOf("doctor"), listOf("audit"), true, "built")
     val POST_DEVICES_REGISTRY = Route("postDevicesRegistry", "POST", "/v1/devices/registry", "/v1/devices/registry", 1, "devices", listOf("operator"), listOf("treatment"), false, "proposed")
     val POST_DEVICES_REGISTRY_BY_DEVICE_REF_RECALL = Route("postDevicesRegistryByDeviceRefRecall", "POST", "/v1/devices/registry/{deviceRef}/recall", "/v1/devices/registry/{deviceRef}/recall", 1, "devices", listOf("operator"), listOf("audit"), false, "proposed")
     val GET_DEVICES_REGISTRY_BY_DEVICE_REF_HEALTH = Route("getDevicesRegistryByDeviceRefHealth", "GET", "/v1/devices/registry/{deviceRef}/health", "/v1/devices/registry/{deviceRef}/health", 1, "devices", listOf("nurse", "operator"), listOf("treatment"), false, "proposed")
@@ -346,15 +351,20 @@ object ApisData {
         GET_RECORD_ENCOUNTER_STATUSES_BY_ENCOUNTER_REF,
         POST_RECORD_SHARE_LINK,
         POST_RECORD_EXPORT,
-        GET_MEDICINES_FORMULARY,
-        POST_MEDICINES_INTERACTION_CHECKS,
-        POST_MEDICINES_PRESCRIPTIONS,
-        POST_MEDICINES_PRESCRIPTIONS_BY_PRESCRIPTION_REF_VERIFY,
-        POST_MEDICINES_PRESCRIPTIONS_BY_PRESCRIPTION_REF_DISPENSE,
-        POST_MEDICINES_COLLECTIONS,
-        POST_MEDICINES_COLLECTIONS_BY_COLLECTION_REF_HANDOVER,
-        GET_MEDICINES_ORDERS,
         POST_MEDICINES_LAB_ORDERS,
+        GET_MEDICINES_FORMULARY_V2,
+        POST_MEDICINES_INTERACTION_CHECKS_V2,
+        POST_MEDICINES_PRESCRIPTIONS_V2,
+        POST_MEDICINES_PRESCRIPTIONS_BY_PRESCRIPTION_REF_VERIFY_V2,
+        POST_MEDICINES_PRESCRIPTIONS_BY_PRESCRIPTION_REF_DISPENSE_V2,
+        POST_MEDICINES_COLLECTION_AUTHORISATIONS,
+        POST_MEDICINES_COLLECTIONS_V2,
+        POST_MEDICINES_COLLECTIONS_BY_COLLECTION_REF_HANDOVER_V2,
+        GET_MEDICINES_ORDERS_V2,
+        POST_MEDICINES_LAB_ORDERS_BY_LAB_ORDER_REF_CLOSE,
+        GET_MEDICINES_SETTINGS,
+        POST_MEDICINES_SETTING_CHANGES,
+        POST_MEDICINES_SETTING_REVIEWS,
         POST_DEVICES_REGISTRY,
         POST_DEVICES_REGISTRY_BY_DEVICE_REF_RECALL,
         GET_DEVICES_REGISTRY_BY_DEVICE_REF_HEALTH,
@@ -1551,65 +1561,6 @@ object ApisData {
     data class PostRecordExportResponse(
         val exportRef: String
     )
-    data class GetMedicinesFormularyRequest(
-        val query: String
-    )
-    data class GetMedicinesFormularyResponse(
-        val medicines: List<Map<String, Any?>>
-    )
-    data class PostMedicinesInteractionChecksRequest(
-        val subjectRef: String,
-        val medicationCodes: List<String>,
-        val stageCode: String
-    )
-    data class PostMedicinesInteractionChecksResponse(
-        val flags: List<Map<String, Any?>>,
-        val checkRef: String
-    )
-    data class PostMedicinesPrescriptionsRequest(
-        val subjectRef: String,
-        val medicationCode: String,
-        val dosage: String,
-        val checkRef: String
-    )
-    data class PostMedicinesPrescriptionsResponse(
-        val prescriptionRef: String,
-        val medicationRequestRef: String
-    )
-    data class PostMedicinesPrescriptionsByPrescriptionRefVerifyRequest(
-        val prescriptionRef: String
-    )
-    data class PostMedicinesPrescriptionsByPrescriptionRefVerifyResponse(
-        val verifiedAt: String
-    )
-    data class PostMedicinesPrescriptionsByPrescriptionRefDispenseRequest(
-        val prescriptionRef: String,
-        val dispenseEntryRef: String
-    )
-    data class PostMedicinesPrescriptionsByPrescriptionRefDispenseResponse(
-        val dispensedAt: String
-    )
-    data class PostMedicinesCollectionsRequest(
-        val prescriptionRef: String,
-        val authorisationRef: String,
-        val sealRef: String,
-        val scheduleClass: String
-    )
-    data class PostMedicinesCollectionsResponse(
-        val collectionRef: String
-    )
-    data class PostMedicinesCollectionsByCollectionRefHandoverRequest(
-        val collectionRef: String,
-        val handoverPin: String,
-        val sealIntact: Boolean
-    )
-    data class PostMedicinesCollectionsByCollectionRefHandoverResponse(
-        val handedOverAt: String
-    )
-    class GetMedicinesOrdersRequest
-    data class GetMedicinesOrdersResponse(
-        val orders: List<Map<String, Any?>>
-    )
     data class PostMedicinesLabOrdersRequest(
         val subjectRef: String,
         val serviceRequestRef: String,
@@ -1617,6 +1568,125 @@ object ApisData {
     )
     data class PostMedicinesLabOrdersResponse(
         val labOrderRef: String
+    )
+    data class GetMedicinesFormularyV2Request(
+        val query: String
+    )
+    data class GetMedicinesFormularyV2Response(
+        val listStatus: String,
+        val notice: String,
+        val entries: List<Map<String, Any?>>
+    )
+    data class PostMedicinesInteractionChecksV2Request(
+        val subjectRef: String,
+        val stageCode: String
+    )
+    data class PostMedicinesInteractionChecksV2Response(
+        val checkRef: String,
+        val outcomeCode: String,
+        val reason: String
+    )
+    data class PostMedicinesPrescriptionsV2Request(
+        val subjectRef: String,
+        val medicationRequestRef: String,
+        val checkRef: String,
+        val scheduleCode: String,
+        val pharmacyRef: String,
+        val notCheckedRead: Boolean? = null
+    )
+    data class PostMedicinesPrescriptionsV2Response(
+        val prescriptionRef: String,
+        val stateCode: String
+    )
+    data class PostMedicinesPrescriptionsByPrescriptionRefVerifyV2Request(
+        val prescriptionRef: String
+    )
+    data class PostMedicinesPrescriptionsByPrescriptionRefVerifyV2Response(
+        val verifiedAt: String
+    )
+    data class PostMedicinesPrescriptionsByPrescriptionRefDispenseV2Request(
+        val prescriptionRef: String,
+        val dispenseEntryRef: String,
+        val checkRef: String,
+        val sealRef: String,
+        val notCheckedRead: Boolean? = null
+    )
+    data class PostMedicinesPrescriptionsByPrescriptionRefDispenseV2Response(
+        val dispensedAt: String
+    )
+    data class PostMedicinesCollectionAuthorisationsRequest(
+        val prescriptionRef: String,
+        val collectorRef: String,
+        val collectorRole: String
+    )
+    data class PostMedicinesCollectionAuthorisationsResponse(
+        val authorisationRef: String,
+        val handoverPin: String,
+        val pinExpiresAt: String,
+        val windowEndsAt: String
+    )
+    data class PostMedicinesCollectionsV2Request(
+        val prescriptionRef: String,
+        val authorisationRef: String,
+        val sealRef: String
+    )
+    data class PostMedicinesCollectionsV2Response(
+        val collectionRef: String,
+        val windowEndsAt: String
+    )
+    data class PostMedicinesCollectionsByCollectionRefHandoverV2Request(
+        val collectionRef: String,
+        val handoverPin: String,
+        val sealIntact: Boolean
+    )
+    data class PostMedicinesCollectionsByCollectionRefHandoverV2Response(
+        val handedOverAt: String
+    )
+    data class GetMedicinesOrdersV2Request(
+        val pharmacyRef: String
+    )
+    data class GetMedicinesOrdersV2Response(
+        val orders: List<Map<String, Any?>>
+    )
+    data class PostMedicinesLabOrdersByLabOrderRefCloseRequest(
+        val labOrderRef: String
+    )
+    data class PostMedicinesLabOrdersByLabOrderRefCloseResponse(
+        val closedAt: String
+    )
+    class GetMedicinesSettingsRequest
+    data class GetMedicinesSettingsResponse(
+        val settingsVersion: Int,
+        val settings: List<Map<String, Any?>>,
+        val history: List<Map<String, Any?>>
+    )
+    data class PostMedicinesSettingChangesRequest(
+        val idempotencyKey: String,
+        val setting: String,
+        val wholeNumber: Int? = null,
+        val switchedOn: Boolean? = null,
+        val choice: String? = null,
+        val wording: String? = null,
+        val roles: List<String>? = null,
+        val windows: List<Map<String, Any?>>? = null,
+        val items: List<String>? = null,
+        val parts: Map<String, Any?>? = null,
+        val reason: String? = null,
+        val expectedVersion: Int
+    )
+    data class PostMedicinesSettingChangesResponse(
+        val settingsVersion: Int,
+        val appliesFrom: String
+    )
+    data class PostMedicinesSettingReviewsRequest(
+        val idempotencyKey: String,
+        val setting: String,
+        val settingsVersion: Int,
+        val reason: String? = null
+    )
+    data class PostMedicinesSettingReviewsResponse(
+        val settingsVersion: Int,
+        val reviewedAt: String
     )
     data class PostDevicesRegistryRequest(
         val serial: String,

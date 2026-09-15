@@ -310,3 +310,22 @@ POST /v1/core/loops/{loopRef}/acknowledge@3 42438f13fae2a2f6
 POST /v1/core/loops/{loopRef}/escalate@3 5d0f6e5835cef67f
 POST /v1/core/loops/{loopRef}/close@2 221b6d73508baf4d
 POST /v1/safety/incidents@2 3210c5f7964fc24e
+GET /v1/medicines/formulary@2 1e2658ddefe7448a
+POST /v1/medicines/interaction-checks@2 f828452682613c9b
+POST /v1/medicines/prescriptions@2 dd413e7e3284869b
+POST /v1/medicines/prescriptions/{prescriptionRef}/verify@2 dbab79fa658c0037
+POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@2 60932f4d3145dd87
+POST /v1/medicines/collection-authorisations@1 11d0a97ceed1e740
+POST /v1/medicines/collections@2 d21b230a76807b9b
+POST /v1/medicines/collections/{collectionRef}/handover@2 b277ad1d8d3cefe1
+GET /v1/medicines/orders@2 a5c1fd2090b1ecb0
+POST /v1/medicines/lab-orders/{labOrderRef}/close@1 658f5fb50e21886e
+GET /v1/medicines/settings@1 577be8194791fa5b
+POST /v1/medicines/setting-changes@1 6715187cd23c0417
+POST /v1/medicines/setting-reviews@1 c6c0fe9d34c8557b
+shared apis/medicines.json#refusals no-such-prescription 22b8eb8a491a8cf1
+shared apis/medicines.json#refusals not-vetted-for-this 9851c3d4c127a197
+shared apis/medicines.json#refusals unnamed-caller 02ff70a7329cfdde
+shared apis/medicines.json#refusals check-not-for-this 49a7017833193822
+shared apis/medicines.json#refusals check-already-cited 82537212b6becf91
+shared apis/medicines.json#refusals not-checked-not-read d1ecb3f6dc5caae6

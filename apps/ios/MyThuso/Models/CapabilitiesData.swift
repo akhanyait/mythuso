@@ -2,7 +2,7 @@
 // Do not edit by hand — run `npm run capabilities`. The build fails if this file and its source
 // disagree, so an edit here is lost rather than merely wrong.
 //
-// The 19 things MyThuso either does or only draws, and the sentence each one shows while it
+// The 20 things MyThuso either does or only draws, and the sentence each one shows while it
 // is not connected. No screen writes its own version of that sentence: it names a capability and
 // the sentence is rendered from here, word for word, or it is not rendered at all. When an
 // integration lands, one boolean changes in the contract and the notice disappears from every
@@ -326,6 +326,18 @@ extension Capabilities {
                    state: "absent",
                    simulation: nil,
                    surfaces: ["plans"],
+                   neverSoften: nil,
+                   requiresPermissions: []),
+        Capability(id: "laboratory-results", name: "Laboratory orders and results", connected: false,
+                   evidence: nil,
+                   blockedBy: [
+                       "A laboratory accredited to ISO 15189 by SANAS, contracted to collect samples, run tests and release results.",
+                       "A clinical governance decision on who acknowledges a result, and how quickly."
+                   ],
+                   notice: "No laboratory is connected. No sample is taken and no test is run, and a result shown here is a synthetic reference to nothing.",
+                   state: "absent",
+                   simulation: nil,
+                   surfaces: ["lab-orders", "results"],
                    neverSoften: nil,
                    requiresPermissions: [])
     ]

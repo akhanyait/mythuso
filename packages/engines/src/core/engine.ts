@@ -57,7 +57,7 @@
 import { randomUUID } from 'node:crypto';
 import { BusRefused, defineEngine, instant, ok, refuse, type BusEvent, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
 import { SETTINGS_SCHEMA, settingsIn, settingsRoutes } from '../settings/routes.ts';
-import { EXHAUSTED, PANIC, PANIC_RESOLVED, engineIds, highestSeverity, outcomes, ownerRoles, panicOutcomes, panicSpanMs, reasons, spanForRung } from './domain/contract.ts';
+import { EXHAUSTED, PANIC, PANIC_RESOLVED, RESULT_ACKNOWLEDGED, resultAlertsFrom, resultClosesAs, engineIds, highestSeverity, outcomes, ownerRoles, panicOutcomes, panicSpanMs, reasons, spanForRung } from './domain/contract.ts';
 import { closeRefusal, everyPostOnDuty, holdersOf, movedTo, nextHolder, postOf, settle, stateCodeOf, towerOrder, type KeptRota, type Loop, type Skip } from './domain/loops.ts';
 import { coreSettings, rotaOf } from './domain/settings.ts';
 
@@ -267,6 +267,28 @@ function heardPanicResolved(event: BusEvent, ctx: EngineContext) {
  publish(ctx, closed, 'loop.closed@1', { loopRef: closed.loopRef, outcomeRef: panicRef, closedByRole: event.actorRole });
 }
 
+/* ── A lab result acknowledged ────────────────────────────────────────────────────────────────────── */
+
+/* The clinician who ordered a test acknowledged its result, so the alert Medicines raised when the result arrived
+   stands down: closed with the outcome closed-loop.json resultAcknowledged names, pointing at the result's entry,
+   by the role that acknowledged it, through the same closeRefusal the close route asks. Only an open alert raised
+   by the engine that contract names under the result's entry as its key is touched. An alert nobody acknowledges
+   is never closed here: it walks the rota like any other. */
+function heardResultAcknowledged(event: BusEvent, ctx: EngineContext) {
+ const resultRef = text(event.payload['resultRef']);
+ const loop = all(ctx).find(open => open.alertRef !== null && open.closedAt === null && open.sourceEngine === resultAlertsFrom && open.dedupeKey === resultRef);
+ if (!loop) return;
+ const refused = closeRefusal(loop, resultClosesAs, outcomes);
+ if (refused) {
+  audit(ctx, loop, 'result-acknowledged-not-stood-down', refused);
+  return;
+ }
+ const closed: Loop = { ...loop, closedAt: nowOf(ctx), outcomeRef: resultRef, outcomeCode: resultClosesAs, closedByRole: event.actorRole };
+ put(ctx, closed);
+ audit(ctx, closed, 'closed', resultClosesAs);
+ publish(ctx, closed, 'alert.closed@1', { alertRef: closed.alertRef, outcomeRef: resultRef, closedByRole: event.actorRole });
+}
+
 /* ── Acting on a concern ──────────────────────────────────────────────────────────────────────────── */
 
 function acknowledge(request: HandlerRequest, ctx: EngineContext) {
@@ -368,7 +390,7 @@ export const engine = defineEngine({
   'POST /v1/core/alerts@2': raiseAlert,
   ...settingsRoutes(coreSettings, { read: 'GET /v1/core/settings@1', change: 'POST /v1/core/setting-changes@1' })
  },
- subscriptions: { [PANIC]: heardPanic, [PANIC_RESOLVED]: heardPanicResolved },
+ subscriptions: { [PANIC]: heardPanic, [PANIC_RESOLVED]: heardPanicResolved, [RESULT_ACKNOWLEDGED]: heardResultAcknowledged },
  tick: ctx => {
   const now = nowOf(ctx);
   for (const loop of all(ctx)) {

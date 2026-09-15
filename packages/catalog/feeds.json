@@ -1721,6 +1721,148 @@
     "section72": "Where a provider would process a voice, and whether that transfer is lawful, depends on a recipient nobody has named. Not determined.",
     "determined": false
    }
+  },
+  {
+   "id": "lab-result",
+   "name": "What a laboratory released",
+   "capabilities": [
+    "laboratory-results"
+   ],
+   "supplier": "A laboratory accredited to ISO 15189 by SANAS, under contract, and its laboratory information system.",
+   "route": "POST /feeds/lab-result",
+   "arrives": "One released result for one order, from the laboratory that ran it, as a reference to the result it wrote into the Health Passport.",
+   "derivedFrom": [
+    "packages/catalog/medicines.json",
+    "packages/catalog/vetting.json",
+    "packages/catalog/records.json"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "laboratory-results",
+    "sample": [
+     "packages/catalog/medicines.json"
+    ],
+    "unchanged": "No laboratory is contracted and no result arrives. On the development runtime and in the preview a synthetic laboratory hands the Medicines engine a reference to a result that does not exist, and every screen that shows one says so."
+   },
+   "accepts": [
+    {
+     "field": "labOrderReference",
+     "type": "string",
+     "required": true,
+     "why": "The order the result answers. Ours."
+    },
+    {
+     "field": "laboratoryPartyId",
+     "type": "string",
+     "required": true,
+     "why": "The vetted laboratory, so the gate decides whether it may release a result at the moment it releases one rather than at the moment it was onboarded."
+    },
+    {
+     "field": "resultEntryReference",
+     "type": "string",
+     "required": true,
+     "why": "The result the laboratory wrote into the Health Passport through the consent gateway, under its own grant. What the result says is there, and never in this payload."
+    },
+    {
+     "field": "at",
+     "type": "instant",
+     "required": true,
+     "why": "When the result was released."
+    },
+    {
+     "field": "verifiedByRegistration",
+     "type": "string",
+     "required": true,
+     "why": "The registration of the pathologist or medical technologist who verified the result before release. See the switch-on condition."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "a-result-arrives-as-a-reference",
+     "must": "The laboratory writes the result into the Health Passport through the gateway under its own grant, and this door receives only the entry's reference. A message that carries a value is refused.",
+     "why": "A door that took the values would put a patient's results into an engine's store and a supplier's delivery log, neither of which has the record's grant, purpose check or access log. The record is where a result lives; the engines are told where it is.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "an-accredited-laboratory-releases",
+     "must": "The gate decides, on every message, that the laboratory holds release-lab-result on the vetting register with its ISO 15189 accreditation in date.",
+     "why": "The register already holds a lapsed laboratory's results rather than releasing them. A door authenticated once at connection would let a laboratory whose accreditation lapsed keep releasing results into patients' records.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-result-names-who-verified-it",
+     "must": "Every message carries a registration that resolves to the person who verified the result before release.",
+     "why": "A result with nobody behind it is a result nobody can be asked about, and the question is always asked about the one that was wrong.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "resultValue",
+     "refusal": "A laboratory's message may not carry a result's values.",
+     "why": "The values are the result, and the result is special personal information that lives in the Health Passport under the patient's grants. A value in this payload is a second copy of it in the transport layer, with none of the record's protections and a retention nobody chose.",
+     "also": [
+      "value",
+      "values",
+      "resultValues",
+      "observationValue",
+      "referenceRange",
+      "abnormalFlag",
+      "units"
+     ]
+    },
+    {
+     "field": "interpretation",
+     "refusal": "A laboratory's message may not carry an interpretation or a diagnosis.",
+     "why": "What a result means for a patient is for the clinician who ordered the test to say, having read it. A conclusion that arrives with the reference is a clinical decision made by a supplier and read first by whoever opens the notification.",
+     "also": [
+      "icd10",
+      "icd",
+      "clinicalImpression",
+      "provisionalDiagnosis",
+      "comment"
+     ]
+    },
+    {
+     "field": "testName",
+     "refusal": "A laboratory's message may not name the test.",
+     "why": "What was tested for says what somebody was worried about. It is in the ServiceRequest in the record, which the clinician opens under a grant, and it has no function in a message whose only job is to say a result is there.",
+     "also": [
+      "testsOrdered",
+      "panel",
+      "assay",
+      "loinc"
+     ]
+    },
+    {
+     "field": "patientFullName",
+     "refusal": "A laboratory's message may not name the patient.",
+     "why": "The order reference already identifies it. A name arriving from outside is a second copy of an identity in a log written for a different purpose.",
+     "also": [
+      "patientName",
+      "beneficiaryName",
+      "subjectName"
+     ]
+    },
+    {
+     "field": "saIdNumber",
+     "refusal": "A laboratory's message may not carry a South African identity number.",
+     "why": "It identifies nothing this door needs identified.",
+     "also": [
+      "identityNumber",
+      "nationalId",
+      "idNo",
+      "passportNumber"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "A South African pathology group is domestic; its laboratory information system, and any reference laboratory it sends a sample to, may not be. Not determined.",
+    "determined": false
+   }
   }
  ]
 }
