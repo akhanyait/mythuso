@@ -69,3 +69,8 @@ prose-only GET /v1/money/payouts@1
 prose-only GET /v1/money/settings@1
 prose-only POST /v1/money/setting-changes@1
 prose-only sealed 59 d4dce81afbed544f
+GET /v1/core/settings@1 df103720938fa8c4
+GET /v1/access/settings@1 16ebac7bf697f552
+GET /v1/care/settings@1 1987a9292e3e1911
+GET /v1/safety/settings@2 7fe01fe50479cc19
+GET /v1/money/settings@1 50f99e1f32406ec2

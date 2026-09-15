@@ -27,7 +27,9 @@
  */
 import { readFileSync } from 'node:fs';
 
-export type Field = { field: string; type: string; required: boolean; why: string; object?: boolean };
+/* fields, nullable and shapeFrom describe the inside of an object (packages/catalog/apis.json#objectFields.innerShapes).
+   The mock answers an object with an empty one either way; the engine runtime holds a handler's answer to them. */
+export type Field = { field: string; type: string; required: boolean; why: string; object?: boolean; nullable?: boolean; fields?: Field[]; shapeFrom?: string };
 /* answeredBy is an engine refusal's only: the route keys that may answer it. A route's own refusals and the shared ones need none. */
 export type Refusal = { id: string; status: number; statement: string; why: string; answeredBy?: string[] };
 export type Route = {

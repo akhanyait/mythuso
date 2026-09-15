@@ -48,6 +48,24 @@ export const repositoryRoot = root;
 
 export const routeKeyOf = (route: { method: string; path: string; version: number }): RouteKey => `${route.method} ${route.path}@${route.version}` as RouteKey;
 
+/* The keys a catalogue section allows, for a field whose inside that section decides (shapeFrom): a list of
+   { key } entries, or an object of lists of key names. A section of any other shape decides a kind rather
+   than a set of keys, and gives none; the build refuses a pointer that resolves to nothing. */
+const sectionKeys = new Map<string, Set<string> | null>();
+export function keysAllowedBy(pointer: string): Set<string> | null {
+ if (!sectionKeys.has(pointer)) {
+  const [file, path] = pointer.split('#');
+  let section: unknown = file?.startsWith('packages/catalog/') && path ? readJson(file) : undefined;
+  for (const key of (path ?? '').split('.')) section = section && typeof section === 'object' ? (section as Record<string, unknown>)[key] : undefined;
+  const entries = Array.isArray(section) ? section as { key?: unknown }[] : null;
+  const lists = section && typeof section === 'object' && !Array.isArray(section) ? Object.values(section).filter(Array.isArray) : [];
+  sectionKeys.set(pointer, entries?.length && entries.every(entry => typeof entry?.key === 'string') ? new Set(entries.map(entry => entry.key as string))
+   : lists.length ? new Set(lists.flat().filter((name): name is string => typeof name === 'string'))
+   : null);
+ }
+ return sectionKeys.get(pointer)!;
+}
+
 let cached: RuntimeContract | null = null;
 
 export function loadRuntimeContract(): RuntimeContract {
