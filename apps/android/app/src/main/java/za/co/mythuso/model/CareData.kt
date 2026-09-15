@@ -14,6 +14,16 @@ object CareData {
     const val seedPhase = 1
     /** Decided by the Founder. A default an admin may change on the web; this app has no admin surface and uses it as written here. */
     const val offerExpiresAfterMinutes = 10
+    /** A proposal nobody has decided. Not clinically reviewed. A default an admin may change on the web; this app has no admin surface and uses it as written here. Not const, so a guard on it reads as the rule it is rather than a folded constant. */
+    val encounterEntryCountsAsSigned = true
+
+    data class ScopeSetting(val key: String, val serviceIds: List<String>, val roles: List<String>, val defaultNotReviewed: Boolean)
+    /** Who may be offered the visits no named scope covers, by default. Each role list is an admin setting on the web waiting on a clinical review. */
+    val scopeSettings = listOf(
+        ScopeSetting("injection-roles", listOf("injection"), listOf("nurse", "locum"), true),
+        ScopeSetting("family-planning-roles", listOf("planning"), listOf("nurse", "locum"), true),
+        ScopeSetting("sick-note-roles", listOf("certificate"), listOf("nurse", "locum"), true)
+    )
 
     const val outsideScope = "You are only ever dispatched to work inside your registered scope. The Control Tower cannot override that."
     const val noCurrentTrustScore = "Nobody without a current Trust Score is offered a visit."
@@ -41,6 +51,8 @@ object CareData {
     const val handoverQueued = "Handed to the doctors' review queue."
     const val completeCodeWrong = "The visit code did not match, so the visit is not complete."
     const val encounterUnsigned = "The encounter is not signed."
+    const val encounterSignatureUnconfirmed = "This visit is set to wait for the record to confirm its encounter is signed, and no record route answers Care yet: GET /fhir/{resourceType}/{id} does not take calls from the Care engine. It is not handed over or completed until one does."
+    const val notClinicallyReviewed = "Not clinically reviewed"
     const val completeWithoutStart = "A visit that never started cannot be completed."
     const val billable = "The visit is complete. Money is told it is billable and is told nothing about what happened at it."
 
@@ -84,4 +96,6 @@ object CareData {
     }
 
     fun requirement(serviceId: String) = requirements.firstOrNull { it.serviceId == serviceId }
+    /** Whether the default roles for this service wait on a clinical review. It describes the default this app offers by, never a value in force on the web. */
+    fun scopeNotReviewed(serviceId: String) = scopeSettings.any { serviceId in it.serviceIds && it.defaultNotReviewed }
 }

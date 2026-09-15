@@ -20,10 +20,14 @@
  * delivered and by whom, and carries no encounter reference at all: Money needs that it happened,
  * never what happened. */
 import { answer, type Answer, type CareEvent } from './outcome.ts';
-import { purposeOf, refuse, ROUTES, type CareContract } from './contract.ts';
+import { purposeOf, refuse, refuseForEngine, ROUTES, type CareContract } from './contract.ts';
 import { sameDay } from './clock.ts';
 import { checklistFor, protocolAt } from './checklist.ts';
 import type { Booking, Caller } from './offers.ts';
+import type { CareInForce } from './settings.ts';
+
+/** What a visit keeps from the settings in force when it started. */
+export type StartedUnder = Pick<CareInForce, 'settingsVersion' | 'encounterEntryCountsAsSigned'>;
 
 export interface RecordPort {
  encounterComplete(encounterRef: string): boolean;
@@ -38,17 +42,21 @@ export type Visit = Booking & {
  observationRefs: string[];
  handover: { encounterRef: string; submittedAt: string } | null;
  completedAt: string | null;
+ /** The settings the visit started under, read once at the door. Null until it has started. */
+ startedUnder: StartedUnder | null;
 };
 
 export class VisitDesk {
  #contract: CareContract;
  #record: RecordPort;
+ #settings: () => StartedUnder;
  #visits = new Map<string, Visit>();
  #codes = new Map<string, string>();
 
- constructor(options: { contract: CareContract; record: RecordPort; held?: readonly { visit: Visit; visitCode: string }[] }) {
+ constructor(options: { contract: CareContract; record: RecordPort; settings: () => StartedUnder; held?: readonly { visit: Visit; visitCode: string }[] }) {
   this.#contract = options.contract;
   this.#record = options.record;
+  this.#settings = options.settings;
   for (const { visit, visitCode } of options.held ?? []) {
    this.#visits.set(visit.appointmentRef, structuredClone(visit));
    this.#codes.set(visit.appointmentRef, visitCode);
@@ -64,7 +72,7 @@ export class VisitDesk {
  hold(booking: Booking, visitCode: string): void {
   if (this.#visits.has(booking.appointmentRef)) return;
   this.#visits.set(booking.appointmentRef, {
-   ...booking, state: 'booked', startedAt: null, checklistRecordedAt: null, observationRefs: [], handover: null, completedAt: null
+   ...booking, state: 'booked', startedAt: null, checklistRecordedAt: null, observationRefs: [], handover: null, completedAt: null, startedUnder: null
   });
   this.#codes.set(booking.appointmentRef, visitCode);
  }
@@ -79,6 +87,10 @@ export class VisitDesk {
   if (!this.#matches(visit, request.visitCode)) return refuse(this.#contract, ROUTES.start, 'visit-code-wrong');
   visit.state = 'in-progress';
   visit.startedAt = now.toISOString();
+  /* Read once, at the door, and kept. What the record must show before handover and completion is the rule
+     she started under, so a change made while she is in the house never strands her there. */
+  const { settingsVersion, encounterEntryCountsAsSigned } = this.#settings();
+  visit.startedUnder = { settingsVersion, encounterEntryCountsAsSigned };
   return answer({ startedAt: visit.startedAt }, [this.#event(visit, 'appointment.in_progress', ROUTES.start, { appointmentRef: visit.appointmentRef, visitCodeMatched: true })]);
  }
 
@@ -109,6 +121,10 @@ export class VisitDesk {
   if (!visit) return refuse(this.#contract, ROUTES.handover, 'caller-not-allowed');
   if (visit.state === 'booked') return refuse(this.#contract, ROUTES.handover, 'handover-without-visit');
   if (visit.handover?.encounterRef === request.encounterRef) return answer({ reviewQueued: true });
+  /* Switched off for this visit, an Encounter entry is not proof of a signature, and nothing else Care can
+     ask says whether one exists, so the refusal names the record route that is missing rather than blaming
+     the nurse's record. A visit started before the setting existed kept no rule, and is today's behaviour. */
+  if (visit.startedUnder?.encounterEntryCountsAsSigned === false) return refuseForEngine(this.#contract, ROUTES.handover, 'encounter-signature-unconfirmed');
   if (!this.#record.encounterComplete(request.encounterRef)) return refuse(this.#contract, ROUTES.handover, 'encounter-incomplete');
   visit.handover = { encounterRef: request.encounterRef, submittedAt: now.toISOString() };
   return answer({ reviewQueued: true }, [this.#event(visit, 'visit.handover.submitted', ROUTES.handover, { appointmentRef: visit.appointmentRef, encounterRef: request.encounterRef })]);
@@ -120,6 +136,7 @@ export class VisitDesk {
   if (visit.state === 'completed') return answer({ completedAt: visit.completedAt! });
   if (visit.state !== 'in-progress') return refuse(this.#contract, ROUTES.complete, 'complete-without-start');
   if (!this.#matches(visit, request.visitCode)) return refuse(this.#contract, ROUTES.complete, 'visit-code-wrong');
+  if (visit.startedUnder?.encounterEntryCountsAsSigned === false) return refuseForEngine(this.#contract, ROUTES.complete, 'encounter-signature-unconfirmed');
   if (!this.#record.encounterSigned(request.encounterRef)) return refuse(this.#contract, ROUTES.complete, 'encounter-unsigned');
   visit.state = 'completed';
   visit.completedAt = now.toISOString();

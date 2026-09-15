@@ -23,17 +23,19 @@
  *   Codes       The preview's published code for the preview visit; a random six digits for any other,
  *               issued at acceptance and held beside the visit. Who hands it to the patient is Access's
  *               to build and is not here.
- *   Settings    GET /v1/care/settings@1 and POST /v1/care/setting-changes@1, through
- *               packages/engines/src/settings, with the history in this store's settings_history. The
- *               offer desk is handed the expiry in force, read from that history when it makes an offer,
- *               and the offer keeps it: a change reaches the next offer and never one already made.
+ *   Settings    GET /v1/care/settings@1, POST /v1/care/setting-changes@1 and POST /v1/care/setting-reviews@1,
+ *               through packages/engines/src/settings, with the history in this store's settings_history
+ *               and the clinical reviews in settings_reviews. The offer desk is handed the settings in
+ *               force when it makes an offer — the expiry and who may be offered the service — and the
+ *               visit desk when a visit starts — whether an Encounter entry counts as signed — and each
+ *               keeps what it read: a change reaches the next offer and the next visit, never one already
+ *               under way. A doctor confirms a scope setting's review through the review route; until one
+ *               does the value is in force and the read route says it is not clinically reviewed.
  *
  * WHAT IS NOT BOUND. POST /v1/care/sync-batches: its frozen request carries operation references and
  * nothing else, and capture.json's conflicts cannot be decided without each operation's visit and
  * observation — the domain's SyncIntake decides them, tested, against a shape the route has not got.
- * POST /v1/care/setting-reviews: no Care setting waits on a clinical review yet, so there is nothing to
- * confirm; packages/engines/src/settings answers it the day one does. The four reads (shifts, services,
- * locum shifts, circuits) are answered by the contract mock. */
+ * The four reads (shifts, services, locum shifts, circuits) are answered by the contract mock. */
 import { randomInt } from 'node:crypto';
 import roster from '../../../catalog/roster.json' with { type: 'json' };
 import geography from '../../../catalog/geography.json' with { type: 'json' };
@@ -41,7 +43,7 @@ import care from '../../../catalog/care.json' with { type: 'json' };
 import { defineEngine, ok, refuse, type Answer, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
 import { SETTINGS_SCHEMA, settingsIn, settingsRoutes } from '../settings/routes.ts';
 import {
- careContract, careSettings, instantAt, offerExpiryOf, OfferDesk, TrustCache, VisitDesk,
+ careContract, careInForceOf, careSettings, instantAt, OfferDesk, TrustCache, VisitDesk,
  type AppointmentToFill, type Candidate, type CareEvent, type Offer, type Visit
 } from './domain/index.ts';
 
@@ -94,14 +96,12 @@ function load(ctx: EngineContext): Desks {
   .map(b => ({ subjectRef: b.subject_ref, badgeTier: b.badge_tier, hardGatesPassed: b.hard_gates_passed === 1, occurredAt: b.occurred_at }));
  const written = new Set((ctx.store.prepare('SELECT entry_ref FROM care_encounters').all() as { entry_ref: string }[]).map(r => r.entry_ref));
  const trust = new TrustCache(careContract.badgeTiers, badges);
+ /* Asked when an offer is made or a visit starts, from this store's own history, and kept by what asked. */
+ const inForce = () => careInForceOf(settingsIn(careSettings, ctx.store));
  return {
   trust, rows,
-  offers: new OfferDesk({
-   contract: careContract, trust, candidates: () => CANDIDATES, book: { appointments, offers, bookings: held.map(h => h.visit) },
-   /* Asked when an offer is made, from this store's own history, and kept on the offer. */
-   expiry: () => offerExpiryOf(settingsIn(careSettings, ctx.store))
-  }),
-  visits: new VisitDesk({ contract: careContract, held, record: { encounterComplete: ref => written.has(ref), encounterSigned: ref => written.has(ref) } })
+  offers: new OfferDesk({ contract: careContract, trust, candidates: () => CANDIDATES, book: { appointments, offers, bookings: held.map(h => h.visit) }, settings: inForce }),
+  visits: new VisitDesk({ contract: careContract, held, settings: inForce, record: { encounterComplete: ref => written.has(ref), encounterSigned: ref => written.has(ref) } })
  };
 }
 
@@ -207,7 +207,7 @@ export const engine = defineEngine({
    return ok({ completedAt: done.value.completedAt });
   }),
 
-  ...settingsRoutes(careSettings, { read: 'GET /v1/care/settings@1', change: 'POST /v1/care/setting-changes@1' })
+  ...settingsRoutes(careSettings, { read: 'GET /v1/care/settings@1', change: 'POST /v1/care/setting-changes@1', review: 'POST /v1/care/setting-reviews@1' })
  },
 
  subscriptions: {

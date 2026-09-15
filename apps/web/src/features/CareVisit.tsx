@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, BadgeCheck, Check, ClipboardList, Clock3, KeyRound, Route, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Check, ClipboardList, Clock3, KeyRound, Route, ShieldAlert, ShieldCheck } from 'lucide-react';
 import protocolsContract from '../../../../packages/catalog/protocols.json' with { type: 'json' };
 import { NotConnected } from '../components/NotConnected';
 import { CodeInput } from '../components/Steps';
@@ -9,7 +9,7 @@ import { zoneById } from '../lib/geography';
 import { nurseById } from '../lib/roster';
 import { timezone } from '../lib/scheduling';
 import {
- accept, attachReadings, complete, decline, goTo, handOver, markerFor, preview, sentences, stages, start, tick, useCareVisit
+ accept, attachReadings, complete, decline, goTo, handOver, markerFor, notClinicallyReviewed, preview, scopeNotReviewedFor, sentences, stages, start, tick, useCareVisit
 } from '../lib/care-visit';
 import './care-visit.css';
 
@@ -75,6 +75,9 @@ export function CareOfferSlot({ open, available }: { open: (modal: string) => vo
     <span className="care-eyebrow">A visit offered to you</span>
     <h2 id="care-slot-title">{service.name}</h2>
     {marker && <p className="care-marker"><BadgeCheck size={15} aria-hidden="true"/>{marker}</p>}
+    {/* Who may be offered this service is a setting nobody has clinically reviewed yet. Said beside the
+        offer, and never a reason the offer is withheld. */}
+    {scopeNotReviewedFor(offer) && <p className="care-marker is-unreviewed"><ShieldAlert size={15} aria-hidden="true"/>{notClinicallyReviewed}</p>}
    </div>
    <dl className="care-facts">
     <div><dt>When</dt><dd>Today, {view.scheduledFor ? clock(view.scheduledFor) : ''}<small>{service.duration} min</small></dd></div>

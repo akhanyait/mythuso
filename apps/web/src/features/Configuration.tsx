@@ -5,7 +5,7 @@ import {
  reviewStateOf, settingsContract, settingsScreen, snapshotOf,
  type Change, type Limits, type Provenance, type Refusal, type Setting, type SettingsBlock, type Snapshot, type Window
 } from '../../../../packages/engines/src/settings/shape.ts';
-import { adminOnDuty, applyChange, engineIds, previewChange, settingsEngineOf, useSettingsHistories } from '../lib/settings';
+import { adminOnDuty, applyChange, doctorOnDuty, engineIds, previewChange, reviewsOf, settingsEngineOf, useSettingsHistories, useSettingsReviews } from '../lib/settings';
 import { whoIs } from '../lib/roles';
 
 /* Configuration, on the back office: every setting every engine works to, in one place.
@@ -40,7 +40,7 @@ const clockOf = (at: number) => new Date(at).toLocaleTimeString('en-ZA', { hour:
 const whenOf = (at: number) => `${new Date(at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', timeZone: ZONE })}, ${clockOf(at)}`;
 const roleName = (id: string) => vetting.roles.find(role => role.id === id)?.name ?? id;
 const capabilityName = (id: string) => vetting.capabilities.find(capability => capability.id === id)?.name.toLowerCase() ?? id;
-const personOf = (ref: string) => ref === adminOnDuty() ? `${whoIs(ref, '').subject.name} · ${ref}` : ref;
+const personOf = (ref: string) => ref === adminOnDuty() || ref === doctorOnDuty() ? `${whoIs(ref, '').subject.name} · ${ref}` : ref;
 const dayName = (id: string) => id.charAt(0).toUpperCase() + id.slice(1);
 const NUMBERS = new Set(['minutes', 'count', 'moneyCents', 'percentage']);
 const itemsOf = (limits: Limits): Limits => ({ ...limits, type: limits.of!, of: undefined, items: undefined });
@@ -216,6 +216,8 @@ function Editor({ limits, raw, onRaw, id, label, disabled }: { limits: Limits; r
 
 export function Configuration({ engine, onEngine }: { engine: string; onEngine: (engine: string) => void }) {
  const histories = useSettingsHistories();
+ /* A doctor's confirmation changes what a setting says about its review, so the screen redraws on one. */
+ useSettingsReviews();
  const id = useId();
  const [query, setQuery] = useState('');
  const blocks = engineIds.map(e => settingsEngineOf(e).block);
@@ -270,7 +272,7 @@ function SettingItem({ engine, setting, snapshot, history, open, onOpen, onClose
 }) {
  const inForce = snapshot.values[setting.key];
  const last = history.at(-1);
- const review = reviewStateOf(setting, snapshot, []);
+ const review = reviewStateOf(setting, snapshot, reviewsOf(engine));
  const limits = limitsText(setting);
  const bounds = limitProvenance(setting);
  return <li className="ss-timing">
