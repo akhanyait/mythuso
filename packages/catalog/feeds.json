@@ -1728,9 +1728,9 @@
    "capabilities": [
     "credential-verification"
    ],
-   "supplier": "A KYC and liveness provider, or the accredited AFIS partner, comparing the person starting a shift with the person who was vetted. None is contracted, and the Information Officer has not decided whether the comparison is biometric processing (D-3).",
+   "supplier": "A KYC and liveness provider or the AFIS partner. None is contracted, and D-3 is undecided.",
    "route": "POST /feeds/face-match-result",
-   "arrives": "One provider's answer about one shift start MyThuso asked about: matched, not matched, or that it could not tell.",
+   "arrives": "One answer about one shift start.",
    "derivedFrom": [
     "packages/catalog/verify-in-service.json",
     "packages/engines/src/trust/domain/face-match.ts"
@@ -1740,20 +1740,20 @@
     "sample": [
      "packages/engines/src/trust/domain/face-match.ts"
     ],
-    "unchanged": "Every shift start asks the door and is answered not-integrated, so every shift is recorded as not matched and the dispatch rule in force decides what that means. Nothing of anybody's face is taken, and that is the arrangement to keep until D-3 and a contract say otherwise."
+    "unchanged": "Every shift start is answered not-integrated and recorded as not matched. No face is taken."
    },
    "accepts": [
     {
      "field": "shiftStartRef",
      "type": "string",
      "required": true,
-     "why": "The shift start MyThuso asked about. It names the question, never the person's identity number or face."
+     "why": "The shift start asked about, never a person or a face."
     },
     {
      "field": "outcome",
      "type": "string",
      "required": true,
-     "why": "matched, not-matched or undetermined. A provider that could not tell says so, and undetermined is never read as matched."
+     "why": "matched, not-matched or undetermined; undetermined is never matched."
     },
     {
      "field": "decidedAt",
@@ -1765,22 +1765,22 @@
    "beforeSwitchOn": [
     {
      "id": "the-information-officer-decides-d-3",
-     "must": "The Information Officer records whether a face match at shift start is biometric information under POPIA section 26, and on what basis it may be processed.",
-     "why": "docs/governance/INFORMATION-OFFICER.md lists it as D-3, undecided. Switching the door on first would be processing special personal information on a guess.",
+     "must": "The Information Officer decides whether a shift-start face match is biometric information (D-3).",
+     "why": "Otherwise it is special personal information processed on a guess.",
      "met": false,
      "evidence": null
     },
     {
      "id": "the-provider-keeps-no-face",
-     "must": "The provider's contract says it keeps no image, template or embedding after answering, and trains nothing on it.",
-     "why": "MyThuso holding no face is worth nothing if the provider it asks keeps every one.",
+     "must": "The provider keeps no image, template or embedding, and trains nothing on one.",
+     "why": "Holding no face is worth nothing if the provider keeps every one.",
      "met": false,
      "evidence": null
     },
     {
      "id": "undetermined-is-never-matched",
-     "must": "An undetermined or unreachable answer is recorded as not matched, and the dispatch rule in force applies to it as to not-integrated.",
-     "why": "The failure this door exists to prevent is a shift nobody checked being passed as checked because the provider was slow on a Monday morning.",
+     "must": "An undetermined or unreachable answer is recorded as not matched.",
+     "why": "A slow provider must not pass an unchecked shift as checked.",
      "met": false,
      "evidence": null
     }
@@ -1789,7 +1789,7 @@
     {
      "field": "faceTemplate",
      "refusal": "A face-match answer may not carry a face template.",
-     "why": "The template is the face in the shape a matcher reads, and whether holding one is lawful is D-3.",
+     "why": "Whether holding one is lawful is D-3.",
      "also": [
       "template",
       "biometricTemplate",
@@ -1799,7 +1799,7 @@
     {
      "field": "faceImage",
      "refusal": "A face-match answer may not carry a photograph of a face.",
-     "why": "A photograph returned with an answer is a photograph kept by whoever reads the answer.",
+     "why": "A photograph returned is a photograph kept.",
      "also": [
       "image",
       "photo",
@@ -1822,7 +1822,7 @@
     {
      "field": "matchScore",
      "refusal": "A face-match answer may not carry a similarity score.",
-     "why": "A number between nought and one invites somebody to choose a threshold on a busy morning. The provider decides against its own threshold and answers in words.",
+     "why": "The provider decides against its own threshold and answers in words.",
      "also": [
       "similarity",
       "confidence",
@@ -1832,7 +1832,7 @@
    ],
    "operator": {
     "becomesAnOperator": true,
-    "section72": "Identity and liveness providers are commonly hosted outside South Africa, and a face sent to one would be special personal information crossing a border. Not determined.",
+    "section72": "Liveness providers are often hosted offshore. Not determined.",
     "determined": false
    }
   }

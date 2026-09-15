@@ -1,0 +1,24 @@
+/* Verify in service: the patient's door check, her complaint, the reviewer's queue, the desk's board of shift
+   starts and the nurse's door code. Loaded with the screens, never on the patient's first view. */
+.vis-door { display: flex; flex-direction: column; gap: 14px; }
+.vis-expected { display: flex; align-items: center; gap: 12px; }
+.vis-expected div { display: flex; flex-direction: column; }
+.vis-expected small { color: var(--faint); }
+.vis-code { display: flex; flex-direction: column; gap: 10px; max-width: 380px; }
+.vis-code .code-input input { letter-spacing: 0.3em; }
+.vis-refusal, .vis-alarm { display: flex; flex-direction: column; gap: 6px; color: var(--danger); background: var(--danger-soft); border-radius: var(--r-control); padding: 12px 14px; margin: 0; }
+.vis-refusal { flex-direction: row; align-items: flex-start; gap: 8px; }
+.vis-alarm p { display: flex; gap: 8px; margin: 0; font-weight: 600; }
+.vis-ok { display: flex; gap: 8px; align-items: flex-start; margin: 0; }
+.vis-matched { display: flex; flex-direction: column; gap: 10px; }
+.vis-matched p { display: flex; gap: 8px; margin: 0; }
+.vis-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 0; }
+.vis-facts div { display: flex; flex-direction: column; }
+.vis-facts dt { font-size: 12px; color: var(--faint); }
+.vis-facts dd { margin: 0; font-weight: 600; }
+.danger-outline { border: 2px solid var(--danger); color: var(--danger); background: var(--surface); border-radius: var(--r-control); min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; }
+.vis-queue, .vis-board, .vis-nurse-code, .vis-notices, .vis-complaint { display: flex; flex-direction: column; gap: 10px; }
+.vis-row { display: flex; flex-direction: column; gap: 8px; }
+.vis-age { font-variant-numeric: tabular-nums; }
+.vis-detail blockquote { margin: 0; padding: 10px 14px; border-left: 3px solid var(--line); color: var(--ink); }
+.vis-digits { font-size: 34px; font-weight: 700; letter-spacing: 0.25em; font-variant-numeric: tabular-nums; }

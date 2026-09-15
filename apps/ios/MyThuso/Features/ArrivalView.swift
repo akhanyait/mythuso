@@ -59,6 +59,9 @@ struct ArrivalView: View {
                 Text(Arrival.coverageSentence).font(.footnote)
                     .foregroundStyle(ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true)
+                NavigationLink { DoorCheckView(visit: visit) } label: {
+                    Text(VerifyInService.PatientDoorText.open).frame(maxWidth: .infinity)
+                }.buttonStyle(CareButton())
                 NavigationLink { VisitDetailView(visit: visit) } label: {
                     Text("Open this visit").frame(maxWidth: .infinity)
                 }.buttonStyle(CareButton())

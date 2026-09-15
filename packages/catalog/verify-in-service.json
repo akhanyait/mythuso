@@ -36,7 +36,7 @@
    }
   ],
   "deskHeading": "Shift starts today",
-  "deskIntro": "Every shift started today, and what the rule in force did with it. No shift has been face matched, because nothing can match one.",
+  "deskIntro": "Every shift started today, and what the rule in force did with it. No face match was performed for any of them, because nothing can perform one.",
   "deskEmpty": "Nobody has started a shift today.",
   "neverHeld": [
    { "field": "faceTemplate", "why": "A template is the face in the shape a matcher compares. Whether holding one is biometric processing is D-3, and it is undecided." },
@@ -58,7 +58,8 @@
    "button": "Show my door code",
    "again": "Show a new code",
    "expires": "This code stops working at {at}.",
-   "tries": "They have {attempts} tries before the desk is told."
+   "tries": "They have {attempts} tries before the desk is told.",
+   "preview": "In this preview the code is shown for the patient's next visit, as the nurse that visit is assigned to, so the patient's screen in this same tab can check it. Nothing reaches a door."
   },
   "patient": {
    "heading": "Check the nurse at your door",
@@ -198,7 +199,7 @@
     "changedBy": { "fromSetting": "settings-changed-by" },
     "appliesTo": "A change applies to shifts started after it. A shift already started keeps the rule it started under.",
     "guardrail": {
-     "statement": "No value treats a shift as face matched. A shift with no match is withheld or flagged, never passed as checked.",
+     "statement": "No value passes a shift as checked when no face match was performed. It is withheld or flagged.",
      "forbids": ["treat-as-matched", "matched", ""]
     }
    },

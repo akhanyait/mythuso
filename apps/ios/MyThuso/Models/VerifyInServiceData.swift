@@ -35,7 +35,7 @@ extension VerifyInService {
         static let whyNoMatch = "Whether matching a face is biometric information under POPIA section 26 is a decision the Information Officer has not taken (D-3), and no identity provider is contracted. Until both are settled, no image, template or embedding of anybody's face is held anywhere in MyThuso."
         static let dispatchRuleSetting = "unmatched-shift-start-dispatch"
         static let deskHeading = "Shift starts today"
-        static let deskIntro = "Every shift started today, and what the rule in force did with it. No shift has been face matched, because nothing can match one."
+        static let deskIntro = "Every shift started today, and what the rule in force did with it. No face match was performed for any of them, because nothing can perform one."
         static let deskEmpty = "Nobody has started a shift today."
     }
 
@@ -46,6 +46,7 @@ extension VerifyInService {
         static let again = "Show a new code"
         static let expires = "This code stops working at {at}."
         static let tries = "They have {attempts} tries before the desk is told."
+        static let preview = "In this preview the code is shown for the patient's next visit, as the nurse that visit is assigned to, so the patient's screen in this same tab can check it. Nothing reaches a door."
     }
 
     enum PatientDoorText {
@@ -65,7 +66,7 @@ extension VerifyInService {
         static let anyTime = "If the person at the door is not who you expected, say so at any time, with or without a code."
         static let danger = "If you are in danger, call 10111 now."
         static let photo = "MyThuso holds no photograph of a nurse, so none is shown. Check the name and the badge, and ask to see her SANC card."
-        static let badge = "You are shown her badge and never a number. A badge says her identity, registration and background are in order today."
+        static let badgeSentence = "You are shown her badge and never a number. A badge says her identity, registration and background are in order today."
         static let formWhy = "Digits, on every platform. A QR code is one more thing a patient's phone has to scan, which on the web and on Android needs a third-party library the open-source register has not procured (packages/catalog/open-source.json, section 15D). iOS could draw one with CoreImage, but no patient app could read it without a scanner, so a code only the nurse's phone can draw is decoration. Six digits are read aloud through a closed door as easily as they are typed."
     }
 

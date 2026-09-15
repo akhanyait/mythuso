@@ -9,6 +9,7 @@ import { signOffFor, type Part } from '../lib/visit-queue';
 import { useVisitQueue } from './VisitQueue';
 import { formatEventTime } from '../lib/vetting';
 import { CareOfferSlot } from './CareVisit';
+import { NurseDoorCode } from './VerifyInService';
 
 /* The four clinical workspaces' own home screens, and the four navigations that reach them.
  *
@@ -189,6 +190,8 @@ export function NurseSchedule({ open }: { open: (s: string) => void }) {
   {/* An offer is a decision about the day, so it is read under the date and above the day it would
       join. Off duty it shows nothing new; a visit she has already taken still shows. */}
   <CareOfferSlot open={open} available={available}/>
+  {/* The code she shows at a door, from Verify. On duty only: off duty she is at nobody's door. */}
+  {available && <NurseDoorCode/>}
   {available ? <div className="nday">
    {/* THE DAY AS ONE RAIL RATHER THAN A CARD AND TWO ROWS.
        It was a lime card, a section heading, two grey rows in a white box and a hairline total —

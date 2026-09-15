@@ -82,7 +82,7 @@ export function emitVerifyInService(root = '') {
  const texts = [
   ['ShiftText', sentences(contract.shiftStart)],
   ['NurseDoorText', sentences(contract.door.nurse)],
-  ['PatientDoorText', [...sentences(contract.door.patient).map(([key, value]) => [key, withPolice(value)]), ['photo', contract.door.photo.sentence], ['badge', contract.badge.sentence], ['formWhy', contract.door.formWhy]]],
+  ['PatientDoorText', [...sentences(contract.door.patient).map(([key, value]) => [key, withPolice(value)]), ['photo', contract.door.photo.sentence], ['badgeSentence', contract.badge.sentence], ['formWhy', contract.door.formWhy]]],
   ['ComplaintText', [...sentences(contract.complaints.patient), ['nurseNotTold', contract.complaints.patient.nurseNotTold], ['scoreRule', contract.complaints.scoreRule.sentence]].filter((entry, i, all) => all.findIndex(other => other[0] === entry[0]) === i)]
  ];
  const lists = [

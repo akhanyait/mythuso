@@ -35,7 +35,7 @@ object VerifyInServiceData {
         const val whyNoMatch = "Whether matching a face is biometric information under POPIA section 26 is a decision the Information Officer has not taken (D-3), and no identity provider is contracted. Until both are settled, no image, template or embedding of anybody's face is held anywhere in MyThuso."
         const val dispatchRuleSetting = "unmatched-shift-start-dispatch"
         const val deskHeading = "Shift starts today"
-        const val deskIntro = "Every shift started today, and what the rule in force did with it. No shift has been face matched, because nothing can match one."
+        const val deskIntro = "Every shift started today, and what the rule in force did with it. No face match was performed for any of them, because nothing can perform one."
         const val deskEmpty = "Nobody has started a shift today."
     }
 
@@ -46,6 +46,7 @@ object VerifyInServiceData {
         const val again = "Show a new code"
         const val expires = "This code stops working at {at}."
         const val tries = "They have {attempts} tries before the desk is told."
+        const val preview = "In this preview the code is shown for the patient's next visit, as the nurse that visit is assigned to, so the patient's screen in this same tab can check it. Nothing reaches a door."
     }
 
     object PatientDoorText {
@@ -65,7 +66,7 @@ object VerifyInServiceData {
         const val anyTime = "If the person at the door is not who you expected, say so at any time, with or without a code."
         const val danger = "If you are in danger, call 10111 now."
         const val photo = "MyThuso holds no photograph of a nurse, so none is shown. Check the name and the badge, and ask to see her SANC card."
-        const val badge = "You are shown her badge and never a number. A badge says her identity, registration and background are in order today."
+        const val badgeSentence = "You are shown her badge and never a number. A badge says her identity, registration and background are in order today."
         const val formWhy = "Digits, on every platform. A QR code is one more thing a patient's phone has to scan, which on the web and on Android needs a third-party library the open-source register has not procured (packages/catalog/open-source.json, section 15D). iOS could draw one with CoreImage, but no patient app could read it without a scanner, so a code only the nurse's phone can draw is decoration. Six digits are read aloud through a closed door as easily as they are typed."
     }
 

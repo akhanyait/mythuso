@@ -361,6 +361,10 @@ import za.co.mythuso.model.mokoenaHousehold
            when no instrument is anywhere near — it is where the morning’s work sits when there is no
            signal, and on this platform it is on the disk rather than in memory. */
         title == "Visit queue" -> VisitQueueScreen(store, open)
+        /* Verify in service: the nurse's shift start and door code, and the patient's check of the person at her door. */
+        title == "Shift start" -> ShiftStartScreen(store, open)
+        title == "Door code" -> NurseDoorCodeScreen(store)
+        title == "Door check" -> DoorCheckScreen(store, open)
         /* Where is your nurse. The suburb and never a position, and nothing at all before the day —
            see model/Arrival.kt for why that is arithmetic rather than copy. */
         title.startsWith("Where is your nurse") ->
@@ -838,6 +842,12 @@ private fun sectionDeck(role: String, section: String) =
                 /* An offer is a decision about the day, so it is read directly under whether she is
                    taking visits at all. Off duty it shows nothing new; a visit she has taken still shows. */
                 CareOfferCard(store, available, open)
+                /* Verify: her shift start, which says no face match was performed, and the code she shows at a door. */
+                CareCard {
+                    Text(za.co.mythuso.model.VerifyInServiceData.ShiftText.heading, style = MaterialTheme.typography.titleMedium)
+                    ToolRow(za.co.mythuso.model.VerifyInServiceData.ShiftText.heading) { open("Shift start") }
+                    ToolRow(za.co.mythuso.model.VerifyInServiceData.NurseDoorText.heading) { open("Door code") }
+                }
                 /* First, not last. A nurse coming out of a house with no signal wants one answer
                    before anything else on this screen: is my work safe? */
                 CareCard {

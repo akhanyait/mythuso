@@ -13,6 +13,7 @@ import {
 } from '../lib/vetting';
 import { seededLog, seededSubjects, subjectById } from '../lib/vetting-fixtures';
 import { ClinicalDeck, type DeckFigure } from './ClinicalDeck';
+import { ComplaintsQueue, ShiftStartsBoard, complaintsHeading } from './VerifyInService';
 import './nurse-kit.css';
 import './nurse-tools.css';
 
@@ -194,11 +195,13 @@ export function VettingQueue({ open }: { open: (s: string) => void }) {
    <h1>Vetting queue</h1>
    <p>Every applicant, the state of each check, and the decision that either clears somebody for dispatch or refuses it in writing.</p></div></div>
   <VettingConsole vetting={vetting} open={open}/>
+  {/* Who started a shift today, and that nobody's face was matched. The desk reads it here beside the register. */}
+  <ShiftStartsBoard/>
  </>;
 }
 
 /* ---- The reviewer console ---------------------------------------------------------------- */
-type View = 'queue' | 'renewals' | 'audit';
+type View = 'queue' | 'renewals' | 'audit' | 'complaints';
 export function VettingConsole({ vetting, open }: { vetting: VettingState; open: (s: string) => void }) {
  const t = useT();
  const { subjects, log, reviewer, setReviewer } = vetting;
@@ -217,7 +220,7 @@ export function VettingConsole({ vetting, open }: { vetting: VettingState; open:
   return tally;
  }, {} as Record<string, number>), [subjects]);
  const shown = rows.find(r => r.subject.id === selected) ?? rows[0];
- const views: [View, string][] = [['queue', t('vetting.queue')], ['renewals', t('vetting.renewals')], ['audit', t('vetting.audit')]];
+ const views: [View, string][] = [['queue', t('vetting.queue')], ['renewals', t('vetting.renewals')], ['audit', t('vetting.audit')], ['complaints', complaintsHeading]];
  /* One arc per party on the register, lit for the ones that are cleared today. It is the same list
     the column below draws, in the same order, so the ring cannot drift from the rows. */
  const clearedArcs = subjects.map(s => { const status = summarise(s).status; return status === 'cleared' || status === 'expiring'; });
@@ -288,7 +291,7 @@ export function VettingConsole({ vetting, open }: { vetting: VettingState; open:
      </div>
      {shown && <SubjectDetail key={shown.subject.id} subject={shown.subject} vetting={vetting}/>}
     </div> : <EmptyState title="Nobody matches those filters" body="Widen the role or the status to see the rest of the queue. Nothing has been hidden from you."/>}
-  </> : view === 'renewals' ? <RenewalsDue subjects={subjects} onOpen={id => { setSelected(id); setView('queue'); setRoleFilter('all'); setStatusFilter('all'); }}/> : <AuditTrail log={log}/>}
+  </> : view === 'renewals' ? <RenewalsDue subjects={subjects} onOpen={id => { setSelected(id); setView('queue'); setRoleFilter('all'); setStatusFilter('all'); }}/> : view === 'complaints' ? <ComplaintsQueue/> : <AuditTrail log={log}/>}
  </div>;
 }
 

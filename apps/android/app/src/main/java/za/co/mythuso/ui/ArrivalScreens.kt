@@ -220,6 +220,9 @@ import za.co.mythuso.model.*
             Note(GeographyData.coverageSentence)
         }
 
+        StudioButton(onClick = { open("Door check") }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) {
+            Text(VerifyInServiceData.PatientDoorText.open)
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
             OutlinedButton(
                 onClick = { open("Visits") },

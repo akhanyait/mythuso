@@ -8758,3 +8758,173 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
 
  console.log(`Access settings: named-nurse-fallback's ${fallbackRules.length} values each end in a nurse or a sentence, the emergency sentence and the numbers are rules no Access setting holds, photos wait on ${photosSetting.reviewRequired} behind a route that carries no photo, ${accessThreadFiles.length + accessHandoverFiles.length} Access files type no limit or hour, and the web reads Access's settings through lib/settings alone, off the first load.`);
 }
+
+/* ==== Verify in service (Wave 4, Trust lead) ==========================================================
+
+   Added by the Trust lead. Self-contained. What Verify in service holds the build to, each broken once and
+   watched fail before it was trusted:
+
+   1. No Trust Score leaves through the badge or the door check. Their responses carry no field named like a
+      score and no number but the tries left at a door, the door-check screens on all three platforms name no
+      score, and nothing in the Trust engine reaches for the identity service's score.
+   2. Nothing of a face. No live Verify route, no Verify event, no column the Trust engine creates and no log
+      carries a face template, a photograph, an embedding or a capture; a shift start takes no field; and the
+      face-match door refuses a template, a photograph and an embedding by name.
+   3. Nothing says matched while no face-match provider is integrated. The shift-start copy, the desk's board
+      and both native shift screens never say it, no code names trust.shift_start.matched, and the door's
+      outcome type is the one literal not-integrated.
+   4. A complaint never changes a score. The complaint domain names no score, weight, tier or suspension; a
+      decision publishes and calls nothing; and a complaint publishes only trust.complaint.received@1, which
+      refuses a score.
+   5. A complaint's header carries no protected category: no category names one from records.json, the queue
+      row and the nurse's notice carry exactly their declared keys, the event carries no category, and the
+      nurse is never told who complained.
+   6. Nobody acts on their own file through these routes: a shift, a door code and a nurse's notices take their
+      party from the caller and name none in the request, the complaint domain refuses a complaint about
+      yourself and a reviewer's own complaint, and every Verify write to a party is a reviewer's.
+   7. No screen, domain file or copy types a door code's lifetime or tries, or the complaint window, and the
+      window's default is the frozen complaints route's own number.
+   8. The patient's door check and complaint form reach the patient only through a dynamic import. */
+{
+ const vis = JSON.parse(read('packages/catalog/verify-in-service.json'));
+ const visApi = JSON.parse(read('packages/catalog/apis/trust.json'));
+ const visFeeds = JSON.parse(read('packages/catalog/feeds.json'));
+ const visCapabilities = JSON.parse(read('packages/catalog/capabilities.json'));
+ const visRecords = JSON.parse(read('packages/catalog/records.json'));
+ const visEvents = JSON.parse(read('packages/catalog/events.json')).sources.flatMap(f => JSON.parse(read(f)).events ?? []);
+ const visKey = r => `${r.method} ${r.path}@${r.version}`;
+ const visLive = new Map(visApi.routes.filter(r => !r.withdrawn).map(r => [visKey(r), r]));
+ const visRoute = k => { const r = visLive.get(k); if (!r) throw new Error(`packages/catalog/apis/trust.json no longer declares ${k}, which Verify in service's checks hold.`); return r; };
+ const deepFields = list => (list ?? []).flatMap(f => [f, ...deepFields(f.fields)]);
+ const withoutComments = text => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$/gm, '$1');
+ const sliceOf = (file, from, to) => {
+  const text = read(file);
+  const at = text.indexOf(from);
+  if (at < 0) throw new Error(`${file} no longer has ${from}, which Verify in service's checks read.`);
+  const end = to ? text.indexOf(to, at + from.length) : -1;
+  if (to && end < 0) throw new Error(`${file} no longer has ${to} after ${from}, which Verify in service's checks read.`);
+  return withoutComments(text.slice(at, end < 0 ? undefined : end));
+ };
+ const WEB = 'apps/web/src/features/VerifyInService.tsx';
+ const IOS = 'apps/ios/MyThuso/Features/VerifyInServiceView.swift';
+ const ANDROID = 'apps/android/app/src/main/java/za/co/mythuso/ui/VerifyInServiceScreens.kt';
+ const ENGINE = 'packages/engines/src/trust/engine.ts';
+ const COMPLAINTS = 'packages/engines/src/trust/domain/complaints.ts';
+ const trustFiles = files('packages/engines/src/trust').filter(f => f.endsWith('.ts') && !f.endsWith('.test.ts'));
+
+ /* 1. The outward view is a tier. */
+ const SCORE_NAMED = /score|points?|rank|rating|weight|percentile|grade|level|band|stars?/i;
+ const COUNTED = new Map([['attemptsLeft', 'tries left at a door, which is about the door and not the nurse']]);
+ const outward = ['GET /v1/trust/parties/{partyId}/badge@1', 'POST /v1/trust/door-verifications@2', 'POST /v1/trust/door-verifications/{appointmentRef}/answer@1'];
+ for (const k of outward) for (const f of deepFields(visRoute(k).response)) {
+  if (SCORE_NAMED.test(f.field) || ((f.type === 'integer' || f.type === 'number') && !COUNTED.has(f.field))) throw new Error(`${k} answers "${f.field}" as ${f.type}. ${vis.badge.why}`);
+ }
+ for (const [file, from, to] of [[WEB, 'export function DoorCheck(', 'export function ComplaintEntry'], [IOS, 'struct DoorCheckView', '// MARK: - End of the door check'], [ANDROID, '@Composable fun DoorCheckScreen', '// End of the door check']]) {
+  if (/score/i.test(sliceOf(file, from, to))) throw new Error(`The door check in ${file} reaches for a score. A patient is shown a name and a badge tier and never a number (packages/catalog/trust.json patientView).`);
+ }
+ for (const f of trustFiles) if (/apps\/api|trustScore\(|forPatient\(/.test(withoutComments(read(f)))) throw new Error(`${f} reaches for the identity service's Trust Score. Verify in service answers a badge from its own register, worked out on read, and never computes or carries a number.`);
+
+ /* 2. Nothing of a face. */
+ const FACE = new RegExp(`(${[...vis.shiftStart.neverHeld.map(n => n.field), 'image', 'photo', 'embedding', 'template', 'selfie', 'biometric', 'liveness'].join('|')})`, 'i');
+ let visFieldsRead = 0;
+ for (const r of visLive.values()) for (const f of [...deepFields(r.request), ...deepFields(r.response)]) { visFieldsRead++; if (FACE.test(f.field)) throw new Error(`${visKey(r)} carries "${f.field}". ${vis.shiftStart.whyNoMatch}`); }
+ const trustEvents = visEvents.filter(e => e.owner === 'trust' && !e.withdrawn);
+ for (const e of trustEvents) for (const f of e.payload) if (FACE.test(f.field)) throw new Error(`${e.type}@${e.version} carries "${f.field}". ${vis.shiftStart.whyNoMatch}`);
+ let visColumns = 0;
+ for (const f of trustFiles) {
+  const source = read(f);
+  for (const m of source.matchAll(/'\s*([a-z_]+)\s+(?:TEXT|INTEGER|REAL|BLOB|NUMERIC)\b/g)) {
+   visColumns++;
+   if (FACE.test(m[1])) throw new Error(`${f} creates the column ${m[1]}. ${vis.shiftStart.whyNoMatch}`);
+  }
+  if (/\bconsole\.|process\.std(?:out|err)|trail\.append/.test(withoutComments(source))) throw new Error(`${f} logs. The Trust engine writes nothing about a shift, a door or a complaint anywhere but its own store and the bus.`);
+ }
+ if (!visColumns) throw new Error(`${ENGINE} creates no column this check can read, so it would pass a table holding a face.`);
+ const faceDoor = visFeeds.feeds.find(f => f.id === vis.shiftStart.door);
+ if (!faceDoor || !visApi.doors.includes(faceDoor.id)) throw new Error(`packages/catalog/feeds.json has no ${vis.shiftStart.door} door linked from packages/catalog/apis/trust.json. A match result may come only from a supplier door.`);
+ for (const field of ['faceTemplate', 'faceImage', 'faceEmbedding']) if (!faceDoor.neverAccepts.some(n => n.field === field)) throw new Error(`The ${faceDoor.id} door no longer refuses ${field}. ${vis.shiftStart.whyNoMatch}`);
+ if (visRoute('POST /v1/trust/shift-starts@2').request.length) throw new Error('POST /v1/trust/shift-starts@2 takes a field. A shift start carries nothing, so nothing about a face can arrive with one.');
+
+ /* 3. Nothing says matched without a provider. */
+ const faceCapabilities = visCapabilities.capabilities.filter(c => faceDoor.capabilities.includes(c.id));
+ const integrated = faceCapabilities.length > 0 && faceCapabilities.every(c => c.connected === true) && faceDoor.operator.determined === true && faceDoor.beforeSwitchOn.every(c => c.met === true);
+ if (!integrated) {
+  if (vis.shiftStart.outcome !== 'not-integrated' || vis.shiftStart.matchPerformed !== false) throw new Error('packages/catalog/verify-in-service.json says a shift start is matched, and no face-match provider is integrated.');
+  const shiftCopy = [...Object.values(vis.shiftStart).filter(v => typeof v === 'string'), ...vis.shiftStart.dispatchRules.flatMap(r => [r.nurse, r.desk])];
+  for (const sentence of shiftCopy) if (/\bmatched\b/i.test(sentence)) throw new Error(`packages/catalog/verify-in-service.json says "${sentence}" about a shift start, and no face-match provider is integrated. Nothing may show matched without one.`);
+  for (const [file, from, to] of [[WEB, 'export function ShiftStartsBoard', 'export const complaintsHeading'], [IOS, 'struct ShiftStartView', '// MARK: - End of the shift start'], [ANDROID, '@Composable fun ShiftStartScreen', '// End of the shift start']]) {
+   if (/\bmatched\b|shift_start\.matched/i.test(sliceOf(file, from, to))) throw new Error(`The shift start in ${file} says matched, and no face-match provider is integrated.`);
+  }
+  for (const f of [...files('packages/engines/src'), ...files('apps/web/src')].filter(f => /\.(ts|tsx)$/.test(f) && !/\.test\.ts$|\.generated\.ts$/.test(f))) {
+   if (/trust\.shift_start\.matched/.test(withoutComments(read(f)))) throw new Error(`${f} names trust.shift_start.matched, and no face-match provider is integrated to match anybody.`);
+  }
+  if (!read('packages/engines/src/trust/domain/face-match.ts').includes("export type FaceMatchOutcome = 'not-integrated';")) throw new Error('packages/engines/src/trust/domain/face-match.ts widens what the face-match door can answer beyond not-integrated, and no provider is integrated.');
+ }
+
+ /* 4. A complaint never changes a score. */
+ const complaintCode = withoutComments(read(COMPLAINTS)).replace(/'complaint-(?:decision-)?carries-no-weight'/g, "''");
+ const scoreWord = complaintCode.match(/score|weight|softInputs|\btier|suspend|trust_updated|under_review|probation|badgeOf/i);
+ if (scoreWord) throw new Error(`${COMPLAINTS} names ${scoreWord[0]}. ${vis.complaints.scoreRule.why}`);
+ if (/publish|ctx\.call\(|badgeOf|suspend/.test(sliceOf(ENGINE, "'POST /v1/trust/complaints/{complaintRef}/decide@1'", "'GET /v1/trust/complaint-notices@1'"))) throw new Error(`${ENGINE} publishes, calls or suspends when a complaint is decided. ${vis.complaints.scoreRule.sentence}`);
+ if (visRoute('POST /v1/trust/complaints/{complaintRef}/decide@1').emits.length) throw new Error(`POST /v1/trust/complaints/{complaintRef}/decide@1 emits an event. ${vis.complaints.scoreRule.sentence}`);
+ if (JSON.stringify(visRoute('POST /v1/trust/complaints@2').emits) !== JSON.stringify(['trust.complaint.received@1'])) throw new Error(`POST /v1/trust/complaints@2 emits more than trust.complaint.received@1. A complaint arriving tells Core when it is due and tells no dispatch engine anything.`);
+ const receivedEvent = visEvents.find(e => e.type === 'trust.complaint.received' && e.version === 1);
+ if (!receivedEvent?.neverCarries.some(n => n.field === 'score')) throw new Error('trust.complaint.received@1 no longer refuses a score.');
+
+ /* 5. No protected category in a complaint's header. */
+ const protectedWords = [...new Set(visRecords.sensitivity.find(s => s.id === 'protected').categories.flatMap(c => c.toLowerCase().split(/[^a-z]+/)))].filter(w => w.length > 2 && !['and', 'health', 'care', 'use', 'support', 'social'].includes(w));
+ for (const c of vis.complaints.categories) {
+  const words = `${c.id} ${c.label}`.toLowerCase().split(/[^a-z]+/);
+  const hit = protectedWords.find(w => words.includes(w));
+  if (hit) throw new Error(`The complaint category "${c.id}" names "${hit}", from a protected category in packages/catalog/records.json. ${vis.complaints._categoriesNote}`);
+ }
+ const itemKeys = k => (visRoute(k).response.find(f => f.field === 'items')?.fields ?? []).map(f => f.field);
+ const QUEUE_KEYS = ['complaintRef', 'partyRef', 'categoryCode', 'state', 'receivedAt', 'reviewBy', 'reviewWithinHours', 'ageHours', 'overdue', 'settingsVersion'];
+ if (itemKeys('GET /v1/trust/complaints@1').join(',') !== QUEUE_KEYS.join(',')) throw new Error(`A row of GET /v1/trust/complaints@1 carries ${itemKeys('GET /v1/trust/complaints@1').join(', ')}. A queue row is the header, ${QUEUE_KEYS.join(', ')}, and never the account or who made it.`);
+ if (itemKeys('GET /v1/trust/complaint-notices@1').join(',') !== vis.complaints.nurseSees.join(',')) throw new Error(`A nurse's complaint notice carries ${itemKeys('GET /v1/trust/complaint-notices@1').join(', ')}, and the contract lets her see ${vis.complaints.nurseSees.join(', ')}. ${vis.complaints.complainantWhy}`);
+ if (vis.complaints.complainantShownToNurse !== false) throw new Error(`packages/catalog/verify-in-service.json shows the nurse who complained about her. ${vis.complaints.complainantWhy}`);
+ if (receivedEvent.payload.some(f => /category|happened|complainant/i.test(f.field))) throw new Error('trust.complaint.received@1 carries what a complaint is about or who made it. Core needs the deadline.');
+ if (/whatHappened|complainant/.test(sliceOf(WEB, 'export function ComplaintsQueue', 'function ComplaintDetail'))) throw new Error(`The reviewer's queue in ${WEB} puts the account or the complainant in a row. A row is the header; the account is read when the complaint is opened.`);
+ if (/complainant|whatHappened|appointmentRef|receivedAt/.test(sliceOf(COMPLAINTS, 'export const noticesFor', null))) throw new Error(`${COMPLAINTS} tells the nurse more than the contract lets her see. ${vis.complaints.complainantWhy}`);
+
+ /* 6. Nobody acts on their own file. */
+ const engineSource = read(ENGINE);
+ for (const k of ['POST /v1/trust/shift-starts@2', 'POST /v1/trust/door-codes@1', 'GET /v1/trust/complaint-notices@1']) {
+  if (deepFields(visRoute(k).request).some(f => /party|nurse|subject/i.test(f.field))) throw new Error(`${k} takes a party in its request. A nurse starts her own shift, shows her own code and reads her own notices, as the caller the runtime identified, and names nobody else.`);
+  const at = engineSource.indexOf(`'${k}'`);
+  const next = engineSource.indexOf("\n  '", at + 1);
+  if (at < 0 || !engineSource.slice(at, next < 0 ? undefined : next).includes('ctx.caller.ref')) throw new Error(`${ENGINE} answers ${k} without taking the party from ctx.caller.ref.`);
+ }
+ const complaintsSource = read(COMPLAINTS);
+ if (!complaintsSource.includes("input.complainantRef === input.partyRef) return refused('complaint-about-yourself')") || !complaintsSource.includes("byRef === complaint.partyRef) return refused('complaint-about-you')")) throw new Error(`${COMPLAINTS} no longer refuses a complaint about yourself, or a reviewer opening or deciding a complaint about themselves. ${JSON.parse(read('packages/catalog/vetting.json')).selfActionRefusals.administrativeOnSelf}`);
+ const aboutYou = visApi.refusals.find(r => r.id === 'complaint-about-you');
+ if (!['GET /v1/trust/complaints/{complaintRef}@1', 'POST /v1/trust/complaints/{complaintRef}/decide@1'].every(k => aboutYou?.answeredBy?.includes(k))) throw new Error('complaint-about-you is no longer answered by both the complaint read and its decision.');
+ for (const r of visLive.values()) if (r.method !== 'GET' && /\/parties(\/|$)/.test(r.path) && r.callers.some(c => c !== 'admin')) throw new Error(`${visKey(r)} lets ${r.callers.join(', ')} write to the vetting register. A party never enrols, restores or changes the role of anybody, themselves included; every write to a party is a reviewer's.`);
+
+ /* 7. No typed lifetime, tries or window. */
+ const visDefault = key => vis.settings.items.find(s => s.key === key)?.default.value;
+ const [lifetime, tries, windowHours] = ['door-code-lifetime', 'door-code-attempts', 'complaint-review-hours'].map(visDefault);
+ const typedNumber = new RegExp(`\\b(?:${lifetime}\\s*(?:-\\s*)?(?:min|mins|minutes?)|${tries}\\s*(?:tries|attempts?)|${windowHours}\\s*(?:-\\s*)?(?:h|hrs?|hours?))\\b`, 'i');
+ const visHandWritten = [WEB, 'apps/web/src/lib/verify-in-service.ts', IOS, 'apps/ios/MyThuso/Models/VerifyInService.swift', ANDROID, 'apps/android/app/src/main/java/za/co/mythuso/model/VerifyInService.kt', ...trustFiles];
+ for (const f of visHandWritten) {
+  const typed = withoutComments(read(f)).match(typedNumber);
+  if (typed) throw new Error(`${f} types ${typed[0]}. A door code's lifetime and tries and the complaint window are settings in packages/catalog/verify-in-service.json, read in force on the web and from the generated VerifyInServiceData on a phone.`);
+ }
+ const copyOf = value => (typeof value === 'string' ? [value] : Array.isArray(value) ? value.flatMap(copyOf) : value && typeof value === 'object' ? Object.entries(value).filter(([k]) => k !== 'settings').flatMap(([, v]) => copyOf(v)) : []);
+ for (const sentence of copyOf(vis)) {
+  const typed = sentence.match(typedNumber);
+  if (typed) throw new Error(`packages/catalog/verify-in-service.json says "${typed[0]}" outside its settings. A sentence names the number as a placeholder, filled from the settings in force.`);
+ }
+ const frozenWindow = Number((visApi.routes.find(r => visKey(r) === 'POST /v1/trust/complaints@1')?.summary.match(/within (\d+) hours/) ?? [])[1]);
+ if (frozenWindow !== windowHours) throw new Error(`complaint-review-hours defaults to ${windowHours}, and POST /v1/trust/complaints@1 was frozen reviewing within ${frozenWindow} hours. ${vis.complaints.reviewWindow.why}`);
+
+ /* 8. Off the first load. */
+ const appSource = read('apps/web/src/App.tsx');
+ if (/^import [^;]*from '\.\/features\/VerifyInService'/m.test(appSource) || !appSource.includes("lazy(() => import('./features/VerifyInService')")) throw new Error('apps/web/src/App.tsx imports the Verify screens statically. The door check and the complaint form arrive on a dynamic import, off the patient\'s first load.');
+ for (const f of ['apps/web/src/features/Arrival.tsx', 'apps/web/src/features/Pages.tsx']) {
+  const source = read(f);
+  if (/^import [^;]*from '\.\/VerifyInService'/m.test(source) || !source.includes("lazy(() => import('./VerifyInService')")) throw new Error(`${f} imports the Verify screens statically. They reach the patient on a dynamic import.`);
+ }
+
+ console.log(`Verify in service: the badge and the door check answer ${outward.length} routes with no number but the tries left, and no door-check screen on three platforms names a score; ${visFieldsRead} fields of ${visLive.size} live Verify routes, ${trustEvents.length} Verify events and ${visColumns} Trust columns carry nothing of a face, and nothing says matched while the ${faceDoor.id} door is not integrated; a complaint names no score, its decision publishes nothing, its header carries none of ${protectedWords.length} protected words and its nurse is never told who complained; a shift, a code and a notice are the caller's own and every write to a party is a reviewer's; and ${visHandWritten.length} files type no lifetime, try or hour.`);
+}

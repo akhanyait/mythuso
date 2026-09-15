@@ -1,17 +1,21 @@
 package za.co.mythuso.model
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+
 /* Verify in service on Android: a shift started with no face match, the code a nurse shows at a door, and the
  * patient's check of it. Every word is VerifyInServiceData.kt, generated from the contract; this file is the
  * arithmetic, and it is the same arithmetic packages/engines/src/trust/domain does on the engine runtime.
  *
  * NO MATCH, EVER, ON THIS PHONE. A shift start's outcome is the contract's not-integrated and nothing else, and
- * there is no branch for matched: no identity provider is contracted, and whether a face match is biometric
+ * there is no branch for a match: no identity provider is contracted, and whether a face match is biometric
  * information is the Information Officer's undecided D-3. The manifest asks for no camera for it.
  *
  * THE DOOR CODE IS DIGITS. A QR code would need a scanning library the open-source register has not procured
  * (section 15D), and six digits can be read through a closed door. The tries belong to the visit, not the code;
  * an expired code is refused and is not a try; "not my nurse" is taken at any time and "she is my nurse" only after
- * a match. A match hands the patient a name and a tier name — never a number.
+ * a code fits. A code that fits hands the patient a name and a tier name, never a number.
  *
  * The numbers are the contract's defaults, generated: an admin changes them on the web, and this app has no admin
  * surface. Nothing here is a real service: no desk is told and no incident is raised.
@@ -26,10 +30,10 @@ object VerifyInService {
     fun label(list: List<VerifyInServiceChoice>, id: String): String = list.firstOrNull { it.id == id }?.label ?: id
 
     fun fill(sentence: String, values: Map<String, String>): String =
-        values.entries.fold(sentence) { text, (key, value) -> text.replace("{$key}", value) }
+        values.entries.fold(sentence) { text, entry -> text.replace("{${entry.key}}", entry.value) }
 
     /** The contract's not-integrated is the only outcome a shift start holds. */
-    data class ShiftStart(val startedAtMillis: Long, val matchOutcome: String, val dispatchRule: String) {
+    data class ShiftStart(val startedAtMillis: Long, val outcome: String, val dispatchRule: String) {
         val online: Boolean get() = dispatchRule == "offer-with-desk-flag"
     }
 
@@ -47,25 +51,26 @@ object VerifyInService {
     data class DoorCode(val digits: String, val nurseName: String, val badgeTier: String?, val expiresAtMillis: Long, val attemptsAllowed: Int)
 
     sealed interface Tried {
-        data class Matched(val nurseName: String, val tierName: String?) : Tried
+        data class CodeFits(val nurseName: String, val tierName: String?) : Tried
         data class Wrong(val attemptsLeft: Int) : Tried
-        data object Mismatch : Tried
+        object Mismatch : Tried
     }
 
     /** One visit's door check. Immutable: every act answers with the next check. */
     data class DoorCheck(
         val code: DoorCode? = null,
         val attemptsUsed: Int = 0,
-        val codeMatched: Boolean = false,
+        val codeFits: Boolean = false,
         val closedAs: String? = null
     ) {
         val attemptsLeft: Int get() = maxOf(0, (code?.attemptsAllowed ?: VerifyInServiceData.doorCodeAttempts) - attemptsUsed)
 
         fun show(nurseName: String, badgeTier: String?, nowMillis: Long): Answer<DoorCheck> {
             if (badgeTier == null) return Answer.Refused(refusal("no-badge-to-show-at-a-door"))
+            if (closedAs != null) return Answer.Refused(refusal("door-check-closed"))
             val digits = (1..VerifyInServiceData.doorDigits).map { "0123456789".random() }.joinToString("")
             val shown = DoorCode(digits, nurseName, badgeTier, nowMillis + VerifyInServiceData.doorCodeMinutes * 60_000L, VerifyInServiceData.doorCodeAttempts)
-            return Answer.Done(copy(code = shown, codeMatched = false))
+            return Answer.Done(copy(code = shown, codeFits = false))
         }
 
         fun attempt(typed: String, nowMillis: Long): Answer<Pair<DoorCheck, Tried>> {
@@ -73,7 +78,7 @@ object VerifyInService {
             if (closedAs != null) return Answer.Refused(refusal("door-check-closed"))
             if (nowMillis >= held.expiresAtMillis) return Answer.Refused(refusal("door-code-expired"))
             if (typed.filter { it.isDigit() } == held.digits) {
-                return Answer.Done(copy(codeMatched = true) to Tried.Matched(held.nurseName, held.badgeTier?.let { label(VerifyInServiceData.tiers, it) }))
+                return Answer.Done(copy(codeFits = true) to Tried.CodeFits(held.nurseName, held.badgeTier?.let { label(VerifyInServiceData.tiers, it) }))
             }
             val next = copy(attemptsUsed = attemptsUsed + 1)
             return if (next.attemptsLeft > 0) Answer.Done(next to Tried.Wrong(next.attemptsLeft))
@@ -87,8 +92,15 @@ object VerifyInService {
                 else Answer.Done(copy(closedAs = "not-my-nurse") to true)
             }
             if (closedAs != null) return Answer.Refused(refusal("door-check-closed"))
-            if (!codeMatched) return Answer.Refused(refusal("door-answer-before-code"))
+            if (!codeFits) return Answer.Refused(refusal("door-answer-before-code"))
             return Answer.Done(copy(closedAs = "verified") to false)
         }
     }
+}
+
+/* The preview's one door check and one shift, in memory, shared by the nurse's workspace and the patient's screens
+   on this phone. A restart forgets both, which is true of the preview and would be a defect in the product. */
+object VerifyInServiceStore {
+    var check by mutableStateOf(VerifyInService.DoorCheck())
+    var shift by mutableStateOf<VerifyInService.ShiftStart?>(null)
 }

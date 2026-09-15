@@ -690,6 +690,35 @@ could not confirm a setting through the doctor workspace's panel. And the DPIA d
 and face-match information are special personal information under POPIA section 26, which
 `docs/PRIVACY-AND-SECURITY.md` currently treats as outside the special category.
 
+## Delivered — Verify in service: the badge, a shift nobody face matched, the door check and complaints, 15 September 2026 (seed plan, Wave 4, Trust lead)
+
+The Trust engine binds its routes on `packages/engines` from a new contract, `packages/catalog/verify-in-service.json`,
+with its screens on the web, iOS and Android. Nothing here is a real service: no face is matched, no code reaches a
+door, no desk is told and no complaint is reviewed by anybody.
+
+| Flow | What it demonstrates | Where |
+|---|---|---|
+| Badge and gates | `GET /v1/trust/parties/{partyId}/badge@1` answers a tier id and `verified`, and nothing it was worked out from; somebody lapsed and somebody unknown get the same refusal. The reviewer's gates are worked out on read from the register. | Engine runtime |
+| Shift start | The face-match door (`face-match-result` in `feeds.json`) answers not-integrated and refuses every payload; the shift is recorded as not matched, publishes `trust.shift_start.unmatched@1`, and the dispatch rule in force decides whether she is offered work. The desk's board says no face match was performed. | Engine; web Control Tower; iOS and Android nurse workspace |
+| Door check | The nurse shows six digits for the visit; the engine keeps an HMAC, never the digits. The patient types them and sees a name, initials where a photograph would be, and a badge tier. A wrong code says the tries left; the last one, or "this is not my nurse" at any time, publishes `trust.door.mismatched@1` and reports through `POST /v1/safety/incidents@3`. | Engine; web, iOS and Android |
+| Complaints | A patient complains about a past visit; it is reviewed within the window in force when it arrived. The reviewer's queue ages each against its own window, carries no account or complainant in a row, and decides nothing without a reason. The nurse's notices say a complaint exists, its kind and its outcome. | Engine; web patient and back-office Vetting tab |
+| Settings | What an unmatched shift start does to dispatch (withhold), how long a door code lasts (5 min), how many tries (3), the complaint window (24 h, cited from the Full Scope's Engine 6), and who changes them — all proposals, on the Configuration tab. | Engine; web back office |
+
+**What it refuses.**
+- A Trust Score leaving Verify: the badge and door-check routes declare no number but the tries left, and no door-check screen names a score.
+- Anything of a face: no Verify route, event, column or log carries a template, photograph, embedding or capture; a shift start takes no field and refuses one sent unread.
+- "Matched" while no provider is integrated: no copy, screen or code says it, and nothing publishes `trust.shift_start.matched@1`.
+- A complaint moving a score: no complaint code names a score, weight, tier or suspension; a decision publishes and calls nothing; a complaint or a decision carrying anything beside what the route declares is refused unread.
+- A protected category in a complaint's header, and the complainant's identity reaching the nurse.
+- Anybody acting on their own file: a shift, a code and a notice are the caller's own; a complaint about yourself, and a reviewer reading or deciding one about themselves, are refused.
+- A typed code lifetime, try or review window on any platform.
+
+**Withdrawn and versioned.** `POST /v1/trust/shift-starts@1` (carried a liveness capture reference and answered a match),
+`POST /v1/trust/door-verifications@1` (a wrong code was a refusal, so no mismatch could leave the engine) and
+`POST /v1/trust/complaints@1` (published `person.under_review@1` to dispatch engines on arrival) are withdrawn for
+version two. `GET /v1/trust/parties/{partyId}/gates@1` is narrowed to the reviewer. `POST /v1/safety/incidents@3` adds
+`engine:trust` and stays proposed.
+
 ## Next UI increments
 
 Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only

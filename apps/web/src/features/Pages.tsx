@@ -26,6 +26,8 @@ import type { Thread } from '../../../../packages/engines/src/access/domain/thre
 import { ClinicianProfile } from '../components/ClinicianProfile';
 import businessModel from '../../../../packages/catalog/business-model.json';
 import { OPEN_PARAM, slugOfSection } from '../lib/roles';
+/* Verify's complaint entry arrives on a dynamic import with its own words, so a past visit does not carry them. */
+const ComplaintEntry = lazy(() => import('./VerifyInService').then(m => ({ default: m.ComplaintEntry })));
 /* One service, one card, one symbol.
  *
  * Each card used to carry the service's icon twice — once in a tinted tile at the top left and
@@ -224,7 +226,7 @@ export function VisitDetail({row,manage,navigate,rebook,track,notes=[],thread,on
     stood down a fortnight before. Neither of them owes a person any of that; what each owes is in
     VisitSummary.tsx — and the thread, closed, with what was said still readable. */
  const shape={id:row.id,service:v.service,person:v.person,address:v.address,date:v.date,start:v.start,payment:v.payment};
- if(group==='past') return <><PastVisit row={shape} dayOffset={row.dayOffset} rebook={rebook} navigate={navigate}/>{access}</>;
+ if(group==='past') return <><PastVisit row={shape} dayOffset={row.dayOffset} rebook={rebook} navigate={navigate}/>{access}<Suspense fallback={null}><ComplaintEntry onOpen={()=>navigate(`Complaint · ${row.id}`)}/></Suspense></>;
  if(group==='cancelled') return <><CancelledVisit row={shape} reason={reason} state={row.cancelledState??'before-window'} cancelledOn={row.cancelledOn} rebook={rebook} navigate={navigate}/>{access}</>;
  const coming=nurseOfVisit(v);
  return <div className="form-stack">

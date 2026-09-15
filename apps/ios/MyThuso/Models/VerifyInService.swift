@@ -5,13 +5,13 @@ import Foundation
  * arithmetic, and it is the same arithmetic packages/engines/src/trust/domain does on the engine runtime.
  *
  * NO MATCH, EVER, ON THIS PHONE. A shift start's outcome is the contract's not-integrated and nothing else, and
- * there is no case for matched: no identity provider is contracted, and whether a face match is biometric
+ * there is no case for a match: no identity provider is contracted, and whether a face match is biometric
  * information is the Information Officer's undecided D-3. This target declares no camera use for it.
  *
  * THE DOOR CODE IS DIGITS. A QR code would need a scanner in every patient's app, and six digits can be read
  * through a closed door. The tries belong to the visit, not the code, so asking for a new code does not reset them;
- * an expired code is refused and is not a try; a "not my nurse" is taken at any time and a "she is my nurse" only
- * after a match. A match hands the patient a name and a tier name — never a number.
+ * an expired code is refused and is not a try; "not my nurse" is taken at any time and "she is my nurse" only
+ * after a code matched. A match hands the patient a name and a tier name, never a number.
  *
  * The numbers are the contract's defaults, generated: an admin changes them on the web, and this app has no admin
  * surface. Nothing here is a real service: no desk is told and no incident is raised.
@@ -29,7 +29,7 @@ struct VerifyInServiceRefusal: Hashable, Error {
 
 enum VerifyInService {
     static func refusal(_ id: String) -> VerifyInServiceRefusal {
-        guard let found = refusals.first(where: { $0.id == id }) else {
+        guard let found = VerifyInService.refusals.first(where: { $0.id == id }) else {
             preconditionFailure("VerifyInServiceData has no refusal \(id); regenerate it with npm run verify-in-service.")
         }
         return found
@@ -48,17 +48,17 @@ enum VerifyInService {
     struct ShiftStart: Equatable {
         let startedAt: Date
         /// The contract's not-integrated. There is no other value to hold.
-        let matchOutcome: String
+        let outcome: String
         let dispatchRule: String
         var online: Bool { dispatchRule == "offer-with-desk-flag" }
     }
 
     static func startShift(at: Date, badgeCurrent: Bool) -> Result<ShiftStart, VerifyInServiceRefusal> {
-        guard badgeCurrent else { return .failure(refusal("no-current-verification-to-start")) }
-        return .success(ShiftStart(startedAt: at, matchOutcome: matchOutcome, dispatchRule: unmatchedShiftStartDispatch))
+        guard badgeCurrent else { return .failure(VerifyInService.refusal("no-current-verification-to-start")) }
+        return .success(ShiftStart(startedAt: at, outcome: VerifyInService.matchOutcome, dispatchRule: VerifyInService.unmatchedShiftStartDispatch))
     }
 
-    static func nurseLine(_ shift: ShiftStart) -> String { label(dispatchRules, shift.dispatchRule) }
+    static func nurseLine(_ shift: ShiftStart) -> String { VerifyInService.label(VerifyInService.dispatchRules, shift.dispatchRule) }
 
     // MARK: - The door
 
@@ -71,37 +71,38 @@ enum VerifyInService {
     }
 
     enum Tried: Equatable {
-        case matched(nurseName: String, tierName: String?)
+        case codeFits(nurseName: String, tierName: String?)
         case wrong(attemptsLeft: Int)
         case mismatch
     }
 
     struct DoorCheck: Equatable {
-        private(set) var code: DoorCode?
-        private(set) var attemptsUsed = 0
-        private(set) var codeMatched = false
-        private(set) var closedAs: String?
+        var code: DoorCode? = nil
+        var attemptsUsed = 0
+        var codeFits = false
+        var closedAs: String? = nil
 
-        var attemptsLeft: Int { max(0, (code?.attemptsAllowed ?? doorCodeAttempts) - attemptsUsed) }
+        var attemptsLeft: Int { max(0, (code?.attemptsAllowed ?? VerifyInService.doorCodeAttempts) - attemptsUsed) }
 
         mutating func show(nurseName: String, badgeTier: String?, at now: Date) -> Result<DoorCode, VerifyInServiceRefusal> {
-            guard badgeTier != nil else { return .failure(refusal("no-badge-to-show-at-a-door")) }
-            let digits = String((0..<doorDigits).map { _ in "0123456789".randomElement()! })
+            guard badgeTier != nil else { return .failure(VerifyInService.refusal("no-badge-to-show-at-a-door")) }
+            guard closedAs == nil else { return .failure(VerifyInService.refusal("door-check-closed")) }
+            let digits = String((0..<VerifyInService.doorDigits).map { _ in "0123456789".randomElement()! })
             let shown = DoorCode(digits: digits, nurseName: nurseName, badgeTier: badgeTier,
-                                 expiresAt: now.addingTimeInterval(TimeInterval(doorCodeMinutes * 60)), attemptsAllowed: doorCodeAttempts)
+                                 expiresAt: now.addingTimeInterval(TimeInterval(VerifyInService.doorCodeMinutes * 60)),
+                                 attemptsAllowed: VerifyInService.doorCodeAttempts)
             code = shown
-            codeMatched = false
+            codeFits = false
             return .success(shown)
         }
 
         mutating func attempt(_ typed: String, at now: Date) -> Result<Tried, VerifyInServiceRefusal> {
-            guard let code else { return .failure(refusal("no-door-code-for-this-visit")) }
-            guard closedAs == nil else { return .failure(refusal("door-check-closed")) }
-            guard now < code.expiresAt else { return .failure(refusal("door-code-expired")) }
-            let digits = typed.filter(\.isNumber)
-            if digits == code.digits {
-                codeMatched = true
-                return .success(.matched(nurseName: code.nurseName, tierName: code.badgeTier.map { VerifyInService.label(tiers, $0) }))
+            guard let held = code else { return .failure(VerifyInService.refusal("no-door-code-for-this-visit")) }
+            guard closedAs == nil else { return .failure(VerifyInService.refusal("door-check-closed")) }
+            guard now < held.expiresAt else { return .failure(VerifyInService.refusal("door-code-expired")) }
+            if typed.filter(\.isNumber) == held.digits {
+                codeFits = true
+                return .success(.codeFits(nurseName: held.nurseName, tierName: held.badgeTier.map { VerifyInService.label(VerifyInService.tiers, $0) }))
             }
             attemptsUsed += 1
             if attemptsLeft > 0 { return .success(.wrong(attemptsLeft: attemptsLeft)) }
@@ -109,15 +110,15 @@ enum VerifyInService {
             return .success(.mismatch)
         }
 
-        /// true when the desk would be told.
+        /// True when the desk would be told.
         mutating func answer(_ id: String) -> Result<Bool, VerifyInServiceRefusal> {
             if id == "not-my-nurse" {
-                if closedAs != "verified" && closedAs != nil { return .success(true) }
+                if closedAs != nil && closedAs != "verified" { return .success(true) }
                 closedAs = "not-my-nurse"
                 return .success(true)
             }
-            guard closedAs == nil else { return .failure(refusal("door-check-closed")) }
-            guard codeMatched else { return .failure(refusal("door-answer-before-code")) }
+            guard closedAs == nil else { return .failure(VerifyInService.refusal("door-check-closed")) }
+            guard codeFits else { return .failure(VerifyInService.refusal("door-answer-before-code")) }
             closedAs = "verified"
             return .success(false)
         }
@@ -125,7 +126,7 @@ enum VerifyInService {
 }
 
 /* The preview's one door check and one shift, in memory, shared by the nurse's workspace and the patient's
-   screens on this phone. A reload forgets both, which is true of the preview and would be a defect in the product. */
+   screens on this phone. A relaunch forgets both, which is true of the preview and would be a defect in the product. */
 @MainActor
 final class VerifyInServiceStore: ObservableObject {
     static let shared = VerifyInServiceStore()
