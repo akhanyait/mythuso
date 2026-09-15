@@ -1034,7 +1034,7 @@
    "alert": true,
    "payload": [
     { "field": "sosRef", "type": "string", "required": true, "why": "The SOS every later action refers to, and what Core holds one concern by and Care one urgent visit by, however often the bus delivers it." },
-    { "field": "channel", "type": "string", "required": true, "why": "How it was pressed, an id from packages/catalog/sos.json engine.channels. Only a channel that raises ever reaches the bus: a band alone and a fall a phone noticed are refused before anything is recorded." },
+    { "field": "channel", "type": "string", "required": true, "why": "How it was pressed, an id from packages/catalog/sos-press.json engine.channels. Only a channel that raises ever reaches the bus: a band alone and a fall a phone noticed are refused before anything is recorded." },
     { "field": "routedTo", "type": "string", "required": true, "why": "The door the answers pointed to, an id from packages/catalog/sos.json outcomes. A door and never what was ticked. Care opens an urgent-visit offer only for a door that offers a visit; Core opens a concern for every door, because the desk needs to know somebody pressed." },
     { "field": "zoneId", "type": "string", "required": false, "why": "The area chosen from the list, an id from packages/catalog/geography.json, sent only when the door offers a visit, so Care can offer a nurse who can reach it. A suburb and never a point, and absent for every other door." }
    ],

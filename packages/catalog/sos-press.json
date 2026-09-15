@@ -1,0 +1,166 @@
+{
+ "_note": "Patient SOS on the Safety engine and next of kin: what a press does and does not do, what the desk reads, and what a next of kin is and is not told. Kept apart from packages/catalog/sos.json on purpose: sos.json is read on the patient's first load, through booking, the assistant and the explanations, and these sections belong to the SOS pathway's own dynamic import. No emergency number is typed here: a sentence that names one writes {ambulance} or {mobile}, filled from sos.json by packages/engines/src/safety/domain/sos.ts on the web and by scripts/emit-sos.mjs for both phones. The minutes and the tries are Safety's settings in packages/catalog/field-safety.json, the routes and every refusal sentence are packages/catalog/apis/safety.json's, and the domain holds the arithmetic. Nothing here is a real service.",
+ "engine": {
+  "_note": "What the Safety engine does with a press, and what it will not do. The minutes and the number of tries are Safety's settings in packages/catalog/field-safety.json; the routes and every refusal sentence are packages/catalog/apis/safety.json's; packages/engines/src/safety/domain/sos.ts holds the arithmetic and scripts/emit-sos.mjs writes these sentences for both phones. Nothing here is a real service: no press reaches a desk, no nurse is offered anything by it, nobody is told, and no ambulance partner is connected.",
+  "states": [
+   {
+    "id": "raised",
+    "label": "Pressed",
+    "means": "Somebody pressed SOS and has not stood it down. Silence is not a cancellation, so it stays pressed until they do."
+   },
+   {
+    "id": "stood-down",
+    "label": "Stood down",
+    "means": "The person who pressed it stopped it, with one of the reasons on the screen."
+   }
+  ],
+  "channels": [
+   {
+    "id": "app",
+    "label": "Pressed in the app",
+    "raises": true,
+    "refusal": null,
+    "why": "A person pressed SOS. That is the SOS the plan allows an urgent-visit offer for without waiting for the desk."
+   },
+   {
+    "id": "band",
+    "label": "A consumer band or watch on its own",
+    "raises": false,
+    "refusal": "wearable-alone",
+    "why": "A consumer wearable guides a conversation and carries no clinical weight. Thuso Alert, the button a person would press, is not built."
+   },
+   {
+    "id": "detected",
+    "label": "A fall or a crash a phone noticed, with nobody pressing",
+    "raises": false,
+    "refusal": "dispatch-without-a-human",
+    "why": "Nobody pressed it, so it is not an SOS; and a phone noticing a fall does not show that a patient is unresponsive, which only a certified device on the Sentinel ladder at tier four could, and tier four is not in the seed scope."
+   }
+  ],
+  "dispatchWithoutAHuman": {
+   "statement": "One thing is sent without a person at the desk deciding: an urgent-visit offer to a cleared nurse, through Care's own offer desk and every vetting gate, when somebody presses SOS in the app and the answers route to an urgent visit. Nothing else is sent without a person, and nothing MyThuso sends is ever an ambulance.",
+   "allowed": [
+    {
+     "id": "sos-pressed-in-the-app",
+     "sends": "An urgent-visit offer to a cleared nurse, and only when the door is an urgent visit.",
+     "why": "The plan allows dispatch without a human for an SOS. The person pressing is the human act, and a desk approving the offer first would put a queue between a frightened person and a nurse. Care's gates still withhold a nurse who is not cleared, because urgency does not relax vetting."
+    }
+   ],
+   "allowedByThePlanNotBuilt": [
+    {
+     "id": "unresponsive-patient",
+     "why": "The plan's other exception. Knowing that a patient is unresponsive needs a certified device on the Sentinel ladder at tier four, which needs a human and an ambulance contract and is not in the seed scope. Until then nothing is sent for it."
+    }
+   ],
+   "neverWithoutAHuman": [
+    {
+     "id": "nurse-panic",
+     "why": "A nurse's panic goes to the desk, and a person there decides whether anybody is sent."
+    },
+    {
+     "id": "overdue-check-in",
+     "why": "A nurse past check-out pages the desk, and the desk decides."
+    },
+    {
+     "id": "band-or-watch-alone",
+     "why": "Refused as wearable-alone before anything is recorded."
+    },
+    {
+     "id": "noticed-without-a-press",
+     "why": "Refused as dispatch-without-a-human before anything is recorded."
+    },
+    {
+     "id": "a-condition-ticked",
+     "why": "The door is emergency services. MyThuso sends nobody and does not stand in for the ambulance: the screen gives the numbers, and the desk is told somebody was pointed at them."
+    },
+    {
+     "id": "cannot-help",
+     "why": "Nobody can be sent, and the screen says why and what to do instead."
+    }
+   ]
+  },
+  "partner": {
+   "door": "emergency-acknowledgement",
+   "notConnected": "No ambulance partner is connected. Pressing SOS here does not reach an ambulance, and nobody is on the way because of it. Call {ambulance} for an ambulance, or {mobile} from a mobile."
+  },
+  "raised": {
+   "heading": "Your SOS",
+   "press": "Press SOS",
+   "pressHelp": "This records that you pressed it and which door your answers point to. It does not call anybody.",
+   "recorded": "Pressed at {at}.",
+   "routed": {
+    "emergency-services": "Your answers point to emergency services. MyThuso has sent nobody. Call {ambulance} now, or {mobile} from a mobile.",
+    "urgent-visit": "A cleared nurse is being asked to come. Nobody is on the way until a nurse accepts, and this screen will not say one has.",
+    "cannot-help": "MyThuso cannot send anybody for this. Why, and what to do instead, is above."
+   },
+   "areaShared": "The desk can see the area you chose until {ends}. After that nothing keeps where you were.",
+   "areaNotShared": "No area was chosen, so the desk sees none.",
+   "nextOfKinHeading": "Your next of kin",
+   "noNextOfKin": "You have not nominated a next of kin, so nobody would be told.",
+   "standDown": "Stand it down",
+   "stoodDown": "Stood down at {at} · {reason}"
+  },
+  "desk": {
+   "heading": "Patients who pressed SOS",
+   "intro": "When SOS was pressed, the door the answers pointed to, the area while it is shared, whether it was stood down, and whether next of kin could be told. Never what was ticked, who pressed it or what plan they hold.",
+   "empty": "Nobody has pressed SOS.",
+   "raisedAt": "pressed {at}",
+   "age": "{minutes} min",
+   "routedTo": "Door · {outcome}",
+   "readArea": "Read the area",
+   "area": "{area}, shared with the desk until {ends}",
+   "stoodDown": "Stood down at {at} · {reason}",
+   "concern": "Concern with the {owner} until {at}, then the {fallback}, unless somebody takes it on",
+   "concernClosed": "Concern closed · {outcome}",
+   "nextOfKin": "Next of kin",
+   "noNextOfKin": "No next of kin nominated.",
+   "attempt": "{status} · try {attempt} of {allowed}, until {ends}",
+   "tryAgain": "Try next of kin again"
+  },
+  "priority": {
+   "readsNoPlan": true,
+   "statement": "No plan puts anybody ahead of somebody more unwell. An SOS from a MyThuso for Mom Premium parent is routed, offered and shown to the desk exactly as anybody else's.",
+   "openQuestion": "Whether Premium's priority SOS adds anything is a founder question nobody has answered. Until somebody does, nothing on the Safety, Core or Care engine reads a plan when an SOS is pressed."
+  }
+ },
+ "nextOfKin": {
+  "_note": "Next of kin, as Safety holds them: a nomination made with consent to a version of the wording below, for the one purpose packages/catalog/consent.json allows a next-of-kin grant and no longer than its ceiling, and an attempt recorded on every SOS. No SMS provider is connected, so every attempt is recorded as not sent, with the reason, and never as delivered. The number of tries and the window are Safety's settings in packages/catalog/field-safety.json.",
+  "heading": "Next of kin",
+  "intro": "Somebody MyThuso may tell, in plain words, that you pressed SOS and when. Nothing else: not why, not what you ticked, not where you are, and nothing from your record.",
+  "purposeFrom": "packages/catalog/consent.json#grants.recipientRoles",
+  "consent": {
+   "version": 1,
+   "wording": "I name this person as my next of kin. If I press SOS, MyThuso may tell them that I pressed it and when. It will not tell them why, what I ticked, where I am or anything from my health record. I can withdraw this at any time, in one action.",
+   "tick": "I agree to this wording"
+  },
+  "alertSays": "{name} pressed SOS in MyThuso at {at}. MyThuso is not an emergency service and has called nobody. If you can, call {name}. If you think it is a life threat, call {ambulance}.",
+  "neverSays": [
+   "why they pressed it",
+   "whether any of the eight conditions was ticked, or which",
+   "where they are",
+   "anything from their health record",
+   "which plan they hold"
+  ],
+  "statuses": [
+   {
+    "id": "not-sent",
+    "label": "Not sent",
+    "means": "Recorded as an attempt that would have told them. Nothing reached them."
+   }
+  ],
+  "notSent": [
+   {
+    "id": "sms-not-integrated",
+    "sentence": "No SMS provider is connected, so MyThuso could not tell them. This records that it would have."
+   }
+  ],
+  "name": "Their name",
+  "nameHelp": "In this preview the name stays in this tab and is forgotten when it closes. The identity service would hold it, and Safety only a reference to it.",
+  "nominate": "Nominate",
+  "nominated": "Nominated at {at}, for emergencies only, until {expires}.",
+  "asGuardian": "Nominate as a guardian, for somebody else",
+  "withdraw": "Withdraw",
+  "withdrawn": "Withdrawn at {at}. They will not be told anything.",
+  "tries": "If you press SOS they are tried once, and the desk may try {retries} more times within {minutes} minutes of the press."
+ }
+}

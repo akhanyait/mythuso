@@ -37,7 +37,20 @@ import { RolePanel, useRole } from './features/DemoLogin';
 import { sectionFromSearch } from './lib/roles';
 import type { RoleId } from './lib/roles';
 import { ThusoKit } from './features/Kit';
-import { ThusoSos } from './features/Sos';
+/* Thuso SOS and the next-of-kin settings arrive on a dynamic import. Neither is on a patient's first view, and a patient
+   on metered data should not download the pathway, its routing and its engine rules to read their visits. The emergency
+   numbers are not allowed to wait for that download, so the fallback is the one block the pathway puts first, read by
+   name from sos.json so that only that block rides on the first load. */
+import { emergency as sosEmergency } from '../../../packages/catalog/sos.json';
+const ThusoSos = lazy(() => import('./features/Sos').then(m => ({ default: m.ThusoSos })));
+const NextOfKinSettings = lazy(() => import('./features/NextOfKin').then(m => ({ default: m.NextOfKinSettings })));
+function EmergencyWhileSosLoads() {
+ return <div className="sos"><div className="sos-emergency">
+  <div className="sos-emergency-head"><div><strong>{sosEmergency.headline}</strong><p>{sosEmergency.lead}</p></div></div>
+  <ul className="sos-numbers">{sosEmergency.numbers.map(n => <li key={n.id}><span className="sos-number">{n.number}</span><span><strong>{n.name}</strong><small>{n.whenToUse}</small></span></li>)}</ul>
+  <p className="sos-preview-note">{sosEmergency.previewNote}</p>
+ </div></div>;
+}
 import { LabOrderDetail, PrescriptionDetail } from './features/Orders';
 import { AccessHistory, ConsentCentre, InformationOfficer } from './features/Consent';
 import { InviteGuardian, sampleInvitations, type Invitation } from './features/Guardian';
@@ -243,6 +256,7 @@ function modalTitle(modal: string) {
  if (isKit(modal)) return 'Thuso Kit';
  if (integrationIn(modal)) return `${integrationIn(modal)} access`;
  if (modal === 'Thuso SOS' || modal === 'Emergency & urgent care') return 'Thuso SOS';
+ if (modal === 'Next of kin') return 'Next of kin';
  if (modal === 'Your consents') return 'Your consents';
  if (modal === 'Contact privacy team') return 'Your privacy contact';
  if (modal === 'Access history') return 'Who opened your record';
@@ -278,7 +292,8 @@ function modalBody(p: BodyProps) {
     would never be, and — from the contract rather than from a paragraph of its own — that no device
     has been contacted and no Bluetooth permission is declared. */
  { const integration = integrationIn(modal); if (integration) return <DevicePermission integration={integration} navigate={p.navigate}/>; }
- if (modal === 'Thuso SOS' || modal === 'Emergency & urgent care') return <ThusoSos/>;
+ if (modal === 'Thuso SOS' || modal === 'Emergency & urgent care') return <Suspense fallback={<EmergencyWhileSosLoads/>}><ThusoSos/></Suspense>;
+ if (modal === 'Next of kin') return <Suspense fallback={<p className="helper" role="status">Opening your next of kin.</p>}><NextOfKinSettings/></Suspense>;
  /* The household record and the shareable summary were reachable only from a design-review menu,
     which is another way of saying they were finished screens with no door. A family member is
     exactly the question the household record answers — what may each of us see of the others — and

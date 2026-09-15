@@ -24,7 +24,10 @@ const DAY_TIME = '2026-09-15T09:00:00+02:00';
 const NIGHT = '2026-09-15T02:10:00+02:00';
 const MINUTE = 60_000;
 const sos = JSON.parse(readFileSync(new URL('../../../catalog/sos.json', import.meta.url), 'utf8')) as {
- redFlags: { conditions: { name: string }[] }; standDown: { reasons: { id: string }[] }; nextOfKin: { consent: { version: number }; statuses: { id: string }[]; notSent: { id: string }[] };
+ redFlags: { conditions: { name: string }[] }; standDown: { reasons: { id: string }[] };
+};
+const sosPress = JSON.parse(readFileSync(new URL('../../../catalog/sos-press.json', import.meta.url), 'utf8')) as {
+ nextOfKin: { consent: { version: number }; statuses: { id: string }[]; notSent: { id: string }[] };
 };
 const defaults = sosSettingsOf([]);
 const PATIENT = { role: 'patient', ref: 'subject-synthetic-301', purpose: 'emergency' };
@@ -38,7 +41,7 @@ const press = (runtime: Runtime, fields: Body = {}, who = PATIENT) => runtime.ca
  ...who, fields: { idempotencyKey: `press-${Object.entries(fields).map(([k, v]) => `${k}=${String(v)}`).join("&")}`, channel: 'app', conditionTicked: false, zoneId: 'rosebank', callbackAvailable: true, ...fields }
 });
 const nominate = (runtime: Runtime, fields: Body = {}, who = PATIENT) => runtime.call(SOS_ROUTES.nominate, {
- ...who, fields: { idempotencyKey: `nominate-${JSON.stringify(fields)}`, contactRef: 'contact-synthetic-1', purpose: 'emergency', consentVersion: sos.nextOfKin.consent.version, consentGiven: true, ...fields }
+ ...who, fields: { idempotencyKey: `nominate-${JSON.stringify(fields)}`, contactRef: 'contact-synthetic-1', purpose: 'emergency', consentVersion: sosPress.nextOfKin.consent.version, consentGiven: true, ...fields }
 });
 const alert = (runtime: Runtime, nominationRef: unknown, sosRef: unknown, key: string, extra: Body = {}, who = DESK) =>
  runtime.call(SOS_ROUTES.alert, { ...who, fields: { idempotencyKey: key, nominationRef, sosRef, ...extra } });
@@ -129,7 +132,7 @@ test('the area is read only inside the window it was pressed under, and never wh
 test('nominate with consent, recorded as not sent at the press, tried again inside the tries, and refused through a withdrawn nomination', () => {
  const runtime = runtimeAt();
  refused(nominate(runtime, { consentGiven: false }), 'nominate', 'nomination-without-consent');
- refused(nominate(runtime, { consentVersion: sos.nextOfKin.consent.version + 1 }), 'nominate', 'nomination-without-consent');
+ refused(nominate(runtime, { consentVersion: sosPress.nextOfKin.consent.version + 1 }), 'nominate', 'nomination-without-consent');
  refused(nominate(runtime, { purpose: 'treatment' }), 'nominate', 'nomination-purpose-not-allowed');
  const made = nominate(runtime);
  assert.equal(made.status, 200, JSON.stringify(made.body));
@@ -137,7 +140,7 @@ test('nominate with consent, recorded as not sent at the press, tried again insi
 
  const pressed = press(runtime);
  const rows = pressed.body['nextOfKin'] as Body[];
- assert.deepEqual(rows.map(r => [r['nominationRef'], r['statusCode'], r['reasonCode']]), [[nominationRef, sos.nextOfKin.statuses[0]!.id, sos.nextOfKin.notSent[0]!.id]]);
+ assert.deepEqual(rows.map(r => [r['nominationRef'], r['statusCode'], r['reasonCode']]), [[nominationRef, sosPress.nextOfKin.statuses[0]!.id, sosPress.nextOfKin.notSent[0]!.id]]);
  const sosRef = pressed.body['sosRef'];
 
  refused(alert(runtime, nominationRef, sosRef, 'with-a-note', { note: 'chest pain' }), 'alert', 'next-of-kin-see-clinical-detail');
@@ -149,7 +152,7 @@ test('nominate with consent, recorded as not sent at the press, tried again insi
  for (let attempt = 2; attempt <= defaults.alertRetries + 1; attempt++) {
   const again = alert(runtime, nominationRef, sosRef, `again-${attempt}`);
   assert.equal(again.status, 200, JSON.stringify(again.body));
-  assert.deepEqual([again.body['attempt'], again.body['attemptsAllowed'], again.body['statusCode']], [attempt, defaults.alertRetries + 1, sos.nextOfKin.statuses[0]!.id]);
+  assert.deepEqual([again.body['attempt'], again.body['attemptsAllowed'], again.body['statusCode']], [attempt, defaults.alertRetries + 1, sosPress.nextOfKin.statuses[0]!.id]);
   for (const condition of sos.redFlags.conditions) assert.ok(!String(again.body['wouldSay']).includes(condition.name), 'what they would be told names no condition');
  }
  refused(alert(runtime, nominationRef, sosRef, 'one-too-many'), 'alert', 'alert-tries-used');

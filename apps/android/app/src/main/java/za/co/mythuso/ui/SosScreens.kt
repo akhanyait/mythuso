@@ -16,6 +16,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -301,6 +304,9 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
             }
         }
 
+        /* Pressing SOS comes after the numbers and after the door the answers pointed to, never before either. */
+        if (door != null) PressSosCard(door, area?.let { it in sosCoverage.areas } == true)
+
         if (requested) {
             Text(sosStandDown.title, style = MaterialTheme.typography.titleLarge, color = Charcoal)
             CareCard {
@@ -442,5 +448,171 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
         Text(sosEmergency.numbers[0].number, style = MaterialTheme.typography.titleLarge, color = Danger)
         Text("Ambulance · or ${sosEmergency.numbers[1].number} from a mobile",
             style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+    }
+}
+
+/* Pressing SOS and next of kin, as this phone previews them.
+
+   The Safety engine is where a press is routed, an area kept for its window and a next of kin recorded as not sent, and
+   this phone reaches no engine. So it holds one press and the patient's nominations in memory, says nothing it cannot
+   know, and takes every sentence — each refusal included — from SosData.kt, which scripts/emit-sos.mjs writes from
+   packages/catalog/sos.json and the routes' own refusals. How long the desk sees the area and how many more times next
+   of kin may be tried are the defaults FieldSafetyData.kt carries, never typed here.
+
+   Two refusals are the feature. A next of kin is never shown as told: every attempt carries the one status and the one
+   reason the contract holds while no SMS provider is connected. And a guardian acting for somebody else is refused
+   before anything else is asked, because no guardian authority is proven. No plan is read. */
+data class SosNominationPreview(val id: String, val name: String, val nominatedAt: Long, val expiresAt: Long, val withdrawnAt: Long? = null)
+data class SosAttemptPreview(val id: String, val name: String, val statusCode: String, val reasonCode: String)
+data class SosPressedPreview(
+    val id: String,
+    val routedTo: String,
+    val raisedAt: Long,
+    val areaSharedUntil: Long?,
+    val attempts: List<SosAttemptPreview>,
+    val stoodDownAt: Long? = null,
+    val stoodDownReason: String? = null
+)
+
+object SosPressPreview {
+    val nominations = mutableStateListOf<SosNominationPreview>()
+    var press by mutableStateOf<SosPressedPreview?>(null)
+        private set
+    private var serial = 0
+
+    /** A route's own sentence, word for word. */
+    fun refusal(id: String): String = sosRouteRefusals.firstOrNull { it.id == id }?.sentence ?: id
+
+    /** A guardian is refused first, and then a nomination without consent, in the order the route asks them. */
+    fun nominate(name: String, consentGiven: Boolean, asGuardian: Boolean): String? {
+        if (asGuardian) return refusal("guardian-authority-not-proven")
+        if (!consentGiven) return refusal("nomination-without-consent")
+        serial += 1
+        val now = System.currentTimeMillis()
+        nominations.add(0, SosNominationPreview("NOK-" + serial, name, now, now + java.util.concurrent.TimeUnit.DAYS.toMillis(sosNextOfKinNominationDays.toLong())))
+        return null
+    }
+
+    fun withdraw(id: String) {
+        val index = nominations.indexOfFirst { it.id == id }
+        if (index >= 0 && nominations[index].withdrawnAt == null) nominations[index] = nominations[index].copy(withdrawnAt = System.currentTimeMillis())
+    }
+
+    fun press(door: SosDoor, areaChosen: Boolean) {
+        serial += 1
+        val now = System.currentTimeMillis()
+        val status = sosNextOfKinStatuses.firstOrNull()?.id.orEmpty()
+        val reason = sosNextOfKinNotSent.firstOrNull()?.id.orEmpty()
+        val tried = nominations.filter { it.withdrawnAt == null && it.expiresAt > now }
+            .map { SosAttemptPreview("NTF-" + serial + "-" + it.id, it.name, status, reason) }
+        val areaEnds = now + java.util.concurrent.TimeUnit.MINUTES.toMillis(FieldSafetyData.sosAreaWindowMinutes.toLong())
+        press = SosPressedPreview("SOS-" + serial, door.outcomeId, now, if (areaChosen) areaEnds else null, tried)
+    }
+
+    fun standDown(reasonCode: String) {
+        val current = press ?: return
+        if (current.stoodDownAt == null) press = current.copy(stoodDownAt = System.currentTimeMillis(), stoodDownReason = reasonCode)
+    }
+}
+
+private val sosClockFormat = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+private val sosDayFormat = java.time.format.DateTimeFormatter.ofPattern("d MMMM yyyy")
+private fun sosClock(at: Long): String = java.time.Instant.ofEpochMilli(at).atZone(java.time.ZoneId.systemDefault()).format(sosClockFormat)
+private fun sosDay(at: Long): String = java.time.Instant.ofEpochMilli(at).atZone(java.time.ZoneId.systemDefault()).format(sosDayFormat)
+private fun sosFill(sentence: String, vararg values: Pair<String, String>): String =
+    values.fold(sentence) { filled, (key, value) -> filled.replace("{" + key + "}", value) }
+private fun sosSentence(list: List<SosRefusal>, id: String): String = list.firstOrNull { it.id == id }?.sentence ?: id
+private fun sosRouted(id: String): String = when (id) {
+    "emergency-services" -> SosPressText.routedEmergencyServices
+    "urgent-visit" -> SosPressText.routedUrgentVisit
+    else -> SosPressText.routedCannotHelp
+}
+
+/* What the press did and did not do, in the contract's words: no ambulance partner is connected and nobody is on the way
+   because of it, a next of kin is never shown as told, and standing down takes one of the reasons. */
+@Composable fun PressSosCard(door: SosDoor, areaChosen: Boolean) {
+    val press = SosPressPreview.press
+    CareCard {
+        if (press == null) {
+            Button(
+                onClick = { SosPressPreview.press(door, areaChosen) },
+                colors = ButtonDefaults.buttonColors(containerColor = Danger, contentColor = SurfaceWhite),
+                shape = ThusoButtonShape, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+            ) { Text(SosPressText.press) }
+            Note(SosPressText.pressHelp)
+        } else {
+            Text(SosPressText.heading, style = MaterialTheme.typography.titleMedium, color = Charcoal)
+            Text(sosFill(SosPressText.recorded, "at" to sosClock(press.raisedAt)) + " " + sosRouted(press.routedTo),
+                style = MaterialTheme.typography.bodyMedium, color = Charcoal)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+                Icon(Icons.Outlined.Block, null, tint = Danger)
+                Text(SosPressText.partnerNotConnected, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Danger)
+            }
+            if (press.stoodDownAt == null) Note(press.areaSharedUntil?.let { sosFill(SosPressText.areaShared, "ends" to sosClock(it)) } ?: SosPressText.areaNotShared)
+            Text(SosPressText.nextOfKinHeading, style = MaterialTheme.typography.titleSmall, color = Charcoal)
+            if (press.attempts.isEmpty()) Note(SosPressText.noNextOfKin)
+            press.attempts.forEach { attempt ->
+                Text(attempt.name + " · " + sosSentence(sosNextOfKinStatuses, attempt.statusCode) + ". " + sosSentence(sosNextOfKinNotSent, attempt.reasonCode),
+                    style = MaterialTheme.typography.bodyMedium, color = Charcoal)
+            }
+            val stoodDownAt = press.stoodDownAt
+            val reason = press.stoodDownReason?.let { id -> sosStandDown.reasons.firstOrNull { it.id == id } }
+            if (stoodDownAt != null && reason != null) {
+                Text(sosFill(SosPressText.stoodDown, "at" to sosClock(stoodDownAt), "reason" to reason.label),
+                    style = MaterialTheme.typography.titleSmall, color = Charcoal)
+            } else {
+                Note(SosPressText.standDown)
+                sosStandDown.reasons.forEach { choice ->
+                    OutlinedButton({ SosPressPreview.standDown(choice.id) }, shape = ThusoButtonShape) { Text(choice.label) }
+                }
+            }
+            Note(SosPressText.priority)
+        }
+    }
+}
+
+/* Next of kin, in the patient's privacy settings: nominated with consent to the wording shown, never by a guardian, and
+   withdrawn in one action. Every sentence and refusal is SosData.kt's, and the tries and the window are the defaults
+   FieldSafetyData.kt carries. Nothing is sent, and the name stays in this phone's memory. */
+@Composable fun NextOfKinScreen() {
+    var name by remember { mutableStateOf("") }
+    var consented by remember { mutableStateOf(false) }
+    var refused by remember { mutableStateOf<String?>(null) }
+    val named = name.isNotBlank()
+    val act = { asGuardian: Boolean ->
+        refused = SosPressPreview.nominate(name.trim(), consented, asGuardian)
+        if (refused == null) { name = ""; consented = false }
+    }
+    ScreenColumn {
+        Heading(SosNextOfKinText.heading, SosNextOfKinText.heading, SosNextOfKinText.intro)
+        NotConnected("messaging")
+        CareCard {
+            OutlinedTextField(name, { name = it }, label = { Text(SosNextOfKinText.name) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Note(SosNextOfKinText.nameHelp)
+            Text(SosNextOfKinText.consentWording, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(value = consented, role = Role.Checkbox, onValueChange = { consented = it }),
+                horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(if (consented) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank, null, tint = if (consented) Charcoal else StudioInkMuted)
+                Text(SosNextOfKinText.consentTick, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
+            }
+            Note(sosFill(SosNextOfKinText.tries, "retries" to FieldSafetyData.nextOfKinAlertRetries.toString(), "minutes" to FieldSafetyData.nextOfKinAlertWindowMinutes.toString()))
+            Button({ act(false) }, enabled = named, shape = ThusoButtonShape) { Text(SosNextOfKinText.nominate) }
+            OutlinedButton({ act(true) }, enabled = named, shape = ThusoButtonShape) { Text(SosNextOfKinText.asGuardian) }
+            refused?.let { Text(it, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Danger) }
+        }
+        SosPressPreview.nominations.forEach { nomination ->
+            CareCard {
+                Text(nomination.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
+                val withdrawnAt = nomination.withdrawnAt
+                if (withdrawnAt != null) {
+                    Note(sosFill(SosNextOfKinText.withdrawn, "at" to sosClock(withdrawnAt)))
+                } else {
+                    Note(sosFill(SosNextOfKinText.nominated, "at" to sosClock(nomination.nominatedAt), "expires" to sosDay(nomination.expiresAt)))
+                    OutlinedButton({ SosPressPreview.withdraw(nomination.id) }, shape = ThusoButtonShape) { Text(SosNextOfKinText.withdraw) }
+                }
+            }
+        }
     }
 }

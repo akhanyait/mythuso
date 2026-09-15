@@ -6,9 +6,9 @@
  "doors": ["emergency-acknowledgement"],
  "doorsToAdd": [],
  "refusals": [
-  {"id": "dispatch-without-a-human", "status": 409, "statement": "Nothing is dispatched without a human, except for an unresponsive patient or an SOS.", "why": "High specificity for dispatching paramedics; a human confirms (§13). Which dispatch happens without a human, and which does not, is packages/catalog/sos.json engine.dispatchWithoutAHuman. POST /v1/safety/sos@2 answers it for a fall or a crash a phone noticed with nobody pressing: that is not an SOS, and it does not show a patient is unresponsive.", "answeredBy": ["POST /v1/safety/sos@2"]},
+  {"id": "dispatch-without-a-human", "status": 409, "statement": "Nothing is dispatched without a human, except for an unresponsive patient or an SOS.", "why": "High specificity for dispatching paramedics; a human confirms (§13). Which dispatch happens without a human, and which does not, is packages/catalog/sos-press.json engine.dispatchWithoutAHuman. POST /v1/safety/sos@2 answers it for a fall or a crash a phone noticed with nobody pressing: that is not an SOS, and it does not show a patient is unresponsive.", "answeredBy": ["POST /v1/safety/sos@2"]},
   {"id": "consumer-wearable-raises-tier-four", "status": 422, "statement": "A consumer wearable alone never raises dispatch.", "why": "BYO signals guide conversation; certified devices carry clinical weight."},
-  {"id": "next-of-kin-see-clinical-detail", "status": 422, "statement": "Next of kin see plain language, never clinical detail.", "why": "§15. An attempt carries the nomination and the SOS and nothing else; what it would say is packages/catalog/sos.json nextOfKin.alertSays, word for word. Anything sent beside them is refused before the attempt is recorded, because the handler sees only the names of undeclared fields and cannot tell a note from a reading.", "answeredBy": ["POST /v1/safety/next-of-kin/{nominationRef}/alert@2"]},
+  {"id": "next-of-kin-see-clinical-detail", "status": 422, "statement": "Next of kin see plain language, never clinical detail.", "why": "§15. An attempt carries the nomination and the SOS and nothing else; what it would say is packages/catalog/sos-press.json nextOfKin.alertSays, word for word. Anything sent beside them is refused before the attempt is recorded, because the handler sees only the names of undeclared fields and cannot tell a note from a reading.", "answeredBy": ["POST /v1/safety/next-of-kin/{nominationRef}/alert@2"]},
   {"id": "location-kept-after-the-window", "status": 409, "statement": "A location is not kept after the incident window.", "why": "A safety feature that keeps positions is a tracking system. The area an SOS was pressed from is dropped from Safety's store when the window it was pressed under ends, or at the stand-down, and a read after either is refused.", "answeredBy": ["GET /v1/safety/sos/{sosRef}/area@1"]},
   {"id": "no-such-checkin", "status": 404, "statement": "Safety is timing no visit by that reference.", "why": "A timer starts only when Safety hears appointment.in_progress@2. An act on a reference it never started is refused rather than recorded against nothing.", "answeredBy": ["POST /v1/safety/checkins/{checkinRef}/extend@2", "POST /v1/safety/checkins/{checkinRef}/safe@1", "POST /v1/safety/checkins/{checkinRef}/close@2", "POST /v1/safety/overdue-checkins/{checkinRef}/pick-up@1", "POST /v1/safety/overdue-checkins/{checkinRef}/close@1"]},
   {"id": "checkin-held-by-another", "status": 403, "statement": "That visit's timer is held by the nurse who first acted on it. Nobody else extends it, says she is safe or checks her out.", "why": "appointment.in_progress@2 names no nurse, so Safety cannot know whose visit a timer is when it starts one. The first identified nurse to act on it holds it and anybody else is refused. A mistake then leaves the timer running, so it pages the desk rather than silencing it.", "answeredBy": ["POST /v1/safety/checkins/{checkinRef}/extend@2", "POST /v1/safety/checkins/{checkinRef}/safe@1", "POST /v1/safety/checkins/{checkinRef}/close@2"]},
@@ -920,14 +920,14 @@
    "purpose": ["emergency"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same SOS once, so a press retried on a bad connection is not a second urgent visit."},
-    {"field": "channel", "type": "string", "required": true, "why": "How it was pressed, an id from packages/catalog/sos.json engine.channels."},
+    {"field": "channel", "type": "string", "required": true, "why": "How it was pressed, an id from packages/catalog/sos-press.json engine.channels."},
     {"field": "conditionTicked", "type": "boolean", "required": true, "why": "Whether any of the eight conditions was ticked, as a yes or a no and never which. A yes routes to emergency services before anything else is read."},
     {"field": "zoneId", "type": "string", "required": false, "why": "The area chosen from the list, an id from packages/catalog/geography.json. Absent when the person chose somewhere else. Never read from the device."},
     {"field": "callbackAvailable", "type": "boolean", "required": true, "why": "Whether there is a phone a nurse can ring before she travels."}
    ],
    "response": [
     {"field": "sosRef", "type": "string", "required": true, "why": "The SOS."},
-    {"field": "stateCode", "type": "string", "required": true, "why": "raised, from packages/catalog/sos.json engine.states."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "raised, from packages/catalog/sos-press.json engine.states."},
     {"field": "routedTo", "type": "string", "required": true, "why": "The door, an id from packages/catalog/sos.json outcomes."},
     {"field": "failureCode", "type": "string", "required": false, "why": "Which of packages/catalog/sos.json failures sent it to cannot-help. Absent for any other door."},
     {"field": "areaSharedUntil", "type": "instant", "required": false, "why": "When the desk stops seeing the area chosen: the area window in force when it was pressed. Absent when no area was chosen."},
@@ -936,8 +936,8 @@
     {"field": "nextOfKin", "type": "list", "required": true, "object": true, "why": "One row for each of the patient's nominations in force when SOS was pressed, recorded as would-be told and never as told.", "fields": [
      {"field": "nominationRef", "type": "string", "required": true, "why": "The nomination."},
      {"field": "notificationRef", "type": "string", "required": true, "why": "The attempt recorded."},
-     {"field": "statusCode", "type": "string", "required": true, "why": "An id from packages/catalog/sos.json nextOfKin.statuses, which holds not-sent and nothing else while no SMS provider is connected."},
-     {"field": "reasonCode", "type": "string", "required": true, "why": "Why it was not sent, an id from packages/catalog/sos.json nextOfKin.notSent."}
+     {"field": "statusCode", "type": "string", "required": true, "why": "An id from packages/catalog/sos-press.json nextOfKin.statuses, which holds not-sent and nothing else while no SMS provider is connected."},
+     {"field": "reasonCode", "type": "string", "required": true, "why": "Why it was not sent, an id from packages/catalog/sos-press.json nextOfKin.notSent."}
     ]}
    ],
    "refusals": [
@@ -997,7 +997,7 @@
      {"field": "sosRef", "type": "string", "required": true, "why": "The SOS."},
      {"field": "raisedAt", "type": "instant", "required": true, "why": "When SOS was pressed."},
      {"field": "ageMinutes", "type": "integer", "required": true, "why": "Whole minutes since then."},
-     {"field": "stateCode", "type": "string", "required": true, "why": "An id from packages/catalog/sos.json engine.states."},
+     {"field": "stateCode", "type": "string", "required": true, "why": "An id from packages/catalog/sos-press.json engine.states."},
      {"field": "channel", "type": "string", "required": true, "why": "How it was pressed."},
      {"field": "routedTo", "type": "string", "required": true, "why": "The door, an id from packages/catalog/sos.json outcomes."},
      {"field": "failureCode", "type": "string", "required": true, "nullable": true, "why": "Why nobody could be sent, or null."},
@@ -1010,8 +1010,8 @@
      {"field": "settingsVersion", "type": "integer", "required": true, "why": "The settings version it was pressed under."},
      {"field": "nextOfKin", "type": "list", "required": true, "object": true, "why": "One row for each nomination tried about this SOS: its latest attempt, how many there have been, how many the SOS allows and until when.", "fields": [
       {"field": "nominationRef", "type": "string", "required": true, "why": "The nomination."},
-      {"field": "statusCode", "type": "string", "required": true, "why": "An id from packages/catalog/sos.json nextOfKin.statuses."},
-      {"field": "reasonCode", "type": "string", "required": true, "why": "An id from packages/catalog/sos.json nextOfKin.notSent."},
+      {"field": "statusCode", "type": "string", "required": true, "why": "An id from packages/catalog/sos-press.json nextOfKin.statuses."},
+      {"field": "reasonCode", "type": "string", "required": true, "why": "An id from packages/catalog/sos-press.json nextOfKin.notSent."},
       {"field": "attempts", "type": "integer", "required": true, "why": "Attempts recorded, the first at the press included."},
       {"field": "attemptsAllowed", "type": "integer", "required": true, "why": "One, and the tries the settings the SOS was pressed under allow after it."},
       {"field": "windowEndsAt", "type": "instant", "required": true, "why": "When the desk may no longer try them about this SOS."}
@@ -1019,7 +1019,7 @@
     ]}
    ],
    "refusals": [
-    {"id": "sos-list-takes-no-filter", "status": 422, "statement": "The SOS list is read whole. It is never narrowed or sorted by who pressed, what plan they hold or where.", "why": "A list that could be sorted by plan is a list somebody works from the top of, and packages/catalog/sos.json engine.priority refuses exactly that."}
+    {"id": "sos-list-takes-no-filter", "status": 422, "statement": "The SOS list is read whole. It is never narrowed or sorted by who pressed, what plan they hold or where.", "why": "A list that could be sorted by plan is a list somebody works from the top of, and packages/catalog/sos-press.json engine.priority refuses exactly that."}
    ],
    "emits": [],
    "emitsNoneBecause": "Reading changes nothing.",
@@ -1067,7 +1067,7 @@
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same nomination once."},
     {"field": "contactRef", "type": "string", "required": true, "why": "The contact, held by the identity service, which holds the name and the number. Safety keeps the reference and nothing else."},
     {"field": "purpose", "type": "string", "required": true, "why": "What they may be told for: one of the purposes packages/catalog/consent.json allows the next-of-kin role, which is emergency and nothing else."},
-    {"field": "consentVersion", "type": "integer", "required": false, "why": "The version of packages/catalog/sos.json nextOfKin.consent the patient read. Asked for by the handler, so a nomination without it is refused in its own sentence."},
+    {"field": "consentVersion", "type": "integer", "required": false, "why": "The version of packages/catalog/sos-press.json nextOfKin.consent the patient read. Asked for by the handler, so a nomination without it is refused in its own sentence."},
     {"field": "consentGiven", "type": "boolean", "required": false, "why": "Whether the patient ticked it. Asked for by the handler, for the same reason."}
    ],
    "response": [
@@ -1162,12 +1162,12 @@
    ],
    "response": [
     {"field": "notificationRef", "type": "string", "required": true, "why": "The attempt."},
-    {"field": "statusCode", "type": "string", "required": true, "why": "An id from packages/catalog/sos.json nextOfKin.statuses: not-sent, while no SMS provider is connected."},
-    {"field": "reasonCode", "type": "string", "required": true, "why": "Why, an id from packages/catalog/sos.json nextOfKin.notSent."},
+    {"field": "statusCode", "type": "string", "required": true, "why": "An id from packages/catalog/sos-press.json nextOfKin.statuses: not-sent, while no SMS provider is connected."},
+    {"field": "reasonCode", "type": "string", "required": true, "why": "Why, an id from packages/catalog/sos-press.json nextOfKin.notSent."},
     {"field": "attempt", "type": "integer", "required": true, "why": "Which attempt this is, the one at the press counted first."},
     {"field": "attemptsAllowed", "type": "integer", "required": true, "why": "How many the SOS allows."},
     {"field": "windowEndsAt", "type": "instant", "required": true, "why": "When the desk may no longer try."},
-    {"field": "wouldSay", "type": "string", "required": true, "why": "packages/catalog/sos.json nextOfKin.alertSays with the time filled in and the name left for the identity service, which holds it. Plain words, and never clinical detail."}
+    {"field": "wouldSay", "type": "string", "required": true, "why": "packages/catalog/sos-press.json nextOfKin.alertSays with the time filled in and the name left for the identity service, which holds it. Plain words, and never clinical detail."}
    ],
    "refusals": [
     {"id": "nomination-withdrawn", "status": 409, "statement": "That nomination was withdrawn. Nobody is told anything through it.", "why": "Withdrawal is as final as giving: a withdrawn nomination is tried by nobody, however urgent the SOS."},

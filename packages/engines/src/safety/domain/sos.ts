@@ -6,7 +6,7 @@
  * read; the area, the hours and the callback decide an urgent visit or cannot-help; nothing is scored. Whether a
  * cleared nurse can be found is Care's to answer when it hears sos.raised@2, never Safety's to guess.
  *
- * WHAT IS SENT WITHOUT A HUMAN, AND WHAT IS NOT. sos.json engine.dispatchWithoutAHuman says it in words: an
+ * WHAT IS SENT WITHOUT A HUMAN, AND WHAT IS NOT. sos-press.json engine.dispatchWithoutAHuman says it in words: an
  * urgent-visit offer, through Care's gates, when a person pressed SOS in the app and the door is an urgent visit.
  * A band on its own and a fall a phone noticed are refused before anything is recorded, in the route's own
  * sentences, because neither is a person pressing and neither shows that a patient is unresponsive.
@@ -21,7 +21,7 @@
  * and the engine drops it from its store on the tick.
  *
  * NEXT OF KIN ARE TOLD NOTHING, BECAUSE NOTHING CAN TELL THEM. No SMS provider is connected. Every attempt is
- * recorded as not sent, with the reason, in the words sos.json nextOfKin holds, and there is no status in this file
+ * recorded as not sent, with the reason, in the words sos-press.json nextOfKin holds, and there is no status in this file
  * that says anybody was reached — so no route and no screen can say it either. What an attempt would say is
  * nextOfKin.alertSays with the time filled in and the name left for the identity service, which holds it: plain
  * words, and never what was ticked, why, where or anything from the record.
@@ -37,6 +37,7 @@
  * packages/catalog/apis/safety.json by refuseOn(); an id the route cannot answer throws, because the runtime would
  * answer it with a fault. Zero dependencies and apps/api's type-stripping rules. Nothing here is a real service. */
 import sosContract from '../../../../catalog/sos.json' with { type: 'json' };
+import pressContract from '../../../../catalog/sos-press.json' with { type: 'json' };
 import consent from '../../../../catalog/consent.json' with { type: 'json' };
 import geography from '../../../../catalog/geography.json' with { type: 'json' };
 import vetting from '../../../../catalog/vetting.json' with { type: 'json' };
@@ -75,14 +76,21 @@ export const refuseOn = (route: SosRoute, id: string): Refused => ({ ok: false, 
 
 const named = <T extends { readonly id: string }>(list: readonly T[], id: string, where: string): T => {
  const found = list.find(entry => entry.id === id);
- if (!found) throw new Error(`packages/catalog/sos.json ${where} has lost "${id}".`);
+ if (!found) throw new Error(`packages/catalog/sos.json or sos-press.json ${where} has lost "${id}".`);
  return found;
 };
-export const sosEngine = sosContract.engine;
-export const nextOfKin = sosContract.nextOfKin;
+/* The emergency numbers a press sentence names are sos.json's, filled into sos-press.json's {ambulance} and {mobile} here,
+   so no sentence types one and a wrong digit has one place to be wrong. Every other token is left for the screen. */
+const numbers: Readonly<Record<string, string>> = Object.fromEntries(sosContract.emergency.numbers.map(entry => [entry.id, entry.number]));
+const withNumbers = <T>(value: T): T => (typeof value === 'string' ? value.replace(/\{(ambulance|mobile|police)\}/g, (whole, id: string) => numbers[id] ?? whole)
+ : Array.isArray(value) ? value.map(withNumbers)
+  : value !== null && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, withNumbers(entry)]))
+   : value) as T;
+export const sosEngine = withNumbers(pressContract.engine);
+export const nextOfKin = withNumbers(pressContract.nextOfKin);
 export const standDownReasons = sosContract.standDown.reasons;
 export type SosChannel = { readonly id: string; readonly label: string; readonly raises: boolean; readonly refusal: string | null; readonly why: string };
-export const sosChannels = sosContract.engine.channels as readonly SosChannel[];
+export const sosChannels = sosEngine.channels as readonly SosChannel[];
 
 const DOOR = {
  emergency: named(sosContract.outcomes, 'emergency-services', 'outcomes').id,
@@ -94,11 +102,11 @@ const FAILURE = {
  hours: named(sosContract.failures, 'outside-hours', 'failures').id,
  callback: named(sosContract.failures, 'no-callback', 'failures').id
 };
-const STATE = { raised: named(sosContract.engine.states, 'raised', 'engine.states').id, stoodDown: named(sosContract.engine.states, 'stood-down', 'engine.states').id };
+const STATE = { raised: named(sosEngine.states, 'raised', 'engine.states').id, stoodDown: named(sosEngine.states, 'stood-down', 'engine.states').id };
 /* The one status this build can record, and the one reason. There is deliberately no status for a next of kin
    who was reached: while no SMS provider is connected, a status that could say so is a status somebody sets. */
-const NOT_SENT = named(sosContract.nextOfKin.statuses, 'not-sent', 'nextOfKin.statuses').id;
-const NO_SMS = named(sosContract.nextOfKin.notSent, 'sms-not-integrated', 'nextOfKin.notSent').id;
+const NOT_SENT = named(nextOfKin.statuses, 'not-sent', 'nextOfKin.statuses').id;
+const NO_SMS = named(nextOfKin.notSent, 'sms-not-integrated', 'nextOfKin.notSent').id;
 
 /** Whether the door sends anybody: only an urgent visit does, as sos.json outcomes says. */
 export const offersVisit = (routedTo: string): boolean => sosContract.outcomes.some(o => o.id === routedTo && o.offersVisit === true);
@@ -305,8 +313,8 @@ export function alertAgain(input: {
 
 /** What an attempt would have said: the contract's sentence, the time filled in, the name left for the identity service. */
 export const wouldSay = (at: number): string => fill(nextOfKin.alertSays, { at: clockOf(at) });
-export const statusLabel = (statusCode: string): string => sosContract.nextOfKin.statuses.find(s => s.id === statusCode)?.label ?? statusCode;
-export const notSentSentence = (reasonCode: string): string => sosContract.nextOfKin.notSent.find(r => r.id === reasonCode)?.sentence ?? reasonCode;
+export const statusLabel = (statusCode: string): string => nextOfKin.statuses.find(s => s.id === statusCode)?.label ?? statusCode;
+export const notSentSentence = (reasonCode: string): string => nextOfKin.notSent.find(r => r.id === reasonCode)?.sentence ?? reasonCode;
 
 /* ── The desk ───────────────────────────────────────────────────────────────────────────────────────── */
 

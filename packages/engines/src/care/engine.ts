@@ -55,9 +55,10 @@ import records from '../../../catalog/records.json' with { type: 'json' };
 import { defineEngine, ok, refuse, type Answer, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
 import { SETTINGS_SCHEMA, settingsIn, settingsRoutes } from '../settings/routes.ts';
 import {
- careContract, careInForceOf, careSettings, instantAt, OfferDesk, SyncIntake, TrustCache, VisitDesk, opensAnUrgentVisit, urgentVisitFor, withdrawnOnStandDown,
+ careContract, careInForceOf, careSettings, instantAt, OfferDesk, SyncIntake, TrustCache, VisitDesk,
  type AppointmentToFill, type Candidate, type CareEvent, type NamedFallback, type NamedWait, type Offer, type QueuedCapture, type Received, type Visit
 } from './domain/index.ts';
+import { opensAnUrgentVisit, urgentVisitFor, withdrawnOnStandDown } from './domain/sos.ts';
 
 const FALLBACKS: readonly NamedFallback[] = ['wait', 'soonest'];
 const OPERATION_KINDS: readonly string[] = care.sync.operationKinds;

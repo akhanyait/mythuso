@@ -15,4 +15,5 @@ export * from './visits.ts';
 export * from './position.ts';
 export * from './sync.ts';
 export * from './settings.ts';
-export * from './sos.ts';
+/* ./sos.ts is imported by the engine by name and not re-exported here: the web reaches this index from the patient's
+   first load, and sos.ts reads the whole of sos.json, which belongs to the SOS pathway's own dynamic import. */

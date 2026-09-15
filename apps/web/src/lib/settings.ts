@@ -4,7 +4,7 @@ import {
  type Change, type ChangeRequest, type Refusal, type Review, type ReviewState, type Setting, type SettingValue, type SettingsEngine, type Snapshot
 } from '../../../../packages/engines/src/settings/shape.ts';
 import { settingsEngines } from '../../../../packages/engines/src/settings/registry.ts';
-import { inForce, panicWindowOf, type PanicWindow, type SettingsInForce } from '../../../../packages/engines/src/safety/domain/settings.ts';
+import { inForce, panicWindowOf, sosSettingsOf, type PanicWindow, type SettingsInForce, type SosSettings } from '../../../../packages/engines/src/safety/domain/settings.ts';
 import { careInForceOf, type CareInForce } from '../../../../packages/engines/src/care/domain/settings.ts';
 import { doctorFeeOf, nurseShareSentenceOf, planTermsOf, type DoctorFeeInForce, type PlanTerms } from '../../../../packages/engines/src/money/domain/settings.ts';
 import { rotaOf } from '../../../../packages/engines/src/core/domain/settings.ts';
@@ -82,6 +82,8 @@ export const snapshotNow = (engine: string): Snapshot => snapshotOf(engineOf(eng
 /* The readers. */
 export const safetySettingsNow = (): SettingsInForce => inForce(historyOf('safety'));
 export const panicWindowNow = (): PanicWindow => panicWindowOf(historyOf('safety'));
+/* What an SOS is pressed under, and what the next-of-kin screen says the desk may do: asked once, when a press is made. */
+export const sosSettingsNow = (): SosSettings => sosSettingsOf(historyOf('safety'));
 export const careSettingsNow = (): CareInForce => careInForceOf(snapshotNow('care'));
 export const momPlanNow = (): PlanTerms => planTermsOf(snapshotNow('money'));
 export const doctorFeeNow = (): DoctorFeeInForce => doctorFeeOf(snapshotNow('money'));
