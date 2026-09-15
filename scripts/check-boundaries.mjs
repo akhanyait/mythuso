@@ -1513,9 +1513,18 @@ for(const {source,command,files} of generated) {
    const engineCaller = caller.match(/^engine:([a-z]+)$/);
    if (engineCaller) {
     if (!engineIds.includes(engineCaller[1])) fail('engine-callers-are-named', `${where} names the caller "${caller}", and there is no such engine.`);
+    /* The fourth review found an engine caller could be justified by any event it owned or heard,
+       whether or not the route's own engine had anything to do with it — Money opening care concerns on
+       the strength of a shipped order — and two engines naming themselves as callers of their own
+       routes. An engine does its own next step in its own code. And the event must connect the two:
+       the caller publishes it and the route's engine hears it, or the route's engine publishes it and
+       the caller hears it. Two engines that merely both hear something have no reason to call. */
+    if (engineCaller[1] === doc.engine) fail('engine-callers-are-named', `${where} names its own engine, ${caller}, as a caller. An engine does its own next step in its own code, never through its own route.`);
     const because = r.callerJustifications?.[caller];
     const justifying = liveEventVersions.get(because ?? '');
     if (!justifying || (justifying.owner !== engineCaller[1] && !justifying.subscribers.includes(engineCaller[1]))) fail('engine-callers-are-named', `${where} takes calls from ${caller}, justified by ${JSON.stringify(because ?? null)}, which is not a live event that engine owns or hears.`);
+    const connects = (justifying.owner === engineCaller[1] && justifying.subscribers.includes(doc.engine)) || (justifying.owner === doc.engine && justifying.subscribers.includes(engineCaller[1]));
+    if (!connects) fail('engine-callers-are-named', `${where} takes calls from ${caller}, justified by ${because}, which ${justifying.owner} publishes and ${[...justifying.subscribers].join(', ')} ${justifying.subscribers.length === 1 ? 'hears' : 'hear'}. The route's engine, ${doc.engine}, must hear what the caller publishes, or publish what the caller hears; otherwise the event is no reason for one to call the other.`);
     continue;
    }
    if (supplierIds.has(caller)) {

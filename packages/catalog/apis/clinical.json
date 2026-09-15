@@ -125,8 +125,7 @@
    "path": "/v1/clinical/triage",
    "version": 2,
    "summary": "Triage on the rule engine under a ratified protocol: the hard red-flag gate, then a priority and a care setting. The reason codes are written to the record, not returned.",
-   "callers": ["nurse", "doctor", "engine:access"],
-   "callerJustifications": {"engine:access": "conversation.handover@1"},
+   "callers": ["nurse", "doctor"],
    "purpose": ["treatment"],
    "request": [
     {"field": "intakeEntryRef", "type": "string", "required": true, "why": "The intake in the record."},

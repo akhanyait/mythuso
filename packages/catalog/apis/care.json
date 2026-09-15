@@ -18,8 +18,7 @@
    "path": "/v1/care/offers",
    "version": 1,
    "summary": "Offer a visit to the best eligible clinician.",
-   "callers": ["dispatcher", "engine:care"],
-   "callerJustifications": {"engine:care": "booking.requested@1"},
+   "callers": ["dispatcher"],
    "purpose": ["dispatch"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},

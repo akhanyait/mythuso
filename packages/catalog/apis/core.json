@@ -21,7 +21,7 @@
    "version": 1,
    "summary": "Publish an event to the bus.",
    "callers": ["engine:access", "engine:pulse", "engine:care", "engine:clinical", "engine:safety", "engine:movement", "engine:trust", "engine:record", "engine:medicines", "engine:devices", "engine:money"],
-   "callerJustifications": {"engine:access": "booking.requested@1", "engine:pulse": "pulse.session.started@1", "engine:care": "appointment.requested@1", "engine:clinical": "triage.completed@2", "engine:safety": "sos.raised@1", "engine:movement": "trip.requested@1", "engine:trust": "person.verified@1", "engine:record": "passport.record.created@1", "engine:medicines": "prescription.prescribed@1", "engine:devices": "reading.ingested@1", "engine:money": "payment.succeeded@1"},
+   "callerJustifications": {"engine:access": "booking.requested@1", "engine:pulse": "pulse.session.started@1", "engine:care": "appointment.requested@1", "engine:clinical": "triage.completed@2", "engine:safety": "sos.raised@1", "engine:movement": "trip.requested@1", "engine:trust": "credential.lapsed@1", "engine:record": "passport.record.created@1", "engine:medicines": "prescription.prescribed@1", "engine:devices": "reading.ingested@1", "engine:money": "payment.succeeded@1"},
    "purpose": ["audit"],
    "request": [
     {"field": "eventType", "type": "string", "required": true, "why": "A declared event type."},
@@ -51,8 +51,8 @@
    "path": "/v1/core/loops",
    "version": 1,
    "summary": "Open a concern with an owner, a deadline and a fallback.",
-   "callers": ["engine:care", "engine:safety", "engine:medicines", "engine:access", "engine:money", "engine:movement"],
-   "callerJustifications": {"engine:care": "appointment.follow_up_required@1", "engine:safety": "checkin.overdue@1", "engine:medicines": "lab.result.received@1", "engine:access": "conversation.handover@1", "engine:money": "market.order.shipped@1", "engine:movement": "admission.waitlisted@1"},
+   "callers": ["engine:care", "engine:safety", "engine:medicines", "engine:access", "engine:movement"],
+   "callerJustifications": {"engine:care": "appointment.follow_up_required@1", "engine:safety": "checkin.overdue@1", "engine:medicines": "lab.result.received@1", "engine:access": "conversation.handover@1", "engine:movement": "admission.waitlisted@1"},
    "purpose": ["treatment", "dispatch", "emergency"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},

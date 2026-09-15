@@ -198,8 +198,7 @@
    "path": "/v1/money/claims",
    "version": 2,
    "summary": "Record the billing side of a claim: what is owed, its tariff code and the amount. Why the service was needed is coded inside the record and sent to the switch without passing through Money.",
-   "callers": ["admin", "engine:money"],
-   "callerJustifications": {"engine:money": "review.billable@1"},
+   "callers": ["admin"],
    "purpose": ["billing"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
