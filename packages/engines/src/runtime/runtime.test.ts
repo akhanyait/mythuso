@@ -200,6 +200,22 @@ test('a declared refusal renders the contract\'s sentence; an undeclared one, a 
  runtime.close();
 });
 
+/* An engine refusal is answered only by the routes its answeredBy names. no-such-loop names the routes that
+   look a concern up by its reference, and not the one that opens a concern, which issues the reference. A
+   refusal the engine declares is not thereby a refusal every frozen route of the engine may start giving. */
+test('an engine refusal is answered by the routes it names, and is a fault from any other', () => {
+ const runtime = runtimeWith([defineEngine({ ...empty, id: 'core', routes: {
+  'POST /v1/core/loops@1': () => refuse('no-such-loop'),
+  'POST /v1/core/loops/{loopRef}/acknowledge@2': () => refuse('no-such-loop'),
+ } })]);
+ const named = acknowledge(runtime, 'nurse-synthetic-1', { idempotencyKey: 'k', loopRef: 'loop-nobody-issued' });
+ assert.deepEqual([named.status, named.body], [404, { error: 'no-such-loop', message: 'There is no concern under that reference.' }]);
+ const unnamed = runtime.call('POST /v1/core/loops@1', asCare(openLoop));
+ assert.deepEqual([unnamed.status, unnamed.body.error], [500, 'engine-fault']);
+ assert.match((runtime.faults().at(-1)!.error as Error).message, /answeredBy/);
+ runtime.close();
+});
+
 test('a route with no handler is answered by the contract mock', () => {
  const runtime = runtimeWith([]);
  const answer = runtime.handle({ method: 'GET', path: '/v1/core/protocols/injection-administration%401', headers: { 'x-mythuso-role': 'nurse', 'x-mythuso-purpose': 'treatment' }, query: {}, body: {} });

@@ -28,7 +28,8 @@
 import { readFileSync } from 'node:fs';
 
 export type Field = { field: string; type: string; required: boolean; why: string; object?: boolean };
-export type Refusal = { id: string; status: number; statement: string; why: string };
+/* answeredBy is an engine refusal's only: the route keys that may answer it. A route's own refusals and the shared ones need none. */
+export type Refusal = { id: string; status: number; statement: string; why: string; answeredBy?: string[] };
 export type Route = {
  method: string; path: string; version: number; summary: string; callers: string[]; purpose: string[];
  request: Field[]; response: Field[]; refusals: Refusal[]; idempotent: boolean; reads?: boolean; status: string;

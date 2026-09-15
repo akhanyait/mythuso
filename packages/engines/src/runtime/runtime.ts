@@ -117,8 +117,14 @@ export function createRuntime(options: RuntimeOptions): Runtime {
   faults.push({ engine, where, error });
   return render(runtimeRefusal('engine-fault'), 'runtime');
  };
+ /* An engine refusal is answered only by the routes its answeredBy names. Any route used to be able to
+    answer any refusal its engine declared, so a refusal could be added to a frozen route by declaring it
+    one level up — which is how encounter-signature-unconfirmed reached two frozen Care routes — and no
+    lock saw it. The names are part of each route's line in packages/catalog/apis.refusals.lock. */
  const declaredRefusal = (route: ContractRoute, id: string): Refusal | undefined =>
-  route.refusals.find(r => r.id === id) ?? contract.engineRefusals.get(route.engine)?.find(r => r.id === id) ?? contract.shared.find(r => r.id === id);
+  route.refusals.find(r => r.id === id)
+  ?? contract.engineRefusals.get(route.engine)?.find(r => r.id === id && (r.answeredBy ?? []).includes(route.key))
+  ?? contract.shared.find(r => r.id === id);
 
  function flush(outbox: BusEvent[]) {
   for (const event of outbox) {
@@ -261,7 +267,7 @@ export function createRuntime(options: RuntimeOptions): Runtime {
    if ('refuse' in answer) {
     db.exec('ROLLBACK');
     const refusal = declaredRefusal(route, answer.refuse);
-    if (!refusal) return fault(bound.engine, route.key, new Error(`${route.key} refused with "${answer.refuse}", which neither the route, its engine nor the shared list declares.`));
+    if (!refusal) return fault(bound.engine, route.key, new Error(`${route.key} refused with "${answer.refuse}", which neither the route nor the shared list declares, and no engine refusal of that id names in answeredBy.`));
     if (records.length) {
      if (!(route.keptOnRefusal?.refusals ?? []).includes(answer.refuse)) return fault(bound.engine, route.key, new Error(`${route.key} recorded writes for the refusal "${answer.refuse}", which its keptOnRefusal does not name, so nothing it recorded is kept.`));
      db.exec('BEGIN');
