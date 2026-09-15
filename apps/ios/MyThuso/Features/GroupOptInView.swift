@@ -45,7 +45,7 @@ struct GroupOptInView: View {
                             Text(GroupsData.Words.employerOnly).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        Button(Groups.words(GroupsData.Words.agree)) { stateCode = "member" }.buttonStyle(PrimaryButton())
+                        Button(Groups.words(GroupsData.Words.agree)) { stateCode = "member" }.buttonStyle(CareButton())
                     }
                 } else if stateCode == "member" {
                     CareCard(padding: ThusoSpacing.space16) {
