@@ -188,3 +188,7 @@ POST /v1/care/visits/{appointmentRef}/handover@2 56d3c99334a43e81
 POST /v1/care/visits/{appointmentRef}/complete@2 1379a901f82dd225
 POST /v1/care/sync-batches@2 0847a45f47120c57
 GET /v1/record/encounter-statuses/{encounterRef}@1 db50565464dbe5e0
+POST /v1/core/loops/{loopRef}/acknowledge@3 f07daa37bdbb4ba1
+POST /v1/core/loops/{loopRef}/escalate@3 ecbd6ef3e26d2ea2
+POST /v1/core/loops/{loopRef}/close@2 e82547e5ee5acbdf
+POST /v1/safety/incidents@2 f7ffc26910393482

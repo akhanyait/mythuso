@@ -104,6 +104,16 @@
    "id": "interpret-consultation",
    "name": "Interpret a consultation",
    "detail": "Join a call or attend a visit as the named interpreter, and hear every word of it"
+  },
+  {
+   "id": "assist-supervised-visit",
+   "name": "Assist at a supervised home visit",
+   "detail": "Help a patient with daily living at a visit a registered nurse holds, and nothing clinical"
+  },
+  {
+   "id": "hold-operations-authority",
+   "name": "Hold operations authority",
+   "detail": "Answer for a concern nobody on the desk or the nurse lead's post took on, from the last post of the escalation rota"
   }
  ],
  "authorities": [
@@ -323,6 +333,41 @@
   "restore": "Nobody lifts their own suspension. A reviewer does that, and you are the party it is about.",
   "alreadyEnrolled": "This party is already on the register. Enrolling again does not change a role: a role change would be a decision nobody reviewed, and there is no route for one.",
   "readOwnThroughReviewerRoute": "This route is a reviewer's, for reading somebody else's register entry. Your own standing is at /vetting/me, which tells you everything this would."
+ },
+ "proposedRoles": {
+  "_note": "Roles joined the register after it was written, each with where it came from. The role shape has no room for provenance and is not given any, so it is written here: who proposed the role, why, the contracts that already named it, and where every check it is held to was taken from. A check copied from a role already on the register is that role's check; a check no role had is a proposal. Nothing here is decided: every role below waits on somebody with the authority to accept it, and until then it is on the register as a proposal the build can test against.",
+  "roles": [
+   {
+    "role": "carer",
+    "decidedBy": null,
+    "proposedBy": "Register roles lead (Wave 3)",
+    "proposedOn": "2026-09-15",
+    "proposedBecause": "packages/catalog/services.json already sells the home carer as non-nurse support supervised by a registered nurse, packages/catalog/care.json already says a carer is supervised by a nurse, and packages/catalog/apis/care.json already refuses a carer offered a visit without their registered nurse. Those refusals were written before anybody could hold the role; putting it on the register is what lets them refuse a person rather than a name. It is granted nothing clinical, holds no scope of practice and is never granted take-visit, because the visit is the registered nurse's.",
+    "namedIn": ["packages/catalog/services.json#carer", "packages/catalog/care.json#services (carer, supervisedBy nurse)", "packages/catalog/apis/care.json#refusals.carer-without-their-rn"],
+    "checksFrom": {
+     "identity": "packages/catalog/vetting.json#roles.courier.checks.identity",
+     "police-clearance": "packages/catalog/vetting.json#roles.interpreter.checks.police-clearance",
+     "references": "packages/catalog/vetting.json#roles.nurse.checks.references, as referees for care rather than clinical work",
+     "carer-training": "A proposal: no role on the register trains for personal care at home. Its content and its renewal are the programme's, awaiting the Clinical Governance Lead.",
+     "popia-training": "packages/catalog/vetting.json#roles.nurse.checks.popia-training"
+    }
+   },
+   {
+    "role": "head-of-operations",
+    "decidedBy": null,
+    "proposedBy": "Register roles lead (Wave 3)",
+    "proposedOn": "2026-09-15",
+    "proposedBecause": "packages/catalog/closed-loop.json's escalation rota has had a Head of Operations post since Wave 3, with nobody able to hold it, so a concern that reached it was skipped. A post is held by a role and never a person, and neither the Control Tower operator, who is the desk the concern has already passed, nor internal admin staff, who decide the catalogue, finance, growth and vetting, is the person a concern goes to after the desk and the nurse lead. It is operations authority and nothing clinical: it is granted no record, no summary and no dispatch, and its checks are the Control Tower operator's, because it answers for the same desk.",
+    "namedIn": ["packages/catalog/closed-loop.json#settings.items.escalation-rota.posts.head-of-operations"],
+    "checksFrom": {
+     "identity": "packages/catalog/vetting.json#roles.operator.checks.identity",
+     "police-clearance": "packages/catalog/vetting.json#roles.operator.checks.police-clearance",
+     "references": "packages/catalog/vetting.json#roles.operator.checks.references",
+     "escalation-training": "packages/catalog/vetting.json#roles.operator.checks.escalation-training",
+     "popia-training": "packages/catalog/vetting.json#roles.operator.checks.popia-training"
+    }
+   }
+  ]
  },
  "roles": [
   {
@@ -1534,6 +1579,156 @@
     "train": {
      "kind": "does-not-apply",
      "sentence": "A site is not trained. Its attendants are, under the roles they are vetted in."
+    }
+   }
+  },
+  {
+   "id": "carer",
+   "name": "Home carer",
+   "party": "person",
+   "workspace": "Partner",
+   "summary": "Helps a patient with daily living at home, always beside the registered nurse who holds the visit.",
+   "grants": [
+    {
+     "capability": "assist-supervised-visit",
+     "refusal": "A carer is never offered a visit without the registered nurse who holds it, and is granted nothing clinical: no record, no summary, no reading and no medicine."
+    }
+   ],
+   "checks": [
+    {
+     "id": "identity",
+     "name": "Identity",
+     "detail": "Home Affairs verification through an accredited provider",
+     "authority": "dha",
+     "evidence": "Identity document",
+     "renewMonths": null,
+     "risk": "high",
+     "gate": "identity"
+    },
+    {
+     "id": "police-clearance",
+     "name": "Police clearance",
+     "detail": "SAPS clearance, renewed every two years, like anybody else who comes into a patient's home",
+     "authority": "saps",
+     "evidence": "SAPS clearance certificate",
+     "renewMonths": 24,
+     "risk": "high",
+     "gate": "background"
+    },
+    {
+     "id": "references",
+     "name": "Two care references",
+     "detail": "Contacted directly, never through the applicant",
+     "authority": "internal",
+     "evidence": "Two named referees",
+     "renewMonths": null,
+     "risk": "standard",
+     "gate": "background"
+    },
+    {
+     "id": "carer-training",
+     "name": "Supervised home care training",
+     "detail": "Personal care, infection control, safeguarding, and when to call the supervising nurse rather than act",
+     "authority": "internal",
+     "evidence": "Training record",
+     "renewMonths": 24,
+     "risk": "standard",
+     "gate": "train"
+    },
+    {
+     "id": "popia-training",
+     "name": "POPIA and confidentiality",
+     "detail": "Handling special personal information, and the undertaking that goes with it",
+     "authority": "internal",
+     "evidence": "Signed undertaking",
+     "renewMonths": 12,
+     "risk": "standard",
+     "gate": "train"
+    }
+   ],
+   "gateNotes": {
+    "credentials": {
+     "kind": "does-not-apply",
+     "sentence": "A home carer holds no professional registration. The work is supervised care, nothing about it is licensed by a council, and that is why a registered nurse always holds the visit."
+    },
+    "assess": {
+     "kind": "not-yet-a-check",
+     "sentence": "The practical assessment a carer should pass before a first visit is not yet a check in this contract. Until one is added, a carer passes gate 5 on nothing, and this sentence is where that is admitted."
+    }
+   }
+  },
+  {
+   "id": "head-of-operations",
+   "name": "Head of Operations",
+   "party": "person",
+   "workspace": "Control Tower",
+   "summary": "Holds the last post on the escalation rota, and answers for a concern the desk and the nurse lead did not take on.",
+   "grants": [
+    {
+     "capability": "hold-operations-authority",
+     "refusal": "Operations authority is granted only once every check is in date. It is authority over the desk's escalations, and never a way into a patient's record."
+    }
+   ],
+   "checks": [
+    {
+     "id": "identity",
+     "name": "Identity",
+     "detail": "Home Affairs verification through an accredited provider",
+     "authority": "dha",
+     "evidence": "Identity document",
+     "renewMonths": null,
+     "risk": "high",
+     "gate": "identity"
+    },
+    {
+     "id": "police-clearance",
+     "name": "Police clearance",
+     "detail": "SAPS clearance, renewed every two years",
+     "authority": "saps",
+     "evidence": "SAPS clearance certificate",
+     "renewMonths": 24,
+     "risk": "high",
+     "gate": "background"
+    },
+    {
+     "id": "references",
+     "name": "Employment references",
+     "detail": "Contacted directly, never through the applicant",
+     "authority": "internal",
+     "evidence": "Two named referees",
+     "renewMonths": null,
+     "risk": "standard",
+     "gate": "background"
+    },
+    {
+     "id": "escalation-training",
+     "name": "Escalation training",
+     "detail": "Incident severity, the five-minute acknowledgement and when to call emergency services",
+     "authority": "internal",
+     "evidence": "Training record and drill",
+     "renewMonths": 12,
+     "risk": "high",
+     "gate": "train"
+    },
+    {
+     "id": "popia-training",
+     "name": "POPIA and confidentiality",
+     "detail": "Handling special personal information, and the undertaking that goes with it",
+     "authority": "internal",
+     "evidence": "Signed undertaking",
+     "renewMonths": 12,
+     "risk": "standard",
+     "gate": "train"
+    }
+   ],
+   "gateNotes": {
+    "credentials": {
+     "kind": "does-not-apply",
+     "sentence": "A Head of Operations holds no professional registration. The role is employment, and nothing about it is licensed by a council."
+    },
+    "assess": {
+     "kind": "not-yet-a-check",
+     "sentence": "The structured interview for a Head of Operations is not yet a check in this contract. Until one is added, the role passes gate 5 on nothing, and this sentence is where that is admitted."
     }
    }
   }

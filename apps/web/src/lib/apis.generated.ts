@@ -50,30 +50,31 @@ export interface GetCoreLoopsV2Response {
  readonly exhaustedCount: number;
 }
 
-export interface PostCoreLoopsByLoopRefAcknowledgeV2Request {
+export interface PostCoreLoopsByLoopRefAcknowledgeV3Request {
  readonly idempotencyKey: string;
  readonly loopRef: string;
 }
-export interface PostCoreLoopsByLoopRefAcknowledgeV2Response {
+export interface PostCoreLoopsByLoopRefAcknowledgeV3Response {
  readonly acknowledgedAt: string;
 }
 
-export interface PostCoreLoopsByLoopRefEscalateV2Request {
+export interface PostCoreLoopsByLoopRefEscalateV3Request {
  readonly idempotencyKey: string;
  readonly loopRef: string;
  readonly reasonCode: string;
 }
-export interface PostCoreLoopsByLoopRefEscalateV2Response {
+export interface PostCoreLoopsByLoopRefEscalateV3Response {
  readonly ownerRole: string;
  readonly dueBy: string;
 }
 
-export interface PostCoreLoopsByLoopRefCloseRequest {
+export interface PostCoreLoopsByLoopRefCloseV2Request {
  readonly idempotencyKey: string;
  readonly loopRef: string;
- readonly outcomeRef: string;
+ readonly outcomeCode: string;
+ readonly outcomeRef?: string;
 }
-export interface PostCoreLoopsByLoopRefCloseResponse {
+export interface PostCoreLoopsByLoopRefCloseV2Response {
  readonly closedAt: string;
 }
 
@@ -848,14 +849,14 @@ export interface GetSafetyIncidentKindsResponse {
  readonly notificationRule: string;
 }
 
-export interface PostSafetyIncidentsRequest {
+export interface PostSafetyIncidentsV2Request {
  readonly kind: string;
  readonly whatHappened: string;
  readonly informationReached: boolean;
  readonly peopleAffected?: number;
  readonly discoveredAt?: number;
 }
-export interface PostSafetyIncidentsResponse {
+export interface PostSafetyIncidentsV2Response {
  readonly incidentId: string;
  readonly notificationOwed: boolean;
 }
@@ -1551,9 +1552,9 @@ export const apiRoutes = {
  postCoreEvents: { name: "postCoreEvents", method: "POST", path: "/v1/core/events", mountedPath: "/v1/core/events", version: 1, engine: "core", callers: ["engine:access","engine:pulse","engine:care","engine:clinical","engine:safety","engine:movement","engine:trust","engine:record","engine:medicines","engine:devices","engine:money"], purpose: ["audit"], idempotent: false, status: "proposed" },
  postCoreLoops: { name: "postCoreLoops", method: "POST", path: "/v1/core/loops", mountedPath: "/v1/core/loops", version: 1, engine: "core", callers: ["engine:care","engine:safety","engine:medicines","engine:access","engine:movement"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
  getCoreLoopsV2: { name: "getCoreLoopsV2", method: "GET", path: "/v1/core/loops", mountedPath: "/v1/core/loops", version: 2, engine: "core", callers: ["ops-desk","operator"], purpose: ["treatment","dispatch","emergency"], idempotent: false, status: "built" },
- postCoreLoopsByLoopRefAcknowledgeV2: { name: "postCoreLoopsByLoopRefAcknowledgeV2", method: "POST", path: "/v1/core/loops/{loopRef}/acknowledge", mountedPath: "/v1/core/loops/{loopRef}/acknowledge", version: 2, engine: "core", callers: ["nurse","doctor","ops-desk","operator","engine:care","engine:safety"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
- postCoreLoopsByLoopRefEscalateV2: { name: "postCoreLoopsByLoopRefEscalateV2", method: "POST", path: "/v1/core/loops/{loopRef}/escalate", mountedPath: "/v1/core/loops/{loopRef}/escalate", version: 2, engine: "core", callers: ["ops-desk","operator","engine:safety"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
- postCoreLoopsByLoopRefClose: { name: "postCoreLoopsByLoopRefClose", method: "POST", path: "/v1/core/loops/{loopRef}/close", mountedPath: "/v1/core/loops/{loopRef}/close", version: 1, engine: "core", callers: ["nurse","doctor","ops-desk"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
+ postCoreLoopsByLoopRefAcknowledgeV3: { name: "postCoreLoopsByLoopRefAcknowledgeV3", method: "POST", path: "/v1/core/loops/{loopRef}/acknowledge", mountedPath: "/v1/core/loops/{loopRef}/acknowledge", version: 3, engine: "core", callers: ["nurse","doctor","ops-desk","operator","head-of-operations","engine:care","engine:safety"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
+ postCoreLoopsByLoopRefEscalateV3: { name: "postCoreLoopsByLoopRefEscalateV3", method: "POST", path: "/v1/core/loops/{loopRef}/escalate", mountedPath: "/v1/core/loops/{loopRef}/escalate", version: 3, engine: "core", callers: ["ops-desk","operator","head-of-operations","engine:safety"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
+ postCoreLoopsByLoopRefCloseV2: { name: "postCoreLoopsByLoopRefCloseV2", method: "POST", path: "/v1/core/loops/{loopRef}/close", mountedPath: "/v1/core/loops/{loopRef}/close", version: 2, engine: "core", callers: ["nurse","doctor","ops-desk","operator","head-of-operations"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
  postCoreAlertsV2: { name: "postCoreAlertsV2", method: "POST", path: "/v1/core/alerts", mountedPath: "/v1/core/alerts", version: 2, engine: "core", callers: ["engine:safety","engine:devices","engine:clinical","engine:medicines"], purpose: ["treatment","emergency"], idempotent: false, status: "built" },
  getCoreSettings: { name: "getCoreSettings", method: "GET", path: "/v1/core/settings", mountedPath: "/v1/core/settings", version: 1, engine: "core", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
  postCoreSettingChanges: { name: "postCoreSettingChanges", method: "POST", path: "/v1/core/setting-changes", mountedPath: "/v1/core/setting-changes", version: 1, engine: "core", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
@@ -1640,7 +1641,7 @@ export const apiRoutes = {
  postSafetySafeguardingReports: { name: "postSafetySafeguardingReports", method: "POST", path: "/v1/safety/safeguarding-reports", mountedPath: "/v1/safety/safeguarding-reports", version: 1, engine: "safety", callers: ["nurse","locum","doctor","responder","courier","thuso-line-agent"], purpose: ["emergency"], idempotent: false, status: "proposed" },
  postSafetySentinelDeviations: { name: "postSafetySentinelDeviations", method: "POST", path: "/v1/safety/sentinel-deviations", mountedPath: "/v1/safety/sentinel-deviations", version: 1, engine: "safety", callers: ["engine:devices"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  getSafetyIncidentKinds: { name: "getSafetyIncidentKinds", method: "GET", path: "/v1/safety/incident-kinds", mountedPath: "/v1/safety/incident-kinds", version: 1, engine: "safety", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built" },
- postSafetyIncidents: { name: "postSafetyIncidents", method: "POST", path: "/v1/safety/incidents", mountedPath: "/v1/safety/incidents", version: 1, engine: "safety", callers: ["nurse","locum","doctor","pharmacy","laboratory","courier","interpreter","operator","admin","employer","sponsor","guardian","corner"], purpose: ["audit"], idempotent: false, status: "built" },
+ postSafetyIncidentsV2: { name: "postSafetyIncidentsV2", method: "POST", path: "/v1/safety/incidents", mountedPath: "/v1/safety/incidents", version: 2, engine: "safety", callers: ["nurse","locum","doctor","pharmacy","laboratory","courier","interpreter","operator","admin","employer","sponsor","guardian","corner","carer","head-of-operations"], purpose: ["audit"], idempotent: false, status: "built" },
  postSafetyIncidentsByIncidentIdContain: { name: "postSafetyIncidentsByIncidentIdContain", method: "POST", path: "/v1/safety/incidents/{incidentId}/contain", mountedPath: "/v1/safety/incidents/{incidentId}/contain", version: 1, engine: "safety", callers: ["admin","incident-reporter"], purpose: ["audit"], idempotent: false, status: "built" },
  postSafetyIncidentsByIncidentIdNotified: { name: "postSafetyIncidentsByIncidentIdNotified", method: "POST", path: "/v1/safety/incidents/{incidentId}/notified", mountedPath: "/v1/safety/incidents/{incidentId}/notified", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
  postSafetyIncidentsByIncidentIdClose: { name: "postSafetyIncidentsByIncidentIdClose", method: "POST", path: "/v1/safety/incidents/{incidentId}/close", mountedPath: "/v1/safety/incidents/{incidentId}/close", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },

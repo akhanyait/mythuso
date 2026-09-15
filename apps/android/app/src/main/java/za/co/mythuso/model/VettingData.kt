@@ -29,7 +29,9 @@ val vettingCapabilities = listOf(
     VettingCapability("sponsor-care", "Sponsor care", "Pay for another person's visits"),
     VettingCapability("guardian-access", "Hold guardian access", "Act for a minor or a dependent adult"),
     VettingCapability("host-screening", "Host a screening site", "Receive patients at a community screening location"),
-    VettingCapability("interpret-consultation", "Interpret a consultation", "Join a call or attend a visit as the named interpreter, and hear every word of it")
+    VettingCapability("interpret-consultation", "Interpret a consultation", "Join a call or attend a visit as the named interpreter, and hear every word of it"),
+    VettingCapability("assist-supervised-visit", "Assist at a supervised home visit", "Help a patient with daily living at a visit a registered nurse holds, and nothing clinical"),
+    VettingCapability("hold-operations-authority", "Hold operations authority", "Answer for a concern nobody on the desk or the nurse lead's post took on, from the last post of the escalation rota")
 )
 
 /* The formats are the ones the issuing bodies actually use, so the phone can say "that is not a
@@ -316,6 +318,34 @@ val vettingRoles = listOf(
             VettingCheck("privacy-layout", "Privacy layout", "Nobody waiting can see or hear a consultation", "internal", "Floor plan and inspection sign-off", 12, "standard", "assess"),
             VettingCheck("landlord-consent", "Landlord consent", "Written permission to provide a health service on the premises", "internal", "Signed consent", 24, "standard", "credentials")
         )
+    ),
+    VettingRole(
+        "carer", "Home carer", "person", "Partner",
+        "Helps a patient with daily living at home, always beside the registered nurse who holds the visit.",
+        listOf(
+            VettingGrant("assist-supervised-visit", "A carer is never offered a visit without the registered nurse who holds it, and is granted nothing clinical: no record, no summary, no reading and no medicine.")
+        ),
+        listOf(
+            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high", "identity"),
+            VettingCheck("police-clearance", "Police clearance", "SAPS clearance, renewed every two years, like anybody else who comes into a patient's home", "saps", "SAPS clearance certificate", 24, "high", "background"),
+            VettingCheck("references", "Two care references", "Contacted directly, never through the applicant", "internal", "Two named referees", null, "standard", "background"),
+            VettingCheck("carer-training", "Supervised home care training", "Personal care, infection control, safeguarding, and when to call the supervising nurse rather than act", "internal", "Training record", 24, "standard", "train"),
+            VettingCheck("popia-training", "POPIA and confidentiality", "Handling special personal information, and the undertaking that goes with it", "internal", "Signed undertaking", 12, "standard", "train")
+        )
+    ),
+    VettingRole(
+        "head-of-operations", "Head of Operations", "person", "Control Tower",
+        "Holds the last post on the escalation rota, and answers for a concern the desk and the nurse lead did not take on.",
+        listOf(
+            VettingGrant("hold-operations-authority", "Operations authority is granted only once every check is in date. It is authority over the desk's escalations, and never a way into a patient's record.")
+        ),
+        listOf(
+            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high", "identity"),
+            VettingCheck("police-clearance", "Police clearance", "SAPS clearance, renewed every two years", "saps", "SAPS clearance certificate", 24, "high", "background"),
+            VettingCheck("references", "Employment references", "Contacted directly, never through the applicant", "internal", "Two named referees", null, "standard", "background"),
+            VettingCheck("escalation-training", "Escalation training", "Incident severity, the five-minute acknowledgement and when to call emergency services", "internal", "Training record and drill", 12, "high", "train"),
+            VettingCheck("popia-training", "POPIA and confidentiality", "Handling special personal information, and the undertaking that goes with it", "internal", "Signed undertaking", 12, "standard", "train")
+        )
     )
 )
 
@@ -449,5 +479,13 @@ val vettingGateNotes: Map<String, Map<String, VettingGateNote>> = mapOf(
     "corner" to mapOf(
         "background" to VettingGateNote("does-not-apply", "A site has no history of its own. Every person who works there is vetted in their own right, which is what the attendant vetting check at gate 2 records."),
         "train" to VettingGateNote("does-not-apply", "A site is not trained. Its attendants are, under the roles they are vetted in.")
+    ),
+    "carer" to mapOf(
+        "credentials" to VettingGateNote("does-not-apply", "A home carer holds no professional registration. The work is supervised care, nothing about it is licensed by a council, and that is why a registered nurse always holds the visit."),
+        "assess" to VettingGateNote("not-yet-a-check", "The practical assessment a carer should pass before a first visit is not yet a check in this contract. Until one is added, a carer passes gate 5 on nothing, and this sentence is where that is admitted.")
+    ),
+    "head-of-operations" to mapOf(
+        "credentials" to VettingGateNote("does-not-apply", "A Head of Operations holds no professional registration. The role is employment, and nothing about it is licensed by a council."),
+        "assess" to VettingGateNote("not-yet-a-check", "The structured interview for a Head of Operations is not yet a check in this contract. Until one is added, the role passes gate 5 on nothing, and this sentence is where that is admitted.")
     )
 )
