@@ -1,0 +1,134 @@
+import { createMoney, type Money, type Payout } from '../../../../packages/engines/src/money/domain/ledger.ts';
+import {
+ doctorFees, earningsContract, isRefusal, methods, money as contract, rangeOf, refusal, stateOf, type MethodId, type PaymentStateId
+} from '../../../../packages/engines/src/money/domain/contract.ts';
+import { linesFromEarningsWeek } from '../../../../packages/engines/src/money/domain/payouts.ts';
+/* The web's door onto Thuso Money.
+ *
+ * ── The engine, not a second copy of it ──────────────────────────────────────────────────────
+ *
+ * packages/engines/src/money/domain is pure and has no dependencies, so the browser runs the same
+ * ledger the engine's tests hold: the idempotency key, the card-number refusal, the amount reconciled
+ * against the catalogue, the cash code and the refusal to schedule a doctor's payout while the fee
+ * is undecided. What a screen gets from here is that ledger's answer in the shape a screen draws —
+ * rand rather than cents, and the contract's words beside every state.
+ *
+ * ── Nothing is kept ──────────────────────────────────────────────────────────────────────────
+ *
+ * A ledger lives in memory for as long as the screen that made it. No storage of any kind, which is
+ * the rule for everything in apps/web/src, and it is why a booking makes its own ledger: a visit
+ * booked, left and booked again is a fresh booking rather than a payable a closed tab already paid.
+ *
+ * ── What the web does not pretend ────────────────────────────────────────────────────────────
+ *
+ * The simulated provider stands behind the payment-result door, in process. Every receipt it
+ * produces begins SIM-, and the payments capability's notice is rendered beside every payment state
+ * this module returns, on the screen that shows it.
+ */
+
+/** The patient the preview books as. Money keys a payable on a subject token, never a name. */
+export const PREVIEW_PAYER = 'subj-preview-patient';
+
+export const visitMethods = methods.filter(m => m.offered && m.for.includes('visit'));
+export const notOffered = methods.filter(m => !m.offered);
+export const methodByName = (name: string) => methods.find(m => m.name === name);
+
+export type Refused = { refused: string };
+
+export type PaymentView = Refused | {
+ refused?: undefined;
+ paymentRef: string;
+ method: MethodId;
+ state: PaymentStateId;
+ /** The state's name and the contract's words for it. Cash waiting on its code has its own. */
+ stateName: string;
+ words: string;
+ /** In rand, because that is what every screen here renders. */
+ amount: number;
+ attempt: number;
+ receipt: string | null;
+ declineReason: string | null;
+ /** Shown to the person paying in cash, and nowhere else. */
+ cashCode: string | null;
+};
+
+/** A ledger for one booking. See the header for why it is not one per tab. */
+export const bookingLedger = (): Money => createMoney({ simulation: true });
+
+/**
+ * Pay for one visit. The payable's reference is the visit's own, which is also what the simulated
+ * provider is seeded on, so the same visit is answered the same way on every machine. The key is
+ * the visit, the method and the attempt: pressing Confirm twice on one attempt is one payment.
+ */
+export function payForVisit(ledger: Money, reference: string, serviceId: string, method: MethodId, attempt: number): PaymentView {
+ const payable = ledger.openVisitPayable({ payableRef: reference, serviceId, subjectRef: PREVIEW_PAYER });
+ const answer = ledger.pay({ role: 'patient', subjectRef: PREVIEW_PAYER },
+  { idempotencyKey: `${reference}:${method}:${attempt}`, payableRef: reference, method, amountCents: payable.amountCents });
+ if (isRefusal(answer)) return { refused: answer.statement };
+ const state = stateOf(answer.stateCode);
+ const cashWaiting = answer.method === 'cash-otp' && answer.stateCode === 'pending';
+ return {
+  paymentRef: answer.paymentRef, method: answer.method, state: answer.stateCode, stateName: state.name,
+  words: cashWaiting ? contract.cash.pendingWords : state.words,
+  amount: answer.amountCents / 100, attempt: answer.attempt,
+  receipt: answer.providerReference ?? null, declineReason: answer.declineReason ?? null, cashCode: answer.cashCode ?? null
+ };
+}
+
+/* ---- A nurse's weeks ------------------------------------------------------------------------- */
+
+type RawWeek = Parameters<typeof linesFromEarningsWeek>[0];
+
+export type PayoutAdvice = Refused | { refused?: undefined; outcome: 'in-transit' | 'paid' | 'failed'; amount: number; failureReason: string | null };
+
+const payoutLedger = createMoney({ simulation: true });
+
+/**
+ * Send one of the sample weeks in packages/catalog/earnings.json to the simulated bank. The week is
+ * entered into the ledger as the contract draws it — its lines, not a total a screen worked out — and
+ * the bank's answer comes back through the payout-advice door, where an amount that is not the
+ * ledger's own is refused.
+ */
+export function runWeek(weekId: string, partyRef: string, periodEnd: string): PayoutAdvice {
+ const week = earningsContract.weeks.find(w => w.id === weekId);
+ if (!week) throw new Error(`No week "${weekId}" in packages/catalog/earnings.json.`);
+ const payout = payoutLedger.importWeek({ weekId: week.id, partyRef, periodEnd, lines: linesFromEarningsWeek(week as RawWeek), state: week.state });
+ const answer = payoutLedger.runPayout(payout.payoutRef, partyRef);
+ if (isRefusal(answer)) return { refused: answer.statement };
+ const settled = answer as Payout;
+ if (settled.state === 'closed') return { refused: refusal('door-locked').statement };
+ return { outcome: settled.state, amount: settled.totalCents / 100, failureReason: settled.failureReason ?? null };
+}
+
+/* ---- A doctor's fees ------------------------------------------------------------------------- */
+
+export type DoctorFeesView = {
+ fee: typeof doctorFees[number];
+ range: [number, number];
+ cases: { reviewRef: string; on: string }[];
+ casesWords: string;
+ /** What the ledger answers when asked to schedule the payout: the contract's refusal, today. */
+ schedule: () => { refused: string } | { refused?: undefined; amount: number };
+};
+
+/**
+ * The doctor's per-case fees, from a ledger that has heard the contract's signed sample cases as
+ * review.billable carries them — a reference, the doctor and a fee code, and nothing about anybody.
+ */
+export function doctorFeesFor(doctorRef: string, now = new Date()): DoctorFeesView {
+ const ledger = createMoney({ simulation: true, clock: () => now });
+ const fee = doctorFees[0]!;
+ for (const sample of contract.sampleCases) {
+  const at = new Date(now.getTime() + sample.onDays * 86_400_000);
+  ledger.hear({ type: 'review.billable', version: 1, occurredAt: at.toISOString(), payload: { reviewRef: sample.reviewRef, reviewedByRef: doctorRef, feeCode: fee.feeCode } });
+ }
+ const periodEnd = new Date(now.getTime() + 7 * 86_400_000).toISOString().slice(0, 10);
+ return {
+  fee, range: rangeOf(fee), casesWords: contract.casesWords,
+  cases: ledger.casesFor(doctorRef).map(c => ({ reviewRef: c.reviewRef, on: c.on })),
+  schedule: () => {
+   const answer = ledger.scheduleDoctorPayout(doctorRef, periodEnd);
+   return isRefusal(answer) ? { refused: answer.statement } : { amount: answer.totalCents / 100 };
+  }
+ };
+}

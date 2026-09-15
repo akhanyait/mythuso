@@ -21,6 +21,7 @@ import { ClinicalProtocols, ReferralLetter, ReferralPathway, VisitAssessment, Do
 import { Academy, LocumShifts } from '../features/NurseTools';
 import { ThusoKit } from '../features/Kit';
 import { Earnings } from '../features/Earnings';
+import { DoctorFees } from '../features/DoctorFees';
 import { Dispensing } from '../features/Dispensing';
 import { Programmes } from '../features/Programmes';
 import { Teleconsult } from '../features/Teleconsult';
@@ -528,6 +529,9 @@ function staffModalBody(modal: string, close: () => void, open: (m: string) => v
     protocols. */
  if (modal === 'Clinical protocols') return <ClinicalProtocols/>;
  if (modal === 'Referral pathway') return <ReferralPathway/>;
+ /* The doctor's per-case fees: the cases Money has recorded and a fee nobody has decided, with the
+    ledger's refusal to schedule a payout shown rather than a button quietly disabled. */
+ if (modal === 'Per-case fees') return <DoctorFees/>;
  /* The nurse's own two More tools. Neither is a workflow and neither pretends to be one; what each
     says instead is what the module is for and the one thing it will not do — which for a shift
     market and a training record is the same thing in two shapes, and the thing a nurse should be

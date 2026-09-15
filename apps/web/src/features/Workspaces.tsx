@@ -41,7 +41,7 @@ export const sectionDoor: Record<string,string> = {
 };
 export const roleExtras: Record<string,string[]> = {
  Nurse:['Locum shifts','Academy'],
- Doctor:['Clinical protocols','Referral pathway'],
+ Doctor:['Clinical protocols','Referral pathway','Per-case fees'],
  Partner:['Prescription RX-0081','Laboratory order LAB-0023'],
  'Control Tower':['Nurse onboarding & vetting','Employer programmes']
 };

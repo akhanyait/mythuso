@@ -1,6 +1,7 @@
 import contract from '../../../../packages/catalog/earnings.json' with { type: 'json' };
 import { businessModel, services, type Service } from './catalog';
 import { inDays, isoDate } from './vetting';
+import { lineCents, linesFromEarningsWeek } from '../../../../packages/engines/src/money/domain/payouts.ts';
 /* What a nurse is owed, worked out rather than written down.
  *
  * Not one visit amount lives in earnings.json. A line names a service; the money comes from
@@ -66,14 +67,16 @@ export type EarningWeek = {
 
 const serviceById = (id: string) => services.find(s => s.id === id);
 
+/* A line's worth and a week's total are Thuso Money's ledger arithmetic — packages/engines/src/money,
+   over the same catalogue rows — so the figure on a nurse's screen and the payout the engine schedules
+   are one calculation rather than two that happen to agree. A visit is worth the nurse's share of the
+   catalogue price and nothing else, and the ledger refuses a visit line that names its own amount. */
 function buildLine(raw: RawLine): EarningLine {
  const kind = raw.kind as LineKind;
  const service = raw.service ? serviceById(raw.service) : undefined;
  if ((kind === 'visit' || kind === 'plan-visit') && !service) throw new Error(`Earnings line ${raw.reference} names a service that is not in the catalogue`);
- const sign = lineKindById(kind).sign;
- /* A visit is worth the nurse's share of the catalogue price. Nothing else. */
- const amount = service ? service.nurseShare : (raw.amount ?? 0);
- return { kind, reference: raw.reference, on: inDays(raw.onDays), patient: raw.patient, area: raw.area, plan: raw.plan, service, reason: raw.reason, amount: sign * amount };
+ const [line] = linesFromEarningsWeek({ lines: [raw] });
+ return { kind, reference: raw.reference, on: inDays(raw.onDays), patient: raw.patient, area: raw.area, plan: raw.plan, service, reason: raw.reason, amount: lineCents(line!) / 100 };
 }
 
 export const weeks: EarningWeek[] = (contract.weeks as RawWeek[]).map(raw => {
