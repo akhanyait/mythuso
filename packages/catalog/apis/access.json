@@ -46,7 +46,8 @@
    "capabilityNamed": null,
    "status": "built",
    "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /auth/start'"},
-   "enforcedBy": {"mechanism": "anonymous"}
+   "enforcedBy": {"mechanism": "anonymous"},
+   "secretResponseFields": [{"field": "developmentCode", "shownOnce": "The sign-in code was shown once, when it was sent, and is not shown again. Ask for a new code to sign in."}]
   },
   {
    "method": "POST",
@@ -230,7 +231,8 @@
    "capabilityNamed": null,
    "status": "built",
    "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/second-factor/begin'"},
-   "enforcedBy": {"mechanism": "identity-session"}
+   "enforcedBy": {"mechanism": "identity-session"},
+   "secretResponseFields": [{"field": "secret", "shownOnce": "The authenticator secret was shown once, when the second factor was set up, and is not shown again. Setting up the second factor again gives a new one."}]
   },
   {
    "method": "POST",

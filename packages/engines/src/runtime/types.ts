@@ -107,6 +107,13 @@ export type EngineContext = {
  publish(event: EventKey, payload: Record<string, unknown>, options: PublishOptions): Published;
  /** Another engine's route, as caller "engine:<this engine>". Never this engine's own. */
  call(route: RouteKey, fields: Record<string, unknown>, options: { purpose: string }): RuntimeAnswer;
+ /**
+  * A write a declared refusal keeps. When a handler refuses, everything it did is rolled back, except
+  * the statements recorded here: one INSERT or UPDATE each, checked like any store statement, into a
+  * table the route's keptOnRefusal names, and kept only if the refusal is one keptOnRefusal names. An
+  * answer that is not a refusal writes them too. A fault keeps nothing. Route handlers only.
+  */
+ recordRefusal(sql: string, ...params: (string | number | bigint | null | Uint8Array)[]): void;
  /** Core only: the bus's trail, read-only. Undefined for every other engine. */
  readonly trail?: TrailReader;
 };

@@ -33,10 +33,47 @@ function validCall(route: Route) {
  for (const field of route.request) given[field.field] = valueFor(field);
  if (needsIdempotencyKey(contract, route)) given[contract.idempotency.field] = `key-${route.method}-${route.path}`;
  const path = route.mountedPath.replace(/\{([^}]+)\}/g, (_, name: string) => encodeURIComponent(String(given[name] ?? 'synthetic')));
- const headers = { [contract.mock.roleHeader]: route.callers[0], [contract.mock.purposeHeader]: route.purpose[0] };
+ const headers: Record<string, string | undefined> = { [contract.mock.roleHeader]: route.callers[0], [contract.mock.purposeHeader]: route.purpose[0], [contract.mock.versionHeader]: String(route.version) };
  const query = route.method === 'GET' ? Object.fromEntries(Object.entries(given).map(([k, v]) => [k, String(v)])) : {};
  return { method: route.method, path, headers, query, body: route.method === 'GET' ? {} : given };
 }
+
+test('a method and path live at two versions answer the version the caller names, never whichever was declared first', () => {
+ const fresh = createMock({ env: FLAG, contract, now: () => new Date('2026-09-14T09:00:00+02:00') });
+ const one = contract.routes.find(r => r.method === 'POST' && r.path === '/v1/money/payments' && r.version === 1)!;
+ const two = contract.routes.find(r => r.method === 'POST' && r.path === '/v1/money/payments' && r.version === 2)!;
+ assert.ok(one && two, 'POST /v1/money/payments is no longer live at two versions, so this test proves nothing');
+ const sharedRefusal = (id: string) => { const r = contract.shared.find(x => x.id === id)!; return [r.status, { error: r.id, message: r.statement }]; };
+ const withVersion = (route: Route, version: string | undefined, extra: Record<string, string> = {}) => {
+  const call = validCall(route);
+  return fresh.handle({ ...call, headers: { ...call.headers, [contract.mock.versionHeader]: version, ...extra } });
+ };
+
+ const unnamed = withVersion(two, undefined);
+ assert.deepEqual([unnamed.status, unnamed.body], sharedRefusal('route-version-required'));
+
+ /* The same idempotency key to each version is two calls, each in its own version's shape. */
+ const first = withVersion(one, '1');
+ const second = withVersion(two, '2');
+ assert.equal(first.status, 200);
+ assert.equal(second.status, 200);
+ assert.deepEqual(Object.keys(first.body).sort(), one.response.map(f => f.field).sort());
+ assert.deepEqual(Object.keys(second.body).sort(), two.response.map(f => f.field).sort());
+ assert.ok(!('cashCode' in first.body) && 'cashCode' in second.body, 'version two answered in version one’s shape, or the other way round');
+
+ /* A refusal only version one declares is version one's. */
+ const onlyOne = one.refusals.find(r => !two.refusals.some(x => x.id === r.id))!;
+ assert.equal(withVersion(one, '1', { [contract.mock.refusalHeader]: onlyOne.id }).status, onlyOne.status);
+ assert.equal(withVersion(two, '2', { [contract.mock.refusalHeader]: onlyOne.id }).body.error, 'no-such-refusal');
+
+ const undeclared = withVersion(two, '3');
+ assert.deepEqual([undeclared.status, undeclared.body], sharedRefusal('route-version-not-declared'));
+
+ /* A path live at one version is answered without the header, and refused at a version it does not have. */
+ const single = contract.routes.find(r => r.method === 'GET' && !r.request.some(f => f.required) && contract.routes.filter(x => x.method === r.method && x.mountedPath === r.mountedPath).length === 1)!;
+ assert.equal(withVersion(single, undefined).status, 200);
+ assert.deepEqual([withVersion(single, String(single.version + 1)).status, withVersion(single, String(single.version + 1)).body], sharedRefusal('route-version-not-declared'));
+});
 
 const typeOk = (field: Field, value: unknown): boolean => {
  if (field.object) return field.type === 'list' ? Array.isArray(value) : typeof value === 'object' && value !== null && !Array.isArray(value);

@@ -6381,10 +6381,15 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  for (const file of engineSources) {
   const source = read(file);
   const [top] = posix.relative('packages/engines/src', file).split('/');
-  /* The trail's own test opens the trail file to tamper with it, which is the point of the test. */
+  /* Three tests open a store file themselves, and it is the point of each: the trail's test tampers with the
+     trail to prove the chain notices, the replay-and-refusal test reads the replay table raw to prove a
+     one-time code is not at rest there, and Money's cash-code test reads Money's own store raw to prove the
+     same of a real cash code. No engine and no other runtime module opens one. */
   const opensDatabase = /new DatabaseSync\(/.test(source) || /^import (?!type)[^;]*from 'node:sqlite'/m.test(source);
-  if (opensDatabase && file !== 'packages/engines/src/runtime/store.ts' && file !== 'packages/engines/src/runtime/runtime.test.ts') throw new Error(`${file} opens a SQLite database itself. Only packages/engines/src/runtime/store.ts opens a store, and it hands each engine its own.`);
-  if (engineIdsForRuntime.includes(top) && /_runtime_/.test(source)) throw new Error(`${file} names a _runtime_ table. The replay table in an engine's store is the binder's, and an engine that edits it can make a second charge look like a replay.`);
+  if (opensDatabase && file !== 'packages/engines/src/runtime/store.ts' && file !== 'packages/engines/src/runtime/runtime.test.ts' && file !== 'packages/engines/src/runtime/replay-and-refusal.test.ts' && file !== 'packages/engines/src/money/cash-code-on-the-runtime.test.ts') throw new Error(`${file} opens a SQLite database itself. Only packages/engines/src/runtime/store.ts opens a store, and it hands each engine its own.`);
+  /* Money's cash-code test is the one file in an engine's directory that names the replay table, and only
+     to read it raw through its own handle and prove a code is not there; it never reaches it through ctx. */
+  if (engineIdsForRuntime.includes(top) && /_runtime_/.test(source) && file !== 'packages/engines/src/money/cash-code-on-the-runtime.test.ts') throw new Error(`${file} names a _runtime_ table. The replay table in an engine's store is the binder's, and an engine that edits it can make a second charge look like a replay.`);
   for (const m of source.matchAll(/(?:^|\n)\s*(?:import|export)\s[^;]*?from\s+'([^']+)'|import\(\s*'([^']+)'\s*\)/g)) {
    const spec = m[1] ?? m[2];
    importsRead++;
@@ -6432,6 +6437,46 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  for (const sql of storeEscapes) if (!refusalFor(sql)) throw new Error(`packages/engines/src/runtime/facade.ts lets a handler run ${JSON.stringify(sql)} against its store. ${runtimeRefusalOf('store-statement-refused')?.why ?? ''}`);
  for (const sql of ['SELECT ref FROM notes', "INSERT INTO notes (ref) VALUES ('a; COMMIT; b')", 'PRAGMA table_info(notes)', 'SELECT 1;', 'CREATE TABLE IF NOT EXISTS notes (ref TEXT)']) if (refusalFor(sql)) throw new Error(`packages/engines/src/runtime/facade.ts refuses ${JSON.stringify(sql)}, which only touches the engine's own tables. A facade that refuses ordinary work is one somebody routes around.`);
 
+ /* 3d. What the runtime keeps, and what it must not. The Money lead found the replay table kept whole
+        response bodies, so a one-time cash code sat at rest in plain text while Money itself kept only a
+        salted digest; and that a refusal rolled back the attempt counter that should have made an attempt
+        limit bite. So a response field named like a secret must be declared in its route's
+        secretResponseFields with the sentence a replay answers with in its place, and the runtime must write
+        the replay without it. A route that keeps writes on a refusal names those refusals, which must be its
+        own, and the tables, which must not be the runtime's, and the runtime keeps them only then. The seam
+        that lets the runtime's own tests add synthetic routes is refused anywhere but a test. */
+ const secretNames = runtimeSettings.secretResponseNames;
+ if (!Array.isArray(secretNames) || !secretNames.length || !runtimeSettings._secretResponseNamesNote?.trim()) throw new Error('packages/catalog/apis.json#engineRuntime no longer lists the secret-shaped response names and why, so a one-time code could be declared as an ordinary field and kept at rest in the replay table.');
+ const { routes: routesForSecrets } = loadApis();
+ let secretFieldsDeclared = 0, refusalKeepers = 0;
+ for (const r of routesForSecrets.filter(x => !x.withdrawn)) {
+  const where = `${routeKey(r)} in ${r.file}`;
+  const declaredSecrets = new Set();
+  for (const s of r.secretResponseFields ?? []) {
+   const field = (r.response ?? []).find(f => f.field === s.field);
+   if (!field || field.type !== 'string' || field.object) throw new Error(`${where} declares ${JSON.stringify(s.field)} a secret response field, and its response has no string field of that name for a replay's sentence to stand in for.`);
+   if (!s.shownOnce?.trim()) throw new Error(`${where} declares ${s.field} a secret without the sentence a replay answers with in its place.`);
+   declaredSecrets.add(s.field);
+   secretFieldsDeclared++;
+  }
+  for (const f of r.response ?? []) {
+   if (secretNames.some(n => f.field.endsWith(n) || f.field.toLowerCase() === n.toLowerCase()) && !declaredSecrets.has(f.field)) throw new Error(`${where} answers with ${f.field}, which is named like a secret shown once, and does not declare it in secretResponseFields. The runtime would keep it at rest in the replay table and hand it back on every replay.`);
+  }
+  if (r.keptOnRefusal !== undefined) {
+   const k = r.keptOnRefusal;
+   if (!Array.isArray(k.refusals) || !k.refusals.length || !Array.isArray(k.tables) || !k.tables.length || !k.why?.trim()) throw new Error(`${where} declares keptOnRefusal without the refusals that keep writes, the tables those writes may touch, and why.`);
+   const ownRefusals = new Set((r.refusals ?? []).map(x => x.id));
+   for (const id of k.refusals) if (!ownRefusals.has(id)) throw new Error(`${where} keeps writes for the refusal "${id}", which is not one of its own refusals.`);
+   if (k.tables.some(t => /^_runtime_/i.test(String(t)))) throw new Error(`${where} lets a refusal keep writes to a runtime table. The replay table is the binder's.`);
+   refusalKeepers++;
+  }
+ }
+ if (!/JSON\.stringify\(withoutSecrets\(route, result\.body\)\)/.test(runtimeSource) || !/withSecretsReplaced\(route, JSON\.parse\(row\.body\)\)/.test(runtimeSource)) throw new Error('packages/engines/src/runtime/runtime.ts no longer writes a replay without its secret response fields, or no longer answers a replay with their sentences. A one-time code kept at rest is a code anybody who reads the store can use.');
+ if (!/\(route\.keptOnRefusal\?\.refusals \?\? \[\]\)\.includes\(answer\.refuse\)/.test(runtimeSource) || !/const target = recordTargetFor\(sql\);/.test(runtimeSource) || !/route\.keptOnRefusal\?\.tables/.test(runtimeSource)) throw new Error(`packages/engines/src/runtime/runtime.ts no longer keeps a refused handler's recorded writes only for a refusal its route names, into a table its route names. ${runtimeRefusalOf('refusal-record-refused')?.why ?? ''}`);
+ for (const file of engineSources.filter(f => !f.endsWith('.test.ts'))) {
+  if (/createRuntime\(\{[^}]*\bcontract\s*:/.test(read(file))) throw new Error(`${file} hands createRuntime a contract of its own. Only the runtime's tests add synthetic routes; the dev server and every engine answer to packages/catalog/apis.`);
+ }
+
  /* 4. A route built on the runtime names a handler in its own engine's directory that registers it. */
  const { routes: routesForRuntime } = loadApis();
  const onRuntime = routesForRuntime.filter(r => r.status === 'built' && r.enforcedBy?.mechanism === runtimeSettings.mechanism);
@@ -6443,7 +6488,54 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  }
  for (const r of routesForRuntime.filter(r => r.enforcedBy?.mechanism === runtimeSettings.mechanism && r.status !== 'built')) throw new Error(`${routeKey(r)} claims the engine runtime's enforcement and is not built.`);
 
+ /* 5. Core: the closed loop and the alert router (packages/catalog/closed-loop.json, packages/engines/src/core).
+       Escalation goes to a concern's fallback and stops, because no rota exists; a concern that runs out of
+       people stays open, first in the Control Tower, and is never quietened. What is held here is what a
+       test cannot see coming: a proposal losing its question, a policy number typed into Core's code, a
+       rota guessed into the contract, Safety's timing copied instead of read, the tick closing or moving a
+       concern down, and a filter that hides an exhausted one. */
+ const closedLoop = JSON.parse(read('packages/catalog/closed-loop.json'));
+ const coreApi = JSON.parse(read('packages/catalog/apis/core.json'));
+ const coreFail = detail => { throw new Error(`${detail} ${closedLoop.exhaustion?.why ?? ''}`); };
+ const proposals = [
+  ...closedLoop.ladder.rungs.map(r => [`ladder rung ${r.rung} acknowledgeWithinMinutes`, r.acknowledgeWithinMinutes]),
+  ['snooze.reasons', closedLoop.snooze.reasons], ['escalationReasons.byCaller', closedLoop.escalationReasons.byCaller]
+ ];
+ for (const [name, proposal] of proposals) {
+  if (!proposal || !('decidedBy' in proposal) || !proposal.question?.trim() || !proposal.proposedBecause?.trim()) throw new Error(`packages/catalog/closed-loop.json ${name} has lost its decidedBy, its question or why it was proposed. A number or a code nobody decided must keep saying so.`);
+  if (proposal.decidedBy !== null && !(typeof proposal.decidedBy === 'string' && proposal.decidedBy.trim() && /^\d{4}-\d{2}-\d{2}$/.test(proposal.decidedOn ?? ''))) throw new Error(`packages/catalog/closed-loop.json ${name} names a decider without a day it was decided.`);
+ }
+ const rungNumbers = closedLoop.ladder.rungs.map(r => r.rung);
+ if (rungNumbers.some((n, i) => n !== i + 1) || closedLoop.ladder.rungs.some(r => !(Number.isInteger(r.acknowledgeWithinMinutes.value) && r.acknowledgeWithinMinutes.value > 0))) throw new Error('packages/catalog/closed-loop.json ladder is not one rung after another from one, each with a whole number of minutes to acknowledge it.');
+ if (!Array.isArray(closedLoop.severities?.ids) || !closedLoop.severities.ids.length) throw new Error('packages/catalog/closed-loop.json has no severities, so an exhausted concern has no highest severity to be announced at.');
+ const noFallbackLeft = coreApi.routes.find(r => r.method === 'POST' && r.path === '/v1/core/loops/{loopRef}/escalate' && r.version === 1)?.refusals.find(x => x.id === 'no-fallback-left');
+ if (closedLoop.rota !== null || !closedLoop._rotaNote?.trim()) coreFail('packages/catalog/closed-loop.json names a rota. No rota has been decided; escalation goes to a concern\'s fallback and stops, and a rota is added by the people who run the desk, with this check changed beside it.');
+ if (!/\brota\b/.test(noFallbackLeft?.statement ?? '')) coreFail('POST /v1/core/loops/{loopRef}/escalate@1 no longer refuses with no-fallback-left in words that name the missing rota, so a caller who asks for somebody further is not told why there is nobody.');
+
+ const coreCode = engineSources.filter(f => f.startsWith('packages/engines/src/core/') && !f.endsWith('.test.ts'));
+ if (!coreCode.includes('packages/engines/src/core/engine.ts')) throw new Error('packages/engines/src/core/engine.ts is gone, so nothing here reads the closed loop this block exists to hold.');
+ const withoutCommentsOrStrings = source => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '').replace(/'(?:[^'\\\n]|\\.)*'/g, "''");
+ for (const file of coreCode) {
+  const source = read(file);
+  /* A unit is not a policy: a minute in milliseconds is allowed, and nothing else bigger than one. */
+  const typed = [...withoutCommentsOrStrings(source).matchAll(/(?<![\w$.])\d[\d_]*(?:\.\d+)?(?![\w$])/g)].map(m => m[0]).filter(n => !['0', '1', '60_000'].includes(n));
+  if (typed.length) coreFail(`${file} types the number ${typed[0]}. Every deadline, window and severity Core uses is read from packages/catalog/closed-loop.json, where a number nobody decided says so.`);
+  const safetyTiming = source.match(/field-safety\.json|apis\/safety\.json|graceMinutes|windowMinutes|extensionMinutes/);
+  if (safetyTiming) coreFail(`${file} names "${safetyTiming[0]}". Core reads no Safety timing: a Safety concern arrives with its deadline worked out from the settings in force, and a copy of the grace or the panic window here is the one that goes stale when an admin changes it.`);
+  if (/'loop\.exhausted@/.test(source)) coreFail(`${file} types the exhaustion event's name. It is packages/catalog/closed-loop.json's exhaustion.event, read once, so the event and the contract that asks for it cannot name two different things.`);
+ }
+ const coreEngineSource = read('packages/engines/src/core/engine.ts');
+ const tickBody = coreEngineSource.slice(coreEngineSource.indexOf(' tick: ctx =>'));
+ if (!tickBody.startsWith(' tick: ctx =>')) throw new Error('packages/engines/src/core/engine.ts has no tick this check can find, so nothing proves the clock never closes a concern.');
+ const quietening = tickBody.match(/closedAt:|outcomeRef:|rung:|snooze/);
+ if (quietening) coreFail(`packages/engines/src/core/engine.ts's tick writes "${quietening[0]}". The clock moves a concern to its fallback or marks it exhausted, and nothing else: it never closes one, never snoozes one and never moves one down a rung.`);
+ if (!/\.filter\(loop => sourceEngine === null \|\| loop\.sourceEngine === sourceEngine \|\| loop\.exhaustedAt !== null\)/.test(coreEngineSource)) coreFail('GET /v1/core/loops@1 in packages/engines/src/core/engine.ts no longer lists every exhausted concern whatever the filter says, so a Control Tower narrowed to one engine can stop seeing a concern with nobody left.');
+ const exhaustedEvent = JSON.parse(read('packages/catalog/events.json')).events.find(e => `${e.type}@${e.version}` === closedLoop.exhaustion.event);
+ if (exhaustedEvent && (exhaustedEvent.owner !== 'core' || exhaustedEvent.alert !== true || !exhaustedEvent.payload.some(f => f.field === 'severityCode'))) throw new Error(`${closedLoop.exhaustion.event} is declared, and not as Core's alert carrying a severityCode, which is how packages/engines/src/core announces an exhausted concern.`);
+ const coreBuilt = coreApi.routes.filter(r => r.status === 'built').length;
+
  console.log(`The engine runtime refuses to start without ${runtimeSettings.flag}=${runtimeSettings.flagValue} in its factory, answers on loopback to a loopback Host only, and nothing in deploy/ names it. ${engineSources.length} source files under packages/engines/src read, ${importsRead} imports among them, and no engine reaches another engine's directory or opens a database; ${onRuntime.length} ${onRuntime.length === 1 ? 'route is' : 'routes are'} built on the runtime, each registered by exactly its key in its own engine's directory.`);
+ console.log(`Core builds ${coreBuilt} of its ${coreApi.routes.length} routes on the runtime. Its ladder has ${rungNumbers.length} rungs whose minutes nobody has decided, escalation stops at a concern's fallback because there is no rota, an exhausted concern is announced at "${closedLoop.severities.ids.at(-1)}" through ${closedLoop.exhaustion.event}, which is ${exhaustedEvent ? 'declared' : 'not yet declared in packages/catalog/events.json and refused by the bus until it is'}, and Core's ${coreCode.length} source files type no policy number and read no Safety timing.`);
 }
 /* ==== end of Engine Runtime & Core (Wave 3) ========================================================= */
 

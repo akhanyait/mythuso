@@ -105,6 +105,30 @@ export function refusalFor(sql: string): { id: string; detail: string } | null {
  return null;
 }
 
+/**
+ * What a recorded refusal write is allowed to be: one plain INSERT or UPDATE the facade already accepts,
+ * into one unqualified table. Returns its kind and table, or null. A refusal keeps an attempt counter and
+ * an audit row; it never deletes, never creates, and never reaches a table by a schema prefix.
+ */
+export function recordTargetFor(sql: string): { kind: 'INSERT' | 'UPDATE'; table: string } | null {
+ if (refusalFor(sql)) return null;
+ const tokens = tokensOf(sql).filter(t => !(t.kind === 'punctuation' && t.text === ';'));
+ let i = 0;
+ const word = (t: Token | undefined) => (t && t.kind === 'word' ? t.text.toUpperCase() : '');
+ const kind = word(tokens[i]);
+ if (kind !== 'INSERT' && kind !== 'UPDATE') return null;
+ i++;
+ if (word(tokens[i]) === 'OR') i += 2;
+ if (kind === 'INSERT') {
+  if (word(tokens[i]) !== 'INTO') return null;
+  i++;
+ }
+ const table = tokens[i];
+ if (!table || (table.kind !== 'word' && table.kind !== 'name')) return null;
+ if (tokens[i + 1]?.kind === 'punctuation' && tokens[i + 1]!.text === '.') return null;
+ return { kind, table: table.text.toLowerCase() };
+}
+
 /** The only store a handler ever holds. The DatabaseSync behind it stays with the runtime. */
 export function storeFacade(db: DatabaseSync, refusal: (id: string) => AnyRefusal): EngineStore {
  const check = (sql: string) => {

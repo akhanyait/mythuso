@@ -38,7 +38,7 @@ export type MockContract = {
  routes: Route[];
  shared: Refusal[];
  idempotency: { field: string; appliesToEngines: string[]; appliesToPurposes: string[]; appliesToMethods: string[] };
- mock: { flag: string; flagValue: string; roleHeader: string; purposeHeader: string; refusalHeader: string; loopbackHosts: string[] };
+ mock: { flag: string; flagValue: string; roleHeader: string; purposeHeader: string; refusalHeader: string; versionHeader: string; loopbackHosts: string[] };
 };
 export type MockRequest = { method: string; path: string; headers: Record<string, string | undefined>; query: Record<string, string>; body: Record<string, unknown> };
 export type MockAnswer = { status: number; body: Record<string, unknown> };
@@ -73,14 +73,24 @@ const segmentsOf = (path: string): string[] => path.split('/').filter(Boolean);
 const paramsIn = (path: string): string[] => [...path.matchAll(/\{([^}]+)\}/g)].map(m => m[1]!);
 
 /* A path whose escapes do not decode is not a path to any route. It used to throw out of the request
-   handler — an unhandled rejection that could take the process down — and now it is a refusal. */
-export function match(routes: Route[], method: string, path: string): { route: Route; params: Record<string, string> } | 'malformed' | null {
+   handler — an unhandled rejection that could take the process down — and now it is a refusal.
+
+   A method and path can be live at more than one version, and the path does not say which. The first
+   version of this function returned the first route declared, so POST /v1/money/payments@2 was never
+   reached by its address: the mock answered version one's shape and refusals in its place, and the
+   engine runtime's door, which calls this function, did the same. So the caller names the version in
+   the contract's version header, and the answer is that version or a refusal: the version is required
+   where a path has more than one, and a version the path is not declared at is not answered as the
+   nearest one. A path with one live version is answered without the header, as it always was. */
+export type Matched = { route: Route; params: Record<string, string> };
+export function match(routes: Route[], method: string, path: string, version?: string): Matched | { refused: 'route-version-required' | 'route-version-not-declared' } | 'malformed' | null {
  let asked: string[];
  try {
   asked = segmentsOf(path).map(segment => decodeURIComponent(segment));
  } catch {
   return 'malformed';
  }
+ const candidates: Matched[] = [];
  for (const route of routes) {
   if (route.method !== method) continue;
   const declared = segmentsOf(route.mountedPath);
@@ -92,9 +102,11 @@ export function match(routes: Route[], method: string, path: string): { route: R
    if (param) params[param[1]!] = asked[i]!;
    else if (segment !== asked[i]) ok = false;
   });
-  if (ok) return { route, params };
+  if (ok) candidates.push({ route, params });
  }
- return null;
+ if (!candidates.length) return null;
+ if (version !== undefined && version !== '') return candidates.find(c => String(c.route.version) === version.trim()) ?? { refused: 'route-version-not-declared' };
+ return candidates.length === 1 ? candidates[0]! : { refused: 'route-version-required' };
 }
 
 /** A value of the field's declared shape. Synthetic, and never anything a person could mistake for data. */
@@ -126,9 +138,10 @@ export function createMock(options: MockOptions) {
  };
 
  function handle(request: MockRequest): MockAnswer {
-  const found = match(contract.routes, request.method, request.path);
+  const found = match(contract.routes, request.method, request.path, request.headers[contract.mock.versionHeader]);
   if (found === 'malformed') return refuse(shared('malformed-path'));
   if (!found) return { status: 404, body: { error: 'no-route', message: 'No route in the contract answers that method and path.' } };
+  if ('refused' in found) return refuse(shared(found.refused));
   const { route, params } = found;
   const role = request.headers[contract.mock.roleHeader];
   if (!role || !route.callers.includes(role)) return refuse(shared('caller-not-allowed'));
@@ -150,7 +163,8 @@ export function createMock(options: MockOptions) {
    return refusal ? refuse(refusal) : { status: 400, body: { error: 'no-such-refusal', message: 'This route declares no refusal with that id.' } };
   }
 
-  const replayKey = typeof key === 'string' && route.idempotent ? `${route.method} ${request.path} ${key}` : null;
+  /* The version is part of the replay key: one key sent to two versions of one path is two calls. */
+  const replayKey = typeof key === 'string' && route.idempotent ? `${route.method} ${request.path}@${route.version} ${key}` : null;
   if (replayKey && replays.has(replayKey)) return replays.get(replayKey)!;
   const at = now();
   const body: Record<string, unknown> = {};

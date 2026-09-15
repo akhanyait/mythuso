@@ -1,6 +1,6 @@
 {
  "engine": "core",
- "_note": "ThusoIQ Core's routes are called by engines, not people: the bus, the closed loop, the alert router, the protocol registry, the permission check and the audit export. Wave 2 contract; Wave 3 build. Nothing here runs yet.",
+ "_note": "ThusoIQ Core's routes are called by engines and by the desk: the bus, the closed loop, the alert router, the Control Tower's read of open concerns, the protocol registry, the permission check and the audit export. Wave 2 contract. Wave 3 builds the closed loop, the alert router and the Control Tower's read on packages/engines, with the numbers and codes in packages/catalog/closed-loop.json; the bus route, the registry, the permission check and the export stay proposed. Nothing here is a running service: no alert reaches a person and nobody is on call.",
  "version": 1,
  "resources": ["events", "loops", "alerts", "protocols", "permission-checks", "audit-exports"],
  "doors": [],
@@ -9,7 +9,9 @@
   {"id": "publish-only-what-you-own", "status": 403, "statement": "An engine publishes only the events it owns.", "why": "A second publisher is a second source of truth for the same fact."},
   {"id": "no-loop-without-an-outcome", "status": 422, "statement": "A loop is not closed without an outcome.", "why": "The closed loop exists so that no concern is done until what happened is recorded."},
   {"id": "no-ratification-without-a-signature", "status": 422, "statement": "A protocol is ratified with a named role and a date.", "why": "A recommendation cites the board's authority; the registry must say whose it was and when."},
-  {"id": "no-subscription-to-a-withdrawn-version", "status": 410, "statement": "A withdrawn event version is neither published nor subscribed to.", "why": "Its correction is the next version."}
+  {"id": "no-subscription-to-a-withdrawn-version", "status": 410, "statement": "A withdrawn event version is neither published nor subscribed to.", "why": "Its correction is the next version."},
+  {"id": "no-such-loop", "status": 404, "statement": "There is no concern under that reference.", "why": "A reference Core never issued is refused rather than opened, so a mistyped reference cannot become a concern with no source."},
+  {"id": "not-your-concern", "status": 403, "statement": "An engine opens, raises and moves only the concerns that came from it.", "why": "An engine acting on another engine's concern is deciding for a desk it does not run. A person acts on a concern by role; an engine only as the engine it came from."}
  ],
  "ownIds": [
   {"field": "eventId", "why": "The id the bus assigns to an event it accepted."}
@@ -65,14 +67,43 @@
     {"field": "loopRef", "type": "string", "required": true, "why": "The loop opened."}
    ],
    "refusals": [
-    {"id": "no-owner", "status": 422, "statement": "Every concern has an owner.", "why": "A concern with no owner is one nobody is waiting on."},
-    {"id": "no-fallback", "status": 422, "statement": "Every concern has a fallback for when its owner does not answer.", "why": "Unacknowledged items escalate automatically, or they wait for somebody to notice."}
+    {"id": "no-owner", "status": 422, "statement": "Every concern has an owner.", "why": "A concern with no owner is one nobody is waiting on. A role nobody on the vetting register or the contract's callers holds is no owner either."},
+    {"id": "no-fallback", "status": 422, "statement": "Every concern has a fallback for when its owner does not answer.", "why": "Unacknowledged items escalate automatically, or they wait for somebody to notice. A fallback that is the owner again is no fallback."},
+    {"id": "deadline-in-the-past", "status": 422, "statement": "A concern is opened with a deadline still to come.", "why": "Its fallback is given the time its owner was given, and a concern opened already late would hand the fallback no time at all."}
    ],
    "emits": ["loop.opened@1"],
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/loops@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/core/loops",
+   "version": 1,
+   "summary": "The Control Tower reads every open concern, the ones nobody is left to escalate to first.",
+   "callers": ["ops-desk"],
+   "purpose": ["treatment", "dispatch", "emergency"],
+   "request": [
+    {"field": "sourceEngine", "type": "string", "required": false, "why": "Narrows the list to one engine's concerns. A concern that has run out of people to escalate to is listed whatever this says."}
+   ],
+   "response": [
+    {"field": "loops", "type": "list", "required": true, "object": true, "why": "Open concerns in packages/catalog/closed-loop.json's controlTower order, each with its reference, its source engine, its owner, its state and its deadline, and when it ran out of people to escalate to. Never what the concern is about."},
+    {"field": "exhaustedCount", "type": "integer", "required": true, "why": "How many open concerns have nobody left to escalate to."}
+   ],
+   "refusals": [
+    {"id": "unknown-source-engine", "status": 422, "statement": "That is not an engine in the event contract.", "why": "A filter by a name that is no engine would answer an empty list, which reads as nothing waiting."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading the open concerns changes none of them.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'GET /v1/core/loops@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
@@ -90,13 +121,16 @@
     {"field": "acknowledgedAt", "type": "instant", "required": true, "why": "When."}
    ],
    "refusals": [
-    {"id": "loop-closed", "status": 409, "statement": "That concern is already closed.", "why": "Acknowledging a closed loop would reopen it without an outcome."}
+    {"id": "loop-closed", "status": 409, "statement": "That concern is already closed.", "why": "Acknowledging a closed loop would reopen it without an outcome."},
+    {"id": "not-this-loops-owner", "status": 403, "statement": "Only the role that owns this concern now takes it on.", "why": "An acknowledgement stops the clock that moves a concern to its fallback. Somebody who does not own it stopping that clock leaves the owner never told."}
    ],
-   "emits": ["loop.acknowledged@1"],
+   "emits": ["loop.acknowledged@1", "alert.acknowledged@1"],
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/loops/{loopRef}/acknowledge@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
@@ -116,13 +150,18 @@
     {"field": "dueBy", "type": "instant", "required": true, "why": "The new deadline."}
    ],
    "refusals": [
-    {"id": "no-fallback-left", "status": 409, "statement": "There is nobody left on the rota to escalate to.", "why": "The desk is told, rather than the loop quietly stopping."}
+    {"id": "no-fallback-left", "status": 409, "statement": "There is nobody left to escalate to. This concern is already with its fallback, and no rota exists yet to say who comes after. It stays open, first in the Control Tower, until somebody closes it with an outcome.", "why": "The desk is told, rather than the loop quietly stopping. Escalation goes to a concern's fallback and nowhere after it, because packages/catalog/closed-loop.json has no rota and a guessed one would page somebody who is not on call."},
+    {"id": "reason-not-a-code", "status": 422, "statement": "An escalation is given one of the reasons the closed loop lists.", "why": "The reason travels on the bus, and words on the bus have none of the record's protections."},
+    {"id": "loop-closed", "status": 409, "statement": "That concern is already closed.", "why": "Escalating a closed loop would reopen it without an outcome."}
    ],
-   "emits": ["loop.escalated@1"],
+   "keptOnRefusal": {"refusals": ["no-fallback-left"], "tables": ["loop_audit"], "why": "An escalation refused because there is nobody left is itself something the review must see: who asked, when and why. The refusal rolls everything else back and keeps that audit row."},
+   "emits": ["loop.escalated@1", "alert.escalated@1"],
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/loops/{loopRef}/escalate@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
@@ -140,21 +179,23 @@
     {"field": "closedAt", "type": "instant", "required": true, "why": "When."}
    ],
    "refusals": [
-    {"id": "no-outcome", "status": 422, "statement": "A loop is not closed without an outcome.", "why": "An outcome-less close is a loop closed by pressing a button."}
+    {"id": "no-outcome", "status": 422, "statement": "A loop is not closed without an outcome.", "why": "An outcome-less close is a loop closed by pressing a button. A concern that ran out of people to escalate to is closed the same way, and only this way."},
+    {"id": "loop-closed", "status": 409, "statement": "That concern is already closed.", "why": "A second close would put a second outcome on one concern."}
    ],
-   "emits": ["loop.closed@1"],
+   "emits": ["loop.closed@1", "alert.closed@1"],
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/loops/{loopRef}/close@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
    "path": "/v1/core/alerts",
    "version": 1,
    "summary": "Raise an alert: routed by rung, de-duplicated, suppressible, snoozed only with a reason.",
-   "callers": ["engine:safety", "engine:devices", "engine:clinical", "engine:medicines"],
-   "callerJustifications": {"engine:safety": "sentinel.rung_raised@1", "engine:devices": "device.stale@1", "engine:clinical": "triage.completed@2", "engine:medicines": "lab.result.received@1"},
+   "callers": [],
    "purpose": ["treatment", "emergency"],
    "request": [
     {"field": "sourceEngine", "type": "string", "required": true, "why": "Where the concern came from."},
@@ -176,7 +217,46 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§14", "what": "Deduplication, suppression windows, severity tiers, snooze-with-reason"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/core/alerts@2", "why": "It carried no fallback. Escalation goes to a concern's fallback and nowhere after it, so every alert raised through it would have run out of people the moment its deadline passed, with nobody ever moved to. Version two adds fallbackRole, as every concern opened through POST /v1/core/loops@1 already has."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/core/alerts",
+   "version": 2,
+   "summary": "Raise an alert with a fallback: routed by rung, de-duplicated while open, snoozed only with a reason, and never snoozed once nobody is left to escalate to.",
+   "callers": ["engine:safety", "engine:devices", "engine:clinical", "engine:medicines"],
+   "callerJustifications": {"engine:safety": "sentinel.rung_raised@1", "engine:devices": "device.stale@1", "engine:clinical": "triage.completed@2", "engine:medicines": "lab.result.received@1"},
+   "purpose": ["treatment", "emergency"],
+   "request": [
+    {"field": "sourceEngine", "type": "string", "required": true, "why": "Where the concern came from."},
+    {"field": "rung", "type": "integer", "required": true, "why": "The rung on the escalation ladder in packages/catalog/closed-loop.json, which sets how long the owner has to acknowledge it."},
+    {"field": "ownerRole", "type": "string", "required": true, "why": "Who owns it."},
+    {"field": "fallbackRole", "type": "string", "required": true, "why": "Who owns it when the owner has not acknowledged it in time. Version one had nowhere to say, so an alert could only run out of people the moment its deadline passed."},
+    {"field": "recordEntryRef", "type": "string", "required": false, "why": "The record entry the concern is about. Never the reading itself."},
+    {"field": "dedupeKey", "type": "string", "required": true, "why": "Two alerts from one engine with one key are one alert, while the first is open."},
+    {"field": "snoozeReasonCode", "type": "string", "required": false, "why": "Sent with the key of an open alert to snooze it, as one of the reasons packages/catalog/closed-loop.json lists."}
+   ],
+   "response": [
+    {"field": "alertRef", "type": "string", "required": true, "why": "The alert."},
+    {"field": "suppressed", "type": "boolean", "required": true, "why": "Whether an open alert with the same key absorbed it."}
+   ],
+   "refusals": [
+    {"id": "reading-in-alert", "status": 422, "statement": "An alert carries a reference to the record entry, never a reading.", "why": "Alerts are copied into digests and escalated to people outside the care team. The runtime never hands an undeclared field's value to Core, so any field beyond the declared shape is refused rather than guessed about."},
+    {"id": "snooze-without-reason", "status": 422, "statement": "An alert is snoozed only with a reason.", "why": "A silent snooze is how an alert is lost. A code that is not on the closed loop's list is no reason."},
+    {"id": "nothing-to-snooze", "status": 409, "statement": "There is no open alert under that key to snooze. A new alert is raised awake, never already snoozed.", "why": "An alert raised snoozed is an alert nobody is told about."},
+    {"id": "exhausted-not-snoozed", "status": 409, "statement": "This alert has nobody left to escalate to, and it is not snoozed. It stays open until somebody closes it with an outcome.", "why": "A snooze there is a second way of nobody being told."},
+    {"id": "unknown-rung", "status": 422, "statement": "That rung is not on the escalation ladder.", "why": "A rung decides how long the owner has; a rung the ladder does not hold has no deadline anybody chose."},
+    {"id": "no-owner", "status": 422, "statement": "Every concern has an owner.", "why": "A role nobody on the vetting register or the contract's callers holds is no owner."},
+    {"id": "no-fallback", "status": 422, "statement": "Every concern has a fallback for when its owner does not answer.", "why": "A fallback that is the owner again is no fallback."}
+   ],
+   "emits": ["alert.raised@1", "alert.escalated@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§14", "what": "Deduplication, suppression windows, severity tiers, snooze-with-reason"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/alerts@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "GET",

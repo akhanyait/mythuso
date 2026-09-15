@@ -116,7 +116,8 @@
    "capabilityNamed": null,
    "status": "built",
    "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/payments@2'"},
-   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+   "enforcedBy": {"mechanism": "engines-runtime:callers"},
+   "secretResponseFields": [{"field": "cashCode", "shownOnce": "The cash code was shown once, in the answer to the payment, and is not shown again. Money keeps only a salted digest of it."}]
   },
   {
    "method": "POST",
@@ -138,6 +139,7 @@
     {"id": "cash-before-the-visit-finished", "status": 409, "statement": "Cash is recorded against a finished visit, and this one has not finished.", "why": "Money learns a visit finished from visit.billable@1 and nowhere else."},
     {"id": "cash-code-held", "status": 423, "statement": "This cash payment has had too many wrong codes and is held for the operations desk.", "why": "After packages/catalog/money.json's attemptLimit even the right code is refused until the desk releases the payment."}
    ],
+   "keptOnRefusal": {"refusals": ["cash-without-otp", "cash-code-held"], "tables": ["cash_codes", "cash_audit"], "why": "A wrong code is refused, and the refusal rolls back everything else the handler did. The count of wrong codes and the audit row saying who entered one and when must survive that refusal, or the attempt limit never bites and a code can be walked by trying."},
    "emits": ["payment.succeeded@1"],
    "idempotent": true,
    "endpointNamed": null,
