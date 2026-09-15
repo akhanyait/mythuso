@@ -595,8 +595,11 @@ fun serviceIcon(id: String) = when (id) {
                         else Note("We look for the nearest nurse who is free. Nobody is dispatched in this preview.")
                     }
                     3 -> {
-                        listOf("Card" to "Visa ending 4242", "Cash" to "Pay the nurse after the visit", "Thuso Wallet" to "Demo balance R500.00").forEach { (name, detail) -> CareChoice(name, detail, payment == name) { payment = name } }
-                        Note("No card is stored and no payment is taken.")
+                        /* The ways to pay are packages/catalog/money.json's, generated into MoneyData. No card
+                           fragment is shown: a fragment of a card number on a screen is a fragment in a
+                           screenshot, and the payment-result door refuses the same fragment by name. */
+                        za.co.mythuso.model.Money.visitMethods.forEach { method -> CareChoice(method.name, method.detail, payment == method.name) { payment = method.name } }
+                        NotConnected("payments")
                     }
                     4 -> {
                         ReviewLine("Service", service.name)
@@ -604,7 +607,7 @@ fun serviceIcon(id: String) = when (id) {
                         if (scheduled) ReviewLine("Time", "$slot – $endTime")
                         ReviewLine("Location", address)
                         ReviewLine("Patient", person)
-                        ReviewLine("Payment", if (payment == "Card") "•••• 4242" else payment)
+                        ReviewLine("Payment", payment)
                         ReviewLine("Total", "R${service.price}")
                         Note("A registered nurse provides this service. A doctor may decide that a home visit is needed after reviewing your care; it is not booked through this selection.")
                         Row(Modifier.fillMaxWidth().heightIn(min = TouchTarget).toggleable(consent, role = Role.Checkbox, onValueChange = { consent = it }), verticalAlignment = Alignment.CenterVertically) {
@@ -613,7 +616,13 @@ fun serviceIcon(id: String) = when (id) {
                         }
                         Note(CancellationData.windowSentence)
                     }
-                    else -> Note("No nurse has been dispatched and no payment was taken. Your demo visit is now in the Visits tab.")
+                    else -> {
+                        Note("No nurse has been dispatched. Your demo visit is now in the Visits tab.")
+                        /* What happened to the money, in packages/catalog/money.json's words: cash is owed at
+                           the door, and anything else would have gone to a provider this phone does not have. */
+                        Note(za.co.mythuso.model.Money.afterBooking(payment))
+                        NotConnected("payments")
+                    }
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {

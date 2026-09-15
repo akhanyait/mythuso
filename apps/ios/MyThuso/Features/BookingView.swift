@@ -240,25 +240,28 @@ struct BookingView: View {
     }
     @ViewBuilder private var paymentStep: some View {
         Text("How would you like to pay?").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-        ForEach([("Card", "Visa ending 4242"), ("Cash", "Pay the nurse after the visit"), ("Thuso Wallet", "Demo balance R500.00")], id: \.0) { option in
-            Button { payment = option.0 } label: {
+        /* The ways to pay are packages/catalog/money.json's, generated into MoneyData. No card is shown,
+           not even the last four digits of a made-up one: a fragment of a card number on a screen is a
+           fragment in a screenshot, and the payment-result door refuses the same fragment by name. */
+        ForEach(Money.visitMethods) { option in
+            Button { payment = option.name } label: {
                 CareCard {
                     HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-                        Image(systemName: payment == option.0 ? "largecircle.fill.circle" : "circle").foregroundStyle(ThusoTheme.charcoal)
+                        Image(systemName: payment == option.name ? "largecircle.fill.circle" : "circle").foregroundStyle(ThusoTheme.charcoal)
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(option.0).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                            Text(option.1).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                            Text(option.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                            Text(option.detail).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         Spacer(minLength: 0)
                     }
                 }
             }
             .buttonStyle(.plain)
-            .accessibilityAddTraits(payment == option.0 ? [.isSelected] : [])
+            .accessibilityAddTraits(payment == option.name ? [.isSelected] : [])
         }
-        Text("No card is stored and no payment is taken. Production payments run through a regulated provider, never through MyThuso directly.")
-            .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+        CapabilityNotice(of: "payments")
         HStack(spacing: ThusoSpacing.space8) {
             Button("Back") { step = 2 }.buttonStyle(QuietButton())
             Button("Continue") { step = 4 }.buttonStyle(CareButton())
@@ -283,8 +286,8 @@ struct BookingView: View {
             .accessibilityElement(children: .combine)
             Divider().overlay(ThusoTheme.studioLine)
             HStack(spacing: ThusoSpacing.space12) {
-                Image(systemName: "creditcard").font(.body).foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
-                Text(payment == "Card" ? "•••• 4242" : payment).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Image(systemName: Money.method(named: payment)?.id == "cash-otp" ? "banknote" : "creditcard").font(.body).foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
+                Text(payment).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 Spacer()
                 Button("Change") { step = 3 }.frame(minHeight: 44).contentShape(Rectangle()).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             }
@@ -318,8 +321,14 @@ struct BookingView: View {
                 .multilineTextAlignment(.center)
             Text("\(service.name) for \(patient.split(separator: " ").first ?? "")")
                 .font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted).multilineTextAlignment(.center)
-            Text("This is a preview. No nurse has been dispatched and no payment was taken.")
+            Text("This is a preview. No nurse has been dispatched.")
                 .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted).multilineTextAlignment(.center)
+            /* What happened to the money, in packages/catalog/money.json's words: cash is owed at the
+               door, and anything else would have gone to a provider this phone does not have. */
+            Text(Money.afterBooking(methodName: payment))
+                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted).multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+            CapabilityNotice(of: "payments")
             NavigationLink { VisitsView() } label: { Text("View my visits") }.buttonStyle(CareButton())
         }.frame(maxWidth: .infinity)
     }

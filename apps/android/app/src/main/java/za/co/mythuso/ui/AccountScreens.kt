@@ -364,6 +364,8 @@ import za.co.mythuso.model.mokoenaHousehold
         title == "Thuso Kit" || title == "Diagnostic kit" -> ThusoKitScreen(store, open)
         title == "Capture queue" -> CaptureQueueScreen(store, open)
         title == "Weekly payouts" || title == "Earnings & payouts" -> EarningsScreen(store, open)
+        /* A doctor's per-case fees: the cases Money recorded and a fee nobody has decided. */
+        title == "Per-case fees" -> DoctorFeesScreen()
         title == "Thuso SOS" || title == "Emergency & urgent care" -> SosScreen(store)
         /* Gilbert full screen, for a link; the orb on the patient shell opens the same content in a sheet. */
         title == za.co.mythuso.model.GilbertData.name -> GilbertScreen(store, open)
@@ -927,6 +929,10 @@ private fun sectionDeck(role: String, section: String) =
                 CareCard {
                     Text("Your vetting", style = MaterialTheme.typography.titleMedium)
                     listOf("Vetting: D-401", "Apply for vetting: doctor").forEach { item -> ToolRow(label(item)) { open(item) } }
+                }
+                CareCard {
+                    Text("Your fees", style = MaterialTheme.typography.titleMedium)
+                    ToolRow("Per-case fees") { open("Per-case fees") }
                 }
             }
             role == "Doctor" && section == "Teleconsultation" -> CareCard { ToolRow("Teleconsultation") { open("Teleconsultation") } }
