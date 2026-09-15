@@ -29,6 +29,12 @@ import { confirmBooking, emptyLedger, fallbackRuleOf, offeredSlots, personOption
 import { badge, candidatesFor, fill, person as personStep, review, time, zoneInAddress } from '../lib/booking';
 import { accessSettingsNow, careSettingsNow } from '../lib/settings';
 import { subjectRefOf } from '../lib/names';
+import { namedNurseOutcome } from '../lib/care-named-nurse';
+import { instantAt } from '../../../../packages/engines/src/care/domain/clock.ts';
+import scheduling from '../../../../packages/catalog/scheduling.json' with { type: 'json' };
+
+/* The instant a chosen day and hour are in Africa/Johannesburg, by Care's own clock arithmetic rather than a second copy of it. */
+const instantOfSlot = (isoDate: string, slot: string) => instantAt(new Date(`${isoDate}T12:00:00Z`), 0, slot, scheduling.timezone);
 import { NurseChoice } from './NurseChoice';
 import { BookingStatus } from './BookingStatus';
 /* Booking, and the things it used to lose.
@@ -181,9 +187,16 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
    { idempotencyKey: reference, subjectRef: subjectRefOf(person), serviceId: service.id, mode: 'home', slotRef: wanted?.slotRef ?? `${date}T${slot}~not-offered`, zoneId: zoneInAddress(address)?.id ?? '', namedNurseFallback: fallback, actorRole: 'patient' },
    { now: at, candidates, held, namedNurseFallback: inForce.access.namedNurseFallback });
   if (requested.refused) { setBookingRefusal(requested.statement); return null; }
-  const accepted = kind === 'scheduled' ? confirmBooking(requested.value.ledger, requested.value.booking.bookingRef, at) : null;
+  /* A nurse asked for by name goes through Care's own matching before the simulated roster accepts anything. When
+     the patient said wait and Care cannot offer her the visit, nothing accepts it: it stays asked for, and the
+     patient is told in care.json's sentence. When they said soonest, they are told who it went to instead. */
+  const named = chosen && requested.value.booking.namedNurseFallback ? namedNurseOutcome({
+   bookingRef: requested.value.booking.bookingRef, subjectRef: subjectRefOf(person), serviceId: service.id, zoneAt: zoneInAddress(address)?.at ?? null,
+   scheduledFor: kind === 'scheduled' ? instantOfSlot(date, slot) : at.toISOString(), namedClinicianRef: chosen.nurseRef, namedNurseFallback: requested.value.booking.namedNurseFallback, now: at
+  }) : null;
+  const accepted = kind === 'scheduled' && !named?.waiting ? confirmBooking(requested.value.ledger, requested.value.booking.bookingRef, at) : null;
   const settled = accepted && !accepted.refused ? accepted.value.booking : requested.value.booking;
-  return { bookingRef: settled.bookingRef, asap: kind === 'asap', history: settled.history, namedNurseFallback: settled.namedNurseFallback };
+  return { bookingRef: settled.bookingRef, asap: kind === 'asap', history: settled.history, namedNurseFallback: settled.namedNurseFallback, ...(named?.told ? { careTold: named.told } : {}) };
  };
  /* One payment in flight at a time. The ledger is fetched on the first press, so an answer is no longer
     immediate — and while it was on its way the last decline and its "Try the payment again" button were
@@ -268,6 +281,8 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
     {/* What happens if she cannot take it, as the booking holds it rather than as the review last showed it:
         the answer the booking was asked for with, in its own field, which a change to the setting never moves. */}
     {done.booking?.namedNurseFallback && <div className="review-line booking-fallback-kept"><span>{personStep.fallback.reviewLabel}</span><strong>{personStep.fallback.choices.find(c => c.id === done.booking!.namedNurseFallback)!.sentence}</strong></div>}
+    {/* What Care's matching did with that answer, told in care.json's words, and only when there is something to tell. */}
+    {done.booking?.careTold && <p className="helper booking-care-told" role="status">{done.booking.careTold}</p>}
     {done.booking && <BookingStatus history={done.booking.history} asap={done.booking.asap}/>}
    </div>
    <NotConnected of="booking"/>

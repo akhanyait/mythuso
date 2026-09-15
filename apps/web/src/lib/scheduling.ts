@@ -96,6 +96,8 @@ export type Visit = {
   bookingRef: string; asap: boolean; history: readonly { state: 'requested' | 'confirmed' | 'cancelled'; at: string }[];
   /** What happens if the nurse asked for by name cannot take it, as the booking keeps it. Null for whoever is nearest. */
   namedNurseFallback: 'wait' | 'soonest' | null;
+  /** What Care's matching tells the patient about the nurse they named, in packages/catalog/care.json's words. Absent when there is nothing to tell. */
+  careTold?: string;
  };
 };
 
