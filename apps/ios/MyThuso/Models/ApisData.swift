@@ -166,8 +166,12 @@ enum ApisData {
     static let getRecordFhirByResourceTypeById = Route(id: "getRecordFhirByResourceTypeById", method: "GET", path: "/fhir/{resourceType}/{id}", mountedPath: "/v1/record/fhir/{resourceType}/{id}", version: 1, engine: "record", callers: ["patient", "caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator"], purpose: ["treatment", "dispensing", "subject-access"], idempotent: false, status: "built")
     static let getRecordFhirByResourceType = Route(id: "getRecordFhirByResourceType", method: "GET", path: "/fhir/{resourceType}", mountedPath: "/v1/record/fhir/{resourceType}", version: 1, engine: "record", callers: ["patient", "caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator"], purpose: ["treatment", "dispensing", "subject-access"], idempotent: false, status: "built")
     static let getRecordEncounterStatusesByEncounterRef = Route(id: "getRecordEncounterStatusesByEncounterRef", method: "GET", path: "/v1/record/encounter-statuses/{encounterRef}", mountedPath: "/v1/record/encounter-statuses/{encounterRef}", version: 1, engine: "record", callers: ["engine:care"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postRecordShareLink = Route(id: "postRecordShareLink", method: "POST", path: "/share/link", mountedPath: "/v1/record/share/link", version: 1, engine: "record", callers: ["patient", "responder-on-trip"], purpose: ["treatment", "emergency"], idempotent: false, status: "proposed")
-    static let postRecordExport = Route(id: "postRecordExport", method: "POST", path: "/export", mountedPath: "/v1/record/export", version: 1, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "proposed")
+    static let postRecordShareLinkV2 = Route(id: "postRecordShareLinkV2", method: "POST", path: "/share/link", mountedPath: "/v1/record/share/link", version: 2, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "built")
+    static let postRecordShareLinkOpens = Route(id: "postRecordShareLinkOpens", method: "POST", path: "/v1/record/share-link-opens", mountedPath: "/v1/record/share-link-opens", version: 1, engine: "record", callers: ["caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator", "responder-on-trip"], purpose: ["treatment", "emergency", "diagnostics", "dispensing", "dispatch"], idempotent: true, status: "built")
+    static let postRecordShareLinkRevocations = Route(id: "postRecordShareLinkRevocations", method: "POST", path: "/v1/record/share-link-revocations", mountedPath: "/v1/record/share-link-revocations", version: 1, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "built")
+    static let postRecordExportV2 = Route(id: "postRecordExportV2", method: "POST", path: "/export", mountedPath: "/v1/record/export", version: 2, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "built")
+    static let getRecordSettings = Route(id: "getRecordSettings", method: "GET", path: "/v1/record/settings", mountedPath: "/v1/record/settings", version: 1, engine: "record", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postRecordSettingChanges = Route(id: "postRecordSettingChanges", method: "POST", path: "/v1/record/setting-changes", mountedPath: "/v1/record/setting-changes", version: 1, engine: "record", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
     static let getMedicinesFormulary = Route(id: "getMedicinesFormulary", method: "GET", path: "/v1/medicines/formulary", mountedPath: "/v1/medicines/formulary", version: 1, engine: "medicines", callers: ["doctor", "nurse", "pharmacist"], purpose: ["dispensing"], idempotent: false, status: "proposed")
     static let postMedicinesInteractionChecks = Route(id: "postMedicinesInteractionChecks", method: "POST", path: "/v1/medicines/interaction-checks", mountedPath: "/v1/medicines/interaction-checks", version: 1, engine: "medicines", callers: ["doctor", "pharmacist"], purpose: ["dispensing", "treatment"], idempotent: false, status: "proposed")
     static let postMedicinesPrescriptions = Route(id: "postMedicinesPrescriptions", method: "POST", path: "/v1/medicines/prescriptions", mountedPath: "/v1/medicines/prescriptions", version: 1, engine: "medicines", callers: ["doctor"], purpose: ["treatment"], idempotent: false, status: "proposed")
@@ -344,8 +348,12 @@ enum ApisData {
         getRecordFhirByResourceTypeById,
         getRecordFhirByResourceType,
         getRecordEncounterStatusesByEncounterRef,
-        postRecordShareLink,
-        postRecordExport,
+        postRecordShareLinkV2,
+        postRecordShareLinkOpens,
+        postRecordShareLinkRevocations,
+        postRecordExportV2,
+        getRecordSettings,
+        postRecordSettingChanges,
         getMedicinesFormulary,
         postMedicinesInteractionChecks,
         postMedicinesPrescriptions,
@@ -1535,21 +1543,72 @@ enum ApisData {
         let signedAt: String?
         let supersededByRef: String?
     }
-    struct PostRecordShareLinkRequest {
+    struct PostRecordShareLinkV2Request {
+        let grantId: String
+        let recipientRole: String
+        let kindCode: String
+        let scope: [String]?
+        let sealedIncluded: Bool?
+        let expiresAt: String?
+    }
+    struct PostRecordShareLinkV2Response {
+        let linkRef: String
+        let linkSecret: String
+        let kindCode: String
         let scope: [String]
         let expiresAt: String
-        let purpose: String
+        let usesAllowed: Int
+        let settingsVersion: Int
     }
-    struct PostRecordShareLinkResponse {
-        let linkRef: String
+    struct PostRecordShareLinkOpensRequest {
+        let idempotencyKey: String
+    }
+    struct PostRecordShareLinkOpensResponse {
+        let opened: [[String: Any]]
+        let purpose: String
+        let usesLeft: Int
         let expiresAt: String
     }
-    struct PostRecordExportRequest {
-        let format: String
-        let code: String
+    struct PostRecordShareLinkRevocationsRequest {
+        let linkRef: String
     }
-    struct PostRecordExportResponse {
+    struct PostRecordShareLinkRevocationsResponse {
+        let revoked: Bool
+        let revokedAt: String
+    }
+    struct PostRecordExportV2Request {
+        let format: String
+        let sealedCategories: [String]?
+    }
+    struct PostRecordExportV2Response {
         let exportRef: String
+        let bundle: [String: Any]
+        let exclusions: [[String: Any]]
+        let stepUp: String
+    }
+    struct GetRecordSettingsRequest {}
+    struct GetRecordSettingsResponse {
+        let settingsVersion: Int
+        let settings: [[String: Any]]
+        let history: [[String: Any]]
+    }
+    struct PostRecordSettingChangesRequest {
+        let idempotencyKey: String
+        let setting: String
+        let wholeNumber: Int?
+        let switchedOn: Bool?
+        let choice: String?
+        let wording: String?
+        let roles: [String]?
+        let windows: [[String: Any]]?
+        let items: [String]?
+        let parts: [String: Any]?
+        let reason: String?
+        let expectedVersion: Int
+    }
+    struct PostRecordSettingChangesResponse {
+        let settingsVersion: Int
+        let appliesFrom: String
     }
     struct GetMedicinesFormularyRequest {
         let query: String

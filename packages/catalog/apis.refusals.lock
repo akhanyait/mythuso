@@ -310,3 +310,9 @@ POST /v1/core/loops/{loopRef}/acknowledge@3 42438f13fae2a2f6
 POST /v1/core/loops/{loopRef}/escalate@3 5d0f6e5835cef67f
 POST /v1/core/loops/{loopRef}/close@2 221b6d73508baf4d
 POST /v1/safety/incidents@2 3210c5f7964fc24e
+POST /share/link@2 fcccbb3596c5547a
+POST /v1/record/share-link-opens@1 b91ba70e7443b18e
+POST /v1/record/share-link-revocations@1 a765d4c242f3729c
+POST /export@2 20db1a5f0ce30fbd
+GET /v1/record/settings@1 d8b16dcbade0e629
+POST /v1/record/setting-changes@1 3bca189e45bf8d25

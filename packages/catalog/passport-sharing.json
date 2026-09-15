@@ -1,0 +1,395 @@
+{
+ "_note": "Health Passport P1: the share link, the export, the emergency card and the patient's access log on every platform. A share link is made by the patient in their own session and rides on a consent grant they already made: it opens no more than that grant, for that grant's purpose, and ends when that grant ends or sooner. Opening one is a read through the consent gateway, counted against the link's uses and written into the patient's hash-chained access log. The export is the patient's own record as a FHIR R4 bundle, with what it leaves out said in sentences. apps/passport answers all of it, in development, on synthetic data, on loopback; packages/engines/src/record/domain holds the arithmetic the Passport and the web preview both run; scripts/emit-passport-sharing.mjs writes what a phone needs into Swift and Kotlin. The sentences the gateway refuses in are packages/catalog/passport-gateway.json's, beside every other sentence it answers with.",
+ "_fiction": "No link reaches anybody. The Passport P0 refuses to run anywhere but a developer's machine, the web preview keeps its links in the tab's memory, and the phones keep theirs on the screen that made them. A QR code on a card scans to a sentence saying so, and nothing else.",
+ "version": 1,
+
+ "links": {
+  "why": "A link is a door at an address, which makes it the widest thing a grant can become. So it is the grant made narrower, never a grant of its own: the recipient is the grant's, the purpose is the grant's, the scope is inside the grant's, and the end is the grant's or earlier. A patient who revokes the grant closes every link riding on it at the next use.",
+  "kinds": [
+   {
+    "id": "share-link",
+    "label": "A share link",
+    "lifetimeSetting": "share-link-lifetime-days",
+    "usesSetting": "share-link-max-uses",
+    "why": "For a clinician who is not on the patient's care team yet — a specialist, a clinic the patient is referred to — to open part of the record the patient already granted, a few times, for a few days."
+   },
+   {
+    "id": "emergency-card",
+    "label": "Your emergency card",
+    "lifetimeSetting": "emergency-card-lifetime-days",
+    "usesSetting": "emergency-card-max-uses",
+    "scopeFrom": "packages/catalog/passport-gateway.json#emergencySummary.openedBy",
+    "why": "A card the patient carries or prints, which opens the emergency summary and nothing else: allergies and current medicines. It is longer-lived and opened more often than a share link, because it is for somebody the patient has not met yet, and it never holds a sealed category."
+   }
+  ],
+  "lifetimeCeilingFrom": "packages/catalog/consent.json#grants.maximumExpiryDays",
+  "_lifetimeCeilingNote": "No link outlives the longest a grant may run. The settings shape needs a whole number for a bound, so each lifetime setting's highest bound is that number, held equal to consent.json by scripts/check-boundaries.mjs with the founder's decision as its provenance; and the gateway reads the ceiling from consent.json itself and applies it on top of the setting, so a bound that drifted could never lengthen a link.",
+  "neverTo": [
+   { "id": "scheme-aggregate", "name": "A medical scheme", "why": "A scheme receives aggregate figures and nothing about one person (Master §17 and §21). A link to one would be an identifiable record handed to the party with the most financial interest in it." },
+   { "id": "insurer", "name": "An insurer", "why": "Not a grant role at all, and never one: an insurer reading a person's record decides that person's cover." },
+   { "id": "employer", "name": "An employer", "why": "On the vetting register as a programme sponsor, and never a recipient of a record. An employer who can read a diagnosis is an employer who can act on it." }
+  ],
+  "secret": {
+   "shownOnce": "The link's secret was shown once, when the link was made, and is not shown again. Make a new link if it was lost.",
+   "why": "The secret is what opens the link, so the Passport keeps only its digest, and the patient's access log names the link by its reference and never by its secret."
+  },
+  "previewCode": {
+   "alphabet": "ABCDEFGHJKLMNPQRSTUVWXYZ23456789",
+   "groups": 3,
+   "groupLength": 4,
+   "why": "What the web preview and the phones show in place of a secret: twelve characters in three groups, without the letters and digits people misread for each other. It opens nothing, because nothing is behind it."
+  },
+  "qrPayload": "MYTHUSO PREVIEW. NOT CONNECTED TO ANY RESPONDER. NOTHING OPENS. CARD {code}",
+  "_qrPayloadNote": "What a camera reads off the card. Not an address: a URL on a card scans to a page somebody can put up later, and a page at mythuso.co.za that does not exist yet is a link that will one day open something nobody reviewed. So it is a sentence saying what the card is."
+ },
+
+ "export": {
+  "why": "POPIA section 23 gives a person their own information. The export is that, as a FHIR R4 bundle a clinician's system can read, on synthetic data. A file travels further than a screen, so it leaves out what the patient has not chosen to put in one, and says what and why.",
+  "formats": [
+   { "id": "fhir-bundle", "built": true, "why": "A FHIR R4 Bundle of type collection: the resources the Passport holds for the patient and the provenance of each." },
+   { "id": "ips", "built": false, "why": "An International Patient Summary document needs a Composition and a coded summary this store does not hold yet." },
+   { "id": "pdf", "built": false, "why": "A PDF is a rendering somebody has to design and a clinician has to be able to trust. Nobody has written it." }
+  ],
+  "stepUp": {
+   "passportHasOne": false,
+   "sentence": "The Health Passport has no second factor of its own, so this export is not stepped up. The identity service's step-up does not reach the Passport, and nothing here pretends it does.",
+   "why": "The master document asks for a step-up before an export. The Passport P0 authenticates a patient with a development session and nothing else, so there is no second factor to ask for, and saying so is the honest version of the control."
+  },
+  "includes": [
+   { "id": "resources", "sentence": "Every entry you wrote or that was written about you, in an ordinary category." },
+   { "id": "provenance", "sentence": "Where each entry came from: the activity and the system, and the role that wrote it." },
+   { "id": "sealed-you-ticked", "sentence": "Entries in a sealed category, only for the categories you ticked in by name." }
+  ],
+  "exclusions": [
+   { "id": "sealed-unless-ticked", "sentence": "Entries in a sealed category are left out unless you tick that category in by name.", "why": "A file travels further than a screen, and a sealed category is sealed because who sees it can matter at home." },
+   { "id": "marked-private", "sentence": "Entries you marked private are left out. You can read them in your own session.", "why": "The Passport cannot yet release one private entry into anything, including a file of the patient's own, and until it can a private entry stays where the patient put it." },
+   { "id": "break-glass-notes", "sentence": "The notes a clinician wrote when breaking the glass are left out. The reason they chose is already in your access log.", "why": "The note is kept sealed for the governance review, and free text written under pressure is where a name ends up." },
+   { "id": "access-log", "sentence": "Your access log is left out. Read it where the chain can show whether it has been altered.", "why": "A hash chain proves itself only in place. A copy in a file proves nothing about itself and would read as if it did." },
+   { "id": "keys-and-tags", "sentence": "The keys your record is encrypted under, and the tags that hide which category an entry is filed in, are left out.", "why": "They protect the record and are not part of it." },
+   { "id": "grants-and-links", "sentence": "The grants and links you made are left out. They are permissions over your record rather than your record.", "why": "Each ends on its own, and a copy of one in a file would outlive it." }
+  ]
+ },
+
+ "accessLog": {
+  "roleLabels": [
+   { "id": "patient", "label": "You" },
+   { "id": "registered-clinician", "label": "A registered clinician" },
+   { "id": "dispatch-desk", "label": "The dispatch desk" },
+   { "id": "developer", "label": "A developer, making the synthetic record" },
+   { "id": "unauthenticated", "label": "Nobody the Passport could identify" }
+  ],
+  "_roleLabelsNote": "The grant roles are named by packages/catalog/consent.json and are not repeated here.",
+  "actions": [
+   { "id": "dev.subjects", "label": "Made this synthetic record" },
+   { "id": "session.end", "label": "Ended a session" },
+   { "id": "consent.grant", "label": "Made a grant" },
+   { "id": "consent.revoke", "label": "Revoked a grant" },
+   { "id": "consent.check", "label": "Checked what a grant opens" },
+   { "id": "write", "label": "Wrote an entry" },
+   { "id": "read", "label": "Opened an entry" },
+   { "id": "search", "label": "Looked through entries" },
+   { "id": "summary.emergency", "label": "Opened the emergency summary" },
+   { "id": "breakglass", "label": "Broke the glass" },
+   { "id": "audit.read", "label": "Read this log" },
+   { "id": "share.link.create", "label": "Made a share link" },
+   { "id": "share.link.use", "label": "Opened a share link" },
+   { "id": "share.link.revoke", "label": "Revoked a share link" },
+   { "id": "export", "label": "Exported the record" }
+  ],
+  "probeSuffix": ".probe",
+  "probeLabel": "Asked for your record with somebody else's permission",
+  "requestLabel": "Asked for something the Passport does not answer",
+  "outcomes": [
+   { "id": "granted", "label": "Allowed" },
+   { "id": "refused", "label": "Refused" }
+  ],
+  "breakGlass": "Break-glass",
+  "reviewDue": "Reviewed by the governance board by {when}",
+  "purpose": "For {purpose}",
+  "noReason": "The chain carries no reason for this entry."
+ },
+
+ "screens": {
+  "_routeNote": "Each screen's route is the name a web page and an Android destination are opened by, and the title an iOS navigation bar carries. App.tsx types the three on the patient's first load, where no contract may be imported, and scripts/check-boundaries.mjs holds them to these.",
+  "sharing": {
+   "route": "Share part of your record",
+   "eyebrow": "Health Passport",
+   "title": "Share part of your record.",
+   "intro": "A share link rides on a grant you already made. It opens no more than that grant, for the same reason, and ends when the grant ends or sooner.",
+   "preview": "A preview. Links are kept in this tab's memory and reach nobody; the Passport service that would answer them runs only on a developer's machine, on synthetic data.",
+   "grantsHeading": "Grants a link can ride on",
+   "grantEnds": "The grant ends {when}",
+   "grantOpens": "It opens {categories}",
+   "scopeHeading": "What the link opens",
+   "defaultScope": "Starts from the default in force: {scope}",
+   "sealedTick": "Include {category}, which is sealed",
+   "lifetime": "The link ends {when}, and can be opened {uses} times",
+   "lifetimeWhy": "How long a link lasts and how often it opens are settings an admin may change. A change reaches links made after it, never this one.",
+   "make": "Make the link",
+   "made": "Link made. Its code is shown once: {code}",
+   "linksHeading": "Your links",
+   "noLinks": "You have not made a link yet.",
+   "usesLeft": "{uses} opens left",
+   "ends": "Ends {when}",
+   "revoked": "Revoked",
+   "revoke": "Revoke this link",
+   "openAs": "Open it as {recipient}",
+   "opened": "Opened {categories} for {recipient}",
+   "neverTo": "No link is made for {payers}.",
+   "logLink": "Who opened your record",
+   "cardLink": "Your emergency card",
+   "scopeNames": [
+    { "value": "emergency-summary", "label": "the emergency summary" },
+    { "value": "whole-grant", "label": "everything the grant opens, apart from anything sealed" }
+   ]
+  },
+  "card": {
+   "route": "Your emergency card",
+   "eyebrow": "Health Passport",
+   "title": "Your emergency card.",
+   "intro": "A card you can show or print. It opens your emergency summary — allergies and the medicines you take — and nothing else.",
+   "preview": "A preview. This card is not connected to any responder, ambulance or hospital. Nobody who scans it reaches your record, and no link was sent anywhere.",
+   "ridesOn": "It rides on your grant to {recipient}, which ends {when}.",
+   "noGrant": "An emergency card needs a grant whose scope includes the emergency card. You have none yet.",
+   "make": "Make my card",
+   "code": "Card code",
+   "qrLabel": "A QR code for this preview card. It reads as a sentence saying the card is not connected to anything.",
+   "ends": "Ends {when}",
+   "opens": "Opens {uses} times at most",
+   "print": "Print this card",
+   "opensOnly": "Opens only {categories}",
+   "sealedNever": "Nothing sealed is ever on this card."
+  },
+  "log": {
+   "route": "Who opened your record",
+   "eyebrow": "Health Passport",
+   "title": "Who opened your record.",
+   "intro": "Every access to your Health Passport, allowed or refused, including links you made being opened and anybody breaking the glass, with the reason the log carries.",
+   "preview": "A preview. These entries are synthetic, and the ones you add here are kept in this tab's memory. The Passport service keeps the real log as a hash chain you can check.",
+   "chain": "In the Passport service each entry is chained to the one before it, so an entry altered or removed breaks every one after it.",
+   "empty": "Nothing has opened your record.",
+   "newest": "Newest first"
+  }
+ },
+
+ "preview": {
+  "why": "The web preview and both phones draw the same grants and the same log. Every day is an offset from today, every role is a grant role or a role the log names, and every reason is a sentence the gateway answers with, named by its id.",
+  "grants": [
+   { "ref": "grant-preview-doctor", "recipientRole": "doctor-assigned", "scope": ["allergy", "prescription", "vitals", "emergency-card", "maternal-health"], "purpose": "treatment", "endsInDays": 12, "sealedIncluded": true },
+   { "ref": "grant-preview-kin", "recipientRole": "next-of-kin", "scope": ["emergency-card"], "purpose": "emergency", "endsInDays": 60, "sealedIncluded": false }
+  ],
+  "accessLog": [
+   { "dayOffset": -21, "time": "08:02", "requesterRole": "patient", "action": "consent.grant", "outcome": "granted", "reason": { "statement": "patientSession" } },
+   { "dayOffset": -20, "time": "10:41", "requesterRole": "next-of-kin", "action": "summary.emergency", "purpose": "emergency", "outcome": "granted", "reason": { "statement": "granted" } },
+   { "dayOffset": -14, "time": "16:18", "requesterRole": "caregiver", "action": "read", "purpose": "treatment", "outcome": "refused", "reason": { "refusal": "expired" } },
+   { "dayOffset": -9, "time": "02:37", "requesterRole": "dispatch-desk", "action": "breakglass", "purpose": "emergency", "outcome": "granted", "reason": { "breakGlass": "unresponsive" }, "breakGlass": true, "reviewDueInHours": 24 },
+   { "dayOffset": -6, "time": "09:12", "requesterRole": "doctor-assigned", "action": "search", "purpose": "treatment", "outcome": "granted", "reason": { "statement": "granted" } },
+   { "dayOffset": -6, "time": "09:13", "requesterRole": "doctor-assigned", "action": "read", "purpose": "billing", "outcome": "refused", "reason": { "refusal": "wrong-purpose" } },
+   { "dayOffset": -4, "time": "11:30", "requesterRole": "patient", "action": "share.link.create", "outcome": "granted", "reason": { "statement": "patientSession" } },
+   { "dayOffset": -3, "time": "14:05", "requesterRole": "doctor-assigned", "action": "share.link.use", "purpose": "treatment", "outcome": "granted", "reason": { "statement": "linkUsed" } },
+   { "dayOffset": -1, "time": "07:55", "requesterRole": "doctor-assigned", "action": "share.link.use", "purpose": "treatment", "outcome": "refused", "reason": { "refusal": "link-used-up" } }
+  ]
+ },
+
+ "settings": {
+  "_note": "The Record engine's settings, in the shape packages/catalog/settings.json gives every setting. The founder instructed on 15 September 2026 that open policy questions become admin settings, and five questions about links became these: how long a share link lasts and how often it opens, what a link opens when the patient does not say, and how long an emergency card lasts and how often it opens. Every default, lowest bound and allowed value is the Record P1 lead's proposal and nobody has decided it; the highest bound on each lifetime is the founder's grant ceiling. GET /v1/record/settings@1 and POST /v1/record/setting-changes@1 answer through packages/engines/src/settings on the engine runtime. The Passport P0 reads the values in force through packages/engines/src/record/domain/settings.ts when a link is made, and the link keeps what it read. Neither phone has an admin surface, so each uses the defaults scripts/emit-passport-sharing.mjs generates.",
+  "heading": "Record settings",
+  "intro": "How long a share link or an emergency card lasts, how many times each opens, and what a link opens when the patient does not choose.",
+  "items": [
+   {
+    "key": "share-link-lifetime-days",
+    "label": "How long a share link lasts",
+    "help": "How many days a share link stays open when the patient does not choose an earlier end, if the grant it rides on lasts that long.",
+    "owner": "record",
+    "type": "count",
+    "unit": "days",
+    "positive": true,
+    "default": {
+     "value": 7,
+     "decidedBy": null,
+     "proposedBy": "Record P1 lead (Wave 4)",
+     "proposedBecause": "A week covers a referral appointment and the follow-up call after it. A link is a door at an address, and a door that stays open after the appointment it was made for is one nobody is watching."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 1,
+      "decidedBy": null,
+      "proposedBy": "Record P1 lead (Wave 4)",
+      "proposedBecause": "A day is the shortest in which a patient can send a link in the morning and a clinic can open it the same afternoon."
+     },
+     "highest": {
+      "value": 90,
+      "decidedBy": "Founder",
+      "decidedOn": "2026-09-14",
+      "why": "No link outlives the longest a consent grant may run, which the founder set at ninety days in packages/catalog/consent.json. This is that number, held to it by the build, and the gateway applies the ceiling from consent.json on top of whatever this says."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to share links made after it. A link already made keeps the end it was made with, and never lasts longer because the setting did.",
+    "guardrail": {
+     "statement": "No share link outlives the longest a consent grant may run, and none lasts no time at all.",
+     "forbids": [0, 91, 365, 7.5, "7"]
+    }
+   },
+   {
+    "key": "share-link-max-uses",
+    "label": "How many times a share link opens",
+    "help": "How many times a share link can be opened before it stops opening.",
+    "owner": "record",
+    "type": "count",
+    "unit": "uses",
+    "positive": true,
+    "default": {
+     "value": 5,
+     "decidedBy": null,
+     "proposedBy": "Record P1 lead (Wave 4)",
+     "proposedBecause": "A clinic opens a referral once at booking, once at the appointment and perhaps once more afterwards, with room for a retry. A link opened more often than that has probably been forwarded."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 1,
+      "decidedBy": null,
+      "proposedBy": "Record P1 lead (Wave 4)",
+      "proposedBecause": "One use is a link for a single look, which is a reasonable thing to want."
+     },
+     "highest": {
+      "value": 20,
+      "decidedBy": null,
+      "proposedBy": "Record P1 lead (Wave 4)",
+      "proposedBecause": "Twenty uses in the longest a link may last is a clinical team reading as care moves on. More than that is a grant, and a grant has a recipient the patient named."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to share links made after it. A link already made keeps the number of uses it was made with.",
+    "guardrail": {
+     "statement": "No share link opens without end, and none is made that cannot be opened at all.",
+     "forbids": [0, 21, 1000]
+    }
+   },
+   {
+    "key": "share-link-default-scope",
+    "label": "What a share link opens when the patient does not choose",
+    "help": "What a share link opens when the patient makes one without choosing its categories.",
+    "owner": "record",
+    "type": "enum",
+    "unit": null,
+    "default": {
+     "value": "emergency-summary",
+     "decidedBy": null,
+     "proposedBy": "Record P1 lead (Wave 4)",
+     "proposedBecause": "The narrowest useful default. A patient who chooses nothing shares allergies and current medicines, and widening it is a tick they make rather than a default they have to notice."
+    },
+    "allowed": [
+     {
+      "value": "emergency-summary",
+      "label": "The emergency summary",
+      "decidedBy": null,
+      "proposedBy": "Record P1 lead (Wave 4)",
+      "proposedBecause": "Allergies and current medicines, the part of a record that is safest to share with somebody the patient has not met."
+     },
+     {
+      "value": "whole-grant",
+      "label": "Everything the grant opens, apart from anything sealed",
+      "decidedBy": null,
+      "proposedBy": "Record P1 lead (Wave 4)",
+      "proposedBecause": "For a programme where links are always made for a referral that needs the whole of what the grant already opens. A sealed category is still only ever ticked in by name."
+     }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "A change applies to share links made after it. A link already made keeps what it opens.",
+    "guardrail": {
+     "statement": "No default opens a sealed category or anything wider than the grant a link rides on.",
+     "forbids": ["everything", "sealed", "whole-record", true]
+    }
+   },
+   {
+    "key": "emergency-card-lifetime-days",
+    "label": "How long an emergency card lasts",
+    "help": "How many days an emergency card stays open, if the grant it rides on lasts that long.",
+    "owner": "record",
+    "type": "count",
+    "unit": "days",
+    "positive": true,
+    "default": {
+     "value": 30,
+     "decidedBy": null,
+     "proposedBy": "Record P1 lead (Wave 4)",
+     "proposedBecause": "A month: long enough to be worth printing and carrying, short enough that the medicines on it were checked recently. A card that outlives a change of medicine is a card that is wrong in an emergency."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 1,
+      "decidedBy": null,
+      "proposedBy": "Record P1 lead (Wave 4)",
+      "proposedBecause": "A day, for a card made for one trip or one outing."
+     },
+     "highest": {
+      "value": 90,
+      "decidedBy": "Founder",
+      "decidedOn": "2026-09-14",
+      "why": "No card outlives the longest a consent grant may run, which the founder set at ninety days in packages/catalog/consent.json. This is that number, held to it by the build, and the gateway applies the ceiling from consent.json on top of whatever this says."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to cards made after it. A card already made keeps the end it was made with.",
+    "guardrail": {
+     "statement": "No emergency card outlives the longest a consent grant may run.",
+     "forbids": [0, 91, 366]
+    }
+   },
+   {
+    "key": "emergency-card-max-uses",
+    "label": "How many times an emergency card opens",
+    "help": "How many times an emergency card can be scanned open before it stops opening.",
+    "owner": "record",
+    "type": "count",
+    "unit": "uses",
+    "positive": true,
+    "default": {
+     "value": 10,
+     "decidedBy": null,
+     "proposedBy": "Record P1 lead (Wave 4)",
+     "proposedBecause": "An emergency is read by a responder, a nurse at triage and a doctor, sometimes twice each. Ten covers one emergency and a second, and a card opened more often than that has been photographed and passed around."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 3,
+      "decidedBy": null,
+      "proposedBy": "Record P1 lead (Wave 4)",
+      "proposedBecause": "Fewer than three, and the doctor at the hospital finds a card the responder and the triage nurse already used up."
+     },
+     "highest": {
+      "value": 50,
+      "decidedBy": null,
+      "proposedBy": "Record P1 lead (Wave 4)",
+      "proposedBecause": "Fifty is several emergencies over the longest a card may last. Past that the card is a public page."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to cards made after it. A card already made keeps the number of uses it was made with.",
+    "guardrail": {
+     "statement": "No emergency card opens without end, and none is used up before the people in one emergency have read it.",
+     "forbids": [0, 2, 51, 500]
+    }
+   }
+  ],
+  "defaults": {
+   "version": 1,
+   "changelog": [
+    {
+     "version": 1,
+     "on": "2026-09-15",
+     "by": "Record P1 lead (Wave 4)",
+     "changed": [
+      { "setting": "share-link-lifetime-days", "from": null, "to": 7 },
+      { "setting": "share-link-max-uses", "from": null, "to": 5 },
+      { "setting": "share-link-default-scope", "from": null, "to": "emergency-summary" },
+      { "setting": "emergency-card-lifetime-days", "from": null, "to": 30 },
+      { "setting": "emergency-card-max-uses", "from": null, "to": 10 }
+     ],
+     "why": "The founder instructed that open questions become admin settings. The Record P1 lead proposed these five defaults, with their lowest bounds and allowed values, and nobody has decided them. Each lifetime's highest bound is the founder's grant ceiling."
+    }
+   ]
+  }
+ }
+}

@@ -204,3 +204,9 @@ POST /v1/core/loops/{loopRef}/acknowledge@3 f07daa37bdbb4ba1
 POST /v1/core/loops/{loopRef}/escalate@3 ecbd6ef3e26d2ea2
 POST /v1/core/loops/{loopRef}/close@2 e82547e5ee5acbdf
 POST /v1/safety/incidents@2 f7ffc26910393482
+POST /share/link@2 b6874c12ae0e77d5
+POST /v1/record/share-link-opens@1 7ace1bfa177cf01a
+POST /v1/record/share-link-revocations@1 e791cb14e6de3afd
+POST /export@2 8960c365118c45fe
+GET /v1/record/settings@1 2dcafbcb0651e658
+POST /v1/record/setting-changes@1 9eb43fbad220413c

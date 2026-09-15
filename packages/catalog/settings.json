@@ -10,7 +10,8 @@
   { "engine": "care", "file": "packages/catalog/care.json" },
   { "engine": "money", "file": "packages/catalog/money.json" },
   { "engine": "core", "file": "packages/catalog/closed-loop.json" },
-  { "engine": "access", "file": "packages/catalog/booking.json" }
+  { "engine": "access", "file": "packages/catalog/booking.json" },
+  { "engine": "record", "file": "packages/catalog/passport-sharing.json" }
  ],
  "_sourcesNote": "Every contract that holds a settings block, and the engine that owns it. packages/engines/src/settings/blocks.ts imports exactly these, and the build fails on a settings block in a contract this list does not name. An engine adding its first setting adds its contract here.",
 

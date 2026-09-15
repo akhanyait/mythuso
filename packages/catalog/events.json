@@ -1314,7 +1314,10 @@
    ],
    "neverCarries": [
     { "field": "linkUrl", "why": "A link to a record is the record." },
-    { "field": "scope", "why": "What the link opens is the gateway's to know." }
+    { "field": "scope", "why": "What the link opens is the gateway's to know." },
+    { "field": "linkSecret", "why": "The secret is what opens the link. The Passport keeps only its digest, and a secret on the bus is the link handed to every subscriber. Named at Record P1, when the link gained one; the payload is unchanged." },
+    { "field": "entryContent", "why": "A link event says a link exists, never what it opens." },
+    { "field": "sealedCategories", "why": "Whether a link opens a sealed category, and which, tells a subscriber the patient has something sealed." }
    ],
    "subscribers": ["core", "movement"]
   },
@@ -1326,7 +1329,10 @@
     { "field": "openedByRole", "type": "string", "required": true, "why": "Who opened it, by role." }
    ],
    "neverCarries": [
-    { "field": "linkUrl", "why": "As above." }
+    { "field": "linkUrl", "why": "As above." },
+    { "field": "linkSecret", "why": "The secret opens the link; whoever reads it off the bus could open it again. Named at Record P1; the payload is unchanged." },
+    { "field": "entryContent", "why": "A use says a link was opened, never what was read. What was read is the gateway's, and the patient's access log says that it was." },
+    { "field": "sealedCategories", "why": "Which categories a use opened would tell a subscriber the patient has something sealed." }
    ],
    "subscribers": ["core", "movement"]
   },
