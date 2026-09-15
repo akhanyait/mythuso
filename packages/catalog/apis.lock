@@ -204,3 +204,17 @@ POST /v1/core/loops/{loopRef}/acknowledge@3 f07daa37bdbb4ba1
 POST /v1/core/loops/{loopRef}/escalate@3 ecbd6ef3e26d2ea2
 POST /v1/core/loops/{loopRef}/close@2 e82547e5ee5acbdf
 POST /v1/safety/incidents@2 f7ffc26910393482
+GET /v1/medicines/formulary@2 b2a4af1c07a11e65
+POST /v1/medicines/interaction-checks@2 86afe3e53afba7fa
+POST /v1/medicines/prescriptions@2 f94404cd647cffca
+POST /v1/medicines/prescriptions/{prescriptionRef}/verify@2 60baae6188f5522a
+POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@2 08cf976ce7befdec
+POST /v1/medicines/collection-authorisations@1 6d8baee8dc3aa6e2
+POST /v1/medicines/collections@2 e82126aa969ea2d7
+POST /v1/medicines/collections/{collectionRef}/handover@2 e5d190dd7206d44f
+GET /v1/medicines/orders@2 ec48cc2e5813cc07
+POST /v1/medicines/lab-orders/{labOrderRef}/close@1 5ecca7f71bed799c
+GET /v1/medicines/settings@1 11d14be365ef4079
+POST /v1/medicines/setting-changes@1 03cbb2b1552b1751
+POST /v1/medicines/setting-reviews@1 77465a0245446afc
+POST /v1/medicines/lab-orders@2 1f3dc4afbb2a92f2

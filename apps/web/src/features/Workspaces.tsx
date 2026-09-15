@@ -9,6 +9,7 @@ import { signOffFor, type Part } from '../lib/visit-queue';
 import { useVisitQueue } from './VisitQueue';
 import { formatEventTime } from '../lib/vetting';
 import { CareOfferSlot } from './CareVisit';
+import medicines from '../../../../packages/catalog/medicines.json' with { type: 'json' };
 
 /* The four clinical workspaces' own home screens, and the four navigations that reach them.
  *
@@ -40,10 +41,13 @@ export const sectionDoor: Record<string,string> = {
  Protocols:'The reference a doctor reviews against, and the line at which decision support stops and a registered doctor starts.',
  Quality:'Complaints, incidents, arrival times and the revenue they move — the numbers a board asks for before it asks for anything else.'
 };
+/* Medicines & Labs arrives as More tools rather than as sections: each is one piece of a chain the four workspaces
+   share, and a sixth tab on a nurse's or a doctor's phone would push the work she opened the app for off the bar.
+   The names are the contract's own headings, so the link and the dialog it opens cannot drift. */
 export const roleExtras: Record<string,string[]> = {
- Nurse:['Locum shifts','Academy'],
- Doctor:['Clinical protocols','Referral pathway','Per-case fees'],
- Partner:['Prescription RX-0081','Laboratory order LAB-0023'],
+ Nurse:['Locum shifts','Academy',medicines.screen.handover.heading],
+ Doctor:['Clinical protocols','Referral pathway','Per-case fees',medicines.screen.prescribe.heading,medicines.screen.results.heading],
+ Partner:['Prescription RX-0081','Laboratory order LAB-0023',medicines.screen.pharmacy.heading],
  'Control Tower':['Nurse onboarding & vetting','Employer programmes']
 };
 /* A nurse's morning, a doctor's queue, a controller's board and a partner's orders — four screens

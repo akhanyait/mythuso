@@ -169,7 +169,9 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/clinical/engine.ts", "handler": "'POST /v1/clinical/results/{resultRef}/acknowledge@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",

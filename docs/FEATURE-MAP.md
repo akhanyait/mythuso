@@ -690,6 +690,41 @@ could not confirm a setting through the doctor workspace's panel. And the DPIA d
 and face-match information are special personal information under POPIA section 26, which
 `docs/PRIVACY-AND-SECURITY.md` currently treats as outside the special category.
 
+## Delivered — Medicines & Labs on the engine runtime, 15 September 2026 (seed plan, Wave 4, Medicines & Labs)
+
+A prescription, the check it stands on, the bag it leaves the pharmacy in and a lab result a clinician must
+acknowledge, built as Medicines' routes on `packages/engines` with Clinical's acknowledgement and Core's concern
+around it. **Where the content lives:** Medicines holds references and states and never a medicine, a dose or a
+result — the prescriber writes the MedicationRequest and the laboratory the result into the Health Passport
+through the consent gateway, and the engine's store keeps the entry references, who acted, the schedule the
+custody rule needs and the state (`medicines.json` `whereContentLives`), because the engine runtime's store has
+none of the record's grant, purpose check or access log. Nothing here is a real service: no prescription reaches a
+pharmacy, no bag is sealed, no PIN opens anything and no laboratory is contracted.
+
+| What landed | The refusals it adds | Where |
+|---|---|---|
+| **Prescriptions**, prescribed → verified → dispensed → collected → handed over, at `prescriptions@2`, `verify@2` and `dispense@2`; the version ones withdrawn with their corrections (the first carried the dose to the engine) and their narrowings recorded | `prescriber-verifies-own-script` as arithmetic on the references that acted; `not-vetted-for-this` from `vetting.json` grants and Trust's `person.*`/`partner.*` events heard (a pharmacist acts under the routed pharmacy, `medicines.json` `actsFor`); `not-verified`, `unlicensed-pharmacy`, `already-verified`, `already-dispensed`, `schedule-not-handled`, `pharmacy-not-verified`, `unnamed-caller`, `no-such-prescription` | `packages/catalog/apis/medicines.json`, `medicines.json`, `packages/engines/src/medicines/domain/prescriptions.ts`, `standing.ts`, `engine.ts` |
+| **The formulary and the check**: `formulary@2` says it is synthetic in every answer; `interaction-checks@2` answers `not-checked` with the reason, never an empty list | With no licensed source the only outcome is `not-checked`; an act on it needs the reader's acknowledgement (`not-checked-not-read`); `check-not-for-this`, `check-already-cited`, `stage-not-known`, `blank-query`; the phrases in `interactionChecks.neverSays` are refused everywhere | `medicines.json` `formulary`, `interactionChecks`, `domain/contract.ts` |
+| **The chain of custody**: the patient authorises one collector and is shown a PIN once (`collection-authorisations@1`, kept as a salted digest), the collector collects the bag sealed at dispense (`collections@2`), and hands it over against the PIN (`handover@2`) | `schedule-five-six-by-driver` from `dispensing.json`'s new `schedules`, and the schedule is the prescription's, never the carrier's; `not-the-authorised-collector`, `seal-does-not-match`, `not-dispensed`, `authorisation-lapsed`, `collection-under-way`, `not-your-prescription`; at the door `wrong-pin` counted in `handover_attempts` and kept on refusal, `pin-attempts-exhausted`, `pin-expired`, `broken-seal`, `collection-voided` | `domain/collections.ts`, `engine.ts`, `dispensing.json` |
+| **The settings**: the PIN lifetime (480 minutes proposed, 30–1440), the attempts (3, 1–5), the collection window (480 minutes, 60–1440) and the rung an unacknowledged result is raised on (3, 2–3, waiting on `sign-clinical-review`) — all proposals, kept by what they start | `pin-outlives-the-window`, and every shared settings refusal | `medicines.json` `settings`, `domain/settings.ts`, `GET /v1/medicines/settings@1`, `POST /v1/medicines/setting-changes@1`, `POST /v1/medicines/setting-reviews@1` |
+| **The pharmacy's queue** at `orders@2`, answering only the pharmacy it belongs to | Carries exactly `partnerQueue.carries` — no subject, prescriber, name or address — and says whether the check at prescribe was run; `another-pharmacys-queue` | `domain/prescriptions.ts` `queueFor` |
+| **Lab orders and results**: `lab-orders@2` (version one withdrawn: it could not refuse an unnamed caller, whose result nobody could then acknowledge); results arrive only through the new `lab-result` door, which refuses every payload, and in development a synthetic laboratory answers with a reference; Medicines raises an alert with Core on the rung its settings name; `POST /v1/clinical/results/{resultRef}/acknowledge@1` built narrowly in a new Clinical engine; Core stands the alert down on `result.acknowledged@1`; `lab-orders/{labOrderRef}/close@1` | `lab-result-complete-before-acknowledgement` (the Wave 4 exit test), `no-result-yet`, `lab-order-closed`, `lab-not-contracted`; only the ordering clinician acknowledges, and an unknown result is answered `result-not-yours` so a reference cannot be walked; `already-acknowledged` | `feeds.json` `lab-result`, `capabilities.json` `laboratory-results`, `domain/labs.ts`, `packages/engines/src/clinical/engine.ts`, `core/engine.ts`, `closed-loop.json` `resultAcknowledged`, `src/lab-result-reaches-core.test.ts` |
+| **No adherence reward**, and no adherence tracking in this wave | `reward-for-taking-a-medicine`, held by the build against `rewards.json` and every medicines file | `medicines.json` `adherence` |
+| **Screens**: the doctor prescribes and acknowledges results, the pharmacist verifies and dispenses from the queue, the patient authorises a collector (a dynamic import), and the nurse collects and hands over, on the web; the collector's hand-over with PIN on iOS and Android from generated data | Every refusal rendered from the contract, every number from the settings in force or the generated defaults | `apps/web/src/lib/medicines.ts`, `features/Medicines.tsx`, `tests/medicines.spec.ts`, `scripts/emit-medicines.mjs`, `Models/Medicines*.swift`, `Features/MedicinesView.swift`, `model/Medicines*.kt`, `ui/MedicinesScreens.kt` |
+| **The build** holds eight things: no own verification, no Schedule 5 or 6 for a driver, no clean-sounding check without a licensed source, no close before acknowledgement, a queue with no patient, no medicine, dose or value on the bus or in the store, no reward, and no typed collection number | Each proved by breaking its source | `scripts/check-boundaries.mjs` (Medicines & Labs, beside the generated list) |
+
+Found and changed on the way: every live `setting-changes` route and the shared shape in `settings.json` now declare
+the inside of `windows` and `parts`, because a new engine's settings route could not otherwise satisfy both the
+word-for-word rule and the inner-shapes rule; the five prose-only ones left `proseOnlyObjects` with their shapes
+locked.
+
+Still open: the vetting register has no pharmacist of its own, so a pharmacist acts under the pharmacy (a
+proposal); no pharmacist, driver or prescriber is vetted into anything and Trust's events are heard, not produced;
+the patient's authorisation of a collector is on the web only, and both phones carry only the collector's hand-over
+(deferred: a native authorisation needs the patient route's refusals generated too); the web's four staff screens
+are More tools dialogs rather than sections, so no workspace's tab bar grew; the result's owner and fallback roles, the PIN's length, the drivers and the pharmacist's standing
+are proposals; a real laboratory, a licensed formulary and interaction source, and Section 18A counsel do not exist.
+
 ## Next UI increments
 
 Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only

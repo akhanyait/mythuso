@@ -1,0 +1,328 @@
+{
+ "_note": "Medicines & Labs, Wave 4 of the approved build plan: prescriptions from prescribed to handed over, a formulary that says it is synthetic, interaction checks that say when they were not run, a chain of custody from the pharmacy's seal to the patient's PIN, the partner pharmacy's queue, and lab orders whose results are not complete until a clinician acknowledges them. packages/engines/src/medicines holds the arithmetic and the web preview runs the same code; scripts/emit-medicines.mjs writes this file into Swift and Kotlin; every refusal sentence a route answers with is packages/catalog/apis/medicines.json's. Nothing here is a real service: no prescription reaches a pharmacy, no bag is sealed, no PIN opens anything, no laboratory is contracted and no result exists.",
+ "version": 1,
+ "engine": "medicines",
+ "api": "packages/catalog/apis/medicines.json",
+
+ "whereContentLives": {
+  "statement": "Medicines holds references and states. What was prescribed, how much of it, and what a result says live in the Health Passport, reached through the consent gateway.",
+  "why": "A medicine, a dose and a result value are special personal information under POPIA. packages/catalog/apis.json lets clinical content cross an API only through the Passport gateway (clinicalContent), and gives an engine a SQLite store of its own on the development runtime (engineRuntime) that has none of the record's protections: no grant, no purpose check and no access log a patient reads. So the prescriber writes the MedicationRequest, the pharmacy the dispense and the laboratory the result into the Passport through the gateway, under their own grants, and Medicines keeps the entry's reference, who acted, when, the schedule its custody rule needs and the state. A pharmacist reads the medicine and a clinician reads the result through the gateway, where the patient can see that they did.",
+  "keeps": ["prescription, check, collection and lab order references", "the patient's opaque subject reference", "the Passport entry references: MedicationRequest, dispense, ServiceRequest and result", "who prescribed, verified, dispensed, collected and ordered, as references", "the pharmacy a prescription is routed to", "the medicine's schedule", "the seal's reference", "a salted digest of the hand-over PIN", "the state, and when each act happened"],
+  "neverKeeps": ["the medicine's name or code", "the dose, strength, route or quantity", "what a test was for or what it found", "the hand-over PIN itself"]
+ },
+
+ "formulary": {
+  "licensed": false,
+  "listStatus": "synthetic",
+  "notice": "This is a synthetic development list. No NAPPI or licensed formulary is connected, and no entry on it is a real medicine.",
+  "why": "A coded medicine list needs a NAPPI licence nobody holds. A development list that looked like the real one would be prescribed from as if it were, so its entries are named for what they are, every answer carries listStatus and the notice, and every screen shows the notice above the list. A schedule is carried on each entry because the custody rule needs it; nothing else about a medicine is.",
+  "entries": [
+   { "entryCode": "SYN-0000", "label": "Synthetic medicine A", "scheduleCode": "S0" },
+   { "entryCode": "SYN-0001", "label": "Synthetic medicine B", "scheduleCode": "S1" },
+   { "entryCode": "SYN-0002", "label": "Synthetic medicine C", "scheduleCode": "S2" },
+   { "entryCode": "SYN-0003", "label": "Synthetic medicine D", "scheduleCode": "S3" },
+   { "entryCode": "SYN-0004", "label": "Synthetic medicine E", "scheduleCode": "S4" },
+   { "entryCode": "SYN-0005", "label": "Synthetic medicine F", "scheduleCode": "S5" },
+   { "entryCode": "SYN-0006", "label": "Synthetic medicine G", "scheduleCode": "S6" }
+  ]
+ },
+
+ "interactionChecks": {
+  "licensedSource": null,
+  "_licensedSourceNote": "Null until a licensed source of allergy, drug-drug and duplicate-therapy information is contracted and named here with its evidence. Until then not-checked is the only outcome, and the build fails if another outcome is declared while this is null.",
+  "stages": ["prescribe", "dispense"],
+  "outcomes": [
+   {
+    "code": "not-checked",
+    "label": "Not checked",
+    "reason": "Not checked. No licensed source of allergy, interaction or duplicate-therapy information is connected, so nothing was compared. This is not a finding that nothing is wrong."
+   }
+  ],
+  "acknowledgement": "I have read that this was not checked, and why.",
+  "neverSays": ["no interactions", "no interaction found", "no known interactions", "interactions: none", "no allergies found", "all clear"],
+  "why": "The most important refusal in this engine. A check with nothing to check against that answered with an empty list would be read, by a tired prescriber and a busy pharmacist, as a check that found nothing. So until a licensed source is named the only outcome is not-checked with its reason in words, a prescription or a dispense against it is made only once the person making it says they read why, and the build refuses the phrases in neverSays anywhere in the engine, the web and both apps."
+ },
+
+ "prescriptions": {
+  "states": [
+   { "code": "prescribed", "label": "Prescribed" },
+   { "code": "verified", "label": "Verified by a pharmacist" },
+   { "code": "dispensed", "label": "Dispensed and sealed" },
+   { "code": "collected", "label": "Collected" },
+   { "code": "delivered", "label": "Handed over" }
+  ],
+  "capabilities": { "prescribe": "prescribe", "verify": "dispense", "dispense": "dispense" },
+  "_capabilitiesNote": "Which capability in packages/catalog/vetting.json each act asks for. Verifying asks for dispense because a pharmacist's verification is the first half of a dispense (ThusoIQ Master v3.5 §5.4), and the register grants no separate capability for it.",
+  "actsFor": [
+   {
+    "role": "pharmacist",
+    "underRole": "pharmacy",
+    "decidedBy": null,
+    "proposedBy": "Medicines & Labs lead (Wave 4)",
+    "proposedBecause": "The API contract's pharmacist is a grant role in packages/catalog/consent.json, and the vetting register has no pharmacist of its own: it vets a pharmacist as the pharmacy's responsible pharmacist (vetting.json, roles.pharmacy.checks.responsible-pharmacist). So a pharmacist verifies and dispenses under the dispense grant of the pharmacy the prescription was routed to, and only while that pharmacy is verified.",
+    "question": "Whether a pharmacist becomes a role on the vetting register in their own right, vetted as a person rather than through a pharmacy."
+   }
+  ],
+  "why": "Prescribed, verified, dispensed, collected and handed over, in that order and no other (§5.4 and §10). Separation of duties is arithmetic on parties rather than a hint on a screen: the reference that prescribed is never the reference that verifies, whatever roles either holds."
+ },
+
+ "custody": {
+  "schedulesFrom": "packages/catalog/dispensing.json#schedules",
+  "collectorRoles": ["nurse", "courier", "responder"],
+  "_collectorRolesNote": "Who may be authorised to collect: the registered nurse, the sample courier and the Thuso Ride responder, which are the callers the collection routes take. Which of them is a driver, and so never carries Schedule 5 or 6, is packages/catalog/dispensing.json's.",
+  "pinDigits": {
+   "value": 6,
+   "decidedBy": null,
+   "proposedBy": "Medicines & Labs lead (Wave 4)",
+   "proposedBecause": "Six digits, as the cash code a nurse enters at a visit is: a patient reads it aloud to a stranger at the door, and six is about as many as people repeat without writing down. The attempt limit, not the length, is the defence against guessing, which is why the limit is a setting and the length is not.",
+   "question": "How many digits a hand-over PIN has."
+  },
+  "states": [
+   { "code": "authorised", "label": "Collector authorised" },
+   { "code": "collected", "label": "Collected from the pharmacy" },
+   { "code": "handed-over", "label": "Handed over" },
+   { "code": "voided", "label": "Voided, back to the pharmacy" }
+  ],
+  "voidReasons": [
+   { "code": "broken-seal", "label": "The seal was broken" },
+   { "code": "pin-attempts-exhausted", "label": "Too many wrong PINs" }
+  ],
+  "why": "ThusoIQ Master v3.5 §10: the patient authorises who collects, the bag is sealed and scanned at the pharmacy, and it is handed over against the patient's or next of kin's PIN. A PIN is shown once, to the patient, and kept only as a salted digest. A wrong PIN is counted and the count survives the refusal; a broken seal voids the delivery. A collection keeps the PIN expiry, the window and the attempt limit it was authorised under, and an admin's change never reaches one already authorised."
+ },
+
+ "partnerQueue": {
+  "carries": ["prescriptionRef", "medicationRequestRef", "scheduleCode", "stateCode", "prescribeCheckOutcomeCode", "prescribedAt", "verifiedAt", "dispensedAt"],
+  "neverCarries": ["subjectRef", "prescriberRef", "collectorRef", "patient", "name", "address", "phone", "idNumber", "medicalAidNumber", "diagnosis", "indication", "reason"],
+  "why": "A pharmacy is told what to dispense and never who for or why. The MedicationRequest reference is opened through the Passport gateway under the pharmacist's own grant, which is where the patient can see who read it; the queue itself carries nothing about the patient, so a pharmacy's screen, printout or log holds no patient either. Whether the check at prescribe was run is carried, because a pharmacist dispensing against a check that was not run must be told."
+ },
+
+ "labs": {
+  "door": "lab-result",
+  "collectionModes": [
+   { "id": "home", "label": "Collected at home", "servedBy": "synthetic-development-lab" },
+   { "id": "lab", "label": "At a partner laboratory", "servedBy": null }
+  ],
+  "syntheticLab": {
+   "id": "synthetic-development-lab",
+   "label": "Synthetic development laboratory",
+   "noticeFrom": "packages/catalog/capabilities.json#laboratory-results",
+   "turnaroundMinutes": 120,
+   "_turnaroundNote": "A simulation's cadence, not a policy, as field-safety.json's positionEverySeconds is: how long after an order the development laboratory hands the engine a result reference. It exists only on the development runtime and in the web preview, and never decides anything about a patient."
+  },
+  "states": [
+   { "code": "ordered", "label": "Ordered" },
+   { "code": "result-received", "label": "Result received, not acknowledged" },
+   { "code": "acknowledged", "label": "Acknowledged by a clinician" },
+   { "code": "closed", "label": "Closed" }
+  ],
+  "resultAlert": {
+   "ownerRole": "doctor",
+   "fallbackRole": "nurse",
+   "rungSetting": "result-alert-rung",
+   "decidedBy": null,
+   "proposedBy": "Medicines & Labs lead (Wave 4)",
+   "proposedBecause": "A result is written for a clinician to read, so a doctor owns the concern and a nurse holds it when the doctor has not taken it on. POST /v1/core/alerts@2 already takes a call from Medicines on lab.result.received@1, with a dedupe key and a record entry, so the result's reference is both and nothing about the result travels with it.",
+   "question": "Who owns the concern Core opens for a lab result nobody has acknowledged, and who holds it after them."
+  },
+  "why": "Full Scope Engine 8: a result is not complete until a clinician acknowledges it. A result arrives only through the lab-result door in packages/catalog/feeds.json, which refuses every payload until a laboratory is contracted, so on the development runtime and in the preview a synthetic laboratory hands the engine a reference to a result that does not exist. Medicines raises a concern with Core when a result arrives, Clinical records the acknowledgement by the clinician who ordered the test, Core stands the concern down when it hears it, and only then does Medicines close the order."
+ },
+
+ "adherence": {
+  "tracked": false,
+  "rewarded": false,
+  "refusal": "reward-for-taking-a-medicine",
+  "notInThisWave": "Whether a medicine was taken is not tracked in this wave. Nothing here records a dose, a missed dose or a collection as adherence.",
+  "decidedBy": "Founder",
+  "decidedIn": "The approved build plan, Wave 4",
+  "why": "Section 18A of the Medicines and Related Substances Act 101 of 1965 prohibits supplying a medicine under a bonus, rebate or incentive scheme. A reward for taking a medicine, collecting a script or finishing a course is refused pending counsel, which is the founder's decision, and packages/catalog/rewards.json already refuses one in its own words. Tracking adherence is a separate feature, not built here, because a record of doses taken is clinical content with its own consent and its own review."
+ },
+
+ "bus": {
+  "neverCarries": ["medication", "medicine", "drug", "nappi", "formulary", "entryCode", "dose", "dosage", "strength", "quantity", "schedule", "resultValue", "resultValues", "value", "reading", "testsOrdered", "testName", "handoverPin", "pin"],
+  "why": "Every engine that subscribes keeps what it hears. An event about a prescription, a dispense, a delivery or a result carries the references and the state and never what was prescribed, how much, which schedule or what was found, so no subscriber's log becomes a medicines list. scripts/check-boundaries.mjs holds every event Medicines owns, and the acknowledgement Clinical publishes, to this list."
+ },
+
+ "screen": {
+  "prescribe": {
+   "heading": "Write a prescription",
+   "intro": "Search the synthetic list, run the interaction check, and prescribe against the MedicationRequest you wrote through the Passport. A pharmacist who is not you verifies it next.",
+   "search": "Search the synthetic list",
+   "pharmacy": "Pharmacy it is routed to",
+   "check": "Run the interaction check",
+   "checkResult": "Interaction check: {outcome}",
+   "prescribe": "Prescribe",
+   "prescribed": "Prescribed. It waits for a pharmacist who is not you to verify it."
+  },
+  "pharmacy": {
+   "heading": "Verify and dispense",
+   "intro": "What this pharmacy must dispense, and nothing about who it is for. The medicine is read in the Health Passport under your own grant.",
+   "checkedAtPrescribe": "Checked at prescribe: {outcome}",
+   "verify": "Verify",
+   "verified": "Verified. It can be dispensed.",
+   "dispenseCheck": "Run the dispense check",
+   "seal": "Seal reference",
+   "dispense": "Dispense and seal",
+   "dispensed": "Dispensed and sealed. It waits for the collector the patient authorises.",
+   "empty": "Nothing is waiting for this pharmacy."
+  },
+  "authorise": {
+   "heading": "Who may collect your medicine",
+   "intro": "Choose who brings your sealed bag. You are shown a PIN once; give it only to that person, at your door, with the bag in their hands.",
+   "collector": "Collector",
+   "authorise": "Authorise this collector",
+   "pinHeading": "Your hand-over PIN",
+   "pinShownOnce": "It is shown once, now, and never again. Nobody from MyThuso will ask you for it.",
+   "pinExpires": "It works until {at}.",
+   "windowEnds": "The collection lapses at {at} if the bag has not reached you.",
+   "empty": "No prescription of yours is waiting to be collected."
+  },
+  "handover": {
+   "heading": "Hand over a sealed bag",
+   "intro": "Only the collector the patient authorised hands a bag over, only with the seal unbroken and only against the patient's PIN.",
+   "collect": "Collect the sealed bag",
+   "sealIntact": "The seal is intact",
+   "sealBroken": "The seal is broken",
+   "pin": "The patient's PIN",
+   "handOver": "Hand over",
+   "attemptsLeft": "{left} wrong PINs left before the bag goes back to the pharmacy.",
+   "handedOver": "Handed over. The patient has their medicine.",
+   "empty": "No patient has authorised you to collect a bag."
+  },
+  "results": {
+   "heading": "Results waiting for you",
+   "intro": "A result is not complete until the clinician who ordered it acknowledges it. The values are read in the Health Passport under your own grant, and never on this screen.",
+   "order": "Order a test",
+   "mode": "Where the sample is taken",
+   "ordered": "Ordered. The synthetic laboratory answers with a reference, never a value.",
+   "acknowledge": "Acknowledge",
+   "acknowledged": "Acknowledged. The order can close.",
+   "close": "Close the order",
+   "closed": "Closed.",
+   "empty": "No result is waiting for you."
+  }
+ },
+
+ "settings": {
+  "_note": "Medicines' settings, in the shape packages/catalog/settings.json gives every setting. The founder instructed on 15 September 2026 that open questions become admin settings, so how long a PIN works, how many wrong PINs a collector may enter, how long a collection may take and how urgent an unacknowledged result is are proposals an admin changes on the back office within bounds that are themselves proposals. packages/engines/src/medicines reads the collection settings in force when a patient authorises a collection and keeps them on it, and the result rung when a result arrives, so a change never reaches a collection already authorised or a result already raised. The rung waits on a clinical review by somebody who holds sign-clinical-review. GET /v1/medicines/settings@1, POST /v1/medicines/setting-changes@1 and POST /v1/medicines/setting-reviews@1 answer through packages/engines/src/settings.",
+  "heading": "Medicines & Labs settings",
+  "intro": "How long a patient's hand-over PIN works, how many wrong PINs a collector may enter, how long a collection may take, and how urgently an unacknowledged lab result goes to a clinician.",
+  "defaults": {
+   "version": 1,
+   "changelog": [
+    {
+     "version": 1,
+     "on": "2026-09-15",
+     "by": "Medicines & Labs lead (Wave 4)",
+     "changed": [
+      { "setting": "pin-lifetime", "from": null, "to": 480 },
+      { "setting": "pin-attempts", "from": null, "to": 3 },
+      { "setting": "collection-window", "from": null, "to": 480 },
+      { "setting": "result-alert-rung", "from": null, "to": 3 }
+     ],
+     "why": "The founder instructed that open questions become admin settings. The four are proposed by the Medicines & Labs lead with the reasons beside each, and none is decided."
+    }
+   ]
+  },
+  "items": [
+   {
+    "key": "pin-lifetime",
+    "label": "How long a hand-over PIN works",
+    "help": "How long after a patient authorises a collection the PIN they were shown still hands the bag over.",
+    "owner": "medicines",
+    "type": "minutes",
+    "unit": "minutes",
+    "default": {
+     "value": 480,
+     "decidedBy": null,
+     "proposedBy": "Medicines & Labs lead (Wave 4)",
+     "proposedBecause": "A working day's collection round is about eight hours. A PIN that lapses before the bag reaches the door sends a sealed bag back to the pharmacy over paperwork, and one that outlives the round is a number somebody could still use tomorrow."
+    },
+    "bounds": {
+     "lowest": { "value": 30, "decidedBy": null, "proposedBy": "Medicines & Labs lead (Wave 4)", "proposedBecause": "Shorter than half an hour is shorter than a courier needs to get from a pharmacy to a door in traffic, so the PIN would lapse on the road." },
+     "highest": { "value": 1440, "decidedBy": null, "proposedBy": "Medicines & Labs lead (Wave 4)", "proposedBecause": "A day. A PIN that works for longer than that is a standing password to somebody's medicine." }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to collections authorised after it. A PIN already shown keeps the expiry it was shown with.",
+    "guardrail": {
+     "statement": "A hand-over PIN always expires, never outlives the collection it opens, and never works for longer than a day.",
+     "forbids": [0, 1441, 10080]
+    }
+   },
+   {
+    "key": "pin-attempts",
+    "label": "Wrong PINs before the bag goes back",
+    "help": "How many wrong PINs a collector may enter at the door before the hand-over is locked and the bag goes back to the pharmacy.",
+    "owner": "medicines",
+    "type": "count",
+    "unit": "attempts",
+    "positive": true,
+    "default": {
+     "value": 3,
+     "decidedBy": null,
+     "proposedBy": "Medicines & Labs lead (Wave 4)",
+     "proposedBecause": "Enough for a patient who reads the PIN out wrongly twice, and few enough that a collector cannot walk through the digits at the door. The bag going back costs a day; a bag handed to the wrong house costs more."
+    },
+    "bounds": {
+     "lowest": { "value": 1, "decidedBy": null, "proposedBy": "Medicines & Labs lead (Wave 4)", "proposedBecause": "One wrong PIN and the bag goes back. Strict, and an admin may choose it; nought would lock every hand-over before it began." },
+     "highest": { "value": 5, "decidedBy": null, "proposedBy": "Medicines & Labs lead (Wave 4)", "proposedBecause": "Past five, guessing at the door starts to be a strategy rather than a mistake." }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to collections authorised after it. A collection already authorised keeps the limit it was authorised with.",
+    "guardrail": {
+     "statement": "A collector who keeps entering wrong PINs is always stopped, and the bag always goes back to the pharmacy.",
+     "forbids": [0, 6, 1000]
+    }
+   },
+   {
+    "key": "collection-window",
+    "label": "Collection window",
+    "help": "How long after a patient authorises a collection the bag may be collected and handed over before the authorisation lapses.",
+    "owner": "medicines",
+    "type": "minutes",
+    "unit": "minutes",
+    "default": {
+     "value": 480,
+     "decidedBy": null,
+     "proposedBy": "Medicines & Labs lead (Wave 4)",
+     "proposedBecause": "One working day's round, the same as the PIN, so the PIN a patient was shown works for exactly as long as somebody may be on their way with the bag."
+    },
+    "bounds": {
+     "lowest": { "value": 60, "decidedBy": null, "proposedBy": "Medicines & Labs lead (Wave 4)", "proposedBecause": "An hour is the least a collector needs to reach a pharmacy, wait at the counter and reach a door." },
+     "highest": { "value": 1440, "decidedBy": null, "proposedBy": "Medicines & Labs lead (Wave 4)", "proposedBecause": "A day. A sealed bag in a vehicle overnight is a cold-chain and a custody question this wave does not answer." }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to collections authorised after it. An authorisation already given keeps the window it was given with.",
+    "guardrail": {
+     "statement": "A patient's authorisation to collect always lapses, and never lasts longer than a day.",
+     "forbids": [0, 1441, 43200]
+    }
+   },
+   {
+    "key": "result-alert-rung",
+    "label": "How urgently an unacknowledged lab result goes to a clinician",
+    "help": "Which rung of Core's escalation ladder a lab result is raised on when it arrives, which decides how long its clinician has to take it on before it goes to the next person.",
+    "owner": "medicines",
+    "type": "count",
+    "unit": "rung",
+    "positive": true,
+    "default": {
+     "value": 3,
+     "decidedBy": null,
+     "proposedBy": "Medicines & Labs lead (Wave 4)",
+     "proposedBecause": "A result is written for a clinician to read, and rung three of packages/catalog/closed-loop.json's ladder is the clinician rung. Medicines cannot see a result's values, so it cannot tell a routine result from an alarming one, and it treats every result as one a clinician must take on rather than guessing which ones may wait."
+    },
+    "bounds": {
+     "lowest": { "value": 2, "decidedBy": null, "proposedBy": "Medicines & Labs lead (Wave 4)", "proposedBecause": "Rung two, nurse review, is the least a result may be raised on: rung one is a nudge, and a result nobody has read is not a nudge." },
+     "highest": { "value": 3, "decidedBy": null, "proposedBy": "Medicines & Labs lead (Wave 4)", "proposedBecause": "Rungs four and five dispatch somebody and tell the family. Software that cannot see a result does not decide from it that anybody is sent or told." }
+    },
+    "reviewRequired": "sign-clinical-review",
+    "changedBy": "admin",
+    "appliesTo": "A change applies to results that arrive after it. A result already raised keeps the rung it was raised on.",
+    "guardrail": {
+     "statement": "An unacknowledged result always goes to a nurse or a clinician, and is never used to dispatch anybody or tell a family.",
+     "forbids": [0, 1, 4, 5]
+    }
+   }
+  ]
+ }
+}

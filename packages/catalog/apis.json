@@ -160,7 +160,6 @@
    "POST /v1/core/events@1",
    "GET /v1/core/loops@1",
    "GET /v1/core/loops@2",
-   "POST /v1/core/setting-changes@1",
    "POST /v1/access/sign-ins/{challengeId}/verify@1",
    "POST /v1/access/sign-ins/{challengeToken}/second-factor@1",
    "GET /v1/access/sessions@1",
@@ -179,16 +178,13 @@
    "POST /v1/access/tools/{tool}@1",
    "POST /v1/access/bill-splits@1",
    "GET /v1/access/visit-threads/{bookingRef}@1",
-   "POST /v1/access/setting-changes@1",
    "GET /v1/care/shifts@1",
    "GET /v1/care/services@1",
    "GET /v1/care/locum-shifts@1",
    "GET /v1/care/circuits@1",
-   "POST /v1/care/setting-changes@1",
    "GET /v1/clinical/reviews@1",
    "POST /v1/clinical/proms@1",
    "GET /v1/safety/settings@1",
-   "POST /v1/safety/setting-changes@2",
    "GET /v1/safety/incident-kinds@1",
    "GET /v1/safety/incidents@1",
    "GET /v1/movement/facilities@1",
@@ -209,8 +205,7 @@
    "GET /v1/medicines/formulary@1",
    "POST /v1/medicines/interaction-checks@1",
    "GET /v1/medicines/orders@1",
-   "GET /v1/money/payouts@1",
-   "POST /v1/money/setting-changes@1"
+   "GET /v1/money/payouts@1"
   ]
  },
  "legacyCallbacks": {

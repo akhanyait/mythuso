@@ -50,6 +50,13 @@ export const outcomes: ReadonlySet<string> = new Set(closedLoop.outcomes.value.m
 export const PANIC_RESOLVED = closedLoop.panicResolved.hears as EventKey;
 export const panicOutcomes: ReadonlyMap<string, string> = new Map(Object.entries(closedLoop.panicResolved.closesAs.value));
 
+/* A lab result acknowledged by its clinician: the event Core hears, the one engine whose alert for the result it
+   stands down, and the outcome it closes that alert as. Named in closed-loop.json, so Core reads no Medicines or
+   Clinical contract. */
+export const RESULT_ACKNOWLEDGED = closedLoop.resultAcknowledged.hears as EventKey;
+export const resultAlertsFrom: string = closedLoop.resultAcknowledged.alertsFrom;
+export const resultClosesAs: string = closedLoop.resultAcknowledged.closesAs.value;
+
 /* Who may own a concern: somebody on the vetting register or a caller the API contract names, and
    never a caller the binder cannot tell apart from anybody — nobody is waiting on "anonymous". */
 const cannotOwn = new Set<string>(apis.engineRuntime.binderCannotAdmit);

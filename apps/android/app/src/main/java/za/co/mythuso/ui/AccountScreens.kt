@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import za.co.mythuso.model.CaptureState
 import za.co.mythuso.model.FramingData
+import za.co.mythuso.model.MedicinesData
 import za.co.mythuso.model.Passport
 import za.co.mythuso.model.PreviewStore
 import za.co.mythuso.model.Scheduling
@@ -404,6 +405,8 @@ import za.co.mythuso.model.mokoenaHousehold
         title.startsWith("Doctor review") -> DoctorReviewScreen(store, title.removePrefix("Doctor review "))
         title.startsWith("Prescription ") -> PrescriptionScreen(title.removePrefix("Prescription "))
         title == "Substitution & repeats" -> DispensingScreen(store)
+        /* Named by the contract's own heading, so the row that opens it and the screen it opens cannot drift. */
+        title == MedicinesData.HandoverText.heading -> MedicinesHandoverScreen()
         title == "Employer programmes" -> ProgrammesScreen(store)
         title.startsWith("Laboratory order ") -> LabOrderScreen(title.removePrefix("Laboratory order "))
         title.startsWith("Incident ") -> IncidentDetailScreen(title.removePrefix("Incident "))
@@ -865,6 +868,7 @@ private fun sectionDeck(role: String, section: String) =
                 CareCard {
                     Text("More tools", style = MaterialTheme.typography.titleMedium)
                     listOf("Thuso SOS", "Locum shifts", "Academy").forEach { item -> ToolRow(item) { open(item) } }
+                    ToolRow(MedicinesData.HandoverText.heading) { open(MedicinesData.HandoverText.heading) }
                 }
             }
             role == "Nurse" && section == "Assessments" -> {

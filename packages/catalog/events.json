@@ -1440,7 +1440,7 @@
    "neverCarries": [
     { "field": "testsOrdered", "why": "What was ordered is in the ServiceRequest in the record." }
    ],
-   "subscribers": ["core"]
+   "subscribers": ["core", "clinical"]
   },
   {
    "type": "lab.result.received", "version": 1, "owner": "medicines",

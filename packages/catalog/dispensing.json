@@ -230,5 +230,26 @@
   { "id": "told", "label": "Patient told", "detail": "What is being handed over, what it replaces, and what will look different — said, not printed." },
   { "id": "accepted", "label": "Patient accepted or refused", "detail": "A refusal is dispensed as written. It is not an escalation and it needs no reason." },
   { "id": "recorded", "label": "Recorded", "detail": "What was actually handed over, by whom, against which authorisation and how many repeats are left." }
- ]
+ ],
+
+ "_schedulesNote": "Which schedules MyThuso prescribes and carries, and who may carry each, added in Wave 4 for the chain of custody. The schedules are the Medicines and Related Substances Act's; who carries them is ThusoIQ Master v3.5 §10: a controlled medicine goes with a nurse or is collected with the patient present, and a driver never carries Schedule 5 or 6. packages/engines/src/medicines reads this block and nothing else to refuse a driver, so the rule lives here once and no screen or engine names a schedule. Schedules 7 and 8 are not listed, because nothing is prescribed under either through MyThuso, and a schedule this block does not list is refused rather than guessed at. No pharmacist has read it.",
+ "schedules": {
+  "source": "Medicines and Related Substances Act 101 of 1965, section 22A; ThusoIQ Master v3.5 §10",
+  "items": [
+   { "id": "S0", "name": "Schedule 0", "driverMayCarry": true },
+   { "id": "S1", "name": "Schedule 1", "driverMayCarry": true },
+   { "id": "S2", "name": "Schedule 2", "driverMayCarry": true },
+   { "id": "S3", "name": "Schedule 3", "driverMayCarry": true },
+   { "id": "S4", "name": "Schedule 4", "driverMayCarry": true },
+   { "id": "S5", "name": "Schedule 5", "driverMayCarry": false },
+   { "id": "S6", "name": "Schedule 6", "driverMayCarry": false }
+  ],
+  "drivers": {
+   "roles": ["courier", "responder"],
+   "decidedBy": null,
+   "proposedBy": "Medicines & Labs lead (Wave 4)",
+   "proposedBecause": "The collecting roles that drive rather than nurse: the sample courier on the vetting register and the Thuso Ride responder, whom §10 calls drivers. A registered nurse is not a driver here even when she drives, because the rule is about who holds a controlled medicine, and she is registered to.",
+   "question": "Which roles count as drivers for the rule that a driver never carries Schedule 5 or 6."
+  }
+ }
 }

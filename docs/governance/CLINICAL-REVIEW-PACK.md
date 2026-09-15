@@ -23,7 +23,7 @@ recommendation for the board.
 
 Writing in this pack changes nothing. A decision takes effect only through the contract's own process:
 
-- **Settings (sections A and E).** An admin puts a value in force on the Configuration tab (`POST /v1/safety/setting-changes@2`, `POST /v1/care/setting-changes@1`, `POST /v1/money/setting-changes@1`, `POST /v1/core/setting-changes@1`, `POST /v1/access/setting-changes@1`). For a setting that waits on a clinical review, somebody holding `sign-clinical-review` (Sign a clinical decision) then confirms that exact value, with a reason, in the doctor workspace's "Settings waiting for clinical review" panel (`apps/web/src/features/SettingReviews.tsx`, `POST /v1/care/setting-reviews@1`, `POST /v1/access/setting-reviews@1`). "Nobody confirms the clinical review of a change they made themselves." A default can instead be changed in the contract itself, naming the reviewer and the day (`packages/catalog/settings.json` `provenance.reviewed`) with a changelog entry, as `settings.json` `howToChange` describes.
+- **Settings (sections A and E).** An admin puts a value in force on the Configuration tab (`POST /v1/safety/setting-changes@2`, `POST /v1/care/setting-changes@1`, `POST /v1/money/setting-changes@1`, `POST /v1/core/setting-changes@1`, `POST /v1/access/setting-changes@1`, `POST /v1/medicines/setting-changes@1`). For a setting that waits on a clinical review, somebody holding `sign-clinical-review` (Sign a clinical decision) then confirms that exact value, with a reason, in the doctor workspace's "Settings waiting for clinical review" panel (`apps/web/src/features/SettingReviews.tsx`, `POST /v1/care/setting-reviews@1`, `POST /v1/access/setting-reviews@1`, `POST /v1/medicines/setting-reviews@1`). "Nobody confirms the clinical review of a change they made themselves." A default can instead be changed in the contract itself, naming the reviewer and the day (`packages/catalog/settings.json` `provenance.reviewed`) with a changelog entry, as `settings.json` `howToChange` describes.
 - **Who can confirm through the panel today:** Doctor (`doctor`), because only that role holds `sign-clinical-review` in `packages/catalog/vetting.json`. A Clinical Governance Lead who is a registered nurse could not confirm a setting through the panel. Their decision can still be recorded in the contract default, or the register can be changed — which is a question for the founder.
 - **Protocols (section B).** "A protocol is not ratified until the register names the role and the person who signed it off, and the day they did." "Changing a ratified protocol means adding a new version that names the one it supersedes. The ratified row is never edited." The row in `packages/catalog/protocols.json` changes status, ratifiedBy and ratifiedOn, and gains a contentRef once the text exists. Core announces a ratification as `protocol.ratified@1`.
 - **Gilbert's emergency terms (section C).** Only in `packages/catalog/gilbert-emergency-terms.json`: raise `version`, add a changelog entry (day, role, terms added and removed, why, the new `termsHash`), keep the shared fixtures passing on all three platforms, and record `clinicalReview.reviewedBy` and `reviewedOn`. `CLAUDE.md` holds the rule; `npm run check` replays the changelog.
@@ -36,13 +36,13 @@ Until a decision is recorded, the app shows "Not clinically reviewed" beside eve
 
 | Section | What waits on a clinician | Items |
 |---|---|---|
-| A | Settings that carry `reviewRequired` and name no reviewer | 5 |
+| A | Settings that carry `reviewRequired` and name no reviewer | 6 |
 | B | Protocols in the registry that are not ratified | 12 |
 | C | Gilbert's emergency terms | 1 |
 | D | Clinical scopes and proposed clinical roles on the vetting register | 8 |
-| E | Other clinical proposals and safety numbers nobody clinical has decided | 17 |
+| E | Other clinical proposals and safety numbers nobody clinical has decided | 18 |
 | F | Clinical content with no clinical sign-off recorded | 3 |
-| | **Total** | **46** |
+| | **Total** | **48** |
 
 Each item gives the value in force by default, what an admin may set it to, why it was proposed and by whom,
 the question for the reviewer, and blank sign-off fields.
@@ -164,6 +164,32 @@ the question for the reviewer, and blank sign-off fields.
 | Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/access/setting-reviews@1` |
 
 **Question for the reviewer:** is Words only (`false`) clinically safe as the answer to "Whether a photo may travel between a patient and the nurse on their visit, once there is a way to send one", and are the limits an admin may set safe as well?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+### Medicines & Labs settings (`packages/catalog/medicines.json`)
+
+#### A6. How urgently an unacknowledged lab result goes to a clinician
+
+| | |
+|---|---|
+| Setting | `medicines:result-alert-rung` |
+| What it decides | Which rung of Core's escalation ladder a lab result is raised on when it arrives, which decides how long its clinician has to take it on before it goes to the next person. |
+| In force by default | 3 rung |
+| What an admin may set | An admin may set 2 rung to 3 rung. These limits are proposals nobody has decided. |
+| Guardrail | An unacknowledged result always goes to a nurse or a clinician, and is never used to dispatch anybody or tell a family. |
+| Why this default | A proposal nobody has decided. Proposed by the Medicines & Labs lead (Wave 4): A result is written for a clinician to read, and rung three of packages/catalog/closed-loop.json's ladder is the clinician rung. Medicines cannot see a result's values, so it cannot tell a routine result from an alarming one, and it treats every result as one a clinician must take on rather than guessing which ones may wait. |
+| Who may change it | Internal admin staff (`admin`) |
+| What a change reaches | A change applies to results that arrive after it. A result already raised keeps the rung it was raised on. |
+| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/medicines/setting-reviews@1` |
+
+**Question for the reviewer:** is 3 rung clinically safe as the answer to "Which rung of Core's escalation ladder a lab result is raised on when it arrives, which decides how long its clinician has to take it on before it goes to the next person", and are the limits an admin may set safe as well?
 
 | Sign-off | |
 |---|---|
@@ -993,6 +1019,25 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
+#### E18. The outcome an acknowledged lab result's concern is closed with
+
+| | |
+|---|---|
+| Where | `packages/catalog/closed-loop.json` `resultAcknowledged.closesAs` |
+| Why it is clinical | A clinician acknowledging a result closes the concern Core opened for it as dealt with. Whether acknowledging a result is enough to call its concern dealt with, before anybody has acted on what it says, is a clinical governance question (Full Scope v1.0, Engine 8: a result is not complete until acknowledged). |
+| Proposed value | `"dealt-with"` |
+| Why it was proposed | Proposed by the Medicines & Labs lead (Wave 4): A clinician acknowledging a result is somebody who held the concern doing what it needed, which is what dealt-with means. Where it is written down is the result's own entry in the Health Passport, and the concern closes pointing at it. |
+
+**Question for the reviewer:** the contract asks "Which of the closed loop's outcomes the concern opened for an unacknowledged lab result is closed as when a clinician acknowledges the result". Is the proposed value clinically safe, and should a change to it wait on a clinical review?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
 ## F. Clinical content with no clinical sign-off recorded
 
 #### F1. Reference ranges a reading is flagged against
@@ -1093,6 +1138,9 @@ Listed so that leaving them out is a decision a reviewer can disagree with.
 | `access:named-nurse-fallback` | What happens to a visit asked of one nurse by name when she cannot take it within Care's offer window. | What happens when a patient's named nurse is not free, among roles already cleared to attend. |
 | `access:visit-thread-max-characters` | How many characters one message between a patient and the nurse on their visit may be. | How long one message in a visit thread may be. |
 | `access:visit-thread-open-hours-after-visit` | How long after a visit is completed its thread still takes messages, for anything that follows from the visit. | How long a visit thread stays open. Nobody watches a thread for emergencies however long it is open, and the thread says so. |
+| `medicines:pin-lifetime` | How long after a patient authorises a collection the PIN they were shown still hands the bag over. | How long a hand-over PIN works is chain of custody: it decides when a sealed bag goes back to the pharmacy, not what is in it or who may take it. Whether a medicine may leave the pharmacy at all was decided by the prescriber and the pharmacist. |
+| `medicines:pin-attempts` | How many wrong PINs a collector may enter at the door before the hand-over is locked and the bag goes back to the pharmacy. | How many wrong PINs a collector may enter is a guard against guessing at the door. It decides when a bag goes back, never whether a patient is treated. |
+| `medicines:collection-window` | How long after a patient authorises a collection the bag may be collected and handed over before the authorisation lapses. | How long a patient's authorisation to collect lasts is custody and logistics. A sealed bag that goes back is dispensed again; nothing about the medicine changes. |
 | `closed-loop.json escalationReasons.byCaller` | The reasons the desk may give for escalating a concern before its deadline. | The reasons the desk moves a concern early say who answered and who can decide, not anything about the patient. |
 | `vetting-proposals.json head-of-operations` | Holds the last post on the escalation rota, and answers for a concern the desk and the nurse lead did not take on. | Operations authority over the desk's escalations. The register grants it no record, no summary and no dispatch. |
 

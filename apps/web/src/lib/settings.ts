@@ -10,6 +10,8 @@ import { doctorFeeOf, nurseShareSentenceOf, planTermsOf, type DoctorFeeInForce, 
 import { rotaOf } from '../../../../packages/engines/src/core/domain/settings.ts';
 import type { KeptRota } from '../../../../packages/engines/src/core/domain/loops.ts';
 import { accessInForce, accessInForceAt, type AccessSettingsInForce } from '../../../../packages/engines/src/access/domain/settings.ts';
+import { resultRungOf, termsOf } from '../../../../packages/engines/src/medicines/domain/settings.ts';
+import type { Terms as CollectionTerms } from '../../../../packages/engines/src/medicines/domain/collections.ts';
 import { roleOf, whoIs } from './roles';
 import { can } from './vetting';
 /* Whether a rota's post is on duty, and when a shut one opens: the shared settings code's one rule, which the
@@ -94,6 +96,10 @@ export const escalationRotaNow = (): KeptRota => rotaOf(snapshotNow('core'));
    asks accessSettingsAt() the moment it was completed, so a change afterwards never moves when it closes. */
 export const accessSettingsNow = (): AccessSettingsInForce => accessInForce(historyOf('access'));
 export const accessSettingsAt = (at: number): AccessSettingsInForce => accessInForceAt(historyOf('access'), at);
+/* Medicines' two, read the same way: a patient's authorisation asks collectionTermsNow() once and keeps the PIN
+   expiry, the window and the attempt limit it was given; a result asks resultRungNow() once when it arrives. */
+export const collectionTermsNow = (): CollectionTerms => termsOf(snapshotNow('medicines'));
+export const resultRungNow = (): { readonly rung: number; readonly settingsVersion: number } => resultRungOf(snapshotNow('medicines'));
 
 /* Whether the value a setting held at a settings version has been clinically reviewed. Something that started
    under an older version — an offer on a nurse's screen — is described by the value it started under, not
