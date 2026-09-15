@@ -265,6 +265,23 @@ describe('what a party may not do to their own register entry', () => {
     assert.equal((await response.json() as { message: string }).message, catalogue.selfActionRefusals.alreadyEnrolled);
     assert.equal(vault.standing(person.nurse!)!.party.roleId, 'nurse');
   });
+
+  test('the reviewer route reads somebody else\'s record; a party reading their own is sent to /vetting/me, and the refusal is audited', async () => {
+    const refusals = () => (store.database.prepare('SELECT * FROM protected_access_log').all() as unknown[]).filter(row => JSON.stringify(row).includes('vetting.party.self.refused')).length;
+    const before = refusals();
+    const own = await as('nurse', `/vetting/party?id=${person.nurse}`);
+    assert.equal(own.status, 403);
+    assert.equal((await own.json() as { message: string }).message, catalogue.selfActionRefusals.readOwnThroughReviewerRoute);
+    assert.equal(refusals() - before, 1);
+    /* An admin reading their own record through it is refused the same way: the route is for somebody else's. */
+    assert.equal((await as('one', `/vetting/party?id=${person.one}`)).status, 403);
+    const reviewer = await as('one', `/vetting/party?id=${person.nurse}`);
+    assert.equal(reviewer.status, 200, await reviewer.clone().text());
+    assert.equal((await reviewer.json() as { party: { id: string } }).party.id, person.nurse);
+    const mine = await as('nurse', '/vetting/me');
+    assert.equal(mine.status, 200, await mine.clone().text());
+    assert.equal((await mine.json() as { party: { id: string } }).party.id, person.nurse);
+  });
 });
 
 describe('the health routes answer the loopback and nothing else', () => {

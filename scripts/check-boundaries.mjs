@@ -2336,7 +2336,15 @@ for(const capability of vetting.capabilities) if(!vetting.roles.some(r=>r.grants
   if (!/operation: '(read|self-service|administrative)'/.test(builder)) throw new Error(`The gate request built in ${file} does not name its operation.`);
  }
  const selfRefusals = vetting.selfActionRefusals ?? {};
- for (const key of ['administrativeOnSelf', 'enrol', 'restore', 'alreadyEnrolled']) if (!(typeof selfRefusals[key] === 'string' && selfRefusals[key].split(' ').length > 8)) throw new Error(`packages/catalog/vetting.json has no selfActionRefusals.${key} sentence, so a party acting on their own register entry would be refused in words nobody wrote down.`);
+ /* 5. The reviewer's read route is a reviewer's. GET /vetting/party refuses the caller's own id before
+       the gate, and hands the gate the reviewer's purpose rather than actorFor's, so the subject
+       shortcut cannot turn it into a second /vetting/me. */
+ const partyRead = (read('apps/api/src/server.ts').match(/routes\.set\('GET \/vetting\/party'[\s\S]*?\n  \}\);/) ?? [])[0] ?? '';
+ if (!partyRead) throw new Error('apps/api/src/server.ts no longer declares GET /vetting/party in a form this check can read.');
+ const selfGuardAt = partyRead.indexOf('if (partyId === held.actor.party.id)');
+ if (selfGuardAt < 0 || selfGuardAt > partyRead.indexOf('gate.access(') || !partyRead.includes('SELF_REFUSALS.readOwnThroughReviewerRoute')) throw new Error('GET /vetting/party no longer refuses a caller reading their own record before the gate is asked. It is a reviewer\'s route; a party\'s own standing is /vetting/me.');
+ if (/actorFor\(/.test(partyRead) || !/purpose: 'vetting'/.test(partyRead)) throw new Error('GET /vetting/party hands the gate a purpose derived from whose record it is. With subject-access and a read, the gate lets anybody on the register through on their own id; this route always asks as a reviewer.');
+ for (const key of ['administrativeOnSelf', 'enrol', 'restore', 'alreadyEnrolled', 'readOwnThroughReviewerRoute']) if (!(typeof selfRefusals[key] === 'string' && selfRefusals[key].split(' ').length > 8)) throw new Error(`packages/catalog/vetting.json has no selfActionRefusals.${key} sentence, so a party acting on their own register entry would be refused in words nobody wrote down.`);
 }
 
 /* What is left to check about the native vetting models is what is still written by hand. The
