@@ -310,3 +310,13 @@ POST /v1/core/loops/{loopRef}/acknowledge@3 42438f13fae2a2f6
 POST /v1/core/loops/{loopRef}/escalate@3 5d0f6e5835cef67f
 POST /v1/core/loops/{loopRef}/close@2 221b6d73508baf4d
 POST /v1/safety/incidents@2 3210c5f7964fc24e
+POST /v1/safety/sos@2 289df68e0fbe09bd
+POST /v1/safety/sos/{sosRef}/stand-down@1 dd85ce8bc105add2
+GET /v1/safety/sos@1 cc1460723c5a0a66
+GET /v1/safety/sos/{sosRef}/area@1 4c5bdd1a1d3bbca5
+POST /v1/safety/next-of-kin@2 8d73d30207ec0fae
+GET /v1/safety/next-of-kin@1 2fb56c91c02cc440
+POST /v1/safety/next-of-kin/{nominationRef}/withdraw@1 b3ab666866df9aa0
+POST /v1/safety/next-of-kin/{nominationRef}/alert@2 b3328c499003b97c
+shared apis/safety.json#refusals no-such-sos 869c508fd08743e3
+shared apis/safety.json#refusals guardian-authority-not-proven 5eb6b8c188359be0

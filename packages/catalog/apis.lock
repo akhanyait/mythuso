@@ -204,3 +204,11 @@ POST /v1/core/loops/{loopRef}/acknowledge@3 f07daa37bdbb4ba1
 POST /v1/core/loops/{loopRef}/escalate@3 ecbd6ef3e26d2ea2
 POST /v1/core/loops/{loopRef}/close@2 e82547e5ee5acbdf
 POST /v1/safety/incidents@2 f7ffc26910393482
+POST /v1/safety/sos@2 04f69d61e02649e5
+POST /v1/safety/sos/{sosRef}/stand-down@1 bbba6ea57f369d22
+GET /v1/safety/sos@1 7d2356b601a01672
+GET /v1/safety/sos/{sosRef}/area@1 dfe1951c474d8aca
+POST /v1/safety/next-of-kin@2 80116be36b6fc74a
+GET /v1/safety/next-of-kin@1 1edd2b1ef6b16d9c
+POST /v1/safety/next-of-kin/{nominationRef}/withdraw@1 d827177b99bba4d8
+POST /v1/safety/next-of-kin/{nominationRef}/alert@2 3852a1e66d979b9c

@@ -20,6 +20,12 @@ object FieldSafetyData {
     const val panicWindowMinutes = 30
     /** The simulated feed's cadence, not a policy. */
     const val positionEverySeconds = 15
+    /** A proposal nobody has decided. A default an admin may change on the web; this app has no admin surface and uses it as written here. */
+    const val sosAreaWindowMinutes = 120
+    /** A proposal nobody has decided. A default an admin may change on the web; this app has no admin surface and uses it as written here. */
+    const val nextOfKinAlertWindowMinutes = 60
+    /** A proposal nobody has decided. A default an admin may change on the web; this app has no admin surface and uses it as written here. */
+    const val nextOfKinAlertRetries = 2
 
     object NurseText {
         const val heading = "Your safety"

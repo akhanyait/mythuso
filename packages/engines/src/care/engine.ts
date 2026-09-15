@@ -40,6 +40,12 @@
  *   Sync      POST /v1/care/sync-batches@2 carries each operation's visit, observation entry, measure and phone
  *             time, and binds the domain's SyncIntake, with its batches and attached measures in this store.
  *
+ *   SOS       sos.raised@2 whose door offers a visit registers the catalogue's sos service as an urgent visit in the
+ *             area chosen, scheduled for the moment it was heard, and asks the offer desk for it with every gate in
+ *             place; Care's answer — the offer, or the refusal — is kept in care_sos. On this runtime the answer is
+ *             service-not-offered, because the catalogue places sos in a later phase than the seed. sos.stood_down@1
+ *             withdraws any offer for it still open. See ./domain/sos.ts.
+ *
  * WHAT IS NOT BOUND. The four reads (shifts, services, locum shifts, circuits) are answered by the contract mock. */
 import { randomInt } from 'node:crypto';
 import roster from '../../../catalog/roster.json' with { type: 'json' };
@@ -49,7 +55,7 @@ import records from '../../../catalog/records.json' with { type: 'json' };
 import { defineEngine, ok, refuse, type Answer, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
 import { SETTINGS_SCHEMA, settingsIn, settingsRoutes } from '../settings/routes.ts';
 import {
- careContract, careInForceOf, careSettings, instantAt, OfferDesk, SyncIntake, TrustCache, VisitDesk,
+ careContract, careInForceOf, careSettings, instantAt, OfferDesk, SyncIntake, TrustCache, VisitDesk, opensAnUrgentVisit, urgentVisitFor, withdrawnOnStandDown,
  type AppointmentToFill, type Candidate, type CareEvent, type NamedFallback, type NamedWait, type Offer, type QueuedCapture, type Received, type Visit
 } from './domain/index.ts';
 
@@ -78,6 +84,7 @@ CREATE TABLE IF NOT EXISTS care_booking_requests (appointment_ref TEXT PRIMARY K
 CREATE TABLE IF NOT EXISTS care_named_waits (appointment_ref TEXT PRIMARY KEY, document TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS care_sync_batches (batch_key TEXT PRIMARY KEY, document TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS care_sync_observed (appointment_ref TEXT NOT NULL, measure TEXT NOT NULL, PRIMARY KEY (appointment_ref, measure));
+CREATE TABLE IF NOT EXISTS care_sos (sos_ref TEXT PRIMARY KEY, appointment_ref TEXT NOT NULL, offer_ref TEXT, refused_id TEXT, heard_at TEXT NOT NULL, stood_down_at TEXT);
 INSERT OR IGNORE INTO care_appointments (appointment_ref, subject_ref, service_id, zone_id, day_offset, slot, named_clinician_ref, previous_clinician_refs, visit_code)
  VALUES (${sql(preview.appointmentRef)}, ${sql(preview.subjectRef)}, ${sql(preview.serviceId)}, ${sql(preview.zone)}, ${preview.dayOffset}, ${sql(preview.slot)},
          ${sql(preview.namedClinicianRef)}, ${sql(JSON.stringify(preview.previousClinicianRefs))}, ${sql(preview.visitCode)});
@@ -304,6 +311,39 @@ export const engine = defineEngine({
   /* booking.requested@2 names the suburb by its zone id in geography.json, and the nurse asked for by name when
      there was one. The zone is kept as its id and resolved to the zone's centre when an offer is made, so a zone
      geography.json does not hold is refused an offer as visit-zone-unknown rather than guessed at. */
+  /* An SOS whose door offers a visit is an urgent visit, offered through the same desk and gates as any other. Care's
+     own answer, offered or refused, is kept beside the SOS, so a refusal is on record rather than silent. Any other door
+     opens nothing here, and no plan is read. */
+  'sos.raised@2': (event, ctx) => {
+   if (!opensAnUrgentVisit(event.payload.routedTo)) return;
+   const sosRef = String(event.payload.sosRef);
+   const zoneId = typeof event.payload.zoneId === 'string' ? event.payload.zoneId : null;
+   const now = ctx.clock.now();
+   const visit = urgentVisitFor({ sosRef, subjectRef: event.subjectRef, zone: zoneAt(zoneId) }, now);
+   const fresh = ctx.store.prepare('INSERT OR IGNORE INTO care_appointments (appointment_ref, subject_ref, service_id, zone_id, scheduled_for) VALUES (?, ?, ?, ?, ?)')
+    .run(visit.appointmentRef, visit.subjectRef, visit.serviceId, zoneId, visit.scheduledFor);
+   if (!fresh.changes) return;
+   const desks = load(ctx);
+   const made = desks.offers.offer({ idempotencyKey: 'sos-' + sosRef, appointmentRef: visit.appointmentRef, serviceId: visit.serviceId }, now);
+   ctx.store.prepare('INSERT INTO care_sos (sos_ref, appointment_ref, offer_ref, refused_id, heard_at) VALUES (?, ?, ?, ?, ?)')
+    .run(sosRef, visit.appointmentRef, made.ok ? made.value.offerRef : null, made.ok ? null : made.id, now.toISOString());
+   if (!made.ok) return;
+   publish(ctx, made.events);
+   save(ctx, desks);
+  },
+
+  /* Stood down: an offer nobody accepted is withdrawn, so no nurse takes a visit nobody needs and the tick never passes
+     it on. An accepted visit is a person's to call off, and stays as it is. */
+  'sos.stood_down@1': (event, ctx) => {
+   const sosRef = String(event.payload.sosRef);
+   const held = ctx.store.prepare('SELECT appointment_ref FROM care_sos WHERE sos_ref = ?').get(sosRef) as { appointment_ref: string } | undefined;
+   if (!held) return;
+   ctx.store.prepare('UPDATE care_sos SET stood_down_at = ? WHERE sos_ref = ? AND stood_down_at IS NULL').run(ctx.clock.iso(), sosRef);
+   const desks = load(ctx);
+   for (const offer of withdrawnOnStandDown(desks.offers.offersFor(held.appointment_ref), sosRef)) offer.state = 'withdrawn';
+   save(ctx, desks);
+  },
+
   'booking.requested@2': (event, ctx) => {
    const appointmentRef = `apt-${String(event.payload.bookingRef)}`;
    const requestedFor = typeof event.payload.requestedFor === 'string' ? event.payload.requestedFor : null;

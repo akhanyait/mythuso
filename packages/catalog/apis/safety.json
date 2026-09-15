@@ -6,14 +6,16 @@
  "doors": ["emergency-acknowledgement"],
  "doorsToAdd": [],
  "refusals": [
-  {"id": "dispatch-without-a-human", "status": 409, "statement": "Nothing is dispatched without a human, except for an unresponsive patient or an SOS.", "why": "High specificity for dispatching paramedics; a human confirms (§13)."},
+  {"id": "dispatch-without-a-human", "status": 409, "statement": "Nothing is dispatched without a human, except for an unresponsive patient or an SOS.", "why": "High specificity for dispatching paramedics; a human confirms (§13). Which dispatch happens without a human, and which does not, is packages/catalog/sos.json engine.dispatchWithoutAHuman. POST /v1/safety/sos@2 answers it for a fall or a crash a phone noticed with nobody pressing: that is not an SOS, and it does not show a patient is unresponsive.", "answeredBy": ["POST /v1/safety/sos@2"]},
   {"id": "consumer-wearable-raises-tier-four", "status": 422, "statement": "A consumer wearable alone never raises dispatch.", "why": "BYO signals guide conversation; certified devices carry clinical weight."},
-  {"id": "next-of-kin-see-clinical-detail", "status": 422, "statement": "Next of kin see plain language, never clinical detail.", "why": "§15."},
-  {"id": "location-kept-after-the-window", "status": 409, "statement": "A location is not kept after the incident window.", "why": "A safety feature that keeps positions is a tracking system."},
+  {"id": "next-of-kin-see-clinical-detail", "status": 422, "statement": "Next of kin see plain language, never clinical detail.", "why": "§15. An attempt carries the nomination and the SOS and nothing else; what it would say is packages/catalog/sos.json nextOfKin.alertSays, word for word. Anything sent beside them is refused before the attempt is recorded, because the handler sees only the names of undeclared fields and cannot tell a note from a reading.", "answeredBy": ["POST /v1/safety/next-of-kin/{nominationRef}/alert@2"]},
+  {"id": "location-kept-after-the-window", "status": 409, "statement": "A location is not kept after the incident window.", "why": "A safety feature that keeps positions is a tracking system. The area an SOS was pressed from is dropped from Safety's store when the window it was pressed under ends, or at the stand-down, and a read after either is refused.", "answeredBy": ["GET /v1/safety/sos/{sosRef}/area@1"]},
   {"id": "no-such-checkin", "status": 404, "statement": "Safety is timing no visit by that reference.", "why": "A timer starts only when Safety hears appointment.in_progress@2. An act on a reference it never started is refused rather than recorded against nothing.", "answeredBy": ["POST /v1/safety/checkins/{checkinRef}/extend@2", "POST /v1/safety/checkins/{checkinRef}/safe@1", "POST /v1/safety/checkins/{checkinRef}/close@2", "POST /v1/safety/overdue-checkins/{checkinRef}/pick-up@1", "POST /v1/safety/overdue-checkins/{checkinRef}/close@1"]},
   {"id": "checkin-held-by-another", "status": 403, "statement": "That visit's timer is held by the nurse who first acted on it. Nobody else extends it, says she is safe or checks her out.", "why": "appointment.in_progress@2 names no nurse, so Safety cannot know whose visit a timer is when it starts one. The first identified nurse to act on it holds it and anybody else is refused. A mistake then leaves the timer running, so it pages the desk rather than silencing it.", "answeredBy": ["POST /v1/safety/checkins/{checkinRef}/extend@2", "POST /v1/safety/checkins/{checkinRef}/safe@1", "POST /v1/safety/checkins/{checkinRef}/close@2"]},
   {"id": "checkin-after-close", "status": 409, "statement": "That visit is checked out. Nothing is being timed.", "why": "A closed timer does not reopen; a new visit starts a new one.", "answeredBy": ["POST /v1/safety/checkins/{checkinRef}/extend@2", "POST /v1/safety/checkins/{checkinRef}/safe@1"]},
-  {"id": "no-such-panic", "status": 404, "statement": "There is no panic by that reference.", "why": "The desk acts on a panic somebody pressed. A pick-up, a resolution or a position read for a panic nobody pressed is refused rather than recorded against nothing.", "answeredBy": ["POST /v1/safety/panics/{panicRef}/pick-up@1", "POST /v1/safety/panics/{panicRef}/resolve@1", "GET /v1/safety/panics/{panicRef}/position@1"]}
+  {"id": "no-such-panic", "status": 404, "statement": "There is no panic by that reference.", "why": "The desk acts on a panic somebody pressed. A pick-up, a resolution or a position read for a panic nobody pressed is refused rather than recorded against nothing.", "answeredBy": ["POST /v1/safety/panics/{panicRef}/pick-up@1", "POST /v1/safety/panics/{panicRef}/resolve@1", "GET /v1/safety/panics/{panicRef}/position@1"]},
+  {"id": "no-such-sos", "status": 404, "statement": "There is no SOS by that reference.", "why": "The desk acts on an SOS somebody pressed. An area read or a next-of-kin attempt for one nobody pressed is refused rather than recorded against nothing.", "answeredBy": ["GET /v1/safety/sos/{sosRef}/area@1", "POST /v1/safety/next-of-kin/{nominationRef}/alert@2"]},
+  {"id": "guardian-authority-not-proven", "status": 403, "statement": "A guardian cannot nominate, withdraw or alert a next of kin for somebody else. Guardian authority is not proven, and MyThuso cannot prove it yet.", "why": "docs/governance/INFORMATION-OFFICER.md D-10 is open: who may act for a child or a dependent adult, and what proves it, is undecided, and packages/catalog/vetting.json refuses guardian access until identity and legal authority are both proven. A guardian naming who is told when somebody presses SOS is exactly that authority asserted and recorded as if it were proof. The guardian is admitted to these routes only so that the refusal is this sentence rather than a general one, and it is asked before anything else.", "answeredBy": ["POST /v1/safety/next-of-kin@2", "POST /v1/safety/next-of-kin/{nominationRef}/withdraw@1", "POST /v1/safety/next-of-kin/{nominationRef}/alert@2"]}
  ],
  "ownIds": [
   {"field": "incidentId", "why": "An incident in the register Safety keeps."}
@@ -24,7 +26,7 @@
    "path": "/v1/safety/checkins",
    "version": 1,
    "summary": "Start a visit timer.",
-   "callers": ["nurse", "locum", "responder"],
+   "callers": [],
    "purpose": ["dispatch"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -44,6 +46,7 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E4", "what": "Nurse safety suite: check-in timers"},
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "appointment.in_progress@2", "why": "It started a visit timer from minutes a phone sent. Since Wave 3 Safety starts every timer when it hears appointment.in_progress@2, which Care publishes only once the visit code has matched, timed by the service booked; the nurse reads it on GET /v1/safety/checkins@1 and acts on it through extend@2, safe@1 and close@2, and a locum or a responder on a visit arrives through the same event. Nothing is left for a phone to start. A second way to start a timer would be a timer with a caller-chosen duration, which expected-minutes-not-the-service refuses, or a timer for a visit whose code never matched, which timer-without-a-matched-code refuses. Its correction is the event rather than a route, so that is what it names, and the capability it was cited for is cited on the read that now serves it."},
    "status": "proposed"
   },
   {
@@ -123,7 +126,7 @@
    "emitsNoneBecause": "Reading changes nothing.",
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": null,
+   "capabilityNamed": {"section": "FS-E4", "what": "Nurse safety suite: check-in timers"},
    "status": "built",
    "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'GET /v1/safety/checkins@1'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
@@ -596,7 +599,7 @@
    "path": "/v1/safety/sos",
    "version": 1,
    "summary": "A patient presses SOS: urgent visit, and the ambulance partner where needed.",
-   "callers": ["patient", "caregiver"],
+   "callers": [],
    "purpose": ["emergency"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -614,6 +617,7 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E4", "what": "Thuso SOS: app and Band button, urgent visit"},
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/safety/sos@2", "why": "It took a subjectRef, so a caller could raise an SOS about somebody else, and a caregiver could; it carried neither the area chosen from the list nor the answers that decide the door, so nothing could route it or offer a visit from it; its one refusal could not answer a signal nobody pressed, a plan asking to go first or anything sent beside the answers; and it emitted sos.raised@1, which is withdrawn. Version two is pressed by the patient in their own session, routes by packages/catalog/sos.json, and answers each of those in its own sentence."},
    "status": "proposed"
   },
   {
@@ -621,7 +625,7 @@
    "path": "/v1/safety/next-of-kin",
    "version": 1,
    "summary": "Nominate next of kin with a consent scope.",
-   "callers": ["patient"],
+   "callers": [],
    "purpose": ["subject-access"],
    "request": [
     {"field": "contactRef", "type": "string", "required": true, "why": "The contact, held by the identity service."},
@@ -639,6 +643,7 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§15", "what": "explicit, revocable consent and a defined scope"},
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/safety/next-of-kin@2", "why": "Its scope was emergency-only or any-escalation, which packages/catalog/consent.json does not hold: a next-of-kin grant serves emergencies and nothing else. It took no consent to a version of any wording, gave a nomination no end, and could not refuse a guardian acting for somebody else while no guardian authority is proven. Version two draws the purpose and the ceiling from consent.json, takes consent to the version of the wording the patient read, and refuses a guardian."},
    "status": "proposed"
   },
   {
@@ -646,8 +651,7 @@
    "path": "/v1/safety/next-of-kin/{nominationRef}/alert",
    "version": 1,
    "summary": "Alert next of kin, in plain language, within their scope.",
-   "callers": ["ops-desk", "engine:core"],
-   "callerJustifications": {"engine:core": "loop.escalated@1"},
+   "callers": [],
    "purpose": ["emergency"],
    "request": [
     {"field": "nominationRef", "type": "string", "required": true, "why": "The nomination."},
@@ -665,6 +669,7 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§15", "what": "Plain language, not raw data"},
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/safety/next-of-kin/{nominationRef}/alert@2", "why": "It answered with the channel chosen and emitted nok.notified@1, which says next of kin were told. No SMS provider is connected, so every alert through it would have claimed a delivery that never happened. It named no SOS, no window and no limit on tries, and could not refuse a withdrawn nomination or a guardian. Version two records an attempt as not sent, with the reason, inside the window and the tries the SOS was pressed under."},
    "status": "proposed"
   },
   {
@@ -905,6 +910,282 @@
    "status": "built",
    "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /incidents'"},
    "enforcedBy": {"mechanism": "vetting-capability", "capability": "review-vetting"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/sos",
+   "version": 2,
+   "summary": "A patient presses SOS: the door the answers route to is recorded, thinly; Care is told so it can offer an urgent visit when the door offers one; Core opens a concern for the desk; and each next of kin in force is recorded as would-be told, not sent.",
+   "callers": ["patient"],
+   "purpose": ["emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same SOS once, so a press retried on a bad connection is not a second urgent visit."},
+    {"field": "channel", "type": "string", "required": true, "why": "How it was pressed, an id from packages/catalog/sos.json engine.channels."},
+    {"field": "conditionTicked", "type": "boolean", "required": true, "why": "Whether any of the eight conditions was ticked, as a yes or a no and never which. A yes routes to emergency services before anything else is read."},
+    {"field": "zoneId", "type": "string", "required": false, "why": "The area chosen from the list, an id from packages/catalog/geography.json. Absent when the person chose somewhere else. Never read from the device."},
+    {"field": "callbackAvailable", "type": "boolean", "required": true, "why": "Whether there is a phone a nurse can ring before she travels."}
+   ],
+   "response": [
+    {"field": "sosRef", "type": "string", "required": true, "why": "The SOS."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "raised, from packages/catalog/sos.json engine.states."},
+    {"field": "routedTo", "type": "string", "required": true, "why": "The door, an id from packages/catalog/sos.json outcomes."},
+    {"field": "failureCode", "type": "string", "required": false, "why": "Which of packages/catalog/sos.json failures sent it to cannot-help. Absent for any other door."},
+    {"field": "areaSharedUntil", "type": "instant", "required": false, "why": "When the desk stops seeing the area chosen: the area window in force when it was pressed. Absent when no area was chosen."},
+    {"field": "partnerConnected", "type": "boolean", "required": true, "why": "Whether an ambulance partner is connected. False on this build and every build until one is contracted: the emergency-acknowledgement door in packages/catalog/feeds.json refuses every payload."},
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The Safety settings version the SOS was pressed under. A change made since reaches the next SOS, never this one."},
+    {"field": "nextOfKin", "type": "list", "required": true, "object": true, "why": "One row for each of the patient's nominations in force when SOS was pressed, recorded as would-be told and never as told.", "fields": [
+     {"field": "nominationRef", "type": "string", "required": true, "why": "The nomination."},
+     {"field": "notificationRef", "type": "string", "required": true, "why": "The attempt recorded."},
+     {"field": "statusCode", "type": "string", "required": true, "why": "An id from packages/catalog/sos.json nextOfKin.statuses, which holds not-sent and nothing else while no SMS provider is connected."},
+     {"field": "reasonCode", "type": "string", "required": true, "why": "Why it was not sent, an id from packages/catalog/sos.json nextOfKin.notSent."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "wearable-alone", "status": 422, "statement": "A consumer wearable alone does not raise an SOS dispatch.", "why": "A person presses SOS; a band on its own does not. Asked before anything is recorded."},
+    {"id": "sos-channel-unknown", "status": 422, "statement": "That is not a way SOS can be pressed.", "why": "An unknown channel is refused rather than treated as a press, or a signal nobody named becomes a dispatch."},
+    {"id": "sos-area-not-on-the-list", "status": 422, "statement": "Choose the area from the list, or choose somewhere else.", "why": "The area is one packages/catalog/geography.json holds or none. A place typed or read from a device is the silent location packages/catalog/sos.json refuses."},
+    {"id": "no-priority-by-plan", "status": 422, "statement": "No plan puts anybody ahead of somebody more unwell. An SOS is routed and offered the same way whatever plan the person holds.", "why": "Premium's priority SOS is an undecided founder question. A request that names a plan, a priority or a place in a queue is refused rather than read, so nothing about an SOS can be bought."},
+    {"id": "sos-carries-nothing-else", "status": 422, "statement": "An SOS carries how it was pressed, the area chosen from the list and two answers. Nothing else is taken with it: not where the phone is, and not what is wrong.", "why": "The handler sees only the names of undeclared fields. A position, a symptom or a note sent beside the answers would be health information or a tracker kept on an SOS, and packages/catalog/sos.json record keeps it thin."}
+   ],
+   "emits": ["sos.raised@2"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E4", "what": "Thuso SOS: app and Band button, urgent visit"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'POST /v1/safety/sos@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/sos/{sosRef}/stand-down",
+   "version": 1,
+   "summary": "The person who pressed SOS stands it down with one of the reasons on the screen. The area stops being shared at once, Core closes the desk's concern, and Care withdraws an urgent-visit offer nobody has accepted.",
+   "callers": ["patient"],
+   "purpose": ["emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same stand-down once."},
+    {"field": "sosRef", "type": "string", "required": true, "why": "The SOS."},
+    {"field": "reasonCode", "type": "string", "required": false, "why": "An id from packages/catalog/sos.json standDown.reasons. Asked for by the handler rather than the binder, so that a stand-down without one is refused in its own sentence."}
+   ],
+   "response": [
+    {"field": "stoodDownAt", "type": "instant", "required": true, "why": "When it was stood down."},
+    {"field": "areaSharingEndedAt", "type": "instant", "required": true, "why": "When the desk stopped seeing the area: the stand-down, or the window if it had already ended."}
+   ],
+   "refusals": [
+    {"id": "stand-down-without-reason", "status": 422, "statement": "Choose one of the reasons on the screen to stand it down. Nobody asks you to explain, and it costs nothing.", "why": "packages/catalog/sos.json standDown: a request is stopped without explaining. Choosing from the list is not an explanation; it is what the nurse and the desk are told, and a stand-down with none leaves a nurse who has accepted not knowing whether to turn round."},
+    {"id": "sos-already-stood-down", "status": 409, "statement": "That SOS is already stood down. If you need help again, press SOS again.", "why": "A stood-down SOS does not reopen, and its area window does not come back."},
+    {"id": "no-sos-of-yours", "status": 404, "statement": "There is no SOS of yours by that reference.", "why": "Only the person who pressed an SOS stands it down. Somebody else's is answered as if it did not exist, so a guessed reference confirms nothing."}
+   ],
+   "emits": ["sos.stood_down@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'POST /v1/safety/sos/{sosRef}/stand-down@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/safety/sos",
+   "version": 1,
+   "summary": "The desk's list of SOS presses: when, which door, whether the area is still shared, whether it was stood down, and whether next of kin could be told. Never what was ticked, who pressed it or what plan they hold.",
+   "callers": ["operator"],
+   "purpose": ["emergency"],
+   "request": [],
+   "response": [
+    {"field": "items", "type": "list", "required": true, "object": true, "why": "Every SOS, open ones first and oldest first inside each. Each carries exactly these keys, and never the patient, the answers or a plan.", "fields": [
+     {"field": "sosRef", "type": "string", "required": true, "why": "The SOS."},
+     {"field": "raisedAt", "type": "instant", "required": true, "why": "When SOS was pressed."},
+     {"field": "ageMinutes", "type": "integer", "required": true, "why": "Whole minutes since then."},
+     {"field": "stateCode", "type": "string", "required": true, "why": "An id from packages/catalog/sos.json engine.states."},
+     {"field": "channel", "type": "string", "required": true, "why": "How it was pressed."},
+     {"field": "routedTo", "type": "string", "required": true, "why": "The door, an id from packages/catalog/sos.json outcomes."},
+     {"field": "failureCode", "type": "string", "required": true, "nullable": true, "why": "Why nobody could be sent, or null."},
+     {"field": "areaShared", "type": "boolean", "required": true, "why": "Whether the area may be read now, on GET /v1/safety/sos/{sosRef}/area@1. The area itself is never in this list."},
+     {"field": "areaSharedUntil", "type": "instant", "required": true, "nullable": true, "why": "When the area stops being shared, or null when none was chosen."},
+     {"field": "stoodDown", "type": "string", "required": true, "nullable": true, "object": true, "why": "When it was stood down and with which reason, or null.", "fields": [
+      {"field": "at", "type": "instant", "required": true, "why": "When."},
+      {"field": "reasonCode", "type": "string", "required": true, "why": "An id from packages/catalog/sos.json standDown.reasons."}
+     ]},
+     {"field": "settingsVersion", "type": "integer", "required": true, "why": "The settings version it was pressed under."},
+     {"field": "nextOfKin", "type": "list", "required": true, "object": true, "why": "One row for each nomination tried about this SOS: its latest attempt, how many there have been, how many the SOS allows and until when.", "fields": [
+      {"field": "nominationRef", "type": "string", "required": true, "why": "The nomination."},
+      {"field": "statusCode", "type": "string", "required": true, "why": "An id from packages/catalog/sos.json nextOfKin.statuses."},
+      {"field": "reasonCode", "type": "string", "required": true, "why": "An id from packages/catalog/sos.json nextOfKin.notSent."},
+      {"field": "attempts", "type": "integer", "required": true, "why": "Attempts recorded, the first at the press included."},
+      {"field": "attemptsAllowed", "type": "integer", "required": true, "why": "One, and the tries the settings the SOS was pressed under allow after it."},
+      {"field": "windowEndsAt", "type": "instant", "required": true, "why": "When the desk may no longer try them about this SOS."}
+     ]}
+    ]}
+   ],
+   "refusals": [
+    {"id": "sos-list-takes-no-filter", "status": 422, "statement": "The SOS list is read whole. It is never narrowed or sorted by who pressed, what plan they hold or where.", "why": "A list that could be sorted by plan is a list somebody works from the top of, and packages/catalog/sos.json engine.priority refuses exactly that."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'GET /v1/safety/sos@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/safety/sos/{sosRef}/area",
+   "version": 1,
+   "summary": "The desk reads the area an SOS was pressed from, chosen from the list, only while the area window it was pressed under is open and it has not been stood down.",
+   "callers": ["operator"],
+   "purpose": ["emergency"],
+   "request": [
+    {"field": "sosRef", "type": "string", "required": true, "why": "The SOS."}
+   ],
+   "response": [
+    {"field": "zoneId", "type": "string", "required": true, "why": "An id from packages/catalog/geography.json: a suburb, never a point."},
+    {"field": "sharedUntil", "type": "instant", "required": true, "why": "When the desk stops seeing it."}
+   ],
+   "refusals": [
+    {"id": "area-not-chosen", "status": 404, "statement": "No area was chosen for this SOS, so there is nothing to show.", "why": "The person chose somewhere else. Nothing was read from the device to fill the gap, and nothing is invented."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'GET /v1/safety/sos/{sosRef}/area@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/next-of-kin",
+   "version": 2,
+   "summary": "A patient nominates a next of kin, with consent to the version of the wording they read, for emergencies only, until the ceiling packages/catalog/consent.json gives a next-of-kin grant.",
+   "callers": ["patient", "guardian"],
+   "purpose": ["emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same nomination once."},
+    {"field": "contactRef", "type": "string", "required": true, "why": "The contact, held by the identity service, which holds the name and the number. Safety keeps the reference and nothing else."},
+    {"field": "purpose", "type": "string", "required": true, "why": "What they may be told for: one of the purposes packages/catalog/consent.json allows the next-of-kin role, which is emergency and nothing else."},
+    {"field": "consentVersion", "type": "integer", "required": false, "why": "The version of packages/catalog/sos.json nextOfKin.consent the patient read. Asked for by the handler, so a nomination without it is refused in its own sentence."},
+    {"field": "consentGiven", "type": "boolean", "required": false, "why": "Whether the patient ticked it. Asked for by the handler, for the same reason."}
+   ],
+   "response": [
+    {"field": "nominationRef", "type": "string", "required": true, "why": "The nomination."},
+    {"field": "purpose", "type": "string", "required": true, "why": "The purpose it serves."},
+    {"field": "consentVersion", "type": "integer", "required": true, "why": "The version of the wording consented to."},
+    {"field": "nominatedAt", "type": "instant", "required": true, "why": "When."},
+    {"field": "expiresAt", "type": "instant", "required": true, "why": "When it stops being in force: the next-of-kin role's maxExpiryDays in packages/catalog/consent.json after it was made, so the patient chooses again rather than an estranged relative staying on."}
+   ],
+   "refusals": [
+    {"id": "nomination-without-consent", "status": 422, "statement": "Next of kin are nominated with explicit consent and a scope, or not at all.", "why": "§15: voluntary, specific and informed. Consent is to the version of the wording the patient read and ticked; a nomination without both, or to wording that has changed since, is refused."},
+    {"id": "nomination-purpose-not-allowed", "status": 422, "statement": "A next of kin is nominated for emergencies and nothing else.", "why": "packages/catalog/consent.json allows the next-of-kin role one purpose. A wider one is a family told about a routine visit."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A nomination is an arrangement. Nobody is told anything until an SOS, and no engine acts on one.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15", "what": "explicit, revocable consent and a defined scope"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'POST /v1/safety/next-of-kin@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/safety/next-of-kin",
+   "version": 1,
+   "summary": "A patient reads their own next-of-kin nominations: the consent each was made under, when each runs out, and each withdrawal.",
+   "callers": ["patient"],
+   "purpose": ["emergency"],
+   "request": [],
+   "response": [
+    {"field": "nominations", "type": "list", "required": true, "object": true, "why": "The caller's own nominations, newest first.", "fields": [
+     {"field": "nominationRef", "type": "string", "required": true, "why": "The nomination."},
+     {"field": "contactRef", "type": "string", "required": true, "why": "The contact the identity service holds."},
+     {"field": "purpose", "type": "string", "required": true, "why": "The purpose it serves."},
+     {"field": "consentVersion", "type": "integer", "required": true, "why": "The version of the wording consented to."},
+     {"field": "nominatedAt", "type": "instant", "required": true, "why": "When."},
+     {"field": "expiresAt", "type": "instant", "required": true, "why": "When it stops being in force."},
+     {"field": "withdrawnAt", "type": "instant", "required": true, "nullable": true, "why": "When the patient withdrew it, or null."},
+     {"field": "stateCode", "type": "string", "required": true, "why": "in-force, withdrawn or expired."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "nominations-read-by-their-patient", "status": 403, "statement": "Only the patient who made them reads their next-of-kin nominations.", "why": "A nomination names somebody close to the patient. A caller the runtime cannot identify is refused rather than shown anybody's."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'GET /v1/safety/next-of-kin@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/next-of-kin/{nominationRef}/withdraw",
+   "version": 1,
+   "summary": "A patient withdraws a nomination, in one action and without a reason. Nobody is tried through it again.",
+   "callers": ["patient", "guardian"],
+   "purpose": ["emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. Withdrawing twice answers with the first withdrawal."},
+    {"field": "nominationRef", "type": "string", "required": true, "why": "The nomination."}
+   ],
+   "response": [
+    {"field": "withdrawnAt", "type": "instant", "required": true, "why": "When it was withdrawn."}
+   ],
+   "refusals": [
+    {"id": "no-nomination-of-yours", "status": 404, "statement": "There is no nomination of yours by that reference.", "why": "Only the patient who made a nomination withdraws it. Somebody else's is answered as if it did not exist."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A withdrawal is the patient's own record. No engine holds a copy of a nomination to drop, and the attempts already recorded stay what they were.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'POST /v1/safety/next-of-kin/{nominationRef}/withdraw@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/next-of-kin/{nominationRef}/alert",
+   "version": 2,
+   "summary": "The desk tries a patient's next of kin again about an SOS, inside the window and the tries that SOS was pressed under. No SMS provider is connected, so nothing is sent: the attempt is recorded as not sent, with why.",
+   "callers": ["operator", "guardian"],
+   "purpose": ["emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same attempt once."},
+    {"field": "nominationRef", "type": "string", "required": true, "why": "The nomination."},
+    {"field": "sosRef", "type": "string", "required": true, "why": "The SOS they would be told about."}
+   ],
+   "response": [
+    {"field": "notificationRef", "type": "string", "required": true, "why": "The attempt."},
+    {"field": "statusCode", "type": "string", "required": true, "why": "An id from packages/catalog/sos.json nextOfKin.statuses: not-sent, while no SMS provider is connected."},
+    {"field": "reasonCode", "type": "string", "required": true, "why": "Why, an id from packages/catalog/sos.json nextOfKin.notSent."},
+    {"field": "attempt", "type": "integer", "required": true, "why": "Which attempt this is, the one at the press counted first."},
+    {"field": "attemptsAllowed", "type": "integer", "required": true, "why": "How many the SOS allows."},
+    {"field": "windowEndsAt", "type": "instant", "required": true, "why": "When the desk may no longer try."},
+    {"field": "wouldSay", "type": "string", "required": true, "why": "packages/catalog/sos.json nextOfKin.alertSays with the time filled in and the name left for the identity service, which holds it. Plain words, and never clinical detail."}
+   ],
+   "refusals": [
+    {"id": "nomination-withdrawn", "status": 409, "statement": "That nomination was withdrawn. Nobody is told anything through it.", "why": "Withdrawal is as final as giving: a withdrawn nomination is tried by nobody, however urgent the SOS."},
+    {"id": "nomination-expired", "status": 409, "statement": "That nomination has run out. The patient chooses again before anybody is told anything through it.", "why": "A next-of-kin grant ends at the ceiling packages/catalog/consent.json gives it."},
+    {"id": "no-such-nomination", "status": 404, "statement": "There is no nomination by that reference.", "why": "An attempt recorded against a nomination nobody made is noise in the record a review reads."},
+    {"id": "nomination-not-for-this-sos", "status": 409, "statement": "That nomination is not one the person who pressed this SOS made.", "why": "Somebody else's next of kin are never told about a stranger's SOS."},
+    {"id": "alert-after-stand-down", "status": 409, "statement": "That SOS was stood down. Nobody is told about an SOS the person stopped.", "why": "A family rung about a press somebody cancelled is frightened for nothing."},
+    {"id": "alert-window-closed", "status": 409, "statement": "Next of kin are tried only inside the window the SOS was pressed under, and it has closed.", "why": "The window is the setting next-of-kin-alert-window as it was when SOS was pressed."},
+    {"id": "alert-tries-used", "status": 409, "statement": "Next of kin have been tried as many times as this SOS allows.", "why": "The tries are the setting next-of-kin-alert-retries as it was when SOS was pressed, after the attempt at the press."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Nothing is sent. nok.notified@1 says next of kin were told, and publishing it for an attempt that reached nobody would be the claim of delivery this route exists to refuse. The attempt is Safety's own record, which the desk reads on GET /v1/safety/sos@1.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15", "what": "Plain language, not raw data"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'POST /v1/safety/next-of-kin/{nominationRef}/alert@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   }
  ]
 }

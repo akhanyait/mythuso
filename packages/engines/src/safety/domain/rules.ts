@@ -32,7 +32,9 @@ export type Refused = { readonly ok: false; readonly refusal: Refusal };
 export type EmittedEvent =
  | { readonly type: 'checkin.overdue'; readonly version: 1; readonly payload: { readonly checkinRef: string; readonly appointmentRef: string; readonly overdueSince: string } }
  | { readonly type: 'panic.raised'; readonly version: 1; readonly payload: { readonly panicRef: string; readonly raisedByRole: string; readonly locationShareEndsAt: string } }
- | { readonly type: 'panic.resolved'; readonly version: 1; readonly payload: { readonly panicRef: string; readonly outcomeCode: string; readonly sharingEndedAt: string } };
+ | { readonly type: 'panic.resolved'; readonly version: 1; readonly payload: { readonly panicRef: string; readonly outcomeCode: string; readonly sharingEndedAt: string } }
+ | { readonly type: 'sos.raised'; readonly version: 2; readonly payload: { readonly sosRef: string; readonly channel: string; readonly routedTo: string; readonly zoneId?: string } }
+ | { readonly type: 'sos.stood_down'; readonly version: 1; readonly payload: { readonly sosRef: string; readonly reasonCode: string; readonly stoodDownAt: string } };
 export type Done<T> = { readonly ok: true; readonly value: T; readonly emits: readonly EmittedEvent[] };
 export type Result<T> = Done<T> | Refused;
 

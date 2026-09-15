@@ -15,3 +15,4 @@ export * from './visits.ts';
 export * from './position.ts';
 export * from './sync.ts';
 export * from './settings.ts';
+export * from './sos.ts';

@@ -138,3 +138,5 @@ appointment.in_progress@2 e0010d04702852a8
 appointment.completed@2 35e55b857fb8e390
 panic.resolved@1 802fbe60c5f3e3c6
 payment.refunded@1 ef4d06064e61318f
+sos.raised@2 b8f780740987d70b
+sos.stood_down@1 470a89105e271b2b

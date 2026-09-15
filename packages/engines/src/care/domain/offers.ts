@@ -67,7 +67,9 @@ export type NamedWait = {
 const WHEN_MISSING = care.offers.namedFallback.defaultWhenMissing as NamedFallback;
 const TOLD_IDS = new Set(care.offers.namedFallback.told.map(t => t.id));
 
-export type OfferState = 'open' | 'accepted' | 'declined' | 'lapsed';
+/* withdrawn: the SOS it was an urgent visit for was stood down before anybody accepted, so nobody may accept it and
+   nothing passes it on. */
+export type OfferState = 'open' | 'accepted' | 'declined' | 'lapsed' | 'withdrawn';
 export type Offer = {
  readonly offerRef: string;
  readonly appointmentRef: string;
