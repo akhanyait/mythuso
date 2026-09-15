@@ -25,5 +25,7 @@ export function distanceKm(a: LatLng, b: LatLng): number {
  const dLat = toRadians(b.lat - a.lat);
  const dLng = toRadians(b.lng - a.lng);
  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRadians(a.lat)) * Math.cos(toRadians(b.lat)) * Math.sin(dLng / 2) ** 2;
- return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+ /* Metres first and then kilometres, in packages/geo's own order of operations, so the two agree to the
+    last bit rather than to the fourteenth decimal place and the drift check can ask for equality. */
+ return EARTH_RADIUS_KM * 1000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h)) / 1000;
 }

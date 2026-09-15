@@ -28,6 +28,7 @@ import { emitShop } from './emit-shop.mjs';
 import { emitRewards } from './emit-rewards.mjs';
 import { emitThusoIQ } from './emit-thusoiq.mjs';
 import { emitAssistant } from './emit-assistant.mjs';
+import { emitCare } from './emit-care.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -866,7 +867,9 @@ const generated = [
  { source: 'packages/catalog/rewards.json', command: 'npm run rewards', files: emitRewards() },
  { source: 'packages/catalog/thusoiq.json', command: 'npm run thusoiq-contract', files: emitThusoIQ() },
  { source: 'packages/catalog/assistant.json', command: 'npm run assistant', files: emitAssistant() },
- { source: 'packages/catalog/gilbert-emergency-terms.json', command: 'npm run assistant', files: emitAssistant() }
+ { source: 'packages/catalog/gilbert-emergency-terms.json', command: 'npm run assistant', files: emitAssistant() },
+ { source: 'packages/catalog/care.json', command: 'npm run care', files: emitCare() },
+ { source: 'packages/catalog/apis/care.json', command: 'npm run care', files: emitCare() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -6133,3 +6136,165 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  console.log(`The engine runtime refuses to start without ${runtimeSettings.flag}=${runtimeSettings.flagValue} in its factory, answers on loopback to a loopback Host only, and nothing in deploy/ names it. ${engineSources.length} source files under packages/engines/src read, ${importsRead} imports among them, and no engine reaches another engine's directory or opens a database; ${onRuntime.length} ${onRuntime.length === 1 ? 'route is' : 'routes are'} built on the runtime, each registered by exactly its key in its own engine's directory.`);
 }
 /* ==== end of Engine Runtime & Core (Wave 3) ========================================================= */
+
+/* ==== Care & Nurse (Wave 3): packages/catalog/care.json and packages/engines/src/care ===============
+
+   Added by the Care & Nurse lead. Self-contained. What it holds Care to, in the order a mistake would
+   reach a nurse: every service says who may be offered it; the offer expiry stays a proposal until
+   somebody is named as having decided it; the sample visit is a visit the contracts could produce; the
+   ported distance is packages/geo's to the last bit; every refusal Care cites and every event it
+   publishes is one the contracts declare, and none carries the visit code; a checklist runs under no
+   draft; and no hand-written Care file types a refusal sentence or the expiry the contract owns. */
+{
+ const careContract = JSON.parse(read('packages/catalog/care.json'));
+ const careApi = JSON.parse(read('packages/catalog/apis/care.json'));
+ const careServices = JSON.parse(read('packages/catalog/services.json'));
+ const careVetting = JSON.parse(read('packages/catalog/vetting.json'));
+ const careProtocols = JSON.parse(read('packages/catalog/protocols.json'));
+ const careGeography = JSON.parse(read('packages/catalog/geography.json'));
+ const careScheduling = JSON.parse(read('packages/catalog/scheduling.json'));
+ const careRoster = JSON.parse(read('packages/catalog/roster.json'));
+ const careEventsContract = JSON.parse(read('packages/catalog/events.json'));
+ const sharedRefusalIds = new Set(JSON.parse(read('packages/catalog/apis.json')).sharedRefusals.map(r => r.id));
+
+ /* 1. Every service says who may be offered it, in the register's own words. A service with no row is
+       a service anybody could be sent to; a scope the register does not give a role is a gate nobody
+       can pass, which looks like a shortage rather than a mistake. */
+ const rows = new Map(careContract.services.map(s => [s.serviceId, s]));
+ if (rows.size !== careContract.services.length) throw new Error('packages/catalog/care.json names a service twice. Two rows for one service are two answers to who may be sent.');
+ for (const s of careServices) if (!rows.has(s.id)) throw new Error(`packages/catalog/services.json sells "${s.id}" and packages/catalog/care.json does not say who may be offered it.`);
+ const roleIds = new Set(careVetting.roles.map(r => r.id));
+ for (const s of careContract.services) {
+  if (!careServices.some(x => x.id === s.serviceId)) throw new Error(`packages/catalog/care.json has a row for "${s.serviceId}", which services.json does not sell.`);
+  for (const role of s.roles) if (!roleIds.has(role)) throw new Error(`packages/catalog/care.json lets the role "${role}" be offered ${s.serviceId}, and the vetting register has no such role.`);
+  if (s.scope !== null) for (const role of s.roles) {
+   if (!(careVetting.roles.find(r => r.id === role)?.scope?.options ?? []).includes(s.scope)) throw new Error(`packages/catalog/care.json requires the scope "${s.scope}" for ${s.serviceId}, which the vetting register does not give a ${role}.`);
+  }
+  for (const id of s.protocolIds) if (!careProtocols.protocols.some(p => p.id === id)) throw new Error(`packages/catalog/care.json governs ${s.serviceId} by "${id}", which the protocol register does not hold.`);
+  if (s.supervisedBy !== undefined && !roleIds.has(s.supervisedBy)) throw new Error(`packages/catalog/care.json supervises ${s.serviceId} by "${s.supervisedBy}", which is not a role on the register.`);
+ }
+
+ /* 2. A proposal is not a decision. The expiry is a number somebody proposed; the day it becomes a
+       decision it names who took it and when, or the build says it has not been taken. */
+ const offers = careContract.offers;
+ if (!Number.isInteger(offers.expiresAfterMinutes) || offers.expiresAfterMinutes <= 0) throw new Error('packages/catalog/care.json gives an offer no whole number of minutes to lapse in, so an unanswered offer could hold a patient\'s visit for ever.');
+ if (offers.decidedBy === null ? !offers.awaiting?.trim() : !(String(offers.decidedBy).trim() && /^\d{4}-\d{2}-\d{2}$/.test(offers.decidedOn ?? ''))) {
+  throw new Error('packages/catalog/care.json says the offer expiry was decided without naming who decided it and on what day, or leaves it undecided without saying who it waits on.');
+ }
+ const orderIds = offers.order.map(x => x.id).join(',');
+ if (orderIds !== 'named,previous,nearest') throw new Error(`packages/catalog/care.json orders offers ${orderIds}; packages/engines/src/care/domain/matching.ts ranks named, then previous, then nearest.`);
+
+ /* 3. The sample visit is one the contracts could produce, so the screens walking it walk a real shape. */
+ const pv = careContract.preview;
+ const pvService = careServices.find(s => s.id === pv.serviceId);
+ if (!pvService || pvService.phase > careContract.seedPhase) throw new Error(`The Care preview visit is for "${pv.serviceId}", which is not a service offered in phase ${careContract.seedPhase}.`);
+ if (!careGeography.zones.some(z => z.id === pv.zone)) throw new Error(`The Care preview visit is in "${pv.zone}", which packages/catalog/geography.json does not draw.`);
+ if (!careScheduling.offer.slots.includes(pv.slot)) throw new Error(`The Care preview visit is at ${pv.slot}, which is not a slot packages/catalog/scheduling.json offers.`);
+ if (!careRoster.nurses.some(n => n.id === pv.clinicianRef)) throw new Error(`The Care preview visit is for "${pv.clinicianRef}", who is not on packages/catalog/roster.json.`);
+ if (!/^\d{6}$/.test(pv.visitCode)) throw new Error('The Care preview visit code is not six digits, which is the code every other screen asks for.');
+
+ /* 4. The ported distance is packages/geo's. Run both over every suburb centre and a handful of points
+       chosen to be wrong — Cupertino, null island, a swapped pair, the corners of the box — and ask for
+       equality, not closeness: a port that agrees to twelve places today disagrees at the first edit. */
+ const port = await import('../packages/engines/src/care/domain/geo.ts');
+ const geoPackage = await import('../packages/geo/index.ts');
+ if (port.EARTH_RADIUS_KM !== geoPackage.EARTH_RADIUS_KM || port.MAX_REALISTIC_DISPATCH_KM !== geoPackage.MAX_REALISTIC_DISPATCH_KM || JSON.stringify(port.SA_BOUNDS) !== JSON.stringify(geoPackage.SA_BOUNDS)) {
+  throw new Error('packages/engines/src/care/domain/geo.ts no longer holds packages/geo\'s earth radius, dispatch limit or South Africa box.');
+ }
+ const probes = [...careGeography.zones.map(z => z.at), { lat: 37.33, lng: -122.03 }, { lat: 0, lng: 0 }, { lat: 28.042, lng: -26.146 }, { lat: -35.5, lng: 16 }, { lat: -22, lng: 33.5 }, { lat: -33.925, lng: 18.424 }, { lat: -25.9, lng: 32.6 }];
+ for (const p of probes) {
+  if (port.isInsideSouthAfrica(p) !== geoPackage.isInsideSouthAfrica(p)) throw new Error(`The Care geo port and packages/geo disagree about whether ${p.lat}, ${p.lng} is in South Africa.`);
+  for (const q of probes) if (port.distanceKm(p, q) !== geoPackage.distanceKm(p, q)) throw new Error(`The Care geo port measures ${p.lat}, ${p.lng} to ${q.lat}, ${q.lng} as ${port.distanceKm(p, q)} km and packages/geo as ${geoPackage.distanceKm(p, q)} km.`);
+ }
+
+ /* 5. Every refusal Care answers with is declared where the runtime looks for it. The runtime would
+       refuse an undeclared id at request time as a fault; this refuses it before anybody requests. */
+ const careCode = files('packages/engines/src/care').filter(f => f.endsWith('.ts') && !f.endsWith('.test.ts'));
+ const contractSource = read('packages/engines/src/care/domain/contract.ts');
+ const routePaths = Object.fromEntries([...contractSource.matchAll(/^ (\w+): '(\/v1\/care[^']*)'/gm)].map(m => [m[1], m[2]]));
+ const refusalsOn = path => new Set((careApi.routes.find(r => r.method === 'POST' && r.path === path)?.refusals ?? []).map(r => r.id));
+ const anyCareRefusal = new Set([...careApi.routes.flatMap(r => r.refusals.map(x => x.id)), ...careApi.refusals.map(r => r.id), ...sharedRefusalIds]);
+ let citedRefusals = 0;
+ for (const file of careCode) {
+  const source = read(file);
+  for (const m of source.matchAll(/refuse\(this\.#contract,\s*ROUTES\.(\w+),\s*'([a-z0-9-]+)'\)/g)) {
+   citedRefusals++;
+   const path = routePaths[m[1]];
+   if (!path) throw new Error(`${file} refuses on ROUTES.${m[1]}, which packages/engines/src/care/domain/contract.ts does not name.`);
+   if (!refusalsOn(path).has(m[2]) && !sharedRefusalIds.has(m[2])) throw new Error(`${file} refuses POST ${path} with "${m[2]}", which that route does not declare and no route inherits.`);
+  }
+  for (const m of source.matchAll(/refuse\('([a-z0-9-]+)'\)/g)) {
+   citedRefusals++;
+   if (!anyCareRefusal.has(m[1])) throw new Error(`${file} answers with the refusal "${m[1]}", which no care route, the care engine or the shared refusals declare.`);
+  }
+ }
+ /* The match kinds that are not a match are passed to the offers route as refusal ids by name. */
+ for (const m of read('packages/engines/src/care/domain/matching.ts').matchAll(/kind: '([a-z-]+)' \}/g)) {
+  if (m[1] !== 'matched' && !refusalsOn('/v1/care/offers').has(m[1])) throw new Error(`packages/engines/src/care/domain/matching.ts can answer "${m[1]}", which POST /v1/care/offers passes on as a refusal and does not declare.`);
+ }
+
+ /* 6. Every event Care publishes is live, Care's own, carries only its frozen fields, and never the code.
+       A code on the bus proves nothing at the next door, and a field the event does not declare is a
+       field every subscriber starts logging. */
+ const liveEvents = new Map(careEventsContract.events.filter(e => !e.withdrawn).map(e => [`${e.type}@${e.version}`, e]));
+ const routeEmits = new Set(careApi.routes.flatMap(r => r.emits));
+ const published = [];
+ for (const file of careCode) {
+  const source = read(file);
+  for (const m of source.matchAll(/type: '([a-z_.]+)', version: (\d+),[^]*?payload: \{([^}]*)\}/g)) published.push({ file, key: `${m[1]}@${m[2]}`, keys: m[3], viaRoute: true });
+  for (const m of source.matchAll(/#event\(visit, '([a-z_.]+)', ROUTES\.\w+, \{([^}]*)\}\)/g)) published.push({ file, key: `${m[1]}@1`, keys: m[2], viaRoute: true });
+  for (const m of source.matchAll(/ctx\.publish\('([a-z_.]+@\d+)', \{([^}]*)\}/g)) published.push({ file, key: m[1], keys: m[2], viaRoute: false });
+  if (/visitCode\s*[:,}][^\n]*\bpublish\(|publish\([^)]*visitCode|payload: \{[^}]*visitCode/.test(source)) throw new Error(`${file} puts the visit code on an event. The code is the proof at the door and is never broadcast.`);
+ }
+ if (!published.length) throw new Error('No event was found in packages/engines/src/care; the Care block of this check has stopped reading the code it exists to read.');
+ for (const { file, key, keys, viaRoute } of published) {
+  const e = liveEvents.get(key);
+  if (!e) throw new Error(`${file} publishes ${key}, which is not a live event.`);
+  if (e.owner !== 'care') throw new Error(`${file} publishes ${key}, which the ${e.owner} engine owns.`);
+  if (viaRoute && !routeEmits.has(key)) throw new Error(`${file} publishes ${key} from a route act, and no care route declares that it emits it.`);
+  const declared = new Set(e.payload.map(f => f.field));
+  for (const name of keys.split(',').map(part => part.trim().replace(/^\.\.\./, '').split(/[:\s]/)[0]).filter(Boolean)) {
+   if (/^\(/.test(name) || name === 'requestedFor') continue;
+   if (!declared.has(name)) throw new Error(`${file} publishes ${key} with "${name}", which the event does not declare.`);
+  }
+ }
+
+ /* 7. No checklist runs under a draft. Asked of the domain itself, for every service offered today: a
+       service whose protocols are not all ratified is not runnable and says the route's sentence, and a
+       service with none says it has none. The view has nowhere to put a step. */
+ const { checklistFor } = await import('../packages/engines/src/care/domain/checklist.ts');
+ const { careContract: domainContract } = await import('../packages/engines/src/care/domain/contract.ts');
+ const notRatified = careApi.routes.find(r => r.path === '/v1/care/visits/{appointmentRef}/checklist').refusals.find(r => r.id === 'protocol-not-ratified').statement;
+ for (const s of careContract.services.filter(s => (careServices.find(x => x.id === s.serviceId)?.phase ?? 99) <= careContract.seedPhase)) {
+  const view = checklistFor(domainContract, s.serviceId);
+  const allRatified = s.protocolIds.length > 0 && s.protocolIds.every(id => careProtocols.protocols.find(p => p.id === id)?.status === 'ratified');
+  if ('steps' in view || 'items' in view) throw new Error(`The checklist for ${s.serviceId} carries steps. A protocol's content is read from the register at its version, never from a Care copy.`);
+  if (view.runnable !== allRatified) throw new Error(`The checklist for ${s.serviceId} says it is ${view.runnable ? '' : 'not '}runnable, and its protocols say otherwise.`);
+  const expected = !s.protocolIds.length ? careContract.checklist.noProtocol : allRatified ? null : notRatified;
+  if (view.refusal !== expected) throw new Error(`The checklist for ${s.serviceId} refuses with ${JSON.stringify(view.refusal)} instead of ${JSON.stringify(expected)}.`);
+ }
+
+ /* 8. No hand-written Care file types what a contract owns: a refusal sentence, one of care.json's own
+       sentences, or the expiry. The screens are listed by name so the check reaches them the day they
+       land, and a missing one is not yet an error. */
+ const careScreens = [
+  'apps/web/src/lib/care-visit.ts', 'apps/web/src/features/CareVisit.tsx',
+  'apps/ios/MyThuso/Models/CareVisit.swift', 'apps/ios/MyThuso/Features/CareVisitView.swift',
+  'apps/android/app/src/main/java/za/co/mythuso/model/CareVisit.kt', 'apps/android/app/src/main/java/za/co/mythuso/ui/CareVisitScreens.kt'
+ ].filter(existsSync);
+ const owned = [
+  ...careApi.routes.flatMap(r => r.refusals.map(x => x.statement)), ...careApi.refusals.map(r => r.statement),
+  offers.declined, offers.lapsed, offers.withheldIsNotLast.statement, careContract.checklist.noProtocol,
+  careContract.position.whileShared, careContract.record.sentence, careContract.handover.queued, careContract.complete.billable,
+  ...careContract.withheld.filter(w => w.statement).map(w => w.statement)
+ ];
+ for (const file of [...careCode, ...careScreens]) {
+  const source = read(file);
+  for (const sentence of owned) if (source.includes(sentence)) throw new Error(`${file} types the sentence "${sentence}". It belongs to its contract and is read or generated from there.`);
+ }
+ const expiryLiteral = new RegExp(`\\b${offers.expiresAfterMinutes}\\s*(-\\s*)?(min|minute)`, 'i');
+ for (const file of careScreens) if (expiryLiteral.test(read(file))) throw new Error(`${file} types the offer expiry as ${offers.expiresAfterMinutes} minutes. It is a proposal in packages/catalog/care.json and changes there.`);
+
+ console.log(`Care offers ${careContract.services.length} services by the register's roles and scopes, ${careContract.services.filter(s => !s.protocolIds.length).length} of them with no protocol to run a checklist under and the rest under drafts that run none; an offer lapses after ${offers.expiresAfterMinutes} minutes, a proposal awaiting ${offers.awaiting}. The ported distance agrees with packages/geo at ${probes.length * probes.length} pairs of points, ${citedRefusals} refusals cited in Care's code are declared where the runtime looks, ${published.length} event publications are live, Care's own and carry no visit code, and ${careCode.length + careScreens.length} hand-written Care files type none of the ${owned.length} sentences the contracts own.`);
+}
+/* ==== end of Care & Nurse (Wave 3) ================================================================== */
