@@ -715,7 +715,13 @@ not change their fingerprints, and no new version was declared because no engine
 change shape leaves `windows` and `parts` in prose, so the inner-shapes rule carries a narrow exemption for a route
 that is exactly that shape — a platform decision for the Platform Settings lead and the integrator. The web and
 Android card are screens only in the preview: no link is stored anywhere but the tab or the screen, and nothing
-scans to anything.
+scans to anything. A use without an idempotency key is refused as the shared `idempotency-key-required`, which
+`share-link-opens@1` answers without declaring, as every route answers the shared refusals; the Passport answers it in
+its own sentence rather than the shared "A money or dispatch write needs an idempotency key", as P0's
+`purpose-not-allowed` already did. Whether the Passport keeps its own words for a shared id, or declares its own id in a
+new version of the route, is for the integrator. The build now holds every P1 gateway method to refusing only what its
+route declares or a shared refusal names, and resolves imports rather than matching their text when it keeps the P1
+screens off the patient's first load.
 
 ## Next UI increments
 
