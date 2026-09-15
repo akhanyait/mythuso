@@ -3,6 +3,7 @@ import consentText from '../../../../packages/catalog/consent.json?raw';
 import gateway from '../../../../packages/catalog/passport-gateway.json';
 import records from '../../../../packages/catalog/records.json';
 import sharing from '../../../../packages/catalog/passport-sharing.json';
+import hl7 from '../../../../packages/catalog/hl7v2-inbound.json';
 import {
  EMERGENCY_SCOPE, defaultScopeFor, isSealedCategory, linkTermsFor, policyOf, useRefusal, type GrantTerms, type LinkKindId, type LinkTerms
 } from '../../../../packages/engines/src/record/domain/links.ts';
@@ -98,8 +99,10 @@ const reasonOf = (reason: Reason): string => {
 export const fill = (template: string, values: Record<string, string | number>): string =>
  template.replace(/\{(\w+)\}/g, (whole, key: string) => (key in values ? String(values[key]) : whole));
 
+/* A registered HL7 development partner is named by packages/catalog/hl7v2-inbound.json (Wave 5), so a message in the log
+   says which hospital or laboratory sent it, in the words the phones use. */
 export const roleLabel = (id: string): string =>
- consent.grants.recipientRoles.find(role => role.id === id)?.name ?? logWords.roleLabels.find(role => role.id === id)?.label ?? id;
+ consent.grants.recipientRoles.find(role => role.id === id)?.name ?? logWords.roleLabels.find(role => role.id === id)?.label ?? hl7.facilities.find(facility => facility.id === id)?.label ?? id;
 export const actionLabel = (action: string): string =>
  action.endsWith(logWords.probeSuffix) ? logWords.probeLabel : logWords.actions.find(candidate => candidate.id === action)?.label ?? logWords.requestLabel;
 export const outcomeLabel = (outcome: Entry['outcome']): string => logWords.outcomes.find(candidate => candidate.id === outcome)?.label ?? outcome;

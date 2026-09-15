@@ -44,6 +44,9 @@ import { ConcernBoard } from '../features/ConcernBoard';
    before: it carries the Devices contract and every engine's settings through lib/settings. */
 const KitHealth = lazy(() => import('../features/Devices').then(m => ({ default: m.KitHealth })));
 const DeviceRegistryDesk = lazy(() => import('../features/Devices').then(m => ({ default: m.DeviceRegistryDesk })));
+/* The HL7 v2 quarantine, a development operator's view (Wave 5): its own import, fetched when the Control Tower opens it. */
+const Hl7Quarantine = lazy(() => import('../features/Hl7Quarantine').then(m => ({ default: m.Hl7Quarantine })));
+import hl7Contract from '../../../../packages/catalog/hl7v2-inbound.json' with { type: 'json' };
 import { VettingApplication, VettingQueue } from '../features/Vetting';
 import { t } from '../lib/i18n';
 import { endSession } from '../lib/auth';
@@ -551,6 +554,7 @@ function staffModalBody(modal: string, close: () => void, open: (m: string) => v
  if (modal === medicinesWords.results.heading) return <LabResults/>;
  if (modal === medicinesWords.pharmacy.heading) return <PharmacyQueue/>;
  if (modal === medicinesWords.handover.heading) return <CollectionHandover/>;
+ if (modal === hl7Contract.screens.quarantine.heading) return <Suspense fallback={null}><Hl7Quarantine/></Suspense>;
  /* "Clinical protocols" is in two roles' More tools and was the roadmap fallback in both. It is a
     screen now, and the same screen — a protocol that differs by which door you came through is two
     protocols. */

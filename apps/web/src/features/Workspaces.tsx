@@ -10,6 +10,7 @@ import { useVisitQueue } from './VisitQueue';
 import { formatEventTime } from '../lib/vetting';
 import { CareOfferSlot } from './CareVisit';
 import medicines from '../../../../packages/catalog/medicines.json' with { type: 'json' };
+import hl7 from '../../../../packages/catalog/hl7v2-inbound.json' with { type: 'json' };
 import { NurseDoorCode } from './VerifyInService';
 
 /* The four clinical workspaces' own home screens, and the four navigations that reach them.
@@ -49,7 +50,8 @@ export const roleExtras: Record<string,string[]> = {
  Nurse:['Locum shifts','Academy',medicines.screen.handover.heading],
  Doctor:['Clinical protocols','Referral pathway','Per-case fees',medicines.screen.prescribe.heading,medicines.screen.results.heading],
  Partner:['Prescription RX-0081','Laboratory order LAB-0023',medicines.screen.pharmacy.heading],
- 'Control Tower':['Nurse onboarding & vetting','Employer programmes']
+ /* The HL7 quarantine is a development operator's view (Wave 5), under its contract heading, which says so. */
+ 'Control Tower':['Nurse onboarding & vetting','Employer programmes',hl7.screens.quarantine.heading]
 };
 /* A nurse's morning, a doctor's queue, a controller's board and a partner's orders — four screens
  * that each have exactly one thing a person opened them for.
