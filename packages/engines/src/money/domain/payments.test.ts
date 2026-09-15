@@ -148,7 +148,7 @@ test('a plan is priced from its own contract, and a plan with no price is owed b
  const money = createMoney({ clock, simulation: true });
  const essential = money.openPlanPayable({ payableRef: 'PLAN-1', planId: 'mom', tierId: 'essential', subjectRef: lerato.subjectRef });
  assert.ok(!isRefusal(essential));
- assert.equal(essential.amountCents % 100, 0);
+ assert.ok(essential.amountCents !== null && essential.amountCents % 100 === 0, 'a plan payable is priced in whole rand from its contract');
  assert.deepEqual(money.openPlanPayable({ payableRef: 'PLAN-2', planId: 'recover', subjectRef: lerato.subjectRef }), refusal('payable-not-found'));
  assert.deepEqual(money.pay(lerato, { idempotencyKey: 'p', payableRef: 'PLAN-1', method: 'cash-otp', amountCents: essential.amountCents }), refusal('method-not-offered'), 'cash is for visits only');
 });

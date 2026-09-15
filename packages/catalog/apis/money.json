@@ -18,6 +18,7 @@
   {"id": "scheme-sees-a-payment", "status": 403, "statement": "No scheme or employer sees what one person paid.", "why": "A scheme and an employer are served in aggregate. A person's payment tells whoever reads it that a visit happened, and when."},
   {"id": "door-locked", "status": 423, "statement": "That door is locked until its switch-on conditions are evidenced.", "why": "Payment results and payout advice arrive only through the doors in packages/catalog/feeds.json, and none of their conditions is met. In development the simulated provider stands behind them, in process, and nothing from the network does."},
   {"id": "cash-before-the-visit-finished", "status": 409, "statement": "Cash is recorded against a finished visit, and this one has not finished.", "why": "A cash code entered before Care says the visit was billable would record money for a visit that may still not happen."},
+  {"id": "payable-not-priced", "status": 409, "statement": "This visit has no price Money can read yet, so nothing is charged.", "why": "appointment.booked@1 carries no service, so the payable it opens has no amount until visit.billable@1 names one. A charge against a payable with no catalogue price is an amount that came from the caller."},
   {"id": "deduction-without-a-reason", "status": 422, "statement": "A payout does not go down without a line naming the visit and the reason.", "why": "packages/catalog/earnings.json's every-deduction-is-named rule, enforced on the ledger rather than only drawn on the screen."}
  ],
  "ownIds": [],
@@ -53,7 +54,9 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E10", "what": "Card, EFT, debit order, cash with OTP reconciliation"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/payments@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "GET",
@@ -76,7 +79,9 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E10", "what": "Nurse weekly payouts (75%) and doctor per-case fees"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'GET /v1/money/payouts@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",

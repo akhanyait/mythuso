@@ -83,6 +83,15 @@ export function periodEndFor(at: Date): string {
  return local.toISOString().slice(0, 10);
 }
 
+/** The day a week's run goes out: the first paysOn strictly after a date — Sunday to Wednesday, not Sunday to Sunday. */
+export function paysOnFor(isoDate: string): string {
+ const at = new Date(`${isoDate}T00:00:00Z`);
+ const target = DAYS.indexOf(earningsContract.cycle.paysOn);
+ at.setUTCDate(at.getUTCDate() + 1);
+ at.setUTCDate(at.getUTCDate() + ((target - at.getUTCDay() + 7) % 7));
+ return at.toISOString().slice(0, 10);
+}
+
 /* ---- Recomputing ---------------------------------------------------------------------------- */
 
 export type RecomputeReason = 'reversal' | 'correction' | 'suspension';
