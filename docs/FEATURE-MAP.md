@@ -885,6 +885,45 @@ them. The OBX-to-FHIR mapping has no clinical reviewer yet and is not in the rev
 follow-up proposals. ADT A08 and ORM are not built. No HL7 library is in the open-source register as a candidate, because
 none was read from its primary source in this wave. Neither phone has a lab results screen.
 
+## Delivered — Clinical Intelligence: the inbox and its signature, the consultation frame, and triage, guidance and outcome questions that wait on the board, 15 September 2026 (seed plan, Wave 5, Clinical Safety)
+
+Clinical Intelligence is built on the engine runtime with **no clinical content of any kind**. Its contract is
+`packages/catalog/clinical.json`: frames, empty registries, words and two settings. Its routes are
+`packages/catalog/apis/clinical.json`, where the inbox, the signature, the consultation, triage and outcome questions
+are withdrawn for versions that refuse what the first could not; its arithmetic is `packages/engines/src/clinical/domain`,
+which the engine binds and the web preview runs. Clinical keeps references and states: a consultation's words, a
+triage's reason codes, a script and a patient's answers are the Health Passport's.
+
+| What landed | The refusals it adds | Where |
+|---|---|---|
+| **The clinical inbox**: the visits Care hands over (`visit.handover.submitted@1`), each by reference, with the protocol version the visit named, whether the register holds it as ratified and whether its record is complete; read only by a confirmer the settings name whom Trust has cleared today | not-a-confirmer, state-not-declared | `GET /v1/clinical/reviews@2` |
+| **A review signed by the confirmer's own action**: under the ratified protocol the visit named, or — for a draft or none — only as *reviewed outside any protocol*, which the signature says in the contract's sentence; signing starts the episode whose outcome questions keep the days in force | auto-signed-note (engine), not-a-confirmer, no-such-review, review-already-signed, own-record, record-incomplete, signing-mode-not-declared, protocol-not-ratified, protocol-not-the-visits, sign-under-the-ratified-protocol. `review.signed@1` names a protocol version on its envelope only when it is ratified | `POST /v1/clinical/reviews/{reviewRef}/sign@2` |
+| **The structured consultation**: the Passport entry and which SOAP headings it holds; a heading is required when a section it covers is required in `records.json` | required-sections-missing, section-not-in-the-frame, consultation-already-signed-off, auto-signed-note (engine) | `POST /v1/clinical/consultations@2` |
+| **Triage as a frame**: Gilbert's emergency terms first and untouched, the red-flag gate, a priority only with its reason codes, a model that may explain and never lower. No triage protocol is ratified, so every call is answered **not triaged**, with who decides | triage-without-ratified-protocol and model-lowers-priority (engine, answered by this route), priority-without-reason-codes, protocol-content-not-in-this-build | `POST /v1/clinical/triage@3` |
+| **Home Guidance**: the four outcomes §8 names, by name only; no script is ratified, so each is refused | script-not-ratified, tells-a-diagnosis | `POST /v1/clinical/guidance@1`, built as frozen |
+| **Outcome questions**: an episode scheduled from the days in force when its review is signed, and an instrument registry that is empty until the board chooses | no-such-episode, prom-not-due, no-prom-instrument | `POST /v1/clinical/proms@2` |
+| **Two proposed settings, both waiting on a clinical review**: who confirms a clinical review (doctor; doctor or nurse, the roles that read the record and write a note), and the days outcome questions are asked on (the documents' own two; 1–90 days, one to three times) | The shared settings refusals, and prom-days-out-of-order. Who confirms is read by the inbox and the signature whenever they are asked; the days are kept by the episode | `clinical.json` `settings`, `GET /v1/clinical/settings@1`, `POST …/setting-changes@1`, `POST …/setting-reviews@1`, `lib/settings.ts clinicalSettingsNow()` |
+| **Screens**: the doctor's inbox and signature on web, iOS and Android; the consultation frame on the web; the not-triaged and no-ratified-script answers in the nurse's Assessments and the doctor's Protocols on the web and in the phone's inbox; outcome questions on the patient's record on the web. All in the clinical workspace, off the patient's first load | Sentences word for word from the contracts; roles and days from the settings in force (web) or the generated defaults (phones) | `features/ClinicalIntelligence.tsx`, `lib/clinical.ts`, `Features/ClinicalInboxView.swift`, `ui/ClinicalInboxScreens.kt`, `scripts/emit-clinical.mjs` |
+| **Build guarantees** | No triage answers a priority without a ratified protocol; nothing lowers a rule-engine priority; no auto-sign path; no patient-facing "you have …" wording; a draft protocol is never claimed as followed; no guidance script's words outside a ratified protocol; no outcome instrument typed; no event carries a diagnosis, notes, red flags or identity; no screen types the outcome days; only clinical roles confirm. Each proven to fire by breaking its source. The clinical review pack lists every frame in section G | the Clinical Intelligence block ahead of the generated list in `scripts/check-boundaries.mjs`; `packages/engines/src/clinical/engine.test.ts`; `tests/clinical.spec.ts`; `docs/governance/CLINICAL-REVIEW-PACK.md` |
+
+Still open. `review.signed@1`, `triage.completed@2` and `guidance.delivered@1` were frozen in Wave 2; their declared
+subscribers bind no handler yet, and Money will subscribe to `review.signed` when claims act on it. Care does not yet
+put the protocol a visit was carried out under on the handover's envelope, so every review from the engine names none.
+The runtime holds a top-level response field to `required` without reading `nullable`, so the sign and consultation
+routes leave an absent value out rather than answering null.
+
+**Who confirms a clinical review is the review-confirmer setting, everywhere (16 September).** Every engine whose
+settings wait on a clinical review — Access, Care, Medicines and Clinical — withdrew `GET …/settings@1` and
+`POST …/setting-reviews@1`, which admitted a doctor from the vetting register's grant of `sign-clinical-review`, for
+version two, which admits every clinical role the setting may name (doctor, nurse). The handlers confirm, and let read,
+only the roles it names in force: `packages/engines/src/settings/shape.ts reviewersOf()` is the one answer, Clinical
+reads it from its own store, and the other three ask the new `GET /v1/clinical/review-confirmers@1`, confirming nobody
+if Clinical does not answer. The web's setting reviews and the doctor-review screen on web, iOS and Android ask the same
+setting. Refusal: confirmers-read-by-engines. Build guarantee 11 in the Clinical Intelligence block holds it, and
+`packages/engines/src/review-confirmer-reaches-every-engine.test.ts` proves a nurse refused and then admitted on Clinical
+and on Care. Still open: a consultation's diagnosis field and a teleconsultation read `sign-clinical-review` as a
+capability to diagnose and to consult, which is not confirming a review, and are unchanged.
+
 ## Next UI increments
 
 Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only

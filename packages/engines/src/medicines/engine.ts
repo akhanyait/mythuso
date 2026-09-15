@@ -30,7 +30,7 @@
  */
 import { createHash, randomBytes, randomInt, randomUUID } from 'node:crypto';
 import { defineEngine, instant, ok, refuse, type BusEvent, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
-import { SETTINGS_SCHEMA, settingsIn, settingsRoutes } from '../settings/routes.ts';
+import { SETTINGS_SCHEMA, confirmersFromClinical, settingsIn, settingsRoutes } from '../settings/routes.ts';
 import { dayOf, outcomeOf, pinDigits, resultAlert, searchFormulary, type Emitted } from './domain/contract.ts';
 import { STANDING_EVENTS, learn, mayAct, type Standing, type StandingReader } from './domain/standing.ts';
 import { dispense, prescribe, queueFor, runCheck, verify, type Check, type Prescription } from './domain/prescriptions.ts';
@@ -251,7 +251,8 @@ export const engine = defineEngine({
    return ok({ receivedAt: instant(new Date(now)) });
   },
 
-  ...settingsRoutes(medicinesSettings, { read: 'GET /v1/medicines/settings@1', change: 'POST /v1/medicines/setting-changes@1', review: 'POST /v1/medicines/setting-reviews@1' })
+  /* Who confirms a clinical review is Clinical's review-confirmer setting in force, asked of Clinical (Wave 5). */
+  ...settingsRoutes(medicinesSettings, { read: 'GET /v1/medicines/settings@2', change: 'POST /v1/medicines/setting-changes@1', review: 'POST /v1/medicines/setting-reviews@2' }, { confirmers: confirmersFromClinical })
  },
  subscriptions: {
   ...Object.fromEntries(STANDING_EVENTS.map(key => [key, heardStanding])),

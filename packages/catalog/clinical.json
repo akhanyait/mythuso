@@ -1,0 +1,289 @@
+{
+ "_note": "Clinical Intelligence (Thuso AI), Wave 5: the frames, gates, registries and refusals the clinical inbox, structured consultations, triage, Home Guidance and outcome questions are built on, and not one word of clinical content. The founder's rule is that clinical rules, thresholds, triage discriminators, red flags, guidance scripts and outcome instruments come only from the clinical governance board. So every registry here is empty until the board fills it, every frame names the slot the board's content goes in and nothing that would go in it, and every route that would need that content refuses in the sentence packages/catalog/apis/clinical.json declares. packages/engines/src/clinical binds the routes; the web preview runs the same domain in the browser; scripts/emit-clinical.mjs writes what the phones need into Swift and Kotlin. Nothing here is a real service: no visit is reviewed, no patient is triaged, no guidance is given and no question is asked.",
+ "version": 1,
+ "engine": "clinical",
+ "api": "packages/catalog/apis/clinical.json",
+
+ "whereContentLives": {
+  "says": "Clinical holds references and states. A consultation's words, the reason codes a triage would set, a guidance script's words and a patient's answers are in the Health Passport, written through its consent gateway under the writer's own grant, and Clinical keeps the reference to the entry and whether it is complete.",
+  "why": "No engine holds a copy of a record. A store that kept a consultation's assessment beside its reference would be a second record with none of the Passport's consent, purpose and audit in front of it, and the first time anybody needed that difference it would be a breach."
+ },
+
+ "reviews": {
+  "_note": "A nurse hands a visit over for review (Care publishes visit.handover.submitted@1) and Clinical opens a review for it. A clinician the settings name as a confirmer signs it, by their own action, under the protocol version the visit named when the register holds that version as ratified, and otherwise only as reviewed outside any protocol, which the signature says.",
+  "states": [
+   { "code": "waiting", "label": "Waiting for review" },
+   { "code": "signed", "label": "Signed" }
+  ],
+  "signingModes": [
+   { "code": "under-ratified-protocol", "label": "Signed under a ratified protocol", "sentence": "Signed under {protocol}, which the clinical governance board has ratified." },
+   { "code": "outside-any-protocol", "label": "Reviewed outside any protocol", "sentence": "Reviewed outside any protocol. The visit named {protocol}, which the clinical governance board has not ratified, so this signature follows no protocol and says so.", "noProtocolSentence": "Reviewed outside any protocol. The visit named no protocol, so this signature follows none and says so." }
+  ],
+  "confirmerSetting": "review-confirmer",
+  "confirmerCapability": "sign-clinical-review",
+  "_confirmerNote": "Every setting on every engine that waits on a clinical review names sign-clinical-review, and who holds it for that purpose is the review-confirmer setting in force, not the vetting register's grant. packages/engines/src/settings/shape.ts reviewersOf() is the one answer: Clinical reads the value from its own store, every other engine asks GET /v1/clinical/review-confirmers@1, and the web preview reads the tab's history.",
+  "clinicalRoleHolds": ["view-clinical-record", "write-clinical-note"],
+  "_clinicalRoleHoldsNote": "What makes a role on packages/catalog/vetting.json a clinical role for the purpose of confirming a review: it both reads the clinical record and writes a clinical note. The review-confirmer setting may name only roles that hold both, and scripts/check-boundaries.mjs holds its allowed roles to it. A guardian reads a record and writes no note; a pharmacy dispenses and reads a summary; neither answers for a nurse's visit.",
+  "autoSign": {
+   "allowed": false,
+   "why": "A signature is a clinician's own act, attributed to the registration that made it. A note signed by a timer, a subscription, a default or a model is a signature nobody gave, and it would read afterwards exactly like one somebody did."
+  },
+  "complete": "A review's record is complete when a consultation for its encounter was signed off with every required section of the frame written. Until then the review waits, and a signature is refused.",
+  "episode": "Signing a review starts the episode of care whose outcome questions are scheduled from the days the settings in force name.",
+  "screen": {
+   "heading": "Clinical inbox",
+   "intro": "Visits nurses handed over for review, each by reference, with the protocol the visit named and whether its record is complete. A review is signed by your own action, under a ratified protocol or as reviewed outside any protocol, and never for you.",
+   "preview": "This preview keeps the inbox in memory on this device and nowhere else. No visit was handed over, no record exists behind a reference and no signature reaches anybody.",
+   "confirmers": "Signed by {roles}, as the settings in force name.",
+   "named": "Named {protocol}",
+   "namedNone": "Named no protocol",
+   "ratified": "Ratified",
+   "draft": "Draft, not ratified",
+   "recordComplete": "Record complete",
+   "recordIncomplete": "Record not complete",
+   "mode": "How this review is signed",
+   "sign": "Sign the review",
+   "signed": "Signed by {who} at {at}.",
+   "empty": "Nothing is waiting for review.",
+   "patient": "Patient {subject}"
+  }
+ },
+
+ "consultation": {
+  "_note": "The structured consultation's frame. Its headings are packages/catalog/records.json consultation.soap and are not written again here; which long-form sections each heading covers is below, and a heading is required when any section it covers is required in records.json. Sign-off is refused until every required heading is written, and a heading is written when the writer put something under it. What they wrote is the Passport's.",
+  "headingsFrom": "packages/catalog/records.json#consultation.soap",
+  "covers": {
+   "S": ["reason", "history"],
+   "O": ["observations", "examination"],
+   "A": ["assessment"],
+   "P": ["plan", "medication", "tests", "referral", "followup"]
+  },
+  "screen": {
+   "heading": "Consultation frame",
+   "intro": "One heading per part of the consultation. Sign-off waits until every required heading has something under it, and a signed consultation is not rewritten: a correction is a new entry.",
+   "preview": "Nothing you type here is stored, and no entry is written to a Health Passport.",
+   "required": "Required",
+   "optional": "Optional",
+   "signOff": "Sign off the consultation",
+   "missing": "Still to write: {headings}.",
+   "signedOff": "Signed off at {at}. A correction is a new entry."
+  }
+ },
+
+ "wording": {
+  "patientDiagnosis": {
+   "rule": "Nothing addressed to a patient tells them they have a condition. A finding is consistent with something, for a clinician to confirm with them.",
+   "refusal": "you-have-x",
+   "says": "consistent with",
+   "phrases": [
+    "you have been diagnosed",
+    "you are diagnosed",
+    "you've been diagnosed",
+    "your diagnosis is",
+    "you are suffering from",
+    "you're suffering from",
+    "you have a condition",
+    "you have the condition",
+    "you have a disease",
+    "you have an illness",
+    "you have an infection",
+    "you have a disorder",
+    "you have got a",
+    "you've got a"
+   ],
+   "scope": ["packages/catalog", "apps/web/src", "apps/ios/MyThuso", "apps/android/app/src/main"],
+   "why": "A diagnosis is a registered clinician's, given to a patient in a conversation that can answer the questions it raises. Software that tells somebody what they have has diagnosed them with nobody accountable, and ThusoIQ Master v3.5 §5.3 holds a finding to \"consistent with\". The phrases are wording, not clinical content: they name no condition, and the build refuses every one of them in any patient-facing sentence."
+  }
+ },
+
+ "triage": {
+  "_note": "Triage is a rule engine run under a ratified triage protocol: Gilbert's emergency terms first and untouched, then the protocol's hard red-flag gate, then a priority from the protocol's own scale with the reason codes that set it, and the care setting. Every part of that content is the board's. No protocol in packages/catalog/protocols.json is a triage protocol and none is ratified, so every triage is answered not triaged, in the refusal's own sentence, and handed to a nurse or a doctor. Software never guesses a priority.",
+  "stages": [
+   { "code": "emergency-terms", "label": "Gilbert's emergency terms", "rule": "Asked before triage and never by it. A patient who said something packages/catalog/gilbert-emergency-terms.json lists has already been given the emergency answer, and nothing triage says changes it." },
+   { "code": "red-flag-gate", "label": "Red-flag gate", "rule": "The ratified protocol's red flags, asked before anything else it says. A red flag that fires sets the protocol's most urgent priority, and nothing after it may lower it." },
+   { "code": "priority", "label": "Priority", "rule": "A priority from the ratified protocol's own scale, with the reason codes that set it. A priority without its reason codes is refused." },
+   { "code": "care-setting", "label": "Where the patient is seen", "rule": "The disposition the protocol gives that priority. The reason codes are written to the record; only the priority and the care setting travel on the bus." },
+   { "code": "explanation", "label": "Explanation", "rule": "A language model may explain the answer in plain words. A priority it names may match or raise the rules' priority, and never lower it." }
+  ],
+  "triageProtocols": {
+   "ids": [],
+   "decidedBy": null,
+   "why": "Which protocols in the registry are triage protocols is the board's to say when it writes one. None of the twelve registered today is, so nothing can be triaged under anything, and no registry entry can be borrowed for triage by naming it."
+  },
+  "notTriaged": {
+   "label": "Not triaged",
+   "routesTo": ["nurse", "doctor"],
+   "human": "A nurse or a doctor decides what happens next. Software sets no priority for them and guesses none.",
+   "emergencyFirst": "If the patient said something Gilbert's emergency terms list, the emergency answer was given first and still stands."
+  },
+  "screen": {
+   "heading": "Triage",
+   "intro": "Triage runs only under a triage protocol the clinical governance board has ratified, and none is.",
+   "start": "Start triage",
+   "routedTo": "Handed to: {roles}"
+  }
+ },
+
+ "guidance": {
+  "_note": "Home Guidance ends a triage in one of four outcomes, each read to the patient from a ratified script. The outcomes are named by ThusoIQ Master v3.5 §8, Part A, and only named here: what a patient sees or hears for each, and every example the document gives, are the board's to write and are not in this file. No script is ratified, so every outcome refuses with the route's sentence and nothing is said to the patient.",
+  "outcomes": [
+   { "code": "self-care", "label": "Self-care", "scriptRef": null },
+   { "code": "see-a-nurse", "label": "See a nurse", "scriptRef": null },
+   { "code": "urgent", "label": "Urgent", "scriptRef": null },
+   { "code": "emergency", "label": "Emergency", "scriptRef": null }
+  ],
+  "scripts": [],
+  "scriptKeys": ["scriptRef", "outcomeCode", "protocolVersionId", "contentRef"],
+  "rule": "A script is the board's words at a ratified protocol version, referenced by contentRef. Nothing here holds a script's words, and an outcome with no ratified script says nothing to the patient.",
+  "screen": {
+   "heading": "Home Guidance",
+   "intro": "Each outcome is read to the patient from a script the clinical governance board has ratified. None is.",
+   "give": "Give {outcome} guidance",
+   "noScript": "No ratified script"
+  }
+ },
+
+ "proms": {
+  "_note": "Outcome questions, asked of a patient on the days the prom-days setting names after a review is signed. The days are a setting, proposed as the planning documents give them. The instrument the questions come from is the board's choice, and the registry is empty until it chooses, so every answer is refused.",
+  "scheduleSetting": "prom-days",
+  "instruments": [],
+  "instrumentKeys": ["id", "name", "version", "chosenBy", "chosenOn", "contentRef"],
+  "rule": "An instrument is chosen by the clinical governance board, named with who chose it and when, and referenced by contentRef. No question, scale or score is written anywhere in this codebase.",
+  "episode": {
+   "startsWhen": "A review is signed.",
+   "keeps": "The days and the settings version in force when the review was signed. A change to the setting reaches the next episode and never one already scheduled."
+  },
+  "screen": {
+   "heading": "Outcome questions",
+   "intro": "Whether the care helped, asked of the patient after a review is signed.",
+   "schedule": "Asked {days} days after a review is signed.",
+   "episode": "{episode}, signed {signed}: asked on {dates}",
+   "none": "No episode of care has been signed in this tab yet."
+  }
+ },
+
+ "preview": {
+  "_note": "The doctor's inbox in the web preview and on both phones. Three visits a nurse handed over, by the references the review queue already shows. Each names the protocol version it was carried out under, which the register holds as a draft or is none at all, and a consultation whose required headings are written or not. Nothing here is a real visit, a real record or a real nurse.",
+  "writtenBy": "N-205",
+  "reviews": [
+   { "appointmentRef": "TH-2048", "encounterRef": "encounter-preview-2048", "subjectRef": "subject-preview-2048", "protocolVersionId": "vitals-and-chronic-check@1", "sectionsWritten": ["S", "O", "A", "P"], "signedOff": true },
+   { "appointmentRef": "TH-2041", "encounterRef": "encounter-preview-2041", "subjectRef": "subject-preview-2041", "protocolVersionId": null, "sectionsWritten": ["S", "O", "A", "P"], "signedOff": true },
+   { "appointmentRef": "TH-2045", "encounterRef": "encounter-preview-2045", "subjectRef": "subject-preview-2045", "protocolVersionId": "wound-care@1", "sectionsWritten": ["S", "O"], "signedOff": false }
+  ]
+ },
+
+ "settings": {
+  "_note": "Clinical's settings, in the shape packages/catalog/settings.json gives every setting. The founder instructed on 15 September 2026 that open questions become admin settings, so who may confirm a clinical review and the days outcome questions are asked on are proposals an admin changes within bounds that are themselves proposals, and both wait on a clinical review by somebody holding sign-clinical-review. packages/engines/src/clinical reads who confirms when a review is read or signed, and the days when a review is signed, keeping them on the episode. GET /v1/clinical/settings@1, POST /v1/clinical/setting-changes@1 and POST /v1/clinical/setting-reviews@1 answer through packages/engines/src/settings.",
+  "heading": "Clinical Intelligence settings",
+  "intro": "Who may confirm the clinical review of a visit a nurse handed over, and how many days after a review is signed a patient is asked whether their care helped.",
+  "defaults": {
+   "version": 1,
+   "changelog": [
+    {
+     "version": 1,
+     "on": "2026-09-15",
+     "by": "Clinical Safety lead (Wave 5)",
+     "changed": [
+      { "setting": "review-confirmer", "from": null, "to": ["doctor"] },
+      { "setting": "prom-days", "from": null, "to": [7, 30] }
+     ],
+     "why": "The founder instructed that open questions become admin settings. Who confirms a clinical review was queued as a follow-up to become one, and the days outcome questions are asked on are the planning documents' own. Both are proposed by the Clinical Safety lead, neither is decided, and both wait on a clinical review."
+    }
+   ]
+  },
+  "items": [
+   {
+    "key": "review-confirmer",
+    "label": "Who confirms a clinical review",
+    "help": "Which registered clinical roles may sign the review of a visit a nurse handed over.",
+    "owner": "clinical",
+    "type": "roleList",
+    "unit": null,
+    "default": {
+     "value": ["doctor"],
+     "decidedBy": null,
+     "proposedBy": "Clinical Safety lead (Wave 5)",
+     "proposedBecause": "It is what the vetting register already says: sign-clinical-review is granted to a doctor, and the planning documents put the review of a nurse's visit with a registered doctor. Whether a senior nurse may confirm some reviews is a clinical governance question, so the choice is here and the default is the documents' answer."
+    },
+    "allowedRoles": {
+     "roles": ["doctor", "nurse"],
+     "decidedBy": null,
+     "proposedBy": "Clinical Safety lead (Wave 5)",
+     "proposedBecause": "The roles on the vetting register that both read the clinical record and write a clinical note (packages/catalog/clinical.json reviews.clinicalRoleHolds). A role that cannot read the record cannot review it, and a role that cannot write a note cannot answer for one."
+    },
+    "items": {
+     "lowest": {
+      "value": 1,
+      "decidedBy": null,
+      "proposedBy": "Clinical Safety lead (Wave 5)",
+      "proposedBecause": "A review is always signed by somebody. An inbox nobody may sign is a queue of visits that never close, and it looks like a backlog rather than a mistake."
+     },
+     "highest": {
+      "value": 2,
+      "decidedBy": null,
+      "proposedBy": "Clinical Safety lead (Wave 5)",
+      "proposedBecause": "Every clinical role the register holds, and no more."
+     }
+    },
+    "reviewRequired": "sign-clinical-review",
+    "changedBy": "admin",
+    "appliesTo": "A change applies to reviews read or signed after it. A review already signed keeps the signature it was given.",
+    "guardrail": {
+     "statement": "A clinical review is always signed by a registered clinician who reads the record and writes the note: never an admin, an operator, a pharmacy, a laboratory, a carer, a guardian or a courier, and never nobody.",
+     "forbids": [[], ["admin"], ["operator"], ["pharmacy"], ["laboratory"], ["carer"], ["guardian"], ["doctor", "courier"]]
+    }
+   },
+   {
+    "key": "prom-days",
+    "label": "When a patient is asked whether their care helped",
+    "help": "How many days after a review is signed a patient is asked the outcome questions for that episode of care.",
+    "owner": "clinical",
+    "type": "list",
+    "of": "count",
+    "unit": "days",
+    "positive": true,
+    "default": {
+     "value": [7, 30],
+     "decidedBy": null,
+     "proposedBy": "Clinical Safety lead (Wave 5)",
+     "proposedBecause": "The planning documents give these days: MyThuso Full Scope v1.0 names PROMs at 7 and 30 days, and ThusoIQ Master v3.5 asks whether it fixed it at 7 and 30 days after every episode. Nobody with clinical authority has decided them for MyThuso, so they are proposed exactly as the documents give them."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 1,
+      "decidedBy": null,
+      "proposedBy": "Clinical Safety lead (Wave 5)",
+      "proposedBecause": "A question on the day of care measures the visit rather than whether it helped."
+     },
+     "highest": {
+      "value": 90,
+      "decidedBy": null,
+      "proposedBy": "Clinical Safety lead (Wave 5)",
+      "proposedBecause": "No consent grant lasts longer than the ceiling the founder decided (packages/catalog/consent.json maximumExpiryDecision), so a question later than that could be asked under a grant that has already ended."
+     }
+    },
+    "items": {
+     "lowest": {
+      "value": 1,
+      "decidedBy": null,
+      "proposedBy": "Clinical Safety lead (Wave 5)",
+      "proposedBecause": "An episode of care is followed up at least once, or whether it helped is never asked."
+     },
+     "highest": {
+      "value": 3,
+      "decidedBy": null,
+      "proposedBy": "Clinical Safety lead (Wave 5)",
+      "proposedBecause": "Three times is already more than the documents ask. A fourth is a patient answering a questionnaire rather than being asked how they are."
+     }
+    },
+    "reviewRequired": "sign-clinical-review",
+    "changedBy": "admin",
+    "appliesTo": "A change applies to episodes that start after it, when a review is signed. An episode already scheduled keeps the days it was scheduled with.",
+    "guardrail": {
+     "statement": "A patient is always asked at least once, never on the day of their care, never twice on one day, never out of order and never after a consent grant could have ended.",
+     "forbids": [[], [0], [0, 30], [30, 7], [7, 7], [7, 91], [1, 2, 3, 4]]
+    }
+   }
+  ]
+ }
+}

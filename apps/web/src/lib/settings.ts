@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import {
- confirmReview, proposeChange, reviewStateOf, snapshotOf,
+ confirmReview, confirmerRoles, proposeChange, reviewStateOf, snapshotOf,
  type Change, type ChangeRequest, type Refusal, type Review, type ReviewState, type Setting, type SettingValue, type SettingsEngine, type Snapshot
 } from '../../../../packages/engines/src/settings/shape.ts';
 import { settingsEngines } from '../../../../packages/engines/src/settings/registry.ts';
@@ -15,6 +15,9 @@ import type { Terms as CollectionTerms } from '../../../../packages/engines/src/
 import { trustInForce, type TrustInForce } from '../../../../packages/engines/src/trust/domain/settings.ts';
 import { sharingSettingsOf, type SharingInForce } from '../../../../packages/engines/src/record/domain/settings.ts';
 import { devicesInForce, type DevicesInForce } from '../../../../packages/engines/src/devices/domain/settings.ts';
+import { clinicalInForce, type ClinicalInForce } from '../../../../packages/engines/src/clinical/domain/settings.ts';
+import { clinicalRoleHolds, refusal as clinicalRefusal } from '../../../../packages/engines/src/clinical/domain/contract.ts';
+import type { Decision, VettingSubject } from './vetting';
 import { roleOf, whoIs } from './roles';
 import { can } from './vetting';
 /* Whether a rota's post is on duty, and when a shut one opens: the shared settings code's one rule, which the
@@ -117,6 +120,9 @@ export const recordSettingsNow = (): SharingInForce => sharingSettingsOf(snapsho
 /* Devices' three, read the same way: the kit's health and the registry ask devicesSettingsNow() whenever they
    work a device's health out, and a kit is issued with the deposit it answers, which the kit keeps. */
 export const devicesSettingsNow = (): DevicesInForce => devicesInForce(historyOf('devices'));
+/* Clinical's two, read the same way: the inbox asks clinicalSettingsNow() whenever it is drawn or a review is signed,
+   for who may confirm; a signature asks it once for the days outcome questions are asked on, and the episode keeps them. */
+export const clinicalSettingsNow = (): ClinicalInForce => clinicalInForce(historyOf('clinical'));
 
 /* Whether the value a setting held at a settings version has been clinically reviewed. Something that started
    under an older version — an offer on a nurse's screen — is described by the value it started under, not
@@ -180,6 +186,18 @@ export function pendingReviewsNow(): PendingReview[] {
  });
 }
 
+/* Who may confirm a clinical review — a setting's here, and a nurse's visit on the doctor's review screen — asked in one
+   place: a role Clinical's review-confirmer setting names in force, and a person the vetting register lets act today on
+   every capability a clinical role holds. The register's grant of sign-clinical-review decides none of it. */
+export function mayConfirmClinicalReview(subject: VettingSubject): Decision {
+ if (!confirmerRoles.includes(subject.roleId) || !clinicalSettingsNow().confirmers.includes(subject.roleId)) return { allowed: false, reason: clinicalRefusal('not-a-confirmer').statement, blockedBy: [] };
+ for (const capability of clinicalRoleHolds) {
+  const decision = can(subject, capability);
+  if (!decision.allowed) return decision;
+ }
+ return { allowed: true, blockedBy: [] };
+}
+
 export type ReviewRequest = { readonly setting: string; readonly settingsVersion: number; readonly reason: string };
 export type Confirmed = { readonly ok: true; readonly review: Review } | { readonly ok: false; readonly refusal: Refusal };
 
@@ -190,10 +208,9 @@ export type Confirmed = { readonly ok: true; readonly review: Review } | { reado
    reason are the shared rules' to ask, in their order. */
 export function confirmSettingReview(engine: string, request: ReviewRequest, now = Date.now()): Confirmed {
  const ref = doctorOnDuty();
- const setting = engineOf(engine).block.items.find(s => s.key === request.setting);
  const subject = ref ? whoIs(ref, '').subject : null;
- const byRole = subject && setting?.reviewRequired && can(subject, setting.reviewRequired).allowed ? subject.roleId : '';
- const result = confirmReview(engineOf(engine), historyOf(engine), reviewsOf(engine), { ...request, byRole, byRef: ref }, now);
+ const byRole = subject && mayConfirmClinicalReview(subject).allowed ? subject.roleId : '';
+ const result = confirmReview(engineOf(engine), historyOf(engine), reviewsOf(engine), { ...request, byRole, byRef: ref, confirmers: clinicalSettingsNow().confirmers }, now);
  if (!result.ok) return result;
  reviews = Object.freeze({ ...reviews, [engine]: Object.freeze([...reviewsOf(engine), result.value]) });
  told();

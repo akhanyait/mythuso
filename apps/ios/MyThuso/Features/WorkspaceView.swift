@@ -613,6 +613,9 @@ struct WorkspaceSectionView: View {
                                  tone: item.priority ? .attention : .neutral)
                     }.buttonStyle(.plain)
                 }
+                /* Wave 5: the inbox a review is signed from, by the doctor's own press, with triage and guidance
+                   answered as not triaged and no ratified script. */
+                pill(ClinicalData.InboxText.heading, ClinicalData.InboxText.mode, "tray.full") { ClinicalInboxView() }
             }
             group("Your vetting") {
                 pill("My registration and cover", "What lapses, and when", "checkmark.seal") { VettingStatusView(subjectId: "D-401") }

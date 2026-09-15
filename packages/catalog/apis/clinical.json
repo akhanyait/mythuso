@@ -1,15 +1,15 @@
 {
  "engine": "clinical",
- "_note": "Clinical Intelligence is decision support with a doctor's signature: the clinical inbox, review and sign, structured consultations, triage on ratified protocols, result acknowledgement, Home Guidance and PROMs. Every protocol in packages/catalog/protocols.json is a draft today, so every triage and guidance call is refused in practice until the board ratifies one. Wave 2 contract; Wave 5 build.",
+ "_note": "Clinical Intelligence is decision support with a doctor's signature: the clinical inbox, review and sign, structured consultations, triage on ratified protocols, result acknowledgement, Home Guidance and PROMs. Every protocol in packages/catalog/protocols.json is a draft today, so every triage and guidance call is refused in practice until the board ratifies one. Wave 2 contract; built on the engine runtime in Wave 5, when the inbox, the signature, the consultation, triage and outcome questions were withdrawn for versions that refuse what the first could not. packages/catalog/clinical.json holds the frames, registries, words and settings.",
  "version": 1,
- "resources": ["reviews", "consultations", "triage", "results", "guidance", "proms"],
+ "resources": ["reviews", "consultations", "triage", "results", "guidance", "proms", "settings", "setting-changes", "setting-reviews", "review-confirmers"],
  "doors": ["screening-result", "media-session"],
  "doorsToAdd": [],
  "refusals": [
-  {"id": "triage-without-ratified-protocol", "status": 409, "statement": "Nothing is triaged without a ratified protocol.", "why": "Software does not triage until the board has ratified the rules it triages by."},
-  {"id": "model-lowers-priority", "status": 409, "statement": "No model output lowers a priority the rules set.", "why": "§15D: generative AI may explain a priority; it may not lower one."},
+  {"id": "triage-without-ratified-protocol", "status": 409, "statement": "Nothing is triaged without a ratified protocol.", "why": "Software does not triage until the board has ratified the rules it triages by.", "answeredBy": ["POST /v1/clinical/triage@3"]},
+  {"id": "model-lowers-priority", "status": 409, "statement": "No model output lowers a priority the rules set.", "why": "§15D: generative AI may explain a priority; it may not lower one.", "answeredBy": ["POST /v1/clinical/triage@3"]},
   {"id": "you-have-x", "status": 422, "statement": "No output tells a patient they have a condition.", "why": "Findings are \"consistent with\", for a clinician to confirm (§5.3)."},
-  {"id": "auto-signed-note", "status": 409, "statement": "Nothing is signed automatically.", "why": "A note is signed by a doctor's own action."},
+  {"id": "auto-signed-note", "status": 409, "statement": "Nothing is signed automatically.", "why": "A note is signed by a doctor's own action.", "answeredBy": ["POST /v1/clinical/reviews/{reviewRef}/sign@2", "POST /v1/clinical/consultations@2"]},
   {"id": "result-complete-before-acknowledgement", "status": 409, "statement": "A result is not complete until a clinician acknowledges it.", "why": "An unacknowledged result is a loop nobody closed."}
  ],
  "ownIds": [],
@@ -19,7 +19,7 @@
    "path": "/v1/clinical/reviews",
    "version": 1,
    "summary": "Read the clinical inbox.",
-   "callers": ["doctor"],
+   "callers": [],
    "purpose": ["treatment"],
    "request": [
     {"field": "stateCode", "type": "string", "required": false, "why": "Filter by state."}
@@ -35,14 +35,15 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "GET /v1/clinical/reviews@2", "why": "It answered only a doctor on the panel, so the review-confirmer setting could never name another clinical role to read what it signs, and the inside of each review it returned was described in prose rather than declared."}
   },
   {
    "method": "POST",
    "path": "/v1/clinical/reviews/{reviewRef}/sign",
    "version": 1,
    "summary": "A doctor signs a review, under a named protocol version.",
-   "callers": ["doctor"],
+   "callers": [],
    "purpose": ["treatment"],
    "request": [
     {"field": "reviewRef", "type": "string", "required": true, "why": "The review."},
@@ -60,14 +61,15 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/clinical/reviews/{reviewRef}/sign@2", "why": "It required a ratified protocol version on every signature, so a visit carried out under a draft could never be signed at all, not even as reviewed outside any protocol; and it could not refuse an auto-signed note, a signer who is not cleared, a clinician signing a record they wrote, or a record that is not complete."}
   },
   {
    "method": "POST",
    "path": "/v1/clinical/consultations",
    "version": 1,
    "summary": "Write a structured consultation; sign-off is blocked until it is complete.",
-   "callers": ["doctor", "nurse"],
+   "callers": [],
    "purpose": ["treatment"],
    "request": [
     {"field": "subjectRef", "type": "string", "required": true, "why": "Whose consultation."},
@@ -90,7 +92,8 @@
    "endpointNamed": null,
    "capabilityNamed": {"section": "§5.2", "what": "Sign-off blocked until required fields complete"},
    "status": "proposed",
-   "through": "passport-gateway"
+   "through": "passport-gateway",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/clinical/consultations@2", "why": "It carried the consultation's words to Clinical, which keeps references and states: the words go to the Health Passport through its consent gateway under the writer's own grant, and the route names the entry and the headings it holds. It also could not refuse a second sign-off, a heading outside the frame or a sign-off nobody gave."}
   },
   {
    "method": "POST",
@@ -125,7 +128,7 @@
    "path": "/v1/clinical/triage",
    "version": 2,
    "summary": "Triage on the rule engine under a ratified protocol: the hard red-flag gate, then a priority and a care setting. The reason codes are written to the record, not returned.",
-   "callers": ["nurse", "doctor"],
+   "callers": [],
    "purpose": ["treatment"],
    "request": [
     {"field": "intakeEntryRef", "type": "string", "required": true, "why": "The intake in the record."},
@@ -146,7 +149,8 @@
    "endpointNamed": null,
    "capabilityNamed": {"section": "§15B", "what": "it cannot lower the rule-engine priority"},
    "status": "proposed",
-   "through": "passport-gateway"
+   "through": "passport-gateway",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/clinical/triage@3", "why": "It could not refuse a priority without the reason codes that set it, a model's explanation naming a lower priority than the rules, or a ratified protocol whose rules are not in the build; and it had no way to be told what a model said, so the rule that a model never lowers a priority had nothing to be asked of."}
   },
   {
    "method": "POST",
@@ -197,14 +201,16 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§8", "what": "Home Guidance recovery pathways"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/clinical/engine.ts", "handler": "'POST /v1/clinical/guidance@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
    "path": "/v1/clinical/proms",
    "version": 1,
    "summary": "A patient answers outcome measures at 7 and 30 days.",
-   "callers": ["patient"],
+   "callers": [],
    "purpose": ["treatment"],
    "request": [
     {"field": "episodeRef", "type": "string", "required": true, "why": "The episode."},
@@ -223,7 +229,310 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "proposed",
-   "through": "passport-gateway"
+   "through": "passport-gateway",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/clinical/proms@2", "why": "It wrote the days outcome questions are asked on into its refusal, and those days are a setting an admin may change, so the sentence would have gone on saying seven and thirty after they were not; it could not refuse answers when the board has chosen no instrument; and the inside of its answers was described only in prose."}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/clinical/reviews",
+   "version": 2,
+   "summary": "Read the clinical inbox: the visits nurses handed over for review, each by reference and state, with the protocol version the visit named, whether the register holds it as ratified and whether its record is complete. Nothing a record says is here.",
+   "callers": ["doctor", "nurse"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "stateCode", "type": "string", "required": false, "why": "Filter by state, from packages/catalog/clinical.json reviews.states."}
+   ],
+   "response": [
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The Clinical settings version the inbox was read under."},
+    {"field": "confirmers", "type": "list", "required": true, "why": "The roles the settings in force name as confirmers of a clinical review, so a screen says who signs without typing a role."},
+    {"field": "reviews", "type": "list", "required": true, "object": true, "why": "The reviews, by reference and state.", "fields": [
+     {"field": "reviewRef", "type": "string", "required": true, "why": "The review."},
+     {"field": "encounterRef", "type": "string", "required": true, "why": "The encounter, read in the Health Passport under the reader's own grant."},
+     {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit Care handed over."},
+     {"field": "subjectRef", "type": "string", "required": true, "why": "The patient's opaque reference. Never a name."},
+     {"field": "stateCode", "type": "string", "required": true, "why": "Waiting or signed, from packages/catalog/clinical.json reviews.states."},
+     {"field": "protocolVersionId", "type": "string", "required": true, "nullable": true, "why": "The protocol version the visit named, or null when it named none."},
+     {"field": "protocolRatified", "type": "boolean", "required": true, "why": "Whether the register holds that version as ratified today. False for a draft and for no protocol at all."},
+     {"field": "recordComplete", "type": "boolean", "required": true, "why": "Whether a consultation for the encounter was signed off with every required heading written."},
+     {"field": "submittedAt", "type": "instant", "required": true, "why": "When the visit was handed over."},
+     {"field": "signingModeCode", "type": "string", "required": true, "nullable": true, "why": "How it was signed, from packages/catalog/clinical.json reviews.signingModes, or null while it waits."},
+     {"field": "signedAt", "type": "instant", "required": true, "nullable": true, "why": "When it was signed, or null while it waits."},
+     {"field": "signedByRef", "type": "string", "required": true, "nullable": true, "why": "Who signed it, or null while it waits."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "not-a-confirmer", "status": 403, "statement": "Only a vetted clinician in a role the settings in force name as a confirmer of clinical reviews reads the inbox or signs a review.", "why": "The inbox is other people's care, read by the people who answer for signing it. A role the settings do not name, and a person whose standing Trust has not confirmed today, is refused either."},
+    {"id": "state-not-declared", "status": 422, "statement": "That is not a state a review can be in.", "why": "A filter on a state nobody declared answers an empty inbox, which reads as nothing waiting."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/clinical/engine.ts", "handler": "'GET /v1/clinical/reviews@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/reviews/{reviewRef}/sign",
+   "version": 2,
+   "summary": "A confirmer signs a review by their own action: under the protocol version the visit named when the register holds it as ratified, and otherwise only as reviewed outside any protocol, which the signature says. Signing starts the episode whose outcome questions are scheduled from the settings in force.",
+   "callers": ["doctor", "nurse"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "reviewRef", "type": "string", "required": true, "why": "The review."},
+    {"field": "encounterRef", "type": "string", "required": true, "why": "The encounter reviewed, which must be the review's."},
+    {"field": "signingModeCode", "type": "string", "required": true, "why": "How the confirmer signs it, from packages/catalog/clinical.json reviews.signingModes. Chosen by the person signing; nothing chooses it for them."},
+    {"field": "protocolVersionId", "type": "string", "required": false, "why": "The ratified protocol id@version the visit named, when the review is signed under it."}
+   ],
+   "response": [
+    {"field": "signedAt", "type": "instant", "required": true, "why": "When it was signed."},
+    {"field": "signingModeCode", "type": "string", "required": true, "why": "How it was signed."},
+    {"field": "protocolVersionId", "type": "string", "required": false, "why": "The ratified protocol the signature follows. Left out of the answer for a review signed outside any protocol, which follows none."},
+    {"field": "episodeRef", "type": "string", "required": true, "why": "The episode of care this signature starts, whose outcome questions are scheduled from the settings in force."}
+   ],
+   "refusals": [
+    {"id": "not-a-confirmer", "status": 403, "statement": "Only a vetted clinician in a role the settings in force name as a confirmer of clinical reviews reads the inbox or signs a review.", "why": "A signature is attributed to a registration. A role the settings do not name, or a person Trust has not confirmed in that role today, signs nothing."},
+    {"id": "no-such-review", "status": 404, "statement": "There is no review by that reference for that encounter.", "why": "A signature under the wrong encounter is a signature on somebody else's care."},
+    {"id": "review-already-signed", "status": 409, "statement": "That review has already been signed.", "why": "A review is signed once, by name. A second signature is a correction, which is a new entry in the record."},
+    {"id": "own-record", "status": 403, "statement": "Nobody signs the review of a record they wrote.", "why": "packages/catalog/vetting.json's selfActionRefusals, applied to clinical review: a review by the person who wrote the record is no review."},
+    {"id": "record-incomplete", "status": 409, "statement": "A review is not signed until its record is complete: a consultation signed off with every required heading written.", "why": "A signature on a record with its assessment or its plan missing says a clinician reviewed something nobody wrote."},
+    {"id": "signing-mode-not-declared", "status": 422, "statement": "That is not a way a review is signed.", "why": "A signature says what it follows. A mode nobody declared says nothing a reader can check."},
+    {"id": "protocol-not-ratified", "status": 409, "statement": "That protocol version is not ratified, so nothing is signed as following it. It may be signed as reviewed outside any protocol.", "why": "A draft carries no authority, and a signature that says it followed one is borrowing the board's authority for a sign-off that did not happen."},
+    {"id": "protocol-not-the-visits", "status": 422, "statement": "That is not the protocol version the visit named.", "why": "Every recommendation cites the version it was made under, and a signature citing another one describes a visit that did not happen."},
+    {"id": "sign-under-the-ratified-protocol", "status": 409, "statement": "The visit named a ratified protocol, so its review is signed under that protocol.", "why": "Reviewed outside any protocol is the honest answer for a draft. For a ratified protocol it would be a way of not being held to it."}
+   ],
+   "emits": ["review.signed@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/clinical/engine.ts", "handler": "'POST /v1/clinical/reviews/{reviewRef}/sign@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/consultations",
+   "version": 2,
+   "summary": "Record that a structured consultation was written to the Health Passport, and which headings of the frame it holds; sign-off is refused until every required heading is written. The words stay in the Passport.",
+   "callers": ["doctor", "nurse"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "subjectRef", "type": "string", "required": true, "why": "Whose consultation, by the patient's opaque reference."},
+    {"field": "encounterRef", "type": "string", "required": true, "why": "The encounter."},
+    {"field": "consultationEntryRef", "type": "string", "required": true, "why": "The entry the writer made in the Health Passport through its consent gateway, under their own grant. Clinical keeps the reference and never the words."},
+    {"field": "sectionsWritten", "type": "list", "required": true, "why": "The codes of the headings the entry holds, from packages/catalog/records.json consultation.soap. A heading is written when the writer put something under it."},
+    {"field": "signOff", "type": "boolean", "required": false, "why": "True when the writer signs the consultation off, by their own action. Refused until every required heading is written."}
+   ],
+   "response": [
+    {"field": "consultationRef", "type": "string", "required": true, "why": "The consultation."},
+    {"field": "signable", "type": "boolean", "required": true, "why": "Whether every required heading is written."},
+    {"field": "missingSections", "type": "list", "required": true, "why": "The required headings not yet written, by code."},
+    {"field": "signedOffAt", "type": "instant", "required": false, "why": "When it was signed off. Left out of the answer while it is not."}
+   ],
+   "refusals": [
+    {"id": "required-sections-missing", "status": 422, "statement": "Sign-off is blocked until every required section is complete.", "why": "§5.2: not free text only."},
+    {"id": "section-not-in-the-frame", "status": 422, "statement": "That is not a heading of the consultation frame.", "why": "A heading nobody declared is free text by another name, and a completeness gate that counted it would count nothing."},
+    {"id": "consultation-already-signed-off", "status": 409, "statement": "That consultation has already been signed off, and a signed consultation is not rewritten. A correction is a new entry.", "why": "A signed record changed underneath its signature is a signature on words the signer never read."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The consultation's words are written to the Health Passport by the clinician, through its consent gateway, which publishes passport.entry.written. Clinical records the reference and the state, which no engine acts on.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§5.2", "what": "Sign-off blocked until required fields complete"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/clinical/engine.ts", "handler": "'POST /v1/clinical/consultations@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/triage",
+   "version": 3,
+   "summary": "Triage on the rule engine under a ratified triage protocol: Gilbert's emergency terms first and untouched, the hard red-flag gate, then a priority with the reason codes that set it, written to the record. No triage protocol is ratified, so every call is answered not triaged, and a nurse or a doctor decides.",
+   "callers": ["nurse", "doctor"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "subjectRef", "type": "string", "required": true, "why": "Whose intake, by the patient's opaque reference, which a completed triage is published about."},
+    {"field": "intakeEntryRef", "type": "string", "required": true, "why": "The intake in the record."},
+    {"field": "protocolVersionId", "type": "string", "required": false, "why": "The ratified triage protocol id@version. Without one nothing is triaged, and the answer says so rather than refusing a missing field."},
+    {"field": "explanationPriorityCode", "type": "string", "required": false, "why": "A priority a language model named while explaining the answer. It may match or raise the rules' priority, and never lower it."}
+   ],
+   "response": [
+    {"field": "triageRef", "type": "string", "required": true, "why": "The decision."},
+    {"field": "priorityCode", "type": "string", "required": true, "why": "The priority the rules set, from the ratified protocol's own scale."},
+    {"field": "careSetting", "type": "string", "required": true, "why": "Where the patient should be seen: a disposition, which the engines acting on it need and which names no symptom."},
+    {"field": "triageEntryRef", "type": "string", "required": true, "why": "The decision in the Passport, with the reason codes a clinician reads there."}
+   ],
+   "refusals": [
+    {"id": "priority-without-reason-codes", "status": 422, "statement": "No priority is set without the reason codes that set it.", "why": "A priority nobody can trace to the rule that fired is a guess, and a clinician checking it would have nothing to check."},
+    {"id": "protocol-content-not-in-this-build", "status": 409, "statement": "That protocol's rules are not in this build, so nothing is triaged and a nurse or a doctor decides.", "why": "A ratified protocol whose rules could not be read is still no rules. Triage answers nothing rather than something the board did not write."}
+   ],
+   "emits": ["triage.completed@2"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15B", "what": "it cannot lower the rule-engine priority"},
+   "status": "built",
+   "through": "passport-gateway",
+   "evidence": {"file": "packages/engines/src/clinical/engine.ts", "handler": "'POST /v1/clinical/triage@3'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/proms",
+   "version": 2,
+   "summary": "A patient answers outcome questions on a day their episode was scheduled with, from an instrument the clinical governance board chose. None is chosen, so every answer is refused.",
+   "callers": ["patient"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "episodeRef", "type": "string", "required": true, "why": "The episode of care, started when its review was signed."},
+    {"field": "dayMark", "type": "integer", "required": true, "why": "The day after the review was signed that these answers are for: one of the days the episode was scheduled with."},
+    {"field": "answers", "type": "list", "required": true, "object": true, "why": "The answers, each to one question of the chosen instrument, by code.", "fields": [
+     {"field": "questionCode", "type": "string", "required": true, "why": "The question, by its code in the chosen instrument."},
+     {"field": "answerCode", "type": "string", "required": true, "why": "The answer, by its code in the chosen instrument."}
+    ]}
+   ],
+   "response": [
+    {"field": "promEntryRef", "type": "string", "required": true, "why": "The entry in the Passport."}
+   ],
+   "refusals": [
+    {"id": "no-such-episode", "status": 404, "statement": "There are no outcome questions for you under that episode.", "why": "An episode that is not the patient's is answered as one that does not exist, so a reference cannot be walked to learn whose care was signed."},
+    {"id": "prom-not-due", "status": 409, "statement": "These questions are asked on the days this episode was scheduled with, and not before.", "why": "An early answer measures nothing, and the days are the ones the episode kept when its review was signed."},
+    {"id": "no-prom-instrument", "status": 409, "statement": "No outcome questions are asked until the clinical governance board has chosen the instrument they come from.", "why": "A question, a scale and a score are clinical content. Asking one nobody chose would be a measure nobody could compare with anything."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The answers are written through the Passport gateway.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "through": "passport-gateway",
+   "evidence": {"file": "packages/engines/src/clinical/engine.ts", "handler": "'POST /v1/clinical/proms@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/clinical/settings",
+   "version": 1,
+   "summary": "Read Clinical's settings in force — who confirms a clinical review and the days outcome questions are asked on — each with its default and who proposed it, what an admin may set, its clinical review, and every change made to them.",
+   "callers": [],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [{"field":"settingsVersion","type":"integer","required":true,"why":"The version in force. A change is made against it, and whatever starts now keeps it."},{"field":"settings","type":"list","required":true,"why":"Each setting: its key, type, unit, the value in force and the version that set it, its default and provenance, its limits, who may change it, what a change reaches, its guardrail, and its clinical review.","object":true,"fields":[{"field":"setting","type":"string","required":true,"why":"The setting's key, which a change names."},{"field":"label","type":"string","required":true,"why":"Its name on the Configuration screen."},{"field":"help","type":"string","required":true,"why":"The question it answers, as a sentence."},{"field":"type","type":"string","required":true,"why":"One of the types in packages/catalog/settings.json."},{"field":"unit","type":"string","required":true,"nullable":true,"why":"What the value is counted in, or null for a type that has none."},{"field":"inForce","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#types","why":"The value in force: a number, a switch, a word, a list, a rota or a record, as its type gives."},{"field":"setAtVersion","type":"integer","required":true,"why":"The settings version that set the value in force, 1 for the contract's default."},{"field":"default","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#types","why":"The contract's default, of the same kind as the value in force."},{"field":"provenance","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#provenance","why":"Who decided the default, when and why, or who proposed it and why, and who reviewed it where somebody did."},{"field":"limits","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#setting","why":"What an admin may set — the bounds, allowed values, roles, posts, items or parts its type carries — with their provenance."},{"field":"changedBy","type":"list","required":true,"why":"The roles that may change it, resolved from the contract and the settings in force."},{"field":"appliesTo","type":"string","required":true,"why":"What a change reaches, as a sentence."},{"field":"guardrail","type":"string","required":true,"nullable":true,"why":"The sentence no value may break, or null for a setting with none."},{"field":"reviewRequired","type":"string","required":true,"nullable":true,"why":"The capability whose holder confirms its clinical review, or null for a setting that waits on nobody."},{"field":"reviewed","type":"string","required":true,"nullable":true,"object":true,"why":"Who confirmed the clinical review of the value in force, or null while it is not clinically reviewed.","fields":[{"field":"byRef","type":"string","required":true,"why":"The reviewer's reference."},{"field":"at","type":"instant","required":true,"nullable":true,"why":"When the review was confirmed through the review route, or null for a default reviewed before it shipped."},{"field":"on","type":"iso-date","required":true,"nullable":true,"why":"The day a default was reviewed before it shipped, or null for a review confirmed through the route."}]}]},{"field":"history","type":"list","required":true,"why":"Every accepted change, oldest first: which setting, from, to, who, when and why. Nothing in it is edited or removed.","object":true,"fields":[{"field":"settingsVersion","type":"integer","required":true,"why":"The version this change made."},{"field":"setting","type":"string","required":true,"why":"The setting it changed."},{"field":"from","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#types","why":"The value before, of the kind its type gives."},{"field":"to","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#types","why":"The value after."},{"field":"reason","type":"string","required":true,"why":"Why, as it was written."},{"field":"byRole","type":"string","required":true,"why":"The role of the person who made it."},{"field":"byRef","type":"string","required":true,"why":"The reference of the person who made it, from the caller the runtime admitted."},{"field":"at","type":"instant","required":true,"why":"When it was made."}]}],
+   "refusals": [{"id":"settings-read-not-permitted","status":403,"statement":"Only somebody who may change these settings reads them and who changed them.","why":"The history names the people who changed how an engine behaves. It is read by the roles that may change it."}],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "withdrawn": {"on": "2026-09-16", "supersededBy": "GET /v1/clinical/settings@2", "why": "It admitted an admin and a doctor, the doctor from the vetting register's grant of sign-clinical-review, so a nurse the review-confirmer setting names could not read the value she is asked to confirm. Version two admits every role that setting may name, and the handler reads who confirms from it in force."},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/clinical/engine.ts", "handler": "'GET /v1/clinical/settings@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/setting-changes",
+   "version": 1,
+   "summary": "Change one Clinical setting, with a reason, against the version in force. Who confirms reaches reviews read or signed after it; the days outcome questions are asked on reach episodes whose review is signed after it, and never one already scheduled.",
+   "callers": ["admin"],
+   "purpose": ["audit"],
+   "request": [{"field":"idempotencyKey","type":"string","required":true,"why":"Chosen by the caller. The same key twice is the same change once, and the history gains one row."},{"field":"setting","type":"string","required":true,"why":"The setting's key, from the settings block of the engine's own contract."},{"field":"wholeNumber","type":"integer","required":false,"why":"The new value, for a setting in minutes, a count, cents or a percentage."},{"field":"switchedOn","type":"boolean","required":false,"why":"The new value, for a setting that is on or off."},{"field":"choice","type":"string","required":false,"why":"The new value, for a setting that is one of a few named choices."},{"field":"wording","type":"string","required":false,"why":"The new wording, for a setting patients or nurses read."},{"field":"roles","type":"list","required":false,"why":"The new roles, for a setting that names roles from packages/catalog/vetting.json."},{"field":"windows","type":"list","required":false,"why":"The new rota, for a setting that is windows of a post, days and hours. A post, never a named person.","object":true,"fields":[{"field":"post","type":"string","required":true,"why":"The post the window is for, by its id in the setting's posts. Never a named person."},{"field":"days","type":"list","required":true,"why":"The days of the week it covers, from the days packages/catalog/settings.json lists."},{"field":"from","type":"string","required":true,"why":"When it opens, as hours and minutes from 00:00."},{"field":"to","type":"string","required":true,"why":"When it closes, after it opens and no later than 24:00."}]},{"field":"items","type":"list","required":false,"why":"The new values, for a setting that is a list."},{"field":"parts","type":"string","required":false,"why":"The new values, for a setting whose parts change together.","object":true,"shapeFrom":"packages/catalog/settings.json#partTypes"},{"field":"reason","type":"string","required":false,"why":"Why. Asked for by the handler rather than the binder, so that a change without one is refused in its own sentence rather than the general one for a missing field."},{"field":"expectedVersion","type":"integer","required":true,"why":"The settings version the admin was looking at. A change against an older one is refused."}],
+   "response": [{"field":"settingsVersion","type":"integer","required":true,"why":"The version this change made."},{"field":"appliesFrom","type":"instant","required":true,"why":"When it took effect. Whatever started before it keeps the version it started under."}],
+   "refusals": [{"id":"setting-change-not-permitted","status":403,"statement":"Only the role a setting names changes it, and the change is recorded against a named person.","why":"A setting decides how the platform treats people. The role or capability the setting names changes it, and a change is recorded against somebody who can be asked about it; everybody else only reads what is in force."},{"id":"setting-not-known","status":422,"statement":"There is no setting by that name.","why":"An unknown setting is refused rather than stored, or the history fills with changes nothing reads."},{"id":"setting-change-without-reason","status":422,"statement":"A change to a setting says why, or it is not made.","why":"The history is read after something has gone wrong. A change with no reason is a number somebody moved."},{"id":"settings-version-stale","status":409,"statement":"These settings changed after you opened them. Read what is in force now and decide against that.","why":"Two admins changing one setting from screens opened at the same time would each overwrite a decision they never saw."},{"id":"setting-value-wrong-type","status":422,"statement":"That is not the kind of value this setting holds.","why":"A word where a number belongs, or a list where one choice belongs, is a guess at what the admin meant, and a setting is never set by a guess."},{"id":"setting-not-above-zero","status":422,"statement":"This setting is never nought or less, whatever its range says.","why":"A wait of nothing, an offer that lapses as it is made and a fee of nothing are never what anybody meant. The range is a proposal and could be set wrongly; this refusal does not depend on it."},{"id":"setting-role-not-on-register","status":422,"statement":"Every role a setting names is a role on the vetting register.","why":"A role the register does not hold is a gate nobody can be vetted through, which looks like a shortage rather than a mistake."},{"id":"setting-text-too-long","status":422,"statement":"That wording is longer than this setting allows.","why":"The maximum is the space the words are read in. Wording that does not fit is cut off where somebody reads it."},{"id":"setting-text-loses-a-guardrail","status":422,"statement":"That wording drops a sentence this setting must always keep.","why":"Some wording carries a promise that protects somebody. It may be reworded around that sentence and never without it."},{"id":"setting-schedule-leaves-a-gap","status":422,"statement":"That rota leaves hours uncovered that must always have somebody on them.","why":"A rota with a gap is an alert with nobody to go to, and nobody finds out until one arrives."},{"id":"setting-out-of-range","status":422,"statement":"That is outside what an admin may set for this setting.","why":"The bounds, the allowed values and the allowed roles sit beside the default in the engine's contract. Moving a setting past them is a change to that contract, not a setting."},{"id":"setting-unchanged","status":409,"statement":"That is already the value in force, so there is nothing to change.","why":"A change that changes nothing is a row in the history saying something happened when nothing did."},
+    {"id": "prom-days-out-of-order", "status": 422, "statement": "The days outcome questions are asked on run from the earliest to the latest, each day once.", "why": "Two questionnaires on one day are one patient asked twice, and days out of order describe a follow-up that runs backwards. Clinical's own rule on its list of days, asked after the shared rules."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "No engine acts on a settings change. The engine that owns a setting reads the value in force when it starts something, and the event contract refuses an event nobody subscribes to. A change is the row it appends to the engine's own history, which the read route returns.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/clinical/engine.ts", "handler": "'POST /v1/clinical/setting-changes@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/setting-reviews",
+   "version": 1,
+   "summary": "Confirm the clinical review of the value in force for a Clinical setting: who confirms a clinical review, and the days outcome questions are asked on. A doctor holds sign-clinical-review.",
+   "callers": [],
+   "purpose": ["audit"],
+   "request": [{"field":"idempotencyKey","type":"string","required":true,"why":"Chosen by the caller. The same key twice is the same confirmation once."},{"field":"setting","type":"string","required":true,"why":"The setting's key, from the settings block of the engine's own contract."},{"field":"settingsVersion","type":"integer","required":true,"why":"The version that set the value being confirmed: 1 for the contract's default, or the version of the change. A reviewer confirms a value they read, never whatever happens to be in force when the request lands."},{"field":"reason","type":"string","required":false,"why":"Why the value is clinically safe. Asked for by the handler, so a confirmation without one is refused in its own sentence."}],
+   "response": [{"field":"settingsVersion","type":"integer","required":true,"why":"The version confirmed."},{"field":"reviewedAt","type":"instant","required":true,"why":"When the confirmation was recorded."}],
+   "refusals": [{"id":"setting-review-not-permitted","status":403,"statement":"Only somebody holding the capability this setting names confirms its clinical review, and the confirmation is recorded against a named person.","why":"A clinical-scope setting decides who may do what to a patient. Confirming it is a clinician's act, attributed like a signed review."},{"id":"setting-not-known","status":422,"statement":"There is no setting by that name.","why":"An unknown setting is refused rather than stored, or the reviews fill with confirmations of nothing."},{"id":"setting-review-not-needed","status":409,"statement":"This setting does not wait on a clinical review.","why":"A confirmation of a setting nobody asked a clinician about reads, later, as if one had been needed."},{"id":"setting-review-without-reason","status":422,"statement":"A clinical review says why the value is safe, or it is not recorded.","why":"A confirmation with no reason is a signature under nothing."},{"id":"setting-review-not-in-force","status":409,"statement":"That is not the value in force for this setting. Review what is in force now.","why":"A reviewer confirms the value they read. A value replaced since is not the one patients are being treated under."},{"id":"setting-review-already-confirmed","status":409,"statement":"That value has already been clinically reviewed.","why":"Two confirmations of one value are one review recorded twice."},{"id":"setting-review-own-change","status":403,"statement":"Nobody confirms the clinical review of a change they made themselves.","why":"packages/catalog/vetting.json's selfActionRefusals, applied to settings: a review by the person who made the change is no review."}],
+   "emits": [],
+   "emitsNoneBecause": "A confirmation changes no value, so nothing acts differently because of it. It is the row it appends to the engine's own reviews, which the read route returns.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "withdrawn": {"on": "2026-09-16", "supersededBy": "POST /v1/clinical/setting-reviews@2", "why": "It admitted a doctor alone, from the vetting register's grant of sign-clinical-review, so who confirms a clinical review was decided by the register rather than by the review-confirmer setting an admin changes. Version two admits every clinical role that setting may name, and confirms only for the roles it names in force."},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/clinical/engine.ts", "handler": "'POST /v1/clinical/setting-reviews@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/clinical/review-confirmers",
+   "version": 1,
+   "summary": "Tell an engine whose own settings wait on a clinical review which roles the review-confirmer setting names in force, so every engine's review route confirms for exactly those roles and nothing else decides it.",
+   "callers": ["engine:access", "engine:care", "engine:medicines"],
+   "callerJustifications": {"engine:access": "triage.completed@2", "engine:care": "visit.handover.submitted@1", "engine:medicines": "result.acknowledged@1"},
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The Clinical settings version the answer was read under."},
+    {"field": "confirmers", "type": "list", "required": true, "why": "The roles review-confirmer names in force, each a clinical role its own limits allow."}
+   ],
+   "refusals": [
+    {"id": "confirmers-read-by-engines", "status": 403, "statement": "Who confirms a clinical review is read here by an engine whose own settings wait on one, and by nobody else.", "why": "A person reads the setting, who proposed it and every change to it on Clinical's settings route. This answer carries none of that, and is for the engines that confirm reviews by it."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/clinical/engine.ts", "handler": "'GET /v1/clinical/review-confirmers@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/clinical/settings",
+   "version": 2,
+   "summary": "Read Clinical's settings in force — who confirms a clinical review and the days outcome questions are asked on — each with its default and who proposed it, what an admin may set, its clinical review, and every change made to them. Read by the admin who changes them and by the clinical roles review-confirmer names in force.",
+   "callers": ["admin", "doctor", "nurse"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [{"field":"settingsVersion","type":"integer","required":true,"why":"The version in force. A change is made against it, and whatever starts now keeps it."},{"field":"settings","type":"list","required":true,"why":"Each setting: its key, type, unit, the value in force and the version that set it, its default and provenance, its limits, who may change it, what a change reaches, its guardrail, and its clinical review.","object":true,"fields":[{"field":"setting","type":"string","required":true,"why":"The setting's key, which a change names."},{"field":"label","type":"string","required":true,"why":"Its name on the Configuration screen."},{"field":"help","type":"string","required":true,"why":"The question it answers, as a sentence."},{"field":"type","type":"string","required":true,"why":"One of the types in packages/catalog/settings.json."},{"field":"unit","type":"string","required":true,"nullable":true,"why":"What the value is counted in, or null for a type that has none."},{"field":"inForce","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#types","why":"The value in force: a number, a switch, a word, a list, a rota or a record, as its type gives."},{"field":"setAtVersion","type":"integer","required":true,"why":"The settings version that set the value in force, 1 for the contract's default."},{"field":"default","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#types","why":"The contract's default, of the same kind as the value in force."},{"field":"provenance","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#provenance","why":"Who decided the default, when and why, or who proposed it and why, and who reviewed it where somebody did."},{"field":"limits","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#setting","why":"What an admin may set — the bounds, allowed values, roles, posts, items or parts its type carries — with their provenance."},{"field":"changedBy","type":"list","required":true,"why":"The roles that may change it, resolved from the contract and the settings in force."},{"field":"appliesTo","type":"string","required":true,"why":"What a change reaches, as a sentence."},{"field":"guardrail","type":"string","required":true,"nullable":true,"why":"The sentence no value may break, or null for a setting with none."},{"field":"reviewRequired","type":"string","required":true,"nullable":true,"why":"The capability whose holder confirms its clinical review, or null for a setting that waits on nobody."},{"field":"reviewed","type":"string","required":true,"nullable":true,"object":true,"why":"Who confirmed the clinical review of the value in force, or null while it is not clinically reviewed.","fields":[{"field":"byRef","type":"string","required":true,"why":"The reviewer's reference."},{"field":"at","type":"instant","required":true,"nullable":true,"why":"When the review was confirmed through the review route, or null for a default reviewed before it shipped."},{"field":"on","type":"iso-date","required":true,"nullable":true,"why":"The day a default was reviewed before it shipped, or null for a review confirmed through the route."}]}]},{"field":"history","type":"list","required":true,"why":"Every accepted change, oldest first: which setting, from, to, who, when and why. Nothing in it is edited or removed.","object":true,"fields":[{"field":"settingsVersion","type":"integer","required":true,"why":"The version this change made."},{"field":"setting","type":"string","required":true,"why":"The setting it changed."},{"field":"from","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#types","why":"The value before, of the kind its type gives."},{"field":"to","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#types","why":"The value after."},{"field":"reason","type":"string","required":true,"why":"Why, as it was written."},{"field":"byRole","type":"string","required":true,"why":"The role of the person who made it."},{"field":"byRef","type":"string","required":true,"why":"The reference of the person who made it, from the caller the runtime admitted."},{"field":"at","type":"instant","required":true,"why":"When it was made."}]}],
+   "refusals": [{"id":"settings-read-not-permitted","status":403,"statement":"Only somebody who may change these settings reads them and who changed them.","why":"The history names the people who changed how an engine behaves. It is read by the roles that may change it."}],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/clinical/engine.ts", "handler": "'GET /v1/clinical/settings@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/setting-reviews",
+   "version": 2,
+   "summary": "Confirm the clinical review of the value in force for a Clinical setting: who confirms a clinical review, and the days outcome questions are asked on. Confirmed only by a role review-confirmer names in force.",
+   "callers": ["doctor", "nurse"],
+   "purpose": ["audit"],
+   "request": [{"field":"idempotencyKey","type":"string","required":true,"why":"Chosen by the caller. The same key twice is the same confirmation once."},{"field":"setting","type":"string","required":true,"why":"The setting's key, from the settings block of the engine's own contract."},{"field":"settingsVersion","type":"integer","required":true,"why":"The version that set the value being confirmed: 1 for the contract's default, or the version of the change. A reviewer confirms a value they read, never whatever happens to be in force when the request lands."},{"field":"reason","type":"string","required":false,"why":"Why the value is clinically safe. Asked for by the handler, so a confirmation without one is refused in its own sentence."}],
+   "response": [{"field":"settingsVersion","type":"integer","required":true,"why":"The version confirmed."},{"field":"reviewedAt","type":"instant","required":true,"why":"When the confirmation was recorded."}],
+   "refusals": [{"id":"setting-review-not-permitted","status":403,"statement":"Only somebody holding the capability this setting names confirms its clinical review, and the confirmation is recorded against a named person.","why":"A clinical-scope setting decides who may do what to a patient. Confirming it is a clinician's act, attributed like a signed review."},{"id":"setting-not-known","status":422,"statement":"There is no setting by that name.","why":"An unknown setting is refused rather than stored, or the reviews fill with confirmations of nothing."},{"id":"setting-review-not-needed","status":409,"statement":"This setting does not wait on a clinical review.","why":"A confirmation of a setting nobody asked a clinician about reads, later, as if one had been needed."},{"id":"setting-review-without-reason","status":422,"statement":"A clinical review says why the value is safe, or it is not recorded.","why":"A confirmation with no reason is a signature under nothing."},{"id":"setting-review-not-in-force","status":409,"statement":"That is not the value in force for this setting. Review what is in force now.","why":"A reviewer confirms the value they read. A value replaced since is not the one patients are being treated under."},{"id":"setting-review-already-confirmed","status":409,"statement":"That value has already been clinically reviewed.","why":"Two confirmations of one value are one review recorded twice."},{"id":"setting-review-own-change","status":403,"statement":"Nobody confirms the clinical review of a change they made themselves.","why":"packages/catalog/vetting.json's selfActionRefusals, applied to settings: a review by the person who made the change is no review."}],
+   "emits": [],
+   "emitsNoneBecause": "A confirmation changes no value, so nothing acts differently because of it. It is the row it appends to the engine's own reviews, which the read route returns.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/clinical/engine.ts", "handler": "'POST /v1/clinical/setting-reviews@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   }
  ]
 }

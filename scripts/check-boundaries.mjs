@@ -39,6 +39,7 @@ import { emitVerifyInService } from './emit-verify-in-service.mjs';
 import { emitPassportSharing } from './emit-passport-sharing.mjs';
 import { emitDevices } from './emit-devices.mjs';
 import { emitMomEssential } from './emit-mom-essential.mjs';
+import { emitClinical } from './emit-clinical.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -842,6 +843,255 @@ if(existsSync('apps/api/src')) {
  const respondRoute = (apiServer.match(/routes\.set\('POST \/operator\/requests\/respond'[\s\S]*?\n  \}\);/) ?? [])[0] ?? '';
  if(!/personId === held\.person\.id/.test(respondRoute)) throw new Error('POST /operator/requests/respond no longer refuses somebody answering their own section 24 request. That is the one arrangement in which the proof that a request was answered proves nothing.');
 }
+/* ==== Clinical Intelligence (Wave 5) ==============================================================
+
+   Added by the Clinical Safety lead. The founder's rule is that clinical rules, thresholds, triage discriminators, red
+   flags, guidance scripts and outcome instruments come only from the clinical governance board, so what Clinical
+   builds is frames, gates, registries and refusals, and these are the ten things they must never stop being. Each is
+   asked of the code that decides it — the domain in packages/engines/src/clinical/domain is run here, as the engine
+   and the web preview run it — and each was proven to fire by breaking its source (scratchpad/wave5/clinical-proofs.mjs).
+   Placed ahead of the generated list, so a deliberate break of a contract is reported as itself rather than as the
+   generated file it would also leave stale.
+
+    1. No triage answers a priority without a ratified triage protocol: every registered version, and none, is refused.
+    2. Nothing lowers a priority the rules set: a model's explanation, a red flag and a missing reason code, in every order.
+    3. No path signs automatically: a signature with nobody behind it is refused, the engine has no tick and one call to
+       sign, and no screen on three platforms signs from anything but a press.
+    4. No patient-facing sentence tells somebody they have a condition, in any contract or screen.
+    5. A draft protocol is never claimed as followed: signing under any version the register does not hold as ratified
+       is refused, and nothing on the bus names one.
+    6. No guidance script's words exist outside a ratified protocol: the outcomes are names, and the registry holds
+       references to ratified content or nothing.
+    7. No outcome instrument is typed: the registry is references the board chose, and no screen names an instrument.
+    8. No event Clinical publishes, and no table it keeps, carries a diagnosis, a note, a red flag or a patient's identity.
+    9. No screen types the days outcome questions are asked on: they are the setting in force, or its generated default.
+   10. The review-confirmer setting allows only clinical roles, and the domain refuses every other. */
+{
+ const cContract = JSON.parse(read('packages/catalog/clinical.json'));
+ const cApi = JSON.parse(read('packages/catalog/apis/clinical.json'));
+ const cProtocols = JSON.parse(read('packages/catalog/protocols.json')).protocols;
+ const cVetting = JSON.parse(read('packages/catalog/vetting.json'));
+ const cEvents = collectEvents().events;
+ const { namedLike: cNamedLike } = await import('../packages/engines/src/runtime/contract.ts');
+ const cDomain = await import('../packages/engines/src/clinical/domain/contract.ts');
+ const cTriage = await import('../packages/engines/src/clinical/domain/triage.ts');
+ const cGuidance = await import('../packages/engines/src/clinical/domain/guidance.ts');
+ const cReviews = await import('../packages/engines/src/clinical/domain/reviews.ts');
+ const cProms = await import('../packages/engines/src/clinical/domain/proms.ts');
+ const cSettings = await import('../packages/engines/src/clinical/domain/settings.ts');
+ const { refusalOf: cRefusalOf } = await import('../packages/engines/src/settings/shape.ts');
+ const { engine: cEngine } = await import('../packages/engines/src/clinical/engine.ts');
+ const cFail = (n, detail) => { throw new Error(`Clinical Intelligence, ${n}: ${detail}`); };
+ const refusedAs = (answer, id) => answer && answer.ok === false && answer.refusal.id === id;
+ const versionOf = p => `${p.id}@${p.version}`;
+ const cEngineFile = 'packages/engines/src/clinical/engine.ts';
+ const cEngineSource = read(cEngineFile);
+ const cWebScreen = 'apps/web/src/features/ClinicalIntelligence.tsx';
+ const cWebLib = 'apps/web/src/lib/clinical.ts';
+ const cNative = ['apps/ios/MyThuso/Models/Clinical.swift', 'apps/ios/MyThuso/Features/ClinicalInboxView.swift', 'apps/android/app/src/main/java/za/co/mythuso/model/Clinical.kt', 'apps/android/app/src/main/java/za/co/mythuso/ui/ClinicalInboxScreens.kt'];
+ const cHandWritten = [cWebScreen, cWebLib, ...cNative, cEngineFile, ...files('packages/engines/src/clinical/domain').filter(f => f.endsWith('.ts'))];
+ for (const f of cHandWritten) if (!existsSync(f)) cFail(0, `${f} does not exist, and Clinical Intelligence is built on the engine, the web and both phones from it.`);
+ const codeLines = source => source.split('\n').filter(line => !/^\s*(\/\/|\/\*|\*)/.test(line));
+
+ /* 1. Nothing is triaged without a ratified triage protocol. */
+ const triagePromise = `${cContract.triage._note}`;
+ for (const id of cContract.triage.triageProtocols.ids) if (!cProtocols.some(p => p.id === id)) cFail(1, `packages/catalog/clinical.json names "${id}" as a triage protocol, which packages/catalog/protocols.json does not register.`);
+ for (const versionId of [undefined, 'unregistered@1', ...cProtocols.map(versionOf)]) {
+  const p = cProtocols.find(x => versionOf(x) === versionId);
+  const answer = cTriage.triageOn({ intakeEntryRef: 'intake-check', protocolVersionId: versionId, explanationPriorityCode: 'whatever-a-model-said' }, { triageRef: 'triage-check' });
+  const expected = p && p.status === 'ratified' && cContract.triage.triageProtocols.ids.includes(p.id) ? 'protocol-content-not-in-this-build' : 'triage-without-ratified-protocol';
+  if (!refusedAs(answer, expected)) cFail(1, `packages/engines/src/clinical/domain/triage.ts answers a triage under ${versionId ?? 'no protocol'} with ${answer.ok ? `the priority "${answer.value.priorityCode}"` : `"${answer.refusal.id}"`} where it must refuse with "${expected}". ${triagePromise}`);
+ }
+ if (cTriage.noRulesInThisBuild('any@1') !== null) cFail(1, `packages/engines/src/clinical/domain/triage.ts loads rules in this build. No protocol's content is in it. ${triagePromise}`);
+ if (!/triageOn\([\s\S]{0,400}?load: noRulesInThisBuild/.test(cEngineSource) || !/triageOn\([\s\S]{0,200}?load: noRulesInThisBuild/.test(read(cWebLib))) cFail(1, `${cEngineFile} or ${cWebLib} triages with a rule loader other than noRulesInThisBuild. ${triagePromise}`);
+
+ /* 2. Nothing lowers a priority the rules set. */
+ const scale = ['first-check', 'second-check', 'third-check'];
+ const rulesOf = (priorityCode, fired, reasonCodes = ['reason-check']) => ({ priorityScale: scale, redFlagPriority: scale[0], run: () => ({ priorityCode, careSetting: 'setting-check', reasonCodes, redFlagFired: fired, triageEntryRef: 'entry-check' }) });
+ for (const rulesPriority of scale) for (const fired of [false, true]) for (const explained of [undefined, ...scale, 'off-the-scale']) {
+  const rules = rulesOf(rulesPriority, fired);
+  const answer = cTriage.gate(rules, rules.run(), explained, 'triage-check', 'version-check@1');
+  const set = fired ? scale[0] : rulesPriority;
+  const lowers = explained !== undefined && (scale.indexOf(explained) < 0 || scale.indexOf(explained) > scale.indexOf(set));
+  if (lowers ? !refusedAs(answer, 'model-lowers-priority') : !(answer.ok && answer.value.priorityCode === set)) cFail(2, `packages/engines/src/clinical/domain/triage.ts answers rules saying "${rulesPriority}"${fired ? ' with a red flag' : ''} and a model saying "${explained}" with ${answer.ok ? `"${answer.value.priorityCode}"` : `"${answer.refusal.id}"`}. A red flag sets the most urgent priority, and no model output lowers what the rules set (§15B, §15D).`);
+ }
+ if (!refusedAs(cTriage.gate(rulesOf(scale[1], false, []), rulesOf(scale[1], false, []).run(), undefined, 't', 'v@1'), 'priority-without-reason-codes')) cFail(2, 'packages/engines/src/clinical/domain/triage.ts sets a priority without the reason codes that set it.');
+ for (const id of ['model-lowers-priority', 'triage-without-ratified-protocol']) if (!(cApi.refusals.find(r => r.id === id)?.answeredBy ?? []).includes('POST /v1/clinical/triage@3')) cFail(2, `packages/catalog/apis/clinical.json no longer lets POST /v1/clinical/triage@3 answer "${id}".`);
+
+ /* 3. Nothing is signed automatically. */
+ const autoPromise = cContract.reviews.autoSign.why;
+ const aReview = cReviews.openReview({ reviewRef: 'review-check', appointmentRef: 'appointment-check', encounterRef: 'encounter-check', subjectRef: 'subject-check', protocolVersionId: null }, 0);
+ const signContext = { confirmers: cSettings.clinicalByDefault.confirmers, recordComplete: true, authors: [], episodeRef: 'episode-check' };
+ for (const role of cDomain.clinicalRoles) {
+  const answer = cReviews.sign(aReview, { encounterRef: aReview.encounterRef, signingModeCode: cDomain.OUTSIDE_PROTOCOL }, { ref: null, role, cleared: true }, { ...signContext, confirmers: [role] }, 1);
+  if (!refusedAs(answer, 'auto-signed-note')) cFail(3, `packages/engines/src/clinical/domain/reviews.ts ${answer.ok ? 'signs' : `refuses with "${answer.refusal.id}"`} a review nobody's reference stands behind, for a ${role}. ${autoPromise}`);
+ }
+ if (cContract.reviews.autoSign.allowed !== false) cFail(3, `packages/catalog/clinical.json says a review may be signed automatically. ${autoPromise}`);
+ if (cEngine.tick) cFail(3, `${cEngineFile} has a tick, which is a path that runs with nobody asking. ${autoPromise}`);
+ const signAt = cEngineSource.indexOf("'POST /v1/clinical/reviews/{reviewRef}/sign@2'");
+ const afterSign = cEngineSource.indexOf("'POST /v1/clinical/consultations@2'");
+ const signCalls = [...cEngineSource.matchAll(/\bsign\(/g)].map(m => m.index);
+ if (signCalls.length !== 1 || signCalls[0] < signAt || signCalls[0] > afterSign) cFail(3, `${cEngineFile} calls sign() ${signCalls.length} times, or outside the handler for POST /v1/clinical/reviews/{reviewRef}/sign@2. ${autoPromise}`);
+ if (/\b(sign|record)\(/.test(cEngineSource.slice(cEngineSource.indexOf(' subscriptions: {')))) cFail(3, `${cEngineFile} signs or signs off from a subscription. ${autoPromise}`);
+ for (const f of [cWebScreen, cWebLib]) if (/\buseEffect\b|\bsetTimeout\b|\bsetInterval\b|\bqueueMicrotask\b|\brequestAnimationFrame\b/.test(read(f))) cFail(3, `${f} runs something on its own — an effect or a timer — where a signature or a sign-off could be made without a press. ${autoPromise}`);
+ const webScreen = read(cWebScreen);
+ const pressCalls = [...webScreen.matchAll(/\bsignReview\(/g)].length, signOffCalls = [...webScreen.matchAll(/\bsignOffConsultation\(/g)].length;
+ if (pressCalls !== 1 || signOffCalls !== 1 || !/const press = \(reviewRef: string, mode: string\) => \{\s*const answer = signReview\(/.test(webScreen) || !/onClick=\{\(\) => press\(/.test(webScreen) || !/const signOff = \(\) => \{\s*const answer = signOffConsultation\(/.test(webScreen) || !/onClick=\{signOff\}/.test(webScreen)) cFail(3, `${cWebScreen} signs a review or signs off a consultation other than from a press on its button. ${autoPromise}`);
+ for (const f of files('apps/web/src').filter(f => /\.(ts|tsx)$/.test(f) && ![cWebScreen, cWebLib].includes(f))) if (/\b(signReview|signOffConsultation)\(/.test(read(f))) cFail(3, `${f} signs a review or a consultation. Only the clinician's own press in ${cWebScreen} does. ${autoPromise}`);
+ for (const f of cNative) if (/\.onAppear\b|\.task\s*\{|\bTimer\b|\bLaunchedEffect\b|\bSideEffect\b|\bDisposableEffect\b/.test(read(f))) cFail(3, `${f} runs something on its own where a signature could be made without a press. ${autoPromise}`);
+ if ((read(cNative[1]).match(/inbox\.sign\(/g) ?? []).length !== 1 || (read(cNative[3]).match(/ClinicalInbox\.sign\(/g) ?? []).length !== 1) cFail(3, `A phone's inbox signs other than from one press. ${autoPromise}`);
+
+ /* 4. Nothing addressed to a patient tells them they have a condition. */
+ const wording = cContract.wording.patientDiagnosis;
+ for (const phrase of wording.phrases) if (!cDomain.diagnosisTold(`${phrase[0].toUpperCase()}${phrase.slice(1).replace(/'/g, '’')} something.`)) cFail(4, `packages/engines/src/clinical/domain/contract.ts does not find "${phrase}" in a sentence. ${wording.why}`);
+ const wordingFiles = wording.scope.flatMap(dir => files(dir)).filter(f => /\.(json|ts|tsx|swift|kt|md)$/.test(f) && f !== 'packages/catalog/clinical.json' && !/\.test\.ts$/.test(f));
+ for (const f of wordingFiles) {
+  const said = cDomain.diagnosisTold(read(f));
+  if (said) cFail(4, `${f} says "${said}". ${wording.rule} ${wording.why}`);
+ }
+
+ /* 5. A draft protocol is never claimed as followed. */
+ for (const p of cProtocols.filter(p => p.status !== 'ratified')) {
+  const underDraft = cReviews.openReview({ reviewRef: 'review-check', appointmentRef: 'a', encounterRef: 'encounter-check', subjectRef: 's', protocolVersionId: versionOf(p) }, 0);
+  const doctorish = cDomain.clinicalRoles[0];
+  const under = cReviews.sign(underDraft, { encounterRef: 'encounter-check', signingModeCode: cDomain.UNDER_PROTOCOL, protocolVersionId: versionOf(p) }, { ref: 'party-check', role: doctorish, cleared: true }, { ...signContext, confirmers: [doctorish] }, 1);
+  if (!refusedAs(under, 'protocol-not-ratified')) cFail(5, `packages/engines/src/clinical/domain/reviews.ts ${under.ok ? 'signs' : `refuses with "${under.refusal.id}"`} a review as following ${versionOf(p)}, which is a ${p.status}. Nothing may claim to follow a protocol that is not ratified.`);
+  const outside = cReviews.sign(underDraft, { encounterRef: 'encounter-check', signingModeCode: cDomain.OUTSIDE_PROTOCOL }, { ref: 'party-check', role: doctorish, cleared: true }, { ...signContext, confirmers: [doctorish] }, 1);
+  if (!outside.ok || outside.value.followsProtocolVersionId !== null || outside.emits.some(e => e.protocolVersion)) cFail(5, `packages/engines/src/clinical/domain/reviews.ts cannot sign a review under ${versionOf(p)} as reviewed outside any protocol, or says the signature follows one.`);
+ }
+ if (!/isRatified\(event\.protocolVersion\)/.test(cEngineSource)) cFail(5, `${cEngineFile} publishes a protocol version on an envelope without asking whether it is ratified.`);
+ for (const r of cContract.preview.reviews) if (r.protocolVersionId !== null && !cProtocols.some(p => versionOf(p) === r.protocolVersionId)) cFail(5, `packages/catalog/clinical.json preview names ${r.protocolVersionId}, which the register does not hold.`);
+
+ /* 6. No guidance script's words outside a ratified protocol. */
+ const g = cContract.guidance;
+ const gExtra = Object.keys(g).filter(k => !['_note', 'outcomes', 'scripts', 'scriptKeys', 'rule', 'screen'].includes(k));
+ if (gExtra.length) cFail(6, `packages/catalog/clinical.json guidance carries ${gExtra.join(', ')}. ${g.rule}`);
+ for (const o of g.outcomes) {
+  if (Object.keys(o).sort().join() !== 'code,label,scriptRef') cFail(6, `packages/catalog/clinical.json guidance outcome "${o.code}" carries ${Object.keys(o).sort().join(', ')}. An outcome is a code, a name and a reference to a ratified script. ${g.rule}`);
+  if (o.scriptRef !== null && !g.scripts.some(s => s.scriptRef === o.scriptRef)) cFail(6, `packages/catalog/clinical.json guidance outcome "${o.code}" points at a script the registry does not hold.`);
+  if (!refusedAs(cGuidance.deliver({ triageRef: 'triage-check', scriptRef: o.scriptRef }, { guidanceRef: 'guidance-check' }), 'script-not-ratified')) cFail(6, `packages/engines/src/clinical/domain/guidance.ts gives "${o.code}" guidance in this build, which holds no script's words. ${g.rule}`);
+ }
+ for (const s of g.scripts) {
+  if (Object.keys(s).sort().join() !== [...g.scriptKeys].sort().join() || typeof s.contentRef !== 'string' || !s.contentRef) cFail(6, `packages/catalog/clinical.json guidance script "${s.scriptRef}" carries something beside ${g.scriptKeys.join(', ')}, or no contentRef. ${g.rule}`);
+  if (!cProtocols.some(p => versionOf(p) === s.protocolVersionId && p.status === 'ratified')) cFail(6, `packages/catalog/clinical.json guidance script "${s.scriptRef}" is under ${s.protocolVersionId}, which is not ratified. ${g.rule}`);
+ }
+ if (cGuidance.noScriptWordsInThisBuild('content-check') !== null) cFail(6, `packages/engines/src/clinical/domain/guidance.ts reads a script's words in this build. ${g.rule}`);
+
+ /* 7. No outcome instrument is typed. */
+ const pr = cContract.proms;
+ const prExtra = Object.keys(pr).filter(k => !['_note', 'scheduleSetting', 'instruments', 'instrumentKeys', 'rule', 'episode', 'screen'].includes(k));
+ if (prExtra.length) cFail(7, `packages/catalog/clinical.json proms carries ${prExtra.join(', ')}. ${pr.rule}`);
+ for (const i of pr.instruments) if (Object.keys(i).sort().join() !== [...pr.instrumentKeys].sort().join() || [i.chosenBy, i.chosenOn, i.contentRef].some(v => typeof v !== 'string' || !v.trim())) cFail(7, `packages/catalog/clinical.json proms instrument ${JSON.stringify(i.id)} carries something beside ${pr.instrumentKeys.join(', ')}, or does not name who chose it, when, and where its content is. ${pr.rule}`);
+ const instrumentNames = /\b(EQ-?5D|PROMIS|SF-?36|SF-?12|PHQ-?9|GAD-?7|KOOS|WOMAC|HOOS|EPDS|Oxford (Hip|Knee) Score|Barthel|Likert)\b/i;
+ for (const f of cHandWritten) { const named = read(f).match(instrumentNames); if (named) cFail(7, `${f} names the instrument "${named[0]}". ${pr.rule}`); }
+ const dueEpisode = cProms.startEpisode({ episodeRef: 'episode-check', subjectRef: 'subject-check', reviewRef: 'review-check' }, cSettings.clinicalByDefault, 0);
+ if (!pr.instruments.length && !refusedAs(cProms.answer(dueEpisode, { dayMark: dueEpisode.days[0], answers: [] }, { ref: 'subject-check' }, { write: () => 'entry-check' }, dueEpisode.days[0] * cDomain.DAY), 'no-prom-instrument')) cFail(7, `packages/engines/src/clinical/domain/proms.ts takes answers with no instrument chosen. ${pr.rule}`);
+
+ /* 8. No event carries a diagnosis, a note, a red flag or a patient's identity, and no table keeps one. */
+ const neverNames = ['diagnosis', 'note', 'notes', 'clinicalNotes', 'assessment', 'redFlag', 'redFlags', 'redFlagsMatched', 'reasonCodes', 'symptoms', 'answers', 'scriptText', 'patientIdentity', 'patientName'];
+ const clinicalEvents = cEvents.filter(e => !e.withdrawn && e.owner === 'clinical');
+ for (const e of clinicalEvents) {
+  const carried = e.payload.find(f => neverNames.some(n => cNamedLike(f.field, n)));
+  if (carried) cFail(8, `${e.type}@${e.version} carries "${carried.field}". ${cContract.whereContentLives.why}`);
+ }
+ for (const key of ['review.signed@1', 'triage.completed@2', 'guidance.delivered@1']) {
+  const e = clinicalEvents.find(x => `${x.type}@${x.version}` === key);
+  const missing = ['diagnosis', 'clinicalNotes', 'redFlagsMatched', 'patientIdentity'].filter(n => !e?.neverCarries.some(x => x.field === n));
+  if (!e || missing.length) cFail(8, `${key} is not live, or no longer says it never carries ${missing.join(', ')}.`);
+ }
+ const payloadOf = key => clinicalEvents.find(x => `${x.type}@${x.version}` === key)?.payload.map(f => f.field) ?? [];
+ const signedOk = cReviews.sign(aReview, { encounterRef: aReview.encounterRef, signingModeCode: cDomain.OUTSIDE_PROTOCOL }, { ref: 'party-check', role: cDomain.clinicalRoles[0], cleared: true }, { ...signContext, confirmers: [cDomain.clinicalRoles[0]] }, 1);
+ const triagedOk = cTriage.gate(rulesOf(scale[1], false), rulesOf(scale[1], false).run(), undefined, 't', 'v@1');
+ const guidedOk = cGuidance.deliver({ triageRef: 't', scriptRef: 's' }, { guidanceRef: 'g', scripts: [{ scriptRef: 's', outcomeCode: g.outcomes[0].code, protocolVersionId: 'check@1', contentRef: 'c' }], register: [{ id: 'check', name: 'Check', engine: 'clinical', version: 1, status: 'ratified' }], read: () => 'Words for the check.' });
+ for (const answer of [signedOk, triagedOk, guidedOk]) {
+  if (!answer.ok) cFail(8, `The build's own synthetic signature, triage or guidance was refused ("${answer.refusal.id}"), so what it publishes could not be checked.`);
+  for (const emitted of answer.emits) {
+   const stray = Object.keys(emitted.payload).find(k => !payloadOf(emitted.key).includes(k) || neverNames.some(n => cNamedLike(k, n)));
+   if (stray) cFail(8, `packages/engines/src/clinical/domain publishes ${emitted.key} with "${stray}", which its declared payload does not carry or which names what the record keeps. ${cContract.whereContentLives.says}`);
+  }
+ }
+ const tables = [...((cEngineSource.match(/const TABLES = \[([^\]]+)\]/) ?? [])[1] ?? '').matchAll(/'([a-z_]+)'/g)].map(m => m[1]);
+ const columns = [...cEngineSource.matchAll(/[(,]\s*([a-z_]+) (?:TEXT|INTEGER|REAL|BLOB)/g)].map(m => m[1]);
+ if (!tables.length) cFail(8, `${cEngineFile} no longer declares its tables in the shape this check reads.`);
+ const kept = [...tables, ...columns].find(name => /note|diagnos|assessment|answer|script|flag|symptom|reason|finding|identity|name/.test(name));
+ if (kept) cFail(8, `${cEngineFile} keeps "${kept}". ${cContract.whereContentLives.why}`);
+
+ /* 9. No screen types the days outcome questions are asked on. */
+ const promSetting = cSettings.clinicalBlock.items.find(s => s.key === pr.scheduleSetting);
+ const dayNumbers = [...new Set([...promSetting.default.value, promSetting.bounds.lowest.value, promSetting.bounds.highest.value].filter(n => n > 1))].join('|');
+ const typedDays = new RegExp(`(?<![\\w.])(${dayNumbers})(?![\\w.])[^\\n]{0,24}\\bdays?\\b|\\bdays?\\b[^\\n]{0,24}(?<![\\w.@])(${dayNumbers})(?![\\w.])|\\[\\s*(${dayNumbers})\\s*,|listOf\\(\\s*(${dayNumbers})\\s*,`, 'i');
+ for (const f of cHandWritten) {
+  const typed = codeLines(read(f)).find(line => typedDays.test(line));
+  if (typed) cFail(9, `${f} types the days outcome questions are asked on: ${typed.trim().slice(0, 120)}. They are the prom-days setting in force on the web and in the engine, and its generated default on a phone.`);
+ }
+ for (const [f, reads] of [[cWebLib, 'clinicalSettingsNow()'], [cWebScreen, 'promDaysNow()'], [cNative[1], 'ClinicalData.promDays'], [cNative[3], 'ClinicalData.promDays']]) if (!read(f).includes(reads)) cFail(9, `${f} no longer reads ${reads}, so the days it shows are not the setting.`);
+
+ /* 10. Only clinical roles confirm a review. */
+ const holds = cContract.reviews.clinicalRoleHolds;
+ if (!['view-clinical-record', 'write-clinical-note'].every(c => holds.includes(c))) cFail(10, 'packages/catalog/clinical.json reviews.clinicalRoleHolds no longer asks a confirmer to read the clinical record and write a clinical note.');
+ const clinicalRoleIds = cVetting.roles.filter(r => holds.every(c => (r.grants ?? []).some(x => x.capability === c))).map(r => r.id);
+ if (clinicalRoleIds.join() !== cDomain.clinicalRoles.join()) cFail(10, `packages/engines/src/clinical/domain/contract.ts works out the clinical roles as ${cDomain.clinicalRoles.join(', ')}, and the register's grants give ${clinicalRoleIds.join(', ')}.`);
+ const confirmer = cSettings.clinicalBlock.items.find(s => s.key === cContract.reviews.confirmerSetting);
+ const strays = confirmer.allowedRoles.roles.filter(r => !clinicalRoleIds.includes(r));
+ if (!confirmer.allowedRoles.roles.length || strays.length || !confirmer.default.value.every(r => confirmer.allowedRoles.roles.includes(r))) cFail(10, `packages/catalog/clinical.json lets ${strays.join(', ') || 'nobody, or a default outside what it allows,'} confirm a clinical review. ${confirmer.guardrail.statement}`);
+ for (const role of cVetting.roles.map(r => r.id).filter(r => !clinicalRoleIds.includes(r))) {
+  if (!cRefusalOf(confirmer, [role]) || cReviews.mayConfirm(role, [role])) cFail(10, `A ${role} can be named to confirm a clinical review, or would be let confirm one if named. ${confirmer.guardrail.statement}`);
+ }
+ for (const s of cSettings.clinicalBlock.items) if (s.reviewRequired !== 'sign-clinical-review' || s.changedBy !== 'admin') cFail(10, `packages/catalog/clinical.json setting "${s.key}" no longer waits on a clinical review by somebody holding sign-clinical-review, or is changed by somebody other than an admin.`);
+
+ /* 11. Nothing decides who may confirm a clinical review but the review-confirmer setting in force. Asked of the one
+        rule every engine and the preview go through, of each engine's own settings, of every engine's binding, and of
+        the doctor-review screens on three platforms — the places a vetting grant used to decide it. */
+ const cShape = await import('../packages/engines/src/settings/shape.ts');
+ const { settingsEngines: cSettingsEngines } = await import('../packages/engines/src/settings/registry.ts');
+ const confirmerPromise = cContract.reviews._confirmerNote;
+ if (!confirmerPromise?.trim()) cFail(11, 'packages/catalog/clinical.json reviews has lost the note saying who confirms a clinical review, so this check would fail in silence.');
+ const sameRoles = (a, b) => [...a].sort().join() === [...b].sort().join();
+ if (cShape.CLINICAL_REVIEW !== cContract.reviews.confirmerCapability || !sameRoles(cShape.confirmerRoles, confirmer.allowedRoles.roles)) cFail(11, `packages/engines/src/settings/shape.ts reads a confirmer capability or confirmer roles other than packages/catalog/clinical.json's. ${confirmerPromise}`);
+ let reviewSettings = 0;
+ for (const [engineId, settingsEngine] of Object.entries(cSettingsEngines)) for (const s of settingsEngine.block.items.filter(item => item.reviewRequired)) {
+  reviewSettings++;
+  const at = `${engineId}:${s.key}`;
+  if (s.reviewRequired !== cShape.CLINICAL_REVIEW) cFail(11, `${at} waits on a review by "${s.reviewRequired}", which review-confirmer does not answer. ${confirmerPromise}`);
+  for (const [given, expected] of [[['doctor'], ['doctor']], [['doctor', 'nurse'], ['doctor', 'nurse']], [['nurse'], ['nurse']], [null, []], [[], []], [['admin', 'pharmacy', 'guardian'], []]]) {
+   const got = cShape.reviewersOf(s, given);
+   if (!sameRoles(got, expected.filter(role => cShape.confirmerRoles.includes(role)))) cFail(11, `packages/engines/src/settings/shape.ts answers ${JSON.stringify(got)} as who confirms ${at} when review-confirmer names ${JSON.stringify(given)}. ${confirmerPromise}`);
+  }
+  if (s.default.reviewedBy) continue;
+  const asked = confirmers => cShape.confirmReview(settingsEngine, [], [], { setting: s.key, settingsVersion: 1, reason: 'Boundary check.', byRole: 'nurse', byRef: 'party-check-nurse', confirmers }, 0);
+  if (!refusedAs(asked(['doctor']), 'setting-review-not-permitted') || !asked(['doctor', 'nurse']).ok || !refusedAs(asked(null), 'setting-review-not-permitted')) cFail(11, `A nurse confirming ${at} is not refused while review-confirmer names the doctor alone or could not be read, or is refused once it names her. ${confirmerPromise}`);
+ }
+ const vettingDecides = /rolesGranting\(\s*[^)]*(reviewRequired|sign-clinical-review)|\bcan\(\s*[^,()]+,\s*[^)]*(reviewRequired|['"]sign-clinical-review['"])/;
+ for (const f of [...files('packages/engines/src'), ...files('apps/web/src')].filter(f => /\.(ts|tsx)$/.test(f) && !/\.test\.ts$|\.generated\.ts$/.test(f))) {
+  const decided = codeLines(read(f)).find(line => vettingDecides.test(line) && !/mayDiagnose|mayConsult|roleGrants/.test(line));
+  if (decided && !['apps/web/src/features/Consultation.tsx', 'apps/web/src/lib/teleconsult.ts'].includes(f)) cFail(11, `${f} decides who may confirm a clinical review from a vetting grant: ${decided.trim().slice(0, 140)}. ${confirmerPromise}`);
+ }
+ for (const [f, forbidden, required] of [
+  ['apps/web/src/features/Clinical.tsx', "can(doctor, 'sign-clinical-review')", 'mayConfirmClinicalReview(doctor)'],
+  ['apps/web/src/lib/settings.ts', 'setting.reviewRequired).allowed', 'confirmers: clinicalSettingsNow().confirmers'],
+  ['apps/ios/MyThuso/Features/AssessmentView.swift', 'can($0, "sign-clinical-review")', 'Clinical.confirmDecision($0)'],
+  ['apps/android/app/src/main/java/za/co/mythuso/ui/ClinicalScreens.kt', 'can(it, "sign-clinical-review")', 'Clinical.confirmDecision(it)']
+ ]) if (read(f).includes(forbidden) || !read(f).includes(required)) cFail(11, `${f} decides who may sign or confirm a clinical review with ${read(f).includes(forbidden) ? forbidden : 'something other than the review-confirmer setting'}. ${confirmerPromise}`);
+ const settingsRoutesSrc = read('packages/engines/src/settings/routes.ts');
+ if (!settingsRoutesSrc.includes("ctx.call('GET /v1/clinical/review-confirmers@1'") || !settingsRoutesSrc.includes("answer.answeredBy === 'engine'") || !/confirmers: confirmersIn\(ctx\)/.test(settingsRoutesSrc) || !/reviewersOf\(s, confirmers\)/.test(settingsRoutesSrc)) cFail(11, `packages/engines/src/settings/routes.ts no longer reads who confirms from Clinical, accepts an answer Clinical did not give, or confirms or reads without it. ${confirmerPromise}`);
+ for (const f of files('packages/engines/src').filter(f => /\/engine\.ts$/.test(f))) {
+  const source = read(f);
+  if (!/review: 'POST \/v1\/[a-z]+\/setting-reviews@\d+'/.test(source)) continue;
+  const bound = f === cEngineFile ? source.includes('}, { confirmers: ctx => inForceOf(ctx).confirmers })') : source.includes('}, { confirmers: confirmersFromClinical })');
+  if (!bound) cFail(11, `${f} binds a settings review route without reading who confirms from Clinical's review-confirmer setting. ${confirmerPromise}`);
+ }
+ const confirmersRoute = cApi.routes.find(r => r.path === '/v1/clinical/review-confirmers' && r.version === 1 && !r.withdrawn);
+ if (confirmersRoute?.status !== 'built' || confirmersRoute.response.map(f => f.field).join() !== 'settingsVersion,confirmers' || !confirmersRoute.callers.every(c => c.startsWith('engine:'))) cFail(11, `GET /v1/clinical/review-confirmers@1 is not built, answers something beside the version and the roles, or is called by somebody other than an engine. ${confirmerPromise}`);
+
+ /* And none of it on a patient's first load. */
+ for (const f of ['apps/web/src/main.tsx', 'apps/web/src/App.tsx', 'apps/web/src/Doorway.tsx', 'apps/web/src/shells/PatientShell.tsx']) {
+  if (existsSync(f) && /^import (?!type\b)[^;]*from '[^']*(features\/ClinicalIntelligence|lib\/clinical)'/m.test(read(f))) cFail(0, `${f} imports the Clinical Intelligence screens or store statically. They are the clinical workspace's, and a patient on metered data must not download them.`);
+ }
+
+ console.log(`Clinical Intelligence: ${cProtocols.length + 2} triage requests refused without a ratified triage protocol and ${scale.length * 2 * (scale.length + 2)} orders of rule, red flag and model answered without lowering a priority; nothing signs with nobody behind it, from a tick, a subscription or anything but a press on three platforms; ${wordingFiles.length} contract and screen files tell nobody they have a condition; ${cProtocols.filter(p => p.status !== 'ratified').length} unratified versions refused as followed; ${g.outcomes.length} guidance outcomes and ${pr.instruments.length} instruments carry no clinical words; ${clinicalEvents.length} Clinical events and ${tables.length + columns.length} tables and columns keep no diagnosis, note, flag or identity; ${cHandWritten.length} files type no outcome day; and only ${clinicalRoleIds.join(' and ')} may confirm a review.`);
+}
+/* ==== end of Clinical Intelligence (Wave 5) ======================================================= */
+
 /* Three things the apps share are no longer written out by hand in each of them: the design tokens,
    the vetting table and the record contract are generated into CSS, Swift and Kotlin by
    scripts/emit-tokens.mjs, scripts/emit-vetting.mjs and scripts/emit-records.mjs. Drift can no
@@ -918,12 +1168,19 @@ const generated = [
  { source: 'packages/catalog/apis/money.json', command: 'npm run mom-essential', files: emitMomEssential() },
  { source: 'packages/catalog/consent.json', command: 'npm run mom-essential', files: emitMomEssential() },
  { source: 'packages/catalog/money.json', command: 'npm run mom-essential', files: emitMomEssential() },
+ /* Wave 5, Clinical: ClinicalData carries clinical.json's inbox, triage, guidance and outcome-question words and the
+    preview's reviews, the refusals of the routes a phone stands for from apis/clinical.json, the required headings
+    records.json decides, the clinical roles' names from vetting.json and the two settings' defaults. */
+ ...['clinical.json', 'apis/clinical.json', 'records.json', 'vetting.json', 'protocols.json']
+  .map(file => ({ source: `packages/catalog/${file}`, command: 'npm run clinical', files: emitClinical() })),
  /* The clinical review pack reads every contract a clinician has to review, so a change to any of them
     without regenerating is a failed build rather than a pack somebody signs against values no longer in force. */
  ...['settings.json', 'care.json', 'booking.json', 'field-safety.json', 'closed-loop.json', 'money.json', 'protocols.json',
   'gilbert-emergency-terms.json', 'assistant.json', 'vetting.json', 'vetting-proposals.json', 'records.json', 'sos.json',
   'locales.json', 'events.json', 'apis/care.json', 'apis/access.json', 'medicines.json', 'apis/medicines.json', 'verify-in-service.json', 'devices.json']
-  .map(file => ({ source: `packages/catalog/${file}`, command: 'npm run review-pack', files: emitClinicalReviewPack() }))
+  .map(file => ({ source: `packages/catalog/${file}`, command: 'npm run review-pack', files: emitClinicalReviewPack() })),
+ /* Wave 5: the pack's section G reads Clinical Intelligence's frames and registries. */
+ ...['clinical.json', 'apis/clinical.json'].map(file => ({ source: `packages/catalog/${file}`, command: 'npm run review-pack', files: emitClinicalReviewPack() }))
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -8064,16 +8321,16 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  }
  const byAdmin = careShape.proposeChange(careSettingsEngine, [], { setting: scopeItems[0].key, value: [takeVisit[0]], reason: 'Boundary check.', expectedVersion: 1, byRole: 'admin', byRef: 'party-boundary-1' }, 0);
  if (!byAdmin.ok) throw new Error(`An admin cannot narrow ${scopeItems[0].key} to ${takeVisit[0]}: ${byAdmin.refusal.id}. The boundary check's own change should be accepted.`);
- const reviewAs = (ref, settingsVersion, reviews = []) => careShape.confirmReview(careSettingsEngine, [byAdmin.value.change], reviews, { setting: scopeItems[0].key, settingsVersion, reason: 'Boundary check.', byRole: 'doctor', byRef: ref }, 1);
+ const reviewAs = (ref, settingsVersion, reviews = []) => careShape.confirmReview(careSettingsEngine, [byAdmin.value.change], reviews, { setting: scopeItems[0].key, settingsVersion, reason: 'Boundary check.', byRole: 'doctor', byRef: ref, confirmers: ['doctor'] }, 1);
  const selfReview = reviewAs('party-boundary-1', 2);
  if (selfReview.ok || selfReview.refusal.id !== 'setting-review-own-change') throw new Error(`The person who changed ${scopeItems[0].key} could confirm its clinical review${selfReview.ok ? '' : ` (refused only as ${selfReview.refusal.id})`}. A review by the person who made the change is no review.`);
  const olderVersion = reviewAs('party-boundary-2', 1);
  if (olderVersion.ok || olderVersion.refusal.id !== 'setting-review-not-in-force') throw new Error(`A doctor could confirm version 1 of ${scopeItems[0].key} after version 2 replaced it. A reviewer confirms the exact value in force.`);
  const fair = reviewAs('party-boundary-2', 2);
  if (!fair.ok) throw new Error(`Another doctor cannot confirm version 2 of ${scopeItems[0].key}: ${fair.refusal.id}.`);
- const reviewRoute = careApi.routes.find(r => r.method === 'POST' && r.path === '/v1/care/setting-reviews' && r.version === 1);
+ const reviewRoute = careApi.routes.find(r => r.method === 'POST' && r.path === '/v1/care/setting-reviews' && r.version === 2);
  if (reviewRoute?.status !== 'built' || reviewRoute.evidence?.file !== 'packages/engines/src/care/engine.ts' || reviewRoute.enforcedBy?.mechanism !== 'engines-runtime:callers'
-  || !careEngineSource.includes("settingsRoutes(careSettings, { read: 'GET /v1/care/settings@1', change: 'POST /v1/care/setting-changes@1', review: 'POST /v1/care/setting-reviews@1' })")) throw new Error('POST /v1/care/setting-reviews@1 is not built on the engine runtime through settingsRoutes() in packages/engines/src/care/engine.ts, so a doctor has nowhere to confirm the clinical review Care\'s scope settings wait on.');
+  || !careEngineSource.includes("settingsRoutes(careSettings, { read: 'GET /v1/care/settings@2', change: 'POST /v1/care/setting-changes@1', review: 'POST /v1/care/setting-reviews@2' }, { confirmers: confirmersFromClinical })")) throw new Error('POST /v1/care/setting-reviews@2 is not built on the engine runtime through settingsRoutes() in packages/engines/src/care/engine.ts, so a doctor has nowhere to confirm the clinical review Care\'s scope settings wait on.');
  const roleAlternatives = careVetting.roles.map(r => r.id).join('|');
  const typedRoleList = new RegExp(`(?:\\[|listOf\\(|setOf\\()\\s*(['"])(?:${roleAlternatives})\\1\\s*,\\s*(['"])(?:${roleAlternatives})\\2`);
  for (const file of [...careCode, ...careScreens]) {
@@ -8789,7 +9046,10 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
    for (const role of changedBy) changers.add(role);
    if (s.reviewRequired !== undefined) {
     if (!settingsCapabilityIds.has(s.reviewRequired) || !shape.rolesGranting(s.reviewRequired).length) throw new Error(`${at} waits on a clinical review by "${s.reviewRequired}", which is not a capability any role on the vetting register holds.`);
-    for (const role of shape.rolesGranting(s.reviewRequired)) reviewers.add(role);
+    /* Wave 5: who confirms a clinical review is Clinical's review-confirmer setting in force, so every review route admits
+       every role that setting may name, and the handler confirms only for the roles it names. */
+    if (s.reviewRequired !== shape.CLINICAL_REVIEW) throw new Error(`${at} waits on a clinical review by "${s.reviewRequired}". Every clinical review waits on ${shape.CLINICAL_REVIEW}, and who confirms one is Clinical's review-confirmer setting in force.`);
+    for (const role of shape.confirmerRoles) reviewers.add(role);
    }
 
    /* 5. The default is a value its own limits accept, and roleList defaults are on the register. */
@@ -9045,8 +9305,8 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  /* 3. Photos wait on a doctor. */
  const photosSetting = accessSetting('visit-thread-photos');
  if (photosSetting.type !== 'boolean' || photosSetting.reviewRequired !== 'sign-clinical-review' || photosSetting.default.value !== false || photosSetting.default.reviewedBy !== undefined) throw new Error('packages/catalog/booking.json visit-thread-photos no longer waits on sign-clinical-review, or no longer starts switched off and unreviewed. A wound photo is health information: switching photos on is shown as not clinically reviewed until a doctor confirms it.');
- const photosReview = accessRouteOf('POST /v1/access/setting-reviews@1');
- if (!photosReview || photosReview.withdrawn || photosReview.status !== 'built' || !accessEngineSource.includes("review: 'POST /v1/access/setting-reviews@1'")) throw new Error('POST /v1/access/setting-reviews@1 is not built through settingsRoutes(), so nobody could confirm the clinical review visit-thread-photos waits on.');
+ const photosReview = accessRouteOf('POST /v1/access/setting-reviews@2');
+ if (!photosReview || photosReview.withdrawn || photosReview.status !== 'built' || !accessEngineSource.includes("review: 'POST /v1/access/setting-reviews@2'")) throw new Error('POST /v1/access/setting-reviews@2 is not built through settingsRoutes(), so nobody could confirm the clinical review visit-thread-photos waits on.');
  const threadWrite = accessRouteOf('POST /v1/access/visit-threads/{bookingRef}/messages@1');
  if (threadWrite.request.map(f => f.field).sort().join(',') !== 'bookingRef,idempotencyKey,message' || !threadWrite.refusals.some(r => r.id === 'no-attachments') || !accessEngineSource.includes('ATTACHMENT.test(name)')) throw new Error('POST /v1/access/visit-threads/{bookingRef}/messages@1 declares a field beside the booking, the key and the words, or no longer refuses an attachment. Switching visit-thread-photos on is a decision ahead of a capability; a photo does not travel until a new version of the route carries one.');
  if (!visitAccessSource.includes('settings.threadPhotos') || !visitAccessSource.includes('words.photosNotInPreview') || !/!photosReviewed && [^\n]*\{settingsScreen\.notReviewed\}/.test(visitAccessSource) || !visitAccessSource.includes("reviewStateAt('access', 'visit-thread-photos').reviewed !== null")) throw new Error('apps/web/src/features/VisitAccess.tsx no longer says photos are not in this preview yet, and not clinically reviewed, while visit-thread-photos is on and unreviewed.');

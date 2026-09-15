@@ -18,7 +18,7 @@
  */
 import { ok, refuse, type EngineContext, type EngineStore, type HandlerRequest, type RouteHandler, type RouteKey } from '../runtime/types.ts';
 import {
- changeFromFields, confirmReview, proposeChange, reviewStateOf, rolesGranting, rolesThatChange, snapshotOf,
+ changeFromFields, confirmReview, proposeChange, reviewStateOf, reviewersOf, rolesThatChange, snapshotOf,
  type Change, type Review, type Setting, type SettingsEngine, type Snapshot
 } from './shape.ts';
 
@@ -81,8 +81,23 @@ function describe(engine: SettingsEngine, setting: Setting, snapshot: Snapshot, 
  };
 }
 
-export function settingsRoutes(engine: SettingsEngine, keys: { read: RouteKey; change: RouteKey; review?: RouteKey }): Partial<Record<RouteKey, RouteHandler>> {
+/** The roles the review-confirmer setting names in force, or null when they could not be read. */
+export type ConfirmersReader = (ctx: EngineContext) => readonly string[] | null;
+
+/* Every engine but Clinical asks Clinical who confirms a clinical review, through the one route that answers it.
+   An answer the development mock gave, or a refusal, is not Clinical's answer, and confirms nobody: a review nobody
+   may confirm waits, where a review confirmed by whoever a fallback guessed would be a signature under nothing. */
+export const confirmersFromClinical: ConfirmersReader = ctx => {
+ const answer = ctx.call('GET /v1/clinical/review-confirmers@1', {}, { purpose: 'audit' });
+ const roles = answer.body['confirmers'];
+ return answer.status === 200 && answer.answeredBy === 'engine' && Array.isArray(roles) && roles.every(role => typeof role === 'string') ? roles as string[] : null;
+};
+
+export function settingsRoutes(engine: SettingsEngine, keys: { read: RouteKey; change: RouteKey; review?: RouteKey }, reader: { readonly confirmers?: ConfirmersReader } = {}): Partial<Record<RouteKey, RouteHandler>> {
  const { block } = engine;
+ const waitsOnReview = block.items.some(s => s.reviewRequired);
+ if (waitsOnReview && !reader.confirmers) throw new Error(`The ${block.engine} settings wait on a clinical review, and settingsRoutes() was not told how to read who confirms one. It is the review-confirmer setting in force, and nothing else.`);
+ const confirmersIn = (ctx: EngineContext) => waitsOnReview && reader.confirmers ? reader.confirmers(ctx) : null;
  const routes: Partial<Record<RouteKey, RouteHandler>> = {
   [keys.read]: (_request: HandlerRequest, ctx: EngineContext) => {
    const history = historyOf(ctx.store);
@@ -90,7 +105,8 @@ export function settingsRoutes(engine: SettingsEngine, keys: { read: RouteKey; c
    const snapshot = snapshotOf(block, history);
    /* The binder admits the route's callers. A caller who may neither change nor review any setting here
       is still refused, because the history names people and is read by those who answer for it. */
-   const readers = new Set(block.items.flatMap(s => [...rolesThatChange(block, s, snapshot), ...(s.reviewRequired ? rolesGranting(s.reviewRequired) : [])]));
+   const confirmers = confirmersIn(ctx);
+   const readers = new Set(block.items.flatMap(s => [...rolesThatChange(block, s, snapshot), ...reviewersOf(s, confirmers)]));
    if (!readers.has(ctx.caller.role)) return refuse('settings-read-not-permitted');
    return ok({
     settingsVersion: snapshot.settingsVersion,
@@ -117,7 +133,7 @@ export function settingsRoutes(engine: SettingsEngine, keys: { read: RouteKey; c
   routes[keys.review] = (request: HandlerRequest, ctx: EngineContext) => {
    const reviewed = confirmReview(engine, historyOf(ctx.store), reviewsOf(ctx.store), {
     setting: request.fields.setting, settingsVersion: request.fields.settingsVersion, reason: request.fields.reason,
-    byRole: ctx.caller.role, byRef: ctx.caller.ref
+    byRole: ctx.caller.role, byRef: ctx.caller.ref, confirmers: confirmersIn(ctx)
    }, ctx.clock.now().getTime());
    if (!reviewed.ok) return refuse(reviewed.refusal.id);
    const review = reviewed.value;

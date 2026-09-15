@@ -20,8 +20,9 @@ import roster from '../../../catalog/roster.json' with { type: 'json' };
 import geography from '../../../catalog/geography.json' with { type: 'json' };
 import settingsContract from '../../../catalog/settings.json' with { type: 'json' };
 import careApi from '../../../catalog/apis/care.json' with { type: 'json' };
-import { MEMORY, createClock, createRuntime, defineEngine, type EngineContext, type RouteKey, type Runtime } from '../runtime/index.ts';
+import { MEMORY, createClock, createRuntime, defineEngine, ok, type EngineContext, type RouteKey, type Runtime } from '../runtime/index.ts';
 import { confirmReview } from '../settings/shape.ts';
+import clinicalContract from '../../../catalog/clinical.json' with { type: 'json' };
 import { careBlock, careByDefault } from './domain/settings.ts';
 import { engine } from './engine.ts';
 
@@ -30,7 +31,14 @@ const P = care.preview;
 const WOUND = roster.nurses.filter(n => n.scope.includes('Wound care')).map(n => n.id);
 const ACCEPT: RouteKey = 'POST /v1/care/offers/{offerRef}/accept@1';
 const DECLINE: RouteKey = 'POST /v1/care/offers/{offerRef}/decline@1';
-const READ: RouteKey = 'GET /v1/care/settings@1';
+const READ: RouteKey = 'GET /v1/care/settings@2';
+/* Clinical, standing in (Wave 5): who confirms a clinical review is Clinical's review-confirmer setting, which Care asks
+   Clinical for. An engine's tests reach no other engine's code, so the stand-in answers that one route with the
+   setting's contract default, read from the catalog. */
+const clinical = defineEngine({
+ id: 'clinical', subscriptions: {}, store: { schema: '' },
+ routes: { 'GET /v1/clinical/review-confirmers@1': () => ok({ settingsVersion: 1, confirmers: [...clinicalContract.settings.items.find(s => s.key === clinicalContract.reviews.confirmerSetting)!.default.value] }) }
+});
 const CHANGE: RouteKey = 'POST /v1/care/setting-changes@1';
 const DISPATCHER = 'dispatcher-synthetic-1';
 const ADMIN = { role: 'admin', ref: 'party-synthetic-901', purpose: 'audit' };
@@ -45,7 +53,7 @@ function setup(cleared: readonly string[]) {
   queues[id] = [];
   for (const act of due) act(ctx);
  } });
- const runtime = createRuntime({ env: { MYTHUSO_ENGINES: 'synthetic-data-only' }, engines: [engine, publisher('trust'), publisher('record'), publisher('access')], dataDirectory: MEMORY, clock: createClock(START) });
+ const runtime = createRuntime({ env: { MYTHUSO_ENGINES: 'synthetic-data-only' }, engines: [engine, clinical, publisher('trust'), publisher('record'), publisher('access')], dataDirectory: MEMORY, clock: createClock(START) });
  const as = (id: 'trust' | 'record' | 'access', act: (ctx: EngineContext) => void) => { queues[id]!.push(act); runtime.advance(1); };
  /* Verify, standing in. Which nurses hold a badge is the test's choice, passed in. */
  if (cleared.length) as('trust', ctx => {
@@ -306,7 +314,9 @@ test('an admin reads the offer expiry in force with who decided it and its bound
  assert.deepEqual(row!.changedBy, ['admin']);
  assert.equal(row!.appliesTo, expiry.appliesTo);
  assert.equal(row!.reviewRequired, null);
- for (const role of ['nurse', 'dispatcher']) assert.equal(runtime.call(READ, { role, ref: 'party-synthetic-1', purpose: 'audit', fields: {} }).body.error, 'caller-not-allowed', role);
+ /* A nurse is admitted since Clinical's review-confirmer setting may name her, and refused while it does not; a dispatcher never is. */
+ assert.equal(runtime.call(READ, { role: 'nurse', ref: 'party-synthetic-1', purpose: 'audit', fields: {} }).body.error, 'settings-read-not-permitted');
+ assert.equal(runtime.call(READ, { role: 'dispatcher', ref: 'party-synthetic-1', purpose: 'audit', fields: {} }).body.error, 'caller-not-allowed');
  runtime.close();
 });
 
@@ -371,7 +381,7 @@ test('an offer made before a change lapses when it said it would, and the offer 
 
 /* ---- Clinical review of the scope settings ------------------------------------------------------ */
 
-const REVIEW: RouteKey = 'POST /v1/care/setting-reviews@1';
+const REVIEW: RouteKey = 'POST /v1/care/setting-reviews@2';
 const DOCTOR = { role: 'doctor', ref: 'party-synthetic-401', purpose: 'audit' };
 const CLINICALLY_SAFE = 'Inside a registered nurse’s general scope, under the injection administration protocol.';
 type ReadRow = { setting: string; inForce: unknown; setAtVersion: number; reviewRequired: string | null; reviewed: { byRef: string } | null };
@@ -433,7 +443,9 @@ test('nobody confirms the clinical review of a change they made themselves', () 
 
 test('a nurse, an admin, a doctor nobody can name, and a doctor without the capability the setting names are refused a review', () => {
  const { runtime } = setup([]);
- for (const role of ['nurse', 'admin', 'dispatcher']) assert.equal(review(runtime, { idempotencyKey: role, settingsVersion: 1 }, { role, ref: 'party-synthetic-1', purpose: 'audit' }).body.error, 'caller-not-allowed', role);
+ /* A nurse is admitted since Clinical's review-confirmer setting may name her, and refused while it names the doctor alone. */
+ refusedInReview(review(runtime, { idempotencyKey: 'nurse', settingsVersion: 1 }, { role: 'nurse', ref: 'party-synthetic-1', purpose: 'audit' }), 'setting-review-not-permitted');
+ for (const role of ['admin', 'dispatcher']) assert.equal(review(runtime, { idempotencyKey: role, settingsVersion: 1 }, { role, ref: 'party-synthetic-1', purpose: 'audit' }).body.error, 'caller-not-allowed', role);
  assert.equal(review(runtime, { idempotencyKey: 'nobody', settingsVersion: 1 }, { ...DOCTOR, ref: null }).body.error, 'caller-unidentified');
  assert.equal(rowOf(runtime, 'injection-roles').reviewed, null);
  runtime.close();
@@ -441,7 +453,7 @@ test('a nurse, an admin, a doctor nobody can name, and a doctor without the capa
  /* The route admits the roles that hold sign-clinical-review; the rules ask the setting's own capability.
     A setting that named one doctors do not hold is refused to a doctor in the contract's sentence. */
  const otherCapability = { block: { ...careBlock, items: careBlock.items.map(s => s.key === 'injection-roles' ? { ...s, reviewRequired: 'review-vetting' } : s) } };
- const refused = confirmReview(otherCapability, [], [], { setting: 'injection-roles', settingsVersion: 1, reason: CLINICALLY_SAFE, byRole: 'doctor', byRef: DOCTOR.ref }, Date.parse(START));
+ const refused = confirmReview(otherCapability, [], [], { setting: 'injection-roles', settingsVersion: 1, reason: CLINICALLY_SAFE, byRole: 'doctor', byRef: DOCTOR.ref, confirmers: ['doctor'] }, Date.parse(START));
  assert.deepEqual(refused.ok ? null : [refused.refusal.id, refused.refusal.statement], ['setting-review-not-permitted', settingsContract.refusals.find(r => r.route === 'review' && r.id === 'setting-review-not-permitted')!.statement]);
 });
 

@@ -27,6 +27,9 @@ import { fileURLToPath } from 'node:url';
    reviewed" means here exactly what it means on a phone, and a default that module refuses is refused
    before a reviewer is shown it. */
 import { settingDefault, settingsIn } from './settings-defaults.mjs';
+/* Clinical Intelligence's frames (Wave 5): which consultation headings are required is worked out by the Clinical
+   domain from records.json, and read from there so the pack and the gate cannot disagree about it. */
+import { frame as consultationFrame } from '../packages/engines/src/clinical/domain/contract.ts';
 
 const TARGET = 'docs/governance/CLINICAL-REVIEW-PACK.md';
 const CATALOG = 'packages/catalog/';
@@ -264,8 +267,10 @@ export function emitClinicalReviewPack(root = '') {
    return n + 1 + proposalChecks + notYetChecks;
   }, 0),
   E: clinicalSettings.length + clinicalProposals.length,
-  F: 1 + 1 + (unreviewedLocales.length ? 1 : 0)
+  F: 1 + 1 + (unreviewedLocales.length ? 1 : 0),
+  G: 6
  };
+ const clinicalFrames = json('clinical.json');
  const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
  const out = [];
@@ -296,9 +301,15 @@ export function emitClinicalReviewPack(root = '') {
  line();
  line('Writing in this pack changes nothing. A decision takes effect only through the contract\'s own process:');
  line();
- const reviewers = holders('sign-clinical-review');
+ /* Who confirms is Clinical's review-confirmer setting (Wave 5), read through the one module every emitter reads a
+    setting through, rather than the vetting register's grant of sign-clinical-review. */
+ const clinicalSource = settingSources.find(s => s.engine === 'clinical');
+ const confirmerKey = clinicalSource.contract.reviews.confirmerSetting;
+ const confirmerSetting = settingsIn(clinicalSource.file, clinicalSource.contract).find(s => s.key === confirmerKey);
+ const reviewers = settingDefault(clinicalSource.file, clinicalSource.contract, confirmerKey).value.map(roleOf).filter(Boolean);
+ const mayBeNamed = confirmerSetting.allowedRoles.roles.map(roleOf).filter(Boolean);
  line(`- **Settings (sections A and E).** An admin puts a value in force on the Configuration tab (${[...new Set(settingSources.map(s => changeRoute(s.engine)).filter(Boolean))].map(tick).join(', ')}). For a setting that waits on a clinical review, somebody holding ${tick('sign-clinical-review')} (${capabilityName('sign-clinical-review')}) then confirms that exact value, with a reason, in the doctor workspace's "Settings waiting for clinical review" panel (\`apps/web/src/features/SettingReviews.tsx\`, ${[...new Set(waiting.map(w => reviewRoute(w.engine)).filter(Boolean))].map(tick).join(', ')}). "${refusal('setting-review-own-change')}" A default can instead be changed in the contract itself, naming the reviewer and the day (\`packages/catalog/settings.json\` \`provenance.reviewed\`) with a changelog entry, as \`settings.json\` \`howToChange\` describes.`);
- line(`- **Who can confirm through the panel today:** ${reviewers.map(r => `${r.name} (${tick(r.id)})`).join(', ') || 'no role on the register'}, because only ${reviewers.length === 1 ? 'that role holds' : 'those roles hold'} ${tick('sign-clinical-review')} in \`packages/catalog/vetting.json\`.${reviewers.some(r => r.id === 'nurse') ? '' : ' A Clinical Governance Lead who is a registered nurse could not confirm a setting through the panel. Their decision can still be recorded in the contract default, or the register can be changed — which is a question for the founder.'}`);
+ line(`- **Who can confirm through the panel today:** ${reviewers.map(r => `${r.name} (${tick(r.id)})`).join(', ') || 'no role on the register'}, because Clinical's ${tick(confirmerKey)} setting names ${reviewers.length === 1 ? 'that role' : 'those roles'} by default (\`packages/catalog/clinical.json\`), and every engine's review route confirms for the roles that setting names in force and for nobody else. An admin may name any of ${mayBeNamed.map(r => `${r.name} (${tick(r.id)})`).join(', ')} on the Configuration tab, and that change waits on a clinical review of its own.${reviewers.some(r => r.id === 'nurse') ? '' : ' A Clinical Governance Lead who is a registered nurse could confirm through the panel once the setting names her role.'}`);
  line(`- **Protocols (section B).** "${protocols.refusals.find(r => r.id === 'no-ratification-without-a-signature')?.statement}" "${protocols.refusals.find(r => r.id === 'a-new-version-is-a-new-row')?.statement}" The row in \`packages/catalog/protocols.json\` changes status, ratifiedBy and ratifiedOn, and gains a contentRef once the text exists.${ratifiedEvent ? ` Core announces a ratification as ${tick(`${ratifiedEvent.type}@${ratifiedEvent.version}`)}.` : ''}`);
  line('- **Gilbert\'s emergency terms (section C).** Only in `packages/catalog/gilbert-emergency-terms.json`: raise `version`, add a changelog entry (day, role, terms added and removed, why, the new `termsHash`), keep the shared fixtures passing on all three platforms, and record `clinicalReview.reviewedBy` and `reviewedOn`. `CLAUDE.md` holds the rule; `npm run check` replays the changelog.');
  line('- **The vetting register (section D).** A scope or a check changes in `packages/catalog/vetting.json` and is regenerated with `npm run vetting`. A proposed role is decided in `packages/catalog/vetting-proposals.json` by naming who decided it.');
@@ -316,6 +327,7 @@ export function emitClinicalReviewPack(root = '') {
  line(`| D | Clinical scopes and proposed clinical roles on the vetting register | ${counts.D} |`);
  line(`| E | Other clinical proposals and safety numbers nobody clinical has decided | ${counts.E} |`);
  line(`| F | Clinical content with no clinical sign-off recorded | ${counts.F} |`);
+ line(`| G | Clinical Intelligence's frames and empty registries, waiting on the board | ${counts.G} |`);
  line(`| | **Total** | **${total}** |`);
  line();
  line('Each item gives the value in force by default, what an admin may set it to, why it was proposed and by whom,');
@@ -575,6 +587,90 @@ export function emitClinicalReviewPack(root = '') {
   line(signOff());
   line();
  }
+
+ /* ---- Section G (Wave 5): Clinical Intelligence's frames ------------------------------------------
+    Every frame Clinical builds is a shape with no clinical content in it, and every registry is empty. A clinician
+    still has to say whether each frame is the right shape for the content the board will write into it, and the
+    two settings Clinical adds are in section A with the rest. */
+ const cf = clinicalFrames;
+ const namedVersions = ids => (ids.length ? ids.map(tick).join(', ') : 'None');
+ line('## G. Clinical Intelligence: frames and empty registries');
+ line();
+ line(`From \`packages/catalog/clinical.json\`. ${cf.whereContentLives.says} Nothing in this section is clinical content: each item is the frame the board's content would be written into, and each registry is empty until the board fills it. Who confirms a clinical review and the days outcome questions are asked on are settings, in section A.`);
+ line();
+ line('#### G1. The consultation frame');
+ line();
+ line('| Heading | What it holds | Sections it covers | Required |');
+ line('|---|---|---|---|');
+ for (const heading of consultationFrame) line(`| ${cell(heading.name)} (${tick(heading.code)}) | ${cell(heading.detail)} | ${cf.consultation.covers[heading.code].map(tick).join(', ')} | ${heading.required ? 'Required, because a section it covers is required in `records.json`' : 'Optional'} |`);
+ line();
+ line(`${cf.consultation.screen.intro} The refusal a sign-off meets: "${JSON.parse(readFileSync(root + CATALOG + 'apis/clinical.json', 'utf8')).routes.find(r => r.path === '/v1/clinical/consultations' && r.version === 2)?.refusals.find(x => x.id === 'required-sections-missing')?.statement}"`);
+ line();
+ line('**Question for the reviewer:** are these the headings a nurse\'s and a doctor\'s consultation must both have, is each required heading one no consultation may be signed off without, and should any optional section be required?');
+ line();
+ line(signOff());
+ line();
+ line('#### G2. Signing a review outside any protocol');
+ line();
+ line(facts(cf.reviews.signingModes.map(m => [m.label, `${m.sentence}${m.noProtocolSentence ? ` When the visit named none: ${m.noProtocolSentence}` : ''}`])));
+ line();
+ line(`${cf.reviews.complete} Every protocol in section B is a draft, so every review signed today is signed as reviewed outside any protocol, and says so. ${cf.reviews.autoSign.why}`);
+ line();
+ line('**Question for the reviewer:** until the board ratifies the protocols in section B, is a doctor\'s signature on a visit reviewed outside any protocol acceptable, and what should a signing doctor be required to have read before signing one?');
+ line();
+ line(signOff());
+ line();
+ line('#### G3. The triage frame');
+ line();
+ line('| Stage | What it does |');
+ line('|---|---|');
+ for (const stage of cf.triage.stages) line(`| ${cell(stage.label)} | ${cell(stage.rule)} |`);
+ line();
+ line(facts([
+  ['Triage protocols the board has named', namedVersions(cf.triage.triageProtocols.ids)],
+  ['Why none', cf.triage.triageProtocols.why],
+  ['What every triage answers today', `${cf.triage.notTriaged.label}. ${cf.triage.notTriaged.human} ${cf.triage.notTriaged.emergencyFirst}`]
+ ]));
+ line();
+ line('**Question for the reviewer:** which protocol should become the triage protocol, who writes its red flags, priority scale, reason codes and care settings, and is the order of the stages above safe, with Gilbert\'s emergency terms always first?');
+ line();
+ line(signOff());
+ line();
+ line('#### G4. Home Guidance outcomes');
+ line();
+ line(facts([
+  ['Outcomes, by name only', cf.guidance.outcomes.map(o => `${o.label} (${tick(o.code)})`).join('; ')],
+  ['Ratified scripts', cf.guidance.scripts.length ? cf.guidance.scripts.map(s => tick(s.scriptRef)).join(', ') : 'None'],
+  ['Rule', cf.guidance.rule]
+ ]));
+ line();
+ line('**Question for the reviewer:** are these the four outcomes MyThuso should end a triage in, who writes and translates the script for each, and what must every script say before a patient hears it?');
+ line();
+ line(signOff());
+ line();
+ line('#### G5. Outcome question instruments');
+ line();
+ line(facts([
+  ['Instruments the board has chosen', cf.proms.instruments.length ? cf.proms.instruments.map(i => tick(i.id)).join(', ') : 'None'],
+  ['When an episode starts', cf.proms.episode.startsWhen],
+  ['What it keeps', cf.proms.episode.keeps],
+  ['Rule', cf.proms.rule]
+ ]));
+ line();
+ line('**Question for the reviewer:** which validated instrument, or instruments per condition pack, should outcome questions come from, in which languages, and who may change the choice?');
+ line();
+ line(signOff());
+ line();
+ line('#### G6. What a patient is never told');
+ line();
+ line(`${cf.wording.patientDiagnosis.rule} ${cf.wording.patientDiagnosis.why}`);
+ line();
+ line(`Phrases the build refuses in any contract or screen: ${cf.wording.patientDiagnosis.phrases.map(p => `“${p}”`).join(', ')}.`);
+ line();
+ line('**Question for the reviewer:** are these phrases enough to keep a diagnosis out of what software says to a patient, and which other constructions should be refused?');
+ line();
+ line(signOff());
+ line();
 
  /* ---- Left out, and not yet classified ----------------------------------------------------------- */
  line('## Looked at and left out');

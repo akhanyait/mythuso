@@ -419,6 +419,8 @@ import za.co.mythuso.model.mokoenaHousehold
         title == "Live dispatch board" -> DispatchBoardScreen(store, open)
         title == "Teleconsultation" -> TeleconsultScreen(store, open = open)
         title.startsWith("Doctor review") -> DoctorReviewScreen(store, title.removePrefix("Doctor review "))
+        /* Wave 5: the inbox a review is signed from, named by the contract's own heading. */
+        title == za.co.mythuso.model.ClinicalData.InboxText.heading -> ClinicalInboxScreen(store)
         title.startsWith("Prescription ") -> PrescriptionScreen(title.removePrefix("Prescription "))
         title == "Substitution & repeats" -> DispensingScreen(store)
         /* Named by the contract's own heading, so the row that opens it and the screen it opens cannot drift. */
@@ -962,6 +964,7 @@ private fun sectionDeck(role: String, section: String) =
                             open("Doctor review ${waiting.reference}")
                         }
                     }
+                    ToolRow(za.co.mythuso.model.ClinicalData.InboxText.heading) { open(za.co.mythuso.model.ClinicalData.InboxText.heading) }
                 }
                 CareCard {
                     Text("Your vetting", style = MaterialTheme.typography.titleMedium)

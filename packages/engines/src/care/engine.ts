@@ -23,7 +23,7 @@
  *   Codes       The preview's published code for the preview visit; a random six digits for any other,
  *               issued at acceptance and held beside the visit. Who hands it to the patient is Access's
  *               to build and is not here.
- *   Settings    GET /v1/care/settings@1, POST /v1/care/setting-changes@1 and POST /v1/care/setting-reviews@1,
+ *   Settings    GET /v1/care/settings@2, POST /v1/care/setting-changes@1 and POST /v1/care/setting-reviews@2,
  *               through packages/engines/src/settings, with the history in this store's settings_history
  *               and the clinical reviews in settings_reviews. The offer desk is handed the settings in
  *               force when it makes an offer — the expiry and who may be offered the service — and the
@@ -53,7 +53,7 @@ import geography from '../../../catalog/geography.json' with { type: 'json' };
 import care from '../../../catalog/care.json' with { type: 'json' };
 import records from '../../../catalog/records.json' with { type: 'json' };
 import { defineEngine, ok, refuse, type Answer, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
-import { SETTINGS_SCHEMA, settingsIn, settingsRoutes } from '../settings/routes.ts';
+import { SETTINGS_SCHEMA, confirmersFromClinical, settingsIn, settingsRoutes } from '../settings/routes.ts';
 import {
  careContract, careInForceOf, careSettings, instantAt, OfferDesk, SyncIntake, TrustCache, VisitDesk,
  type AppointmentToFill, type Candidate, type CareEvent, type NamedFallback, type NamedWait, type Offer, type QueuedCapture, type Received, type Visit
@@ -295,7 +295,8 @@ export const engine = defineEngine({
    });
   }),
 
-  ...settingsRoutes(careSettings, { read: 'GET /v1/care/settings@1', change: 'POST /v1/care/setting-changes@1', review: 'POST /v1/care/setting-reviews@1' })
+  /* Who confirms a clinical review is Clinical's review-confirmer setting in force, asked of Clinical (Wave 5). */
+  ...settingsRoutes(careSettings, { read: 'GET /v1/care/settings@2', change: 'POST /v1/care/setting-changes@1', review: 'POST /v1/care/setting-reviews@2' }, { confirmers: confirmersFromClinical })
  },
 
  subscriptions: {
