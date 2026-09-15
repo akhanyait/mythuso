@@ -124,7 +124,9 @@
   { "id": "required-field-missing", "status": 400, "statement": "A field this route needs was not sent.", "why": "A route that guesses a missing field has invented part of somebody's request." },
   { "id": "idempotency-key-required", "status": 400, "statement": "A money or dispatch write needs an idempotency key.", "why": "Without one, a retry on a bad connection is a second charge or a second nurse." },
   { "id": "malformed-path", "status": 400, "statement": "That address could not be read.", "why": "A path that does not decode is refused in words, rather than thrown at the process that was answering it." },
-  { "id": "idempotency-key-reused", "status": 409, "statement": "That idempotency key was already used for a different request.", "why": "The same key twice is the same act once. A key sent again with a different amount or a different visit is not a retry, and answering it with the first result would tell the caller something happened that did not." }
+  { "id": "idempotency-key-reused", "status": 409, "statement": "That idempotency key was already used for a different request.", "why": "The same key twice is the same act once. A key sent again with a different amount or a different visit is not a retry, and answering it with the first result would tell the caller something happened that did not." },
+  { "id": "route-version-required", "status": 400, "statement": "This address is answered at more than one version. Name the version you are calling.", "why": "Answering whichever version was declared first would hand a caller who meant another a different shape and different refusals, and nothing would say so. POST /v1/money/payments is live at versions one and two, and until this refusal version two could not be reached by its address at all." },
+  { "id": "route-version-not-declared", "status": 404, "statement": "This address is not declared at the version you named.", "why": "A version nobody declared has no callers, no purpose and no refusals to hold a call to, so it is refused rather than answered as the nearest one." }
  ],
 
  "neverCrossesAnApi": {
@@ -196,6 +198,8 @@
   "roleHeader": "x-mythuso-role",
   "purposeHeader": "x-mythuso-purpose",
   "refusalHeader": "x-mythuso-mock-refusal",
+  "versionHeader": "x-mythuso-route-version",
+  "_versionHeaderNote": "A method and path can be live at more than one version, as POST /v1/money/payments is, and the path does not say which. The caller names the version in this header. Where a path is live at one version the header may be left out; where it is live at more, leaving it out is refused with route-version-required, and a version the path is not declared at is refused with route-version-not-declared. The mock and the engine runtime's door read the same rule from packages/mock-api/src/mock.ts.",
   "loopbackHosts": ["127.0.0.1", "localhost", "::1"],
   "why": "Screens are built against the contract before any engine exists, so the mock answers every route from fixtures derived from this contract and refuses exactly as the route declares: the wrong role, the wrong purpose, a missing field, a missing idempotency key, and — when a test asks for it by id — each of the route's own refusals with its status and its sentence. It binds to loopback, refuses to start without the flag, and nothing in deploy/ may name it."
  },

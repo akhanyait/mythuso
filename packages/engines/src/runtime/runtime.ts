@@ -187,7 +187,8 @@ export function createRuntime(options: RuntimeOptions): Runtime {
 
  function mockAnswer(route: ContractRoute, caller: Caller, purpose: string | undefined, given: Record<string, unknown>): RuntimeAnswer {
   const path = route.mountedPath.replace(/\{([^}]+)\}/g, (_, name: string) => encodeURIComponent(String(given[name] ?? '')));
-  const headers = { [contract.mock.mock.roleHeader]: caller.role, [contract.mock.mock.purposeHeader]: purpose };
+  /* The route was chosen by its key, so the mock is told its version too, or a path live at two versions would be refused. */
+  const headers = { [contract.mock.mock.roleHeader]: caller.role, [contract.mock.mock.purposeHeader]: purpose, [contract.mock.mock.versionHeader]: String(route.version) };
   const query = route.method === 'GET' ? Object.fromEntries(Object.entries(given).map(([k, v]) => [k, String(v)])) : {};
   return { ...mock.handle({ method: route.method, path, headers, query, body: route.method === 'GET' ? {} : given }), answeredBy: 'mock' };
  }
@@ -336,9 +337,10 @@ export function createRuntime(options: RuntimeOptions): Runtime {
 
  return {
   handle(request) {
-   const found = match(contract.mock.routes, request.method, request.path);
+   const found = match(contract.mock.routes, request.method, request.path, request.headers[contract.mock.mock.versionHeader]);
    if (found === 'malformed') return render(shared('malformed-path'), 'runtime');
    if (!found) return render(runtimeRefusal('no-route'), 'runtime');
+   if ('refused' in found) return render(shared(found.refused), 'runtime');
    const route = contract.byKey.get(routeKeyOf(found.route))!;
    const header = (name: string) => request.headers[name];
    if (!handlers.has(route.key)) return { ...mock.handle(request), answeredBy: 'mock' };

@@ -10,6 +10,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MEMORY, createClock, createRuntime, defineEngine, type EventKey } from '../runtime/index.ts';
+import { loadRuntimeContract } from '../runtime/contract.ts';
 import { engine, HEARD } from './engine.ts';
 import { attempt } from './domain/provider.ts';
 import { hearing, refusal, serviceById } from './domain/contract.ts';
@@ -202,6 +203,27 @@ test('a runtime that sleeps through two weeks pays both when it wakes, once each
  assert.equal(published('payout.scheduled@1').length, payouts.length, 'a week was scheduled more than once');
  runtime.advance(1000);
  assert.equal(published('payout.scheduled@1').length, payouts.length);
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('through the door, the version a caller names decides which payments route answers, and naming none is refused', () => {
+ const { care, runtime } = world();
+ billableFor(care, runtime, [['APT-1', 'subj-lerato']]);
+ const settings = loadRuntimeContract();
+ const door = (version: string | undefined) => runtime.handle({
+  method: 'POST', path: '/v1/money/payments', query: {},
+  headers: { [settings.mock.mock.roleHeader]: 'patient', [settings.mock.mock.purposeHeader]: 'billing', [settings.settings.callerRefHeader]: 'subj-lerato', [settings.mock.mock.versionHeader]: version },
+  body: { payableRef: 'PB-APT-1', method: 'cash-otp', amountCents: vitals.price * 100, idempotencyKey: `door-${version ?? 'unnamed'}` }
+ });
+ const unnamed = door(undefined);
+ assert.deepEqual([unnamed.status, unnamed.body['error'], unnamed.answeredBy], [400, 'route-version-required', 'runtime']);
+ assert.deepEqual(door('1').body, { error: 'cash-needs-version-2', message: refusal('cash-needs-version-2').statement });
+ const two = door('2');
+ assert.equal(two.status, 200, JSON.stringify(two.body));
+ assert.equal(two.answeredBy, 'engine');
+ assert.match(String(two.body['cashCode']), /^\d{6}$/);
+ assert.equal(door('9').body['error'], 'route-version-not-declared');
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
 });
