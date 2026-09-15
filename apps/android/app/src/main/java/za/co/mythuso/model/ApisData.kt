@@ -25,9 +25,9 @@ object ApisData {
     val POST_CORE_EVENTS = Route("postCoreEvents", "POST", "/v1/core/events", "/v1/core/events", 1, "core", listOf("engine:access", "engine:pulse", "engine:care", "engine:clinical", "engine:safety", "engine:movement", "engine:trust", "engine:record", "engine:medicines", "engine:devices", "engine:money"), listOf("audit"), false, "proposed")
     val POST_CORE_LOOPS = Route("postCoreLoops", "POST", "/v1/core/loops", "/v1/core/loops", 1, "core", listOf("engine:care", "engine:safety", "engine:medicines", "engine:access", "engine:movement"), listOf("treatment", "dispatch", "emergency"), true, "built")
     val GET_CORE_LOOPS_V2 = Route("getCoreLoopsV2", "GET", "/v1/core/loops", "/v1/core/loops", 2, "core", listOf("ops-desk", "operator"), listOf("treatment", "dispatch", "emergency"), false, "built")
-    val POST_CORE_LOOPS_BY_LOOP_REF_ACKNOWLEDGE_V2 = Route("postCoreLoopsByLoopRefAcknowledgeV2", "POST", "/v1/core/loops/{loopRef}/acknowledge", "/v1/core/loops/{loopRef}/acknowledge", 2, "core", listOf("nurse", "doctor", "ops-desk", "operator", "engine:care", "engine:safety"), listOf("treatment", "dispatch", "emergency"), true, "built")
-    val POST_CORE_LOOPS_BY_LOOP_REF_ESCALATE_V2 = Route("postCoreLoopsByLoopRefEscalateV2", "POST", "/v1/core/loops/{loopRef}/escalate", "/v1/core/loops/{loopRef}/escalate", 2, "core", listOf("ops-desk", "operator", "engine:safety"), listOf("treatment", "dispatch", "emergency"), true, "built")
-    val POST_CORE_LOOPS_BY_LOOP_REF_CLOSE = Route("postCoreLoopsByLoopRefClose", "POST", "/v1/core/loops/{loopRef}/close", "/v1/core/loops/{loopRef}/close", 1, "core", listOf("nurse", "doctor", "ops-desk"), listOf("treatment", "dispatch", "emergency"), true, "built")
+    val POST_CORE_LOOPS_BY_LOOP_REF_ACKNOWLEDGE_V3 = Route("postCoreLoopsByLoopRefAcknowledgeV3", "POST", "/v1/core/loops/{loopRef}/acknowledge", "/v1/core/loops/{loopRef}/acknowledge", 3, "core", listOf("nurse", "doctor", "ops-desk", "operator", "head-of-operations", "engine:care", "engine:safety"), listOf("treatment", "dispatch", "emergency"), true, "built")
+    val POST_CORE_LOOPS_BY_LOOP_REF_ESCALATE_V3 = Route("postCoreLoopsByLoopRefEscalateV3", "POST", "/v1/core/loops/{loopRef}/escalate", "/v1/core/loops/{loopRef}/escalate", 3, "core", listOf("ops-desk", "operator", "head-of-operations", "engine:safety"), listOf("treatment", "dispatch", "emergency"), true, "built")
+    val POST_CORE_LOOPS_BY_LOOP_REF_CLOSE_V2 = Route("postCoreLoopsByLoopRefCloseV2", "POST", "/v1/core/loops/{loopRef}/close", "/v1/core/loops/{loopRef}/close", 2, "core", listOf("nurse", "doctor", "ops-desk", "operator", "head-of-operations"), listOf("treatment", "dispatch", "emergency"), true, "built")
     val POST_CORE_ALERTS_V2 = Route("postCoreAlertsV2", "POST", "/v1/core/alerts", "/v1/core/alerts", 2, "core", listOf("engine:safety", "engine:devices", "engine:clinical", "engine:medicines"), listOf("treatment", "emergency"), false, "built")
     val GET_CORE_SETTINGS = Route("getCoreSettings", "GET", "/v1/core/settings", "/v1/core/settings", 1, "core", listOf("admin"), listOf("audit"), false, "built")
     val POST_CORE_SETTING_CHANGES = Route("postCoreSettingChanges", "POST", "/v1/core/setting-changes", "/v1/core/setting-changes", 1, "core", listOf("admin"), listOf("audit"), true, "built")
@@ -114,7 +114,7 @@ object ApisData {
     val POST_SAFETY_SAFEGUARDING_REPORTS = Route("postSafetySafeguardingReports", "POST", "/v1/safety/safeguarding-reports", "/v1/safety/safeguarding-reports", 1, "safety", listOf("nurse", "locum", "doctor", "responder", "courier", "thuso-line-agent"), listOf("emergency"), false, "proposed")
     val POST_SAFETY_SENTINEL_DEVIATIONS = Route("postSafetySentinelDeviations", "POST", "/v1/safety/sentinel-deviations", "/v1/safety/sentinel-deviations", 1, "safety", listOf("engine:devices"), listOf("treatment"), false, "proposed")
     val GET_SAFETY_INCIDENT_KINDS = Route("getSafetyIncidentKinds", "GET", "/v1/safety/incident-kinds", "/v1/safety/incident-kinds", 1, "safety", listOf("anonymous"), listOf("audit"), false, "built")
-    val POST_SAFETY_INCIDENTS = Route("postSafetyIncidents", "POST", "/v1/safety/incidents", "/v1/safety/incidents", 1, "safety", listOf("nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin", "employer", "sponsor", "guardian", "corner"), listOf("audit"), false, "built")
+    val POST_SAFETY_INCIDENTS_V2 = Route("postSafetyIncidentsV2", "POST", "/v1/safety/incidents", "/v1/safety/incidents", 2, "safety", listOf("nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin", "employer", "sponsor", "guardian", "corner", "carer", "head-of-operations"), listOf("audit"), false, "built")
     val POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_CONTAIN = Route("postSafetyIncidentsByIncidentIdContain", "POST", "/v1/safety/incidents/{incidentId}/contain", "/v1/safety/incidents/{incidentId}/contain", 1, "safety", listOf("admin", "incident-reporter"), listOf("audit"), false, "built")
     val POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_NOTIFIED = Route("postSafetyIncidentsByIncidentIdNotified", "POST", "/v1/safety/incidents/{incidentId}/notified", "/v1/safety/incidents/{incidentId}/notified", 1, "safety", listOf("admin"), listOf("audit"), false, "built")
     val POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_CLOSE = Route("postSafetyIncidentsByIncidentIdClose", "POST", "/v1/safety/incidents/{incidentId}/close", "/v1/safety/incidents/{incidentId}/close", 1, "safety", listOf("admin"), listOf("audit"), false, "built")
@@ -195,9 +195,9 @@ object ApisData {
         POST_CORE_EVENTS,
         POST_CORE_LOOPS,
         GET_CORE_LOOPS_V2,
-        POST_CORE_LOOPS_BY_LOOP_REF_ACKNOWLEDGE_V2,
-        POST_CORE_LOOPS_BY_LOOP_REF_ESCALATE_V2,
-        POST_CORE_LOOPS_BY_LOOP_REF_CLOSE,
+        POST_CORE_LOOPS_BY_LOOP_REF_ACKNOWLEDGE_V3,
+        POST_CORE_LOOPS_BY_LOOP_REF_ESCALATE_V3,
+        POST_CORE_LOOPS_BY_LOOP_REF_CLOSE_V2,
         POST_CORE_ALERTS_V2,
         GET_CORE_SETTINGS,
         POST_CORE_SETTING_CHANGES,
@@ -284,7 +284,7 @@ object ApisData {
         POST_SAFETY_SAFEGUARDING_REPORTS,
         POST_SAFETY_SENTINEL_DEVIATIONS,
         GET_SAFETY_INCIDENT_KINDS,
-        POST_SAFETY_INCIDENTS,
+        POST_SAFETY_INCIDENTS_V2,
         POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_CONTAIN,
         POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_NOTIFIED,
         POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_CLOSE,
@@ -388,28 +388,29 @@ object ApisData {
         val loops: List<Map<String, Any?>>,
         val exhaustedCount: Int
     )
-    data class PostCoreLoopsByLoopRefAcknowledgeV2Request(
+    data class PostCoreLoopsByLoopRefAcknowledgeV3Request(
         val idempotencyKey: String,
         val loopRef: String
     )
-    data class PostCoreLoopsByLoopRefAcknowledgeV2Response(
+    data class PostCoreLoopsByLoopRefAcknowledgeV3Response(
         val acknowledgedAt: String
     )
-    data class PostCoreLoopsByLoopRefEscalateV2Request(
+    data class PostCoreLoopsByLoopRefEscalateV3Request(
         val idempotencyKey: String,
         val loopRef: String,
         val reasonCode: String
     )
-    data class PostCoreLoopsByLoopRefEscalateV2Response(
+    data class PostCoreLoopsByLoopRefEscalateV3Response(
         val ownerRole: String,
         val dueBy: String
     )
-    data class PostCoreLoopsByLoopRefCloseRequest(
+    data class PostCoreLoopsByLoopRefCloseV2Request(
         val idempotencyKey: String,
         val loopRef: String,
-        val outcomeRef: String
+        val outcomeCode: String,
+        val outcomeRef: String? = null
     )
-    data class PostCoreLoopsByLoopRefCloseResponse(
+    data class PostCoreLoopsByLoopRefCloseV2Response(
         val closedAt: String
     )
     data class PostCoreAlertsV2Request(
@@ -1097,14 +1098,14 @@ object ApisData {
         val kinds: List<Map<String, Any?>>,
         val notificationRule: String
     )
-    data class PostSafetyIncidentsRequest(
+    data class PostSafetyIncidentsV2Request(
         val kind: String,
         val whatHappened: String,
         val informationReached: Boolean,
         val peopleAffected: Int? = null,
         val discoveredAt: Int? = null
     )
-    data class PostSafetyIncidentsResponse(
+    data class PostSafetyIncidentsV2Response(
         val incidentId: String,
         val notificationOwed: Boolean
     )

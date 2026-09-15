@@ -30,7 +30,9 @@ extension Vetting {
         .init(id: "sponsor-care", name: "Sponsor care", detail: "Pay for another person's visits"),
         .init(id: "guardian-access", name: "Hold guardian access", detail: "Act for a minor or a dependent adult"),
         .init(id: "host-screening", name: "Host a screening site", detail: "Receive patients at a community screening location"),
-        .init(id: "interpret-consultation", name: "Interpret a consultation", detail: "Join a call or attend a visit as the named interpreter, and hear every word of it")
+        .init(id: "interpret-consultation", name: "Interpret a consultation", detail: "Join a call or attend a visit as the named interpreter, and hear every word of it"),
+        .init(id: "assist-supervised-visit", name: "Assist at a supervised home visit", detail: "Help a patient with daily living at a visit a registered nurse holds, and nothing clinical"),
+        .init(id: "hold-operations-authority", name: "Hold operations authority", detail: "Answer for a concern nobody on the desk or the nurse lead's post took on, from the last post of the escalation rota")
     ]
     /* The formats are the ones the issuing bodies actually use, so the preview can say "that is not
        a SANC number" locally, without sending anything anywhere. The numbers entered are fictional. */
@@ -263,6 +265,30 @@ extension Vetting {
                     .init(id: "attendant-vetting", name: "Attendant vetting", detail: "Every person working the site is vetted in their own right", authority: "internal", evidence: "Linked personal vetting records", renewMonths: 12, risk: "high", gate: "identity"),
                     .init(id: "privacy-layout", name: "Privacy layout", detail: "Nobody waiting can see or hear a consultation", authority: "internal", evidence: "Floor plan and inspection sign-off", renewMonths: 12, risk: "standard", gate: "assess"),
                     .init(id: "landlord-consent", name: "Landlord consent", detail: "Written permission to provide a health service on the premises", authority: "internal", evidence: "Signed consent", renewMonths: 24, risk: "standard", gate: "credentials")
+                   ]),
+        VettedRole(id: "carer", name: "Home carer", party: "person", workspace: "Partner",
+                   summary: "Helps a patient with daily living at home, always beside the registered nurse who holds the visit.",
+                   grants: [
+                    .init(capability: "assist-supervised-visit", refusal: "A carer is never offered a visit without the registered nurse who holds it, and is granted nothing clinical: no record, no summary, no reading and no medicine.")
+                   ],
+                   checks: [
+                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high", gate: "identity"),
+                    .init(id: "police-clearance", name: "Police clearance", detail: "SAPS clearance, renewed every two years, like anybody else who comes into a patient's home", authority: "saps", evidence: "SAPS clearance certificate", renewMonths: 24, risk: "high", gate: "background"),
+                    .init(id: "references", name: "Two care references", detail: "Contacted directly, never through the applicant", authority: "internal", evidence: "Two named referees", renewMonths: nil, risk: "standard", gate: "background"),
+                    .init(id: "carer-training", name: "Supervised home care training", detail: "Personal care, infection control, safeguarding, and when to call the supervising nurse rather than act", authority: "internal", evidence: "Training record", renewMonths: 24, risk: "standard", gate: "train"),
+                    .init(id: "popia-training", name: "POPIA and confidentiality", detail: "Handling special personal information, and the undertaking that goes with it", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "standard", gate: "train")
+                   ]),
+        VettedRole(id: "head-of-operations", name: "Head of Operations", party: "person", workspace: "Control Tower",
+                   summary: "Holds the last post on the escalation rota, and answers for a concern the desk and the nurse lead did not take on.",
+                   grants: [
+                    .init(capability: "hold-operations-authority", refusal: "Operations authority is granted only once every check is in date. It is authority over the desk's escalations, and never a way into a patient's record.")
+                   ],
+                   checks: [
+                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high", gate: "identity"),
+                    .init(id: "police-clearance", name: "Police clearance", detail: "SAPS clearance, renewed every two years", authority: "saps", evidence: "SAPS clearance certificate", renewMonths: 24, risk: "high", gate: "background"),
+                    .init(id: "references", name: "Employment references", detail: "Contacted directly, never through the applicant", authority: "internal", evidence: "Two named referees", renewMonths: nil, risk: "standard", gate: "background"),
+                    .init(id: "escalation-training", name: "Escalation training", detail: "Incident severity, the five-minute acknowledgement and when to call emergency services", authority: "internal", evidence: "Training record and drill", renewMonths: 12, risk: "high", gate: "train"),
+                    .init(id: "popia-training", name: "POPIA and confidentiality", detail: "Handling special personal information, and the undertaking that goes with it", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "standard", gate: "train")
                    ])
     ]
     static let scopes: [String: RoleScope] = [
@@ -353,6 +379,14 @@ extension Vetting {
         "corner": [
             "background": VettingGateNote(kind: "does-not-apply", sentence: "A site has no history of its own. Every person who works there is vetted in their own right, which is what the attendant vetting check at gate 2 records."),
             "train": VettingGateNote(kind: "does-not-apply", sentence: "A site is not trained. Its attendants are, under the roles they are vetted in.")
+        ],
+        "carer": [
+            "credentials": VettingGateNote(kind: "does-not-apply", sentence: "A home carer holds no professional registration. The work is supervised care, nothing about it is licensed by a council, and that is why a registered nurse always holds the visit."),
+            "assess": VettingGateNote(kind: "not-yet-a-check", sentence: "The practical assessment a carer should pass before a first visit is not yet a check in this contract. Until one is added, a carer passes gate 5 on nothing, and this sentence is where that is admitted.")
+        ],
+        "head-of-operations": [
+            "credentials": VettingGateNote(kind: "does-not-apply", sentence: "A Head of Operations holds no professional registration. The role is employment, and nothing about it is licensed by a council."),
+            "assess": VettingGateNote(kind: "not-yet-a-check", sentence: "The structured interview for a Head of Operations is not yet a check in this contract. Until one is added, the role passes gate 5 on nothing, and this sentence is where that is admitted.")
         ]
     ]
 }

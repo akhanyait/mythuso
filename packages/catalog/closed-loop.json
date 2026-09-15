@@ -75,7 +75,20 @@
   "why": "A code, never free text: the reason travels on loop.escalated@1 and alert.escalated@1, and words on the bus are words with none of the record's protections."
  },
 
- "_reasonsNotSettingsNote": "The snooze reasons and the reasons the desk escalates by hand stay proposals in this file rather than becoming settings, on purpose. Each is a code that travels on the bus — alert.escalated@1 and loop.escalated@1 carry reasonCode — or is sent by an app a nurse already has. A code an admin added on the back office would be put on the bus to subscribers that were built and reviewed against the codes here and cannot read it; a code an admin removed would refuse the reason a nurse's phone still offers her. Neither is an admin choosing within bounds: both are a change to the contract every subscriber and every app is built against, made the way this file is changed. The question each asks stays open beside it until somebody with the authority answers it.",
+ "outcomes": {
+  "value": [
+   {"id": "dealt-with", "label": "Dealt with", "means": "Somebody who held it did what it needed. Where that is written down is the reference it was closed with, or the concern itself."},
+   {"id": "raised-in-error", "label": "Raised in error", "means": "It should not have been raised, and nothing needed doing."},
+   {"id": "handed-outside-mythuso", "label": "Handed to a service outside MyThuso", "means": "It was passed to a service MyThuso does not run, and is theirs now. Nothing here contacts that service."}
+  ],
+  "decidedBy": null,
+  "proposedBy": "Register roles lead (Wave 3)",
+  "proposedBecause": "Three things the desk says when it closes a concern that are about what happened and not about the person it concerned: it was dealt with, it should never have been raised, or it left MyThuso's hands. None names a condition, so none is clinical content on a screen or in loop_audit.",
+  "question": "The outcomes a concern may be closed with.",
+  "why": "POST /v1/core/loops/{loopRef}/close@2 takes one of these or refuses. An exhausted concern closes only with one too, because a concern nobody was left to escalate to is the one a review most needs to count."
+ },
+
+ "_reasonsNotSettingsNote":"The snooze reasons and the reasons the desk escalates by hand stay proposals in this file rather than becoming settings, on purpose. Each is a code that travels on the bus — alert.escalated@1 and loop.escalated@1 carry reasonCode — or is sent by an app a nurse already has. A code an admin added on the back office would be put on the bus to subscribers that were built and reviewed against the codes here and cannot read it; a code an admin removed would refuse the reason a nurse's phone still offers her. Neither is an admin choosing within bounds: both are a change to the contract every subscriber and every app is built against, made the way this file is changed. The question each asks stays open beside it until somebody with the authority answers it.",
 
  "exhaustion": {
   "event": "loop.exhausted@1",
@@ -100,7 +113,7 @@
 
  "settings": {
   "_note": "Core's settings, in the shape packages/catalog/settings.json gives every setting. The founder instructed on 15 September 2026 that open questions become admin settings, and 'who comes after the fallback' was the question this file used to answer with a null rota. Every default, bound and list length here is the integrator's proposal, with decidedBy: null. packages/engines/src/core reads the rota and the minutes in force when a concern is opened and keeps them on the concern, so a change never reaches a concern already open. GET /v1/core/settings@1 and POST /v1/core/setting-changes@1 answer through packages/engines/src/settings. No Core setting waits on a clinical review, so there is no review route.",
-  "_postsNote": "Each post is held by the closest role on packages/catalog/vetting.json. The desk operator is the Control Tower operator, who dispatches nurses, triages incidents and escalates. The on-call nurse lead is a registered nurse: leading is who holds the post this week, not a role anybody is vetted into. No role on the register is the Head of Operations — internal admin staff decide the catalogue, finance, growth and vetting, and the Control Tower operator is the desk itself — so that post has no role and says why, and a concern that reaches it is skipped rather than handed to somebody else. The on-call nurse lead rotates weekly between people. Who holds a post is never in a contract, and the settings shape has no way yet for an admin to assign a person to a post, so the names stay open.",
+  "_postsNote": "Each post is held by the closest role on packages/catalog/vetting.json. The desk operator is the Control Tower operator, who dispatches nurses, triages incidents and escalates. The on-call nurse lead is a registered nurse: leading is who holds the post this week, not a role anybody is vetted into. The Head of Operations had no role on the register until 15 September 2026 — internal admin staff decide the catalogue, finance, growth and vetting, and the Control Tower operator is the desk itself — so the post was skipped rather than handed to somebody else. The register now holds head-of-operations, proposed in packages/catalog/vetting-proposals.json, and the post names it; the defaults' second version gives it weekday office hours. The on-call nurse lead rotates weekly between people. Who holds a post is never in a contract, and the settings shape has no way yet for an admin to assign a person to a post, so the names stay open.",
   "heading": "Core escalation",
   "intro": "Who a concern nobody has taken on goes to after its fallback, when each post is on duty, and how long each post holds it before the next.",
   "items": [
@@ -114,7 +127,7 @@
     "posts": [
      {"id": "desk-operator", "label": "Desk operator", "role": "operator"},
      {"id": "on-call-nurse-lead", "label": "On-call nurse lead", "role": "nurse"},
-     {"id": "head-of-operations", "label": "Head of Operations", "role": null, "roleMissing": "No role on the vetting register is the Head of Operations, so nobody holds this post and a concern that reaches it goes to the next post, or is exhausted."}
+     {"id": "head-of-operations", "label": "Head of Operations", "role": "head-of-operations"}
     ],
     "mustCover": [
      {"post": "desk-operator", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "06:00", "to": "22:00", "why": "The desk is staffed from six in the morning to ten at night, every day of the week."},
@@ -124,11 +137,12 @@
      "value": [
       {"post": "desk-operator", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "06:00", "to": "14:00"},
       {"post": "desk-operator", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "14:00", "to": "22:00"},
-      {"post": "on-call-nurse-lead", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "00:00", "to": "24:00"}
+      {"post": "on-call-nurse-lead", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "00:00", "to": "24:00"},
+      {"post": "head-of-operations", "days": ["mon", "tue", "wed", "thu", "fri"], "from": "08:00", "to": "17:00"}
      ],
      "decidedBy": null,
-     "proposedBy": "Integrator (Wave 3)",
-     "proposedBecause": "Two desk shifts of eight hours from six to ten, so the desk hears a concern first through the day; a nurse lead on call around the clock, so a concern at two in the morning reaches a clinician instead of an empty desk; and the Head of Operations last, with no hours, because no role on the vetting register holds that post yet."
+     "proposedBy": "Register roles lead (Wave 3)",
+     "proposedBecause": "Two desk shifts of eight hours from six to ten, so the desk hears a concern first through the day; a nurse lead on call around the clock, so a concern at two in the morning reaches a clinician instead of an empty desk; and the Head of Operations last, in office hours on weekdays, because the Head of Operations is on the vetting register now and is an office post rather than an on-call one. Outside those hours a concern that has passed the nurse lead is exhausted rather than handed to somebody who is not on, exactly as it was before the post was held."
     },
     "guardrail": {
      "statement": "No hour of the week is left without a post a concern can reach: the on-call nurse lead covers every hour of every day, and the desk covers six in the morning to ten at night.",
@@ -183,7 +197,7 @@
    }
   ],
   "defaults": {
-   "version": 1,
+   "version": 2,
    "changelog": [
     {
      "version": 1,
@@ -198,6 +212,24 @@
       {"setting": "escalation-minutes", "from": null, "to": [5, 10]}
      ],
      "why": "The rota the closed loop had no answer for, proposed as settings under the founder's instruction of 15 September 2026, with nobody's decision beside it yet."
+    },
+    {
+     "version": 2,
+     "on": "2026-09-15",
+     "by": "Register roles lead (Wave 3)",
+     "changed": [
+      {"setting": "escalation-rota", "from": [
+       {"post": "desk-operator", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "06:00", "to": "14:00"},
+       {"post": "desk-operator", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "14:00", "to": "22:00"},
+       {"post": "on-call-nurse-lead", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "00:00", "to": "24:00"}
+      ], "to": [
+       {"post": "desk-operator", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "06:00", "to": "14:00"},
+       {"post": "desk-operator", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "14:00", "to": "22:00"},
+       {"post": "on-call-nurse-lead", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "00:00", "to": "24:00"},
+       {"post": "head-of-operations", "days": ["mon", "tue", "wed", "thu", "fri"], "from": "08:00", "to": "17:00"}
+      ]}
+     ],
+     "why": "The Head of Operations post was held by no role, so it had no hours and every concern that reached it was skipped. The Head of Operations joined the vetting register on 15 September 2026 and holds the post now, so the post is given weekday office hours, proposed with nobody's decision beside them. The minutes are unchanged: the rota still has three posts, and the last is given the concern's own span."
     }
    ]
   }
@@ -230,6 +262,15 @@
   "exhausted": "Exhausted at {at}. Nobody is left to escalate to, and it stays here, first, until somebody closes it with an outcome.",
   "skippedOffDuty": "{post} was not on duty at {at}, so it went to the next post.",
   "skippedNoRole": "{post} is held by no role on the vetting register, so it went to the next post.",
-  "rotaVersion": "Rota of settings version {version}"
+  "rotaVersion": "Rota of settings version {version}",
+  "postsHeading": "Who holds each post of the rota in force",
+  "postHeld": "{post} · held by {role}",
+  "postNotHeld": "{post} · held by no role on the vetting register",
+  "close": "Close with an outcome",
+  "closeLegend": "What happened to {loopRef}",
+  "confirmClose": "Close this concern",
+  "cancelClose": "Keep it open",
+  "closed": "{loopRef} was closed at {at}: {outcome}. Nothing was sent to anybody, and this preview keeps the close in this tab's memory.",
+  "closeNotYours": "Closing a concern is for the roles its close route admits, and this workspace's role is not one of them."
  }
 }

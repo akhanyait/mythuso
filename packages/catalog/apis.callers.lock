@@ -198,3 +198,11 @@ POST /v1/money/payments/{paymentRef}/cash-code@2 callers=nurse purpose=billing b
 POST /v1/money/payments/{paymentRef}/release@2 callers=ops-desk purpose=billing because=-
 POST /v1/money/payments/{paymentRef}/cash-code@1 callers=- purpose=billing because=-
 POST /v1/money/payments/{paymentRef}/release@1 callers=- purpose=billing because=-
+POST /v1/core/loops/{loopRef}/acknowledge@3 callers=doctor,engine:care,engine:safety,head-of-operations,nurse,operator,ops-desk purpose=dispatch,emergency,treatment because=engine:care=loop.opened@1,engine:safety=loop.opened@1
+POST /v1/core/loops/{loopRef}/escalate@3 callers=engine:safety,head-of-operations,operator,ops-desk purpose=dispatch,emergency,treatment because=engine:safety=loop.opened@1
+POST /v1/core/loops/{loopRef}/close@2 callers=doctor,head-of-operations,nurse,operator,ops-desk purpose=dispatch,emergency,treatment because=-
+POST /v1/safety/incidents@2 callers=admin,carer,corner,courier,doctor,employer,guardian,head-of-operations,interpreter,laboratory,locum,nurse,operator,pharmacy,sponsor purpose=audit because=-
+POST /v1/core/loops/{loopRef}/acknowledge@2 callers=- purpose=dispatch,emergency,treatment because=engine:care=loop.opened@1,engine:safety=loop.opened@1
+POST /v1/core/loops/{loopRef}/escalate@2 callers=- purpose=dispatch,emergency,treatment because=engine:safety=loop.opened@1
+POST /v1/core/loops/{loopRef}/close@1 callers=- purpose=dispatch,emergency,treatment because=-
+POST /v1/safety/incidents@1 callers=- purpose=audit because=-

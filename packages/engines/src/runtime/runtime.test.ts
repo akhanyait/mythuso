@@ -89,10 +89,10 @@ test('an idempotent route replays the same key as the same act once', () => {
    people, so it is where two callers can choose the same key. */
 const acknowledging = (runs: { count: number }) => defineEngine({
  ...empty, id: 'core',
- routes: { 'POST /v1/core/loops/{loopRef}/acknowledge@2': (_request, ctx) => { runs.count++; return ok({ acknowledgedAt: ctx.clock.iso() }); } },
+ routes: { 'POST /v1/core/loops/{loopRef}/acknowledge@3': (_request, ctx) => { runs.count++; return ok({ acknowledgedAt: ctx.clock.iso() }); } },
 });
 const acknowledge = (runtime: ReturnType<typeof runtimeWith>, ref: string | null, fields: Record<string, unknown>) =>
- runtime.call('POST /v1/core/loops/{loopRef}/acknowledge@2', { role: 'nurse', ref, purpose: 'treatment', fields });
+ runtime.call('POST /v1/core/loops/{loopRef}/acknowledge@3', { role: 'nurse', ref, purpose: 'treatment', fields });
 
 test('two callers who choose the same key get their own answers, never each other\'s', () => {
  const runs = { count: 0 };
@@ -206,7 +206,7 @@ test('a declared refusal renders the contract\'s sentence; an undeclared one, a 
 test('an engine refusal is answered by the routes it names, and is a fault from any other', () => {
  const runtime = runtimeWith([defineEngine({ ...empty, id: 'core', routes: {
   'POST /v1/core/loops@1': () => refuse('no-such-loop'),
-  'POST /v1/core/loops/{loopRef}/acknowledge@2': () => refuse('no-such-loop'),
+  'POST /v1/core/loops/{loopRef}/acknowledge@3': () => refuse('no-such-loop'),
  } })]);
  const named = acknowledge(runtime, 'nurse-synthetic-1', { idempotencyKey: 'k', loopRef: 'loop-nobody-issued' });
  assert.deepEqual([named.status, named.body], [404, { error: 'no-such-loop', message: 'There is no concern under that reference.' }]);

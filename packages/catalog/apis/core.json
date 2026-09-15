@@ -10,8 +10,8 @@
   {"id": "no-loop-without-an-outcome", "status": 422, "statement": "A loop is not closed without an outcome.", "why": "The closed loop exists so that no concern is done until what happened is recorded."},
   {"id": "no-ratification-without-a-signature", "status": 422, "statement": "A protocol is ratified with a named role and a date.", "why": "A recommendation cites the board's authority; the registry must say whose it was and when."},
   {"id": "no-subscription-to-a-withdrawn-version", "status": 410, "statement": "A withdrawn event version is neither published nor subscribed to.", "why": "Its correction is the next version."},
-  {"id": "no-such-loop", "status": 404, "statement": "There is no concern under that reference.", "why": "A reference Core never issued is refused rather than opened, so a mistyped reference cannot become a concern with no source.", "answeredBy": ["POST /v1/core/loops/{loopRef}/acknowledge@2", "POST /v1/core/loops/{loopRef}/escalate@2", "POST /v1/core/loops/{loopRef}/close@1"]},
-  {"id": "not-your-concern", "status": 403, "statement": "An engine opens, raises and moves only the concerns that came from it.", "why": "An engine acting on another engine's concern is deciding for a desk it does not run. A person acts on a concern by role; an engine only as the engine it came from.", "answeredBy": ["POST /v1/core/loops@1", "POST /v1/core/alerts@2", "POST /v1/core/loops/{loopRef}/escalate@2"]}
+  {"id": "no-such-loop", "status": 404, "statement": "There is no concern under that reference.", "why": "A reference Core never issued is refused rather than opened, so a mistyped reference cannot become a concern with no source.", "answeredBy": ["POST /v1/core/loops/{loopRef}/acknowledge@2", "POST /v1/core/loops/{loopRef}/escalate@2", "POST /v1/core/loops/{loopRef}/close@1", "POST /v1/core/loops/{loopRef}/acknowledge@3", "POST /v1/core/loops/{loopRef}/escalate@3", "POST /v1/core/loops/{loopRef}/close@2"]},
+  {"id": "not-your-concern", "status": 403, "statement": "An engine opens, raises and moves only the concerns that came from it.", "why": "An engine acting on another engine's concern is deciding for a desk it does not run. A person acts on a concern by role; an engine only as the engine it came from.", "answeredBy": ["POST /v1/core/loops@1", "POST /v1/core/alerts@2", "POST /v1/core/loops/{loopRef}/escalate@2", "POST /v1/core/loops/{loopRef}/escalate@3"]}
  ],
  "ownIds": [
   {"field": "eventId", "why": "The id the bus assigns to an event it accepted."}
@@ -165,7 +165,7 @@
    "path": "/v1/core/loops/{loopRef}/acknowledge",
    "version": 2,
    "summary": "The role that holds the concern now takes it on: its owner, its fallback, the post of the rota it has reached, or any post a panic alerted.",
-   "callers": ["nurse", "doctor", "ops-desk", "operator", "engine:care", "engine:safety"],
+   "callers": [],
    "callerJustifications": {"engine:care": "loop.opened@1", "engine:safety": "loop.opened@1"},
    "purpose": ["treatment", "dispatch", "emergency"],
    "request": [
@@ -185,6 +185,34 @@
    "capabilityNamed": null,
    "status": "built",
    "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/loops/{loopRef}/acknowledge@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"},
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/core/loops/{loopRef}/acknowledge@3", "why": "It admits every role that held a post of the rota when it was frozen, and the Head of Operations post was held by nobody then. The Head of Operations is on the vetting register now and holds that post, so a concern on the last rung could never have been taken on by the person holding it. Version three admits the Head of Operations as well."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/core/loops/{loopRef}/acknowledge",
+   "version": 3,
+   "summary": "The role that holds the concern now takes it on: its owner, its fallback, the post of the rota it has reached, the Head of Operations' included, or any post a panic alerted.",
+   "callers": ["nurse", "doctor", "ops-desk", "operator", "head-of-operations", "engine:care", "engine:safety"],
+   "callerJustifications": {"engine:care": "loop.opened@1", "engine:safety": "loop.opened@1"},
+   "purpose": ["treatment", "dispatch", "emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "loopRef", "type": "string", "required": true, "why": "The loop."}
+   ],
+   "response": [
+    {"field": "acknowledgedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "loop-closed", "status": 409, "statement": "That concern is already closed.", "why": "Acknowledging a closed loop would reopen it without an outcome."},
+    {"id": "not-this-loops-owner", "status": 403, "statement": "Only the role that owns this concern now takes it on.", "why": "An acknowledgement stops the clock that moves a concern up the rota. Somebody who does not hold it stopping that clock leaves the post that does never told. A panic is held by every post it alerted, so any of them takes it on. Being admitted to this route is not holding the concern: a Head of Operations takes on only what has reached the Head of Operations post, or a panic that alerted it."}
+   ],
+   "emits": ["loop.acknowledged@1", "alert.acknowledged@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/loops/{loopRef}/acknowledge@3'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
@@ -224,7 +252,7 @@
    "path": "/v1/core/loops/{loopRef}/escalate",
    "version": 2,
    "summary": "Move the concern to the next on its escalation: its fallback, then the next post of the rota it was opened under that is on duty.",
-   "callers": ["ops-desk", "operator", "engine:safety"],
+   "callers": [],
    "callerJustifications": {"engine:safety": "loop.opened@1"},
    "purpose": ["treatment", "dispatch", "emergency"],
    "request": [
@@ -248,6 +276,38 @@
    "capabilityNamed": null,
    "status": "built",
    "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/loops/{loopRef}/escalate@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"},
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/core/loops/{loopRef}/escalate@3", "why": "Its callers are the desk and the Control Tower operator, frozen when nobody held the Head of Operations post. The Head of Operations holds it now, and a concern that reaches it with nobody on duty after it is a concern the Head of Operations is asked to move or to be told there is nobody left. Version three admits the Head of Operations as well."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/core/loops/{loopRef}/escalate",
+   "version": 3,
+   "summary": "Move the concern to the next on its escalation: its fallback, then the next post of the rota it was opened under that is on duty.",
+   "callers": ["ops-desk", "operator", "head-of-operations", "engine:safety"],
+   "callerJustifications": {"engine:safety": "loop.opened@1"},
+   "purpose": ["treatment", "dispatch", "emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "loopRef", "type": "string", "required": true, "why": "The loop."},
+    {"field": "reasonCode", "type": "string", "required": true, "why": "A code, never free text."}
+   ],
+   "response": [
+    {"field": "ownerRole", "type": "string", "required": true, "why": "The new owner: the fallback, or the role that holds the post the concern went to."},
+    {"field": "dueBy", "type": "instant", "required": true, "why": "The new deadline."}
+   ],
+   "refusals": [
+    {"id": "no-fallback-left", "status": 409, "statement": "There is nobody left to escalate to. This concern has been with its fallback, and no post of the rota it was opened under is left after the one it has reached that is on duty now. It stays open, first in the Control Tower, until somebody closes it with an outcome.", "why": "The desk is told, rather than the loop quietly stopping. A post that is not on duty, or that no role on the vetting register holds, is skipped rather than paged, and the skip is written to loop_audit; when every post after the concern's is skipped, there is nobody to move it to. The Head of Operations holds the last post, so a concern the Head of Operations asks to move further is always refused here."},
+    {"id": "reason-not-a-code", "status": 422, "statement": "An escalation is given one of the reasons the closed loop lists.", "why": "The reason travels on the bus, and words on the bus have none of the record's protections."},
+    {"id": "loop-closed", "status": 409, "statement": "That concern is already closed.", "why": "Escalating a closed loop would reopen it without an outcome."}
+   ],
+   "keptOnRefusal": {"refusals": ["no-fallback-left"], "tables": ["loop_audit"], "why": "An escalation refused because there is nobody left is itself something the review must see: who asked, when and why. The refusal rolls everything else back and keeps that audit row."},
+   "emits": ["loop.escalated@1", "alert.escalated@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/loops/{loopRef}/escalate@3'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
@@ -255,7 +315,7 @@
    "path": "/v1/core/loops/{loopRef}/close",
    "version": 1,
    "summary": "Close the concern with its outcome.",
-   "callers": ["nurse", "doctor", "ops-desk"],
+   "callers": [],
    "purpose": ["treatment", "dispatch", "emergency"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -275,6 +335,36 @@
    "capabilityNamed": null,
    "status": "built",
    "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/loops/{loopRef}/close@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"},
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/core/loops/{loopRef}/close@2", "why": "Its callers do not include the Control Tower operator, who reads every open concern and holds the desk's post, or the Head of Operations, who holds the last post. A concern with nobody left to escalate to waits first on the Control Tower until somebody closes it with an outcome, and the person reading it there could not. And its outcome was a reference and nothing else, so the desk had no way to say what happened that a review could count. Version two admits both roles and asks for one of the outcomes the closed loop lists."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/core/loops/{loopRef}/close",
+   "version": 2,
+   "summary": "Close the concern with one of the outcomes the closed loop lists, and where it is recorded when that is somewhere else.",
+   "callers": ["nurse", "doctor", "ops-desk", "operator", "head-of-operations"],
+   "purpose": ["treatment", "dispatch", "emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "loopRef", "type": "string", "required": true, "why": "The loop."},
+    {"field": "outcomeCode", "type": "string", "required": true, "why": "What happened, as one of the outcomes packages/catalog/closed-loop.json lists. A code, never free text."},
+    {"field": "outcomeRef", "type": "string", "required": false, "why": "Where the outcome is recorded, when an engine or a desk keeps it somewhere else: a visit, a trip, a report. Left out, the outcome is the code, kept in loop_audit beside who closed the concern, and the events name the concern itself as where it is recorded."}
+   ],
+   "response": [
+    {"field": "closedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "no-outcome", "status": 422, "statement": "A loop is not closed without an outcome.", "why": "An outcome-less close is a loop closed by pressing a button, and a blank code is no outcome. A concern that ran out of people to escalate to is closed the same way, and only this way."},
+    {"id": "outcome-not-a-code", "status": 422, "statement": "A concern is closed with one of the outcomes the closed loop lists.", "why": "An outcome in free words is a note with none of the record's protections, and an outcome nobody listed is one no review can count."},
+    {"id": "loop-closed", "status": 409, "statement": "That concern is already closed.", "why": "A second close would put a second outcome on one concern."}
+   ],
+   "emits": ["loop.closed@1", "alert.closed@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/loops/{loopRef}/close@2'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {

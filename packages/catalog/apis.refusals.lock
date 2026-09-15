@@ -292,3 +292,7 @@ GET /v1/record/encounter-statuses/{encounterRef}@1 bd4ed62a683e4740
 shared apis/care.json#refusals encounter-signature-awaits-status-route ce8542abf3c5f197
 POST /v1/money/payments/{paymentRef}/cash-code@2 d532b2c9a2e2273e
 POST /v1/money/payments/{paymentRef}/release@2 bbeddfce51b517fb
+POST /v1/core/loops/{loopRef}/acknowledge@3 42438f13fae2a2f6
+POST /v1/core/loops/{loopRef}/escalate@3 5d0f6e5835cef67f
+POST /v1/core/loops/{loopRef}/close@2 221b6d73508baf4d
+POST /v1/safety/incidents@2 3210c5f7964fc24e

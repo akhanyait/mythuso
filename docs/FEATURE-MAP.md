@@ -513,7 +513,7 @@ with synthetic data, no nurse is offered anything, and the patient told about a 
 | **The record route Care is waiting on, declared.** `GET /v1/record/encounter-statuses/{encounterRef}@1`, proposed, answers written, signed or superseded and nothing the encounter contains, to `engine:care` justified by `passport.entry.written@1`. Its resource is `encounter-statuses`, because declaring `encounters` would make every frozen `encounterRef` on other engines' routes a reach into the record's store. Care's refusal names it: `encounter-signature-awaits-status-route` is a new engine refusal, because a refusal routes share keeps its words, answered by `POST /v1/care/visits/{appointmentRef}/handover@2` and `complete@2`, whose version ones are withdrawn and keep `encounter-signature-unconfirmed`. `encounter-entry-counts-as-signed` stays: switched off, Care still refuses until the route is built | `no-such-encounter`, which answers an unknown reference and an entry of another kind alike; `status-before-written`; the encounter refusal must name a live route that takes calls from Care, answered only by live Care routes | `apis/record.json`, `apis/care.json`, `care/domain/visits.ts`, `care/engine.ts` |
 | **`POST /v1/care/sync-batches@2`, built.** Each operation carries its visit, its observation entry, the measure it is of, its kind and the phone's time, as declared inner fields, with the idempotency key kept; the domain's `SyncIntake` decides `capture.json`'s four conflicts on the runtime, with batches and attached measures in Care's store. `sync-batches@1` is withdrawn | `operation-incomplete` and `operation-not-replayed` refuse a batch whole; conflicts are shown, never merged, in the route's own sentence; a batch is keyed by the nurse who sent it, so another nurse's batch of the same name is her own; a capture for a visit the caller does not hold is refused before any conflict is shown, because a conflict is information about somebody else's visit | `apis/care.json`, `apis.shapes.lock`, `care/domain/sync.ts`, `care/engine.ts` |
 
-Still open: **the carer role is not on the vetting register.** `POST /v1/safety/incidents@1` is built with `vetting-register`, so its callers are every role the register holds; adding `carer` would widen a frozen Safety route, which needs its version two and is not Care's to make. Care's supervision rule still uses its stand-in role, and the guardrails refusing a carer in the clinical role lists still refuse the name. No event carries "the patient is told" from Care to Access, so on the runtime the told row is Care's own and a patient reads it only on the web preview; neither phone shows it, though both have the sentences generated. Safety hears `serviceId` on `in_progress@2` and does not keep it yet; Money opens its payable from `booked@2` without pricing it; `apis/money.json`'s `payable-not-priced` reasoning still says the booked event names no service.
+Still open: no event carries "the patient is told" from Care to Access, so on the runtime the told row is Care's own and a patient reads it only on the web preview; neither phone shows it, though both have the sentences generated. Safety hears `serviceId` on `in_progress@2` and does not keep it yet; Money opens its payable from `booked@2` without pricing it; `apis/money.json`'s `payable-not-priced` reasoning still says the booked event names no service.
 
 ## Delivered — Access's events and routes at version two, 15 September 2026 (Wave 3 gaps, Phase A, Access events lead)
 
@@ -642,6 +642,33 @@ nothing; the web preview has no flow that cancels a paid booking, so the Refunde
 that carries a refund. The phones show the cash-code entry and its refusals, and a payment held there stays held,
 because the desk's release is on the web only. No route lists held cash payments for the desk on the runtime; the
 panel runs Money's ledger in the browser.
+
+## Delivered — the carer and the Head of Operations on the register, 15 September 2026 (Wave 3 gaps, Phase C, Register roles)
+
+Three things were blocked on roles the register did not hold: Care's supervision rule refused a stand-in, Core's
+rota had a Head of Operations post nobody could hold, and the operator could not close a concern. Two roles
+joined `vetting.json` as proposals, with who proposed them, why, and where every check came from in
+`vetting-proposals.json`, kept out of `vetting.json` because the register is in the patient's first load. Every built route a new role would have widened was found first: only
+`POST /v1/safety/incidents@1`, whose callers are worked out as every role on the register. Every other
+identity-service route asks for `review-vetting`, which neither role holds, and no settings route resolves
+to a capability either role was granted. Nothing here is a real service: nobody is vetted into either role,
+no concern pages anybody, and a close on the Control Tower is held in the tab's memory.
+
+| What landed | The refusals it adds | Where |
+|---|---|---|
+| **`carer`**, a person in the Partner workspace granted only `assist-supervised-visit`, with no scope of practice and never `take-visit`. Checks copied from roles already on the register (identity, police clearance, references, POPIA) and one proposal, supervised home care training. Care's carer row names the role, and the supervision test runs against it | A carer is never offered a visit without the registered nurse who holds it, and is granted nothing clinical; no clinical route names a carer, and the runtime refuses her on every live clinical route; no clinical role list allows her, and each list's guardrail refuses her as out of range | `vetting.json`, `care.json`, `care/domain/matching.ts`, `matching.test.ts`, `booking.json` (the handover list's guardrail) |
+| **`head-of-operations`**, a person in the Control Tower workspace granted only `hold-operations-authority`, with the Control Tower operator's checks. Core's rota post names the role, and the defaults' second version gives it weekday office hours | Operations authority is never a way into a patient's record; out of hours the post is skipped and the skip is written down; a concern the Head of Operations asks to move further is refused with `no-fallback-left` | `vetting.json`, `closed-loop.json` (settings changelog v2) |
+| **`POST /v1/safety/incidents@2`**: the same handler, taking calls from every role on the register as it stands. `@1` is withdrawn and its narrowing recorded | Reporting asks nothing about standing, so a carer is refused only for what the report says | `apis/safety.json`, `apis.*.lock`, `apps/api/test/privacy-routes.test.ts` |
+| **`acknowledge@3` and `escalate@3`** admit the Head of Operations; **`close@2`** admits the operator and the Head of Operations and takes an `outcomeCode` from `closed-loop.json` `outcomes` (proposed), with `outcomeRef` optional. `acknowledge@2`, `escalate@2` and `close@1` are withdrawn, their narrowings recorded, and the engine refusals name the new versions | `outcome-not-a-code`; `no-outcome` for a blank code, an exhausted concern included; one `closeRefusal` rule shared by the engine and the preview | `apis/core.json`, `core/domain/loops.ts`, `core/engine.ts`, `core/engine.test.ts`, `register-roles.test.ts` |
+| **The Control Tower** lists who holds each post of the rota in force, and closes a concern with its outcome choices, refused in the close route's own sentences. The Configuration tab's rota editor now offers the Head of Operations post; no clinical role list offers a carer | Closing is offered only to a role the close route admits; nothing is sent | `ConcernBoard.tsx`, `lib/closed-loop.ts`, `clinical-screens.css`, `tests/closed-loop.spec.ts`, `tests/configuration.spec.ts` |
+
+Still open: nothing assigns a person to a post, and the settings shape still has no way to. The Head of
+Operations does not read `GET /v1/core/loops@2`, whose callers are the desk and the operator: a version three would
+have to declare the inside of its list, which version two describes only in prose, and it is not in this
+change. A concern may still be opened with a carer as its owner, because `POST /v1/core/loops@1`'s owner
+rule accepts any role on the register; refusing it is a changed refusal on a frozen route and needs its
+version two. Neither role's workspace has screens of its own yet, and both phones carry the roles only as
+generated register data.
 
 ## Next UI increments
 

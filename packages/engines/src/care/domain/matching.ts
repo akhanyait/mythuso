@@ -13,10 +13,11 @@
  *      and scope. Nothing about a person's badge changes whether she is registered to do the work,
  *      and the vetting register's own sentence says the Control Tower cannot override it.
  *   2. Supervision. A role the contract marks as supervised is matched only beside the registered
- *      nurse who holds the same appointment. There is no carer on the register yet, so today this
- *      gate refuses the whole offer rather than any one person — and it is written now, before the
- *      role exists, because a supervision rule added after the first carer is dispatched is added
- *      after the first unsupervised visit.
+ *      nurse who holds the same appointment. The carer is that role on the vetting register: she holds
+ *      no scope and never take-visit, so an appointment nobody supervises is refused whole, and a carer
+ *      working under a different nurse is withheld. It was written before the role existed, because a
+ *      supervision rule added after the first carer is dispatched is added after the first unsupervised
+ *      visit.
  *   3. A place to measure from. A candidate whose base the map cannot place is not given an
  *      invented distance to be ranked by.
  *   4. A current Trust Score badge, as the last person.trust_updated this engine heard said. Care

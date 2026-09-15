@@ -964,3 +964,17 @@
 .clinical .sr-confirmed { display: flex; align-items: center; gap: var(--space-8); margin: 0; font-weight: 600; color: var(--ink); }
 .clinical .sr-confirmed svg { flex: none; color: var(--teal-ink); }
 .care-marker.is-unreviewed svg { color: var(--mango-ink); }
+
+/* ---- The Control Tower's posts and closing a concern (Wave 3, Register roles) ----------------------------
+   Who holds each post reads as a quiet list above the concerns, because it answers "who would a concern go to"
+   rather than "what is waiting". Closing is inside the concern's own row, so the outcome chosen can only be
+   for the concern it sits in, and a refusal is said where the choice was made. */
+.clinical .cl-posts { display: grid; gap: var(--space-4); min-width: 0; }
+.clinical .cl-posts h3 { margin: 0; font-size: 14px; font-weight: 600; color: var(--charcoal); }
+.clinical .cl-posts ul { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-16); margin: 0; padding: 0; list-style: none; font-size: 14px; color: var(--faint); }
+.clinical .cl-posts li { overflow-wrap: anywhere; }
+.clinical .cl-close { justify-self: start; }
+.clinical .cl-close-form { display: grid; gap: var(--space-8); min-width: 0; }
+.clinical .cl-close-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.clinical .cl-refusal { margin: 0; font-size: 14px; font-weight: 500; color: var(--charcoal); overflow-wrap: anywhere; }
+.clinical .cl-closed { margin: 0; font-size: 14px; color: var(--charcoal); overflow-wrap: anywhere; }
