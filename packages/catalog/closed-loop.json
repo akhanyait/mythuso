@@ -113,6 +113,27 @@
   "why": "Medicines raises an alert with Core when a lab result arrives (POST /v1/core/alerts@2, justified by lab.result.received@1), with the result's Passport entry as its dedupe key and its record entry, on the rung its own settings name. When the clinician who ordered the test acknowledges the result, Clinical publishes result.acknowledged@1 naming the same entry, and Core stands the alert down: closed through the closeRefusal rule the close route asks, with the outcome named here, by the role that acknowledged it and pointing at the entry. Only an open alert that the engine alertsFrom names raised under that key is touched, and nothing else about it moves. An alert nobody acknowledges is never closed this way: it escalates up the rota like any other, because a result nobody read is the concern the closed loop exists for."
  },
 
+ "sos": {
+  "hears": "sos.raised@2",
+  "ownerRole": {"value": "operator", "decidedBy": null, "proposedBy": "Safety lead (Wave 4)", "proposedBecause": "The Control Tower operator is the desk, and the desk is where a patient's press is read: the door it went to, the area while it is shared, and whether next of kin could be told.", "question": "Who owns the concern Core opens when a patient presses SOS."},
+  "fallbackRole": {"value": "nurse", "decidedBy": null, "proposedBy": "Safety lead (Wave 4)", "proposedBecause": "A registered nurse can judge what an SOS nobody has taken on needs, and the on-call nurse lead is on the rota around the clock.", "question": "Who holds an SOS concern the desk has not taken on in time."},
+  "ladderRung": {"value": 4, "decidedBy": null, "proposedBy": "Safety lead (Wave 4)", "proposedBecause": "Somebody asking for help now is the urgency the ladder gives Sentinel Dispatch, which it calls immediate. The desk is given that rung's time to take the concern on, as a panic's posts are, rather than a second number for the same urgency.", "question": "How long the desk has to take on an SOS concern before it goes to its fallback."},
+  "rule": "One SOS is one concern however often the bus delivers it: owned by the desk, falling back to a nurse, then walking the rota it was opened under. It opens for every door, emergency services and cannot-help included, because the desk needs to know somebody pressed. No plan changes its owner, its deadline or where the Control Tower reads it.",
+  "why": "sos.raised@2 names Core among its subscribers. Core reads no Safety contract and no plan: the owner, the fallback and the rung are proposals here, beside the rota they walk."
+ },
+
+ "sosStoodDown": {
+  "hears": "sos.stood_down@1",
+  "closesAs": {
+   "value": { "pressed-by-accident": "raised-in-error", "situation-resolved": "dealt-with", "gone-to-hospital": "handed-outside-mythuso" },
+   "decidedBy": null,
+   "proposedBy": "Safety lead (Wave 4)",
+   "proposedBecause": "Each reason a person may stand an SOS down with, in packages/catalog/sos.json standDown, said as the closed loop's own: a press by mistake is a concern raised in error; a situation that settled is a concern dealt with; going to hospital themselves is a concern handed to a service outside MyThuso. None names what was wrong.",
+   "question": "Which of the closed loop's outcomes an SOS concern is closed as when the person who pressed it stands it down."
+  },
+  "why": "A stand-down closes the concern Core opened for the SOS through the same closeRefusal rule the close route asks, pointing at the SOS, by the role that stood it down. A reason the map does not name is not guessed at: the concern stays open for a person to close, and Core's audit says it was not stood down."
+ },
+
  "_reasonsNotSettingsNote":"The snooze reasons and the reasons the desk escalates by hand stay proposals in this file rather than becoming settings, on purpose. Each is a code that travels on the bus — alert.escalated@1 and loop.escalated@1 carry reasonCode — or is sent by an app a nurse already has. A code an admin added on the back office would be put on the bus to subscribers that were built and reviewed against the codes here and cannot read it; a code an admin removed would refuse the reason a nurse's phone still offers her. Neither is an admin choosing within bounds: both are a change to the contract every subscriber and every app is built against, made the way this file is changed. The question each asks stays open beside it until somebody with the authority answers it.",
 
  "exhaustion": {

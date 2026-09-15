@@ -853,6 +853,10 @@ const generated = [
  { source: 'packages/catalog/records.json', command: 'npm run records', files: emitRecords() },
  { source: 'packages/catalog/earnings.json', command: 'npm run earnings', files: emitEarnings() },
  { source: 'packages/catalog/sos.json', command: 'npm run sos', files: emitSos() },
+ /* Wave 4: the SOS generator writes the SOS and next-of-kin routes' refusal sentences and the next-of-kin grant's ceiling. */
+ { source: 'packages/catalog/apis/safety.json', command: 'npm run sos', files: emitSos() },
+ { source: 'packages/catalog/consent.json', command: 'npm run sos', files: emitSos() },
+ { source: 'packages/catalog/sos-press.json', command: 'npm run sos', files: emitSos() },
  { source: 'packages/catalog/teleconsult.json', command: 'npm run teleconsult', files: emitTeleconsult() },
  { source: 'packages/catalog/events.json', command: 'npm run events', files: emitEvents() },
  { source: 'packages/catalog/consent.json', command: 'npm run consent-grants', files: emitConsentGrants() },
@@ -8183,7 +8187,8 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
        timer or the panic, where a second copy could disagree with the setting an admin changes. */
  const settingsBlock = safetyContract.settings;
  const timingKeys = ['grace', 'panic-window', 'extension-steps', 'extension-ceiling'];
- const safetySettingKeys = [...timingKeys, 'stale-panic-window-uses-window-in-force', 'settings-changed-by'];
+ /* Wave 4 added three for patient SOS and next of kin; they are held to what SOS needs in the Safety · patient SOS block below. */
+ const safetySettingKeys = [...timingKeys, 'stale-panic-window-uses-window-in-force', 'settings-changed-by', 'sos-area-window', 'next-of-kin-alert-window', 'next-of-kin-alert-retries'];
  const allSafetySettings = settingsBlock?.items ?? [];
  if (allSafetySettings.map(s => s.key).join(',') !== safetySettingKeys.join(',')) throw new Error(`packages/catalog/field-safety.json settings.items are ${allSafetySettings.map(s => s.key).join(', ') || 'missing'}; they are ${safetySettingKeys.join(', ')}, once each, so no setting an admin may change is missing and none is changed in two places.`);
  const itemOf = key => allSafetySettings.find(s => s.key === key);
@@ -8238,7 +8243,12 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  /* 4. Every refusal an engine file or a screen names has a sentence, and every named route refusal exists. */
  for (const named of safetyContract.routeRefusals) if (!routeRefusalFor(named.route, named.id)?.statement?.trim()) throw new Error(`packages/catalog/field-safety.json names the refusal "${named.id}" on ${named.route}, and packages/catalog/apis/safety.json has no such refusal there.`);
  for (const id of safetyContract.engineRefusals ?? []) if (!safetyApi.refusals.some(x => x.id === id && x.statement?.trim() && x.answeredBy?.length)) throw new Error(`packages/catalog/field-safety.json names the engine refusal "${id}", and packages/catalog/apis/safety.json declares no engine refusal of that id answered by a route.`);
- const knownRefusals = new Set([...safetyContract.refusals.map(r => r.id), ...safetyContract.routeRefusals.map(r => r.id), ...(safetyContract.engineRefusals ?? [])]);
+ /* The SOS and next-of-kin routes keep their sentences on the routes themselves, and an engine refusal answers only the routes it names, so
+    their ids are known from there; the Safety · patient SOS block below holds each one to the route that answers it. */
+ const sosRouteKeys = safetyApi.routes.filter(r => !r.withdrawn && /^\/v1\/safety\/(sos|next-of-kin)\b/.test(r.path)).map(r => `${r.method} ${r.path}@${r.version}`);
+ const knownRefusals = new Set([...safetyContract.refusals.map(r => r.id), ...safetyContract.routeRefusals.map(r => r.id), ...(safetyContract.engineRefusals ?? []),
+  ...safetyApi.routes.filter(r => sosRouteKeys.includes(`${r.method} ${r.path}@${r.version}`)).flatMap(r => r.refusals.map(x => x.id)),
+  ...safetyApi.refusals.filter(x => (x.answeredBy ?? []).some(k => sosRouteKeys.includes(k))).map(x => x.id)]);
  const safetySources = files('packages/engines/src/safety').filter(f => f.endsWith('.ts') && !f.endsWith('.test.ts'));
  let refusalsNamed = 0;
  for (const file of [...safetySources, 'apps/web/src/lib/field-safety.ts', 'apps/web/src/features/FieldSafety.tsx']) {
@@ -8423,6 +8433,169 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  console.log(`Field safety holds ${numbers.length - proposals.length} decided and ${proposals.length} proposed timings, each a setting in the shared shape, with Safety's own rule that the steps rise and none is above the ceiling, and a registered generator. Safety's settings routes are built at version two in the shared shape with version one withdrawn, settings-changed-by names who changes the rest and only the admin changes it, and a timer and a panic keep the settings they started under. A visit is timed by its service, no emergency number is typed, all ${refusalsNamed} refusals the engine and the web name have a sentence, a desk row keeps to its ${safetyContract.desk.carries.length} declared keys, no panic is shared between callers, no position is kept, and ${handNative.length + webScreens.length} hand-written screens type none of its minutes.`);
 }
 /* ==== end of Safety · nurse field safety (Wave 3) ================================================== */
+
+/* ==== Safety · patient SOS and next of kin (Wave 4) ==================================================
+
+   Added by the Safety lead. Self-contained. What it holds packages/catalog/sos.json, packages/catalog/apis/safety.json,
+   packages/catalog/events.json and the code on all three platforms to, in the order a mistake would reach somebody:
+   1. the emergency numbers are shown before anything else on every SOS screen, a press included, and while the web
+      pathway downloads;
+   2. no copy says or implies that MyThuso is an emergency service or that an ambulance or anybody is on the way;
+   3. a next of kin is never handed clinical detail: not in what an attempt would say, a route or an event;
+   4. a guardian is refused on every next-of-kin route that acts, before anything else is asked;
+   5. an attempt is never recorded, shown or published as delivered while no SMS provider is connected;
+   6. no area is kept or read after its window: not in the store, not through the area read, and no point on a route;
+   7. no plan grants priority: nothing that routes, offers, orders or shows an SOS reads a plan;
+   8. no screen types a next-of-kin try count: the web reads the settings in force and each phone the generated default.
+   And the bookkeeping those rest on: every refusal the SOS code names is one its route can answer, exactly one dispatch
+   happens without a human and it is written down, and the withdrawn versions are withdrawn with no callers. */
+{
+ const sosC = JSON.parse(read('packages/catalog/sos.json'));
+ /* The press, the desk and next of kin are packages/catalog/sos-press.json's, kept off the patient's first load. */
+ const pressC = JSON.parse(read('packages/catalog/sos-press.json'));
+ const safetyRoutes = JSON.parse(read('packages/catalog/apis/safety.json'));
+ const eventsC = JSON.parse(read('packages/catalog/events.json'));
+ const apisC = JSON.parse(read('packages/catalog/apis.json'));
+ const keyOfRoute = r => `${r.method} ${r.path}@${r.version}`;
+ const liveSos = safetyRoutes.routes.filter(r => !r.withdrawn && /^\/v1\/safety\/(sos|next-of-kin)\b/.test(r.path));
+ const route = key => liveSos.find(r => keyOfRoute(r) === key);
+ const answers = (key, id) => !!route(key)?.refusals.some(x => x.id === id) || safetyRoutes.refusals.some(x => x.id === id && (x.answeredBy ?? []).includes(key));
+ const sosFail = (n, detail) => { throw new Error('Safety · patient SOS (' + n + '): ' + detail); };
+ const RAISE = 'POST /v1/safety/sos@2', STAND = 'POST /v1/safety/sos/{sosRef}/stand-down@1', LIST = 'GET /v1/safety/sos@1', AREA = 'GET /v1/safety/sos/{sosRef}/area@1';
+ const NOMINATE = 'POST /v1/safety/next-of-kin@2', NOMINATIONS = 'GET /v1/safety/next-of-kin@1', WITHDRAW = 'POST /v1/safety/next-of-kin/{nominationRef}/withdraw@1', ALERT = 'POST /v1/safety/next-of-kin/{nominationRef}/alert@2';
+ const ROUTE_OF = { raise: RAISE, standDown: STAND, list: LIST, area: AREA, nominate: NOMINATE, nominations: NOMINATIONS, withdraw: WITHDRAW, alert: ALERT };
+ for (const key of Object.values(ROUTE_OF)) if (!route(key) || route(key).status !== 'built' || route(key).evidence?.file !== 'packages/engines/src/safety/engine.ts') sosFail(0, key + ' is not declared, live and built in packages/engines/src/safety/engine.ts.');
+ const sosDomain = read('packages/engines/src/safety/domain/sos.ts');
+ const safetyEngine = read('packages/engines/src/safety/engine.ts');
+ const coreEngine = read('packages/engines/src/core/engine.ts');
+ const careEngine = read('packages/engines/src/care/engine.ts');
+ const webPress = read('apps/web/src/features/SosPress.tsx'), webSos = read('apps/web/src/features/Sos.tsx'), webApp = read('apps/web/src/App.tsx');
+ const webDesk = read('apps/web/src/features/SosDesk.tsx'), webNok = read('apps/web/src/features/NextOfKin.tsx'), webLib = read('apps/web/src/lib/sos-desk.ts');
+ const iosView = read('apps/ios/MyThuso/Features/SosView.swift'), iosModel = read('apps/ios/MyThuso/Models/Sos.swift');
+ const androidView = read('apps/android/app/src/main/java/za/co/mythuso/ui/SosScreens.kt');
+ const before = (source, first, then) => source.indexOf(first) >= 0 && source.indexOf(then) > source.indexOf(first);
+ const fieldNames = fields => (fields ?? []).flatMap(f => [f.field, ...fieldNames(f.fields)]);
+ const withoutComments = source => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+ /* 0. Every refusal the SOS code names is one the route it names can answer: refuseOn('route', 'id') in the domain, and
+       refuse('id') inside each handler, are each held to the route that answers them, so no refusal reaches a route whose
+       line in apis.refusals.lock does not freeze it. */
+ for (const m of sosDomain.matchAll(/refuseOn\('(\w+)', '([a-z0-9-]+)'\)/g)) if (!ROUTE_OF[m[1]] || !answers(ROUTE_OF[m[1]], m[2])) sosFail(0, 'packages/engines/src/safety/domain/sos.ts refuses "' + m[2] + '" on ' + (ROUTE_OF[m[1]] ?? m[1]) + ', which cannot answer it.');
+ const handlerBody = key => {
+  const at = safetyEngine.indexOf("'" + key + "': ");
+  if (at < 0) return '';
+  const from = at + key.length + 4;
+  const end = safetyEngine.slice(from).search(/\n  (?:'(?:GET|POST) \/v1\/|\.\.\.settingsRoutes|\/\*)/);
+  return safetyEngine.slice(at, end < 0 ? undefined : from + end);
+ };
+ for (const key of Object.values(ROUTE_OF)) {
+  const body = handlerBody(key);
+  if (!body) sosFail(0, 'packages/engines/src/safety/engine.ts registers no handler for ' + key + '.');
+  for (const m of body.matchAll(/\brefuse\('([a-z0-9-]+)'\)/g)) if (!answers(key, m[1])) sosFail(0, 'The handler for ' + key + ' refuses "' + m[1] + '", which that route cannot answer.');
+ }
+ /* Which dispatch happens without a human is written down, and it is one: an urgent-visit offer for an SOS pressed in
+    the app. A channel that does not raise names the refusal the press route answers it with. */
+ const dwh = pressC.engine?.dispatchWithoutAHuman;
+ if (!dwh?.statement?.trim() || dwh.allowed?.length !== 1 || dwh.allowed[0].id !== 'sos-pressed-in-the-app' || !(dwh.allowedByThePlanNotBuilt ?? []).some(x => x.id === 'unresponsive-patient') || !(dwh.neverWithoutAHuman ?? []).length) sosFail(0, 'packages/catalog/sos-press.json engine.dispatchWithoutAHuman no longer says, as one allowed dispatch and the rest refused, what is sent without a person at the desk deciding.');
+ for (const c of pressC.engine.channels) if (c.raises ? c.refusal !== null : !answers(RAISE, c.refusal)) sosFail(0, 'The channel "' + c.id + '" ' + (c.raises ? 'raises and names a refusal.' : 'names "' + c.refusal + '", which ' + RAISE + ' cannot answer.'));
+ if (!answers(RAISE, 'dispatch-without-a-human') || !answers(RAISE, 'wearable-alone')) sosFail(0, RAISE + ' no longer answers dispatch-without-a-human and wearable-alone.');
+
+ /* 1. The emergency numbers first. The web pathway renders its emergency block before the press, the press draws no
+       block of its own that could come first, and while the pathway downloads the fallback is the numbers. Each phone
+       draws the emergency block before the press card. */
+ if (!before(webSos, '<EmergencyFirst/>', '<PressSos') || /EmergencyFirst|sos-emergency/.test(webPress)) sosFail(1, 'apps/web/src/features/Sos.tsx no longer renders the emergency numbers before the press, or the press draws a block of its own that could come first.');
+ if (!/lazy\(\(\) => import\('\.\/features\/Sos'\)/.test(webApp) || /^import \{[^}]*\bThusoSos\b[^}]*\} from '\.\/features\/Sos'/m.test(webApp) || !webApp.includes('<Suspense fallback={<EmergencyWhileSosLoads/>}><ThusoSos/></Suspense>') || !/function EmergencyWhileSosLoads\(\)[\s\S]{0,700}sosEmergency\.numbers\.map/.test(webApp)) sosFail(1, 'apps/web/src/App.tsx no longer loads Thuso SOS on a dynamic import with the emergency numbers as what shows while it downloads. The pathway is not on a first view; the numbers never wait for it.');
+ if (!before(iosView, '                    emergencyFirst\n', 'if let door { pressCard(door) }') || !before(androidView, '        EmergencyFirst()', 'PressSosCard(door')) sosFail(1, 'A phone draws the press before the emergency numbers.');
+
+ /* 2. Nothing says MyThuso is an emergency service or that anybody is on the way, unless the same sentence says it is
+       not so. Held on every sentence the press, the desk and next of kin say, and on the web code that draws them. */
+ const pressCopy = [...Object.values(pressC.engine.raised).flatMap(v => typeof v === 'string' ? [v] : Object.values(v)), pressC.engine.partner.notConnected, ...Object.values(pressC.engine.desk), pressC.engine.priority.statement, ...Object.values(pressC.nextOfKin).filter(v => typeof v === 'string'), pressC.nextOfKin.consent.wording, ...[webPress, webDesk, webNok].map(withoutComments)];
+ const denies = /\b(not|no|nobody|never|nothing|none|cannot|until)\b/i;
+ const claims = [/\b(ambulance|paramedics?|help|a nurse|the nurse|somebody|someone|they)\b[^.]{0,40}\b(is|are|has been|have been)\s+(on (the|its|their|her) way|coming|dispatched|sent|en route)\b/i, /\bMyThuso\b[^.]{0,20}\bis an? emergency service\b/i, /\b(we|MyThuso) (have |has )?called (an )?ambulance\b/i];
+ const claimed = pressCopy.flatMap(text => text.split(/(?<=[.!?])\s+/)).find(s => claims.some(c => c.test(s)) && !denies.test(s));
+ if (claimed) sosFail(2, 'Copy on the SOS press, the desk or next of kin says or implies an ambulance or an emergency service: "' + claimed.trim().slice(0, 160) + '". MyThuso is not an emergency service, and no ambulance partner is connected.');
+ /* A number lives in one place: the press's sentences write {ambulance} and {mobile}, filled from sos.json. */
+ /* The press says no nurse is being asked because Thuso SOS is not offered on this build. That is true only while
+    services.json places sos in a later phase than Care's seed phase, when Care's offer desk refuses service-not-offered.
+    The day the phase moves, a nurse would be asked and the sentence would understate what happened, so it must be
+    rewritten in the same change. */
+ const sosServicePhase = catalogue.find(s => s.id === 'sos')?.phase, careSeedPhase = JSON.parse(read('packages/catalog/care.json')).seedPhase;
+ const saysNotOffered = /not offered on this build/.test(pressC.engine.raised.routed['urgent-visit'] ?? '');
+ if (!(typeof sosServicePhase === 'number' && typeof careSeedPhase === 'number') || saysNotOffered !== (sosServicePhase > careSeedPhase)) sosFail(2, 'packages/catalog/sos-press.json engine.raised.routed.urgent-visit ' + (saysNotOffered ? 'says Thuso SOS visits are not offered on this build, but services.json places sos at phase ' + sosServicePhase + ' and care.json seedPhase is ' + careSeedPhase + ', so Care would ask a nurse.' : 'no longer says Thuso SOS visits are not offered on this build, while Care still refuses them as service-not-offered: the press would imply a nurse is being asked.'));
+ const typedInPress = read('packages/catalog/sos-press.json').match(/\d{3,}/);
+ if (typedInPress) sosFail(2, 'packages/catalog/sos-press.json types the number ' + typedInPress[0] + '. Write {ambulance} or {mobile}; packages/engines/src/safety/domain/sos.ts and scripts/emit-sos.mjs fill them from packages/catalog/sos.json, so a wrong digit has one place to be wrong.');
+ if (!safetyRoutes.doors.includes(pressC.engine.partner.door) || !/does not reach an ambulance/.test(pressC.engine.partner.notConnected) || !/\{ambulance\}/.test(pressC.engine.partner.notConnected) || !sosDomain.includes('export const partnerConnected = false;') || !webPress.includes('sosEngine.partner.notConnected') || !iosView.includes('Sos.PressText.partnerNotConnected') || !androidView.includes('SosPressText.partnerNotConnected')) sosFail(2, 'The press no longer says, on every platform and in the contract\'s sentence, that no ambulance partner is connected.');
+
+ /* 3. A next of kin never receives clinical detail. What an attempt would say fills a name and a time and names no
+       condition; no next-of-kin route carries anything clinical, a position or a plan; the alert route refuses anything
+       sent beside its references before it asks anything but who is asking; and the events a press puts on the bus
+       never carry what was ticked. */
+ const alertTokens = [...pressC.nextOfKin.alertSays.matchAll(/\{(\w+)\}/g)].map(m => m[1]);
+ const clinicalWords = [...apisC.clinicalContent.words, ...sosC.redFlags.conditions.map(c => c.name), 'ticked', 'condition', 'symptom'];
+ const clinicalIn = text => clinicalWords.find(w => String(text).toLowerCase().includes(w.toLowerCase()));
+ if (alertTokens.some(t => !['name', 'at', 'ambulance'].includes(t)) || clinicalIn(pressC.nextOfKin.alertSays)) sosFail(3, 'packages/catalog/sos-press.json nextOfKin.alertSays fills ' + JSON.stringify(alertTokens) + ' or names "' + clinicalIn(pressC.nextOfKin.alertSays) + '". A next of kin is told that somebody pressed SOS and when, in plain words, and nothing else.');
+ const nokFields = [ALERT, NOMINATE, NOMINATIONS, WITHDRAW].flatMap(k => [...fieldNames(route(k).request), ...fieldNames(route(k).response)]);
+ const nokLeak = nokFields.find(n => clinicalIn(n) || /tick|condition|position|zone|area|plan|lat$|lng$/i.test(n));
+ const alertBody = sosDomain.slice(sosDomain.indexOf('export function alertAgain('), sosDomain.indexOf('export const wouldSay'));
+ if (nokLeak || !answers(ALERT, 'next-of-kin-see-clinical-detail') || !before(alertBody, "refuseOn('alert', 'guardian-authority-not-proven')", "if (input.undeclared.length) return refuseOn('alert', 'next-of-kin-see-clinical-detail')") || !before(alertBody, "refuseOn('alert', 'next-of-kin-see-clinical-detail')", "refuseOn('alert', 'no-such-nomination')")) sosFail(3, 'A next of kin can be handed clinical detail: ' + (nokLeak ? 'a next-of-kin route carries "' + nokLeak + '"' : ALERT + ' no longer refuses anything sent beside its references before it records an attempt') + '.');
+ const raisedTwo = eventsC.events.find(e => e.type === 'sos.raised' && e.version === 2), stood = eventsC.events.find(e => e.type === 'sos.stood_down' && e.version === 1);
+ for (const e of [raisedTwo, stood]) if (!e || e.withdrawn || e.payload.some(f => clinicalIn(f.field) || /tick|condition|term|plan|position|lat$|lng$/i.test(f.field)) || !['clinicalDetail', 'position'].every(n => e.neverCarries.some(x => x.field === n))) sosFail(3, (e ? e.type + '@' + e.version : 'sos.raised@2 or sos.stood_down@1') + ' carries, or no longer refuses, clinical detail or a position.');
+ if (!['conditionTicked', 'emergencyTermsMatched', 'plan'].every(n => raisedTwo.neverCarries.some(x => x.field === n))) sosFail(3, 'sos.raised@2 no longer names what was ticked, the emergency terms matched and a plan among what it never carries.');
+
+ /* 4. A guardian is refused on every next-of-kin route that acts, and first. */
+ const guardianRefusal = safetyRoutes.refusals.find(x => x.id === 'guardian-authority-not-proven');
+ const guardianRoutes = [NOMINATE, WITHDRAW, ALERT];
+ if (!guardianRefusal || guardianRoutes.some(k => !guardianRefusal.answeredBy.includes(k) || !route(k).callers.includes('guardian'))) sosFail(4, 'guardian-authority-not-proven is not answered by every next-of-kin route that acts, or a guardian is not admitted to one, so the sentence would never be read.');
+ for (const [fn, name] of [['export function nominate(', 'a nomination'], ['export function withdrawNomination(', 'a withdrawal'], ['export function alertAgain(', 'an alert']]) {
+  const start = sosDomain.indexOf(fn);
+  const first = sosDomain.slice(start, sosDomain.indexOf('\n}\n', start)).match(/refuseOn\('\w+', '([a-z0-9-]+)'\)/);
+  if (start < 0 || first?.[1] !== 'guardian-authority-not-proven') sosFail(4, 'packages/engines/src/safety/domain/sos.ts asks ' + name + ' something before it refuses a guardian. D-10 is open, and a guardian is refused before anything else.');
+ }
+ if ((safetyEngine.match(/actorRole: ctx\.caller\.role/g) ?? []).length < 3 || !iosModel.includes('if asGuardian { return Self.refusal("guardian-authority-not-proven") }') || !androidView.includes('if (asGuardian) return refusal("guardian-authority-not-proven")') || !webLib.includes('actorRole: request.asGuardian ? GUARDIAN : PATIENT_ROLE')) sosFail(4, 'A platform no longer refuses a guardian acting on a next of kin, first.');
+
+ /* 5. Never delivered while no SMS provider is connected. The contract holds one status, not sent, and one reason; no
+       SOS or next-of-kin code names a delivered status; nothing on the path publishes nok.notified; and the press and the
+       alert routes emit no next-of-kin event. */
+ const onPath = [sosDomain, webLib, webPress, webDesk, webNok, iosModel, iosView, androidView].join('\n');
+ if (pressC.nextOfKin.statuses.map(s => s.id).join() !== 'not-sent' || pressC.nextOfKin.statuses.some(s => !/\bnot\b/i.test(s.label)) || pressC.nextOfKin.notSent.map(r => r.id).join() !== 'sms-not-integrated'
+  || /['"](sent|delivered|notified|reached)['"]/.test(onPath) || /nok\.notified/.test(withoutComments(safetyEngine) + withoutComments(sosDomain)) || [RAISE, ALERT].some(k => route(k).emits.some(e => e.startsWith('nok.')))) sosFail(5, 'A next-of-kin attempt can be recorded, shown or published as delivered while no SMS provider is connected. Every attempt is not sent, with the reason, until one is.');
+
+ /* 6. No area after its window. The store drops it on the tick and at the stand-down, the area read goes through
+       areaFor, which refuses after the window, and no route carries a point, nor the desk list an area. */
+ const raiseRoute = route(RAISE);
+ const pointNamed = n => /^(position|lat|lng|latitude|longitude|location|coordinates?)$/i.test(n);
+ if (!safetyEngine.includes('UPDATE sos SET zone_id = NULL WHERE zone_id IS NOT NULL AND area_ends_at <= ?') || !sosDomain.includes("if (!isAreaShared(sos, now)) return refuseOn('area', 'location-kept-after-the-window');")
+  || !sosDomain.includes('const stood: Sos = { ...sos, zoneId: null,') || !answers(AREA, 'location-kept-after-the-window') || !handlerBody(AREA).includes('areaFor(found, nowOf(ctx))')
+  || liveSos.some(r => [...fieldNames(r.request), ...fieldNames(r.response)].some(pointNamed)) || fieldNames(route(LIST).response).includes('zoneId') || !webLib.includes('sweepArea(p, now)')) sosFail(6, 'An area can be kept or read after its window: the store no longer drops it when the window ends or at the stand-down, the area read no longer refuses after it, or a route carries a point.');
+
+ /* 7. No plan grants priority. Nothing that routes, offers, orders or shows an SOS reads a plan, and the press refuses a
+       request that asks for one. */
+ const planReaders = [sosDomain, handlerBody(RAISE), read('packages/engines/src/care/domain/sos.ts'), careEngine.slice(careEngine.indexOf("'sos.raised@2'"), careEngine.indexOf("'booking.requested@2'")), coreEngine.slice(coreEngine.indexOf('function heardSos('), coreEngine.indexOf('/* ── Acting on a concern')), webLib, webDesk, webPress].map(withoutComments);
+ const readsPlan = planReaders.findIndex(s => /mom-plans\.json|money\.json|momPlanNow|planTermsOf|priority-sos-wording/.test(s));
+ if (readsPlan >= 0 || pressC.engine.priority?.readsNoPlan !== true || !answers(RAISE, 'no-priority-by-plan') || !sosDomain.includes("if (input.undeclared.some(name => ASKS_FOR_PRIORITY.test(name))) return refuseOn('raise', 'no-priority-by-plan');")
+  || liveSos.some(r => [...fieldNames(r.request), ...fieldNames(r.response)].some(n => /plan|priority|premium|tier/i.test(n)))) sosFail(7, 'Something that routes, offers or shows an SOS reads a plan, or the press no longer refuses a request that asks for priority. No plan puts anybody ahead of somebody more unwell; Premium\'s priority SOS is an undecided founder question.');
+
+ /* 8. No screen types a next-of-kin try count. The web reads the settings in force, each phone the generated default,
+       and no hand-written SOS or next-of-kin file puts a number beside tries, retries or attempts. */
+ const retryTyped = /\b\d+\s*(more\s+)?(tries|retries|times|attempts)\b|\b(tries|retries|attempts|attemptsAllowed|alertRetries)\s*[:=]\s*\d/i;
+ for (const [file, source] of [['apps/web/src/features/NextOfKin.tsx', webNok], ['apps/web/src/features/SosDesk.tsx', webDesk], ['apps/web/src/features/SosPress.tsx', webPress], ['apps/web/src/lib/sos-desk.ts', webLib], ['apps/ios/MyThuso/Features/SosView.swift', iosView], ['apps/ios/MyThuso/Models/Sos.swift', iosModel], ['apps/android/app/src/main/java/za/co/mythuso/ui/SosScreens.kt', androidView]]) {
+  const typed = withoutComments(source).match(retryTyped);
+  if (typed) sosFail(8, file + ' types a next-of-kin try count (' + typed[0] + '). How many more times next of kin may be tried is the setting next-of-kin-alert-retries, read from the settings in force on the web and from the generated default on a phone.');
+ }
+ if (!webNok.includes('String(settings.alertRetries)') || !webNok.includes('sosSettingsNow()') || !webLib.includes('sosSettingsNow()') || !iosView.includes('String(FieldSafety.nextOfKinAlertRetries)') || !androidView.includes('FieldSafetyData.nextOfKinAlertRetries.toString()') || !sosDomain.includes('attemptsAllowed: 1 + settings.alertRetries')) sosFail(8, 'A screen no longer reads the number of next-of-kin tries from the settings in force or the generated default.');
+
+ /* The withdrawn versions, and who hears the two events. */
+ for (const [key, next] of [['POST /v1/safety/sos@1', RAISE], ['POST /v1/safety/next-of-kin@1', NOMINATE], ['POST /v1/safety/next-of-kin/{nominationRef}/alert@1', ALERT], ['POST /v1/safety/checkins@1', 'appointment.in_progress@2']]) {
+  const r = safetyRoutes.routes.find(x => keyOfRoute(x) === key);
+  if (!r?.withdrawn || r.callers.length || r.withdrawn.supersededBy !== next) sosFail(0, key + ' is not withdrawn, with no callers, in favour of ' + next + '.');
+ }
+ const sosOne = eventsC.events.find(e => e.type === 'sos.raised' && e.version === 1);
+ if (!sosOne?.withdrawn || sosOne.subscribers.length || sosOne.withdrawn.supersededBy !== 'sos.raised@2' || [...raisedTwo.subscribers].sort().join() !== 'care,core' || [...stood.subscribers].sort().join() !== 'care,core'
+  || !careEngine.includes("'sos.raised@2': (event, ctx) =>") || !careEngine.includes("'sos.stood_down@1': (event, ctx) =>") || !coreEngine.includes('[SOS]: heardSos, [SOS_STOOD_DOWN]: heardSosStoodDown')) sosFail(0, 'sos.raised@1 is not withdrawn in favour of sos.raised@2, or sos.raised@2 and sos.stood_down@1 are not heard by Core and Care alone, each with a handler that acts.');
+
+ console.log('Safety · patient SOS: ' + liveSos.length + ' SOS and next-of-kin routes are built and answer only what they declare; exactly ' + dwh.allowed.length + ' dispatch happens without a human, and it is written down; the emergency numbers come before the press on three platforms and while the web pathway downloads; no copy implies an ambulance; a next of kin is told nothing clinical and nothing as delivered; a guardian is refused first on ' + guardianRoutes.length + ' routes; no area outlives its window; no plan is read; and no screen types a try.');
+}
+/* ==== end of Safety · patient SOS and next of kin (Wave 4) ============================================ */
 
 /* ==== Settings · every engine's admin settings, in one shape (Wave 3) ===============================
 

@@ -71,6 +71,7 @@ enum SosPreview {
 
 struct SosView: View {
     @ObservedObject private var vetting = VettingStore.shared
+    @ObservedObject private var sosPress = SosPressPreview.shared
     @State private var answers = Sos.Answers()
     @State private var none = false
     @State private var rotaId = "usual"
@@ -156,6 +157,8 @@ struct SosView: View {
                         whoCouldCome
                     }
                     if requested { standDownCard }
+                    /* Pressing SOS comes after the numbers and the door the answers pointed to, never before either. */
+                    if let door { pressCard(door) }
                 }
                 Group {
                     failuresSection
@@ -526,5 +529,116 @@ struct SosView: View {
             Text(value).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 .multilineTextAlignment(.trailing)
         }
+    }
+}
+
+// MARK: - Pressing SOS, under the numbers and the door
+
+extension SosView {
+    /* What the press did and did not do, in the contract's words: no ambulance partner is connected and nobody is on
+       the way because of it, a next of kin is never shown as told, and standing down takes one of the reasons. */
+    func pressCard(_ door: Sos.Door) -> some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+            if let press = sosPress.press {
+                Text(Sos.PressText.heading).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(FieldSafety.fill(Sos.PressText.recorded, ["at": press.raisedAt.formatted(date: .omitted, time: .shortened)]) + " " + routedSentence(press.routedTo))
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                Label(Sos.PressText.partnerNotConnected, systemImage: "nosign")
+                    .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
+                if press.stoodDownAt == nil {
+                    Text(press.areaSharedUntil.map { FieldSafety.fill(Sos.PressText.areaShared, ["ends": $0.formatted(date: .omitted, time: .shortened)]) } ?? Sos.PressText.areaNotShared)
+                        .thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                }
+                Text(Sos.PressText.nextOfKinHeading).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                if press.attempts.isEmpty {
+                    Text(Sos.PressText.noNextOfKin).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                }
+                ForEach(press.attempts) { attempt in
+                    Text("\(attempt.name) · \(sentence(Sos.nextOfKinStatuses, attempt.statusCode)). \(sentence(Sos.nextOfKinNotSent, attempt.reasonCode))")
+                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                }
+                if let at = press.stoodDownAt, let reason = Sos.standDown.reasons.first(where: { $0.id == press.stoodDownReason }) {
+                    Text(FieldSafety.fill(Sos.PressText.stoodDown, ["at": at.formatted(date: .omitted, time: .shortened), "reason": reason.label]))
+                        .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                } else {
+                    Text(Sos.PressText.standDown).thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                    ForEach(Sos.standDown.reasons) { reason in
+                        Button(reason.label) { sosPress.standDown(reason.id) }.buttonStyle(.bordered)
+                    }
+                }
+                Text(Sos.PressText.priority).thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+            } else {
+                Button { sosPress.press(door, areaChosen: answers.area.map { Sos.coverage.areas.contains($0) } ?? false) } label: {
+                    Label(Sos.PressText.press, systemImage: "light.beacon.max.fill").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent).tint(ThusoTheme.danger)
+                Text(Sos.PressText.pressHelp).thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+            }
+        }
+        .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+    }
+
+    private func routedSentence(_ id: String) -> String {
+        switch id {
+        case "emergency-services": return Sos.PressText.routedEmergencyServices
+        case "urgent-visit": return Sos.PressText.routedUrgentVisit
+        default: return Sos.PressText.routedCannotHelp
+        }
+    }
+
+    private func sentence(_ list: [SosRefusal], _ id: String) -> String { list.first { $0.id == id }?.sentence ?? id }
+}
+
+/* Next of kin, in the patient's privacy settings: nominated with consent to the wording shown, never by a guardian, and
+   withdrawn in one action. Every sentence and refusal is SosData.swift's, and the tries and the window are the defaults
+   FieldSafetyData.swift carries. Nothing is sent, and the name stays in this phone's memory. */
+struct NextOfKinView: View {
+    @ObservedObject private var sosPress = SosPressPreview.shared
+    @State private var name = ""
+    @State private var consented = false
+    @State private var refused: String?
+
+    private var named: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
+
+    var body: some View {
+        Form {
+            Section {
+                Text(Sos.NextOfKinText.intro).font(.footnote)
+                CapabilityNotice(of: "messaging")
+            }
+            Section {
+                TextField(Sos.NextOfKinText.name, text: $name)
+                Text(Sos.NextOfKinText.nameHelp).thusoFont(ThusoType.caption).foregroundStyle(.secondary)
+                Text(Sos.NextOfKinText.consentWording).font(.footnote)
+                Toggle(Sos.NextOfKinText.consentTick, isOn: $consented)
+                Text(FieldSafety.fill(Sos.NextOfKinText.tries, ["retries": String(FieldSafety.nextOfKinAlertRetries), "minutes": String(FieldSafety.nextOfKinAlertWindowMinutes)]))
+                    .thusoFont(ThusoType.caption).foregroundStyle(.secondary)
+                Button(Sos.NextOfKinText.nominate) { act(asGuardian: false) }.disabled(!named)
+                Button(Sos.NextOfKinText.asGuardian) { act(asGuardian: true) }.disabled(!named)
+                if let refused { Text(refused).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.danger) }
+            }
+            if !sosPress.nominations.isEmpty {
+                Section {
+                    ForEach(sosPress.nominations) { nomination in
+                        VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
+                            Text(nomination.name).font(.body.weight(.semibold))
+                            if let withdrawn = nomination.withdrawnAt {
+                                Text(FieldSafety.fill(Sos.NextOfKinText.withdrawn, ["at": withdrawn.formatted(date: .omitted, time: .shortened)])).thusoFont(ThusoType.caption)
+                            } else {
+                                Text(FieldSafety.fill(Sos.NextOfKinText.nominated, ["at": nomination.nominatedAt.formatted(date: .omitted, time: .shortened), "expires": nomination.expiresAt.formatted(date: .long, time: .omitted)])).thusoFont(ThusoType.caption)
+                                Button(Sos.NextOfKinText.withdraw) { sosPress.withdraw(nomination.id) }.buttonStyle(.bordered)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle(Sos.NextOfKinText.heading)
+    }
+
+    private func act(asGuardian: Bool) {
+        refused = sosPress.nominate(name: name.trimmingCharacters(in: .whitespaces), consentGiven: consented, asGuardian: asGuardian)
+        if refused == nil { name = ""; consented = false }
     }
 }

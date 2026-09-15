@@ -342,6 +342,7 @@ import za.co.mythuso.model.mokoenaHousehold
            blur the whole contract is written to prevent. */
         title == "Care you pay for" -> SponsoredCareScreen(store, open)
         title == "Privacy & settings" -> PrivacyScreen(store, open)
+        title == za.co.mythuso.model.SosNextOfKinText.heading -> NextOfKinScreen()
         title == "Care plans" -> PlansScreen(open)
         /* MyThuso for Mom by the contract's own name, so renaming the plan cannot strand its screen. */
         title == za.co.mythuso.model.momPlan.name -> MomPlanScreen()
@@ -466,7 +467,7 @@ import za.co.mythuso.model.mokoenaHousehold
         Note("Sponsoring care does not automatically grant access to health records.")
     }
 }
-@Composable fun PrivacyScreen(store: PreviewStore, open: (String) -> Unit) { ScreenColumn { Heading("Your privacy matters", "Your data. Your choices.", "Demo preferences reset when the app restarts."); CareCard { Setting("Care reminders", store.reminders) { store.reminders = it }; Setting("Wearable readings", store.wearableSharing) { store.wearableSharing = it }; Setting("Product updates", store.marketing) { store.marketing = it } }; CareCard { listOf("Access history", "Request a correction", "Request account deletion", "Information Officer").forEach { item -> ToolRow(item) { open(item) } } }; Text("Production POPIA compliance requires governance, lawful processing, verified technical controls and a clinical retention schedule. These are UI previews.", style = MaterialTheme.typography.bodySmall) } }
+@Composable fun PrivacyScreen(store: PreviewStore, open: (String) -> Unit) { ScreenColumn { Heading("Your privacy matters", "Your data. Your choices.", "Demo preferences reset when the app restarts."); CareCard { Setting("Care reminders", store.reminders) { store.reminders = it }; Setting("Wearable readings", store.wearableSharing) { store.wearableSharing = it }; Setting("Product updates", store.marketing) { store.marketing = it } }; CareCard { ToolRow(za.co.mythuso.model.SosNextOfKinText.heading) { open(za.co.mythuso.model.SosNextOfKinText.heading) }; listOf("Access history", "Request a correction", "Request account deletion", "Information Officer").forEach { item -> ToolRow(item) { open(item) } } }; Text("Production POPIA compliance requires governance, lawful processing, verified technical controls and a clinical retention schedule. These are UI previews.", style = MaterialTheme.typography.bodySmall) } }
 /* Derived, not typed. This screen carried five prices as strings until 14 September 2026, the day the
    R249 Thuso Mom became three MyThuso for Mom tiers on the web and would have stayed R249 here. The
    prices are generated from the business model and mom-plans.json; only each plan's one-line

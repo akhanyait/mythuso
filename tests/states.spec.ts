@@ -249,9 +249,12 @@ const SHARED_BY_BOTH_AUDIENCES = ['DemoLogin', 'Kit', 'KitCapture', 'LiveMap', '
    domain, and it now arrives on a dynamic import from App.tsx the moment somebody opens a service. A
    clinician never opens one, so a clinician no longer downloads it — and neither does a patient who
    only reads their visits. */
+/* Thuso SOS left this list in Wave 4, for the same reason: the pathway gained the Safety engine's rules for a press and
+   next of kin, and it now arrives on a dynamic import from App.tsx when somebody opens it, with the emergency numbers as
+   the fallback so they never wait for the download. */
 const CARRIED_BY_THE_ONE_ENTRY = [
   'Access', 'Arrival', 'Consent', 'Dashboard', 'Guardian', 'Help', 'Household',
-  'Interpreting', 'Onboarding', 'Pages', 'Passport', 'PatientShell', 'Sos', 'Sponsor', 'VisitSummary',
+  'Interpreting', 'Onboarding', 'Pages', 'Passport', 'PatientShell', 'Sponsor', 'VisitSummary',
   /* Live well, added the same night as the one entry. It is a patient feature and the patient is
      the default surface, so it loads with the rest of the patient app rather than behind a role —
      which is the cost this list exists to keep visible, not a leak. The ratchet did its job: it

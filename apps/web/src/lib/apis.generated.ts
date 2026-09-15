@@ -735,16 +735,6 @@ export interface PostClinicalPromsResponse {
  readonly promEntryRef: string;
 }
 
-export interface PostSafetyCheckinsRequest {
- readonly idempotencyKey: string;
- readonly appointmentRef: string;
- readonly expectedMinutes: number;
-}
-export interface PostSafetyCheckinsResponse {
- readonly checkinRef: string;
- readonly dueAt: string;
-}
-
 export interface GetSafetyCheckinsRequest {
  readonly appointmentRef: string;
 }
@@ -870,34 +860,6 @@ export interface PostSafetySettingChangesV2Response {
  readonly appliesFrom: string;
 }
 
-export interface PostSafetySosRequest {
- readonly idempotencyKey: string;
- readonly subjectRef: string;
- readonly channel: string;
-}
-export interface PostSafetySosResponse {
- readonly sosRef: string;
- readonly stateCode: string;
-}
-
-export interface PostSafetyNextOfKinRequest {
- readonly contactRef: string;
- readonly scopeCode: string;
- readonly fallbackOrder: number;
-}
-export interface PostSafetyNextOfKinResponse {
- readonly nominationRef: string;
-}
-
-export interface PostSafetyNextOfKinByNominationRefAlertRequest {
- readonly nominationRef: string;
- readonly severityCode: string;
-}
-export interface PostSafetyNextOfKinByNominationRefAlertResponse {
- readonly notificationRef: string;
- readonly channel: string;
-}
-
 export interface PostSafetySafeguardingReportsRequest {
  readonly subjectRef: string;
  readonly categoryCode: string;
@@ -974,6 +936,90 @@ export interface GetSafetyIncidentsResponse {
  readonly total: number;
  readonly open: number;
  readonly incidents: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostSafetySosV2Request {
+ readonly idempotencyKey: string;
+ readonly channel: string;
+ readonly conditionTicked: boolean;
+ readonly zoneId?: string;
+ readonly callbackAvailable: boolean;
+}
+export interface PostSafetySosV2Response {
+ readonly sosRef: string;
+ readonly stateCode: string;
+ readonly routedTo: string;
+ readonly failureCode?: string;
+ readonly areaSharedUntil?: string;
+ readonly partnerConnected: boolean;
+ readonly settingsVersion: number;
+ readonly nextOfKin: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostSafetySosBySosRefStandDownRequest {
+ readonly idempotencyKey: string;
+ readonly sosRef: string;
+ readonly reasonCode?: string;
+}
+export interface PostSafetySosBySosRefStandDownResponse {
+ readonly stoodDownAt: string;
+ readonly areaSharingEndedAt: string;
+}
+
+export type GetSafetySosRequest = Record<string, never>;
+export interface GetSafetySosResponse {
+ readonly items: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface GetSafetySosBySosRefAreaRequest {
+ readonly sosRef: string;
+}
+export interface GetSafetySosBySosRefAreaResponse {
+ readonly zoneId: string;
+ readonly sharedUntil: string;
+}
+
+export interface PostSafetyNextOfKinV2Request {
+ readonly idempotencyKey: string;
+ readonly contactRef: string;
+ readonly purpose: string;
+ readonly consentVersion?: number;
+ readonly consentGiven?: boolean;
+}
+export interface PostSafetyNextOfKinV2Response {
+ readonly nominationRef: string;
+ readonly purpose: string;
+ readonly consentVersion: number;
+ readonly nominatedAt: string;
+ readonly expiresAt: string;
+}
+
+export type GetSafetyNextOfKinRequest = Record<string, never>;
+export interface GetSafetyNextOfKinResponse {
+ readonly nominations: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostSafetyNextOfKinByNominationRefWithdrawRequest {
+ readonly idempotencyKey: string;
+ readonly nominationRef: string;
+}
+export interface PostSafetyNextOfKinByNominationRefWithdrawResponse {
+ readonly withdrawnAt: string;
+}
+
+export interface PostSafetyNextOfKinByNominationRefAlertV2Request {
+ readonly idempotencyKey: string;
+ readonly nominationRef: string;
+ readonly sosRef: string;
+}
+export interface PostSafetyNextOfKinByNominationRefAlertV2Response {
+ readonly notificationRef: string;
+ readonly statusCode: string;
+ readonly reasonCode: string;
+ readonly attempt: number;
+ readonly attemptsAllowed: number;
+ readonly windowEndsAt: string;
+ readonly wouldSay: string;
 }
 
 export interface PostMovementTripsRequest {
@@ -1873,7 +1919,6 @@ export const apiRoutes = {
  postClinicalResultsByResultRefAcknowledge: { name: "postClinicalResultsByResultRefAcknowledge", method: "POST", path: "/v1/clinical/results/{resultRef}/acknowledge", mountedPath: "/v1/clinical/results/{resultRef}/acknowledge", version: 1, engine: "clinical", callers: ["doctor","nurse"], purpose: ["diagnostics"], idempotent: false, status: "built" },
  postClinicalGuidance: { name: "postClinicalGuidance", method: "POST", path: "/v1/clinical/guidance", mountedPath: "/v1/clinical/guidance", version: 1, engine: "clinical", callers: ["nurse","doctor","engine:access"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postClinicalProms: { name: "postClinicalProms", method: "POST", path: "/v1/clinical/proms", mountedPath: "/v1/clinical/proms", version: 1, engine: "clinical", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postSafetyCheckins: { name: "postSafetyCheckins", method: "POST", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
  getSafetyCheckins: { name: "getSafetyCheckins", method: "GET", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: false, status: "built" },
  postSafetyCheckinsByCheckinRefExtendV2: { name: "postSafetyCheckinsByCheckinRefExtendV2", method: "POST", path: "/v1/safety/checkins/{checkinRef}/extend", mountedPath: "/v1/safety/checkins/{checkinRef}/extend", version: 2, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "built" },
  postSafetyCheckinsByCheckinRefSafe: { name: "postSafetyCheckinsByCheckinRefSafe", method: "POST", path: "/v1/safety/checkins/{checkinRef}/safe", mountedPath: "/v1/safety/checkins/{checkinRef}/safe", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "built" },
@@ -1887,9 +1932,6 @@ export const apiRoutes = {
  getSafetyDeskQueue: { name: "getSafetyDeskQueue", method: "GET", path: "/v1/safety/desk-queue", mountedPath: "/v1/safety/desk-queue", version: 1, engine: "safety", callers: ["operator"], purpose: ["emergency","dispatch"], idempotent: false, status: "built" },
  getSafetySettingsV2: { name: "getSafetySettingsV2", method: "GET", path: "/v1/safety/settings", mountedPath: "/v1/safety/settings", version: 2, engine: "safety", callers: ["admin","operator"], purpose: ["audit"], idempotent: false, status: "built" },
  postSafetySettingChangesV2: { name: "postSafetySettingChangesV2", method: "POST", path: "/v1/safety/setting-changes", mountedPath: "/v1/safety/setting-changes", version: 2, engine: "safety", callers: ["admin","operator"], purpose: ["audit"], idempotent: true, status: "built" },
- postSafetySos: { name: "postSafetySos", method: "POST", path: "/v1/safety/sos", mountedPath: "/v1/safety/sos", version: 1, engine: "safety", callers: ["patient","caregiver"], purpose: ["emergency"], idempotent: true, status: "proposed" },
- postSafetyNextOfKin: { name: "postSafetyNextOfKin", method: "POST", path: "/v1/safety/next-of-kin", mountedPath: "/v1/safety/next-of-kin", version: 1, engine: "safety", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "proposed" },
- postSafetyNextOfKinByNominationRefAlert: { name: "postSafetyNextOfKinByNominationRefAlert", method: "POST", path: "/v1/safety/next-of-kin/{nominationRef}/alert", mountedPath: "/v1/safety/next-of-kin/{nominationRef}/alert", version: 1, engine: "safety", callers: ["ops-desk","engine:core"], purpose: ["emergency"], idempotent: false, status: "proposed" },
  postSafetySafeguardingReports: { name: "postSafetySafeguardingReports", method: "POST", path: "/v1/safety/safeguarding-reports", mountedPath: "/v1/safety/safeguarding-reports", version: 1, engine: "safety", callers: ["nurse","locum","doctor","responder","courier","thuso-line-agent"], purpose: ["emergency"], idempotent: false, status: "proposed" },
  postSafetySentinelDeviations: { name: "postSafetySentinelDeviations", method: "POST", path: "/v1/safety/sentinel-deviations", mountedPath: "/v1/safety/sentinel-deviations", version: 1, engine: "safety", callers: ["engine:devices"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  getSafetyIncidentKinds: { name: "getSafetyIncidentKinds", method: "GET", path: "/v1/safety/incident-kinds", mountedPath: "/v1/safety/incident-kinds", version: 1, engine: "safety", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built" },
@@ -1899,6 +1941,14 @@ export const apiRoutes = {
  postSafetyIncidentsByIncidentIdNotified: { name: "postSafetyIncidentsByIncidentIdNotified", method: "POST", path: "/v1/safety/incidents/{incidentId}/notified", mountedPath: "/v1/safety/incidents/{incidentId}/notified", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
  postSafetyIncidentsByIncidentIdClose: { name: "postSafetyIncidentsByIncidentIdClose", method: "POST", path: "/v1/safety/incidents/{incidentId}/close", mountedPath: "/v1/safety/incidents/{incidentId}/close", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
  getSafetyIncidents: { name: "getSafetyIncidents", method: "GET", path: "/v1/safety/incidents", mountedPath: "/v1/safety/incidents", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
+ postSafetySosV2: { name: "postSafetySosV2", method: "POST", path: "/v1/safety/sos", mountedPath: "/v1/safety/sos", version: 2, engine: "safety", callers: ["patient"], purpose: ["emergency"], idempotent: true, status: "built" },
+ postSafetySosBySosRefStandDown: { name: "postSafetySosBySosRefStandDown", method: "POST", path: "/v1/safety/sos/{sosRef}/stand-down", mountedPath: "/v1/safety/sos/{sosRef}/stand-down", version: 1, engine: "safety", callers: ["patient"], purpose: ["emergency"], idempotent: true, status: "built" },
+ getSafetySos: { name: "getSafetySos", method: "GET", path: "/v1/safety/sos", mountedPath: "/v1/safety/sos", version: 1, engine: "safety", callers: ["operator"], purpose: ["emergency"], idempotent: false, status: "built" },
+ getSafetySosBySosRefArea: { name: "getSafetySosBySosRefArea", method: "GET", path: "/v1/safety/sos/{sosRef}/area", mountedPath: "/v1/safety/sos/{sosRef}/area", version: 1, engine: "safety", callers: ["operator"], purpose: ["emergency"], idempotent: false, status: "built" },
+ postSafetyNextOfKinV2: { name: "postSafetyNextOfKinV2", method: "POST", path: "/v1/safety/next-of-kin", mountedPath: "/v1/safety/next-of-kin", version: 2, engine: "safety", callers: ["patient","guardian"], purpose: ["emergency"], idempotent: true, status: "built" },
+ getSafetyNextOfKin: { name: "getSafetyNextOfKin", method: "GET", path: "/v1/safety/next-of-kin", mountedPath: "/v1/safety/next-of-kin", version: 1, engine: "safety", callers: ["patient"], purpose: ["emergency"], idempotent: false, status: "built" },
+ postSafetyNextOfKinByNominationRefWithdraw: { name: "postSafetyNextOfKinByNominationRefWithdraw", method: "POST", path: "/v1/safety/next-of-kin/{nominationRef}/withdraw", mountedPath: "/v1/safety/next-of-kin/{nominationRef}/withdraw", version: 1, engine: "safety", callers: ["patient","guardian"], purpose: ["emergency"], idempotent: true, status: "built" },
+ postSafetyNextOfKinByNominationRefAlertV2: { name: "postSafetyNextOfKinByNominationRefAlertV2", method: "POST", path: "/v1/safety/next-of-kin/{nominationRef}/alert", mountedPath: "/v1/safety/next-of-kin/{nominationRef}/alert", version: 2, engine: "safety", callers: ["operator","guardian"], purpose: ["emergency"], idempotent: true, status: "built" },
  postMovementTrips: { name: "postMovementTrips", method: "POST", path: "/v1/movement/trips", mountedPath: "/v1/movement/trips", version: 1, engine: "movement", callers: ["nurse","doctor","dispatcher","thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
  postMovementResponderHeartbeats: { name: "postMovementResponderHeartbeats", method: "POST", path: "/v1/movement/responder-heartbeats", mountedPath: "/v1/movement/responder-heartbeats", version: 1, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
  postMovementTripsByTripRefAccept: { name: "postMovementTripsByTripRefAccept", method: "POST", path: "/v1/movement/trips/{tripRef}/accept", mountedPath: "/v1/movement/trips/{tripRef}/accept", version: 1, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "proposed" },

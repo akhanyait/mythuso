@@ -64,6 +64,11 @@ export function emitFieldSafety(root = '') {
  const ceiling = settingDefault(SOURCE, contract, 'extension-ceiling');
  const window = settingDefault(SOURCE, contract, 'panic-window');
  const feed = contract.simulation.positionEverySeconds;
+ /* Wave 4: what an SOS is pressed under. A phone presses no SOS on the engine, so it uses the defaults to say how long
+    the desk sees the area and how often next of kin may be tried, and says they are defaults. */
+ const areaWindow = settingDefault(SOURCE, contract, 'sos-area-window');
+ const alertWindow = settingDefault(SOURCE, contract, 'next-of-kin-alert-window');
+ const alertRetries = settingDefault(SOURCE, contract, 'next-of-kin-alert-retries');
 
  /* {police} and {ambulance} are resolved here and nowhere else in the native copy. Every other token
     ({ends}, {at}) is a value the phone knows at the moment it draws the sentence, and is left in. */
@@ -118,6 +123,12 @@ extension FieldSafety {
     static let panicWindowMinutes = ${window.value}
     /// The simulated feed's cadence, not a policy.
     static let positionEverySeconds = ${feed}
+    /// ${areaWindow.note}
+    static let sosAreaWindowMinutes = ${areaWindow.value}
+    /// ${alertWindow.note}
+    static let nextOfKinAlertWindowMinutes = ${alertWindow.value}
+    /// ${alertRetries.note}
+    static let nextOfKinAlertRetries = ${alertRetries.value}
 
 ${texts.map(([name, entries]) => `    enum ${name} {
 ${entries.map(([key, value]) => `        static let ${key} = ${swift(value)}`).join('\n')}
@@ -148,6 +159,12 @@ object FieldSafetyData {
     const val panicWindowMinutes = ${window.value}
     /** The simulated feed's cadence, not a policy. */
     const val positionEverySeconds = ${feed}
+    /** ${areaWindow.note} */
+    const val sosAreaWindowMinutes = ${areaWindow.value}
+    /** ${alertWindow.note} */
+    const val nextOfKinAlertWindowMinutes = ${alertWindow.value}
+    /** ${alertRetries.note} */
+    const val nextOfKinAlertRetries = ${alertRetries.value}
 
 ${texts.map(([name, entries]) => `    object ${name} {
 ${entries.map(([key, value]) => `        const val ${key} = ${kotlin(value)}`).join('\n')}

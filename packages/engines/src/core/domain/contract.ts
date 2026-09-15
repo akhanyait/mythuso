@@ -63,3 +63,16 @@ const cannotOwn = new Set<string>(apis.engineRuntime.binderCannotAdmit);
 export const ownerRoles = new Set<string>([...vetting.roles.map(r => r.id), ...apis.callers.map(c => c.id)].filter(id => !cannotOwn.has(id)));
 
 export const engineIds = new Set<string>(events.engines.map(e => e.id));
+
+/* A patient's SOS, heard from Safety: who owns the concern, who it falls back to, and how long the desk has to take it on
+   — the ladder rung closed-loop.json proposes rather than a second number for the same urgency — and the stand-down that
+   closes it, by the outcome each stand-down reason maps to. Core reads no Safety contract and no plan. */
+export const SOS = closedLoop.sos.hears as EventKey;
+export const SOS_STOOD_DOWN = closedLoop.sosStoodDown.hears as EventKey;
+export const sosOwnerRole: string = closedLoop.sos.ownerRole.value;
+export const sosFallbackRole: string = closedLoop.sos.fallbackRole.value;
+if (!ownerRoles.has(sosOwnerRole) || !ownerRoles.has(sosFallbackRole) || sosOwnerRole === sosFallbackRole) throw new Error('packages/catalog/closed-loop.json gives an SOS an owner or a fallback nobody can be, or the same role twice, so a patient\'s press would reach nobody or have no fallback.');
+const sosSpan = spanForRung(closedLoop.sos.ladderRung.value);
+if (sosSpan === undefined) throw new Error('packages/catalog/closed-loop.json gives an SOS a ladder rung the ladder does not hold, so the desk would have no time anybody chose.');
+export const sosSpanMs: number = sosSpan;
+export const sosOutcomes: ReadonlyMap<string, string> = new Map(Object.entries(closedLoop.sosStoodDown.closesAs.value));

@@ -20,6 +20,12 @@ extension FieldSafety {
     static let panicWindowMinutes = 30
     /// The simulated feed's cadence, not a policy.
     static let positionEverySeconds = 15
+    /// A proposal nobody has decided. A default an admin may change on the web; this app has no admin surface and uses it as written here.
+    static let sosAreaWindowMinutes = 120
+    /// A proposal nobody has decided. A default an admin may change on the web; this app has no admin surface and uses it as written here.
+    static let nextOfKinAlertWindowMinutes = 60
+    /// A proposal nobody has decided. A default an admin may change on the web; this app has no admin surface and uses it as written here.
+    static let nextOfKinAlertRetries = 2
 
     enum NurseText {
         static let heading = "Your safety"

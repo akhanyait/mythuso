@@ -232,3 +232,11 @@ GET /v1/trust/complaint-notices@1 4ca2141acee0425e
 GET /v1/trust/settings@1 50130f5e3f1d9db3
 POST /v1/trust/setting-changes@1 e2356d56dd1060f1
 POST /v1/trust/setting-changes@2 b0a31f30f5432814
+POST /v1/safety/sos@2 04f69d61e02649e5
+POST /v1/safety/sos/{sosRef}/stand-down@1 bbba6ea57f369d22
+GET /v1/safety/sos@1 7d2356b601a01672
+GET /v1/safety/sos/{sosRef}/area@1 dfe1951c474d8aca
+POST /v1/safety/next-of-kin@2 80116be36b6fc74a
+GET /v1/safety/next-of-kin@1 1edd2b1ef6b16d9c
+POST /v1/safety/next-of-kin/{nominationRef}/withdraw@1 d827177b99bba4d8
+POST /v1/safety/next-of-kin/{nominationRef}/alert@2 3852a1e66d979b9c

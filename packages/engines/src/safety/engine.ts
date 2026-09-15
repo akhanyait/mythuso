@@ -5,8 +5,8 @@
  * timer from that service's duration in packages/catalog/services.json and the grace, extension steps and
  * ceiling in force (packages/catalog/field-safety.json settings, as an admin last set them), and the timer keeps
  * that settings version and those timings for its whole life. No route starts a timer and no phone sends a
- * minute: POST /v1/safety/checkins@1, which sent expectedMinutes, is still proposed and answered by nothing
- * here. The same visit heard again keeps the timer it has. A visit whose service the catalogue does not hold
+ * minute: POST /v1/safety/checkins@1, which sent expectedMinutes, is withdrawn with no callers, because nothing
+ * is left for a phone to start. The same visit heard again keeps the timer it has. A visit whose service the catalogue does not hold
  * cannot be timed, and a delivery that cannot start a timer fails loudly on the trail rather than leaving a
  * nurse in a house with nobody watching the clock.
  *
@@ -43,7 +43,20 @@
  * A CHANGE NEVER MOVES SOMETHING ALREADY RUNNING: a timer and a panic keep what they started with, and nothing
  * reads the settings again for either.
  *
- * Nothing here is a real service: no timer reaches a desk, no panic reaches a person, and nobody is sent.
+ * PATIENT SOS AND NEXT OF KIN (Wave 4). POST /v1/safety/sos@2 records a press thinly — how it was pressed, the door
+ * the answers route to, whether a condition was ticked as a yes or a no, the area chosen from the list for its window
+ * — refuses a band alone, a fall nobody pressed, a plan asking to go first and anything sent beside the answers, and
+ * publishes sos.raised@2 for Core's concern and Care's urgent-visit offer. Each of the patient's nominations in force
+ * is recorded as an attempt, not sent, because no SMS provider is connected. The patient stands it down with one of
+ * the reasons on the screen, which publishes sos.stood_down@1. The desk reads the list, which never carries the
+ * patient, the answers or the area, and reads the area only while its window is open; the tick drops the area from
+ * this store when the window ends. A patient nominates a next of kin with consent to the version of the wording they
+ * read, for the one purpose consent.json allows, and withdraws in one action; the desk tries again inside the window
+ * and tries the SOS was pressed under; a guardian is refused on all three before anything else. The arithmetic is
+ * ./domain/sos.ts's, and every sentence is packages/catalog/apis/safety.json's.
+ *
+ * Nothing here is a real service: no timer reaches a desk, no panic reaches a person, no press reaches anybody,
+ * nobody is told anything, and nobody is sent.
  */
 import { randomUUID } from 'node:crypto';
 import { defineEngine, ok, refuse, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
@@ -52,7 +65,11 @@ import { acknowledgeOverdue, checkIn, close, completeVisit, extend, extensionLef
 import { deskQueue } from './domain/desk.ts';
 import { acknowledge, positionFor, raisePanic, resolve, sharingEndsAt, type DeskActor, type Panic } from './domain/panics.ts';
 import { instant, type EmittedEvent, type Result } from './domain/rules.ts';
-import { inForce, panicWindowOf, safetySettings } from './domain/settings.ts';
+import { inForce, panicWindowOf, safetySettings, sosSettingsOf } from './domain/settings.ts';
+import {
+ alertAgain, areaFor, areaSharingEndsAt, firstAttempts, nominate, nominationStateOf, partnerConnected, raiseSos, sosDesk, sosStateOf, standDownSos, withdrawNomination, wouldSay,
+ type Attempt, type Nomination, type Sos
+} from './domain/sos.ts';
 
 const schema = [
  'CREATE TABLE IF NOT EXISTS panics (',
@@ -77,6 +94,24 @@ const schema = [
  ' appointment_ref TEXT NOT NULL UNIQUE,',
  ' settings_version INTEGER NOT NULL,',
  ' held_by_ref TEXT,',
+ ' doc TEXT NOT NULL',
+ ');',
+ 'CREATE TABLE IF NOT EXISTS sos (',
+ ' sos_ref TEXT PRIMARY KEY,',
+ ' patient_ref TEXT NOT NULL,',
+ ' area_ends_at INTEGER,',
+ ' zone_id TEXT,',
+ ' doc TEXT NOT NULL',
+ ');',
+ 'CREATE TABLE IF NOT EXISTS next_of_kin (',
+ ' nomination_ref TEXT PRIMARY KEY,',
+ ' patient_ref TEXT NOT NULL,',
+ ' doc TEXT NOT NULL',
+ ');',
+ 'CREATE TABLE IF NOT EXISTS next_of_kin_attempts (',
+ ' notification_ref TEXT PRIMARY KEY,',
+ ' sos_ref TEXT NOT NULL,',
+ ' nomination_ref TEXT NOT NULL,',
  ' doc TEXT NOT NULL',
  ');',
  SETTINGS_SCHEMA
@@ -124,6 +159,35 @@ const putDesk = (ctx: EngineContext, panic: Panic) => {
 const publishAll = (ctx: EngineContext, emits: readonly EmittedEvent[], subjectRef: string, purposeOfUse?: string) => {
  for (const event of emits) ctx.publish((event.type + '@' + event.version) as EventKey, event.payload, { subjectRef, ...(purposeOfUse ? { purposeOfUse } : {}) });
 };
+
+/* ── A patient's SOS and their next of kin ─────────────────────────────────────────────────────────────── */
+
+/* The area is its own column, so dropping it when its window ends is one statement and the rest of the SOS — the
+   thin record sos.json says is kept — stays as it was. */
+type SosRow = { zone_id: string | null; doc: string };
+const sosFrom = (row: SosRow | undefined): Sos | undefined => row ? { ...(JSON.parse(row.doc) as Omit<Sos, 'zoneId'>), zoneId: row.zone_id } : undefined;
+const sosByRef = (ctx: EngineContext, sosRef: unknown) => sosFrom(ctx.store.prepare('SELECT zone_id, doc FROM sos WHERE sos_ref = ?').get(String(sosRef)) as SosRow | undefined);
+const allSos = (ctx: EngineContext): Sos[] => (ctx.store.prepare('SELECT zone_id, doc FROM sos ORDER BY rowid').all() as SosRow[]).map(row => sosFrom(row)!);
+const putSos = (ctx: EngineContext, sos: Sos) => {
+ const { zoneId, ...kept } = sos;
+ ctx.store.prepare('INSERT INTO sos (sos_ref, patient_ref, area_ends_at, zone_id, doc) VALUES (?, ?, ?, ?, ?) ON CONFLICT(sos_ref) DO UPDATE SET area_ends_at = excluded.area_ends_at, zone_id = excluded.zone_id, doc = excluded.doc')
+  .run(sos.sosRef, sos.patientRef, areaSharingEndsAt(sos), zoneId, JSON.stringify(kept));
+};
+const nominationByRef = (ctx: EngineContext, nominationRef: unknown): Nomination | undefined => {
+ const row = ctx.store.prepare('SELECT doc FROM next_of_kin WHERE nomination_ref = ?').get(String(nominationRef)) as { doc: string } | undefined;
+ return row ? JSON.parse(row.doc) as Nomination : undefined;
+};
+const allNominations = (ctx: EngineContext): Nomination[] => (ctx.store.prepare('SELECT doc FROM next_of_kin ORDER BY rowid').all() as { doc: string }[]).map(row => JSON.parse(row.doc) as Nomination);
+const putNomination = (ctx: EngineContext, nomination: Nomination) => {
+ ctx.store.prepare('INSERT INTO next_of_kin (nomination_ref, patient_ref, doc) VALUES (?, ?, ?) ON CONFLICT(nomination_ref) DO UPDATE SET doc = excluded.doc').run(nomination.nominationRef, nomination.patientRef, JSON.stringify(nomination));
+};
+const allAttempts = (ctx: EngineContext): Attempt[] => (ctx.store.prepare('SELECT doc FROM next_of_kin_attempts ORDER BY rowid').all() as { doc: string }[]).map(row => JSON.parse(row.doc) as Attempt);
+const attemptsFor = (ctx: EngineContext, sosRef: string, nominationRef: string) =>
+ (ctx.store.prepare('SELECT COUNT(*) AS n FROM next_of_kin_attempts WHERE sos_ref = ? AND nomination_ref = ?').get(sosRef, nominationRef) as { n: number }).n;
+const putAttempt = (ctx: EngineContext, attempt: Attempt) => {
+ ctx.store.prepare('INSERT INTO next_of_kin_attempts (notification_ref, sos_ref, nomination_ref, doc) VALUES (?, ?, ?, ?)').run(attempt.notificationRef, attempt.sosRef, attempt.nominationRef, JSON.stringify(attempt));
+};
+const optionalInstant = (at: number | null) => at === null ? null : instant(at);
 
 /* ── The nurse ────────────────────────────────────────────────────────────────────────────────────── */
 
@@ -284,6 +348,109 @@ export const engine = defineEngine({
    return ok({ items });
   },
 
+  /* A press. The patient is the caller the runtime identified, never a field: the runtime refuses an idempotent write
+     from a caller it cannot identify, so there is always somebody. Every refusal comes before anything is written, and
+     the attempts for next of kin are recorded in the same act, so a press is never on record without them. */
+  'POST /v1/safety/sos@2': (request, ctx) => {
+   const patientRef = ctx.caller.ref ?? ctx.caller.role;
+   const now = nowOf(ctx);
+   const pressed = raiseSos({
+    sosRef: 'sos-' + randomUUID(), patientRef, channel: request.fields.channel,
+    answers: { conditionTicked: request.fields.conditionTicked, zoneId: request.fields.zoneId, callbackAvailable: request.fields.callbackAvailable },
+    undeclared: request.undeclared
+   }, now, sosSettingsOf(historyOf(ctx.store)));
+   if (!pressed.ok) return refuse(pressed.refusal.id);
+   const sos = pressed.value;
+   putSos(ctx, sos);
+   const attempts = firstAttempts(sos, allNominations(ctx), () => 'notification-' + randomUUID(), now);
+   for (const attempt of attempts) putAttempt(ctx, attempt);
+   publishAll(ctx, pressed.emits, patientRef);
+   const areaEnds = areaSharingEndsAt(sos);
+   return ok({
+    sosRef: sos.sosRef, stateCode: sosStateOf(sos), routedTo: sos.routedTo,
+    ...(sos.failureCode === null ? {} : { failureCode: sos.failureCode }), ...(areaEnds === null ? {} : { areaSharedUntil: instant(areaEnds) }),
+    partnerConnected, settingsVersion: sos.settingsVersion,
+    nextOfKin: attempts.map(a => ({ nominationRef: a.nominationRef, notificationRef: a.notificationRef, statusCode: a.statusCode, reasonCode: a.reasonCode }))
+   });
+  },
+
+  /* Only the person who pressed it, and somebody else's is answered as if it did not exist. */
+  'POST /v1/safety/sos/{sosRef}/stand-down@1': (request, ctx) => {
+   const found = sosByRef(ctx, request.fields.sosRef);
+   const patientRef = ctx.caller.ref ?? ctx.caller.role;
+   if (!found || found.patientRef !== patientRef) return refuse('no-sos-of-yours');
+   const now = nowOf(ctx);
+   const stood = standDownSos(found, { patientRef, reasonCode: request.fields.reasonCode }, now);
+   if (!stood.ok) return refuse(stood.refusal.id);
+   putSos(ctx, stood.value);
+   publishAll(ctx, stood.emits, found.patientRef);
+   return ok({ stoodDownAt: instant(now), areaSharingEndedAt: instant(areaSharingEndsAt(stood.value) ?? now) });
+  },
+
+  /* The desk's list carries the contract's keys and nothing else, and a filter of any kind is refused rather than ignored. */
+  'GET /v1/safety/sos@1': (request, ctx) => {
+   if (request.undeclared.length) return refuse('sos-list-takes-no-filter');
+   const items = sosDesk(allSos(ctx), allAttempts(ctx), nowOf(ctx)).map(row => ({
+    sosRef: row.sosRef, raisedAt: instant(row.raisedAt), ageMinutes: row.ageMinutes, stateCode: row.stateCode, channel: row.channel,
+    routedTo: row.routedTo, failureCode: row.failureCode, areaShared: row.areaShared, areaSharedUntil: optionalInstant(row.areaSharedUntil),
+    stoodDown: row.stoodDown && { at: instant(row.stoodDown.at), reasonCode: row.stoodDown.reasonCode }, settingsVersion: row.settingsVersion,
+    nextOfKin: row.nextOfKin.map(n => ({ ...n, windowEndsAt: instant(n.windowEndsAt) }))
+   }));
+   return ok({ items });
+  },
+
+  /* Only while the window is open and it has not been stood down, and areaFor is the only way to it. */
+  'GET /v1/safety/sos/{sosRef}/area@1': (request, ctx) => {
+   const found = sosByRef(ctx, request.fields.sosRef);
+   if (!found) return refuse('no-such-sos');
+   const seen = areaFor(found, nowOf(ctx));
+   if (!seen.ok) return refuse(seen.refusal.id);
+   return ok({ zoneId: seen.value.zoneId, sharedUntil: instant(seen.value.sharedUntil) });
+  },
+
+  'POST /v1/safety/next-of-kin@2': (request, ctx) => {
+   const made = nominate({
+    nominationRef: 'nomination-' + randomUUID(), actorRole: ctx.caller.role, patientRef: ctx.caller.ref ?? ctx.caller.role,
+    contactRef: String(request.fields.contactRef), purpose: request.fields.purpose, consentVersion: request.fields.consentVersion, consentGiven: request.fields.consentGiven
+   }, nowOf(ctx));
+   if (!made.ok) return refuse(made.refusal.id);
+   const nomination = made.value;
+   putNomination(ctx, nomination);
+   return ok({ nominationRef: nomination.nominationRef, purpose: nomination.purpose, consentVersion: nomination.consentVersion, nominatedAt: instant(nomination.nominatedAt), expiresAt: instant(nomination.expiresAt) });
+  },
+
+  'GET /v1/safety/next-of-kin@1': (_request, ctx) => {
+   if (!ctx.caller.ref) return refuse('nominations-read-by-their-patient');
+   const now = nowOf(ctx);
+   const nominations = allNominations(ctx).filter(n => n.patientRef === ctx.caller.ref).sort((a, b) => b.nominatedAt - a.nominatedAt).map(n => ({
+    nominationRef: n.nominationRef, contactRef: n.contactRef, purpose: n.purpose, consentVersion: n.consentVersion,
+    nominatedAt: instant(n.nominatedAt), expiresAt: instant(n.expiresAt), withdrawnAt: optionalInstant(n.withdrawnAt), stateCode: nominationStateOf(n, now)
+   }));
+   return ok({ nominations });
+  },
+
+  'POST /v1/safety/next-of-kin/{nominationRef}/withdraw@1': (request, ctx) => {
+   const withdrawn = withdrawNomination(nominationByRef(ctx, request.fields.nominationRef), { actorRole: ctx.caller.role, patientRef: ctx.caller.ref ?? ctx.caller.role }, nowOf(ctx));
+   if (!withdrawn.ok) return refuse(withdrawn.refusal.id);
+   putNomination(ctx, withdrawn.value);
+   return ok({ withdrawnAt: instant(withdrawn.value.withdrawnAt!) });
+  },
+
+  /* Nothing is sent, so nothing is published: the attempt is recorded as not sent, with why, and what it would have said. */
+  'POST /v1/safety/next-of-kin/{nominationRef}/alert@2': (request, ctx) => {
+   const sos = sosByRef(ctx, request.fields.sosRef);
+   const nomination = nominationByRef(ctx, request.fields.nominationRef);
+   const now = nowOf(ctx);
+   const tried = alertAgain({
+    actorRole: ctx.caller.role, sos, nomination, undeclared: request.undeclared, notificationRef: 'notification-' + randomUUID(),
+    attemptsSoFar: sos && nomination ? attemptsFor(ctx, sos.sosRef, nomination.nominationRef) : 0
+   }, now);
+   if (!tried.ok) return refuse(tried.refusal.id);
+   const attempt = tried.value;
+   putAttempt(ctx, attempt);
+   return ok({ notificationRef: attempt.notificationRef, statusCode: attempt.statusCode, reasonCode: attempt.reasonCode, attempt: attempt.attempt, attemptsAllowed: sos!.attemptsAllowed, windowEndsAt: instant(sos!.alertWindowEndsAt), wouldSay: wouldSay(now) });
+  },
+
   ...settingsRoutes(safetySettings, { read: 'GET /v1/safety/settings@2', change: 'POST /v1/safety/setting-changes@2' })
  },
  subscriptions: {
@@ -311,6 +478,9 @@ export const engine = defineEngine({
  },
  tick: ctx => {
   const now = nowOf(ctx);
+  /* The area an SOS was pressed from is dropped when the window it was pressed under ends. areaFor() refuses after it
+     whether or not this has run; this is what makes nothing keeping where somebody was true of the store itself. */
+  ctx.store.prepare('UPDATE sos SET zone_id = NULL WHERE zone_id IS NOT NULL AND area_ends_at <= ?').run(now);
   for (const { timer, heldBy } of allTimers(ctx)) {
    if (timer.closedAt !== null) continue;
    const ticked = tickTimer(timer, now);

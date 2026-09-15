@@ -1,4 +1,15 @@
-import contract from '../../../../packages/catalog/sos.json';
+/* By name rather than the whole file: this module is on the patient's first load through booking, the assistant and the
+   explanations, and a default import carries every section of sos.json there, the press, the desk and next of kin
+   included, which arrive with the pathway's own dynamic import. */
+import {
+ alert as alertSection, coverage as coverageSection, emergency as emergencySection, failures as failuresSection, outcomes as outcomesSection,
+ record as recordSection, redFlags as redFlagsSection, refusals as refusalsSection, routing as routingSection, rules as rulesSection,
+ standDown as standDownSection, target as targetSection
+} from '../../../../packages/catalog/sos.json';
+const contract = {
+ emergency: emergencySection, redFlags: redFlagsSection, routing: routingSection, outcomes: outcomesSection, target: targetSection, coverage: coverageSection,
+ standDown: standDownSection, failures: failuresSection, alert: alertSection, record: recordSection, rules: rulesSection, refusals: refusalsSection
+};
 import { businessModel, services } from './catalog';
 /* The emergency pathway — the reasoning, without a screen attached to it.
  *

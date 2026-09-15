@@ -102,7 +102,6 @@ enum ApisData {
     static let postClinicalResultsByResultRefAcknowledge = Route(id: "postClinicalResultsByResultRefAcknowledge", method: "POST", path: "/v1/clinical/results/{resultRef}/acknowledge", mountedPath: "/v1/clinical/results/{resultRef}/acknowledge", version: 1, engine: "clinical", callers: ["doctor", "nurse"], purpose: ["diagnostics"], idempotent: false, status: "built")
     static let postClinicalGuidance = Route(id: "postClinicalGuidance", method: "POST", path: "/v1/clinical/guidance", mountedPath: "/v1/clinical/guidance", version: 1, engine: "clinical", callers: ["nurse", "doctor", "engine:access"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let postClinicalProms = Route(id: "postClinicalProms", method: "POST", path: "/v1/clinical/proms", mountedPath: "/v1/clinical/proms", version: 1, engine: "clinical", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postSafetyCheckins = Route(id: "postSafetyCheckins", method: "POST", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "proposed")
     static let getSafetyCheckins = Route(id: "getSafetyCheckins", method: "GET", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: false, status: "built")
     static let postSafetyCheckinsByCheckinRefExtendV2 = Route(id: "postSafetyCheckinsByCheckinRefExtendV2", method: "POST", path: "/v1/safety/checkins/{checkinRef}/extend", mountedPath: "/v1/safety/checkins/{checkinRef}/extend", version: 2, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "built")
     static let postSafetyCheckinsByCheckinRefSafe = Route(id: "postSafetyCheckinsByCheckinRefSafe", method: "POST", path: "/v1/safety/checkins/{checkinRef}/safe", mountedPath: "/v1/safety/checkins/{checkinRef}/safe", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "built")
@@ -116,9 +115,6 @@ enum ApisData {
     static let getSafetyDeskQueue = Route(id: "getSafetyDeskQueue", method: "GET", path: "/v1/safety/desk-queue", mountedPath: "/v1/safety/desk-queue", version: 1, engine: "safety", callers: ["operator"], purpose: ["emergency", "dispatch"], idempotent: false, status: "built")
     static let getSafetySettingsV2 = Route(id: "getSafetySettingsV2", method: "GET", path: "/v1/safety/settings", mountedPath: "/v1/safety/settings", version: 2, engine: "safety", callers: ["admin", "operator"], purpose: ["audit"], idempotent: false, status: "built")
     static let postSafetySettingChangesV2 = Route(id: "postSafetySettingChangesV2", method: "POST", path: "/v1/safety/setting-changes", mountedPath: "/v1/safety/setting-changes", version: 2, engine: "safety", callers: ["admin", "operator"], purpose: ["audit"], idempotent: true, status: "built")
-    static let postSafetySos = Route(id: "postSafetySos", method: "POST", path: "/v1/safety/sos", mountedPath: "/v1/safety/sos", version: 1, engine: "safety", callers: ["patient", "caregiver"], purpose: ["emergency"], idempotent: true, status: "proposed")
-    static let postSafetyNextOfKin = Route(id: "postSafetyNextOfKin", method: "POST", path: "/v1/safety/next-of-kin", mountedPath: "/v1/safety/next-of-kin", version: 1, engine: "safety", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "proposed")
-    static let postSafetyNextOfKinByNominationRefAlert = Route(id: "postSafetyNextOfKinByNominationRefAlert", method: "POST", path: "/v1/safety/next-of-kin/{nominationRef}/alert", mountedPath: "/v1/safety/next-of-kin/{nominationRef}/alert", version: 1, engine: "safety", callers: ["ops-desk", "engine:core"], purpose: ["emergency"], idempotent: false, status: "proposed")
     static let postSafetySafeguardingReports = Route(id: "postSafetySafeguardingReports", method: "POST", path: "/v1/safety/safeguarding-reports", mountedPath: "/v1/safety/safeguarding-reports", version: 1, engine: "safety", callers: ["nurse", "locum", "doctor", "responder", "courier", "thuso-line-agent"], purpose: ["emergency"], idempotent: false, status: "proposed")
     static let postSafetySentinelDeviations = Route(id: "postSafetySentinelDeviations", method: "POST", path: "/v1/safety/sentinel-deviations", mountedPath: "/v1/safety/sentinel-deviations", version: 1, engine: "safety", callers: ["engine:devices"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let getSafetyIncidentKinds = Route(id: "getSafetyIncidentKinds", method: "GET", path: "/v1/safety/incident-kinds", mountedPath: "/v1/safety/incident-kinds", version: 1, engine: "safety", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built")
@@ -128,6 +124,14 @@ enum ApisData {
     static let postSafetyIncidentsByIncidentIdNotified = Route(id: "postSafetyIncidentsByIncidentIdNotified", method: "POST", path: "/v1/safety/incidents/{incidentId}/notified", mountedPath: "/v1/safety/incidents/{incidentId}/notified", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built")
     static let postSafetyIncidentsByIncidentIdClose = Route(id: "postSafetyIncidentsByIncidentIdClose", method: "POST", path: "/v1/safety/incidents/{incidentId}/close", mountedPath: "/v1/safety/incidents/{incidentId}/close", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built")
     static let getSafetyIncidents = Route(id: "getSafetyIncidents", method: "GET", path: "/v1/safety/incidents", mountedPath: "/v1/safety/incidents", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postSafetySosV2 = Route(id: "postSafetySosV2", method: "POST", path: "/v1/safety/sos", mountedPath: "/v1/safety/sos", version: 2, engine: "safety", callers: ["patient"], purpose: ["emergency"], idempotent: true, status: "built")
+    static let postSafetySosBySosRefStandDown = Route(id: "postSafetySosBySosRefStandDown", method: "POST", path: "/v1/safety/sos/{sosRef}/stand-down", mountedPath: "/v1/safety/sos/{sosRef}/stand-down", version: 1, engine: "safety", callers: ["patient"], purpose: ["emergency"], idempotent: true, status: "built")
+    static let getSafetySos = Route(id: "getSafetySos", method: "GET", path: "/v1/safety/sos", mountedPath: "/v1/safety/sos", version: 1, engine: "safety", callers: ["operator"], purpose: ["emergency"], idempotent: false, status: "built")
+    static let getSafetySosBySosRefArea = Route(id: "getSafetySosBySosRefArea", method: "GET", path: "/v1/safety/sos/{sosRef}/area", mountedPath: "/v1/safety/sos/{sosRef}/area", version: 1, engine: "safety", callers: ["operator"], purpose: ["emergency"], idempotent: false, status: "built")
+    static let postSafetyNextOfKinV2 = Route(id: "postSafetyNextOfKinV2", method: "POST", path: "/v1/safety/next-of-kin", mountedPath: "/v1/safety/next-of-kin", version: 2, engine: "safety", callers: ["patient", "guardian"], purpose: ["emergency"], idempotent: true, status: "built")
+    static let getSafetyNextOfKin = Route(id: "getSafetyNextOfKin", method: "GET", path: "/v1/safety/next-of-kin", mountedPath: "/v1/safety/next-of-kin", version: 1, engine: "safety", callers: ["patient"], purpose: ["emergency"], idempotent: false, status: "built")
+    static let postSafetyNextOfKinByNominationRefWithdraw = Route(id: "postSafetyNextOfKinByNominationRefWithdraw", method: "POST", path: "/v1/safety/next-of-kin/{nominationRef}/withdraw", mountedPath: "/v1/safety/next-of-kin/{nominationRef}/withdraw", version: 1, engine: "safety", callers: ["patient", "guardian"], purpose: ["emergency"], idempotent: true, status: "built")
+    static let postSafetyNextOfKinByNominationRefAlertV2 = Route(id: "postSafetyNextOfKinByNominationRefAlertV2", method: "POST", path: "/v1/safety/next-of-kin/{nominationRef}/alert", mountedPath: "/v1/safety/next-of-kin/{nominationRef}/alert", version: 2, engine: "safety", callers: ["operator", "guardian"], purpose: ["emergency"], idempotent: true, status: "built")
     static let postMovementTrips = Route(id: "postMovementTrips", method: "POST", path: "/v1/movement/trips", mountedPath: "/v1/movement/trips", version: 1, engine: "movement", callers: ["nurse", "doctor", "dispatcher", "thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "proposed")
     static let postMovementResponderHeartbeats = Route(id: "postMovementResponderHeartbeats", method: "POST", path: "/v1/movement/responder-heartbeats", mountedPath: "/v1/movement/responder-heartbeats", version: 1, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "proposed")
     static let postMovementTripsByTripRefAccept = Route(id: "postMovementTripsByTripRefAccept", method: "POST", path: "/v1/movement/trips/{tripRef}/accept", mountedPath: "/v1/movement/trips/{tripRef}/accept", version: 1, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "proposed")
@@ -295,7 +299,6 @@ enum ApisData {
         postClinicalResultsByResultRefAcknowledge,
         postClinicalGuidance,
         postClinicalProms,
-        postSafetyCheckins,
         getSafetyCheckins,
         postSafetyCheckinsByCheckinRefExtendV2,
         postSafetyCheckinsByCheckinRefSafe,
@@ -309,9 +312,6 @@ enum ApisData {
         getSafetyDeskQueue,
         getSafetySettingsV2,
         postSafetySettingChangesV2,
-        postSafetySos,
-        postSafetyNextOfKin,
-        postSafetyNextOfKinByNominationRefAlert,
         postSafetySafeguardingReports,
         postSafetySentinelDeviations,
         getSafetyIncidentKinds,
@@ -321,6 +321,14 @@ enum ApisData {
         postSafetyIncidentsByIncidentIdNotified,
         postSafetyIncidentsByIncidentIdClose,
         getSafetyIncidents,
+        postSafetySosV2,
+        postSafetySosBySosRefStandDown,
+        getSafetySos,
+        getSafetySosBySosRefArea,
+        postSafetyNextOfKinV2,
+        getSafetyNextOfKin,
+        postSafetyNextOfKinByNominationRefWithdraw,
+        postSafetyNextOfKinByNominationRefAlertV2,
         postMovementTrips,
         postMovementResponderHeartbeats,
         postMovementTripsByTripRefAccept,
@@ -1042,15 +1050,6 @@ enum ApisData {
     struct PostClinicalPromsResponse {
         let promEntryRef: String
     }
-    struct PostSafetyCheckinsRequest {
-        let idempotencyKey: String
-        let appointmentRef: String
-        let expectedMinutes: Int
-    }
-    struct PostSafetyCheckinsResponse {
-        let checkinRef: String
-        let dueAt: String
-    }
     struct GetSafetyCheckinsRequest {
         let appointmentRef: String
     }
@@ -1163,31 +1162,6 @@ enum ApisData {
         let settingsVersion: Int
         let appliesFrom: String
     }
-    struct PostSafetySosRequest {
-        let idempotencyKey: String
-        let subjectRef: String
-        let channel: String
-    }
-    struct PostSafetySosResponse {
-        let sosRef: String
-        let stateCode: String
-    }
-    struct PostSafetyNextOfKinRequest {
-        let contactRef: String
-        let scopeCode: String
-        let fallbackOrder: Int
-    }
-    struct PostSafetyNextOfKinResponse {
-        let nominationRef: String
-    }
-    struct PostSafetyNextOfKinByNominationRefAlertRequest {
-        let nominationRef: String
-        let severityCode: String
-    }
-    struct PostSafetyNextOfKinByNominationRefAlertResponse {
-        let notificationRef: String
-        let channel: String
-    }
     struct PostSafetySafeguardingReportsRequest {
         let subjectRef: String
         let categoryCode: String
@@ -1256,6 +1230,82 @@ enum ApisData {
         let total: Int
         let `open`: Int
         let incidents: [[String: Any]]
+    }
+    struct PostSafetySosV2Request {
+        let idempotencyKey: String
+        let channel: String
+        let conditionTicked: Bool
+        let zoneId: String?
+        let callbackAvailable: Bool
+    }
+    struct PostSafetySosV2Response {
+        let sosRef: String
+        let stateCode: String
+        let routedTo: String
+        let failureCode: String?
+        let areaSharedUntil: String?
+        let partnerConnected: Bool
+        let settingsVersion: Int
+        let nextOfKin: [[String: Any]]
+    }
+    struct PostSafetySosBySosRefStandDownRequest {
+        let idempotencyKey: String
+        let sosRef: String
+        let reasonCode: String?
+    }
+    struct PostSafetySosBySosRefStandDownResponse {
+        let stoodDownAt: String
+        let areaSharingEndedAt: String
+    }
+    struct GetSafetySosRequest {}
+    struct GetSafetySosResponse {
+        let items: [[String: Any]]
+    }
+    struct GetSafetySosBySosRefAreaRequest {
+        let sosRef: String
+    }
+    struct GetSafetySosBySosRefAreaResponse {
+        let zoneId: String
+        let sharedUntil: String
+    }
+    struct PostSafetyNextOfKinV2Request {
+        let idempotencyKey: String
+        let contactRef: String
+        let purpose: String
+        let consentVersion: Int?
+        let consentGiven: Bool?
+    }
+    struct PostSafetyNextOfKinV2Response {
+        let nominationRef: String
+        let purpose: String
+        let consentVersion: Int
+        let nominatedAt: String
+        let expiresAt: String
+    }
+    struct GetSafetyNextOfKinRequest {}
+    struct GetSafetyNextOfKinResponse {
+        let nominations: [[String: Any]]
+    }
+    struct PostSafetyNextOfKinByNominationRefWithdrawRequest {
+        let idempotencyKey: String
+        let nominationRef: String
+    }
+    struct PostSafetyNextOfKinByNominationRefWithdrawResponse {
+        let withdrawnAt: String
+    }
+    struct PostSafetyNextOfKinByNominationRefAlertV2Request {
+        let idempotencyKey: String
+        let nominationRef: String
+        let sosRef: String
+    }
+    struct PostSafetyNextOfKinByNominationRefAlertV2Response {
+        let notificationRef: String
+        let statusCode: String
+        let reasonCode: String
+        let attempt: Int
+        let attemptsAllowed: Int
+        let windowEndsAt: String
+        let wouldSay: String
     }
     struct PostMovementTripsRequest {
         let idempotencyKey: String

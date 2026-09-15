@@ -260,3 +260,15 @@ POST /v1/trust/door-verifications@1 callers=- purpose=vetting because=-
 POST /v1/trust/complaints@1 callers=- purpose=vetting because=-
 POST /v1/trust/setting-changes@1 callers=- purpose=audit because=-
 POST /v1/trust/setting-changes@2 callers=admin,operator purpose=audit because=-
+POST /v1/safety/sos@2 callers=patient purpose=emergency because=-
+POST /v1/safety/sos/{sosRef}/stand-down@1 callers=patient purpose=emergency because=-
+GET /v1/safety/sos@1 callers=operator purpose=emergency because=-
+GET /v1/safety/sos/{sosRef}/area@1 callers=operator purpose=emergency because=-
+POST /v1/safety/next-of-kin@2 callers=guardian,patient purpose=emergency because=-
+GET /v1/safety/next-of-kin@1 callers=patient purpose=emergency because=-
+POST /v1/safety/next-of-kin/{nominationRef}/withdraw@1 callers=guardian,patient purpose=emergency because=-
+POST /v1/safety/next-of-kin/{nominationRef}/alert@2 callers=guardian,operator purpose=emergency because=-
+POST /v1/safety/checkins@1 callers=- purpose=dispatch because=-
+POST /v1/safety/sos@1 callers=- purpose=emergency because=-
+POST /v1/safety/next-of-kin@1 callers=- purpose=subject-access because=-
+POST /v1/safety/next-of-kin/{nominationRef}/alert@1 callers=- purpose=emergency because=-

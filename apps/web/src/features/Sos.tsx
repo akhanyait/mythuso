@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Ambulance, ArrowRight, Ban, BadgeCheck, Check, CircleAlert, Clock3, Info, MapPin, Phone, Radio, Route, ShieldAlert, ShieldCheck, Timer, TriangleAlert, Undo2, Watch, WifiOff } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
+import { PressSos } from './SosPress';
 import { money } from '../lib/catalog';
 import {
  alert as alertPlan, alertMonthly, coverage, emergency, failureById, failures, record, redFlags,
@@ -275,6 +276,9 @@ export function ThusoSos() {
     <div className="privacy-note"><Route size={19}/>No routing provider is connected, so no road route is measured and no arrival time is claimed from one. The straight-line figures above are asked for by name and labelled as what they are.</div>
    </div>
   </>}
+
+  {/* Pressing SOS comes after the numbers and after the door the answers pointed to, never before either. */}
+  {door && <PressSos answers={answers}/>}
 
   {requested && <>
    <SectionTitle title="Cancelling and standing down"/>

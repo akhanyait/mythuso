@@ -1177,4 +1177,11 @@ Added to a contract after this pack's generator was last taught about them. A re
 
 | Item | What it decides |
 |---|---|
+| `safety:sos-area-window` | How long after somebody presses SOS the desk may read the area they chose from the list, before nothing keeps where they were. |
+| `safety:next-of-kin-alert-window` | How long after somebody presses SOS the desk may still try their next of kin. |
+| `safety:next-of-kin-alert-retries` | After the attempt recorded when somebody presses SOS, how many more times the desk may try their next of kin about that SOS. |
 | `closed-loop.json panicResolved.closesAs` | Which of the closed loop's outcomes the concern opened for a panic is closed as when Safety's desk resolves the panic. |
+| `closed-loop.json sos.ownerRole` | Who owns the concern Core opens when a patient presses SOS. |
+| `closed-loop.json sos.fallbackRole` | Who holds an SOS concern the desk has not taken on in time. |
+| `closed-loop.json sos.ladderRung` | How long the desk has to take on an SOS concern before it goes to its fallback. |
+| `closed-loop.json sosStoodDown.closesAs` | Which of the closed loop's outcomes an SOS concern is closed as when the person who pressed it stands it down. |

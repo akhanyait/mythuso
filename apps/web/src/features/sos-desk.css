@@ -1,0 +1,10 @@
+/* The desk's list of SOS presses, in the Control Tower's incidents section, which a patient never downloads. The rows
+   borrow the field-safety desk's lines and add only what an SOS row has of its own. */
+.sos-desk{display:grid;gap:var(--space-12);margin-top:var(--space-24);min-width:0}
+.sos-desk-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-8)}
+.sos-desk-row{display:grid;gap:var(--space-8);padding:var(--space-12);border:1px solid var(--danger-soft);border-radius:var(--r-card);min-width:0}
+.sos-desk-row p{margin:0;overflow-wrap:anywhere}
+.sos-desk-row .sos-nok{display:grid;gap:var(--space-4);min-width:0}
+.sos-area{display:flex;flex-wrap:wrap;gap:var(--space-8);align-items:center}
+.sos-nok-row{display:grid;gap:var(--space-4)}
+.sos-nok-row button{justify-self:start}

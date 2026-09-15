@@ -1016,6 +1016,8 @@
   {
    "type": "sos.raised", "version": 1, "owner": "safety",
    "summary": "A patient pressed SOS in the app or on the band.",
+   "withdrawn": { "on": "2026-09-15", "supersededBy": "sos.raised@2", "formerSubscribers": ["core", "care", "movement", "access"],
+                  "why": "It carried the SOS and how it was pressed and nothing an engine could act on: not the door the answers routed it to, so Care could not tell an SOS that offers a visit from one sent to emergency services, and not the area chosen from the list, so no nurse could be offered it. And it named Movement and Access, neither of which does anything with an SOS, so a patient's press reached two engines that read nothing. Version two carries the door and, only when the door offers a visit, the area chosen from the list; Core and Care, the two engines that act on it, are its subscribers." },
    "alert": true,
    "payload": [
     { "field": "sosRef", "type": "string", "required": true, "why": "The SOS every later action refers to." },
@@ -1024,7 +1026,44 @@
    "neverCarries": [
     { "field": "liveLocation", "why": "Where the patient is goes to the desk and the ambulance partner, not to every subscriber." }
    ],
-   "subscribers": ["core", "care", "movement", "access"]
+   "subscribers": []
+  },
+  {
+   "type": "sos.raised", "version": 2, "owner": "safety",
+   "summary": "A patient pressed SOS in the app, and the answers routed it to a door: emergency services, an urgent visit or cannot help.",
+   "alert": true,
+   "payload": [
+    { "field": "sosRef", "type": "string", "required": true, "why": "The SOS every later action refers to, and what Core holds one concern by and Care one urgent visit by, however often the bus delivers it." },
+    { "field": "channel", "type": "string", "required": true, "why": "How it was pressed, an id from packages/catalog/sos-press.json engine.channels. Only a channel that raises ever reaches the bus: a band alone and a fall a phone noticed are refused before anything is recorded." },
+    { "field": "routedTo", "type": "string", "required": true, "why": "The door the answers pointed to, an id from packages/catalog/sos.json outcomes. A door and never what was ticked. Care opens an urgent-visit offer only for a door that offers a visit; Core opens a concern for every door, because the desk needs to know somebody pressed." },
+    { "field": "zoneId", "type": "string", "required": false, "why": "The area chosen from the list, an id from packages/catalog/geography.json, sent only when the door offers a visit, so Care can offer a nurse who can reach it. A suburb and never a point, and absent for every other door." }
+   ],
+   "neverCarries": [
+    { "field": "position", "why": "A point where the patient is. The area chosen from the list is enough to offer a nurse, and a point on the bus would stay in every subscriber's log long after the incident window a position is never kept past." },
+    { "field": "conditionTicked", "why": "Whether one of the eight conditions was ticked is kept by Safety as a yes or a no, for the record, and never sent. The door says all any engine needs." },
+    { "field": "clinicalDetail", "why": "What is wrong is not a routing question. Nothing about the patient's health reaches the bus from an SOS." },
+    { "field": "emergencyTermsMatched", "why": "Gilbert's emergency terms are the assistant's configuration, and which of them a person said is what they said. An SOS carries a press, never words." },
+    { "field": "plan", "why": "No plan changes how an SOS is routed, offered or ordered, so no engine is told which plan the person holds." }
+   ],
+   "subscribers": ["core", "care"],
+   "_subscribersNote": "Core opens a concern for every SOS, owned by the desk (packages/catalog/closed-loop.json sos). Care asks its offer desk for an urgent visit when the door offers one. Movement has no ambulance to send and Access has nothing to route, so neither is listed: the contract refuses an event nobody reads."
+  },
+  {
+   "type": "sos.stood_down", "version": 1, "owner": "safety",
+   "summary": "The person who pressed SOS stood it down, choosing one of the reasons on the screen.",
+   "alert": true,
+   "payload": [
+    { "field": "sosRef", "type": "string", "required": true, "why": "The SOS stood down, as sos.raised@2 named it." },
+    { "field": "reasonCode", "type": "string", "required": true, "why": "Which of packages/catalog/sos.json standDown.reasons the person chose. A code and never their words. Core closes the concern it opened with the outcome packages/catalog/closed-loop.json sosStoodDown maps it to." },
+    { "field": "stoodDownAt", "type": "instant", "required": true, "why": "When it was stood down, which is also when the desk stopped seeing the area." }
+   ],
+   "neverCarries": [
+    { "field": "reasonText", "why": "A stand-down is not an opportunity to take a history. The reason is a code from the list, and nobody is asked to explain." },
+    { "field": "position", "why": "Where they were stops being shared at the stand-down and is kept nowhere, the bus included." },
+    { "field": "clinicalDetail", "why": "A cancelled visit is not a consultation. Nothing about anybody's health is collected by standing down, so nothing can be sent." }
+   ],
+   "subscribers": ["core", "care"],
+   "_subscribersNote": "Core, because it opened a concern for the SOS and that concern closes when the person stands it down. Care, because an urgent-visit offer still open for a stood-down SOS would be a nurse asked to drive to a door where nobody needs her, and the offer desk withdraws it."
   },
   {
    "type": "nok.notified", "version": 1, "owner": "safety",

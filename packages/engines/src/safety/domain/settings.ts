@@ -87,6 +87,20 @@ export function panicWindowOf(history: readonly Change[]): PanicWindow {
  };
 }
 
+/** What an SOS is pressed under: how long the desk sees its area, how long next of kin may be tried after it and how many
+    more times. Read once, when SOS is pressed, and kept on the SOS as the ends and the tries they work out to, so a
+    change an admin makes afterwards reaches the next SOS and never a live one. */
+export type SosSettings = { readonly settingsVersion: number; readonly areaWindowMinutes: number; readonly alertWindowMinutes: number; readonly alertRetries: number };
+export function sosSettingsOf(history: readonly Change[]): SosSettings {
+ const snapshot = snapshotOf(safetyBlock, history);
+ return Object.freeze({
+  settingsVersion: snapshot.settingsVersion,
+  areaWindowMinutes: snapshot.values['sos-area-window'] as number,
+  alertWindowMinutes: snapshot.values['next-of-kin-alert-window'] as number,
+  alertRetries: snapshot.values['next-of-kin-alert-retries'] as number
+ });
+}
+
 export function changeSetting(history: readonly Change[], request: ChangeRequest, now: number): Result<{ readonly change: Change; readonly inForce: SettingsInForce }> {
  const result = proposeChange(safetySettings, history, request, now);
  if (!result.ok) return result;

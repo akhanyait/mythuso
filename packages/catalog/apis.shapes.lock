@@ -92,3 +92,6 @@ GET /v1/trust/complaint-notices@1 5eeb94ece5dc0088
 GET /v1/trust/settings@1 8357b8ccd2b18278
 POST /v1/trust/setting-changes@1 3044fa09a16f8b15
 POST /v1/trust/setting-changes@2 53efb145ed85ddda
+POST /v1/safety/sos@2 9da1b622ca620872
+GET /v1/safety/sos@1 205cde822295144c
+GET /v1/safety/next-of-kin@1 90a51189e4cd8c7a

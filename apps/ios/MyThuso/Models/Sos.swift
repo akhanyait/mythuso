@@ -217,3 +217,83 @@ enum Sos {
     /// different things and the copy says so.
     static var targetLabel: String { "Under \(targetMinutes) minutes · target" }
 }
+
+/* Pressing SOS and next of kin, as this phone previews them.
+
+   The Safety engine is where a press is routed, an area kept for its window and a next of kin recorded as not sent, and
+   this phone reaches no engine. So it holds one press and the patient's nominations in memory, says nothing it cannot
+   know, and takes every sentence — each refusal included — from SosData.swift, which scripts/emit-sos.mjs writes from
+   packages/catalog/sos.json and the routes' own refusals. How long the desk sees the area and how many more times next
+   of kin may be tried are the defaults FieldSafetyData.swift carries, never typed here.
+
+   Two refusals are the feature. A next of kin is never shown as told: every attempt carries the one status and the one
+   reason the contract holds while no SMS provider is connected. And a guardian acting for somebody else is refused
+   before anything else is asked, because no guardian authority is proven. No plan is read. */
+struct SosNominationPreview: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let nominatedAt: Date
+    let expiresAt: Date
+    var withdrawnAt: Date?
+}
+
+struct SosAttemptPreview: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let statusCode: String
+    let reasonCode: String
+}
+
+struct SosPressPreviewed: Identifiable {
+    let id: String
+    let routedTo: String
+    let raisedAt: Date
+    let areaSharedUntil: Date?
+    let attempts: [SosAttemptPreview]
+    var stoodDownAt: Date?
+    var stoodDownReason: String?
+}
+
+final class SosPressPreview: ObservableObject {
+    static let shared = SosPressPreview()
+    @Published private(set) var nominations: [SosNominationPreview] = []
+    @Published private(set) var press: SosPressPreviewed?
+    private var serial = 0
+
+    /// A route's own sentence, word for word.
+    static func refusal(_ id: String) -> String { Sos.routeRefusals.first { $0.id == id }?.sentence ?? id }
+
+    /// A guardian is refused first, and then a nomination without consent, in the order the route asks them.
+    func nominate(name: String, consentGiven: Bool, asGuardian: Bool) -> String? {
+        if asGuardian { return Self.refusal("guardian-authority-not-proven") }
+        if !consentGiven { return Self.refusal("nomination-without-consent") }
+        serial += 1
+        let now = Date()
+        let lasts = Calendar.current.date(byAdding: .day, value: Sos.nextOfKinNominationDays, to: now) ?? now
+        nominations.insert(SosNominationPreview(id: "NOK-\(serial)", name: name, nominatedAt: now, expiresAt: lasts, withdrawnAt: nil), at: 0)
+        return nil
+    }
+
+    func withdraw(_ id: String) {
+        guard let index = nominations.firstIndex(where: { $0.id == id }), nominations[index].withdrawnAt == nil else { return }
+        nominations[index].withdrawnAt = Date()
+    }
+
+    func press(_ door: Sos.Door, areaChosen: Bool) {
+        serial += 1
+        let now = Date()
+        let status = Sos.nextOfKinStatuses.first?.id ?? ""
+        let reason = Sos.nextOfKinNotSent.first?.id ?? ""
+        let tried = nominations.filter { $0.withdrawnAt == nil && $0.expiresAt > now }
+            .map { SosAttemptPreview(id: "NTF-\(serial)-\($0.id)", name: $0.name, statusCode: status, reasonCode: reason) }
+        let areaEnds = Calendar.current.date(byAdding: .minute, value: FieldSafety.sosAreaWindowMinutes, to: now)
+        press = SosPressPreviewed(id: "SOS-\(serial)", routedTo: door.outcomeId, raisedAt: now,
+                                  areaSharedUntil: areaChosen ? areaEnds : nil, attempts: tried, stoodDownAt: nil, stoodDownReason: nil)
+    }
+
+    func standDown(_ reasonCode: String) {
+        guard press != nil, press?.stoodDownAt == nil else { return }
+        press?.stoodDownAt = Date()
+        press?.stoodDownReason = reasonCode
+    }
+}

@@ -23,7 +23,7 @@
    "version": 1,
    "summary": "Publish an event to the bus.",
    "callers": ["engine:access", "engine:pulse", "engine:care", "engine:clinical", "engine:safety", "engine:movement", "engine:trust", "engine:record", "engine:medicines", "engine:devices", "engine:money"],
-   "callerJustifications": {"engine:access": "booking.requested@2", "engine:pulse": "pulse.session.started@1", "engine:care": "appointment.requested@1", "engine:clinical": "triage.completed@2", "engine:safety": "sos.raised@1", "engine:movement": "trip.requested@1", "engine:trust": "credential.lapsed@1", "engine:record": "passport.record.created@1", "engine:medicines": "prescription.prescribed@1", "engine:devices": "reading.ingested@1", "engine:money": "payment.succeeded@1"},
+   "callerJustifications": {"engine:access": "booking.requested@2", "engine:pulse": "pulse.session.started@1", "engine:care": "appointment.requested@1", "engine:clinical": "triage.completed@2", "engine:safety": "sos.raised@2", "engine:movement": "trip.requested@1", "engine:trust": "credential.lapsed@1", "engine:record": "passport.record.created@1", "engine:medicines": "prescription.prescribed@1", "engine:devices": "reading.ingested@1", "engine:money": "payment.succeeded@1"},
    "purpose": ["audit"],
    "request": [
     {"field": "eventType", "type": "string", "required": true, "why": "A declared event type."},

@@ -102,7 +102,6 @@ object ApisData {
     val POST_CLINICAL_RESULTS_BY_RESULT_REF_ACKNOWLEDGE = Route("postClinicalResultsByResultRefAcknowledge", "POST", "/v1/clinical/results/{resultRef}/acknowledge", "/v1/clinical/results/{resultRef}/acknowledge", 1, "clinical", listOf("doctor", "nurse"), listOf("diagnostics"), false, "built")
     val POST_CLINICAL_GUIDANCE = Route("postClinicalGuidance", "POST", "/v1/clinical/guidance", "/v1/clinical/guidance", 1, "clinical", listOf("nurse", "doctor", "engine:access"), listOf("treatment"), false, "proposed")
     val POST_CLINICAL_PROMS = Route("postClinicalProms", "POST", "/v1/clinical/proms", "/v1/clinical/proms", 1, "clinical", listOf("patient"), listOf("treatment"), false, "proposed")
-    val POST_SAFETY_CHECKINS = Route("postSafetyCheckins", "POST", "/v1/safety/checkins", "/v1/safety/checkins", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "proposed")
     val GET_SAFETY_CHECKINS = Route("getSafetyCheckins", "GET", "/v1/safety/checkins", "/v1/safety/checkins", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), false, "built")
     val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND_V2 = Route("postSafetyCheckinsByCheckinRefExtendV2", "POST", "/v1/safety/checkins/{checkinRef}/extend", "/v1/safety/checkins/{checkinRef}/extend", 2, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "built")
     val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_SAFE = Route("postSafetyCheckinsByCheckinRefSafe", "POST", "/v1/safety/checkins/{checkinRef}/safe", "/v1/safety/checkins/{checkinRef}/safe", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "built")
@@ -116,9 +115,6 @@ object ApisData {
     val GET_SAFETY_DESK_QUEUE = Route("getSafetyDeskQueue", "GET", "/v1/safety/desk-queue", "/v1/safety/desk-queue", 1, "safety", listOf("operator"), listOf("emergency", "dispatch"), false, "built")
     val GET_SAFETY_SETTINGS_V2 = Route("getSafetySettingsV2", "GET", "/v1/safety/settings", "/v1/safety/settings", 2, "safety", listOf("admin", "operator"), listOf("audit"), false, "built")
     val POST_SAFETY_SETTING_CHANGES_V2 = Route("postSafetySettingChangesV2", "POST", "/v1/safety/setting-changes", "/v1/safety/setting-changes", 2, "safety", listOf("admin", "operator"), listOf("audit"), true, "built")
-    val POST_SAFETY_SOS = Route("postSafetySos", "POST", "/v1/safety/sos", "/v1/safety/sos", 1, "safety", listOf("patient", "caregiver"), listOf("emergency"), true, "proposed")
-    val POST_SAFETY_NEXT_OF_KIN = Route("postSafetyNextOfKin", "POST", "/v1/safety/next-of-kin", "/v1/safety/next-of-kin", 1, "safety", listOf("patient"), listOf("subject-access"), false, "proposed")
-    val POST_SAFETY_NEXT_OF_KIN_BY_NOMINATION_REF_ALERT = Route("postSafetyNextOfKinByNominationRefAlert", "POST", "/v1/safety/next-of-kin/{nominationRef}/alert", "/v1/safety/next-of-kin/{nominationRef}/alert", 1, "safety", listOf("ops-desk", "engine:core"), listOf("emergency"), false, "proposed")
     val POST_SAFETY_SAFEGUARDING_REPORTS = Route("postSafetySafeguardingReports", "POST", "/v1/safety/safeguarding-reports", "/v1/safety/safeguarding-reports", 1, "safety", listOf("nurse", "locum", "doctor", "responder", "courier", "thuso-line-agent"), listOf("emergency"), false, "proposed")
     val POST_SAFETY_SENTINEL_DEVIATIONS = Route("postSafetySentinelDeviations", "POST", "/v1/safety/sentinel-deviations", "/v1/safety/sentinel-deviations", 1, "safety", listOf("engine:devices"), listOf("treatment"), false, "proposed")
     val GET_SAFETY_INCIDENT_KINDS = Route("getSafetyIncidentKinds", "GET", "/v1/safety/incident-kinds", "/v1/safety/incident-kinds", 1, "safety", listOf("anonymous"), listOf("audit"), false, "built")
@@ -128,6 +124,14 @@ object ApisData {
     val POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_NOTIFIED = Route("postSafetyIncidentsByIncidentIdNotified", "POST", "/v1/safety/incidents/{incidentId}/notified", "/v1/safety/incidents/{incidentId}/notified", 1, "safety", listOf("admin"), listOf("audit"), false, "built")
     val POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_CLOSE = Route("postSafetyIncidentsByIncidentIdClose", "POST", "/v1/safety/incidents/{incidentId}/close", "/v1/safety/incidents/{incidentId}/close", 1, "safety", listOf("admin"), listOf("audit"), false, "built")
     val GET_SAFETY_INCIDENTS = Route("getSafetyIncidents", "GET", "/v1/safety/incidents", "/v1/safety/incidents", 1, "safety", listOf("admin"), listOf("audit"), false, "built")
+    val POST_SAFETY_SOS_V2 = Route("postSafetySosV2", "POST", "/v1/safety/sos", "/v1/safety/sos", 2, "safety", listOf("patient"), listOf("emergency"), true, "built")
+    val POST_SAFETY_SOS_BY_SOS_REF_STAND_DOWN = Route("postSafetySosBySosRefStandDown", "POST", "/v1/safety/sos/{sosRef}/stand-down", "/v1/safety/sos/{sosRef}/stand-down", 1, "safety", listOf("patient"), listOf("emergency"), true, "built")
+    val GET_SAFETY_SOS = Route("getSafetySos", "GET", "/v1/safety/sos", "/v1/safety/sos", 1, "safety", listOf("operator"), listOf("emergency"), false, "built")
+    val GET_SAFETY_SOS_BY_SOS_REF_AREA = Route("getSafetySosBySosRefArea", "GET", "/v1/safety/sos/{sosRef}/area", "/v1/safety/sos/{sosRef}/area", 1, "safety", listOf("operator"), listOf("emergency"), false, "built")
+    val POST_SAFETY_NEXT_OF_KIN_V2 = Route("postSafetyNextOfKinV2", "POST", "/v1/safety/next-of-kin", "/v1/safety/next-of-kin", 2, "safety", listOf("patient", "guardian"), listOf("emergency"), true, "built")
+    val GET_SAFETY_NEXT_OF_KIN = Route("getSafetyNextOfKin", "GET", "/v1/safety/next-of-kin", "/v1/safety/next-of-kin", 1, "safety", listOf("patient"), listOf("emergency"), false, "built")
+    val POST_SAFETY_NEXT_OF_KIN_BY_NOMINATION_REF_WITHDRAW = Route("postSafetyNextOfKinByNominationRefWithdraw", "POST", "/v1/safety/next-of-kin/{nominationRef}/withdraw", "/v1/safety/next-of-kin/{nominationRef}/withdraw", 1, "safety", listOf("patient", "guardian"), listOf("emergency"), true, "built")
+    val POST_SAFETY_NEXT_OF_KIN_BY_NOMINATION_REF_ALERT_V2 = Route("postSafetyNextOfKinByNominationRefAlertV2", "POST", "/v1/safety/next-of-kin/{nominationRef}/alert", "/v1/safety/next-of-kin/{nominationRef}/alert", 2, "safety", listOf("operator", "guardian"), listOf("emergency"), true, "built")
     val POST_MOVEMENT_TRIPS = Route("postMovementTrips", "POST", "/v1/movement/trips", "/v1/movement/trips", 1, "movement", listOf("nurse", "doctor", "dispatcher", "thuso-line-agent"), listOf("dispatch"), true, "proposed")
     val POST_MOVEMENT_RESPONDER_HEARTBEATS = Route("postMovementResponderHeartbeats", "POST", "/v1/movement/responder-heartbeats", "/v1/movement/responder-heartbeats", 1, "movement", listOf("responder"), listOf("dispatch"), true, "proposed")
     val POST_MOVEMENT_TRIPS_BY_TRIP_REF_ACCEPT = Route("postMovementTripsByTripRefAccept", "POST", "/v1/movement/trips/{tripRef}/accept", "/v1/movement/trips/{tripRef}/accept", 1, "movement", listOf("responder"), listOf("dispatch"), true, "proposed")
@@ -295,7 +299,6 @@ object ApisData {
         POST_CLINICAL_RESULTS_BY_RESULT_REF_ACKNOWLEDGE,
         POST_CLINICAL_GUIDANCE,
         POST_CLINICAL_PROMS,
-        POST_SAFETY_CHECKINS,
         GET_SAFETY_CHECKINS,
         POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND_V2,
         POST_SAFETY_CHECKINS_BY_CHECKIN_REF_SAFE,
@@ -309,9 +312,6 @@ object ApisData {
         GET_SAFETY_DESK_QUEUE,
         GET_SAFETY_SETTINGS_V2,
         POST_SAFETY_SETTING_CHANGES_V2,
-        POST_SAFETY_SOS,
-        POST_SAFETY_NEXT_OF_KIN,
-        POST_SAFETY_NEXT_OF_KIN_BY_NOMINATION_REF_ALERT,
         POST_SAFETY_SAFEGUARDING_REPORTS,
         POST_SAFETY_SENTINEL_DEVIATIONS,
         GET_SAFETY_INCIDENT_KINDS,
@@ -321,6 +321,14 @@ object ApisData {
         POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_NOTIFIED,
         POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_CLOSE,
         GET_SAFETY_INCIDENTS,
+        POST_SAFETY_SOS_V2,
+        POST_SAFETY_SOS_BY_SOS_REF_STAND_DOWN,
+        GET_SAFETY_SOS,
+        GET_SAFETY_SOS_BY_SOS_REF_AREA,
+        POST_SAFETY_NEXT_OF_KIN_V2,
+        GET_SAFETY_NEXT_OF_KIN,
+        POST_SAFETY_NEXT_OF_KIN_BY_NOMINATION_REF_WITHDRAW,
+        POST_SAFETY_NEXT_OF_KIN_BY_NOMINATION_REF_ALERT_V2,
         POST_MOVEMENT_TRIPS,
         POST_MOVEMENT_RESPONDER_HEARTBEATS,
         POST_MOVEMENT_TRIPS_BY_TRIP_REF_ACCEPT,
@@ -1042,15 +1050,6 @@ object ApisData {
     data class PostClinicalPromsResponse(
         val promEntryRef: String
     )
-    data class PostSafetyCheckinsRequest(
-        val idempotencyKey: String,
-        val appointmentRef: String,
-        val expectedMinutes: Int
-    )
-    data class PostSafetyCheckinsResponse(
-        val checkinRef: String,
-        val dueAt: String
-    )
     data class GetSafetyCheckinsRequest(
         val appointmentRef: String
     )
@@ -1163,31 +1162,6 @@ object ApisData {
         val settingsVersion: Int,
         val appliesFrom: String
     )
-    data class PostSafetySosRequest(
-        val idempotencyKey: String,
-        val subjectRef: String,
-        val channel: String
-    )
-    data class PostSafetySosResponse(
-        val sosRef: String,
-        val stateCode: String
-    )
-    data class PostSafetyNextOfKinRequest(
-        val contactRef: String,
-        val scopeCode: String,
-        val fallbackOrder: Int
-    )
-    data class PostSafetyNextOfKinResponse(
-        val nominationRef: String
-    )
-    data class PostSafetyNextOfKinByNominationRefAlertRequest(
-        val nominationRef: String,
-        val severityCode: String
-    )
-    data class PostSafetyNextOfKinByNominationRefAlertResponse(
-        val notificationRef: String,
-        val channel: String
-    )
     data class PostSafetySafeguardingReportsRequest(
         val subjectRef: String,
         val categoryCode: String
@@ -1256,6 +1230,82 @@ object ApisData {
         val total: Int,
         val open: Int,
         val incidents: List<Map<String, Any?>>
+    )
+    data class PostSafetySosV2Request(
+        val idempotencyKey: String,
+        val channel: String,
+        val conditionTicked: Boolean,
+        val zoneId: String? = null,
+        val callbackAvailable: Boolean
+    )
+    data class PostSafetySosV2Response(
+        val sosRef: String,
+        val stateCode: String,
+        val routedTo: String,
+        val failureCode: String? = null,
+        val areaSharedUntil: String? = null,
+        val partnerConnected: Boolean,
+        val settingsVersion: Int,
+        val nextOfKin: List<Map<String, Any?>>
+    )
+    data class PostSafetySosBySosRefStandDownRequest(
+        val idempotencyKey: String,
+        val sosRef: String,
+        val reasonCode: String? = null
+    )
+    data class PostSafetySosBySosRefStandDownResponse(
+        val stoodDownAt: String,
+        val areaSharingEndedAt: String
+    )
+    class GetSafetySosRequest
+    data class GetSafetySosResponse(
+        val items: List<Map<String, Any?>>
+    )
+    data class GetSafetySosBySosRefAreaRequest(
+        val sosRef: String
+    )
+    data class GetSafetySosBySosRefAreaResponse(
+        val zoneId: String,
+        val sharedUntil: String
+    )
+    data class PostSafetyNextOfKinV2Request(
+        val idempotencyKey: String,
+        val contactRef: String,
+        val purpose: String,
+        val consentVersion: Int? = null,
+        val consentGiven: Boolean? = null
+    )
+    data class PostSafetyNextOfKinV2Response(
+        val nominationRef: String,
+        val purpose: String,
+        val consentVersion: Int,
+        val nominatedAt: String,
+        val expiresAt: String
+    )
+    class GetSafetyNextOfKinRequest
+    data class GetSafetyNextOfKinResponse(
+        val nominations: List<Map<String, Any?>>
+    )
+    data class PostSafetyNextOfKinByNominationRefWithdrawRequest(
+        val idempotencyKey: String,
+        val nominationRef: String
+    )
+    data class PostSafetyNextOfKinByNominationRefWithdrawResponse(
+        val withdrawnAt: String
+    )
+    data class PostSafetyNextOfKinByNominationRefAlertV2Request(
+        val idempotencyKey: String,
+        val nominationRef: String,
+        val sosRef: String
+    )
+    data class PostSafetyNextOfKinByNominationRefAlertV2Response(
+        val notificationRef: String,
+        val statusCode: String,
+        val reasonCode: String,
+        val attempt: Int,
+        val attemptsAllowed: Int,
+        val windowEndsAt: String,
+        val wouldSay: String
     )
     data class PostMovementTripsRequest(
         val idempotencyKey: String,

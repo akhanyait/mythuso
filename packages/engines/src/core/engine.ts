@@ -47,6 +47,13 @@
  * Core hears panic.raised@1, as the event contract already says it does, and alerts every post on duty in
  * the rota in force at once, at the highest severity. That is closed-loop.json's rule and not a setting.
  *
+ * ── A patient's SOS ──────────────────────────────────────────────────────────────────────────────────
+ *
+ * Core hears sos.raised@2 and opens one concern for the SOS, owned by the desk, falling back to a nurse and then
+ * walking the rota in force, whatever door it went to; it hears sos.stood_down@1 and closes that concern with the
+ * outcome closed-loop.json maps the reason to, through the close route's own rule. Nothing else: Core reads no plan,
+ * so who pressed changes neither the owner, the deadline nor the Control Tower's order.
+ *
  * ── What Core does not read ──────────────────────────────────────────────────────────────────────────
  *
  * No Safety timing. A panic's window and an overdue check-in's grace are Safety's settings, and a Safety
@@ -57,7 +64,7 @@
 import { randomUUID } from 'node:crypto';
 import { BusRefused, defineEngine, instant, ok, refuse, type BusEvent, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
 import { SETTINGS_SCHEMA, settingsIn, settingsRoutes } from '../settings/routes.ts';
-import { EXHAUSTED, PANIC, PANIC_RESOLVED, RESULT_ACKNOWLEDGED, resultAlertsFrom, resultClosesAs, engineIds, highestSeverity, outcomes, ownerRoles, panicOutcomes, panicSpanMs, reasons, spanForRung } from './domain/contract.ts';
+import { EXHAUSTED, PANIC, PANIC_RESOLVED, RESULT_ACKNOWLEDGED, resultAlertsFrom, resultClosesAs, engineIds, highestSeverity, outcomes, ownerRoles, panicOutcomes, panicSpanMs, reasons, spanForRung, SOS, SOS_STOOD_DOWN, sosFallbackRole, sosOutcomes, sosOwnerRole, sosSpanMs } from './domain/contract.ts';
 import { closeRefusal, everyPostOnDuty, holdersOf, movedTo, nextHolder, postOf, settle, stateCodeOf, towerOrder, type KeptRota, type Loop, type Skip } from './domain/loops.ts';
 import { coreSettings, rotaOf } from './domain/settings.ts';
 
@@ -289,6 +296,43 @@ function heardResultAcknowledged(event: BusEvent, ctx: EngineContext) {
  publish(ctx, closed, 'alert.closed@1', { alertRef: closed.alertRef, outcomeRef: resultRef, closedByRole: event.actorRole });
 }
 
+/* ── A patient's SOS ─────────────────────────────────────────────────────────────────────────────────── */
+
+/* The concern Core holds for an SOS: not an alert, not a panic, from the engine that published it, keyed by the SOS. */
+const sosConcernOf = (ctx: EngineContext, owner: string, sosRef: string) =>
+ all(ctx).find(loop => loop.alertRef === null && loop.holder.kind !== 'every-post' && loop.sourceEngine === owner && loop.dedupeKey === sosRef);
+
+/* One SOS is one concern however often the bus delivers it, opened for every door, because the desk needs to know
+   somebody pressed even when the door is emergency services and MyThuso sends nobody. The owner, the fallback and the
+   time are closed-loop.json's proposals, and the rota is the one in force now, kept on the concern. */
+function heardSos(event: BusEvent, ctx: EngineContext) {
+ const sosRef = text(event.payload['sosRef']);
+ if (!sosRef || sosConcernOf(ctx, event.owner, sosRef)) return;
+ const loop: Loop = { ...fresh(ctx, { sourceEngine: event.owner, ownerRole: sosOwnerRole, fallbackRole: sosFallbackRole }, nowOf(ctx), sosSpanMs, rotaNow(ctx)), dedupeKey: sosRef };
+ put(ctx, loop);
+ audit(ctx, loop, 'sos-opened', String(loop.rota.settingsVersion));
+ publish(ctx, loop, 'loop.opened@1', { loopRef: loop.loopRef, sourceEngine: loop.sourceEngine, ownerRole: loop.ownerRole, dueBy: at(loop.dueBy) });
+}
+
+/* The person who pressed it stood it down, so the concern closes with the outcome the reason maps to, pointing at the
+   SOS, by the role that stood it down — through closeRefusal, so a stand-down closes nothing the Control Tower could
+   not. A reason the map does not name is not guessed at: the concern stays open, and the audit says why. */
+function heardSosStoodDown(event: BusEvent, ctx: EngineContext) {
+ const sosRef = text(event.payload['sosRef']);
+ const loop = sosConcernOf(ctx, event.owner, sosRef);
+ if (!loop) return;
+ const outcomeCode = sosOutcomes.get(text(event.payload['reasonCode'])) ?? '';
+ const refused = closeRefusal(loop, outcomeCode, outcomes);
+ if (refused) {
+  if (loop.closedAt === null) audit(ctx, loop, 'sos-stood-down-not-closed', refused);
+  return;
+ }
+ const closed: Loop = { ...loop, closedAt: nowOf(ctx), outcomeRef: sosRef, outcomeCode, closedByRole: event.actorRole };
+ put(ctx, closed);
+ audit(ctx, closed, 'closed', outcomeCode);
+ publish(ctx, closed, 'loop.closed@1', { loopRef: closed.loopRef, outcomeRef: sosRef, closedByRole: event.actorRole });
+}
+
 /* ── Acting on a concern ──────────────────────────────────────────────────────────────────────────── */
 
 function acknowledge(request: HandlerRequest, ctx: EngineContext) {
@@ -390,7 +434,7 @@ export const engine = defineEngine({
   'POST /v1/core/alerts@2': raiseAlert,
   ...settingsRoutes(coreSettings, { read: 'GET /v1/core/settings@1', change: 'POST /v1/core/setting-changes@1' })
  },
- subscriptions: { [PANIC]: heardPanic, [PANIC_RESOLVED]: heardPanicResolved, [RESULT_ACKNOWLEDGED]: heardResultAcknowledged },
+ subscriptions: { [PANIC]: heardPanic, [PANIC_RESOLVED]: heardPanicResolved, [RESULT_ACKNOWLEDGED]: heardResultAcknowledged, [SOS]: heardSos, [SOS_STOOD_DOWN]: heardSosStoodDown },
  tick: ctx => {
   const now = nowOf(ctx);
   for (const loop of all(ctx)) {

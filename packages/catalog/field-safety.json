@@ -174,10 +174,68 @@
      "statement": "Somebody may always change the field safety settings, and nobody but an admin or the Control Tower operator ever may. No value leaves the desk's timings to nobody or hands them to a nurse.",
      "forbids": [[], ["nurse"], ["admin", "nurse"], ["admin", "carer"]]
     }
+   },
+   {
+    "key": "sos-area-window",
+    "label": "How long the desk sees an SOS's area",
+    "help": "How long after somebody presses SOS the desk may read the area they chose from the list, before nothing keeps where they were.",
+    "owner": "safety",
+    "type": "minutes",
+    "unit": "minutes",
+    "default": { "value": 120, "decidedBy": null, "proposedBy": "Safety lead (Wave 4)", "proposedBecause": "Long enough for a nurse offered the visit to accept it, reach the area inside the target the service is sold with and be with the patient, and for the desk to find the area again if the offer is slow to be taken; short enough that the area a frightened person chose is not a record of where they were that afternoon. Standing the SOS down ends it at once, whatever is left." },
+    "bounds": {
+     "lowest": { "value": 60, "decidedBy": null, "proposedBy": "Safety lead (Wave 4)", "proposedBecause": "An hour. Shorter, and a nurse accepting a slow offer arrives while the desk can no longer read the area she is going to." },
+     "highest": { "value": 240, "decidedBy": null, "proposedBy": "Safety lead (Wave 4)", "proposedBecause": "Four hours. Past that the area is a record of where somebody was rather than help getting to them, which is the tracking a safety feature must not become." }
+    },
+    "changedBy": { "fromSetting": "settings-changed-by" },
+    "appliesTo": "A change applies to SOS presses after it. An SOS already pressed keeps the window it was pressed under: a shorter one never hides its area early, and a longer one never keeps it longer.",
+    "guardrail": {
+     "statement": "The area an SOS was pressed from is always shared with the desk for a while, and never kept for more than four hours.",
+     "forbids": [0, 241, 1440]
+    }
+   },
+   {
+    "key": "next-of-kin-alert-window",
+    "label": "How long next of kin may be tried after an SOS",
+    "help": "How long after somebody presses SOS the desk may still try their next of kin.",
+    "owner": "safety",
+    "type": "minutes",
+    "unit": "minutes",
+    "default": { "value": 60, "decidedBy": null, "proposedBy": "Safety lead (Wave 4)", "proposedBecause": "Inside the first hour, being told somebody pressed SOS is something a family can still act on: ring them, go round, meet them at a hospital. After it, an attempt reads as news of something that may already be over, and a family rung about it is frightened without being helped." },
+    "bounds": {
+     "lowest": { "value": 15, "decidedBy": null, "proposedBy": "Safety lead (Wave 4)", "proposedBecause": "A quarter of an hour is as short as the desk can pick an SOS up, see that next of kin were not told and try again." },
+     "highest": { "value": 180, "decidedBy": null, "proposedBy": "Safety lead (Wave 4)", "proposedBecause": "Three hours. Past that the desk speaks to the family as a person would, rather than a retry going out about a press that long ago." }
+    },
+    "changedBy": { "fromSetting": "settings-changed-by" },
+    "appliesTo": "A change applies to SOS presses after it. An SOS already pressed keeps the window it was pressed under.",
+    "guardrail": {
+     "statement": "Next of kin can always be tried soon after an SOS, and are never tried more than three hours after it.",
+     "forbids": [0, 181, 1440]
+    }
+   },
+   {
+    "key": "next-of-kin-alert-retries",
+    "label": "How many more times next of kin may be tried",
+    "help": "After the attempt recorded when somebody presses SOS, how many more times the desk may try their next of kin about that SOS.",
+    "owner": "safety",
+    "type": "count",
+    "unit": "tries",
+    "positive": false,
+    "default": { "value": 2, "decidedBy": null, "proposedBy": "Safety lead (Wave 4)", "proposedBecause": "Two more tries lets the desk try again when a phone was off or out of signal, without a family's phone ringing again and again about one press. Nought is allowed: it means they are tried once, when SOS is pressed." },
+    "bounds": {
+     "lowest": { "value": 0, "decidedBy": null, "proposedBy": "Safety lead (Wave 4)", "proposedBecause": "Nought more tries still tries them once, when SOS is pressed, so no value leaves next of kin untried." },
+     "highest": { "value": 5, "decidedBy": null, "proposedBy": "Safety lead (Wave 4)", "proposedBecause": "Five more tries inside the window is already a family's phone ringing every few minutes. Past that the desk rings them itself, which is a conversation rather than a retry." }
+    },
+    "changedBy": { "fromSetting": "settings-changed-by" },
+    "appliesTo": "A change applies to SOS presses after it. An SOS already pressed keeps the number of tries it was pressed under.",
+    "guardrail": {
+     "statement": "Next of kin are tried at least once when somebody presses SOS, and never more than six times about one SOS.",
+     "forbids": [-1, 6, 20]
+    }
    }
   ],
   "defaults": {
-   "version": 3,
+   "version": 4,
    "changelog": [
     {
      "version": 1,
@@ -210,6 +268,17 @@
       { "setting": "settings-changed-by", "from": null, "to": ["admin"] }
      ],
      "why": "Two answers that lived in code became settings when the founder instructed that open questions be admin settings: who may change the field-safety settings, and which window a phone that read an older one is given."
+    },
+    {
+     "version": 4,
+     "on": "2026-09-15",
+     "by": "Safety lead (Wave 4), proposed and not decided",
+     "changed": [
+      { "setting": "sos-area-window", "from": null, "to": 120 },
+      { "setting": "next-of-kin-alert-window", "from": null, "to": 60 },
+      { "setting": "next-of-kin-alert-retries", "from": null, "to": 2 }
+     ],
+     "why": "Patient SOS and next of kin came onto the engine. How long the desk sees the area an SOS was pressed from, how long next of kin may be tried after it and how many more times are open questions nobody has decided, so they are settings with proposed defaults, under the founder's instruction that open questions become admin settings."
     }
    ]
   }

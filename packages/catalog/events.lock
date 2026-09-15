@@ -140,3 +140,5 @@ panic.resolved@1 802fbe60c5f3e3c6
 payment.refunded@1 ef4d06064e61318f
 trust.shift_start.unmatched@1 0c0abe30c21c6d84
 trust.complaint.received@1 cc6ed67a731cdc29
+sos.raised@2 b8f780740987d70b
+sos.stood_down@1 470a89105e271b2b
