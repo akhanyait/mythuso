@@ -399,6 +399,9 @@ struct MoreView: View {
                     row("My family", "Manage your loved ones", "person.2") { FamilyView() }
                     row("Care you pay for", "What sponsoring somebody's care shows you, and what it never will", "hand.raised.fingers.spread") { SponsoredCareView() }
                     row("Care plans", "Ongoing care and subscriptions", "heart.text.square") { PlansView() }
+                    /* A stokvel, a church or an employer that pays for your visits — if you agree, and in the way you
+                       choose. The row's words are the contract's, so the door and the screen cannot drift apart. */
+                    row(GroupsData.Words.heading, GroupsData.Words.intro, "person.3") { GroupOptInView() }
                     row("Payments", "Cards, history and refunds", "creditcard") { WalletView() }
                 }
                 group("Your account") {
