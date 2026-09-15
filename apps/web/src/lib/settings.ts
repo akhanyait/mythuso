@@ -10,6 +10,7 @@ import { doctorFeeOf, nurseShareSentenceOf, planTermsOf, type DoctorFeeInForce, 
 import { rotaOf } from '../../../../packages/engines/src/core/domain/settings.ts';
 import type { KeptRota } from '../../../../packages/engines/src/core/domain/loops.ts';
 import { accessInForce, accessInForceAt, type AccessSettingsInForce } from '../../../../packages/engines/src/access/domain/settings.ts';
+import { devicesInForce, type DevicesInForce } from '../../../../packages/engines/src/devices/domain/settings.ts';
 import { roleOf, whoIs } from './roles';
 import { can } from './vetting';
 /* Whether a rota's post is on duty, and when a shut one opens: the shared settings code's one rule, which the
@@ -94,6 +95,9 @@ export const escalationRotaNow = (): KeptRota => rotaOf(snapshotNow('core'));
    asks accessSettingsAt() the moment it was completed, so a change afterwards never moves when it closes. */
 export const accessSettingsNow = (): AccessSettingsInForce => accessInForce(historyOf('access'));
 export const accessSettingsAt = (at: number): AccessSettingsInForce => accessInForceAt(historyOf('access'), at);
+/* Devices' three, read the same way: the kit's health and the registry ask devicesSettingsNow() whenever they
+   work a device's health out, and a kit is issued with the deposit it answers, which the kit keeps. */
+export const devicesSettingsNow = (): DevicesInForce => devicesInForce(historyOf('devices'));
 
 /* Whether the value a setting held at a settings version has been clinically reviewed. Something that started
    under an older version — an offer on a nurse's screen — is described by the value it started under, not

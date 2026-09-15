@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { Activity, Ambulance, ArrowRight, Bluetooth, Check, ChevronDown, Droplets, Heart, LockKeyhole, ShieldCheck, Smartphone, Thermometer, TriangleAlert, Wind } from 'lucide-react';
 import { ClinicianProfile } from '../components/ClinicianProfile';
 import { EmptyState } from '../components/States';
@@ -24,6 +24,9 @@ import {
  readableMeasures, readingSets, reviewedBy, reviewer, seriesFor, type MeasureId
 } from '../lib/passport';
 import { explanations, provenance, urgentConditions } from '../lib/explain';
+/* The request to link Apple Health or Health Connect arrives when the patient opens that screen and not before:
+   it carries the Devices registry and every engine's settings, which no patient's first load may. */
+const WearableLinkRequest = lazy(() => import('./Devices').then(m => ({ default: m.WearableLinkRequest })));
 
 /* Two screens the Health Passport offered and could not open.
  *
@@ -167,12 +170,15 @@ const integrations: Record<Integration, { platform: string; sheet: string; withd
 export function DevicePermission({ integration, navigate }: { integration: Integration; navigate: (page: string) => void }) {
  const spec = integrations[integration];
  const device = provenanceById('device');
- const blocking = capability('devices').blockedBy;
+ /* Apple Health and Health Connect are the wearables capability, and the kit is the devices one: each screen
+    renders the notice of the capability it depends on, and what blocks that one. */
+ const notice = integration === 'Thuso Kit' ? 'devices' : 'wearables';
+ const blocking = capability(notice).blockedBy;
  const Icon = spec.icon;
  return <div className="form-stack">
   {/* One notice, from the contract, above everything. It is the first thing on the screen because
       the decision the screen is asking about has not got a subject yet. */}
-  <NotConnected of="devices"/>
+  <NotConnected of={notice}/>
   <div className="booking-summary">
    <span className="service-icon"><Icon size={23}/></span>
    <div><h3>{integration}</h3><p>Readings from {spec.platform}</p></div>
@@ -233,6 +239,8 @@ export function DevicePermission({ integration, navigate }: { integration: Integ
     </div>
    </div>
   </>}
+
+  {integration !== 'Thuso Kit' && <Suspense fallback={null}><WearableLinkRequest integration={integration} notice={false}/></Suspense>}
 
   <SectionTitle title="Turning it off again"/>
   <p className="muted">{spec.withdraw}</p>

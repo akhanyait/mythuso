@@ -36,6 +36,10 @@ import { subjectById, subjectsByRole } from '../lib/vetting-fixtures';
    workspace chunk and nothing extra is fetched; a patient fetches them once, when she opens this
    screen and not before. The figures and their labels travel with it for the same reason. */
 const KitDeck = lazy(() => import('./KitDeck'));
+/* Where a device reading came from and how good the sample was, from the Devices registry. Behind the same
+   dynamic import rule as the deck: the registry carries every engine's settings, which no patient's first
+   load may. It waits inside this screen's one Suspense boundary, so the row never draws without it. */
+const CaptureSource = lazy(() => import('./Devices').then(m => ({ default: m.CaptureSource })));
 
 const HOURS = 3_600_000;
 const nurses = subjectsByRole('nurse').filter(n => ['N-205', 'N-201', 'N-204'].includes(n.id));
@@ -61,18 +65,18 @@ const cuff = kit.find(i => i.deviceId === 'bp-cuff')!;
 const meter = kit.find(i => i.deviceId === 'glucometer')!;
 const seed: Capture[] = [
  { id: nextCaptureId(), observationId: 'systolic', label: 'Blood pressure — systolic', unit: 'mmHg', value: '168', provenance: 'device',
-   serial: cuff.serial, calibration: calibrationOf(cuff), context: 'Large adult · 35–44 cm',
+   serial: cuff.serial, calibration: calibrationOf(cuff), context: 'Large adult · 35–44 cm', quality: 'good',
    by: 'N-204', byName: 'Sister Ayanda Dube', deviceAt: new Date(opened - 12 * 24 * HOURS).toISOString(), state: 'queued' },
  /* Out of calibration and out of date on its strips, and still the only glucose reading anybody
     has. It is queued, it will be stored, and it carries both caveats wherever it goes. */
  { id: nextCaptureId(), observationId: 'glucose', label: 'Blood glucose', unit: 'mmol/L', value: '11.4', provenance: 'device',
-   serial: meter.serial, calibration: calibrationOf(meter), context: 'Lot 23K902 · expired Jun 2026',
+   serial: meter.serial, calibration: calibrationOf(meter), context: 'Lot 23K902 · expired Jun 2026', quality: 'acceptable',
    by: 'N-205', byName: 'Sister Naledi Mokoena', deviceAt: new Date(opened - 3.7 * HOURS).toISOString(), state: 'queued' },
  /* A retake, typed by hand after a doubtful first reading. It meets the first one on arrival. */
  { id: nextCaptureId(), observationId: 'pulse', label: 'Pulse', unit: 'bpm', value: '96', provenance: 'manual',
    by: 'N-205', byName: 'Sister Naledi Mokoena', deviceAt: new Date(opened - 0.4 * HOURS).toISOString(), state: 'queued' },
  { id: nextCaptureId(), observationId: 'pulse', label: 'Pulse', unit: 'bpm', value: '72', provenance: 'device',
-   serial: oximeter.serial, calibration: calibrationOf(oximeter), context: 'Index finger · warm hands, steady trace',
+   serial: oximeter.serial, calibration: calibrationOf(oximeter), context: 'Index finger · warm hands, steady trace', quality: 'good',
    by: 'N-205', byName: 'Sister Naledi Mokoena', deviceAt: new Date(opened - 50 * HOURS).toISOString(),
    receivedAt: new Date(opened - 49.9 * HOURS).toISOString(), state: 'stored' }
 ];
@@ -254,6 +258,7 @@ function QueueRow({ entry }: { entry: Capture }) {
   <div className="kit-tags">
    <ProvenanceTag source={{ provenance: entry.provenance, serial: entry.serial, by: entry.byName, saidBy: entry.saidBy, inputs: entry.inputs }}/>
    <CalibrationTag source={{ provenance: entry.provenance, serial: entry.serial, calibration: entry.calibration }}/>
+   {entry.provenance === 'device' && <CaptureSource serial={entry.serial} quality={entry.quality} simulated={false}/>}
   </div>
   <dl className="nt-facts">
    {entry.context && instrument && <div><dt>{deviceById(instrument.deviceId)!.name}</dt><dd>{entry.context}</dd></div>}

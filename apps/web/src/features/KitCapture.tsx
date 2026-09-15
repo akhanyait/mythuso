@@ -56,7 +56,7 @@ export function KitCapture({ fields, capturer, verb = 'Add to the assessment', n
   if (!instrument || !field || !calibration) return;
   setTaken({
    id: nextCaptureId(), observationId: field.id, label: field.label, unit: field.unit,
-   value: inventReading(field.id), provenance: 'device', serial: instrument.serial, calibration, context,
+   value: inventReading(field.id), provenance: 'device', serial: instrument.serial, calibration, context, quality: 'good',
    by: capturer.id, byName: capturer.name, deviceAt: new Date().toISOString(), state: 'captured'
   });
  };

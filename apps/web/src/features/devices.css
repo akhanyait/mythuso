@@ -1,0 +1,33 @@
+/* Thuso Kit's registry: the nurse's kit health, the Control Tower's recall and the patient's wearable link.
+   Loaded with features/Devices.tsx, which arrives on a dynamic import, so none of it is on a patient's first
+   load. It leans on the shared panel, pill, helper and table styles and adds only what a device card needs. */
+
+.dv-devices, .dv-readings, .dv-scope { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-12, 12px); }
+.dv-devices { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.dv-device { display: grid; gap: var(--space-8, 8px); align-content: start; }
+.dv-device-head { display: grid; grid-template-columns: auto 1fr auto; gap: var(--space-12, 12px); align-items: center; }
+.dv-device-head small { display: block; color: var(--ink-quiet, #5b6b6a); }
+.dv-device.dv-recalled { border-inline-start: 4px solid var(--danger, #b3261e); }
+.dv-device.dv-stale { border-inline-start: 4px solid var(--amber, #b26a00); }
+.dv-facts, .dv-tags { display: grid; gap: var(--space-4, 4px); margin: 0; }
+.dv-facts > div, .dv-tags > div { display: grid; grid-template-columns: minmax(7.5rem, auto) 1fr; gap: var(--space-8, 8px); align-items: baseline; }
+.dv-facts dt { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; }
+.dv-facts dd, .dv-tags dd { margin: 0; }
+.dv-stale { color: var(--amber, #b26a00); font-weight: 600; }
+.dv-reading { border-top: 1px solid var(--line, rgba(0, 0, 0, .08)); padding-top: var(--space-8, 8px); display: grid; gap: var(--space-4, 4px); }
+.dv-reading-head { display: flex; justify-content: space-between; gap: var(--space-8, 8px); flex-wrap: wrap; }
+.dv-tags dt { color: var(--ink-quiet, #5b6b6a); }
+.dv-weight { font-weight: 600; }
+.dv-no-weight { font-weight: 600; color: var(--amber, #b26a00); }
+.dv-mark { margin: 0; }
+.dv-capture-source { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.dv-table th small { display: block; font-weight: 400; color: var(--ink-quiet, #5b6b6a); }
+.dv-table td button { white-space: nowrap; }
+.dv-not-connected { margin: 0; }
+.dv-scope-choice { display: grid; gap: var(--space-4, 4px); }
+.dv-marks-mean summary { cursor: pointer; font-weight: 600; }
+@media (max-width: 520px) {
+ .dv-facts > div, .dv-tags > div { grid-template-columns: 1fr; gap: 0; }
+ .dv-device-head { grid-template-columns: auto 1fr; }
+ .dv-device-head .pill { grid-column: 1 / -1; justify-self: start; }
+}
