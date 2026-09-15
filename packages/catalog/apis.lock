@@ -259,3 +259,8 @@ GET /v1/devices/settings@1 c3661f4d735a03b9
 POST /v1/devices/setting-changes@1 9d66ead0fa449c31
 POST /v1/devices/registry/{deviceRef}/recall@2 8572207ad2ddac88
 POST /v1/devices/setting-changes@2 3a4cbfa3ba6c66e0
+POST /v1/money/vouchers@2 5ec5a1e167a1c5ae
+POST /v1/money/voucher-redemptions@1 4d361844d6c5f58e
+POST /v1/money/plan-subscriptions@1 091d65da31b03b97
+POST /v1/money/plan-subscriptions/{subscriptionRef}/accept@1 2f462b75ab7a6977
+GET /v1/money/plan-subscriptions/{subscriptionRef}@1 50cc73908a5dd892

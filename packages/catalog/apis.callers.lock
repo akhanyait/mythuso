@@ -302,3 +302,9 @@ POST /v1/devices/kits/{kitRef}/return@1 callers=- purpose=audit because=-
 POST /v1/devices/kits/{kitRef}/loss@1 callers=- purpose=audit because=-
 POST /v1/devices/setting-changes@1 callers=- purpose=audit because=-
 POST /v1/devices/setting-changes@2 callers=admin purpose=audit because=-
+POST /v1/money/vouchers@2 callers=admin,corner purpose=billing because=-
+POST /v1/money/voucher-redemptions@1 callers=caregiver,patient,sponsor purpose=billing because=-
+POST /v1/money/plan-subscriptions@1 callers=patient,sponsor purpose=billing because=-
+POST /v1/money/plan-subscriptions/{subscriptionRef}/accept@1 callers=patient,sponsor purpose=billing because=-
+GET /v1/money/plan-subscriptions/{subscriptionRef}@1 callers=patient,sponsor purpose=billing because=-
+POST /v1/money/vouchers@1 callers=- purpose=billing because=-

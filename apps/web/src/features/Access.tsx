@@ -1,5 +1,8 @@
+import { Suspense, lazy, useState } from 'react';
 import { CircleAlert, Ear, Globe, Languages, ShieldCheck, Stethoscope, X } from 'lucide-react';
 import { SectionTitle } from '../components/UI';
+import { NotConnected } from '../components/NotConnected';
+import { capability } from '../lib/capabilities';
 import { clinicalRule, fallbackRule, locales, sets, signLanguage, translationHonesty } from '../lib/i18n';
 import { Interpreting } from './Interpreting';
 /* Language and access, as a screen rather than as a paragraph in a settings dialog.
@@ -67,9 +70,26 @@ export function Access() {
    <div className="empty-note">{signLanguage.notYetBuilt}</div>
   </section>
 
+  <UssdEntry/>
+
   {/* The accommodation itself, on the same page as the guidance that describes it. Two screens
       would let the promise and the arrangement drift apart, which is precisely the failure the
       paragraph above spent six sentences on. */}
   <Interpreting/>
  </>;
+}
+
+/* Booking by USSD sits with language and access because it is the way in for somebody with no smartphone and no data.
+   This page is on the patient's first load, so what is here is the capability's name, its notice and one button; the
+   menu, its words and the booking rules arrive on a dynamic import when the button is pressed. */
+const UssdSimulator = lazy(() => import('./UssdSimulator').then(m => ({ default: m.UssdSimulator })));
+function UssdEntry() {
+ const [open, setOpen] = useState(false);
+ const booking = capability('ussd-booking');
+ if (open) return <Suspense fallback={<p className="helper" role="status">{booking.name}</p>}><UssdSimulator/></Suspense>;
+ return <section className="panel">
+  <SectionTitle title={booking.name}/>
+  <NotConnected of={booking.id} tone="inline"/>
+  <button type="button" className="secondary" onClick={() => setOpen(true)}>Open the USSD simulator</button>
+ </section>;
 }

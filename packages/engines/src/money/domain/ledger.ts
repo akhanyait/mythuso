@@ -36,6 +36,14 @@ import { isoDateInSouthAfrica, periodEndFor, recompute, totalCents, type PayoutL
 import { doctorOwedCents, type DoctorCase, type FeeInForce } from './fees.ts';
 import { carriesACard } from './cards.ts';
 import { cashCodeDigest, randomDigits, randomSalt, sameDigest } from './secrets.ts';
+import {
+ asksForCash, codeDigest, expiryOn, groupedCode, issuedCentsFor, newVoucherCode, redeemsAgainst, tiedToAMedicine,
+ type Redemption, type RedemptionReceipt, type Voucher, type VoucherReceipt, type VoucherTowards
+} from './vouchers.ts';
+import {
+ agreesForSomebody, asksForPriority, essential, includesCollection, includesVisit, lineDetails, started, viewOf,
+ type LineDetail, type Subscription, type SubscriptionView
+} from './subscriptions.ts';
 
 export { carriesACard };
 
@@ -47,6 +55,10 @@ export type Payable = {
  amountCents: number | null;
  subjectRef: string; payers: string[];
  serviceId?: string; planId?: string; tierId?: string; appointmentRef?: string; bookingRef?: string; cancelled: boolean;
+ /** The MyThuso for Mom plan this payable is the first month of, or the included visit of. */
+ subscriptionRef?: string;
+ /** What vouchers have paid towards it. What is owed is the amount less this, and a voucher never pays past it. */
+ creditedCents?: number;
 };
 
 export type Payment = {
@@ -96,8 +108,14 @@ export type MoneyTables = {
  cases: Table<{ doctorRef: string; cases: DoctorCase[] }>;
  payouts: Table<Payout>;
  suspensions: Table<{ partnerKind: string; reasonCode: string; on: string }>;
+ /** A voucher's salt and digest, never its code. */
+ vouchers: Table<Voucher>;
+ redemptions: Table<Redemption>;
+ subscriptions: Table<Subscription>;
+ /** The idempotency keys of a voucher, a redemption and a plan's acts, each with what it answered — never a code. */
+ acts: Table<{ print: string; answer: unknown }>;
 };
-export const TABLE_NAMES = ['payables', 'payments', 'cashCodes', 'cashAudit', 'attempts', 'keys', 'billable', 'earned', 'cases', 'payouts', 'suspensions'] as const;
+export const TABLE_NAMES = ['payables', 'payments', 'cashCodes', 'cashAudit', 'attempts', 'keys', 'billable', 'earned', 'cases', 'payouts', 'suspensions', 'vouchers', 'redemptions', 'subscriptions', 'acts'] as const;
 
 /** Tables in memory, written as JSON so they behave as a store does: a row is what was last put. */
 export function memoryTables(): MoneyTables {
@@ -121,6 +139,9 @@ export type MoneyOptions = {
     imported, so this file never holds a settings history of its own and a patient's payment step, which
     runs this ledger too, carries no settings code. Without one, no fee is in force and none is paid. */
  doctorFee?: () => FeeInForce;
+ /* How many years a voucher issued now lasts: Money's setting voucher-expiry-years in force, handed in by whoever holds
+    the settings history for the same reason the doctor's fee is. Without one, no voucher is issued. */
+ voucherExpiryYears?: () => number;
  tables?: MoneyTables;
  /** Where an event goes. The engine hands in the bus; without it, events wait in outbox(). */
  publish?: (key: Published, payload: Record<string, unknown>, subjectRef: string) => void;
@@ -134,6 +155,12 @@ const AGGREGATE_ROLES = ['scheme', 'employer', 'medical-scheme', 'insurer'];
    names. The vetting register holds no capability for releasing a hold, so none is asked and no other role is
    widened to stand in for the desk. */
 const CASH_DESK_ROLES = ['ops-desk'];
+/* Who issues a voucher: a corner shop over the counter, whose cash is its own to reconcile, and the back office. The
+   callers of POST /v1/money/vouchers@2. */
+const VOUCHER_ISSUERS = ['corner', 'admin'];
+/* Who asks for a plan and reads it: the son or daughter who pays, and the person it is for. A guardian is not here,
+   because no authority to act for another adult is proven (docs/governance/INFORMATION-OFFICER.md D-10). */
+const PLAN_READERS = ['sponsor', 'patient'];
 /* The only reasons a hold is lifted for, from packages/catalog/money.json. */
 const releaseReasonIds = new Set(money.cash.releaseReasons.map(r => r.id));
 
@@ -175,13 +202,16 @@ export function createMoney(options: MoneyOptions = {}) {
   return payable;
  }
 
- function openPlanPayable(input: { payableRef: string; planId: string; tierId?: string; subjectRef: string; payers?: string[] }): Payable | Refusal {
+ function openPlanPayable(input: { payableRef: string; planId: string; tierId?: string; subjectRef: string; payers?: string[]; subscriptionRef?: string }): Payable | Refusal {
   const existing = t.payables.get(input.payableRef);
   if (existing) return existing;
   /* A plan with no price — Thuso Recover, or a tier nobody named — is not something anybody owes. */
   const price = planPriceRand(input.planId, input.tierId);
   if (price === null) return refusal('payable-not-found');
-  const payable: Payable = { payableRef: input.payableRef, kind: 'plan', amountCents: price * 100, subjectRef: input.subjectRef, payers: input.payers ?? [], planId: input.planId, tierId: input.tierId, cancelled: false };
+  const payable: Payable = {
+   payableRef: input.payableRef, kind: 'plan', amountCents: price * 100, subjectRef: input.subjectRef, payers: input.payers ?? [], planId: input.planId, tierId: input.tierId, cancelled: false,
+   ...(input.subscriptionRef ? { subscriptionRef: input.subscriptionRef } : {})
+  };
   t.payables.put(payable.payableRef, payable);
   return payable;
  }
@@ -213,7 +243,11 @@ export function createMoney(options: MoneyOptions = {}) {
   if (payable.amountCents === null) return refusal('payable-not-priced');
   const chosen = methodById(method);
   if (!chosen || !chosen.offered || !chosen.for.includes(payable.kind)) return refusal('method-not-offered');
-  if (!Number.isInteger(amountCents) || amountCents !== payable.amountCents) return refusal('amount-mismatch');
+  /* What is due is the catalogue's amount less what vouchers paid towards it. A payable a voucher covered, or an
+     included visit a plan month already paid for, owes nothing, and a payment for it would be a second payment. */
+  const due = payable.amountCents - (payable.creditedCents ?? 0);
+  if (due <= 0) return refusal('already-paid');
+  if (!Number.isInteger(amountCents) || amountCents !== due) return refusal('amount-mismatch');
   const onThisPayable = t.payments.all().filter(p => p.payableRef === payableRef);
   if (onThisPayable.some(p => p.stateCode === 'succeeded')) return refusal('already-paid');
   /* A cash payment already waiting on its code is the same payment, not a second one. */
@@ -263,8 +297,10 @@ export function createMoney(options: MoneyOptions = {}) {
   const payment = t.payments.get(result.reference);
   if (!payment) return refusal('payable-not-found');
   const payable = t.payables.get(payment.payableRef)!;
-  /* Reconciled, not believed: the door's own the-amount-is-reconciled-rather-than-believed. */
-  if (result.currency !== currency || result.amountCents !== payable.amountCents) return refusal('amount-mismatch');
+  /* Reconciled, not believed: the door's own the-amount-is-reconciled-rather-than-believed. Against the payment, whose
+     amount was the payable's catalogue amount less any voucher when it was taken, so a part-voucher payment and its
+     reversal reconcile to what was actually charged. */
+  if (result.currency !== currency || result.amountCents !== payment.amountCents) return refusal('amount-mismatch');
   const mapped = outcomeOf(result.outcome);
   if (!mapped) return refusal('required-field-missing');
   const was = payment.stateCode;
@@ -291,6 +327,7 @@ export function createMoney(options: MoneyOptions = {}) {
   }
   if (mapped.state === 'succeeded' && was !== 'succeeded') {
    emit('payment.succeeded@1', { paymentRef: payment.paymentRef, payableRef: payment.payableRef, amountCents: payment.amountCents, method: payment.method }, payable.subjectRef);
+   settled(payable);
   }
   return payment;
  }
@@ -376,8 +413,16 @@ export function createMoney(options: MoneyOptions = {}) {
    t.payables.put(payable.payableRef, { ...payable, cancelled: true });
    for (const payment of t.payments.all().filter(p => p.payableRef === payable.payableRef)) {
     if (payment.stateCode === 'succeeded' && payment.method !== 'cash-otp' && simulation && payable.amountCents !== null) {
-     acceptPaymentResult(reversal(payable.payableRef, payment.paymentRef, payable.amountCents, clock()), 'simulated-provider');
+     acceptPaymentResult(reversal(payable.payableRef, payment.paymentRef, payment.amountCents, clock()), 'simulated-provider');
     }
+   }
+   /* What a voucher paid towards a cancelled visit goes back onto the voucher, with the expiry it already had. It
+      never goes to a card, because it never came from one, and never to a hand (packages/catalog/vouchers.json). */
+   restoreVouchersOn(payable.payableRef);
+   /* An included visit that is cancelled is no longer the month's visit, so the month may include another. */
+   if (payable.subscriptionRef && payable.appointmentRef) {
+    const plan = t.subscriptions.get(payable.subscriptionRef);
+    if (plan) t.subscriptions.put(plan.subscriptionRef, { ...plan, lines: plan.lines.map(l => l.reference === payable.appointmentRef ? { ...l, cancelled: true } : l) });
    }
   }
  }
@@ -401,7 +446,16 @@ export function createMoney(options: MoneyOptions = {}) {
    const service = serviceById(String(p['serviceId']));
    const payableRef = payableRefFor(appointmentRef);
    if (!t.payables.get(payableRef) && envelope.subjectRef) {
-    t.payables.put(payableRef, { payableRef, kind: 'visit', amountCents: service.price * 100, subjectRef: envelope.subjectRef, payers: [], serviceId: service.id, appointmentRef, cancelled: false });
+    /* The first visit a plan month includes is the plan's: a plan payable that owes nothing, because the month paid
+       for it, and a line on the plan. The nurse is paid for it as a plan visit at the same rate as the same visit
+       booked on its own, when visit.billable@1 names it. Any other visit is owed at its own price, whoever has a plan. */
+    const plan = activePlanFor(envelope.subjectRef);
+    if (includesVisit(plan, service.id, on)) {
+     t.payables.put(payableRef, { payableRef, kind: 'plan', amountCents: 0, subjectRef: envelope.subjectRef, payers: [], serviceId: service.id, planId: essential.planId, tierId: plan.planCode, appointmentRef, subscriptionRef: plan.subscriptionRef, cancelled: false });
+     t.subscriptions.put(plan.subscriptionRef, { ...plan, lines: [...plan.lines, { on, kindCode: 'visit', serviceId: service.id, reference: appointmentRef, cancelled: false }] });
+    } else {
+     t.payables.put(payableRef, { payableRef, kind: 'visit', amountCents: service.price * 100, subjectRef: envelope.subjectRef, payers: [], serviceId: service.id, appointmentRef, cancelled: false });
+    }
    }
   } else if (envelope.type === 'visit.billable') {
    const appointmentRef = String(p['appointmentRef']), serviceId = String(p['serviceId']), clinicianRef = String(p['clinicianRef']);
@@ -437,6 +491,15 @@ export function createMoney(options: MoneyOptions = {}) {
    refundWhere(payable => payable.bookingRef === p['bookingRef']);
   } else if (envelope.type === 'appointment.cancelled') {
    refundWhere(payable => payable.appointmentRef === p['appointmentRef']);
+  } else if (envelope.type === 'delivery.handed_over') {
+   /* A collection handed over against the patient's PIN, with the seal intact, is the month's included collection
+      when her plan is active and the month has not had one. The event names the collection and never the medicine,
+      and Money records the day and the reference and nothing else. A redelivery records nothing twice. */
+   const plan = envelope.subjectRef ? activePlanFor(envelope.subjectRef) : undefined;
+   const collectionRef = String(p['collectionRef']);
+   if (p['sealIntact'] === true && includesCollection(plan, on) && !plan.lines.some(l => l.reference === collectionRef)) {
+    t.subscriptions.put(plan.subscriptionRef, { ...plan, lines: [...plan.lines, { on, kindCode: 'collection', serviceId: null, reference: collectionRef, cancelled: false }] });
+   }
   } else if (envelope.type === 'partner.suspended') {
    /* Recorded, and nothing else. A suspended partner takes no new orders; what it earned stays. */
    t.suspensions.put(`${String(p['partnerKind'])}:${on}`, { partnerKind: String(p['partnerKind']), reasonCode: String(p['reasonCode']), on });
@@ -562,6 +625,190 @@ export function createMoney(options: MoneyOptions = {}) {
   return payout;
  }
 
+ /* ---- Vouchers ---------------------------------------------------------------------------- */
+
+ /* What a payable still owes: nought once a payment for it succeeded, and otherwise its catalogue amount less what
+    vouchers paid towards it. */
+ function owedOf(payable: Payable): number {
+  if (payable.amountCents === null) return 0;
+  if (t.payments.all().some(p => p.payableRef === payable.payableRef && p.stateCode === 'succeeded')) return 0;
+  return Math.max(0, payable.amountCents - (payable.creditedCents ?? 0));
+ }
+
+ /* A payable settled — by a payment or by a voucher — starts the plan month it is the first month of, and nothing else. */
+ function settled(payable: Payable) {
+  if (!payable.subscriptionRef) return;
+  const plan = t.subscriptions.get(payable.subscriptionRef);
+  if (!plan || plan.stateCode !== 'awaiting-payment' || plan.payableRef !== payable.payableRef) return;
+  t.subscriptions.put(plan.subscriptionRef, started(plan, today()));
+ }
+
+ /* One key per caller and act, kept with the answer it gave and never with a code. */
+ const actKey = (actor: Actor, act: string, key: string) => `${actor.subjectRef}:${act}:${key}`;
+ const keyOf = (request: Record<string, unknown>) => {
+  const key = request['idempotencyKey'];
+  return typeof key === 'string' && key.trim() ? key : null;
+ };
+
+ /**
+  * A voucher towards a visit or a plan, at the catalogue's price, lasting the years in force when it is issued. The
+  * code is in this answer and nowhere else. A request that is tied to a medicine, or asks for cash, is refused by
+  * what it is towards and by the names of the fields it sent, before anything is keyed.
+  */
+ function issueVoucher(actor: Actor, request: Record<string, unknown>, sent: readonly string[] = []): VoucherReceipt | Refusal {
+  if (!VOUCHER_ISSUERS.includes(actor.role) || !actor.subjectRef) return refusal('caller-not-allowed');
+  const towardsKind = String(request['towardsKind'] ?? '');
+  if (tiedToAMedicine([...sent, towardsKind])) return refusal('voucher-tied-to-a-medicine');
+  if (asksForCash(sent, towardsKind)) return refusal('voucher-cashes-out');
+  const key = keyOf(request);
+  if (!key) return refusal('idempotency-key-required');
+  const print = JSON.stringify({ towardsKind, serviceId: request['serviceId'] ?? null, planCode: request['planCode'] ?? null });
+  const prior = t.acts.get(actKey(actor, 'voucher', key));
+  if (prior) return prior.print === print ? { ...(prior.answer as VoucherReceipt), replayed: true, codeAlreadyShown: true } : refusal('idempotency-key-reused');
+  const cents = issuedCentsFor(towardsKind, request['serviceId'], request['planCode']);
+  if (cents === null) return refusal('voucher-towards-not-sold');
+  const years = options.voucherExpiryYears?.();
+  if (years === undefined) throw new Error('No voucher expiry is in force, so no voucher is issued. Hand the ledger Money\'s setting voucher-expiry-years.');
+  const code = newVoucherCode();
+  const salt = randomSalt();
+  const issuedOn = today();
+  const voucher: Voucher = {
+   voucherRef: `VCH-${randomSalt(6).toUpperCase()}`, salt, digest: codeDigest(salt, code),
+   towardsKind: towardsKind as VoucherTowards, ...(towardsKind === 'service' ? { serviceId: String(request['serviceId']) } : { planCode: String(request['planCode']) }),
+   issuedCents: cents, remainingCents: cents, issuedOn, expiresOn: expiryOn(issuedOn, years), expiryYears: years,
+   issuedByRole: actor.role, issuedByRef: actor.subjectRef
+  };
+  t.vouchers.put(voucher.voucherRef, voucher);
+  const receipt: VoucherReceipt = { voucherRef: voucher.voucherRef, issuedCents: cents, expiresOn: voucher.expiresOn, replayed: false };
+  t.acts.put(actKey(actor, 'voucher', key), { print, answer: receipt });
+  return { ...receipt, voucherCode: groupedCode(code) };
+ }
+
+ /* Found by comparing the typed code with each voucher's salted digest. A voucher's code has too many possibilities to
+    be walked, so the digest is salted per voucher like the cash code rather than indexed. */
+ const voucherByCode = (code: string) => t.vouchers.all().find(v => sameDigest(v.digest, codeDigest(v.salt, code)));
+
+ /**
+  * Part or all of a voucher, towards something the caller may pay. It pays no more than it holds and no more than is
+  * owed, never after it has expired, and never towards the other kind of thing; a redemption of nought or less would
+  * move value off a payable and back onto a voucher, which is money going the wrong way, and is refused as cash.
+  */
+ function redeemVoucher(actor: Actor, request: Record<string, unknown>, sent: readonly string[] = []): RedemptionReceipt | Refusal {
+  if (!PAYMENT_CALLERS.includes(actor.role) || !actor.subjectRef) return refusal('caller-not-allowed');
+  if (tiedToAMedicine(sent)) return refusal('voucher-tied-to-a-medicine');
+  if (asksForCash(sent)) return refusal('voucher-cashes-out');
+  const key = keyOf(request);
+  if (!key) return refusal('idempotency-key-required');
+  const { voucherCode, payableRef, amountCents } = request;
+  if (typeof voucherCode !== 'string' || typeof payableRef !== 'string' || typeof amountCents !== 'number') return refusal('required-field-missing');
+  const voucher = voucherByCode(voucherCode);
+  if (!voucher) return refusal('voucher-not-found');
+  const print = JSON.stringify({ voucherRef: voucher.voucherRef, payableRef, amountCents });
+  const prior = t.acts.get(actKey(actor, 'redeem', key));
+  if (prior) return prior.print === print ? { ...(prior.answer as RedemptionReceipt), replayed: true } : refusal('idempotency-key-reused');
+  const payable = t.payables.get(payableRef);
+  if (!payable || payable.cancelled) return refusal('payable-not-found');
+  if (payable.subjectRef !== actor.subjectRef && !payable.payers.includes(actor.subjectRef)) return refusal('someone-elses-payable');
+  if (redeemsAgainst(voucher.towardsKind) !== payable.kind) return refusal('voucher-not-for-this');
+  if (today() > voucher.expiresOn) return refusal('voucher-expired');
+  if (voucher.remainingCents <= 0) return refusal('voucher-spent');
+  if (!Number.isInteger(amountCents) || amountCents <= 0) return refusal('voucher-cashes-out');
+  if (amountCents > voucher.remainingCents) return refusal('voucher-over-redeemed');
+  if (amountCents > owedOf(payable)) return refusal('voucher-more-than-owed');
+  const n = t.redemptions.all().filter(r => r.voucherRef === voucher.voucherRef).length + 1;
+  const redemption: Redemption = { redemptionRef: `RDM-${voucher.voucherRef}-${n}`, voucherRef: voucher.voucherRef, payableRef, amountCents, at: clock().toISOString(), restored: false };
+  t.redemptions.put(redemption.redemptionRef, redemption);
+  const drawn: Voucher = { ...voucher, remainingCents: voucher.remainingCents - amountCents };
+  t.vouchers.put(drawn.voucherRef, drawn);
+  const credited: Payable = { ...payable, creditedCents: (payable.creditedCents ?? 0) + amountCents };
+  t.payables.put(payableRef, credited);
+  const owedCents = owedOf(credited);
+  if (owedCents === 0) settled(credited);
+  const receipt: RedemptionReceipt = { redemptionRef: redemption.redemptionRef, redeemedCents: amountCents, remainingCents: drawn.remainingCents, owedCents, expiresOn: drawn.expiresOn, replayed: false };
+  t.acts.put(actKey(actor, 'redeem', key), { print, answer: receipt });
+  return receipt;
+ }
+
+ function restoreVouchersOn(payableRef: string) {
+  for (const r of t.redemptions.all().filter(x => x.payableRef === payableRef && !x.restored)) {
+   const voucher = t.vouchers.get(r.voucherRef);
+   if (voucher) t.vouchers.put(voucher.voucherRef, { ...voucher, remainingCents: voucher.remainingCents + r.amountCents });
+   t.redemptions.put(r.redemptionRef, { ...r, restored: true });
+  }
+ }
+
+ /* ---- MyThuso for Mom Essential -------------------------------------------------------------- */
+
+ const activePlanFor = (subjectRef: string) => t.subscriptions.all().find(s => s.subjectRef === subjectRef && s.stateCode === 'active');
+
+ /**
+  * A plan asked for, by a sponsor for a parent or by a patient for herself. Nothing is owed yet: the first month's
+  * payable opens only when she agrees. A request that carries an agreement for her, or asks for a place ahead of
+  * anybody, is refused in its own sentence before anything is keyed.
+  */
+ function subscribe(actor: Actor, request: Record<string, unknown>, sent: readonly string[] = []): { subscriptionRef: string; stateCode: string; amountCents: number; replayed: boolean } | Refusal {
+  if (!PLAN_READERS.includes(actor.role) || !actor.subjectRef) return refusal('caller-not-allowed');
+  if (agreesForSomebody(sent)) return refusal('sponsor-agrees-for-the-parent');
+  if (asksForPriority(sent)) return refusal('no-plan-buys-a-place-ahead');
+  const key = keyOf(request);
+  if (!key) return refusal('idempotency-key-required');
+  const { subjectRef, planCode } = request;
+  if (typeof subjectRef !== 'string' || !subjectRef || typeof planCode !== 'string') return refusal('required-field-missing');
+  /* A patient asks only for herself. */
+  if (actor.role === 'patient' && subjectRef !== actor.subjectRef) return refusal('caller-not-allowed');
+  const print = JSON.stringify({ subjectRef, planCode });
+  const prior = t.acts.get(actKey(actor, 'plan', key));
+  if (prior) return prior.print === print ? { ...(prior.answer as { subscriptionRef: string; stateCode: string; amountCents: number }), replayed: true } : refusal('idempotency-key-reused');
+  const price = planCode === essential.planCode ? planPriceRand(essential.planId, planCode) : null;
+  if (price === null) return refusal('plan-not-offered');
+  if (t.subscriptions.all().some(s => s.subjectRef === subjectRef)) return refusal('plan-already-held');
+  const plan: Subscription = {
+   subscriptionRef: `SUB-${randomSalt(5).toUpperCase()}`, subjectRef, askedByRef: actor.subjectRef, askedByRole: actor.role, askedOn: today(),
+   planCode, amountCents: price * 100, stateCode: 'awaiting-parent', lineDetail: null, payableRef: null, startedOn: null, monthEndsOn: null, lines: []
+  };
+  t.subscriptions.put(plan.subscriptionRef, plan);
+  const answer = { subscriptionRef: plan.subscriptionRef, stateCode: plan.stateCode, amountCents: plan.amountCents };
+  t.acts.put(actKey(actor, 'plan', key), { print, answer });
+  return { ...answer, replayed: false };
+ }
+
+ /**
+  * She agrees, as herself, and says how her sponsor's statement reads. Agreeing is hers: a sponsor who asked for the
+  * plan is refused in words, and so is anybody else it is not for. Her first agreement opens the month's payable,
+  * payable by her sponsor; a later one changes only how the statement reads.
+  */
+ function acceptSubscription(actor: Actor, request: Record<string, unknown>): { stateCode: string; payableRef: string; lineDetail: LineDetail; replayed: boolean } | Refusal {
+  if (!PLAN_READERS.includes(actor.role) || !actor.subjectRef) return refusal('caller-not-allowed');
+  const plan = t.subscriptions.get(String(request['subscriptionRef'] ?? ''));
+  if (!plan || (plan.subjectRef !== actor.subjectRef && plan.askedByRef !== actor.subjectRef)) return refusal('subscription-not-found');
+  if (actor.role !== 'patient' || plan.subjectRef !== actor.subjectRef) return refusal('only-the-parent-agrees');
+  const key = keyOf(request);
+  if (!key) return refusal('idempotency-key-required');
+  const lineDetail = request['lineDetail'];
+  if (typeof lineDetail !== 'string' || !lineDetails.includes(lineDetail as LineDetail)) return refusal('line-detail-not-offered');
+  const print = JSON.stringify({ subscriptionRef: plan.subscriptionRef, lineDetail });
+  const prior = t.acts.get(actKey(actor, 'agree', key));
+  if (prior) return prior.print === print ? { ...(prior.answer as { stateCode: string; payableRef: string; lineDetail: LineDetail }), replayed: true } : refusal('idempotency-key-reused');
+  let next: Subscription = { ...plan, lineDetail: lineDetail as LineDetail };
+  if (plan.stateCode === 'awaiting-parent') {
+   const payable = openPlanPayable({ payableRef: `PB-${plan.subscriptionRef}`, planId: essential.planId, tierId: plan.planCode, subjectRef: plan.subjectRef, payers: [plan.askedByRef], subscriptionRef: plan.subscriptionRef });
+   if (isRefusal(payable)) return payable;
+   next = { ...next, stateCode: 'awaiting-payment', payableRef: payable.payableRef };
+  }
+  t.subscriptions.put(next.subscriptionRef, next);
+  const answer = { stateCode: next.stateCode, payableRef: next.payableRef!, lineDetail: next.lineDetail! };
+  t.acts.put(actKey(actor, 'agree', key), { print, answer });
+  return { ...answer, replayed: false };
+ }
+
+ /** A plan as the caller may see it: the parent everything that happened, a sponsor what she chose. */
+ function subscriptionFor(actor: Actor, subscriptionRef: string): SubscriptionView | Refusal {
+  if (!PLAN_READERS.includes(actor.role) || !actor.subjectRef) return refusal('caller-not-allowed');
+  const plan = t.subscriptions.get(subscriptionRef);
+  if (!plan || (plan.subjectRef !== actor.subjectRef && plan.askedByRef !== actor.subjectRef)) return refusal('subscription-not-found');
+  return viewOf(plan, actor.role === 'patient' && actor.subjectRef === plan.subjectRef ? 'parent' : 'sponsor', today());
+ }
+
  /* ---- Reading ----------------------------------------------------------------------------- */
 
  function payoutsFor(actor: Actor, periodEnd?: string): Payout[] | Refusal {
@@ -578,6 +825,14 @@ export function createMoney(options: MoneyOptions = {}) {
 
  return {
   openVisitPayable, openPlanPayable, pay, acceptPaymentResult, enterCashCode, releaseCashCode, hear,
+  issueVoucher, redeemVoucher, subscribe, acceptSubscription, subscriptionFor,
+  /* What a payable still owes, for a screen that asks how much to pay after a voucher. */
+  owed: (payableRef: string) => { const payable = t.payables.get(payableRef); return payable ? owedOf(payable) : undefined; },
+  /* What is left on the voucher a typed code opens, for the person holding the code, so a checkout offers no more than it
+     holds. Nothing for a code that opens nothing, and never the salt or the digest. */
+  voucherHeld: (code: string) => { const v = voucherByCode(code); return v ? { remainingCents: v.remainingCents, expiresOn: v.expiresOn, towardsKind: v.towardsKind } : undefined; },
+  /* A voucher's standing, for the person holding it. Never its salt or digest. */
+  voucherStanding: (voucherRef: string) => { const v = t.vouchers.get(voucherRef); return v ? { remainingCents: v.remainingCents, issuedCents: v.issuedCents, expiresOn: v.expiresOn, towardsKind: v.towardsKind, serviceId: v.serviceId ?? null, planCode: v.planCode ?? null } : undefined; },
   schedulePayouts, scheduleClosedWeeks, unscheduledClosedLines, importWeek, recomputePayout, acceptPayoutAdvice, runPayout, scheduleDoctorPayout,
   payoutsFor, paymentsFor,
   allPayouts: () => t.payouts.all(),

@@ -507,6 +507,21 @@
     "passport-devices"
    ],
    "state": "absent"
+  },
+  {
+   "id": "ussd-booking",
+   "name": "Booking a visit by USSD",
+   "connected": false,
+   "evidence": null,
+   "blockedBy": [
+    "A USSD aggregator under contract, reaching the mobile networks and saying where a session is logged.",
+    "A USSD code assigned to MyThuso."
+   ],
+   "notice": "No USSD code reaches MyThuso. No aggregator is contracted, so nothing dialled on a phone books anything.",
+   "surfaces": [
+    "booking"
+   ],
+   "state": "absent"
   }
  ],
  "rules": [

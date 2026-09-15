@@ -1,0 +1,141 @@
+{
+ "_note": "Booking a nurse visit by USSD, Wave 4 of the approved build plan: the menu a person on any phone would walk, the words on every screen, how long a session waits, and what the menu refuses to be told. packages/engines/src/access/domain/ussd.ts walks it and books through packages/engines/src/access/domain/booking.ts, the same rules POST /v1/access/bookings@2 answers with; the web preview's USSD simulator runs that code in the tab. A USSD session would arrive through the ussd-session door in packages/catalog/feeds.json, which refuses every payload: no aggregator is contracted and no code is assigned. Nothing here is a real service.",
+ "_whyNoNativeEmitter": "USSD is dialled from a phone's own dialler and answered by the mobile network, so neither native app draws a USSD menu, and the web's simulator is the only screen that reads this file. A generated Swift and Kotlin copy would be a menu nobody renders.",
+ "version": 1,
+ "engine": "access",
+ "door": "ussd-session",
+ "capability": "ussd-booking",
+
+ "dialString": null,
+ "dialStringWhy": "No USSD code has been assigned to MyThuso. A code written here before one is assigned is a code a patient would dial and reach somebody else, so the simulator says no code is assigned instead of showing one.",
+
+ "screen": {
+  "maxCharacters": 182,
+  "source": "3GPP TS 23.090, Unstructured Supplementary Service Data: a USSD string carries at most 182 characters in the GSM 7-bit default alphabet.",
+  "lineBreak": "\n",
+  "dayNames": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+  "dayNamesWhy": "A day on a screen is its weekday, its date and its month: \"Wed 16 Sep\". The weekday is read from the date by its place in the week and named here, in English like every word on the menu, rather than asked of a clock in a timezone, because a calendar date has one weekday wherever it is read.",
+  "rule": "A screen is its text, then one line for each choice as its key, a space and its label. A line break counts as one character, and a screen longer than the maximum is cut off by the handset where the person reads it.",
+  "why": "The one place the limit lives. scripts/check-boundaries.mjs renders every screen this menu can show with the longest words the catalogues can put into it — the longest service name and price, suburb, day and hour, every booking refusal and every channel refusal — and fails the build on any screen longer than this."
+ },
+
+ "session": {
+  "timeoutSetting": "ussd-session-timeout-seconds",
+  "settingIn": "packages/catalog/booking.json",
+  "keptOnStart": "A session keeps the timeout in force when it was dialled. A change reaches the next session and never one already open.",
+  "timedOut": "This session ended because nothing was sent for too long. Nothing was booked. Dial again to start.",
+  "ended": "Session ended. Nothing more is sent to this phone.",
+  "why": "A USSD session holds a channel on the network open while it waits, and a network ends one on its own after a while. How long MyThuso waits for a reply is Access's setting, never longer than a network allows, and a reply after it is refused with nothing booked — never used to finish a booking somebody walked away from."
+ },
+
+ "locale": {
+  "language": "en-ZA",
+  "clinicalRuleFrom": "packages/catalog/locales.json#clinicalRule",
+  "why": "Every screen here is in English in every locale. The refusals below are about what a person must not type about their health, which is clinical wording, and locales.json's clinical rule keeps clinical wording in English until a clinician who reads the language has reviewed it. No string in this file has a key in locales.json, and the build fails if one does."
+ },
+
+ "neverKept": "A reply is read once, to choose, and dropped. A reply that is not a choice is refused and dropped with it, and no reply is stored, logged or published.",
+
+ "channelRefusals": [
+  {
+   "id": "no-clinical-detail",
+   "sentence": "Numbers only. Do not type why you need a visit or anything about your health: a USSD session is not encrypted and the network operator can see it.",
+   "why": "USSD travels in the clear over the signalling channel and the aggregator and the network operator both see every reply. A reason for a visit typed here is special personal information in two third parties' logs, so the menu never asks for one, takes numbers only, and refuses any reply with a letter in it without reading further."
+  },
+  {
+   "id": "no-identity-number",
+   "sentence": "Do not send an identity number here. This menu never asks for one, and the network can see what is typed.",
+   "why": "An identity number encodes a date of birth and a sex and cannot be changed when it leaks. The session is found by the number it was dialled from, which identity already holds, so nothing on the menu needs one; a reply of thirteen digits that starts with a valid date is refused as one."
+  },
+  {
+   "id": "no-card-details",
+   "sentence": "Do not send a card number here. No payment is taken on this menu, and the network can see what is typed.",
+   "why": "MyThuso never holds a card number (packages/catalog/apis/money.json, card-number-held), and a card number typed into USSD is a card number in an aggregator's session log. A reply of thirteen to nineteen digits that passes the Luhn check is refused as one, after the identity number rule, as packages/catalog/money.json's cardFieldNamesNote reads a number by its digits."
+  },
+  {
+   "id": "not-a-choice",
+   "sentence": "That is not one of the choices. Reply with the number beside the one you want.",
+   "why": "A menu that guessed at a reply would book what nobody chose."
+  }
+ ],
+ "channelRefusalsOrder": ["no-identity-number", "no-card-details", "no-clinical-detail", "not-a-choice"],
+ "channelRefusalsWhy": "Asked in this order of any reply that is not a choice on the screen: the identity number first, because thirteen digits of an identity number also pass the Luhn check; then a card; then a letter anywhere; and only then a reply that is simply not a choice. Separators — spaces, dashes and dots — are dropped before digits are counted.",
+ "refusalBack": { "key": "0", "label": "Back" },
+
+ "menu": {
+  "start": "welcome",
+  "list": {
+   "more": { "key": "9", "label": "More" },
+   "back": { "key": "0", "label": "Back" },
+   "why": "A list longer than a page is paged, with More on 9 and Back on 0, and numbered from 1 on every page, so a person never types a two-digit reply."
+  },
+  "nodes": [
+   {
+    "id": "welcome",
+    "text": "MyThuso preview. Nothing here is real, and no nurse is sent.",
+    "choices": [
+     { "key": "1", "label": "Book a nurse visit", "next": "service" },
+     { "key": "2", "label": "If it is an emergency", "next": "emergency" },
+     { "key": "3", "label": "What this menu never asks", "next": "never" },
+     { "key": "0", "label": "End", "next": null }
+    ]
+   },
+   { "id": "service", "text": "Which visit?", "listOf": "services", "itemLabel": "{name} {price}", "pageSize": 4, "next": "zone", "listWhy": "The services a nurse can be sent for today: packages/catalog/services.json's phase one, each at its own price. A later-phase service is not offered, because the booking rules refuse it." },
+   { "id": "zone", "text": "Which suburb is the visit in?", "listOf": "zones", "itemLabel": "{name}", "pageSize": 5, "next": "day", "listWhy": "packages/catalog/geography.json's zones, by name. Never a street address, which a USSD session must not carry." },
+   { "id": "day", "text": "Which day?", "listOf": "days", "itemLabel": "{day}", "pageSize": 5, "next": "hour", "listWhy": "The days packages/catalog/scheduling.json offers, from tomorrow, in Johannesburg." },
+   { "id": "hour", "text": "Which hour on {day}?", "listOf": "hours", "itemLabel": "{hour}", "pageSize": 5, "next": "review", "listWhy": "The hours the booking rules offer for the service on that day, for whoever is nearest and cleared." },
+   {
+    "id": "review",
+    "text": "{service} in {zone}, {day} at {hour}. {price}. The nearest cleared nurse. No payment is taken here.",
+    "choices": [
+     { "key": "1", "label": "Ask for this visit", "next": "booked" },
+     { "key": "0", "label": "Start again", "next": "welcome" }
+    ]
+   },
+   {
+    "id": "booked",
+    "text": "Asked for, reference {bookingRef}. In this preview no nurse is coming. Pay and see who is coming in the MyThuso app.",
+    "choices": [ { "key": "0", "label": "End", "next": null } ]
+   },
+   {
+    "id": "refused",
+    "text": "{refusal}",
+    "choices": [ { "key": "0", "label": "Start again", "next": "welcome" } ],
+    "why": "A booking the rules refuse is answered in the route's own sentence from packages/catalog/apis/access.json, and the session goes back to the start rather than guessing another hour."
+   },
+   {
+    "id": "emergency",
+    "textFrom": "packages/catalog/booking.json#handover.outOfHoursNumbers",
+    "choices": [ { "key": "0", "label": "Back", "next": "welcome" } ],
+    "why": "The sentence Gilbert says out of hours, with the numbers from packages/catalog/sos.json filled in. It is read from there rather than written twice."
+   },
+   {
+    "id": "never",
+    "text": "This menu never asks why you need a visit, for an ID number or for a card number, because the network can see what is typed here.",
+    "choices": [ { "key": "0", "label": "Back", "next": "welcome" } ]
+   }
+  ]
+ },
+
+ "booking": {
+  "route": "POST /v1/access/bookings@2",
+  "nurse": "nearest",
+  "mode": "home",
+  "actorRole": "patient",
+  "idempotencyKeyFrom": "the session reference",
+  "why": "A session books for the person whose phone dialled, as the booking route's patient, for whoever is nearest and cleared: asking for a nurse by name, and booking for somebody else, are done in the app, where who a nurse is and who a person is to you can be shown and checked. The session's reference is the idempotency key, so a reply sent twice on a flaky network is one booking."
+ },
+
+ "simulator": {
+  "heading": "Book by USSD",
+  "intro": "The menu a person on any phone would walk to ask for a nurse visit, drawn here because no USSD code reaches MyThuso.",
+  "noCode": "No USSD code is assigned, so there is nothing to dial.",
+  "replyLabel": "Reply",
+  "send": "Send",
+  "dial": "Start a session",
+  "cancel": "End session",
+  "counter": "{count} of {max} characters",
+  "waits": "This session waits {seconds} seconds for each reply.",
+  "notKept": "What you type is read once and not kept."
+ }
+}

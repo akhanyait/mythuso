@@ -24,6 +24,7 @@
  */
 import contract from '../../../../catalog/booking.json' with { type: 'json' };
 import api from '../../../../catalog/apis/access.json' with { type: 'json' };
+import ussd from '../../../../catalog/ussd.json' with { type: 'json' };
 import { snapshotOf, type Change, type Check, type Refusal, type SettingsBlock, type SettingsEngine, type Snapshot, type Window } from '../../settings/shape.ts';
 
 export type NamedNurseFallback = 'patient-chooses' | 'wait-for-named' | 'soonest-automatically';
@@ -45,6 +46,8 @@ export type AccessSettingsInForce = {
  readonly threadOpenHoursAfterVisit: number;
  readonly handoverAnsweredBy: readonly string[];
  readonly handoverHours: readonly Window[];
+ /** How long a USSD session waits for a reply, from packages/catalog/ussd.json's timeout setting. A session keeps what it was dialled with. */
+ readonly ussdSessionSeconds: number;
 };
 
 export const accessSettingsOf = (snapshot: Snapshot): AccessSettingsInForce => Object.freeze({
@@ -54,7 +57,8 @@ export const accessSettingsOf = (snapshot: Snapshot): AccessSettingsInForce => O
  threadPhotos: snapshot.values['visit-thread-photos'] as boolean,
  threadOpenHoursAfterVisit: snapshot.values['visit-thread-open-hours-after-visit'] as number,
  handoverAnsweredBy: snapshot.values['handover-answered-by'] as readonly string[],
- handoverHours: snapshot.values['handover-hours'] as readonly Window[]
+ handoverHours: snapshot.values['handover-hours'] as readonly Window[],
+ ussdSessionSeconds: snapshot.values[ussd.session.timeoutSetting] as number
 });
 
 /** The settings in force after a history of accepted changes. */

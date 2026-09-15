@@ -375,3 +375,8 @@ POST /v1/devices/kits/{kitRef}/loss@2 6e209e7cef8a580c
 GET /v1/devices/settings@1 b54f5f3782525231
 POST /v1/devices/setting-changes@1 71a7873f90e36070
 POST /v1/devices/setting-changes@2 17cc0dd72f0b3013
+POST /v1/money/vouchers@2 6a1f7d3a3c25a035
+POST /v1/money/voucher-redemptions@1 dd3bf4a607d16c53
+POST /v1/money/plan-subscriptions@1 216c74a9c0848aa0
+POST /v1/money/plan-subscriptions/{subscriptionRef}/accept@1 191f5d95643452e7
+GET /v1/money/plan-subscriptions/{subscriptionRef}@1 44c9ca3267e64200

@@ -1,0 +1,106 @@
+{
+ "_note": "Thuso Money's vouchers, Wave 4 of the approved build plan: a prepaid amount towards a visit or a MyThuso for Mom plan, issued over the counter by a corner shop or by the back office, and redeemed by whoever holds its code against something they owe. packages/engines/src/money/domain/vouchers.ts holds the arithmetic, the web preview's checkout runs the same code, and every refusal sentence a route answers with is packages/catalog/apis/money.json's, found by route and id. Nothing here is a real service: no voucher is sold, no shop is contracted, no value is held for anybody and no code opens anything.",
+ "_whyNoNativeEmitter": "Neither native app redeems a voucher in this wave. A code is typed at the web preview's checkout and nowhere else, so a generated Swift and Kotlin copy of this file would be a copy nobody renders, and a copy nobody renders is the one that drifts. The day a phone takes a voucher, scripts/emit-vouchers.mjs is written with the screen that reads it.",
+ "version": 1,
+ "engine": "money",
+ "api": "packages/catalog/apis/money.json",
+
+ "towards": [
+  {
+   "kind": "service",
+   "field": "serviceId",
+   "priceFrom": "packages/catalog/services.json",
+   "redeemsAgainst": "visit",
+   "why": "A voucher towards a visit is issued at the catalogue's price for that visit on the day it is issued, and pays towards any visit a person owes for. The amount is never typed by the shop or the desk: a voucher for an amount somebody chose is a gift card for anything, and the catalogue is where a price is."
+  },
+  {
+   "kind": "plan",
+   "field": "planCode",
+   "priceFrom": "packages/catalog/mom-plans.json",
+   "redeemsAgainst": "plan",
+   "why": "A voucher towards MyThuso for Mom is issued at one tier's monthly price and pays towards a plan's month, which is how a family member far away puts a month of a parent's plan into somebody's hand."
+  }
+ ],
+ "towardsWhy": "A voucher towards a visit pays for visits and one towards a plan pays for plans, and neither pays for the other. The line keeps a voucher sold as a month of a parent's plan from being spent by somebody else on something the buyer never meant, and it keeps the arithmetic of both payables the catalogue's.",
+
+ "neverTowards": ["medicine", "prescription", "collection", "dispense", "adherence", "dose", "script", "pharmacy"],
+ "neverTowardsRefusal": "voucher-tied-to-a-medicine",
+ "neverTowardsWhy": "Section 18A of the Medicines and Related Substances Act 101 of 1965 prohibits supplying a medicine under a bonus, rebate or incentive scheme, and the founder's decision in the approved build plan refuses any reward for taking a medicine pending counsel (packages/catalog/medicines.json adherence). A voucher tied to a medicine — towards buying one, collecting a script, or earned by taking a dose — is that scheme with a code on it. So a voucher is issued only towards a visit or a plan, a request naming any of these words as what it is towards or as a field it carries is refused in its own sentence, and a voucher is never redeemed against anything but a visit or a plan payable. A plan that includes collecting medicine may be paid for with a voucher, because the plan is paid for, not the medicine.",
+
+ "cashOut": {
+  "refusal": "voucher-cashes-out",
+  "towardsKinds": ["cash", "wallet", "balance", "airtime", "bank", "payout"],
+  "fieldWords": ["cash", "payout", "withdraw", "bank", "refund", "airtime", "transfer"],
+  "whatIsLeft": "What is left on a voucher stays on it until it expires. It is never paid out, moved to a wallet or a bank, or added to.",
+  "why": "A voucher that can become cash is a way to move money that nobody is billing for, and a prepaid amount MyThuso would be holding like a bank. So a voucher is issued only towards a visit or a plan, redeemed only against a payable, and a request that asks for a cash, wallet, bank or airtime outcome — by what it is towards or by a field it sends — is refused rather than ignored. A cancelled visit's redemption goes back onto the voucher, never to a card or a hand."
+ },
+
+ "expiry": {
+  "setting": "voucher-expiry-years",
+  "settingIn": "packages/catalog/money.json",
+  "keptOnIssue": "A voucher keeps the expiry in force on the day it was issued. A later change reaches vouchers issued after it, and never one already in somebody's hand.",
+  "law": {
+   "id": "consumer-protection-act-section-63",
+   "act": "Consumer Protection Act 68 of 2008",
+   "section": "63",
+   "subject": "Prepaid certificates, credits and vouchers",
+   "minimumYears": 3,
+   "reading": "A prepaid certificate, credit, voucher or similar device stays valid until it is fully redeemed, and for at least three years after it was issued.",
+   "confirmedByCounsel": false,
+   "needsCounsel": "Counsel has not confirmed that section 63 reaches a voucher towards a health visit or a plan, what happens to an amount left on a voucher when it expires, or whether a voucher issued free by the back office is a prepaid certificate at all. Until counsel does, the shortest expiry an admin may set is three years for every voucher, which is the reading that protects the person holding one.",
+   "proposedBy": "Gilbert & Access lead (Wave 4)",
+   "proposedBecause": "The founder instructed that the expiry be an admin setting whose lower bound is three years, from section 63. The bound is read from here by packages/catalog/money.json's setting and scripts/check-boundaries.mjs holds the two to each other, so the three years live in one place."
+  },
+  "afterExpiry": "An expired voucher cannot be redeemed, and what was left on it is not paid out. What becomes of that amount is a question for counsel, and it is not answered here."
+ },
+
+ "codes": {
+  "length": {
+   "value": 12,
+   "decidedBy": null,
+   "proposedBy": "Gilbert & Access lead (Wave 4)",
+   "proposedBecause": "Twelve characters from an alphabet of thirty-two, read aloud at a till or typed on a phone, in three groups of four. Thirty-two to the twelfth is more than a million million million codes, so guessing one is not a strategy and no attempt limit is needed; a six-digit code, like the cash code, would need one."
+  },
+  "alphabet": "ABCDEFGHJKLMNPQRSTUVWXYZ23456789",
+  "alphabetWhy": "No O and 0, no I and 1, because a code misread at a counter is a code refused at a door.",
+  "kept": "Money keeps a salted digest of a voucher's code and never the code. The code is shown once, in the answer to whoever issued it, and the runtime keeps it out of its replay table.",
+  "why": "A voucher's code is a bearer credential: whoever holds it spends it. So it is random, derived from nothing a person can see, shown once, kept as a digest, and carried in a request body rather than a path, where a server's log would keep it."
+ },
+
+ "redemption": {
+  "partial": true,
+  "why": "A voucher pays as much of what is owed as it holds and no more, and what is owed afterwards is paid in the ordinary way through POST /v1/money/payments@2. A voucher that covers the whole of a payable settles it, and a payment for a payable already settled is refused as already paid.",
+  "cancelled": "When a visit a voucher paid towards is cancelled, the amount goes back onto the voucher with the expiry it already had. It is never refunded to a card, because it never came from one."
+ },
+
+ "preview": {
+  "issuedBy": "corner",
+  "towards": { "kind": "service", "serviceId": "vitals" },
+  "why": "The web checkout has nobody who sold the reader a voucher, so a simulated corner shop issues one in the tab's memory when somebody asks to use a voucher, and the screen says so beside the code. It is towards the visit the Mom Essential plan includes, at that visit's price."
+ },
+
+ "screen": {
+  "heading": "Use a voucher",
+  "intro": "A voucher pays towards a visit from the catalogue. What it does not cover is paid in the ordinary way.",
+  "codeLabel": "Voucher code",
+  "redeem": "Pay with this voucher",
+  "issuedInPreview": "A simulated corner shop issued this voucher in this tab, because nobody sold you one: {code}. It is towards a {service}, and it expires on {expires}.",
+  "redeemed": "{amount} of the voucher paid towards this visit. {left} stays on it until {expires}.",
+  "covered": "The voucher covers this visit. Nothing else is owed.",
+  "owed": "Still owed",
+  "never": "A voucher is never paid out in cash, and never tied to a medicine."
+ },
+
+ "routeRefusals": [
+  { "route": "POST /v1/money/vouchers@2", "id": "voucher-tied-to-a-medicine" },
+  { "route": "POST /v1/money/vouchers@2", "id": "voucher-cashes-out" },
+  { "route": "POST /v1/money/vouchers@2", "id": "voucher-towards-not-sold" },
+  { "route": "POST /v1/money/voucher-redemptions@1", "id": "voucher-not-found" },
+  { "route": "POST /v1/money/voucher-redemptions@1", "id": "voucher-expired" },
+  { "route": "POST /v1/money/voucher-redemptions@1", "id": "voucher-over-redeemed" },
+  { "route": "POST /v1/money/voucher-redemptions@1", "id": "voucher-more-than-owed" },
+  { "route": "POST /v1/money/voucher-redemptions@1", "id": "voucher-cashes-out" },
+  { "route": "POST /v1/money/voucher-redemptions@1", "id": "voucher-not-for-this" },
+  { "route": "POST /v1/money/voucher-redemptions@1", "id": "voucher-spent" }
+ ]
+}

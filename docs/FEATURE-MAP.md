@@ -824,6 +824,34 @@ from `settings.json#partTypes`; at the Wave 4 integration that declaration was k
 kept shape with the same callers, refusals and handler, and the build's exception for change routes frozen in prose
 was deleted because no live change route is on that list.
 
+## Delivered — MyThuso for Mom Essential, vouchers and USSD booking, 15 September 2026 (seed plan, Wave 4, Gilbert & Access)
+
+The monthly tier of MyThuso for Mom walked end to end as a preview, a voucher that pays towards a visit or a plan, and
+a USSD menu that books a visit through the same rules as the app. Money holds the plan and the voucher; Access holds the
+menu and the parent's summary grant; Medicines' existing chain carries the medicine. Nothing here is a real service: no
+plan is sold, no debit order runs, no voucher is sold, no USSD code exists and no nurse is sent.
+
+| What landed | The refusals it adds | Where |
+|---|---|---|
+| **Mom Essential**: a sponsor asks (`POST /v1/money/plan-subscriptions@1`), the parent agrees as herself and chooses how a sponsor's line reads (`…/accept@1`), and the first month's payable opens only then; paid through Money's simulated provider or a plan voucher, it starts the plan month. Money counts the month's included visit when it hears `appointment.booked@2` (a plan payable that owes nothing, paid to the nurse as a plan visit) and the month's collection when it hears `delivery.handed_over@1`. A plan read (`GET …/{subscriptionRef}@1`) answers the parent everything and a sponsor the day, with the kind of care and the service only if she chose service-named | `plan-not-offered` (Plus and Premium name things that do not exist), `plan-already-held`, `no-plan-buys-a-place-ahead` (mom-plans.json's sentence), `sponsor-agrees-for-the-parent`, `only-the-parent-agrees`, `line-detail-not-offered`, `subscription-not-found` | `mom-essential.json`, `money/domain/subscriptions.ts`, `money/domain/ledger.ts` |
+| **Visit summaries only under her grant**: the caregiver role, narrowed to `home-visit`, off until she turns it on, never longer than the role's ceiling; Money's plan carries nothing clinical either way | A grant made by anybody but the parent; longer than allowed; ended or stopped | `access/domain/sharing.ts` |
+| **Vouchers**: issued by a corner shop or the back office at the catalogue's price (`POST /v1/money/vouchers@2`, version one withdrawn: it redeemed into a wallet that is not offered), redeemed in part or whole against a payable (`POST /v1/money/voucher-redemptions@1`); what is still owed is paid through `payments@2`; a cancelled visit's redemption goes back onto the voucher. The code is random, shown once and kept as a salted digest | `voucher-cashes-out`, `voucher-tied-to-a-medicine` (section 18A), `voucher-towards-not-sold`, `voucher-not-found`, `voucher-expired`, `voucher-over-redeemed`, `voucher-more-than-owed`, `voucher-not-for-this`, `voucher-spent` | `vouchers.json`, `money/domain/vouchers.ts` |
+| **Voucher expiry** as Money's setting `voucher-expiry-years`: 3 proposed, 3–5, the lowest bound cited from `vouchers.json` `expiry.law` — Consumer Protection Act section 63, marked as needing counsel's confirmation | No voucher issued for fewer years than the law entry, whatever the setting says | `money.json`, `vouchers.ts` `expiryOn` |
+| **USSD booking**: the menu, its words and its refusals as data; a walk that books through `booking.ts` for whoever is nearest and times out by Access's setting `ussd-session-timeout-seconds` (120 proposed, 60–180); the `ussd-session` door in `feeds.json`, refusing every payload, with the `ussd-booking` capability. Everything on the menu is English in every locale (`locales.json` `clinicalRule`) | `no-identity-number`, `no-card-details`, `no-clinical-detail`, `not-a-choice`, each said and the reply dropped; the door never accepts a reason for a visit, an identity number, a card number, a session's history or a cell location | `ussd.json`, `access/domain/ussd.ts`, `feeds.json` |
+| **Screens**: the Essential journey under the Mom plan on the web (its own dynamic import) and on iOS and Android from generated `MomEssentialData`, where no payment is taken and the plan never starts; a voucher at the booking's review step on the web; the USSD simulator on Language & access on the web | A sponsor is shown no control for agreeing; a phone says nothing was charged | `MomEssential.tsx`, `VoucherAtCheckout.tsx`, `UssdSimulator.tsx`, `MomEssentialView.swift`, `MomEssentialScreens.kt` |
+| **The build** holds eight things: no plan ranks anybody, a plan screen lists only the tier's inclusions, nothing clinical reaches a sponsor without her grant, only the parent agrees, a voucher is never cash or tied to a medicine, the expiry bound is the law entry, no USSD screen passes 182 characters or asks for anything a session must not carry, and no new screen types a price | Each proved by breaking its source | `scripts/check-boundaries.mjs` |
+
+No event was declared. Money is the only engine that acts on a plan or a redemption, and it hears what it needs on
+events already frozen; an event nobody but its publisher acts on is refused by the event contract.
+
+Still open: Plus and Premium are not offered; a plan stops only by the parent not agreeing, and stopping a started plan
+is not built; only the first month is simulated; a delegate cannot authorise a medicine collector for a parent, because
+`collection-authorisations@1` takes the patient alone; a sponsor with a grant is told summaries are shared and reads
+none on these screens, because the Passport gateway is not reachable from them; gifts (`gifts@1`) stay proposed, because
+a gift books for its receiver and a voucher does not, and no voucher route carries a beneficiary; vouchers and the USSD
+menu are web only; the network's own USSD session limit is unknown until an aggregator states it; what happens to value
+left on an expired voucher, and whether section 63 reaches a voucher towards care, wait on counsel.
+
 ## Next UI increments
 
 Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only

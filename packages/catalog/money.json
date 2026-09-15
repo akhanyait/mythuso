@@ -330,10 +330,32 @@
      "statement": "The wording never states the share as a fraction or a percentage, because it is not the same part of every visit.",
      "forbids": ["three quarters", "Your share is 75% of what the patient paid.", "Your share is three quarters of what the patient paid, shown to the rand on each visit.", "You keep 3 in 4 rand of every visit."]
     }
+   },
+   {
+    "key": "voucher-expiry-years",
+    "label": "How long a voucher lasts",
+    "help": "For how many years after it was issued may a voucher still pay towards a visit or a plan?",
+    "_lawNote": "The lowest an admin may set is section 63 of the Consumer Protection Act, read from packages/catalog/vouchers.json expiry.law, where counsel's confirmation is recorded as outstanding. scripts/check-boundaries.mjs holds this bound to that entry, so the three years live there.",
+    "owner": "money",
+    "type": "count",
+    "unit": "years",
+    "positive": true,
+    "default": {"value": 3, "decidedBy": null, "proposedBy": "Gilbert & Access lead (Wave 4)", "proposedBecause": "The shortest the law allows, until counsel confirms how section 63 reads for a voucher towards care. A longer default is a promise to honour an amount for longer than anybody has costed, and an admin may lengthen it; a shorter one is refused, whoever asks."},
+    "bounds": {
+     "lowest": {"value": 3, "decidedBy": null, "proposedBy": "Gilbert & Access lead (Wave 4)", "proposedBecause": "Consumer Protection Act 68 of 2008, section 63: a prepaid voucher stays valid for at least three years after it was issued. Not confirmed by counsel for a voucher towards a health visit or a plan, and held here as the reading that protects the person holding one."},
+     "highest": {"value": 5, "decidedBy": null, "proposedBy": "Gilbert & Access lead (Wave 4)", "proposedBecause": "Five years is past any family's plan for a voucher and short of an amount held so long that nobody remembers who paid it. Longer is a change to what Money holds for people, not a setting."},
+     "citedFrom": {"file": "packages/catalog/vouchers.json", "path": "expiry.law.minimumYears"}
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to vouchers issued after it. A voucher already issued keeps the expiry it was issued with.",
+    "guardrail": {
+     "statement": "No voucher lasts less than the three years section 63 of the Consumer Protection Act gives a prepaid voucher.",
+     "forbids": [0, 1, 2]
+    }
    }
   ],
   "defaults": {
-   "version": 2,
+   "version": 3,
    "changelog": [
     {
      "version": 1,
@@ -361,6 +383,15 @@
       {"setting": "nurse-share-sentence", "from": null, "to": "Your share is most of what the patient pays for the visit, shown to the rand on each visit."}
      ],
      "why": "The founder instructed that open questions become admin settings: \"All the questions you are asking please factor them as the admin setup on config so that they are dynamic.\" MyThuso for Mom's two open questions, its undecided priority SOS, the doctor's undecided fee and a nurse's share sentence that was untrue of two services became settings, each with a proposal an admin may change."
+    },
+    {
+     "version": 3,
+     "on": "2026-09-15",
+     "by": "Gilbert & Access lead (Wave 4)",
+     "changed": [
+      {"setting": "voucher-expiry-years", "from": null, "to": 3}
+     ],
+     "why": "Vouchers, in Wave 4. The founder instructed that a voucher's expiry be an admin setting whose lowest value is the three years section 63 of the Consumer Protection Act gives a prepaid voucher; the default is proposed at that lowest value until counsel confirms the reading."
     }
    ]
   }

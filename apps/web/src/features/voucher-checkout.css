@@ -1,0 +1,16 @@
+/* ---- A voucher at the booking's review step ----------------------------------------------------
+   Closed, it is one text button among the review lines, because most people booking have no voucher.
+   Open, it is a bordered group: the simulated shop's sentence, a code field with its button on the
+   same line where there is room, and what the voucher paid set against the rule the rest of the
+   review uses. A refusal carries the danger ink and a rule, never colour alone. */
+.voucher-open{justify-self:start;min-height:44px}
+.voucher-checkout{display:grid;gap:var(--space-8);padding:var(--space-16);border:1px solid var(--line);border-radius:var(--r-control);background:var(--surface)}
+.voucher-checkout h4{margin:0;font-size:16px;line-height:1.35;color:var(--ink)}
+.voucher-issued{margin:0;font-size:14px;line-height:1.55;color:var(--slate);overflow-wrap:anywhere}
+.voucher-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--space-8);align-items:end}
+.voucher-row label{grid-column:1 / -1;font-size:14px;font-weight:600;color:var(--ink)}
+.voucher-row input{min-height:44px;font-size:16px;text-transform:uppercase}
+.voucher-row button{min-height:44px}
+.voucher-refused{margin:0;font-size:15px;line-height:1.5;color:var(--danger);padding-left:var(--space-12);border-left:2px solid var(--danger)}
+.voucher-redeemed{margin:0;font-size:15px;line-height:1.5;color:var(--ink);padding-left:var(--space-12);border-left:2px solid var(--indigo)}
+@media(max-width:399px){.voucher-row{grid-template-columns:1fr}}

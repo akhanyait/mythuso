@@ -2,7 +2,7 @@
  "engine": "money",
  "_note": "Money is Thuso Money: payments, payouts, wallets, vouchers, gifts, group wallets, claims and Market orders. Every write is idempotent with a key. MyThuso never holds a card number. Wave 2 contract; Waves 3 and 5 build.",
  "version": 1,
- "resources": ["payments", "payouts", "wallets", "vouchers", "gifts", "groups", "claims", "market-orders", "settings", "setting-changes"],
+ "resources": ["payments", "payouts", "wallets", "vouchers", "gifts", "groups", "claims", "market-orders", "settings", "setting-changes", "voucher-redemptions", "plan-subscriptions"],
  "doors": ["payment-result", "payout-advice"],
  "doorsToAdd": [
   {"id": "claim-response", "why": "The switching partner's claim responses are supplier callbacks; a door to add.", "capabilityNamed": {"section": "FS-E10", "what": "First scheme claim switched"}}
@@ -262,7 +262,7 @@
    "path": "/v1/money/vouchers",
    "version": 1,
    "summary": "Redeem a voucher into a wallet.",
-   "callers": ["patient", "caregiver", "sponsor", "corner"],
+   "callers": [],
    "purpose": ["billing"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -280,7 +280,8 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E10", "what": "Vouchers in retail and spaza channels"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/money/vouchers@2", "why": "It redeemed a voucher into a wallet, and no wallet is offered (packages/catalog/money.json methods), so its answer named a walletRef that could never exist. It could not issue a voucher, say what one is towards, redeem part of one against something owed, or refuse a voucher that has expired, one asked for more than it holds, one turned into cash or one tied to a medicine. It was never built. Version two issues a voucher towards a visit or a plan at the catalogue's price, and POST /v1/money/voucher-redemptions@1 redeems it against a payable. Its callers are those two routes'."}
   },
   {
    "method": "POST",
@@ -514,6 +515,186 @@
    "capabilityNamed": null,
    "status": "built",
    "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/setting-changes@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/vouchers",
+   "version": 2,
+   "summary": "Issue a voucher towards a visit or a MyThuso for Mom plan, at the catalogue's price, with its code shown once to whoever issued it.",
+   "callers": ["corner", "admin"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same voucher once, and its code is not shown a second time."},
+    {"field": "towardsKind", "type": "string", "required": true, "why": "service or plan, from packages/catalog/vouchers.json towards. Anything tied to a medicine, or to cash, a wallet, a bank or airtime, is refused in its own sentence."},
+    {"field": "serviceId", "type": "string", "required": false, "why": "For a voucher towards a visit: the service in packages/catalog/services.json whose price it is issued at."},
+    {"field": "planCode", "type": "string", "required": false, "why": "For a voucher towards a plan: the MyThuso for Mom tier in packages/catalog/mom-plans.json whose monthly price it is issued at."}
+   ],
+   "response": [
+    {"field": "voucherRef", "type": "string", "required": true, "why": "The voucher, Money's own."},
+    {"field": "voucherCode", "type": "string", "required": true, "why": "The code whoever holds the voucher redeems it with. In the first answer only, to whoever issued it; Money keeps a salted digest of it."},
+    {"field": "issuedCents", "type": "integer", "required": true, "why": "What the voucher holds, in cents: the catalogue's price for what it is towards on the day it was issued."},
+    {"field": "expiresOn", "type": "iso-date", "required": true, "why": "The last day it may be redeemed, from Money's setting voucher-expiry-years in force when it was issued, never sooner than section 63 of the Consumer Protection Act allows."}
+   ],
+   "refusals": [
+    {"id": "voucher-tied-to-a-medicine", "status": 422, "statement": "A voucher is never tied to a medicine: not to buying one, collecting one or taking one.", "why": "Section 18A of the Medicines and Related Substances Act prohibits supplying a medicine under an incentive scheme, and the founder refuses any reward for taking a medicine pending counsel. packages/catalog/vouchers.json neverTowards names what is refused, by what a voucher is towards and by the fields a request sends."},
+    {"id": "voucher-cashes-out", "status": 422, "statement": "A voucher pays for care from the catalogue. It is never cash, and it is never paid out.", "why": "A voucher that becomes cash moves money nobody is billing for, and makes MyThuso a holder of prepaid balances. packages/catalog/vouchers.json cashOut."},
+    {"id": "voucher-towards-not-sold", "status": 422, "statement": "A voucher is issued only towards a visit or a plan the catalogue sells, at its price.", "why": "Its amount is the catalogue's price for what it is towards. A service nobody sells, a service no nurse can be sent for yet, or a tier with no price has no amount that did not come from the caller."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "An unredeemed voucher is money held against care not yet bought. No engine acts on one being issued, and the event contract refuses an event nobody subscribes to.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E10", "what": "Vouchers in retail and spaza channels"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/vouchers@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"},
+   "secretResponseFields": [{"field": "voucherCode", "shownOnce": "The voucher's code was shown once, when it was issued, and is not shown again. Money keeps only a salted digest of it."}]
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/voucher-redemptions",
+   "version": 1,
+   "summary": "Redeem part or all of a voucher towards a visit or a plan that is owed, by the person who holds its code.",
+   "callers": ["patient", "caregiver", "sponsor"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same redemption once, and the voucher is drawn on once."},
+    {"field": "voucherCode", "type": "string", "required": true, "why": "The code on the voucher. Compared with a salted digest, never stored, and left out of the digest of the request the runtime keeps."},
+    {"field": "payableRef", "type": "string", "required": true, "why": "What is owed, Money's own payable: a visit for a voucher towards a visit, a plan for one towards a plan."},
+    {"field": "amountCents", "type": "integer", "required": true, "why": "How much of the voucher to use, in cents: no more than it holds and no more than is owed."}
+   ],
+   "response": [
+    {"field": "redemptionRef", "type": "string", "required": true, "why": "The redemption, Money's own."},
+    {"field": "redeemedCents", "type": "integer", "required": true, "why": "What the voucher paid towards the payable."},
+    {"field": "remainingCents", "type": "integer", "required": true, "why": "What stays on the voucher until it expires. It is never paid out."},
+    {"field": "owedCents", "type": "integer", "required": true, "why": "What is still owed on the payable, paid through POST /v1/money/payments@2. Nought when the voucher covered it."},
+    {"field": "expiresOn", "type": "iso-date", "required": true, "why": "The voucher's own expiry, as it was issued."}
+   ],
+   "refusals": [
+    {"id": "voucher-not-found", "status": 404, "statement": "There is no voucher with that code.", "why": "The answer never says whether a code was issued to somebody else."},
+    {"id": "voucher-expired", "status": 409, "statement": "That voucher has expired, so nothing was taken from it.", "why": "It kept the expiry in force when it was issued, never sooner than three years after it (packages/catalog/vouchers.json expiry.law). What becomes of what was left on it is a question for counsel."},
+    {"id": "voucher-over-redeemed", "status": 422, "statement": "That is more than is left on the voucher.", "why": "A voucher pays what it holds and no more, and nothing is taken when more is asked for."},
+    {"id": "voucher-more-than-owed", "status": 422, "statement": "That is more than is owed.", "why": "What a voucher paid past what is owed would be change, and change from a voucher is cash."},
+    {"id": "voucher-cashes-out", "status": 422, "statement": "A voucher pays for care from the catalogue. It is never cash, and it is never paid out.", "why": "A redemption is towards a payable and nothing else. A request carrying a cash, payout, bank, airtime, refund or transfer field is refused rather than ignored (packages/catalog/vouchers.json cashOut)."},
+    {"id": "voucher-not-for-this", "status": 422, "statement": "That voucher is towards something else, so it cannot pay for this.", "why": "A voucher towards a visit pays for visits and one towards a plan pays for plans (packages/catalog/vouchers.json towards)."},
+    {"id": "voucher-spent", "status": 409, "statement": "That voucher has been used.", "why": "Nothing is left on it."},
+    {"id": "payable-not-found", "status": 404, "statement": "Nothing is owed under that reference.", "why": "A voucher pays towards Money's own payable, whose amount comes from the catalogue."},
+    {"id": "someone-elses-payable", "status": 403, "statement": "That is not yours to pay.", "why": "A payable belongs to the person it was opened for and those named to pay it. Holding a voucher does not make somebody else's bill yours."},
+    {"id": "voucher-tied-to-a-medicine", "status": 422, "statement": "A voucher is never tied to a medicine: not to buying one, collecting one or taking one.", "why": "A request that names a medicine, a prescription, a collection or a dose is refused, whatever the voucher is towards (packages/catalog/vouchers.json neverTowards)."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A redemption lowers what one payable owes inside Money. What is still owed is paid through POST /v1/money/payments@2, which publishes the payment, and no other engine acts on which part of a payable a voucher paid.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/voucher-redemptions@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"},
+   "secretRequestFields": [{"field": "voucherCode", "why": "A voucher's code is a bearer credential: whoever holds it spends it. The runtime keeps a digest of every accepted request's fields to refuse a reused key, and the code is left out of it."}]
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/plan-subscriptions",
+   "version": 1,
+   "summary": "Ask for MyThuso for Mom for somebody: a son or daughter for a parent, or a person for herself. Nothing is owed and nothing starts until the person it is for agrees.",
+   "callers": ["sponsor", "patient"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same request once."},
+    {"field": "subjectRef", "type": "string", "required": true, "why": "Who the plan is for, as identity's opaque token. A patient asks only for herself."},
+    {"field": "planCode", "type": "string", "required": true, "why": "The tier in packages/catalog/mom-plans.json. Only the one packages/catalog/mom-essential.json names may be asked for in this preview."}
+   ],
+   "response": [
+    {"field": "subscriptionRef", "type": "string", "required": true, "why": "The plan asked for, Money's own."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "awaiting-parent, from packages/catalog/mom-essential.json states."},
+    {"field": "amountCents", "type": "integer", "required": true, "why": "The tier's monthly price from packages/catalog/mom-plans.json, in cents, so whoever asked sees what the first month would be before anything is owed."}
+   ],
+   "refusals": [
+    {"id": "plan-not-offered", "status": 422, "statement": "Only the monthly tier can be asked for in this preview. The others name devices, carers and reviews that do not exist yet.", "why": "Plus and Premium name a Thuso Band, a Thuso Home station, carers and a doctor's review of every visit, none of which exists (packages/catalog/capabilities.json). A plan sold for a promise nobody can keep is refused rather than billed."},
+    {"id": "plan-already-held", "status": 409, "statement": "This person already has this plan, or one waiting for her to agree.", "why": "Two plans for one parent are one family billed twice for the same visits."},
+    {"id": "no-plan-buys-a-place-ahead", "status": 422, "statement": "No plan buys a place ahead of somebody else. When two people need a nurse urgently, the one who is more unwell is seen first, whatever either of them pays.", "why": "packages/catalog/mom-plans.json's refusal, word for word. A request asking for priority, a rank or a place in a queue is refused rather than ignored, because the founder has not decided what priority SOS means and no plan may put anybody ahead of somebody more unwell."},
+    {"id": "sponsor-agrees-for-the-parent", "status": 422, "statement": "A sponsor pays and never agrees for the parent. She agrees in her own account, or the plan does not start.", "why": "A request carrying an agreement, a consent or a signature on the parent's behalf is refused rather than recorded. No authority to act for another adult is proven (docs/governance/INFORMATION-OFFICER.md D-10)."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Money is the only engine that acts on a plan: it bills it, and it counts the visit and the collection the tier includes when it hears appointment.booked@2 and delivery.handed_over@1. No other engine acts on a plan being asked for, and the event contract refuses an event nobody subscribes to.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/plan-subscriptions@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/plan-subscriptions/{subscriptionRef}/accept",
+   "version": 1,
+   "summary": "The person a plan is for agrees to it, as herself, and says how a line on her sponsor's statement reads.",
+   "callers": ["patient", "sponsor"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same agreement once."},
+    {"field": "subscriptionRef", "type": "string", "required": true, "why": "The plan asked for."},
+    {"field": "lineDetail", "type": "string", "required": true, "why": "amount-only or service-named, from packages/catalog/programmes.json sponsor.lineDetail: whether a line on the sponsor's statement names the service. Hers to choose."}
+   ],
+   "response": [
+    {"field": "stateCode", "type": "string", "required": true, "why": "awaiting-payment, or active when a voucher already covered the first month."},
+    {"field": "payableRef", "type": "string", "required": true, "why": "The first month, Money's own payable, which the sponsor pays through POST /v1/money/payments@2 or a voucher towards the plan."},
+    {"field": "lineDetail", "type": "string", "required": true, "why": "What she chose."}
+   ],
+   "refusals": [
+    {"id": "only-the-parent-agrees", "status": 403, "statement": "Only the person a plan is for agrees to it, from her own account. A sponsor pays and never agrees for her.", "why": "A sponsor is a caller of this route so that the refusal is said in these words rather than as a role the route does not take: paying is what a sponsor may do, and agreeing is not. A patient who is not the person the plan is for is refused the same way. No guardian authority is proven (docs/governance/INFORMATION-OFFICER.md D-10), so a guardian is not a caller."},
+    {"id": "subscription-not-found", "status": 404, "statement": "There is no plan of yours with that reference.", "why": "The answer never says whether a plan exists for somebody else."},
+    {"id": "line-detail-not-offered", "status": 422, "statement": "Choose one of the ways a line on the statement may read.", "why": "The choices are packages/catalog/programmes.json's sponsor.lineDetail."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "An agreement opens the first month's payable in Money's own ledger. The payment publishes payment.succeeded@1, and no other engine acts on the agreement itself.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/plan-subscriptions/{subscriptionRef}/accept@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/money/plan-subscriptions/{subscriptionRef}",
+   "version": 1,
+   "summary": "Read a plan as the person reading it may see it: its state and month, what it includes and has used, and what has happened on it, with what kind of care and which service only where the parent chose that. Never why, and never what was found.",
+   "callers": ["patient", "sponsor"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "subscriptionRef", "type": "string", "required": true, "why": "The plan."}
+   ],
+   "response": [
+    {"field": "stateCode", "type": "string", "required": true, "why": "From packages/catalog/mom-essential.json states."},
+    {"field": "planCode", "type": "string", "required": true, "why": "The tier in packages/catalog/mom-plans.json."},
+    {"field": "amountCents", "type": "integer", "required": true, "why": "The tier's monthly price, from the catalogue."},
+    {"field": "payableRef", "type": "string", "required": false, "why": "The first month's payable, once she has agreed. Absent before, because nothing is owed until she does."},
+    {"field": "startedOn", "type": "iso-date", "required": false, "why": "The day the first month was paid, which starts the plan. Absent before it started."},
+    {"field": "monthEndsOn", "type": "iso-date", "required": false, "why": "The last day of the plan month. Absent before it started."},
+    {"field": "lineDetail", "type": "string", "required": false, "why": "What she chose a sponsor's line to say. Absent before she agreed."},
+    {"field": "included", "type": "list", "required": true, "object": true, "why": "Each inclusion Money counts, how many a month brings and how many this month has used.", "fields": [
+     {"field": "inclusionCode", "type": "string", "required": true, "why": "An inclusion id from packages/catalog/mom-plans.json's tier."},
+     {"field": "allowed", "type": "integer", "required": true, "why": "How many a plan month brings, from packages/catalog/mom-essential.json."},
+     {"field": "used", "type": "integer", "required": true, "why": "How many this plan month has used."}
+    ]},
+    {"field": "lines", "type": "list", "required": true, "object": true, "why": "What has happened on the plan, oldest first: the day, and — for the parent, or for a sponsor when she chose service-named — what kind of care it was and which service. Never why, and never what was found.", "fields": [
+     {"field": "on", "type": "iso-date", "required": true, "why": "The day it happened."},
+     {"field": "kindCode", "type": "string", "required": true, "nullable": true, "why": "visit or collection, or null for a sponsor while she has chosen amount-only."},
+     {"field": "serviceId", "type": "string", "required": true, "nullable": true, "why": "The service in packages/catalog/services.json for a visit, or null for a collection and for a sponsor while she has chosen amount-only."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "subscription-not-found", "status": 404, "statement": "There is no plan of yours with that reference.", "why": "Only the person the plan is for and the sponsor who asked for it read it, and the answer never says whether it exists for anybody else."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'GET /v1/money/plan-subscriptions/{subscriptionRef}@1'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   }
  ]

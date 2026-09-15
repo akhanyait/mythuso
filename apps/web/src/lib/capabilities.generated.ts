@@ -2,7 +2,7 @@
 // Do not edit by hand — run `npm run capabilities`. The build fails if this file and its source
 // disagree, so an edit here is lost rather than merely wrong.
 //
-// The 21 capabilities as the web's first view reads them: each one's name, connection, state,
+// The 22 capabilities as the web's first view reads them: each one's name, connection, state,
 // notice, what blocks it and what its stand-in is and refuses, word for word from the contract. The rules, the
 // evidence, the surfaces, the permissions and the commentary are not written out, so a patient does not download
 // them to read her visits; the status page reads the rules through lib/capability-rules.ts.
@@ -376,6 +376,18 @@ export const capabilities: readonly FirstViewCapability[] = [
    "A signed data protection impact assessment covering health data from another company's store or cloud (docs/governance/DPIA-DRAFT.md is unsigned).",
    "A clinical reviewer who has read the wearable-readings consent scope, reading type by reading type.",
    "No HealthKit entitlement or Health Connect permission is declared, and neither platform's library is in either app: adding one changes how the iOS app is signed and what either phone asks."
+  ],
+  "simulation": null
+ },
+ {
+  "id": "ussd-booking",
+  "name": "Booking a visit by USSD",
+  "connected": false,
+  "state": "absent",
+  "notice": "No USSD code reaches MyThuso. No aggregator is contracted, so nothing dialled on a phone books anything.",
+  "blockedBy": [
+   "A USSD aggregator under contract, reaching the mobile networks and saying where a session is logged.",
+   "A USSD code assigned to MyThuso."
   ],
   "simulation": null
  }

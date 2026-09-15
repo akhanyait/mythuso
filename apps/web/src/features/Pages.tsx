@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, useState, type ReactNode } from 'react';
+import { Component, createContext, lazy, Suspense, useContext, useState, type ReactNode } from 'react';
 import { Activity, Ambulance, ArrowRight, ArrowUpRight, Ban, Bell, Bluetooth, BookOpen, CalendarClock, Check, ChevronRight, CircleHelp, Clock3, CreditCard, Download, Droplets, Eye, FileCheck, FileText, Globe, HandCoins, Heart, HeartHandshake, History, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, Navigation, NotebookPen, PenLine, Plus, RefreshCw, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Trash2, TriangleAlert, UserPlus, Users, Wallet, Zap } from 'lucide-react';
 import { Pill, SectionTitle, ServiceIcon } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
@@ -408,6 +408,11 @@ export function Family({open,navigate,members,invitations,onRevoke}:{open:(s:str
    borrowing the shared error copy's promise that nothing entered is lost. Offline, it offers nothing:
    there is nothing a button could fetch, and the shared offline sentence is true as written. */
 const MomPlansChunk = lazy(() => import('./MomPlans').then(m => ({ default: m.MomPlans })));
+/* Who in the household would ask for a parent's plan, and for whom. Worked out by App.tsx, which knows who each person
+   is to the account holder, and handed to the panel through context so the panel is still drawn as <MomPlansPanel/>,
+   the element the build holds this screen to when it checks that plan prices are read from the contracts. */
+export type PlanFamily = { sponsor: string; parents: readonly string[] };
+const PlanFamilyContext = createContext<PlanFamily | undefined>(undefined);
 class MomPlansBoundary extends Component<{ onFailed: () => void; children: ReactNode }, { failed: boolean }> {
  state = { failed: false };
  static getDerivedStateFromError() { return { failed: true }; }
@@ -422,6 +427,7 @@ const reopenCarePlans = () => {
  window.location.assign(window.location.pathname + '?' + search.toString());
 };
 function MomPlansPanel() {
+ const family = useContext(PlanFamilyContext);
  const [failed, setFailed] = useState(false);
  const offline = useOffline();
  if (failed && offline) return <StateBlock state="offline" subject="MyThuso for Mom">{null}</StateBlock>;
@@ -431,7 +437,7 @@ function MomPlansPanel() {
   <button className="secondary" onClick={reopenCarePlans}><RefreshCw size={15}/>Load it again</button>
  </div>;
  return <MomPlansBoundary onFailed={() => setFailed(true)}>
-  <Suspense fallback={<div className="panel mom-plan-pending"><Skeleton rows={3}/></div>}><MomPlansChunk/></Suspense>
+  <Suspense fallback={<div className="panel mom-plan-pending"><Skeleton rows={3}/></div>}><MomPlansChunk family={family}/></Suspense>
  </MomPlansBoundary>;
 }
 /* No plan here can be bought. That is why none of them has a primary button any more: a solid call
@@ -507,11 +513,11 @@ export function PlanDetail({name,navigate}:{name:string;navigate:(s:string)=>voi
    card is a fixed set of rows now — phase, name, description, price, action — and each row starts
    on the same line across all five. The heart tile is gone with them: it was the same glyph five
    times, which told a reader nothing except that somebody had a spare icon. */
-export function Plans({open}:{open:(s:string)=>void}) {return <><PageHeading eyebrow="THUSO ROUTINE" title="A healthier rhythm." description="Care that keeps showing up. For every chapter of life."/>
+export function Plans({open,family}:{open:(s:string)=>void;family?:PlanFamily}) {return <><PageHeading eyebrow="THUSO ROUTINE" title="A healthier rhythm." description="Care that keeps showing up. For every chapter of life."/>
  {/* Above the prices rather than under the last card: the figures are the thing on this screen a
      person would most reasonably take for something they can pay. */}
  <NotConnected of="payments"/>
- <MomPlansPanel/>
+ <PlanFamilyContext.Provider value={family}><MomPlansPanel/></PlanFamilyContext.Provider>
  <SectionTitle title="Other plans"/>
  <div className="catalog-grid plan-grid">{plans.map(([n,p,d,phase])=><div className="panel plan-card" key={n}><Pill tone="plain">{`PHASE ${phase}`}</Pill><h2>{n}</h2><p>{d}</p><strong className="plan-price">{p}<small>{p==='Custom'?' pricing':' / month'}</small></strong><button className="secondary" onClick={()=>open(`Care plan: ${n}`)}>Explore plan<ArrowRight size={17}/></button></div>)}</div></>}
 /* Seven rights, seven identical shields. The icon was the same on every row, so it carried no

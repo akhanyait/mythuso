@@ -57,6 +57,19 @@ struct MomPlansView: View {
                     }
                 }
                 section("Sharing the cost") { muted(Plans.mom.splittingStatement) }
+                /* The way into the Essential journey, under everything the plan says it will not do, so the refusals
+                   are read first. A preview: it charges nothing, and its own screen says so. */
+                NavigationLink { MomEssentialView() } label: {
+                    Text(MomEssential.fill(MomEssentialData.Words.open, ["plan": MomEssential.planName]))
+                        .font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12)
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoTheme.charcoal, lineWidth: 1))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("mom-essential-open")
             }
             .padding(.vertical, ThusoSpacing.space16)
         }

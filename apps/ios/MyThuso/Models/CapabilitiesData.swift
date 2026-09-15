@@ -2,7 +2,7 @@
 // Do not edit by hand — run `npm run capabilities`. The build fails if this file and its source
 // disagree, so an edit here is lost rather than merely wrong.
 //
-// The 21 things MyThuso either does or only draws, and the sentence each one shows while it
+// The 22 things MyThuso either does or only draws, and the sentence each one shows while it
 // is not connected. No screen writes its own version of that sentence: it names a capability and
 // the sentence is rendered from here, word for word, or it is not rendered at all. When an
 // integration lands, one boolean changes in the contract and the notice disappears from every
@@ -351,6 +351,18 @@ extension Capabilities {
                    state: "absent",
                    simulation: nil,
                    surfaces: ["wearable-link", "passport-devices"],
+                   neverSoften: nil,
+                   requiresPermissions: []),
+        Capability(id: "ussd-booking", name: "Booking a visit by USSD", connected: false,
+                   evidence: nil,
+                   blockedBy: [
+                       "A USSD aggregator under contract, reaching the mobile networks and saying where a session is logged.",
+                       "A USSD code assigned to MyThuso."
+                   ],
+                   notice: "No USSD code reaches MyThuso. No aggregator is contracted, so nothing dialled on a phone books anything.",
+                   state: "absent",
+                   simulation: nil,
+                   surfaces: ["booking"],
                    neverSoften: nil,
                    requiresPermissions: [])
     ]

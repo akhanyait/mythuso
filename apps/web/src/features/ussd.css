@@ -1,0 +1,33 @@
+/* ---- Booking by USSD -------------------------------------------------------------------------
+   The simulator is a panel with the handset's text in a bordered box and the reply beneath it. The
+   box is the one thing on the screen a reader is looking at, so it carries the only ground that is
+   not white, and the rest is ordinary form. No drawing of a phone: it would not reflow at 320px, and
+   a bezel is decoration that says "real" louder than the notice above it says "not".
+
+   The handset text keeps its line breaks, because a USSD menu is lines, and wraps inside the box
+   rather than scrolling sideways. Every size is on the type scale and every gap on the spacing scale. */
+.ussd{display:grid;gap:var(--space-16);padding:var(--space-24);margin:0 0 var(--space-32)}
+.ussd-head h2{font-size:20px;line-height:1.3;margin:0;color:var(--ink)}
+.ussd-head p{font-size:15px;line-height:1.6;color:var(--body);margin:var(--space-8) 0 0;max-width:68ch}
+.ussd-code{font-size:14px;line-height:1.5;color:var(--body);margin:0}
+
+.ussd-body{display:grid;gap:var(--space-16)}
+.ussd-handset{display:grid;gap:var(--space-8);align-content:start;padding:var(--space-16);background:var(--canvas);border:1px solid var(--line);border-radius:var(--r-control)}
+.ussd-screen{margin:0;font-size:16px;line-height:1.5;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere;min-height:8em}
+.ussd-idle{margin:0;font-size:15px;line-height:1.5;color:var(--body)}
+.ussd-count{margin:0;font-size:13px;line-height:1.4;color:var(--body);font-variant-numeric:tabular-nums}
+
+.ussd-reply{display:grid;gap:var(--space-8);align-content:start}
+.ussd-reply label{font-size:14px;font-weight:600;color:var(--ink)}
+.ussd-reply input{min-height:44px;font-size:16px}
+.ussd-note{margin:0;font-size:13px;line-height:1.5;color:var(--body)}
+.ussd-actions{display:flex;flex-wrap:wrap;gap:var(--space-8);margin-top:var(--space-4)}
+.ussd-actions button{min-height:44px}
+.ussd-booked{margin:0;font-size:15px;line-height:1.5;color:var(--ink);padding-left:var(--space-12);border-left:2px solid var(--indigo)}
+
+@media(max-width:599px){
+ .ussd{padding:var(--space-16)}
+}
+@media(min-width:900px){
+ .ussd-body{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);column-gap:var(--space-24)}
+}

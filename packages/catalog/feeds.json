@@ -2295,6 +2295,142 @@
     "section72": "Where a partner's cloud would process a patient's wearable data, and whether that transfer is lawful, depends on a recipient nobody has named. Not determined.",
     "determined": false
    }
+  },
+  {
+   "id": "ussd-session",
+   "name": "A reply in a USSD booking session",
+   "capabilities": [
+    "ussd-booking"
+   ],
+   "supplier": "A USSD aggregator under contract, which receives sessions from the mobile network operators and forwards each reply. None is contracted, and no USSD code is assigned.",
+   "route": "POST /feeds/ussd-session",
+   "arrives": "One reply in a USSD session: which session, the number it was dialled from, and the characters typed at the last screen, which are read once as a choice from packages/catalog/ussd.json and never kept.",
+   "derivedFrom": [
+    "packages/catalog/ussd.json",
+    "packages/catalog/booking.json",
+    "packages/engines/src/access/domain/ussd.ts"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "ussd-booking",
+    "sample": [
+     "apps/web/src/features/UssdSimulator.tsx"
+    ],
+    "unchanged": "No session arrives. The web preview's USSD simulator walks the same menu through the same booking rules, in the tab's memory, and says it is a preview. That is correct and this file does not change it."
+   },
+   "accepts": [
+    {
+     "field": "sessionReference",
+     "type": "string",
+     "required": true,
+     "why": "The aggregator's reference for the session, so a reply is joined to the screen it answers and a reply sent twice on a dropped signal books once."
+    },
+    {
+     "field": "msisdn",
+     "type": "string",
+     "required": true,
+     "why": "The number the session was dialled from, which identity resolves to an account and nothing else keeps. A USSD session has no sign-in, so this is how the menu knows whose booking it is — and why booking for somebody else is done in the app instead."
+    },
+    {
+     "field": "reply",
+     "type": "string",
+     "required": true,
+     "why": "What was typed at the last screen. Read once as one of that screen's choices and dropped; a reply that is not a choice is refused in packages/catalog/ussd.json's words and never logged."
+    },
+    {
+     "field": "at",
+     "type": "instant",
+     "required": true,
+     "why": "When the network received the reply, so a reply after Access's setting ussd-session-timeout-seconds is refused rather than used to finish a booking somebody walked away from."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "an-aggregator-is-contracted",
+     "must": "A USSD aggregator is contracted, and the contract names the networks it reaches and where a session's log is kept and for how long.",
+     "why": "A USSD session is readable by the aggregator and the network operator. Who they are and where they keep a session is the first thing a person is owed before a reply they typed sits in somebody's log.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "replies-are-not-kept",
+     "must": "The aggregator agrees in writing that replies are not kept beyond delivering the session, and that nothing in a session log is used for anything else.",
+     "why": "A reply is usually a digit. The one that is not — a reason for a visit typed despite the menu, an identity number, a card number — is the one that matters, and it is refused here only after it has already passed through the aggregator.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-code-is-assigned",
+     "must": "A USSD code is assigned to MyThuso and written into packages/catalog/ussd.json, which holds none today.",
+     "why": "A code advertised before it is assigned is a code a patient dials and reaches somebody else.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "reasonForVisit",
+     "refusal": "A USSD session may not carry why somebody needs a visit.",
+     "why": "The session is not encrypted and the network operator sees it. A reason for a visit is special personal information, and the menu never asks for one; a payload that carries one has been built to ask.",
+     "also": [
+      "reason",
+      "symptoms",
+      "complaint",
+      "condition",
+      "diagnosis",
+      "notes"
+     ]
+    },
+    {
+     "field": "saIdNumber",
+     "refusal": "A USSD session may not carry a South African identity number.",
+     "why": "The session is found by the number it was dialled from. An identity number in an aggregator's payload identifies nothing this door needs, and cannot be changed when it leaks.",
+     "also": [
+      "identityNumber",
+      "nationalId",
+      "idNo",
+      "passportNumber"
+     ]
+    },
+    {
+     "field": "cardNumber",
+     "refusal": "A USSD session may not carry a card number.",
+     "why": "No payment is taken on the menu, and MyThuso never holds a card number. A card number in a USSD payload is a card number in an aggregator's log.",
+     "also": [
+      "pan",
+      "cardNo",
+      "cvv",
+      "expiryDate"
+     ]
+    },
+    {
+     "field": "sessionTranscript",
+     "refusal": "A USSD session may not carry the session's history.",
+     "why": "Every screen and every reply of a session, sent together, is the session's content in a supplier's payload. The door takes one reply at a time and keeps none of them.",
+     "also": [
+      "transcript",
+      "replies",
+      "history",
+      "screens"
+     ]
+    },
+    {
+     "field": "cellLocation",
+     "refusal": "A USSD session may not carry where the phone is.",
+     "why": "The cell a phone is on is a location precise enough to find a house in a small town. The suburb of a visit is chosen from the menu, by name.",
+     "also": [
+      "cellId",
+      "location",
+      "coordinates",
+      "latitude",
+      "longitude"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "A USSD aggregator becomes an operator under POPIA section 21 on signature, and each mobile network operator carries the session under its own licence. Whether any of them keeps a session log outside South Africa is not determined.",
+    "determined": false
+   }
   }
  ]
 }

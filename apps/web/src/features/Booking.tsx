@@ -27,7 +27,8 @@ import type { PaymentView } from '../lib/money';
 import { HOME_SUBURB, nurseOfVisit } from '../lib/arrival';
 import { confirmBooking, emptyLedger, fallbackRuleOf, offeredSlots, personOptions, requestBooking, type FallbackCode, type Hold, type PersonChoice } from '../../../../packages/engines/src/access/domain/booking.ts';
 import { badge, candidatesFor, fill, person as personStep, review, time, zoneInAddress } from '../lib/booking';
-import { accessSettingsNow, careSettingsNow } from '../lib/settings';
+import { accessSettingsNow, careSettingsNow, voucherExpiryYearsNow } from '../lib/settings';
+import { VoucherAtCheckout, voucherWords } from './VoucherAtCheckout';
 import { subjectRefOf } from '../lib/names';
 import { namedNurseOutcome } from '../lib/care-named-nurse';
 import { instantAt } from '../../../../packages/engines/src/care/domain/clock.ts';
@@ -119,6 +120,10 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
  const ledger = useRef<Money | null>(null);
  const [paid, setPaid] = useState<PaymentView | null>(null);
  const [payAttempt, setPayAttempt] = useState(0);
+ /* What a voucher at the review step left owed on this visit, or null when no voucher was used. Nought means the
+    voucher covered the visit, and the booking takes no payment for it. */
+ const [voucherOwed, setVoucherOwed] = useState<number | null>(null);
+ const [coveredByVoucher, setCoveredByVoucher] = useState(false);
  const ends = endTime(slot, service.duration);
  const scheduled = kind === 'scheduled';
 
@@ -215,7 +220,9 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
    /* Fetched on the first press and kept for the life of the dialog: one ledger per booking, and none
       at all for somebody who only looked. */
    const { bookingLedger, payForVisit } = await import('../lib/money');
-   ledger.current ??= bookingLedger();
+   ledger.current ??= bookingLedger(voucherExpiryYearsNow);
+   /* A visit a voucher covered owes nothing, so no payment is taken: the ledger would refuse one as already paid. */
+   if (voucherOwed === 0 && ledger.current.owed(reference) === 0) { setPaid(null); setCoveredByVoucher(true); setDone({ ...visit, booking }); return; }
    settle(payForVisit(ledger.current, reference, service.id, method.id, attempt), { ...visit, booking });
   } finally {
    setPaying(false);
@@ -272,6 +279,11 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
     <div className="review-line"><span>{paid.method === 'cash-otp' ? 'To be paid by' : 'Paid by'}</span><strong>{done.payment}</strong></div>
     <div className="review-line"><span>Visit reference</span><strong>{reference}</strong></div>
    </> : null}
+   {coveredByVoucher && <>
+    <SectionTitle title="What was paid"/>
+    <p className="helper pay-words">{voucherWords.covered}</p>
+    <div className="review-line"><span>Visit reference</span><strong>{reference}</strong></div>
+   </>}
    <NotConnected of="payments"/>
    {/* A visit asked for as soon as possible from whoever is nearest names nobody. The status beneath says
        nobody is looking for a nurse, and a name above that sentence was the suburb's roster answer
@@ -415,6 +427,8 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
    {chosenNurse && <ClinicianProfile subject={chosenNurse.roster.subject} name={chosenNurse.name} role={chosenNurse.role} reference={chosenNurse.roster.reference} detail={fill(personStep.worksIn, { zone: chosenNurse.area })}/>}
    {/* The method by the contract's name. No card fragment: the payment-result door refuses one by name. */}
    <div className="pay-row"><span className="service-icon">{method.id === 'cash-otp' ? <Banknote size={20}/> : <CreditCard size={20}/>}</span><span>{method.name}</span><button className="text-button" onClick={() => setStep(4)}>Change</button></div>
+   {/* A voucher pays towards the price above, before the gate and the button, so what is owed is known when somebody commits. */}
+   <VoucherAtCheckout reference={reference} serviceId={service.id} ledger={ledger} onOwed={setVoucherOwed}/>
    {/* A real gate on a real step: the address and the person are what a nurse is sent to. */}
    <label className="checkbox"><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}/><span>The address and the person above are correct, and I agree to the visit terms.</span></label>
    {/* A refused booking and a declined payment, in the words a person reads: the route's refusal, or the

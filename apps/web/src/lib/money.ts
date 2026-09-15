@@ -53,8 +53,9 @@ export type PaymentView = Refused | {
  cashCode: string | null;
 };
 
-/** A ledger for one booking. See the header for why it is not one per tab. */
-export const bookingLedger = (): Money => createMoney({ simulation: true });
+/** A ledger for one booking. See the header for why it is not one per tab. A voucher's expiry is handed in by the
+    screen, from apps/web/src/lib/settings.ts, for the reason the doctor's fee is: this module carries no settings code. */
+export const bookingLedger = (voucherExpiryYears?: () => number): Money => createMoney({ simulation: true, ...(voucherExpiryYears ? { voucherExpiryYears } : {}) });
 
 /**
  * Pay for one visit. The payable's reference is the visit's own, which is also what the simulated
@@ -63,8 +64,10 @@ export const bookingLedger = (): Money => createMoney({ simulation: true });
  */
 export function payForVisit(ledger: Money, reference: string, serviceId: string, method: MethodId, attempt: number): PaymentView {
  const payable = ledger.openVisitPayable({ payableRef: reference, serviceId, subjectRef: PREVIEW_PAYER });
+ /* What is still owed, which is the catalogue's price less anything a voucher paid towards it at checkout. */
+ const owed = ledger.owed(payable.payableRef) ?? payable.amountCents ?? 0;
  const answer = ledger.pay({ role: 'patient', subjectRef: PREVIEW_PAYER },
-  { idempotencyKey: `${reference}:${method}:${attempt}`, payableRef: reference, method, amountCents: payable.amountCents });
+  { idempotencyKey: `${reference}:${method}:${attempt}`, payableRef: reference, method, amountCents: owed });
  if (isRefusal(answer)) return { refused: answer.statement };
  const state = stateOf(answer.stateCode);
  const cashWaiting = answer.method === 'cash-otp' && answer.stateCode === 'pending';
