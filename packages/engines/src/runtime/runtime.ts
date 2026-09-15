@@ -33,6 +33,7 @@ import { BindingRefused, BusRefused, recipientsOf, refusalFrom, validatePublish,
 import { createClock } from './clock.ts';
 import { loadRuntimeContract, repositoryRoot, routeKeyOf, type ContractRoute, type Field, type Refusal } from './contract.ts';
 import { openDatabase, openEngineStore, requestDigest } from './store.ts';
+import { StoreRefused, storeFacade } from './facade.ts';
 import { createTrail } from './trail.ts';
 import type { BusEvent, Caller, Clock, EngineContext, EngineModule, RouteHandler, RouteKey, RuntimeAnswer, SubscriptionHandler, TrailEntry, TrailReader } from './types.ts';
 
@@ -98,6 +99,8 @@ export function createRuntime(options: RuntimeOptions): Runtime {
  const trail = createTrail(openDatabase(directory, 'bus-trail'), clock);
  const stores = new Map<string, DatabaseSync>();
  for (const module of modules.values()) stores.set(module.id, openEngineStore(directory, module.id, module.store.schema));
+ /* The handle stays here. A handler holds only the facade, which reads every statement before it runs. */
+ const facades = new Map([...stores].map(([engine, db]) => [engine, storeFacade(db, runtimeRefusal)]));
 
  const faults: Fault[] = [];
  const queue: { event: BusEvent; engine: string }[] = [];
@@ -126,7 +129,7 @@ export function createRuntime(options: RuntimeOptions): Runtime {
   const actor = caller.role.startsWith('engine:') ? 'system' : caller.role;
   return {
    engine, caller, purpose, idempotencyKey,
-   store: stores.get(engine)!,
+   store: facades.get(engine)!,
    clock: { now: () => clock.now(), iso: () => clock.iso() },
    publish(key, payload, publishOptions) {
     try {
@@ -227,6 +230,9 @@ export function createRuntime(options: RuntimeOptions): Runtime {
    if (problem) throw new Error(problem);
    const result: RuntimeAnswer = { status: 200, body: answer.ok, answeredBy: 'engine' };
    if (replayKey) db.prepare('INSERT INTO _runtime_replays (route, role, caller_ref, idempotency_key, request_digest, status, body) VALUES (?, ?, ?, ?, ?, ?, ?)').run(route.key, caller.role, callerRef, replayKey, digest, result.status, JSON.stringify(result.body));
+   /* The facade refuses every statement that could end the transaction; this is the second lock on
+      the same door, so a handler that found a way round the first still cannot commit half of itself. */
+   if (!db.isTransaction) throw new Error('The transaction the binder began was no longer open when the work finished, so nothing it did is kept.');
    db.exec('COMMIT');
    flush(outbox);
    return result;
@@ -242,6 +248,9 @@ export function createRuntime(options: RuntimeOptions): Runtime {
   db.exec('BEGIN');
   try {
    work(context(engine, caller, purpose, idempotencyKey, outbox));
+   /* The facade refuses every statement that could end the transaction; this is the second lock on
+      the same door, so a handler that found a way round the first still cannot commit half of itself. */
+   if (!db.isTransaction) throw new Error('The transaction the binder began was no longer open when the work finished, so nothing it did is kept.');
    db.exec('COMMIT');
    flush(outbox);
    return true;
@@ -267,7 +276,7 @@ export function createRuntime(options: RuntimeOptions): Runtime {
     const subscriber = (subscribers.get(key) ?? []).find(s => s.engine === engine)!;
     const delivered = run(engine, `deliver ${key}`, ctx => subscriber.handler(event, ctx), { role: `engine:${event.owner}`, ref: null }, event.purposeOfUse, event.eventId);
     const last = faults.at(-1);
-    trail.append(delivered ? 'delivered' : 'delivery-failed', { eventId: event.eventId, eventKey: key, engine, body: delivered ? {} : { error: last?.error instanceof BusRefused ? last.error.refusal : (last?.error as Error)?.name ?? 'Error' } });
+    trail.append(delivered ? 'delivered' : 'delivery-failed', { eventId: event.eventId, eventKey: key, engine, body: delivered ? {} : { error: last?.error instanceof BusRefused || last?.error instanceof StoreRefused ? last.error.refusal : (last?.error as Error)?.name ?? 'Error' } });
    }
   } finally {
    draining = false;
