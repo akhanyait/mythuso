@@ -1645,7 +1645,18 @@ for(const {source,command,files} of generated) {
   if (!found) throw new Error(`packages/catalog/events.json has lost the refusal "${id}".`);
   return found;
  };
- if (!moneyHears || moneyHears.engine !== 'money' || !moneyHears.why?.trim() || !Array.isArray(moneyHears.events) || !Array.isArray(moneyHears.neverReferences) || !moneyHears.neverReferencesSuffix) throw new Error('packages/catalog/events.json no longer states what Money may hear.');
+ /* An allow-list of references, not a deny-list of clinical ones. The fourth review found the deny-list
+    let review.billable give Money reviewRef and would have let a new assessmentRef through: a list of
+    what may not reach Money is always one name short. So every reference-shaped field — one ending in a
+    store or contract suffix — on an event Money hears or publishes must be on mayReference with the
+    reason Money needs it, and an entry nothing uses is refused as a permission waiting to be misused. */
+ if (!moneyHears || moneyHears.engine !== 'money' || !moneyHears.why?.trim() || !Array.isArray(moneyHears.events) || !Array.isArray(moneyHears.mayReference) || moneyHears.neverReferences !== undefined || moneyHears.neverReferencesSuffix !== undefined) throw new Error('packages/catalog/events.json no longer states what Money may hear and which references it may hold, as an allow-list.');
+ const moneyMayReference = new Map(moneyHears.mayReference.map(x => {
+  if (!x.field?.trim() || !x.why?.trim()) throw new Error(`packages/catalog/events.json lets Money hold the reference ${JSON.stringify(x)} without saying why.`);
+  return [x.field, x];
+ }));
+ const referenceShaped = field => [...apiContract.conventions.references.storeSuffixes, ...apiContract.conventions.references.contractSuffixes].some(s => field.endsWith(s));
+ const moneyReferencesUsed = new Set();
  const moneyMay = new Map(moneyHears.events.map(x => {
   if (!x.type || !x.why?.trim()) throw new Error(`packages/catalog/events.json lets Money hear ${JSON.stringify(x)} without saying why.`);
   return [x.type, x];
@@ -1655,9 +1666,12 @@ for(const {source,command,files} of generated) {
   const hears = e.subscribers.includes(moneyHears.engine), publishes = e.owner === moneyHears.engine;
   if (!hears && !publishes) continue;
   if (hears && !moneyMay.has(e.type)) moneyFail(`${e.type}@${e.version} is subscribed to by money and is not among the events moneyHears lets it hear.`);
-  const clinicalReference = e.payload.find(f => moneyHears.neverReferences.includes(f.field) || f.field.endsWith(moneyHears.neverReferencesSuffix));
-  if (clinicalReference) moneyFail(`${e.type}@${e.version} ${hears ? 'reaches' : 'is published by'} money carrying "${clinicalReference.field}".`);
+  for (const f of e.payload.filter(f => referenceShaped(f.field))) {
+   if (!moneyMayReference.has(f.field)) moneyFail(`${e.type}@${e.version} ${hears ? 'reaches' : 'is published by'} money carrying "${f.field}", which moneyHears.mayReference does not list with a reason Money needs it.`);
+   moneyReferencesUsed.add(f.field);
+  }
  }
+ for (const field of moneyMayReference.keys()) if (!moneyReferencesUsed.has(field)) throw new Error(`moneyHears.mayReference lets Money hold ${field}, which no event Money hears or publishes carries. A permission nobody uses is one somebody uses later without reading it.`);
  for (const type of moneyMay.keys()) if (!apiEvents.some(e => !e.withdrawn && e.type === type && e.subscribers.includes(moneyHears.engine))) throw new Error(`moneyHears lets Money hear ${type}, which Money does not subscribe to. A permission nobody uses is one somebody uses later without reading it.`);
 
  /* Capability quotes, against the documents themselves when they are in this checkout. They are
@@ -6094,6 +6108,16 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
    }
   }
  }
+
+ /* 3b. A stored reply belongs to one caller and one request. The Money lead found replays keyed by
+        route, role and key, which handed one patient's payment result to another who chose the same
+        key and answered a changed request with the first result. The replay table's key names the
+        caller's reference, the binder compares a digest of the declared fields, and a mismatch is
+        refused with the shared refusal rather than replayed. */
+ const replayStore = read('packages/engines/src/runtime/store.ts');
+ if (!/PRIMARY KEY \(route, role, caller_ref, idempotency_key\)/.test(replayStore) || !/request_digest TEXT NOT NULL/.test(replayStore)) throw new Error('packages/engines/src/runtime/store.ts no longer keys stored replies by the caller\'s reference and keeps the request digest beside each. A reply keyed by role alone is one person\'s answer waiting to be handed to another.');
+ if (!/caller_ref = \?/.test(runtimeSource) || !/row\.request_digest !== digest\) return render\(shared\('idempotency-key-reused'\)\)/.test(runtimeSource) || !/runtimeRefusal\('caller-unidentified'\)/.test(runtimeSource)) throw new Error('packages/engines/src/runtime/runtime.ts no longer looks a replay up by the caller\'s reference, refuses an unidentified caller, and refuses a reused key whose request differs. A replay that skips any of the three answers somebody with an answer that was not theirs.');
+ if (!JSON.parse(read('packages/catalog/apis.json')).sharedRefusals.some(r => r.id === 'idempotency-key-reused' && r.status === 409)) throw new Error('packages/catalog/apis.json has lost the shared refusal idempotency-key-reused, so a reused key has no sentence to be refused with.');
 
  /* 4. A route built on the runtime names a handler in its own engine's directory that registers it. */
  const { routes: routesForRuntime } = loadApis();
