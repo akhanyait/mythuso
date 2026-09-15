@@ -9675,7 +9675,10 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  /* 2. No HL7 library in any manifest. */
  const libraryPromise = `${hl7Contract.parser.why}`;
  if (hl7Contract.parser.handWritten !== true || hl7Contract.parser.library !== null) hl7Fail(libraryPromise, 'packages/catalog/hl7v2-inbound.json no longer says the parser is hand-written with no library.');
- const HL7_LIBRARY = /(^|[^a-z0-9])(hl7|nhapi|mllp|mirth|hapi-hl7|hl7apy|ca\.uhn\.hapi\.(?!fhir))/i;
+ /* HAPI's HL7 v2 artefacts are ca.uhn.hapi:hapi-base and hapi-structures-v2x, and its FHIR ones ca.uhn.hapi.fhir, which
+    the open-source register's own dependency check refuses. The first version of this pattern knew only a dot after
+    hapi, so a real HAPI HL7 v2 dependency passed it; the proof that broke Android's Gradle build found that. */
+ const HL7_LIBRARY = /(^|[^a-z0-9])(hl7|nhapi|mllp|mirth|hl7apy|ca\.uhn\.hapi(?!\.fhir)|hapi-(base|structures))/i;
  const hl7Manifests = ['package.json', ...['apps', 'packages'].flatMap(dir => readdirSync(dir).map(name => `${dir}/${name}/package.json`)),
   'apps/android/app/build.gradle.kts', 'apps/android/build.gradle.kts', 'apps/android/settings.gradle.kts', 'apps/android/gradle/libs.versions.toml', 'apps/ios/MyThuso.xcodeproj/project.pbxproj'].filter(existsSync);
  for (const manifest of hl7Manifests) {
