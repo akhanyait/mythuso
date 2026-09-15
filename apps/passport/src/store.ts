@@ -86,6 +86,31 @@ CREATE TABLE IF NOT EXISTS breakglass_notes (
  sealed_body BLOB NOT NULL,
  created_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS grant_terms (
+ grant_id TEXT PRIMARY KEY,
+ subject TEXT NOT NULL,
+ sealed_body BLOB NOT NULL,
+ created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS share_links (
+ id TEXT PRIMARY KEY,
+ subject TEXT NOT NULL,
+ grant_id TEXT NOT NULL,
+ kind TEXT NOT NULL,
+ secret_hash TEXT NOT NULL,
+ sealed_body BLOB NOT NULL,
+ expires_at INTEGER NOT NULL,
+ uses_allowed INTEGER NOT NULL,
+ settings_version INTEGER NOT NULL,
+ revoked_at INTEGER,
+ created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS share_link_uses (
+ link_id TEXT NOT NULL,
+ use_key TEXT NOT NULL,
+ used_at INTEGER NOT NULL,
+ PRIMARY KEY (link_id, use_key)
+);
 CREATE TABLE IF NOT EXISTS audit_events (
  seq INTEGER PRIMARY KEY,
  at INTEGER NOT NULL,
@@ -123,6 +148,10 @@ export type ResourceRow = {
 export type ProvenanceRow = { id: string; subject: string; target: string; key_scope: string; sealed_body: Uint8Array; recorded_at: number };
 export type GrantRow = { id: string; subject: string; expires_at: number; revoked_at: number | null; artefact_hash: string; created_at: number };
 export type SessionRow = { id: string; subject: string; expires_at: number; revoked_at: number | null; created_at: number };
+export type LinkRow = {
+ id: string; subject: string; grant_id: string; kind: string; secret_hash: string; sealed_body: Uint8Array;
+ expires_at: number; uses_allowed: number; settings_version: number; revoked_at: number | null; created_at: number;
+};
 
 const rows = <T>(value: unknown): T[] => value as T[];
 const row = <T>(value: unknown): T | null => (value as T | undefined) ?? null;
@@ -195,6 +224,40 @@ export class PassportStore {
  }
  revokeGrant(id: string, at: number): void {
   this.#db.prepare('UPDATE grants SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL').run(at, id);
+ }
+
+ /* A grant's terms — its recipient, scope, purpose and sealed tick — sealed under the subject's own key, so a
+    share link can be held to the grant it rides on without the scope, which can name a sealed category, sitting
+    in the clear. Written once when the grant is made. */
+ putGrantTerms(grantId: string, subject: string, sealed: Buffer, at: number): void {
+  this.#db.prepare('INSERT INTO grant_terms (grant_id, subject, sealed_body, created_at) VALUES (?, ?, ?, ?)').run(grantId, subject, sealed, at);
+ }
+ grantTerms(grantId: string): { subject: string; sealed_body: Uint8Array } | null {
+  return row(this.#db.prepare('SELECT subject, sealed_body FROM grant_terms WHERE grant_id = ?').get(grantId));
+ }
+
+ /* A share link: its kind, end, uses and settings version in the clear, because the gateway refuses on them
+    before opening anything; its terms sealed like a grant's; its secret only as a digest. The one UPDATE is a
+    revocation, which is the patient ending something, and is audited. Uses are rows, one per idempotency key,
+    so a retry is never a second use and nothing is counted by editing a number. */
+ putLink(link: LinkRow): void {
+  this.#db.prepare('INSERT INTO share_links (id, subject, grant_id, kind, secret_hash, sealed_body, expires_at, uses_allowed, settings_version, revoked_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)')
+   .run(link.id, link.subject, link.grant_id, link.kind, link.secret_hash, link.sealed_body, link.expires_at, link.uses_allowed, link.settings_version, link.created_at);
+ }
+ link(id: string): LinkRow | null {
+  return row<LinkRow>(this.#db.prepare('SELECT * FROM share_links WHERE id = ?').get(id));
+ }
+ revokeLink(id: string, at: number): void {
+  this.#db.prepare('UPDATE share_links SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL').run(at, id);
+ }
+ putLinkUse(linkId: string, useKey: string, at: number): void {
+  this.#db.prepare('INSERT INTO share_link_uses (link_id, use_key, used_at) VALUES (?, ?, ?)').run(linkId, useKey, at);
+ }
+ linkUseCounted(linkId: string, useKey: string): boolean {
+  return row(this.#db.prepare('SELECT use_key FROM share_link_uses WHERE link_id = ? AND use_key = ?').get(linkId, useKey)) !== null;
+ }
+ linkUseCount(linkId: string): number {
+  return (this.#db.prepare('SELECT COUNT(*) AS uses FROM share_link_uses WHERE link_id = ?').get(linkId) as { uses: number }).uses;
  }
 
  putBreakGlassNote(auditSeq: number, subject: string, sealed: Buffer, at: number): void {
