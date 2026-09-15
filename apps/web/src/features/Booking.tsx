@@ -19,7 +19,11 @@ import { mayCancel, reasons, refusalById, reschedule, stateById, stateOf, window
    roughly one attempt in five is declined, because a booking flow that has only ever seen an
    authorisation has no screen for the other answer. */
 import { visitReference } from '../lib/simulation';
-import { bookingLedger, methodByName, notOffered, payForVisit, visitMethods, type PaymentView } from '../lib/money';
+/* Only the ways to pay are on this screen's first load. The ledger that takes the payment reads the API,
+   event and plan contracts, and it is fetched when somebody presses Confirm — see `confirm` below. */
+import { methodByName, notOffered, visitMethods } from '../lib/money-methods';
+import type { Money } from '../../../../packages/engines/src/money/domain/ledger.ts';
+import type { PaymentView } from '../lib/money';
 import { areaOf, HOME_SUBURB, nurseFor } from '../lib/arrival';
 import { offersFor } from '../lib/roster';
 import { simulationOf } from '../lib/capabilities';
@@ -79,7 +83,7 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
     booked until money is authorised or cash is owed, and the screen has to be able to say that. The
     ledger is this booking's own and lives as long as the dialog, which is the whole of what the
     preview keeps. */
- const ledger = useMemo(() => bookingLedger(), []);
+ const ledger = useRef<Money | null>(null);
  const [paid, setPaid] = useState<PaymentView | null>(null);
  const [payAttempt, setPayAttempt] = useState(0);
  const ends = endTime(slot, service.duration);
@@ -112,11 +116,15 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
     which is more honest than booking it as though nothing were. */
  const method = methodByName(payment) ?? visitMethods[0];
  const reference = visitReference(visit);
- const confirm = () => {
+ const confirm = async () => {
   if (offline) return;
   const attempt = payAttempt + 1;
   setPayAttempt(attempt);
-  const result = payForVisit(ledger, reference, service.id, method.id, attempt);
+  /* Fetched on the first press and kept for the life of the dialog: one ledger per booking, and none
+     at all for somebody who only looked. */
+  const { bookingLedger, payForVisit } = await import('../lib/money');
+  ledger.current ??= bookingLedger();
+  const result = payForVisit(ledger.current, reference, service.id, method.id, attempt);
   setPaid(result);
   /* Booked on an authorisation, or on cash waiting for its code. A visit confirmed over a declined
      payment is the one outcome a booking screen must not produce: a nurse dispatched against nothing. */

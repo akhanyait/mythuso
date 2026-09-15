@@ -165,6 +165,11 @@ function Catalogue() {
  const priced = (s: Service) => ({ ...s, price: prices[s.id] ?? s.price });
  const rows = services.map(priced);
  const thin = rows.filter(s => platformMargin(s) < 40);
+ /* The nurse's share is each service's own figure in the catalogue, not a rate typed here. The launch
+    services all pay the same share; some later ones pay less, and the caption says which. */
+ const shareOf = (s: { nurseShare: number; price: number }) => Math.round((s.nurseShare / s.price) * 100);
+ const launchShares = [...new Set(services.filter(s => s.phase === 1).map(shareOf))];
+ const lowest = [...services].sort((a, b) => a.nurseShare / a.price - b.nurseShare / b.price)[0]!;
  return <>
   <div className="c-figures"><Metrics>
    <Kpi label="Services" value={String(services.length)} note={`${services.filter(s => s.phase === 1).length} live, the rest by phase`}/>
@@ -173,7 +178,7 @@ function Catalogue() {
   </Metrics></div>
   <div className="panel table-scroll">
    <table className="result-table admin-table">
-    <caption>Change a price to see what the platform is left with. Nurse share follows the proposal's 75%.</caption>
+    <caption>Change a price to see what the platform is left with. The nurse’s share is each service’s own figure in the catalogue: {launchShares.join(' or ')}% of the price for every launch service, and as little as {shareOf(lowest)}% for {lowest.name}.</caption>
     <thead><tr><th scope="col">Service</th><th scope="col">Phase</th><th scope="col">Price</th><th scope="col">Nurse</th><th scope="col">Platform keeps</th></tr></thead>
     <tbody>{rows.map(s => <tr key={s.id} className={platformMargin(s) < 40 ? 'flagged-row' : ''}>
      <th scope="row">{s.name}</th>

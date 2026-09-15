@@ -164,6 +164,9 @@ enum ApisData {
     static let postDevicesKitsByKitRefLoss = Route(id: "postDevicesKitsByKitRefLoss", method: "POST", path: "/v1/devices/kits/{kitRef}/loss", mountedPath: "/v1/devices/kits/{kitRef}/loss", version: 1, engine: "devices", callers: ["operator", "nurse"], purpose: ["audit"], idempotent: false, status: "proposed")
     static let postMoneyPayments = Route(id: "postMoneyPayments", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 1, engine: "money", callers: ["patient", "caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "built")
     static let getMoneyPayouts = Route(id: "getMoneyPayouts", method: "GET", path: "/v1/money/payouts", mountedPath: "/v1/money/payouts", version: 1, engine: "money", callers: ["nurse", "locum", "doctor"], purpose: ["billing"], idempotent: false, status: "built")
+    static let postMoneyPaymentsV2 = Route(id: "postMoneyPaymentsV2", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 2, engine: "money", callers: ["patient", "caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "built")
+    static let postMoneyPaymentsByPaymentRefCashCode = Route(id: "postMoneyPaymentsByPaymentRefCashCode", method: "POST", path: "/v1/money/payments/{paymentRef}/cash-code", mountedPath: "/v1/money/payments/{paymentRef}/cash-code", version: 1, engine: "money", callers: ["nurse"], purpose: ["billing"], idempotent: true, status: "proposed")
+    static let postMoneyPaymentsByPaymentRefRelease = Route(id: "postMoneyPaymentsByPaymentRefRelease", method: "POST", path: "/v1/money/payments/{paymentRef}/release", mountedPath: "/v1/money/payments/{paymentRef}/release", version: 1, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: true, status: "proposed")
     static let postMoneyWallets = Route(id: "postMoneyWallets", method: "POST", path: "/v1/money/wallets", mountedPath: "/v1/money/wallets", version: 1, engine: "money", callers: ["patient", "caregiver"], purpose: ["billing"], idempotent: true, status: "proposed")
     static let postMoneyVouchers = Route(id: "postMoneyVouchers", method: "POST", path: "/v1/money/vouchers", mountedPath: "/v1/money/vouchers", version: 1, engine: "money", callers: ["patient", "caregiver", "sponsor", "corner"], purpose: ["billing"], idempotent: true, status: "proposed")
     static let postMoneyGifts = Route(id: "postMoneyGifts", method: "POST", path: "/v1/money/gifts", mountedPath: "/v1/money/gifts", version: 1, engine: "money", callers: ["caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "proposed")
@@ -314,6 +317,9 @@ enum ApisData {
         postDevicesKitsByKitRefLoss,
         postMoneyPayments,
         getMoneyPayouts,
+        postMoneyPaymentsV2,
+        postMoneyPaymentsByPaymentRefCashCode,
+        postMoneyPaymentsByPaymentRefRelease,
         postMoneyWallets,
         postMoneyVouchers,
         postMoneyGifts,
@@ -1407,6 +1413,32 @@ enum ApisData {
     }
     struct GetMoneyPayoutsResponse {
         let payouts: [[String: Any]]
+    }
+    struct PostMoneyPaymentsV2Request {
+        let idempotencyKey: String
+        let payableRef: String
+        let method: String
+        let amountCents: Int
+    }
+    struct PostMoneyPaymentsV2Response {
+        let paymentRef: String
+        let stateCode: String
+        let cashCode: String?
+    }
+    struct PostMoneyPaymentsByPaymentRefCashCodeRequest {
+        let idempotencyKey: String
+        let paymentRef: String
+        let code: String
+    }
+    struct PostMoneyPaymentsByPaymentRefCashCodeResponse {
+        let stateCode: String
+    }
+    struct PostMoneyPaymentsByPaymentRefReleaseRequest {
+        let idempotencyKey: String
+        let paymentRef: String
+    }
+    struct PostMoneyPaymentsByPaymentRefReleaseResponse {
+        let stateCode: String
     }
     struct PostMoneyWalletsRequest {
         let idempotencyKey: String

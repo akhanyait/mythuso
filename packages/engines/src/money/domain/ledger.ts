@@ -27,13 +27,17 @@
  * listed. A suspension is not something Money hears at all.
  */
 import {
- canonical, cardSpellings, currency, doorIsLocked, doorOf, earningsContract, feeByCode, heardEvent, isRecordReference,
- isRefusal, methodById, outcomeOf, planPriceRand, refusal, serviceById, stateOf,
+ canonical, currency, doorIsLocked, doorOf, earningsContract, feeByCode, heardEvent, isRecordReference,
+ isRefusal, methodById, money, outcomeOf, planPriceRand, refusal, serviceById, stateOf,
  type DoctorFee, type MethodId, type PayableKind, type PaymentStateId, type Published, type Refusal
 } from './contract.ts';
-import { advise, attempt, reversal, seeded, type PaymentResultPayload, type PayoutAdvicePayload } from './provider.ts';
-import { isoDateInSouthAfrica, recompute, totalCents, type PayoutLine, type RecomputeReason } from './payouts.ts';
+import { advise, attempt, reversal, type PaymentResultPayload, type PayoutAdvicePayload } from './provider.ts';
+import { isoDateInSouthAfrica, periodEndFor, recompute, totalCents, type PayoutLine, type RecomputeReason } from './payouts.ts';
 import { doctorOwedCents, type DoctorCase } from './fees.ts';
+import { carriesACard } from './cards.ts';
+import { cashCodeDigest, randomDigits, randomSalt, sameDigest } from './secrets.ts';
+
+export { carriesACard };
 
 export type Actor = { role: string; subjectRef: string };
 
@@ -48,13 +52,17 @@ export type Payable = {
 export type Payment = {
  paymentRef: string; payableRef: string; method: MethodId; amountCents: number; stateCode: PaymentStateId;
  settled: boolean; attempt: number; declineReason?: string; providerReference?: string;
+ /** Who made the payment: the one caller a cash code is ever shown to. */
+ paidByRef?: string;
 };
 
 export type Receipt = {
  paymentRef: string; payableRef: string; stateCode: PaymentStateId; method: MethodId; amountCents: number;
  attempt: number; replayed: boolean; declineReason?: string; providerReference?: string;
- /** Shown to the person who pays in cash, and to nobody else. */
+ /** On the first answer only, to the person who pays in cash, and to nobody else. */
  cashCode?: string;
+ /** On a replayed cash payment: the code was shown with the first answer and is not kept to show again. */
+ cashCodeAlreadyShown?: boolean;
 };
 
 export type PayoutState = 'closed' | 'in-transit' | 'paid' | 'failed';
@@ -68,13 +76,19 @@ export type Emitted = { type: string; version: number; payload: Record<string, u
 export type HeardEnvelope = { type: string; version: number; occurredAt?: string; subjectRef?: string; payload: Record<string, unknown> };
 export type Origin = 'simulated-provider' | 'network';
 
+/** What Money keeps for a cash code: never the code. */
+export type CashCodeRow = { salt: string; digest: string; wrongAttempts: number; held: boolean };
+/** One line of the cash audit: who tried, when, and what happened — never what was entered. */
+export type CashAuditRow = { paymentRef: string; at: string; actorRole: string; actorRef: string; outcome: 'wrong' | 'held' | 'refused-while-held' | 'accepted' | 'released' };
+
 /* ---- The storage port ----------------------------------------------------------------------- */
 
 export type Table<T> = { get(key: string): T | undefined; put(key: string, value: T): void; all(): T[] };
 export type MoneyTables = {
  payables: Table<Payable>;
  payments: Table<Payment>;
- cashCodes: Table<{ code: string }>;
+ cashCodes: Table<CashCodeRow>;
+ cashAudit: Table<CashAuditRow>;
  attempts: Table<{ n: number }>;
  keys: Table<{ print: string; receipt: Receipt }>;
  billable: Table<{ appointmentRef: string; serviceId: string; clinicianRef: string; on: string }>;
@@ -83,7 +97,7 @@ export type MoneyTables = {
  payouts: Table<Payout>;
  suspensions: Table<{ partnerKind: string; reasonCode: string; on: string }>;
 };
-export const TABLE_NAMES = ['payables', 'payments', 'cashCodes', 'attempts', 'keys', 'billable', 'earned', 'cases', 'payouts', 'suspensions'] as const;
+export const TABLE_NAMES = ['payables', 'payments', 'cashCodes', 'cashAudit', 'attempts', 'keys', 'billable', 'earned', 'cases', 'payouts', 'suspensions'] as const;
 
 /** Tables in memory, written as JSON so they behave as a store does: a row is what was last put. */
 export function memoryTables(): MoneyTables {
@@ -113,19 +127,8 @@ const PAYMENT_CALLERS = ['patient', 'caregiver', 'sponsor'];
 const PAYOUT_CALLERS = ['nurse', 'locum', 'doctor'];
 /* The roles served in aggregate. A person's payment is never theirs to read. */
 const AGGREGATE_ROLES = ['scheme', 'employer', 'medical-scheme', 'insurer'];
-
-/* A card number is the digits, not the field name: thirteen to nineteen of them in a row, as written,
-   with at most a single space or dash between any two. The value is read as it stands rather than with
-   everything but digits stripped out first: stripping joined a dated visit reference to the attempt
-   number after it — MT-VITALS-2026-09-16-0900-LERATO:card:1 became thirteen digits — and refused every
-   card payment the web made as a card number. */
-const PAN = /(?<![\d])\d(?:[ -]?\d){12,18}(?![\d])/;
-export function carriesACard(value: unknown, depth = 0): boolean {
- if (depth > 4 || value === null || value === undefined) return false;
- if (typeof value === 'string') return PAN.test(value);
- if (typeof value !== 'object') return false;
- return Object.entries(value as Record<string, unknown>).some(([k, v]) => cardSpellings.has(canonical(k)) || carriesACard(v, depth + 1));
-}
+/* The desk that releases a cash payment held for too many wrong codes. */
+const CASH_DESK_ROLES = ['ops-desk'];
 
 /* The same act, by content: the payable, the method and the amount. */
 const fingerprint = (request: Record<string, unknown>) =>
@@ -133,6 +136,9 @@ const fingerprint = (request: Record<string, unknown>) =>
 
 /** Money's own payable for a booked visit. The appointment is Care's; the payable is Money's. */
 export const payableRefFor = (appointmentRef: string) => `PB-${appointmentRef}`;
+
+/* The day a line's date falls on, at noon in Johannesburg, so its week is the week it happened in. */
+const weekOf = (isoDate: string) => periodEndFor(new Date(`${isoDate}T12:00:00+02:00`));
 
 export function createMoney(options: MoneyOptions = {}) {
  const clock = options.clock ?? (() => new Date());
@@ -184,10 +190,15 @@ export function createMoney(options: MoneyOptions = {}) {
   const { payableRef, method, amountCents } = request;
   if (typeof payableRef !== 'string' || typeof method !== 'string' || typeof amountCents !== 'number') return refusal('required-field-missing');
 
-  /* Keyed per caller, so one person's key can never replay another person's payment. */
+  /* Keyed per caller, so one person's key can never replay another person's payment. A replayed cash
+     payment does not show its code again: the code was shown with the first answer, and showing it
+     twice would mean keeping it. */
   const scoped = `${actor.subjectRef}:${idempotencyKey}`;
   const prior = t.keys.get(scoped);
-  if (prior) return prior.print === fingerprint(request) ? { ...prior.receipt, replayed: true } : refusal('idempotency-key-reused');
+  if (prior) {
+   if (prior.print !== fingerprint(request)) return refusal('idempotency-key-reused');
+   return { ...prior.receipt, replayed: true, ...(prior.receipt.method === 'cash-otp' ? { cashCodeAlreadyShown: true } : {}) };
+  }
 
   const payable = t.payables.get(payableRef);
   if (!payable || payable.cancelled) return refusal('payable-not-found');
@@ -203,14 +214,15 @@ export function createMoney(options: MoneyOptions = {}) {
 
   const n = (t.attempts.get(payableRef)?.n ?? 0) + 1;
   t.attempts.put(payableRef, { n });
-  let payment: Payment = { paymentRef: `PAY-${payableRef}-${n}`, payableRef, method: chosen.id, amountCents, stateCode: 'pending', settled: false, attempt: n };
+  let payment: Payment = { paymentRef: `PAY-${payableRef}-${n}`, payableRef, method: chosen.id, amountCents, stateCode: 'pending', settled: false, attempt: n, paidByRef: actor.subjectRef };
   t.payments.put(payment.paymentRef, payment);
 
   let cashCode: string | undefined;
   if (chosen.id === 'cash-otp') {
-   const rand = seeded(`cash:${payment.paymentRef}`);
-   cashCode = Array.from({ length: 6 }, () => Math.floor(rand() * 10)).join('');
-   t.cashCodes.put(payment.paymentRef, { code: cashCode });
+   /* Random, and derived from nothing a person can see. Only the salt and the digest are kept. */
+   cashCode = randomDigits(money.cash.codeLength);
+   const salt = randomSalt();
+   t.cashCodes.put(payment.paymentRef, { salt, digest: cashCodeDigest(salt, cashCode), wrongAttempts: 0, held: false });
   } else if (simulation) {
    /* The provider answers through the door like any supplier would; nothing here sets a state. */
    acceptPaymentResult(attempt(payableRef, n, payment.paymentRef, amountCents, clock()), 'simulated-provider');
@@ -218,10 +230,10 @@ export function createMoney(options: MoneyOptions = {}) {
   }
   const receipt: Receipt = {
    paymentRef: payment.paymentRef, payableRef, stateCode: payment.stateCode, method: payment.method, amountCents,
-   attempt: n, replayed: false, declineReason: payment.declineReason, providerReference: payment.providerReference, cashCode
+   attempt: n, replayed: false, declineReason: payment.declineReason, providerReference: payment.providerReference
   };
   t.keys.put(scoped, { print: fingerprint(request), receipt });
-  return receipt;
+  return cashCode === undefined ? receipt : { ...receipt, cashCode };
  }
 
  /* ---- The payment-result door ------------------------------------------------------------- */
@@ -272,6 +284,17 @@ export function createMoney(options: MoneyOptions = {}) {
 
  /* ---- Cash -------------------------------------------------------------------------------- */
 
+ const audit = (paymentRef: string, actor: Actor, outcome: CashAuditRow['outcome']) => {
+  const at = clock().toISOString();
+  const seq = t.cashAudit.all().filter(r => r.paymentRef === paymentRef).length + 1;
+  t.cashAudit.put(`${paymentRef}:${seq}`, { paymentRef, at, actorRole: actor.role, actorRef: actor.subjectRef, outcome });
+ };
+
+ /**
+  * The nurse enters the patient's code after the visit. Every wrong entry is written down with who made
+  * it and when, and the attempt limit holds the payment for the desk: after it, the right code is refused
+  * too, because a limit that the right guess can walk through is not a limit.
+  */
  function enterCashCode(actor: Actor, input: { paymentRef: string; code: string }): Payment | Refusal {
   const payment = t.payments.get(input.paymentRef);
   if (!payment || payment.method !== 'cash-otp') return refusal('payable-not-found');
@@ -281,10 +304,33 @@ export function createMoney(options: MoneyOptions = {}) {
   if (!visit) return refusal('cash-before-the-visit-finished');
   if (actor.role !== 'nurse' || actor.subjectRef !== visit.clinicianRef) return refusal('caller-not-allowed');
   if (payment.stateCode !== 'pending') return payment;
-  if (t.cashCodes.get(payment.paymentRef)?.code !== input.code) return refusal('cash-without-otp');
+  const row = t.cashCodes.get(payment.paymentRef)!;
+  if (row.held) {
+   audit(payment.paymentRef, actor, 'refused-while-held');
+   return refusal('cash-code-held');
+  }
+  if (!sameDigest(row.digest, cashCodeDigest(row.salt, String(input.code)))) {
+   const wrongAttempts = row.wrongAttempts + 1;
+   const held = wrongAttempts >= money.cash.attemptLimit;
+   t.cashCodes.put(payment.paymentRef, { ...row, wrongAttempts, held });
+   audit(payment.paymentRef, actor, held ? 'held' : 'wrong');
+   return refusal(held ? 'cash-code-held' : 'cash-without-otp');
+  }
+  audit(payment.paymentRef, actor, 'accepted');
   payment.stateCode = 'succeeded';
   t.payments.put(payment.paymentRef, payment);
   emit('payment.succeeded@1', { paymentRef: payment.paymentRef, payableRef: payment.payableRef, amountCents: payment.amountCents, method: payment.method }, payable.subjectRef);
+  return payment;
+ }
+
+ /** The desk releases a held cash payment after speaking to the patient. The code is unchanged. */
+ function releaseCashCode(actor: Actor, paymentRef: string): Payment | Refusal {
+  if (!CASH_DESK_ROLES.includes(actor.role) || !actor.subjectRef) return refusal('caller-not-allowed');
+  const payment = t.payments.get(paymentRef);
+  const row = t.cashCodes.get(paymentRef);
+  if (!payment || !row) return refusal('payable-not-found');
+  t.cashCodes.put(paymentRef, { ...row, wrongAttempts: 0, held: false });
+  audit(paymentRef, actor, 'released');
   return payment;
  }
 
@@ -350,30 +396,52 @@ export function createMoney(options: MoneyOptions = {}) {
 
  /* ---- Payouts ----------------------------------------------------------------------------- */
 
- function previousDay(iso: string, days: number) {
-  const d = new Date(`${iso}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - days);
-  return d.toISOString().slice(0, 10);
+ /* One party's unscheduled lines for one week, into that week's payout. The same week and party is one
+    payout however many times it is asked, and a line once scheduled is never scheduled again. */
+ function scheduleWeek(row: { partyRef: string; lines: EarnedLine[] }, periodEnd: string): Payout | null {
+  const payoutRef = `PO-${row.partyRef}-${periodEnd}`;
+  const existing = t.payouts.get(payoutRef);
+  const fresh = row.lines.filter(l => !l.payoutRef && weekOf(l.on) === periodEnd);
+  if (!fresh.length) return existing ?? null;
+  const payout: Payout = existing ?? { payoutRef, partyRef: row.partyRef, periodEnd, lines: [], totalCents: 0, state: 'closed' };
+  for (const l of fresh) { l.payoutRef = payoutRef; payout.lines.push(l.line); }
+  payout.totalCents = totalCents(payout.lines);
+  t.earned.put(row.partyRef, row);
+  t.payouts.put(payoutRef, payout);
+  emit('payout.scheduled@1', { payoutRef, periodEnd, lineCount: payout.lines.length }, row.partyRef);
+  return payout;
  }
 
- /** Close a week: one payout per party with unscheduled lines in it. The same week twice is one. */
+ /** Close one named week: one payout per party with unscheduled lines in it. */
  function schedulePayouts(periodEnd: string): Payout[] {
-  const starts = previousDay(periodEnd, 7);
+  return t.earned.all().map(row => scheduleWeek(row, periodEnd)).filter((p): p is Payout => p !== null);
+ }
+
+ /**
+  * Close every week that has ended and still has unscheduled lines, each into its own week's payout.
+  * The tick used to close only the week before now, so a week the runtime slept through — or a line
+  * that arrived late for a week already past — was never scheduled and never paid. Work done is work
+  * paid, whenever the ledger next looks.
+  */
+ function scheduleClosedWeeks(now: Date = clock()): Payout[] {
+  const todayHere = isoDateInSouthAfrica(now);
   const out: Payout[] = [];
   for (const row of t.earned.all()) {
-   const payoutRef = `PO-${row.partyRef}-${periodEnd}`;
-   const existing = t.payouts.get(payoutRef);
-   const fresh = row.lines.filter(l => !l.payoutRef && l.on > starts && l.on <= periodEnd);
-   if (!fresh.length) { if (existing) out.push(existing); continue; }
-   const payout: Payout = existing ?? { payoutRef, partyRef: row.partyRef, periodEnd, lines: [], totalCents: 0, state: 'closed' };
-   for (const l of fresh) { l.payoutRef = payoutRef; payout.lines.push(l.line); }
-   payout.totalCents = totalCents(payout.lines);
-   t.earned.put(row.partyRef, row);
-   t.payouts.put(payoutRef, payout);
-   emit('payout.scheduled@1', { payoutRef, periodEnd, lineCount: payout.lines.length }, row.partyRef);
-   out.push(payout);
+   const weeks = [...new Set(row.lines.filter(l => !l.payoutRef).map(l => weekOf(l.on)))].filter(end => end < todayHere).sort();
+   for (const periodEnd of weeks) {
+    const current = t.earned.get(row.partyRef)!;
+    const payout = scheduleWeek(current, periodEnd);
+    if (payout) out.push(payout);
+   }
   }
   return out;
+ }
+
+ /** Lines whose week has ended and that no payout carries — which must be none after a tick. */
+ function unscheduledClosedLines(now: Date = clock()): { partyRef: string; reference: string; periodEnd: string }[] {
+  const todayHere = isoDateInSouthAfrica(now);
+  return t.earned.all().flatMap(row => row.lines.filter(l => !l.payoutRef && weekOf(l.on) < todayHere)
+   .map(l => ({ partyRef: row.partyRef, reference: l.line.reference, periodEnd: weekOf(l.on) })));
  }
 
  /** One of the sample weeks a screen draws, entered into the ledger so its figure is the ledger's. */
@@ -459,14 +527,15 @@ export function createMoney(options: MoneyOptions = {}) {
  }
 
  return {
-  openVisitPayable, openPlanPayable, pay, acceptPaymentResult, enterCashCode, hear,
-  schedulePayouts, importWeek, recomputePayout, acceptPayoutAdvice, runPayout, scheduleDoctorPayout,
+  openVisitPayable, openPlanPayable, pay, acceptPaymentResult, enterCashCode, releaseCashCode, hear,
+  schedulePayouts, scheduleClosedWeeks, unscheduledClosedLines, importWeek, recomputePayout, acceptPayoutAdvice, runPayout, scheduleDoctorPayout,
   payoutsFor, paymentsFor,
   allPayouts: () => t.payouts.all(),
   casesFor: (doctorRef: string) => [...(t.cases.get(doctorRef)?.cases ?? [])],
   earnedLinesFor: (partyRef: string) => (t.earned.get(partyRef)?.lines ?? []).map(l => l.line),
   payment: (paymentRef: string) => t.payments.get(paymentRef),
   payable: (payableRef: string) => t.payables.get(payableRef),
+  cashAuditFor: (paymentRef: string) => t.cashAudit.all().filter(r => r.paymentRef === paymentRef),
   outbox: () => outbox.map(e => ({ ...e, payload: { ...e.payload } })),
   wordsFor: (state: PaymentStateId) => stateOf(state)
  };

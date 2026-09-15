@@ -27,10 +27,8 @@ import events from '../../../../catalog/events.json' with { type: 'json' };
 import feeds from '../../../../catalog/feeds.json' with { type: 'json' };
 
 export type Service = { id: string; name: string; price: number; nurseShare: number; phase: number };
-export type MethodId = 'card' | 'eft' | 'debit-order' | 'cash-otp' | 'wallet';
-export type PayableKind = 'visit' | 'plan';
-export type Method = { id: MethodId; name: string; detail: string; for: PayableKind[]; offered: boolean; settledBy?: string; notOfferedBecause?: string };
-export type PaymentStateId = 'pending' | 'succeeded' | 'failed' | 'refunded';
+import { methodById, methods, type Method, type MethodId, type PayableKind, type PaymentStateId } from './methods.ts';
+export { methodById, methods, type Method, type MethodId, type PayableKind, type PaymentStateId };
 export type DoorOutcome = 'authorised' | 'declined' | 'reversed' | 'settled';
 export type DoctorFee = {
  feeCode: string; name: string; amount: number | null; decidedBy: string | null; decidedOn: string | null;
@@ -41,7 +39,6 @@ export const money = moneyContract;
 export const catalogue = services as Service[];
 export const earningsContract = earnings;
 export const currency = moneyContract.currency;
-export const methods = moneyContract.methods as Method[];
 export const doctorFees = moneyContract.doctorFees as DoctorFee[];
 
 export function serviceById(id: string): Service {
@@ -49,10 +46,6 @@ export function serviceById(id: string): Service {
  /* Loud: a payable for a service nobody sells has an amount that came from somewhere else. */
  if (!found) throw new Error(`No service "${id}" in packages/catalog/services.json.`);
  return found;
-}
-
-export function methodById(id: string): Method | undefined {
- return methods.find(m => m.id === id);
 }
 
 export function stateOf(id: PaymentStateId) {

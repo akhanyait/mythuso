@@ -2481,6 +2481,28 @@ for(const s of catalogue.filter(s=>s.phase===1)) {
  const share=s.nurseShare/s.price;
  if(share<0.74||share>0.76) throw new Error(`${s.name} pays the nurse ${(share*100).toFixed(1)}% of R${s.price}. The public page says three quarters; either the price changes or the claim does.`);
 }
+/* And the share is said only about the services the page describes. The landing page lists the launch
+   services and states a percentage; a later service may pay less — the screening bundle and Thuso SOS
+   do — so the page may not type a share of its own, may not say "three quarters" or "every visit fee"
+   unqualified, and its percentage must be the one every service it lists actually pays. Admin, which
+   shows every service, may not type a single rate for all of them either. */
+{
+ const landingSource = read('apps/web/src/features/Landing.tsx');
+ const listsLaunchOnly = /matchingServices = liveServices\.filter\(/.test(landingSource) && !/\bservices\.(map|filter)\(s => .*landing-services/.test(landingSource);
+ const described = listsLaunchOnly ? catalogue.filter(s => s.phase === 1) : catalogue;
+ const platform = JSON.parse(read('packages/catalog/business-model.json')).unitEconomics.platformShare;
+ const statedPct = Math.round((1 - platform) * 100);
+ for (const s of described) {
+  if (Math.round((s.nurseShare / s.price) * 100) !== statedPct) throw new Error(`The landing page says a nurse keeps ${statedPct}% of the fee for the services it lists, and ${s.name} pays ${Math.round((s.nurseShare / s.price) * 100)}% (R${s.nurseShare} of R${s.price}). Either the price changes or the page stops saying it.`);
+ }
+ const typedShare = landingSource.match(/[Tt]hree[ -]quarters|\b\d{2}%\s*of (the|every)|of every visit fee/);
+ if (typedShare) throw new Error(`apps/web/src/features/Landing.tsx says "${typedShare[0]}". The share is {nurseShare}, derived from packages/catalog/business-model.json, and it is said about the launch services the page lists — a later service may pay less.`);
+ for (const claim of landingSource.matchAll(/\{nurseShare\}%[^<{]{0,80}/g)) {
+  if (!/launch/.test(claim[0])) throw new Error(`apps/web/src/features/Landing.tsx claims "${claim[0].trim()}" without saying it is about the services offered at launch. ${catalogue.filter(s => Math.round((s.nurseShare / s.price) * 100) !== statedPct).map(s => s.name).join(' and ')} pay a different share.`);
+ }
+ const adminTyped = read('apps/web/src/features/Admin.tsx').match(/(proposal'?s|follows the)\s*\d{2}%|\b75%/);
+ if (adminTyped) throw new Error(`apps/web/src/features/Admin.tsx types "${adminTyped[0]}" as the nurse's share. It shows every service in the catalogue, and they do not all pay one rate; read each service's nurseShare.`);
+}
 const shares=catalogue.filter(s=>s.phase===1).map(s=>s.nurseShare);
 const advertised=read('apps/web/src/features/Landing.tsx').match(/\{money\((\d+)\)\}–\{money\((\d+)\)\} a visit/);
 if(!advertised) throw new Error('The landing page no longer advertises a per-visit range for nurses, or has stopped writing it in a form this check can read');
@@ -6540,7 +6562,7 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   const service = servicesForMoney[i % servicesForMoney.length];
   const theirs = cardAndEft.produce({ subject, at: checkedAt, detail: { service: service.id, attempt: attemptNumber } });
   const ours = engineProvider.attempt(subject, attemptNumber, subject, service.price * 100, checkedAt);
-  if ('refused' in theirs || theirs.payload.outcome !== ours.outcome || (theirs.payload.declineReason ?? null) !== (ours.declineReason ?? null) || theirs.payload.providerReference !== ours.providerReference) disagreements.push(`payment ${subject} attempt ${attemptNumber}`);
+  if ('refused' in theirs || theirs.payload.outcome !== ours.outcome || theirs.payload.amountCents !== ours.amountCents || (theirs.payload.declineReason ?? null) !== (ours.declineReason ?? null) || theirs.payload.providerReference !== ours.providerReference) disagreements.push(`payment ${subject} attempt ${attemptNumber}`);
   for (const was of ['closed', 'failed']) {
    const weekId = `w-check-${i}`;
    const bank = bankPayouts.produce({ subject: weekId, at: checkedAt, detail: { partyId: 'N-205', amountCents: 10000, was } });

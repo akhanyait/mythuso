@@ -25,6 +25,10 @@ export function isDecided(fee: DoctorFee): fee is DoctorFee & { amount: number; 
  * decided amount rather than on anything this file knows.
  */
 export function doctorOwedCents(cases: readonly DoctorCase[], fees: readonly DoctorFee[] = doctorFees): number | Refusal {
+ /* Refused before the cases are counted. A doctor with no signed case this week, under a fee nobody has
+    decided, used to be owed R0 — and a zero payout is still a payout, scheduled and published, about a
+    fee that does not exist. */
+ if (fees.some(fee => !isDecided(fee))) return refusal('doctor-fee-undecided');
  let total = 0;
  for (const signed of cases) {
   const fee = fees.find(f => f.feeCode === signed.feeCode);

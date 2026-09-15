@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createMoney, type Receipt } from './ledger.ts';
 import { isRefusal, refusal, serviceById } from './contract.ts';
 import { attempt } from './provider.ts';
+import { luhn } from './cards.ts';
 
 /* Payments, held to the refusals in packages/catalog/apis/money.json. Every expected sentence is
    read back out of the contract, so a test cannot pass by agreeing with a typo. */
@@ -58,7 +59,7 @@ test('nothing is charged without a key, and a card number is refused before anyt
  assert.deepEqual(money.pay(lerato, keyless), refusal('charge-without-a-key'));
  /* By name, by another spelling, and by shape in a field with an innocent name. The digits are the
     disclosure, so the fixture is built from a digit rather than written out as a number. */
- const digits = '4'.repeat(16);
+ const digits = (() => { const body = '4' + '2'.repeat(14); for (let d = 0; d < 10; d += 1) if (luhn(body + d)) return body + d; throw new Error('no check digit'); })();
  assert.deepEqual(money.pay(lerato, request(ref, { cardNumber: 'x' })), refusal('card-number-sent'));
  assert.deepEqual(money.pay(lerato, request(ref, { pan: 'x' })), refusal('card-number-sent'));
  assert.deepEqual(money.pay(lerato, request(ref, { idempotencyKey: `k ${digits}` })), refusal('card-number-sent'));
@@ -79,8 +80,10 @@ test('a key built from a dated visit reference is a key, and a card number in an
  }
  const other = createMoney({ clock, simulation: true });
  other.openVisitPayable({ payableRef: 'MT-X', serviceId: 'vitals', subjectRef: lerato.subjectRef });
- const four = '4'.repeat(4);
- for (const shaped of [`${four} ${four} ${four} ${four}`, `${four}-${four}-${four}-${four}`, four.repeat(4)]) {
+ /* Built with a computed check digit rather than written out: only a number passing Luhn is a card. */
+ const card = (() => { const body = '4' + '2'.repeat(14); for (let d = 0; d < 10; d += 1) if (luhn(body + d)) return body + d; throw new Error('no check digit'); })();
+ const four = card.match(/.{4}/g)!;
+ for (const shaped of [four.join(' '), four.join('-'), card]) {
   assert.deepEqual(other.pay(lerato, { idempotencyKey: `k ${shaped}`, payableRef: 'MT-X', method: 'card', amountCents: vitals.price * 100 }), refusal('card-number-sent'), shaped);
  }
 });
