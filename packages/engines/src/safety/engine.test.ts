@@ -4,20 +4,22 @@
    matched visit code reaches the engine. Every call names its caller, because since 72390a1 the
    runtime refuses an idempotent write from a caller it cannot identify.
 
+   The visit timer on the runtime: started by appointment.in_progress@2 and timed by its service, closed by
+   appointment.completed@2, extended only with a reason in a step it offers up to its own ceiling, told "I am
+   safe" without its deadline moving, overdue on the clock, and worked by the desk — picked up before it is
+   closed with a true reason. The desk's position read answers only inside the window, and its queue never
+   carries what a visit was for.
+
    And the field-safety settings an admin changes: refused out of range, without a reason, on a stale
    version and for anybody but an admin; recorded with who, when, from, to and why; published once, and
    replayed rather than repeated under the same key; and never reaching back into a visit or a panic that
-   started before the change. The visit is read back from Safety's own store after the runtime closes,
-   through packages/engines/src/runtime/store.ts, because no route reads a visit under way yet. */
+   started before the change. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { MEMORY, createClock, createRuntime, defineEngine, type EngineModule } from '../runtime/index.ts';
-import { openDatabase } from '../runtime/store.ts';
+import { readFileSync } from 'node:fs';
+import { MEMORY, createClock, createRuntime, defineEngine, type EngineModule, type EventKey } from '../runtime/index.ts';
 import { engine } from './engine.ts';
-import { MINUTE } from './domain/rules.ts';
+import { MINUTE, fieldSafety, outcomes, refusal } from './domain/rules.ts';
 import { defaultTimings, safetyBlock } from './domain/settings.ts';
 import type { Bound } from '../settings/shape.ts';
 
@@ -25,9 +27,20 @@ const START = '2026-09-14T09:00:00+02:00';
 const ROUTE = 'POST /v1/safety/panics@1';
 const READ = 'GET /v1/safety/settings@2';
 const CHANGE = 'POST /v1/safety/setting-changes@2';
+const CHECKINS = 'GET /v1/safety/checkins@1';
+const EXTEND = 'POST /v1/safety/checkins/{checkinRef}/extend@2';
+const SAFE = 'POST /v1/safety/checkins/{checkinRef}/safe@1';
+const CHECK_OUT = 'POST /v1/safety/checkins/{checkinRef}/close@2';
+const OVERDUE_PICK_UP = 'POST /v1/safety/overdue-checkins/{checkinRef}/pick-up@1';
+const OVERDUE_CLOSE = 'POST /v1/safety/overdue-checkins/{checkinRef}/close@1';
+const PANIC_PICK_UP = 'POST /v1/safety/panics/{panicRef}/pick-up@1';
+const RESOLVE = 'POST /v1/safety/panics/{panicRef}/resolve@1';
+const POSITION = 'GET /v1/safety/panics/{panicRef}/position@1';
+const QUEUE = 'GET /v1/safety/desk-queue@1';
 const panicWindowMinutes = defaultTimings.panicWindowMinutes;
 const api = JSON.parse(readFileSync(new URL('../../../catalog/apis/safety.json', import.meta.url), 'utf8')) as { routes: { method: string; path: string; version: number; refusals: { id: string; statement: string }[] }[] };
 const apis = JSON.parse(readFileSync(new URL('../../../catalog/apis.json', import.meta.url), 'utf8')) as { sharedRefusals: { id: string; statement: string }[] };
+const services = JSON.parse(readFileSync(new URL('../../../catalog/services.json', import.meta.url), 'utf8')) as { id: string; name: string; duration: number }[];
 const statement = (id: string) => api.routes.find(r => r.path === '/v1/safety/panics')!.refusals.find(r => r.id === id)!.statement;
 const changeStatement = (id: string) => api.routes.find(r => r.path === '/v1/safety/setting-changes' && r.version === 2)!.refusals.find(r => r.id === id)!.statement;
 const runtimeWith = (extra: EngineModule[] = [], dataDirectory: string = MEMORY) =>
@@ -49,6 +62,29 @@ const row = (key: string) => {
  const bounds = s.bounds as { lowest: Bound; highest: Bound } | undefined;
  return { key: s.key, unit: s.unit, lowest: bounds?.lowest as Bound, highest: bounds?.highest as Bound };
 };
+/* Every refusal is held to the sentence the contract gives it, wherever it is declared. */
+const refused = (answer: { status: number; body: Record<string, unknown> }, id: string) => {
+ assert.equal(answer.body.error, id, JSON.stringify(answer.body));
+ assert.equal(answer.body.message, refusal(id).statement);
+ assert.equal(answer.status, refusal(id).status);
+};
+
+/* A Care that publishes the visit events it is told to, on the next tick, so a timer is started and closed by
+   the event and nothing else. */
+function visits(extra: EngineModule[] = []) {
+ const pending: { key: EventKey; payload: Record<string, unknown> }[] = [];
+ const care = defineEngine({ id: 'care', routes: {}, subscriptions: {}, store: { schema: '' },
+  tick: ctx => { for (const event of pending.splice(0)) ctx.publish(event.key, event.payload, { subjectRef: 'subject-synthetic-2', purposeOfUse: 'treatment' }); } });
+ const runtime = runtimeWith([care, ...extra]);
+ const start = (appointmentRef: string, serviceId = 'wound') => { pending.push({ key: 'appointment.in_progress@2', payload: { appointmentRef, visitCodeMatched: true, serviceId } }); runtime.advance(0); };
+ const complete = (appointmentRef: string, serviceId = 'wound') => { pending.push({ key: 'appointment.completed@2', payload: { appointmentRef, encounterRef: `encounter-${appointmentRef}`, serviceId } }); runtime.advance(0); };
+ const nurse = (route: Parameters<typeof runtime.call>[0], fields: Record<string, unknown>, ref = 'party-synthetic-205') => runtime.call(route, { role: 'nurse', ref, purpose: 'dispatch', fields });
+ const operator = (route: Parameters<typeof runtime.call>[0], fields: Record<string, unknown>, purpose = 'dispatch') => runtime.call(route, { role: 'operator', ref: 'party-synthetic-801', purpose, fields });
+ const timer = (appointmentRef: string) => nurse(CHECKINS, { appointmentRef }).body as { checkinRef: string; stateCode: string; dueAt: string; settingsVersion: number; extensionMinutesLeft: number; extensionStepsOffered: number[]; saidSafeAt?: string };
+ const queue = () => operator(QUEUE, {}, 'emergency').body.items as Record<string, unknown>[];
+ return { runtime, start, complete, nurse, operator, timer, queue };
+}
+const minutesOf = (serviceId: string) => services.find(s => s.id === serviceId)!.duration;
 
 test('pressing panic opens the declared window and publishes panic.raised@1, never a position', () => {
  const runtime = runtimeWith();
@@ -123,14 +159,147 @@ test('a patient cannot press a nurse’s panic, and an unknown visit never stops
  runtime.close();
 });
 
-test('Safety hears a visit under way', () => {
- const care = defineEngine({ id: 'care', routes: {}, subscriptions: {}, store: { schema: '' },
-  tick: ctx => { ctx.publish('appointment.in_progress@2', { appointmentRef: 'appointment-synthetic-2', visitCodeMatched: true, serviceId: 'wound' }, { subjectRef: 'subject-synthetic-2', purposeOfUse: 'treatment' }); } });
- const runtime = runtimeWith([care]);
- runtime.advance(1);
- const delivered = runtime.trail.all().filter(entry => entry.kind === 'delivered' && entry.engine === 'safety');
- assert.equal(delivered.length, 1);
- assert.equal(delivered[0].eventKey, 'appointment.in_progress@2');
+/* ---- The visit timer ----------------------------------------------------------------------------- */
+
+test('a visit under way is timed by its own service from appointment.in_progress@2, and its completion closes the timer', () => {
+ const { runtime, start, complete, nurse, timer } = visits();
+ start('appointment-synthetic-7', 'wound');
+ start('appointment-synthetic-8', 'senior');
+ const wound = timer('appointment-synthetic-7');
+ assert.equal(Date.parse(wound.dueAt), Date.parse(START) + (minutesOf('wound') + defaultTimings.graceMinutes) * MINUTE, 'the service’s duration and the grace in force');
+ assert.deepEqual([wound.stateCode, wound.settingsVersion, wound.extensionMinutesLeft, wound.extensionStepsOffered], ['running', 1, defaultTimings.maxExtensionMinutes, [...defaultTimings.extensionSteps]]);
+ assert.equal(Date.parse(timer('appointment-synthetic-8').dueAt), Date.parse(START) + (minutesOf('senior') + defaultTimings.graceMinutes) * MINUTE, 'another service is timed by its own duration');
+ refused(nurse(CHECKINS, { appointmentRef: 'appointment-nobody-started' }), 'no-timer-for-that-visit');
+
+ runtime.advance(5 * MINUTE);
+ start('appointment-synthetic-7', 'wound');
+ assert.equal(timer('appointment-synthetic-7').dueAt, wound.dueAt, 'the same visit heard again keeps the timer it has');
+
+ complete('appointment-synthetic-7');
+ assert.equal(timer('appointment-synthetic-7').stateCode, 'closed', 'a completed visit closes its timer');
+ refused(nurse(CHECK_OUT, { idempotencyKey: 'out', checkinRef: wound.checkinRef }), 'already-closed');
+ runtime.advance(24 * 60 * MINUTE);
+ assert.equal(published(runtime, 'checkin.overdue@1').length, 1, 'the closed visit never went overdue; the open one did');
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('an extension says why, in a step the timer offers, up to the ceiling it started with, and only the nurse holding it extends it', () => {
+ const { runtime, start, nurse, timer } = visits();
+ start('appointment-synthetic-7');
+ const { checkinRef, dueAt } = timer('appointment-synthetic-7');
+ const [step] = defaultTimings.extensionSteps;
+ const reasonCode = fieldSafety.extensionReasons[0].id;
+ const first = nurse(EXTEND, { idempotencyKey: 'x-0', checkinRef, extraMinutes: step, reasonCode });
+ assert.equal(first.status, 200, JSON.stringify(first.body));
+ assert.deepEqual(first.body, { dueAt: new Date(Date.parse(dueAt) + step * MINUTE).toISOString(), extensionMinutesLeft: defaultTimings.maxExtensionMinutes - step });
+
+ refused(nurse(EXTEND, { idempotencyKey: 'x-none', checkinRef, extraMinutes: step }), 'extension-without-reason');
+ refused(nurse(EXTEND, { idempotencyKey: 'x-free', checkinRef, extraMinutes: step + 1, reasonCode }), 'extension-not-offered');
+ refused(nurse(EXTEND, { idempotencyKey: 'x-other', checkinRef, extraMinutes: step, reasonCode }, 'party-synthetic-206'), 'checkin-held-by-another');
+ refused(nurse(EXTEND, { idempotencyKey: 'x-nobody', checkinRef: 'checkin-nobody-started', extraMinutes: step, reasonCode }), 'no-such-checkin');
+
+ let taken = step;
+ for (let i = 1; taken + step <= defaultTimings.maxExtensionMinutes; i++, taken += step) assert.equal(nurse(EXTEND, { idempotencyKey: `x-${i}`, checkinRef, extraMinutes: step, reasonCode }).status, 200);
+ assert.equal(timer('appointment-synthetic-7').extensionMinutesLeft, defaultTimings.maxExtensionMinutes - taken);
+ refused(nurse(EXTEND, { idempotencyKey: 'x-past', checkinRef, extraMinutes: step, reasonCode }), 'extension-limit');
+ assert.equal(Date.parse(timer('appointment-synthetic-7').dueAt), Date.parse(dueAt) + taken * MINUTE, 'to the ceiling and no further');
+ assert.equal(nurse(EXTEND, { idempotencyKey: 'x-0', checkinRef, extraMinutes: step, reasonCode }).status, 200, 'the same key is the same extension once');
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('"I am safe" is recorded and never moves the deadline, never closes an overdue, and carries nothing that could', () => {
+ const { runtime, start, nurse, timer, queue } = visits();
+ start('appointment-synthetic-7');
+ const { checkinRef, dueAt } = timer('appointment-synthetic-7');
+ const said = nurse(SAFE, { idempotencyKey: 's-1', checkinRef });
+ assert.deepEqual(said.body, { saidSafeAt: new Date(Date.parse(START)).toISOString(), dueAt });
+ assert.equal(timer('appointment-synthetic-7').dueAt, dueAt);
+ refused(nurse(SAFE, { idempotencyKey: 's-more', checkinRef, extraMinutes: defaultTimings.extensionSteps[0] }), 'safe-is-not-an-extension');
+ refused(nurse(SAFE, { idempotencyKey: 's-other', checkinRef }, 'party-synthetic-206'), 'checkin-held-by-another');
+
+ runtime.advance(Date.parse(dueAt) - Date.parse(START));
+ assert.equal(timer('appointment-synthetic-7').stateCode, 'overdue');
+ runtime.advance(3 * MINUTE);
+ assert.equal(nurse(SAFE, { idempotencyKey: 's-2', checkinRef }).status, 200);
+ const after = timer('appointment-synthetic-7');
+ assert.deepEqual([after.stateCode, after.dueAt], ['overdue', dueAt], 'she said she is safe; she is still past check-out');
+ const [item] = queue();
+ assert.deepEqual([item!.kind, item!.open, item!.answeredAt, item!.nurse], ['overdue', true, new Date(Date.parse(dueAt) + 3 * MINUTE).toISOString(), 'party-synthetic-205'], 'the desk sees her answer and still has the overdue to close');
+ runtime.advance(60 * MINUTE);
+ assert.equal(published(runtime, 'checkin.overdue@1').length, 1, 'her word neither silenced the overdue nor made a new one');
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('overdue on the clock, then picked up, then closed with a true reason; closing before a pick-up is refused first', () => {
+ const { runtime, start, nurse, operator, timer, queue } = visits();
+ start('appointment-synthetic-7', 'mental');
+ const { checkinRef, dueAt } = timer('appointment-synthetic-7');
+ runtime.advance(Date.parse(dueAt) - Date.parse(START) + MINUTE);
+ const overdue = published(runtime, 'checkin.overdue@1').map(entry => JSON.parse(entry.body) as { payload: Record<string, unknown> });
+ assert.deepEqual(overdue.map(e => e.payload), [{ checkinRef, appointmentRef: 'appointment-synthetic-7', overdueSince: dueAt }]);
+
+ const [waiting] = queue();
+ assert.deepEqual(Object.keys(waiting!), [...fieldSafety.desk.carries]);
+ assert.deepEqual([waiting!.kind, waiting!.reference, waiting!.nurse, waiting!.suburb, waiting!.acknowledgement, waiting!.open], ['overdue', checkinRef, null, null, null, true]);
+ const mentalHealth = services.find(s => s.id === 'mental')!.name;
+ assert.ok(!JSON.stringify(queue()).includes(mentalHealth) && !JSON.stringify(queue()).includes('mental'), 'the desk never learns what the visit was for');
+ refused(operator(QUEUE, { serviceId: 'mental' }, 'emergency'), 'desk-queue-takes-no-filter');
+
+ const reached = fieldSafety.silenceReasons.find(r => !r.needsNurseAnswer)!.id;
+ const nurseAnswered = fieldSafety.silenceReasons.find(r => r.needsNurseAnswer)!.id;
+ refused(operator(OVERDUE_CLOSE, { idempotencyKey: 'c-early', checkinRef }), 'overdue-acknowledged-first');
+ refused(operator(OVERDUE_CLOSE, { idempotencyKey: 'c-early-reason', checkinRef, reasonCode: reached }), 'overdue-acknowledged-first');
+ assert.equal(nurse(OVERDUE_PICK_UP, { idempotencyKey: 'p-nurse', checkinRef }).body.error, 'caller-not-allowed', 'a nurse is not the desk');
+
+ const picked = operator(OVERDUE_PICK_UP, { idempotencyKey: 'p-1', checkinRef });
+ assert.equal(picked.status, 200, JSON.stringify(picked.body));
+ assert.deepEqual(operator(OVERDUE_PICK_UP, { idempotencyKey: 'p-2', checkinRef }).body, picked.body, 'picked up once');
+ refused(operator(OVERDUE_CLOSE, { idempotencyKey: 'c-none', checkinRef }), 'overdue-silenced-without-reason');
+ refused(operator(OVERDUE_CLOSE, { idempotencyKey: 'c-untrue', checkinRef, reasonCode: nurseAnswered }), 'silence-reason-untrue');
+ const closed = operator(OVERDUE_CLOSE, { idempotencyKey: 'c-1', checkinRef, reasonCode: reached });
+ assert.equal(closed.status, 200, JSON.stringify(closed.body));
+ const [done] = queue();
+ assert.deepEqual([done!.open, done!.outcome, (done!.acknowledgement as { by: string }).by], [false, fieldSafety.silenceReasons.find(r => r.id === reached)!.label, 'party-synthetic-801']);
+ refused(operator(OVERDUE_PICK_UP, { idempotencyKey: 'p-3', checkinRef }), 'nothing-to-pick-up');
+ refused(operator(OVERDUE_CLOSE, { idempotencyKey: 'c-2', checkinRef, reasonCode: reached }), 'nothing-to-silence');
+ refused(operator(OVERDUE_PICK_UP, { idempotencyKey: 'p-4', checkinRef: 'checkin-nobody-started' }), 'no-such-checkin');
+ assert.deepEqual(runtime.trail.all().filter(entry => entry.kind === 'published').map(entry => entry.eventKey), ['appointment.in_progress@2', 'checkin.overdue@1'], 'closing an overdue tells no engine anything');
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('a panic is picked up before it is resolved, the resolution publishes no position, and the desk reads a position only inside the window', () => {
+ const runtime = runtimeWith();
+ const operator = (route: Parameters<typeof runtime.call>[0], fields: Record<string, unknown>) => runtime.call(route, { role: 'operator', ref: 'party-synthetic-801', purpose: 'emergency', fields });
+ const panicRef = String(runtime.call(ROUTE, press({ idempotencyKey: 'p-1', appointmentRef: 'appointment-synthetic-1' })).body.panicRef);
+ const reading = operator(POSITION, { panicRef });
+ assert.deepEqual(reading.body, { sharingEndsAt: new Date(Date.parse(START) + panicWindowMinutes * MINUTE).toISOString() }, 'inside the window the desk is told when sharing ends; no device reports where she is');
+
+ refused(operator(RESOLVE, { idempotencyKey: 'r-early', panicRef, outcomeCode: outcomes[0].id }), 'panic-resolved-before-acknowledged');
+ refused(operator(RESOLVE, { idempotencyKey: 'r-early-none', panicRef }), 'panic-resolved-before-acknowledged');
+ assert.equal(operator(PANIC_PICK_UP, { idempotencyKey: 'u-1', panicRef }).status, 200);
+ refused(operator(RESOLVE, { idempotencyKey: 'r-none', panicRef }), 'panic-resolved-without-outcome');
+ runtime.advance(2 * MINUTE);
+ const resolved = operator(RESOLVE, { idempotencyKey: 'r-1', panicRef, outcomeCode: outcomes[0].id });
+ const at = new Date(Date.parse(START) + 2 * MINUTE).toISOString();
+ assert.deepEqual(resolved.body, { resolvedAt: at, sharingEndedAt: at });
+ const events = published(runtime, 'panic.resolved@1').map(entry => JSON.parse(entry.body) as { payload: Record<string, unknown>; actorRole: string; subjectRef: string });
+ assert.deepEqual(events.map(e => [e.payload, e.actorRole, e.subjectRef]), [[{ panicRef, outcomeCode: outcomes[0].id, sharingEndedAt: at }, 'operator', 'party-synthetic-205']]);
+ refused(operator(POSITION, { panicRef }), 'position-no-longer-shared');
+ refused(operator(RESOLVE, { idempotencyKey: 'r-2', panicRef, outcomeCode: outcomes[0].id }), 'panic-already-resolved');
+ refused(operator(PANIC_PICK_UP, { idempotencyKey: 'u-2', panicRef }), 'panic-resolved-nothing-to-pick-up');
+ const pressedAgain = runtime.call(ROUTE, press({ idempotencyKey: 'p-2', appointmentRef: 'appointment-synthetic-1' }));
+ assert.notEqual(pressedAgain.body.panicRef, panicRef, 'a press after the desk resolved her panic is a new panic, inside the old window or not');
+
+ const open = String(pressedAgain.body.panicRef);
+ assert.equal(operator(POSITION, { panicRef: open }).status, 200);
+ runtime.advance(panicWindowMinutes * MINUTE);
+ refused(operator(POSITION, { panicRef: open }), 'position-no-longer-shared');
+ refused(operator(POSITION, { panicRef: 'panic-nobody-pressed' }), 'no-such-panic');
+ assert.equal(runtime.call(POSITION, { role: 'nurse', ref: 'party-synthetic-206', purpose: 'emergency', fields: { panicRef: open } }).body.error, 'caller-not-allowed', 'only the desk reads where a nurse is');
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
 });
@@ -156,16 +325,16 @@ test('an admin reads the timings in force with their ranges and an empty history
 
 test('a change is refused out of range, without a reason, on a stale version and for anybody but an admin, and nothing is recorded or published', () => {
  const runtime = runtimeWith();
- const refused = (answer: { status: number; body: Record<string, unknown> }, id: string) => {
+ const refusedChange = (answer: { status: number; body: Record<string, unknown> }, id: string) => {
   assert.equal(answer.body.error, id, JSON.stringify(answer.body));
   assert.equal(answer.body.message, changeStatement(id));
  };
- refused(runtime.call(CHANGE, change({ idempotencyKey: 'low', wholeNumber: row('grace').lowest.value - 1 })), 'setting-out-of-range');
- refused(runtime.call(CHANGE, change({ idempotencyKey: 'high', wholeNumber: row('grace').highest.value + 1 })), 'setting-out-of-range');
- refused(runtime.call(CHANGE, change({ idempotencyKey: 'zero', setting: 'panic-window', wholeNumber: 0 })), 'setting-not-above-zero');
- refused(runtime.call(CHANGE, change({ idempotencyKey: 'no-reason', reason: undefined })), 'setting-change-without-reason');
- refused(runtime.call(CHANGE, change({ idempotencyKey: 'blank-reason', reason: '   ' })), 'setting-change-without-reason');
- refused(runtime.call(CHANGE, change({ idempotencyKey: 'stale', expectedVersion: 2 })), 'settings-version-stale');
+ refusedChange(runtime.call(CHANGE, change({ idempotencyKey: 'low', wholeNumber: row('grace').lowest.value - 1 })), 'setting-out-of-range');
+ refusedChange(runtime.call(CHANGE, change({ idempotencyKey: 'high', wholeNumber: row('grace').highest.value + 1 })), 'setting-out-of-range');
+ refusedChange(runtime.call(CHANGE, change({ idempotencyKey: 'zero', setting: 'panic-window', wholeNumber: 0 })), 'setting-not-above-zero');
+ refusedChange(runtime.call(CHANGE, change({ idempotencyKey: 'no-reason', reason: undefined })), 'setting-change-without-reason');
+ refusedChange(runtime.call(CHANGE, change({ idempotencyKey: 'blank-reason', reason: '   ' })), 'setting-change-without-reason');
+ refusedChange(runtime.call(CHANGE, change({ idempotencyKey: 'stale', expectedVersion: 2 })), 'settings-version-stale');
  /* A nurse or the desk is refused by the binder before the handler runs, with the shared sentence: the
     route names its callers, and a caller it does not name never reaches the rule that would refuse it. */
  const callerNotAllowed = apis.sharedRefusals.find(r => r.id === 'caller-not-allowed')!.statement;
@@ -204,32 +373,25 @@ test('an accepted change records who, when, from, to and why, publishes nothing,
  runtime.close();
 });
 
-test('a visit that started before a change keeps the grace its deadline is counted from', () => {
- const directory = mkdtempSync(join(tmpdir(), 'mythuso-safety-settings-'));
- try {
-  const pending: string[] = [];
-  const care = defineEngine({ id: 'care', routes: {}, subscriptions: {}, store: { schema: '' },
-   tick: ctx => { for (const appointmentRef of pending.splice(0)) ctx.publish('appointment.in_progress@2', { appointmentRef, visitCodeMatched: true, serviceId: 'wound' }, { subjectRef: `subject-${appointmentRef}`, purposeOfUse: 'treatment' }); } });
-  const runtime = runtimeWith([care], directory);
-  pending.push('appointment-before');
-  runtime.advance(MINUTE);
-  const shorter = row('grace').lowest.value;
-  assert.equal(runtime.call(CHANGE, change({ wholeNumber: shorter })).status, 200);
-  pending.push('appointment-after', 'appointment-before');
-  runtime.advance(MINUTE);
-  assert.deepEqual(runtime.faults(), []);
-  runtime.close();
+test('a settings change does not move a running timer: a visit that started before it keeps its version, grace and ceiling', () => {
+ const { runtime, start, timer } = visits();
+ start('appointment-before');
+ const before = timer('appointment-before');
+ const shorter = row('grace').lowest.value;
+ assert.equal(runtime.call(CHANGE, change({ wholeNumber: shorter })).status, 200);
+ const lowerCeiling = row('extension-ceiling').lowest.value;
+ assert.equal(runtime.call(CHANGE, change({ idempotencyKey: 'ceiling', setting: 'extension-ceiling', wholeNumber: lowerCeiling, expectedVersion: 2 })).status, 200);
+ runtime.advance(MINUTE);
+ start('appointment-after');
+ start('appointment-before');
 
-  const store = openDatabase(directory, 'safety');
-  const rows = store.prepare('SELECT appointment_ref, settings_version, grace_minutes, max_extension_minutes FROM visits_under_way ORDER BY appointment_ref').all() as { appointment_ref: string; settings_version: number; grace_minutes: number; max_extension_minutes: number }[];
-  store.close();
-  assert.deepEqual(rows.map(r => ({ ...r })), [
-   { appointment_ref: 'appointment-after', settings_version: 2, grace_minutes: shorter, max_extension_minutes: defaultTimings.maxExtensionMinutes },
-   { appointment_ref: 'appointment-before', settings_version: 1, grace_minutes: defaultTimings.graceMinutes, max_extension_minutes: defaultTimings.maxExtensionMinutes }
-  ], 'the visit heard before the change, even when heard again after it, keeps version 1 and the grace it started with');
- } finally {
-  rmSync(directory, { recursive: true, force: true });
- }
+ assert.deepEqual(timer('appointment-before'), before, 'heard again after the change, the visit keeps version 1, its deadline and its ceiling');
+ const after = timer('appointment-after');
+ assert.equal(after.settingsVersion, 3);
+ assert.equal(Date.parse(after.dueAt), Date.parse(START) + MINUTE + (minutesOf('wound') + shorter) * MINUTE, 'the next visit is timed with the grace in force');
+ assert.equal(after.extensionMinutesLeft, lowerCeiling);
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
 });
 
 test('a panic open before a change keeps its window, and a phone that read the old window is given the new one', () => {
@@ -257,16 +419,16 @@ test('a panic open before a change keeps its window, and a phone that read the o
 test('who changes a field-safety setting is itself a setting only the admin changes, and it always names somebody', () => {
  const runtime = runtimeWith();
  const operator = { role: 'operator', ref: 'party-synthetic-801' };
- const refused = (answer: { body: Record<string, unknown> }, id: string) => assert.deepEqual([answer.body.error, answer.body.message], [id, changeStatement(id)], JSON.stringify(answer.body));
- refused(runtime.call(CHANGE, change({ idempotencyKey: 'op-early' }, operator)), 'setting-change-not-permitted');
+ const refusedChange = (answer: { body: Record<string, unknown> }, id: string) => assert.deepEqual([answer.body.error, answer.body.message], [id, changeStatement(id)], JSON.stringify(answer.body));
+ refusedChange(runtime.call(CHANGE, change({ idempotencyKey: 'op-early' }, operator)), 'setting-change-not-permitted');
  const roles = (fields: Record<string, unknown>, who = {}) => change({ setting: 'settings-changed-by', wholeNumber: undefined, reason: 'The Control Tower operator holds the desk overnight.', ...fields }, who);
- refused(runtime.call(CHANGE, roles({ idempotencyKey: 'nobody', roles: [] })), 'setting-out-of-range');
- refused(runtime.call(CHANGE, roles({ idempotencyKey: 'a-nurse', roles: ['admin', 'nurse'] })), 'setting-out-of-range');
- refused(runtime.call(CHANGE, roles({ idempotencyKey: 'off-register', roles: ['admin', 'desk-lead'] })), 'setting-role-not-on-register');
+ refusedChange(runtime.call(CHANGE, roles({ idempotencyKey: 'nobody', roles: [] })), 'setting-out-of-range');
+ refusedChange(runtime.call(CHANGE, roles({ idempotencyKey: 'a-nurse', roles: ['admin', 'nurse'] })), 'setting-out-of-range');
+ refusedChange(runtime.call(CHANGE, roles({ idempotencyKey: 'off-register', roles: ['admin', 'desk-lead'] })), 'setting-role-not-on-register');
  assert.equal(runtime.call(CHANGE, roles({ idempotencyKey: 'widen', roles: ['admin', 'operator'] })).status, 200);
  const byOperator = runtime.call(CHANGE, change({ idempotencyKey: 'op-grace', expectedVersion: 2 }, operator));
  assert.equal(byOperator.status, 200, JSON.stringify(byOperator.body));
- refused(runtime.call(CHANGE, roles({ idempotencyKey: 'op-self', roles: ['operator'], expectedVersion: 3 }, operator)), 'setting-change-not-permitted');
+ refusedChange(runtime.call(CHANGE, roles({ idempotencyKey: 'op-self', roles: ['operator'], expectedVersion: 3 }, operator)), 'setting-change-not-permitted');
  const history = readSettings(runtime).body.history as { setting: string; byRole: string }[];
  assert.deepEqual(history.map(h => [h.setting, h.byRole]), [['settings-changed-by', 'admin'], ['grace', 'operator']]);
  assert.deepEqual(runtime.faults(), []);

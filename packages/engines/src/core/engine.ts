@@ -238,6 +238,23 @@ function heardPanic(event: BusEvent, ctx: EngineContext) {
  publish(ctx, loop, 'loop.opened@1', { loopRef: loop.loopRef, sourceEngine: loop.sourceEngine, ownerRole: loop.ownerRole, dueBy: at(loop.dueBy) });
 }
 
+/* ── A panic resolved ─────────────────────────────────────────────────────────────────────────────── */
+
+/* A person at Safety's desk resolved the panic, so the concern Core opened for it stands down with that outcome:
+   closed, pointing at the panic, where Safety keeps the outcome, by the role that resolved it. Only an open
+   concern that came from the engine that resolved the panic is closed. A concern somebody already closed is left
+   as it is, and so is a concern for any other panic. Nothing else about it moves, and no rota is read. */
+const PANIC_RESOLVED = 'panic.resolved@1' as EventKey;
+function heardPanicResolved(event: BusEvent, ctx: EngineContext) {
+ const panicRef = text(event.payload['panicRef']);
+ const loop = all(ctx).find(open => open.holder.kind === 'every-post' && open.sourceEngine === event.owner && open.dedupeKey === panicRef && open.closedAt === null);
+ if (!loop) return;
+ const closed: Loop = { ...loop, closedAt: nowOf(ctx), outcomeRef: panicRef, closedByRole: event.actorRole };
+ put(ctx, closed);
+ audit(ctx, closed, 'closed', text(event.payload['outcomeCode']));
+ publish(ctx, closed, 'loop.closed@1', { loopRef: closed.loopRef, outcomeRef: panicRef, closedByRole: event.actorRole });
+}
+
 /* ── Acting on a concern ──────────────────────────────────────────────────────────────────────────── */
 
 function acknowledge(request: HandlerRequest, ctx: EngineContext) {
@@ -335,7 +352,7 @@ export const engine = defineEngine({
   'POST /v1/core/alerts@2': raiseAlert,
   ...settingsRoutes(coreSettings, { read: 'GET /v1/core/settings@1', change: 'POST /v1/core/setting-changes@1' })
  },
- subscriptions: { [PANIC]: heardPanic },
+ subscriptions: { [PANIC]: heardPanic, [PANIC_RESOLVED]: heardPanicResolved },
  tick: ctx => {
   const now = nowOf(ctx);
   for (const loop of all(ctx)) {

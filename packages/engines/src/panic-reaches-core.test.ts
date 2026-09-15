@@ -19,6 +19,7 @@ import { contract, panicSpanMs } from './core/domain/contract.ts';
 import { everyPostOnDuty } from './core/domain/loops.ts';
 import { coreBlock, rotaOf } from './core/domain/settings.ts';
 import { panicWindowOf } from './safety/domain/settings.ts';
+import { outcomes } from './safety/domain/rules.ts';
 
 const MORNING = '2026-09-15T09:00:00+02:00';
 const NIGHT = '2026-09-15T02:00:00+02:00';
@@ -61,6 +62,34 @@ test('a panic alerts every post on duty at once, is one concern however often it
  runtime.advance(DAY);
  assert.equal(published('loop.escalated@1').length, 0, 'a panic was walked up the rota');
  assert.equal(tower()[0]!.stateCode, 'exhausted');
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('a panic the desk picks up and resolves stands Core’s concern down with its outcome, and nothing on the bus says where she was', () => {
+ const { runtime, press, tower, published } = world(MORNING);
+ const panicRef = String(press('party-synthetic-205', 'appointment-synthetic-1', 'press-1').body['panicRef']);
+ const [concern] = tower();
+ const desk = (route: 'POST /v1/safety/panics/{panicRef}/pick-up@1' | 'POST /v1/safety/panics/{panicRef}/resolve@1', key: string, fields: Record<string, unknown> = {}) =>
+  runtime.call(route, { role: 'operator', ref: 'party-synthetic-801', purpose: 'emergency', fields: { idempotencyKey: key, panicRef, ...fields } });
+
+ assert.equal(desk('POST /v1/safety/panics/{panicRef}/resolve@1', 'early', { outcomeCode: outcomes[0]!.id }).body['error'], 'panic-resolved-before-acknowledged');
+ assert.equal(published('loop.closed@1').length, 0, 'a resolution refused closes nothing');
+ assert.equal(desk('POST /v1/safety/panics/{panicRef}/pick-up@1', 'pick').status, 200);
+ runtime.advance(3 * 60_000);
+ const resolved = desk('POST /v1/safety/panics/{panicRef}/resolve@1', 'resolve', { outcomeCode: outcomes[0]!.id });
+ assert.equal(resolved.status, 200, JSON.stringify(resolved.body));
+
+ const said = published('panic.resolved@1').map(entry => JSON.parse(entry.body) as { payload: Record<string, unknown> });
+ assert.deepEqual(said.map(e => Object.keys(e.payload).sort()), [['outcomeCode', 'panicRef', 'sharingEndedAt']]);
+ const closed = published('loop.closed@1').map(entry => JSON.parse(entry.body) as { payload: Record<string, unknown> });
+ assert.deepEqual(closed.map(e => e.payload), [{ loopRef: concern!.loopRef, outcomeRef: panicRef, closedByRole: 'operator' }], 'Core closes the concern it opened for this panic, pointing at the panic, by the role that resolved it');
+ assert.ok(!tower().some(item => item.loopRef === concern!.loopRef && item.stateCode !== 'closed'), 'the concern no longer waits in the Control Tower');
+
+ const second = String(press('party-synthetic-206', 'appointment-synthetic-2', 'press-2').body['panicRef']);
+ runtime.advance(24 * 60 * 60_000);
+ assert.equal(published('loop.closed@1').length, 1, 'another panic’s concern is not stood down by a resolution it did not have');
+ assert.ok(second);
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
 });
