@@ -40,6 +40,8 @@ const windowsText = (row: TimingRow, windows: Window[]) => windows.length ? wind
 const valueText = (row: TimingRow, value: unknown): string => {
   if (row.type === 'minutes' || (row.type === 'list' && row.of === 'minutes')) return minutesText(value as number | number[]);
   if (row.type === 'count') return fill(say.values.count, { value: String(value), unit: row.unit ?? '' });
+  /* Wave 5, Clinical: a list of counts — the days outcome questions are asked on — reads as its numbers and the unit once. */
+  if (row.type === 'list' && row.of === 'count') return fill(say.values.count, { value: (value as number[]).join(', '), unit: row.unit ?? '' });
   if (row.type === 'moneyCents') return fill(say.values.moneyCents, { rand: ((value as number) / 100).toFixed(2) });
   if (row.type === 'boolean') return row.allowed?.find(choice => choice.value === value)?.label ?? (value ? say.values.on : say.values.off);
   if (row.type === 'enum') return row.allowed!.find(choice => choice.value === value)!.label;
@@ -54,7 +56,7 @@ const valueText = (row: TimingRow, value: unknown): string => {
    in its own setting's unit: minutes for a timing, characters or hours for a count, rand for money. */
 const limitsTexts = (row: TimingRow): string[] => {
   if (row.type === 'record') return [row.parts!.map(part => `${part.label}: ${limitsTexts(part).join(' · ')}`).join(' · ')];
-  const inUnits = (value: number) => row.type === 'list' ? minutesText(value) : valueText(row, value);
+  const inUnits = (value: number) => row.type === 'list' ? (row.of === 'count' ? fill(say.values.count, { value: String(value), unit: row.unit ?? '' }) : minutesText(value)) : valueText(row, value);
   return [
     ...(row.posts ? [fill(say.posts, { posts: row.posts.map(post => post.role === null ? fill(say.postWithoutRole, { post: post.label }) : post.label).join(', ') })] : []),
     ...(row.bounds ? [fill(say.range, { lowest: inUnits(row.bounds.lowest.value), highest: inUnits(row.bounds.highest.value) })] : []),
