@@ -321,7 +321,8 @@
   "administrativeOnSelf": "Your own vetting record is yours to read and to add your own documents to. Changing it — your role, a decision on one of your checks, a suspension — is done by a reviewer, never by the party it is about.",
   "enrol": "Nobody enrols themselves or changes the role they are vetted in. A reviewer does that, and you are the party it is about.",
   "restore": "Nobody lifts their own suspension. A reviewer does that, and you are the party it is about.",
-  "alreadyEnrolled": "This party is already on the register. Enrolling again does not change a role: a role change would be a decision nobody reviewed, and there is no route for one."
+  "alreadyEnrolled": "This party is already on the register. Enrolling again does not change a role: a role change would be a decision nobody reviewed, and there is no route for one.",
+  "readOwnThroughReviewerRoute": "This route is a reviewer's, for reading somebody else's register entry. Your own standing is at /vetting/me, which tells you everything this would."
  },
  "roles": [
   {

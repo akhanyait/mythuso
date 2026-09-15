@@ -77,7 +77,7 @@ export type { IdentityProvider, IdentityCallback, IdentityMode, IdentitySession,
 /** The record type the gate knows this by, and the one capability that opens it. */
 const RECORD_TYPE = 'vetting-evidence';
 /* What a party is refused in when they act on their own register entry. The contract's sentences. */
-const SELF_REFUSALS = vettingCatalogue.selfActionRefusals;
+export const SELF_REFUSALS = vettingCatalogue.selfActionRefusals;
 const CAPABILITY = 'review-vetting';
 /* How many parties the bootstrap may seed. Two, because one reviewer cannot satisfy a rule that
    requires two different ones — see openBootstrap(). */
