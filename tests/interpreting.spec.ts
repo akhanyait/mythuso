@@ -119,6 +119,7 @@ test('a booking that needs an interpreter is held rather than confirmed, and say
   const booking = page.getByRole('dialog');
   await booking.getByRole('button', { name: /^Continue/ }).click();
   await booking.getByRole('button', { name: /^Continue/ }).click();
+  await booking.getByRole('button', { name: /^Continue/ }).click(); // nurse → when, whoever is nearest
 
   // in the room, tomorrow at nine — the same answer the roster gave, inside the booking
   const outcome = booking.locator('.interp-outcome');

@@ -83,6 +83,11 @@ struct BookedVisit: Identifiable, Hashable {
     let date: Date?
     let start: String?
     let payment: String
+    /* Who was asked for, carried from the booking into the visit — scheduling.json’s
+       everything-survives-the-booking. Nil while it is whoever is nearest, which is an answer rather
+       than a gap: nobody is named until the roster assigns her. */
+    let nurseId: String?
+    let nurseName: String?
 
     /* The identity is a parameter with a default rather than a constant minted in place, because a
        moved visit has to be able to keep the one it already has. Moving a visit keeps its
@@ -91,7 +96,7 @@ struct BookedVisit: Identifiable, Hashable {
        cancellation and a fresh booking wearing a kinder word, which is what makes the interpreter
        held for it, the consent given for it and the record of it stop applying. */
     init(id: UUID = UUID(), service: CareService, patient: String, address: String, kind: String,
-         date: Date?, start: String?, payment: String) {
+         date: Date?, start: String?, payment: String, nurseId: String? = nil, nurseName: String? = nil) {
         self.id = id
         self.service = service
         self.patient = patient
@@ -100,6 +105,8 @@ struct BookedVisit: Identifiable, Hashable {
         self.date = date
         self.start = start
         self.payment = payment
+        self.nurseId = nurseId
+        self.nurseName = nurseName
     }
 
     /* The same visit, on another day and at another hour. Nothing else about it changes.

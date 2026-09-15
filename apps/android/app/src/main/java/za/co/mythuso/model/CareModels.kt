@@ -31,6 +31,12 @@ private fun underWayNow(service: CareService, person: String, address: String): 
     return BookedVisit(service, person, address, "scheduled", began.toLocalDate(),
         began.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")), "Card")
 }
+/* The nurse the arrival screen already says this account's visits are assigned to, found in the vetting
+   register by that one name rather than typed a second time. The seeded visits carry her, so a thread and
+   a booking status have somebody to name. */
+private val seededNurseId: String? get() = seededSubjects.firstOrNull { it.name == AssignedNurse.name }?.id
+private fun withAssignedNurse(visit: BookedVisit): BookedVisit =
+    visit.copy(nurseId = seededNurseId, nurseName = seededNurseId?.let { AssignedNurse.name })
 /**
  * Everything the preview holds. All of it is in memory and lost on restart, with two deliberate
  * exceptions: the capture queue and the visit queue, which are the nurse's own work and are written
@@ -54,8 +60,8 @@ class PreviewStore(book: CaptureBook = MemoryBook(), visitBook: CaptureBook = Me
            offers and not one of the five suburbs geography.json says MyThuso works in, so a visit
            booked there was a visit the app's own coverage refuses — and the arrival screen is where
            that finally became visible. */
-        BookedVisit(services[0], "Lerato Molefe", "Home visit · Randburg",
-            "scheduled", Scheduling.today().plusDays(5), "09:00", "Card"),
+        withAssignedNurse(BookedVisit(services[0], "Lerato Molefe", "Home visit · Randburg",
+            "scheduled", Scheduling.today().plusDays(5), "09:00", "Card")),
         /* Soweto rather than Rosebank, which is the suburb the assigned nurse works out of. A visit
            in the nurse's own suburb is a real state and the arrival screen has a sentence for it —
            there is no distance between one zone centre and itself — but it was the only state the
@@ -67,6 +73,13 @@ class PreviewStore(book: CaptureBook = MemoryBook(), visitBook: CaptureBook = Me
        limit: a visit that vanishes is one nobody can ask about afterwards — not the patient, not the
        nurse who was dispatched, and not whoever has to explain it. */
     val cancelled = mutableStateListOf<CancelledVisit>()
+    /* What a patient wrote in a visit thread, keyed by the visit's reference. In memory only: these are
+       words about getting to a door, not part of anybody's record, and booking.json says nothing in a
+       thread travels anywhere. */
+    val visitThreadMessages = mutableStateListOf<VisitThreadMessage>()
+    /* The simulated nurse queue Gilbert hands a summary to: one entry per conversation, holding the
+       highest urgency it was handed with. It reaches no nurse. */
+    val handovers = mutableStateListOf<HandoverSent>()
     /* What somebody typed on the home screen, so the catalogue it hands off to can apply it. */
     var careQuery by mutableStateOf("")
     var careCategory by mutableStateOf("All care")
@@ -132,6 +145,9 @@ class BookingDraft {
     var slot by mutableStateOf("09:00")
     var payment by mutableStateOf("Card")
     var kind by mutableStateOf("scheduled")
+    /* Who is asked for: nearest, previous or named, with the nurse's register id for the last two. */
+    var choice by mutableStateOf(Booking.NEAREST)
+    var nurseId by mutableStateOf<String?>(null)
 }
 
 val careCategories = listOf("All care", "Everyday health", "Recovery", "Family care", "Tests & treatments")

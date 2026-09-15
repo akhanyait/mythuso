@@ -40,6 +40,9 @@ struct CareBookingDraft: Equatable {
     var consent: Bool
     var kind: String
     var step: Int
+    /// Who was asked for — nearest, previous or named — and the nurse picked from the named list.
+    var choice: String = "nearest"
+    var nurseId: String? = nil
 }
 
 @MainActor final class PreviewStore: ObservableObject {
@@ -54,6 +57,10 @@ struct CareBookingDraft: Equatable {
        reason is that a visit which vanishes is one nobody can ask about afterwards: not the
        patient, not the nurse who was dispatched, and not whoever has to explain it. */
     @Published var cancelled: [CancelledVisit] = []
+    /* The words written on each visit’s thread, by visit. In memory and nowhere else: a thread is not a
+       health record, booking.json says so, and a message about a gate code quietly written to the disk
+       beside a nurse’s captured work would be special personal information held in the wrong place. */
+    @Published var threads: [UUID: [VisitThreadMessage]] = [:]
 
     /* Cancelling moves a visit between the two lists and records the reason given. It never touches
        money — what a late cancellation costs is the open question the contract holds as

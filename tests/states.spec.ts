@@ -245,8 +245,12 @@ const SHARED_BY_BOTH_AUDIENCES = ['DemoLogin', 'Kit', 'KitCapture', 'LiveMap', '
    means somebody added a patient screen to the eager graph, which is the thing to look at. Every one
    of them is reached from features/Pages.tsx, features/Access.tsx or the patient shell, and not one
    of them is drawn on a clinical screen. */
+/* Booking left this list in Wave 3, and deliberately: the booking flow grew a person step and the booking
+   domain, and it now arrives on a dynamic import from App.tsx the moment somebody opens a service. A
+   clinician never opens one, so a clinician no longer downloads it — and neither does a patient who
+   only reads their visits. */
 const CARRIED_BY_THE_ONE_ENTRY = [
-  'Access', 'Arrival', 'Booking', 'Consent', 'Dashboard', 'Guardian', 'Help', 'Household',
+  'Access', 'Arrival', 'Consent', 'Dashboard', 'Guardian', 'Help', 'Household',
   'Interpreting', 'Onboarding', 'Pages', 'Passport', 'PatientShell', 'Sos', 'Sponsor', 'VisitSummary',
   /* Live well, added the same night as the one entry. It is a patient feature and the patient is
      the default surface, so it loads with the rest of the patient app rather than behind a role —

@@ -210,7 +210,7 @@ test('a typed question in a person’s own words gets the same contract answer',
  await expect(log(page).locator('.as-said')).toHaveCount(1);
 });
 
-test('anything Gilbert cannot match is told so, with the ambulance, Thuso SOS and a nurse — and the handover says it was not sent', async ({ page }) => {
+test('anything Gilbert cannot match is told so, with the ambulance, Thuso SOS and a nurse — and the handover goes to a simulated queue without their words', async ({ page }) => {
  await page.goto('/app/?open=assistant');
  const words = 'My knee has been sore since Tuesday';
  await ask(page, words);
@@ -227,15 +227,31 @@ test('anything Gilbert cannot match is told so, with the ambulance, Thuso SOS an
 
  await answer.getByRole('button', { name: gilbert.answers.unmatched.handoverLabel }).click();
  const handover = log(page).locator('.as-reply').last();
- await expect(handover.locator('.as-headline')).toHaveText(gilbert.answers.handover.title);
+ const h = gilbert.answers.handover;
+ await expect(handover.locator('.as-headline').first()).toHaveText(h.title);
+ /* The structured summary: how they asked, what matched and an urgency that is never calm. Their words
+    are not in it, and what does not go is said before anything goes. */
  const rows = handover.locator('.as-summary > div');
- await expect(rows.nth(0)).toContainText(words);
- await expect(rows.nth(1)).toContainText(gilbert.answers.handover.channelTyped);
- await expect(rows.nth(2)).toContainText(gilbert.answers.handover.nothingMatched);
- await expect(rows.nth(3)).toContainText(gilbert.answers.handover.noFlags);
- await expect(handover.locator('.as-notsent')).toHaveText(gilbert.answers.handover.notSent);
+ await expect(rows).toHaveCount(3);
+ await expect(rows.nth(0)).toContainText(h.channelTyped);
+ await expect(rows.nth(1)).toContainText(h.nothingMatched);
+ await expect(rows.nth(2)).toContainText(h.urgency.find((u: { id: string }) => u.id === 'not-assessed').name);
+ await expect(handover.locator('.as-summary')).not.toContainText(words);
+ for (const item of h.notCarried) await expect(handover).toContainText(item.sentence);
+ await expect(handover.locator('.as-notsent')).toHaveText(h.notSent);
  await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'handover');
  await expect(panel(page).locator('.as-state')).toHaveText(cue('handover'));
+
+ /* Handed to the simulated queue: a reference that says it is simulated, no nurse, and the ambulance
+    numbers after it, because a queue nobody reads must not be the last thing an urgent person sees. */
+ await handover.getByRole('button', { name: h.sendLabel }).click();
+ const sent = handover.locator('.as-sent');
+ await expect(sent.locator('.as-headline')).toHaveText(h.sentTitle);
+ await expect(sent).toContainText(h.sent);
+ await expect(sent.locator('.as-ref')).toHaveText(/^SIM-HO-/);
+ await expect(sent).toContainText(h.stillUrgent);
+ await expect(sent.locator('.as-numbers li').first()).toContainText('10177');
+ await expect(handover.getByRole('button', { name: h.sendLabel })).toHaveCount(0);
 });
 
 test('an emergency word raises the answer, whatever else the message asked', async ({ page }) => {
@@ -257,10 +273,23 @@ test('an emergency word raises the answer, whatever else the message asked', asy
  await expect(log(page).locator('.as-reply').last().locator('.as-numbers li').first()).toContainText('10177');
  await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'escalate');
 
- // and the nurse handover names what was noticed rather than pretending nothing matched
+ /* And the nurse handover says an emergency was raised — whether, never which — and nothing asked
+    afterwards lowers it: asking again with nothing more urgent sends nothing new. */
+ const h = gilbert.answers.handover;
  await ask(page, 'can I talk to a nurse');
- const rows = log(page).locator('.as-reply').last().locator('.as-summary > div');
- await expect(rows.nth(2)).toContainText(gilbert.answers.handover.matchedEmergency);
+ const handover = log(page).locator('.as-reply').last();
+ const rows = handover.locator('.as-summary > div');
+ await expect(rows.nth(1)).toContainText(h.matchedEmergency);
+ await expect(rows.nth(2)).toContainText(h.urgency.find((u: { id: string }) => u.id === 'emergency').name);
+ await expect(handover).toContainText(h.neverLowered);
+ await expect(handover.locator('.as-summary')).not.toContainText(condition('chest-pain'));
+ await handover.getByRole('button', { name: h.sendLabel }).click();
+ await expect(handover.locator('.as-sent .as-headline')).toHaveText(h.sentTitle);
+ await ask(page, 'can I talk to a nurse');
+ const again = log(page).locator('.as-reply').last();
+ await expect(again.locator('.as-summary > div').nth(2)).toContainText(h.urgency.find((u: { id: string }) => u.id === 'emergency').name);
+ await again.getByRole('button', { name: h.sendLabel }).click();
+ await expect(again.locator('.as-sent .as-headline')).toHaveText(h.alreadySent);
 });
 
 test('starting again clears the conversation back to its opening', async ({ page }) => {
@@ -469,7 +498,7 @@ test('Gilbert names the visit the home card shows, not a day of its own', async 
  else await page.locator('.tabbar button').nth(1).click();
  await page.getByRole('button', { name: /Elderly care/ }).first().click();
  const d = page.getByRole('dialog');
- for (let step = 0; step < 4; step++) await d.getByRole('button', { name: 'Continue' }).click();
+ for (let step = 0; step < 5; step++) await d.getByRole('button', { name: 'Continue' }).click();
  await d.getByRole('checkbox').check();
  await confirmBooking(d);
  await d.getByRole('button', { name: 'View my visits' }).click();

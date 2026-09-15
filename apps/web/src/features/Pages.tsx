@@ -21,7 +21,8 @@ import {
  readingSets, reviewedBy, seriesFor
 } from '../lib/passport';
 import { CancelledVisit, PastVisit } from './VisitSummary';
-import { nurseFor, assignedNurse } from '../lib/arrival';
+import { nurseOfVisit, assignedNurse } from '../lib/arrival';
+import type { Thread } from '../../../../packages/engines/src/access/domain/thread.ts';
 import { ClinicianProfile } from '../components/ClinicianProfile';
 import businessModel from '../../../../packages/catalog/business-model.json';
 import { OPEN_PARAM, slugOfSection } from '../lib/roles';
@@ -167,7 +168,7 @@ export function Visits({rows:all,book,manage,view,track}:{rows:VisitRow[];open:(
     {group==='upcoming'&&<>
      {/* Who is coming to *this* address. It was one nurse named on every row whatever the suburb,
          which is the same person walking into three houses in three suburbs at the same hour. */}
-     {i===0&&<div className="nurse-row"><span className="avatar nurse-avatar">{nurseFor(v.address).initials}</span><div><strong>{nurseFor(v.address).name}</strong><span>{nurseFor(v.address).role}</span></div></div>}
+     {i===0&&<div className="nurse-row"><span className="avatar nurse-avatar">{nurseOfVisit(v).initials}</span><div><strong>{nurseOfVisit(v).name}</strong><span>{nurseOfVisit(v).role}</span></div></div>}
      {/* On every upcoming visit and not only the one that is today. The answer for a visit a
          fortnight away is "nobody is on the way yet, and here is why you cannot watch her before
          the day" — which is an answer, and hiding the control until the morning would leave a
@@ -208,15 +209,24 @@ export function PageHeading({eyebrow,title,description}:{eyebrow:string;title:st
  * over whatever visit you had actually pressed, with one button that went to the Health Passport. It
  * is the visit now, and the two things a person opens a visit to do are on it. */
 const toBring=['Your identity document, so the nurse can confirm the right patient at the door','Every medicine you are taking, boxes and all','A chair and a light in a room you can close'] as const;
-export function VisitDetail({row,manage,navigate,rebook,track,notes=[]}:{row:VisitRow;manage:(id:string,action:VisitAction)=>void;navigate:(s:string)=>void;rebook:()=>void;track:(id:string)=>void;notes?:WellbeingEntry[]}){
+/* The visit's booking status and its thread with the nurse arrive on a dynamic import the first time a
+   visit is opened. The thread itself is held in App.tsx, so closing the visit and opening it again keeps
+   what was written; nothing is written anywhere else. */
+const VisitAccess=lazy(()=>import('./VisitAccess'));
+export function VisitDetail({row,manage,navigate,rebook,track,notes=[],thread,onThread}:{row:VisitRow;manage:(id:string,action:VisitAction)=>void;navigate:(s:string)=>void;rebook:()=>void;track:(id:string)=>void;notes?:WellbeingEntry[];thread?:Thread;onThread?:(next:Thread)=>void}){
  const {visit:v,status,tone,group,reason}=row;
+ const [talking,setTalking]=useState(false);
+ const access=<Suspense fallback={null}><VisitAccess row={row} held={thread} onThread={onThread??(()=>{})} talking={talking} setTalking={setTalking}/></Suspense>;
+ /* Reading or writing in the thread replaces the visit inside the same dialog, with the way back at its top. */
+ if(talking) return access;
  /* Three visits, three screens. A completed visit and a cancelled one used to render this one — a
     price, a nurse, and three things to have ready for a visit that had already happened or had been
     stood down a fortnight before. Neither of them owes a person any of that; what each owes is in
-    VisitSummary.tsx. */
+    VisitSummary.tsx — and the thread, closed, with what was said still readable. */
  const shape={id:row.id,service:v.service,person:v.person,address:v.address,date:v.date,start:v.start,payment:v.payment};
- if(group==='past') return <PastVisit row={shape} dayOffset={row.dayOffset} rebook={rebook} navigate={navigate}/>;
- if(group==='cancelled') return <CancelledVisit row={shape} reason={reason} state={row.cancelledState??'before-window'} cancelledOn={row.cancelledOn} rebook={rebook} navigate={navigate}/>;
+ if(group==='past') return <><PastVisit row={shape} dayOffset={row.dayOffset} rebook={rebook} navigate={navigate}/>{access}</>;
+ if(group==='cancelled') return <><CancelledVisit row={shape} reason={reason} state={row.cancelledState??'before-window'} cancelledOn={row.cancelledOn} rebook={rebook} navigate={navigate}/>{access}</>;
+ const coming=nurseOfVisit(v);
  return <div className="form-stack">
   <NotConnected of="booking"/>
   <div className="booking-summary"><span className="service-icon"><ServiceIcon name={v.service.icon}/></span><div><h3>{v.service.name}</h3><p>{v.service.duration} min · Registered nurse</p></div><strong>{money(v.service.price)}</strong></div>
@@ -226,13 +236,15 @@ export function VisitDetail({row,manage,navigate,rebook,track,notes=[]}:{row:Vis
   <div className="review-line"><span>Patient</span><strong>{v.person}</strong></div>
   <div className="review-line"><span>Status</span><strong><Pill tone={tone}>{status}</Pill></strong></div>
   {reason&&<div className="review-line"><span>Reason given</span><strong>{reason}</strong></div>}
-  {/* Who is coming, and the one thing a person waiting at home actually wants from this screen. */}
+  {/* Who is coming — the nurse asked for at booking when there was one — and the one thing a person
+      waiting at home actually wants from this screen. */}
   <button className="nurse-row nurse-track" onClick={()=>track(row.id)}>
-   <span className="avatar nurse-avatar">{nurseFor(v.address).initials}</span>
-   <div><strong>{nurseFor(v.address).name}</strong><span>{nurseFor(v.address).role}</span></div>
+   <span className="avatar nurse-avatar">{coming.initials}</span>
+   <div><strong>{coming.name}</strong><span>{coming.role}</span></div>
    <span className="nurse-track-cta"><Navigation size={16}/>Where is she?</span>
   </button>
-  <ClinicianProfile subject={nurseFor(v.address).roster.subject} name={nurseFor(v.address).name} role={nurseFor(v.address).role} reference={nurseFor(v.address).roster.reference}/>
+  <ClinicianProfile subject={coming.roster.subject} name={coming.name} role={coming.role} reference={coming.roster.reference}/>
+  {access}
   <SectionTitle title="Have this ready"/>
   <div className="panel">{toBring.map(line=><div className="record-row static" key={line}><span className="service-icon"><Check size={20}/></span><span><strong>{line}</strong></span></div>)}</div>
   {/* The other half of "bring this to your next visit". It is here rather than being sent anywhere:

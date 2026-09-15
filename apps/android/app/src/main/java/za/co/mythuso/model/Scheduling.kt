@@ -84,7 +84,13 @@ data class BookedVisit(
     val payment: String,
     /* Issued when the visit is created and carried through `copy`, so moving a visit cannot mint a
        new one by accident. See Scheduling.newReference() for why a visit needs a name at all. */
-    val reference: String = Scheduling.newReference()
+    val reference: String = Scheduling.newReference(),
+    /* The nurse the patient asked for, when she asked for one. Null means whoever is nearest, and the
+       roster names nobody until a nurse sets off. Carried through `copy` with everything else, because
+       scheduling.json's everything-survives-the-booking says the choice made at the review is the
+       choice the visit keeps. */
+    val nurseId: String? = null,
+    val nurseName: String? = null
 ) {
     val isScheduled: Boolean get() = kind == "scheduled"
     val status: String get() = if (isScheduled) "Confirmed" else SchedulingData.asapPending

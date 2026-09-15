@@ -10,6 +10,7 @@ test('booking keeps choices visible and intact through an offline interruption',
  await dialog.getByLabel('Visit location').fill('Home visit · Rosebank');
  await dialog.getByRole('button', { name: 'Continue', exact: true }).click();
  await expect(dialog.getByLabel('Your booking summary')).toContainText('Nomsa');
+ await dialog.getByRole('button', { name: 'Continue', exact: true }).click(); // nurse → when, whoever is nearest
  await dialog.getByRole('button', { name: '14:00', exact: true }).click();
  await dialog.getByRole('button', { name: 'Continue', exact: true }).click();
  await dialog.getByRole('button', { name: 'Continue', exact: true }).click();
@@ -20,6 +21,7 @@ test('booking keeps choices visible and intact through an offline interruption',
  await expect(dialog.getByLabel('Your booking summary')).toContainText('14:00');
  await context.setOffline(false);
  await expect(dialog.getByRole('button', { name: 'Confirm & book' })).toBeEnabled();
+ await dialog.getByRole('button', { name: 'Back', exact: true }).click();
  await dialog.getByRole('button', { name: 'Back', exact: true }).click();
  await dialog.getByRole('button', { name: 'Back', exact: true }).click();
  await dialog.getByRole('button', { name: 'Back', exact: true }).click();
@@ -44,7 +46,7 @@ test('upcoming care leads to preparation, contact options and source verificatio
  await page.goto('/app/');
  await page.getByRole('button', { name: /Vitals & chronic check/ }).first().click();
  const booking = page.getByRole('dialog');
- for (let step=0; step<4; step++) await booking.getByRole('button', { name: 'Continue', exact: true }).click();
+ for (let step=0; step<5; step++) await booking.getByRole('button', { name: 'Continue', exact: true }).click();
  await booking.getByRole('checkbox').check();
  await confirmBooking(booking);
  await booking.getByRole('button', { name: 'View my visits' }).click();

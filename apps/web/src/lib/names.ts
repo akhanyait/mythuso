@@ -15,3 +15,7 @@ export function initialsOf(name: string) {
  const words = name.split(/\s+/).filter(w => !HONORIFICS.test(w));
  return (words.length > 1 ? words[0][0] + words[words.length - 1][0] : (words[0] ?? name).slice(0, 2)).toUpperCase();
 }
+/* An opaque token for the person a booking or a handover is about. The identity service issues the real
+   one; a family member in the preview has no identity behind them, so the token names the household
+   member rather than inventing anything that looks like an identity number. */
+export const subjectRefOf = (name: string) => `subject-${name.toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '')}`;

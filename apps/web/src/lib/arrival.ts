@@ -2,7 +2,7 @@ import { coverage, precision, privacyRuleById, refusalById, zoneByName, type Zon
 import { etaFromRoute, routeUnavailable, straightLineEta, noEta,
  type Eta, type LatLng, type RouteResult } from '../../../../packages/geo/index.ts';
 import { instantOf, isoIn } from './scheduling';
-import { assignedTo, legTo, type Leg, type RosterNurse } from './roster';
+import { assignedTo, legTo, nurseById, type Leg, type RosterNurse } from './roster';
 import { roleById, authorityById } from './vetting';
 
 /* Where is she now — the one question this product could answer for a controller and not for the
@@ -72,6 +72,13 @@ const asAssigned = (nurse: RosterNurse): AssignedNurse =>
 
 /** Who is coming to this address. The suburb decides; the address never leaves the visit. */
 export const nurseFor = (address: string): AssignedNurse => asAssigned(assignedTo(areaOf(address))!);
+/* The nurse a visit names. A patient who asked for one nurse at booking is told about her, not about
+   whoever the suburb would have produced — scheduling.json's everything-survives-the-booking — and a
+   visit booked for whoever is nearest is the roster's answer for its suburb, as it always was. */
+export const nurseOfVisit = (visit: { address: string; nurse?: { id: string } }): AssignedNurse => {
+ const asked = visit.nurse ? nurseById(visit.nurse.id) : undefined;
+ return asked ? asAssigned(asked) : nurseFor(visit.address);
+};
 /* The suburb this account's own care happens in. Booking defaults its address to it and the visits
    in the list are written in it, so it is named once here rather than typed beside each of them —
    and it is what decides who the Health Passport says took the readings, which has to be the same

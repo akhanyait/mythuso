@@ -4,6 +4,7 @@ import { labels as schedulingLabels, shortWhenText, type Visit } from './schedul
 import { recordById } from './records';
 import { EXPIRY_WARNING_DAYS } from './vetting';
 import { conditions, emergency as sosEmergency, numberById } from './sos';
+import { summarise, urgencyWords, type ConversationTurn, type HandoverSummary } from '../../../../packages/engines/src/access/domain/handover.ts';
 
 /* Gilbert's reasoning, without a screen attached to it.
 
@@ -177,7 +178,7 @@ export type Reply =
  | { kind: 'voice' }
  | { kind: 'emergency'; groups: EmergencyGroup[] }
  | { kind: 'unmatched' }
- | { kind: 'handover'; rows: SummaryRow[] };
+ | { kind: 'handover'; rows: SummaryRow[]; summary: HandoverSummary };
 
 /** `unread` is true when the answer came with words Gilbert could not read; the unread answer follows it. */
 export type Turn = { id: number; asked: string | null; channel: Channel | null; reply: Reply; matched: Question | null; groups: EmergencyGroup[]; unread: boolean };
@@ -215,23 +216,36 @@ export const opening = (): Turn[] =>
 const append = (turns: Turn[], make: (id: number) => Turn) =>
  [...turns, make((turns[turns.length - 1]?.id ?? 0) + 1)].slice(-conversation.turnLimit);
 
-/* What a nurse would be handed: the last thing asked, in the person's words, how it arrived, what it
-   matched and which emergency words were in it. A request for a nurse is skipped when looking back. */
-export function summary(turns: Turn[]): SummaryRow[] {
+/* What the nurse queue is handed, as the Access domain summarises it: how the last thing was asked, what
+   it matched, and an urgency. Never the person's words and never which emergency words fired —
+   conversation.handover@1 refuses both, and a group can be a crisis, which joined to a person is a record
+   of it. A request for a nurse is not itself what a nurse needs to read, so it is skipped.
+
+   `raised` is the panel's memory that an emergency was answered in a turn the conversation's cap has since
+   dropped. An emergency at the first message and a calm question at the thirtieth is still an emergency,
+   and scrolling out of the window must not be what lowers it. */
+const conversationOf = (turns: Turn[]): ConversationTurn[] => turns.map(t => ({
+ channel: t.channel, matchedQuestionId: t.matched?.id ?? null, askedForNurse: t.reply.kind === 'handover', emergency: t.reply.kind === 'emergency'
+}));
+export const emergencyIn = (turns: Turn[]) => turns.some(t => t.reply.kind === 'emergency');
+
+export function handoverReply(turns: Turn[], raised = false): Reply {
  const h = answers.handover;
  const label = (id: string) => h.fields.find(f => f.id === id)?.label ?? id;
- const last = [...turns].reverse().find(t => t.asked !== null && t.matched?.answer !== 'handover');
- if (!last?.asked) return [{ label: label('words'), value: h.nothingAsked }];
- return [
-  { label: label('words'), value: last.asked },
-  { label: label('channel'), value: last.channel === 'chosen' ? h.channelChosen : h.channelTyped },
-  { label: label('matched'), value: last.matched?.asks ?? (last.groups.length ? h.matchedEmergency : h.nothingMatched) },
-  { label: label('flags'), value: last.groups.length ? last.groups.map(g => g.name).join('; ') : h.noFlags }
- ];
+ const found = summarise(conversationOf(turns));
+ const summary: HandoverSummary = raised ? { ...found, urgencyCode: 'emergency' } : found;
+ const last = [...turns].reverse().find(t => t.asked !== null && t.reply.kind !== 'handover');
+ const channel = !last ? h.nothingAsked : last.channel === 'chosen' ? h.channelChosen : h.channelTyped;
+ const matched = !last ? h.nothingMatched : last.matched?.asks ?? (last.groups.length ? h.matchedEmergency : h.nothingMatched);
+ return { kind: 'handover', summary, rows: [
+  { label: label('channel'), value: channel },
+  { label: label('matched'), value: matched },
+  { label: label('urgency'), value: urgencyWords(summary.urgencyCode).name }
+ ] };
 }
 
 /** A message in a person's own words. */
-export function send(turns: Turn[], text: string, visit: Visit | null = null): Turn[] {
+export function send(turns: Turn[], text: string, visit: Visit | null = null, raised = false): Turn[] {
  const words = text.trim();
  if (!words) return turns;
  const groups = emergencyGroupsIn(words);
@@ -244,19 +258,19 @@ export function send(turns: Turn[], text: string, visit: Visit | null = null): T
  if (unread && contract.matcher.readEverything.neverWithUnread.includes(question.id)) {
   return append(turns, id => ({ id, asked: words, channel: 'typed', reply: { kind: 'unmatched' }, matched: null, groups: [], unread: false }));
  }
- const reply: Reply = question.answer === 'handover' ? { kind: 'handover', rows: summary(turns) } : replyTo(question, visit);
+ const reply: Reply = question.answer === 'handover' ? handoverReply(turns, raised) : replyTo(question, visit);
  return append(turns, id => ({ id, asked: words, channel: 'typed', reply, matched: question, groups: [], unread }));
 }
 
 /** One of the suggested questions, pressed. Its own words, so nothing is unread. */
-export function choose(turns: Turn[], question: Question, visit: Visit | null = null): Turn[] {
- const reply: Reply = question.answer === 'handover' ? { kind: 'handover', rows: summary(turns) } : replyTo(question, visit);
+export function choose(turns: Turn[], question: Question, visit: Visit | null = null, raised = false): Turn[] {
+ const reply: Reply = question.answer === 'handover' ? handoverReply(turns, raised) : replyTo(question, visit);
  return append(turns, id => ({ id, asked: question.asks, channel: 'chosen', reply, matched: question, groups: [], unread: false }));
 }
 
 /** "Talk to a nurse", pressed from the unmatched or unread answer. */
-export const handOver = (turns: Turn[]): Turn[] =>
- append(turns, id => ({ id, asked: null, channel: null, reply: { kind: 'handover', rows: summary(turns) }, matched: null, groups: [], unread: false }));
+export const handOver = (turns: Turn[], raised = false): Turn[] =>
+ append(turns, id => ({ id, asked: null, channel: null, reply: handoverReply(turns, raised), matched: null, groups: [], unread: false }));
 
 /** How a turn came out, in the words the shared fixtures use. */
 export const outcomeOf = (turn: Turn): string =>

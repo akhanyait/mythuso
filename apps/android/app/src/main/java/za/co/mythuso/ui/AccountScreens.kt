@@ -312,6 +312,9 @@ import za.co.mythuso.model.mokoenaHousehold
         title == "Your care team" -> CareTeamScreen(store, open)
         title.startsWith("Clinician: ") -> ClinicianProfileScreen(store, title.removePrefix("Clinician: "))
         title.startsWith("Upcoming visit: ") -> UpcomingVisitScreen(store, title.removePrefix("Upcoming visit: "), open)
+        /* One visit's thread with its nurse. Its own route because it is opened from the visit and
+           read without it; a closed thread still opens, with what was said. */
+        title.startsWith("Visit messages: ") -> VisitThreadScreen(store, title.removePrefix("Visit messages: "))
         title.startsWith("Past visit: ") -> PastVisitScreen(store, title.removePrefix("Past visit: ").toLongOrNull() ?: Passport.latestSet.dayOffset, open)
         title == "Health Passport" -> PassportScreen(open)
         /* The three the passport offered and could not open. A completed visit is looked up by the

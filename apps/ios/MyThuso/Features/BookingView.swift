@@ -93,6 +93,9 @@ struct ServicesView: View {
 struct BookingView: View {
     let service: CareService
     @EnvironmentObject private var store: PreviewStore
+    /* The register is observed rather than copied, so a nurse suspended in the console while this flow is
+       open leaves the list here by the same arithmetic. */
+    @ObservedObject private var register = VettingStore.shared
     @State private var patient = "Lerato Molefe"
     @State private var address = "Home visit · Melville"
     @State private var day = 0
@@ -102,29 +105,64 @@ struct BookingView: View {
     @State private var step = 0
     @State private var booked = false
     @State private var restoredDraft = false
+    /// nearest, previous or named, and the nurse picked from the named list.
+    @State private var choiceKind = "nearest"
+    @State private var namedNurse: String?
+    /// Where the booking stood when it landed, for the confirmation.
+    @State private var bookedState: BookingState = .requested
+    @State private var bookedAsap = false
     private var draft: CareBookingDraft {
-        CareBookingDraft(patient: patient, address: address, day: day, selectedDate: scheduled ? chosenDay.date : nil, slot: slot, payment: payment, consent: consent, kind: kind, step: step)
+        CareBookingDraft(patient: patient, address: address, day: day, selectedDate: scheduled ? chosenDay.date : nil, slot: slot, payment: payment,
+                         consent: consent, kind: kind, step: step, choice: choiceKind, nurseId: namedNurse)
     }
     /* Computed once when the view appears rather than typed. The strip used to be five hand-written
        labels beginning ("Fri", "12", "Sep") — a weekday that had not matched its date for months,
        and which disagreed with the date printed on the review screen two steps later. */
     @State private var days = Scheduling.offeredDays()
     @State private var kind = "scheduled"
-    private let labels = ["Who", "Where", "When", "Payment", "Review"]
+    private let labels = ["Who", "Where", BookingData.Person.stepLabel, "When", "Payment", "Review"]
     private var scheduled: Bool { kind == "scheduled" }
     private var endTime: String { Scheduling.endTime(start: slot, minutes: service.duration) }
     private var chosenDay: OfferedDay { days.indices.contains(day) ? days[day] : days[0] }
+
+    // MARK: Who comes
+
+    private var candidates: [NurseCandidate] {
+        Booking.candidates(register: register.subjects, near: Booking.visitZone(address: address, area: store.careArea))
+    }
+    private var personOptions: PersonOptions {
+        Booking.options(candidates, previous: Booking.previousNurseId(for: patient, register: register.subjects))
+    }
+    /* The choice as the contract means it, or nil while it cannot be booked against: a named nurse not
+       picked yet, or one who stopped being offered after she was picked. */
+    private var choice: PersonChoice? {
+        switch choiceKind {
+        case "previous": return personOptions.previous.flatMap { $0.offered ? PersonChoice.previous($0.candidate.id) : nil }
+        case "named": return namedNurse.flatMap { id in personOptions.offered.contains { $0.id == id } ? PersonChoice.named(id) : nil }
+        default: return .nearest
+        }
+    }
+    private var chosenNurse: NurseCandidate? { choice?.nurseId.flatMap { id in candidates.first { $0.id == id } } }
+    private var nurseSummary: String {
+        chosenNurse.map { "\($0.name) · \(BookingData.Person.badgeName)" } ?? BookingData.Review.nearestValue
+    }
+    /// The hours on the chosen day, less any already held with the nurse asked for.
+    private var hours: [String] {
+        Booking.offeredHours(on: chosenDay.date, minutes: service.duration, nurseId: chosenNurse?.id, visits: store.visits)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 if booked { success } else {
-                    StepDots(step: step + 1, total: 5, label: labels[step])
+                    StepDots(step: step + 1, total: labels.count, label: labels[step])
                     compactSummary
                     switch step {
                     case 0: whoStep
                     case 1: whereStep
-                    case 2: dateAndTime
-                    case 3: paymentStep
+                    case 2: personStep
+                    case 3: dateAndTime
+                    case 4: paymentStep
                     default: review
                     }
                 }
@@ -134,27 +172,16 @@ struct BookingView: View {
         .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
         /* Three moments worth feeling: a step advancing, a slot chosen, and the booking landing.
            Nothing else in the flow buzzes. */
-        .onAppear {
-            guard !restoredDraft else { return }
-            if let saved = store.bookingDrafts[service.id] {
-                patient = saved.patient; address = saved.address
-                slot = saved.slot; payment = saved.payment; consent = saved.consent
-                kind = saved.kind; step = min(max(saved.step, 0), labels.count - 1)
-                let offeredIndex = days.firstIndex { offered in
-                    saved.selectedDate.map { Scheduling.format(offered.date, "yyyy-MM-dd") == Scheduling.format($0, "yyyy-MM-dd") } ?? false
-                }
-                day = offeredIndex ?? 0
-                // An expired date must be chosen again, never silently shifted to a different day.
-                if saved.kind == "scheduled" && offeredIndex == nil { step = min(step, 2); consent = false }
-            }
-            restoredDraft = true
-        }
+        .onAppear(perform: restore)
         .onChange(of: draft) { _, updated in
             if restoredDraft && !booked { store.bookingDrafts[service.id] = updated }
         }
         .onChange(of: booked) { _, completed in
             if completed { store.bookingDrafts.removeValue(forKey: service.id) }
         }
+        /* As soon as possible belongs to whoever is nearest, so asking for somebody in particular turns the
+           request into a visit at an hour she is offered. */
+        .onChange(of: choice) { _, now in if now != .nearest && kind == "asap" { kind = "scheduled" } }
         .sensoryFeedback(.selection, trigger: step)
         .sensoryFeedback(.selection, trigger: kind)
         .sensoryFeedback(.selection, trigger: payment)
@@ -163,6 +190,30 @@ struct BookingView: View {
         .navigationTitle(booked ? "All set" : "Your home visit").navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.glassFloor, for: .navigationBar)
     }
+    private func restore() {
+        guard !restoredDraft else { return }
+        if let saved = store.bookingDrafts[service.id] {
+            patient = saved.patient; address = saved.address
+            slot = saved.slot; payment = saved.payment; consent = saved.consent
+            kind = saved.kind; step = min(max(saved.step, 0), labels.count - 1)
+            choiceKind = saved.choice; namedNurse = saved.nurseId
+            let offeredIndex = days.firstIndex { offered in
+                saved.selectedDate.map { Scheduling.format(offered.date, "yyyy-MM-dd") == Scheduling.format($0, "yyyy-MM-dd") } ?? false
+            }
+            day = offeredIndex ?? 0
+            // An expired date must be chosen again, never silently shifted to a different day.
+            if saved.kind == "scheduled" && offeredIndex == nil { step = min(step, 3); consent = false }
+            /* A nurse picked before may have stopped being offered since — a lapse overnight is the case this
+               exists for. The step that chooses her is shown again, with her reason, rather than a review
+               that books against her or quietly swaps in somebody else. */
+            if choice == nil {
+                if choiceKind == "named" { namedNurse = nil }
+                step = min(step, 2); consent = false
+            }
+        }
+        restoredDraft = true
+    }
+
     private var compactSummary: some View {
         VStack(alignment: .leading, spacing: 6) {
             ViewThatFits(in: .horizontal) {
@@ -171,25 +222,13 @@ struct BookingView: View {
             }
             Text("\(patient) · \(service.duration) min").font(.footnote)
             if step > 1 { Text(address).font(.footnote).fixedSize(horizontal: false, vertical: true) }
-            if step > 2 { Text(scheduled ? "\(Scheduling.shortDate(chosenDay.date)) · \(slot) – \(endTime)" : Scheduling.kind("asap").name).font(.footnote) }
+            if step > 2 { Text(nurseSummary).font(.footnote).fixedSize(horizontal: false, vertical: true) }
+            if step > 3 { Text(scheduled ? "\(Scheduling.shortDate(chosenDay.date)) · \(slot) – \(endTime)" : Scheduling.kind("asap").name).font(.footnote) }
         }
-        .foregroundStyle(ThusoTheme.studioInkDeep).padding(16)
+        .foregroundStyle(ThusoTheme.studioInkDeep).padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.studioLime, in: RoundedRectangle(cornerRadius: 18))
+        .background(ThusoTheme.studioLime, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
         .accessibilityElement(children: .combine).accessibilityIdentifier("bookingSummary")
-    }
-    private var summary: some View {
-        CareCard(weight: .lead) {
-            HStack(spacing: ThusoSpacing.space12) {
-                TileIcon(symbol: service.symbol)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(service.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text("Registered nurse").font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-                }
-                Spacer(minLength: 6)
-                Text("R\(service.price)").font(.callout.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
-            }
-        }
     }
     @ViewBuilder private var whoStep: some View {
         Text("Who needs care?").font(.title2.weight(.semibold))
@@ -209,11 +248,21 @@ struct BookingView: View {
             Button("Continue") { step = 2 }.buttonStyle(CareButton()).disabled(address.trimmingCharacters(in: .whitespacesAndNewlines).count < 5)
         }
     }
+    /* Who comes, between where and when: the nurses offered depend on where the visit is, and the hours
+       offered depend on who was asked for. */
+    @ViewBuilder private var personStep: some View {
+        NurseChoiceView(options: personOptions, patient: patient, kind: $choiceKind, named: $namedNurse)
+        HStack(spacing: ThusoSpacing.space8) {
+            Button("Back") { step = 1 }.buttonStyle(QuietButton())
+            Button("Continue") { step = 3 }.buttonStyle(CareButton()).disabled(choice == nil)
+        }
+    }
     @ViewBuilder private var dateAndTime: some View {
         Text(Scheduling.Label.chooseWhen).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-        /* Two different promises, chosen rather than inferred. An arrival estimate answers "when
-           will somebody get here", which is only a question for the second one. */
-        ForEach(Scheduling.kinds) { option in
+        /* Two different promises, chosen rather than inferred. An arrival estimate answers "when will
+           somebody get here", which is only a question for the second one — and the second one belongs to
+           whoever is nearest, so it is not offered beside a nurse asked for by name. */
+        ForEach(Scheduling.kinds.filter { choice == .nearest || $0.id != "asap" }) { option in
             Button { kind = option.id } label: {
                 CareCard {
                     HStack(alignment: .top, spacing: ThusoSpacing.space12) {
@@ -229,13 +278,23 @@ struct BookingView: View {
             .buttonStyle(.plain)
             .accessibilityAddTraits(kind == option.id ? [.isSelected] : [])
         }
-        if scheduled { VisitTimePicker(days: days, day: $day, slot: $slot, minutes: service.duration) } else {
+        if choice != .nearest {
+            Text(BookingData.Person.asapNeedsNearest).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        if scheduled {
+            VisitTimePicker(days: days, day: $day, slot: $slot, minutes: service.duration, slots: hours)
+            if let note = Booking.hoursNote(offered: hours, nurseName: chosenNurse?.name) {
+                Label(note, systemImage: "clock.badge.xmark").font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } else {
             Label("We look for the nearest nurse who is free. Nobody is dispatched in this preview.", systemImage: "bolt.fill")
                 .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
         }
         HStack(spacing: ThusoSpacing.space8) {
-            Button("Back") { step = 1 }.buttonStyle(QuietButton())
-            Button("Continue") { step = 3 }.buttonStyle(CareButton())
+            Button("Back") { step = 2 }.buttonStyle(QuietButton())
+            Button("Continue") { step = 4 }.buttonStyle(CareButton()).disabled(scheduled && !hours.contains(slot))
         }
     }
     @ViewBuilder private var paymentStep: some View {
@@ -263,8 +322,8 @@ struct BookingView: View {
         }
         CapabilityNotice(of: "payments")
         HStack(spacing: ThusoSpacing.space8) {
-            Button("Back") { step = 2 }.buttonStyle(QuietButton())
-            Button("Continue") { step = 4 }.buttonStyle(CareButton())
+            Button("Back") { step = 3 }.buttonStyle(QuietButton())
+            Button("Continue") { step = 5 }.buttonStyle(CareButton())
         }
     }
     @ViewBuilder private var review: some View {
@@ -274,40 +333,45 @@ struct BookingView: View {
             LabeledContent("Location", value: address)
             LabeledContent("Patient", value: patient)
             Divider().overlay(ThusoTheme.studioLine)
-            HStack(spacing: ThusoSpacing.space12) {
-                Monogram(text: Arrival.nurse.initials)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Sister Naledi Mokoena").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text("Registered Nurse (SANC)").font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
-                }
-                Spacer(minLength: ThusoSpacing.space4)
-                Text("Demo clinician").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
+            /* Who comes, with her badge in words, or the promise that whoever is nearest and cleared is named
+               before she sets off. The typed name that stood here named one nurse whoever had been chosen. */
+            LabeledContent(BookingData.Review.nurseLabel, value: nurseSummary)
+                .accessibilityHint(chosenNurse == nil ? "" : BookingData.Person.badgeSentence)
+            /* The moment a person commits is the moment they want to know what it costs and how to get out
+               of it. Both are read from the one place each lives — the price from the catalogue, the window
+               from packages/catalog/cancellation.json — so this card cannot quote either differently. */
+            LabeledContent(BookingData.Review.priceLabel, value: "R\(service.price)")
+            VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
+                Text(BookingData.Review.cancellingLabel).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                Text(Cancellation.windowSentence).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
             Divider().overlay(ThusoTheme.studioLine)
             HStack(spacing: ThusoSpacing.space12) {
                 Image(systemName: Money.method(named: payment)?.id == "cash-otp" ? "banknote" : "creditcard").font(.body).foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
                 Text(payment).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 Spacer()
-                Button("Change") { step = 3 }.frame(minHeight: 44).contentShape(Rectangle()).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Button("Change") { step = 4 }.frame(minHeight: 44).contentShape(Rectangle()).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             }
         }
+        CapabilityNotice(of: "booking")
         Toggle("I understand this is a UI preview using fictional information.", isOn: $consent).font(.footnote)
-        Button("Confirm & book") {
-            /* The whole choice, not a time with the day dropped off it. */
-            store.visits.insert(BookedVisit(service: service, patient: patient, address: address, kind: kind,
-                                            date: scheduled ? chosenDay.date : nil,
-                                            start: scheduled ? slot : nil, payment: payment), at: 0)
-            booked = true
-        }.buttonStyle(CareButton()).disabled(!consent)
-        /* The moment a person commits is the moment they want to know how to get out, which is why
-           this sentence is here rather than on the cancellation screen — a right disclosed only
-           there is a right disclosed to whoever already found it. It was a hand-typed string in
-           this file and in one Kotlin file, promising two hours with nothing behind it and nothing
-           to check it against. It is packages/catalog/cancellation.json's now. */
-        Text(Cancellation.windowSentence).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted).frame(maxWidth: .infinity)
-            .fixedSize(horizontal: false, vertical: true)
-        Button("Back") { step = 3 }.buttonStyle(QuietButton())
+        Button("Confirm & book", action: confirm).buttonStyle(CareButton()).disabled(!consent)
+        Button("Back") { step = 4 }.buttonStyle(QuietButton())
+    }
+    /* The whole choice, not a time with the day dropped off it — and who was asked for, which travels into
+       the visit. The booking is asked for and the simulated roster answers at once: an hour is accepted,
+       and a request with no hour is refused acceptance and stays asked for. The confirmation says which. */
+    private func confirm() {
+        let visit = BookedVisit(service: service, patient: patient, address: address, kind: kind,
+                                date: scheduled ? chosenDay.date : nil, start: scheduled ? slot : nil, payment: payment,
+                                nurseId: chosenNurse?.id, nurseName: chosenNurse?.name)
+        store.visits.insert(visit, at: 0)
+        bookedState = Booking.state(of: visit)
+        bookedAsap = !visit.isScheduled
+        booked = true
     }
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ViewBuilder private var success: some View {
@@ -329,8 +393,9 @@ struct BookingView: View {
                 .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted).multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
             CapabilityNotice(of: "payments")
-            NavigationLink { VisitsView() } label: { Text("View my visits") }.buttonStyle(CareButton())
         }.frame(maxWidth: .infinity)
+        BookingStatusView(state: bookedState, asap: bookedAsap)
+        NavigationLink { VisitsView() } label: { Text("View my visits") }.buttonStyle(CareButton())
     }
 }
 /* The one date-and-time picker in the app.
@@ -347,6 +412,9 @@ struct VisitTimePicker: View {
     @Binding var slot: String
     /// The visit's own length, so the line underneath ends it when it actually ends.
     let minutes: Int
+    /* The hours on offer for the chosen day. A booking that names a nurse passes her day less the hours
+       already held against her, so an hour she cannot take is never drawn — not drawn and then refused. */
+    var slots: [String] = Scheduling.slots
     private var chosenDay: OfferedDay { days.indices.contains(day) ? days[day] : days[0] }
     private var endTime: String { Scheduling.endTime(start: slot, minutes: minutes) }
     var body: some View {
@@ -395,12 +463,13 @@ struct VisitTimePicker: View {
                 }
             }
             .sensoryFeedback(.selection, trigger: slot)
-            Text("\(Scheduling.longDate(chosenDay.date)) · \(slot) – \(endTime) (\(minutes) minutes)")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            if slots.contains(slot) {
+                Text("\(Scheduling.longDate(chosenDay.date)) · \(slot) – \(endTime) (\(minutes) minutes)")
+                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
-    private let slots = Scheduling.slots
 }
 struct VisitsView: View {
     @EnvironmentObject private var store: PreviewStore
@@ -417,6 +486,9 @@ struct VisitsView: View {
         /// What was said when this visit was cancelled, and — where it was late — that it was.
         var reason: String? = nil
         var lateness: String? = nil
+        /// The thread a finished or cancelled row opens, and why it is closed.
+        var threadKey: UUID? = nil
+        var closedBecause: BookingThreadClosed? = nil
         var weekday: String { date.map { Scheduling.format($0, "EEE").uppercased() } ?? "NOW" }
         var dayNumber: String { date.map { Scheduling.format($0, "d") } ?? "" }
         var monthName: String { date.map { Scheduling.format($0, "MMM").uppercased() } ?? "" }
@@ -430,19 +502,26 @@ struct VisitsView: View {
         Row(title: title, place: place, status: status, tone: tone,
             date: Date().addingTimeInterval(TimeInterval(dayOffset) * 86_400), start: start, minutes: minutes, nurse: false)
     }
+    /// A row whose visit is over or called off, carrying the reason its thread is closed.
+    private func closed(because id: String, key: UUID? = nil, _ row: Row) -> Row {
+        var closing = row
+        closing.threadKey = key
+        closing.closedBecause = Booking.closedBecause(id)
+        return closing
+    }
     private var rows: [Row] {
         switch tab {
-        case "Past": return [sample("Wound care", "Home visit · Melville", "Completed", "teal", -3, "10:00", 40)]
+        case "Past": return [closed(because: "visit-completed", sample("Wound care", "Home visit · Melville", "Completed", "teal", -3, "10:00", 40))]
         /* A cancelled visit is not deleted. It stays here with the reason given, because a visit
            that vanishes is one nobody can ask about afterwards — not the patient, not the nurse who
            was dispatched, and not whoever has to explain it. The fictional one below it stays too. */
         case "Cancelled":
             return store.cancelled.map { record in
-                Row(title: record.visit.service.name, place: "\(record.visit.address) · \(record.visit.patient)",
+                closed(because: "booking-cancelled", key: record.visit.id, Row(title: record.visit.service.name, place: "\(record.visit.address) · \(record.visit.patient)",
                     status: "Cancelled", tone: "amber", date: record.visit.date, start: record.visit.start,
                     minutes: record.visit.service.duration, nurse: false,
-                    reason: record.reason.text, lateness: record.wasLate ? record.state.name : nil)
-            } + [sample("Blood tests", "Home visit · Soweto", "Cancelled", "amber", -12, "08:00", 25)]
+                    reason: record.reason.text, lateness: record.wasLate ? record.state.name : nil))
+            } + [closed(because: "booking-cancelled", sample("Blood tests", "Home visit · Soweto", "Cancelled", "amber", -12, "08:00", 25))]
         default:
             return store.visits.enumerated().map { index, visit in
                 Row(title: visit.service.name, place: "\(visit.address) · \(visit.patient)",
@@ -506,6 +585,14 @@ struct VisitsView: View {
                                     NavigationLink { PastVisitView(service: CareService.all[1], address: row.place) } label: {
                                         Text("See what the nurse found").frame(maxWidth: .infinity)
                                     }.buttonStyle(CareButton())
+                                }
+                                /* A finished or cancelled visit keeps its thread readable and says why it is
+                                   closed, rather than losing the way to what was said. */
+                                if let closed = row.closedBecause {
+                                    if row.status != "Completed" { Divider().overlay(ThusoTheme.studioLine) }
+                                    NavigationLink { VisitThreadView(threadKey: row.threadKey, closed: closed) } label: {
+                                        Label(BookingData.Thread.openLabel, systemImage: "text.bubble").frame(maxWidth: .infinity)
+                                    }.buttonStyle(QuietButton())
                                 }
                                 if row.nurse, let visit = store.visits.first {
                                     Divider().overlay(ThusoTheme.studioLine)
@@ -586,8 +673,18 @@ struct VisitDetailView: View {
                     LabeledContent("When", value: visit.whenText)
                     LabeledContent("Where", value: visit.address)
                     LabeledContent("How long", value: "\(visit.service.duration) minutes")
-                    LabeledContent("Nurse", value: "Sister Naledi Mokoena")
+                    /* The nurse the booking asked for, carried into the visit rather than typed here. A visit
+                       booked for whoever is nearest says so, because nobody has been named yet. */
+                    LabeledContent(BookingData.Review.nurseLabel, value: visit.nurseName ?? BookingData.Review.nearestValue)
                 }
+                BookingStatusView(state: Booking.state(of: visit), asap: !visit.isScheduled)
+                /* The thread belongs to this visit, so it is opened from it. Once the visit is over it opens
+                   closed, with the reason, and what was said stays readable. */
+                NavigationLink {
+                    VisitThreadView(threadKey: visit.id, closed: Booking.threadClosed(for: visit, cancelled: false), nurseName: visit.nurseName)
+                } label: {
+                    Label(BookingData.Thread.openLabel, systemImage: "text.bubble").frame(maxWidth: .infinity)
+                }.buttonStyle(QuietButton())
                 CareCard {
                     Text("Before your visit").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                     Text("Have your medication list ready.").font(.subheadline).foregroundStyle(ThusoTheme.charcoal)

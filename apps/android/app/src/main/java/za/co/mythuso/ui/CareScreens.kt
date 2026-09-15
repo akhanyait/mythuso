@@ -559,20 +559,32 @@ fun serviceIcon(id: String) = when (id) {
     var slot by draft::slot
     var payment by draft::payment
     var kind by draft::kind
+    var choice by draft::choice
+    var nurseId by draft::nurseId
     var consent by remember { mutableStateOf(false) }
+    var bookedHistory by remember { mutableStateOf<List<String>>(emptyList()) }
     val haptic = LocalHapticFeedback.current
     val days = remember { Scheduling.offeredDays() }
-    val scheduled = kind == "scheduled"
     val chosen = days.getOrElse(day) { days.first() }
+    /* Who may be asked for, from this phone's vetting register and the booking contract's refusals, and
+       the hours on the chosen day for that choice — less the ones already held with a nurse asked for by
+       name. As soon as possible belongs to whoever is nearest, so naming somebody turns it into an hour. */
+    val candidates = Booking.candidates(store.vetting.subjects, Booking.visitZone(address, store.careArea))
+    val options = Booking.personOptions(candidates, Booking.previousNurseId(store, person))
+    val nurse = Booking.chosenNurse(options, choice, nurseId)
+    val choiceStands = choice == Booking.NEAREST || nurse != null
+    LaunchedEffect(choice) { if (choice != Booking.NEAREST && kind == "asap") kind = "scheduled" }
+    val scheduled = kind == "scheduled"
+    val hours = Booking.offeredSlots(service, chosen.date, nurse?.subject?.id, store.visits)
     val endTime = Scheduling.endTime(slot, service.duration)
-    val labels = listOf("Who is the visit for?", "Where should we come?", "Choose your time", "Choose payment", "Review your visit")
-    val finished = step == 5
+    val labels = listOf("Who is the visit for?", "Where should we come?", BookingData.Person.heading, "Choose your time", "Choose payment", "Review your visit")
+    val finished = step == 6
     ModalBottomSheet(onDismissRequest = close, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = SurfaceWhite, contentColor = Charcoal) {
         Column(Modifier.fillMaxWidth().imePadding().padding(horizontal = 24.dp).padding(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(if (finished) "Your demo visit is booked" else labels[step], style = MaterialTheme.typography.titleLarge, color = Charcoal)
             if (!finished) {
-                StepDots(step + 1, 5, labels[step])
+                StepDots(step + 1, labels.size, labels[step])
                 Column(Modifier.fillMaxWidth().background(StudioPaper, RoundedCornerShape(16.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(service.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                     Text("R${service.price} · ${service.duration} minutes · Registered nurse", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
@@ -588,33 +600,46 @@ fun serviceIcon(id: String) = when (id) {
                         OutlinedTextField(address, { address = it }, label = { Text("Visit location") }, supportingText = { Text("Enter at least 5 characters. Your draft stays here if you close this sheet.") }, modifier = Modifier.fillMaxWidth())
                         Note("Choose a location where the person receiving care can welcome the clinician. Coverage is checked separately; this preview does not dispatch anyone.")
                     }
-                    2 -> {
-                        SchedulingData.kinds.forEach { option -> CareChoice(option.name, option.detail, kind == option.id) { kind = option.id } }
-                        if (scheduled) VisitTimePicker(days, day, { day = it }, SchedulingData.slots, slot, { slot = it },
-                            "${Scheduling.longDate(chosen.date)} · $slot – $endTime (${service.duration} minutes)")
+                    2 -> NurseChoiceStep(options, person, choice, nurseId) { next, id -> choice = next; nurseId = id }
+                    3 -> {
+                        /* As soon as possible belongs to whoever is nearest, so it is not offered beside a named nurse. */
+                        SchedulingData.kinds.filter { choice == Booking.NEAREST || it.id != "asap" }
+                            .forEach { option -> CareChoice(option.name, option.detail, kind == option.id) { kind = option.id } }
+                        if (choice != Booking.NEAREST) Note(BookingData.Person.asapNeedsNearest)
+                        if (scheduled) {
+                            VisitTimePicker(days, day, { day = it }, hours, slot, { slot = it },
+                                "${Scheduling.longDate(chosen.date)} · $slot – $endTime (${service.duration} minutes)")
+                            Booking.hoursNote(hours, nurse?.subject?.name)?.let { Note(it) }
+                        }
                         else Note("We look for the nearest nurse who is free. Nobody is dispatched in this preview.")
                     }
-                    3 -> {
+                    4 -> {
                         /* The ways to pay are packages/catalog/money.json's, generated into MoneyData. No card
                            fragment is shown: a fragment of a card number on a screen is a fragment in a
                            screenshot, and the payment-result door refuses the same fragment by name. */
                         za.co.mythuso.model.Money.visitMethods.forEach { method -> CareChoice(method.name, method.detail, payment == method.name) { payment = method.name } }
                         NotConnected("payments")
                     }
-                    4 -> {
+                    5 -> {
                         ReviewLine("Service", service.name)
                         ReviewLine("Date", if (scheduled) Scheduling.longDate(chosen.date) else Scheduling.kind("asap").name)
                         if (scheduled) ReviewLine("Time", "$slot – $endTime")
                         ReviewLine("Location", address)
                         ReviewLine("Patient", person)
+                        /* Who comes, with her badge in words, or the promise that whoever is nearest is named
+                           before she sets off; the price from the catalogue and the way out from
+                           cancellation.json, both before the button that books. The payment is the method's
+                           name and never a card fragment, because the payment-result door refuses one. */
+                        ReviewLine(BookingData.Review.nurseLabel, nurse?.let { "${it.subject.name} · ${BookingData.Person.badgeName}" } ?: BookingData.Review.nearestValue)
                         ReviewLine("Payment", payment)
-                        ReviewLine("Total", "R${service.price}")
+                        ReviewLine(BookingData.Review.priceLabel, "R${service.price}")
+                        ReviewLine(BookingData.Review.cancellingLabel, CancellationData.windowSentence)
                         Note("A registered nurse provides this service. A doctor may decide that a home visit is needed after reviewing your care; it is not booked through this selection.")
+                        NotConnected("booking")
                         Row(Modifier.fillMaxWidth().heightIn(min = TouchTarget).toggleable(consent, role = Role.Checkbox, onValueChange = { consent = it }), verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(consent, null)
                             Text("I understand this is a UI preview using fictional information.", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
                         }
-                        Note(CancellationData.windowSentence)
                     }
                     else -> {
                         Note("No nurse has been dispatched. Your demo visit is now in the Visits tab.")
@@ -622,6 +647,7 @@ fun serviceIcon(id: String) = when (id) {
                            the door, and anything else would have gone to a provider this phone does not have. */
                         Note(za.co.mythuso.model.Money.afterBooking(payment))
                         NotConnected("payments")
+                        BookingStatus(bookedHistory, asap = !scheduled)
                     }
                 }
             }
@@ -630,16 +656,20 @@ fun serviceIcon(id: String) = when (id) {
                 StudioButton(onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     when (step) {
-                        4 -> {
-                            store.visits.add(0, BookedVisit(service, person, address.trim(), kind, if (scheduled) chosen.date else null, if (scheduled) slot else null, payment))
+                        5 -> {
+                            /* The whole choice, and who was asked for, travel into the visit. */
+                            val visit = BookedVisit(service, person, address.trim(), kind, if (scheduled) chosen.date else null, if (scheduled) slot else null, payment,
+                                nurseId = nurse?.subject?.id, nurseName = nurse?.subject?.name)
+                            store.visits.add(0, visit)
+                            bookedHistory = Booking.history(visit, cancelled = false)
                             store.bookingDrafts.remove(service.id)
-                            step = 5
+                            step = 6
                         }
-                        5 -> close()
+                        6 -> close()
                         else -> step += 1
                     }
-                }, modifier = Modifier.weight(1f), enabled = when(step) { 1 -> address.trim().length >= 5; 4 -> consent; else -> true }) {
-                    Text(if (step == 4) "Confirm & book" else if (finished) "Done" else "Continue")
+                }, modifier = Modifier.weight(1f), enabled = when(step) { 1 -> address.trim().length >= 5; 2 -> choiceStands; 3 -> !scheduled || slot in hours; 5 -> consent; else -> true }) {
+                    Text(if (step == 5) "Confirm & book" else if (finished) "Done" else "Continue")
                 }
             }
             if (!finished) Text("Draft kept for this session · No payment taken", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)

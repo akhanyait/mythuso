@@ -45,6 +45,14 @@ struct AssistantView: View {
     @State private var correction = ""
     @State private var gatheredAt: Date?
     @State private var showingSos = false
+    /* The simulated nurse queue this screen hands to, this conversation’s reference in it, what each
+       handover turn’s button did, and the first turn that got the emergency answer. The last is kept
+       apart from the turns because the conversation is capped, and a dropped turn must not be what lowers
+       an urgency. All of it goes when the screen does, with the conversation. */
+    @State private var queue: [GilbertHandoverRecord] = []
+    @State private var conversationRef = UUID().uuidString
+    @State private var handedOver: [Int: HandoverOutcome] = [:]
+    @State private var firstEmergency: Int?
     @FocusState private var correcting: Bool
     /// Whether the composer has the keyboard, and so whether the keyboard's own microphone key is on screen.
     @FocusState private var typing: Bool
@@ -353,7 +361,7 @@ struct AssistantView: View {
                             .thusoFont(ThusoType.caption, weight: .semibold).tracking(1.2)
                             .foregroundStyle(ThusoTheme.brandMint)
                             .accessibilityHidden(true)
-                        replyBody(turn.reply)
+                        replyBody(turn)
                         /* Words Gilbert did not read are said to be unread, with the numbers beside them,
                            rather than answered around. See readEverything in the contract. */
                         if turn.unread { unreadBlock }
@@ -365,10 +373,11 @@ struct AssistantView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Gilbert.conversation.logLabel)
+        .onChange(of: turns) { _, now in track(now) }
     }
 
-    @ViewBuilder private func replyBody(_ reply: Gilbert.Reply) -> some View {
-        switch reply {
+    @ViewBuilder private func replyBody(_ turn: Gilbert.Turn) -> some View {
+        switch turn.reply {
         case .situation(let situation):
             SceneText(situation.sentence)
         case .identity:
@@ -409,18 +418,77 @@ struct AssistantView: View {
                 Label(Gilbert.unmatched.sosLabel, systemImage: "cross.case.fill").frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(SceneButtonStyle(filled: false, urgent: true))
-        case .handover(let rows):
-            SceneText(Gilbert.handover.title, weight: .semibold)
-            SceneText(Gilbert.handover.lead)
-            ForEach(rows, id: \.label) { row in
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(row.label).thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoTheme.brandMint)
-                    Text(row.value).font(.body).foregroundStyle(ThusoTheme.surface).fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityElement(children: .combine)
+        case .handover:
+            handoverBody(turn)
+        }
+    }
+
+    /* The summary, what does not go with it, and the one button that sends it. After the button: what
+       happened, the reference, and the ambulance numbers — a handover to a queue nobody reads must never
+       be the last thing an urgent person is shown. A second handover that would send nothing new says so
+       rather than pretending to send it again. */
+    @ViewBuilder private func handoverBody(_ turn: Gilbert.Turn) -> some View {
+        let earlier = turns.filter { $0.id < turn.id }
+        let raised = (firstEmergency.map { $0 < turn.id } ?? false) || Gilbert.emergencyRaised(in: earlier)
+        SceneText(Gilbert.handover.title, weight: .semibold)
+        SceneText(Gilbert.handover.lead)
+        ForEach(Gilbert.summary(of: earlier, emergencyEarlier: raised), id: \.label) { row in
+            VStack(alignment: .leading, spacing: 2) {
+                Text(row.label).thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoTheme.brandMint)
+                Text(row.value).font(.body).foregroundStyle(ThusoTheme.surface).fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+        }
+        if raised { SceneText(Gilbert.handover.neverLowered, weight: .semibold) }
+        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+            SceneHeading(Gilbert.handover.notCarriedHeading)
+            ForEach(Gilbert.handover.notCarried) { item in
+                HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
+                    Image(systemName: "minus").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.brandMint)
+                        .accessibilityHidden(true)
+                    Text(item.sentence).font(.body).foregroundStyle(ThusoTheme.surface).fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        if let outcome = handedOver[turn.id] {
+            SceneText(outcome.sentNow ? Gilbert.handover.sentTitle : Gilbert.handover.alreadySent, weight: .semibold)
+            if outcome.sentNow { SceneText(Gilbert.handover.sent) }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(Gilbert.handover.sentReference).thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoTheme.brandMint)
+                Text(outcome.record.reference).font(.title3.weight(.semibold).monospaced()).foregroundStyle(ThusoTheme.surface)
+                    .textSelection(.enabled)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("gilbert-handover-reference")
+            SceneText(Gilbert.handover.stillUrgent)
+            lines(Gilbert.handover.lines)
+        } else {
             SceneText(Gilbert.handover.notSent, weight: .semibold)
+            Button { handOver(turn, emergency: raised) } label: {
+                Label(Gilbert.handover.sendLabel, systemImage: "paperplane.fill").frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(SceneButtonStyle(filled: true))
+            .accessibilityIdentifier("gilbert-handover-send")
+        }
+    }
+
+    private func handOver(_ turn: Gilbert.Turn, emergency: Bool) {
+        guard let urgency = HandoverQueue.urgency(emergencyRaised: emergency) else { return }
+        let result = HandoverQueue.handOver(queue, conversation: conversationRef, urgency: urgency.id)
+        queue = result.queue
+        handedOver[turn.id] = HandoverOutcome(record: result.record, sentNow: result.sentNow)
+    }
+
+    /* The first turn that got the emergency answer, and a fresh conversation when Gilbert starts again. */
+    private func track(_ now: [Gilbert.Turn]) {
+        if now.count <= 1 {
+            firstEmergency = nil
+            handedOver = [:]
+            conversationRef = UUID().uuidString
+        } else if firstEmergency == nil, let turn = now.first(where: { Gilbert.emergencyRaised(in: [$0]) }) {
+            firstEmergency = turn.id
         }
     }
 
@@ -577,6 +645,12 @@ extension AssistantView {
         .buttonStyle(SceneButtonStyle(filled: true))
         .accessibilityIdentifier("gilbert-send")
     }
+}
+
+/// What a handover turn’s button did: the queue’s record, and whether that press sent anything.
+private struct HandoverOutcome {
+    let record: GilbertHandoverRecord
+    let sentNow: Bool
 }
 
 // MARK: - Small pieces this screen is the only user of

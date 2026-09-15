@@ -118,7 +118,30 @@ struct GilbertHandover {
     let nothingAsked: String
     let nothingMatched: String
     let matchedEmergency: String
-    let noFlags: String
+    let urgency: [GilbertUrgency]
+    let neverLowered: String
+    let notCarriedHeading: String
+    let notCarried: [GilbertNotCarried]
+    let sendLabel: String
+    let sentTitle: String
+    let sent: String
+    let sentReference: String
+    let alreadySent: String
+    let stillUrgent: String
+    let lines: [GilbertLine]
+}
+
+/// An urgency a handover can carry. There are two, and neither of them is calm.
+struct GilbertUrgency: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let why: String
+}
+
+/// Something that does not go with a handover, said to the person before they send it.
+struct GilbertNotCarried: Identifiable, Hashable {
+    let id: String
+    let sentence: String
 }
 
 struct GilbertConversation {
@@ -409,13 +432,21 @@ enum Gilbert {
         appending({ Turn(id: $0, asked: nil, channel: nil, reply: .handover(summary(of: turns)), matched: nil, groups: [], unread: false) }, to: turns)
     }
 
-    /* What a nurse would be handed. The last thing the person asked before this, in their words, how it
-       arrived, what it matched and which emergency words were in it. A request for a nurse is not itself
-       the thing a nurse needs to read, so it is skipped when looking back. */
-    static func summary(of turns: [Turn]) -> [SummaryRow] {
+    /* What the nurse queue is handed: how the last thing was asked, what it matched, and whether an
+       emergency was raised anywhere in the conversation. Never the person’s words, and never which
+       emergency words fired — a group name can be a crisis, and a crisis mention joined to a person is a
+       record of it, which is why conversation.handover@1 refuses both. A request for a nurse is not itself
+       the thing a nurse needs to read, so it is skipped when looking back.
+
+       emergencyEarlier is for turns the conversation cap has already dropped: an emergency at the first
+       message and a calm question at the thirtieth is still an emergency, and the cap must not be what
+       lowers it. */
+    static func summary(of turns: [Turn], emergencyEarlier: Bool = false) -> [SummaryRow] {
         let label = { (id: String) in handover.fields.first { $0.id == id }?.label ?? id }
-        guard let last = turns.last(where: { $0.asked != nil && $0.matched?.answer != "handover" }), let asked = last.asked else {
-            return [SummaryRow(label: label("words"), value: handover.nothingAsked)]
+        let raised = emergencyEarlier || emergencyRaised(in: turns)
+        let urgency = SummaryRow(label: label("urgency"), value: HandoverQueue.urgency(emergencyRaised: raised)?.name ?? "")
+        guard let last = turns.last(where: { $0.asked != nil && $0.matched?.answer != "handover" }) else {
+            return [SummaryRow(label: label("channel"), value: handover.nothingAsked), urgency]
         }
         let channel: String
         switch last.channel {
@@ -424,13 +455,15 @@ enum Gilbert {
         default: channel = handover.channelTyped
         }
         let matched = last.matched?.asks ?? (last.groups.isEmpty ? handover.nothingMatched : handover.matchedEmergency)
-        let flags = last.groups.isEmpty ? handover.noFlags : last.groups.map(\.name).joined(separator: "; ")
-        return [
-            SummaryRow(label: label("words"), value: asked),
-            SummaryRow(label: label("channel"), value: channel),
-            SummaryRow(label: label("matched"), value: matched),
-            SummaryRow(label: label("flags"), value: flags)
-        ]
+        return [SummaryRow(label: label("channel"), value: channel), SummaryRow(label: label("matched"), value: matched), urgency]
+    }
+
+    /// Whether any of these turns got the emergency answer. Whether, never which.
+    static func emergencyRaised(in turns: [Turn]) -> Bool {
+        turns.contains { turn in
+            if case .emergency = turn.reply { return true }
+            return false
+        }
     }
 
     /// How a turn came out, in the words the shared fixtures use.

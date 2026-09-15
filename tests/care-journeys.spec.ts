@@ -19,7 +19,8 @@ test('booking requires acknowledgement and creates a demo visit', async ({page})
   const dialog=page.getByRole('dialog');
   await dialog.getByLabel('Who is this visit for?').selectOption('Nomsa Molefe');
   await dialog.getByRole('button',{name:'Continue'}).click(); // Who → Where
-  await dialog.getByRole('button',{name:'Continue'}).click();
+  await dialog.getByRole('button',{name:'Continue'}).click(); // Where → Nurse
+  await dialog.getByRole('button',{name:'Continue'}).click(); // Nurse → When
   // the second day the app offers, whatever date that is today — the strip used to be hard-coded
   await dialog.locator('.date-chip').nth(1).click();
   await dialog.getByRole('button',{name:'14:00',exact:true}).click();

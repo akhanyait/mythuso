@@ -5,7 +5,7 @@ import { liveServices, money, type Service } from '../lib/catalog';
 import { labels as scheduling, shortWhenText, visitEnds } from '../lib/scheduling';
 import type { DemoVisit } from './Booking';
 import { useT } from '../lib/i18n';
-import { nurseFor } from '../lib/arrival';
+import { nurseOfVisit } from '../lib/arrival';
 import { ClinicalChart } from '../components/Chart';
 import { latestSet, formatValue, isInRange, labelOf, measureSpec, seriesFor } from '../lib/passport';
 
@@ -36,7 +36,7 @@ const leadReadings = [
 export function Dashboard({ navigate, book, open, query, setQuery, visits, location, viewVisit }: Props) {
  const t = useT();
  const next = visits[0];
- const nurse = next ? nurseFor(next.address) : null;
+ const nurse = next ? nurseOfVisit(next) : null;
  return <div className="home">
   <header className="home-head rise">
    <div>

@@ -31,6 +31,7 @@ import { emitAssistant } from './emit-assistant.mjs';
 import { emitOpenSource } from './emit-open-source.mjs';
 import { emitCare } from './emit-care.mjs';
 import { emitFieldSafety } from './emit-field-safety.mjs';
+import { emitBooking } from './emit-booking.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -875,7 +876,12 @@ const generated = [
  { source: 'packages/catalog/apis/care.json', command: 'npm run care', files: emitCare() },
  { source: 'packages/catalog/field-safety.json', command: 'npm run field-safety', files: emitFieldSafety() },
  { source: 'packages/catalog/apis/safety.json', command: 'npm run field-safety', files: emitFieldSafety() },
- { source: 'packages/catalog/sos.json', command: 'npm run field-safety', files: emitFieldSafety() }
+ { source: 'packages/catalog/sos.json', command: 'npm run field-safety', files: emitFieldSafety() },
+ /* BookingData carries booking.json's words, the route refusals it names from apis/access.json and the
+    badge from trust.json, so a change to any of the three regenerates it. */
+ { source: 'packages/catalog/booking.json', command: 'npm run booking', files: Object.values(emitBooking()) },
+ { source: 'packages/catalog/apis/access.json', command: 'npm run booking', files: Object.values(emitBooking()) },
+ { source: 'packages/catalog/trust.json', command: 'npm run booking', files: Object.values(emitBooking()) }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -2999,7 +3005,7 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
    counted with the rest: a glyph has no legibility floor, but separating them by regex is a guess,
    and a ratchet that guesses is a ratchet nobody trusts. */
 {
- const SMALL_TYPE_ON_IOS = 397;
+ const SMALL_TYPE_ON_IOS = 395;
  let found = 0;
  const worst = [];
  for(const file of files('apps/ios/MyThuso').filter(f => f.endsWith('.swift'))) {
@@ -5968,7 +5974,7 @@ for(const [file, from, why] of [
 }
 for(const [file, passes, why] of [
  ['apps/web/src/App.tsx', /<AssistantLauncher\b[^>]*visit=\{booked\[0\]\?\.visit/, 'the web shell must give Gilbert the booked visit the dashboard gets'],
- ['apps/web/src/features/Assistant.tsx', /send\(turns, draft, visit\)[\s\S]*|choose\(turns, question, visit\)/, 'the web panel must pass that visit to the matcher'],
+ ['apps/web/src/features/Assistant.tsx', /send\(turns, draft, visit[,)][\s\S]*|choose\(turns, question, visit[,)]/, 'the web panel must pass that visit to the matcher'],
  [assistant, /visit: store\.visits\.first\b/, 'the iOS screen must pass the store\'s first visit, which HomeView shows'],
  [`${ANDROID_ROOT}/ui/GilbertScreens.kt`, /store\.visits\.firstOrNull\(\)/, 'the Android sheet must pass the store\'s first visit, which the home shows']
 ]) {
@@ -6482,6 +6488,109 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  console.log(`The engine runtime refuses to start without ${runtimeSettings.flag}=${runtimeSettings.flagValue} in its factory, answers on loopback to a loopback Host only, and nothing in deploy/ names it. ${engineSources.length} source files under packages/engines/src read, ${importsRead} imports among them, and no engine reaches another engine's directory or opens a database; ${onRuntime.length} ${onRuntime.length === 1 ? 'route is' : 'routes are'} built on the runtime, each registered by exactly its key in its own engine's directory.`);
 }
 /* ==== end of Engine Runtime & Core (Wave 3) ========================================================= */
+
+/* ==== Access (Wave 3): bookings with a person in them, the visit thread and Gilbert's handover =========
+
+   Added by the Access lead. What this block holds the build to, and why each is here rather than trusted:
+
+   A refusal a screen renders is a route's refusal, word for word. booking.json names the route refusals
+   its screens show by route and id; one that the route does not declare would be a sentence no route ever
+   answers with, shown to a patient as if one had. And the cancel route's "the visit has already started"
+   is cancellation.json's in-progress sentence, because two versions of that sentence are two answers to
+   somebody whose nurse is standing in their house.
+
+   The handover carries none of the person's words and not which emergency words fired. conversation.handover@1
+   refuses the transcript and the symptoms, and a group id can be a crisis; so no handover field may be the
+   words or the flags, and no platform's summary may put either back.
+
+   The screens do not keep their own copy of the words or the arithmetic. No sentence of booking.json is
+   typed into hand-written source on any platform, and the web's booking, thread and handover screens import
+   the Access domain in packages/engines rather than restating it.
+
+   The booking flow stays off the patient's first load, behind a dynamic import, because a patient on
+   metered data reading their visits has no reason to download the person step and the domain behind it.
+
+   A visit thread carries words only: no screen that draws one may offer a file, a photo or a camera.
+
+   The handover route is not marked built until it carries an urgency. conversation.handover@1 must say the
+   urgency the rules set, and a handler that had to guess one would be the lowered emergency Access refuses. */
+{
+ const bookingForAccess = JSON.parse(read('packages/catalog/booking.json'));
+ const accessForBooking = JSON.parse(read('packages/catalog/apis/access.json'));
+ const cancellationForAccess = JSON.parse(read('packages/catalog/cancellation.json'));
+ const assistantForAccess = JSON.parse(read('packages/catalog/assistant.json'));
+ const eventsForAccess = JSON.parse(read('packages/catalog/events.json'));
+ const accessRoute = key => accessForBooking.routes.find(r => `${r.method} ${r.path}@${r.version}` === key);
+
+ /* 1. Every route refusal booking.json names is declared on that route. */
+ for (const { route, id } of bookingForAccess.routeRefusals) {
+  const declared = accessRoute(route);
+  if (!declared) throw new Error(`packages/catalog/booking.json names a refusal of ${route}, which packages/catalog/apis/access.json does not declare.`);
+  if (!declared.refusals.some(r => r.id === id)) throw new Error(`packages/catalog/booking.json names the refusal "${id}" of ${route}, which that route does not declare. A screen would show a sentence no route ever answers with.`);
+ }
+ for (const r of bookingForAccess.refusals) if (!r.id || !r.sentence?.trim() || !r.why?.trim()) throw new Error(`packages/catalog/booking.json declares a refusal without an id, a sentence or a reason: ${JSON.stringify(r)}.`);
+
+ /* 2. "The visit has already started" is one sentence in three places. */
+ const afterArrival = accessRoute('POST /v1/access/bookings/{bookingRef}/cancel@1')?.refusals.find(r => r.id === 'cancel-after-arrival')?.statement;
+ const inProgress = cancellationForAccess.states.find(s => s.id === 'in-progress')?.patientWords;
+ const cancellationRefusal = cancellationForAccess.refusals.find(r => r.id === 'cancel-after-arrival')?.sentence;
+ if (!afterArrival || afterArrival !== inProgress || afterArrival !== cancellationRefusal) throw new Error(`The cancel route says ${JSON.stringify(afterArrival)} when a visit has already started, and packages/catalog/cancellation.json says ${JSON.stringify(inProgress)}. Somebody whose nurse is already in the house gets one sentence, not two.`);
+
+ /* 3. What booking.json says Access publishes is live and Access's own. */
+ for (const published of bookingForAccess.publishes) {
+  const [type, version] = published.split('@');
+  const e = eventsForAccess.events.find(x => x.type === type && x.version === Number(version));
+  if (!e || e.withdrawn || e.owner !== 'access') throw new Error(`packages/catalog/booking.json says Access publishes ${published}, which is ${!e ? 'not declared' : e.withdrawn ? 'withdrawn' : `owned by ${e.owner}`} in packages/catalog/events.json.`);
+ }
+
+ /* 4. The handover carries none of the person's words and not which emergency words fired. */
+ const refusedInAHandover = ['words', 'flags', 'transcript', 'groups', 'emergencygroups', 'message', 'symptoms'];
+ for (const field of assistantForAccess.answers.handover.fields) if (refusedInAHandover.includes(field.id.toLowerCase().replace(/[^a-z]/g, ''))) throw new Error(`packages/catalog/assistant.json gives the handover the field "${field.id}". conversation.handover@1 refuses the transcript and the symptoms, and a group can be a crisis: the summary says how somebody asked, what matched and an urgency, never what they said or which words fired.`);
+ if (!assistantForAccess.answers.handover.urgency?.length || assistantForAccess.answers.handover.urgency.some(u => /routine|low|minor|calm/i.test(u.id))) throw new Error('packages/catalog/assistant.json declares a handover urgency that is calm. Gilbert assesses nothing, so no code it hands a nurse may be lower than not-assessed.');
+ for (const file of ['apps/web/src/lib/assistant.ts', 'apps/ios/MyThuso/Models/Assistant.swift', 'apps/android/app/src/main/java/za/co/mythuso/model/Assistant.kt']) {
+  if (/label\(\s*(?:id:\s*)?["'](?:words|flags)["']\s*\)|\bnoFlags\b/.test(read(file))) throw new Error(`${file} puts the person's words or the emergency words Gilbert noticed into the handover summary. The summary is how they asked, what matched and an urgency, on every platform.`);
+ }
+
+ /* 5. No sentence of booking.json is typed into hand-written source. Short labels are left out, because
+       "Send" and "Nurse" are words many screens say for their own reasons. */
+ const bookingSentences = new Set();
+ const collect = value => {
+  if (typeof value === 'string') { if (value.length >= 40 && !value.includes('packages/') && /[.:]$/.test(value)) bookingSentences.add(value); }
+  else if (Array.isArray(value)) value.forEach(collect);
+  else if (value && typeof value === 'object') for (const [key, inner] of Object.entries(value)) if (!/^(_|why|.*Why$|.*From$|note$)/.test(key)) collect(inner);
+ };
+ collect({ person: bookingForAccess.person, time: bookingForAccess.time, review: bookingForAccess.review, states: bookingForAccess.states, statusHeading: bookingForAccess.statusHeading, acceptedBy: bookingForAccess.acceptedBy, asapStaysRequested: bookingForAccess.asapStaysRequested, refusals: bookingForAccess.refusals.map(r => r.sentence), thread: bookingForAccess.thread });
+ const handWrittenForBooking = [
+  ...files('apps/web/src').filter(f => /\.(ts|tsx)$/.test(f) && !f.endsWith('.generated.ts')),
+  ...files('apps/ios/MyThuso').filter(f => f.endsWith('.swift') && !f.endsWith('Data.swift')),
+  ...files('apps/android/app/src/main/java').filter(f => f.endsWith('.kt') && !f.endsWith('Data.kt')),
+  ...files('packages/engines/src').filter(f => f.endsWith('.ts'))
+ ];
+ for (const file of handWrittenForBooking) {
+  const source = read(file);
+  for (const sentence of bookingSentences) if (source.includes(sentence)) throw new Error(`${file} types "${sentence}", which is packages/catalog/booking.json's. Read it from the contract — BookingData on the phones, lib/booking.ts on the web — so rewording it rewords every screen.`);
+ }
+
+ /* 6. The web's screens use the Access domain, and the booking flow is behind a dynamic import. */
+ const appSource = read('apps/web/src/App.tsx');
+ if (/^import (?!type\b)[^;]*from '\.\/features\/Booking'/m.test(appSource) || !/lazy\(\(\) => import\('\.\/features\/Booking'\)/.test(appSource)) throw new Error("apps/web/src/App.tsx imports features/Booking statically. The booking flow carries the person step and the Access domain; a patient reading their visits on metered data must not download it before they book.");
+ for (const [file, domain] of [['apps/web/src/features/Booking.tsx', 'domain/booking.ts'], ['apps/web/src/features/VisitAccess.tsx', 'domain/thread.ts'], ['apps/web/src/lib/assistant.ts', 'domain/handover.ts']]) {
+  if (!read(file).includes(`packages/engines/src/access/${domain}`)) throw new Error(`${file} no longer imports packages/engines/src/access/${domain}. The web runs the Access engine's own arithmetic; a second copy is the one that disagrees with the route.`);
+ }
+
+ /* 7. A visit thread carries words only, on every platform. */
+ for (const file of ['apps/web/src/features/VisitAccess.tsx', 'apps/ios/MyThuso/Features/VisitThreadView.swift', 'apps/android/app/src/main/java/za/co/mythuso/ui/BookingScreens.kt']) {
+  const offered = read(file).match(/type=["']file["']|PhotosPicker|fileImporter|UIImagePickerController|GetContent\(|OpenDocument\(|PickVisualMedia|capture=["']/);
+  if (offered) throw new Error(`${file} offers "${offered[0]}" in a visit thread. A thread carries words only: a photo of a wound on a nurse's phone is a clinical record on a personal device with no consent behind it.`);
+ }
+
+ /* 8. The handover route is not built until it carries the urgency its event must. */
+ const handoverRoute = accessRoute('POST /v1/access/conversations/{conversationRef}/handover@1');
+ if (handoverRoute?.status === 'built' && !handoverRoute.request.some(f => /urgency/i.test(f.field))) throw new Error('POST /v1/access/conversations/{conversationRef}/handover@1 is marked built without an urgency in its request. conversation.handover@1 must carry the urgency the rules set, and a handler that guessed one would be the lowered emergency Access refuses.');
+
+ console.log(`Access: ${bookingForAccess.routeRefusals.length} route refusals booking.json names are declared on their routes, the cancel route and cancellation.json say one sentence about a visit already under way, the handover carries ${assistantForAccess.answers.handover.fields.map(f => f.id).join(', ')} and never the words, ${bookingSentences.size} booking sentences are typed in none of ${handWrittenForBooking.length} hand-written files, the booking flow is a dynamic import, and no visit thread offers an attachment.`);
+}
+/* ==== end of Access (Wave 3) ========================================================================= */
 
 /* ==== PLATFORM INTEGRATIONS: THE OPEN-SOURCE REGISTER ==============================================
    ADDED BY THE PLATFORM INTEGRATIONS LEAD. Kept in one block, after everything else, so a merge with

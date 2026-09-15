@@ -39,7 +39,8 @@ const openService = async (page: Page, name: RegExp) => {
 test('every weekday in the date strip belongs to the date beside it', async ({ page }) => {
   const d = await openService(page, /Vitals & chronic check/);
   await d.getByRole('button', { name: 'Continue' }).click(); // Who → Where
-  await d.getByRole('button', { name: 'Continue' }).click();
+  await d.getByRole('button', { name: 'Continue' }).click(); // Where → Nurse
+  await d.getByRole('button', { name: 'Continue' }).click(); // Nurse → When, asking for whoever is nearest
   const chips = await d.locator('.date-chip').allInnerTexts();
   expect(chips).toHaveLength(5);
   // the strip used to read "Fri 12 Sep" whatever the calendar said; 12 September 2026 is a Saturday
@@ -53,13 +54,15 @@ test('a visit ends its own duration after it starts, not an hour later', async (
   // vitals is 30 minutes in the catalogue, so 09:00 ends at 09:30
   const vitals = await openService(page, /Vitals & chronic check/);
   await vitals.getByRole('button', { name: 'Continue' }).click(); // Who → Where
-  await vitals.getByRole('button', { name: 'Continue' }).click();
+  await vitals.getByRole('button', { name: 'Continue' }).click(); // Where → Nurse
+  await vitals.getByRole('button', { name: 'Continue' }).click(); // Nurse → When
   await expect(vitals.getByText(/09:00 – 09:30 \(30 minutes\)/)).toBeVisible();
   // wound care is 40, and the same 09:00 slot ends at 09:40
   await page.goto('/app/');
   const wound = await openService(page, /Wound care/);
   await wound.getByRole('button', { name: 'Continue' }).click(); // Who → Where
-  await wound.getByRole('button', { name: 'Continue' }).click();
+  await wound.getByRole('button', { name: 'Continue' }).click(); // Where → Nurse
+  await wound.getByRole('button', { name: 'Continue' }).click(); // Nurse → When
   await expect(wound.getByText(/09:00 – 09:40 \(40 minutes\)/)).toBeVisible();
 });
 
@@ -67,7 +70,8 @@ test('the date chosen survives the confirmation and reaches the visit list', asy
   const d = await openService(page, /Mother & baby/);
   await d.getByLabel('Who is this visit for?').selectOption('Nomsa Molefe');
   await d.getByRole('button', { name: 'Continue' }).click(); // Who → Where
-  await d.getByRole('button', { name: 'Continue' }).click();
+  await d.getByRole('button', { name: 'Continue' }).click(); // Where → Nurse
+  await d.getByRole('button', { name: 'Continue' }).click(); // Nurse → When, asking for whoever is nearest
   // pick the third day offered, which is not the default
   const third = expectedDays()[2];
   await d.locator('.date-chip').nth(2).click();
@@ -98,7 +102,8 @@ test('the home visit card is the visit you booked, not a fixture', async ({ page
   await page.getByRole('button', { name: /Elderly care/ }).first().click();
   const d = page.getByRole('dialog');
   await d.getByRole('button', { name: 'Continue' }).click(); // Who → Where
-  await d.getByRole('button', { name: 'Continue' }).click();
+  await d.getByRole('button', { name: 'Continue' }).click(); // Where → Nurse
+  await d.getByRole('button', { name: 'Continue' }).click(); // Nurse → When, asking for whoever is nearest
   await d.getByRole('button', { name: 'Continue' }).click();
   await d.getByRole('button', { name: 'Continue' }).click();
   await d.getByRole('checkbox').check();
@@ -113,7 +118,8 @@ test('the home visit card is the visit you booked, not a fixture', async ({ page
 test('an arrival estimate belongs to care asked for now, not to an appointment', async ({ page }) => {
   const d = await openService(page, /Vitals & chronic check/);
   await d.getByRole('button', { name: 'Continue' }).click(); // Who → Where
-  await d.getByRole('button', { name: 'Continue' }).click();
+  await d.getByRole('button', { name: 'Continue' }).click(); // Where → Nurse
+  await d.getByRole('button', { name: 'Continue' }).click(); // Nurse → When, asking for whoever is nearest
   // choosing a date and hour: no estimate, because "when will somebody arrive" is already answered
   await expect(d.getByText(/Average arrival time/)).toHaveCount(0);
   await expect(d.locator('.eta-note')).toHaveCount(0);

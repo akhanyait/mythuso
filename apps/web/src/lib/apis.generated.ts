@@ -416,6 +416,35 @@ export interface PostAccessBillSplitsResponse {
  readonly splitRef: string;
 }
 
+export interface PostAccessBookingsByBookingRefCancelRequest {
+ readonly idempotencyKey: string;
+ readonly bookingRef: string;
+ readonly reasonCode: string;
+}
+export interface PostAccessBookingsByBookingRefCancelResponse {
+ readonly bookingRef: string;
+ readonly stateCode: string;
+ readonly windowCode: string;
+}
+
+export interface GetAccessVisitThreadsByBookingRefRequest {
+ readonly bookingRef: string;
+}
+export interface GetAccessVisitThreadsByBookingRefResponse {
+ readonly threadStateCode: string;
+ readonly messages: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostAccessVisitThreadsByBookingRefMessagesRequest {
+ readonly idempotencyKey: string;
+ readonly bookingRef: string;
+ readonly message: string;
+}
+export interface PostAccessVisitThreadsByBookingRefMessagesResponse {
+ readonly messageRef: string;
+ readonly deliveryCode: string;
+}
+
 export interface PostCareOffersRequest {
  readonly idempotencyKey: string;
  readonly appointmentRef: string;
@@ -1374,14 +1403,17 @@ export const apiRoutes = {
  getAccessVerificationStatus: { name: "getAccessVerificationStatus", method: "GET", path: "/v1/access/verification-status", mountedPath: "/v1/access/verification-status", version: 1, engine: "access", callers: ["loopback"], purpose: ["audit"], idempotent: false, status: "built" },
  getAccessRateLimits: { name: "getAccessRateLimits", method: "GET", path: "/v1/access/rate-limits", mountedPath: "/v1/access/rate-limits", version: 1, engine: "access", callers: ["loopback"], purpose: ["audit"], idempotent: false, status: "built" },
  getAccessDoors: { name: "getAccessDoors", method: "GET", path: "/v1/access/doors", mountedPath: "/v1/access/doors", version: 1, engine: "access", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built" },
- postAccessBookings: { name: "postAccessBookings", method: "POST", path: "/v1/access/bookings", mountedPath: "/v1/access/bookings", version: 1, engine: "access", callers: ["patient","caregiver","guardian","thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
- getAccessBookingsByBookingRef: { name: "getAccessBookingsByBookingRef", method: "GET", path: "/v1/access/bookings/{bookingRef}", mountedPath: "/v1/access/bookings/{bookingRef}", version: 1, engine: "access", callers: ["patient","caregiver","guardian","thuso-line-agent"], purpose: ["subject-access","dispatch"], idempotent: false, status: "proposed" },
+ postAccessBookings: { name: "postAccessBookings", method: "POST", path: "/v1/access/bookings", mountedPath: "/v1/access/bookings", version: 1, engine: "access", callers: ["patient","caregiver","guardian","thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ getAccessBookingsByBookingRef: { name: "getAccessBookingsByBookingRef", method: "GET", path: "/v1/access/bookings/{bookingRef}", mountedPath: "/v1/access/bookings/{bookingRef}", version: 1, engine: "access", callers: ["patient","caregiver","guardian","thuso-line-agent"], purpose: ["subject-access","dispatch"], idempotent: false, status: "built" },
  postAccessConversationsByConversationRefMessages: { name: "postAccessConversationsByConversationRefMessages", method: "POST", path: "/v1/access/conversations/{conversationRef}/messages", mountedPath: "/v1/access/conversations/{conversationRef}/messages", version: 1, engine: "access", callers: ["patient","caregiver"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postAccessConversationsByConversationRefHandover: { name: "postAccessConversationsByConversationRefHandover", method: "POST", path: "/v1/access/conversations/{conversationRef}/handover", mountedPath: "/v1/access/conversations/{conversationRef}/handover", version: 1, engine: "access", callers: ["patient","caregiver"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postAccessToolsByTool: { name: "postAccessToolsByTool", method: "POST", path: "/v1/access/tools/{tool}", mountedPath: "/v1/access/tools/{tool}", version: 1, engine: "access", callers: ["patient","caregiver"], purpose: ["treatment","dispatch","dispensing","subject-access"], idempotent: true, status: "proposed" },
  postAccessHouseholds: { name: "postAccessHouseholds", method: "POST", path: "/v1/access/households", mountedPath: "/v1/access/households", version: 1, engine: "access", callers: ["patient","caregiver"], purpose: ["subject-access"], idempotent: false, status: "proposed" },
  postAccessSponsors: { name: "postAccessSponsors", method: "POST", path: "/v1/access/sponsors", mountedPath: "/v1/access/sponsors", version: 1, engine: "access", callers: ["patient","sponsor"], purpose: ["billing"], idempotent: false, status: "proposed" },
  postAccessBillSplits: { name: "postAccessBillSplits", method: "POST", path: "/v1/access/bill-splits", mountedPath: "/v1/access/bill-splits", version: 1, engine: "access", callers: ["patient","caregiver","sponsor"], purpose: ["billing"], idempotent: false, status: "proposed" },
+ postAccessBookingsByBookingRefCancel: { name: "postAccessBookingsByBookingRefCancel", method: "POST", path: "/v1/access/bookings/{bookingRef}/cancel", mountedPath: "/v1/access/bookings/{bookingRef}/cancel", version: 1, engine: "access", callers: ["patient","caregiver","guardian","thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ getAccessVisitThreadsByBookingRef: { name: "getAccessVisitThreadsByBookingRef", method: "GET", path: "/v1/access/visit-threads/{bookingRef}", mountedPath: "/v1/access/visit-threads/{bookingRef}", version: 1, engine: "access", callers: ["patient","caregiver","guardian","nurse"], purpose: ["dispatch"], idempotent: false, status: "built" },
+ postAccessVisitThreadsByBookingRefMessages: { name: "postAccessVisitThreadsByBookingRefMessages", method: "POST", path: "/v1/access/visit-threads/{bookingRef}/messages", mountedPath: "/v1/access/visit-threads/{bookingRef}/messages", version: 1, engine: "access", callers: ["patient","caregiver","guardian","nurse"], purpose: ["dispatch"], idempotent: true, status: "built" },
  postCareOffers: { name: "postCareOffers", method: "POST", path: "/v1/care/offers", mountedPath: "/v1/care/offers", version: 1, engine: "care", callers: ["dispatcher"], purpose: ["dispatch"], idempotent: true, status: "built" },
  postCareOffersByOfferRefAccept: { name: "postCareOffersByOfferRefAccept", method: "POST", path: "/v1/care/offers/{offerRef}/accept", mountedPath: "/v1/care/offers/{offerRef}/accept", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["dispatch"], idempotent: true, status: "built" },
  postCareOffersByOfferRefDecline: { name: "postCareOffersByOfferRefDecline", method: "POST", path: "/v1/care/offers/{offerRef}/decline", mountedPath: "/v1/care/offers/{offerRef}/decline", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["dispatch"], idempotent: true, status: "built" },
