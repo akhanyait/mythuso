@@ -32,9 +32,9 @@ const DAY = 86_400_000;
 const SPAN = 20 * 60_000;
 
 const TOWER = 'GET /v1/core/loops@2';
-const ACKNOWLEDGE = 'POST /v1/core/loops/{loopRef}/acknowledge@2';
-const ESCALATE = 'POST /v1/core/loops/{loopRef}/escalate@2';
-const CLOSE = 'POST /v1/core/loops/{loopRef}/close@1';
+const ACKNOWLEDGE = 'POST /v1/core/loops/{loopRef}/acknowledge@3';
+const ESCALATE = 'POST /v1/core/loops/{loopRef}/escalate@3';
+const CLOSE = 'POST /v1/core/loops/{loopRef}/close@2';
 const SETTINGS = 'GET /v1/core/settings@1';
 const CHANGE = 'POST /v1/core/setting-changes@1';
 
@@ -99,7 +99,7 @@ const itemsOf = (answer: { body: Record<string, unknown> }) => answer.body['loop
 const itemFor = (answer: { body: Record<string, unknown> }, loopRef: string) => itemsOf(answer).find(item => item.loopRef === loopRef)!;
 
 test('an unacknowledged concern goes to its fallback at its deadline, then up the rota post by post, runs out of people after the last, and stays open, first, until it is closed with an outcome', () => {
- assert.ok(HELD.length >= 2 && ROTA.posts.slice(HELD.length).every(post => post.role === null), 'this journey expects the posts a role holds first, and a post nobody holds yet last');
+ assert.ok(HELD.length >= 3 && HELD.length === ROTA.posts.length, 'this journey expects every post of the rota held by a role on the register, the Head of Operations last, on duty on a Tuesday morning');
  const { runtime, entries, payloads, now, inTime, desk, open, tower } = world();
  const opened = open();
  assert.equal(opened.status, 200, JSON.stringify(opened.body));
@@ -127,7 +127,8 @@ test('an unacknowledged concern goes to its fallback at its deadline, then up th
  const exhaustedAt = runtime.clock.iso();
  const [first] = itemsOf(tower());
  assert.deepEqual([first!.loopRef, first!.stateCode, first!.exhaustedAt, first!.dueBy], [loopRef, 'exhausted', exhaustedAt, exhaustedAt]);
- assert.deepEqual(first!.skipped, ROTA.posts.slice(HELD.length).map(post => ({ post: post.id, because: 'no-role', at: exhaustedAt })), 'a post nobody holds is skipped and written down, never handed to another role');
+ assert.equal(first!.skipped, undefined, 'every post was held and on duty on a Tuesday morning, so nothing was skipped on the way to the last');
+ assert.equal(first!.ownerRole, HELD.at(-1)!.role, 'the concern ran out of people with the Head of Operations, who holds the last post');
  assert.equal(tower().body['exhaustedCount'], 1);
  /* The announcement is not declared yet: refused by the bus, and the concern is exhausted all the same. */
  assert.equal(entries('published', EXHAUSTED).length, 0);
@@ -148,12 +149,13 @@ test('an unacknowledged concern goes to its fallback at its deadline, then up th
  assert.deepEqual([further.status, further.body], [409, { error: 'no-fallback-left', message: sentence('no-fallback-left') }]);
  assert.doesNotMatch(String(further.body['message']), /no rota|rota exists/);
 
- assert.equal(desk(CLOSE, { loopRef, outcomeRef: '   ' }).body['error'], 'no-outcome');
- const closed = desk(CLOSE, { loopRef, outcomeRef: 'entry-synthetic-outcome' });
+ const outcome = contract.outcomes.value[0]!.id;
+ assert.equal(desk(CLOSE, { loopRef, outcomeCode: '   ', outcomeRef: 'entry-synthetic-outcome' }).body['error'], 'no-outcome', 'a reference is not an outcome: an exhausted concern closes with a code');
+ const closed = desk(CLOSE, { loopRef, outcomeCode: outcome, outcomeRef: 'entry-synthetic-outcome' });
  assert.equal(closed.status, 200, JSON.stringify(closed.body));
  assert.deepEqual(payloads('loop.closed@1'), [{ loopRef, outcomeRef: 'entry-synthetic-outcome', closedByRole: 'ops-desk' }]);
  assert.deepEqual(tower().body, { loops: [], exhaustedCount: 0 });
- assert.equal(desk(CLOSE, { loopRef, outcomeRef: 'entry-synthetic-again' }).body['error'], 'loop-closed');
+ assert.equal(desk(CLOSE, { loopRef, outcomeCode: outcome }).body['error'], 'loop-closed');
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
 });
@@ -198,14 +200,13 @@ test('a concern keeps the rota it was opened under when an admin changes it, and
  runtime.close();
 });
 
-test('a rota with a gap, a window for a post nobody holds, and a list of minutes of the wrong length are refused in the contract’s words, and nothing is changed', () => {
+test('a rota with a gap, a window for a post that is not on the rota, and a list of minutes of the wrong length are refused in the contract’s words, and nothing is changed', () => {
  const { runtime, admin } = world();
  const refused = (answer: { body: Record<string, unknown> }, id: string, why: string) => assert.deepEqual([answer.body['error'], answer.body['message']], [id, settingSentence(id)], why);
  const change = (fields: Record<string, unknown>) => admin(CHANGE, { reason: 'Trying a rota the rules must refuse.', expectedVersion: 1, ...fields });
  const rota = contract.escalation.rotaSetting;
  for (const gapped of rotaSetting.guardrail!.forbids) refused(change({ setting: rota, windows: gapped }), 'setting-schedule-leaves-a-gap', `a rota with a gap: ${JSON.stringify(gapped)}`);
- const nobody = ROTA.posts.find(post => post.role === null)!;
- refused(change({ setting: rota, windows: [...ROTA.windows, { post: nobody.id, days: [...settingsContract.days], from: '08:00', to: '17:00' }] }), 'setting-value-wrong-type', 'hours for a post no role holds');
+ refused(change({ setting: rota, windows: [...ROTA.windows, { post: 'post-not-on-the-rota', days: [...settingsContract.days], from: '08:00', to: '17:00' }] }), 'setting-value-wrong-type', 'hours for a post that is not on the rota');
  refused(change({ setting: rota, windows: [...ROTA.windows, { post: DESK!.id, days: [...settingsContract.days], from: '06:00', to: '22:00', name: 'Kagiso Molefe' }] }), 'setting-value-wrong-type', 'a rota names posts, never people');
  const minutes = contract.escalation.minutesSetting;
  const one = ROTA.stepsMs.map(ms => ms / MINUTE_MS);
@@ -322,10 +323,71 @@ test('an alert that runs out of people is never snoozed, lowered or closed by th
  assert.deepEqual(itemsOf(tower({ sourceEngine: 'care' })).map(i => i.alertRef), [alertRef], 'a filter hid a concern with nobody left');
  assert.equal(tower({ sourceEngine: 'nobody' }).body['error'], 'unknown-source-engine');
 
- const close = (outcomeRef: string) => runtime.call(CLOSE, { role: 'doctor', ref: 'D-401', purpose: 'treatment', fields: { idempotencyKey: `close-${outcomeRef.length}`, loopRef: exhausted.loopRef, outcomeRef } });
+ const close = (outcomeCode: string) => runtime.call(CLOSE, { role: 'doctor', ref: 'D-401', purpose: 'treatment', fields: { idempotencyKey: `close-${outcomeCode.length}`, loopRef: exhausted.loopRef, outcomeCode, outcomeRef: 'entry-synthetic-outcome' } });
  assert.equal(close('  ').body['error'], 'no-outcome');
- assert.equal(close('entry-synthetic-outcome').status, 200);
+ assert.equal(close(contract.outcomes.value[0]!.id).status, 200);
  assert.deepEqual(payloads('alert.closed@1'), [{ alertRef, outcomeRef: 'entry-synthetic-outcome', closedByRole: 'doctor' }]);
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+/* The Head of Operations joined the vetting register on 15 September 2026 and holds the last post of the rota.
+   A concern nobody took on walks to that post in office hours, is held there by the role and nobody else, is
+   taken on by the Head of Operations, and cannot be moved further; out of hours the post is skipped and the
+   skip says so. The post and its role are read from the rota, never typed. */
+test('a concern walks to the Head of Operations post, held by the Head of Operations, who takes it on; out of hours the post is skipped', () => {
+ const last = ROTA.posts.at(-1)!;
+ assert.ok(last.role !== null, 'the last post of the rota is held by a role on the register');
+ const { runtime, now, open, tower, nurse, operator } = world();
+ const loopRef = String(open().body['loopRef']);
+ runtime.advance(SPAN);
+ runtime.advance(SPAN);
+ for (const post of ROTA.posts.slice(0, -1)) runtime.advance(holds(post));
+ const item = itemFor(tower(), loopRef);
+ assert.deepEqual([item.holder, item.postId, item.rotaRung, item.ownerRole, item.lastRung], ['post', last.id, ROTA.posts.length, last.role, true], 'the last post holds it, and nobody comes after it');
+ assert.equal(Date.parse(item.dueBy), now() + SPAN, 'the last post is given the concern’s own span');
+
+ const asHead = (route: RouteKey, fields: Record<string, unknown>) => runtime.call(route, { role: last.role!, ref: 'party-synthetic-head', purpose: 'emergency', fields: { idempotencyKey: `head-${route}`, ...fields } });
+ assert.equal(nurse(ACKNOWLEDGE, { loopRef }).body['error'], 'not-this-loops-owner');
+ assert.equal(operator(ACKNOWLEDGE, { loopRef }).body['error'], 'not-this-loops-owner', 'the desk it passed does not hold it any more');
+ const further = asHead(ESCALATE, { loopRef, reasonCode: 'needs-more-authority' });
+ assert.deepEqual([further.status, further.body['error']], [409, 'no-fallback-left'], 'there is nobody after the Head of Operations');
+ const taken = asHead(ACKNOWLEDGE, { loopRef });
+ assert.equal(taken.status, 200, JSON.stringify(taken.body));
+ assert.deepEqual(itemFor(tower(), loopRef).stateCode, 'acknowledged');
+ runtime.advance(DAY);
+ assert.equal(itemFor(tower(), loopRef).exhaustedAt, undefined, 'a concern the Head of Operations took on waits for its outcome');
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+
+ /* At night the concern reaches the nurse lead after the desk is skipped, and after her the Head of
+    Operations is off duty, so it runs out of people with the skip written down. */
+ const night = world({ start: NIGHT });
+ const late = String(night.open().body['loopRef']);
+ night.runtime.advance(SPAN);
+ night.runtime.advance(SPAN);
+ night.runtime.advance(holds(LEAD!));
+ const exhausted = itemFor(night.tower(), late);
+ assert.equal(exhausted.stateCode, 'exhausted');
+ assert.ok(exhausted.skipped?.some(skip => skip.post === last.id && skip.because === 'off-duty'), 'the Head of Operations was not on duty at night, and the skip is written down');
+ night.runtime.close();
+});
+
+test('the Control Tower operator closes a concern only with one of the outcomes the closed loop lists, and the events name where it is recorded', () => {
+ const { runtime, payloads, open, operator, tower } = world();
+ const loopRef = String(open().body['loopRef']);
+ assert.deepEqual(operator(CLOSE, { loopRef, outcomeCode: '   ' }).body, { error: 'no-outcome', message: sentence('no-outcome') }, 'a blank code is no outcome');
+ assert.deepEqual(operator(CLOSE, { loopRef, outcomeCode: 'sorted it out on the phone' }).body, { error: 'outcome-not-a-code', message: sentence('outcome-not-a-code') });
+ assert.equal(runtime.call(CLOSE, { role: 'operator', ref: 'O-801', purpose: 'emergency', fields: { idempotencyKey: 'no-code', loopRef } }).body['error'], 'required-field-missing', 'an outcome code is a field the route needs');
+ assert.equal(itemsOf(tower()).length, 1, 'a refused close changed nothing');
+ assert.equal(runtime.call(CLOSE, { role: 'carer', ref: 'party-synthetic-carer', purpose: 'emergency', fields: { idempotencyKey: 'carer-close', loopRef, outcomeCode: contract.outcomes.value[0]!.id } }).body['error'], 'caller-not-allowed', 'a carer closes no concern');
+
+ const outcome = contract.outcomes.value[0]!.id;
+ const closed = operator(CLOSE, { loopRef, outcomeCode: outcome });
+ assert.equal(closed.status, 200, JSON.stringify(closed.body));
+ assert.deepEqual(payloads('loop.closed@1'), [{ loopRef, outcomeRef: loopRef, closedByRole: 'operator' }], 'with no reference given, the concern itself is where its outcome is recorded');
+ assert.deepEqual(tower().body, { loops: [], exhaustedCount: 0 });
+ assert.equal(operator(CLOSE, { loopRef, outcomeCode: outcome }).body['error'], 'loop-closed');
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
 });

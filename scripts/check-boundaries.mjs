@@ -6684,7 +6684,7 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  const coreFail = detail => { throw new Error(`${detail} ${closedLoop.exhaustion?.why ?? ''}`); };
  const proposals = [
   ...closedLoop.ladder.rungs.map(r => [`ladder rung ${r.rung} acknowledgeWithinMinutes`, r.acknowledgeWithinMinutes]),
-  ['snooze.reasons', closedLoop.snooze.reasons], ['escalationReasons.byCaller', closedLoop.escalationReasons.byCaller], ['panic.ladderRung', closedLoop.panic?.ladderRung]
+  ['snooze.reasons', closedLoop.snooze.reasons], ['escalationReasons.byCaller', closedLoop.escalationReasons.byCaller], ['panic.ladderRung', closedLoop.panic?.ladderRung], ['outcomes', closedLoop.outcomes]
  ];
  for (const [name, proposal] of proposals) {
   if (!proposal || !('decidedBy' in proposal) || !proposal.question?.trim() || !proposal.proposedBecause?.trim()) throw new Error(`packages/catalog/closed-loop.json ${name} has lost its decidedBy, its question or why it was proposed. A number or a code nobody decided must keep saying so.`);
@@ -6793,6 +6793,96 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  console.log(`Core builds ${coreBuilt} of its ${coreApi.routes.length} routes on the runtime. Its ladder has ${rungNumbers.length} rungs whose minutes nobody has decided, escalation goes to a concern's fallback and then up the ${rotaItem.posts.length} posts of the rota it was opened under (${heldPosts.length} held by a role, ${rotaItem.posts.length - heldPosts.length} waiting on one) with ${rungTimes} times between them and no hour of the week an admin can leave without a post, a panic alerts every post on duty at once by a rule no setting reaches, an exhausted concern is announced at "${closedLoop.severities.ids.at(-1)}" through ${closedLoop.exhaustion.event}, which is ${exhaustedEvent ? 'declared' : 'not yet declared in packages/catalog/events.json and refused by the bus until it is'}, and Core's ${coreCode.length} source files type no policy number and read no Safety timing.`);
 }
 /* ==== end of Engine Runtime & Core (Wave 3) ========================================================= */
+
+/* ==== The register's carer and Head of Operations (Wave 3, Register roles) ============================
+   Two roles joined packages/catalog/vetting.json on 15 September 2026, and roles decide who may do what to
+   people's care. What is held here is what would quietly undo that decision:
+
+     1. Neither new role holds anything clinical. A clinical capability is one granted to a role that holds a
+        registration with a council or the accreditor the register names for clinical practice — SANC, the
+        HPCSA, the SAPC or SANAS — worked out from the register rather than listed. The carer and the Head of
+        Operations hold none of those, no scope of practice, and never take-visit.
+     2. The carer is the role Care supervises. Every row in packages/catalog/care.json with supervisedBy names
+        roles on the register that are not granted take-visit, supervised by a role that is; the carer is one
+        of them; and the supervision test exercises that row, not a stand-in role.
+     3. Every post of Core's escalation rota is held by a role on the register. The Head of Operations post was
+        held by nobody, and the settings shape still allows that on other rotas; Core's may not go back to it.
+     4. POST /v1/core/loops/{loopRef}/close needs an outcome at the version in force: a required code, refused
+        blank in the engine's sentence and refused when the closed loop does not list it, by the same rule the
+        engine and the Control Tower preview both ask.
+     5. No clinical role list names a carer. A role list is clinical when every role it may name holds a
+        clinical registration. Such a list never allows the carer, and its guardrail refuses the carer as the
+        role on the register it now is — out of range — rather than as a name nobody holds.
+
+   That a new role cannot widen a frozen route without a version is not a new check: every built route's
+   callers are worked out from the register and held to apis.callers.lock above, and the second holds. */
+{
+ const register = JSON.parse(read('packages/catalog/vetting.json'));
+ const rolesOn = new Map(register.roles.map(role => [role.id, role]));
+ const newRoles = ['carer', 'head-of-operations'];
+ for (const id of newRoles) if (!rolesOn.has(id)) throw new Error(`packages/catalog/vetting.json has no "${id}" role. Care supervises a carer and Core's rota names a Head of Operations; without the role both are refusals of a name nobody can hold.`);
+ /* Provenance lives beside the register rather than in it, because vetting.json is in the patient's first
+    load and nobody reads provenance on a screen. The register itself must not carry it again. */
+ if ('proposedRoles' in register) throw new Error('packages/catalog/vetting.json carries proposedRoles again. Provenance is packages/catalog/vetting-proposals.json\'s, so a patient\'s first load does not carry the reasons staff roles were proposed.');
+ const proposedRoles = existsSync('packages/catalog/vetting-proposals.json') ? JSON.parse(read('packages/catalog/vetting-proposals.json')).roles ?? [] : [];
+ for (const id of newRoles) {
+  const provenance = proposedRoles.find(p => p.role === id);
+  if (!provenance || provenance.decidedBy !== null || !provenance.proposedBy?.trim() || !provenance.proposedBecause?.trim()) throw new Error(`packages/catalog/vetting-proposals.json does not say who proposed "${id}" and why, with decidedBy null. A role nobody has decided is on the register as a proposal, and says so.`);
+  for (const check of rolesOn.get(id).checks) if (!provenance.checksFrom?.[check.id]?.trim()) throw new Error(`packages/catalog/vetting-proposals.json does not say where "${id}"'s check "${check.id}" came from. A check is copied from a role already on the register, or it is a proposal that says so.`);
+ }
+ const councils = new Set(['sanc', 'hpcsa', 'sapc', 'sanas']);
+ const clinicalRoles = register.roles.filter(role => role.checks.some(check => councils.has(check.authority))).map(role => role.id);
+ const clinicalCapabilities = new Set(register.roles.filter(role => clinicalRoles.includes(role.id)).flatMap(role => role.grants.map(g => g.capability)));
+ if (!clinicalCapabilities.has('take-visit') || !clinicalRoles.includes('nurse')) throw new Error('scripts/check-boundaries.mjs no longer works out the clinical capabilities from the register: take-visit or the registered nurse is missing from them.');
+ for (const id of newRoles) {
+  const role = rolesOn.get(id);
+  const clinical = role.grants.map(g => g.capability).filter(capability => clinicalCapabilities.has(capability));
+  if (clinical.length || role.scope !== undefined || clinicalRoles.includes(id)) throw new Error(`The ${role.name} on packages/catalog/vetting.json holds ${clinical.length ? `the clinical capability ${clinical.join(', ')}` : role.scope !== undefined ? 'a scope of practice' : 'a clinical registration'}. It is not a clinical role: a carer's visits are the registered nurse's, and the Head of Operations answers for the desk, never for a patient.`);
+ }
+
+ const care = JSON.parse(read('packages/catalog/care.json'));
+ const grantsOf = id => (rolesOn.get(id)?.grants ?? []).map(g => g.capability);
+ const supervised = care.services.filter(row => row.supervisedBy !== undefined);
+ if (!supervised.some(row => (row.roles ?? []).includes('carer'))) throw new Error('No row in packages/catalog/care.json supervises the carer. The carer is on the register so that the supervision rule refuses a person rather than a name.');
+ for (const row of supervised) {
+  if (!(row.roles ?? []).length || row.roles.some(id => !rolesOn.has(id) || grantsOf(id).includes('take-visit')) || !grantsOf(row.supervisedBy).includes('take-visit')) throw new Error(`packages/catalog/care.json supervises ${row.serviceId} with roles ${JSON.stringify(row.roles ?? [])} under "${row.supervisedBy}". A supervised row names roles on the register that may not attend a visit alone, under a role that may.`);
+ }
+ const supervisionTest = read('packages/engines/src/care/domain/matching.test.ts');
+ if (/test-carer/.test(supervisionTest) || !/serviceId === 'carer'/.test(supervisionTest) || /roles: \[/.test(supervisionTest)) throw new Error("packages/engines/src/care/domain/matching.test.ts exercises supervision with a stand-in role, or gives the carer row roles of its own. It tests the carer row as packages/catalog/care.json writes it.");
+
+ const loop = JSON.parse(read('packages/catalog/closed-loop.json'));
+ const rota = loop.settings.items.find(s => s.key === loop.escalation.rotaSetting);
+ for (const post of rota.posts) if (post.role === null || !rolesOn.has(post.role) || 'roleMissing' in post) throw new Error(`packages/catalog/closed-loop.json's escalation rota has the post "${post.id}" held by ${post.role === null ? 'nobody' : `"${post.role}"`}, which is not a role on the vetting register. Every post of Core's rota is held by a role, or a concern that reaches it is skipped and nobody is told why a Head of Operations was never asked.`);
+
+ const coreContract = JSON.parse(read('packages/catalog/apis/core.json'));
+ const liveClose = coreContract.routes.find(r => !r.withdrawn && r.method === 'POST' && r.path === '/v1/core/loops/{loopRef}/close');
+ const outcomeField = liveClose?.request.find(f => f.field === 'outcomeCode');
+ const engineOutcome = coreContract.refusals.find(r => r.id === 'no-loop-without-an-outcome');
+ const closeSays = id => liveClose?.refusals.find(r => r.id === id);
+ if (!outcomeField || outcomeField.required !== true || outcomeField.type !== 'string' || closeSays('no-outcome')?.statement !== engineOutcome?.statement || !closeSays('outcome-not-a-code')) throw new Error(`The live ${liveClose ? `POST /v1/core/loops/{loopRef}/close@${liveClose.version}` : 'close route'} does not require an outcome code, refuse a missing outcome in the words "${engineOutcome?.statement}", or refuse an outcome the closed loop does not list. Closing needs an outcome, an exhausted concern included.`);
+ const { closeRefusal } = await import('../packages/engines/src/core/domain/loops.ts');
+ const listed = new Set(loop.outcomes.value.map(o => o.id));
+ const openLoop = { closedAt: null };
+ if (closeRefusal(openLoop, '  ', listed) !== 'no-outcome' || closeRefusal({ ...openLoop, exhaustedAt: 1 }, '', listed) !== 'no-outcome' || closeRefusal(openLoop, 'because it was fine', listed) !== 'outcome-not-a-code' || closeRefusal(openLoop, [...listed][0], listed) !== null) throw new Error('packages/engines/src/core/domain/loops.ts closeRefusal accepts a close with no outcome, or with one the closed loop does not list, or refuses a listed one.');
+ if (!read('packages/engines/src/core/engine.ts').includes('const refused = closeRefusal(loop, outcomeCode, outcomes);')) throw new Error('packages/engines/src/core/engine.ts closes a concern without asking closeRefusal, so the route and the Control Tower could disagree about what closing needs.');
+
+ const settingsIndex = JSON.parse(read('packages/catalog/settings.json'));
+ const shape = await import('../packages/engines/src/settings/shape.ts');
+ let clinicalLists = 0;
+ for (const source of settingsIndex.sources) {
+  for (const item of JSON.parse(read(source.file)).settings.items.filter(s => s.type === 'roleList')) {
+   const allowed = item.allowedRoles?.roles ?? [];
+   if (!allowed.length || !allowed.every(id => clinicalRoles.includes(id))) continue;
+   clinicalLists++;
+   const at = `${source.file} setting "${item.key}"`;
+   if (allowed.includes('carer')) throw new Error(`${at} is a clinical role list and allows the carer. A carer is never named where only a registered clinician may be.`);
+   if (!(item.guardrail?.forbids ?? []).some(value => Array.isArray(value) && value.length === 1 && value[0] === 'carer')) throw new Error(`${at} is a clinical role list whose guardrail does not forbid the carer. The guardrail names the role the register holds, so a bound widened by mistake is caught by the build.`);
+   if (shape.refusalOf(item, ['carer']) !== 'setting-out-of-range') throw new Error(`${at} refuses the carer as ${shape.refusalOf(item, ['carer']) ?? 'nothing at all'}, not as a role on the register outside what the list allows.`);
+  }
+ }
+ if (clinicalLists < 4) throw new Error(`scripts/check-boundaries.mjs found ${clinicalLists} clinical role lists, and Care's three scope settings and Access's handover list are four. The check has stopped reading them.`);
+ console.log(`The carer and the Head of Operations are on the vetting register as proposals, holding none of the ${clinicalCapabilities.size} capabilities granted to the ${clinicalRoles.length} registered clinical roles; Care supervises the carer under a role that attends visits; every post of Core's rota is held by a role; closing a concern needs one of ${listed.size} listed outcomes; and none of the ${clinicalLists} clinical role lists allows a carer.`);
+}
 
 /* ==== Access (Wave 3): bookings with a person in them, the visit thread and Gilbert's handover =========
 
@@ -7667,7 +7757,7 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   if (s.type !== 'roleList') throw new Error(`${at} is not a role list.`);
   const offRegister = (s.allowedRoles?.roles ?? []).filter(role => !takeVisit.includes(role));
   if (offRegister.length) throw new Error(`${at} allows ${offRegister.join(', ')}, which the vetting register does not grant take-visit. A role that may not attend a patient visit is never offered one.`);
-  for (const forbidden of [...careVetting.roles.filter(r => !takeVisit.includes(r.id)).map(r => [r.id]), ['carer'], [], ['nurse', 'operator']]) {
+  for (const forbidden of [...careVetting.roles.filter(r => !takeVisit.includes(r.id)).map(r => [r.id]), [], ['nurse', 'operator']]) {
    if (!careShape.refusalOf(s, forbidden)) throw new Error(`${at} accepts ${JSON.stringify(forbidden)}. It may name only roles the vetting register lets attend a patient visit, and always at least one.`);
   }
  }
@@ -8009,6 +8099,17 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  if (!resolvedEvent || resolvedEvent.withdrawn || resolvedEvent.owner !== 'safety' || resolvedEvent.payload.some(f => /position|location|^lat|lng|latitude|longitude|coordinate/i.test(f.field)) || !resolvedEvent.neverCarries.some(n => n.field === 'position')
   || resolvedEvent.subscribers.join() !== 'core' || !/\[PANIC_RESOLVED\]: heardPanicResolved/.test(read('packages/engines/src/core/engine.ts'))
   || !panicsSource.includes("payload: { panicRef: panic.panicRef, outcomeCode: outcome.id, sharingEndedAt: instant(sharingEndedAt) } }]") || !liveSafetyRoute(resolveKey)?.emits.includes('panic.resolved@1')) safetyFail('location-retained', 'panic.resolved@1 carries, or could carry, where the nurse was, or is no longer heard by Core alone with a handler that stands its concern down.');
+ /* Core stands a resolved panic's concern down through the close route's own rule, with an outcome the closed loop
+    lists. Every outcome Safety's desk resolves a panic with is mapped, onto an outcome that exists, as a proposal
+    that says so; and the handler asks closeRefusal rather than writing a close of its own. */
+ const closedLoopForPanics = JSON.parse(read('packages/catalog/closed-loop.json'));
+ const closesAs = closedLoopForPanics.panicResolved?.closesAs;
+ const coreOutcomeIds = new Set((closedLoopForPanics.outcomes?.value ?? []).map(o => o.id));
+ const mappedOutcomes = Object.entries(closesAs?.value ?? {});
+ const standDown = bodyAt(read('packages/engines/src/core/engine.ts'), 'function heardPanicResolved(');
+ if (closedLoopForPanics.panicResolved?.hears !== 'panic.resolved@1' || mappedOutcomes.map(([id]) => id).sort().join() !== safetyContract.outcomes.map(o => o.id).sort().join() || mappedOutcomes.some(([, code]) => !coreOutcomeIds.has(code))
+  || !closesAs || !('decidedBy' in closesAs) || !closesAs.question?.trim() || !(closesAs.decidedBy !== null || closesAs.proposedBecause?.trim())
+  || !standDown.includes('panicOutcomes.get(') || !standDown.includes('const refused = closeRefusal(loop, outcomeCode, outcomes);')) throw new Error('packages/catalog/closed-loop.json panicResolved no longer maps every outcome Safety\'s desk resolves a panic with onto an outcome the closed loop lists, as a proposal or a decision that says so, or Core stands a panic\'s concern down without asking closeRefusal. A stand-down closes nothing a person at the Control Tower could not.');
 
  const withdrawnNurseRoutes = [
   ['POST', '/v1/safety/checkins/{checkinRef}/extend', 1, 'postSafetyCheckinsByCheckinRefExtend', 'POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND'],

@@ -7,10 +7,14 @@
  * Eight routes: opening a concern, acknowledging, escalating and closing it, raising an alert at version
  * two, the Control Tower's list of open concerns, and Core's settings read and change. The bus route, the
  * protocol registry, the permission check and the audit export stay proposed and are answered by the
- * contract mock. Alerts at version one stay withdrawn: they carry no fallback. The list, the acknowledgement
- * and the escalation are at version two, and version one of each is withdrawn: version one's list could not
- * say where a concern is on the rota, its acknowledgement did not admit the operator who holds the desk's
- * post, and its escalation refused in a sentence naming a rota that did not exist.
+ * contract mock. Alerts at version one stay withdrawn: they carry no fallback. The list is at version two:
+ * version one could not say where a concern is on the rota. The acknowledgement and the escalation are at
+ * version three and the close at version two, and every earlier version of each is withdrawn: the first
+ * acknowledgement did not admit the operator who holds the desk's post, the first escalation refused in a
+ * sentence naming a rota that did not exist, and the second of each, like the first close, did not admit the
+ * Head of Operations, who holds the last post now that the role is on the vetting register. The first close
+ * did not admit the Control Tower operator either, and took no outcome but a reference; the second takes one
+ * of the outcomes closed-loop.json lists.
  *
  * An alert is a concern with a rung, a dedupe key and a record entry, kept in the same table as every
  * other concern so that acknowledging, escalating and closing one is the same act; the events it
@@ -53,8 +57,8 @@
 import { randomUUID } from 'node:crypto';
 import { BusRefused, defineEngine, instant, ok, refuse, type BusEvent, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
 import { SETTINGS_SCHEMA, settingsIn, settingsRoutes } from '../settings/routes.ts';
-import { EXHAUSTED, PANIC, engineIds, highestSeverity, ownerRoles, panicSpanMs, reasons, spanForRung } from './domain/contract.ts';
-import { everyPostOnDuty, holdersOf, movedTo, nextHolder, postOf, settle, stateCodeOf, towerOrder, type KeptRota, type Loop, type Skip } from './domain/loops.ts';
+import { EXHAUSTED, PANIC, PANIC_RESOLVED, engineIds, highestSeverity, outcomes, ownerRoles, panicOutcomes, panicSpanMs, reasons, spanForRung } from './domain/contract.ts';
+import { closeRefusal, everyPostOnDuty, holdersOf, movedTo, nextHolder, postOf, settle, stateCodeOf, towerOrder, type KeptRota, type Loop, type Skip } from './domain/loops.ts';
 import { coreSettings, rotaOf } from './domain/settings.ts';
 
 const schema = `
@@ -136,7 +140,7 @@ const fresh = (ctx: EngineContext, opening: { sourceEngine: string; ownerRole: s
  loopRef: `loop-${randomUUID()}`, sourceEngine: opening.sourceEngine, purpose: ctx.purpose, ownerRole: opening.ownerRole, fallbackRole: opening.fallbackRole,
  holder: { kind: 'owner' }, rota, alerted: null, severity: null,
  openedAt: now, dueBy: now + spanMs, spanMs, acknowledgedAt: null, acknowledgedByRole: null, exhaustedAt: null, announcedAt: null,
- closedAt: null, outcomeRef: null, closedByRole: null, alertRef: null, rung: null, dedupeKey: null, recordEntryRef: null
+ closedAt: null, outcomeRef: null, outcomeCode: null, closedByRole: null, alertRef: null, rung: null, dedupeKey: null, recordEntryRef: null
 });
 
 const openingOf = (request: HandlerRequest): Opening => ({ sourceEngine: text(request.fields['sourceEngine']), ownerRole: text(request.fields['ownerRole']), fallbackRole: text(request.fields['fallbackRole']) });
@@ -240,18 +244,26 @@ function heardPanic(event: BusEvent, ctx: EngineContext) {
 
 /* ── A panic resolved ─────────────────────────────────────────────────────────────────────────────── */
 
-/* A person at Safety's desk resolved the panic, so the concern Core opened for it stands down with that outcome:
-   closed, pointing at the panic, where Safety keeps the outcome, by the role that resolved it. Only an open
-   concern that came from the engine that resolved the panic is closed. A concern somebody already closed is left
-   as it is, and so is a concern for any other panic. Nothing else about it moves, and no rota is read. */
-const PANIC_RESOLVED = 'panic.resolved@1' as EventKey;
+/* A person at Safety's desk resolved the panic, so the concern Core opened for it stands down: closed with the
+   closed loop's outcome that closed-loop.json panicResolved maps the panic's outcome to, pointing at the panic,
+   where Safety keeps what happened, by the role that resolved it. It closes through closeRefusal, the rule the
+   close route asks, so a stand-down can never close what a person at the Control Tower could not. A concern
+   somebody already closed is left as it is. An outcome the map does not name is not guessed at: the concern stays
+   open for a person to close, and the audit says why it was not stood down. Only the concern that came from the
+   engine that resolved this panic is touched; nothing else about it moves, and no rota is read. */
 function heardPanicResolved(event: BusEvent, ctx: EngineContext) {
  const panicRef = text(event.payload['panicRef']);
- const loop = all(ctx).find(open => open.holder.kind === 'every-post' && open.sourceEngine === event.owner && open.dedupeKey === panicRef && open.closedAt === null);
+ const loop = all(ctx).find(open => open.holder.kind === 'every-post' && open.sourceEngine === event.owner && open.dedupeKey === panicRef);
  if (!loop) return;
- const closed: Loop = { ...loop, closedAt: nowOf(ctx), outcomeRef: panicRef, closedByRole: event.actorRole };
+ const outcomeCode = panicOutcomes.get(text(event.payload['outcomeCode'])) ?? '';
+ const refused = closeRefusal(loop, outcomeCode, outcomes);
+ if (refused) {
+  if (loop.closedAt === null) audit(ctx, loop, 'panic-resolved-not-stood-down', refused);
+  return;
+ }
+ const closed: Loop = { ...loop, closedAt: nowOf(ctx), outcomeRef: panicRef, outcomeCode, closedByRole: event.actorRole };
  put(ctx, closed);
- audit(ctx, closed, 'closed', text(event.payload['outcomeCode']));
+ audit(ctx, closed, 'closed', outcomeCode);
  publish(ctx, closed, 'loop.closed@1', { loopRef: closed.loopRef, outcomeRef: panicRef, closedByRole: event.actorRole });
 }
 
@@ -298,12 +310,16 @@ function escalate(request: HandlerRequest, ctx: EngineContext) {
 function close(request: HandlerRequest, ctx: EngineContext) {
  const loop = find(ctx, request.fields['loopRef']);
  if (!loop) return refuse('no-such-loop');
- if (loop.closedAt !== null) return refuse('loop-closed');
- const outcomeRef = text(request.fields['outcomeRef']);
- if (!outcomeRef) return refuse('no-outcome');
- const closed: Loop = { ...loop, closedAt: nowOf(ctx), outcomeRef, closedByRole: ctx.caller.role };
+ const outcomeCode = text(request.fields['outcomeCode']);
+ const refused = closeRefusal(loop, outcomeCode, outcomes);
+ if (refused) return refuse(refused);
+ /* Where the outcome is recorded. A desk closing a concern it answered by phone keeps the outcome nowhere
+    but here, so the concern is where it is recorded: the code in loop_audit beside who closed it. The events
+    were frozen carrying a reference, and the concern's own is the honest one to give them. */
+ const outcomeRef = text(request.fields['outcomeRef']) || loop.loopRef;
+ const closed: Loop = { ...loop, closedAt: nowOf(ctx), outcomeRef, outcomeCode, closedByRole: ctx.caller.role };
  put(ctx, closed);
- audit(ctx, closed, 'closed', outcomeRef);
+ audit(ctx, closed, 'closed', outcomeCode);
  if (closed.alertRef) publish(ctx, closed, 'alert.closed@1', { alertRef: closed.alertRef, outcomeRef, closedByRole: ctx.caller.role });
  else publish(ctx, closed, 'loop.closed@1', { loopRef: closed.loopRef, outcomeRef, closedByRole: ctx.caller.role });
  return ok({ closedAt: at(closed.closedAt!) });
@@ -346,9 +362,9 @@ export const engine = defineEngine({
  routes: {
   'POST /v1/core/loops@1': openLoop,
   'GET /v1/core/loops@2': tower,
-  'POST /v1/core/loops/{loopRef}/acknowledge@2': acknowledge,
-  'POST /v1/core/loops/{loopRef}/escalate@2': escalate,
-  'POST /v1/core/loops/{loopRef}/close@1': close,
+  'POST /v1/core/loops/{loopRef}/acknowledge@3': acknowledge,
+  'POST /v1/core/loops/{loopRef}/escalate@3': escalate,
+  'POST /v1/core/loops/{loopRef}/close@2': close,
   'POST /v1/core/alerts@2': raiseAlert,
   ...settingsRoutes(coreSettings, { read: 'GET /v1/core/settings@1', change: 'POST /v1/core/setting-changes@1' })
  },

@@ -96,16 +96,17 @@ test('a later-phase service is not offered to anybody, however eligible', () => 
  assert.equal(match({ ...visit, serviceId: 'no-such-service' }, [nurse('n', 'parktown')], trust, careContract, careByDefault.roles).kind, 'service-not-offered');
 });
 
-/* The register has no carer yet, so the contract under test gives the carer service a role. The rule
-   exercised is the contract's own supervisedBy, not a role invented for the product. */
+/* The carer is on the vetting register, and the carer row in packages/catalog/care.json names her, so the
+   roles are the contract's own. Only the phase is moved: the carer service is later than the seed phase, and a
+   rule that is only ever run on the day the phase opens is first run on a patient. */
 test('a supervised carer is never matched without her registered nurse', () => {
- const withCarers: CareContract = {
-  ...careContract,
-  seedPhase: 3,
-  requirements: careContract.requirements.map(r => r.serviceId === 'carer' ? { ...r, roles: ['test-carer'] } : r)
- };
+ const withCarers: CareContract = { ...careContract, seedPhase: 3 };
+ const carerRow = withCarers.requirements.find(r => r.serviceId === 'carer')!;
+ assert.equal(carerRow.supervisedBy, 'nurse', 'the carer row is supervised by a registered nurse');
+ const [carerRole] = carerRow.roles ?? [];
+ assert.equal(carerRole, 'carer', 'the carer row names the register’s carer, not a stand-in');
  const trust = new TrustCache(withCarers.badgeTiers);
- const carer = (ref: string, supervisorRef: string | null): Candidate => ({ clinicianRef: ref, roleId: 'test-carer', scope: [], base: at('soweto'), supervisorRef });
+ const carer = (ref: string, supervisorRef: string | null): Candidate => ({ clinicianRef: ref, roleId: carerRole!, scope: [], base: at('soweto'), supervisorRef });
  const people = [carer('with-rn', 'rn-1'), carer('other-rn', 'rn-2'), carer('alone', null)];
  for (const p of people) badge(trust, p.clinicianRef);
  const carerVisit = { ...visit, serviceId: 'carer' };

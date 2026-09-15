@@ -302,7 +302,7 @@
     "appliesTo": "A change applies to handovers made after it. A handover already made stays with whoever it went to.",
     "guardrail": {
      "statement": "A handover always goes to somebody clinical: never to nobody, and never to a role that is not a registered nurse or a doctor.",
-     "forbids": [[], ["operator"], ["admin"], ["nurse", "operator"], ["sister-on-duty"]]
+     "forbids": [[], ["operator"], ["admin"], ["nurse", "operator"], ["sister-on-duty"], ["carer"]]
     }
    },
    {

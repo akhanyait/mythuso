@@ -198,3 +198,7 @@ POST /v1/safety/panics/{panicRef}/pick-up@1 783bdc5f7e27f64c
 POST /v1/safety/panics/{panicRef}/resolve@1 becb56ceba8ba63e
 GET /v1/safety/panics/{panicRef}/position@1 131fb5d4b1f6c3db
 GET /v1/safety/desk-queue@1 6a85905758138aa1
+POST /v1/core/loops/{loopRef}/acknowledge@3 f07daa37bdbb4ba1
+POST /v1/core/loops/{loopRef}/escalate@3 ecbd6ef3e26d2ea2
+POST /v1/core/loops/{loopRef}/close@2 e82547e5ee5acbdf
+POST /v1/safety/incidents@2 f7ffc26910393482

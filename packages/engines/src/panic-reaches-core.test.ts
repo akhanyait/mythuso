@@ -55,7 +55,7 @@ test('a panic alerts every post on duty at once, is one concern however often it
  const [item, ...others] = tower();
  assert.deepEqual(others, [], 'one panic is one concern');
  assert.deepEqual([item!.holder, item!.alertedPosts, item!.ownerRole], ['every-post', expected.alerted.map(post => post.id), expected.alerted[0]!.role], 'every post on duty, at once');
- assert.deepEqual(item!.skipped?.map(s => [s.post, s.because]), expected.skipped.map(s => [s.post, s.because]), 'a post nobody holds is written down, not paged');
+ assert.deepEqual(item!.skipped?.map(s => [s.post, s.because]) ?? [], expected.skipped.map(s => [s.post, s.because]), 'a post nobody holds or nobody is on is written down, not paged, and a list with nothing skipped says nothing');
  assert.equal(Date.parse(item!.dueBy) - Date.parse(MORNING), panicSpanMs, 'the ladder rung the contract names for a panic, not the minutes an admin changed');
  assert.deepEqual([item!.movesUpAt, item!.lastRung], [undefined, true], 'nobody comes after every post');
 
@@ -103,7 +103,7 @@ test('a panic at two in the morning alerts the posts on duty then, and any post 
  assert.deepEqual(item!.alertedPosts, expected.alerted.map(post => post.id));
  assert.deepEqual(item!.skipped?.filter(s => s.because === 'off-duty').map(s => s.post), expected.skipped.filter(s => s.because === 'off-duty').map(s => s.post));
  const holder = expected.alerted[0]!.role!;
- const taken = runtime.call('POST /v1/core/loops/{loopRef}/acknowledge@2', { role: holder, ref: 'party-synthetic-lead', purpose: 'emergency', fields: { idempotencyKey: 'take', loopRef: item!.loopRef } });
+ const taken = runtime.call('POST /v1/core/loops/{loopRef}/acknowledge@3', { role: holder, ref: 'party-synthetic-lead', purpose: 'emergency', fields: { idempotencyKey: 'take', loopRef: item!.loopRef } });
  assert.equal(taken.status, 200, JSON.stringify(taken.body));
  runtime.advance(DAY);
  assert.equal(tower()[0]!.stateCode, 'acknowledged', 'a panic somebody took on waits for its outcome');

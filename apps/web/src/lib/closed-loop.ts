@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import closedLoop from '../../../../packages/catalog/closed-loop.json' with { type: 'json' };
-import { MINUTE_MS, settle, type Loop, type Skip } from '../../../../packages/engines/src/core/domain/loops.ts';
+import { MINUTE_MS, closeRefusal, settle, type CloseRefusal, type Loop, type Skip } from '../../../../packages/engines/src/core/domain/loops.ts';
 import { escalationRotaNow } from './settings';
 
 /* The Control Tower's concerns in the web preview: one store, in memory, for the board that reads it.
@@ -50,11 +50,28 @@ function seed(now: number): ConcernState {
   return {
    loopRef: concern.loopRef, sourceEngine: concern.sourceEngine, purpose: concern.purpose, ownerRole: concern.ownerRole, fallbackRole: concern.fallbackRole,
    holder: { kind: 'owner' }, rota, alerted: null, severity: null, openedAt, dueBy: openedAt + spanMs, spanMs,
-   acknowledgedAt: null, acknowledgedByRole: null, exhaustedAt: null, announcedAt: null, closedAt: null, outcomeRef: null, closedByRole: null,
+   acknowledgedAt: null, acknowledgedByRole: null, exhaustedAt: null, announcedAt: null, closedAt: null, outcomeRef: null, outcomeCode: null, closedByRole: null,
    alertRef: null, rung: null, dedupeKey: null, recordEntryRef: null
   };
  });
  return advance({ loops, skipped: {}, now }, now);
+}
+
+/* Closing a concern in the preview, by the rule the engine's close route refuses by: loops.ts's closeRefusal,
+   with the outcomes closed-loop.json lists. The caller's role is handed in by the board, which reads it from
+   the workspace rather than typing one here. A refusal changes nothing and is handed back by id, for the board
+   to say in the route's own sentence. The outcome is recorded on the concern itself, as the engine records
+   one nobody keeps anywhere else. */
+const OUTCOMES = new Set(closedLoop.outcomes.value.map(outcome => outcome.id));
+export function closeConcern(loopRef: string, outcomeCode: string, byRole: string): CloseRefusal | null {
+ const from = advance(current(), Date.now());
+ const loop = from.loops.find(candidate => candidate.loopRef === loopRef);
+ if (!loop) return 'loop-closed';
+ const refused = closeRefusal(loop, outcomeCode, OUTCOMES);
+ if (refused) return refused;
+ const closed: Loop = { ...loop, closedAt: from.now, outcomeRef: loop.loopRef, outcomeCode: outcomeCode.trim(), closedByRole: byRole };
+ commit({ ...from, loops: from.loops.map(candidate => candidate.loopRef === loopRef ? closed : candidate) });
+ return null;
 }
 
 const current = () => (state ??= seed(Date.now()));

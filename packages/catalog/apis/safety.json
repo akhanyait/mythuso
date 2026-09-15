@@ -745,7 +745,7 @@
    "path": "/v1/safety/incidents",
    "version": 1,
    "summary": "Report a security incident.",
-   "callers": ["nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin", "employer", "sponsor", "guardian", "corner"],
+   "callers": [],
    "purpose": ["audit"],
    "request": [
     {"field": "kind", "type": "string", "required": true, "why": "The kind."},
@@ -760,6 +760,37 @@
    ],
    "refusals": [
     {"id": "incident-refused", "status": 400, "statement": "That incident report could not be recorded.", "why": "An unknown kind is refused, not filed as something else."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /incidents'"},
+   "enforcedBy": {"mechanism": "vetting-register"},
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/safety/incidents@2", "why": "Its callers are every role on the vetting register, worked out from the handler, and they were frozen with the thirteen roles the register held. The home carer and the Head of Operations joined the register on 15 September 2026, so every role on it is now wider than this version's callers, and a frozen route never takes calls from a caller it was not frozen with. Version two is the same report, answered by the same handler, taking calls from every role on the register as it stands, the carer and the Head of Operations included: a carer in somebody's home is exactly the person who sees a phone left open or a file left on a table."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/incidents",
+   "version": 2,
+   "summary": "Report a security incident, from any role on the vetting register as it stands.",
+   "callers": ["nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin", "employer", "sponsor", "guardian", "corner", "carer", "head-of-operations"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "kind", "type": "string", "required": true, "why": "The kind."},
+    {"field": "whatHappened", "type": "string", "required": true, "why": "What happened."},
+    {"field": "informationReached", "type": "boolean", "required": true, "why": "Whether personal information was reached."},
+    {"field": "peopleAffected", "type": "integer", "required": false, "why": "How many, if known."},
+    {"field": "discoveredAt", "type": "integer", "required": false, "why": "When it was discovered, as epoch milliseconds."}
+   ],
+   "response": [
+    {"field": "incidentId", "type": "string", "required": true, "why": "The incident."},
+    {"field": "notificationOwed", "type": "boolean", "required": true, "why": "Whether notification is owed."}
+   ],
+   "refusals": [
+    {"id": "incident-refused", "status": 400, "statement": "That incident report could not be recorded.", "why": "An unknown kind is refused, not filed as something else. Reporting asks nothing about standing, so a carer or a party under suspension is refused only for what the report says, never for who sent it."}
    ],
    "emits": [],
    "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
