@@ -138,6 +138,8 @@ test('the same caller and key with a different payment is refused, and charges n
  const changed = runtime.call('POST /v1/money/payments@1', pay({ idempotencyKey: 'k-1', method: 'eft' }));
  assert.equal(changed.status, refusal('idempotency-key-reused').status);
  assert.equal(changed.body['error'], 'idempotency-key-reused');
+ /* The runtime's shared sentence, answered before Money's handler is asked — Money declares no copy. */
+ assert.equal(changed.body['message'], refusal('idempotency-key-reused').statement);
  assert.equal(published('payment.succeeded@1').length + published('payment.failed@1').length, charged);
  assert.deepEqual(runtime.faults(), []);
  runtime.close();

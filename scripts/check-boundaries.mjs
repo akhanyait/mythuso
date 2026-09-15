@@ -6232,6 +6232,20 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   for (const file of moneyScreens) if (typed.test(read(file))) throw new Error(`${file} types the doctor's fee range. It is read from packages/catalog/business-model.json — on the phones through the generated MoneyData — so the range on a doctor's screen and the range in the funding proposal's model are one number.`);
  }
 
+ /* 2b. No card fragment where a person pays. The booking screens on all three platforms offered
+        "Visa ending 4242" and reviewed "•••• 4242": fictional, and still the last four digits of a card on
+        the screen where somebody decides to pay — a fragment in every screenshot, and the very fragment
+        the payment-result door refuses by name. The ways to pay are money.json's, and nothing else is. */
+ const bookingScreens = [
+  'apps/web/src/features/Booking.tsx', 'apps/ios/MyThuso/Features/BookingView.swift',
+  'apps/android/app/src/main/java/za/co/mythuso/ui/CareScreens.kt'
+ ];
+ for (const file of bookingScreens) {
+  if (!existsSync(file)) throw new Error(`${file} is gone, so nothing holds its payment step to the ways to pay in packages/catalog/money.json.`);
+  const fragment = read(file).match(/\b\d{4}\b(?=[^\n]*(Visa|Mastercard|ending|card))|Visa ending|••••\s?\d|\*{4}\s?\d{4}/);
+  if (fragment) throw new Error(`${file} shows a card fragment ("${fragment[0]}") on the screen where a person pays. ${moneyRefusal('card-number-held').statement} The ways to pay are named in packages/catalog/money.json, and none of them is a card number.`);
+ }
+
  /* 3. The decline sentences are the contract's. apps/api still carries its own copy and reads no contract
        for them; until it does, the two are held to each other here rather than allowed to part. */
  const apiPayments = read('apps/api/src/simulation/payments.ts');
