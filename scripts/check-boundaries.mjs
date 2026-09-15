@@ -6821,13 +6821,15 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  const rolesOn = new Map(register.roles.map(role => [role.id, role]));
  const newRoles = ['carer', 'head-of-operations'];
  for (const id of newRoles) if (!rolesOn.has(id)) throw new Error(`packages/catalog/vetting.json has no "${id}" role. Care supervises a carer and Core's rota names a Head of Operations; without the role both are refusals of a name nobody can hold.`);
- const proposedRoles = register.proposedRoles?.roles ?? [];
+ /* Provenance lives beside the register rather than in it, because vetting.json is in the patient's first
+    load and nobody reads provenance on a screen. The register itself must not carry it again. */
+ if ('proposedRoles' in register) throw new Error('packages/catalog/vetting.json carries proposedRoles again. Provenance is packages/catalog/vetting-proposals.json\'s, so a patient\'s first load does not carry the reasons staff roles were proposed.');
+ const proposedRoles = existsSync('packages/catalog/vetting-proposals.json') ? JSON.parse(read('packages/catalog/vetting-proposals.json')).roles ?? [] : [];
  for (const id of newRoles) {
   const provenance = proposedRoles.find(p => p.role === id);
-  if (!provenance || provenance.decidedBy !== null || !provenance.proposedBy?.trim() || !provenance.proposedBecause?.trim()) throw new Error(`packages/catalog/vetting.json#proposedRoles does not say who proposed "${id}" and why, with decidedBy null. A role nobody has decided is on the register as a proposal, and says so.`);
-  for (const check of rolesOn.get(id).checks) if (!provenance.checksFrom?.[check.id]?.trim()) throw new Error(`packages/catalog/vetting.json#proposedRoles does not say where "${id}"'s check "${check.id}" came from. A check is copied from a role already on the register, or it is a proposal that says so.`);
+  if (!provenance || provenance.decidedBy !== null || !provenance.proposedBy?.trim() || !provenance.proposedBecause?.trim()) throw new Error(`packages/catalog/vetting-proposals.json does not say who proposed "${id}" and why, with decidedBy null. A role nobody has decided is on the register as a proposal, and says so.`);
+  for (const check of rolesOn.get(id).checks) if (!provenance.checksFrom?.[check.id]?.trim()) throw new Error(`packages/catalog/vetting-proposals.json does not say where "${id}"'s check "${check.id}" came from. A check is copied from a role already on the register, or it is a proposal that says so.`);
  }
-
  const councils = new Set(['sanc', 'hpcsa', 'sapc', 'sanas']);
  const clinicalRoles = register.roles.filter(role => role.checks.some(check => councils.has(check.authority))).map(role => role.id);
  const clinicalCapabilities = new Set(register.roles.filter(role => clinicalRoles.includes(role.id)).flatMap(role => role.grants.map(g => g.capability)));

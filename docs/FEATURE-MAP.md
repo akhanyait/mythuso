@@ -627,7 +627,7 @@ answered only by the development mock and the development engine runtime.
 Three things were blocked on roles the register did not hold: Care's supervision rule refused a stand-in, Core's
 rota had a Head of Operations post nobody could hold, and the operator could not close a concern. Two roles
 joined `vetting.json` as proposals, with who proposed them, why, and where every check came from in
-`proposedRoles`. Every built route a new role would have widened was found first: only
+`vetting-proposals.json`, kept out of `vetting.json` because the register is in the patient's first load. Every built route a new role would have widened was found first: only
 `POST /v1/safety/incidents@1`, whose callers are worked out as every role on the register. Every other
 identity-service route asks for `review-vetting`, which neither role holds, and no settings route resolves
 to a capability either role was granted. Nothing here is a real service: nobody is vetted into either role,

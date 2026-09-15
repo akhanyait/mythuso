@@ -1,0 +1,37 @@
+{
+ "_note": "Roles that joined packages/catalog/vetting.json after it was written, each with where it came from. The role shape has no room for provenance and is not given any, so it is written here: who proposed the role, why, the contracts that already named it, and where every check it is held to was taken from. A check copied from a role already on the register is that role's check; a check no role had is a proposal. Nothing here is decided: every role below waits on somebody with the authority to accept it, and until then it is on the register as a proposal the build can test against.",
+ "_whyAFileOfItsOwn": "vetting.json is in the patient's first load, because the door and the landing page read the register. Provenance is read by the build and by whoever reviews the register, never by a screen, and a patient on metered data does not download the reasons two staff roles were proposed.",
+ "register": "packages/catalog/vetting.json",
+ "roles": [
+  {
+   "role": "carer",
+   "decidedBy": null,
+   "proposedBy": "Register roles lead (Wave 3)",
+   "proposedOn": "2026-09-15",
+   "proposedBecause": "packages/catalog/services.json already sells the home carer as non-nurse support supervised by a registered nurse, packages/catalog/care.json already says a carer is supervised by a nurse, and packages/catalog/apis/care.json already refuses a carer offered a visit without their registered nurse. Those refusals were written before anybody could hold the role; putting it on the register is what lets them refuse a person rather than a name. It is granted nothing clinical, holds no scope of practice and is never granted take-visit, because the visit is the registered nurse's.",
+   "namedIn": ["packages/catalog/services.json#carer", "packages/catalog/care.json#services (carer, supervisedBy nurse)", "packages/catalog/apis/care.json#refusals.carer-without-their-rn"],
+   "checksFrom": {
+    "identity": "packages/catalog/vetting.json#roles.courier.checks.identity",
+    "police-clearance": "packages/catalog/vetting.json#roles.interpreter.checks.police-clearance",
+    "references": "packages/catalog/vetting.json#roles.nurse.checks.references, as referees for care rather than clinical work",
+    "carer-training": "A proposal: no role on the register trains for personal care at home. Its content and its renewal are the programme's, awaiting the Clinical Governance Lead.",
+    "popia-training": "packages/catalog/vetting.json#roles.nurse.checks.popia-training"
+   }
+  },
+  {
+   "role": "head-of-operations",
+   "decidedBy": null,
+   "proposedBy": "Register roles lead (Wave 3)",
+   "proposedOn": "2026-09-15",
+   "proposedBecause": "packages/catalog/closed-loop.json's escalation rota has had a Head of Operations post since Wave 3, with nobody able to hold it, so a concern that reached it was skipped. A post is held by a role and never a person, and neither the Control Tower operator, who is the desk the concern has already passed, nor internal admin staff, who decide the catalogue, finance, growth and vetting, is the person a concern goes to after the desk and the nurse lead. It is operations authority and nothing clinical: it is granted no record, no summary and no dispatch, and its checks are the Control Tower operator's, because it answers for the same desk.",
+   "namedIn": ["packages/catalog/closed-loop.json#settings.items.escalation-rota.posts.head-of-operations"],
+   "checksFrom": {
+    "identity": "packages/catalog/vetting.json#roles.operator.checks.identity",
+    "police-clearance": "packages/catalog/vetting.json#roles.operator.checks.police-clearance",
+    "references": "packages/catalog/vetting.json#roles.operator.checks.references",
+    "escalation-training": "packages/catalog/vetting.json#roles.operator.checks.escalation-training",
+    "popia-training": "packages/catalog/vetting.json#roles.operator.checks.popia-training"
+   }
+  }
+ ]
+}
