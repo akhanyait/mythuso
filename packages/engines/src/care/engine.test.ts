@@ -1,7 +1,9 @@
 /* The Care engine on the runtime: a visit offered, passed on, lapsed, started, refused a checklist,
    handed over and completed — through the routes, with the refusals the contract renders and the
    events the bus actually carried. Verify, the record and Access are stood in for by synthetic
-   publishers, because Care learns a badge, an encounter and a booking only from their events. */
+   publishers, because Care learns a badge, an encounter and a booking only from their events. Every
+   person calling carries a caller reference: the runtime keys a replay to the caller who asked, and
+   refuses an idempotent write from somebody it cannot identify. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import care from '../../../catalog/care.json' with { type: 'json' };
@@ -14,6 +16,7 @@ const P = care.preview;
 const WOUND = roster.nurses.filter(n => n.scope.includes('Wound care')).map(n => n.id);
 const ACCEPT: RouteKey = 'POST /v1/care/offers/{offerRef}/accept@1';
 const DECLINE: RouteKey = 'POST /v1/care/offers/{offerRef}/decline@1';
+const DISPATCHER = 'dispatcher-synthetic-1';
 
 function setup(cleared: readonly string[]) {
  const queues: Record<string, ((ctx: EngineContext) => void)[]> = { trust: [], record: [], access: [] };
@@ -31,8 +34,8 @@ function setup(cleared: readonly string[]) {
  return { runtime, as };
 }
 
-const offer = (runtime: Runtime, key = 'offer-1') =>
- runtime.call('POST /v1/care/offers@1', { role: 'dispatcher', purpose: 'dispatch', fields: { idempotencyKey: key, appointmentRef: P.appointmentRef, serviceId: P.serviceId } });
+const offer = (runtime: Runtime, key = 'offer-1', appointmentRef = P.appointmentRef) =>
+ runtime.call('POST /v1/care/offers@1', { role: 'dispatcher', ref: DISPATCHER, purpose: 'dispatch', fields: { idempotencyKey: key, appointmentRef, serviceId: P.serviceId } });
 const asNurse = (runtime: Runtime, ref: string, route: RouteKey, purpose: string, fields: Record<string, unknown>) =>
  runtime.call(route, { role: 'nurse', ref, purpose, fields });
 const published = (runtime: Runtime, key: string) => runtime.trail.all().filter(e => e.kind === 'published' && e.eventKey === key);
@@ -56,6 +59,24 @@ test('the visit is offered to the previous nurse first, and is personal to her',
  assert.deepEqual([mine.status, mine.body.appointmentRef], [200, P.appointmentRef]);
  assert.equal(published(runtime, 'appointment.offered@1').length, 1);
  assert.equal(published(runtime, 'appointment.booked@1').length, 1);
+ runtime.close();
+});
+
+test('two nurses using the same idempotency key get two independent answers, never each other’s', () => {
+ const { runtime } = setup(WOUND);
+ const offerRef = String(offer(runtime).body.offerRef);
+ /* The same key from somebody the offer was not made to is her own act, refused on its own merits,
+    and it does not become the answer the offer's nurse is replayed. */
+ const stranger = asNurse(runtime, 'N-206', ACCEPT, 'dispatch', { idempotencyKey: 'shared-key', offerRef });
+ const mine = asNurse(runtime, P.clinicianRef, ACCEPT, 'dispatch', { idempotencyKey: 'shared-key', offerRef });
+ assert.deepEqual([stranger.status, mine.status], [403, 200]);
+ /* And each one replays as itself. */
+ assert.equal(asNurse(runtime, P.clinicianRef, ACCEPT, 'dispatch', { idempotencyKey: 'shared-key', offerRef }).status, 200);
+ assert.equal(asNurse(runtime, 'N-206', ACCEPT, 'dispatch', { idempotencyKey: 'shared-key', offerRef }).status, 403);
+ assert.equal(published(runtime, 'appointment.booked@1').length, 1, 'the replay booked nothing twice');
+ const declineStranger = asNurse(runtime, 'N-201', DECLINE, 'dispatch', { idempotencyKey: 'shared-key', offerRef });
+ assert.equal(declineStranger.body.error, 'not-your-offer');
+ assert.deepEqual(runtime.faults(), []);
  runtime.close();
 });
 
@@ -119,7 +140,7 @@ test('a booking heard on the bus becomes an appointment Care owns, and waits for
  const { runtime, as } = setup(WOUND);
  as('access', ctx => ctx.publish('booking.requested@1', { bookingRef: 'bk-1', serviceId: 'wound', mode: 'home', requestedFor: '2026-09-15T10:00:00+02:00' }, { subjectRef: 'sub-bk-1', purposeOfUse: 'dispatch' }));
  assert.equal(published(runtime, 'appointment.requested@1').length, 1);
- const answer = runtime.call('POST /v1/care/offers@1', { role: 'dispatcher', purpose: 'dispatch', fields: { idempotencyKey: 'o-bk', appointmentRef: 'apt-bk-1', serviceId: 'wound' } });
+ const answer = offer(runtime, 'o-bk', 'apt-bk-1');
  assert.deepEqual([answer.status, answer.body.error], [409, 'visit-zone-unknown']);
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
