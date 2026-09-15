@@ -93,6 +93,8 @@ export type Loop = {
  announcedAt: number | null;
  closedAt: number | null;
  outcomeRef: string | null;
+ /** What happened, as one of the outcomes closed-loop.json lists; null while open, and for a concern closed before outcomes were codes. */
+ outcomeCode: string | null;
  closedByRole: string | null;
  /** Present when the concern is an alert: its reference, rung, key and record entry. */
  alertRef: string | null;
@@ -107,6 +109,20 @@ export const isOpen = (loop: Loop): boolean => loop.closedAt === null;
 
 export const stateCodeOf = (loop: Loop): StateCode =>
  loop.closedAt !== null ? 'closed' : loop.exhaustedAt !== null ? 'exhausted' : loop.acknowledgedAt !== null ? 'acknowledged' : 'open';
+
+/* Why a close is refused, asked the same way by the engine and by the Control Tower's preview, so a close
+   the preview accepts is one the route would. A closed concern is refused before its outcome is read,
+   because a second outcome on one concern is wrong whatever it says. A blank code is no outcome, and a code
+   the closed loop does not list is not one either. An exhausted concern is asked nothing different: it
+   closes with an outcome like any other, and only that way. Who may close is the route's callers, which the
+   runtime admits before this is asked. */
+export type CloseRefusal = 'loop-closed' | 'no-outcome' | 'outcome-not-a-code';
+export function closeRefusal(loop: Loop, outcomeCode: string, listed: ReadonlySet<string>): CloseRefusal | null {
+ if (loop.closedAt !== null) return 'loop-closed';
+ if (!outcomeCode.trim()) return 'no-outcome';
+ if (!listed.has(outcomeCode.trim())) return 'outcome-not-a-code';
+ return null;
+}
 
 /* Whether a post is on duty is the shared settings code's onDuty, not a rule of Core's own: the handover desk
    on the Access engine asks the same question of its hours, and two copies are two answers about whether six

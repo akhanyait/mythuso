@@ -16,7 +16,7 @@ const defaults = rotaOf(snapshotOf(coreBlock, []));
 const loop = (overrides: Partial<Loop> = {}): Loop => ({
  loopRef: 'loop-synthetic', sourceEngine: 'safety', purpose: 'emergency', ownerRole: 'nurse', fallbackRole: 'ops-desk', holder: { kind: 'owner' }, rota: defaults,
  alerted: null, severity: null, openedAt: MORNING, dueBy: MORNING + SPAN, spanMs: SPAN, acknowledgedAt: null, acknowledgedByRole: null, exhaustedAt: null, announcedAt: null,
- closedAt: null, outcomeRef: null, closedByRole: null, alertRef: null, rung: null, dedupeKey: null, recordEntryRef: null, ...overrides
+ closedAt: null, outcomeRef: null, outcomeCode: null, closedByRole: null, alertRef: null, rung: null, dedupeKey: null, recordEntryRef: null, ...overrides
 });
 /* The rota with one setting changed through the rules an admin's change goes through. */
 function changed(setting: string, value: unknown): KeptRota {
@@ -34,7 +34,7 @@ test('a concern nobody takes on goes to its fallback for the owner’s time, the
  const steps = settle(loop(), MORNING + 24 * 60 * MINUTE_MS);
  const posts = defaults.posts;
  const held = posts.filter(post => post.role !== null);
- assert.ok(held.length >= 2 && held.length < posts.length, 'these walks expect a rota with a post no role holds yet, after the posts that are held');
+ assert.ok(held.length >= 3 && held.length === posts.length, 'these walks expect every post held by a role on the register, the Head of Operations last, and on duty at nine on a Tuesday');
  assert.deepEqual(steps.map(s => [s.kind, s.loop.ownerRole, s.loop.holder.kind]), [
   ['escalated', 'ops-desk', 'fallback'],
   ...held.map(post => ['escalated', post.role, 'post']),
@@ -47,7 +47,8 @@ test('a concern nobody takes on goes to its fallback for the owner’s time, the
   const step = steps[index + 1]!;
   assert.equal(step.at, reached, `${post.id} is reached at the deadline before it, not when somebody looked`);
   assert.equal(postOf(step.loop)?.id, post.id);
-  reached += defaults.stepsMs[index]!;
+  /* The last post has no minutes of its own: it holds the concern for the concern's own span. */
+  reached += defaults.stepsMs[index] ?? SPAN;
   assert.equal(step.loop.dueBy, reached, `${post.id} holds it for its own minutes`);
  });
  const last = steps.at(-1)!;

@@ -40,6 +40,9 @@ export const reasons = {
  snooze: new Set(closedLoop.snooze.reasons.value.map(r => r.id)),
 };
 
+/** The outcomes a concern may be closed with. A close names one of these or is refused. */
+export const outcomes: ReadonlySet<string> = new Set(closedLoop.outcomes.value.map(o => o.id));
+
 /* Who may own a concern: somebody on the vetting register or a caller the API contract names, and
    never a caller the binder cannot tell apart from anybody — nobody is waiting on "anonymous". */
 const cannotOwn = new Set<string>(apis.engineRuntime.binderCannotAdmit);

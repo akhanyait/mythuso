@@ -390,6 +390,31 @@ describe('who may record that an incident was contained', () => {
   });
 });
 
+describe('the carer and the Head of Operations report incidents', () => {
+  /* POST /v1/safety/incidents@2 takes calls from every role on the vetting register as it stands. The
+     identity service works that out from the register itself, so the two roles that joined it on 15 September
+     2026 report exactly as a nurse does: enrolled by a reviewer, with nothing about their standing asked. A
+     carer in somebody's home is the person most likely to see a phone left open. Placed before the caller
+     limit is driven to its refusal, which would otherwise answer these writes. */
+  test('a carer and a Head of Operations each open an incident as soon as a reviewer has enrolled them', async () => {
+    await signIn('home-carer', '0831110021');
+    await signIn('head-ops', '0831110022');
+    for (const [who, roleId] of [['home-carer', 'carer'], ['head-ops', 'head-of-operations']] as const) {
+      const enrolled = await as('officer', '/vetting/parties', { id: person[who], roleId });
+      assert.equal(enrolled.status, 200, await enrolled.text());
+      const response = await as(who, '/incidents', { kind: 'lost-device', whatHappened: 'A work phone was left on a patient’s kitchen table overnight.', informationReached: false });
+      assert.equal(response.status, 200, `a ${roleId} could not report: ${await response.clone().text()}`);
+      assert.equal((await response.json() as { notificationOwed: boolean }).notificationOwed, false);
+    }
+  });
+
+  test('neither reads the register, which stays a reviewer’s', async () => {
+    for (const who of ['home-carer', 'head-ops']) {
+      assert.equal((await as(who, '/incidents')).status, 403, `${who} read the incident register`);
+    }
+  });
+});
+
 describe('the routes that could be declared and now cannot', () => {
   test('a person cannot record that a nurse read a consent aloud to them', async () => {
     const contract = await (await call('/consent/contract')).json() as { required: { id: string; current: { version: number } }[] };
