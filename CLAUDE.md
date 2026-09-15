@@ -35,7 +35,9 @@ Three native apps and one service:
   Officer, a residency decision, KMS/HSM custody) do not exist yet.
 - `packages/catalog` — the contracts everything else derives from, as JSON. `apis.json` and
   `apis/<engine>.json` hold every engine's frozen API contract (who may call each route, for which
-  purpose, what it refuses and what it emits), locked in `apis.lock` beside `events.lock`.
+  purpose, what it refuses and what it emits), locked in `apis.lock` beside `events.lock`, with each
+  route's refusals, callers and inner shapes in `apis.refusals.lock`, `apis.callers.lock` and
+  `apis.shapes.lock`.
 - `packages/mock-api` — a development mock that answers every contract route from fixtures and refuses
   exactly as each route declares. Loopback only, refuses to start without
   `MYTHUSO_MOCK=synthetic-data-only`, and nothing in `deploy/` may name it.
@@ -109,7 +111,14 @@ A change is not done until `npm run check`, `npm test` and both native builds pa
    it keeps its lock line, loses every subscriber and may not be named in code, but it is not deleted.
    A feature that exposes or calls a route declares it in `packages/catalog/apis/<engine>.json` —
    callers, purpose, at least one refusal, the events it emits, an idempotency key on money and
-   dispatch writes — and appends it to `apis.lock`; a changed route is a new version, as with events.
+   dispatch writes, and the inside of every object it carries as `fields` (or `shapeFrom` the contract
+   section that decides it), never prose — and runs `npm run apis -- --seed-new`, which appends its
+   lines to `apis.lock` and the three locks beside it. A changed route is a new version, as with
+   events, and changed includes a refusal added, removed or reworded, a caller, purpose or engine
+   justification added, and a field changed at any depth; a narrowing needs no version and is recorded
+   with `npm run apis -- --record-narrowing`. An engine-wide refusal is answered only by the routes its
+   `answeredBy` names, and a shared refusal's words are a new id, never an edit. No lock line is ever
+   edited or removed: the build compares every lock with its git history.
    Mark it `built` only with the handler file as evidence. `endpointNamed` is for paths the
    documents actually give (today only the Passport's §26); anything else is `capabilityNamed` or ours.
 2. **A generator** `scripts/emit-<name>.mjs` writing the contract into Swift and Kotlin, registered
