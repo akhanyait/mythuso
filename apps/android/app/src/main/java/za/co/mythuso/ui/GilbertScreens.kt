@@ -61,6 +61,8 @@ import za.co.mythuso.model.GilbertData
 import za.co.mythuso.model.GilbertLine
 import za.co.mythuso.model.GilbertReply
 import za.co.mythuso.model.GilbertTurn
+import za.co.mythuso.model.HandoverOutcome
+import za.co.mythuso.model.Handovers
 import za.co.mythuso.model.PreviewStore
 import za.co.mythuso.model.Pulse
 import kotlin.math.PI
@@ -136,6 +138,13 @@ import kotlin.math.sin
     val reduced = prefersReducedMotion()
     val largeType = LocalDensity.current.fontScale >= 1.6f
     var turns by remember { mutableStateOf(Gilbert.opening()) }
+    /* The simulated nurse queue this conversation is handed to, its reference there, what each handover
+       turn's button did, and whether an emergency was ever answered — kept apart from the turns because
+       the conversation is capped, and a dropped turn must not be what lowers an urgency. */
+    var raised by remember { mutableStateOf(false) }
+    var conversationRef by remember { mutableStateOf(java.util.UUID.randomUUID().toString()) }
+    val sent = remember { mutableStateMapOf<Int, HandoverOutcome>() }
+    LaunchedEffect(turns) { if (turns.any { it.reply is GilbertReply.Emergency }) raised = true }
     var draft by remember { mutableStateOf("") }
     var correction by remember { mutableStateOf("") }
     val scroll = rememberScrollState()
@@ -189,10 +198,17 @@ import kotlin.math.sin
                 if (largeType) Silence()
                 turns.forEach { turn ->
                     Box(Modifier.onGloballyPositioned { if (turn.id == turns.last().id) latestTop = it.positionInParent().y.toInt() }) {
-                        TurnView(turn, open, onHandOver = { turns = Gilbert.handOver(turns) }, sayUnavailable = !listener.available)
+                        TurnView(turn, open, onHandOver = { turns = Gilbert.handOver(turns, raised) }, sayUnavailable = !listener.available,
+                            sent = sent[turn.id],
+                            onSend = {
+                                val reply = turn.reply as? GilbertReply.Handover
+                                if (reply != null) sent[turn.id] = Handovers.handOver(store.handovers, conversationRef, reply.urgency)
+                            })
                     }
                 }
-                Suggestions(asked, choose = { turns = Gilbert.choose(it, turns, store.visits.firstOrNull()) }, again = { turns = Gilbert.opening() })
+                /* Starting again is a new conversation: a new reference in the queue, nothing remembered. */
+                Suggestions(asked, choose = { turns = Gilbert.choose(it, turns, store.visits.firstOrNull()) },
+                    again = { turns = Gilbert.opening(); raised = false; sent.clear(); conversationRef = java.util.UUID.randomUUID().toString() })
                 Refusals()
             }
             Composer(draft, { draft = it }, sendDraft, largeType)
@@ -280,7 +296,7 @@ import kotlin.math.sin
     }
 }
 
-@Composable private fun TurnView(turn: GilbertTurn, open: (String) -> Unit, onHandOver: () -> Unit, sayUnavailable: Boolean) {
+@Composable private fun TurnView(turn: GilbertTurn, open: (String) -> Unit, onHandOver: () -> Unit, sayUnavailable: Boolean, sent: HandoverOutcome? = null, onSend: () -> Unit = {}) {
     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
         turn.asked?.let { asked ->
             val said = if (turn.channel == GilbertChannel.SPOKEN) GilbertData.conversation.youSaid else GilbertData.conversation.youAsked
@@ -328,16 +344,41 @@ import kotlin.math.sin
                     FilledButton(GilbertData.unmatched.handoverLabel) { onHandOver() }
                     QuietButton(GilbertData.unmatched.sosLabel, urgent = true) { open("Thuso SOS") }
                 }
+                /* What goes, what does not, and the one button that sends it to the simulated nurse queue.
+                   After the button: what happened, the reference, and the ambulance numbers, because a
+                   queue nobody reads must never be the last thing an urgent person is shown. */
                 is GilbertReply.Handover -> {
-                    Body(GilbertData.handover.title, strong = true)
-                    Body(GilbertData.handover.lead)
+                    val h = GilbertData.handover
+                    Body(h.title, strong = true)
+                    Body(h.lead)
                     reply.rows.forEach { row ->
                         Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
                             Text(row.label, style = MaterialTheme.typography.labelMedium, color = BrandMint)
                             Text(row.value, style = MaterialTheme.typography.bodyLarge, color = SurfaceWhite)
                         }
                     }
-                    Body(GilbertData.handover.notSent, strong = true)
+                    if (reply.urgency == "emergency") Body(h.neverLowered, strong = true)
+                    Text(h.notCarriedHeading, style = MaterialTheme.typography.labelMedium, color = BrandMint, modifier = Modifier.semantics { heading() })
+                    h.notCarried.forEach { item ->
+                        Row(Modifier.height(IntrinsicSize.Min)) {
+                            Box(Modifier.width(2.dp).fillMaxHeight().background(BrandMint))
+                            Spacer(Modifier.width(ThusoSpacing.space12))
+                            Body(item.sentence)
+                        }
+                    }
+                    if (sent != null) {
+                        Body(if (sent.sentNow) h.sentTitle else h.alreadySent, strong = true)
+                        if (sent.sentNow) Body(h.sent)
+                        Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
+                            Text(h.sentReference, style = MaterialTheme.typography.labelMedium, color = BrandMint)
+                            Text(sent.handover.reference, style = MaterialTheme.typography.titleMedium, color = SurfaceWhite)
+                        }
+                        Body(h.stillUrgent)
+                        Lines(h.lines)
+                    } else {
+                        Body(h.notSent, strong = true)
+                        FilledButton(h.sendLabel) { onSend() }
+                    }
                 }
             }
             /* Words Gilbert did not read are said to be unread, with the numbers beside them, rather than

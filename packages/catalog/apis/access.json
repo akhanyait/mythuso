@@ -2,7 +2,7 @@
  "engine": "access",
  "_note": "Access is how a person reaches MyThuso: the identity service's sign-in, account, consent and operator routes (built, in development), and Gilbert's bookings, conversations, handover, allow-listed tools and household arrangements (proposed). Wave 2 contract; Wave 3 build.",
  "version": 1,
- "resources": ["sign-ins", "sessions", "sign-outs", "account-names", "second-factors", "second-factor-confirmations", "second-factor-removals", "account-data", "erasure-requests", "erasure-cancellations", "account-exports", "correction-requests", "consent-contract", "consents", "access-log", "subject-requests", "health", "audit-chain", "witness-statements", "access-log-integrity", "verification-status", "rate-limits", "doors", "bookings", "conversations", "tools", "households", "sponsors", "bill-splits"],
+ "resources": ["sign-ins", "sessions", "sign-outs", "account-names", "second-factors", "second-factor-confirmations", "second-factor-removals", "account-data", "erasure-requests", "erasure-cancellations", "account-exports", "correction-requests", "consent-contract", "consents", "access-log", "subject-requests", "health", "audit-chain", "witness-statements", "access-log-integrity", "verification-status", "rate-limits", "doors", "bookings", "conversations", "tools", "households", "sponsors", "bill-splits", "visit-threads"],
  "doors": ["message-delivery"],
  "doorsToAdd": [
   {"id": "whatsapp-inbound", "why": "Inbound WhatsApp from the provider is a supplier callback, so it is a door to add to packages/catalog/feeds.json, not a route.", "capabilityNamed": {"section": "FS-E1", "what": "phone and WhatsApp booking"}},
@@ -822,7 +822,9 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/access/engine.ts", "handler": "'POST /v1/access/bookings@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "GET",
@@ -847,7 +849,9 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/access/engine.ts", "handler": "'GET /v1/access/bookings/{bookingRef}@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
@@ -994,6 +998,93 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/bookings/{bookingRef}/cancel",
+   "version": 1,
+   "summary": "Call a booking off with a listed reason, on either side of the cancellation window.",
+   "callers": ["patient", "caregiver", "guardian", "thuso-line-agent"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "bookingRef", "type": "string", "required": true, "why": "The booking."},
+    {"field": "reasonCode", "type": "string", "required": true, "why": "An id from the reasons in packages/catalog/cancellation.json, including that the person would rather not say. Never free text."}
+   ],
+   "response": [
+    {"field": "bookingRef", "type": "string", "required": true, "why": "The booking."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "cancelled."},
+    {"field": "windowCode", "type": "string", "required": true, "why": "before-window or inside-window, from packages/catalog/cancellation.json, worked out from the time held at the moment the call arrived and recorded rather than worked out again later."}
+   ],
+   "refusals": [
+    {"id": "cancel-after-arrival", "status": 409, "statement": "This visit has already started. Speak to the nurse who is with you, or call the Control Tower.", "why": "A booking cannot end an encounter happening in somebody's house. packages/catalog/cancellation.json's in-progress state refuses it, in the same words."},
+    {"id": "reason-not-listed", "status": 422, "statement": "Choose one of the listed reasons, or say you would rather not.", "why": "A reason travels as a code so that a patient's own words about why never do. Not giving one is a listed reason."},
+    {"id": "booking-not-found", "status": 404, "statement": "There is no booking of yours with that reference.", "why": "The answer never says whether it exists for somebody else."}
+   ],
+   "emits": ["booking.cancelled@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/access/engine.ts", "handler": "'POST /v1/access/bookings/{bookingRef}/cancel@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/visit-threads/{bookingRef}",
+   "version": 1,
+   "summary": "Read the messages between a patient and the nurse on one booked visit.",
+   "callers": ["patient", "caregiver", "guardian", "nurse"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "bookingRef", "type": "string", "required": true, "why": "The booking the thread belongs to. A thread has no reference of its own, because it is never anything but this visit's."}
+   ],
+   "response": [
+    {"field": "threadStateCode", "type": "string", "required": true, "why": "open, or closed once the visit is completed or the booking cancelled."},
+    {"field": "messages", "type": "list", "required": true, "why": "Who wrote, when, and the words. Not a clinical record, and never copied into one.", "object": true}
+   ],
+   "refusals": [
+    {"id": "not-on-this-visit", "status": 404, "statement": "There is no visit thread of yours with that reference.", "why": "Only the patient, somebody booking for them and the nurse on the visit read its thread, and the answer never says whether it exists for anybody else."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading a thread changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/access/engine.ts", "handler": "'GET /v1/access/visit-threads/{bookingRef}@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/visit-threads/{bookingRef}/messages",
+   "version": 1,
+   "summary": "Write to the nurse on a booked visit, or to the patient, in words only.",
+   "callers": ["patient", "caregiver", "guardian", "nurse"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller, so a message resent on a dropped connection is one message."},
+    {"field": "bookingRef", "type": "string", "required": true, "why": "The booking the thread belongs to."},
+    {"field": "message", "type": "string", "required": true, "why": "Words only, at most the length packages/catalog/booking.json allows. Held in this visit's thread and nowhere else."}
+   ],
+   "response": [
+    {"field": "messageRef", "type": "string", "required": true, "why": "The message."},
+    {"field": "deliveryCode", "type": "string", "required": true, "why": "What happened to it. While the messaging capability is simulated this is always kept-not-delivered, and it never claims a delivery that did not happen."}
+   ],
+   "refusals": [
+    {"id": "thread-closed", "status": 409, "statement": "This visit's thread is closed, so nothing more can be written in it.", "why": "A thread that stays open after a visit is a private line to a nurse outside any rota and after her shift."},
+    {"id": "no-attachments", "status": 422, "statement": "A visit thread carries words only. Nothing can be attached.", "why": "A photo of a wound on a nurse's phone is a clinical record on a personal device with no consent behind it, and whether a visit photo may travel over any channel is not decided."},
+    {"id": "not-on-this-visit", "status": 403, "statement": "Only the patient and the nurse on this visit write in its thread.", "why": "A thread is between the two people one visit brings together, and nobody else is added to it."},
+    {"id": "message-too-long", "status": 422, "statement": "A message here is kept short. Say the rest to the nurse at the visit.", "why": "A long message is a history being written in the wrong place. What a nurse needs clinically is taken at the visit and recorded there."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A message is words between two people about one visit. No engine acts on it, and free text does not travel on the bus.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/access/engine.ts", "handler": "'POST /v1/access/visit-threads/{bookingRef}/messages@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   }
  ]
 }

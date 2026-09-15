@@ -70,8 +70,9 @@ final class BookingJourneyTests: XCTestCase {
         let catalogueEntry = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Blood tests'")).firstMatch
         XCTAssertTrue(catalogueEntry.waitForExistence(timeout: 20), "the care catalogue does not list Blood tests")
         tapAfterScrolling(app, catalogueEntry)
-        tapAfterScrolling(app, app.buttons["Continue"])
-        tapAfterScrolling(app, app.buttons["Continue"])
+        tapAfterScrolling(app, app.buttons["Continue"])          // who → where
+        tapAfterScrolling(app, app.buttons["Continue"])          // where → nurse
+        tapAfterScrolling(app, app.buttons["Continue"])          // nurse → when, asking for whoever is nearest
 
         // MARK: Every chip's weekday belongs to the date on it
         let chips = app.buttons.matching(NSPredicate(format: "label MATCHES %@", "^[A-Za-z]+, [0-9]{1,2} [A-Za-z]+ [0-9]{4}$"))

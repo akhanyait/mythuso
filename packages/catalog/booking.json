@@ -1,0 +1,144 @@
+{
+ "_note": "Booking a visit and talking about it, as the Access engine does them in Wave 3: the step where a patient chooses who comes, the review, where a booking stands, and the thread between a patient and the nurse on one visit. Read by the web app and by packages/engines/src/access/domain; generated into Swift and Kotlin by scripts/emit-booking.mjs. What a route refuses is not written here. Those sentences are the route's, in packages/catalog/apis/access.json, and this file names them by route and id so that the screen and the route cannot say two different things. Nothing here books anybody: the booking and messaging capabilities are simulated, and every screen that reads this file says so from packages/catalog/capabilities.json.",
+
+ "version": 1,
+ "engine": "access",
+ "routesFrom": "packages/catalog/apis/access.json",
+
+ "publishes": ["booking.requested@1", "booking.confirmed@1", "booking.cancelled@1"],
+ "publishesWhy": "Access tells the bus a visit was asked for, accepted and called off. It does not turn a booking into an offer, a nurse or a route to a door: that is Care's engine, which hears booking.requested and answers with appointment events of its own.",
+
+ "person": {
+  "stepLabel": "Nurse",
+  "heading": "Who would you like to come?",
+  "lead": "Every nurse offered here is cleared to enter a home today. Ask for one by name, or let the roster send whoever is nearest.",
+  "options": [
+   { "id": "nearest", "name": "Whoever is nearest and cleared", "detail": "The nearest nurse whose badge is current takes the visit. You are told who before anybody sets off." },
+   { "id": "previous", "name": "The nurse you saw last time", "detail": "Offered only while her badge is still current. If it is not, the reason is shown instead of her name." },
+   { "id": "named", "name": "A nurse you choose by name", "detail": "From the nurses whose badge is current, nearest first." }
+  ],
+  "badge": {
+   "tier": "verified",
+   "tierFrom": "packages/catalog/trust.json#tiers",
+   "decidedBy": "take-visit",
+   "decidedByFrom": "packages/catalog/vetting.json#capabilities",
+   "why": "A badge is current when the take-visit gate says yes today, worked out from the vetting register on every read. The name and the sentence a patient reads are the verified tier's in trust.json, not a second description of the same standing."
+  },
+  "worksIn": "Works in {zone}",
+  "namedHeading": "Nurses you can ask for",
+  "notOfferedHeading": "Not offered, and why",
+  "noPrevious": "There is no earlier visit for {person}, so there is nobody to ask for again.",
+  "previousNotOffered": "The nurse {person} saw last time is not being offered. {reason}",
+  "asapNeedsNearest": "As soon as someone is free means whoever is nearest. To see one nurse in particular, choose an hour she is offered.",
+  "continuity": "Asking for the same nurse is asking, not booking her. An hour she is not offered at is not shown."
+ },
+
+ "time": {
+  "fewerHours": "{nurse} is already booked at some of these hours, so they are not shown. Nothing here is a time she was not offered.",
+  "noHoursLeft": "{nurse} has no hour left on this day. Choose another day, or ask for whoever is nearest."
+ },
+
+ "review": {
+  "nurseLabel": "Nurse",
+  "nearestValue": "Whoever is nearest and cleared, named before she sets off",
+  "priceLabel": "Price",
+  "priceFrom": "packages/catalog/services.json",
+  "cancellingLabel": "Cancelling",
+  "cancellingFrom": "packages/catalog/cancellation.json#window.sentence",
+  "why": "The moment a person commits is the moment they want to know what it costs and how to get out of it. Both are read from the one place each lives, so the review cannot quote a price or a window the catalogue does not hold."
+ },
+
+ "states": [
+  {
+   "id": "requested",
+   "name": "Asked for",
+   "patientWords": "You asked for this visit. Nothing is held until a nurse's hour is accepted.",
+   "event": "booking.requested@1"
+  },
+  {
+   "id": "confirmed",
+   "name": "Accepted",
+   "patientWords": "The simulated roster accepted it and holds the hour. No real nurse did.",
+   "event": "booking.confirmed@1"
+  },
+  {
+   "id": "cancelled",
+   "name": "Cancelled",
+   "patientWords": "This visit was called off. It stays here with the reason given.",
+   "event": "booking.cancelled@1"
+  }
+ ],
+ "transitions": [
+  { "from": null, "to": "requested" },
+  { "from": "requested", "to": "confirmed" },
+  { "from": "requested", "to": "cancelled" },
+  { "from": "confirmed", "to": "cancelled" }
+ ],
+ "transitionsWhy": "Three states and four arrows, and none of them points backwards. A cancelled booking is not confirmed afterwards, and a confirmed one is not asked for again: a visit wanted after it was called off is a new booking with a new reference, so the record of the first one still says what happened to it.",
+ "statusHeading": "Where this booking stands",
+ "statusWords": { "reached": "Done", "current": "Now", "waiting": "Not yet" },
+ "statusWordsWhy": "Whether a state has been reached is said in words beside its name on every platform, so the filled mark is never the only difference between a step that happened and one still waiting.",
+ "acceptedBy": "Care's engine is not running, so the simulated roster stands in for it. It accepts a chosen hour at once and says that it did, because a preview that waited for nobody would be a screen that never moves.",
+ "asapStaysRequested": "Nobody is looking for a nurse, because nothing is running that could. This visit stays asked for, and the screen says so rather than inventing somebody on the way.",
+
+ "refusals": [
+  {
+   "id": "confirm-after-cancel",
+   "sentence": "A cancelled booking is not confirmed afterwards. Book again if the visit is still wanted.",
+   "why": "An acceptance that arrives after a patient called the visit off would put a nurse at a door nobody expects her at."
+  },
+  {
+   "id": "confirm-without-a-time",
+   "sentence": "Nothing is accepted until there is an hour to hold.",
+   "why": "booking.confirmed carries the time held. An as-soon-as-possible request has none until a nurse sets off, and a made-up hour is the invented slot this whole file refuses."
+  },
+  {
+   "id": "nurse-badge-not-current",
+   "sentence": "A nurse is offered only while her badge is current, so this nurse is not offered.",
+   "why": "Continuity is a preference, never an override. A patient asking for the nurse they know does not get somebody whose clearance lapsed last night."
+  }
+ ],
+ "routeRefusals": [
+  { "route": "POST /v1/access/bookings@1", "id": "slot-not-offered" },
+  { "route": "POST /v1/access/bookings@1", "id": "service-not-here" },
+  { "route": "GET /v1/access/bookings/{bookingRef}@1", "id": "booking-not-found" },
+  { "route": "POST /v1/access/bookings/{bookingRef}/cancel@1", "id": "cancel-after-arrival" },
+  { "route": "POST /v1/access/bookings/{bookingRef}/cancel@1", "id": "reason-not-listed" },
+  { "route": "POST /v1/access/visit-threads/{bookingRef}/messages@1", "id": "thread-closed" },
+  { "route": "POST /v1/access/visit-threads/{bookingRef}/messages@1", "id": "no-attachments" },
+  { "route": "POST /v1/access/visit-threads/{bookingRef}/messages@1", "id": "not-on-this-visit" },
+  { "route": "POST /v1/access/visit-threads/{bookingRef}/messages@1", "id": "message-too-long" },
+  { "route": "POST /v1/access/conversations/{conversationRef}/handover@1", "id": "no-summary" }
+ ],
+
+ "thread": {
+  "title": "Messages about this visit",
+  "openLabel": "Messages with your nurse",
+  "lead": "Between you and the nurse on this visit, about getting there and getting in.",
+  "notARecord": "These messages are not part of your health record. Anything clinical you want a nurse to know, tell her at the visit, where it is written down properly.",
+  "nobodyWatches": "Nobody watches this thread for emergencies. If it cannot wait, call {ambulance}, or {mobile} from a mobile.",
+  "inputLabel": "Message to your nurse",
+  "sendLabel": "Send",
+  "maxCharacters": 500,
+  "empty": "No messages yet. Anything you write stays with this visit.",
+  "kept": "Kept with this visit. Not delivered: nothing reaches her phone.",
+  "you": "You",
+  "closedBecause": [
+   { "id": "visit-completed", "sentence": "This visit is finished, so its thread is closed. What was said stays here to read." },
+   { "id": "booking-cancelled", "sentence": "This visit was cancelled, so its thread is closed. What was said stays here to read." }
+  ],
+  "rules": [
+   { "id": "words-only", "why": "A photo of a wound sent to a nurse's phone is a clinical record kept on a personal device, with no consent behind it and no way to take it back. Whether a visit photo may travel over any messaging channel is an open decision in packages/catalog/capabilities.json, and until it is made nothing can be attached." },
+   { "id": "not-a-record", "why": "A clinical record is written by a clinician, in the record, under a grant. A thread written in a hurry at a gate is not that, and treating it as one would make every message about a parking space special personal information held in the wrong place." },
+   { "id": "closes-with-the-visit", "why": "A thread that stays open after the visit becomes a way to reach a nurse privately, outside any rota and after her shift. It closes when the visit is completed or called off, and what was said stays readable." },
+   { "id": "nobody-watches", "why": "A message typed here reaches nobody while messaging is simulated, and even when it is connected a nurse driving to a door is not reading her phone. The emergency numbers are said above the field, not after a silence." }
+  ],
+  "sendsNothing": "Nothing in a thread travels on the bus. A message is words between two people about one visit; no engine acts on it, and free text is where health information goes when nobody meant it to."
+ },
+
+ "fixtures": {
+  "why": "Shared by the node:test suite beside the domain and by the journeys, so the web, the engine and the tests agree about the one demo patient's continuity.",
+  "patient": "Lerato Molefe",
+  "suburb": "Melville"
+ }
+}

@@ -111,16 +111,19 @@ import za.co.mythuso.model.*
                     Text("Your care team will confirm any preparation specific to your service.", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                 }
             }
+            BookingStatus(Booking.history(visit, cancelled = false), asap = !visit.isScheduled)
             Section("Who is coming") {
                 CareCard {
                     Text("Clinician assignment is demonstrated with sample records. No nurse has been dispatched.", style = MaterialTheme.typography.bodyMedium)
-                    store.vetting.byName("Sister Naledi Mokoena")?.let { nurse ->
+                    /* The nurse the booking asked for, carried into the visit; the account's assigned nurse otherwise. */
+                    (visit.nurseId?.let { store.vetting.subject(it) } ?: store.vetting.byName(AssignedNurse.name))?.let { nurse ->
                         ClinicianIdentity(nurse)
                         OutlinedButton(onClick = { open("Clinician: ${nurse.id}") }, shape = ThusoButtonShape) { Text("View sample nurse profile") }
                     }
                 }
             }
             Section("Manage your visit") {
+                PlainRow(BookingData.Thread.openLabel, BookingData.Thread.lead) { open("Visit messages: ${visit.reference}") }
                 PlainRow("Change or cancel", "Review the available options for this visit") { open("Visits") }
                 PlainRow("Arrival information", "Availability and privacy explained") { open("Where is your nurse · ${visit.reference}") }
                 Text("Clinician calls and messages are not connected in this preview.", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)

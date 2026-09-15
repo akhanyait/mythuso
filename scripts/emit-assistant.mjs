@@ -233,7 +233,17 @@ ${terms.groups.map(g => `        GilbertEmergencyGroup(id: ${swift(g.id)}, condi
         nothingAsked: ${swift(handover.nothingAsked)},
         nothingMatched: ${swift(handover.nothingMatched)},
         matchedEmergency: ${swift(handover.matchedEmergency)},
-        noFlags: ${swift(handover.noFlags)})
+        urgency: [${handover.urgency.map(u => `GilbertUrgency(id: ${swift(u.id)}, name: ${swift(u.name)}, why: ${swift(u.why)})`).join(',\n                  ')}],
+        neverLowered: ${swift(handover.neverLowered)},
+        notCarriedHeading: ${swift(handover.notCarriedHeading)},
+        notCarried: [${handover.notCarried.map(n => `GilbertNotCarried(id: ${swift(n.id)}, sentence: ${swift(n.sentence)})`).join(',\n                     ')}],
+        sendLabel: ${swift(handover.sendLabel)},
+        sentTitle: ${swift(handover.sentTitle)},
+        sent: ${swift(handover.sent)},
+        sentReference: ${swift(handover.sentReference)},
+        alreadySent: ${swift(handover.alreadySent)},
+        stillUrgent: ${swift(handover.stillUrgent)},
+        lines: [${lines(handover.numbers).map(n => `GilbertLine(number: ${swift(n.number)}, name: ${swift(n.name)})`).join(', ')}])
 
     static let silenceIsNotSafety = ${swift(say(contract.silenceIsNotSafety))}
 
@@ -407,7 +417,17 @@ ${terms.groups.map(g => `        GilbertEmergencyGroup(
         nothingAsked = ${kotlin(handover.nothingAsked)},
         nothingMatched = ${kotlin(handover.nothingMatched)},
         matchedEmergency = ${kotlin(handover.matchedEmergency)},
-        noFlags = ${kotlin(handover.noFlags)}
+        urgency = listOf(${handover.urgency.map(u => `GilbertUrgency(${kotlin(u.id)}, ${kotlin(u.name)}, ${kotlin(u.why)})`).join(', ')}),
+        neverLowered = ${kotlin(handover.neverLowered)},
+        notCarriedHeading = ${kotlin(handover.notCarriedHeading)},
+        notCarried = listOf(${handover.notCarried.map(n => `GilbertNotCarried(${kotlin(n.id)}, ${kotlin(n.sentence)})`).join(', ')}),
+        sendLabel = ${kotlin(handover.sendLabel)},
+        sentTitle = ${kotlin(handover.sentTitle)},
+        sent = ${kotlin(handover.sent)},
+        sentReference = ${kotlin(handover.sentReference)},
+        alreadySent = ${kotlin(handover.alreadySent)},
+        stillUrgent = ${kotlin(handover.stillUrgent)},
+        lines = listOf(${lines(handover.numbers).map(kLine).join(', ')})
     )
 
     const val silenceIsNotSafety = ${kotlin(say(contract.silenceIsNotSafety))}

@@ -62,14 +62,17 @@ object ApisData {
     val GET_ACCESS_VERIFICATION_STATUS = Route("getAccessVerificationStatus", "GET", "/v1/access/verification-status", "/v1/access/verification-status", 1, "access", listOf("loopback"), listOf("audit"), false, "built")
     val GET_ACCESS_RATE_LIMITS = Route("getAccessRateLimits", "GET", "/v1/access/rate-limits", "/v1/access/rate-limits", 1, "access", listOf("loopback"), listOf("audit"), false, "built")
     val GET_ACCESS_DOORS = Route("getAccessDoors", "GET", "/v1/access/doors", "/v1/access/doors", 1, "access", listOf("anonymous"), listOf("audit"), false, "built")
-    val POST_ACCESS_BOOKINGS = Route("postAccessBookings", "POST", "/v1/access/bookings", "/v1/access/bookings", 1, "access", listOf("patient", "caregiver", "guardian", "thuso-line-agent"), listOf("dispatch"), true, "proposed")
-    val GET_ACCESS_BOOKINGS_BY_BOOKING_REF = Route("getAccessBookingsByBookingRef", "GET", "/v1/access/bookings/{bookingRef}", "/v1/access/bookings/{bookingRef}", 1, "access", listOf("patient", "caregiver", "guardian", "thuso-line-agent"), listOf("subject-access", "dispatch"), false, "proposed")
+    val POST_ACCESS_BOOKINGS = Route("postAccessBookings", "POST", "/v1/access/bookings", "/v1/access/bookings", 1, "access", listOf("patient", "caregiver", "guardian", "thuso-line-agent"), listOf("dispatch"), true, "built")
+    val GET_ACCESS_BOOKINGS_BY_BOOKING_REF = Route("getAccessBookingsByBookingRef", "GET", "/v1/access/bookings/{bookingRef}", "/v1/access/bookings/{bookingRef}", 1, "access", listOf("patient", "caregiver", "guardian", "thuso-line-agent"), listOf("subject-access", "dispatch"), false, "built")
     val POST_ACCESS_CONVERSATIONS_BY_CONVERSATION_REF_MESSAGES = Route("postAccessConversationsByConversationRefMessages", "POST", "/v1/access/conversations/{conversationRef}/messages", "/v1/access/conversations/{conversationRef}/messages", 1, "access", listOf("patient", "caregiver"), listOf("treatment"), false, "proposed")
     val POST_ACCESS_CONVERSATIONS_BY_CONVERSATION_REF_HANDOVER = Route("postAccessConversationsByConversationRefHandover", "POST", "/v1/access/conversations/{conversationRef}/handover", "/v1/access/conversations/{conversationRef}/handover", 1, "access", listOf("patient", "caregiver"), listOf("treatment"), false, "proposed")
     val POST_ACCESS_TOOLS_BY_TOOL = Route("postAccessToolsByTool", "POST", "/v1/access/tools/{tool}", "/v1/access/tools/{tool}", 1, "access", listOf("patient", "caregiver"), listOf("treatment", "dispatch", "dispensing", "subject-access"), true, "proposed")
     val POST_ACCESS_HOUSEHOLDS = Route("postAccessHouseholds", "POST", "/v1/access/households", "/v1/access/households", 1, "access", listOf("patient", "caregiver"), listOf("subject-access"), false, "proposed")
     val POST_ACCESS_SPONSORS = Route("postAccessSponsors", "POST", "/v1/access/sponsors", "/v1/access/sponsors", 1, "access", listOf("patient", "sponsor"), listOf("billing"), false, "proposed")
     val POST_ACCESS_BILL_SPLITS = Route("postAccessBillSplits", "POST", "/v1/access/bill-splits", "/v1/access/bill-splits", 1, "access", listOf("patient", "caregiver", "sponsor"), listOf("billing"), false, "proposed")
+    val POST_ACCESS_BOOKINGS_BY_BOOKING_REF_CANCEL = Route("postAccessBookingsByBookingRefCancel", "POST", "/v1/access/bookings/{bookingRef}/cancel", "/v1/access/bookings/{bookingRef}/cancel", 1, "access", listOf("patient", "caregiver", "guardian", "thuso-line-agent"), listOf("dispatch"), true, "built")
+    val GET_ACCESS_VISIT_THREADS_BY_BOOKING_REF = Route("getAccessVisitThreadsByBookingRef", "GET", "/v1/access/visit-threads/{bookingRef}", "/v1/access/visit-threads/{bookingRef}", 1, "access", listOf("patient", "caregiver", "guardian", "nurse"), listOf("dispatch"), false, "built")
+    val POST_ACCESS_VISIT_THREADS_BY_BOOKING_REF_MESSAGES = Route("postAccessVisitThreadsByBookingRefMessages", "POST", "/v1/access/visit-threads/{bookingRef}/messages", "/v1/access/visit-threads/{bookingRef}/messages", 1, "access", listOf("patient", "caregiver", "guardian", "nurse"), listOf("dispatch"), true, "built")
     val POST_CARE_OFFERS = Route("postCareOffers", "POST", "/v1/care/offers", "/v1/care/offers", 1, "care", listOf("dispatcher"), listOf("dispatch"), true, "proposed")
     val POST_CARE_OFFERS_BY_OFFER_REF_ACCEPT = Route("postCareOffersByOfferRefAccept", "POST", "/v1/care/offers/{offerRef}/accept", "/v1/care/offers/{offerRef}/accept", 1, "care", listOf("nurse", "locum"), listOf("dispatch"), true, "proposed")
     val POST_CARE_OFFERS_BY_OFFER_REF_DECLINE = Route("postCareOffersByOfferRefDecline", "POST", "/v1/care/offers/{offerRef}/decline", "/v1/care/offers/{offerRef}/decline", 1, "care", listOf("nurse", "locum"), listOf("dispatch"), true, "proposed")
@@ -220,6 +223,9 @@ object ApisData {
         POST_ACCESS_HOUSEHOLDS,
         POST_ACCESS_SPONSORS,
         POST_ACCESS_BILL_SPLITS,
+        POST_ACCESS_BOOKINGS_BY_BOOKING_REF_CANCEL,
+        GET_ACCESS_VISIT_THREADS_BY_BOOKING_REF,
+        POST_ACCESS_VISIT_THREADS_BY_BOOKING_REF_MESSAGES,
         POST_CARE_OFFERS,
         POST_CARE_OFFERS_BY_OFFER_REF_ACCEPT,
         POST_CARE_OFFERS_BY_OFFER_REF_DECLINE,
@@ -668,6 +674,32 @@ object ApisData {
     )
     data class PostAccessBillSplitsResponse(
         val splitRef: String
+    )
+    data class PostAccessBookingsByBookingRefCancelRequest(
+        val idempotencyKey: String,
+        val bookingRef: String,
+        val reasonCode: String
+    )
+    data class PostAccessBookingsByBookingRefCancelResponse(
+        val bookingRef: String,
+        val stateCode: String,
+        val windowCode: String
+    )
+    data class GetAccessVisitThreadsByBookingRefRequest(
+        val bookingRef: String
+    )
+    data class GetAccessVisitThreadsByBookingRefResponse(
+        val threadStateCode: String,
+        val messages: List<Map<String, Any?>>
+    )
+    data class PostAccessVisitThreadsByBookingRefMessagesRequest(
+        val idempotencyKey: String,
+        val bookingRef: String,
+        val message: String
+    )
+    data class PostAccessVisitThreadsByBookingRefMessagesResponse(
+        val messageRef: String,
+        val deliveryCode: String
     )
     data class PostCareOffersRequest(
         val idempotencyKey: String,

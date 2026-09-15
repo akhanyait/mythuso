@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useOffline } from '../components/States';
 import { ClinicianProfile } from '../components/ClinicianProfile';
-import { ArrowLeft, ArrowRight, Ban, CalendarDays, CalendarClock, Check, CircleAlert, Clock3, CreditCard, Hourglass, MapPin, ShieldCheck, Undo2, X, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarDays, CalendarClock, Check, CircleAlert, Clock3, CreditCard, Hourglass, MapPin, ShieldCheck, Undo2, X, Zap } from 'lucide-react';
 import { type Service, money } from '../lib/catalog';
 import { balance as walletBalance } from '../lib/wallet';
 import { SectionTitle, ServiceIcon } from '../components/UI';
@@ -19,10 +19,13 @@ import { mayCancel, reasons, refusalById, reschedule, stateById, stateOf, window
    five is declined, because a booking flow that has only ever seen an authorisation has no screen
    for the other answer. */
 import { payForVisit, visitReference, type PaymentResult } from '../lib/simulation';
-import { areaOf, HOME_SUBURB, nurseFor } from '../lib/arrival';
-import { offersFor } from '../lib/roster';
-import { simulationOf } from '../lib/capabilities';
-/* Booking, and the four things it used to lose.
+import { HOME_SUBURB, nurseOfVisit } from '../lib/arrival';
+import { confirmBooking, emptyLedger, offeredSlots, personOptions, requestBooking, type Hold, type PersonChoice } from '../../../../packages/engines/src/access/domain/booking.ts';
+import { badge, candidatesFor, fill, person as personStep, review, time, zoneInAddress } from '../lib/booking';
+import { subjectRefOf } from '../lib/names';
+import { NurseChoice } from './NurseChoice';
+import { BookingStatus } from './BookingStatus';
+/* Booking, and the things it used to lose.
  *
  * The date strip was five hand-typed labels starting "Fri 12 Sep" — a weekday that had not matched
  * its date since the day it was written. The visit ended an hour after it started whatever the
@@ -34,23 +37,43 @@ import { simulationOf } from '../lib/capabilities';
  * own date. The end comes from service.duration. The whole choice travels in one Visit. And the
  * estimate belongs to the one kind of booking it describes.
  *
- * The fifth thing it did not do at all: a Deaf patient could book an hour at which no interpreter
- * existed, and the booking would confirm. It cannot now. When the account records the SASL
- * requirement, the hour chosen is resolved against the interpreter roster before anything is
- * confirmed, and a visit with nobody to interpret it is held rather than dispatched — because a
- * nurse arriving at a door where nothing can be said is not a visit that half worked. The wait is
- * shown when there is one and admitted when there is not, and the way out of it costs nothing and
- * is recorded against MyThuso rather than against the patient. */
+ * A Deaf patient could book an hour at which no interpreter existed, and the booking would confirm.
+ * It cannot now. When the account records the SASL requirement, the hour chosen is resolved against
+ * the interpreter roster before anything is confirmed, and a visit with nobody to interpret it is
+ * held rather than dispatched.
+ *
+ * WHO COMES (Wave 3). A step between where and when, because the nurses offered depend on where the
+ * visit is and the hours offered depend on who was asked for. Every decision on it is
+ * packages/engines/src/access/domain/booking.ts — the same file the Access engine runs behind
+ * POST /v1/access/bookings — and not this screen's: nobody is offered without a current badge, a named
+ * nurse's hours are the day's hours less the ones already held against her, as soon as possible
+ * belongs to whoever is nearest, and the booking is requested against a slot the domain offered or it
+ * is refused in the route's own words. The review shows the price from the catalogue and the
+ * cancellation window from cancellation.json, because the moment somebody commits is the moment they
+ * want to know what it costs and how to get out of it.
+ *
+ * This file arrives on a dynamic import from App.tsx. A patient who never books never downloads it. */
 export type DemoVisit = Visit;
 /* The wallet's balance is read rather than restated. It was typed here as "Balance R500.00" and
    typed again on the wallet screen, which is two places for one number. */
 const payments = [['Card', 'Visa ending 4242', CreditCard], ['Cash', 'Pay the nurse after the visit', CreditCard], ['Thuso Wallet', `Balance ${money(walletBalance)}`, CreditCard]] as const;
-const stepLabels = ['Who', 'Where', 'When', 'Payment', 'Review'];
+const stepLabels = ['Who', 'Where', personStep.stepLabel, 'When', 'Payment', 'Review'];
+
+type BookingProps = {
+ service: Service;
+ /** Who the catalogue was opened for. */
+ person?: string;
+ onComplete: (visit: DemoVisit) => void;
+ /** Hours already held against named nurses by visits booked in this session. */
+ held?: readonly Hold[];
+ /** The nurse a person saw at their last completed visit, if anybody. */
+ previousNurseFor?: (person: string) => string | null;
+};
 
 /* `person` is who the catalogue was opened for. A family profile's "Book a visit for Nomsa" reached
    this screen with the account holder selected, so the row promised the one thing the flow did not
    do. It is still a select — the choice is never taken away — it just starts on the right person. */
-export function Booking({ service, person: forPerson, onComplete }: { service: Service; person?: string; onComplete: (visit: DemoVisit) => void }) {
+export function Booking({ service, person: forPerson, onComplete, held = [], previousNurseFor }: BookingProps) {
  const [step, setStep] = useState(0);
  const offline = useOffline();
  const stepFocus = useRef<HTMLDivElement>(null);
@@ -64,11 +87,14 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
  /* Computed once per booking rather than per render, so the strip cannot shift under somebody
     who opened the app just before midnight. */
  const days = useMemo(() => offeredDays(), []);
+ const openedAt = useMemo(() => new Date(), []);
  const [date, setDate] = useState(days[0].iso);
  const [slot, setSlot] = useState('09:00');
  const [payment, setPayment] = useState('Card');
+ const [choice, setChoice] = useState<PersonChoice>({ kind: 'nearest' });
  const [consent, setConsent] = useState(false);
- useEffect(() => { setConsent(false); }, [person, address, kind, date, slot, payment]);
+ const [bookingRefusal, setBookingRefusal] = useState<string | null>(null);
+ useEffect(() => { setConsent(false); setBookingRefusal(null); }, [person, address, kind, date, slot, payment, choice]);
  const [done, setDone] = useState<Visit | null>(null);
  const [cancelled, setCancelled] = useState(false);
  /* Not asked here. The requirement lives on the account, set once in the language dialog, because a
@@ -82,14 +108,25 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
  const [payAttempt, setPayAttempt] = useState(0);
  const ends = endTime(slot, service.duration);
  const scheduled = kind === 'scheduled';
- /* Who this visit would be booked against. The roster is asked for the suburb the address names, and
-    it answers with everybody it would offer and everybody it would not — the refusals travel beside
-    the offers rather than being filtered out of them. */
- const booked = nurseFor(address);
- const { refused } = offersFor(areaOf(address));
+
+ /* Who may be asked for, from this browser's vetting register and the domain's refusals. A choice that
+    stopped standing — a named nurse who is no longer offered once the address changed — cannot be
+    booked against, and the step says why rather than quietly swapping in somebody else. */
+ const candidates = useMemo(() => candidatesFor(address), [address]);
+ const options = personOptions(candidates, previousNurseFor?.(person) ?? null);
+ const chosen = choice.kind === 'nearest' ? null : options.offered.find(c => c.nurseRef === choice.nurseRef) ?? null;
+ const choiceStands = choice.kind === 'nearest' || chosen !== null;
+ const scheduledOnly = choice.kind !== 'nearest';
+ useEffect(() => { if (scheduledOnly && kind === 'asap') setKind('scheduled'); }, [scheduledOnly, kind]);
+ /* The hours on the chosen day that the domain offers for this choice. With whoever is nearest that is
+    every hour scheduling.json offers; with a named nurse, less the ones already held against her. */
+ const hours = offeredSlots({ now: openedAt, serviceId: service.id, kind: 'scheduled', choice, holds: held })
+  .filter(s => s.date === date).map(s => s.start!);
+ const hourOffered = hours.includes(slot);
+ const chosenNurse = chosen ? nurseOfVisit({ address, nurse: { id: chosen.nurseRef } }) : null;
+
  /* An "as soon as somebody is free" visit has no hour to resolve against, so it is resolved against
-    the soonest one the app offers at all. Asking the roster nothing and dispatching anyway is the
-    branch this whole block exists to remove. */
+    the soonest one the app offers at all. */
  const askDate = scheduled ? date : days[0].iso;
  const askSlot = scheduled ? slot : slots[0];
  const outcome = saslRequired ? resolve(mode, askDate, askSlot) : null;
@@ -101,7 +138,8 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
   status: outcome ? statusFor(outcome, baseStatus) : baseStatus,
   interpreter: outcome
    ? { mode, name: outcome.found?.interpreter.name, iso: outcome.found?.iso, slot: outcome.found?.slot }
-   : undefined
+   : undefined,
+  nurse: chosen ? { id: chosen.nurseRef, name: chosen.name } : undefined
  };
 
  /* Cash is not a payment result. Nobody's card is presented, no provider is asked and the money
@@ -109,16 +147,35 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
     than manufacturing an authorisation for a transaction that has not happened. */
  const throughAProvider = payment !== 'Cash';
  const reference = visitReference(visit);
+ /* The booking is requested before any money is asked for, so a slot the domain refuses is never
+    charged for. The simulated roster then accepts a visit with an hour at once, and says so on the
+    confirmation; a visit with no hour stays asked for, because nothing is running that could find
+    somebody and a made-up hour is the invented slot the route refuses. */
+ const settle = (): Visit['booking'] | null => {
+  const at = new Date();
+  const wanted = offeredSlots({ now: at, serviceId: service.id, kind, choice, holds: held })
+   .find(s => kind === 'asap' || (s.date === date && s.start === slot));
+  const requested = requestBooking(emptyLedger,
+   { idempotencyKey: reference, subjectRef: subjectRefOf(person), serviceId: service.id, mode: 'home', slotRef: wanted?.slotRef ?? `${date}T${slot}~not-offered`, actorRole: 'patient' },
+   { now: at, candidates, visitCovered: Boolean(zoneInAddress(address)), held });
+  if (requested.refused) { setBookingRefusal(requested.statement); return null; }
+  const accepted = kind === 'scheduled' ? confirmBooking(requested.value.ledger, requested.value.booking.bookingRef, at) : null;
+  const settled = accepted && !accepted.refused ? accepted.value.booking : requested.value.booking;
+  return { bookingRef: settled.bookingRef, asap: kind === 'asap', history: settled.history };
+ };
  const confirm = () => {
   if (offline) return;
-  if (!throughAProvider) return setDone(visit);
+  const booking = settle();
+  if (!booking) return;
+  const booked: Visit = { ...visit, booking };
+  if (!throughAProvider) return setDone(booked);
   const attempt = payAttempt + 1;
   setPayAttempt(attempt);
   const result = payForVisit(reference, service.id, attempt);
   setPaid(result);
   /* Booked only on an authorisation. A visit confirmed over a declined payment is the one outcome
      a booking screen must not produce: it is a nurse dispatched to a house against nothing. */
-  if (result.refused === undefined && result.outcome === 'authorised') setDone(visit);
+  if (result.refused === undefined && result.outcome === 'authorised') setDone(booked);
  };
 
  /* A held visit does not get the confirmation screen. It says it is waiting, says what for, and
@@ -139,37 +196,44 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
   <button className="primary full" onClick={() => onComplete(done)}>View my visits<ArrowRight size={17}/></button>
  </div>;
 
- if (done) return <div className="success">
-  <div className="success-icon"><Check size={30}/></div>
-  <h3>Your visit is booked.</h3>
-  <p>{service.name} for {person.split(' ')[0]}</p>
-  <p className="success-when">{done.kind === 'scheduled' ? <>{longDateOf(done.date!)}<br/>{done.start} – {endTime(done.start!, service.duration)}</> : labels.asapPending}</p>
-  {done.interpreter?.name && <p className="helper">Interpreting: {done.interpreter.name}. {cost.sentence}</p>}
-  <p className="helper">{kinds.find(k => k.id === done.kind)!.confirmation}</p>
-  {/* What the provider answered, as a receipt rather than as a tick. The reference begins SIM-
-      because the simulator refuses to produce one that does not say it is simulated — a receipt is
-      read away from this screen, in a screenshot or a support conversation, where the notice below
-      is not there to explain it. */}
-  {paid && paid.refused === undefined && paid.outcome === 'authorised' ? <>
-   <SectionTitle title="What was paid"/>
-   <div className="review-line"><span>Authorised</span><strong>{money(paid.amount)}</strong></div>
-   <div className="review-line"><span>Paid by</span><strong>{done.payment}</strong></div>
-   <div className="review-line"><span>Receipt</span><strong>{paid.receipt}</strong></div>
-   <div className="review-line"><span>Visit reference</span><strong>{reference}</strong></div>
-  </> : throughAProvider ? null : <p className="helper">Nothing has been charged. You pay the nurse at the door.</p>}
-  <NotConnected of="payments"/>
-  <div className="nurse-row"><span className="avatar nurse-avatar">{booked.initials}</span><div><strong>{booked.name}</strong><span>{booked.role} · {booked.area}</span></div></div>
-  <NotConnected of="booking"/>
-  <button className="primary full space-top" onClick={() => onComplete(done)}>View my visits<ArrowRight size={17}/></button>
- </div>;
+ if (done) {
+  const coming = nurseOfVisit(done);
+  return <div className="success">
+   <div className="success-icon"><Check size={30}/></div>
+   <h3>Your visit is booked.</h3>
+   <p>{service.name} for {person.split(' ')[0]}</p>
+   <p className="success-when">{done.kind === 'scheduled' ? <>{longDateOf(done.date!)}<br/>{done.start} – {endTime(done.start!, service.duration)}</> : labels.asapPending}</p>
+   {done.interpreter?.name && <p className="helper">Interpreting: {done.interpreter.name}. {cost.sentence}</p>}
+   <p className="helper">{kinds.find(k => k.id === done.kind)!.confirmation}</p>
+   {/* What the provider answered, as a receipt rather than as a tick. The reference begins SIM-
+       because the simulator refuses to produce one that does not say it is simulated. */}
+   {paid && paid.refused === undefined && paid.outcome === 'authorised' ? <>
+    <SectionTitle title="What was paid"/>
+    <div className="review-line"><span>Authorised</span><strong>{money(paid.amount)}</strong></div>
+    <div className="review-line"><span>Paid by</span><strong>{done.payment}</strong></div>
+    <div className="review-line"><span>Receipt</span><strong>{paid.receipt}</strong></div>
+    <div className="review-line"><span>Visit reference</span><strong>{reference}</strong></div>
+   </> : throughAProvider ? null : <p className="helper">Nothing has been charged. You pay the nurse at the door.</p>}
+   <NotConnected of="payments"/>
+   {/* A visit asked for as soon as possible from whoever is nearest names nobody. The status beneath says
+       nobody is looking for a nurse, and a name above that sentence was the suburb's roster answer
+       presented as somebody on the way. A nurse asked for by name, or an hour the roster accepted, is named. */}
+   <div className="booking-outcome">
+    {(done.kind === 'scheduled' || done.nurse) && <div className="nurse-row"><span className="avatar nurse-avatar">{coming.initials}</span><div><strong>{coming.name}</strong><span>{coming.role} · {coming.area}</span></div></div>}
+    {done.booking && <BookingStatus history={done.booking.history} asap={done.booking.asap}/>}
+   </div>
+   <NotConnected of="booking"/>
+   <button className="primary full space-top" onClick={() => onComplete(done)}>View my visits<ArrowRight size={17}/></button>
+  </div>;
+ }
 
  return <>
   <aside className="journey-summary" aria-label="Your booking summary">
    <span className="service-icon"><ServiceIcon name={service.icon}/></span>
-   <div><strong>{service.name}</strong><small>{person.split(' ')[0]} · {service.duration} min{step > 2 ? ` · ${scheduled ? `${slot}, ${longDateOf(date)}` : 'As soon as available'}` : ''}</small></div>
+   <div><strong>{service.name}</strong><small>{person.split(' ')[0]} · {service.duration} min{step > 2 && chosen ? ` · ${chosen.name}` : ''}{step > 3 ? ` · ${scheduled ? `${slot}, ${longDateOf(date)}` : 'As soon as available'}` : ''}</small></div>
    <strong>{money(service.price)}</strong>
   </aside>
-  <div ref={stepFocus} tabIndex={-1} className="journey-step-focus"><StepHead step={step + 1} total={5} label={stepLabels[step]}/></div>
+  <div ref={stepFocus} tabIndex={-1} className="journey-step-focus"><StepHead step={step + 1} total={stepLabels.length} label={stepLabels[step]}/></div>
   {offline && <div className="journey-connection" role="status"><CircleAlert size={19}/><span>You’re offline. Your choices stay here while this booking is open. Reconnect to confirm; you can continue reviewing your details.</span></div>}
   {step === 0 ? <div className="form-stack">
    <div className="booking-summary"><span className="service-icon"><ServiceIcon name={service.icon}/></span><div><h3>{service.name}</h3><p>{service.duration} min · Registered nurse</p></div><strong>{money(service.price)}</strong></div>
@@ -182,15 +246,20 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
    <p className="helper">Sample availability and proposal pricing. Tests, medicines and prescriptions may require separate arrangements.</p>
    <div className="button-row"><button className="secondary" onClick={() => setStep(0)}><ArrowLeft size={16}/>Back</button><button className="primary" disabled={address.trim().length < 5} onClick={() => setStep(2)}>Continue<ArrowRight size={17}/></button></div>
   </div> : step === 2 ? <div className="form-stack">
+   <NurseChoice options={options} personName={person} choice={choice} onChoose={setChoice}/>
+   <div className="button-row"><button className="secondary" onClick={() => setStep(1)}><ArrowLeft size={16}/>Back</button><button className="primary" disabled={!choiceStands} onClick={() => setStep(3)}>Continue<ArrowRight size={17}/></button></div>
+  </div> : step === 3 ? <div className="form-stack">
    <h3>{labels.chooseWhen}</h3>
-   {/* Two different promises, chosen deliberately rather than inferred. */}
+   {/* Two different promises, chosen deliberately rather than inferred — and the second belongs to
+       whoever is nearest, so it is not offered beside a nurse asked for by name. */}
    <div className="choice-list" role="radiogroup" aria-label={labels.chooseWhen}>
-    {kinds.map(option => <label key={option.id} className={`choice-row ${kind === option.id ? 'selected' : ''}`}>
+    {kinds.filter(option => !scheduledOnly || option.id !== 'asap').map(option => <label key={option.id} className={`choice-row ${kind === option.id ? 'selected' : ''}`}>
      <input type="radio" name="booking-kind" checked={kind === option.id} onChange={() => setKind(option.id as 'scheduled' | 'asap')}/>
      <span className="service-icon">{option.id === 'asap' ? <Zap size={20}/> : <CalendarDays size={20}/>}</span>
      <span><strong>{option.name}</strong><small>{option.detail}</small></span>
     </label>)}
    </div>
+   {scheduledOnly && <p className="helper">{personStep.asapNeedsNearest}</p>}
    {scheduled ? <>
     <h3 className="space-top">{labels.scheduledHeading}</h3>
     <div className="date-strip" role="group" aria-label="Choose a date">
@@ -200,20 +269,18 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
       <span>{entry.weekday}</span><strong>{entry.day}</strong><span>{entry.month}</span>
      </button>)}
     </div>
+    {/* Only the hours the domain offers are drawn. An hour a named nurse is already booked for is not
+        drawn and then refused; it is not there, and the sentence below says why. */}
     <div className="time-grid" role="group" aria-label="Choose a time">
-     {slots.map(t => <button key={t} type="button" aria-pressed={slot === t} className={`time-chip ${slot === t ? 'selected' : ''}`} onClick={() => setSlot(t)}>{t}</button>)}
+     {hours.map(t => <button key={t} type="button" aria-pressed={slot === t} className={`time-chip ${slot === t ? 'selected' : ''}`} onClick={() => setSlot(t)}>{t}</button>)}
     </div>
-    <p className="helper" role="status">{longDateOf(date)} · {slot} – {ends} ({service.duration} minutes)</p>
+    {chosen && hours.length < slots.length && <p className="helper hours-note" role="status">{fill(hours.length ? time.fewerHours : time.noHoursLeft, { nurse: chosen.name })}</p>}
+    {hourOffered && <p className="helper" role="status">{longDateOf(date)} · {slot} – {ends} ({service.duration} minutes)</p>}
    </> : <p className="eta-note" role="status"><Zap size={15}/>We look for the nearest nurse who is free and cleared for this service.</p>}
    {/* The interpreter, asked about here rather than after the payment step, because it decides
        whether there is a visit at all and a person should not find that out after their card. */}
    {outcome && <div className="interp-booking">
     <h3 className="space-top">{interpreting.chooseMode}</h3>
-    {/* The interpreting capability names `booking` as one of its surfaces, and this block is where
-        it appears: a named person, on a mode, at an hour. The screen's own notice is about booking a
-        visit and says nothing about the interpreter, and a simulation that is quieter than an
-        absence is the disclosure failure the contract's `a-simulation-says-so` rule is written
-        against. Inline, inside this card, because one notice per screen means one per thing. */}
     <NotConnected of="interpreting" tone="inline"/>
     <fieldset className="tc-switch"><legend className="visually-hidden">{interpreting.chooseMode}</legend>
      {interpreterModes.map(m => <label key={m.id} className={mode === m.id ? 'selected' : ''}>
@@ -229,56 +296,46 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
      </div>
     </div>
    </div>}
-   <div className="button-row"><button className="secondary" onClick={() => setStep(1)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => setStep(3)}>Continue<ArrowRight size={16}/></button></div>
-  </div> : step === 3 ? <div className="form-stack">
+   <div className="button-row"><button className="secondary" onClick={() => setStep(2)}><ArrowLeft size={16}/>Back</button><button className="primary" disabled={scheduled && !hourOffered} onClick={() => setStep(4)}>Continue<ArrowRight size={16}/></button></div>
+  </div> : step === 4 ? <div className="form-stack">
    <h3>How would you like to pay?</h3>
    <div className="choice-list">{payments.map(([name, detail, Icon]) => <label key={name} className={`choice-row ${payment === name ? 'selected' : ''}`}>
     <input type="radio" name="payment" checked={payment === name} onChange={() => setPayment(name)}/>
     <span className="service-icon"><Icon size={20}/></span><span><strong>{name}</strong><small>{detail}</small></span>
    </label>)}</div>
    {/* The sentence about what happens to money comes from the payments capability rather than from
-       this screen. It used to be typed here — "no payment is taken" — and it went on being typed
-       here after a simulated provider started answering, which is the failure the third state was
-       introduced to prevent: a screen that stops being accurate without stopping speaking. */}
+       this screen, so it stops being said the moment it stops being true. */}
    <NotConnected of="payments"/>
    <div className="privacy-note"><ShieldCheck size={19}/>No card is stored, here or anywhere else in MyThuso. Production payments run through a regulated provider, never through MyThuso directly.</div>
-   <div className="button-row"><button className="secondary" onClick={() => setStep(2)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => setStep(4)}>Continue<ArrowRight size={16}/></button></div>
+   <div className="button-row"><button className="secondary" onClick={() => setStep(3)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => setStep(5)}>Continue<ArrowRight size={16}/></button></div>
   </div> : <div className="form-stack">
    <div className="review-line"><span><CalendarDays size={15}/> Date</span><strong>{scheduled ? longDateOf(date) : kinds.find(k => k.id === 'asap')!.name}</strong></div>
    {scheduled ? <div className="review-line"><span><Clock3 size={15}/> Time</span><strong>{slot} – {ends}</strong></div> : null}
    <div className="review-line"><span><MapPin size={15}/> Location</span><strong>{address}</strong></div>
    <div className="review-line"><span>Patient</span><strong>{person}</strong></div>
-   {/* The reference, before the money rather than only after it. It was on the receipt alone, which
-       meant a person deciding whether to pay could not quote the thing they were paying for, and a
-       declined payment showed no reference at all — the one moment somebody most wants one to give
-       over the phone. It is worked out from the visit rather than issued, so it exists here already. */}
+   {/* Who comes, with her badge in words, or the promise that whoever is nearest and cleared is named
+       before she sets off. The row that stood here named the roster's pick for the suburb whatever the
+       patient had asked for. */}
+   <div className="review-line"><span>{review.nurseLabel}</span><strong>{chosen ? `${chosen.name} · ${badge.name}` : review.nearestValue}</strong></div>
+   {/* The price from the catalogue and the way out from cancellation.json, both before the button. */}
+   <div className="review-line"><span>{review.priceLabel}</span><strong>{money(service.price)}</strong></div>
+   <div className="review-line review-cancelling"><span>{review.cancellingLabel}</span><strong>{windowSentence}</strong></div>
+   {/* The reference, before the money rather than only after it, so a person deciding whether to pay
+       can quote the thing they are paying for. */}
    <div className="review-line"><span>Visit reference</span><strong>{reference}</strong></div>
    {outcome && <>
     <div className="review-line"><span>Interpreter</span><strong>{outcome.found ? `${outcome.found.interpreter.name} · ${interpreterModes.find(m => m.id === mode)!.name}` : interpreting.noneFree}</strong></div>
     <div className="review-line"><span>Status when booked</span><strong>{visit.status}</strong></div>
     {isHeld(outcome) && <p className="helper">{hold.whyNotDispatched}</p>}
    </>}
-   <div className="journey-edit-links"><button className="text-button" onClick={() => setStep(0)}>Change person</button><button className="text-button" onClick={() => setStep(1)}>Change location</button><button className="text-button" onClick={() => setStep(2)}>{labels.changeDate}</button></div>
-   {/* Somebody the roster would actually offer for this suburb, rather than one name printed on
-       every booking in Johannesburg. She is the simulated roster's answer, gated by the same vetting
-       the console decides with — and the people it will not offer are named underneath with the
-       reason, because a list that quietly drops a suspended nurse cannot tell a patient why the
-       person she saw last time is missing.
-
-       What is gone from this row is a rating: "★ 4.9 (128 visits)" was invented, on the screen where
-       a person decides whether to let somebody into their house, about a nurse who does not exist.
-       Where she works is a fact the roster actually holds. */}
-   <ClinicianProfile subject={booked.roster.subject} name={booked.name} role={booked.role} reference={booked.roster.reference} detail={`Working in ${booked.area}. This is the sample nurse offered for this visit.`}/>
-   <p className="helper">{simulationOf('booking')!.supplier} {refused.length === 1 ? 'One nurse on it is not being offered:' : `${refused.length} nurses on it are not being offered:`}</p>
-   <ul className="landing-list">{refused.map(({ nurse, refusal }) => <li key={nurse.id}><Ban size={16}/>{nurse.name} · {nurse.zoneName} — {refusal}</li>)}</ul>
-   <div className="pay-row"><span className="service-icon"><CreditCard size={20}/></span><span>{payment === 'Card' ? '•••• 4242' : payment}</span><button className="text-button" onClick={() => setStep(3)}>Change</button></div>
-   {/* A real gate on a real step: the address and the person are what a nurse is sent to, and
-       neither is worth getting wrong. It is not where this screen says what is connected — that
-       sentence comes from the contract, above. */}
+   <div className="journey-edit-links"><button className="text-button" onClick={() => setStep(0)}>Change person</button><button className="text-button" onClick={() => setStep(1)}>Change location</button><button className="text-button" onClick={() => setStep(2)}>Change nurse</button><button className="text-button" onClick={() => setStep(3)}>{labels.changeDate}</button></div>
+   {chosenNurse && <ClinicianProfile subject={chosenNurse.roster.subject} name={chosenNurse.name} role={chosenNurse.role} reference={chosenNurse.roster.reference} detail={fill(personStep.worksIn, { zone: chosenNurse.area })}/>}
+   <div className="pay-row"><span className="service-icon"><CreditCard size={20}/></span><span>{payment === 'Card' ? '•••• 4242' : payment}</span><button className="text-button" onClick={() => setStep(4)}>Change</button></div>
+   {/* A real gate on a real step: the address and the person are what a nurse is sent to. */}
    <label className="checkbox"><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}/><span>The address and the person above are correct, and I agree to the visit terms.</span></label>
-   {/* A declined payment, in the words a person reads. It is a state of this screen rather than a
-       dialog, because the thing they now have to decide — pay another way, or try the same one
-       again — is on this screen and nowhere else. */}
+   {/* A refused booking and a declined payment, in the words a person reads. Each is a state of this
+       screen rather than a dialog, because what they now have to decide is on this screen. */}
+   {bookingRefusal && <div className="privacy-note pay-refused booking-refused" role="alert"><CircleAlert size={19}/>{bookingRefusal}</div>}
    {paid?.refused !== undefined ? <div className="privacy-note pay-refused"><CircleAlert size={19}/>{paid.refused}</div>
     : paid && paid.outcome === 'declined' ? <div className="privacy-note pay-declined" role="status">
       <CircleAlert size={19}/><span>{paid.declineReason} Nothing is booked. You can try again, or choose another way to pay.</span></div>
@@ -286,7 +343,7 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
    <NotConnected of="booking"/>
    <button className="primary full" disabled={!consent || offline} onClick={confirm}>{paid && paid.refused === undefined && paid.outcome === 'declined' ? <>Try the payment again<ArrowRight size={16}/></> : <>Confirm &amp; book<ArrowRight size={16}/></>}</button>
    <p className="helper">{ruleById('everything-survives-the-booking').sentence}</p>
-   <button className="text-button" onClick={() => setStep(3)}><ArrowLeft size={15}/>Back</button>
+   <button className="text-button" onClick={() => setStep(4)}><ArrowLeft size={15}/>Back</button>
   </div>}
  </>;
 }
@@ -345,8 +402,7 @@ export function Reschedule({ visit, onMove }: { visit: DemoVisit; onMove: (date:
 
 /* The reasons, the window and every sentence below come from packages/catalog/cancellation.json.
    They were the component's own words until this evening, which was the third different version of
-   a cancellation right across three platforms — both native apps promised a window and offered no
-   control, and this screen offered the control and never mentioned the window. */
+   a cancellation right across three platforms. */
 const cancelReasons = reasons.map(r => r.text);
 export function CancelVisit({ visit, onCancel }: { visit: DemoVisit; onCancel: (reason: string) => void }) {
  const [reason, setReason] = useState<string>(cancelReasons[0]);
@@ -354,9 +410,7 @@ export function CancelVisit({ visit, onCancel }: { visit: DemoVisit; onCancel: (
  const state = stateOf(visit.date, visit.start);
  /* The contract refuses one of the three states, and the screen has to refuse it too. A visit that
     has already started is a clinical event happening in somebody's house — a booking screen cannot
-    end it, and offering the button anyway is how a person taps cancel while a nurse is standing in
-    front of them and then does not know what has happened. This became reachable rather than
-    theoretical when the sample visits moved to today. */
+    end it. */
  if (!mayCancel(state)) {
   const refused = stateById(state);
   return <div className="form-stack">
@@ -387,8 +441,7 @@ export function CancelVisit({ visit, onCancel }: { visit: DemoVisit; onCancel: (
   <div className="booking-summary"><span className="service-icon"><ServiceIcon name={visit.service.icon}/></span><div><h3>{visit.service.name}</h3><p>{visit.person} · {visit.address}</p></div><strong>{money(visit.service.price)}</strong></div>
   <div className="review-line"><span><Clock3 size={15}/> Booked for</span><strong>{visit.date && visit.start ? `${longDateOf(visit.date)} · ${visit.start}` : labels.asapPending}</strong></div>
   {/* Which side of the window this visit is on, worked out from its own date and time. A late
-      cancellation is never refused — the alternative to letting somebody cancel late is a nurse
-      arriving at a door nobody opens — but it is named, because a nurse may already be travelling. */}
+      cancellation is never refused, but it is named, because a nurse may already be travelling. */}
   <div className="privacy-note"><Clock3 size={19}/>{windowSentence}{state === 'inside-window' && <> {stateById('inside-window').detail}</>}</div>
   <h3>Why are you cancelling?</h3>
   <p className="muted">{refusalById('no-reason-required').sentence}</p>
@@ -399,10 +452,7 @@ export function CancelVisit({ visit, onCancel }: { visit: DemoVisit; onCancel: (
    </label>)}
   </div>
   {/* "What happens to the money" is the question a person actually has here, and it gets a heading
-      rather than a footnote. The answer is two facts and no invention: what this visit was going to
-      cost, how it was going to be paid, and the payments contract's own sentence about whether any
-      of it has happened. When a provider is connected that sentence disappears from here and from
-      every other screen at the same moment, which is the only way this stays true. */}
+      rather than a footnote. */}
   <SectionTitle title="What happens to the money"/>
   <div className="review-line"><span>This visit</span><strong>{money(visit.service.price)}</strong></div>
   <div className="review-line"><span>Was to be paid by</span><strong>{visit.payment}</strong></div>

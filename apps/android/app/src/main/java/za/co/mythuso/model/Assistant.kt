@@ -45,10 +45,18 @@ data class GilbertEmergency(
     val lines: List<GilbertLine>, val notAnAmbulance: String, val sosLabel: String
 )
 data class GilbertHandoverField(val id: String, val label: String)
+/** An urgency code a handover carries, most urgent first in the contract's order. */
+data class GilbertUrgency(val id: String, val name: String, val why: String)
+/** Something a handover deliberately leaves behind, said to the person before they press send. */
+data class GilbertNotCarried(val id: String, val sentence: String)
 data class GilbertHandover(
     val state: String, val title: String, val lead: String, val notSent: String, val fields: List<GilbertHandoverField>,
     val channelTyped: String, val channelSpoken: String, val channelChosen: String,
-    val nothingAsked: String, val nothingMatched: String, val matchedEmergency: String, val noFlags: String
+    val nothingAsked: String, val nothingMatched: String, val matchedEmergency: String,
+    val urgency: List<GilbertUrgency>, val neverLowered: String,
+    val notCarriedHeading: String, val notCarried: List<GilbertNotCarried>,
+    val sendLabel: String, val sentTitle: String, val sent: String, val sentReference: String,
+    val alreadySent: String, val stillUrgent: String, val lines: List<GilbertLine>
 )
 data class GilbertConversation(
     val inputLabel: String, val inputHint: String, val sendLabel: String, val startAgainLabel: String,
@@ -86,7 +94,8 @@ sealed interface GilbertReply {
     /** The emergency answer, with the groups that raised it — empty when the question was chosen. */
     data class Emergency(val groups: List<GilbertEmergencyGroup>) : GilbertReply
     data object Unmatched : GilbertReply
-    data class Handover(val rows: List<SummaryRow>) : GilbertReply
+    /** The structured summary and its urgency code. Never the person's words, never which emergency words. */
+    data class Handover(val rows: List<SummaryRow>, val urgency: String) : GilbertReply
 }
 
 /** [unread] is true when the answer came with words Gilbert could not read; the unread answer follows it. */
@@ -194,7 +203,7 @@ object Gilbert {
         "identity" -> GilbertReply.Identity
         "voice" -> GilbertReply.Voice
         "emergency" -> GilbertReply.Emergency(emptyList())
-        "handover" -> GilbertReply.Handover(summary(turns))
+        "handover" -> GilbertReply.Handover(summary(turns), urgency(turns))
         else -> GilbertReply.Unmatched
     }
 
@@ -244,31 +253,41 @@ object Gilbert {
         return append(turns) { GilbertTurn(it, question.asks, GilbertChannel.CHOSEN, answer, question, emptyList()) }
     }
 
-    /** "Talk to a nurse", pressed from the unmatched or unread answer: a summary of the last thing asked. */
-    fun handOver(turns: List<GilbertTurn>): List<GilbertTurn> =
-        append(turns) { GilbertTurn(it, null, null, GilbertReply.Handover(summary(turns)), null, emptyList()) }
+    /** "Talk to a nurse", pressed from the unmatched or unread answer: a summary of the last thing asked.
+     *  [raised] is the screen's memory that an emergency was answered in a turn the turn limit has since
+     *  dropped, so a long conversation cannot lower its own urgency by scrolling out of the window. */
+    fun handOver(turns: List<GilbertTurn>, raised: Boolean = false): List<GilbertTurn> =
+        append(turns) { GilbertTurn(it, null, null, GilbertReply.Handover(summary(turns, raised), urgency(turns, raised)), null, emptyList()) }
 
-    /* What a nurse would be handed: the last thing asked before this, in the person's words, how it
-       arrived, what it matched and which emergency words were in it. A request for a nurse is not
-       itself what a nurse needs to read, so it is skipped when looking back. */
-    fun summary(turns: List<GilbertTurn>): List<SummaryRow> {
+    /* Two codes and neither is calm. An emergency answer anywhere in the conversation is `emergency`;
+       everything else is `not-assessed`, because no emergency word is not a finding that something is
+       not urgent. A later handover may raise it and nothing Gilbert says afterwards lowers it. */
+    fun urgency(turns: List<GilbertTurn>, raised: Boolean = false): String {
+        val codes = GilbertData.handover.urgency.map { it.id }
+        val emergency = codes.firstOrNull { it == "emergency" } ?: codes.first()
+        val notAssessed = codes.firstOrNull { it == "not-assessed" } ?: codes.last()
+        return if (raised || turns.any { it.reply is GilbertReply.Emergency }) emergency else notAssessed
+    }
+
+    /* What a nurse queue would be handed: how the last thing was asked, which approved question it
+       matched, and the urgency. Not the words: conversation.handover@1 refuses the transcript, and a
+       nurse needs to know why she is calling rather than to read somebody's messages. Not which
+       emergency words fired either: a group can be a crisis, and a crisis mention joined to a person is
+       a record of it. A request for a nurse is not itself what a nurse needs, so it is skipped. */
+    fun summary(turns: List<GilbertTurn>, raised: Boolean = false): List<SummaryRow> {
         val h = GilbertData.handover
         fun label(id: String) = h.fields.firstOrNull { it.id == id }?.label ?: id
+        val code = urgency(turns, raised)
+        val urgencyRow = SummaryRow(label("urgency"), h.urgency.firstOrNull { it.id == code }?.name ?: code)
         val last = turns.lastOrNull { it.asked != null && it.matched?.answer != "handover" }
-            ?: return listOf(SummaryRow(label("words"), h.nothingAsked))
+            ?: return listOf(SummaryRow(label("channel"), h.nothingAsked), SummaryRow(label("matched"), h.nothingMatched), urgencyRow)
         val channel = when (last.channel) {
             GilbertChannel.SPOKEN -> h.channelSpoken
             GilbertChannel.CHOSEN -> h.channelChosen
             else -> h.channelTyped
         }
-        val matched = last.matched?.asks ?: if (last.groups.isEmpty()) h.nothingMatched else h.matchedEmergency
-        val flags = if (last.groups.isEmpty()) h.noFlags else last.groups.joinToString("; ") { it.name }
-        return listOf(
-            SummaryRow(label("words"), last.asked!!),
-            SummaryRow(label("channel"), channel),
-            SummaryRow(label("matched"), matched),
-            SummaryRow(label("flags"), flags)
-        )
+        val matched = last.matched?.asks ?: if (last.reply is GilbertReply.Emergency) h.matchedEmergency else h.nothingMatched
+        return listOf(SummaryRow(label("channel"), channel), SummaryRow(label("matched"), matched), urgencyRow)
     }
 
     /** How a turn came out, in the words the shared fixtures use. */

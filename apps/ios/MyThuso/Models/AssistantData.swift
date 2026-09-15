@@ -60,10 +60,10 @@ extension Gilbert {
                      platforms: ["web", "ios", "android"]),
         GilbertState(id: "handover", name: "Handover",
                      visual: "The sphere dims and holds still behind the summary.",
-                     meaning: "Gilbert has put together what a nurse would receive.",
+                     meaning: "Gilbert has put together the summary a nurse queue would receive.",
                      cue: "For a nurse",
-                     announcement: "Here is what a nurse would receive. It has not been sent.",
-                     shownWhen: "You asked to talk to a nurse. In this preview the summary is shown to you and sent to nobody.",
+                     announcement: "Here is what the nurse queue would receive. Nothing has gone yet.",
+                     shownWhen: "You asked to talk to a nurse. The summary is shown to you first, and goes to a simulated nurse queue only when you press the button. It never reaches a nurse in this preview.",
                      platforms: ["web", "ios", "android"])
     ]
 
@@ -178,20 +178,31 @@ extension Gilbert {
 
     static let handover = GilbertHandover(
         state: "handover",
-        title: "What a nurse would receive",
-        lead: "This is the summary a nurse would be handed if MyThuso had nurses on the other end. Read it the way they would.",
-        notSent: "This was not sent. MyThuso is a preview: no nurse is on the other end, nobody has read this, and it is gone when you close Gilbert.",
-        fields: [GilbertHandoverField(id: "words", label: "Your words, as you sent them"),
-                 GilbertHandoverField(id: "channel", label: "How you asked"),
+        title: "What the nurse queue would receive",
+        lead: "This is the structured summary Gilbert hands over. A nurse reads it to know why she is calling, and it carries none of your words.",
+        notSent: "Nothing has gone yet. Press the button and this summary goes to a simulated nurse queue, not to a nurse.",
+        fields: [GilbertHandoverField(id: "channel", label: "How you asked"),
                  GilbertHandoverField(id: "matched", label: "What Gilbert matched"),
-                 GilbertHandoverField(id: "flags", label: "Emergency words Gilbert noticed")],
+                 GilbertHandoverField(id: "urgency", label: "Urgency")],
         channelTyped: "Typed",
         channelSpoken: "Spoken, turned into text on this phone, and checked by you before sending",
         channelChosen: "Chosen from Gilbert's suggested questions",
         nothingAsked: "Nothing yet. You have not asked Gilbert anything in this conversation.",
         nothingMatched: "Nothing. Gilbert could not assess it.",
         matchedEmergency: "Emergency words, so Gilbert showed the ambulance numbers instead of answering.",
-        noFlags: "None noticed. That does not mean there were none.")
+        urgency: [GilbertUrgency(id: "emergency", name: "An emergency was raised, and the ambulance numbers were shown.", why: "Set by the emergency words anywhere in the conversation. Gilbert may explain an urgency; nothing it says afterwards lowers one."),
+                  GilbertUrgency(id: "not-assessed", name: "Not assessed. Gilbert cannot judge how urgent this is.", why: "Gilbert grades nothing. No emergency word is not a finding that something is not urgent, so there is no calmer code than this one to hand a nurse.")],
+        neverLowered: "An emergency anywhere in this conversation stays an emergency in the handover. A calmer message afterwards does not lower it.",
+        notCarriedHeading: "What does not go",
+        notCarried: [GilbertNotCarried(id: "words", sentence: "Your words. They stay in this conversation, and are gone when you close Gilbert."),
+                     GilbertNotCarried(id: "emergency-words", sentence: "Which emergency words Gilbert noticed. The urgency says that an emergency was raised, never which.")],
+        sendLabel: "Hand this to the nurse queue",
+        sentTitle: "Handed to a simulated nurse queue",
+        sent: "Your summary went to a simulated nurse queue. No nurse is on the other end: nobody will read it, call you or come to you because of it.",
+        sentReference: "Handover reference",
+        alreadySent: "This conversation was handed over already. Asking again sends nothing new unless the urgency has risen.",
+        stillUrgent: "If this cannot wait, do not wait for a nurse. Call one of these now:",
+        lines: [GilbertLine(number: "10177", name: "Ambulance"), GilbertLine(number: "112", name: "Emergency, from a mobile")])
 
     static let silenceIsNotSafety = "Gilbert not recognising an emergency does not mean there is not one. If you think it is an emergency, call 10177, or 112 from a mobile."
 

@@ -93,7 +93,8 @@ class BookingJourneyTests {
             .onFirst().performScrollTo().performClick()
         settle()
         tap("Continue")                                            // who → where
-        tap("Continue")                                            // where → when
+        tap("Continue")                                            // where → nurse
+        tap("Continue")                                            // nurse → when, asking for whoever is nearest
 
         // MARK: Every chip's weekday belongs to the date on it
         val chips = rule.onAllNodes(hasClickAction() and describedLikeALongDate())

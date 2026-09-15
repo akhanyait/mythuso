@@ -1,11 +1,20 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
+import type { Hold } from '../../../packages/engines/src/access/domain/booking.ts';
+import type { Thread } from '../../../packages/engines/src/access/domain/thread.ts';
 import { ArrowRight, LogOut, ShieldCheck, X } from 'lucide-react';
 import { AssistantLauncher } from './components/AssistantLauncher';
 import { Modal, Pill } from './components/UI';
 import { NotConnected } from './components/NotConnected';
 import { PATIENT_SURFACE as SURFACE, PatientShell, patientSections } from './shells/PatientShell';
 import { Dashboard } from './features/Dashboard';
-import { Booking, CancelVisit, Reschedule } from './features/Booking';
+/* Booking, moving and cancelling arrive on a dynamic import the moment somebody opens one. None of
+   them is on the patient's first view, and since Wave 3 booking carries the person step and the
+   Access domain behind it — code a patient reading their visits on metered data has no reason to
+   download. The Suspense fallbacks sit inside the dialog, so the dialog opens at once and says so. */
+const BookingFlow = lazy(() => import('./features/Booking').then(m => ({ default: m.Booking })));
+const RescheduleFlow = lazy(() => import('./features/Booking').then(m => ({ default: m.Reschedule })));
+const CancelFlow = lazy(() => import('./features/Booking').then(m => ({ default: m.CancelVisit })));
+import { nurseOfVisit } from './lib/arrival';
 import {
  Explore, Family, FamilyProfile, MoreHub, Notifications, Passport, PlanDetail, Plans, Privacy,
  Services, SponsorCare, TopUpWallet, VisitDetail, Visits, WalletPage, rowFor, sampleVisitRows,
@@ -86,6 +95,9 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
  const [rows, setRows] = useState<VisitRow[]>(sampleVisitRows);
  const [managing, setManaging] = useState<{ id: string; action: VisitAction } | null>(null);
  const [viewing, setViewing] = useState<string | null>(null);
+ /* Each visit's thread with its nurse, by visit id, held here so closing a visit and opening it again
+    keeps what was written. Memory only, like the visits themselves. */
+ const [threads, setThreads] = useState<Record<string, Thread>>({});
  /* Who the next booking is for. A family profile's "Book a visit for Nomsa" used to open the
     catalogue with nobody chosen, so the one thing the row promised was the one thing it did not do.
     It is cleared the moment the booking finishes or the person leaves the catalogue — a preselected
@@ -180,7 +192,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
             : page === 'Explore MyThuso' ? <Explore open={setModal} onOnboarding={() => setOnboarding('first-run')} navigate={navigate}/>
              : <MoreHub navigate={navigate} open={setModal} onSignOut={signOut}/>}
   </PatientShell>
-  {booking &&<Modal surface={SURFACE} title="A nurse, at your door." onClose={() => setBooking(null)}><Booking service={booking} person={forPerson ?? undefined} onComplete={v => { setRows([rowFor(v, `VIS-01${rows.length}`), ...rows]); setBooking(null); navigate('My visits'); }}/></Modal>}
+  {booking &&<Modal surface={SURFACE} title="A nurse, at your door." onClose={() => setBooking(null)}><Suspense fallback={<p className="helper" role="status">Opening the booking.</p>}><BookingFlow service={booking} person={forPerson ?? undefined} held={heldHours(rows)} previousNurseFor={person => previousNurseIn(rows, person)} onComplete={v => { setRows([rowFor(v, `VIS-01${rows.length}`), ...rows]); setBooking(null); navigate('My visits'); }}/></Suspense></Modal>}
   {/* Looking at a visit, moving one and standing one down are three screens rather than three
       sentences in a roadmap dialog. Each one closes by going back to the list it came from, so no
       branch of this ends on a dialog with nothing behind it. */}
@@ -188,11 +200,14 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
       over a visit that was stood down a fortnight ago, was the same sentence doing three jobs. */}
   {viewing && rowById(viewing) && <Modal surface={SURFACE} title={visitTitle(rowById(viewing)!.group)} onClose={() => setViewing(null)}>
    <VisitDetail row={rowById(viewing)!} manage={manage} navigate={p => { navigate(p); setViewing(null); }}
-    rebook={() => bookFor(rowById(viewing)!.visit.person)} track={track} notes={wellbeing}/></Modal>}
+    rebook={() => bookFor(rowById(viewing)!.visit.person)} track={track} notes={wellbeing}
+    thread={threads[viewing]} onThread={next => setThreads({ ...threads, [viewing]: next })}/></Modal>}
   {managing && rowById(managing.id) && <Modal surface={SURFACE} title={managing.action === 'reschedule' ? 'Move this visit' : 'Cancel this visit'} onClose={() => setManaging(null)}>
+   <Suspense fallback={<p className="helper" role="status">Opening the visit.</p>}>
    {managing.action === 'reschedule'
-    ? <Reschedule visit={rowById(managing.id)!.visit} onMove={(date, start) => { moveVisit(managing.id, date, start); setManaging(null); navigate('My visits'); }}/>
-    : <CancelVisit visit={rowById(managing.id)!.visit} onCancel={reason => { standDown(managing.id, reason); setManaging(null); navigate('My visits'); }}/>}
+    ? <RescheduleFlow visit={rowById(managing.id)!.visit} onMove={(date, start) => { moveVisit(managing.id, date, start); setManaging(null); navigate('My visits'); }}/>
+    : <CancelFlow visit={rowById(managing.id)!.visit} onCancel={reason => { standDown(managing.id, reason); setManaging(null); navigate('My visits'); }}/>}
+   </Suspense>
   </Modal>}
   {modal && <Modal surface={SURFACE} title={modalTitle(modal)} onClose={() => setModal(null)}>{modalBody({ modal, close: () => setModal(null), navigate: (p: string) => { navigate(p); setModal(null); }, openOnboarding: () => { setModal(null); setOnboarding('first-run'); }, reopen: (m: string) => setModal(m), locale, setLocale, query, setQuery, location, setLocation, people, addMember: (n: string) => { setMembers([...members, n]); setModal(null); navigate('My family'); }, addInvitation: (i: Invitation) => { setInvitations([...invitations, i]); setModal(null); navigate('My family'); }, signOut, rows, invitations, bookFor, viewVisit: (id: string) => { setModal(null); setViewing(id); }, revoke: (id: string) => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i)), openRole: (id: RoleId) => { setModal(null); setRole(id); } })}</Modal>}
  </>;
@@ -207,6 +222,17 @@ const isKit = (modal: string) => modal === 'Diagnostic kit' || modal === 'Thuso 
 const integrations: Integration[] = ['Apple Health', 'Health Connect', 'Thuso Kit'];
 const integrationIn = (modal: string) => integrations.find(name => modal === `${name} connection`);
 const visitTitle = (group: string) => group === 'past' ? 'What the nurse found' : group === 'cancelled' ? 'A cancelled visit' : 'Your visit';
+/* The hours already held against a nurse somebody asked for by name, from the visits this session holds.
+   The booking domain takes them away from her offer, so a second visit cannot be booked into an hour she
+   is already coming to somebody at. A visit for whoever is nearest holds nobody. */
+const heldHours = (rows: VisitRow[]): Hold[] => rows
+ .filter(row => row.group === 'upcoming' && row.visit.nurse && row.visit.date && row.visit.start)
+ .map(row => ({ nurseRef: row.visit.nurse!.id, date: row.visit.date!, start: row.visit.start!, minutes: row.visit.service.duration }));
+/* The nurse on this person's most recent completed visit, which is who "the nurse you saw last time" means. */
+const previousNurseIn = (rows: VisitRow[], person: string): string | null => {
+ const past = rows.find(row => row.group === 'past' && row.visit.person === person);
+ return past ? nurseOfVisit(past.visit).id : null;
+};
 function modalTitle(modal: string) {
  if (modal.startsWith('Care plan: ')) return modal.replace('Care plan: ', '');
  if (modal.startsWith('Family profile: ')) return modal.replace('Family profile: ', '');

@@ -51,7 +51,8 @@ final class DynamicTypeTests: XCTestCase {
            been scrolled far enough to build it. */
         tapAfterScrolling(app, app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Blood tests'")).firstMatch)
         tapAfterScrolling(app, app.buttons["Continue"])            // who → where
-        tapAfterScrolling(app, app.buttons["Continue"])            // where → when
+        tapAfterScrolling(app, app.buttons["Continue"])            // where → nurse
+        tapAfterScrolling(app, app.buttons["Continue"])            // nurse → when
         tapAfterScrolling(app, app.buttons["Continue"])            // when → payment
         tapAfterScrolling(app, app.buttons["Continue"])            // payment → review
         XCTAssertTrue(app.buttons["Confirm & book"].waitForExistence(timeout: 20), "the review step did not open")

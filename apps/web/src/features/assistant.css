@@ -428,6 +428,15 @@
 .as-summary dt { font-size: 13px; font-weight: 600; color: var(--brand-mint); }
 .as-summary dd { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
 .as-notsent { font-weight: 600; }
+/* The handover to the simulated nurse queue: what does not go, the never-lowered sentence, and the
+   confirmation with its reference. Mint on ink and white on ink, the declared pairs above. */
+.as-notcarried { display: grid; gap: var(--space-4); }
+.as-notcarried .as-subhead { margin: 0; font-size: 13px; font-weight: 600; color: var(--brand-mint); }
+.as-notcarried ul { margin: 0; padding-left: var(--space-20); display: grid; gap: var(--space-4); font-size: 14px; line-height: 1.5; }
+.as-lowered { margin: 0; font-weight: 600; padding-left: var(--space-12); border-left: 2px solid var(--brand-orange); }
+.as-sent { display: grid; gap: var(--space-8); padding-top: var(--space-12); border-top: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink)); }
+.as-sent p { margin: 0; }
+.as-ref { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; font-weight: 600; }
 .as-said { overflow-wrap: anywhere; }
 .as-rule ul { margin: 0 0 var(--space-12); padding-left: var(--space-20); display: grid; gap: var(--space-8); font-size: 14px; line-height: 1.55; color: var(--surface); }
 .as-powered { font-size: 13px !important; }

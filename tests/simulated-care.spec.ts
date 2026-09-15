@@ -60,6 +60,21 @@ test('a visit is booked against somebody the roster would actually offer, and sa
 
   await d.getByRole('button', { name: 'Continue' }).click();   // who
   await d.getByRole('button', { name: 'Continue' }).click();   // where
+
+  /* The people the roster will not offer, each with the sentence saying why, on the step where a
+     patient chooses who comes. A list that quietly drops a suspended nurse cannot tell a patient why the
+     person she saw last time is missing. This moved from the review in Wave 3, when choosing a nurse
+     became a step of its own. */
+  const refused = d.locator('.nurse-refused li');
+  await expect(refused.filter({ hasText: lapsed.name })).toContainText(simulation('booking').refuses[1]);
+  await expect(refused.filter({ hasText: outsideCoverage.name })).toContainText(simulation('booking').refuses[3]);
+
+  /* Somebody on the roster, asked for by name, rather than one name printed on every booking. */
+  const firstOffered = d.locator('.nurse-list .nurse-option').first();
+  const offeredName = (await firstOffered.locator('strong').innerText()).trim();
+  expect(nurses.map(n => n.name)).toContain(offeredName);
+  await firstOffered.click();
+  await d.getByRole('button', { name: 'Continue' }).click();   // nurse
   await d.getByRole('button', { name: 'Continue' }).click();   // when
   await d.getByRole('button', { name: 'Continue' }).click();   // payment
 
@@ -67,18 +82,7 @@ test('a visit is booked against somebody the roster would actually offer, and sa
      not "this does not book a visit" but "the roster is simulated, these nurses are fictional". It
      sits above the button that books, which is where a person is deciding. */
   await expect(d.getByText(simulation('booking').notice)).toBeVisible();
-
-  /* Somebody on the roster, rather than one name printed on every booking in Johannesburg. */
-  const named = d.locator('.clinician-profile h3');
-  await expect(named).toBeVisible();
-  expect(nurses.map(n => n.name)).toContain((await named.innerText()).trim());
-
-  /* And the people it will not offer, each with the sentence saying why. A list that quietly drops a
-     suspended nurse cannot tell a patient why the person she saw last time is missing. */
-  await expect(d.getByText(`${lapsed.name} · ${lapsed.zone} — ${simulation('booking').refuses[1]}`)).toBeVisible();
-  await expect(d.getByText(`${outsideCoverage.name} · ${outsideCoverage.zone} — ${simulation('booking').refuses[3]}`)).toBeVisible();
-
-  const offeredName = (await named.innerText()).trim();
+  await expect(d.locator('.clinician-profile h3')).toHaveText(offeredName);
   /* Booked, and the confirmation carries her too. */
   await d.locator('label.checkbox input').check();
   await d.getByRole('button', { name: /Confirm & book/ }).click();

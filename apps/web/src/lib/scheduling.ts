@@ -89,6 +89,10 @@ export type Visit = {
  /** Set when the account records the SASL requirement: which interpreter, or the fact that nobody
      within the offered window is free. Resolved in lib/interpreting.ts, never typed on a screen. */
  interpreter?: { mode: string; name?: string; iso?: string; slot?: string };
+ /** The nurse asked for by name at booking. Absent means whoever is nearest, which is an answer rather than a gap. */
+ nurse?: { id: string; name: string };
+ /** The booking behind the visit as packages/engines' Access domain answered it: where it stands and when each state was reached. */
+ booking?: { bookingRef: string; asap: boolean; history: readonly { state: 'requested' | 'confirmed' | 'cancelled'; at: string }[] };
 };
 
 export const visitEnds = (visit: Visit) => (visit.start ? endTime(visit.start, visit.service.duration) : undefined);

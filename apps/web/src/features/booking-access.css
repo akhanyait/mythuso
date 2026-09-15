@@ -1,0 +1,91 @@
+/* Wave 3 Access: the person step, the booking status and the visit thread. Loaded with the screens that
+   use it and never with the patient's first view. Every value is a token and every type size is the
+   scale's own. One shadow at most, never two. */
+
+.nurse-choice-head h3,.nurse-named h4,.nurse-refused h4{margin:0}
+.nurse-choice-head p{margin:var(--space-4) 0 0}
+.nurse-previous-refused{cursor:default;background:var(--canvas)}
+.nurse-previous-refused small{color:var(--body)}
+
+.nurse-named{display:grid;gap:var(--space-8)}
+.nurse-named h4,.nurse-refused h4,.booking-status h3{font-size:15px;font-weight:600;color:var(--ink)}
+.nurse-badge-key{display:flex;gap:var(--space-8);align-items:flex-start;margin:0;font-size:14px;color:var(--body);line-height:1.5}
+.nurse-badge-key svg{flex:none;margin-top:2px;color:var(--indigo)}
+.nurse-badge-key strong{color:var(--ink)}
+.nurse-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-8)}
+.nurse-option{display:flex;align-items:center;gap:var(--space-12);min-height:56px;padding:var(--space-8) var(--space-12);border:1px solid var(--line);border-radius:var(--r-control);background:var(--surface);cursor:pointer}
+.nurse-option.selected{border-color:var(--indigo);background:var(--indigo-soft)}
+.nurse-option input{flex:none;width:18px;height:18px;margin:0;accent-color:var(--indigo)}
+.nurse-option .avatar{flex:none}
+.nurse-option-text{flex:1;min-width:0}
+.nurse-option-text strong{display:block;font-size:14px;font-weight:600;color:var(--ink)}
+.nurse-option-text small{display:block;font-size:13px;color:var(--body)}
+.nurse-option-badge{flex:none;display:inline-flex;align-items:center;gap:var(--space-4);font-size:13px;font-weight:600;color:var(--indigo)}
+@media (max-width:360px){.nurse-option{flex-wrap:wrap}.nurse-option-badge{flex-basis:100%;padding-left:var(--space-40)}}
+
+.nurse-refused{border-top:1px solid var(--line);padding-top:var(--space-16);display:grid;gap:var(--space-8)}
+.nurse-refused ul{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-12)}
+.nurse-refused li{display:flex;gap:var(--space-8);align-items:flex-start;font-size:14px;color:var(--ink)}
+.nurse-refused li svg{flex:none;margin-top:3px;color:var(--slate)}
+.nurse-refused li small{display:block;font-size:13px;color:var(--body);line-height:1.5;margin-top:2px}
+
+/* The cancellation rule is a sentence, not a value. Beside its label on a phone it wrapped right-aligned
+   into a ragged column, so below the width where it fits on one line it stands under the label. */
+@media (max-width:560px){.review-cancelling{flex-direction:column;align-items:flex-start;gap:var(--space-4)}.review-cancelling strong{text-align:left}}
+
+/* The confirmation centres its headline and receipt. Who is coming and where the booking stands are read
+   down a left edge like the rest of the booking, and are separated from each other rather than touching. */
+.booking-outcome{display:grid;gap:var(--space-16);text-align:left;margin-top:var(--space-16)}
+.booking-outcome .nurse-row{margin-top:0}
+
+.booking-status{display:grid;gap:var(--space-12);text-align:left;width:100%}
+.status-timeline{list-style:none;margin:0;padding:0;display:grid}
+.status-timeline li{display:grid;grid-template-columns:24px 1fr;gap:var(--space-12);position:relative;padding-bottom:var(--space-16)}
+.status-timeline li:last-child{padding-bottom:0}
+.status-timeline li:not(:last-child)::before{content:"";position:absolute;left:11px;top:24px;bottom:0;width:2px;background:var(--line)}
+.status-mark{width:24px;height:24px;border-radius:var(--r-pill);display:grid;place-items:center;border:2px solid var(--line);background:var(--surface);color:var(--slate)}
+.status-timeline li.reached .status-mark{border-color:var(--indigo);background:var(--indigo);color:var(--surface)}
+.status-timeline li.reached.is-cancelled .status-mark{border-color:var(--mango-ink);background:var(--mango-ink)}
+.status-name{display:flex;flex-wrap:wrap;gap:var(--space-4) var(--space-8);align-items:baseline;margin:0;font-size:14px;color:var(--ink)}
+.status-standing{font-size:13px;font-weight:600;color:var(--indigo)}
+.status-timeline li.waiting .status-standing{color:var(--body);font-weight:400}
+.status-name time{font-size:13px;color:var(--body);font-variant-numeric:tabular-nums}
+.status-words{margin:var(--space-4) 0 0;font-size:13px;color:var(--body);line-height:1.5}
+.status-timeline li.waiting .status-name strong{color:var(--body);font-weight:600}
+
+/* minmax(0,1fr) rather than the implicit auto column: the door's preview line does not wrap, and an auto
+   grid track grows to that line's full length, which pushed the completed visit's dialog 63px sideways. */
+.visit-access{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-16)}
+.thread-door{display:flex;min-width:0;align-items:center;gap:var(--space-12);width:100%;min-height:56px;text-align:left;padding:var(--space-12) var(--space-16);border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface);color:var(--ink);font:inherit;cursor:pointer}
+.thread-door>span:nth-child(2){flex:1;min-width:0}
+.thread-door strong{display:block;font-size:14px;font-weight:600}
+.thread-door small{display:block;font-size:13px;color:var(--body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.thread-door>svg{flex:none;color:var(--indigo)}
+
+.visit-thread{min-width:0}
+.thread-back{justify-self:start}
+.thread-head h3{margin:0;font-size:18px;color:var(--ink)}
+.thread-head h3:focus{outline:none}
+.thread-head h3:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+.thread-head p{margin:var(--space-4) 0 0}
+.thread-record-note{margin:0;font-size:14px;color:var(--body);line-height:1.55;border-left:3px solid var(--line);padding-left:var(--space-12)}
+.thread-log{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-12)}
+.thread-empty{font-size:14px;color:var(--body);padding:var(--space-16);border:1px dashed var(--line);border-radius:var(--r-card);text-align:center}
+.thread-message{max-width:85%;padding:var(--space-12);border-radius:var(--r-card);background:var(--canvas);border:1px solid var(--line);overflow-wrap:anywhere}
+.thread-message.mine{justify-self:end;background:var(--indigo-soft);border-color:var(--indigo-wash)}
+.thread-message.theirs{justify-self:start}
+.thread-who{display:flex;gap:var(--space-8);align-items:baseline;justify-content:space-between;margin:0;font-size:13px;font-weight:600;color:var(--ink)}
+.thread-who time{font-weight:400;color:var(--body);font-variant-numeric:tabular-nums}
+.thread-text{margin:var(--space-4) 0 0;font-size:15px;color:var(--ink);line-height:1.5;white-space:pre-wrap}
+.thread-kept{display:flex;gap:var(--space-4);align-items:center;margin:var(--space-8) 0 0;font-size:13px;color:var(--body)}
+.thread-compose{display:grid;gap:var(--space-8);border-top:1px solid var(--line);padding-top:var(--space-16)}
+.thread-compose label{font-size:14px;font-weight:600;color:var(--ink)}
+.thread-compose textarea{width:100%;min-height:88px;resize:vertical;font:inherit;font-size:16px;padding:var(--space-12);border:1px solid var(--line);border-radius:var(--r-control);background:var(--surface);color:var(--ink);box-sizing:border-box}
+.thread-urgent{display:flex;gap:var(--space-8);align-items:flex-start;margin:0;padding:var(--space-12);border-radius:var(--r-control);background:var(--mango-soft);color:var(--mango-ink);font-size:14px;font-weight:600;line-height:1.5}
+.thread-urgent svg{flex:none;margin-top:2px}
+.thread-send-row{display:flex;align-items:center;justify-content:space-between;gap:var(--space-12)}
+.thread-count{font-size:13px;color:var(--body);font-variant-numeric:tabular-nums}
+.thread-count.over{color:var(--danger);font-weight:600}
+.thread-refused{margin:0;font-size:14px;color:var(--danger);font-weight:600}
+.thread-closed{display:flex;gap:var(--space-8);align-items:flex-start;margin:0;padding:var(--space-12);border-radius:var(--r-control);background:var(--canvas);border:1px solid var(--line);font-size:14px;color:var(--ink);line-height:1.5}
+.thread-closed svg{flex:none;margin-top:2px;color:var(--slate)}
