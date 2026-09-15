@@ -12,7 +12,7 @@ enum CareData {
     struct Stage: Identifiable { let id: String; let name: String }
 
     static let seedPhase = 1
-    /// A proposal awaiting Head of Operations. Nobody has decided it.
+    /// Decided by the Founder. packages/catalog/care.json records the day.
     static let offerExpiresAfterMinutes = 10
 
     static let outsideScope = "You are only ever dispatched to work inside your registered scope. The Control Tower cannot override that."

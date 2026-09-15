@@ -9,9 +9,17 @@
  * packages/engines/src/safety/domain; iOS and Android cannot read JSON at runtime, so the copy is
  * generated rather than typed and scripts/check-boundaries.mjs compares it on every build.
  *
- * The numbers are proposals. Each has `decidedBy` in the contract, null until somebody with the
- * authority sets it, and this generator refuses a number whose question has been deleted — a panic
- * window that silently became policy is the failure this file exists to make loud.
+ * The grace and the panic window were decided by the founder on 15 September 2026; the extension steps
+ * and ceiling are still proposals. Each has `decidedBy` in the contract — null until somebody with the
+ * authority sets it — and this generator refuses a number whose question has been deleted, a decision
+ * that does not say who took it and when, and a proposal that does not say why it was proposed. A panic
+ * window that silently became policy is the failure this file exists to make loud, and each constant
+ * says in its own comment which of the two it is.
+ *
+ * Those four numbers are defaults. An admin changes them on the web back office, against the Safety
+ * engine's settings routes; neither native app has an admin surface or reaches those routes, so both
+ * time a visit and open a panic with the defaults written here, and say so rather than guessing at a
+ * change they cannot see.
  *
  * Escaping, as in emit-sos.mjs: Swift needs its quotes escaped; Kotlin needs backslash, quote and $.
  */
@@ -35,9 +43,10 @@ const banner = () => [
  'Do not edit by hand — run `npm run field-safety`. The build fails if this file and its sources disagree,',
  'so an edit here is lost rather than merely wrong.',
  '',
- 'The grace, the extension steps and ceiling and the panic window are PROPOSALS: decidedBy is null in the',
- 'contract until the founder sets the nurse field-safety policy. They are here so the screens can be',
- 'built against something, and they change in the contract, never in this file.'
+ 'The grace and the panic window were decided by the founder; the extension steps and ceiling are',
+ 'PROPOSALS, with decidedBy null in the contract. All four are defaults an admin changes on the web back',
+ 'office. This app has no admin surface and reaches no settings route, so it uses them as written here,',
+ 'and they change in the contract, never in this file.'
 ].map(line => (line ? `// ${line}` : '//')).join('\n');
 
 export function emitFieldSafety(root = '') {
@@ -45,16 +54,23 @@ export function emitFieldSafety(root = '') {
  const api = JSON.parse(readFileSync(root + API, 'utf8'));
  const sos = JSON.parse(readFileSync(root + SOS, 'utf8'));
 
- const proposal = (name, entry, list = false) => {
+ /* A decided number names who decided it; a proposal says why it was proposed. Either way the constant's
+    comment says which it is. The day and the reasoning a decision carries, and the question every number
+    keeps, are held by scripts/check-boundaries.mjs on every build; the phones are told who, not when. */
+ const timing = (name, entry, list = false) => {
   if (!entry || !('decidedBy' in entry)) throw new Error(`${SOURCE} ${name} has lost its decidedBy. A number nobody decided must say so.`);
+  const decided = entry.decidedBy !== null;
+  if (decided ? !String(entry.decidedBy).trim() : !entry.proposedBecause?.trim()) {
+   throw new Error(`${SOURCE} ${name} ${decided ? 'says it was decided without naming who decided it' : 'is a proposal that does not say why it was proposed'}.`);
+  }
   const values = list ? entry.value : [entry.value];
   if (!Array.isArray(values) || !values.length || !values.every(v => Number.isInteger(v) && v > 0)) throw new Error(`${SOURCE} ${name} must be ${list ? 'a list of' : ''} whole minutes above zero.`);
-  return entry.value;
+  return { value: entry.value, note: decided ? `Decided by the ${entry.decidedBy}. A default an admin may change on the web.` : 'A proposal nobody has decided. A default an admin may change on the web.' };
  };
- const grace = proposal('timer.graceMinutes', contract.timer.graceMinutes);
- const steps = proposal('timer.extensionMinutes', contract.timer.extensionMinutes, true);
- const ceiling = proposal('timer.maxExtensionMinutes', contract.timer.maxExtensionMinutes);
- const window = proposal('panic.windowMinutes', contract.panic.windowMinutes);
+ const grace = timing('timer.graceMinutes', contract.timer.graceMinutes);
+ const steps = timing('timer.extensionMinutes', contract.timer.extensionMinutes, true);
+ const ceiling = timing('timer.maxExtensionMinutes', contract.timer.maxExtensionMinutes);
+ const window = timing('panic.windowMinutes', contract.panic.windowMinutes);
  const feed = contract.simulation.positionEverySeconds;
 
  /* {police} and {ambulance} are resolved here and nowhere else in the native copy. Every other token
@@ -93,10 +109,14 @@ export function emitFieldSafety(root = '') {
 import Foundation
 
 extension FieldSafety {
-    static let graceMinutes = ${grace}
-    static let extensionSteps = [${steps.join(', ')}]
-    static let maxExtensionMinutes = ${ceiling}
-    static let panicWindowMinutes = ${window}
+    /// ${grace.note}
+    static let graceMinutes = ${grace.value}
+    /// ${steps.note}
+    static let extensionSteps = [${steps.value.join(', ')}]
+    /// ${ceiling.note}
+    static let maxExtensionMinutes = ${ceiling.value}
+    /// ${window.note}
+    static let panicWindowMinutes = ${window.value}
     /// The simulated feed's cadence, not a policy.
     static let positionEverySeconds = ${feed}
 
@@ -119,10 +139,14 @@ ${refusals.map(r => `        .init(id: ${swift(r.id)}, status: ${r.status}, stat
 package za.co.mythuso.model
 
 object FieldSafetyData {
-    const val graceMinutes = ${grace}
-    val extensionSteps = listOf(${steps.join(', ')})
-    const val maxExtensionMinutes = ${ceiling}
-    const val panicWindowMinutes = ${window}
+    /** ${grace.note} */
+    const val graceMinutes = ${grace.value}
+    /** ${steps.note} */
+    val extensionSteps = listOf(${steps.value.join(', ')})
+    /** ${ceiling.note} */
+    const val maxExtensionMinutes = ${ceiling.value}
+    /** ${window.note} */
+    const val panicWindowMinutes = ${window.value}
     /** The simulated feed's cadence, not a policy. */
     const val positionEverySeconds = ${feed}
 

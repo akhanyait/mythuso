@@ -1,11 +1,12 @@
 import { useId, useState } from 'react';
 import { Clock3, LogOut, MapPin, ShieldCheck, Siren, TimerReset } from 'lucide-react';
 import { NotConnected } from '../components/NotConnected';
-import { MINUTE, clockOf, fieldSafety, fill, panicWindowMinutes, positionDecimals, refusal, whatPanicDoesNotDo, type Refusal } from '../../../../packages/engines/src/safety/domain/rules.ts';
+import { MINUTE, clockOf, fieldSafety, fill, positionDecimals, refusal, whatPanicDoesNotDo, type Refusal } from '../../../../packages/engines/src/safety/domain/rules.ts';
 import { extensionLeft, minutesLeft, standingOf, stepsOffered } from '../../../../packages/engines/src/safety/domain/checkins.ts';
 import { isSharing, sharingEndsAt, standingOf as panicStandingOf } from '../../../../packages/engines/src/safety/domain/panics.ts';
 import { deskCounts, type DeskItem } from '../../../../packages/engines/src/safety/domain/desk.ts';
 import { checkInSafe, checkOut, closeOverdue, deskRows, extendVisit, panicFor, pickUp, positionOf, pressPanic, resolvePanic, timerFor, useFieldSafety } from '../lib/field-safety';
+import { panicWindowNow, useSettingsHistory } from '../lib/safety-settings';
 
 /* The nurse safety suite's two screens: the strip a nurse keeps on the visit she is in, and the queue
  * the desk works.
@@ -34,6 +35,9 @@ const labelOf = (list: readonly { id: string; label: string }[], id: string) => 
 
 export function VisitSafety({ reference }: { reference: string }) {
  const s = useFieldSafety();
+ /* Subscribed so the window the confirmation states is the one in force the moment it is drawn. The
+    timer and a panic already pressed keep their own; only the sentence about the next press moves. */
+ useSettingsHistory();
  const id = useId();
  const [extending, setExtending] = useState(false);
  const [reasonId, setReasonId] = useState('');
@@ -89,7 +93,7 @@ export function VisitSafety({ reference }: { reference: string }) {
 
   {confirming && <div className="fs-confirm" id={id + '-panic'} role="group" aria-labelledby={id + '-confirm'}>
    <strong id={id + '-confirm'}>{panicSay.confirmQuestion}</strong>
-   <p>{fill(panicSay.whatHappens, { ends: clockOf(s.now + panicWindowMinutes * MINUTE) })}</p>
+   <p>{fill(panicSay.whatHappens, { ends: clockOf(s.now + panicWindowNow().minutes * MINUTE) })}</p>
    <p>{whatPanicDoesNotDo()}</p>
    <NotConnected of="emergency" tone="inline"/>
    <div className="fs-confirm-actions">

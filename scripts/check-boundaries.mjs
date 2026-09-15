@@ -6899,8 +6899,8 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
 /* ==== Care & Nurse (Wave 3): packages/catalog/care.json and packages/engines/src/care ===============
 
    Added by the Care & Nurse lead. Self-contained. What it holds Care to, in the order a mistake would
-   reach a nurse: every service says who may be offered it; the offer expiry stays a proposal until
-   somebody is named as having decided it; the sample visit is a visit the contracts could produce; the
+   reach a nurse: every service says who may be offered it; the offer expiry is the founder's decision
+   and names who decided it and when; the sample visit is a visit the contracts could produce; the
    ported distance is packages/geo's to the last bit; every refusal Care cites and every event it
    publishes is one the contracts declare, and none carries the visit code; a checklist runs under no
    draft; and no hand-written Care file types a refusal sentence or the expiry the contract owns. */
@@ -6933,12 +6933,15 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   if (s.supervisedBy !== undefined && !roleIds.has(s.supervisedBy)) throw new Error(`packages/catalog/care.json supervises ${s.serviceId} by "${s.supervisedBy}", which is not a role on the register.`);
  }
 
- /* 2. A proposal is not a decision. The expiry is a number somebody proposed; the day it becomes a
-       decision it names who took it and when, or the build says it has not been taken. */
+ /* 2. A decision names who took it and when. The expiry was a proposal awaiting the Head of Operations
+       until the founder decided it on 15 September 2026 ("Care: 10min"). From then on the build requires
+       the named decision in the shape consent.json gives maximumExpiryDecision — decidedBy and a day —
+       and refuses a contract that drops either, or goes back to saying it is waiting on somebody: a
+       decision that quietly became a proposal again is as wrong as the other way round. */
  const offers = careContract.offers;
  if (!Number.isInteger(offers.expiresAfterMinutes) || offers.expiresAfterMinutes <= 0) throw new Error('packages/catalog/care.json gives an offer no whole number of minutes to lapse in, so an unanswered offer could hold a patient\'s visit for ever.');
- if (offers.decidedBy === null ? !offers.awaiting?.trim() : !(String(offers.decidedBy).trim() && /^\d{4}-\d{2}-\d{2}$/.test(offers.decidedOn ?? ''))) {
-  throw new Error('packages/catalog/care.json says the offer expiry was decided without naming who decided it and on what day, or leaves it undecided without saying who it waits on.');
+ if (!(typeof offers.decidedBy === 'string' && offers.decidedBy.trim()) || !/^\d{4}-\d{2}-\d{2}$/.test(offers.decidedOn ?? '') || 'awaiting' in offers) {
+  throw new Error('packages/catalog/care.json no longer records who decided the offer expiry and on what day, or says again that it is waiting on somebody. It is the founder\'s decision of 15 September 2026; a different expiry is a new decision with its own name and day, not an edit.');
  }
  const orderIds = offers.order.map(x => x.id).join(',');
  if (orderIds !== 'named,previous,nearest') throw new Error(`packages/catalog/care.json orders offers ${orderIds}; packages/engines/src/care/domain/matching.ts ranks named, then previous, then nearest.`);
@@ -7052,17 +7055,20 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   for (const sentence of owned) if (source.includes(sentence)) throw new Error(`${file} types the sentence "${sentence}". It belongs to its contract and is read or generated from there.`);
  }
  const expiryLiteral = new RegExp(`\\b${offers.expiresAfterMinutes}\\s*(-\\s*)?(min|minute)`, 'i');
- for (const file of careScreens) if (expiryLiteral.test(read(file))) throw new Error(`${file} types the offer expiry as ${offers.expiresAfterMinutes} minutes. It is a proposal in packages/catalog/care.json and changes there.`);
+ for (const file of careScreens) if (expiryLiteral.test(read(file))) throw new Error(`${file} types the offer expiry as ${offers.expiresAfterMinutes} minutes. It is the founder's decision in packages/catalog/care.json, and a different expiry is a new decision made there.`);
 
- console.log(`Care offers ${careContract.services.length} services by the register's roles and scopes, ${careContract.services.filter(s => !s.protocolIds.length).length} of them with no protocol to run a checklist under and the rest under drafts that run none; an offer lapses after ${offers.expiresAfterMinutes} minutes, a proposal awaiting ${offers.awaiting}. The ported distance agrees with packages/geo at ${probes.length * probes.length} pairs of points, ${citedRefusals} refusals cited in Care's code are declared where the runtime looks, ${published.length} event publications are live, Care's own and carry no visit code, and ${careCode.length + careScreens.length} hand-written Care files type none of the ${owned.length} sentences the contracts own.`);
+ console.log(`Care offers ${careContract.services.length} services by the register's roles and scopes, ${careContract.services.filter(s => !s.protocolIds.length).length} of them with no protocol to run a checklist under and the rest under drafts that run none; an offer lapses after ${offers.expiresAfterMinutes} minutes, decided by the ${offers.decidedBy} on ${offers.decidedOn}. The ported distance agrees with packages/geo at ${probes.length * probes.length} pairs of points, ${citedRefusals} refusals cited in Care's code are declared where the runtime looks, ${published.length} event publications are live, Care's own and carry no visit code, and ${careCode.length + careScreens.length} hand-written Care files type none of the ${owned.length} sentences the contracts own.`);
 }
 /* ==== end of Care & Nurse (Wave 3) ================================================================== */
 
 /* ==== Safety · nurse field safety (Wave 3) ==========================================================
 
    Added by the Safety lead. Self-contained. What it holds packages/catalog/field-safety.json and the
-   code that runs it to: every field-safety number is a proposal that still carries its question, and the
-   generator that writes them into the native apps is registered; a visit is timed by the service booked
+   code that runs it to: every field-safety number is a decision that names who took it and when, or a
+   proposal that still carries its question, and the generator that writes them into the native apps is
+   registered; the four an admin may change each sit inside a range that is itself a proposal, their
+   defaults replay from a changelog, the change route refuses what the founder's rules refuse and a timer
+   or a panic keeps the settings it started under; a visit is timed by the service booked
    rather than by a number anybody sent; the panic sentences type no emergency number of their own; every
    refusal an engine file or a screen names has a sentence; the desk queue carries exactly its declared
    keys and never the service, the person visited or the address; a panic has no path to a dispatch, is
@@ -7075,14 +7081,91 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  const sentenceFor = id => safetyContract.refusals.find(x => x.id === id) ?? safetyContract.routeRefusals.map(n => routeRefusalFor(n.route, n.id)).find(x => x?.id === id);
  const safetyFail = (id, detail) => { const r = sentenceFor(id); throw new Error(`${detail}${r ? ` ${r.statement} ${r.why ?? ''}` : ''}`); };
 
- /* 1. Proposals stay proposals until somebody decides them, and the generator that carries them is registered. */
- const proposals = [['timer.graceMinutes', safetyContract.timer.graceMinutes], ['timer.extensionMinutes', safetyContract.timer.extensionMinutes], ['timer.maxExtensionMinutes', safetyContract.timer.maxExtensionMinutes], ['panic.windowMinutes', safetyContract.panic.windowMinutes]];
- for (const [name, proposal] of proposals) {
-  if (!proposal || !('decidedBy' in proposal) || !proposal.question?.trim() || !proposal.proposedBecause?.trim()) throw new Error(`packages/catalog/field-safety.json ${name} has lost its decidedBy, its question or why it was proposed. A number nobody decided has to say so, or it quietly becomes the policy.`);
-  if (proposal.decidedBy !== null && !(typeof proposal.decidedBy === 'string' && proposal.decidedBy.trim())) throw new Error(`packages/catalog/field-safety.json ${name} has a decidedBy that is neither null nor the name of whoever decided it.`);
-  const values = Array.isArray(proposal.value) ? proposal.value : [proposal.value];
+ /* 1. Every field-safety number is a decision or a proposal, and says which. The founder decided the grace
+       and the panic window on 15 September 2026 ("panic 30, grace 60"); the extension steps and ceiling
+       are still proposals. A decision names who took it, the day and why, in the shape consent.json gives
+       maximumExpiryDecision; a proposal keeps decidedBy null and says why it was proposed; both keep their
+       question, so a number cannot quietly become policy by having the question deleted around it. */
+ const numbers = [['timer.graceMinutes', safetyContract.timer.graceMinutes], ['timer.extensionMinutes', safetyContract.timer.extensionMinutes], ['timer.maxExtensionMinutes', safetyContract.timer.maxExtensionMinutes], ['panic.windowMinutes', safetyContract.panic.windowMinutes]];
+ const decidedWell = entry => typeof entry.decidedBy === 'string' && !!entry.decidedBy.trim() && /^\d{4}-\d{2}-\d{2}$/.test(entry.decidedOn ?? '') && !!entry.why?.trim();
+ for (const [name, entry] of numbers) {
+  if (!entry || !('decidedBy' in entry) || !entry.question?.trim()) throw new Error(`packages/catalog/field-safety.json ${name} has lost its decidedBy or its question. A number has to say whether anybody decided it, or it quietly becomes the policy.`);
+  if (entry.decidedBy === null ? !entry.proposedBecause?.trim() : !decidedWell(entry)) throw new Error(`packages/catalog/field-safety.json ${name} ${entry.decidedBy === null ? 'is a proposal that does not say why it was proposed' : 'says it was decided without naming who decided it, on what day and why'}.`);
+  const values = Array.isArray(entry.value) ? entry.value : [entry.value];
   if (!values.length || !values.every(v => Number.isInteger(v) && v > 0)) throw new Error(`packages/catalog/field-safety.json ${name} must be whole minutes above zero.`);
  }
+ const proposals = numbers.filter(([, entry]) => entry.decidedBy === null);
+
+ /* 1b. What an admin may change is the contract's, whole. The founder decided that Operations sets these
+        timings on the admin: every one of the four is listed once with where its default is, a unit, the
+        vetting register's admin role as the only one that may change it, and a lowest and highest that
+        are themselves proposals with a reason — and each default sits inside its own range, so the
+        contract cannot ship a default an admin would be refused for putting back. */
+ const settingsBlock = safetyContract.settings;
+ const settingsRoles = JSON.parse(read('packages/catalog/vetting.json')).roles.map(r => r.id);
+ if (!settingsBlock || settingsBlock.changeableBy !== 'admin' || !settingsRoles.includes(settingsBlock.changeableBy)) throw new Error('packages/catalog/field-safety.json settings no longer says the admin role on the vetting register changes the field-safety timings. The founder decided Operations sets them on the admin, and a setting anybody could change is not a setting.');
+ const configurable = settingsBlock.timings ?? [];
+ const defaultPaths = configurable.map(t => t.defaultFrom).sort().join(',');
+ if (defaultPaths !== numbers.map(([name]) => name).sort().join(',') || new Set(configurable.map(t => t.id)).size !== configurable.length) throw new Error(`packages/catalog/field-safety.json settings.timings reads its defaults from ${defaultPaths}; it must list each of ${numbers.map(([name]) => name).join(', ')} once, so no timing an admin may change is missing and none is changed in two places.`);
+ const boundProblem = bound => !bound || !('decidedBy' in bound) || !Number.isInteger(bound.value) || bound.value <= 0 || (bound.decidedBy === null ? !bound.proposedBecause?.trim() : !decidedWell(bound));
+ for (const t of configurable) {
+  const entry = numbers.find(([name]) => name === t.defaultFrom)[1];
+  const values = Array.isArray(entry.value) ? entry.value : [entry.value];
+  if (t.unit !== 'minutes' || t.shape !== (Array.isArray(entry.value) ? 'steps' : 'minutes') || !t.label?.trim()) throw new Error(`packages/catalog/field-safety.json settings timing "${t.id}" has no label, is not in minutes, or its shape is not the shape of ${t.defaultFrom}.`);
+  if (t.changeableBy !== settingsBlock.changeableBy) throw new Error(`packages/catalog/field-safety.json settings timing "${t.id}" may be changed by "${t.changeableBy}". Every field-safety setting is changed by ${settingsBlock.changeableBy} and nobody else.`);
+  if (boundProblem(t.lowest) || boundProblem(t.highest) || t.lowest.value > t.highest.value) throw new Error(`packages/catalog/field-safety.json settings timing "${t.id}" has a range that is not two whole minutes above nought, lowest first, each a proposal that says why it was proposed or a decision that says who, when and why.`);
+  const outside = values.find(v => v < t.lowest.value || v > t.highest.value);
+  if (outside !== undefined) throw new Error(`packages/catalog/field-safety.json ${t.defaultFrom} is ${outside}, outside the ${t.lowest.value}–${t.highest.value} an admin may set. A default an admin would be refused for putting back is a range written against the wrong number.`);
+ }
+
+ /* 1c. The defaults are a versioned configuration, replayed as gilbert-emergency-terms.json is. Every change
+        to a default is a changelog entry with the day, who by role, each timing's from and to, and why.
+        Replayed from nothing the log must arrive at the defaults above, and a decided default must have
+        been set last by the entry that names its decider on its day. */
+ const defaultsLog = settingsBlock.defaults;
+ if (!defaultsLog || !Number.isInteger(defaultsLog.version) || !Array.isArray(defaultsLog.changelog) || defaultsLog.changelog.length !== defaultsLog.version) throw new Error('packages/catalog/field-safety.json settings.defaults has no version, or its changelog does not have one entry per version.');
+ const replayed = new Map();
+ const lastChange = new Map();
+ defaultsLog.changelog.forEach((logEntry, i) => {
+  const where = `packages/catalog/field-safety.json settings.defaults.changelog version ${logEntry.version}`;
+  if (logEntry.version !== i + 1 || !/^\d{4}-\d{2}-\d{2}$/.test(logEntry.on ?? '') || !logEntry.by?.trim() || !logEntry.why?.trim() || !Array.isArray(logEntry.changed) || !logEntry.changed.length) throw new Error(`${where} is out of order, or has no day, nobody who made it, no reason or nothing changed.`);
+  for (const c of logEntry.changed) {
+   if (!configurable.some(t => t.id === c.timing)) throw new Error(`${where} changes "${c.timing}", which is not a setting.`);
+   if (JSON.stringify(replayed.get(c.timing) ?? null) !== JSON.stringify(c.from)) throw new Error(`${where} says ${c.timing} went from ${JSON.stringify(c.from)}, and the entries before it leave it at ${JSON.stringify(replayed.get(c.timing) ?? null)}. The log is added to, never edited.`);
+   replayed.set(c.timing, c.to);
+   lastChange.set(c.timing, logEntry);
+  }
+ });
+ for (const t of configurable) {
+  const entry = numbers.find(([name]) => name === t.defaultFrom)[1];
+  if (JSON.stringify(replayed.get(t.id)) !== JSON.stringify(entry.value)) throw new Error(`packages/catalog/field-safety.json ${t.defaultFrom} is ${JSON.stringify(entry.value)}, and replaying settings.defaults.changelog gives ${JSON.stringify(replayed.get(t.id))}. A default changes with a new changelog entry and a new version, never on its own.`);
+  if (entry.decidedBy !== null && (lastChange.get(t.id)?.by !== entry.decidedBy || lastChange.get(t.id)?.on !== entry.decidedOn)) throw new Error(`packages/catalog/field-safety.json ${t.defaultFrom} says the ${entry.decidedBy} decided it on ${entry.decidedOn}, and the last changelog entry to change it was made by ${lastChange.get(t.id)?.by} on ${lastChange.get(t.id)?.on}.`);
+ }
+
+ /* 1d. The change route is the admin's, keyed and versioned, and refuses what the founder's rules refuse;
+        the read route is the admin's too; both are built in Safety's own engine; and the change emits the
+        one event declared for it, which is live, in the lock, and carries no reason and no position. */
+ const changeRoute = safetyApi.routes.find(r => r.method === 'POST' && r.path === '/v1/safety/setting-changes' && !r.withdrawn);
+ const readRoute = safetyApi.routes.find(r => r.method === 'GET' && r.path === '/v1/safety/settings' && !r.withdrawn);
+ if (!changeRoute || !readRoute) throw new Error('packages/catalog/apis/safety.json has lost GET /v1/safety/settings or POST /v1/safety/setting-changes, so the timings an admin changes have no route an admin changes them through.');
+ for (const r of [changeRoute, readRoute]) {
+  if (r.callers.join(',') !== settingsBlock.changeableBy) safetyFail('setting-change-not-permitted', `${r.method} ${r.path} is called by ${r.callers.join(', ')}; it is called by ${settingsBlock.changeableBy} alone.`);
+  if (r.status !== 'built' || r.evidence?.file !== 'packages/engines/src/safety/engine.ts') throw new Error(`${r.method} ${r.path} is not built in packages/engines/src/safety/engine.ts.`);
+ }
+ if (changeRoute.idempotent !== true || !changeRoute.request.some(f => f.field === 'idempotencyKey' && f.required === true)) throw new Error('POST /v1/safety/setting-changes is not idempotent on a required idempotencyKey, so a retried change could be recorded twice.');
+ if (!changeRoute.request.some(f => f.field === 'expectedVersion' && f.type === 'integer' && f.required === true)) safetyFail('settings-version-stale', 'POST /v1/safety/setting-changes does not require the version the admin was looking at.');
+ for (const id of ['setting-change-not-permitted', 'setting-change-without-reason', 'settings-version-stale', 'setting-out-of-range', 'setting-not-above-zero']) {
+  if (!changeRoute.refusals.some(x => x.id === id && x.statement?.trim()) || !safetyContract.routeRefusals.some(n => n.route === 'POST /v1/safety/setting-changes' && n.id === id)) throw new Error(`POST /v1/safety/setting-changes no longer declares "${id}", or packages/catalog/field-safety.json no longer names it, so the screens would have no sentence for a change the founder's rules refuse.`);
+ }
+ /* No event, and the route says why. safety.settings.changed@1 was proposed for this route, and no engine
+    acts on it: Core does not read Safety's timings, because Safety sends the deadline on what it raises,
+    and the event contract refuses an event nobody subscribes to. So the change route emits nothing and says
+    so, and its handler and the domain publish nothing. The day an engine that acts on a settings change is
+    named, the event is declared with that subscriber, locked, and this check changes with it. */
+ if (changeRoute.emits.length || !changeRoute.emitsNoneBecause?.trim()) throw new Error(`POST /v1/safety/setting-changes emits ${changeRoute.emits.join(', ') || 'nothing and does not say why'}. No engine acts on a settings change, so the route emits nothing and says why; packages/catalog/events.json refuses an event nobody subscribes to.`);
+ const settingsEngineSource = read('packages/engines/src/safety/engine.ts');
+ const changeHandler = settingsEngineSource.slice(settingsEngineSource.indexOf("'POST /v1/safety/setting-changes@1'"), settingsEngineSource.indexOf(' subscriptions: {'));
+ if (!changeHandler || /ctx\.publish\(/.test(changeHandler) || /type: 'safety\.settings\./.test(read('packages/engines/src/safety/domain/settings.ts'))) throw new Error('POST /v1/safety/setting-changes@1, or domain/settings.ts, publishes something. The route declares that it emits nothing, and the runtime would refuse an event no contract declares.');
  if (safetyContract.timer.maxExtensionMinutes.value < Math.max(...safetyContract.timer.extensionMinutes.value)) safetyFail('extension-limit', 'packages/catalog/field-safety.json offers an extension step larger than the ceiling, so the step could never be taken.');
  const rootScripts = JSON.parse(read('package.json')).scripts;
  if (rootScripts['field-safety'] !== 'node scripts/emit-field-safety.mjs' || !/npm run field-safety/.test(rootScripts.generate)) throw new Error('package.json no longer registers scripts/emit-field-safety.mjs as npm run field-safety and in npm run generate, so the native copies of the field-safety contract would stop being regenerated.');
@@ -7135,8 +7218,34 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  if (!/raised_by_role = \? AND raised_by_ref = \? AND appointment_ref IS \? AND location_share_ends_at > \?/.test(engineSource)) throw new Error("POST /v1/safety/panics@1 in packages/engines/src/safety/engine.ts no longer folds a repeat press only into the same identified caller's open panic for the same visit. A panic answered with somebody else's is a nurse the desk never hears about.");
  if (/\bpositions\s*[:=]/.test(read('apps/web/src/lib/field-safety.ts'))) safetyFail('location-retained', 'apps/web/src/lib/field-safety.ts keeps positions somewhere other than the one latest position a panic holds.');
 
- /* 7. Native copies are generated. A hand-written native file may not type a contract sentence or a minute. */
+ /* 6b. A change never reaches back. A timer copies the settings in force when it starts and a panic its
+        window, and nothing already running reads a setting again. So checkins.ts and panics.ts take the
+        settings as an argument and read their own copy afterwards; rules.ts exports no timing for them to
+        reach for instead; the engine stores the version with a panic and with a visit under way, keeps the
+        first a visit was heard under, and only ever appends to the history; zero is refused before the
+        range is asked; and the web starts every timer and presses every panic with what is in force. */
+ const settingsDomain = read('packages/engines/src/safety/domain/settings.ts');
+ const rulesSource = read('packages/engines/src/safety/domain/rules.ts');
+ if (/export const (graceMinutes|extensionSteps|maxExtensionMinutes|panicWindowMinutes)\b/.test(rulesSource)) throw new Error('packages/engines/src/safety/domain/rules.ts exports a field-safety timing. The timings are settings an admin changes; a constant is a default a running timer could read instead of the one it started with.');
+ const importsATiming = source => /import \{[^}]*\b(graceMinutes|extensionSteps|maxExtensionMinutes|panicWindowMinutes)\b[^}]*\} from '[^']*rules\.ts'/.test(source);
+ if (!/\}, now: number, settings: SettingsInForce\): Result<Timer>/.test(checkinsSource) || !checkinsSource.includes('settingsVersion: settings.settingsVersion') || !checkinsSource.includes('timer.extensionSteps.includes(request.minutes)') || !checkinsSource.includes('extensionUsed(timer) + request.minutes > timer.maxExtensionMinutes') || importsATiming(checkinsSource)) throw new Error('packages/engines/src/safety/domain/checkins.ts no longer starts a timer with the settings in force and reads its own copy afterwards. A timer that reads the settings again is a running visit an admin can make overdue.');
+ if (!/\}, now: number, window: PanicWindow\): Result<Panic>/.test(panicsSource) || !panicsSource.includes('now + window.minutes * MINUTE') || !panicsSource.includes('settingsVersion: window.settingsVersion') || importsATiming(panicsSource)) safetyFail('window-does-not-stretch', 'packages/engines/src/safety/domain/panics.ts no longer opens a panic with the window in force and keeps its end.');
+ if (!engineSource.includes('panicWindowOf(historyOf(ctx.store))') || !/INSERT INTO panics \([^)]*settings_version[^)]*\)/.test(engineSource) || !/INSERT OR IGNORE INTO visits_under_way \([^)]*settings_version[^)]*grace_minutes[^)]*\)/.test(engineSource)) throw new Error('packages/engines/src/safety/engine.ts no longer stores the settings version a panic opened under and a visit started under, or no longer keeps the first a visit was heard under.');
+ for (const file of safetySources) if (/\b(UPDATE|DELETE\s+FROM|REPLACE\s+INTO|INSERT\s+OR\s+REPLACE\s+INTO|DROP\s+TABLE)\s+(IF\s+EXISTS\s+)?settings_changes\b/i.test(read(file))) throw new Error(`${file} edits or removes the field-safety settings history. It is added to and never edited: a history that can be tidied is not a record of who changed how long the desk waits.`);
+ const zeroAt = settingsDomain.indexOf("refuse('setting-not-above-zero')");
+ if (zeroAt < 0 || zeroAt > settingsDomain.indexOf('timing.lowest.value')) safetyFail('setting-not-above-zero', 'packages/engines/src/safety/domain/settings.ts no longer refuses nought or less before it asks the range, so a range set wrongly would let a grace or a window of nothing through.');
+ const webSafety = read('apps/web/src/lib/field-safety.ts');
+ const count = (source, pattern) => (source.match(pattern) ?? []).length;
+ if (importsATiming(webSafety) || importsATiming(read('apps/web/src/features/FieldSafety.tsx')) || /timer\.graceMinutes\.value|panic\.windowMinutes\.value/.test(webSafety)
+  || count(webSafety, /startTimer\(/g) !== count(webSafety, /startTimer\([^;]*\b(settings|settingsNow\(\))\)/g)
+  || count(webSafety, /raisePanic\(/g) !== count(webSafety, /raisePanic\([^;]*\bwindow\)/g)) throw new Error('apps/web/src/lib/field-safety.ts no longer starts every timer with the settings in force and presses every panic with the window in force, or reads a default straight from the contract. The nurse\'s strip and the desk read what an admin set, not a number.');
+
+ /* 7. No screen types a field-safety minute. Native copies are generated; the web reads the settings in
+       force; the admin screen reads every default and range from the contract. So none of these files may
+       type a default, a step, a ceiling, a window or either end of a range as minutes, and no native file
+       may type a sentence the contract holds. */
  const handNative = ['apps/ios/MyThuso/Models/FieldSafety.swift', 'apps/ios/MyThuso/Features/FieldSafetyView.swift', 'apps/android/app/src/main/java/za/co/mythuso/model/FieldSafety.kt', 'apps/android/app/src/main/java/za/co/mythuso/ui/FieldSafetyScreens.kt'];
+ const webScreens = ['apps/web/src/lib/field-safety.ts', 'apps/web/src/features/FieldSafety.tsx', 'apps/web/src/lib/safety-settings.ts', 'apps/web/src/features/SafetySettings.tsx'];
  const blocks = [safetyContract.nurse, safetyContract.panic, safetyContract.desk, safetyContract.desk.kinds];
  const sentences = [
   ...blocks.flatMap(b => Object.entries(b).filter(([k, v]) => typeof v === 'string' && !k.startsWith('_')).map(([, v]) => v)),
@@ -7144,17 +7253,17 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   ...safetyContract.refusals.map(r => r.statement)
  ];
  const pieces = sentences.flatMap(s => s.split(/\{\w+\}/)).map(p => p.trim()).filter(p => p.length >= 16);
- const minuteNumbers = [...new Set([safetyContract.timer.graceMinutes.value, safetyContract.timer.maxExtensionMinutes.value, safetyContract.panic.windowMinutes.value, ...safetyContract.timer.extensionMinutes.value])];
- const typedMinute = new RegExp(`\\b(${minuteNumbers.join('|')})\\s*(?:\\*\\s*60|min\\b|minutes\\b|\\.minutes)`);
- for (const file of handNative) {
-  if (!existsSync(file)) throw new Error(`${file} is missing. The nurse safety suite ships on all three platforms from day one.`);
+ const minuteNumbers = [...new Set([...numbers.flatMap(([, entry]) => Array.isArray(entry.value) ? entry.value : [entry.value]), ...configurable.flatMap(t => [t.lowest.value, t.highest.value])])];
+ const typedMinute = new RegExp(`\\b(${minuteNumbers.join('|')})\\s*(?:\\*\\s*60\\b|\\*\\s*MINUTE\\b|min\\b|minutes\\b|\\.minutes\\b)`);
+ for (const file of [...handNative, ...webScreens]) {
+  if (!existsSync(file)) throw new Error(`${file} is missing. The nurse safety suite ships on all three platforms from day one, and the web reads its settings from one module.`);
   const source = read(file);
-  const typed = pieces.find(p => source.includes(p));
+  const typed = handNative.includes(file) && pieces.find(p => source.includes(p));
   if (typed) throw new Error(`${file} types "${typed}", which packages/catalog/field-safety.json holds. Read it from FieldSafetyData, which scripts/emit-field-safety.mjs writes from the contract.`);
   const minute = source.match(typedMinute);
-  if (minute) throw new Error(`${file} types a field-safety minute (${minute[0]}). The grace, the steps, the ceiling and the window are proposals in packages/catalog/field-safety.json and change there.`);
+  if (minute) throw new Error(`${file} types a field-safety minute (${minute[0]}). The grace, the steps, the ceiling, the window and the range an admin may set them within live in packages/catalog/field-safety.json and change there.`);
  }
 
- console.log(`Field safety holds ${proposals.length} undecided numbers with their questions and a registered generator, times a visit by its service, names no emergency number of its own, finds a sentence for all ${refusalsNamed} refusals the engine and the web name, keeps a desk row to its ${safetyContract.desk.carries.length} declared keys, never shares a panic between callers, keeps no position, and ${handNative.length} hand-written native files type none of its sentences or minutes.`);
+ console.log(`Field safety holds ${numbers.length - proposals.length} decided and ${proposals.length} proposed numbers, each with its question and a registered generator; ${configurable.length} of them an admin may change, each default inside a range that is itself a proposal, and the defaults replay from their changelog to version ${defaultsLog.version}. The change route is the admin's, keyed and versioned, refuses what the founder's rules refuse, and emits nothing because no engine acts on a change; a timer and a panic keep the settings they started under, and the history is only appended to. A visit is timed by its service, no emergency number is typed, all ${refusalsNamed} refusals the engine and the web name have a sentence, a desk row keeps to its ${safetyContract.desk.carries.length} declared keys, no panic is shared between callers, no position is kept, and ${handNative.length + webScreens.length} hand-written screens type none of its minutes.`);
 }
 /* ==== end of Safety · nurse field safety (Wave 3) ================================================== */

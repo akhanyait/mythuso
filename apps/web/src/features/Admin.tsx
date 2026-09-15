@@ -7,6 +7,7 @@ import { useVettingState, VettingConsole, type VettingState } from './Vetting';
 import { summarise, type VettingSubject } from '../lib/vetting';
 import { businessModel, money, bigMoney, platformMargin, services, type Service } from '../lib/catalog';
 import { momPlan, subscriptionLines } from '../lib/mom-plans';
+import { SafetySettings } from './SafetySettings';
 export const adminTabs = ['Overview', 'Vetting', 'Operations', 'Clinical', 'Catalogue', 'Growth', 'Finance', 'Compliance'] as const;
 export type AdminTab = typeof adminTabs[number];
 /* What each tab is for, in one line, in the words somebody in this office would use. It replaces the
@@ -14,7 +15,7 @@ export type AdminTab = typeof adminTabs[number];
 const tabBlurb: Record<AdminTab, string> = {
  Overview: 'Today against the month-9 checkpoint in the funding proposal.',
  Vetting: 'Who may work, who may not, and the written reason for each.',
- Operations: 'The live board, who is kept off it, and what has gone wrong today.',
+ Operations: 'The live board, who is kept off it, what has gone wrong today, and how long the safety desk waits.',
  Clinical: 'What is waiting for a doctor, and how often decision support and the doctor disagreed.',
  Catalogue: 'What a visit costs, what the nurse takes, and what is left to run the service on.',
  Growth: 'Subscriptions, screening packages and the contracted lines in the proposal.',
@@ -131,6 +132,9 @@ function Operations({ open, vetting }: { open: (s: string) => void; vetting: Vet
   <DispatchBoard subjects={vetting.subjects} heading={false}/>
   <SectionTitle title="Open incidents"/>
   <IncidentBoard open={open}/>
+  {/* Under the board and the incidents, because those are what the tab is opened for on a working day;
+      the timings the desk works to are changed rarely, and read before they are changed. */}
+  <SafetySettings/>
  </>;
 }
 const reviewQueue = [

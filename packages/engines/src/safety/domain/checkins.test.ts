@@ -1,10 +1,12 @@
 /* Visit timers on a simulated clock: start, extend, overdue, close, and the desk closing an overdue.
    Every expected minute is read from the contracts, so a changed grace or duration moves the test
-   with it rather than making it lie. */
+   with it rather than making it lie. A timer is started with the defaults in force; what happens to one
+   when an admin changes a setting is settings.test.ts's. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { MINUTE, extensionReasons, extensionSteps, graceMinutes, maxExtensionMinutes, serviceMinutes } from './rules.ts';
+import { MINUTE, extensionReasons, serviceMinutes } from './rules.ts';
+import { defaultTimings, defaultsInForce } from './settings.ts';
 import { acknowledgeOverdue, checkIn, close, completeVisit, extend, silenceOverdue, standingOf, startTimer, stepsOffered, tick, type Timer } from './checkins.ts';
 
 const json = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
@@ -13,11 +15,12 @@ const events = json('../../../../catalog/events.json') as { events: { type: stri
 const api = json('../../../../catalog/apis/safety.json') as { routes: { method: string; path: string; refusals: { id: string; statement: string }[] }[] };
 const routeStatement = (path: string, id: string) => api.routes.find(r => r.path === path)!.refusals.find(r => r.id === id)!.statement;
 
+const { graceMinutes, extensionSteps, maxExtensionMinutes } = defaultTimings;
 const T0 = Date.UTC(2026, 8, 14, 7, 0);
 const service = services.find(s => s.id === 'wound')!;
 const reason = extensionReasons[0].id;
 const started = (): Timer => {
- const result = startTimer({ checkinRef: 'CHK-1', event: { appointmentRef: 'APT-1', visitCodeMatched: true }, serviceId: service.id, nurseRef: 'N-205' }, T0);
+ const result = startTimer({ checkinRef: 'CHK-1', event: { appointmentRef: 'APT-1', visitCodeMatched: true }, serviceId: service.id, nurseRef: 'N-205' }, T0, defaultsInForce);
  assert.ok(result.ok);
  return result.value;
 };
@@ -27,23 +30,24 @@ const value = <T>(result: { ok: true; value: T } | { ok: false; refusal: { id: s
 };
 
 test('a timer starts from the visit and is due at the service duration plus the grace', () => {
- const result = startTimer({ checkinRef: 'CHK-1', event: { appointmentRef: 'APT-1', visitCodeMatched: true }, serviceId: service.id, nurseRef: 'N-205' }, T0);
+ const result = startTimer({ checkinRef: 'CHK-1', event: { appointmentRef: 'APT-1', visitCodeMatched: true }, serviceId: service.id, nurseRef: 'N-205' }, T0, defaultsInForce);
  assert.ok(result.ok);
  assert.equal(result.value.expectedMinutes, serviceMinutes(service.id));
  assert.equal(result.value.dueAt, T0 + (service.duration + graceMinutes) * MINUTE);
+ assert.equal(result.value.settingsVersion, defaultsInForce.settingsVersion);
  assert.deepEqual(result.emits, [], 'a timer emits when it runs out, not when it starts');
  assert.equal(standingOf(result.value, T0), 'running');
 });
 
 test('a visit whose code did not match, an unknown service and a typed duration are refused', () => {
- const unmatched = startTimer({ checkinRef: 'C', event: { appointmentRef: 'A', visitCodeMatched: false }, serviceId: service.id, nurseRef: 'N' }, T0);
+ const unmatched = startTimer({ checkinRef: 'C', event: { appointmentRef: 'A', visitCodeMatched: false }, serviceId: service.id, nurseRef: 'N' }, T0, defaultsInForce);
  assert.equal(!unmatched.ok && unmatched.refusal.id, 'timer-without-a-matched-code');
- const unknown = startTimer({ checkinRef: 'C', event: { appointmentRef: 'A', visitCodeMatched: true }, serviceId: 'not-a-service', nurseRef: 'N' }, T0);
+ const unknown = startTimer({ checkinRef: 'C', event: { appointmentRef: 'A', visitCodeMatched: true }, serviceId: 'not-a-service', nurseRef: 'N' }, T0, defaultsInForce);
  assert.equal(!unknown.ok && unknown.refusal.id, 'timer-for-an-unknown-service');
- const typed = startTimer({ checkinRef: 'C', event: { appointmentRef: 'A', visitCodeMatched: true }, serviceId: service.id, nurseRef: 'N', expectedMinutes: service.duration + 90 }, T0);
+ const typed = startTimer({ checkinRef: 'C', event: { appointmentRef: 'A', visitCodeMatched: true }, serviceId: service.id, nurseRef: 'N', expectedMinutes: service.duration + 90 }, T0, defaultsInForce);
  assert.ok(!typed.ok);
  assert.equal(typed.refusal.statement, routeStatement('/v1/safety/checkins', 'expected-minutes-not-the-service'));
- const agreeing = startTimer({ checkinRef: 'C', event: { appointmentRef: 'A', visitCodeMatched: true }, serviceId: service.id, nurseRef: 'N', expectedMinutes: service.duration }, T0);
+ const agreeing = startTimer({ checkinRef: 'C', event: { appointmentRef: 'A', visitCodeMatched: true }, serviceId: service.id, nurseRef: 'N', expectedMinutes: service.duration }, T0, defaultsInForce);
  assert.ok(agreeing.ok, 'a duration that agrees with the catalogue is not refused');
 });
 

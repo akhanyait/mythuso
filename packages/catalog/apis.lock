@@ -162,3 +162,5 @@ POST /v1/money/payments/{paymentRef}/release@1 e45dcb6e09583bc3
 POST /v1/access/bookings/{bookingRef}/cancel@1 fba3f9ec80279e01
 GET /v1/access/visit-threads/{bookingRef}@1 cbe1a7fc9e818c57
 POST /v1/access/visit-threads/{bookingRef}/messages@1 ce20bca270a493da
+GET /v1/safety/settings@1 6f6de632fdd22e1f
+POST /v1/safety/setting-changes@1 46270bd875fbfa39

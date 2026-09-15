@@ -1,7 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { goSection, openWorkspace } from './nav';
+import { chooseRole, goSection, openWorkspace } from './nav';
 import { noticeFor } from './notices';
+import { changeTiming, openSettingsPanel, timingRow } from './safety-settings';
 
 /* The nurse safety suite, on both viewports.
  *
@@ -9,15 +10,19 @@ import { noticeFor } from './notices';
  * when the visit code matches and is due at the service's own duration plus the grace; an extension
  * without a reason is refused in the contract's sentence; the deadline passing says so in words; panic
  * asks once, names the real emergency numbers and says the desk decides; a second press is the same
- * panic; the window ends and the position with it; and the desk sees a nurse and a suburb, never a
- * service, and cannot resolve a panic without saying what happened.
+ * panic; the window ends and the position with it; the desk sees a nurse and a suburb, never a service,
+ * and cannot resolve a panic without saying what happened; and an admin changing the grace or the window
+ * in the back office never moves a visit already running or a panic already open.
  *
  * Every expected sentence, minute and number is read from the contracts, and time is Playwright's clock,
- * so a grace or a window the founder changes moves these tests with it instead of breaking them. */
+ * so a grace or a window the founder changes moves these tests with it instead of breaking them. The grace
+ * and window a fresh page runs on are the contract's defaults; tests/safety-settings.spec.ts walks the
+ * back office that changes them. */
 const json = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
 const contract = json('../packages/catalog/field-safety.json');
 const services = json('../packages/catalog/services.json') as { id: string; name: string; duration: number }[];
 const sos = json('../packages/catalog/sos.json') as { emergency: { numbers: { id: string; number: string }[] } };
+const visitCode: string = json('../packages/catalog/care.json').preview.visitCode;
 const emergencyNumber = (id: string) => sos.emergency.numbers.find(entry => entry.id === id)!.number;
 const statement = (id: string) => (contract.refusals as { id: string; statement: string }[]).find(entry => entry.id === id)!.statement;
 const fill = (sentence: string, values: Record<string, string>) => sentence.replace(/\{(\w+)\}/g, (whole, key: string) => values[key] ?? whole);
@@ -31,15 +36,22 @@ const window: number = contract.panic.windowMinutes.value;
 /* The first visit on the nurse's day is the catalogue's first service; the schedule is drawn from it. */
 const visitMinutes = services[0].duration;
 
+/* The visit the schedule offers, opened and, the first time, started with the code. Opened again after
+   it has started, the strip is already there: the timer is the visit's, not the dialog's. */
+async function openVisit(page: Page, withCode: boolean) {
+  await page.getByRole('button', { name: 'Start this visit' }).click();
+  const dialog = page.getByRole('dialog');
+  if (withCode) {
+    await dialog.getByLabel('Visit code, digit 1 of 6').fill(visitCode);
+    await dialog.getByRole('checkbox').first().check();
+    await dialog.getByRole('button', { name: 'Confirm identity' }).click();
+  }
+  return dialog.getByRole('region', { name: new RegExp(`^${contract.nurse.heading}`) });
+}
 async function startVisit(page: Page) {
   await page.clock.install({ time: START });
   await openWorkspace(page, 'Nurse');
-  await page.getByRole('button', { name: 'Start this visit' }).click();
-  const dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Visit code, digit 1 of 6').fill('482190');
-  await dialog.getByRole('checkbox').first().check();
-  await dialog.getByRole('button', { name: 'Confirm identity' }).click();
-  return dialog.getByRole('region', { name: new RegExp(`^${contract.nurse.heading}`) });
+  return openVisit(page, true);
 }
 
 test('no strip before the code matches; after it, due at the service duration plus the grace, and an extension says why', async ({ page }) => {
@@ -95,6 +107,33 @@ test('panic asks once, names the real numbers, says who can see her and until wh
   await page.clock.fastForward((window - 1) * MINUTE);
   await expect(pressed).toContainText(fill(contract.panic.sharingStopped, { ended: clock(at(window)) }));
   await expect(pressed).toContainText(contract.panic.pressAgain);
+});
+
+test('an admin change never moves a visit already running or a panic already open, and the next press states the window in force', async ({ page }) => {
+  const strip = await startVisit(page);
+  await expect(strip).toContainText(fill(contract.nurse.due, { due: clock(at(visitMinutes + grace)) }));
+  await strip.getByRole('button', { name: contract.panic.press, exact: true }).click();
+  await strip.getByRole('group', { name: contract.panic.confirmQuestion }).getByRole('button', { name: contract.panic.confirm }).click();
+  await expect(strip.locator('.fs-pressed')).toContainText(fill(contract.panic.sharingUntil, { ends: clock(at(window)) }));
+  await page.getByRole('button', { name: 'Close dialog' }).click();
+
+  /* In the same tab, the back office shortens the grace and lengthens the window. */
+  const graceRow = timingRow('grace');
+  const windowRow = timingRow('panic-window');
+  const shorterGrace = graceRow.lowest.value;
+  const longerWindow = windowRow.highest.value;
+  await chooseRole(page, 'Back office');
+  const panel = await openSettingsPanel(page);
+  await changeTiming(panel, graceRow, grace, shorterGrace, 'The desk wants to look for a nurse sooner after a visit runs over.');
+  await changeTiming(panel, windowRow, window, longerWindow, 'Help is taking longer than half an hour to reach the outer suburbs.');
+
+  await chooseRole(page, 'Nurse');
+  const again = await openVisit(page, false);
+  await expect(again).toContainText(fill(contract.nurse.due, { due: clock(at(visitMinutes + grace)) }));
+  await expect(again).not.toContainText(fill(contract.nurse.due, { due: clock(at(visitMinutes + shorterGrace)) }));
+  await expect(again.locator('.fs-pressed')).toContainText(fill(contract.panic.sharingUntil, { ends: clock(at(window)) }));
+  await again.getByRole('button', { name: contract.panic.press, exact: true }).click();
+  await expect(again.getByRole('group', { name: contract.panic.confirmQuestion })).toContainText(fill(contract.panic.whatHappens, { ends: clock(at(longerWindow)) }));
 });
 
 test('the desk sees a nurse and a suburb, never a service, and resolves or closes only with a true reason', async ({ page }) => {

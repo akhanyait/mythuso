@@ -80,6 +80,15 @@ export async function openAdminConsole(page: Page) {
   await page.goto('/app/?role=back-office');
   await expect(page.getByRole('heading', { level: 1, name: 'Overview' })).toBeVisible();
 }
+/* Another role in the same tab, through the demo login's full list, which both viewports draw. No page
+   load happens, so whatever the preview holds in memory — a timer, a panic, a setting changed in the back
+   office — is still there, which is exactly what a journey across two roles needs to see. The role is
+   matched on its label alone, because a row's other lines can mention a nurse without being one. */
+export async function chooseRole(page: Page, label: string) {
+  await page.locator('.demo-login-all').click();
+  await page.getByRole('dialog').locator('.record-row').filter({ has: page.locator('strong', { hasText: new RegExp(`^${label}$`) }) }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+}
 
 /* Explore MyThuso is the patient's roadmap page and the door to the first-run flow, the state
    gallery and the module previews. It is a sidebar entry on a wide screen and lives behind More on

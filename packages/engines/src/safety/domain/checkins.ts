@@ -1,11 +1,17 @@
 /* A timer on every visit.
  *
  * It starts when the visit does — appointment.in_progress, which Care publishes only once the visit
- * code has matched — and it is due at the service's booked duration plus the declared grace. The
+ * code has matched — and it is due at the service's booked duration plus the grace in force. The
  * nurse can say she is safe, extend with a reason, or check out; the visit being completed and
  * signed checks her out too. When the deadline passes with none of those, the timer emits
  * checkin.overdue once for that deadline. Safety only emits: raising the alert, routing it and
  * escalating it is Core's (events.json, `_alertMeans`).
+ *
+ * A TIMER KEEPS THE SETTINGS IT STARTED UNDER. The grace, the extension steps and the ceiling are
+ * settings an admin changes (settings.ts). startTimer is handed the settings in force and copies them
+ * onto the timer with their version, and every later act reads the timer's own copy. So an admin
+ * shortening the grace never makes a running visit overdue, and lowering the ceiling never takes away
+ * minutes a nurse was told she had left: a change applies to visits that start after it.
  *
  * THE OVERDUE IS AN EPISODE, NOT A FLAG. A timer that goes overdue and is then extended is no
  * longer overdue, but the desk was told, and "she answered" is not the same as "somebody at the desk
@@ -21,7 +27,8 @@
  * A check-in ("I am safe") never moves the deadline. If it did, pressing it every fifteen minutes
  * would be an extension with no reason and no ceiling — the exact thing extend refuses.
  */
-import { MINUTE, done, extensionReasons, extensionSteps, graceMinutes, instant, maxExtensionMinutes, refuse, serviceMinutes, silenceReasons, type Result } from './rules.ts';
+import { MINUTE, done, extensionReasons, instant, refuse, serviceMinutes, silenceReasons, type Result } from './rules.ts';
+import type { SettingsInForce } from './settings.ts';
 
 export type DeskHand = { readonly at: number; readonly by: string };
 export type OverdueEpisode = {
@@ -40,7 +47,11 @@ export type Timer = {
  readonly nurseRef: string;
  readonly startedAt: number;
  readonly expectedMinutes: number;
+ /** The settings version in force when the visit started, and the three timings it copied from it. */
+ readonly settingsVersion: number;
  readonly graceMinutes: number;
+ readonly extensionSteps: readonly number[];
+ readonly maxExtensionMinutes: number;
  readonly dueAt: number;
  readonly extensions: readonly Extension[];
  readonly checkIns: readonly number[];
@@ -60,14 +71,16 @@ export function startTimer(input: {
  readonly checkinRef: string; readonly event: InProgress; readonly serviceId: string; readonly nurseRef: string;
  /** Accepted only to be refused when it disagrees with the catalogue: the v1 route still sends it. */
  readonly expectedMinutes?: number;
-}, now: number): Result<Timer> {
+}, now: number, settings: SettingsInForce): Result<Timer> {
  if (input.event.visitCodeMatched !== true) return refuse('timer-without-a-matched-code');
  const minutes = serviceMinutes(input.serviceId);
  if (minutes === undefined) return refuse('timer-for-an-unknown-service');
  if (input.expectedMinutes !== undefined && input.expectedMinutes !== minutes) return refuse('expected-minutes-not-the-service');
+ const { graceMinutes, extensionSteps, maxExtensionMinutes } = settings.timings;
  return done({
   checkinRef: input.checkinRef, appointmentRef: input.event.appointmentRef, serviceId: input.serviceId, nurseRef: input.nurseRef,
-  startedAt: now, expectedMinutes: minutes, graceMinutes, dueAt: now + (minutes + graceMinutes) * MINUTE,
+  startedAt: now, expectedMinutes: minutes, settingsVersion: settings.settingsVersion,
+  graceMinutes, extensionSteps: [...extensionSteps], maxExtensionMinutes, dueAt: now + (minutes + graceMinutes) * MINUTE,
   extensions: [], checkIns: [], overdue: null, emittedFor: null, closedAt: null, closedBy: null
  });
 }
@@ -75,9 +88,9 @@ export function startTimer(input: {
 export const standingOf = (timer: Timer, now: number): TimerStanding =>
  timer.closedAt !== null ? 'closed' : now >= timer.dueAt ? 'overdue' : 'running';
 export const extensionUsed = (timer: Timer) => timer.extensions.reduce((total, extension) => total + extension.minutes, 0);
-export const extensionLeft = (timer: Timer) => maxExtensionMinutes - extensionUsed(timer);
-/** The steps still on offer: the ones that would not take the visit past the ceiling. */
-export const stepsOffered = (timer: Timer) => extensionSteps.filter(step => step <= extensionLeft(timer));
+export const extensionLeft = (timer: Timer) => timer.maxExtensionMinutes - extensionUsed(timer);
+/** The steps still on offer: the ones that would not take the visit past the ceiling it started with. */
+export const stepsOffered = (timer: Timer) => timer.extensionSteps.filter(step => step <= extensionLeft(timer));
 /** Whole minutes until the deadline, never negative. */
 export const minutesLeft = (timer: Timer, now: number) => Math.max(0, Math.ceil((timer.dueAt - now) / MINUTE));
 
@@ -103,8 +116,8 @@ export function checkIn(timer: Timer, now: number): Result<Timer> {
 export function extend(timer: Timer, request: { readonly minutes: number; readonly reasonId?: string | null }, now: number): Result<Timer> {
  if (timer.closedAt !== null) return refuse('checkin-after-close');
  if (!request.reasonId || !extensionReasons.some(reason => reason.id === request.reasonId)) return refuse('extension-without-reason');
- if (!extensionSteps.includes(request.minutes)) return refuse('extension-not-offered');
- if (extensionUsed(timer) + request.minutes > maxExtensionMinutes) return refuse('extension-limit');
+ if (!timer.extensionSteps.includes(request.minutes)) return refuse('extension-not-offered');
+ if (extensionUsed(timer) + request.minutes > timer.maxExtensionMinutes) return refuse('extension-limit');
  /* From now when she is already past it. Fifteen more minutes counted from a deadline twenty
     minutes ago is a deadline that has already passed, and the desk would be paged again at once. */
  const dueAt = Math.max(timer.dueAt, now) + request.minutes * MINUTE;

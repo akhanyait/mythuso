@@ -12,7 +12,7 @@ object CareData {
     data class Stage(val id: String, val name: String)
 
     const val seedPhase = 1
-    /** A proposal awaiting Head of Operations. Nobody has decided it. */
+    /** Decided by the Founder. packages/catalog/care.json records the day. */
     const val offerExpiresAfterMinutes = 10
 
     const val outsideScope = "You are only ever dispatched to work inside your registered scope. The Control Tower cannot override that."

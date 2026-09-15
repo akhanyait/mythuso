@@ -1,15 +1,20 @@
 /* Panic on a simulated clock: the window, the position stopping at whichever end comes first, and
-   nothing kept afterwards. */
+   nothing kept afterwards. A panic is raised with the window in force for the defaults; what happens
+   to one when an admin changes the window is settings.test.ts's. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { MINUTE, clockOf, outcomes, panicWindowMinutes, positionDecimals } from './rules.ts';
+import { MINUTE, clockOf, outcomes, positionDecimals } from './rules.ts';
 import { acknowledge, isSharing, openPanicFor, positionFor, raisePanic, receivePosition, resolve, sharingEndsAt, stretchWindow, sweep, type DeskActor, type Panic } from './panics.ts';
 import { emergencyNumbers, fieldSafety, whatPanicDoesNotDo } from './rules.ts';
+import { defaultTimings, panicWindowOf } from './settings.ts';
+
+const panicWindowMinutes = defaultTimings.panicWindowMinutes;
+const WINDOW = panicWindowOf([]);
 
 test('a repeat press folds only into the same nurse’s open panic for the same visit', () => {
  const mine = raised();
- const theirs = value(raisePanic({ panicRef: 'PNC-2', raisedByRole: 'nurse', nurseRef: 'N-206', appointmentRef: 'APT-1', locationShareMinutes: panicWindowMinutes }, T0));
+ const theirs = value(raisePanic({ panicRef: 'PNC-2', raisedByRole: 'nurse', nurseRef: 'N-206', appointmentRef: 'APT-1', locationShareMinutes: panicWindowMinutes }, T0, WINDOW));
  const panics = [mine, theirs];
  assert.equal(openPanicFor(panics, 'N-205', 'APT-1', T0 + MINUTE)?.panicRef, 'PNC-1');
  assert.equal(openPanicFor(panics, 'N-206', 'APT-1', T0 + MINUTE)?.panicRef, 'PNC-2', 'never another nurse’s');
@@ -32,7 +37,7 @@ const events = json('../../../../catalog/events.json') as { events: { type: stri
 const T0 = Date.UTC(2026, 8, 14, 9, 30);
 const desk: DeskActor = { kind: 'person', role: 'ops-desk', ref: 'O-801' };
 const raised = (): Panic => {
- const result = raisePanic({ panicRef: 'PNC-1', raisedByRole: 'nurse', nurseRef: 'N-205', appointmentRef: 'APT-1', locationShareMinutes: panicWindowMinutes }, T0);
+ const result = raisePanic({ panicRef: 'PNC-1', raisedByRole: 'nurse', nurseRef: 'N-205', appointmentRef: 'APT-1', locationShareMinutes: panicWindowMinutes }, T0, WINDOW);
  assert.ok(result.ok);
  return result.value;
 };
@@ -42,9 +47,10 @@ const value = <T>(result: { ok: true; value: T } | { ok: false; refusal: { id: s
 };
 
 test('pressing panic opens the declared window and emits panic.raised without a position', () => {
- const result = raisePanic({ panicRef: 'PNC-1', raisedByRole: 'nurse', nurseRef: 'N-205', locationShareMinutes: panicWindowMinutes }, T0);
+ const result = raisePanic({ panicRef: 'PNC-1', raisedByRole: 'nurse', nurseRef: 'N-205', locationShareMinutes: panicWindowMinutes }, T0, WINDOW);
  assert.ok(result.ok);
  assert.equal(result.value.locationShareEndsAt, T0 + panicWindowMinutes * MINUTE);
+ assert.equal(result.value.settingsVersion, WINDOW.settingsVersion);
  const [emitted] = result.emits;
  const declared = events.events.find(e => e.type === 'panic.raised' && e.version === emitted.version)!;
  assert.deepEqual(Object.keys(emitted.payload).sort(), declared.payload.map(p => p.field).sort());
@@ -53,10 +59,10 @@ test('pressing panic opens the declared window and emits panic.raised without a 
 
 test('a window with no end, or one the phone chose, is refused', () => {
  for (const minutes of [undefined, null, 0, -5, Number.POSITIVE_INFINITY]) {
-  const r = raisePanic({ panicRef: 'P', raisedByRole: 'nurse', nurseRef: 'N', locationShareMinutes: minutes }, T0);
+  const r = raisePanic({ panicRef: 'P', raisedByRole: 'nurse', nurseRef: 'N', locationShareMinutes: minutes }, T0, WINDOW);
   assert.equal(!r.ok && r.refusal.id, 'share-without-end', `window ${minutes}`);
  }
- const longer = raisePanic({ panicRef: 'P', raisedByRole: 'nurse', nurseRef: 'N', locationShareMinutes: panicWindowMinutes * 24 }, T0);
+ const longer = raisePanic({ panicRef: 'P', raisedByRole: 'nurse', nurseRef: 'N', locationShareMinutes: panicWindowMinutes * 24 }, T0, WINDOW);
  assert.equal(!longer.ok && longer.refusal.id, 'window-not-the-declared-one');
  assert.equal(stretchWindow().refusal.id, 'window-does-not-stretch');
 });

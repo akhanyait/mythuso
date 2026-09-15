@@ -1,9 +1,10 @@
 import { useSyncExternalStore } from 'react';
-import { MINUTE, fieldSafety, panicWindowMinutes, refusal, serviceMinutes, type Refusal, type Result } from '../../../../packages/engines/src/safety/domain/rules.ts';
+import { MINUTE, fieldSafety, refusal, serviceMinutes, type Refusal, type Result } from '../../../../packages/engines/src/safety/domain/rules.ts';
 import { acknowledgeOverdue, checkIn, close, completeVisit, extend, silenceOverdue, startTimer, tick, type Timer } from '../../../../packages/engines/src/safety/domain/checkins.ts';
 import { acknowledge, isSharing, openPanicFor, positionFor, raisePanic, receivePosition, resolve, sweep, type DeskActor, type Panic, type Position } from '../../../../packages/engines/src/safety/domain/panics.ts';
 import { deskQueue, type DeskItem } from '../../../../packages/engines/src/safety/domain/desk.ts';
 import { nurseById, rosterNurses } from './roster';
+import { panicWindowNow, settingsNow } from './safety-settings';
 
 /* The nurse safety suite's one store in the web preview.
  *
@@ -11,6 +12,11 @@ import { nurseById, rosterNurses } from './roster';
  * each action to packages/engines/src/safety/domain. It holds them in memory and nowhere else — this
  * app may not persist anything about a patient or a nurse, so a reload forgets every timer, which is
  * true of the preview and would be a defect in the product.
+ *
+ * THE TIMINGS ARE THE ONES IN FORCE, READ ONCE. A timer is started with settingsNow() and a panic is
+ * pressed with panicWindowNow(), from lib/safety-settings.ts, which the back office changes; each keeps
+ * what it was handed. So a grace changed in the back office reaches the next visit this nurse starts,
+ * never the one she is in, and no minute is typed here.
  *
  * THE DESK IS SEEDED BY RUNNING THE ENGINE AT EARLIER TIMES. A late nurse, an open panic and one
  * resolved this morning are not rows typed into a table: each is a timer started or a panic pressed
@@ -46,16 +52,19 @@ const zoneOf = (nurseRef: string) => nurseById(nurseRef)?.zone?.at;
 function seed(now: number): SafetyState {
  const others = rosterNurses.filter(nurse => nurse.zone && nurse.id !== NURSE_ON_SHIFT);
  const [late, pressed, earlier] = [others[0], others[1] ?? others[0], others[2] ?? others[0]];
+ const settings = settingsNow();
+ const window = panicWindowNow();
  /* Twelve minutes past the deadline of an elderly-care visit: the service's own duration plus the
-    grace, both read from the contracts. */
+    grace in force, both read rather than typed. */
  const lateService = 'senior';
- const startedAt = now - ((serviceMinutes(lateService) ?? 0) + fieldSafety.timer.graceMinutes.value + 12) * MINUTE;
- const lateTimer = seeded(tick(seeded(startTimer({ checkinRef: 'CHK-0412', event: { appointmentRef: 'TH-2044', visitCodeMatched: true }, serviceId: lateService, nurseRef: late.id }, startedAt)), now));
- let open = seeded(raisePanic({ panicRef: 'PNC-0088', raisedByRole: 'nurse', nurseRef: pressed.id, appointmentRef: 'TH-2046', locationShareMinutes: panicWindowMinutes }, now - 4 * MINUTE));
+ const startedAt = now - ((serviceMinutes(lateService) ?? 0) + settings.timings.graceMinutes + 12) * MINUTE;
+ const lateTimer = seeded(tick(seeded(startTimer({ checkinRef: 'CHK-0412', event: { appointmentRef: 'TH-2044', visitCodeMatched: true }, serviceId: lateService, nurseRef: late.id }, startedAt, settings)), now));
+ let open = seeded(raisePanic({ panicRef: 'PNC-0088', raisedByRole: 'nurse', nurseRef: pressed.id, appointmentRef: 'TH-2046', locationShareMinutes: window.minutes }, now - 4 * MINUTE, window));
  const at = zoneOf(pressed.id);
  if (at) open = seeded(receivePosition(open, at, now - FEED_MS));
- const morning = now - 3 * 60 * MINUTE;
- let resolved = seeded(raisePanic({ panicRef: 'PNC-0081', raisedByRole: 'nurse', nurseRef: earlier.id, appointmentRef: 'TH-2031', locationShareMinutes: panicWindowMinutes }, morning));
+ /* Three hours ago. */
+ const morning = now - 180 * MINUTE;
+ let resolved = seeded(raisePanic({ panicRef: 'PNC-0081', raisedByRole: 'nurse', nurseRef: earlier.id, appointmentRef: 'TH-2031', locationShareMinutes: window.minutes }, morning, window));
  resolved = seeded(acknowledge(resolved, DESK, morning + MINUTE));
  resolved = seeded(resolve(resolved, { outcomeId: 'pressed-by-mistake', actor: DESK }, morning + 6 * MINUTE));
  return { timers: [lateTimer], panics: [open, resolved], now };
@@ -121,7 +130,7 @@ const onPanic = (reference: string, change: (panic: Panic, now: number) => Resul
 export function startVisit(appointmentRef: string, serviceId: string, visitCodeMatched: boolean): Refusal | null {
  const running = timerFor(current(), appointmentRef);
  if (running && running.closedAt === null) return null;
- return act((_, now) => startTimer({ checkinRef: `CHK-0${serial++}`, event: { appointmentRef, visitCodeMatched }, serviceId, nurseRef: NURSE_ON_SHIFT }, now),
+ return act((_, now) => startTimer({ checkinRef: `CHK-0${serial++}`, event: { appointmentRef, visitCodeMatched }, serviceId, nurseRef: NURSE_ON_SHIFT }, now, settingsNow()),
   (s, timer) => ({ ...s, timers: [...s.timers, timer] }));
 }
 export const checkInSafe = (appointmentRef: string) => onTimer(s => timerFor(s, appointmentRef), checkIn);
@@ -134,7 +143,8 @@ export const visitSigned = (appointmentRef: string) => timerFor(current(), appoi
 export function pressPanic(appointmentRef: string | null): Refusal | null {
  const now = Date.now();
  if (openPanicFor(advance(now).panics, NURSE_ON_SHIFT, appointmentRef, now)) return null;
- return act((_, at) => raisePanic({ panicRef: `PNC-0${serial++}`, raisedByRole: 'nurse', nurseRef: NURSE_ON_SHIFT, appointmentRef, locationShareMinutes: panicWindowMinutes }, at),
+ const window = panicWindowNow();
+ return act((_, at) => raisePanic({ panicRef: `PNC-0${serial++}`, raisedByRole: 'nurse', nurseRef: NURSE_ON_SHIFT, appointmentRef, locationShareMinutes: window.minutes }, at, window),
   (s, panic) => {
    const at = zoneOf(panic.nurseRef);
    const fed = at ? receivePosition(panic, at, s.now) : null;

@@ -97,6 +97,8 @@ object ApisData {
     val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND = Route("postSafetyCheckinsByCheckinRefExtend", "POST", "/v1/safety/checkins/{checkinRef}/extend", "/v1/safety/checkins/{checkinRef}/extend", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "proposed")
     val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_CLOSE = Route("postSafetyCheckinsByCheckinRefClose", "POST", "/v1/safety/checkins/{checkinRef}/close", "/v1/safety/checkins/{checkinRef}/close", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "proposed")
     val POST_SAFETY_PANICS = Route("postSafetyPanics", "POST", "/v1/safety/panics", "/v1/safety/panics", 1, "safety", listOf("nurse", "locum", "responder", "courier"), listOf("emergency"), true, "built")
+    val GET_SAFETY_SETTINGS = Route("getSafetySettings", "GET", "/v1/safety/settings", "/v1/safety/settings", 1, "safety", listOf("admin"), listOf("audit"), false, "built")
+    val POST_SAFETY_SETTING_CHANGES = Route("postSafetySettingChanges", "POST", "/v1/safety/setting-changes", "/v1/safety/setting-changes", 1, "safety", listOf("admin"), listOf("audit"), true, "built")
     val POST_SAFETY_SOS = Route("postSafetySos", "POST", "/v1/safety/sos", "/v1/safety/sos", 1, "safety", listOf("patient", "caregiver"), listOf("emergency"), true, "proposed")
     val POST_SAFETY_NEXT_OF_KIN = Route("postSafetyNextOfKin", "POST", "/v1/safety/next-of-kin", "/v1/safety/next-of-kin", 1, "safety", listOf("patient"), listOf("subject-access"), false, "proposed")
     val POST_SAFETY_NEXT_OF_KIN_BY_NOMINATION_REF_ALERT = Route("postSafetyNextOfKinByNominationRefAlert", "POST", "/v1/safety/next-of-kin/{nominationRef}/alert", "/v1/safety/next-of-kin/{nominationRef}/alert", 1, "safety", listOf("ops-desk", "engine:core"), listOf("emergency"), false, "proposed")
@@ -253,6 +255,8 @@ object ApisData {
         POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND,
         POST_SAFETY_CHECKINS_BY_CHECKIN_REF_CLOSE,
         POST_SAFETY_PANICS,
+        GET_SAFETY_SETTINGS,
+        POST_SAFETY_SETTING_CHANGES,
         POST_SAFETY_SOS,
         POST_SAFETY_NEXT_OF_KIN,
         POST_SAFETY_NEXT_OF_KIN_BY_NOMINATION_REF_ALERT,
@@ -884,6 +888,24 @@ object ApisData {
     data class PostSafetyPanicsResponse(
         val panicRef: String,
         val locationShareEndsAt: String
+    )
+    class GetSafetySettingsRequest
+    data class GetSafetySettingsResponse(
+        val settingsVersion: Int,
+        val settings: List<Map<String, Any?>>,
+        val history: List<Map<String, Any?>>
+    )
+    data class PostSafetySettingChangesRequest(
+        val idempotencyKey: String,
+        val timing: String,
+        val minutes: Int? = null,
+        val stepMinutes: List<String>? = null,
+        val reason: String? = null,
+        val expectedVersion: Int
+    )
+    data class PostSafetySettingChangesResponse(
+        val settingsVersion: Int,
+        val appliesFrom: String
     )
     data class PostSafetySosRequest(
         val idempotencyKey: String,

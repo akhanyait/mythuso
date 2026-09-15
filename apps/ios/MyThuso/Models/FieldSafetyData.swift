@@ -2,17 +2,22 @@
 // Do not edit by hand — run `npm run field-safety`. The build fails if this file and its sources disagree,
 // so an edit here is lost rather than merely wrong.
 //
-// The grace, the extension steps and ceiling and the panic window are PROPOSALS: decidedBy is null in the
-// contract until the founder sets the nurse field-safety policy. They are here so the screens can be
-// built against something, and they change in the contract, never in this file.
+// The grace and the panic window were decided by the founder; the extension steps and ceiling are
+// PROPOSALS, with decidedBy null in the contract. All four are defaults an admin changes on the web back
+// office. This app has no admin surface and reaches no settings route, so it uses them as written here,
+// and they change in the contract, never in this file.
 
 import Foundation
 
 extension FieldSafety {
-    static let graceMinutes = 15
+    /// Decided by the Founder. A default an admin may change on the web.
+    static let graceMinutes = 60
+    /// A proposal nobody has decided. A default an admin may change on the web.
     static let extensionSteps = [10, 20, 30]
+    /// A proposal nobody has decided. A default an admin may change on the web.
     static let maxExtensionMinutes = 60
-    static let panicWindowMinutes = 60
+    /// Decided by the Founder. A default an admin may change on the web.
+    static let panicWindowMinutes = 30
     /// The simulated feed's cadence, not a policy.
     static let positionEverySeconds = 15
 
@@ -120,6 +125,16 @@ extension FieldSafety {
         .init(id: "expected-minutes-not-the-service", status: 422, statement: "A visit is timed by the service that was booked, not by a number sent with it."),
         .init(id: "share-without-end", status: 422, statement: "Live location is shared for a fixed window, and the window always ends."),
         .init(id: "window-not-the-declared-one", status: 422, statement: "The window is the one the desk's policy sets. A phone does not choose how long it is watched."),
-        .init(id: "dispatch-from-a-panic-without-a-person", status: 409, statement: "A panic goes to the desk. Nobody is sent to it until a person at the desk decides.")
+        .init(id: "dispatch-from-a-panic-without-a-person", status: 409, statement: "A panic goes to the desk. Nobody is sent to it until a person at the desk decides."),
+        .init(id: "settings-read-not-permitted", status: 403, statement: "Only an admin reads the field-safety settings and who changed them."),
+        .init(id: "setting-change-not-permitted", status: 403, statement: "Only an admin changes a field-safety setting."),
+        .init(id: "setting-not-known", status: 422, statement: "There is no field-safety setting by that name."),
+        .init(id: "setting-change-without-reason", status: 422, statement: "A change to a field-safety setting says why, or it is not made."),
+        .init(id: "settings-version-stale", status: 409, statement: "These settings changed after you opened them. Read what is in force now and decide against that."),
+        .init(id: "setting-not-above-zero", status: 422, statement: "No field-safety timing is set to zero or less, whatever its range says."),
+        .init(id: "setting-out-of-range", status: 422, statement: "That is outside the range an admin may set for this setting."),
+        .init(id: "extension-steps-not-rising", status: 422, statement: "Extension steps are listed from the smallest to the largest, each once."),
+        .init(id: "extension-step-above-the-ceiling", status: 409, statement: "No extension step can be larger than the most a visit may be extended."),
+        .init(id: "setting-unchanged", status: 409, statement: "That is already the value in force, so there is nothing to change.")
     ]
 }

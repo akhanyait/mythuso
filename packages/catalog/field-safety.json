@@ -4,14 +4,15 @@
  "engine": "safety",
  "api": "packages/catalog/apis/safety.json",
 
- "_numbersNote": "Every number below that is a policy is a proposal. `decidedBy: null` means nobody with the authority to set it has set it: ThusoIQ Master v3.5's readiness review (58A) marks 'Nurse workforce & field safety' RED, and its next step is to 'approve employment/flex model, caseload, pay, routing, buddy/no-go rules and panic/escort policy'. The numbers are here so the screens can be built and tested against something; the build refuses a proposal that loses its `decidedBy` key, so a number cannot quietly become policy by having the question deleted around it.",
+ "_numbersNote": "Two of the numbers below are decided and two are still proposals. The founder decided the grace and the panic window on 15 September 2026 — \"panic 30, grace 60\" — and that Operations changes them on the admin rather than in code; each carries decidedBy, decidedOn and why, in the shape packages/catalog/consent.json gives maximumExpiryDecision. The extension steps and ceiling were not part of that decision and keep `decidedBy: null`, which means nobody with the authority to set them has: ThusoIQ Master v3.5's readiness review (58A) marks 'Nurse workforce & field safety' RED, and its next step is to 'approve employment/flex model, caseload, pay, routing, buddy/no-go rules and panic/escort policy'. The build refuses a proposal that loses its `decidedBy` key and a decision that loses who took it or when, so a number cannot quietly become policy by having the question deleted around it. Each value here is the default; settings below says what an admin may change it to.",
  "timer": {
   "expectedMinutesFrom": "packages/catalog/services.json#duration",
   "whyFromTheService": "A visit is timed by the service that was booked. A number typed on a screen or sent with a request is a timer that can be set to anything; the duration in the catalogue is the one the patient was quoted and the nurse's day is drawn from.",
   "graceMinutes": {
-   "value": 15,
-   "decidedBy": null,
-   "proposedBecause": "Long enough that a visit running a little over does not page the desk; short enough that a nurse in trouble is noticed inside a quarter of an hour of when she should have left.",
+   "value": 60,
+   "decidedBy": "Founder",
+   "decidedOn": "2026-09-15",
+   "why": "The founder decided on 15 September 2026, \"panic 30, grace 60\", and that Operations sets it on the admin. The desk is told an hour after a visit's booked duration, and any extensions she took, if the nurse has not checked out. An hour means a visit that runs long for an ordinary reason — a family with questions, a dressing that takes longer than booked — does not page the desk, so a page from the desk still means something. The cost is written here so that it is read: a nurse in trouble who cannot press panic is looked for up to an hour after she should have left. A nurse who can press panic does not wait for the grace at all.",
    "question": "How long after a visit's booked duration the desk is told a nurse has not checked out."
   },
   "extensionMinutes": {
@@ -30,9 +31,10 @@
 
  "panic": {
   "windowMinutes": {
-   "value": 60,
-   "decidedBy": null,
-   "proposedBecause": "Long enough for the desk to reach a nurse, send help and hear back. The window does not stretch: a nurse who still needs help when it ends presses again and a new window starts, which leaves a record of both.",
+   "value": 30,
+   "decidedBy": "Founder",
+   "decidedOn": "2026-09-15",
+   "why": "The founder decided on 15 September 2026, \"panic 30, grace 60\", and that Operations sets it on the admin. The desk sees a nurse's position for thirty minutes after she presses panic: enough to pick the panic up, reach her and let a person at the desk decide whether to send somebody, and no longer, because every minute a position is shown is a minute somebody is watching where a nurse is. The window does not stretch: a nurse who still needs help when it ends presses again and a new window starts, which leaves the desk a record of both rather than one share quietly made longer.",
    "question": "How long the desk sees a nurse's position after she presses panic."
   },
   "press": "Panic",
@@ -54,6 +56,122 @@
   "why": "How often the simulated feed produces a position while a window is open. It is the simulation's cadence, not a policy: no device reports anything, and the feed is generated on the machine that draws the desk.",
   "positionFrom": "packages/catalog/geography.json#zones",
   "positionRule": "The simulated position is the centre of the suburb the nurse works in, at the precision packages/catalog/geography.json declares. It is never the patient's address, because the preview has no address to give."
+ },
+
+ "settings": {
+  "_note": "The founder decided on 15 September 2026 that Operations changes the field-safety timings on the admin, without a code change: \"Safety: 30min, grace 60min - but configure this on the admin\". A number still lives in one place. The default is where it always was, in timer and panic above; this block holds, for each timing an admin may change, where that default is, the lowest and highest an admin may set, the unit and who may change it, the sentences the admin screen shows, and the record of every change to the defaults themselves. What is in force at any moment is the defaults with every accepted admin change replayed in order: kept in the Safety engine's own store by packages/engines/src/safety, and in the web preview in the tab's memory.",
+  "changeableBy": "admin",
+  "_changeableByNote": "The admin role in packages/catalog/vetting.json, calling POST /v1/safety/setting-changes@1 for the audit purpose, as the incident register's admin routes in packages/catalog/apis/safety.json do. No capability on the register names changing the desk's timings, so none is claimed: the engine runtime admits the role from the contract and nothing more, and a production door has to decide which capability this is.",
+  "_versionNote": "Two versions, and they are different things. defaults.version counts changes to this file, replayed by the build like packages/catalog/gilbert-emergency-terms.json. settingsVersion counts changes an admin made at runtime, starting at 1 for these defaults; a visit timer and a panic keep the settingsVersion they started under, so a change never reaches back into one already running.",
+  "_careOfferExpiryNote": "Care's offer expiry is not on this screen. It is Care's number in packages/catalog/care.json and Care's engine enforces it; Safety's store holding it would be one engine keeping another's policy. Putting it on the admin needs a Care settings route of its own.",
+  "timings": [
+   {
+    "id": "grace",
+    "label": "Grace after the booked time",
+    "defaultFrom": "timer.graceMinutes",
+    "shape": "minutes",
+    "unit": "minutes",
+    "changeableBy": "admin",
+    "lowest": { "value": 15, "decidedBy": null, "proposedBecause": "The fifteen minutes first proposed on 14 September. Below it the desk is paged for visits that are only running a little over, and a desk paged for nothing learns to ignore the page." },
+    "highest": { "value": 120, "decidedBy": null, "proposedBecause": "Twice the founder's hour. Past two hours after her booked time a nurse in trouble who cannot press panic is looked for in the afternoon for a morning visit, and moving it that far is a decision for this contract rather than a setting on a screen." }
+   },
+   {
+    "id": "panic-window",
+    "label": "Panic window",
+    "defaultFrom": "panic.windowMinutes",
+    "shape": "minutes",
+    "unit": "minutes",
+    "changeableBy": "admin",
+    "lowest": { "value": 15, "decidedBy": null, "proposedBecause": "Shorter than fifteen minutes is shorter than the desk needs to pick a panic up, reach the nurse and send somebody, so the window would end while help was still being arranged." },
+    "highest": { "value": 60, "decidedBy": null, "proposedBecause": "The hour first proposed on 14 September. A position shown for longer than that is nearer to tracking a nurse than helping her, and a nurse who still needs help presses again and opens a new window." }
+   },
+   {
+    "id": "extension-steps",
+    "label": "Extension steps",
+    "defaultFrom": "timer.extensionMinutes",
+    "shape": "steps",
+    "unit": "minutes",
+    "changeableBy": "admin",
+    "lowest": { "value": 5, "decidedBy": null, "proposedBecause": "A step shorter than five minutes is a snooze rather than an extension, and a snooze is what extension-without-reason exists to refuse." },
+    "highest": { "value": 30, "decidedBy": null, "proposedBecause": "The largest step first proposed. One press that adds more than half an hour is a visit being rebooked at the door, which is a conversation for the desk." }
+   },
+   {
+    "id": "extension-ceiling",
+    "label": "Most a visit may be extended",
+    "defaultFrom": "timer.maxExtensionMinutes",
+    "shape": "minutes",
+    "unit": "minutes",
+    "changeableBy": "admin",
+    "lowest": { "value": 30, "decidedBy": null, "proposedBecause": "Half an hour, so that the largest step the range allows can still be taken once." },
+    "highest": { "value": 120, "decidedBy": null, "proposedBecause": "Two hours beyond the booked time is as long as a visit should run on a nurse's own word under any setting. Past that a person at the desk speaks to her." }
+   }
+  ],
+  "screen": {
+   "heading": "Field safety settings",
+   "intro": "How long the desk waits after a visit's booked time before it looks for a nurse, how long it sees her after a panic, and how much longer she may ask for. Operations changes them here, without a code change.",
+   "appliesFrom": "A change applies to visits and panics that start after it. A visit already running keeps its deadline, and a panic window already open keeps its end.",
+   "version": "Settings version {version}",
+   "inForce": "In force",
+   "defaultIs": "Default {value}",
+   "minutes": "{minutes} min",
+   "decided": "Decided by the {who} on {on}",
+   "undecided": "A proposal nobody has decided",
+   "range": "An admin may set {lowest} to {highest} min",
+   "rangeIsAProposal": "The range is a proposal nobody has decided.",
+   "change": "Change",
+   "newMinutes": "New value, in minutes",
+   "newSteps": "New steps in minutes, smallest first, separated by commas",
+   "reason": "Why",
+   "reasonHelp": "Written into the history beside your name. It is read when somebody asks why the desk waited as long as it did.",
+   "review": "Review the change",
+   "confirmQuestion": "Change {setting} from {from} to {to}?",
+   "confirm": "Confirm the change",
+   "cancel": "Cancel",
+   "applied": "Version {version} is in force from {at}.",
+   "historyHeading": "Every change",
+   "historyEmpty": "Nothing has been changed from these defaults yet.",
+   "historyNeverEdited": "Every change is added here with who made it, when and why. Nothing here is edited or removed.",
+   "when": "When",
+   "who": "Who",
+   "setting": "Setting",
+   "from": "From",
+   "to": "To",
+   "why": "Why",
+   "preview": "This preview keeps changes in this tab's memory and nowhere else. No nurse's phone and no desk is told, and a reload puts the defaults back."
+  },
+  "defaults": {
+   "version": 2,
+   "changelog": [
+    {
+     "version": 1,
+     "on": "2026-09-14",
+     "by": "Safety lead (Wave 3), proposed and not decided",
+     "changed": [
+      { "timing": "grace", "from": null, "to": 15 },
+      { "timing": "panic-window", "from": null, "to": 60 },
+      { "timing": "extension-steps", "from": null, "to": [10, 20, 30] },
+      { "timing": "extension-ceiling", "from": null, "to": 60 }
+     ],
+     "why": "The first proposals, so the nurse's strip and the desk could be built and tested against something."
+    },
+    {
+     "version": 2,
+     "on": "2026-09-15",
+     "by": "Founder",
+     "changed": [
+      { "timing": "grace", "from": 15, "to": 60 },
+      { "timing": "panic-window", "from": 60, "to": 30 }
+     ],
+     "why": "\"Safety: 30min, grace 60min - but configure this on the admin\", clarified as \"panic 30, grace 60\". The extension steps and ceiling were not part of the decision and stay proposals."
+    }
+   ],
+   "howToChange": [
+    "Change a default in timer or panic above, never here.",
+    "Raise defaults.version by one and add a changelog entry with the same version, the day, who made the change by role, every timing changed as { timing, from, to }, and why. npm run check replays the changelog from nothing and fails if it does not arrive at the defaults above.",
+    "A decided default names who decided it and on what day beside its value. A default nobody decided keeps decidedBy: null and says why it was proposed.",
+    "Every default stays inside its own lowest and highest. Moving a range is a change to this file, and the range is a proposal until somebody decides it."
+   ]
+  }
  },
 
  "states": {
@@ -159,7 +277,17 @@
   { "route": "POST /v1/safety/checkins", "id": "expected-minutes-not-the-service" },
   { "route": "POST /v1/safety/panics", "id": "share-without-end" },
   { "route": "POST /v1/safety/panics", "id": "window-not-the-declared-one" },
-  { "route": "POST /v1/safety/panics", "id": "dispatch-from-a-panic-without-a-person" }
+  { "route": "POST /v1/safety/panics", "id": "dispatch-from-a-panic-without-a-person" },
+  { "route": "GET /v1/safety/settings", "id": "settings-read-not-permitted" },
+  { "route": "POST /v1/safety/setting-changes", "id": "setting-change-not-permitted" },
+  { "route": "POST /v1/safety/setting-changes", "id": "setting-not-known" },
+  { "route": "POST /v1/safety/setting-changes", "id": "setting-change-without-reason" },
+  { "route": "POST /v1/safety/setting-changes", "id": "settings-version-stale" },
+  { "route": "POST /v1/safety/setting-changes", "id": "setting-not-above-zero" },
+  { "route": "POST /v1/safety/setting-changes", "id": "setting-out-of-range" },
+  { "route": "POST /v1/safety/setting-changes", "id": "extension-steps-not-rising" },
+  { "route": "POST /v1/safety/setting-changes", "id": "extension-step-above-the-ceiling" },
+  { "route": "POST /v1/safety/setting-changes", "id": "setting-unchanged" }
  ],
  "_routeRefusalsNote": "Refusals that already belong to a route are named by route and id and read from packages/catalog/apis/safety.json, so the sentence the API returns and the sentence a screen shows are one string."
 }

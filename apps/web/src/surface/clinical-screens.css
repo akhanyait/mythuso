@@ -795,6 +795,37 @@
 .clinical .fs-desk-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-4) var(--space-16); }
 .clinical .fs-desk-head h2 { margin: 0; font-size: 20px; font-weight: 600; color: var(--charcoal); }
 .clinical .fs-desk-head p { margin: 0; font-size: 14px; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+/* Field safety settings, on the back office's Operations tab. Kept beside the nurse's strip and the desk
+ * because it is the same feature seen from the office, and drawn in the console's own pieces — a panel,
+ * a privacy note, the admin table — rather than a new look. A timing is a row a person reads down: its
+ * name and the value in force on one line, then the default and who decided it, then the range, then
+ * the one control. The value in force is the only figure set large, because it is the one that is true
+ * today; the default and the range are the context for changing it. */
+.clinical .ss-panel { display: grid; gap: var(--space-12); margin-top: var(--space-32); max-width: 1080px; min-width: 0; }
+.clinical .ss-panel > .section-title { margin-bottom: 0; }
+.clinical .ss-panel > .helper, .clinical .ss-panel > .privacy-note { margin: 0; }
+.clinical .ss-version { margin: 0; font-size: 13px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.clinical .ss-timings { list-style: none; margin: 0; padding: 0; display: grid; }
+.clinical .ss-timing { display: grid; gap: var(--space-8); padding: var(--space-16); min-width: 0; }
+.clinical .ss-timing + .ss-timing { border-top: 1px solid var(--line); }
+.clinical .ss-timing-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-4) var(--space-16); }
+.clinical .ss-timing-head strong { font-size: 15px; font-weight: 600; color: var(--charcoal); }
+.clinical .ss-in-force { display: inline-flex; align-items: baseline; gap: var(--space-8); font-variant-numeric: tabular-nums; }
+.clinical .ss-in-force small { font-size: 13px; color: var(--faint); }
+.clinical .ss-in-force b { font-size: 18px; font-weight: 600; color: var(--charcoal); }
+.clinical .ss-meta { margin: 0; font-size: 13px; line-height: 1.5; color: var(--faint); }
+.clinical .ss-timing > button { justify-self: start; min-height: 44px; }
+.clinical .ss-form { display: grid; gap: var(--space-8); max-width: 560px; padding-top: var(--space-12); border-top: 1px solid var(--line); min-width: 0; }
+.clinical .ss-form > label { font-size: 14px; font-weight: 500; color: var(--charcoal); }
+.clinical .ss-form > input, .clinical .ss-form > textarea { width: 100%; min-width: 0; }
+.clinical .ss-form > .helper { margin: 0; }
+.clinical .ss-form .button-row > button { min-height: 44px; }
+.clinical .ss-confirm { display: grid; gap: var(--space-8); padding: var(--space-12); border-left: 3px solid var(--charcoal); border-radius: var(--r-control); background: var(--surface); }
+.clinical .ss-confirm strong { font-size: 15px; color: var(--charcoal); }
+.clinical .ss-confirm p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--charcoal); }
+.clinical .ss-history-title { margin: var(--space-16) 0 0; font-size: 16px; font-weight: 600; color: var(--charcoal); }
+.clinical .ss-history td:last-child { min-width: 220px; }
 .clinical .fs-desk-empty { margin: 0; font-size: 14px; color: var(--faint); }
 .clinical .fs-desk-list {
  list-style: none; margin: 0; padding: var(--space-8);

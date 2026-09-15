@@ -28,9 +28,9 @@
  "offers": {
   "expiresAfterMinutes": 10,
   "proposedBy": "Care lead (Wave 3)",
-  "decidedBy": null,
-  "awaiting": "Head of Operations",
-  "whyExpires": "An unanswered offer must not hold a patient's visit, which is the reason appointment.offered carries offerExpiresAt at all. Ten minutes is long enough for a nurse finishing a dressing to wash her hands and read it, and short enough that three nurses in a row not answering is half an hour rather than half a morning. It is a proposal with no author until the Head of Operations decides it.",
+  "decidedBy": "Founder",
+  "decidedOn": "2026-09-15",
+  "whyExpires": "An unanswered offer must not hold a patient's visit, which is the reason appointment.offered carries offerExpiresAt at all. Ten minutes is long enough for a nurse finishing a dressing to wash her hands and read it, and short enough that three nurses in a row not answering is half an hour rather than half a morning. The Care lead proposed it and the founder decided it on 15 September 2026 (\"Care: 10min\"), so changing it is the founder's decision rather than an edit.",
   "order": [
    { "id": "named", "marker": "Your patient asked for you", "why": "A patient who names a nurse is asking for the person she already trusts in her house. She is asked first, if every gate lets her be asked at all." },
    { "id": "previous", "marker": "You have seen this patient before", "why": "Continuity is clinical before it is courtesy: a nurse who dressed a wound last week can see whether it is better. The most recent nurse is asked first." },

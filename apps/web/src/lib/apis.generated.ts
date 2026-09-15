@@ -647,6 +647,26 @@ export interface PostSafetyPanicsResponse {
  readonly locationShareEndsAt: string;
 }
 
+export type GetSafetySettingsRequest = Record<string, never>;
+export interface GetSafetySettingsResponse {
+ readonly settingsVersion: number;
+ readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostSafetySettingChangesRequest {
+ readonly idempotencyKey: string;
+ readonly timing: string;
+ readonly minutes?: number;
+ readonly stepMinutes?: readonly string[];
+ readonly reason?: string;
+ readonly expectedVersion: number;
+}
+export interface PostSafetySettingChangesResponse {
+ readonly settingsVersion: number;
+ readonly appliesFrom: string;
+}
+
 export interface PostSafetySosRequest {
  readonly idempotencyKey: string;
  readonly subjectRef: string;
@@ -1438,6 +1458,8 @@ export const apiRoutes = {
  postSafetyCheckinsByCheckinRefExtend: { name: "postSafetyCheckinsByCheckinRefExtend", method: "POST", path: "/v1/safety/checkins/{checkinRef}/extend", mountedPath: "/v1/safety/checkins/{checkinRef}/extend", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
  postSafetyCheckinsByCheckinRefClose: { name: "postSafetyCheckinsByCheckinRefClose", method: "POST", path: "/v1/safety/checkins/{checkinRef}/close", mountedPath: "/v1/safety/checkins/{checkinRef}/close", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
  postSafetyPanics: { name: "postSafetyPanics", method: "POST", path: "/v1/safety/panics", mountedPath: "/v1/safety/panics", version: 1, engine: "safety", callers: ["nurse","locum","responder","courier"], purpose: ["emergency"], idempotent: true, status: "built" },
+ getSafetySettings: { name: "getSafetySettings", method: "GET", path: "/v1/safety/settings", mountedPath: "/v1/safety/settings", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
+ postSafetySettingChanges: { name: "postSafetySettingChanges", method: "POST", path: "/v1/safety/setting-changes", mountedPath: "/v1/safety/setting-changes", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
  postSafetySos: { name: "postSafetySos", method: "POST", path: "/v1/safety/sos", mountedPath: "/v1/safety/sos", version: 1, engine: "safety", callers: ["patient","caregiver"], purpose: ["emergency"], idempotent: true, status: "proposed" },
  postSafetyNextOfKin: { name: "postSafetyNextOfKin", method: "POST", path: "/v1/safety/next-of-kin", mountedPath: "/v1/safety/next-of-kin", version: 1, engine: "safety", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "proposed" },
  postSafetyNextOfKinByNominationRefAlert: { name: "postSafetyNextOfKinByNominationRefAlert", method: "POST", path: "/v1/safety/next-of-kin/{nominationRef}/alert", mountedPath: "/v1/safety/next-of-kin/{nominationRef}/alert", version: 1, engine: "safety", callers: ["ops-desk","engine:core"], purpose: ["emergency"], idempotent: false, status: "proposed" },

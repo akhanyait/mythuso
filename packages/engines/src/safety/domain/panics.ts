@@ -5,6 +5,11 @@
  * the field it does not carry. The position goes to the desk and nowhere else, and only while the
  * window is open.
  *
+ * THE WINDOW IS THE ONE IN FORCE WHEN SHE PRESSED, AND IT IS KEPT. The window is a setting an admin
+ * changes (settings.ts). raisePanic is handed the window in force, stores its end and the settings
+ * version on the panic, and nothing reads the setting again. So a window made shorter never ends a
+ * share already open, and one made longer never stretches it.
+ *
  * SHARING ENDS AT WHICHEVER COMES FIRST: the window running out, or the desk resolving the panic.
  * That is one function, sharingEndsAt, and every read of a position goes through it — so there is
  * no screen or route that can be persuaded to show a position after either.
@@ -21,7 +26,8 @@
  * The window does not stretch. A nurse who still needs help presses again and gets a new panic with
  * a new window, which leaves the desk a record of both rather than one share quietly made longer.
  */
-import { MINUTE, clockOf, done, instant, outcomes, panicWindowMinutes, positionDecimals, refuse, type Refused, type Result } from './rules.ts';
+import { MINUTE, clockOf, done, instant, outcomes, positionDecimals, refuse, type Refused, type Result } from './rules.ts';
+import type { PanicWindow } from './settings.ts';
 
 export type Position = { readonly lat: number; readonly lng: number; readonly at: number };
 export type DeskActor =
@@ -33,6 +39,8 @@ export type Panic = {
  readonly nurseRef: string;
  readonly appointmentRef: string | null;
  readonly raisedAt: number;
+ /** The settings version in force when she pressed. Its window is already in locationShareEndsAt. */
+ readonly settingsVersion: number;
  readonly locationShareEndsAt: number;
  readonly acknowledged: { readonly at: number; readonly by: string } | null;
  readonly resolved: { readonly at: number; readonly by: string; readonly outcomeId: string } | null;
@@ -44,14 +52,18 @@ export type PanicStanding = 'raised' | 'acknowledged' | 'resolved';
 export function raisePanic(input: {
  readonly panicRef: string; readonly raisedByRole: string; readonly nurseRef: string;
  readonly appointmentRef?: string | null; readonly locationShareMinutes?: number | null;
-}, now: number): Result<Panic> {
+}, now: number, window: PanicWindow): Result<Panic> {
  const minutes = input.locationShareMinutes;
  if (typeof minutes !== 'number' || !Number.isFinite(minutes) || minutes <= 0) return refuse('share-without-end');
- if (minutes !== panicWindowMinutes) return refuse('window-not-the-declared-one');
- const locationShareEndsAt = now + minutes * MINUTE;
+ /* The window is the policy's, never the phone's. A phone that read the settings before an admin changed
+    them sends a window that was in force a moment ago; refusing that would refuse a nurse's panic over
+    bookkeeping, so it opens the window in force now and the answer tells her when it ends. A number no
+    version of the settings ever held is a phone choosing how long it is watched, and is refused. */
+ if (!window.accepts.includes(minutes)) return refuse('window-not-the-declared-one');
+ const locationShareEndsAt = now + window.minutes * MINUTE;
  return done({
   panicRef: input.panicRef, raisedByRole: input.raisedByRole, nurseRef: input.nurseRef, appointmentRef: input.appointmentRef ?? null,
-  raisedAt: now, locationShareEndsAt, acknowledged: null, resolved: null, position: null
+  raisedAt: now, settingsVersion: window.settingsVersion, locationShareEndsAt, acknowledged: null, resolved: null, position: null
  }, [{ type: 'panic.raised', version: 1, payload: { panicRef: input.panicRef, raisedByRole: input.raisedByRole, locationShareEndsAt: instant(locationShareEndsAt) } }]);
 }
 

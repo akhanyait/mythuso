@@ -1,7 +1,8 @@
 /* The desk queue carries exactly what the contract lets it, in the order a person picks things up. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MINUTE, deskCarries, fieldSafety, panicWindowMinutes } from './rules.ts';
+import { MINUTE, deskCarries, fieldSafety } from './rules.ts';
+import { defaultTimings, defaultsInForce, panicWindowOf } from './settings.ts';
 import { acknowledgeOverdue, startTimer, tick, type Timer } from './checkins.ts';
 import { acknowledge, raisePanic, type Panic } from './panics.ts';
 import { deskCounts, deskQueue } from './desk.ts';
@@ -10,11 +11,11 @@ const T0 = Date.UTC(2026, 8, 14, 6, 0);
 const who = (ref: string) => ({ nurse: `Nurse ${ref}`, suburb: 'Soweto' });
 const ok = <T>(r: { ok: true; value: T } | { ok: false }): T => { assert.ok(r.ok); return (r as { value: T }).value; };
 const overdueTimer = (ref: string, at: number): Timer => {
- const timer = ok(startTimer({ checkinRef: ref, event: { appointmentRef: `A-${ref}`, visitCodeMatched: true }, serviceId: 'mental', nurseRef: 'N-205' }, at));
+ const timer = ok(startTimer({ checkinRef: ref, event: { appointmentRef: `A-${ref}`, visitCodeMatched: true }, serviceId: 'mental', nurseRef: 'N-205' }, at, defaultsInForce));
  return ok(tick(timer, timer.dueAt));
 };
 const panicAt = (ref: string, at: number): Panic =>
- ok(raisePanic({ panicRef: ref, raisedByRole: 'nurse', nurseRef: 'N-206', locationShareMinutes: panicWindowMinutes }, at));
+ ok(raisePanic({ panicRef: ref, raisedByRole: 'nurse', nurseRef: 'N-206', locationShareMinutes: defaultTimings.panicWindowMinutes }, at, panicWindowOf([])));
 
 test('every row carries the contract’s keys and none of the three it never carries', () => {
  const now = T0 + 6 * 60 * MINUTE;

@@ -1,10 +1,14 @@
 /* What the field-safety arithmetic reads, and the one way it says no.
  *
- * Every number here comes from a contract: the grace, the extension steps, the extension ceiling and
- * the panic window from packages/catalog/field-safety.json, a visit's expected minutes from the
- * service's own row in packages/catalog/services.json, the position precision from
- * packages/catalog/geography.json, and the emergency numbers a panic sentence names from
- * packages/catalog/sos.json. Nothing in this directory types a minute or a phone number.
+ * Every number here comes from a contract: a visit's expected minutes from the service's own row in
+ * packages/catalog/services.json, the position precision from packages/catalog/geography.json, and the
+ * emergency numbers a panic sentence names from packages/catalog/sos.json. Nothing in this directory
+ * types a minute or a phone number.
+ *
+ * THE TIMINGS ARE NOT EXPORTED FROM HERE. The grace, the extension steps and ceiling and the panic window
+ * are settings an admin changes (settings.ts), so a timer or a panic is handed the settings in force when
+ * it starts and keeps them. A constant exported here would be a default that code could reach for instead,
+ * and the first place a running timer quietly started reading a number nobody set for it.
  *
  * A refusal is looked up by id, never written here. Some of them already belong to a route in
  * packages/catalog/apis/safety.json and are read from there, so the sentence an API would return and
@@ -32,10 +36,6 @@ export type Done<T> = { readonly ok: true; readonly value: T; readonly emits: re
 export type Result<T> = Done<T> | Refused;
 
 export const fieldSafety = contract;
-export const graceMinutes: number = contract.timer.graceMinutes.value;
-export const extensionSteps: readonly number[] = contract.timer.extensionMinutes.value;
-export const maxExtensionMinutes: number = contract.timer.maxExtensionMinutes.value;
-export const panicWindowMinutes: number = contract.panic.windowMinutes.value;
 export const positionDecimals: number = geography.precision.decimals;
 export const extensionReasons = contract.extensionReasons;
 export const silenceReasons = contract.silenceReasons;

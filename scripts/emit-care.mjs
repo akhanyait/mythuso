@@ -9,9 +9,9 @@
 
    WHAT THIS GENERATOR REFUSES TO EMIT. A checklist step, a threshold or anything else from a protocol:
    it writes a service's protocol ids and nothing about what they say, and it throws if a protocol a
-   service names is not in the register. And a decision nobody has taken: the offer expiry is written
-   with the proposal it is, and the generator throws if the contract ever claims it was decided without
-   naming who decided it.
+   service names is not in the register. And a decision that is not one: the offer expiry was decided by
+   the founder on 15 September 2026, it is written with who decided it and when, and the generator throws
+   if the contract drops either or goes back to waiting on somebody.
 
    Escaping: Swift needs backslash and quote escaped; Kotlin needs backslash, quote and dollar, because a
    lone $ starts a template. */
@@ -48,7 +48,12 @@ export function emitCare(root = '') {
  if (!draft) throw new Error('packages/catalog/protocols.json has lost "a-draft-carries-nothing".');
  const noBase = contract.withheld.find(w => w.id === 'no-base-to-measure-from')?.statement;
  if (!noBase) throw new Error(`${SOURCE} has lost the withheld sentence "no-base-to-measure-from".`);
- if (contract.offers.decidedBy !== null && !contract.offers.decidedBy?.trim?.()) throw new Error(`${SOURCE} says the offer expiry was decided without naming who decided it.`);
+ /* The expiry is the founder's decision of 15 September 2026, and the phones are told who decided it. A
+    contract that names nobody is refused here, before two apps are told somebody did; the day, and that it
+    is no longer waiting on anybody, are held by scripts/check-boundaries.mjs, which reads the contract on
+    every build and does not need the phones to carry the date to hold it. */
+ if (!String(contract.offers.decidedBy ?? '').trim()) throw new Error(`${SOURCE} says the offer expiry was decided without naming who decided it.`);
+ const expiryNote = `Decided by the ${contract.offers.decidedBy}. packages/catalog/care.json records the day.`;
  for (const s of contract.services) for (const id of s.protocolIds) {
   if (!protocols.protocols.some(p => p.id === id)) throw new Error(`${SOURCE} gives ${s.serviceId} the protocol "${id}", which the register does not hold.`);
  }
@@ -105,7 +110,7 @@ enum CareData {
     struct Stage: Identifiable { let id: String; let name: String }
 
     static let seedPhase = ${contract.seedPhase}
-    /// A proposal awaiting ${contract.offers.awaiting}. Nobody has decided it.
+    /// ${expiryNote}
     static let offerExpiresAfterMinutes = ${contract.offers.expiresAfterMinutes}
 
 ${sentences.map(([name, value]) => `    static let ${name} = ${swift(value)}`).join('\n')}
@@ -143,7 +148,7 @@ object CareData {
     data class Stage(val id: String, val name: String)
 
     const val seedPhase = ${contract.seedPhase}
-    /** A proposal awaiting ${contract.offers.awaiting}. Nobody has decided it. */
+    /** ${expiryNote} */
     const val offerExpiresAfterMinutes = ${contract.offers.expiresAfterMinutes}
 
 ${sentences.map(([name, value]) => `    const val ${name} = ${kotlin(value)}`).join('\n')}
