@@ -2,7 +2,7 @@
  "engine": "core",
  "_note": "ThusoIQ Core's routes are called by engines and by the desk: the bus, the closed loop, the alert router, the Control Tower's read of open concerns, the protocol registry, the permission check and the audit export. Wave 2 contract. Wave 3 builds the closed loop, the alert router and the Control Tower's read on packages/engines, with the numbers and codes in packages/catalog/closed-loop.json; the bus route, the registry, the permission check and the export stay proposed. Nothing here is a running service: no alert reaches a person and nobody is on call.",
  "version": 1,
- "resources": ["events", "loops", "alerts", "protocols", "permission-checks", "audit-exports"],
+ "resources": ["events", "loops", "alerts", "protocols", "permission-checks", "audit-exports", "settings", "setting-changes"],
  "doors": [],
  "doorsToAdd": [],
  "refusals": [
@@ -84,7 +84,7 @@
    "path": "/v1/core/loops",
    "version": 1,
    "summary": "The Control Tower reads every open concern, the ones nobody is left to escalate to first.",
-   "callers": ["ops-desk"],
+   "callers": [],
    "purpose": ["treatment", "dispatch", "emergency"],
    "request": [
     {"field": "sourceEngine", "type": "string", "required": false, "why": "Narrows the list to one engine's concerns. A concern that has run out of people to escalate to is listed whatever this says."}
@@ -103,6 +103,33 @@
    "capabilityNamed": null,
    "status": "built",
    "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'GET /v1/core/loops@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"},
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "GET /v1/core/loops@2", "why": "Escalation stopped at a concern's fallback, so its list had nowhere to say which rung of the rota a concern has reached, which post holds it, which rota it keeps or when it moves up. The rota is Core's setting now, and version two's list says all four. Its callers are the desk's and the Control Tower operator's, who holds the desk's post."}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/core/loops",
+   "version": 2,
+   "summary": "The Control Tower reads every open concern with who holds it, the rung of the rota it has reached and when it moves up, the ones nobody is left to escalate to first.",
+   "callers": ["ops-desk", "operator"],
+   "purpose": ["treatment", "dispatch", "emergency"],
+   "request": [
+    {"field": "sourceEngine", "type": "string", "required": false, "why": "Narrows the list to one engine's concerns. A concern that has run out of people to escalate to is listed whatever this says."}
+   ],
+   "response": [
+    {"field": "loops", "type": "list", "required": true, "object": true, "why": "Open concerns in packages/catalog/closed-loop.json's controlTower order, each with its reference, its source engine, its owner, its state and its deadline; its holder — owner, fallback, a post of the rota, or every post at once for a panic — with the rung and post when a post holds it; the number of rungs and the settings version of the rota it keeps; when it moves up, or that nobody comes after its holder; the posts a panic alerted; every post it passed over, why and when, as loop_audit recorded it; and when it ran out of people to escalate to. Never what the concern is about."},
+    {"field": "exhaustedCount", "type": "integer", "required": true, "why": "How many open concerns have nobody left to escalate to."}
+   ],
+   "refusals": [
+    {"id": "unknown-source-engine", "status": 422, "statement": "That is not an engine in the event contract.", "why": "A filter by a name that is no engine would answer an empty list, which reads as nothing waiting."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading the open concerns changes none of them.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'GET /v1/core/loops@2'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
@@ -110,7 +137,7 @@
    "path": "/v1/core/loops/{loopRef}/acknowledge",
    "version": 1,
    "summary": "The owner takes the concern on.",
-   "callers": ["nurse", "doctor", "ops-desk", "engine:care", "engine:safety"],
+   "callers": [],
    "callerJustifications": {"engine:care": "loop.opened@1", "engine:safety": "loop.opened@1"},
    "purpose": ["treatment", "dispatch", "emergency"],
    "request": [
@@ -130,6 +157,34 @@
    "capabilityNamed": null,
    "status": "built",
    "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/loops/{loopRef}/acknowledge@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"},
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/core/loops/{loopRef}/acknowledge@2", "why": "Its callers were frozen before the rota existed and do not include the Control Tower operator, who holds the desk's post on the rota. A concern on the desk's rung could never have been taken on by the person holding it, and would have gone up the rota for nothing. Version two admits every role that holds a post."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/core/loops/{loopRef}/acknowledge",
+   "version": 2,
+   "summary": "The role that holds the concern now takes it on: its owner, its fallback, the post of the rota it has reached, or any post a panic alerted.",
+   "callers": ["nurse", "doctor", "ops-desk", "operator", "engine:care", "engine:safety"],
+   "callerJustifications": {"engine:care": "loop.opened@1", "engine:safety": "loop.opened@1"},
+   "purpose": ["treatment", "dispatch", "emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "loopRef", "type": "string", "required": true, "why": "The loop."}
+   ],
+   "response": [
+    {"field": "acknowledgedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "loop-closed", "status": 409, "statement": "That concern is already closed.", "why": "Acknowledging a closed loop would reopen it without an outcome."},
+    {"id": "not-this-loops-owner", "status": 403, "statement": "Only the role that owns this concern now takes it on.", "why": "An acknowledgement stops the clock that moves a concern up the rota. Somebody who does not hold it stopping that clock leaves the post that does never told. A panic is held by every post it alerted, so any of them takes it on."}
+   ],
+   "emits": ["loop.acknowledged@1", "alert.acknowledged@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/loops/{loopRef}/acknowledge@2'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
@@ -137,7 +192,7 @@
    "path": "/v1/core/loops/{loopRef}/escalate",
    "version": 1,
    "summary": "Move the concern to its fallback.",
-   "callers": ["ops-desk", "engine:safety"],
+   "callers": [],
    "callerJustifications": {"engine:safety": "loop.opened@1"},
    "purpose": ["treatment", "dispatch", "emergency"],
    "request": [
@@ -161,6 +216,38 @@
    "capabilityNamed": null,
    "status": "built",
    "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/loops/{loopRef}/escalate@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"},
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/core/loops/{loopRef}/escalate@2", "why": "Its refusal no-fallback-left says no rota exists to name who comes after the fallback. The rota is Core's setting escalation-rota now, and a concern goes up it after its fallback, so the sentence is no longer true, and a changed refusal is a changed route. Version two moves a concern to the next on its escalation and refuses in a sentence that names no missing rota. Its callers were also frozen without the Control Tower operator, who holds the desk's post."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/core/loops/{loopRef}/escalate",
+   "version": 2,
+   "summary": "Move the concern to the next on its escalation: its fallback, then the next post of the rota it was opened under that is on duty.",
+   "callers": ["ops-desk", "operator", "engine:safety"],
+   "callerJustifications": {"engine:safety": "loop.opened@1"},
+   "purpose": ["treatment", "dispatch", "emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "loopRef", "type": "string", "required": true, "why": "The loop."},
+    {"field": "reasonCode", "type": "string", "required": true, "why": "A code, never free text."}
+   ],
+   "response": [
+    {"field": "ownerRole", "type": "string", "required": true, "why": "The new owner: the fallback, or the role that holds the post the concern went to."},
+    {"field": "dueBy", "type": "instant", "required": true, "why": "The new deadline."}
+   ],
+   "refusals": [
+    {"id": "no-fallback-left", "status": 409, "statement": "There is nobody left to escalate to. This concern has been with its fallback, and no post of the rota it was opened under is left after the one it has reached that is on duty now. It stays open, first in the Control Tower, until somebody closes it with an outcome.", "why": "The desk is told, rather than the loop quietly stopping. A post that is not on duty, or that no role on the vetting register holds, is skipped rather than paged, and the skip is written to loop_audit; when every post after the concern's is skipped, there is nobody to move it to."},
+    {"id": "reason-not-a-code", "status": 422, "statement": "An escalation is given one of the reasons the closed loop lists.", "why": "The reason travels on the bus, and words on the bus have none of the record's protections."},
+    {"id": "loop-closed", "status": 409, "statement": "That concern is already closed.", "why": "Escalating a closed loop would reopen it without an outcome."}
+   ],
+   "keptOnRefusal": {"refusals": ["no-fallback-left"], "tables": ["loop_audit"], "why": "An escalation refused because there is nobody left is itself something the review must see: who asked, when and why. The refusal rolls everything else back and keeps that audit row."},
+   "emits": ["loop.escalated@1", "alert.escalated@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/loops/{loopRef}/escalate@2'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
@@ -258,6 +345,8 @@
    "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/alerts@2'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
+  {"method":"GET","path":"/v1/core/settings","version":1,"summary":"Read Core's settings in force — the escalation rota and the minutes at each rung of it — each with its default and who proposed it, what an admin may set, and every change made to them.","callers":["admin"],"purpose":["audit"],"request":[],"response":[{"field":"settingsVersion","type":"integer","required":true,"why":"The version in force. A change is made against it, and whatever starts now keeps it."},{"field":"settings","type":"list","required":true,"why":"Each setting: its key, type, unit, the value in force and the version that set it, its default and provenance, its limits, who may change it, what a change reaches, its guardrail, and its clinical review.","object":true},{"field":"history","type":"list","required":true,"why":"Every accepted change, oldest first: which setting, from, to, who, when and why. Nothing in it is edited or removed.","object":true}],"refusals":[{"id":"settings-read-not-permitted","status":403,"statement":"Only somebody who may change these settings reads them and who changed them.","why":"The history names the people who changed how an engine behaves. It is read by the roles that may change it."}],"emits":[],"emitsNoneBecause":"Reading changes nothing.","idempotent":false,"endpointNamed":null,"capabilityNamed":null,"status":"built","evidence":{"file":"packages/engines/src/core/engine.ts","handler":"'GET /v1/core/settings@1'"},"enforcedBy":{"mechanism":"engines-runtime:callers"}},
+  {"method":"POST","path":"/v1/core/setting-changes","version":1,"summary":"Change one Core setting, with a reason, against the version in force. It applies to concerns opened after it and never to one already open.","callers":["admin"],"purpose":["audit"],"request":[{"field":"idempotencyKey","type":"string","required":true,"why":"Chosen by the caller. The same key twice is the same change once, and the history gains one row."},{"field":"setting","type":"string","required":true,"why":"The setting's key, from the settings block of the engine's own contract."},{"field":"wholeNumber","type":"integer","required":false,"why":"The new value, for a setting in minutes, a count, cents or a percentage."},{"field":"switchedOn","type":"boolean","required":false,"why":"The new value, for a setting that is on or off."},{"field":"choice","type":"string","required":false,"why":"The new value, for a setting that is one of a few named choices."},{"field":"wording","type":"string","required":false,"why":"The new wording, for a setting patients or nurses read."},{"field":"roles","type":"list","required":false,"why":"The new roles, for a setting that names roles from packages/catalog/vetting.json."},{"field":"windows","type":"list","required":false,"why":"The new rota, for a setting that is windows of a post, days and hours. A post, never a named person.","object":true},{"field":"items","type":"list","required":false,"why":"The new values, for a setting that is a list."},{"field":"parts","type":"string","required":false,"why":"The new values, for a setting whose parts change together.","object":true},{"field":"reason","type":"string","required":false,"why":"Why. Asked for by the handler rather than the binder, so that a change without one is refused in its own sentence rather than the general one for a missing field."},{"field":"expectedVersion","type":"integer","required":true,"why":"The settings version the admin was looking at. A change against an older one is refused."}],"response":[{"field":"settingsVersion","type":"integer","required":true,"why":"The version this change made."},{"field":"appliesFrom","type":"instant","required":true,"why":"When it took effect. Whatever started before it keeps the version it started under."}],"refusals":[{"id":"setting-change-not-permitted","status":403,"statement":"Only the role a setting names changes it, and the change is recorded against a named person.","why":"A setting decides how the platform treats people. The role or capability the setting names changes it, and a change is recorded against somebody who can be asked about it; everybody else only reads what is in force."},{"id":"setting-not-known","status":422,"statement":"There is no setting by that name.","why":"An unknown setting is refused rather than stored, or the history fills with changes nothing reads."},{"id":"setting-change-without-reason","status":422,"statement":"A change to a setting says why, or it is not made.","why":"The history is read after something has gone wrong. A change with no reason is a number somebody moved."},{"id":"settings-version-stale","status":409,"statement":"These settings changed after you opened them. Read what is in force now and decide against that.","why":"Two admins changing one setting from screens opened at the same time would each overwrite a decision they never saw."},{"id":"setting-value-wrong-type","status":422,"statement":"That is not the kind of value this setting holds.","why":"A word where a number belongs, or a list where one choice belongs, is a guess at what the admin meant, and a setting is never set by a guess."},{"id":"setting-not-above-zero","status":422,"statement":"This setting is never nought or less, whatever its range says.","why":"A wait of nothing, an offer that lapses as it is made and a fee of nothing are never what anybody meant. The range is a proposal and could be set wrongly; this refusal does not depend on it."},{"id":"setting-role-not-on-register","status":422,"statement":"Every role a setting names is a role on the vetting register.","why":"A role the register does not hold is a gate nobody can be vetted through, which looks like a shortage rather than a mistake."},{"id":"setting-text-too-long","status":422,"statement":"That wording is longer than this setting allows.","why":"The maximum is the space the words are read in. Wording that does not fit is cut off where somebody reads it."},{"id":"setting-text-loses-a-guardrail","status":422,"statement":"That wording drops a sentence this setting must always keep.","why":"Some wording carries a promise that protects somebody. It may be reworded around that sentence and never without it."},{"id":"setting-schedule-leaves-a-gap","status":422,"statement":"That rota leaves hours uncovered that must always have somebody on them.","why":"A rota with a gap is an alert with nobody to go to, and nobody finds out until one arrives."},{"id":"setting-out-of-range","status":422,"statement":"That is outside what an admin may set for this setting.","why":"The bounds, the allowed values and the allowed roles sit beside the default in the engine's contract. Moving a setting past them is a change to that contract, not a setting."},{"id":"setting-unchanged","status":409,"statement":"That is already the value in force, so there is nothing to change.","why":"A change that changes nothing is a row in the history saying something happened when nothing did."}],"emits":[],"emitsNoneBecause":"No engine acts on a settings change. Core reads the rota and the minutes in force when it opens a concern, and the event contract refuses an event nobody subscribes to. A change is the row it appends to Core's own history, which the read route returns.","idempotent":true,"endpointNamed":null,"capabilityNamed":null,"status":"built","evidence":{"file":"packages/engines/src/core/engine.ts","handler":"'POST /v1/core/setting-changes@1'"},"enforcedBy":{"mechanism":"engines-runtime:callers"}},
   {
    "method": "GET",
    "path": "/v1/core/protocols/{protocolVersionId}",

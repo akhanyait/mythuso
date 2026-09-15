@@ -932,3 +932,22 @@
  .clinical .cf-tools { grid-template-columns: minmax(0, 1fr); }
  .clinical .cf-rules > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
 }
+
+/* ---- The Control Tower's concerns on the escalation rota -------------------------------------------
+   Under the field safety queue and above the incident register, in the same measure as the queue. A
+   concern with nobody left is marked by a rule down its edge and says so in words, so colour is never the
+   only thing separating it from one still going up the rota. */
+.clinical .cl-board { display: grid; gap: var(--space-12); margin-bottom: var(--space-32); max-width: 1080px; min-width: 0; }
+.clinical .cl-board-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-4) var(--space-16); }
+.clinical .cl-board-head h2 { margin: 0; font-size: 20px; font-weight: 600; color: var(--charcoal); }
+.clinical .cl-board-head p, .clinical .cl-intro, .clinical .cl-empty, .clinical .cl-preview { margin: 0; font-size: 14px; color: var(--faint); }
+.clinical .cl-list { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
+.clinical .cl-row { display: grid; gap: var(--space-4); min-width: 0; padding: var(--space-12) var(--space-16); border: 1px solid var(--line); border-left-width: 4px; border-radius: var(--r-control); background: var(--white, #fff); }
+.clinical .cl-row.is-exhausted { border-left-color: var(--charcoal); }
+.clinical .cl-row-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-4) var(--space-12); min-width: 0; }
+.clinical .cl-row-ref { font-weight: 600; color: var(--charcoal); overflow-wrap: anywhere; }
+.clinical .cl-row-from, .clinical .cl-row-version { font-size: 13px; color: var(--faint); }
+.clinical .cl-row-rung { font-size: 14px; font-weight: 500; color: var(--charcoal); }
+.clinical .cl-row-holds, .clinical .cl-row-next, .clinical .cl-row-note, .clinical .cl-row-version { display: flex; align-items: flex-start; gap: var(--space-8); margin: 0; font-size: 14px; color: var(--charcoal); overflow-wrap: anywhere; }
+.clinical .cl-row-holds > svg, .clinical .cl-row-next > svg { flex: none; margin-top: 3px; }
+.clinical .cl-row-note { color: var(--faint); }

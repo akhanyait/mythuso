@@ -29,13 +29,23 @@ const shared = (id: string) => (settingsContract.refusals as { route: string; id
 const safetyOwn = (id: string) => safetyApi.routes.find(r => r.path === '/v1/safety/setting-changes' && !r.withdrawn)!.refusals.find(r => r.id === id)!.statement;
 /* How the screen reads a value of each type these journeys meet. A setting of a type not here fails the first
    journey loudly, so the journey is taught the type rather than passing by skipping it. */
+type Window = { post: string; days: string[]; from: string; to: string };
+const dayName = (id: string) => id.charAt(0).toUpperCase() + id.slice(1);
+/* A rota reads as each window's post, days and hours, every day when a window names all seven. */
+const windowsText = (row: TimingRow, windows: Window[]) => windows.length ? windows.map(w => fill(say.values.window, {
+  post: row.posts!.find(post => post.id === w.post)!.label,
+  days: w.days.length === settingsContract.days.length ? say.values.everyDay : w.days.map(dayName).join(', '),
+  from: w.from, to: w.to
+})).join('; ') : say.values.noWindows;
 const valueText = (row: TimingRow, value: unknown): string => {
   if (row.type === 'minutes' || (row.type === 'list' && row.of === 'minutes')) return minutesText(value as number | number[]);
   if (row.type === 'boolean') return row.allowed!.find(choice => choice.value === value)!.label;
   if (row.type === 'roleList') return (value as string[]).map(roleName).join(', ');
+  if (row.type === 'schedule') return windowsText(row, value as Window[]);
   throw new Error(`${row.key} is a ${row.type}, which this journey does not read yet.`);
 };
 const limitsTexts = (row: TimingRow): string[] => [
+  ...(row.posts ? [fill(say.posts, { posts: row.posts.map(post => post.role === null ? fill(say.postWithoutRole, { post: post.label }) : post.label).join(', ') })] : []),
   ...(row.bounds ? [fill(say.range, { lowest: minutesText(row.bounds.lowest.value), highest: minutesText(row.bounds.highest.value) })] : []),
   ...(row.allowed ? [fill(say.choices, { values: row.allowed.map(choice => choice.label).join(', ') })] : []),
   ...(row.allowedRoles ? [fill(say.roles, { roles: row.allowedRoles.roles.map(roleName).join(', ') })] : []),
@@ -44,6 +54,8 @@ const limitsTexts = (row: TimingRow): string[] => [
 const sources = (settingsContract.sources as { engine: string; file: string }[]).map(s => ({ engine: s.engine, block: json(`../${s.file}`).settings as { heading: string; intro: string; items: TimingRow[] } }));
 const total = String(sources.reduce((sum, s) => sum + s.block.items.length, 0));
 const expiry = (care.settings.items as TimingRow[]).find(s => s.key === 'offer-expiry')!;
+const closedLoop = json('../packages/catalog/closed-loop.json');
+const escalationRota = (closedLoop.settings.items as TimingRow[]).find(s => s.key === closedLoop.escalation.rotaSetting)!;
 
 const MINUTE = 60_000;
 const START = new Date('2026-09-15T08:00:00+02:00');
@@ -226,6 +238,38 @@ test('the Operations tab keeps the way to the field safety settings, and opens C
   await expect(group(page, fieldSafety.settings.heading)).toBeVisible();
   await expect(group(page, care.settings.heading)).toHaveCount(0);
   await expect(page.getByLabel(say.engine, { exact: true })).toHaveValue('safety');
+});
+
+test('the escalation rota is edited window by window: a gap is refused in the contract’s words, a post nobody holds is never offered, and a moved shift is confirmed', async ({ page }, info) => {
+  await openSettings(page);
+  const panel = group(page, closedLoop.settings.heading);
+  const from = escalationRota.default.value as unknown as Window[];
+  const form = await openChangeForm(panel, escalationRota);
+  const editor = form.getByRole('group', { name: say.editors.schedule, exact: true });
+  const reason = form.getByLabel(say.reason, { exact: true });
+  const unheld = escalationRota.posts!.filter(post => post.role === null);
+  for (const post of unheld) await expect(editor.getByRole('option', { name: post.label, exact: true })).toHaveCount(0);
+
+  /* The second window is the desk's afternoon: without it, the desk is empty from two to ten. */
+  await editor.getByRole('button', { name: say.editors.removeWindow }).nth(1).click();
+  await reason.fill('One long desk shift instead of two.');
+  await form.getByRole('button', { name: say.review }).click();
+  await expect(form.getByRole('alert')).toHaveText(shared('setting-schedule-leaves-a-gap'));
+  await form.getByRole('button', { name: say.cancel }).click();
+
+  const again = await openChangeForm(panel, escalationRota);
+  const until = again.getByRole('group', { name: say.editors.schedule, exact: true }).getByLabel(say.editors.to, { exact: true }).first();
+  const to = from.map((w, i) => i === 0 ? { ...w, to: '15:00' } : w);
+  await until.fill('15:00');
+  await again.getByLabel(say.reason, { exact: true }).fill('The morning desk stays an hour into the afternoon shift for the handover.');
+  await again.getByRole('button', { name: say.review }).click();
+  const confirm = again.getByRole('group', { name: fill(say.confirmQuestion, { setting: escalationRota.label, from: windowsText(escalationRota, from), to: windowsText(escalationRota, to) }) });
+  await expect(confirm).toContainText(escalationRota.appliesTo);
+  await shoot(page, 'configuration-rota', info);
+  await confirm.getByRole('button', { name: say.confirm }).click();
+  await expect(timingItem(panel, escalationRota).locator('.ss-in-force')).toContainText(windowsText(escalationRota, to));
+  await expect(panel).toContainText(fill(say.version, { version: '2' }));
+  expect(await noOverflow(page), 'the rota editor scrolls the page sideways').toBe(true);
 });
 
 test('who changes the field safety settings, and which window a stale panic opens, are changed in their own editors and refused in the contract’s words', async ({ page }, info) => {

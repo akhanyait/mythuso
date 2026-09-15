@@ -24,11 +24,13 @@ object ApisData {
 
     val POST_CORE_EVENTS = Route("postCoreEvents", "POST", "/v1/core/events", "/v1/core/events", 1, "core", listOf("engine:access", "engine:pulse", "engine:care", "engine:clinical", "engine:safety", "engine:movement", "engine:trust", "engine:record", "engine:medicines", "engine:devices", "engine:money"), listOf("audit"), false, "proposed")
     val POST_CORE_LOOPS = Route("postCoreLoops", "POST", "/v1/core/loops", "/v1/core/loops", 1, "core", listOf("engine:care", "engine:safety", "engine:medicines", "engine:access", "engine:movement"), listOf("treatment", "dispatch", "emergency"), true, "built")
-    val GET_CORE_LOOPS = Route("getCoreLoops", "GET", "/v1/core/loops", "/v1/core/loops", 1, "core", listOf("ops-desk"), listOf("treatment", "dispatch", "emergency"), false, "built")
-    val POST_CORE_LOOPS_BY_LOOP_REF_ACKNOWLEDGE = Route("postCoreLoopsByLoopRefAcknowledge", "POST", "/v1/core/loops/{loopRef}/acknowledge", "/v1/core/loops/{loopRef}/acknowledge", 1, "core", listOf("nurse", "doctor", "ops-desk", "engine:care", "engine:safety"), listOf("treatment", "dispatch", "emergency"), true, "built")
-    val POST_CORE_LOOPS_BY_LOOP_REF_ESCALATE = Route("postCoreLoopsByLoopRefEscalate", "POST", "/v1/core/loops/{loopRef}/escalate", "/v1/core/loops/{loopRef}/escalate", 1, "core", listOf("ops-desk", "engine:safety"), listOf("treatment", "dispatch", "emergency"), true, "built")
+    val GET_CORE_LOOPS_V2 = Route("getCoreLoopsV2", "GET", "/v1/core/loops", "/v1/core/loops", 2, "core", listOf("ops-desk", "operator"), listOf("treatment", "dispatch", "emergency"), false, "built")
+    val POST_CORE_LOOPS_BY_LOOP_REF_ACKNOWLEDGE_V2 = Route("postCoreLoopsByLoopRefAcknowledgeV2", "POST", "/v1/core/loops/{loopRef}/acknowledge", "/v1/core/loops/{loopRef}/acknowledge", 2, "core", listOf("nurse", "doctor", "ops-desk", "operator", "engine:care", "engine:safety"), listOf("treatment", "dispatch", "emergency"), true, "built")
+    val POST_CORE_LOOPS_BY_LOOP_REF_ESCALATE_V2 = Route("postCoreLoopsByLoopRefEscalateV2", "POST", "/v1/core/loops/{loopRef}/escalate", "/v1/core/loops/{loopRef}/escalate", 2, "core", listOf("ops-desk", "operator", "engine:safety"), listOf("treatment", "dispatch", "emergency"), true, "built")
     val POST_CORE_LOOPS_BY_LOOP_REF_CLOSE = Route("postCoreLoopsByLoopRefClose", "POST", "/v1/core/loops/{loopRef}/close", "/v1/core/loops/{loopRef}/close", 1, "core", listOf("nurse", "doctor", "ops-desk"), listOf("treatment", "dispatch", "emergency"), true, "built")
     val POST_CORE_ALERTS_V2 = Route("postCoreAlertsV2", "POST", "/v1/core/alerts", "/v1/core/alerts", 2, "core", listOf("engine:safety", "engine:devices", "engine:clinical", "engine:medicines"), listOf("treatment", "emergency"), false, "built")
+    val GET_CORE_SETTINGS = Route("getCoreSettings", "GET", "/v1/core/settings", "/v1/core/settings", 1, "core", listOf("admin"), listOf("audit"), false, "built")
+    val POST_CORE_SETTING_CHANGES = Route("postCoreSettingChanges", "POST", "/v1/core/setting-changes", "/v1/core/setting-changes", 1, "core", listOf("admin"), listOf("audit"), true, "built")
     val GET_CORE_PROTOCOLS_BY_PROTOCOL_VERSION_ID = Route("getCoreProtocolsByProtocolVersionId", "GET", "/v1/core/protocols/{protocolVersionId}", "/v1/core/protocols/{protocolVersionId}", 1, "core", listOf("nurse", "doctor", "medical-director", "engine:clinical", "engine:care", "engine:safety", "engine:medicines"), listOf("treatment"), false, "proposed")
     val POST_CORE_PROTOCOLS_BY_PROTOCOL_ID_RATIFY = Route("postCoreProtocolsByProtocolIdRatify", "POST", "/v1/core/protocols/{protocolId}/ratify", "/v1/core/protocols/{protocolId}/ratify", 1, "core", listOf("medical-director"), listOf("audit"), false, "proposed")
     val POST_CORE_PERMISSION_CHECKS = Route("postCorePermissionChecks", "POST", "/v1/core/permission-checks", "/v1/core/permission-checks", 1, "core", listOf("engine:care", "engine:medicines", "engine:movement", "engine:access", "engine:clinical"), listOf("audit"), false, "proposed")
@@ -186,11 +188,13 @@ object ApisData {
     val routes = listOf(
         POST_CORE_EVENTS,
         POST_CORE_LOOPS,
-        GET_CORE_LOOPS,
-        POST_CORE_LOOPS_BY_LOOP_REF_ACKNOWLEDGE,
-        POST_CORE_LOOPS_BY_LOOP_REF_ESCALATE,
+        GET_CORE_LOOPS_V2,
+        POST_CORE_LOOPS_BY_LOOP_REF_ACKNOWLEDGE_V2,
+        POST_CORE_LOOPS_BY_LOOP_REF_ESCALATE_V2,
         POST_CORE_LOOPS_BY_LOOP_REF_CLOSE,
         POST_CORE_ALERTS_V2,
+        GET_CORE_SETTINGS,
+        POST_CORE_SETTING_CHANGES,
         GET_CORE_PROTOCOLS_BY_PROTOCOL_VERSION_ID,
         POST_CORE_PROTOCOLS_BY_PROTOCOL_ID_RATIFY,
         POST_CORE_PERMISSION_CHECKS,
@@ -365,26 +369,26 @@ object ApisData {
     data class PostCoreLoopsResponse(
         val loopRef: String
     )
-    data class GetCoreLoopsRequest(
+    data class GetCoreLoopsV2Request(
         val sourceEngine: String? = null
     )
-    data class GetCoreLoopsResponse(
+    data class GetCoreLoopsV2Response(
         val loops: List<Map<String, Any?>>,
         val exhaustedCount: Int
     )
-    data class PostCoreLoopsByLoopRefAcknowledgeRequest(
+    data class PostCoreLoopsByLoopRefAcknowledgeV2Request(
         val idempotencyKey: String,
         val loopRef: String
     )
-    data class PostCoreLoopsByLoopRefAcknowledgeResponse(
+    data class PostCoreLoopsByLoopRefAcknowledgeV2Response(
         val acknowledgedAt: String
     )
-    data class PostCoreLoopsByLoopRefEscalateRequest(
+    data class PostCoreLoopsByLoopRefEscalateV2Request(
         val idempotencyKey: String,
         val loopRef: String,
         val reasonCode: String
     )
-    data class PostCoreLoopsByLoopRefEscalateResponse(
+    data class PostCoreLoopsByLoopRefEscalateV2Response(
         val ownerRole: String,
         val dueBy: String
     )
@@ -408,6 +412,30 @@ object ApisData {
     data class PostCoreAlertsV2Response(
         val alertRef: String,
         val suppressed: Boolean
+    )
+    class GetCoreSettingsRequest
+    data class GetCoreSettingsResponse(
+        val settingsVersion: Int,
+        val settings: List<Map<String, Any?>>,
+        val history: List<Map<String, Any?>>
+    )
+    data class PostCoreSettingChangesRequest(
+        val idempotencyKey: String,
+        val setting: String,
+        val wholeNumber: Int? = null,
+        val switchedOn: Boolean? = null,
+        val choice: String? = null,
+        val wording: String? = null,
+        val roles: List<String>? = null,
+        val windows: List<Map<String, Any?>>? = null,
+        val items: List<String>? = null,
+        val parts: Map<String, Any?>? = null,
+        val reason: String? = null,
+        val expectedVersion: Int
+    )
+    data class PostCoreSettingChangesResponse(
+        val settingsVersion: Int,
+        val appliesFrom: String
     )
     data class GetCoreProtocolsByProtocolVersionIdRequest(
         val protocolVersionId: String

@@ -24,11 +24,13 @@ enum ApisData {
 
     static let postCoreEvents = Route(id: "postCoreEvents", method: "POST", path: "/v1/core/events", mountedPath: "/v1/core/events", version: 1, engine: "core", callers: ["engine:access", "engine:pulse", "engine:care", "engine:clinical", "engine:safety", "engine:movement", "engine:trust", "engine:record", "engine:medicines", "engine:devices", "engine:money"], purpose: ["audit"], idempotent: false, status: "proposed")
     static let postCoreLoops = Route(id: "postCoreLoops", method: "POST", path: "/v1/core/loops", mountedPath: "/v1/core/loops", version: 1, engine: "core", callers: ["engine:care", "engine:safety", "engine:medicines", "engine:access", "engine:movement"], purpose: ["treatment", "dispatch", "emergency"], idempotent: true, status: "built")
-    static let getCoreLoops = Route(id: "getCoreLoops", method: "GET", path: "/v1/core/loops", mountedPath: "/v1/core/loops", version: 1, engine: "core", callers: ["ops-desk"], purpose: ["treatment", "dispatch", "emergency"], idempotent: false, status: "built")
-    static let postCoreLoopsByLoopRefAcknowledge = Route(id: "postCoreLoopsByLoopRefAcknowledge", method: "POST", path: "/v1/core/loops/{loopRef}/acknowledge", mountedPath: "/v1/core/loops/{loopRef}/acknowledge", version: 1, engine: "core", callers: ["nurse", "doctor", "ops-desk", "engine:care", "engine:safety"], purpose: ["treatment", "dispatch", "emergency"], idempotent: true, status: "built")
-    static let postCoreLoopsByLoopRefEscalate = Route(id: "postCoreLoopsByLoopRefEscalate", method: "POST", path: "/v1/core/loops/{loopRef}/escalate", mountedPath: "/v1/core/loops/{loopRef}/escalate", version: 1, engine: "core", callers: ["ops-desk", "engine:safety"], purpose: ["treatment", "dispatch", "emergency"], idempotent: true, status: "built")
+    static let getCoreLoopsV2 = Route(id: "getCoreLoopsV2", method: "GET", path: "/v1/core/loops", mountedPath: "/v1/core/loops", version: 2, engine: "core", callers: ["ops-desk", "operator"], purpose: ["treatment", "dispatch", "emergency"], idempotent: false, status: "built")
+    static let postCoreLoopsByLoopRefAcknowledgeV2 = Route(id: "postCoreLoopsByLoopRefAcknowledgeV2", method: "POST", path: "/v1/core/loops/{loopRef}/acknowledge", mountedPath: "/v1/core/loops/{loopRef}/acknowledge", version: 2, engine: "core", callers: ["nurse", "doctor", "ops-desk", "operator", "engine:care", "engine:safety"], purpose: ["treatment", "dispatch", "emergency"], idempotent: true, status: "built")
+    static let postCoreLoopsByLoopRefEscalateV2 = Route(id: "postCoreLoopsByLoopRefEscalateV2", method: "POST", path: "/v1/core/loops/{loopRef}/escalate", mountedPath: "/v1/core/loops/{loopRef}/escalate", version: 2, engine: "core", callers: ["ops-desk", "operator", "engine:safety"], purpose: ["treatment", "dispatch", "emergency"], idempotent: true, status: "built")
     static let postCoreLoopsByLoopRefClose = Route(id: "postCoreLoopsByLoopRefClose", method: "POST", path: "/v1/core/loops/{loopRef}/close", mountedPath: "/v1/core/loops/{loopRef}/close", version: 1, engine: "core", callers: ["nurse", "doctor", "ops-desk"], purpose: ["treatment", "dispatch", "emergency"], idempotent: true, status: "built")
     static let postCoreAlertsV2 = Route(id: "postCoreAlertsV2", method: "POST", path: "/v1/core/alerts", mountedPath: "/v1/core/alerts", version: 2, engine: "core", callers: ["engine:safety", "engine:devices", "engine:clinical", "engine:medicines"], purpose: ["treatment", "emergency"], idempotent: false, status: "built")
+    static let getCoreSettings = Route(id: "getCoreSettings", method: "GET", path: "/v1/core/settings", mountedPath: "/v1/core/settings", version: 1, engine: "core", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postCoreSettingChanges = Route(id: "postCoreSettingChanges", method: "POST", path: "/v1/core/setting-changes", mountedPath: "/v1/core/setting-changes", version: 1, engine: "core", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
     static let getCoreProtocolsByProtocolVersionId = Route(id: "getCoreProtocolsByProtocolVersionId", method: "GET", path: "/v1/core/protocols/{protocolVersionId}", mountedPath: "/v1/core/protocols/{protocolVersionId}", version: 1, engine: "core", callers: ["nurse", "doctor", "medical-director", "engine:clinical", "engine:care", "engine:safety", "engine:medicines"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let postCoreProtocolsByProtocolIdRatify = Route(id: "postCoreProtocolsByProtocolIdRatify", method: "POST", path: "/v1/core/protocols/{protocolId}/ratify", mountedPath: "/v1/core/protocols/{protocolId}/ratify", version: 1, engine: "core", callers: ["medical-director"], purpose: ["audit"], idempotent: false, status: "proposed")
     static let postCorePermissionChecks = Route(id: "postCorePermissionChecks", method: "POST", path: "/v1/core/permission-checks", mountedPath: "/v1/core/permission-checks", version: 1, engine: "core", callers: ["engine:care", "engine:medicines", "engine:movement", "engine:access", "engine:clinical"], purpose: ["audit"], idempotent: false, status: "proposed")
@@ -186,11 +188,13 @@ enum ApisData {
     static let routes: [Route] = [
         postCoreEvents,
         postCoreLoops,
-        getCoreLoops,
-        postCoreLoopsByLoopRefAcknowledge,
-        postCoreLoopsByLoopRefEscalate,
+        getCoreLoopsV2,
+        postCoreLoopsByLoopRefAcknowledgeV2,
+        postCoreLoopsByLoopRefEscalateV2,
         postCoreLoopsByLoopRefClose,
         postCoreAlertsV2,
+        getCoreSettings,
+        postCoreSettingChanges,
         getCoreProtocolsByProtocolVersionId,
         postCoreProtocolsByProtocolIdRatify,
         postCorePermissionChecks,
@@ -365,26 +369,26 @@ enum ApisData {
     struct PostCoreLoopsResponse {
         let loopRef: String
     }
-    struct GetCoreLoopsRequest {
+    struct GetCoreLoopsV2Request {
         let sourceEngine: String?
     }
-    struct GetCoreLoopsResponse {
+    struct GetCoreLoopsV2Response {
         let loops: [[String: Any]]
         let exhaustedCount: Int
     }
-    struct PostCoreLoopsByLoopRefAcknowledgeRequest {
+    struct PostCoreLoopsByLoopRefAcknowledgeV2Request {
         let idempotencyKey: String
         let loopRef: String
     }
-    struct PostCoreLoopsByLoopRefAcknowledgeResponse {
+    struct PostCoreLoopsByLoopRefAcknowledgeV2Response {
         let acknowledgedAt: String
     }
-    struct PostCoreLoopsByLoopRefEscalateRequest {
+    struct PostCoreLoopsByLoopRefEscalateV2Request {
         let idempotencyKey: String
         let loopRef: String
         let reasonCode: String
     }
-    struct PostCoreLoopsByLoopRefEscalateResponse {
+    struct PostCoreLoopsByLoopRefEscalateV2Response {
         let ownerRole: String
         let dueBy: String
     }
@@ -408,6 +412,30 @@ enum ApisData {
     struct PostCoreAlertsV2Response {
         let alertRef: String
         let suppressed: Bool
+    }
+    struct GetCoreSettingsRequest {}
+    struct GetCoreSettingsResponse {
+        let settingsVersion: Int
+        let settings: [[String: Any]]
+        let history: [[String: Any]]
+    }
+    struct PostCoreSettingChangesRequest {
+        let idempotencyKey: String
+        let setting: String
+        let wholeNumber: Int?
+        let switchedOn: Bool?
+        let choice: String?
+        let wording: String?
+        let roles: [String]?
+        let windows: [[String: Any]]?
+        let items: [String]?
+        let parts: [String: Any]?
+        let reason: String?
+        let expectedVersion: Int
+    }
+    struct PostCoreSettingChangesResponse {
+        let settingsVersion: Int
+        let appliesFrom: String
     }
     struct GetCoreProtocolsByProtocolVersionIdRequest {
         let protocolVersionId: String

@@ -6506,17 +6506,21 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  for (const r of routesForRuntime.filter(r => r.enforcedBy?.mechanism === runtimeSettings.mechanism && r.status !== 'built')) throw new Error(`${routeKey(r)} claims the engine runtime's enforcement and is not built.`);
 
  /* 5. Core: the closed loop and the alert router (packages/catalog/closed-loop.json, packages/engines/src/core).
-       Escalation goes to a concern's fallback and stops, because no rota exists; a concern that runs out of
-       people stays open, first in the Control Tower, and is never quietened. What is held here is what a
-       test cannot see coming: a proposal losing its question, a policy number typed into Core's code, a
-       rota guessed into the contract, Safety's timing copied instead of read, the tick closing or moving a
-       concern down, and a filter that hides an exhausted one. */
+       Escalation goes to a concern's fallback and then up the escalation rota it was opened under — Core's
+       setting, walked post by post and skipping a post nobody is on — and a concern that runs out of people
+       stays open, first in the Control Tower, and is never quietened. A panic alerts every post on duty at
+       once, by rule. What is held here is what a test cannot see coming: a proposal losing its question, a
+       policy number, a post or a role typed into Core's code or the Control Tower, a rota kept beside the
+       setting, a list of minutes the wrong length for the posts, a rota an admin could set that leaves an
+       hour with nobody, a post held by a role that cannot take a concern on, a refusal still naming a
+       missing rota, a panic walked or made configurable, Safety's timing copied instead of read, the tick
+       closing or moving a concern down, and a filter that hides an exhausted one. */
  const closedLoop = JSON.parse(read('packages/catalog/closed-loop.json'));
  const coreApi = JSON.parse(read('packages/catalog/apis/core.json'));
  const coreFail = detail => { throw new Error(`${detail} ${closedLoop.exhaustion?.why ?? ''}`); };
  const proposals = [
   ...closedLoop.ladder.rungs.map(r => [`ladder rung ${r.rung} acknowledgeWithinMinutes`, r.acknowledgeWithinMinutes]),
-  ['snooze.reasons', closedLoop.snooze.reasons], ['escalationReasons.byCaller', closedLoop.escalationReasons.byCaller]
+  ['snooze.reasons', closedLoop.snooze.reasons], ['escalationReasons.byCaller', closedLoop.escalationReasons.byCaller], ['panic.ladderRung', closedLoop.panic?.ladderRung]
  ];
  for (const [name, proposal] of proposals) {
   if (!proposal || !('decidedBy' in proposal) || !proposal.question?.trim() || !proposal.proposedBecause?.trim()) throw new Error(`packages/catalog/closed-loop.json ${name} has lost its decidedBy, its question or why it was proposed. A number or a code nobody decided must keep saying so.`);
@@ -6525,9 +6529,50 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  const rungNumbers = closedLoop.ladder.rungs.map(r => r.rung);
  if (rungNumbers.some((n, i) => n !== i + 1) || closedLoop.ladder.rungs.some(r => !(Number.isInteger(r.acknowledgeWithinMinutes.value) && r.acknowledgeWithinMinutes.value > 0))) throw new Error('packages/catalog/closed-loop.json ladder is not one rung after another from one, each with a whole number of minutes to acknowledge it.');
  if (!Array.isArray(closedLoop.severities?.ids) || !closedLoop.severities.ids.length) throw new Error('packages/catalog/closed-loop.json has no severities, so an exhausted concern has no highest severity to be announced at.');
- const noFallbackLeft = coreApi.routes.find(r => r.method === 'POST' && r.path === '/v1/core/loops/{loopRef}/escalate' && r.version === 1)?.refusals.find(x => x.id === 'no-fallback-left');
- if (closedLoop.rota !== null || !closedLoop._rotaNote?.trim()) coreFail('packages/catalog/closed-loop.json names a rota. No rota has been decided; escalation goes to a concern\'s fallback and stops, and a rota is added by the people who run the desk, with this check changed beside it.');
- if (!/\brota\b/.test(noFallbackLeft?.statement ?? '')) coreFail('POST /v1/core/loops/{loopRef}/escalate@1 no longer refuses with no-fallback-left in words that name the missing rota, so a caller who asks for somebody further is not told why there is nobody.');
+ /* The rota is a setting. A rota kept beside it in the contract is one nobody changes and Core could be
+    pointed at, so the escalation block names the two settings and nothing else holds a rota. */
+ if ('rota' in closedLoop || '_rotaNote' in closedLoop) coreFail('packages/catalog/closed-loop.json holds a rota outside its settings. The escalation rota is the setting its escalation block names, changed by an admin with a reason and kept in a history; a second rota beside it is one nobody changes.');
+ const coreSettingItems = closedLoop.settings?.items ?? [];
+ const rotaItem = coreSettingItems.find(s => s.key === closedLoop.escalation?.rotaSetting);
+ const minutesItem = coreSettingItems.find(s => s.key === closedLoop.escalation?.minutesSetting);
+ if (rotaItem?.type !== 'schedule' || !rotaItem.posts?.length || minutesItem?.type !== 'list' || minutesItem.of !== 'minutes') throw new Error('packages/catalog/closed-loop.json escalation does not name a schedule of posts for the rota and a list of minutes for its rungs, so Core would have nothing in force to walk.');
+ const heldPosts = rotaItem.posts.filter(p => p.role !== null);
+
+ /* List length. A post holds a concern for its minutes and the last post has nobody after it, so the list is
+    exactly one shorter than the posts: a time with no post is a number nothing reads, and a post with no
+    time is a rung with no deadline. The shared rules refuse any other length through items. */
+ const rungTimes = rotaItem.posts.length - 1;
+ if (minutesItem.items?.lowest?.value !== rungTimes || minutesItem.items?.highest?.value !== rungTimes) coreFail(`packages/catalog/closed-loop.json ${minutesItem.key} may hold ${minutesItem.items?.lowest?.value} to ${minutesItem.items?.highest?.value} minutes, and ${rotaItem.key} has ${rotaItem.posts.length} posts. There is a time for every post but the last, so the list is exactly ${rungTimes} long.`);
+
+ /* Rota coverage. Whatever an admin sets, the shared rules refuse a rota that leaves a mustCover window
+    uncovered; so the mustCover windows of posts a role holds must between them reach from 00:00 to 24:00 on
+    every day, or an admin could set a rota with an hour nobody a concern can reach is on. */
+ const coverDays = JSON.parse(read('packages/catalog/settings.json')).days;
+ const clockMinute = t => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
+ for (const day of coverDays) {
+  const spans = (rotaItem.mustCover ?? []).filter(c => heldPosts.some(p => p.id === c.post) && c.days.includes(day)).map(c => [clockMinute(c.from), clockMinute(c.to)]).sort((a, b) => a[0] - b[0]);
+  let reached = 0;
+  for (const [from, to] of spans) if (from <= reached && to > reached) reached = to;
+  if (reached < clockMinute('24:00')) coreFail(`packages/catalog/closed-loop.json ${rotaItem.key} leaves ${day} from ${String(Math.floor(reached / 60)).padStart(2, '0')}:${String(reached % 60).padStart(2, '0')} outside every window a post a role holds must cover. An admin could set a rota with nobody on then, and a concern at that hour would reach an empty chair with nothing refusing it.`);
+ }
+
+ /* A post is held by a role that may take a concern on at the version the Control Tower calls, and the
+    refusal a caller meets at the end of the rota no longer names a rota that is missing. */
+ const liveCoreRoute = (method, path) => coreApi.routes.find(r => !r.withdrawn && r.method === method && r.path === path);
+ const acknowledgeRoute = liveCoreRoute('POST', '/v1/core/loops/{loopRef}/acknowledge');
+ for (const post of heldPosts) if (!acknowledgeRoute?.callers.includes(post.role)) coreFail(`packages/catalog/closed-loop.json ${rotaItem.key}'s post ${post.id} is held by ${post.role}, and the live POST /v1/core/loops/{loopRef}/acknowledge does not admit ${post.role}. A concern on that rung could never be taken on by the person holding it, and would go up the rota for nothing.`);
+ const noFallbackLeft = liveCoreRoute('POST', '/v1/core/loops/{loopRef}/escalate')?.refusals.find(x => x.id === 'no-fallback-left');
+ if (!noFallbackLeft || /no rota|rota exists|missing rota/i.test(noFallbackLeft.statement)) coreFail('The live POST /v1/core/loops/{loopRef}/escalate does not refuse with no-fallback-left, or refuses in words that name a missing rota. The rota is a setting, and a caller asking for somebody further is told the rota the concern was opened under has nobody left on duty.');
+
+ /* A panic alerts every post on duty at once, by rule. It is written as a rule with no switch beside it, at
+    the highest severity, heard from a live event Core subscribes to, and no Core setting speaks of it. */
+ const panicRule = closedLoop.panic ?? {};
+ const panicKeys = Object.keys(panicRule).filter(k => !k.startsWith('_')).sort().join(',');
+ if (panicKeys !== 'hears,ladderRung,notASetting,rule,severity,why') coreFail(`packages/catalog/closed-loop.json panic carries ${panicKeys || 'nothing'}. It is a rule — what it hears, its severity, the rung whose time it has, the rule and why it is not a setting — and a field beside them is a switch somebody could turn.`);
+ if (panicRule.severity !== closedLoop.exhaustion.severity) coreFail('packages/catalog/closed-loop.json opens a panic at a severity other than the highest, which an exhausted concern is announced at. A nurse who pressed panic is never calmer than a concern nobody answered.');
+ const panicEvent = JSON.parse(read('packages/catalog/events.json')).events.find(e => `${e.type}@${e.version}` === panicRule.hears);
+ if (!panicEvent || panicEvent.withdrawn || !panicEvent.subscribers.includes('core')) coreFail(`packages/catalog/closed-loop.json panic hears ${panicRule.hears}, which is not a live event Core subscribes to.`);
+ for (const s of coreSettingItems) if (/panic|alerts? every post|alerting every post|all posts at once|at once/i.test(`${s.key} ${s.label} ${s.help} ${s.appliesTo} ${s.guardrail?.statement ?? ''}`)) coreFail(`packages/catalog/closed-loop.json setting ${s.key} speaks of a panic or of alerting every post. A panic alerts every post on duty at once by rule, and no admin setting chooses whether or how.`);
 
  const coreCode = engineSources.filter(f => f.startsWith('packages/engines/src/core/') && !f.endsWith('.test.ts'));
  if (!coreCode.includes('packages/engines/src/core/engine.ts')) throw new Error('packages/engines/src/core/engine.ts is gone, so nothing here reads the closed loop this block exists to hold.');
@@ -6546,13 +6591,42 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  if (!tickBody.startsWith(' tick: ctx =>')) throw new Error('packages/engines/src/core/engine.ts has no tick this check can find, so nothing proves the clock never closes a concern.');
  const quietening = tickBody.match(/closedAt:|outcomeRef:|rung:|snooze/);
  if (quietening) coreFail(`packages/engines/src/core/engine.ts's tick writes "${quietening[0]}". The clock moves a concern to its fallback or marks it exhausted, and nothing else: it never closes one, never snoozes one and never moves one down a rung.`);
- if (!/\.filter\(loop => sourceEngine === null \|\| loop\.sourceEngine === sourceEngine \|\| loop\.exhaustedAt !== null\)/.test(coreEngineSource)) coreFail('GET /v1/core/loops@1 in packages/engines/src/core/engine.ts no longer lists every exhausted concern whatever the filter says, so a Control Tower narrowed to one engine can stop seeing a concern with nobody left.');
+ if (!/\.filter\(loop => sourceEngine === null \|\| loop\.sourceEngine === sourceEngine \|\| loop\.exhaustedAt !== null\)/.test(coreEngineSource)) coreFail('GET /v1/core/loops@2 in packages/engines/src/core/engine.ts no longer lists every exhausted concern whatever the filter says, so a Control Tower narrowed to one engine can stop seeing a concern with nobody left.');
+
+ /* The panic path alerts every post on duty at once and reads no minute: the domain filters the posts on
+    duty and nothing else, a panic's holder has nobody after it, and the engine's handler neither walks the
+    rota nor reaches for a setting other than the rota in force. */
+ const loopsSource = read('packages/engines/src/core/domain/loops.ts');
+ const bodyOf = (source, start) => { const at = source.indexOf(start); return at < 0 ? '' : source.slice(at, source.indexOf('\n}\n', at)); };
+ const everyPostBody = bodyOf(loopsSource, 'export function everyPostOnDuty');
+ if (!everyPostBody.includes('rota.posts.filter(post => post.role !== null && onDuty(rota, post.id, at))') || /stepsMs|spanMs|settle\(|nextHolder\(/.test(everyPostBody)) coreFail('packages/engines/src/core/domain/loops.ts no longer alerts every post on duty at once for a panic, or reads a minute of the rota on the way. A panic is a rule, not a walk up a setting.');
+ if (!loopsSource.includes("if (loop.holder.kind === 'every-post') return { holder: null")) coreFail('packages/engines/src/core/domain/loops.ts would move a panic to somebody after the posts it alerted, which is a panic walked up the rota.');
+ const panicHandler = bodyOf(coreEngineSource, 'function heardPanic');
+ if (!/subscriptions: \{ \[PANIC\]: heardPanic \}/.test(coreEngineSource) || !panicHandler.includes('everyPostOnDuty(rota, now)') || !panicHandler.includes("holder: { kind: 'every-post' }") || /nextHolder\(|settle\(|stepsMs|settingsIn\(|snapshotOf\(/.test(panicHandler)) coreFail('packages/engines/src/core/engine.ts no longer hears a panic and alerts every post on duty at once, or walks it, or reads a setting on the way other than the rota in force.');
+
+ /* Core reads the rota setting in force, and never a literal post, role or minute — in its code or on the
+    Control Tower. A concern is opened with the rota from its own settings history, on the engine and in the
+    preview, and every post and role it names is the rota it kept. */
+ if (!coreEngineSource.includes('const rotaNow = (ctx: EngineContext): KeptRota => rotaOf(settingsIn(coreSettings, ctx.store));') || (coreEngineSource.match(/rotaNow\(ctx\)/g) ?? []).length < 3) coreFail('packages/engines/src/core/engine.ts no longer opens every concern, alert and panic with the rota in force from its own settings history.');
+ const coreDomainSettings = read('packages/engines/src/core/domain/settings.ts');
+ if (!coreDomainSettings.includes('windows: snapshot.values[ROTA.key]') || !coreDomainSettings.includes('snapshot.values[MINUTES.key]')) coreFail('packages/engines/src/core/domain/settings.ts no longer builds the rota a concern keeps from the settings in force.');
+ const towerLib = 'apps/web/src/lib/closed-loop.ts';
+ if (!existsSync(towerLib) || !read(towerLib).includes('const rota = escalationRotaNow();')) coreFail(`${towerLib} no longer opens the preview's concerns with the rota in force from apps/web/src/lib/settings.ts, so an admin's change on the back office would never reach the Control Tower.`);
+ const namedIds = new Set([...rotaItem.posts.map(p => p.id), ...JSON.parse(read('packages/catalog/vetting.json')).roles.map(r => r.id), ...JSON.parse(read('packages/catalog/apis.json')).callers.map(c => c.id)]);
+ for (const file of [...coreCode, towerLib, 'apps/web/src/features/ConcernBoard.tsx']) {
+  if (!existsSync(file)) coreFail(`${file} is gone, so nothing here reads what the Control Tower shows of the rota.`);
+  const code = read(file).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  const named = [...code.matchAll(/['"`]([a-z][a-z-]*)['"`]/g)].map(m => m[1]).find(id => namedIds.has(id));
+  if (named) coreFail(`${file} types "${named}". Core and the Control Tower read every post and every role from the rota a concern kept; a post or role typed here is one an admin's change never reaches.`);
+  const minutes = code.match(/\b\d+\s*\*\s*(?:60\b|60_?000\b|MINUTE_MS\b)|\bMINUTE_MS\s*\*\s*\d|\b\d+\s*min(?:utes?)?\b/);
+  if (minutes) coreFail(`${file} types a number of minutes, "${minutes[0]}". The minutes a post holds a concern are escalation-minutes in force, kept on the concern.`);
+ }
  const exhaustedEvent = JSON.parse(read('packages/catalog/events.json')).events.find(e => `${e.type}@${e.version}` === closedLoop.exhaustion.event);
  if (exhaustedEvent && (exhaustedEvent.owner !== 'core' || exhaustedEvent.alert !== true || !exhaustedEvent.payload.some(f => f.field === 'severityCode'))) throw new Error(`${closedLoop.exhaustion.event} is declared, and not as Core's alert carrying a severityCode, which is how packages/engines/src/core announces an exhausted concern.`);
  const coreBuilt = coreApi.routes.filter(r => r.status === 'built').length;
 
  console.log(`The engine runtime refuses to start without ${runtimeSettings.flag}=${runtimeSettings.flagValue} in its factory, answers on loopback to a loopback Host only, and nothing in deploy/ names it. ${engineSources.length} source files under packages/engines/src read, ${importsRead} imports among them, and no engine reaches another engine's directory or opens a database; ${onRuntime.length} ${onRuntime.length === 1 ? 'route is' : 'routes are'} built on the runtime, each registered by exactly its key in its own engine's directory.`);
- console.log(`Core builds ${coreBuilt} of its ${coreApi.routes.length} routes on the runtime. Its ladder has ${rungNumbers.length} rungs whose minutes nobody has decided, escalation stops at a concern's fallback because there is no rota, an exhausted concern is announced at "${closedLoop.severities.ids.at(-1)}" through ${closedLoop.exhaustion.event}, which is ${exhaustedEvent ? 'declared' : 'not yet declared in packages/catalog/events.json and refused by the bus until it is'}, and Core's ${coreCode.length} source files type no policy number and read no Safety timing.`);
+ console.log(`Core builds ${coreBuilt} of its ${coreApi.routes.length} routes on the runtime. Its ladder has ${rungNumbers.length} rungs whose minutes nobody has decided, escalation goes to a concern's fallback and then up the ${rotaItem.posts.length} posts of the rota it was opened under (${heldPosts.length} held by a role, ${rotaItem.posts.length - heldPosts.length} waiting on one) with ${rungTimes} times between them and no hour of the week an admin can leave without a post, a panic alerts every post on duty at once by a rule no setting reaches, an exhausted concern is announced at "${closedLoop.severities.ids.at(-1)}" through ${closedLoop.exhaustion.event}, which is ${exhaustedEvent ? 'declared' : 'not yet declared in packages/catalog/events.json and refused by the bus until it is'}, and Core's ${coreCode.length} source files type no policy number and read no Safety timing.`);
 }
 /* ==== end of Engine Runtime & Core (Wave 3) ========================================================= */
 
@@ -7454,9 +7528,16 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   if (l.type === 'schedule') {
    const posts = l.posts ?? [];
    if (!posts.length || new Set(posts.map(p => p.id)).size !== posts.length) throw new Error(`${at} has no posts, or one twice. A rota is made of posts, never of people.`);
-   for (const post of posts) if (!post.label?.trim() || !settingsRoleIds.has(post.role) || Object.keys(post).sort().join(',') !== 'id,label,role') throw new Error(`${at} has the post "${post.id}", which has no label, is not held by a role on the vetting register, or carries something beside its id, label and role.`);
+   /* A post is held by a role on the register, or by nobody yet with a sentence saying so — never a role
+      guessed to fill it. A window a post must always cover names a post a role holds. */
+   for (const post of posts) {
+    const keys = Object.keys(post).sort().join(',');
+    const held = post.role !== null && settingsRoleIds.has(post.role) && keys === 'id,label,role';
+    const heldByNobody = post.role === null && keys === 'id,label,role,roleMissing' && isSentence(post.roleMissing);
+    if (!post.label?.trim() || !(held || heldByNobody)) throw new Error(`${at} has the post "${post.id}", which has no label, is held by a role not on the vetting register, carries something beside its id, label and role, or is held by nobody without a sentence saying why.`);
+   }
    const minute = v => /^\d{2}:\d{2}$/.test(v ?? '') ? Number(v.slice(0, 2)) * 60 + Number(v.slice(3)) : -1;
-   for (const cover of l.mustCover ?? []) if (!posts.some(p => p.id === cover.post) || !cover.days?.length || !cover.days.every(d => settingsContract.days.includes(d)) || minute(cover.from) < 0 || minute(cover.to) > 1440 || minute(cover.from) >= minute(cover.to) || !cover.why?.trim()) throw new Error(`${at} must cover a window that names no post of its own, no days, hours that are not a window, or no reason.`);
+   for (const cover of l.mustCover ?? []) if (!posts.some(p => p.id === cover.post && p.role !== null) || !cover.days?.length || !cover.days.every(d => settingsContract.days.includes(d)) || minute(cover.from) < 0 || minute(cover.to) > 1440 || minute(cover.from) >= minute(cover.to) || !cover.why?.trim()) throw new Error(`${at} must cover a window that names no post of its own, no days, hours that are not a window, or no reason.`);
   }
   if (l.type === 'list') {
    if (!settingsContract.listOf.includes(l.of)) throw new Error(`${at} is a list of "${l.of}", which a list may not hold.`);

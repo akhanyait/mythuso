@@ -42,28 +42,28 @@ export interface PostCoreLoopsResponse {
  readonly loopRef: string;
 }
 
-export interface GetCoreLoopsRequest {
+export interface GetCoreLoopsV2Request {
  readonly sourceEngine?: string;
 }
-export interface GetCoreLoopsResponse {
+export interface GetCoreLoopsV2Response {
  readonly loops: ReadonlyArray<Readonly<Record<string, unknown>>>;
  readonly exhaustedCount: number;
 }
 
-export interface PostCoreLoopsByLoopRefAcknowledgeRequest {
+export interface PostCoreLoopsByLoopRefAcknowledgeV2Request {
  readonly idempotencyKey: string;
  readonly loopRef: string;
 }
-export interface PostCoreLoopsByLoopRefAcknowledgeResponse {
+export interface PostCoreLoopsByLoopRefAcknowledgeV2Response {
  readonly acknowledgedAt: string;
 }
 
-export interface PostCoreLoopsByLoopRefEscalateRequest {
+export interface PostCoreLoopsByLoopRefEscalateV2Request {
  readonly idempotencyKey: string;
  readonly loopRef: string;
  readonly reasonCode: string;
 }
-export interface PostCoreLoopsByLoopRefEscalateResponse {
+export interface PostCoreLoopsByLoopRefEscalateV2Response {
  readonly ownerRole: string;
  readonly dueBy: string;
 }
@@ -89,6 +89,32 @@ export interface PostCoreAlertsV2Request {
 export interface PostCoreAlertsV2Response {
  readonly alertRef: string;
  readonly suppressed: boolean;
+}
+
+export type GetCoreSettingsRequest = Record<string, never>;
+export interface GetCoreSettingsResponse {
+ readonly settingsVersion: number;
+ readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostCoreSettingChangesRequest {
+ readonly idempotencyKey: string;
+ readonly setting: string;
+ readonly wholeNumber?: number;
+ readonly switchedOn?: boolean;
+ readonly choice?: string;
+ readonly wording?: string;
+ readonly roles?: readonly string[];
+ readonly windows?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly items?: readonly string[];
+ readonly parts?: Readonly<Record<string, unknown>>;
+ readonly reason?: string;
+ readonly expectedVersion: number;
+}
+export interface PostCoreSettingChangesResponse {
+ readonly settingsVersion: number;
+ readonly appliesFrom: string;
 }
 
 export interface GetCoreProtocolsByProtocolVersionIdRequest {
@@ -1437,11 +1463,13 @@ export interface PostMoneyMarketOrdersResponse {
 export const apiRoutes = {
  postCoreEvents: { name: "postCoreEvents", method: "POST", path: "/v1/core/events", mountedPath: "/v1/core/events", version: 1, engine: "core", callers: ["engine:access","engine:pulse","engine:care","engine:clinical","engine:safety","engine:movement","engine:trust","engine:record","engine:medicines","engine:devices","engine:money"], purpose: ["audit"], idempotent: false, status: "proposed" },
  postCoreLoops: { name: "postCoreLoops", method: "POST", path: "/v1/core/loops", mountedPath: "/v1/core/loops", version: 1, engine: "core", callers: ["engine:care","engine:safety","engine:medicines","engine:access","engine:movement"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
- getCoreLoops: { name: "getCoreLoops", method: "GET", path: "/v1/core/loops", mountedPath: "/v1/core/loops", version: 1, engine: "core", callers: ["ops-desk"], purpose: ["treatment","dispatch","emergency"], idempotent: false, status: "built" },
- postCoreLoopsByLoopRefAcknowledge: { name: "postCoreLoopsByLoopRefAcknowledge", method: "POST", path: "/v1/core/loops/{loopRef}/acknowledge", mountedPath: "/v1/core/loops/{loopRef}/acknowledge", version: 1, engine: "core", callers: ["nurse","doctor","ops-desk","engine:care","engine:safety"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
- postCoreLoopsByLoopRefEscalate: { name: "postCoreLoopsByLoopRefEscalate", method: "POST", path: "/v1/core/loops/{loopRef}/escalate", mountedPath: "/v1/core/loops/{loopRef}/escalate", version: 1, engine: "core", callers: ["ops-desk","engine:safety"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
+ getCoreLoopsV2: { name: "getCoreLoopsV2", method: "GET", path: "/v1/core/loops", mountedPath: "/v1/core/loops", version: 2, engine: "core", callers: ["ops-desk","operator"], purpose: ["treatment","dispatch","emergency"], idempotent: false, status: "built" },
+ postCoreLoopsByLoopRefAcknowledgeV2: { name: "postCoreLoopsByLoopRefAcknowledgeV2", method: "POST", path: "/v1/core/loops/{loopRef}/acknowledge", mountedPath: "/v1/core/loops/{loopRef}/acknowledge", version: 2, engine: "core", callers: ["nurse","doctor","ops-desk","operator","engine:care","engine:safety"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
+ postCoreLoopsByLoopRefEscalateV2: { name: "postCoreLoopsByLoopRefEscalateV2", method: "POST", path: "/v1/core/loops/{loopRef}/escalate", mountedPath: "/v1/core/loops/{loopRef}/escalate", version: 2, engine: "core", callers: ["ops-desk","operator","engine:safety"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
  postCoreLoopsByLoopRefClose: { name: "postCoreLoopsByLoopRefClose", method: "POST", path: "/v1/core/loops/{loopRef}/close", mountedPath: "/v1/core/loops/{loopRef}/close", version: 1, engine: "core", callers: ["nurse","doctor","ops-desk"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
  postCoreAlertsV2: { name: "postCoreAlertsV2", method: "POST", path: "/v1/core/alerts", mountedPath: "/v1/core/alerts", version: 2, engine: "core", callers: ["engine:safety","engine:devices","engine:clinical","engine:medicines"], purpose: ["treatment","emergency"], idempotent: false, status: "built" },
+ getCoreSettings: { name: "getCoreSettings", method: "GET", path: "/v1/core/settings", mountedPath: "/v1/core/settings", version: 1, engine: "core", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
+ postCoreSettingChanges: { name: "postCoreSettingChanges", method: "POST", path: "/v1/core/setting-changes", mountedPath: "/v1/core/setting-changes", version: 1, engine: "core", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
  getCoreProtocolsByProtocolVersionId: { name: "getCoreProtocolsByProtocolVersionId", method: "GET", path: "/v1/core/protocols/{protocolVersionId}", mountedPath: "/v1/core/protocols/{protocolVersionId}", version: 1, engine: "core", callers: ["nurse","doctor","medical-director","engine:clinical","engine:care","engine:safety","engine:medicines"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postCoreProtocolsByProtocolIdRatify: { name: "postCoreProtocolsByProtocolIdRatify", method: "POST", path: "/v1/core/protocols/{protocolId}/ratify", mountedPath: "/v1/core/protocols/{protocolId}/ratify", version: 1, engine: "core", callers: ["medical-director"], purpose: ["audit"], idempotent: false, status: "proposed" },
  postCorePermissionChecks: { name: "postCorePermissionChecks", method: "POST", path: "/v1/core/permission-checks", mountedPath: "/v1/core/permission-checks", version: 1, engine: "core", callers: ["engine:care","engine:medicines","engine:movement","engine:access","engine:clinical"], purpose: ["audit"], idempotent: false, status: "proposed" },

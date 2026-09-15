@@ -3,6 +3,8 @@ import { proposeChange, snapshotOf, type Change, type ChangeRequest, type Refusa
 import { settingsEngines } from '../../../../packages/engines/src/settings/registry.ts';
 import { inForce, panicWindowOf, type PanicWindow, type SettingsInForce } from '../../../../packages/engines/src/safety/domain/settings.ts';
 import { offerExpiryOf, type OfferExpiry } from '../../../../packages/engines/src/care/domain/settings.ts';
+import { rotaOf } from '../../../../packages/engines/src/core/domain/settings.ts';
+import type { KeptRota } from '../../../../packages/engines/src/core/domain/loops.ts';
 import { roleOf, whoIs } from './roles';
 
 /* Every setting in the web preview: one history per engine, in memory, shared by the back office that
@@ -48,6 +50,9 @@ export const snapshotNow = (engine: string): Snapshot => snapshotOf(engineOf(eng
 export const safetySettingsNow = (): SettingsInForce => inForce(historyOf('safety'));
 export const panicWindowNow = (): PanicWindow => panicWindowOf(historyOf('safety'));
 export const offerExpiryNow = (): OfferExpiry => offerExpiryOf(snapshotNow('care'));
+/* The escalation rota and its minutes in force, for the Control Tower's concerns: asked once when a concern
+   is opened, and kept by the concern. */
+export const escalationRotaNow = (): KeptRota => rotaOf(snapshotNow('core'));
 
 export const adminOnDuty = (): string | null => roleOf('back-office').subjectId;
 const adminRole = (): string => {
