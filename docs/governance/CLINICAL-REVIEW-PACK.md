@@ -42,7 +42,8 @@ Until a decision is recorded, the app shows "Not clinically reviewed" beside eve
 | D | Clinical scopes and proposed clinical roles on the vetting register | 8 |
 | E | Other clinical proposals and safety numbers nobody clinical has decided | 20 |
 | F | Clinical content with no clinical sign-off recorded | 3 |
-| | **Total** | **52** |
+| G | Clinical Intelligence's frames and empty registries, waiting on the board | 6 |
+| | **Total** | **58** |
 
 Each item gives the value in force by default, what an admin may set it to, why it was proposed and by whom,
 the question for the reviewer, and blank sign-off fields.
@@ -1203,6 +1204,129 @@ From `packages/catalog/locales.json`. "Clinical wording stays in English until a
 | isiNdebele (`nr-ZA`) | none |
 
 **Question for the reviewer:** which languages should be clinically reviewed first, and who — by name, registration and language — is qualified to review each?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+## G. Clinical Intelligence: frames and empty registries
+
+From `packages/catalog/clinical.json`. Clinical holds references and states. A consultation's words, the reason codes a triage would set, a guidance script's words and a patient's answers are in the Health Passport, written through its consent gateway under the writer's own grant, and Clinical keeps the reference to the entry and whether it is complete. Nothing in this section is clinical content: each item is the frame the board's content would be written into, and each registry is empty until the board fills it. Who confirms a clinical review and the days outcome questions are asked on are settings, in section A.
+
+#### G1. The consultation frame
+
+| Heading | What it holds | Sections it covers | Required |
+|---|---|---|---|
+| Subjective (`S`) | What the patient reports, in their words where it matters. | `reason`, `history` | Required, because a section it covers is required in `records.json` |
+| Objective (`O`) | Vitals, examination and test findings. | `observations`, `examination` | Required, because a section it covers is required in `records.json` |
+| Assessment (`A`) | The clinical assessment, or the diagnosis where the writer may make one. | `assessment` | Required, because a section it covers is required in `records.json` |
+| Plan (`P`) | Treatment, medicine, tests, referral and follow-up. | `plan`, `medication`, `tests`, `referral`, `followup` | Required, because a section it covers is required in `records.json` |
+
+One heading per part of the consultation. Sign-off waits until every required heading has something under it, and a signed consultation is not rewritten: a correction is a new entry. The refusal a sign-off meets: "Sign-off is blocked until every required section is complete."
+
+**Question for the reviewer:** are these the headings a nurse's and a doctor's consultation must both have, is each required heading one no consultation may be signed off without, and should any optional section be required?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### G2. Signing a review outside any protocol
+
+| | |
+|---|---|
+| Signed under a ratified protocol | Signed under {protocol}, which the clinical governance board has ratified. |
+| Reviewed outside any protocol | Reviewed outside any protocol. The visit named {protocol}, which the clinical governance board has not ratified, so this signature follows no protocol and says so. When the visit named none: Reviewed outside any protocol. The visit named no protocol, so this signature follows none and says so. |
+
+A review's record is complete when a consultation for its encounter was signed off with every required section of the frame written. Until then the review waits, and a signature is refused. Every protocol in section B is a draft, so every review signed today is signed as reviewed outside any protocol, and says so. A signature is a clinician's own act, attributed to the registration that made it. A note signed by a timer, a subscription, a default or a model is a signature nobody gave, and it would read afterwards exactly like one somebody did.
+
+**Question for the reviewer:** until the board ratifies the protocols in section B, is a doctor's signature on a visit reviewed outside any protocol acceptable, and what should a signing doctor be required to have read before signing one?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### G3. The triage frame
+
+| Stage | What it does |
+|---|---|
+| Gilbert's emergency terms | Asked before triage and never by it. A patient who said something packages/catalog/gilbert-emergency-terms.json lists has already been given the emergency answer, and nothing triage says changes it. |
+| Red-flag gate | The ratified protocol's red flags, asked before anything else it says. A red flag that fires sets the protocol's most urgent priority, and nothing after it may lower it. |
+| Priority | A priority from the ratified protocol's own scale, with the reason codes that set it. A priority without its reason codes is refused. |
+| Where the patient is seen | The disposition the protocol gives that priority. The reason codes are written to the record; only the priority and the care setting travel on the bus. |
+| Explanation | A language model may explain the answer in plain words. A priority it names may match or raise the rules' priority, and never lower it. |
+
+| | |
+|---|---|
+| Triage protocols the board has named | None |
+| Why none | Which protocols in the registry are triage protocols is the board's to say when it writes one. None of the twelve registered today is, so nothing can be triaged under anything, and no registry entry can be borrowed for triage by naming it. |
+| What every triage answers today | Not triaged. A nurse or a doctor decides what happens next. Software sets no priority for them and guesses none. If the patient said something Gilbert's emergency terms list, the emergency answer was given first and still stands. |
+
+**Question for the reviewer:** which protocol should become the triage protocol, who writes its red flags, priority scale, reason codes and care settings, and is the order of the stages above safe, with Gilbert's emergency terms always first?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### G4. Home Guidance outcomes
+
+| | |
+|---|---|
+| Outcomes, by name only | Self-care (`self-care`); See a nurse (`see-a-nurse`); Urgent (`urgent`); Emergency (`emergency`) |
+| Ratified scripts | None |
+| Rule | A script is the board's words at a ratified protocol version, referenced by contentRef. Nothing here holds a script's words, and an outcome with no ratified script says nothing to the patient. |
+
+**Question for the reviewer:** are these the four outcomes MyThuso should end a triage in, who writes and translates the script for each, and what must every script say before a patient hears it?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### G5. Outcome question instruments
+
+| | |
+|---|---|
+| Instruments the board has chosen | None |
+| When an episode starts | A review is signed. |
+| What it keeps | The days and the settings version in force when the review was signed. A change to the setting reaches the next episode and never one already scheduled. |
+| Rule | An instrument is chosen by the clinical governance board, named with who chose it and when, and referenced by contentRef. No question, scale or score is written anywhere in this codebase. |
+
+**Question for the reviewer:** which validated instrument, or instruments per condition pack, should outcome questions come from, in which languages, and who may change the choice?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### G6. What a patient is never told
+
+Nothing addressed to a patient tells them they have a condition. A finding is consistent with something, for a clinician to confirm with them. A diagnosis is a registered clinician's, given to a patient in a conversation that can answer the questions it raises. Software that tells somebody what they have has diagnosed them with nobody accountable, and ThusoIQ Master v3.5 §5.3 holds a finding to "consistent with". The phrases are wording, not clinical content: they name no condition, and the build refuses every one of them in any patient-facing sentence.
+
+Phrases the build refuses in any contract or screen: “you have been diagnosed”, “you are diagnosed”, “you've been diagnosed”, “your diagnosis is”, “you are suffering from”, “you're suffering from”, “you have a condition”, “you have the condition”, “you have a disease”, “you have an illness”, “you have an infection”, “you have a disorder”, “you have got a”, “you've got a”.
+
+**Question for the reviewer:** are these phrases enough to keep a diagnosis out of what software says to a patient, and which other constructions should be refused?
 
 | Sign-off | |
 |---|---|

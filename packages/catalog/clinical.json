@@ -31,7 +31,7 @@
   "screen": {
    "heading": "Clinical inbox",
    "intro": "Visits nurses handed over for review, each by reference, with the protocol the visit named and whether its record is complete. A review is signed by your own action, under a ratified protocol or as reviewed outside any protocol, and never for you.",
-   "preview": "This preview keeps the inbox in this tab's memory. No visit was handed over, no record exists behind a reference and no signature reaches anybody.",
+   "preview": "This preview keeps the inbox in memory on this device and nowhere else. No visit was handed over, no record exists behind a reference and no signature reaches anybody.",
    "confirmers": "Signed by {roles}, as the settings in force name.",
    "named": "Named {protocol}",
    "namedNone": "Named no protocol",
