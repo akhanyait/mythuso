@@ -264,7 +264,7 @@ describe('a protected category', () => {
  });
  test('the patient reads their own without asking anybody for a release', () => {
   const { gate } = harness();
-  const outcome = gate.access({ ...request, actorId: 'patient-1', actorRole: 'patient', purpose: 'subject-access' });
+  const outcome = gate.access({ ...request, actorId: 'patient-1', actorRole: 'patient', purpose: 'subject-access', operation: 'read' });
   assert.ok(outcome.allowed);
  });
  test('subject access is the person reading their own record, and nobody else', () => {
@@ -272,6 +272,20 @@ describe('a protected category', () => {
   const outcome = gate.access({ ...request, actorId: 'guardian-9', actorRole: 'guardian', purpose: 'subject-access' });
   assert.ok(!outcome.allowed);
   assert.match(outcome.reason, /Reading somebody else's is a different request/);
+ });
+ test('a subject passes by identity only to read or add to their own record — an administrative act on it needs the capability and standing like anybody else', () => {
+  const { gate } = harness();
+  const on = (operation?: 'read' | 'self-service' | 'administrative') => gate.access(ask({
+   actorId: 'nurse-1', actorRole: 'nurse', capability: 'review-vetting', purpose: 'subject-access',
+   recordType: 'vetting-evidence', recordId: 'nurse-1', subjectId: 'nurse-1', field: 'enrolment',
+   ...(operation ? { operation } : {})
+  }));
+  assert.ok(on('read').allowed);
+  assert.ok(on('self-service').allowed);
+  for (const refused of [on('administrative'), on()]) {
+   assert.equal(refused.allowed, false);
+   assert.ok(!refused.allowed && refused.reason === vetting.selfActionRefusals.administrativeOnSelf);
+  }
  });
 });
 
@@ -545,7 +559,7 @@ describe('vetting evidence in the catalogue', () => {
   const { gate } = harness();
   const hers = gate.access(ask({
    actorId: 'nurse-1', actorRole: 'nurse', capability: 'review-vetting', purpose: 'subject-access',
-   recordType: 'vetting-evidence', recordId: 'E-1', subjectId: 'nurse-1', field: 'document.v1'
+   recordType: 'vetting-evidence', recordId: 'E-1', subjectId: 'nurse-1', field: 'document.v1', operation: 'read'
   }));
   assert.ok(hers.allowed);
   const somebodyElses = gate.access(ask({

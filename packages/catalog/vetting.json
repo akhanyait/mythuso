@@ -316,6 +316,13 @@
   "status": "Gate {order} of {total} — {name}",
   "why": "The status is computed from the checks every time it is read and is never stored as a number. A gate number somebody wrote down is a claim about a person that stops being true the night a clearance lapses, without anything in the row changing."
  },
+ "selfActionRefusals": {
+  "why": "A party's own vetting record is theirs to read and to add their own documents to. Changing it is a reviewer's act, never the party's. These are the sentences a party is refused in when they try, and the gate, the vault and the store each hold the line independently: until September 2026 a nurse on the register could enrol herself as an admin and a suspended party could lift their own suspension, because acting on your own record was read as subject access whatever the act was.",
+  "administrativeOnSelf": "Your own vetting record is yours to read and to add your own documents to. Changing it — your role, a decision on one of your checks, a suspension — is done by a reviewer, never by the party it is about.",
+  "enrol": "Nobody enrols themselves or changes the role they are vetted in. A reviewer does that, and you are the party it is about.",
+  "restore": "Nobody lifts their own suspension. A reviewer does that, and you are the party it is about.",
+  "alreadyEnrolled": "This party is already on the register. Enrolling again does not change a role: a role change would be a decision nobody reviewed, and there is no route for one."
+ },
  "roles": [
   {
    "id": "nurse",

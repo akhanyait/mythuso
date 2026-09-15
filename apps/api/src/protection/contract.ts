@@ -97,7 +97,20 @@ export type AccessRequest = {
  field?: string;
  /** Required for 'emergency'. A break-glass with no reason is a back door with a label on it. */
  reason?: string;
+ /**
+  * What kind of operation this is, said by the caller at the call site rather than inferred from
+  * whose record it is. Only a read or a self-service act lets a data subject past the capability and
+  * standing stages on their own record; an administrative write — enrolling, a role, a decision on a
+  * check, a suspension — needs both, whoever it is about. Absent is administrative: an operation
+  * nobody named is the one that must not take the subject's shortcut.
+  */
+ operation?: AccessOperation;
 };
+
+/* Read: opening what is there. Self-service: adding to your own record what only you can add — your
+   own certificate, your own consent. Administrative: anything that changes what the platform decides
+   about a party. The last one is never a right of access. */
+export type AccessOperation = 'read' | 'self-service' | 'administrative';
 
 export type AccessOutcome =
  | { allowed: true; auditId: string; broke: boolean }

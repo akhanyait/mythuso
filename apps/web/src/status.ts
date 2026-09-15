@@ -1,4 +1,5 @@
 import { capabilities, connectedCount, noticeFor, rule, simulatedCount, simulationOf, stateOf } from './lib/capabilities';
+import openSource from '../../../packages/catalog/open-source.json' with { type: 'json' };
 import './surface/core.css';
 import './surface/status.css';
 /* The fifth entry, and the smallest one on purpose — with no React in it.
@@ -120,6 +121,52 @@ capabilities.forEach((c, i) => {
  list.append(row);
 });
 main.append(list);
+
+/* The register of what the specification names from outside — open-source modules, standards,
+   open-weights models and speech providers — with the decision it made for each and whether any of
+   them has been adopted. It is here because this is the page somebody reads to find out what is
+   real, and "we use HAPI FHIR" is exactly the sentence a funder might have been told. It renders
+   packages/catalog/open-source.json; the count is counted and the two sentences are the contract's.
+   A decision and a status per row and nothing more: the licences, links and blockers are in
+   docs/OPEN-SOURCE.md, and a status page that grew into the register would stop loading quickly on
+   the connection it was built for. */
+const registerSection = el('section', 'oss-register');
+registerSection.setAttribute('aria-labelledby', 'oss-heading');
+const registerHeading = el('h2', undefined, 'What the specification names from outside');
+registerHeading.id = 'oss-heading';
+const adoptedCount = openSource.components.filter(c => c.adoption.status === 'adopted').length;
+const notAdoptedRule = openSource.rules.find(r => r.id === 'open-source-is-not-production-approved')!;
+const registerCount = el('p', 'oss-count');
+registerCount.append(el('strong', undefined, String(adoptedCount)), el('span', undefined, `of ${openSource.components.length} registered components are adopted`));
+registerSection.append(registerHeading, registerCount, el('p', 'status-notice', notAdoptedRule.statement), el('p', 'oss-why', notAdoptedRule.why));
+for (const decision of openSource.decisions) {
+ const group = openSource.components.filter(c => c.specDecision === decision.id);
+ if (!group.length) continue;
+ registerSection.append(el('h3', 'oss-decision', decision.id));
+ const rows = el('ul', 'oss-list');
+ for (const c of group) {
+  const row = el('li', 'oss-row');
+  row.id = `oss-${c.id}`;
+  const licence = c.kind === 'refused' ? 'Declined' : c.source.licence ? c.source.licence : c.kind === 'standard' ? 'A published standard' : 'Licence not verified';
+  row.append(
+   el('span', 'oss-name', c.name),
+   el('span', 'oss-licence', licence),
+   el('span', `oss-state${c.adoption.status === 'adopted' ? ' on' : ''}`, c.adoption.status === 'adopted' ? 'Adopted' : 'Not adopted')
+  );
+  rows.append(row);
+ }
+ registerSection.append(rows);
+}
+const registerSource = el('p', 'status-source');
+registerSource.append(
+ document.createTextNode('This section renders '),
+ el('code', undefined, 'packages/catalog/open-source.json'),
+ document.createTextNode('. Licences, what each would plug into and what stands in its way are in '),
+ el('code', undefined, 'docs/OPEN-SOURCE.md'),
+ document.createTextNode('.')
+);
+registerSection.append(registerSource);
+main.append(registerSection);
 
 const foot = el('footer', 'status-foot');
 const footInner = el('div', 'status-foot-inner');

@@ -28,6 +28,7 @@ import { emitShop } from './emit-shop.mjs';
 import { emitRewards } from './emit-rewards.mjs';
 import { emitThusoIQ } from './emit-thusoiq.mjs';
 import { emitAssistant } from './emit-assistant.mjs';
+import { emitOpenSource } from './emit-open-source.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -866,7 +867,8 @@ const generated = [
  { source: 'packages/catalog/rewards.json', command: 'npm run rewards', files: emitRewards() },
  { source: 'packages/catalog/thusoiq.json', command: 'npm run thusoiq-contract', files: emitThusoIQ() },
  { source: 'packages/catalog/assistant.json', command: 'npm run assistant', files: emitAssistant() },
- { source: 'packages/catalog/gilbert-emergency-terms.json', command: 'npm run assistant', files: emitAssistant() }
+ { source: 'packages/catalog/gilbert-emergency-terms.json', command: 'npm run assistant', files: emitAssistant() },
+ { source: 'packages/catalog/open-source.json', command: 'npm run open-source', files: emitOpenSource() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -2296,6 +2298,54 @@ for(const capability of vetting.capabilities) if(!vetting.roles.some(r=>r.grants
  }
  const passportServerSource = read('apps/passport/src/server.ts');
  if (!/gateway\.createSubject\(tokenFor\(req, 'Developer'\)\)/.test(passportServerSource) || !/const developer = developerOf\(/.test(read('apps/passport/src/gateway.ts'))) throw new Error('apps/passport creates a synthetic subject without a developer credential. The loopback alone mints no patient.');
+}
+
+/* ==== SELF-ACTIONS ON THE VETTING REGISTER =========================================================
+   ADDED BY THE TRUST, RECORD & IDENTITY LEAD, after the runtime lead reproduced a nurse enrolling
+   herself as an admin and a suspended party lifting their own suspension. Three layers each held
+   the line wrongly, and each is now held on its own:
+
+     1. The vault's write methods refuse the party acting on themselves — enrol and restore before the
+        gate is asked, decide before it too, second and suspend as they always did — and enrol refuses
+        a party already on the register rather than rewriting them.
+     2. The gate's subject shortcut is reachable only for read and self-service operations, and an
+        operation nobody named is administrative.
+     3. putParty creates a party and never changes one: no role_id in its conflict clause.
+     4. Every gate request built in apps/api/src names its operation, at the call site. */
+{
+ const vaultSource = read('apps/api/src/vetting/index.ts');
+ const bodyOf = signature => {
+  const at = vaultSource.indexOf(`\n ${signature}`);
+  return at < 0 ? '' : vaultSource.slice(at, vaultSource.indexOf('\n }\n', at));
+ };
+ const beforeGate = (signature, guard) => {
+  const body = bodyOf(signature);
+  const guardAt = body.indexOf(guard), gateAt = body.indexOf('#gate.access(');
+  return guardAt >= 0 && gateAt >= 0 && guardAt < gateAt;
+ };
+ if (!beforeGate('enrol(actor: Actor', 'if (actor.id === party.id) return this.#refuseSelf(')) throw new Error('VettingVault.enrol() no longer refuses a party enrolling themselves before the gate is asked. A nurse on the register could make herself an admin.');
+ if (!bodyOf('enrol(actor: Actor').includes('SELF_REFUSALS.alreadyEnrolled')) throw new Error('VettingVault.enrol() no longer refuses a party already on the register. Enrolling again is how a role gets rewritten.');
+ if (!beforeGate('restore(actor: Actor', 'if (actor.id === partyId) return this.#refuseSelf(')) throw new Error('VettingVault.restore() no longer refuses a party lifting their own suspension before the gate is asked.');
+ if (!beforeGate('decide(request: Decision', 'if (request.actor.id === evidence.partyId)')) throw new Error('VettingVault.decide() no longer refuses a party deciding their own check before the gate is asked.');
+ if (!/actor\.id === evidence\.partyId/.test(bodyOf('second(actor: Actor')) || !/actor\.id === partyId/.test(bodyOf('suspend(actor: Actor'))) throw new Error('VettingVault.second() or suspend() no longer refuses the party it is about.');
+ const gateSource = read('apps/api/src/protection/gate.ts');
+ if (!/const SELF_OPERATIONS: ReadonlySet<string> = new Set\(\['read', 'self-service'\]\);/.test(gateSource)) throw new Error('apps/api/src/protection/gate.ts no longer limits the subject shortcut to exactly the read and self-service operations.');
+ const shortcut = gateSource.match(/const isSubjectThemselves = [^;]+;/g) ?? [];
+ if (shortcut.length !== 1 || shortcut[0] !== "const isSubjectThemselves = actingOnSelf && SELF_OPERATIONS.has(request.operation ?? 'administrative');") throw new Error(`The gate's subject shortcut is "${shortcut.join(' / ')}". It is reachable only for a read or self-service operation, and an operation nobody named is administrative — whose record it is decides nothing on its own.`);
+ const vettingStoreText = read('apps/api/src/vetting/store.ts');
+ const putPartyText = vettingStoreText.slice(vettingStoreText.indexOf('putParty(party) {'), vettingStoreText.indexOf('findParty,', vettingStoreText.indexOf('putParty(party) {')));
+ if (!putPartyText || /ON CONFLICT[\s\S]*role_id/.test(putPartyText) || !/ON CONFLICT \(id\) DO NOTHING/.test(putPartyText)) throw new Error('apps/api/src/vetting/store.ts putParty rewrites a party on conflict. It creates a party and never changes one: a role change is its own decision, and there is no route for one.');
+ const vaultCalls = [...vaultSource.matchAll(/this\.#request\(([^()]*)\)/g)].map(m => m[1]);
+ if (vaultCalls.length < 8 || vaultCalls.some(args => !/'(read|self-service|administrative)'\s*$/.test(args))) throw new Error('A gate request built in apps/api/src/vetting/index.ts does not name its operation. Every call says read, self-service or administrative, at the call site.');
+ const serverGateCalls = [...read('apps/api/src/server.ts').matchAll(/gate\.access\(\{[\s\S]*?\}\)/g)].map(m => m[0]);
+ if (!serverGateCalls.length || serverGateCalls.some(call => !/operation: '(read|self-service|administrative)'/.test(call))) throw new Error('A direct gate.access call in apps/api/src/server.ts does not name its operation.');
+ for (const file of ['apps/api/src/consent/index.ts', 'apps/api/src/capture/index.ts']) {
+  const source = read(file);
+  const builder = source.slice(source.indexOf(' #request('), source.indexOf('\n }\n', source.indexOf(' #request(')));
+  if (!/operation: '(read|self-service|administrative)'/.test(builder)) throw new Error(`The gate request built in ${file} does not name its operation.`);
+ }
+ const selfRefusals = vetting.selfActionRefusals ?? {};
+ for (const key of ['administrativeOnSelf', 'enrol', 'restore', 'alreadyEnrolled']) if (!(typeof selfRefusals[key] === 'string' && selfRefusals[key].split(' ').length > 8)) throw new Error(`packages/catalog/vetting.json has no selfActionRefusals.${key} sentence, so a party acting on their own register entry would be refused in words nobody wrote down.`);
 }
 
 /* What is left to check about the native vetting models is what is still written by hand. The
@@ -6212,3 +6262,199 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  console.log(`The engine runtime refuses to start without ${runtimeSettings.flag}=${runtimeSettings.flagValue} in its factory, answers on loopback to a loopback Host only, and nothing in deploy/ names it. ${engineSources.length} source files under packages/engines/src read, ${importsRead} imports among them, and no engine reaches another engine's directory or opens a database; ${onRuntime.length} ${onRuntime.length === 1 ? 'route is' : 'routes are'} built on the runtime, each registered by exactly its key in its own engine's directory.`);
 }
 /* ==== end of Engine Runtime & Core (Wave 3) ========================================================= */
+
+/* ==== PLATFORM INTEGRATIONS: THE OPEN-SOURCE REGISTER ==============================================
+   ADDED BY THE PLATFORM INTEGRATIONS LEAD. Kept in one block, after everything else, so a merge with
+   the contracts branch is a matter of keeping both.
+
+   ThusoIQ Master §15D decides, component by component, what MyThuso adopts, what it only reads for
+   reference, what it pilots and what it owns; §45 declines the vendors whose source is wrong. The
+   founder asked for those modules to be linked to the engines they would plug into. The link is the
+   easy half. The half worth holding is what a link may not become:
+
+     1. Every entry has a source somebody actually read — a URL, a licence as the LICENSE file states
+        it, the last activity seen and the day — or it says, in a sentence, what could not be read
+        and why. A guessed licence is how a GPL server ends up inside a product nobody can open-source.
+     2. Every link names an engine, a route, a door and a capability that exist, by id. A door that
+        does not exist may be named only as "proposed:<id>", only while it is absent, and only with
+        what must be true before it opens.
+     3. Nothing is adopted while any of the five reviews — licence, security, maintenance, data flow,
+        clinical use — is unrecorded. §15D: open source does not mean production-approved.
+     4. Nothing reaches the record engine except through the Passport gateway, and a module a model
+        drives reads it through the tool gateway's allow-list, never with a write.
+     5. No module that is not cleared for production use links the triage route. Diagnostipy is a
+        prototype harness; the triage engine is governed rules.
+     6. A declined vendor links nothing.
+     7. No package manifest in the repository — npm, Gradle, Swift Package Manager, pip — declares a
+        registered component. Registering is not adopting, and adopting starts with a review, not
+        with a dependency somebody added to try it.
+     8. What MyThuso owns is never marked replaceable, and no component claims to replace it. */
+{
+ const register = JSON.parse(read('packages/catalog/open-source.json'));
+ const ossRule = id => {
+  const found = register.rules.find(r => r.id === id);
+  if (!found?.statement?.trim()) throw new Error(`packages/catalog/open-source.json has lost the rule "${id}". This check quotes it, and a check with nothing to quote is enforcing a rule nobody can read.`);
+  return found.statement;
+ };
+ const { routes: ossRoutes } = loadApis();
+ const ossEngineIds = new Set(JSON.parse(read('packages/catalog/events.json')).engines.map(e => e.id));
+ const ossRouteByKey = new Map(ossRoutes.map(r => [`${r.method} ${r.path}`, r]));
+ const ossFeedIds = new Set(JSON.parse(read('packages/catalog/feeds.json')).feeds.map(f => f.id));
+ const ossCapabilityIds = new Set(JSON.parse(read('packages/catalog/capabilities.json')).capabilities.map(c => c.id));
+ const ossGatewayIds = new Set(JSON.parse(read('packages/catalog/apis.json')).gateways.map(g => g.id));
+ const decisions = new Map(register.decisions.map(d => [d.id, d]));
+ const kinds = new Set(register.kinds.map(k => k.id));
+ const proposedDoors = new Map(register.proposedDoors.map(d => [d.id, d]));
+ const REVIEW_FIELDS = ['licence', 'security', 'maintenance', 'dataFlow', 'clinicalUse'];
+ const SPDX = /^[A-Za-z0-9][A-Za-z0-9.+-]*( (AND|OR|WITH) [A-Za-z0-9][A-Za-z0-9.+-]*)*$/;
+ const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+ const sentence = s => typeof s === 'string' && /\S.{10,}[.?!)]$/.test(s.trim());
+ const https = u => typeof u === 'string' && /^https:\/\/\S+$/.test(u);
+
+ for (const d of register.decisions) if (typeof d.mayServeProduction !== 'boolean' || !sentence(d.meaning)) throw new Error(`The decision "${d.id}" in packages/catalog/open-source.json does not say, as a boolean and a sentence, whether it may ever serve production. The triage check below reads that boolean.`);
+ if (!ISO_DAY.test(register.verifiedOn)) throw new Error('packages/catalog/open-source.json carries no verifiedOn day. A register of licences with no date on it is a register nobody can tell is stale.');
+ for (const r of [...register.procurementRules, ...register.rules]) if (!sentence(r.statement) || !sentence(r.why)) throw new Error(`"${r.id}" in packages/catalog/open-source.json is missing its statement or its why.`);
+
+ /* 8 first, because everything below is about what may be swapped and this is what may not. */
+ const ownedIds = new Set();
+ for (const o of register.owned) {
+  if (o.replaceable !== false) throw new Error(`"${o.id}" is owned by MyThuso and is not marked replaceable: false. ${ossRule('owned-is-never-replaceable')}`);
+  if (o.specDecision !== 'OWN') throw new Error(`"${o.id}" is in owned but its decision is "${o.specDecision}". §15D says OWN.`);
+  if (!sentence(o.refusal?.statement) || !sentence(o.refusal?.why)) throw new Error(`"${o.id}" is owned and does not say, in its own words, why no module replaces it.`);
+  ownedIds.add(o.id);
+ }
+
+ const seen = new Set();
+ let linkCount = 0, unverifiedCount = 0;
+ for (const c of register.components) {
+  const where = `packages/catalog/open-source.json "${c.id}"`;
+  if (seen.has(c.id) || ownedIds.has(c.id)) throw new Error(`${where} is registered twice.`);
+  seen.add(c.id);
+  if (!kinds.has(c.kind)) throw new Error(`${where} has the kind "${c.kind}", which the register does not declare.`);
+  const decision = decisions.get(c.specDecision);
+  if (!decision) throw new Error(`${where} carries the decision "${c.specDecision}", which is not one the specification makes. Decisions are recorded as §15D and §45 word them, not paraphrased.`);
+  if (!decision.kinds.includes(c.kind)) throw new Error(`${where} is a ${c.kind} under "${c.specDecision}", which the register allows only for ${decision.kinds.join(', ')}.`);
+  if (c.specDecision === 'OWN' || c.replaces && ownedIds.has(c.replaces)) throw new Error(`${where} claims to replace something MyThuso owns. ${ossRule('owned-is-never-replaceable')}`);
+  if (!/§\d/.test(c.specSection ?? '')) throw new Error(`${where} does not cite the section of the specification that decided it.`);
+  if (!sentence(c.provides)) throw new Error(`${where} does not say in a sentence what it provides.`);
+
+  /* 1. A source somebody read, or a reason nobody could. */
+  const s = c.source;
+  if (!s || !ISO_DAY.test(s.verifiedOn ?? '')) throw new Error(`${where} has no verifiedOn day on its source.`);
+  const required = c.kind === 'refused' ? [] : c.kind === 'commercial-provider' ? ['url'] : c.kind === 'standard' ? ['url'] : ['url', 'repository', 'licence', 'licenceUrl'];
+  if (c.kind !== 'refused') required.push('maintenance.lastSeen', 'maintenance.evidenceUrl');
+  const value = path => path.split('.').reduce((o, k) => o?.[k], s);
+  /* A standard may have no SPDX id and say its terms in words instead; with neither, its licence is
+     simply unread, and has to be flagged as such. */
+  if (c.kind === 'standard' && s.licence == null && !sentence(s.licenceTerms)) required.push('licence');
+  const missing = required.filter(p => value(p) == null);
+  if (missing.length && !(s.unverified === true && sentence(s.unverifiedReason))) throw new Error(`${where} has no ${missing.join(', ')} and does not say why. ${ossRule('verify-do-not-invent')}`);
+  if (s.unverified === true && !sentence(s.unverifiedReason)) throw new Error(`${where} is marked unverified with no sentence saying what could not be read.`);
+  if (s.unverified === true && !missing.length && c.kind !== 'refused') throw new Error(`${where} is marked unverified but every field is filled in. Either something in it was not read — and should be null — or the flag is stale.`);
+  if (s.unverified === true) unverifiedCount++;
+  for (const p of ['url', 'repository', 'licenceUrl', 'maintenance.evidenceUrl']) if (value(p) != null && !https(value(p))) throw new Error(`${where} records ${p} as "${value(p)}", which is not an https URL somebody could open.`);
+  if (s.licence != null && c.kind !== 'commercial-provider' && !SPDX.test(s.licence)) throw new Error(`${where} records the licence "${s.licence}", which is not an SPDX expression. The licence is copied from the LICENSE file as its SPDX id, or it is null.`);
+  if (c.kind === 'commercial-provider' && s.licence !== register.commercialLicence) throw new Error(`${where} is a commercial provider and its licence reads "${s.licence}" rather than "${register.commercialLicence}".`);
+  if (s.maintenance?.lastSeen != null && !ISO_DAY.test(s.maintenance.lastSeen)) throw new Error(`${where} records last activity as "${s.maintenance.lastSeen}", which is not a day.`);
+
+  /* 3. Not adopted while any review is unrecorded. */
+  const a = c.adoption;
+  if (!['not-adopted', 'adopted'].includes(a?.status)) throw new Error(`${where} has the adoption status "${a?.status}".`);
+  for (const f of REVIEW_FIELDS) if (!(f in (a.review ?? {}))) throw new Error(`${where} has no "${f}" review field. All five are written down, null until done, so a missing one cannot pass as a done one.`);
+  const openReviews = REVIEW_FIELDS.filter(f => a.review[f] == null);
+  if (a.status === 'adopted' && openReviews.length) throw new Error(`${where} is marked adopted with the ${openReviews.join(', ')} review${openReviews.length > 1 ? 's' : ''} not recorded. ${ossRule('open-source-is-not-production-approved')}`);
+  if (a.status === 'adopted' && c.kind === 'refused') throw new Error(`${where} was declined by the specification and is marked adopted. ${ossRule('a-declined-vendor-links-nothing')}`);
+  if (a.status !== 'adopted' && (!a.blockedBy?.length || !a.blockedBy.every(sentence))) throw new Error(`${where} is not adopted and does not say, in sentences, what stands in the way.`);
+  for (const r of c.refusals ?? []) {
+   if (!r.id || !sentence(r.statement) || !sentence(r.why)) throw new Error(`${where} carries a refusal without an id, a statement and a why.`);
+   /* A refusal that says an API enforces it has to be one that API actually declares. */
+   if (r.enforcedBy) {
+    const [file, refusalId] = r.enforcedBy.split('#');
+    const doc = existsSync(file) ? JSON.parse(read(file)) : null;
+    const declared = doc && [...(doc.refusals ?? []), ...(doc.routes ?? []).flatMap(x => x.refusals ?? [])].some(x => x.id === refusalId);
+    if (!declared) throw new Error(`${where} says "${r.id}" is enforced by ${r.enforcedBy}, which declares no such refusal.`);
+   }
+  }
+
+  /* 6. A declined vendor links nothing. */
+  if (c.kind === 'refused' && c.links.length) throw new Error(`${where} was declined by the specification and links ${c.links.map(l => l.engine).join(', ')}. ${ossRule('a-declined-vendor-links-nothing')}`);
+  if (c.kind === 'refused' && !c.refusals?.length) throw new Error(`${where} is declined and records no refusal with the specification's reason.`);
+  if (!c.links.length && c.kind !== 'refused' && !sentence(c.unlinkedBecause)) throw new Error(`${where} links nothing and does not say why.`);
+
+  for (const l of c.links) {
+   linkCount++;
+   const lw = `${where}, link to ${l.engine}`;
+   /* 2. Every id exists. */
+   if (!ossEngineIds.has(l.engine) || !existsSync(`packages/catalog/apis/${l.engine}.json`)) throw new Error(`${lw}: there is no engine "${l.engine}" with an API contract.`);
+   if (!sentence(l.how)) throw new Error(`${lw} does not say in a sentence where the seam is.`);
+   if (!l.apiRoutes.length && !l.doors.length && !sentence(l.noSeamBecause)) throw new Error(`${lw} names no route and no door and does not say why there is no seam.`);
+   for (const key of l.apiRoutes) {
+    const route = ossRouteByKey.get(key);
+    if (!route) throw new Error(`${lw} names the route "${key}", which no file in packages/catalog/apis/ declares.`);
+    if (route.engine !== l.engine) throw new Error(`${lw} names "${key}", which belongs to ${route.engine}. A link names its own engine's routes, so the engine a reader sees is the store it touches.`);
+    /* 4. The record engine only through the Passport gateway. */
+    if (route.engine === 'record' && !l.through?.includes('passport-gateway')) throw new Error(`${lw} reaches "${key}" without going through the Passport gateway. ${ossRule('the-passport-only-through-its-gateway')}`);
+    if (l.through?.includes('tool-gateway') && route.engine === 'record' && route.method !== 'GET') throw new Error(`${lw} lets a module driven by a model write "${key}". ${ossRule('no-generic-record-tool-for-a-model')}`);
+    /* 5. The triage route only for a decision that may serve production. */
+    if (route.engine === 'clinical' && (route.path.endsWith('/triage') || route.emits.some(e => e.startsWith('triage.'))) && !decision.mayServeProduction) throw new Error(`${lw} links "${key}" under "${c.specDecision}", which may not serve production. ${ossRule('no-prototype-reaches-triage')}`);
+   }
+   if (l.engine === 'record' && !l.through?.includes('passport-gateway')) throw new Error(`${lw} does not go through the Passport gateway. ${ossRule('the-passport-only-through-its-gateway')}`);
+   for (const g of l.through ?? []) if (!ossGatewayIds.has(g)) throw new Error(`${lw} goes through "${g}", which packages/catalog/apis.json does not declare as a gateway.`);
+   if (l.through?.includes('tool-gateway') && !c.refusals.some(r => r.enforcedBy === 'packages/catalog/apis/access.json#generic-record-tool')) throw new Error(`${lw} is driven through Gilbert's tool gateway and does not carry the refusal that it never becomes a general-purpose record tool.`);
+   for (const door of l.doors) {
+    if (door.startsWith('proposed:')) {
+     const id = door.slice('proposed:'.length);
+     if (ossFeedIds.has(id)) throw new Error(`${lw} still names "${door}", and packages/catalog/feeds.json now declares "${id}". ${ossRule('a-proposed-door-is-not-a-door')}`);
+     if (!proposedDoors.has(id)) throw new Error(`${lw} proposes the door "${id}" without recording, in proposedDoors, what must be true before it opens.`);
+    } else if (!ossFeedIds.has(door)) throw new Error(`${lw} names the door "${door}", which packages/catalog/feeds.json does not have. A door that does not exist yet is written "proposed:${door}".`);
+   }
+   if ((l.apiRoutes.length || l.doors.length) && !l.capabilities.length) throw new Error(`${lw} names no capability, so nothing on the status page would say what this link is waiting on.`);
+   for (const cap of l.capabilities) if (!ossCapabilityIds.has(cap)) throw new Error(`${lw} names the capability "${cap}", which packages/catalog/capabilities.json does not have.`);
+  }
+ }
+ for (const [id, d] of proposedDoors) {
+  if (ossFeedIds.has(id)) throw new Error(`proposedDoors in packages/catalog/open-source.json still proposes "${id}", which packages/catalog/feeds.json now declares. ${ossRule('a-proposed-door-is-not-a-door')}`);
+  if (!d.beforeSwitchOn?.length || !d.beforeSwitchOn.every(b => sentence(b.must) && sentence(b.why))) throw new Error(`The proposed door "${id}" does not say what must be true before it opens.`);
+  if (!register.components.some(c => c.links.some(l => l.doors.includes(`proposed:${id}`)))) throw new Error(`The proposed door "${id}" is needed by no link.`);
+ }
+
+ /* 7. No manifest declares a registered component. Matched on the names each component would be
+       declared under — package coordinates written into the contract — and on its repository, which is
+       how Swift Package Manager and a git dependency name it. */
+ const SKIP = new Set(['node_modules', '.git', '.claude', 'build', 'dist', '.gradle', 'DerivedData', 'Documentation', 'test-results', 'playwright-report']);
+ const manifests = [];
+ const walk = dir => { for (const e of readdirSync(dir, { withFileTypes: true })) {
+  if (SKIP.has(e.name)) continue;
+  const p = dir === '.' ? e.name : join(dir, e.name);
+  if (e.isDirectory()) walk(p);
+  else if (/^(package\.json|build\.gradle(\.kts)?|settings\.gradle(\.kts)?|libs\.versions\.toml|Package\.swift|Package\.resolved|project\.pbxproj|Podfile|Cartfile|requirements[\w.-]*\.txt|pyproject\.toml|pom\.xml)$/.test(e.name)) manifests.push(p);
+ } };
+ walk('.');
+ const declared = [];
+ for (const m of manifests) {
+  const text = read(m);
+  if (m.endsWith('package.json')) {
+   const pkg = JSON.parse(text);
+   for (const field of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies', 'bundleDependencies']) for (const [name, spec] of Object.entries(pkg[field] ?? {})) declared.push({ m, name: name.toLowerCase(), spec: String(spec).toLowerCase() });
+  } else {
+   for (const line of text.split('\n')) if (/(implementation|api|kapt|ksp|classpath|testImplementation|androidTestImplementation|debugImplementation|repositoryURL|\.package\(|module\s*=|group\s*=|<artifactId>|^[A-Za-z0-9_.-]+\s*[=<>~!]=|^[A-Za-z0-9_.-]+\s*$)/.test(line.trim())) declared.push({ m, name: line.trim().toLowerCase(), spec: '' });
+  }
+ }
+ for (const c of register.components) {
+  const names = Object.values(c.dependencyMarkers ?? {}).flat().map(n => n.toLowerCase());
+  const repo = c.source.repository ? c.source.repository.toLowerCase().replace(/^https:\/\//, '').replace(/\.git$/, '') : null;
+  for (const d of declared) {
+   const hit = names.find(n => d.m.endsWith('package.json') ? d.name === n : d.name.includes(n)) ?? (repo && (d.name.includes(repo) || d.spec.includes(repo)) ? repo : null);
+   if (hit) throw new Error(`${d.m} declares "${hit}", which is ${c.name} in packages/catalog/open-source.json. ${ossRule('registering-is-not-depending')}`);
+  }
+ }
+ if (!manifests.some(m => m.endsWith('package.json')) || !manifests.some(m => /gradle/.test(m)) || !manifests.some(m => m.endsWith('project.pbxproj'))) throw new Error(`The open-source dependency check found ${manifests.length} manifests and is missing an npm, Gradle or Xcode one, so it is looking in the wrong place.`);
+
+ /* The register's two readers: the generated document is held by the generated list above; the
+    status page has to actually render the contract rather than a copy of it. */
+ if (!/from '\.\.\/\.\.\/\.\.\/packages\/catalog\/open-source\.json'/.test(read('apps/web/src/status.ts'))) throw new Error(`apps/web/src/status.ts no longer imports packages/catalog/open-source.json, so the status page is not rendering the register it says it renders.`);
+
+ const adoptedCount = register.components.filter(c => c.adoption.status === 'adopted').length;
+ console.log(`The open-source register holds ${register.components.length} components and ${register.owned.length} owned parts, ${linkCount} links to real engines, routes, doors and capabilities, ${proposedDoors.size} proposed doors, ${unverifiedCount} honestly unverified sources — and ${adoptedCount} adopted, across ${manifests.length} manifests that declare none of them.`);
+}
+/* ==== end of PLATFORM INTEGRATIONS: THE OPEN-SOURCE REGISTER ======================================== */
