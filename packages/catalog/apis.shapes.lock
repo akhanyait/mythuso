@@ -116,3 +116,6 @@ GET /v1/safety/settings@3 0060a35d42fe5b24
 GET /v1/safety/sentinel-baselines@1 18a83c2ff25a0c01
 GET /v1/safety/safeguarding-reports@1 6305bc4740f973f3
 GET /v1/safety/settings@4 bfdaa6492a37f8d5
+GET /v1/movement/facilities@2 a511aa21026b3ac0
+GET /v1/movement/settings@1 fd4619e1b023abae
+POST /v1/movement/setting-changes@1 4b26b10cc14f50f7

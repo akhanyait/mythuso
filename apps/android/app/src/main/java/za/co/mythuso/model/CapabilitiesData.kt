@@ -142,7 +142,7 @@ val capabilities = listOf(
             "Place a pin on anybody's home.",
             "Claim an arrival time it has not derived."
         )),
-        listOf("dispatch", "control-tower", "incidents"),
+        listOf("dispatch", "control-tower", "incidents", "thuso-ride", "responder", "admissions", "facility-directory"),
         null,
         emptyList()),
     Capability("clinical-records", "Holding a clinical record", false,
@@ -279,7 +279,7 @@ val capabilities = listOf(
             "Claim an ambulance is coming.",
             "Answer at all until the real numbers have been shown first."
         )),
-        listOf("sos", "alert"),
+        listOf("sos", "alert", "p1-refusal"),
         "The ambulance number on this screen is real and always shown first, connected or not. The one refusal on this pathway that is not about MyThuso is the one that matters most.",
         emptyList()),
     Capability("doctor-review", "A doctor reviewing a nurse's visit", false,

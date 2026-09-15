@@ -2431,6 +2431,391 @@
     "section72": "A USSD aggregator becomes an operator under POPIA section 21 on signature, and each mobile network operator carries the session under its own licence. Whether any of them keeps a session log outside South Africa is not determined.",
     "determined": false
    }
+  },
+  {
+   "id": "responder-position",
+   "name": "Where a Thuso Ride responder is during a trip",
+   "capabilities": [
+    "dispatch"
+   ],
+   "supplier": "A fleet or telematics supplier reporting a responder's vehicle, or the responder app's own reporting through the heartbeat route. Neither is contracted, and which it would be is a decision nobody has made.",
+   "route": "POST /feeds/responder-position",
+   "arrives": "One responder's current position, once, during one trip they accepted.",
+   "derivedFrom": [
+    "packages/catalog/movement.json",
+    "packages/catalog/apis/movement.json",
+    "packages/catalog/geography.json"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "dispatch",
+    "sample": [
+     "packages/catalog/movement.json"
+    ],
+    "unchanged": "No responder's position is read from any device or supplier. A position is kept only when a responder's own heartbeat sends one during a trip they accepted, inside that trip's window, and every position on a screen here is a preview's."
+   },
+   "accepts": [
+    {
+     "field": "tripRef",
+     "type": "string",
+     "required": true,
+     "why": "The trip the position belongs to, as Movement issued it. A position with no trip is refused, because a position between trips is surveillance of a worker."
+    },
+    {
+     "field": "lat",
+     "type": "coordinate",
+     "required": true,
+     "why": "Latitude in decimal degrees, rounded on receipt to packages/catalog/geography.json's precision."
+    },
+    {
+     "field": "lng",
+     "type": "coordinate",
+     "required": true,
+     "why": "Longitude, and refused outside South Africa rather than dropped."
+    },
+    {
+     "field": "accuracyMetres",
+     "type": "number",
+     "required": true,
+     "why": "What the device believed its own error was. A position with no accuracy looks as certain as one from a good fix."
+    },
+    {
+     "field": "reportedAt",
+     "type": "instant",
+     "required": true,
+     "why": "When the fix was taken, so an old position is never read as current."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "a-position-outside-the-window-is-never-sent",
+     "must": "The supplier stops reporting when a trip's window closes, and never reports a responder between trips.",
+     "why": "Movement drops a position after the window and refuses one sent between trips, but a position filtered on arrival was still collected, transmitted and held by whatever it passed through.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-responder-role-is-on-the-vetting-register",
+     "must": "A Thuso Ride responder is a role on packages/catalog/vetting.json, with the checks a person driving a patient must pass.",
+     "why": "Movement accepts a heartbeat only from a responder whose verification is current, and the register holds no responder role yet, so nobody can be verified to drive.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-data-processing-agreement-limits-retention",
+     "must": "A data processing agreement limits what the supplier keeps of a trip's positions, and for how long, to no longer than the trip's window and its retention.",
+     "why": "The supplier becomes an operator under POPIA section 21, and a fleet product's default is to keep every track it ever took.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "positionTrack",
+     "refusal": "A responder position feed may not carry a history of positions.",
+     "why": "A trip keeps one position at a time. A trail of them is the list of houses a responder drove to.",
+     "also": [
+      "tripTrack",
+      "breadcrumbs",
+      "trail",
+      "positionHistory",
+      "vehiclePositions"
+     ]
+    },
+    {
+     "field": "patientIdentity",
+     "refusal": "A responder position feed may not name or identify the patient.",
+     "why": "A vehicle's position beside a patient's identity is a record of who is ill and where they are going, held by a location supplier.",
+     "also": [
+      "patientId",
+      "patientRef",
+      "subjectRef",
+      "patientName",
+      "memberNumber"
+     ]
+    },
+    {
+     "field": "pickupStreetAddress",
+     "refusal": "A responder position feed may not carry the pick-up address.",
+     "why": "Movement keeps a zone, never a door. An address arriving with a position is a patient's front door in a supplier's log.",
+     "also": [
+      "pickupAddress",
+      "streetAddress",
+      "formattedAddress",
+      "destinationAddress"
+     ]
+    },
+    {
+     "field": "emergencySummaryContent",
+     "refusal": "A responder position feed may not carry anything from the patient's record.",
+     "why": "A responder reads the emergency summary through the Health Passport during the trip, and nothing from it travels with a position.",
+     "also": [
+      "allergies",
+      "medicines",
+      "clinicalNote",
+      "diagnosis",
+      "vitals"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "Fleet and telematics platforms are commonly hosted outside South Africa, and a trip's positions would be transferred continuously while it runs. There is no named recipient to determine a transfer to. Not determined.",
+    "determined": false
+   }
+  },
+  {
+   "id": "facility-decision",
+   "name": "A facility's answer to an admission request",
+   "capabilities": [
+    "dispatch"
+   ],
+   "supplier": "A partner facility's admissions system answering a request MyThuso sent. No facility has agreed to answer, and no admissions system is integrated.",
+   "route": "POST /feeds/facility-decision",
+   "arrives": "One facility's answer to one admission request: accepted, wait-listed, declined, or a request for more.",
+   "derivedFrom": [
+    "packages/catalog/movement.json",
+    "packages/catalog/apis/movement.json"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "dispatch",
+    "sample": [
+     "packages/catalog/movement.json"
+    ],
+    "unchanged": "No facility is asked anything. An admission request stays pending until an answer is simulated at the ops desk and recorded as simulated, and no screen ever says a bed is booked."
+   },
+   "accepts": [
+    {
+     "field": "admissionRef",
+     "type": "string",
+     "required": true,
+     "why": "The admission this answers, as Movement issued it."
+    },
+    {
+     "field": "decisionCode",
+     "type": "string",
+     "required": true,
+     "why": "accepted, waitlisted or declined, from packages/catalog/movement.json. A code, never a sentence."
+    },
+    {
+     "field": "receivingPoint",
+     "type": "string",
+     "required": false,
+     "why": "Where the patient goes, from the receiving points Movement records. Required with an acceptance."
+    },
+    {
+     "field": "reasonCode",
+     "type": "string",
+     "required": false,
+     "why": "Why it declined, from the decline reasons Movement records. Required with a decline."
+    },
+    {
+     "field": "alternativeOffered",
+     "type": "boolean",
+     "required": true,
+     "why": "Whether an alternative was offered with a decline."
+    },
+    {
+     "field": "decidedAt",
+     "type": "instant",
+     "required": true,
+     "why": "When the facility answered, by the facility's clock."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "a-signed-facility-agreement",
+     "must": "A signed agreement with each facility says who at the facility answers, how fast, and that an acceptance names a receiving point.",
+     "why": "An acceptance is a promise the facility makes to a patient. Without an agreement it is a message from a system nobody at MyThuso can hold to anything.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "an-acceptance-never-reads-as-a-bed",
+     "must": "Every screen that shows a facility's answer shows a pending request as pending, and an acceptance as a destination rather than a bed, whatever the facility's system sends.",
+     "why": "§15C: requesting, accepted, wait-listed and alternative offered are four different things. A facility confirms a bed on arrival, and a patient told otherwise travels to a bed that may not be there.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "the-emergency-medical-services-boundary-is-written",
+     "must": "Counsel's opinion on where the emergency medical services boundary falls is written and its conditions are in the admissions pathway.",
+     "why": "An admission arranged for a patient moved by Thuso Ride sits beside that boundary, and the opinion does not exist.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "bedNumber",
+     "refusal": "A facility decision may not carry a bed number.",
+     "why": "A bed is confirmed by the facility on arrival. A bed number in an answer is a promise that becomes a patient looking for a bed somebody else is in.",
+     "also": [
+      "bedRef",
+      "wardBed",
+      "allocatedBed",
+      "bedAllocation"
+     ]
+    },
+    {
+     "field": "facilityClinicalNotes",
+     "refusal": "A facility decision may not carry the facility's clinical notes.",
+     "why": "What the facility thinks of the patient belongs in its own record and the Passport encounter, never in an answer every desk reads.",
+     "also": [
+      "triageDetail",
+      "clinicalNotes",
+      "diagnosis",
+      "dischargeSummary",
+      "admissionDiagnosis"
+     ]
+    },
+    {
+     "field": "patientFullName",
+     "refusal": "A facility decision may not name the patient.",
+     "why": "The admission reference identifies the request; a name in the answer is a name in every log it passes through.",
+     "also": [
+      "patientName",
+      "surname",
+      "firstName",
+      "idNumber"
+     ]
+    },
+    {
+     "field": "bedAvailability",
+     "refusal": "A facility decision may not carry how many beds are free.",
+     "why": "There is no South African bed availability interface, and a count in an answer would be read as a directory's promise the next time somebody asks.",
+     "also": [
+      "availableBeds",
+      "bedsFree",
+      "freeBeds",
+      "occupancy"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "A facility is necessarily in South Africa. Its admissions system, or the integration platform in front of it, may not be. Not determined.",
+    "determined": false
+   }
+  },
+  {
+   "id": "ems-dispatch",
+   "name": "A licensed ambulance partner's answer to a P1",
+   "capabilities": [
+    "emergency"
+   ],
+   "supplier": "A contracted, licensed ambulance service's dispatch system. None is contracted, and counsel's opinion on the emergency medical services boundary does not exist.",
+   "route": "POST /feeds/ems-dispatch",
+   "arrives": "A licensed ambulance partner's dispatch message about one P1 MyThuso handed to it.",
+   "derivedFrom": [
+    "packages/catalog/movement.json",
+    "packages/catalog/apis/movement.json",
+    "packages/catalog/sos.json"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "emergency",
+    "sample": [
+     "packages/catalog/sos.json"
+    ],
+    "unchanged": "No P1 is handed to anybody. Thuso Ride refuses a P1 in the contract's sentence, the P1 route refuses every request, and the screen gives the emergency numbers from sos.json above everything MyThuso offers."
+   },
+   "accepts": [
+    {
+     "field": "emsRequestRef",
+     "type": "string",
+     "required": true,
+     "why": "The P1 request this answers, as Movement would issue it."
+    },
+    {
+     "field": "partnerId",
+     "type": "string",
+     "required": true,
+     "why": "Which licensed partner answered, so a silence can be attributed."
+    },
+    {
+     "field": "dispatchState",
+     "type": "string",
+     "required": true,
+     "why": "accepted, declined, en-route, arrived or stood-down. Declined is a first-class answer."
+    },
+    {
+     "field": "stateAt",
+     "type": "instant",
+     "required": true,
+     "why": "When, by the partner's clock."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "a-licensed-partner-is-contracted",
+     "must": "A licensed ambulance service is contracted, with its areas, its response times and who answers for a P1 it declines.",
+     "why": "A P1 is care in transit, which only a licensed service may give. Without a contract there is nobody to hand one to.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-p1-is-never-a-thuso-ride-trip",
+     "must": "No P1 is ever turned into a Thuso Ride trip, whatever the partner answers, including when it declines or does not answer.",
+     "why": "A declined P1 is a failure the emergency screen answers with the emergency numbers, never a responder sent in a partner's place.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "counsel-has-written-the-boundary",
+     "must": "Counsel's opinion on the emergency medical services boundary is written, and the handover of a P1 follows it.",
+     "why": "Where MyThuso's part ends and the licensed service's begins is a legal question nobody has answered.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "thusoRideTrip",
+     "refusal": "An ambulance partner's message may not name a Thuso Ride trip or responder.",
+     "why": "A P1 never becomes a trip. A dispatch message that names one is a P1 handed to transport that does not give care.",
+     "also": [
+      "tripRef",
+      "responderRef",
+      "rideRef"
+     ]
+    },
+    {
+     "field": "patientCareReport",
+     "refusal": "An ambulance partner's message may not carry the crew's clinical record of the patient.",
+     "why": "What a crew found and did is the partner's clinical record, and it reaches the Passport through a door of its own under the patient's grant, never through dispatch.",
+     "also": [
+      "crewNotes",
+      "clinicalFindings",
+      "vitals",
+      "diagnosis",
+      "treatmentGiven"
+     ]
+    },
+    {
+     "field": "patientLegalName",
+     "refusal": "An ambulance partner's message may not name the patient.",
+     "why": "The request reference identifies the P1; a name in a dispatch message is a name in every log it passes through.",
+     "also": [
+      "patientName",
+      "fullName",
+      "idNumber"
+     ]
+    },
+    {
+     "field": "incidentAddress",
+     "refusal": "An ambulance partner's message may not echo the address back.",
+     "why": "The partner is told where to go by a person, once. An address that comes back is a front door round-tripped through a log for no reader.",
+     "also": [
+      "streetAddress",
+      "sceneAddress",
+      "formattedAddress"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "A licensed ambulance service is necessarily local. Its dispatch platform may not be. Not determined.",
+    "determined": false
+   }
   }
  ]
 }

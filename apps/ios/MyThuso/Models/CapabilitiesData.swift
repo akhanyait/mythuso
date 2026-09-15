@@ -126,7 +126,7 @@ extension Capabilities {
                                                   "Place a pin on anybody's home.",
                                                   "Claim an arrival time it has not derived."
                                               ]),
-                   surfaces: ["dispatch", "control-tower", "incidents"],
+                   surfaces: ["dispatch", "control-tower", "incidents", "thuso-ride", "responder", "admissions", "facility-directory"],
                    neverSoften: nil,
                    requiresPermissions: []),
         Capability(id: "clinical-records", name: "Holding a clinical record", connected: false,
@@ -277,7 +277,7 @@ extension Capabilities {
                                                   "Claim an ambulance is coming.",
                                                   "Answer at all until the real numbers have been shown first."
                                               ]),
-                   surfaces: ["sos", "alert"],
+                   surfaces: ["sos", "alert", "p1-refusal"],
                    neverSoften: "The ambulance number on this screen is real and always shown first, connected or not. The one refusal on this pathway that is not about MyThuso is the one that matters most.",
                    requiresPermissions: []),
         Capability(id: "doctor-review", name: "A doctor reviewing a nurse's visit", connected: false,

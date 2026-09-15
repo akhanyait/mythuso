@@ -18,6 +18,7 @@ import { devicesInForce, type DevicesInForce } from '../../../../packages/engine
 import { clinicalInForce, type ClinicalInForce } from '../../../../packages/engines/src/clinical/domain/settings.ts';
 import { clinicalRoleHolds, refusal as clinicalRefusal } from '../../../../packages/engines/src/clinical/domain/contract.ts';
 import type { Decision, VettingSubject } from './vetting';
+import { movementInForce, type MovementInForce } from '../../../../packages/engines/src/movement/domain/settings.ts';
 import { roleOf, whoIs } from './roles';
 import { can } from './vetting';
 /* Whether a rota's post is on duty, and when a shut one opens: the shared settings code's one rule, which the
@@ -126,6 +127,9 @@ export const clinicalSettingsNow = (): ClinicalInForce => clinicalInForce(histor
 /* Sentinel's two, read the same way: a baseline asks sentinelSettingsNow() once, when the first reading of a patient's
    measure opens it, and keeps the window, the minimum and the version it was handed. */
 export const sentinelSettingsNow = (): SentinelSettings => sentinelSettingsOf(historyOf('safety'));
+/* Movement's five, read the same way: a trip asks movementSettingsNow() once when it is requested and keeps the
+   offers, the window and the retention it answered; the responder's phone asks it for the interval when it beats. */
+export const movementSettingsNow = (): MovementInForce => movementInForce(historyOf('movement'));
 
 /* Whether the value a setting held at a settings version has been clinically reviewed. Something that started
    under an older version — an offer on a nurse's screen — is described by the value it started under, not

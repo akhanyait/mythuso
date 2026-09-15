@@ -338,6 +338,8 @@ import za.co.mythuso.model.mokoenaHousehold
         /* A wearable link request, opened from the Health Connect permission screen. It records what the
            patient agreed to and connects nothing. The title is the contract's heading, filled. */
         title == za.co.mythuso.model.Devices.wearableLinkTitle("health-connect") -> WearableLinkScreen("health-connect")
+        /* Thuso Ride's responder app, opened from the Control Tower's dispatch section by the contract's own heading. */
+        title == za.co.mythuso.model.MovementData.ResponderText.HEADING -> ResponderScreen()
         /* Live well is the patient's own diary and it is a route of its own rather than a tab
            inside the passport, because the passport is what clinicians measured and this is what
            the person said. Putting them behind one door is the blur wellbeing.json's
@@ -1032,6 +1034,7 @@ private fun sectionDeck(role: String, section: String) =
                 Text("Dispatch", style = MaterialTheme.typography.titleMedium)
                 ToolRow("Live dispatch board") { open("Live dispatch board") }
                 ToolRow(label("Vetting: O-802")) { open("Vetting: O-802") }
+                ToolRow(za.co.mythuso.model.MovementData.ResponderText.HEADING) { open(za.co.mythuso.model.MovementData.ResponderText.HEADING) }
             }
             /* The field-safety queue leads the section: a nurse in trouble is picked up before the
                register of what went wrong last week is read. */

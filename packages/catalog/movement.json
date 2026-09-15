@@ -1,0 +1,480 @@
+{
+ "_note": "Movement is Thuso Ride and Access & Admission, Wave 5: P3 scheduled trips and P2 trips a clinician set, a responder's accept, decline and hand-over, a position kept only inside a trip's window, a synthetic facility directory at level zero, admission requests at level one whose facility answer is simulated, and a pre-arrival packet that is only an emergency card link the Health Passport made. The routes and every refusal sentence are packages/catalog/apis/movement.json's; packages/engines/src/movement/domain holds the arithmetic; scripts/emit-movement.mjs writes what a phone needs into Swift and Kotlin. Nothing here is a real service: no trip reaches a responder, no vehicle moves, no facility is asked and no bed is held.",
+ "version": 1,
+ "engine": "movement",
+ "api": "packages/catalog/apis/movement.json",
+
+ "notAnAmbulance": {
+  "sentence": "Thuso Ride is non-emergency transport. It is not an ambulance service: nobody on a trip gives care in transit, and it never takes a P1.",
+  "why": "Only a licensed ambulance service may give care in transit (ThusoIQ Master §12). A responder drives a patient who can travel sitting up to a facility that expects them, and no screen may make that sound like an ambulance, or a person chooses it over the emergency number.",
+  "forbiddenPhrases": ["Thuso Ride ambulance", "our ambulance", "your ambulance", "ambulance is on the way", "ambulance on the way", "ambulance is coming", "send an ambulance", "sends an ambulance", "paramedic", "sirens", "blue lights"],
+  "_forbiddenPhrasesNote": "scripts/check-boundaries.mjs refuses each phrase in every Movement contract, screen and generated file, and refuses any sentence that names Thuso Ride, a trip or a responder beside the word ambulance without saying it is not one."
+ },
+
+ "emsBoundary": {
+  "counselOpinion": null,
+  "sentence": "Counsel's opinion on where the emergency medical services line falls has not been written. Until it is, Thuso Ride takes no P1, and no P2 a clinician did not set.",
+  "why": "Where transport ends and emergency medical care begins is a legal question about a licensed profession. Nobody at MyThuso has answered it, so every refusal here stays on the transport side of the line rather than guessing where it is."
+ },
+
+ "priorities": [
+  {
+   "id": "P1",
+   "label": "P1 · emergency",
+   "takenByThusoRide": false,
+   "routedTo": null,
+   "setBy": null,
+   "needsReason": false,
+   "sentence": "A P1 is an emergency. It needs a licensed ambulance service, and no licensed ambulance partner is connected to MyThuso."
+  },
+  {
+   "id": "P2",
+   "label": "P2 · today, set by a clinician",
+   "takenByThusoRide": true,
+   "routedTo": "thuso-ride",
+   "setBy": ["nurse", "doctor"],
+   "needsReason": true,
+   "sentence": "A P2 is set by a nurse or doctor whose vetting is current, in their own name, with a reason. No triage protocol is ratified, so nothing sets one on its own."
+  },
+  {
+   "id": "P3",
+   "label": "P3 · scheduled",
+   "takenByThusoRide": true,
+   "routedTo": "thuso-ride",
+   "setBy": null,
+   "needsReason": false,
+   "sentence": "A P3 is a scheduled trip, requested ahead of its pick-up."
+  }
+ ],
+ "_prioritiesNote": "setBy names roles on packages/catalog/vetting.json that may set the priority, and the engine asks what Verify last said about the named person in that role. A P1 is taken by nothing: routedTo is null, the trips route refuses it before it reads anything else, and the trips table cannot hold one.",
+
+ "p2Reasons": [
+  { "id": "admission-accepted-for-today", "label": "A facility accepted an admission for today" },
+  { "id": "treatment-cannot-move", "label": "A treatment appointment today that cannot be moved" },
+  { "id": "discharge-home-today", "label": "Coming home from a facility today" },
+  { "id": "clinician-judgement-today", "label": "The clinician judged it should be today, and wrote why in the record" }
+ ],
+ "_p2ReasonsNote": "Codes, never free text, and none names a condition. Why a patient needs to travel today is written in the Health Passport under the clinician's own grant; Movement keeps which of these a clinician chose and nothing about the patient's health.",
+
+ "trips": {
+  "states": [
+   { "id": "requested", "label": "Waiting for a responder" },
+   { "id": "accepted", "label": "A responder accepted" },
+   { "id": "handed-over", "label": "Handed over at the destination" }
+  ],
+  "receivingRoles": [
+   { "id": "admissions-desk", "label": "The admissions desk" },
+   { "id": "receiving-nurse", "label": "The receiving nurse" },
+   { "id": "receiving-doctor", "label": "The receiving doctor" },
+   { "id": "emergency-unit-reception", "label": "The emergency unit's reception" }
+  ],
+  "checklist": [
+   "The patient is inside, and seated or in a bed.",
+   "The person receiving the patient said who they are, by role.",
+   "Nothing the patient brought is left in the vehicle."
+  ],
+  "offers": "A trip is offered to verified responders who are online, a few at a time, and a decline passes it to the next. A responder who was not offered a trip cannot take it.",
+  "window": "A trip's window opens when a responder accepts and closes at the hand-over, or when the trip window in force at the request runs out, whichever comes first."
+ },
+
+ "position": {
+  "sentence": "A responder's position is kept only during a trip they accepted, one position at a time and never as a track, and it is dropped when the trip's window closes.",
+  "roundedFrom": "packages/catalog/geography.json#precision.decimals",
+  "neverKept": [
+   { "field": "track", "why": "A trail of positions is the list of houses a responder went to." },
+   { "field": "positionBetweenTrips", "why": "A worker's position when no trip is under way is surveillance of the worker, not transport." },
+   { "field": "positionAfterTheWindow", "why": "Once a patient is handed over, nobody needs to know where the vehicle went next." }
+  ]
+ },
+
+ "admissions": {
+  "states": [
+   { "id": "requesting", "label": "Requested · waiting for the facility", "pending": true, "destinationConfirmed": false, "sentence": "The facility has not answered. No bed is held for anybody." },
+   { "id": "more-information-requested", "label": "The facility asked for more", "pending": true, "destinationConfirmed": false, "sentence": "The facility asked for more before it answers. It is sent the pre-arrival packet, never the whole record." },
+   { "id": "waitlisted", "label": "Wait-listed", "pending": true, "destinationConfirmed": false, "sentence": "The facility put the request on its waiting list. It is still pending, and a place on somebody else's list is not a promise MyThuso can keep." },
+   { "id": "declined", "label": "Declined", "pending": false, "destinationConfirmed": false, "sentence": "The facility declined. Nobody should travel there for this request." },
+   { "id": "alternative-offered", "label": "Declined, with an alternative offered", "pending": false, "destinationConfirmed": false, "sentence": "The facility declined and offered an alternative. The alternative is a new request, and nothing is held until it is answered." },
+   { "id": "accepted", "label": "Accepted by the facility", "pending": false, "destinationConfirmed": true, "sentence": "The facility accepted. Go to the receiving point it named; the facility confirms the bed itself on arrival." },
+   { "id": "arrived", "label": "Arrived", "pending": false, "destinationConfirmed": true, "sentence": "The facility confirmed the patient arrived at its receiving point." },
+   { "id": "handed-over", "label": "Handed over", "pending": false, "destinationConfirmed": true, "sentence": "A receiving clinician or desk took the hand-over. The pre-arrival packet has ended." }
+  ],
+  "pendingNeverSays": ["booked", "book", "booking", "reserved", "secured", "guaranteed", "confirmed", "held for you"],
+  "_pendingNeverSaysNote": "Words no pending state's label or sentence may use, and no screen may put beside a pending admission. The domain refuses to load a contract whose pending state says one, and scripts/check-boundaries.mjs reads the screens for them.",
+  "_statesNote": "§15C: requesting, accepted, wait-listed and alternative offered are four different things. A pending state never confirms a destination, and no state's words say a bed is booked, reserved or secured: the facility confirms a bed at arrival. packages/engines/src/movement/domain/admissions.ts presentationOf() is the one reader, and scripts/check-boundaries.mjs holds every state and every screen to it.",
+  "bedCategories": [
+   { "id": "general-ward", "label": "General ward" },
+   { "id": "high-care", "label": "High care" },
+   { "id": "icu", "label": "Intensive care" },
+   { "id": "maternity", "label": "Maternity" },
+   { "id": "paediatric", "label": "Paediatric" }
+  ],
+  "decisions": [
+   { "id": "accepted", "label": "Accept" },
+   { "id": "waitlisted", "label": "Wait-list" },
+   { "id": "declined", "label": "Decline" }
+  ],
+  "declineReasons": [
+   { "id": "no-bed-in-category", "label": "No bed in that category" },
+   { "id": "service-not-offered", "label": "The facility does not offer that care" },
+   { "id": "not-in-network", "label": "Outside the facility's network" }
+  ],
+  "informationAsked": [
+   { "id": "pre-arrival-packet", "label": "The pre-arrival packet" },
+   { "id": "referring-clinician-call", "label": "A call from the referring clinician" }
+  ],
+  "receivingPoints": [
+   { "id": "admissions-desk", "label": "The admissions desk" },
+   { "id": "emergency-unit-reception", "label": "The emergency unit's reception" },
+   { "id": "maternity-reception", "label": "Maternity reception" },
+   { "id": "ward-reception", "label": "The ward's reception" }
+  ]
+ },
+
+ "facilities": {
+  "synthetic": true,
+  "sentence": "Every facility in this directory is fictional, drawn for the preview. It lists what a facility offers and never says a bed is free.",
+  "noNumber": "No telephone number is listed, because a fictional number is somebody's real one.",
+  "entries": [
+   { "ref": "facility-synthetic-1", "name": "Synthetic district hospital · Randburg", "zoneId": "randburg", "bedCategories": ["general-ward", "high-care", "maternity", "paediatric"], "hours": "Admissions around the clock" },
+   { "ref": "facility-synthetic-2", "name": "Synthetic regional hospital · Parktown", "zoneId": "parktown", "bedCategories": ["general-ward", "high-care", "icu", "paediatric"], "hours": "Admissions around the clock" },
+   { "ref": "facility-synthetic-3", "name": "Synthetic maternity unit · Soweto", "zoneId": "soweto", "bedCategories": ["maternity"], "hours": "Admissions around the clock" },
+   { "ref": "facility-synthetic-4", "name": "Synthetic step-down unit · Rosebank", "zoneId": "rosebank", "bedCategories": ["general-ward"], "hours": "Admissions from 07:00 to 19:00" }
+  ],
+  "_entriesNote": "A unit type and a suburb, never an organisation's name. No bed count, no availability and no telephone number: there is no South African bed availability interface (§15C), and a number typed here would be a promise the directory cannot keep."
+ },
+
+ "packet": {
+  "kind": "emergency-card",
+  "kindFrom": "packages/catalog/passport-sharing.json#links.kinds",
+  "grantRole": "responder-on-trip",
+  "grantRoleFrom": "packages/catalog/consent.json#grants.recipientRoles",
+  "lifetimeBoundFrom": [
+   "packages/catalog/passport-sharing.json#links.lifetimeCeilingFrom",
+   "packages/catalog/consent.json#grants.maximumExpiryDays",
+   "packages/catalog/consent.json#grants.recipientRoles.responder-on-trip.maxExpiryDays"
+  ],
+  "_lifetimeBoundNote": "Record's ceiling on every link is the founder's grant ceiling, which passport-sharing.json names as its source and holds each lifetime setting's highest bound equal to. The packet's bound is the shorter of that ceiling and the trip grant's own, so it is never longer than any emergency card Record could make on that grant.",
+  "endsAt": "admission-handover",
+  "sentences": {
+   "only": "The pre-arrival packet is an emergency card link the Health Passport made under the patient's grant for the trip. It opens the emergency summary and nothing else.",
+   "bound": "It lasts no longer than an emergency card on a trip's grant may, and it ends at the hand-over, or sooner when the link does.",
+   "holds": "Movement keeps the link's reference and when it ends. It never keeps the link's secret or anything the link opens."
+  },
+  "grantRoleGap": "packages/catalog/consent.json has no grant role for a receiving facility. The only role whose gateway reads the emergency summary alone is the responder's during a trip, so the packet rides on that grant and the patient's access log names that role when the facility opens it. A facility's own grant role is the Record engine's to add.",
+  "why": "§15C: the facility can ask for more rather than receive everything. A link is a door at an address, so the packet is the narrowest door the Passport makes, bounded by Record's own ceiling and closed when the patient is handed over."
+ },
+
+ "doors": ["responder-position", "facility-decision", "ems-dispatch"],
+
+ "capabilities": {
+  "notices": { "trips": "dispatch", "admissions": "dispatch", "p1": "emergency" },
+  "why": "Thuso Ride and admissions answer under the dispatch capability, whose routes serve the dispatch purpose, and a P1 under the emergency capability. A capability of its own was written and measured: packages/catalog/capabilities.json is projected whole onto the patient's first load, and one more capability added 0.14 kB that a patient on metered data would download without ever opening a trip. So the surfaces were added to the two capabilities that already say nothing is connected, the three doors serve them, and every Movement screen also renders this contract's own preview sentence. A Thuso Ride capability of its own waits on a projection that carries only what the first view reads."
+ },
+
+ "screens": {
+  "preview": "A preview. No trip reaches a responder, no vehicle moves, no facility is asked and no bed is held. Everything here is kept in this tab's memory and a reload puts it back.",
+  "previewPhone": "A preview. No trip reaches a responder, no vehicle moves and this phone's position is never read. The trip is held on this screen and forgotten when it closes.",
+  "clinician": {
+   "heading": "Thuso Ride",
+   "intro": "Request a trip to a facility for a patient who can travel sitting up with a responder beside them. Thuso Ride is transport, and nobody on a trip gives care.",
+   "patient": "Patient",
+   "priority": "Priority",
+   "zone": "Pick-up zone",
+   "when": "Pick-up from",
+   "destination": "Destination",
+   "reason": "Why it is a P2",
+   "setBy": "A P2 is set in your name: {clinician}",
+   "request": "Request the trip",
+   "requested": "Trip {ref} is waiting for a responder.",
+   "p1Heading": "A P1 is an emergency",
+   "p1Call": "Call {ambulance} for an ambulance now, or {mobile} from a mobile.",
+   "tripsHeading": "Trips you requested",
+   "noTrips": "You have not requested a trip yet."
+  },
+  "responder": {
+   "heading": "Your trips",
+   "intro": "Trips offered to you, the trip you accepted and its hand-over. You give transport, not care.",
+   "offered": "Offered to you",
+   "noOffers": "No trip is offered to you right now.",
+   "accept": "Accept this trip",
+   "decline": "Decline",
+   "declined": "Declined. The trip goes to the next responder.",
+   "destination": "To {facility}",
+   "pickup": "Pick-up in {zone} from {when}",
+   "summaryHeading": "Emergency summary",
+   "summaryOpen": "Opened through the Health Passport under the patient's grant for this trip: {categories}. Nothing else opens.",
+   "summaryNotYet": "The emergency summary opens only once you have accepted the trip.",
+   "summaryClosed": "The emergency summary closed at the hand-over.",
+   "handoverHeading": "Hand-over at the destination",
+   "receivingRole": "Received by",
+   "checklistHeading": "Hand-over checklist",
+   "checklistDone": "I followed the checklist",
+   "handover": "Record the hand-over",
+   "handedOver": "Handed over at {when}. The trip is closed.",
+   "heartbeat": "While a trip is under way this phone sends its position every {interval}, the interval in force, and never between trips."
+  },
+  "admissions": {
+   "heading": "Admissions",
+   "intro": "Requests for a bed at a facility and where each stands. A request is pending until the facility answers, and the facility confirms a bed itself on arrival.",
+   "request": "Request an admission",
+   "facility": "Facility",
+   "bedCategory": "Bed category",
+   "priority": "Priority",
+   "arrival": "Arrival from",
+   "statusHeading": "Where each request stands",
+   "noRequests": "No admission has been requested.",
+   "pending": "Pending",
+   "destinationConfirmed": "Destination confirmed",
+   "simulateHeading": "The facility's answer, simulated",
+   "simulateNote": "No facility is connected. A facility's answer arrives only through the facility-decision door, which refuses every payload, so each answer here is simulated and recorded as simulated.",
+   "simulated": "Simulated",
+   "receivingPoint": "Receiving point",
+   "declineReason": "Why it declined",
+   "alternative": "An alternative was offered",
+   "askedFor": "What the facility asked for",
+   "packetHeading": "Pre-arrival packet",
+   "packetNone": "No packet has been sent.",
+   "packetSend": "Send the emergency card link",
+   "packetSent": "Sent as an emergency card link. It ends {when}.",
+   "packetOpened": "The facility opened it at {when}.",
+   "packetEnded": "It has ended.",
+   "arrive": "Simulate the arrival",
+   "agreed": "The facility agreed with the priority",
+   "handover": "Simulate the hand-over",
+   "encounter": "The Passport encounter updated"
+  },
+  "directory": {
+   "heading": "Facility directory",
+   "intro": "Facilities by zone and the bed categories each lists.",
+   "zone": "Zone",
+   "bedCategory": "Bed category",
+   "everyZone": "Every zone",
+   "everyCategory": "Every category",
+   "none": "No facility in the directory matches that.",
+   "hours": "Hours"
+  },
+  "desk": {
+   "heading": "Thuso Ride trips",
+   "intro": "Every trip requested, who accepted it and whether it was handed over. A position is shown only inside a trip's window.",
+   "responderHeading": "The responder's phone",
+   "responderIntro": "What responder {responder} sees, drawn here so the desk reads the same trip the phone does.",
+   "responderSynthetic": "{responder} is a synthetic responder the preview treats as verified and online. The vetting register has no responder role yet, so on the engine runtime nobody is, and every heartbeat is refused.",
+   "noTrips": "No trip has been requested.",
+   "windowCloses": "Window closes {when}"
+  }
+ },
+
+ "preview": {
+  "why": "The web preview and both phones start from the same trip and the same admissions. Every time is an offset from now, every reference is synthetic, and the patient is named only by reference.",
+  "patientRef": "PAT-LM-0001",
+  "responderRef": "R-311",
+  "clinicianRoles": { "nurse": "N-205", "doctor": "D-401" },
+  "trips": [
+   { "ref": "TRIP-0412", "priorityClass": "P3", "pickupZoneId": "randburg", "pickupInMinutes": 90, "destinationFacilityRef": "facility-synthetic-1", "admissionRef": "ADM-0207", "requestedByRole": "doctor" }
+  ],
+  "admissions": [
+   { "ref": "ADM-0207", "facilityRef": "facility-synthetic-1", "bedCategory": "general-ward", "priorityCode": "P3", "arrivalInMinutes": 150, "decision": null },
+   { "ref": "ADM-0198", "facilityRef": "facility-synthetic-2", "bedCategory": "high-care", "priorityCode": "P2", "arrivalInMinutes": 240, "decision": "waitlisted" }
+  ]
+ },
+
+ "settings": {
+  "_note": "Five open policy numbers the Movement lead proposed on 15 September 2026 under the founder's instruction that open questions become admin settings: how often a responder's phone sends its position during a trip, how many missed heartbeats make a responder offline, how many responders a trip is offered to at once, how long a trip's window stays open when nobody hands the patient over, and how long a position is kept after the window closes. None is decided and none is clinical content. An admin changes them on the Configuration tab; a trip keeps the offers, the window and the retention it was requested with.",
+  "heading": "Thuso Ride settings",
+  "intro": "How often a responder's phone sends its position during a trip, when a responder counts as offline, how many responders a trip is offered to at once, and how long a trip's position is kept.",
+  "items": [
+   {
+    "key": "heartbeat-interval-seconds",
+    "label": "Position every",
+    "help": "How often does a responder's phone send its position while a trip is under way?",
+    "owner": "movement",
+    "type": "count",
+    "unit": "seconds",
+    "positive": true,
+    "default": {
+     "value": 10,
+     "decidedBy": null,
+     "proposedBy": "Movement lead (Wave 5)",
+     "proposedBecause": "ThusoIQ Master §12 describes a heartbeat every ten seconds while a responder is online. Nobody decided it for this build, so it is proposed at the document's figure and held to a trip rather than to a shift."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 5,
+      "decidedBy": null,
+      "proposedBy": "Movement lead (Wave 5)",
+      "proposedBecause": "More often than every five seconds drains a responder's battery on a mid-range phone, and on metered data, for no gain on a trip that was scheduled."
+     },
+     "highest": {
+      "value": 60,
+      "decidedBy": null,
+      "proposedBy": "Movement lead (Wave 5)",
+      "proposedBecause": "A minute between positions is as far as a trip can lag before the desk is reading where somebody was rather than where they are."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to the next heartbeat's answer. A phone sends its next position at the interval it was last given.",
+    "guardrail": {
+     "statement": "A position is never sent so often that it drains a phone, nor so rarely that the desk reads where a trip was.",
+     "forbids": [0, 4, 61, 3600]
+    }
+   },
+   {
+    "key": "offline-after-missed-beats",
+    "label": "Offline after",
+    "help": "How many heartbeats may a responder's phone miss before the responder counts as offline and is offered nothing?",
+    "owner": "movement",
+    "type": "count",
+    "unit": "heartbeats",
+    "positive": true,
+    "default": {
+     "value": 3,
+     "decidedBy": null,
+     "proposedBy": "Movement lead (Wave 5)",
+     "proposedBecause": "One missed heartbeat is a lift or a tunnel. Three in a row is a phone that is off, and a trip offered to it waits on somebody who cannot see it."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 2,
+      "decidedBy": null,
+      "proposedBy": "Movement lead (Wave 5)",
+      "proposedBecause": "Offline after a single miss would take every responder offline in the first dead spot on the road."
+     },
+     "highest": {
+      "value": 10,
+      "decidedBy": null,
+      "proposedBy": "Movement lead (Wave 5)",
+      "proposedBecause": "Past ten missed heartbeats a responder counted as online has not been heard from for minutes, and offering them a trip is offering it to nobody."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies the next time Movement works out who is online. An offer already made is not taken back because the setting moved.",
+    "guardrail": {
+     "statement": "A responder is never taken offline by one dead spot, and never counted online after minutes of silence.",
+     "forbids": [0, 1, 11]
+    }
+   },
+   {
+    "key": "offers-at-once",
+    "label": "Offered to at once",
+    "help": "How many verified, online responders is a trip offered to at the same time?",
+    "owner": "movement",
+    "type": "count",
+    "unit": "responders",
+    "positive": true,
+    "default": {
+     "value": 3,
+     "decidedBy": null,
+     "proposedBy": "Movement lead (Wave 5)",
+     "proposedBecause": "ThusoIQ Master §12 cascades a declined trip to the next three responders. Nobody decided it for this build, so it is proposed at the document's figure."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 1,
+      "decidedBy": null,
+      "proposedBy": "Movement lead (Wave 5)",
+      "proposedBecause": "One at a time is slow and fair, and a small fleet may want it."
+     },
+     "highest": {
+      "value": 10,
+      "decidedBy": null,
+      "proposedBy": "Movement lead (Wave 5)",
+      "proposedBecause": "Offered to more than ten at once, a trip becomes a race that nine responders lose, and they stop reading offers."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to trips requested after it. A trip already requested keeps how many responders it is offered to at once.",
+    "guardrail": {
+     "statement": "A trip is always offered to somebody, and never broadcast to the whole fleet.",
+     "forbids": [0, 11, 100]
+    }
+   },
+   {
+    "key": "trip-window-minutes",
+    "label": "Trip window",
+    "help": "How long after a trip's pick-up window starts does its position window stay open when nobody has handed the patient over?",
+    "owner": "movement",
+    "type": "minutes",
+    "unit": "minutes",
+    "default": {
+     "value": 240,
+     "decidedBy": null,
+     "proposedBy": "Movement lead (Wave 5)",
+     "proposedBecause": "Four hours covers a late pick-up, a slow drive across Johannesburg and a wait at the admissions desk. A trip still open after that has been forgotten, and its position should stop being kept whether or not anybody pressed hand-over."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 60,
+      "decidedBy": null,
+      "proposedBy": "Movement lead (Wave 5)",
+      "proposedBecause": "Shorter than an hour, a trip across the city closes its window before the patient arrives."
+     },
+     "highest": {
+      "value": 720,
+      "decidedBy": null,
+      "proposedBy": "Movement lead (Wave 5)",
+      "proposedBecause": "Twelve hours is a shift. A position kept longer than a shift is not about a trip any more."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to trips requested after it. A trip keeps the window it was requested with, so a change never keeps a position longer, or drops it sooner, on a trip under way.",
+    "guardrail": {
+     "statement": "A trip's position window always closes within a shift, and never before a trip across the city could arrive.",
+     "forbids": [0, 59, 721]
+    }
+   },
+   {
+    "key": "position-retention-minutes",
+    "label": "Position kept after the window",
+    "help": "How long after a trip's window closes is the last position kept for the desk before the engine drops it?",
+    "owner": "movement",
+    "type": "count",
+    "unit": "minutes",
+    "positive": false,
+    "default": {
+     "value": 0,
+     "decidedBy": null,
+     "proposedBy": "Movement lead (Wave 5)",
+     "proposedBecause": "Nothing needs a responder's position once the patient is handed over. A desk that wants a few minutes to confirm where a trip ended can be given them, and the default gives none."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 0,
+      "decidedBy": null,
+      "proposedBy": "Movement lead (Wave 5)",
+      "proposedBecause": "Nought is dropping the position the moment the window closes, which is the default."
+     },
+     "highest": {
+      "value": 15,
+      "decidedBy": null,
+      "proposedBy": "Movement lead (Wave 5)",
+      "proposedBecause": "A quarter of an hour is long enough for a desk to confirm where a trip ended and too short to follow a responder to their next stop."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to trips requested after it. A trip keeps the retention it was requested with.",
+    "guardrail": {
+     "statement": "No position outlives its trip's window by more than a quarter of an hour.",
+     "forbids": [16, 60, 1440]
+    }
+   }
+  ],
+  "defaults": {
+   "version": 1,
+   "changelog": [
+    {
+     "version": 1,
+     "on": "2026-09-15",
+     "by": "Movement lead (Wave 5)",
+     "changed": [
+      { "setting": "heartbeat-interval-seconds", "from": null, "to": 10 },
+      { "setting": "offline-after-missed-beats", "from": null, "to": 3 },
+      { "setting": "offers-at-once", "from": null, "to": 3 },
+      { "setting": "trip-window-minutes", "from": null, "to": 240 },
+      { "setting": "position-retention-minutes", "from": null, "to": 0 }
+     ],
+     "why": "The founder instructed that open questions become admin settings. The Movement lead proposed these five defaults, with their bounds, and nobody has decided them. Two start from the figures ThusoIQ Master §12 gives."
+    }
+   ]
+  }
+ }
+}

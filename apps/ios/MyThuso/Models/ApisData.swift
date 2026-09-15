@@ -139,18 +139,23 @@ enum ApisData {
     static let getSafetySentinelBaselines = Route(id: "getSafetySentinelBaselines", method: "GET", path: "/v1/safety/sentinel-baselines", mountedPath: "/v1/safety/sentinel-baselines", version: 1, engine: "safety", callers: ["nurse", "locum", "doctor"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postSafetySafeguardingReportsV2 = Route(id: "postSafetySafeguardingReportsV2", method: "POST", path: "/v1/safety/safeguarding-reports", mountedPath: "/v1/safety/safeguarding-reports", version: 2, engine: "safety", callers: ["nurse", "locum", "doctor", "operator"], purpose: ["treatment", "audit"], idempotent: true, status: "built")
     static let getSafetySafeguardingReports = Route(id: "getSafetySafeguardingReports", method: "GET", path: "/v1/safety/safeguarding-reports", mountedPath: "/v1/safety/safeguarding-reports", version: 1, engine: "safety", callers: ["operator", "guardian"], purpose: ["audit"], idempotent: false, status: "built")
-    static let postMovementTrips = Route(id: "postMovementTrips", method: "POST", path: "/v1/movement/trips", mountedPath: "/v1/movement/trips", version: 1, engine: "movement", callers: ["nurse", "doctor", "dispatcher", "thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "proposed")
-    static let postMovementResponderHeartbeats = Route(id: "postMovementResponderHeartbeats", method: "POST", path: "/v1/movement/responder-heartbeats", mountedPath: "/v1/movement/responder-heartbeats", version: 1, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "proposed")
-    static let postMovementTripsByTripRefAccept = Route(id: "postMovementTripsByTripRefAccept", method: "POST", path: "/v1/movement/trips/{tripRef}/accept", mountedPath: "/v1/movement/trips/{tripRef}/accept", version: 1, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "proposed")
-    static let postMovementTripsByTripRefDecline = Route(id: "postMovementTripsByTripRefDecline", method: "POST", path: "/v1/movement/trips/{tripRef}/decline", mountedPath: "/v1/movement/trips/{tripRef}/decline", version: 1, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "proposed")
-    static let postMovementTripsByTripRefHandover = Route(id: "postMovementTripsByTripRefHandover", method: "POST", path: "/v1/movement/trips/{tripRef}/handover", mountedPath: "/v1/movement/trips/{tripRef}/handover", version: 1, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "proposed")
-    static let getMovementFacilities = Route(id: "getMovementFacilities", method: "GET", path: "/v1/movement/facilities", mountedPath: "/v1/movement/facilities", version: 1, engine: "movement", callers: ["patient", "caregiver", "nurse", "doctor", "ops-desk", "thuso-line-agent"], purpose: ["dispatch"], idempotent: false, status: "proposed")
-    static let postMovementAdmissions = Route(id: "postMovementAdmissions", method: "POST", path: "/v1/movement/admissions", mountedPath: "/v1/movement/admissions", version: 1, engine: "movement", callers: ["nurse", "doctor", "ops-desk"], purpose: ["dispatch"], idempotent: true, status: "proposed")
-    static let getMovementAdmissionsByAdmissionRef = Route(id: "getMovementAdmissionsByAdmissionRef", method: "GET", path: "/v1/movement/admissions/{admissionRef}", mountedPath: "/v1/movement/admissions/{admissionRef}", version: 1, engine: "movement", callers: ["patient", "caregiver", "nurse", "doctor", "ops-desk"], purpose: ["dispatch"], idempotent: false, status: "proposed")
-    static let postMovementAdmissionsByAdmissionRefPacket = Route(id: "postMovementAdmissionsByAdmissionRefPacket", method: "POST", path: "/v1/movement/admissions/{admissionRef}/packet", mountedPath: "/v1/movement/admissions/{admissionRef}/packet", version: 1, engine: "movement", callers: ["nurse", "doctor", "ops-desk"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postMovementAdmissionsByAdmissionRefDecision = Route(id: "postMovementAdmissionsByAdmissionRefDecision", method: "POST", path: "/v1/movement/admissions/{admissionRef}/decision", mountedPath: "/v1/movement/admissions/{admissionRef}/decision", version: 1, engine: "movement", callers: ["facility-desk", "ops-desk"], purpose: ["dispatch"], idempotent: true, status: "proposed")
-    static let postMovementAdmissionsByAdmissionRefArrival = Route(id: "postMovementAdmissionsByAdmissionRefArrival", method: "POST", path: "/v1/movement/admissions/{admissionRef}/arrival", mountedPath: "/v1/movement/admissions/{admissionRef}/arrival", version: 1, engine: "movement", callers: ["facility-desk"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postMovementAdmissionsByAdmissionRefHandover = Route(id: "postMovementAdmissionsByAdmissionRefHandover", method: "POST", path: "/v1/movement/admissions/{admissionRef}/handover", mountedPath: "/v1/movement/admissions/{admissionRef}/handover", version: 1, engine: "movement", callers: ["facility-desk"], purpose: ["treatment"], idempotent: false, status: "proposed")
+    static let postMovementTripsByTripRefDecline = Route(id: "postMovementTripsByTripRefDecline", method: "POST", path: "/v1/movement/trips/{tripRef}/decline", mountedPath: "/v1/movement/trips/{tripRef}/decline", version: 1, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let postMovementTripsV2 = Route(id: "postMovementTripsV2", method: "POST", path: "/v1/movement/trips", mountedPath: "/v1/movement/trips", version: 2, engine: "movement", callers: ["nurse", "doctor", "dispatcher", "thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let postMovementResponderHeartbeatsV2 = Route(id: "postMovementResponderHeartbeatsV2", method: "POST", path: "/v1/movement/responder-heartbeats", mountedPath: "/v1/movement/responder-heartbeats", version: 2, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let postMovementTripsByTripRefAcceptV2 = Route(id: "postMovementTripsByTripRefAcceptV2", method: "POST", path: "/v1/movement/trips/{tripRef}/accept", mountedPath: "/v1/movement/trips/{tripRef}/accept", version: 2, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let postMovementTripsByTripRefHandoverV2 = Route(id: "postMovementTripsByTripRefHandoverV2", method: "POST", path: "/v1/movement/trips/{tripRef}/handover", mountedPath: "/v1/movement/trips/{tripRef}/handover", version: 2, engine: "movement", callers: ["responder"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let getMovementTripsByTripRefPosition = Route(id: "getMovementTripsByTripRefPosition", method: "GET", path: "/v1/movement/trips/{tripRef}/position", mountedPath: "/v1/movement/trips/{tripRef}/position", version: 1, engine: "movement", callers: ["patient", "dispatcher", "ops-desk"], purpose: ["dispatch"], idempotent: false, status: "built")
+    static let postMovementEmsRequests = Route(id: "postMovementEmsRequests", method: "POST", path: "/v1/movement/ems-requests", mountedPath: "/v1/movement/ems-requests", version: 1, engine: "movement", callers: ["nurse", "doctor", "dispatcher", "ops-desk", "thuso-line-agent"], purpose: ["emergency"], idempotent: false, status: "built")
+    static let getMovementFacilitiesV2 = Route(id: "getMovementFacilitiesV2", method: "GET", path: "/v1/movement/facilities", mountedPath: "/v1/movement/facilities", version: 2, engine: "movement", callers: ["patient", "caregiver", "nurse", "doctor", "ops-desk", "thuso-line-agent"], purpose: ["dispatch"], idempotent: false, status: "built")
+    static let postMovementAdmissionsV2 = Route(id: "postMovementAdmissionsV2", method: "POST", path: "/v1/movement/admissions", mountedPath: "/v1/movement/admissions", version: 2, engine: "movement", callers: ["nurse", "doctor", "ops-desk"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let getMovementAdmissionsByAdmissionRefV2 = Route(id: "getMovementAdmissionsByAdmissionRefV2", method: "GET", path: "/v1/movement/admissions/{admissionRef}", mountedPath: "/v1/movement/admissions/{admissionRef}", version: 2, engine: "movement", callers: ["patient", "nurse", "doctor", "ops-desk"], purpose: ["dispatch"], idempotent: false, status: "built")
+    static let postMovementAdmissionsByAdmissionRefPacketV2 = Route(id: "postMovementAdmissionsByAdmissionRefPacketV2", method: "POST", path: "/v1/movement/admissions/{admissionRef}/packet", mountedPath: "/v1/movement/admissions/{admissionRef}/packet", version: 2, engine: "movement", callers: ["nurse", "doctor", "ops-desk"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postMovementAdmissionsByAdmissionRefDecisionV2 = Route(id: "postMovementAdmissionsByAdmissionRefDecisionV2", method: "POST", path: "/v1/movement/admissions/{admissionRef}/decision", mountedPath: "/v1/movement/admissions/{admissionRef}/decision", version: 2, engine: "movement", callers: ["ops-desk"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let postMovementAdmissionsByAdmissionRefMoreInformation = Route(id: "postMovementAdmissionsByAdmissionRefMoreInformation", method: "POST", path: "/v1/movement/admissions/{admissionRef}/more-information", mountedPath: "/v1/movement/admissions/{admissionRef}/more-information", version: 1, engine: "movement", callers: ["ops-desk"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let postMovementAdmissionsByAdmissionRefArrivalV2 = Route(id: "postMovementAdmissionsByAdmissionRefArrivalV2", method: "POST", path: "/v1/movement/admissions/{admissionRef}/arrival", mountedPath: "/v1/movement/admissions/{admissionRef}/arrival", version: 2, engine: "movement", callers: ["ops-desk"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postMovementAdmissionsByAdmissionRefHandoverV2 = Route(id: "postMovementAdmissionsByAdmissionRefHandoverV2", method: "POST", path: "/v1/movement/admissions/{admissionRef}/handover", mountedPath: "/v1/movement/admissions/{admissionRef}/handover", version: 2, engine: "movement", callers: ["ops-desk"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let getMovementSettings = Route(id: "getMovementSettings", method: "GET", path: "/v1/movement/settings", mountedPath: "/v1/movement/settings", version: 1, engine: "movement", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postMovementSettingChanges = Route(id: "postMovementSettingChanges", method: "POST", path: "/v1/movement/setting-changes", mountedPath: "/v1/movement/setting-changes", version: 1, engine: "movement", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
     static let getTrustStanding = Route(id: "getTrustStanding", method: "GET", path: "/v1/trust/standing", mountedPath: "/v1/trust/standing", version: 1, engine: "trust", callers: ["self"], purpose: ["vetting"], idempotent: false, status: "built")
     static let getTrustPartiesById = Route(id: "getTrustPartiesById", method: "GET", path: "/v1/trust/parties/{id}", mountedPath: "/v1/trust/parties/{id}", version: 1, engine: "trust", callers: ["admin"], purpose: ["vetting"], idempotent: false, status: "built")
     static let postTrustParties = Route(id: "postTrustParties", method: "POST", path: "/v1/trust/parties", mountedPath: "/v1/trust/parties", version: 1, engine: "trust", callers: ["admin"], purpose: ["vetting"], idempotent: false, status: "built")
@@ -359,18 +364,23 @@ enum ApisData {
         getSafetySentinelBaselines,
         postSafetySafeguardingReportsV2,
         getSafetySafeguardingReports,
-        postMovementTrips,
-        postMovementResponderHeartbeats,
-        postMovementTripsByTripRefAccept,
         postMovementTripsByTripRefDecline,
-        postMovementTripsByTripRefHandover,
-        getMovementFacilities,
-        postMovementAdmissions,
-        getMovementAdmissionsByAdmissionRef,
-        postMovementAdmissionsByAdmissionRefPacket,
-        postMovementAdmissionsByAdmissionRefDecision,
-        postMovementAdmissionsByAdmissionRefArrival,
-        postMovementAdmissionsByAdmissionRefHandover,
+        postMovementTripsV2,
+        postMovementResponderHeartbeatsV2,
+        postMovementTripsByTripRefAcceptV2,
+        postMovementTripsByTripRefHandoverV2,
+        getMovementTripsByTripRefPosition,
+        postMovementEmsRequests,
+        getMovementFacilitiesV2,
+        postMovementAdmissionsV2,
+        getMovementAdmissionsByAdmissionRefV2,
+        postMovementAdmissionsByAdmissionRefPacketV2,
+        postMovementAdmissionsByAdmissionRefDecisionV2,
+        postMovementAdmissionsByAdmissionRefMoreInformation,
+        postMovementAdmissionsByAdmissionRefArrivalV2,
+        postMovementAdmissionsByAdmissionRefHandoverV2,
+        getMovementSettings,
+        postMovementSettingChanges,
         getTrustStanding,
         getTrustPartiesById,
         postTrustParties,
@@ -1436,32 +1446,6 @@ enum ApisData {
     struct GetSafetySafeguardingReportsResponse {
         let items: [[String: Any]]
     }
-    struct PostMovementTripsRequest {
-        let idempotencyKey: String
-        let priorityClass: String
-        let pickupWindowStart: String
-        let prioritySetByRef: String?
-    }
-    struct PostMovementTripsResponse {
-        let tripRef: String
-        let stateCode: String
-    }
-    struct PostMovementResponderHeartbeatsRequest {
-        let idempotencyKey: String
-        let lat: Double
-        let lng: Double
-        let online: Bool
-    }
-    struct PostMovementResponderHeartbeatsResponse {
-        let nextBeatSeconds: Int
-    }
-    struct PostMovementTripsByTripRefAcceptRequest {
-        let idempotencyKey: String
-        let tripRef: String
-    }
-    struct PostMovementTripsByTripRefAcceptResponse {
-        let pickupPoint: String
-    }
     struct PostMovementTripsByTripRefDeclineRequest {
         let idempotencyKey: String
         let tripRef: String
@@ -1469,72 +1453,172 @@ enum ApisData {
     struct PostMovementTripsByTripRefDeclineResponse {
         let declined: Bool
     }
-    struct PostMovementTripsByTripRefHandoverRequest {
+    struct PostMovementTripsV2Request {
+        let idempotencyKey: String
+        let subjectRef: String
+        let priorityClass: String
+        let pickupWindowStart: String
+        let zoneId: String
+        let facilityRef: String
+        let admissionRef: String?
+        let priorityReasonCode: String?
+        let prioritySetByRef: String?
+    }
+    struct PostMovementTripsV2Response {
+        let tripRef: String
+        let stateCode: String
+        let settingsVersion: Int
+    }
+    struct PostMovementResponderHeartbeatsV2Request {
+        let idempotencyKey: String
+        let online: Bool
+        let tripRef: String?
+        let lat: Double?
+        let lng: Double?
+    }
+    struct PostMovementResponderHeartbeatsV2Response {
+        let nextBeatSeconds: Int
+        let positionKept: Bool
+        let settingsVersion: Int
+    }
+    struct PostMovementTripsByTripRefAcceptV2Request {
+        let idempotencyKey: String
+        let tripRef: String
+    }
+    struct PostMovementTripsByTripRefAcceptV2Response {
+        let zoneId: String
+        let facilityRef: String
+        let windowClosesAt: String
+    }
+    struct PostMovementTripsByTripRefHandoverV2Request {
         let idempotencyKey: String
         let tripRef: String
         let receivingRole: String
         let checklistComplete: Bool
     }
-    struct PostMovementTripsByTripRefHandoverResponse {
+    struct PostMovementTripsByTripRefHandoverV2Response {
         let handedOverAt: String
+        let windowClosedAt: String
     }
-    struct GetMovementFacilitiesRequest {
-        let zone: String?
-        let capability: String?
+    struct GetMovementTripsByTripRefPositionRequest {
+        let tripRef: String
     }
-    struct GetMovementFacilitiesResponse {
+    struct GetMovementTripsByTripRefPositionResponse {
+        let lat: Double
+        let lng: Double
+        let reportedAt: String
+        let windowClosesAt: String
+    }
+    struct PostMovementEmsRequestsRequest {
+        let subjectRef: String
+        let zoneId: String
+    }
+    struct PostMovementEmsRequestsResponse {
+        let sentAt: String
+    }
+    struct GetMovementFacilitiesV2Request {
+        let zoneId: String?
+        let bedCategory: String?
+    }
+    struct GetMovementFacilitiesV2Response {
         let facilities: [[String: Any]]
     }
-    struct PostMovementAdmissionsRequest {
+    struct PostMovementAdmissionsV2Request {
         let idempotencyKey: String
+        let subjectRef: String
         let facilityRef: String
         let bedCategory: String
         let priorityCode: String
         let arrivalWindowStart: String
     }
-    struct PostMovementAdmissionsResponse {
+    struct PostMovementAdmissionsV2Response {
         let admissionRef: String
         let stateCode: String
+        let pending: Bool
     }
-    struct GetMovementAdmissionsByAdmissionRefRequest {
+    struct GetMovementAdmissionsByAdmissionRefV2Request {
         let admissionRef: String
     }
-    struct GetMovementAdmissionsByAdmissionRefResponse {
+    struct GetMovementAdmissionsByAdmissionRefV2Response {
         let stateCode: String
+        let pending: Bool
+        let destinationConfirmed: Bool
         let receivingPoint: String?
+        let decisionSimulated: Bool
+        let packetStateCode: String
     }
-    struct PostMovementAdmissionsByAdmissionRefPacketRequest {
+    struct PostMovementAdmissionsByAdmissionRefPacketV2Request {
         let admissionRef: String
         let shareLinkRef: String
     }
-    struct PostMovementAdmissionsByAdmissionRefPacketResponse {
+    struct PostMovementAdmissionsByAdmissionRefPacketV2Response {
         let sentAt: String
+        let endsAt: String
     }
-    struct PostMovementAdmissionsByAdmissionRefDecisionRequest {
+    struct PostMovementAdmissionsByAdmissionRefDecisionV2Request {
         let idempotencyKey: String
         let admissionRef: String
         let decisionCode: String
         let receivingPoint: String?
         let alternativeOffered: Bool
+        let reasonCode: String?
+        let simulated: Bool
     }
-    struct PostMovementAdmissionsByAdmissionRefDecisionResponse {
+    struct PostMovementAdmissionsByAdmissionRefDecisionV2Response {
         let stateCode: String
+        let pending: Bool
     }
-    struct PostMovementAdmissionsByAdmissionRefArrivalRequest {
+    struct PostMovementAdmissionsByAdmissionRefMoreInformationRequest {
+        let idempotencyKey: String
+        let admissionRef: String
+        let informationCode: String
+        let simulated: Bool
+    }
+    struct PostMovementAdmissionsByAdmissionRefMoreInformationResponse {
+        let stateCode: String
+        let pending: Bool
+    }
+    struct PostMovementAdmissionsByAdmissionRefArrivalV2Request {
         let admissionRef: String
         let receivingPoint: String
         let agreedWithPretriage: Bool
+        let simulated: Bool
     }
-    struct PostMovementAdmissionsByAdmissionRefArrivalResponse {
+    struct PostMovementAdmissionsByAdmissionRefArrivalV2Response {
         let arrivedAt: String
     }
-    struct PostMovementAdmissionsByAdmissionRefHandoverRequest {
+    struct PostMovementAdmissionsByAdmissionRefHandoverV2Request {
         let admissionRef: String
         let receivingRole: String
         let encounterRef: String
+        let simulated: Bool
     }
-    struct PostMovementAdmissionsByAdmissionRefHandoverResponse {
+    struct PostMovementAdmissionsByAdmissionRefHandoverV2Response {
         let handedOverAt: String
+    }
+    struct GetMovementSettingsRequest {}
+    struct GetMovementSettingsResponse {
+        let settingsVersion: Int
+        let settings: [[String: Any]]
+        let history: [[String: Any]]
+    }
+    struct PostMovementSettingChangesRequest {
+        let idempotencyKey: String
+        let setting: String
+        let wholeNumber: Int?
+        let switchedOn: Bool?
+        let choice: String?
+        let wording: String?
+        let roles: [String]?
+        let windows: [[String: Any]]?
+        let items: [String]?
+        let parts: [String: Any]?
+        let reason: String?
+        let expectedVersion: Int
+    }
+    struct PostMovementSettingChangesResponse {
+        let settingsVersion: Int
+        let appliesFrom: String
     }
     struct GetTrustStandingRequest {}
     struct GetTrustStandingResponse {

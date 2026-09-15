@@ -1,0 +1,55 @@
+/* Thuso Ride and admissions: the clinician's trip request and the Control Tower's desk. Loaded with
+   features/Movement.tsx, which arrives on a dynamic import, so none of it is on a patient's first load. It leans on
+   the shared panel, pill, helper, table and form styles and adds only the layout a trip, a phone and an admission
+   need. Every value is a token. */
+
+.mv-booking, .mv-desk, .mv-admissions, .mv-directory, .mv-phone, .mv-trips { min-width: 0; max-width: 100%; }
+.mv-desk { margin-top: var(--space-24); }
+.mv-admissions, .mv-directory { margin-top: var(--space-24); }
+
+/* The one sentence none of these screens may soften sits above the work, in the interface ink, never in an accent. */
+.mv-not-ambulance { display: flex; gap: var(--space-8); align-items: flex-start; margin: 0; color: var(--ink); }
+.mv-not-ambulance svg { flex: none; margin-top: 2px; color: var(--indigo-deep); }
+
+/* Two columns of choices on a wide screen, so four fields are a square rather than three and an orphan; one on a phone. */
+.mv-fields { display: grid; gap: var(--space-12); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 640px) { .mv-fields { grid-template-columns: minmax(0, 1fr); } }
+.mv-fields label { min-width: 0; }
+
+.mv-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-8); }
+.mv-row { display: grid; gap: var(--space-4); padding: var(--space-12); border: 1px solid var(--line); border-radius: var(--r-card); background: var(--surface); min-width: 0; }
+.mv-row p { margin: 0; overflow-wrap: anywhere; }
+.mv-row-head { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: center; }
+.mv-row .helper { display: flex; gap: var(--space-4); align-items: center; }
+
+/* A pending admission is marked by its words and its pill, and by the edge too — never by colour alone. */
+.mv-admission.mv-pending { border-inline-start: 4px solid var(--mango); }
+.mv-state { font-weight: 600; color: var(--ink); }
+.mv-packet { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: center; }
+.mv-simulate summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.mv-simulate > .form-stack { margin-top: var(--space-8); }
+.mv-answers { flex-wrap: wrap; }
+
+/* Trips on the left and the responder's phone on the right on a wide screen; stacked on a phone. */
+.mv-desk-grid { display: grid; gap: var(--space-16); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1100px) { .mv-desk-grid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); } }
+.mv-table-scroll { position: relative; max-width: 100%; min-width: 0; overflow-x: auto; }
+.mv-table th small, .mv-table td small { display: block; font-weight: 400; color: var(--slate); }
+
+.mv-phone { border-radius: var(--r-card); }
+.mv-phone h4, .mv-phone h5 { margin: 0; }
+.mv-summary { display: grid; gap: var(--space-4); padding: var(--space-12); border-radius: var(--r-control); background: var(--indigo-wash); }
+.mv-summary p { margin: 0; color: var(--ink); }
+.mv-checklist { display: grid; gap: var(--space-4); border: 0; padding: 0; margin: 0; }
+.mv-checklist legend { font-weight: 600; color: var(--ink); padding: 0; margin-bottom: var(--space-4); }
+/* The box sits beside the first line of its sentence, and the whole row stays the target. */
+.mv-checklist .checkbox { display: flex; gap: var(--space-8); align-items: flex-start; min-height: 44px; }
+.mv-checklist .checkbox input { flex: none; margin: 2px 0 0; }
+/* A reference is one word: a trip or an admission number broken over two lines reads as two. */
+.mv-table th, .mv-row-head strong { white-space: nowrap; }
+
+.mv-refused { display: grid; gap: var(--space-4); padding: var(--space-12); border-radius: var(--r-control); background: var(--danger-soft); color: var(--ink); }
+.mv-refused p { display: flex; gap: var(--space-8); align-items: flex-start; margin: 0; }
+.mv-refused svg { flex: none; margin-top: 2px; }
+.mv-p1-heading { color: var(--danger); }
+.mv-p1-call { font-weight: 600; }
