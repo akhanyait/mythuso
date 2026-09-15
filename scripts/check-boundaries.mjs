@@ -33,6 +33,7 @@ import { emitOpenSource } from './emit-open-source.mjs';
 import { emitCare } from './emit-care.mjs';
 import { emitFieldSafety } from './emit-field-safety.mjs';
 import { emitBooking } from './emit-booking.mjs';
+import { emitClinicalReviewPack } from './emit-clinical-review-pack.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -882,7 +883,13 @@ const generated = [
     badge from trust.json, so a change to any of the three regenerates it. */
  { source: 'packages/catalog/booking.json', command: 'npm run booking', files: Object.values(emitBooking()) },
  { source: 'packages/catalog/apis/access.json', command: 'npm run booking', files: Object.values(emitBooking()) },
- { source: 'packages/catalog/trust.json', command: 'npm run booking', files: Object.values(emitBooking()) }
+ { source: 'packages/catalog/trust.json', command: 'npm run booking', files: Object.values(emitBooking()) },
+ /* The clinical review pack reads every contract a clinician has to review, so a change to any of them
+    without regenerating is a failed build rather than a pack somebody signs against values no longer in force. */
+ ...['settings.json', 'care.json', 'booking.json', 'field-safety.json', 'closed-loop.json', 'money.json', 'protocols.json',
+  'gilbert-emergency-terms.json', 'assistant.json', 'vetting.json', 'vetting-proposals.json', 'records.json', 'sos.json',
+  'locales.json', 'events.json', 'apis/care.json', 'apis/access.json']
+  .map(file => ({ source: `packages/catalog/${file}`, command: 'npm run review-pack', files: emitClinicalReviewPack() }))
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {

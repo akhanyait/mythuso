@@ -671,6 +671,25 @@ rule accepts any role on the register; refusing it is a changed refusal on a fro
 version two. Neither role's workspace has screens of its own yet, and both phones carry the roles only as
 generated register data.
 
+## Delivered — governance packs for the people who must sign, 15 September 2026 (Wave 3, Governance documentation)
+
+The founder asked for a Clinical Governance Lead to review the clinical defaults, and for a DPIA, an Information
+Officer, a data residency decision and key custody before anything touches real patients. None of those can be
+produced by code. What landed is everything those people need, so that their work is to review, decide and sign.
+Every document says at the top that it is a draft with no effect until the named person signs, and every sign-off
+field is blank.
+
+| What landed | The refusals it adds | Where |
+|---|---|---|
+| **The clinical review pack, generated.** Every setting with `reviewRequired`, every unratified protocol, Gilbert's emergency terms, the clinical scopes and proposed clinical roles on the vetting register, clinical proposals and safety numbers nobody clinical has decided, and clinical content with no sign-off recorded — each with its value read from the contract, a question and blank sign-off fields, and a list of what was looked at and left out | A stale pack fails `npm run check`; the generator never writes a reviewer, a decision or a date; a setting or proposal it has not classified is listed under "Not yet classified" rather than dropped | `scripts/emit-clinical-review-pack.mjs`, `docs/governance/CLINICAL-REVIEW-PACK.md`, `npm run review-pack` (also in `generate`), the `generated` list in `scripts/check-boundaries.mjs` |
+| **A DPIA draft**, an **Information Officer checklist**, and decision papers on **data residency** and **key custody**, with a README giving the order and what the app refuses until each is signed | Each asks the legal questions rather than answering them, cites a repository path for every claim about the system, and refers to a contract rather than restating its numbers | `docs/governance/` |
+
+Still open: every decision in those documents. Two things the work found are written into them rather than
+decided. Only the doctor role holds `sign-clinical-review`, so a Clinical Governance Lead who is a registered nurse
+could not confirm a setting through the doctor workspace's panel. And the DPIA draft asks whether police clearance
+and face-match information are special personal information under POPIA section 26, which
+`docs/PRIVACY-AND-SECURITY.md` currently treats as outside the special category.
+
 ## Next UI increments
 
 Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only

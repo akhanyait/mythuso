@@ -8,6 +8,11 @@ The table below is the *plan*. Which of its controls exist in code today, which 
 unreachable, and which are prose is the section immediately after it — read that one first if the
 question is "is this done".
 
+**The work only people can do is prepared in [`docs/governance/`](governance/README.md):** a DPIA
+draft, an Information Officer checklist, decision papers on data residency and key custody, and a
+generated clinical review pack. Every document there is a draft with blank sign-off fields, and none
+of it changes the state of any row below.
+
 | Control | Preview now | Required before real information |
 |---|---|---|
 | Data minimisation | Fictional fixtures; memory-only state; no analytics | Purpose/field inventory, minimum collection, privacy impact assessment |

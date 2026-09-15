@@ -46,6 +46,16 @@ function settingOf(source, contract, key) {
  return setting;
 }
 
+/* Every setting a contract declares, in its own order, for an emitter that has to go through all of them
+   — the clinical review pack lists each one — rather than name the ones a phone uses. It hands back the
+   declarations and never a default: an emitter still asks settingDefault for the value, so whether a
+   default was decided or reviewed is worked out in this file and nowhere else. */
+export function settingsIn(source, contract) {
+ const items = contract.settings?.items;
+ if (!Array.isArray(items)) throw new Error(`${source} has no settings block with items.`);
+ return items;
+}
+
 export function settingDefault(source, contract, key, { list = false } = {}) {
  const setting = settingOf(source, contract, key);
  const entry = setting.default;
