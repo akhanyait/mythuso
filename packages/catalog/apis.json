@@ -212,7 +212,7 @@
   "mechanism": "engines-runtime:callers",
   "binderCannotAdmit": ["self", "anonymous", "loopback", "developer", "incident-reporter"],
   "_binderCannotAdmitNote": "Callers that are a relationship or a place rather than a role: self is the subject of the resource, incident-reporter the party who opened one incident, loopback a socket address, anonymous nobody, developer a credential minted at a console. A header naming one proves none of them, so the binder refuses all five and a route that needs one needs a handler that checks.",
-  "secretResponseNames": ["CashCode", "Otp", "Pin", "Passcode", "Password", "Secret", "OneTimeCode"],
+  "secretResponseNames": ["CashCode", "Otp", "Pin", "Passcode", "Password", "Secret", "OneTimeCode", "DevelopmentCode"],
   "_secretResponseNamesNote": "A response field whose name ends in one of these is a secret shown once. Its route lists it in secretResponseFields with the sentence a replay answers with in its place, and the runtime never writes it to the replay table. The list is the build's, so a new secret-shaped name is added here rather than slipping past; a field is matched by the end of its name, so stateCode and feeCode are not secrets and cashCode is.",
   "refusals": [
    {"id": "field-of-the-wrong-type", "status": 400, "statement": "A field this route needs was sent in the wrong shape.", "why": "A route that reads a word where it declared a number has guessed what the caller meant."},

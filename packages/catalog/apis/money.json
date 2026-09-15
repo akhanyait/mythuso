@@ -116,7 +116,8 @@
    "capabilityNamed": null,
    "status": "built",
    "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/payments@2'"},
-   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+   "enforcedBy": {"mechanism": "engines-runtime:callers"},
+   "secretResponseFields": [{"field": "cashCode", "shownOnce": "The cash code was shown once, in the answer to the payment, and is not shown again. Money keeps only a salted digest of it."}]
   },
   {
    "method": "POST",
