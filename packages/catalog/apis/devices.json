@@ -1,18 +1,58 @@
 {
  "engine": "devices",
- "_note": "Devices is Thuso Kit: the device registry, reading ingestion to the §5.5 canonical schema through the Passport gateway, wearable links with consent, kits issued against a deposit, and device health. Vendor clouds arrive on doors to add. Wave 2 contract; Wave 4 build.",
+ "_note": "Devices is Thuso Kit: the device registry and its health, readings asked for by everything but their value and linked to where the Health Passport keeps it, wearable link requests that connect nothing, and kits issued against a recorded deposit. Wave 2 contract; built on the engine runtime in Wave 4, when every version-one route was withdrawn for a version that refuses what the first could not, and the two vendor doors were added to packages/catalog/feeds.json. packages/catalog/devices.json holds the kinds, marks, words and settings.",
  "version": 1,
- "resources": ["registry", "readings", "wearable-links", "kits"],
- "doors": [],
- "doorsToAdd": [
-  {"id": "device-reading", "why": "Readings pushed from a vendor cloud are supplier callbacks; a door to add.", "capabilityNamed": {"section": "§5.5", "what": "Pluggable adapters per vendor"}},
-  {"id": "wearable-sync", "why": "Apple Health and Health Connect sync arrives on the phone, but a partner cloud sync is a door.", "capabilityNamed": {"section": "FS-E9", "what": "Apple Health and Google Health Connect wearable sync"}}
+ "resources": [
+  "registry",
+  "readings",
+  "wearable-links",
+  "kits",
+  "settings",
+  "setting-changes"
  ],
+ "doors": [
+  "device-reading",
+  "wearable-sync"
+ ],
+ "doorsToAdd": [],
  "refusals": [
-  {"id": "ingestion-after-withdrawal", "status": 403, "statement": "Nothing is ingested after consent is withdrawn.", "why": "§5.5: ingestion stops immediately."},
-  {"id": "consumer-device-clinical-weight", "status": 422, "statement": "A consumer device does not carry clinical weight or trigger dispatch.", "why": "Full Scope Engine 9."},
-  {"id": "reading-without-source-and-quality", "status": 422, "statement": "A reading carries its source and quality.", "why": "§5.5."},
-  {"id": "simulator-as-real", "status": 422, "statement": "A simulator reading is labelled and never presented as real.", "why": "§5.5."}
+  {
+   "id": "ingestion-after-withdrawal",
+   "status": 403,
+   "statement": "Nothing is ingested after consent is withdrawn.",
+   "why": "§5.5: ingestion stops immediately.",
+   "answeredBy": [
+    "POST /v1/devices/readings@2",
+    "POST /v1/devices/readings/{readingRef}/observation@1"
+   ]
+  },
+  {
+   "id": "consumer-device-clinical-weight",
+   "status": 422,
+   "statement": "A consumer device does not carry clinical weight or trigger dispatch.",
+   "why": "Full Scope Engine 9.",
+   "answeredBy": [
+    "POST /v1/devices/readings@2"
+   ]
+  },
+  {
+   "id": "reading-without-source-and-quality",
+   "status": 422,
+   "statement": "A reading carries its source and quality.",
+   "why": "§5.5.",
+   "answeredBy": [
+    "POST /v1/devices/readings@2"
+   ]
+  },
+  {
+   "id": "simulator-as-real",
+   "status": 422,
+   "statement": "A simulator reading is labelled and never presented as real.",
+   "why": "§5.5.",
+   "answeredBy": [
+    "POST /v1/devices/readings@2"
+   ]
+  }
  ],
  "ownIds": [],
  "routes": [
@@ -21,26 +61,71 @@
    "path": "/v1/devices/registry",
    "version": 1,
    "summary": "Register a device.",
-   "callers": ["operator"],
-   "purpose": ["treatment"],
+   "callers": [],
+   "purpose": [
+    "treatment"
+   ],
    "request": [
-    {"field": "serial", "type": "string", "required": true, "why": "The serial."},
-    {"field": "model", "type": "string", "required": true, "why": "The model."},
-    {"field": "firmware", "type": "string", "required": true, "why": "Firmware version."},
-    {"field": "calibratedOn", "type": "iso-date", "required": false, "why": "Last calibration."},
-    {"field": "deviceClass", "type": "string", "required": true, "why": "certified or consumer."}
+    {
+     "field": "serial",
+     "type": "string",
+     "required": true,
+     "why": "The serial."
+    },
+    {
+     "field": "model",
+     "type": "string",
+     "required": true,
+     "why": "The model."
+    },
+    {
+     "field": "firmware",
+     "type": "string",
+     "required": true,
+     "why": "Firmware version."
+    },
+    {
+     "field": "calibratedOn",
+     "type": "iso-date",
+     "required": false,
+     "why": "Last calibration."
+    },
+    {
+     "field": "deviceClass",
+     "type": "string",
+     "required": true,
+     "why": "certified or consumer."
+    }
    ],
    "response": [
-    {"field": "deviceRef", "type": "string", "required": true, "why": "The device."}
+    {
+     "field": "deviceRef",
+     "type": "string",
+     "required": true,
+     "why": "The device."
+    }
    ],
    "refusals": [
-    {"id": "duplicate-serial", "status": 409, "statement": "That serial is already registered.", "why": "One device, one entry, one recall linkage."}
+    {
+     "id": "duplicate-serial",
+     "status": 409,
+     "statement": "That serial is already registered.",
+     "why": "One device, one entry, one recall linkage."
+    }
    ],
    "emits": [],
    "emitsNoneBecause": "Registering a device changes nobody's care; staleness and recall are the events.",
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§4", "what": "Device registry: serial, firmware, calibration"},
+   "capabilityNamed": {
+    "section": "§4",
+    "what": "Device registry: serial, firmware, calibration"
+   },
+   "withdrawn": {
+    "on": "2026-09-15",
+    "supersededBy": "POST /v1/devices/registry@2",
+    "why": "It took a device class as free text and refused nothing but a duplicate serial, so a class nobody declared — a simulator filed as certified — was registered without a word, and a certified instrument named no kind to work its calibration out from."
+   },
    "status": "proposed"
   },
   {
@@ -48,22 +133,54 @@
    "path": "/v1/devices/registry/{deviceRef}/recall",
    "version": 1,
    "summary": "Recall a device and link every holder.",
-   "callers": ["operator"],
-   "purpose": ["audit"],
+   "callers": [],
+   "purpose": [
+    "audit"
+   ],
    "request": [
-    {"field": "deviceRef", "type": "string", "required": true, "why": "The device."},
-    {"field": "reasonCode", "type": "string", "required": true, "why": "A code."}
+    {
+     "field": "deviceRef",
+     "type": "string",
+     "required": true,
+     "why": "The device."
+    },
+    {
+     "field": "reasonCode",
+     "type": "string",
+     "required": true,
+     "why": "A code."
+    }
    ],
    "response": [
-    {"field": "holdersLinked", "type": "integer", "required": true, "why": "How many holders were found."}
+    {
+     "field": "holdersLinked",
+     "type": "integer",
+     "required": true,
+     "why": "How many holders were found."
+    }
    ],
    "refusals": [
-    {"id": "recall-without-reason", "status": 422, "statement": "A recall says why.", "why": "Holders are told something they can act on."}
+    {
+     "id": "recall-without-reason",
+     "status": 422,
+     "statement": "A recall says why.",
+     "why": "Holders are told something they can act on."
+    }
    ],
-   "emits": ["device.recalled@1"],
+   "emits": [
+    "device.recalled@1"
+   ],
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§4", "what": "recall linkage"},
+   "capabilityNamed": {
+    "section": "§4",
+    "what": "recall linkage"
+   },
+   "withdrawn": {
+    "on": "2026-09-15",
+    "supersededBy": "POST /v1/devices/registry/{deviceRef}/recall@2",
+    "why": "A recall named no moment it took effect from, so no reading could be marked, and it could not refuse a device nobody registered or one recalled already."
+   },
    "status": "proposed"
   },
   {
@@ -71,24 +188,56 @@
    "path": "/v1/devices/registry/{deviceRef}/health",
    "version": 1,
    "summary": "Read whether a device is stale or recalled.",
-   "callers": ["nurse", "operator"],
-   "purpose": ["treatment"],
+   "callers": [],
+   "purpose": [
+    "treatment"
+   ],
    "request": [
-    {"field": "deviceRef", "type": "string", "required": true, "why": "The device."}
+    {
+     "field": "deviceRef",
+     "type": "string",
+     "required": true,
+     "why": "The device."
+    }
    ],
    "response": [
-    {"field": "lastSyncAt", "type": "instant", "required": false, "why": "Last sync."},
-    {"field": "stale", "type": "boolean", "required": true, "why": "Whether it is stale."},
-    {"field": "recalled", "type": "boolean", "required": true, "why": "Whether it is recalled."}
+    {
+     "field": "lastSyncAt",
+     "type": "instant",
+     "required": false,
+     "why": "Last sync."
+    },
+    {
+     "field": "stale",
+     "type": "boolean",
+     "required": true,
+     "why": "Whether it is stale."
+    },
+    {
+     "field": "recalled",
+     "type": "boolean",
+     "required": true,
+     "why": "Whether it is recalled."
+    }
    ],
    "refusals": [
-    {"id": "unknown-device", "status": 404, "statement": "That device is not registered.", "why": "An unregistered device has no health to report."}
+    {
+     "id": "unknown-device",
+     "status": 404,
+     "statement": "That device is not registered.",
+     "why": "An unregistered device has no health to report."
+    }
    ],
    "emits": [],
    "emitsNoneBecause": "Reading changes nothing.",
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
+   "withdrawn": {
+    "on": "2026-09-15",
+    "supersededBy": "GET /v1/devices/registry/{deviceRef}/health@2",
+    "why": "It answered stale and recalled and nothing about calibration, battery, firmware or the settings version staleness was worked out under."
+   },
    "status": "proposed"
   },
   {
@@ -96,58 +245,175 @@
    "path": "/v1/devices/readings",
    "version": 1,
    "summary": "Ingest a reading to the canonical schema, written through the Passport gateway.",
-   "callers": ["patient", "nurse", "locum"],
-   "purpose": ["treatment"],
+   "callers": [],
+   "purpose": [
+    "treatment"
+   ],
    "request": [
-    {"field": "subjectRef", "type": "string", "required": true, "why": "Whose reading (the schema's patientId)."},
-    {"field": "deviceRef", "type": "string", "required": true, "why": "The registered device."},
-    {"field": "metric", "type": "string", "required": true, "why": "Which measure."},
-    {"field": "value", "type": "number", "required": true, "why": "The value, written to the Observation and never kept here."},
-    {"field": "unit", "type": "string", "required": true, "why": "The unit."},
-    {"field": "takenAt", "type": "instant", "required": true, "why": "When it was taken."},
-    {"field": "source", "type": "string", "required": true, "why": "Which adapter."},
-    {"field": "quality", "type": "string", "required": true, "why": "The sample quality."},
-    {"field": "consentState", "type": "string", "required": true, "why": "The consent standing at capture."}
+    {
+     "field": "subjectRef",
+     "type": "string",
+     "required": true,
+     "why": "Whose reading (the schema's patientId)."
+    },
+    {
+     "field": "deviceRef",
+     "type": "string",
+     "required": true,
+     "why": "The registered device."
+    },
+    {
+     "field": "metric",
+     "type": "string",
+     "required": true,
+     "why": "Which measure."
+    },
+    {
+     "field": "value",
+     "type": "number",
+     "required": true,
+     "why": "The value, written to the Observation and never kept here."
+    },
+    {
+     "field": "unit",
+     "type": "string",
+     "required": true,
+     "why": "The unit."
+    },
+    {
+     "field": "takenAt",
+     "type": "instant",
+     "required": true,
+     "why": "When it was taken."
+    },
+    {
+     "field": "source",
+     "type": "string",
+     "required": true,
+     "why": "Which adapter."
+    },
+    {
+     "field": "quality",
+     "type": "string",
+     "required": true,
+     "why": "The sample quality."
+    },
+    {
+     "field": "consentState",
+     "type": "string",
+     "required": true,
+     "why": "The consent standing at capture."
+    }
    ],
    "response": [
-    {"field": "readingRef", "type": "string", "required": true, "why": "The ingestion."},
-    {"field": "observationRef", "type": "string", "required": true, "why": "The Observation in the Passport."}
+    {
+     "field": "readingRef",
+     "type": "string",
+     "required": true,
+     "why": "The ingestion."
+    },
+    {
+     "field": "observationRef",
+     "type": "string",
+     "required": true,
+     "why": "The Observation in the Passport."
+    }
    ],
    "refusals": [
-    {"id": "consent-withdrawn", "status": 403, "statement": "Ingestion stopped when consent was withdrawn.", "why": "§5.5."},
-    {"id": "no-source-or-quality", "status": 422, "statement": "A reading without its source and quality is not ingested.", "why": "§5.5."},
-    {"id": "simulator-as-real", "status": 422, "statement": "A simulator reading is not stored as real.", "why": "§5.5."}
+    {
+     "id": "consent-withdrawn",
+     "status": 403,
+     "statement": "Ingestion stopped when consent was withdrawn.",
+     "why": "§5.5."
+    },
+    {
+     "id": "no-source-or-quality",
+     "status": 422,
+     "statement": "A reading without its source and quality is not ingested.",
+     "why": "§5.5."
+    },
+    {
+     "id": "simulator-as-real",
+     "status": 422,
+     "statement": "A simulator reading is not stored as real.",
+     "why": "§5.5."
+    }
    ],
-   "emits": ["reading.ingested@1"],
+   "emits": [
+    "reading.ingested@1"
+   ],
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§5.5", "what": "Canonical schema"},
-   "status": "proposed",
-   "through": "passport-gateway"
+   "capabilityNamed": {
+    "section": "§5.5",
+    "what": "Canonical schema"
+   },
+   "through": "passport-gateway",
+   "withdrawn": {
+    "on": "2026-09-15",
+    "supersededBy": "POST /v1/devices/readings@2",
+    "why": "It carried the value itself, which would have put a reading into an engine store with none of the record's controls, and it could not refuse a unit that is not the measure's, an unregistered or recalled device, or a reading from a consumer device meant for the record."
+   },
+   "status": "proposed"
   },
   {
    "method": "POST",
    "path": "/v1/devices/wearable-links",
    "version": 1,
    "summary": "Link Apple Health or Health Connect, with consent.",
-   "callers": ["patient"],
-   "purpose": ["treatment"],
+   "callers": [],
+   "purpose": [
+    "treatment"
+   ],
    "request": [
-    {"field": "platform", "type": "string", "required": true, "why": "apple-health or health-connect."},
-    {"field": "consentVersion", "type": "integer", "required": true, "why": "The wearable-readings consent version agreed."}
+    {
+     "field": "platform",
+     "type": "string",
+     "required": true,
+     "why": "apple-health or health-connect."
+    },
+    {
+     "field": "consentVersion",
+     "type": "integer",
+     "required": true,
+     "why": "The wearable-readings consent version agreed."
+    }
    ],
    "response": [
-    {"field": "linkRef", "type": "string", "required": true, "why": "The link."}
+    {
+     "field": "linkRef",
+     "type": "string",
+     "required": true,
+     "why": "The link."
+    }
    ],
    "refusals": [
-    {"id": "consent-missing", "status": 403, "statement": "A wearable is linked only with consent to read it.", "why": "The wearable-readings purpose in packages/catalog/consent.json."},
-    {"id": "consumer-clinical-weight", "status": 422, "statement": "A consumer wearable guides conversation and carries no clinical weight.", "why": "Full Scope Engine 9."}
+    {
+     "id": "consent-missing",
+     "status": 403,
+     "statement": "A wearable is linked only with consent to read it.",
+     "why": "The wearable-readings purpose in packages/catalog/consent.json."
+    },
+    {
+     "id": "consumer-clinical-weight",
+     "status": 422,
+     "statement": "A consumer wearable guides conversation and carries no clinical weight.",
+     "why": "Full Scope Engine 9."
+    }
    ],
    "emits": [],
    "emitsNoneBecause": "A link is an arrangement; each reading it brings emits reading.ingested.",
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "FS-E9", "what": "Apple Health and Google Health Connect wearable sync"},
+   "capabilityNamed": {
+    "section": "FS-E9",
+    "what": "Apple Health and Google Health Connect wearable sync"
+   },
+   "withdrawn": {
+    "on": "2026-09-15",
+    "supersededBy": "POST /v1/devices/wearable-links@2",
+    "why": "It named no reading types, so a patient could not see or limit what a link would share, and it answered as if a link were made when nothing can be connected."
+   },
    "status": "proposed"
   },
   {
@@ -155,24 +421,56 @@
    "path": "/v1/devices/kits",
    "version": 1,
    "summary": "Issue a kit against a deposit.",
-   "callers": ["operator", "nurse"],
-   "purpose": ["audit"],
+   "callers": [],
+   "purpose": [
+    "audit"
+   ],
    "request": [
-    {"field": "kitSerial", "type": "string", "required": true, "why": "The kit."},
-    {"field": "holderRef", "type": "string", "required": true, "why": "Who holds it."},
-    {"field": "depositRef", "type": "string", "required": true, "why": "The deposit taken."}
+    {
+     "field": "kitSerial",
+     "type": "string",
+     "required": true,
+     "why": "The kit."
+    },
+    {
+     "field": "holderRef",
+     "type": "string",
+     "required": true,
+     "why": "Who holds it."
+    },
+    {
+     "field": "depositRef",
+     "type": "string",
+     "required": true,
+     "why": "The deposit taken."
+    }
    ],
    "response": [
-    {"field": "kitRef", "type": "string", "required": true, "why": "The issued kit."}
+    {
+     "field": "kitRef",
+     "type": "string",
+     "required": true,
+     "why": "The issued kit."
+    }
    ],
    "refusals": [
-    {"id": "kit-without-deposit", "status": 409, "statement": "A kit is issued against a deposit.", "why": "Full Scope Engine 9."}
+    {
+     "id": "kit-without-deposit",
+     "status": 409,
+     "statement": "A kit is issued against a deposit.",
+     "why": "Full Scope Engine 9."
+    }
    ],
    "emits": [],
    "emitsNoneBecause": "Issuing a kit is registry bookkeeping.",
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
+   "withdrawn": {
+    "on": "2026-09-15",
+    "supersededBy": "POST /v1/devices/kits@2",
+    "why": "It took a deposit reference into a store no engine keeps, when no deposit exists in any contract, and named no devices, so a recalled instrument could be put in a kit."
+   },
    "status": "proposed"
   },
   {
@@ -180,22 +478,44 @@
    "path": "/v1/devices/kits/{kitRef}/return",
    "version": 1,
    "summary": "Return a kit.",
-   "callers": ["operator"],
-   "purpose": ["audit"],
+   "callers": [],
+   "purpose": [
+    "audit"
+   ],
    "request": [
-    {"field": "kitRef", "type": "string", "required": true, "why": "The kit."}
+    {
+     "field": "kitRef",
+     "type": "string",
+     "required": true,
+     "why": "The kit."
+    }
    ],
    "response": [
-    {"field": "returnedAt", "type": "instant", "required": true, "why": "When."}
+    {
+     "field": "returnedAt",
+     "type": "instant",
+     "required": true,
+     "why": "When."
+    }
    ],
    "refusals": [
-    {"id": "kit-not-issued", "status": 409, "statement": "That kit was never issued.", "why": "Nothing to return."}
+    {
+     "id": "kit-not-issued",
+     "status": 409,
+     "statement": "That kit was never issued.",
+     "why": "Nothing to return."
+    }
    ],
    "emits": [],
    "emitsNoneBecause": "Registry bookkeeping.",
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
+   "withdrawn": {
+    "on": "2026-09-15",
+    "supersededBy": "POST /v1/devices/kits/{kitRef}/return@2",
+    "why": "It could not refuse a kit already returned or reported lost."
+   },
    "status": "proposed"
   },
   {
@@ -203,24 +523,1470 @@
    "path": "/v1/devices/kits/{kitRef}/loss",
    "version": 1,
    "summary": "Report a kit lost.",
-   "callers": ["operator", "nurse"],
-   "purpose": ["audit"],
+   "callers": [],
+   "purpose": [
+    "audit"
+   ],
    "request": [
-    {"field": "kitRef", "type": "string", "required": true, "why": "The kit."},
-    {"field": "reasonCode", "type": "string", "required": true, "why": "A code."}
+    {
+     "field": "kitRef",
+     "type": "string",
+     "required": true,
+     "why": "The kit."
+    },
+    {
+     "field": "reasonCode",
+     "type": "string",
+     "required": true,
+     "why": "A code."
+    }
    ],
    "response": [
-    {"field": "recordedAt", "type": "instant", "required": true, "why": "When."}
+    {
+     "field": "recordedAt",
+     "type": "instant",
+     "required": true,
+     "why": "When."
+    }
    ],
    "refusals": [
-    {"id": "loss-without-reason", "status": 422, "statement": "A loss is reported with a reason.", "why": "Kit loss is a pilot measure."}
+    {
+     "id": "loss-without-reason",
+     "status": 422,
+     "statement": "A loss is reported with a reason.",
+     "why": "Kit loss is a pilot measure."
+    }
    ],
    "emits": [],
    "emitsNoneBecause": "Registry bookkeeping.",
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
+   "withdrawn": {
+    "on": "2026-09-15",
+    "supersededBy": "POST /v1/devices/kits/{kitRef}/loss@2",
+    "why": "It could not refuse a reason nobody declared, a kit never issued or already closed, or a nurse reporting a kit she does not hold."
+   },
    "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/registry",
+   "version": 2,
+   "summary": "Register a device by serial, with its class and, for a certified instrument, the kind of instrument it is.",
+   "callers": [
+    "operator"
+   ],
+   "purpose": [
+    "treatment"
+   ],
+   "request": [
+    {
+     "field": "serial",
+     "type": "string",
+     "required": true,
+     "why": "The maker's serial. One device, one entry, one recall linkage."
+    },
+    {
+     "field": "model",
+     "type": "string",
+     "required": true,
+     "why": "The maker's model name."
+    },
+    {
+     "field": "firmware",
+     "type": "string",
+     "required": true,
+     "why": "The firmware version it was registered with."
+    },
+    {
+     "field": "deviceClass",
+     "type": "string",
+     "required": true,
+     "why": "certified, consumer or simulator, from packages/catalog/devices.json deviceClasses. The class decides whether any reading from it may carry clinical weight."
+    },
+    {
+     "field": "instrumentKind",
+     "type": "string",
+     "required": false,
+     "why": "For a certified or simulated instrument, the kind in packages/catalog/capture.json devices, whose calibrateEveryMonths decides when its calibration runs out."
+    },
+    {
+     "field": "calibratedOn",
+     "type": "iso-date",
+     "required": false,
+     "why": "The day it was last calibrated. A consumer device has none MyThuso tracks."
+    }
+   ],
+   "response": [
+    {
+     "field": "deviceRef",
+     "type": "string",
+     "required": true,
+     "why": "The device, which every later act names."
+    },
+    {
+     "field": "registeredAt",
+     "type": "instant",
+     "required": true,
+     "why": "When the registry took it."
+    }
+   ],
+   "refusals": [
+    {
+     "id": "duplicate-serial",
+     "status": 409,
+     "statement": "That serial is already registered.",
+     "why": "One device, one entry, one recall linkage."
+    },
+    {
+     "id": "device-class-not-declared",
+     "status": 422,
+     "statement": "That is not a device class MyThuso records.",
+     "why": "The class is what decides clinical weight by arithmetic. A class nobody declared is a device whose readings nobody can place."
+    },
+    {
+     "id": "instrument-kind-not-in-the-kit",
+     "status": 422,
+     "statement": "A certified or simulated instrument names a kind of instrument the Thuso Kit holds.",
+     "why": "Its calibration is worked out from the kind's cadence, and a kind the kit does not hold has none."
+    },
+    {
+     "id": "calibration-in-the-future",
+     "status": 422,
+     "statement": "A calibration is recorded on a day that has already happened.",
+     "why": "A calibration dated tomorrow keeps an instrument in date for a day nobody calibrated it."
+    }
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Registering a device changes nobody's care; staleness and a recall are the events.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {
+    "section": "§4",
+    "what": "Device registry: serial, firmware, calibration"
+   },
+   "status": "built",
+   "evidence": {
+    "file": "packages/engines/src/devices/engine.ts",
+    "handler": "'POST /v1/devices/registry@2'"
+   },
+   "enforcedBy": {
+    "mechanism": "engines-runtime:callers"
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/registry/{deviceRef}/recall",
+   "version": 2,
+   "summary": "Recall a device from a moment already passed, and mark every reading taken from it since.",
+   "callers": [
+    "operator"
+   ],
+   "purpose": [
+    "audit"
+   ],
+   "request": [
+    {
+     "field": "deviceRef",
+     "type": "string",
+     "required": true,
+     "why": "The device."
+    },
+    {
+     "field": "reasonCode",
+     "type": "string",
+     "required": true,
+     "why": "Why, from packages/catalog/devices.json recall.reasons. A code, never free text."
+    },
+    {
+     "field": "effectiveFrom",
+     "type": "instant",
+     "required": true,
+     "why": "The moment from which the device is not trusted. It may be before today; a batch notice reaches back to when the fault began."
+    }
+   ],
+   "response": [
+    {
+     "field": "recalledAt",
+     "type": "instant",
+     "required": true,
+     "why": "When the recall was recorded."
+    },
+    {
+     "field": "marksAdded",
+     "type": "integer",
+     "required": true,
+     "why": "How many recalled marks were added, one to each reading taken at or after effectiveFrom. None is deleted or changed."
+    },
+    {
+     "field": "kitsHolding",
+     "type": "integer",
+     "required": true,
+     "why": "How many issued kits hold the device, which the registry links for whoever must swap it."
+    }
+   ],
+   "refusals": [
+    {
+     "id": "device-not-registered",
+     "status": 404,
+     "statement": "That device is not registered.",
+     "why": "A device the registry never held has no class, no calibration and no recall to answer with."
+    },
+    {
+     "id": "recall-without-reason",
+     "status": 422,
+     "statement": "A recall says why.",
+     "why": "Holders are told something they can act on."
+    },
+    {
+     "id": "recall-reason-not-declared",
+     "status": 422,
+     "statement": "That is not a recall reason MyThuso records.",
+     "why": "A reason nobody declared is free text by another name, and free text is where a patient's details end up."
+    },
+    {
+     "id": "recall-effective-in-the-future",
+     "status": 422,
+     "statement": "A recall takes effect from a moment that has already passed.",
+     "why": "A recall dated ahead marks nothing today and leaves a device in use that somebody already knows is not trusted."
+    },
+    {
+     "id": "already-recalled",
+     "status": 409,
+     "statement": "That device is already recalled. A recall is made once and never taken back.",
+     "why": "A second recall with a different moment would move which readings are marked, and a mark is never taken away."
+    }
+   ],
+   "emits": [
+    "device.recalled@1"
+   ],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {
+    "section": "§4",
+    "what": "recall linkage"
+   },
+   "status": "built",
+   "evidence": {
+    "file": "packages/engines/src/devices/engine.ts",
+    "handler": "'POST /v1/devices/registry/{deviceRef}/recall@2'"
+   },
+   "enforcedBy": {
+    "mechanism": "engines-runtime:callers"
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/v1/devices/registry/{deviceRef}/health",
+   "version": 2,
+   "summary": "Read a device's health: whether it is reporting, stale or recalled, its calibration, battery and firmware, and the settings version it was worked out under.",
+   "callers": [
+    "nurse",
+    "operator"
+   ],
+   "purpose": [
+    "treatment"
+   ],
+   "request": [
+    {
+     "field": "deviceRef",
+     "type": "string",
+     "required": true,
+     "why": "The device."
+    }
+   ],
+   "response": [
+    {
+     "field": "stateCode",
+     "type": "string",
+     "required": true,
+     "why": "reporting, stale, recalled or never-synced, from packages/catalog/devices.json health.states."
+    },
+    {
+     "field": "deviceClass",
+     "type": "string",
+     "required": true,
+     "why": "certified, consumer or simulator."
+    },
+    {
+     "field": "lastSyncAt",
+     "type": "instant",
+     "required": false,
+     "why": "When a reading from it was last received. Absent for a device never synced."
+    },
+    {
+     "field": "stale",
+     "type": "boolean",
+     "required": true,
+     "why": "Whether it has sent nothing for longer than the stale interval in force."
+    },
+    {
+     "field": "recalled",
+     "type": "boolean",
+     "required": true,
+     "why": "Whether it is recalled."
+    },
+    {
+     "field": "recalledFrom",
+     "type": "instant",
+     "required": false,
+     "why": "The moment its recall took effect, when it is recalled."
+    },
+    {
+     "field": "calibrationStateCode",
+     "type": "string",
+     "required": true,
+     "why": "in-date, due, overdue or not-tracked, from packages/catalog/devices.json health.calibration."
+    },
+    {
+     "field": "calibrationDueOn",
+     "type": "iso-date",
+     "required": false,
+     "why": "The day its calibration runs out, where MyThuso tracks it."
+    },
+    {
+     "field": "batteryPercent",
+     "type": "integer",
+     "required": false,
+     "why": "The battery it last reported, where it reports one."
+    },
+    {
+     "field": "firmware",
+     "type": "string",
+     "required": true,
+     "why": "The firmware it was registered or last synced with."
+    },
+    {
+     "field": "settingsVersion",
+     "type": "integer",
+     "required": true,
+     "why": "The Devices settings version staleness and calibration were worked out under."
+    }
+   ],
+   "refusals": [
+    {
+     "id": "device-not-registered",
+     "status": 404,
+     "statement": "That device is not registered.",
+     "why": "A device the registry never held has no class, no calibration and no recall to answer with."
+    }
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "packages/engines/src/devices/engine.ts",
+    "handler": "'GET /v1/devices/registry/{deviceRef}/health@2'"
+   },
+   "enforcedBy": {
+    "mechanism": "engines-runtime:callers"
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/readings",
+   "version": 2,
+   "summary": "Ask to ingest a reading, by everything about it but its value, before the value is written anywhere.",
+   "callers": [
+    "patient",
+    "nurse",
+    "locum"
+   ],
+   "purpose": [
+    "treatment"
+   ],
+   "request": [
+    {
+     "field": "subjectRef",
+     "type": "string",
+     "required": true,
+     "why": "Whose reading: the schema's patientRef, as the opaque token identity issues."
+    },
+    {
+     "field": "deviceRef",
+     "type": "string",
+     "required": true,
+     "why": "The registered device: the schema's deviceId."
+    },
+    {
+     "field": "metric",
+     "type": "string",
+     "required": true,
+     "why": "Which measure, from packages/catalog/records.json observations.measures."
+    },
+    {
+     "field": "unit",
+     "type": "string",
+     "required": true,
+     "why": "The unit it was taken in, which must be the measure's own."
+    },
+    {
+     "field": "takenAt",
+     "type": "instant",
+     "required": true,
+     "why": "When the device says it was taken: the schema's timestamp."
+    },
+    {
+     "field": "source",
+     "type": "string",
+     "required": false,
+     "why": "Which source produced it, from packages/catalog/devices.json sources. Required by the handler rather than the binder, so a reading without one is refused in its own sentence."
+    },
+    {
+     "field": "quality",
+     "type": "string",
+     "required": false,
+     "why": "The sample quality, from packages/catalog/devices.json qualities. Required by the handler, for the same reason."
+    },
+    {
+     "field": "consentState",
+     "type": "string",
+     "required": true,
+     "why": "granted or withdrawn: the consent standing at capture."
+    },
+    {
+     "field": "intendedUse",
+     "type": "string",
+     "required": true,
+     "why": "clinical or guidance, from packages/catalog/devices.json intendedUses. A reading meant for the record that cannot carry clinical weight is refused rather than quietly filed without it."
+    },
+    {
+     "field": "simulated",
+     "type": "boolean",
+     "required": true,
+     "why": "Whether the reading was simulated. A simulated reading always says so."
+    },
+    {
+     "field": "batteryPercent",
+     "type": "integer",
+     "required": false,
+     "why": "The battery the device reported with it, kept on the device and never on the reading."
+    }
+   ],
+   "response": [
+    {
+     "field": "readingRef",
+     "type": "string",
+     "required": true,
+     "why": "The reading, which the capturer names when saying where in the record the value went."
+    },
+    {
+     "field": "clinicalUseCode",
+     "type": "string",
+     "required": true,
+     "why": "clinical when the reading carries clinical weight, otherwise guidance-only, worked out by packages/catalog/devices.json clinicalWeight."
+    },
+    {
+     "field": "markCodes",
+     "type": "list",
+     "required": true,
+     "why": "The marks it carries from the start, from packages/catalog/devices.json marks."
+    },
+    {
+     "field": "askedAt",
+     "type": "instant",
+     "required": true,
+     "why": "When Devices received it. Ordering uses this, never the device's clock."
+    }
+   ],
+   "refusals": [
+    {
+     "id": "device-not-registered",
+     "status": 404,
+     "statement": "That device is not registered.",
+     "why": "A device the registry never held has no class, no calibration and no recall to answer with."
+    },
+    {
+     "id": "intended-use-not-declared",
+     "status": 422,
+     "statement": "A reading says whether it is meant for the record or to guide a conversation.",
+     "why": "Whether a reading may carry clinical weight depends on what it was taken for, and a guess at that is a guess at whether somebody acts on it."
+    },
+    {
+     "id": "consent-state-not-declared",
+     "status": 422,
+     "statement": "A reading says whether consent to take it stands.",
+     "why": "A reading whose consent nobody can read is a reading nobody may keep."
+    },
+    {
+     "id": "metric-not-declared",
+     "status": 422,
+     "statement": "That measure is not one MyThuso records, so the reading is not ingested.",
+     "why": "A measure the record contract does not hold has no unit to check and nowhere in the record to go."
+    },
+    {
+     "id": "unit-not-the-metrics-unit",
+     "status": 422,
+     "statement": "That unit is not the unit this measure is recorded in, so the reading is not ingested.",
+     "why": "A temperature in Fahrenheit filed as Celsius is a fever nobody sees, and converting it here would be guessing what the device meant."
+    },
+    {
+     "id": "source-not-this-devices",
+     "status": 422,
+     "statement": "That source cannot have produced a reading from this device.",
+     "why": "A kit instrument's reading arriving as a patient's own device, or the other way round, is a reading whose weight nobody can work out."
+    },
+    {
+     "id": "recalled-device-clinical-weight",
+     "status": 422,
+     "statement": "A reading from a recalled device does not carry clinical weight.",
+     "why": "A reading taken after a recall took effect is kept only as guidance, marked, and never meant for the record."
+    }
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Nothing is in the record yet. reading.ingested@1 is published when the capturer says where the value was written, and only for a reading that carries clinical weight.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {
+    "section": "§5.5",
+    "what": "Pluggable adapters per vendor"
+   },
+   "status": "built",
+   "evidence": {
+    "file": "packages/engines/src/devices/engine.ts",
+    "handler": "'POST /v1/devices/readings@2'"
+   },
+   "enforcedBy": {
+    "mechanism": "engines-runtime:callers"
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/readings/{readingRef}/observation",
+   "version": 1,
+   "summary": "Say where in the Health Passport a reading's value was written, after writing it through the consent gateway.",
+   "callers": [
+    "patient",
+    "nurse",
+    "locum"
+   ],
+   "purpose": [
+    "treatment"
+   ],
+   "request": [
+    {
+     "field": "readingRef",
+     "type": "string",
+     "required": true,
+     "why": "The reading Devices accepted."
+    },
+    {
+     "field": "observationRef",
+     "type": "string",
+     "required": true,
+     "why": "The Observation the capturer wrote under their own grant, where the value is."
+    }
+   ],
+   "response": [
+    {
+     "field": "ingestedAt",
+     "type": "instant",
+     "required": true,
+     "why": "When the reading was ingested."
+    },
+    {
+     "field": "clinicalUseCode",
+     "type": "string",
+     "required": true,
+     "why": "clinical or guidance-only, as it stands now: a recall recorded since it was asked for takes the weight away."
+    },
+    {
+     "field": "published",
+     "type": "boolean",
+     "required": true,
+     "why": "Whether reading.ingested@1 was published. Never for a reading without clinical weight."
+    }
+   ],
+   "refusals": [
+    {
+     "id": "reading-not-waiting",
+     "status": 404,
+     "statement": "No reading by that reference is waiting for its place in the record.",
+     "why": "A place in the record for a reading Devices never accepted would be a reading ingested without any of its refusals."
+    },
+    {
+     "id": "observation-already-linked",
+     "status": 409,
+     "statement": "That reading already points at its place in the record.",
+     "why": "A second Observation for one reading is two copies of one value, and a subscriber would act on it twice."
+    },
+    {
+     "id": "linked-by-another",
+     "status": 403,
+     "statement": "Only whoever asked to ingest a reading says where its value went.",
+     "why": "A reading pointed at somebody else's Observation is a value filed under a patient it was never taken from."
+    }
+   ],
+   "emits": [
+    "reading.ingested@1"
+   ],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {
+    "section": "§5.5",
+    "what": "Canonical schema"
+   },
+   "status": "built",
+   "evidence": {
+    "file": "packages/engines/src/devices/engine.ts",
+    "handler": "'POST /v1/devices/readings/{readingRef}/observation@1'"
+   },
+   "enforcedBy": {
+    "mechanism": "engines-runtime:callers"
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/wearable-links",
+   "version": 2,
+   "summary": "Record a patient's request to link Apple Health or Health Connect, with the consent version and reading types agreed. Nothing is connected.",
+   "callers": [
+    "patient"
+   ],
+   "purpose": [
+    "treatment"
+   ],
+   "request": [
+    {
+     "field": "platform",
+     "type": "string",
+     "required": true,
+     "why": "apple-health or health-connect, from packages/catalog/devices.json wearableLinks.platforms."
+    },
+    {
+     "field": "consentVersion",
+     "type": "integer",
+     "required": true,
+     "why": "The wearable-readings consent version agreed, from packages/catalog/consent.json."
+    },
+    {
+     "field": "metrics",
+     "type": "list",
+     "required": true,
+     "why": "The reading types the patient would share, from packages/catalog/records.json observations.measures."
+    }
+   ],
+   "response": [
+    {
+     "field": "linkRef",
+     "type": "string",
+     "required": true,
+     "why": "The request."
+    },
+    {
+     "field": "stateCode",
+     "type": "string",
+     "required": true,
+     "why": "requested-not-connected, always, in this build."
+    },
+    {
+     "field": "requestedAt",
+     "type": "instant",
+     "required": true,
+     "why": "When it was recorded."
+    }
+   ],
+   "refusals": [
+    {
+     "id": "consent-missing",
+     "status": 403,
+     "statement": "A wearable is linked only with consent to read it.",
+     "why": "The wearable-readings purpose in packages/catalog/consent.json."
+    },
+    {
+     "id": "consent-version-not-current",
+     "status": 409,
+     "statement": "That is not the consent in force. Read what is in force and agree to that.",
+     "why": "Agreement to wording that has since changed is agreement to something nobody is asking for."
+    },
+    {
+     "id": "platform-not-declared",
+     "status": 422,
+     "statement": "MyThuso offers Apple Health and Health Connect, and nothing else.",
+     "why": "A platform nobody declared has no consent wording, no door and no data protection assessment."
+    },
+    {
+     "id": "metric-not-in-the-scope",
+     "status": 422,
+     "statement": "That reading type is not one a wearable link may ask for.",
+     "why": "A link asks only for reading types the record has somewhere to file."
+    },
+    {
+     "id": "link-already-requested",
+     "status": 409,
+     "statement": "A link to that platform is already requested. It is not connected, and asking again does not connect it.",
+     "why": "A second request looks like progress and is the same request."
+    }
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A request connects nothing, so nothing has happened that any engine could act on.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {
+    "section": "FS-E9",
+    "what": "Apple Health and Google Health Connect wearable sync"
+   },
+   "status": "built",
+   "evidence": {
+    "file": "packages/engines/src/devices/engine.ts",
+    "handler": "'POST /v1/devices/wearable-links@2'"
+   },
+   "enforcedBy": {
+    "mechanism": "engines-runtime:callers"
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/wearable-links/{linkRef}/withdraw",
+   "version": 1,
+   "summary": "Withdraw a wearable link request, and with it the patient's consent to readings from their own devices.",
+   "callers": [
+    "patient"
+   ],
+   "purpose": [
+    "treatment"
+   ],
+   "request": [
+    {
+     "field": "linkRef",
+     "type": "string",
+     "required": true,
+     "why": "The request."
+    }
+   ],
+   "response": [
+    {
+     "field": "withdrawnAt",
+     "type": "instant",
+     "required": true,
+     "why": "When it was withdrawn. No reading from the patient's own devices is ingested from this moment."
+    }
+   ],
+   "refusals": [
+    {
+     "id": "link-not-found",
+     "status": 404,
+     "statement": "There is no wearable link by that reference.",
+     "why": "A withdrawal of nothing would record a consent decision against a request nobody made."
+    },
+    {
+     "id": "link-already-withdrawn",
+     "status": 409,
+     "statement": "That link is already withdrawn. Nothing has been read through it since.",
+     "why": "A second withdrawal would move the moment ingestion stopped."
+    },
+    {
+     "id": "link-held-by-another",
+     "status": 403,
+     "statement": "Only the patient who asked for a link withdraws it.",
+     "why": "A withdrawal is a consent decision, and nobody makes one for somebody else here."
+    }
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Nothing was ever read through the link, and Devices refuses every later reading from the patient's own devices from its own record, so no other engine has anything to do.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {
+    "section": "FS-E9",
+    "what": "Apple Health and Google Health Connect wearable sync"
+   },
+   "status": "built",
+   "evidence": {
+    "file": "packages/engines/src/devices/engine.ts",
+    "handler": "'POST /v1/devices/wearable-links/{linkRef}/withdraw@1'"
+   },
+   "enforcedBy": {
+    "mechanism": "engines-runtime:callers"
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/kits",
+   "version": 2,
+   "summary": "Issue a kit of registered devices to a holder, recording the deposit in force and taking no money.",
+   "callers": [
+    "operator"
+   ],
+   "purpose": [
+    "audit"
+   ],
+   "request": [
+    {
+     "field": "kitSerial",
+     "type": "string",
+     "required": true,
+     "why": "The kit's own serial."
+    },
+    {
+     "field": "holderRef",
+     "type": "string",
+     "required": true,
+     "why": "Who holds it: a nurse's party reference."
+    },
+    {
+     "field": "deviceRefs",
+     "type": "list",
+     "required": true,
+     "why": "The registered devices in it."
+    }
+   ],
+   "response": [
+    {
+     "field": "kitRef",
+     "type": "string",
+     "required": true,
+     "why": "The issued kit."
+    },
+    {
+     "field": "depositCents",
+     "type": "integer",
+     "required": true,
+     "why": "The deposit recorded against it, from the setting kit-deposit in force. Not taken."
+    },
+    {
+     "field": "settingsVersion",
+     "type": "integer",
+     "required": true,
+     "why": "The Devices settings version the deposit was read from, which the kit keeps."
+    }
+   ],
+   "refusals": [
+    {
+     "id": "device-not-registered",
+     "status": 404,
+     "statement": "That device is not registered.",
+     "why": "A device the registry never held has no class, no calibration and no recall to answer with."
+    },
+    {
+     "id": "kit-already-out",
+     "status": 409,
+     "statement": "That kit is already out with somebody. It is returned or reported lost before it is issued again.",
+     "why": "One kit held by two people is a loss nobody can place."
+    },
+    {
+     "id": "recalled-device-not-issued",
+     "status": 409,
+     "statement": "A recalled device is not put in a kit.",
+     "why": "A kit is what a nurse takes readings with, and a recalled device is not trusted."
+    },
+    {
+     "id": "device-already-in-a-kit",
+     "status": 409,
+     "statement": "That device is already in another kit.",
+     "why": "A device in two kits is a recall that reaches the wrong holder."
+    },
+    {
+     "id": "kit-without-devices",
+     "status": 422,
+     "statement": "A kit holds at least one registered device.",
+     "why": "An empty kit has nothing to return or lose."
+    }
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Issuing a kit is registry bookkeeping. The deposit is recorded and taken from nobody, so Money has nothing to act on until Wave 5.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "packages/engines/src/devices/engine.ts",
+    "handler": "'POST /v1/devices/kits@2'"
+   },
+   "enforcedBy": {
+    "mechanism": "engines-runtime:callers"
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/kits/{kitRef}/return",
+   "version": 2,
+   "summary": "Record a kit returned, in its audit.",
+   "callers": [
+    "operator"
+   ],
+   "purpose": [
+    "audit"
+   ],
+   "request": [
+    {
+     "field": "kitRef",
+     "type": "string",
+     "required": true,
+     "why": "The kit."
+    }
+   ],
+   "response": [
+    {
+     "field": "returnedAt",
+     "type": "instant",
+     "required": true,
+     "why": "When it was returned."
+    }
+   ],
+   "refusals": [
+    {
+     "id": "kit-not-issued",
+     "status": 409,
+     "statement": "That kit was never issued.",
+     "why": "Nothing to return."
+    },
+    {
+     "id": "kit-already-closed",
+     "status": 409,
+     "statement": "That kit is already returned or reported lost. Its record is closed.",
+     "why": "A closed kit reopened by a second return would make a loss look like a return."
+    }
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Registry bookkeeping, written to the kit's audit. No engine acts on a return.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "packages/engines/src/devices/engine.ts",
+    "handler": "'POST /v1/devices/kits/{kitRef}/return@2'"
+   },
+   "enforcedBy": {
+    "mechanism": "engines-runtime:callers"
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/kits/{kitRef}/loss",
+   "version": 2,
+   "summary": "Record a kit lost, with a reason, in its audit. It charges nobody.",
+   "callers": [
+    "operator",
+    "nurse"
+   ],
+   "purpose": [
+    "audit"
+   ],
+   "request": [
+    {
+     "field": "kitRef",
+     "type": "string",
+     "required": true,
+     "why": "The kit."
+    },
+    {
+     "field": "reasonCode",
+     "type": "string",
+     "required": false,
+     "why": "Why, from packages/catalog/devices.json kits.lossReasons. Asked for by the handler, so a loss without one is refused in its own sentence."
+    }
+   ],
+   "response": [
+    {
+     "field": "recordedAt",
+     "type": "instant",
+     "required": true,
+     "why": "When the loss was recorded."
+    }
+   ],
+   "refusals": [
+    {
+     "id": "loss-without-reason",
+     "status": 422,
+     "statement": "A loss is reported with a reason.",
+     "why": "Kit loss is a pilot measure."
+    },
+    {
+     "id": "loss-reason-not-declared",
+     "status": 422,
+     "statement": "That is not a reason a loss is recorded with.",
+     "why": "A reason nobody declared is free text by another name."
+    },
+    {
+     "id": "kit-not-issued",
+     "status": 409,
+     "statement": "That kit was never issued.",
+     "why": "Nothing to lose."
+    },
+    {
+     "id": "kit-already-closed",
+     "status": 409,
+     "statement": "That kit is already returned or reported lost. Its record is closed.",
+     "why": "A second loss would record the same kit gone twice."
+    },
+    {
+     "id": "loss-reported-by-another-nurse",
+     "status": 403,
+     "statement": "A nurse reports only the kit she holds.",
+     "why": "A loss against somebody else's kit is an accusation, and the desk records those."
+    }
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A loss is written to the kit's audit and charges nobody. Money is Wave 5's, and no engine acts on a loss today.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "packages/engines/src/devices/engine.ts",
+    "handler": "'POST /v1/devices/kits/{kitRef}/loss@2'"
+   },
+   "enforcedBy": {
+    "mechanism": "engines-runtime:callers"
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/v1/devices/settings",
+   "version": 1,
+   "summary": "Read the Devices settings in force — the stale interval, when a calibration shows as due, and the kit deposit — each with its default and who proposed it, what an admin may set, and every change made to them.",
+   "callers": [
+    "admin"
+   ],
+   "purpose": [
+    "audit"
+   ],
+   "request": [],
+   "response": [
+    {
+     "field": "settingsVersion",
+     "type": "integer",
+     "required": true,
+     "why": "The version in force. A change is made against it, and whatever starts now keeps it."
+    },
+    {
+     "field": "settings",
+     "type": "list",
+     "required": true,
+     "why": "Each setting: its key, type, unit, the value in force and the version that set it, its default and provenance, its limits, who may change it, what a change reaches, its guardrail, and its clinical review.",
+     "object": true,
+     "fields": [
+      {
+       "field": "setting",
+       "type": "string",
+       "required": true,
+       "why": "The setting's key, which a change names."
+      },
+      {
+       "field": "label",
+       "type": "string",
+       "required": true,
+       "why": "Its name on the Configuration screen."
+      },
+      {
+       "field": "help",
+       "type": "string",
+       "required": true,
+       "why": "The question it answers, as a sentence."
+      },
+      {
+       "field": "type",
+       "type": "string",
+       "required": true,
+       "why": "One of the types above."
+      },
+      {
+       "field": "unit",
+       "type": "string",
+       "required": true,
+       "nullable": true,
+       "why": "What the value is counted in, or null for a type that has none."
+      },
+      {
+       "field": "inForce",
+       "type": "string",
+       "required": true,
+       "object": true,
+       "shapeFrom": "packages/catalog/settings.json#types",
+       "why": "The value in force: a number, a switch, a word, a list, a rota or a record, as its type gives."
+      },
+      {
+       "field": "setAtVersion",
+       "type": "integer",
+       "required": true,
+       "why": "The settings version that set the value in force, 1 for the contract's default."
+      },
+      {
+       "field": "default",
+       "type": "string",
+       "required": true,
+       "object": true,
+       "shapeFrom": "packages/catalog/settings.json#types",
+       "why": "The contract's default, of the same kind as the value in force."
+      },
+      {
+       "field": "provenance",
+       "type": "string",
+       "required": true,
+       "object": true,
+       "shapeFrom": "packages/catalog/settings.json#provenance",
+       "why": "Who decided the default, when and why, or who proposed it and why, and who reviewed it where somebody did."
+      },
+      {
+       "field": "limits",
+       "type": "string",
+       "required": true,
+       "object": true,
+       "shapeFrom": "packages/catalog/settings.json#setting",
+       "why": "What an admin may set — the bounds, allowed values, roles, posts, items or parts its type carries — with their provenance."
+      },
+      {
+       "field": "changedBy",
+       "type": "list",
+       "required": true,
+       "why": "The roles that may change it, resolved from the contract and the settings in force."
+      },
+      {
+       "field": "appliesTo",
+       "type": "string",
+       "required": true,
+       "why": "What a change reaches, as a sentence."
+      },
+      {
+       "field": "guardrail",
+       "type": "string",
+       "required": true,
+       "nullable": true,
+       "why": "The sentence no value may break, or null for a setting with none."
+      },
+      {
+       "field": "reviewRequired",
+       "type": "string",
+       "required": true,
+       "nullable": true,
+       "why": "The capability whose holder confirms its clinical review, or null for a setting that waits on nobody."
+      },
+      {
+       "field": "reviewed",
+       "type": "string",
+       "required": true,
+       "nullable": true,
+       "object": true,
+       "why": "Who confirmed the clinical review of the value in force, or null while it is not clinically reviewed.",
+       "fields": [
+        {
+         "field": "byRef",
+         "type": "string",
+         "required": true,
+         "why": "The reviewer's reference."
+        },
+        {
+         "field": "at",
+         "type": "instant",
+         "required": true,
+         "nullable": true,
+         "why": "When the review was confirmed through the review route, or null for a default reviewed before it shipped."
+        },
+        {
+         "field": "on",
+         "type": "iso-date",
+         "required": true,
+         "nullable": true,
+         "why": "The day a default was reviewed before it shipped, or null for a review confirmed through the route."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "field": "history",
+     "type": "list",
+     "required": true,
+     "why": "Every accepted change, oldest first: which setting, from, to, who, when and why. Nothing in it is edited or removed.",
+     "object": true,
+     "fields": [
+      {
+       "field": "settingsVersion",
+       "type": "integer",
+       "required": true,
+       "why": "The version this change made."
+      },
+      {
+       "field": "setting",
+       "type": "string",
+       "required": true,
+       "why": "The setting it changed."
+      },
+      {
+       "field": "from",
+       "type": "string",
+       "required": true,
+       "object": true,
+       "shapeFrom": "packages/catalog/settings.json#types",
+       "why": "The value before, of the kind its type gives."
+      },
+      {
+       "field": "to",
+       "type": "string",
+       "required": true,
+       "object": true,
+       "shapeFrom": "packages/catalog/settings.json#types",
+       "why": "The value after."
+      },
+      {
+       "field": "reason",
+       "type": "string",
+       "required": true,
+       "why": "Why, as it was written."
+      },
+      {
+       "field": "byRole",
+       "type": "string",
+       "required": true,
+       "why": "The role of the person who made it."
+      },
+      {
+       "field": "byRef",
+       "type": "string",
+       "required": true,
+       "why": "The reference of the person who made it, from the caller the runtime admitted."
+      },
+      {
+       "field": "at",
+       "type": "instant",
+       "required": true,
+       "why": "When it was made."
+      }
+     ]
+    }
+   ],
+   "refusals": [
+    {
+     "id": "settings-read-not-permitted",
+     "status": 403,
+     "statement": "Only somebody who may change these settings reads them and who changed them.",
+     "why": "The history names the people who changed how an engine behaves. It is read by the roles that may change it."
+    }
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "packages/engines/src/devices/engine.ts",
+    "handler": "'GET /v1/devices/settings@1'"
+   },
+   "enforcedBy": {
+    "mechanism": "engines-runtime:callers"
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/setting-changes",
+   "version": 1,
+   "summary": "Change one Devices setting, with a reason, against the version in force. It applies to what is worked out after it.",
+   "callers": [
+    "admin"
+   ],
+   "purpose": [
+    "audit"
+   ],
+   "request": [
+    {
+     "field": "idempotencyKey",
+     "type": "string",
+     "required": true,
+     "why": "Chosen by the caller. The same key twice is the same change once, and the history gains one row."
+    },
+    {
+     "field": "setting",
+     "type": "string",
+     "required": true,
+     "why": "The setting's key, from the settings block of the engine's own contract."
+    },
+    {
+     "field": "wholeNumber",
+     "type": "integer",
+     "required": false,
+     "why": "The new value, for a setting in minutes, a count, cents or a percentage."
+    },
+    {
+     "field": "switchedOn",
+     "type": "boolean",
+     "required": false,
+     "why": "The new value, for a setting that is on or off."
+    },
+    {
+     "field": "choice",
+     "type": "string",
+     "required": false,
+     "why": "The new value, for a setting that is one of a few named choices."
+    },
+    {
+     "field": "wording",
+     "type": "string",
+     "required": false,
+     "why": "The new wording, for a setting patients or nurses read."
+    },
+    {
+     "field": "roles",
+     "type": "list",
+     "required": false,
+     "why": "The new roles, for a setting that names roles from packages/catalog/vetting.json."
+    },
+    {
+     "field": "windows",
+     "type": "list",
+     "required": false,
+     "why": "The new rota, for a setting that is windows of a post, days and hours. A post, never a named person.",
+     "object": true,
+     "fields": [
+      {
+       "field": "post",
+       "type": "string",
+       "required": true,
+       "why": "The post the window is for, from the setting's posts. Never a person."
+      },
+      {
+       "field": "days",
+       "type": "list",
+       "required": true,
+       "why": "The days the window covers, from days above."
+      },
+      {
+       "field": "from",
+       "type": "string",
+       "required": true,
+       "why": "When it starts, 00:00 to 24:00."
+      },
+      {
+       "field": "to",
+       "type": "string",
+       "required": true,
+       "why": "When it ends, after it starts."
+      }
+     ]
+    },
+    {
+     "field": "items",
+     "type": "list",
+     "required": false,
+     "why": "The new values, for a setting that is a list."
+    },
+    {
+     "field": "parts",
+     "type": "string",
+     "required": false,
+     "why": "The new values, for a setting whose parts change together.",
+     "object": true,
+     "shapeFrom": "packages/catalog/settings.json#types"
+    },
+    {
+     "field": "reason",
+     "type": "string",
+     "required": false,
+     "why": "Why. Asked for by the handler rather than the binder, so that a change without one is refused in its own sentence rather than the general one for a missing field."
+    },
+    {
+     "field": "expectedVersion",
+     "type": "integer",
+     "required": true,
+     "why": "The settings version the admin was looking at. A change against an older one is refused."
+    }
+   ],
+   "response": [
+    {
+     "field": "settingsVersion",
+     "type": "integer",
+     "required": true,
+     "why": "The version this change made."
+    },
+    {
+     "field": "appliesFrom",
+     "type": "instant",
+     "required": true,
+     "why": "When it took effect. Whatever started before it keeps the version it started under."
+    }
+   ],
+   "refusals": [
+    {
+     "id": "setting-change-not-permitted",
+     "status": 403,
+     "statement": "Only the role a setting names changes it, and the change is recorded against a named person.",
+     "why": "A setting decides how the platform treats people. The role or capability the setting names changes it, and a change is recorded against somebody who can be asked about it; everybody else only reads what is in force."
+    },
+    {
+     "id": "setting-not-known",
+     "status": 422,
+     "statement": "There is no setting by that name.",
+     "why": "An unknown setting is refused rather than stored, or the history fills with changes nothing reads."
+    },
+    {
+     "id": "setting-change-without-reason",
+     "status": 422,
+     "statement": "A change to a setting says why, or it is not made.",
+     "why": "The history is read after something has gone wrong. A change with no reason is a number somebody moved."
+    },
+    {
+     "id": "settings-version-stale",
+     "status": 409,
+     "statement": "These settings changed after you opened them. Read what is in force now and decide against that.",
+     "why": "Two admins changing one setting from screens opened at the same time would each overwrite a decision they never saw."
+    },
+    {
+     "id": "setting-value-wrong-type",
+     "status": 422,
+     "statement": "That is not the kind of value this setting holds.",
+     "why": "A word where a number belongs, or a list where one choice belongs, is a guess at what the admin meant, and a setting is never set by a guess."
+    },
+    {
+     "id": "setting-not-above-zero",
+     "status": 422,
+     "statement": "This setting is never nought or less, whatever its range says.",
+     "why": "A wait of nothing, an offer that lapses as it is made and a fee of nothing are never what anybody meant. The range is a proposal and could be set wrongly; this refusal does not depend on it."
+    },
+    {
+     "id": "setting-role-not-on-register",
+     "status": 422,
+     "statement": "Every role a setting names is a role on the vetting register.",
+     "why": "A role the register does not hold is a gate nobody can be vetted through, which looks like a shortage rather than a mistake."
+    },
+    {
+     "id": "setting-text-too-long",
+     "status": 422,
+     "statement": "That wording is longer than this setting allows.",
+     "why": "The maximum is the space the words are read in. Wording that does not fit is cut off where somebody reads it."
+    },
+    {
+     "id": "setting-text-loses-a-guardrail",
+     "status": 422,
+     "statement": "That wording drops a sentence this setting must always keep.",
+     "why": "Some wording carries a promise that protects somebody. It may be reworded around that sentence and never without it."
+    },
+    {
+     "id": "setting-schedule-leaves-a-gap",
+     "status": 422,
+     "statement": "That rota leaves hours uncovered that must always have somebody on them.",
+     "why": "A rota with a gap is an alert with nobody to go to, and nobody finds out until one arrives."
+    },
+    {
+     "id": "setting-out-of-range",
+     "status": 422,
+     "statement": "That is outside what an admin may set for this setting.",
+     "why": "The bounds, the allowed values and the allowed roles sit beside the default in the engine's contract. Moving a setting past them is a change to that contract, not a setting."
+    },
+    {
+     "id": "setting-unchanged",
+     "status": 409,
+     "statement": "That is already the value in force, so there is nothing to change.",
+     "why": "A change that changes nothing is a row in the history saying something happened when nothing did."
+    }
+   ],
+   "emits": [],
+   "emitsNoneBecause": "No engine acts on a settings change. The engine that owns a setting reads the value in force when it starts something, and the event contract refuses an event nobody subscribes to. A change is the row it appends to the engine's own history, which the read route returns.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "packages/engines/src/devices/engine.ts",
+    "handler": "'POST /v1/devices/setting-changes@1'"
+   },
+   "enforcedBy": {
+    "mechanism": "engines-runtime:callers"
+   }
   }
  ]
 }

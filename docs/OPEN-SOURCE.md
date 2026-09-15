@@ -31,7 +31,7 @@ Every open-source module, standard, open-weights model and speech provider that 
 
 | Name | Kind | Licence | Source | Last activity seen | Links to | Adoption and what blocks it |
 |---|---|---|---|---|---|---|
-| **Momentum Open Wearables**<br>A self-hosted platform that normalises wearable data from Garmin, Oura, Whoop, Polar, Fitbit and others, and Apple HealthKit, Samsung Health and Health Connect through SDKs, behind one API. | open-source-module | [MIT](https://github.com/the-momentum/open-wearables/blob/main/LICENSE) | [github.com/the-momentum/open-wearables](https://github.com/the-momentum/open-wearables) | [2026-09-11](https://github.com/the-momentum/open-wearables/releases/tag/0.8.0) | **devices** · `POST /v1/devices/wearable-links`, `POST /v1/devices/readings` · doors `proposed:wearable-sync` · through `passport-gateway` | Not adopted<br>— None of the five reviews has been done.<br>— The wearable-sync door does not exist in packages/catalog/feeds.json.<br>— Its cloud integrations pull data through each vendor's own cloud by OAuth, and where each vendor processes that data has not been established.<br>— It would be self-hosted, and no hosting in South Africa has been chosen for health data. |
+| **Momentum Open Wearables**<br>A self-hosted platform that normalises wearable data from Garmin, Oura, Whoop, Polar, Fitbit and others, and Apple HealthKit, Samsung Health and Health Connect through SDKs, behind one API. | open-source-module | [MIT](https://github.com/the-momentum/open-wearables/blob/main/LICENSE) | [github.com/the-momentum/open-wearables](https://github.com/the-momentum/open-wearables) | [2026-09-11](https://github.com/the-momentum/open-wearables/releases/tag/0.8.0) | **devices** · `POST /v1/devices/wearable-links`, `POST /v1/devices/readings` · doors `wearable-sync` · through `passport-gateway` | Not adopted<br>— None of the five reviews has been done.<br>— The wearable-sync door in packages/catalog/feeds.json refuses every payload, and none of its switch-on conditions is met.<br>— Its cloud integrations pull data through each vendor's own cloud by OAuth, and where each vendor processes that data has not been established.<br>— It would be self-hosted, and no hosting in South Africa has been chosen for health data. |
 
 ## ADOPT BEHIND OUR GATEWAY
 
@@ -153,14 +153,6 @@ Every open-source module, standard, open-weights model and speech provider that 
 ## Doors the links need that do not exist yet
 
 A door a link needs and packages/catalog/feeds.json does not have is written as proposed, with what must be true before it opens, and only for as long as it is absent. A link to a door that does not exist reads as a seam that works. Once the door is declared, the link names it by its real id and its real conditions.
-
-### `wearable-sync`
-
-packages/catalog/apis/devices.json lists it as a door to add: a partner cloud's wearable sync is a supplier callback, not a route. Needed by: Momentum Open Wearables.
-
-- **A data processing agreement exists with every vendor cloud whose data would arrive.** Each one becomes an operator under POPIA section 21 for a reading that may reveal a condition.
-- **Every reading is checked against the wearable-readings consent at the moment it arrives.** §5.5: ingestion stops the moment consent is withdrawn, and a batch sync is exactly where that is forgotten.
-- **Every reading arrives labelled with its source and as consumer-grade.** A consumer wearable guides conversation and carries no clinical weight or dispatch.
 
 ### `hl7v2-inbound`
 

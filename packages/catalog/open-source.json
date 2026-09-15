@@ -91,15 +91,6 @@
 
  "proposedDoors": [
   {
-   "id": "wearable-sync",
-   "why": "packages/catalog/apis/devices.json lists it as a door to add: a partner cloud's wearable sync is a supplier callback, not a route.",
-   "beforeSwitchOn": [
-    {"must": "A data processing agreement exists with every vendor cloud whose data would arrive.", "why": "Each one becomes an operator under POPIA section 21 for a reading that may reveal a condition."},
-    {"must": "Every reading is checked against the wearable-readings consent at the moment it arrives.", "why": "§5.5: ingestion stops the moment consent is withdrawn, and a batch sync is exactly where that is forgotten."},
-    {"must": "Every reading arrives labelled with its source and as consumer-grade.", "why": "A consumer wearable guides conversation and carries no clinical weight or dispatch."}
-   ]
-  },
-  {
    "id": "hl7v2-inbound",
    "why": "§26 names POST /hl7v2/inbound, and packages/catalog/apis/record.json holds it as a door to add because the caller is a partner's system.",
    "beforeSwitchOn": [
@@ -147,14 +138,14 @@
    },
    "dependencyMarkers": {},
    "links": [
-    {"engine": "devices", "apiRoutes": ["POST /v1/devices/wearable-links", "POST /v1/devices/readings"], "doors": ["proposed:wearable-sync"], "capabilities": ["devices"], "through": ["passport-gateway"], "how": "Self-hosted, it would turn a linked consumer wearable's data into readings posted to the devices engine with their source and quality, each written to the Passport through its gateway, arriving on a wearable-sync door once one exists."}
+    {"engine": "devices", "apiRoutes": ["POST /v1/devices/wearable-links", "POST /v1/devices/readings"], "doors": ["wearable-sync"], "capabilities": ["devices", "wearables"], "through": ["passport-gateway"], "how": "Self-hosted, it would turn a linked consumer wearable's data into readings posted to the devices engine with their source and quality, each written to the Passport through its gateway, arriving on the wearable-sync door in packages/catalog/feeds.json, which refuses every payload until its switch-on conditions are met."}
    ],
    "adoption": {
     "status": "not-adopted",
     "review": {"licence": null, "security": null, "maintenance": null, "dataFlow": null, "clinicalUse": null},
     "blockedBy": [
      "None of the five reviews has been done.",
-     "The wearable-sync door does not exist in packages/catalog/feeds.json.",
+     "The wearable-sync door in packages/catalog/feeds.json refuses every payload, and none of its switch-on conditions is met.",
      "Its cloud integrations pull data through each vendor's own cloud by OAuth, and where each vendor processes that data has not been established.",
      "It would be self-hosted, and no hosting in South Africa has been chosen for health data."
     ]

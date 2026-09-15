@@ -474,6 +474,23 @@
     "plans"
    ],
    "state": "absent"
+  },
+  {
+   "id": "wearables",
+   "name": "Readings from your own watch, band or home device",
+   "connected": false,
+   "evidence": null,
+   "blockedBy": [
+    "A signed data protection impact assessment covering health data from another company's store or cloud (docs/governance/DPIA-DRAFT.md is unsigned).",
+    "A clinical reviewer who has read the wearable-readings consent scope, reading type by reading type.",
+    "No HealthKit entitlement or Health Connect permission is declared, and neither platform's library is in either app: adding one changes how the iOS app is signed and what either phone asks."
+   ],
+   "notice": "Apple Health, Health Connect and your own devices are not connected. A request to link one is recorded, and nothing is read from your phone or any device maker's cloud.",
+   "surfaces": [
+    "wearable-link",
+    "passport-devices"
+   ],
+   "state": "absent"
   }
  ],
  "rules": [

@@ -1465,7 +1465,9 @@
     { "field": "observationRef", "type": "string", "required": true, "why": "The Observation in the Passport, where the value is." }
    ],
    "neverCarries": [
-    { "field": "value", "why": "The value is in the Observation." }
+    { "field": "value", "why": "The value is in the Observation." },
+    { "field": "patientName", "why": "The envelope's subject token is the patient, and nothing beside it says who they are. Added by the Devices lead, Wave 4." },
+    { "field": "consumerReading", "why": "A reading from a consumer device, a simulator, a poor sample, a recalled device or one taken to guide a conversation carries no clinical weight and is never published on this event: packages/catalog/devices.json clinicalWeight. Added by the Devices lead, Wave 4." }
    ],
    "subscribers": ["safety", "clinical", "core"]
   },
@@ -1477,7 +1479,9 @@
     { "field": "lastSyncAt", "type": "instant", "required": true, "why": "When it last synced." }
    ],
    "neverCarries": [
-    { "field": "lastValue", "why": "A stale device's last value is in the record." }
+    { "field": "lastValue", "why": "A stale device's last value is in the record." },
+    { "field": "holderName", "why": "Who holds the device is read from the registry by the engine that must act. Added by the Devices lead, Wave 4." },
+    { "field": "consumerDevice", "why": "Only a certified device is announced as stale, because device.stale@1 justifies an alert and a consumer device never raises one: packages/catalog/devices.json clinicalWeight. Added by the Devices lead, Wave 4." }
    ],
    "subscribers": ["core", "care"]
   },
@@ -1489,7 +1493,8 @@
     { "field": "reasonCode", "type": "string", "required": true, "why": "A code, never free text." }
    ],
    "neverCarries": [
-    { "field": "holderList", "why": "Who holds a recalled device is read from the registry by the engine that must act." }
+    { "field": "holderList", "why": "Who holds a recalled device is read from the registry by the engine that must act." },
+    { "field": "markedReadingValue", "why": "The readings a recall marks stay in the record and are named by the registry, never carried here. Added by the Devices lead, Wave 4." }
    ],
    "subscribers": ["core", "care", "money"]
   },

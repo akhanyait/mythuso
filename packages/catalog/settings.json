@@ -10,8 +10,10 @@
   { "engine": "care", "file": "packages/catalog/care.json" },
   { "engine": "money", "file": "packages/catalog/money.json" },
   { "engine": "core", "file": "packages/catalog/closed-loop.json" },
-  { "engine": "access", "file": "packages/catalog/booking.json" }
+  { "engine": "access", "file": "packages/catalog/booking.json" },
+  { "engine": "devices", "file": "packages/catalog/devices.json" }
  ],
+ "_innerShapesNote": "Added by the Devices lead on 15 September 2026. The change route's windows and parts were objects described only in prose, and the list of routes excused from declaring an object's inside was sealed the same day, so an engine adding its first setting after the seal could declare a change route in neither the shared shape nor a declared one: the first failed inner-shapes-are-data and the second failed the word-for-word rule. The shape now declares both insides. A change route on the sealed prose-only list in packages/catalog/apis.json is compared with the shape with those two insides left out, as it was frozen; every other change route declares them.",
  "_sourcesNote": "Every contract that holds a settings block, and the engine that owns it. packages/engines/src/settings/blocks.ts imports exactly these, and the build fails on a settings block in a contract this list does not name. An engine adding its first setting adds its contract here.",
 
  "block": [
@@ -136,9 +138,14 @@
     { "field": "choice", "type": "string", "required": false, "why": "The new value, for a setting that is one of a few named choices." },
     { "field": "wording", "type": "string", "required": false, "why": "The new wording, for a setting patients or nurses read." },
     { "field": "roles", "type": "list", "required": false, "why": "The new roles, for a setting that names roles from packages/catalog/vetting.json." },
-    { "field": "windows", "type": "list", "required": false, "why": "The new rota, for a setting that is windows of a post, days and hours. A post, never a named person.", "object": true },
+    { "field": "windows", "type": "list", "required": false, "why": "The new rota, for a setting that is windows of a post, days and hours. A post, never a named person.", "object": true, "fields": [
+     { "field": "post", "type": "string", "required": true, "why": "The post the window is for, from the setting's posts. Never a person." },
+     { "field": "days", "type": "list", "required": true, "why": "The days the window covers, from days above." },
+     { "field": "from", "type": "string", "required": true, "why": "When it starts, 00:00 to 24:00." },
+     { "field": "to", "type": "string", "required": true, "why": "When it ends, after it starts." }
+    ] },
     { "field": "items", "type": "list", "required": false, "why": "The new values, for a setting that is a list." },
-    { "field": "parts", "type": "string", "required": false, "why": "The new values, for a setting whose parts change together.", "object": true },
+    { "field": "parts", "type": "string", "required": false, "why": "The new values, for a setting whose parts change together.", "object": true, "shapeFrom": "packages/catalog/settings.json#types" },
     { "field": "reason", "type": "string", "required": false, "why": "Why. Asked for by the handler rather than the binder, so that a change without one is refused in its own sentence rather than the general one for a missing field." },
     { "field": "expectedVersion", "type": "integer", "required": true, "why": "The settings version the admin was looking at. A change against an older one is refused." }
    ],
