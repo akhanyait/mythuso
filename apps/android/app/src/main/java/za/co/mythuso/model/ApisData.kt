@@ -70,14 +70,14 @@ object ApisData {
     val POST_ACCESS_HOUSEHOLDS = Route("postAccessHouseholds", "POST", "/v1/access/households", "/v1/access/households", 1, "access", listOf("patient", "caregiver"), listOf("subject-access"), false, "proposed")
     val POST_ACCESS_SPONSORS = Route("postAccessSponsors", "POST", "/v1/access/sponsors", "/v1/access/sponsors", 1, "access", listOf("patient", "sponsor"), listOf("billing"), false, "proposed")
     val POST_ACCESS_BILL_SPLITS = Route("postAccessBillSplits", "POST", "/v1/access/bill-splits", "/v1/access/bill-splits", 1, "access", listOf("patient", "caregiver", "sponsor"), listOf("billing"), false, "proposed")
-    val POST_CARE_OFFERS = Route("postCareOffers", "POST", "/v1/care/offers", "/v1/care/offers", 1, "care", listOf("dispatcher"), listOf("dispatch"), true, "proposed")
-    val POST_CARE_OFFERS_BY_OFFER_REF_ACCEPT = Route("postCareOffersByOfferRefAccept", "POST", "/v1/care/offers/{offerRef}/accept", "/v1/care/offers/{offerRef}/accept", 1, "care", listOf("nurse", "locum"), listOf("dispatch"), true, "proposed")
-    val POST_CARE_OFFERS_BY_OFFER_REF_DECLINE = Route("postCareOffersByOfferRefDecline", "POST", "/v1/care/offers/{offerRef}/decline", "/v1/care/offers/{offerRef}/decline", 1, "care", listOf("nurse", "locum"), listOf("dispatch"), true, "proposed")
-    val POST_CARE_VISITS_BY_APPOINTMENT_REF_START = Route("postCareVisitsByAppointmentRefStart", "POST", "/v1/care/visits/{appointmentRef}/start", "/v1/care/visits/{appointmentRef}/start", 1, "care", listOf("nurse", "locum"), listOf("treatment"), false, "proposed")
-    val POST_CARE_VISITS_BY_APPOINTMENT_REF_CHECKLIST = Route("postCareVisitsByAppointmentRefChecklist", "POST", "/v1/care/visits/{appointmentRef}/checklist", "/v1/care/visits/{appointmentRef}/checklist", 1, "care", listOf("nurse", "locum"), listOf("treatment"), false, "proposed")
-    val POST_CARE_VISITS_BY_APPOINTMENT_REF_CAPTURE = Route("postCareVisitsByAppointmentRefCapture", "POST", "/v1/care/visits/{appointmentRef}/capture", "/v1/care/visits/{appointmentRef}/capture", 1, "care", listOf("nurse", "locum"), listOf("treatment"), false, "proposed")
-    val POST_CARE_VISITS_BY_APPOINTMENT_REF_HANDOVER = Route("postCareVisitsByAppointmentRefHandover", "POST", "/v1/care/visits/{appointmentRef}/handover", "/v1/care/visits/{appointmentRef}/handover", 1, "care", listOf("nurse", "locum"), listOf("treatment"), false, "proposed")
-    val POST_CARE_VISITS_BY_APPOINTMENT_REF_COMPLETE = Route("postCareVisitsByAppointmentRefComplete", "POST", "/v1/care/visits/{appointmentRef}/complete", "/v1/care/visits/{appointmentRef}/complete", 1, "care", listOf("nurse", "locum"), listOf("treatment"), false, "proposed")
+    val POST_CARE_OFFERS = Route("postCareOffers", "POST", "/v1/care/offers", "/v1/care/offers", 1, "care", listOf("dispatcher"), listOf("dispatch"), true, "built")
+    val POST_CARE_OFFERS_BY_OFFER_REF_ACCEPT = Route("postCareOffersByOfferRefAccept", "POST", "/v1/care/offers/{offerRef}/accept", "/v1/care/offers/{offerRef}/accept", 1, "care", listOf("nurse", "locum"), listOf("dispatch"), true, "built")
+    val POST_CARE_OFFERS_BY_OFFER_REF_DECLINE = Route("postCareOffersByOfferRefDecline", "POST", "/v1/care/offers/{offerRef}/decline", "/v1/care/offers/{offerRef}/decline", 1, "care", listOf("nurse", "locum"), listOf("dispatch"), true, "built")
+    val POST_CARE_VISITS_BY_APPOINTMENT_REF_START = Route("postCareVisitsByAppointmentRefStart", "POST", "/v1/care/visits/{appointmentRef}/start", "/v1/care/visits/{appointmentRef}/start", 1, "care", listOf("nurse", "locum"), listOf("treatment"), false, "built")
+    val POST_CARE_VISITS_BY_APPOINTMENT_REF_CHECKLIST = Route("postCareVisitsByAppointmentRefChecklist", "POST", "/v1/care/visits/{appointmentRef}/checklist", "/v1/care/visits/{appointmentRef}/checklist", 1, "care", listOf("nurse", "locum"), listOf("treatment"), false, "built")
+    val POST_CARE_VISITS_BY_APPOINTMENT_REF_CAPTURE = Route("postCareVisitsByAppointmentRefCapture", "POST", "/v1/care/visits/{appointmentRef}/capture", "/v1/care/visits/{appointmentRef}/capture", 1, "care", listOf("nurse", "locum"), listOf("treatment"), false, "built")
+    val POST_CARE_VISITS_BY_APPOINTMENT_REF_HANDOVER = Route("postCareVisitsByAppointmentRefHandover", "POST", "/v1/care/visits/{appointmentRef}/handover", "/v1/care/visits/{appointmentRef}/handover", 1, "care", listOf("nurse", "locum"), listOf("treatment"), false, "built")
+    val POST_CARE_VISITS_BY_APPOINTMENT_REF_COMPLETE = Route("postCareVisitsByAppointmentRefComplete", "POST", "/v1/care/visits/{appointmentRef}/complete", "/v1/care/visits/{appointmentRef}/complete", 1, "care", listOf("nurse", "locum"), listOf("treatment"), false, "built")
     val POST_CARE_SYNC_BATCHES = Route("postCareSyncBatches", "POST", "/v1/care/sync-batches", "/v1/care/sync-batches", 1, "care", listOf("nurse", "locum"), listOf("treatment"), true, "proposed")
     val GET_CARE_SHIFTS = Route("getCareShifts", "GET", "/v1/care/shifts", "/v1/care/shifts", 1, "care", listOf("nurse", "locum", "dispatcher"), listOf("dispatch"), false, "proposed")
     val GET_CARE_SERVICES = Route("getCareServices", "GET", "/v1/care/services", "/v1/care/services", 1, "care", listOf("patient", "caregiver", "nurse", "dispatcher", "thuso-line-agent"), listOf("dispatch"), false, "proposed")
@@ -93,7 +93,7 @@ object ApisData {
     val POST_SAFETY_CHECKINS = Route("postSafetyCheckins", "POST", "/v1/safety/checkins", "/v1/safety/checkins", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "proposed")
     val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND = Route("postSafetyCheckinsByCheckinRefExtend", "POST", "/v1/safety/checkins/{checkinRef}/extend", "/v1/safety/checkins/{checkinRef}/extend", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "proposed")
     val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_CLOSE = Route("postSafetyCheckinsByCheckinRefClose", "POST", "/v1/safety/checkins/{checkinRef}/close", "/v1/safety/checkins/{checkinRef}/close", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "proposed")
-    val POST_SAFETY_PANICS = Route("postSafetyPanics", "POST", "/v1/safety/panics", "/v1/safety/panics", 1, "safety", listOf("nurse", "locum", "responder", "courier"), listOf("emergency"), true, "proposed")
+    val POST_SAFETY_PANICS = Route("postSafetyPanics", "POST", "/v1/safety/panics", "/v1/safety/panics", 1, "safety", listOf("nurse", "locum", "responder", "courier"), listOf("emergency"), true, "built")
     val POST_SAFETY_SOS = Route("postSafetySos", "POST", "/v1/safety/sos", "/v1/safety/sos", 1, "safety", listOf("patient", "caregiver"), listOf("emergency"), true, "proposed")
     val POST_SAFETY_NEXT_OF_KIN = Route("postSafetyNextOfKin", "POST", "/v1/safety/next-of-kin", "/v1/safety/next-of-kin", 1, "safety", listOf("patient"), listOf("subject-access"), false, "proposed")
     val POST_SAFETY_NEXT_OF_KIN_BY_NOMINATION_REF_ALERT = Route("postSafetyNextOfKinByNominationRefAlert", "POST", "/v1/safety/next-of-kin/{nominationRef}/alert", "/v1/safety/next-of-kin/{nominationRef}/alert", 1, "safety", listOf("ops-desk", "engine:core"), listOf("emergency"), false, "proposed")
@@ -162,8 +162,11 @@ object ApisData {
     val POST_DEVICES_KITS = Route("postDevicesKits", "POST", "/v1/devices/kits", "/v1/devices/kits", 1, "devices", listOf("operator", "nurse"), listOf("audit"), false, "proposed")
     val POST_DEVICES_KITS_BY_KIT_REF_RETURN = Route("postDevicesKitsByKitRefReturn", "POST", "/v1/devices/kits/{kitRef}/return", "/v1/devices/kits/{kitRef}/return", 1, "devices", listOf("operator"), listOf("audit"), false, "proposed")
     val POST_DEVICES_KITS_BY_KIT_REF_LOSS = Route("postDevicesKitsByKitRefLoss", "POST", "/v1/devices/kits/{kitRef}/loss", "/v1/devices/kits/{kitRef}/loss", 1, "devices", listOf("operator", "nurse"), listOf("audit"), false, "proposed")
-    val POST_MONEY_PAYMENTS = Route("postMoneyPayments", "POST", "/v1/money/payments", "/v1/money/payments", 1, "money", listOf("patient", "caregiver", "sponsor"), listOf("billing"), true, "proposed")
-    val GET_MONEY_PAYOUTS = Route("getMoneyPayouts", "GET", "/v1/money/payouts", "/v1/money/payouts", 1, "money", listOf("nurse", "locum", "doctor"), listOf("billing"), false, "proposed")
+    val POST_MONEY_PAYMENTS = Route("postMoneyPayments", "POST", "/v1/money/payments", "/v1/money/payments", 1, "money", listOf("patient", "caregiver", "sponsor"), listOf("billing"), true, "built")
+    val GET_MONEY_PAYOUTS = Route("getMoneyPayouts", "GET", "/v1/money/payouts", "/v1/money/payouts", 1, "money", listOf("nurse", "locum", "doctor"), listOf("billing"), false, "built")
+    val POST_MONEY_PAYMENTS_V2 = Route("postMoneyPaymentsV2", "POST", "/v1/money/payments", "/v1/money/payments", 2, "money", listOf("patient", "caregiver", "sponsor"), listOf("billing"), true, "built")
+    val POST_MONEY_PAYMENTS_BY_PAYMENT_REF_CASH_CODE = Route("postMoneyPaymentsByPaymentRefCashCode", "POST", "/v1/money/payments/{paymentRef}/cash-code", "/v1/money/payments/{paymentRef}/cash-code", 1, "money", listOf("nurse"), listOf("billing"), true, "proposed")
+    val POST_MONEY_PAYMENTS_BY_PAYMENT_REF_RELEASE = Route("postMoneyPaymentsByPaymentRefRelease", "POST", "/v1/money/payments/{paymentRef}/release", "/v1/money/payments/{paymentRef}/release", 1, "money", listOf("ops-desk"), listOf("billing"), true, "proposed")
     val POST_MONEY_WALLETS = Route("postMoneyWallets", "POST", "/v1/money/wallets", "/v1/money/wallets", 1, "money", listOf("patient", "caregiver"), listOf("billing"), true, "proposed")
     val POST_MONEY_VOUCHERS = Route("postMoneyVouchers", "POST", "/v1/money/vouchers", "/v1/money/vouchers", 1, "money", listOf("patient", "caregiver", "sponsor", "corner"), listOf("billing"), true, "proposed")
     val POST_MONEY_GIFTS = Route("postMoneyGifts", "POST", "/v1/money/gifts", "/v1/money/gifts", 1, "money", listOf("caregiver", "sponsor"), listOf("billing"), true, "proposed")
@@ -314,6 +317,9 @@ object ApisData {
         POST_DEVICES_KITS_BY_KIT_REF_LOSS,
         POST_MONEY_PAYMENTS,
         GET_MONEY_PAYOUTS,
+        POST_MONEY_PAYMENTS_V2,
+        POST_MONEY_PAYMENTS_BY_PAYMENT_REF_CASH_CODE,
+        POST_MONEY_PAYMENTS_BY_PAYMENT_REF_RELEASE,
         POST_MONEY_WALLETS,
         POST_MONEY_VOUCHERS,
         POST_MONEY_GIFTS,
@@ -1407,6 +1413,32 @@ object ApisData {
     )
     data class GetMoneyPayoutsResponse(
         val payouts: List<Map<String, Any?>>
+    )
+    data class PostMoneyPaymentsV2Request(
+        val idempotencyKey: String,
+        val payableRef: String,
+        val method: String,
+        val amountCents: Int
+    )
+    data class PostMoneyPaymentsV2Response(
+        val paymentRef: String,
+        val stateCode: String,
+        val cashCode: String? = null
+    )
+    data class PostMoneyPaymentsByPaymentRefCashCodeRequest(
+        val idempotencyKey: String,
+        val paymentRef: String,
+        val code: String
+    )
+    data class PostMoneyPaymentsByPaymentRefCashCodeResponse(
+        val stateCode: String
+    )
+    data class PostMoneyPaymentsByPaymentRefReleaseRequest(
+        val idempotencyKey: String,
+        val paymentRef: String
+    )
+    data class PostMoneyPaymentsByPaymentRefReleaseResponse(
+        val stateCode: String
     )
     data class PostMoneyWalletsRequest(
         val idempotencyKey: String

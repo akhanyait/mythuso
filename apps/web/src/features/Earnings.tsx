@@ -12,10 +12,12 @@ import {
 } from '../lib/earnings';
 import { days, forecast, hoursOffered, typicalOver, typicalShare } from '../lib/forecast';
 import { can, type VettingSubject } from '../lib/vetting';
-/* No payment provider is contracted, so the payment run on this screen is a simulated bank. It
-   pays nobody, verifies no account and reverses nothing — and within that, it answers a week's run
-   with the same three states earnings.json already draws, in the same sentences. */
-import { askToVerifyAccount, runPayout, type PayoutAdvice } from '../lib/simulation';
+/* No payment provider is contracted, so the payment run on this screen is a simulated bank behind
+   Thuso Money's locked payout-advice door. It pays nobody, verifies no account and reverses nothing —
+   and within that, it answers a week's run with the same three states earnings.json already draws,
+   in the same sentences, for the amount the ledger worked out from the week's lines. */
+import { askToVerifyAccount } from '../lib/simulation';
+import { runWeek, type PayoutAdvice } from '../lib/money';
 import { subjectById } from '../lib/vetting-fixtures';
 import './nurse-kit.css';
 import './nurse-tools.css';
@@ -221,7 +223,7 @@ function Week({ week, nurseId, open, toggle }: { week: EarningWeek; nurseId: str
        it will not pay anybody, it will not verify an account and it will not reverse a payout that
        never left, and within those three refusals it says what happened to a week's run. */}
    {week.state === 'accruing' ? null : <div className="earn-run">
-    {!advice ? <button className="secondary" onClick={() => setAdvice(runPayout(week.id, nurseId, week.total, week.state))}>
+    {!advice ? <button className="secondary" onClick={() => setAdvice(runWeek(week.id, nurseId, week.ends))}>
      <Landmark size={16}/>Run the {cycle.paysOn} payment run</button> : null}
     {advice?.refused !== undefined ? <div className="earn-refusal"><Ban size={19}/><p>{advice.refused}</p></div> : null}
     {advice && advice.refused === undefined ? <div className="earn-advice" role="status">

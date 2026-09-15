@@ -244,6 +244,9 @@ private fun VisitPart.fact(label: String): String? = detail.firstOrNull { it.lab
                                     VisitPartFact(FACT_IDENTITY, "Document seen by the nurse")
                                 )
                             )
+                            /* appointment.in_progress, as the preview has it: the code matched, so the
+                               visit has started and so has its timer, timed by the visit's own service. */
+                            FieldSafetyStore.startVisit(reference, nurseToday.firstOrNull { it.reference == reference }?.serviceId ?: nurseToday.first().serviceId, codeMatched = true)
                             stage = 1
                         } else otpError = "That code doesn’t match this visit. Call the Control Tower before continuing."
                     }, enabled = otp.length == 6 && identitySeen, shape = ThusoButtonShape) { Text("Confirm identity") }
@@ -461,6 +464,8 @@ private fun VisitPart.fact(label: String): String? = detail.firstOrNull { it.lab
                                 )
                             )
                             queue.seal(reference)
+                            /* appointment.completed, as the preview has it: signed, so nobody is left in the house to time. */
+                            FieldSafetyStore.visitSigned(reference)
                             signed = true
                         }, enabled = mayWrite?.allowed != false, shape = ThusoButtonShape) { Text("Sign demo assessment") }
                     }

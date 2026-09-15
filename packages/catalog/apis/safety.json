@@ -32,7 +32,8 @@
     {"field": "dueAt", "type": "instant", "required": true, "why": "When it goes overdue."}
    ],
    "refusals": [
-    {"id": "visit-not-assigned", "status": 403, "statement": "That visit is not yours to time.", "why": "A timer belongs to the nurse at the door."}
+    {"id": "visit-not-assigned", "status": 403, "statement": "That visit is not yours to time.", "why": "A timer belongs to the nurse at the door."},
+    {"id": "expected-minutes-not-the-service", "status": 422, "statement": "A visit is timed by the service that was booked, not by a number sent with it.", "why": "The duration lives in packages/catalog/services.json (packages/catalog/field-safety.json, timer.expectedMinutesFrom). A caller-chosen duration is a timer that can be set to anything."}
    ],
    "emits": [],
    "emitsNoneBecause": "A timer emits checkin.overdue when it runs out, not when it starts.",
@@ -107,13 +108,17 @@
     {"field": "locationShareEndsAt", "type": "instant", "required": true, "why": "When sharing stops."}
    ],
    "refusals": [
-    {"id": "share-without-end", "status": 422, "statement": "Live location is shared for a fixed window, and the window always ends.", "why": "A share with no end is a tracker."}
+    {"id": "share-without-end", "status": 422, "statement": "Live location is shared for a fixed window, and the window always ends.", "why": "A share with no end is a tracker."},
+    {"id": "window-not-the-declared-one", "status": 422, "statement": "The window is the one the desk's policy sets. A phone does not choose how long it is watched.", "why": "packages/catalog/field-safety.json declares panic.windowMinutes. A caller-chosen window is a share whose end is whatever was sent."},
+    {"id": "dispatch-from-a-panic-without-a-person", "status": 409, "statement": "A panic goes to the desk. Nobody is sent to it until a person at the desk decides.", "why": "§13: never auto-dispatch without a human. The exceptions are an unresponsive patient and an SOS, and a nurse's panic is neither."}
    ],
    "emits": ["panic.raised@1"],
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E4", "what": "panic button, live location"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'POST /v1/safety/panics@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",

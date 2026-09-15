@@ -29,6 +29,8 @@ import { emitRewards } from './emit-rewards.mjs';
 import { emitThusoIQ } from './emit-thusoiq.mjs';
 import { emitAssistant } from './emit-assistant.mjs';
 import { emitOpenSource } from './emit-open-source.mjs';
+import { emitCare } from './emit-care.mjs';
+import { emitFieldSafety } from './emit-field-safety.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -868,7 +870,12 @@ const generated = [
  { source: 'packages/catalog/thusoiq.json', command: 'npm run thusoiq-contract', files: emitThusoIQ() },
  { source: 'packages/catalog/assistant.json', command: 'npm run assistant', files: emitAssistant() },
  { source: 'packages/catalog/gilbert-emergency-terms.json', command: 'npm run assistant', files: emitAssistant() },
- { source: 'packages/catalog/open-source.json', command: 'npm run open-source', files: emitOpenSource() }
+ { source: 'packages/catalog/open-source.json', command: 'npm run open-source', files: emitOpenSource() },
+ { source: 'packages/catalog/care.json', command: 'npm run care', files: emitCare() },
+ { source: 'packages/catalog/apis/care.json', command: 'npm run care', files: emitCare() },
+ { source: 'packages/catalog/field-safety.json', command: 'npm run field-safety', files: emitFieldSafety() },
+ { source: 'packages/catalog/apis/safety.json', command: 'npm run field-safety', files: emitFieldSafety() },
+ { source: 'packages/catalog/sos.json', command: 'npm run field-safety', files: emitFieldSafety() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -2623,6 +2630,28 @@ for(const id of ['share-is-not-reduced','suspension-is-not-confiscation','accrue
 for(const s of catalogue.filter(s=>s.phase===1)) {
  const share=s.nurseShare/s.price;
  if(share<0.74||share>0.76) throw new Error(`${s.name} pays the nurse ${(share*100).toFixed(1)}% of R${s.price}. The public page says three quarters; either the price changes or the claim does.`);
+}
+/* And the share is said only about the services the page describes. The landing page lists the launch
+   services and states a percentage; a later service may pay less — the screening bundle and Thuso SOS
+   do — so the page may not type a share of its own, may not say "three quarters" or "every visit fee"
+   unqualified, and its percentage must be the one every service it lists actually pays. Admin, which
+   shows every service, may not type a single rate for all of them either. */
+{
+ const landingSource = read('apps/web/src/features/Landing.tsx');
+ const listsLaunchOnly = /matchingServices = liveServices\.filter\(/.test(landingSource) && !/\bservices\.(map|filter)\(s => .*landing-services/.test(landingSource);
+ const described = listsLaunchOnly ? catalogue.filter(s => s.phase === 1) : catalogue;
+ const platform = JSON.parse(read('packages/catalog/business-model.json')).unitEconomics.platformShare;
+ const statedPct = Math.round((1 - platform) * 100);
+ for (const s of described) {
+  if (Math.round((s.nurseShare / s.price) * 100) !== statedPct) throw new Error(`The landing page says a nurse keeps ${statedPct}% of the fee for the services it lists, and ${s.name} pays ${Math.round((s.nurseShare / s.price) * 100)}% (R${s.nurseShare} of R${s.price}). Either the price changes or the page stops saying it.`);
+ }
+ const typedShare = landingSource.match(/[Tt]hree[ -]quarters|\b\d{2}%\s*of (the|every)|of every visit fee/);
+ if (typedShare) throw new Error(`apps/web/src/features/Landing.tsx says "${typedShare[0]}". The share is {nurseShare}, derived from packages/catalog/business-model.json, and it is said about the launch services the page lists — a later service may pay less.`);
+ for (const claim of landingSource.matchAll(/\{nurseShare\}%[^<{]{0,80}/g)) {
+  if (!/launch/.test(claim[0])) throw new Error(`apps/web/src/features/Landing.tsx claims "${claim[0].trim()}" without saying it is about the services offered at launch. ${catalogue.filter(s => Math.round((s.nurseShare / s.price) * 100) !== statedPct).map(s => s.name).join(' and ')} pay a different share.`);
+ }
+ const adminTyped = read('apps/web/src/features/Admin.tsx').match(/(proposal'?s|follows the)\s*\d{2}%|\b75%/);
+ if (adminTyped) throw new Error(`apps/web/src/features/Admin.tsx types "${adminTyped[0]}" as the nurse's share. It shows every service in the catalogue, and they do not all pay one rate; read each service's nurseShare.`);
 }
 const shares=catalogue.filter(s=>s.phase===1).map(s=>s.nurseShare);
 const advertised=read('apps/web/src/features/Landing.tsx').match(/\{money\((\d+)\)\}–\{money\((\d+)\)\} a visit/);
@@ -6649,3 +6678,416 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  console.log(`The open-source register holds ${register.components.length} components and ${register.owned.length} owned parts, ${linkCount} links to real engines, routes, doors and capabilities, ${proposedDoors.size} proposed doors, ${unverifiedCount} honestly unverified sources — and ${adoptedCount} adopted, across ${manifests.length} manifests that declare none of them.`);
 }
 /* ==== end of PLATFORM INTEGRATIONS: THE OPEN-SOURCE REGISTER ======================================== */
+
+/* ==== Money (Wave 3): payments, payouts and doctors' fees ===========================================
+
+   Added by the Money lead. Self-contained. Thuso Money's rules live in packages/catalog/money.json and
+   packages/catalog/apis/money.json and are enforced in packages/engines/src/money; what this block holds
+   them to is the handful of ways each could quietly stop being true while every test still passed:
+
+     1. The native copy of the contract is the generator's output, byte for byte.
+     2. A range is not a price. The doctor's per-case fee is null with nobody's name beside it, or it is
+        a number inside the cited range with a name and a day — and no Money screen types the range.
+     3. The simulated provider says what apps/api's says when it declines, word for word, and
+     4. answers every reference the same way, so the web preview and the engine's tests are told the
+        same thing about the same visit or week.
+     5. A nurse's week is her share of each visit in services.json, and nothing else, through the ledger.
+     6. Money hears only its list and publishes only its own live events. */
+{
+ const { emitMoney } = await import('./emit-money.mjs');
+ const moneyContract = JSON.parse(read('packages/catalog/money.json'));
+ const moneyApi = JSON.parse(read('packages/catalog/apis/money.json'));
+ const modelForMoney = JSON.parse(read('packages/catalog/business-model.json'));
+ const servicesForMoney = JSON.parse(read('packages/catalog/services.json'));
+ const earningsForMoney = JSON.parse(read('packages/catalog/earnings.json'));
+ const eventsForMoney = JSON.parse(read('packages/catalog/events.json'));
+ const moneyRefusal = id => moneyApi.refusals.find(r => r.id === id) ?? moneyApi.routes.flatMap(r => r.refusals).find(r => r.id === id);
+
+ /* 1. Generated, and the same as its sources. Compared here rather than in the shared list because it
+       has two sources, and a refusal sentence changed in the API contract must regenerate it too. */
+ for (const file of emitMoney()) {
+  if (!existsSync(file.path)) throw new Error(`${file.path} has not been generated from packages/catalog/money.json. Run: npm run money`);
+  for (const source of ['packages/catalog/money.json', 'packages/catalog/apis/money.json']) {
+   if (statSync(file.path).mtimeMs < statSync(source).mtimeMs) throw new Error(`${file.path} is older than ${source}. Run: npm run money`);
+  }
+  if (read(file.path) !== file.content) throw new Error(`${file.path} is not what packages/catalog/money.json generates. Either it was edited by hand — it says at the top not to be — or the generator changed. Run: npm run money`);
+ }
+
+ /* 2. A range is not a price. The easy fix for an undecided fee is the middle of the range, and it would
+       be a figure on a doctor's screen that nobody agreed to. */
+ const undecided = moneyRefusal('doctor-fee-undecided');
+ if (!undecided?.statement?.trim()) throw new Error('packages/catalog/apis/money.json has lost the refusal doctor-fee-undecided, so nothing says why a doctor is not paid while the fee is undecided.');
+ if (!moneyContract.doctorFees?.length) throw new Error('packages/catalog/money.json names no doctor\'s fee, so review.billable@1 has nothing to be billed against.');
+ const citedRanges = [];
+ for (const fee of moneyContract.doctorFees) {
+  const cited = fee.rangeFrom?.file === 'packages/catalog/business-model.json' ? modelForMoney : undefined;
+  const range = String(fee.rangeFrom?.path ?? '').split('.').reduce((at, key) => at?.[key], cited);
+  if (!Array.isArray(range) || range.length !== 2 || !(range[0] > 0 && range[0] < range[1])) throw new Error(`The fee "${fee.feeCode}" cites ${JSON.stringify(fee.rangeFrom)}, which is not a range of two numbers. A fee's range is read from the document that gives it, not typed beside it.`);
+  if ('range' in fee || 'price' in fee || 'low' in fee || 'high' in fee) throw new Error(`The fee "${fee.feeCode}" types a range or a price beside its citation. The range lives in ${fee.rangeFrom.file}.`);
+  if (fee.amount === null) {
+   if (fee.decidedBy !== null || fee.decidedOn !== null) throw new Error(`The fee "${fee.feeCode}" names who decided it and when, and has no amount. Either it was decided and the amount is missing, or it was not and the name is invented.`);
+   if (!fee.undecided?.trim() || !fee.whoDecides?.trim()) throw new Error(`The fee "${fee.feeCode}" is undecided and does not say so in a sentence, or does not say who decides it.`);
+  } else if (typeof fee.amount !== 'number' || !fee.decidedBy?.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(fee.decidedOn ?? '') || fee.amount < range[0] || fee.amount > range[1]) {
+   throw new Error(`The fee "${fee.feeCode}" is ${JSON.stringify(fee.amount)}, decided by ${JSON.stringify(fee.decidedBy)} on ${JSON.stringify(fee.decidedOn)}, against a cited range of R${range[0]}–R${range[1]}. A decided fee is a number inside the range with a person and a day beside it. ${undecided.statement}`);
+  }
+  citedRanges.push(range);
+ }
+ const moneyScreens = [
+  'apps/web/src/features/DoctorFees.tsx', 'apps/web/src/lib/money.ts',
+  'apps/ios/MyThuso/Features/DoctorFeesView.swift', 'apps/ios/MyThuso/Models/Money.swift',
+  'apps/android/app/src/main/java/za/co/mythuso/ui/MoneyScreens.kt', 'apps/android/app/src/main/java/za/co/mythuso/model/Money.kt',
+  'packages/engines/src/money/domain/fees.ts', 'packages/engines/src/money/engine.ts'
+ ].filter(existsSync);
+ for (const [low, high] of citedRanges) {
+  const typed = new RegExp(`R\\s?(${low}|${high})\\b|\\b${low}\\s?(–|-|to)\\s?R?\\s?${high}\\b`);
+  for (const file of moneyScreens) if (typed.test(read(file))) throw new Error(`${file} types the doctor's fee range. It is read from packages/catalog/business-model.json — on the phones through the generated MoneyData — so the range on a doctor's screen and the range in the funding proposal's model are one number.`);
+ }
+
+ /* 2b. No card fragment where a person pays. The booking screens on all three platforms offered
+        "Visa ending 4242" and reviewed "•••• 4242": fictional, and still the last four digits of a card on
+        the screen where somebody decides to pay — a fragment in every screenshot, and the very fragment
+        the payment-result door refuses by name. The ways to pay are money.json's, and nothing else is. */
+ const bookingScreens = [
+  'apps/web/src/features/Booking.tsx', 'apps/ios/MyThuso/Features/BookingView.swift',
+  'apps/android/app/src/main/java/za/co/mythuso/ui/CareScreens.kt'
+ ];
+ for (const file of bookingScreens) {
+  if (!existsSync(file)) throw new Error(`${file} is gone, so nothing holds its payment step to the ways to pay in packages/catalog/money.json.`);
+  const fragment = read(file).match(/\b\d{4}\b(?=[^\n]*(Visa|Mastercard|ending|card))|Visa ending|••••\s?\d|\*{4}\s?\d{4}/);
+  if (fragment) throw new Error(`${file} shows a card fragment ("${fragment[0]}") on the screen where a person pays. ${moneyRefusal('card-number-held').statement} The ways to pay are named in packages/catalog/money.json, and none of them is a card number.`);
+ }
+
+ /* 3. The decline sentences are the contract's. apps/api still carries its own copy and reads no contract
+       for them; until it does, the two are held to each other here rather than allowed to part. */
+ const apiPayments = read('apps/api/src/simulation/payments.ts');
+ const declinesBlock = apiPayments.match(/const DECLINES = \[([\s\S]*?)\] as const/);
+ const apiDeclines = declinesBlock ? [...declinesBlock[1].matchAll(/'([^']+)'/g)].map(m => m[1]) : [];
+ if (!apiDeclines.length) throw new Error('apps/api/src/simulation/payments.ts no longer declares DECLINES where this check can read them, so nothing holds its sentences to packages/catalog/money.json.');
+ if (JSON.stringify(apiDeclines) !== JSON.stringify(moneyContract.declines)) throw new Error(`The simulated provider in apps/api declines in different words from packages/catalog/money.json's declines. A patient walking the web preview and the engine's own tests would be told two different things about the same refused card.`);
+
+ /* 4. The two simulators agree. The engine reproduces apps/api's by contract — the seed, the one in five,
+       the sentences — rather than importing it, so the agreement is measured rather than assumed. */
+ const engineProvider = await import('../packages/engines/src/money/domain/provider.ts');
+ const { cardAndEft } = await import('../apps/api/src/simulation/payments.ts');
+ const { bankPayouts } = await import('../apps/api/src/simulation/payouts.ts');
+ const failedDetail = earningsForMoney.states.find(s => s.id === 'failed').detail;
+ const checkedAt = new Date('2026-09-14T08:00:00+02:00');
+ const disagreements = [];
+ const SAMPLES = 80;
+ for (let i = 0; i < SAMPLES; i += 1) {
+  const subject = `MT-CHECK-${i}`;
+  const attemptNumber = 1 + (i % 3);
+  const service = servicesForMoney[i % servicesForMoney.length];
+  const theirs = cardAndEft.produce({ subject, at: checkedAt, detail: { service: service.id, attempt: attemptNumber } });
+  const ours = engineProvider.attempt(subject, attemptNumber, subject, service.price * 100, checkedAt);
+  if ('refused' in theirs || theirs.payload.outcome !== ours.outcome || theirs.payload.amountCents !== ours.amountCents || (theirs.payload.declineReason ?? null) !== (ours.declineReason ?? null) || theirs.payload.providerReference !== ours.providerReference) disagreements.push(`payment ${subject} attempt ${attemptNumber}`);
+  for (const was of ['closed', 'failed']) {
+   const weekId = `w-check-${i}`;
+   const bank = bankPayouts.produce({ subject: weekId, at: checkedAt, detail: { partyId: 'N-205', amountCents: 10000, was } });
+   const advice = engineProvider.advise(weekId, 'N-205', 10000, was, failedDetail, checkedAt);
+   if ('refused' in bank || bank.payload.outcome !== advice.outcome || (bank.payload.failureReason ?? null) !== (advice.failureReason ?? null)) disagreements.push(`payout ${weekId} after ${was}`);
+  }
+ }
+ if (disagreements.length) throw new Error(`packages/engines/src/money/domain/provider.ts and apps/api's simulators disagree about ${disagreements.length} of ${SAMPLES * 3} answers, the first being ${disagreements[0]}. The engine reproduces them by contract, and a reproduction that answers differently is a second simulator.`);
+
+ /* 5. A week is the nurse's share of each visit, through the ledger — and a visit line that names its own
+       amount is refused by the ledger rather than believed. */
+ const payoutsDomain = await import('../packages/engines/src/money/domain/payouts.ts');
+ for (const week of earningsForMoney.weeks) {
+  const byHand = week.lines.reduce((sum, line) => {
+   const kind = earningsForMoney.lineKinds.find(k => k.id === line.kind);
+   const base = line.service ? servicesForMoney.find(s => s.id === line.service).nurseShare : line.amount;
+   return sum + kind.sign * base * 100;
+  }, 0);
+  const throughTheLedger = payoutsDomain.totalCents(payoutsDomain.linesFromEarningsWeek(week));
+  if (throughTheLedger !== byHand) throw new Error(`The ledger works out week ${week.id} as ${throughTheLedger} cents, and the nurse's share of its visits in packages/catalog/services.json is ${byHand}. A payout is that share and nothing else.`);
+ }
+ const namedAmount = payoutsDomain.acceptLine({ kind: 'visit', reference: 'check', serviceId: servicesForMoney[0].id, amountCents: 1 });
+ if (namedAmount?.id !== 'payout-line-names-its-amount') throw new Error(`The ledger accepted a visit line that names its own amount. ${moneyRefusal('payout-line-names-its-amount').statement}`);
+
+ /* 6. Money hears only its list, and publishes only its own live events, each one a route of its declares. */
+ const moneyEngineSource = read('packages/engines/src/money/engine.ts');
+ const heardBlock = moneyEngineSource.match(/export const HEARD[^=]*=\s*\[([^\]]*)\]/);
+ const heard = heardBlock ? [...heardBlock[1].matchAll(/'([^']+)'/g)].map(m => m[1]) : [];
+ if (!heard.length) throw new Error('packages/engines/src/money/engine.ts no longer lists what it hears in HEARD, so nothing here can hold its subscriptions to moneyHears.');
+ const hearsTypes = new Set(eventsForMoney.moneyHears.events.map(e => e.type));
+ for (const key of heard) {
+  const [type, version] = key.split('@');
+  const event = eventsForMoney.events.find(e => e.type === type && e.version === Number(version));
+  if (!hearsTypes.has(type) || !event || event.withdrawn || !event.subscribers.includes('money')) throw new Error(`Money subscribes to ${key}, which is not a live event on its moneyHears list. ${moneyRefusal('hears-only-its-list').statement}`);
+ }
+ const declaredEmits = new Set([...moneyApi.routes.flatMap(r => r.emits), 'payout.scheduled@1', 'payout.paid@1']);
+ const emittedKeys = new Set([...read('packages/engines/src/money/domain/ledger.ts').matchAll(/emit\('([^']+)'/g)].map(m => m[1]));
+ if (!emittedKeys.size) throw new Error('packages/engines/src/money/domain/ledger.ts publishes nothing this check can find, so nothing holds what Money publishes to the event contract.');
+ for (const key of emittedKeys) {
+  const [type, version] = key.split('@');
+  const event = eventsForMoney.events.find(e => e.type === type && e.version === Number(version));
+  if (!event || event.withdrawn || event.owner !== 'money' || !declaredEmits.has(key)) throw new Error(`Money's ledger publishes ${key}, which is not a live event Money owns and declares. A second publisher is a second source of truth.`);
+ }
+
+ console.log(`Thuso Money's contract is generated into ${emitMoney().length} native files and matches them; ${moneyContract.doctorFees.length} doctor's fee is ${moneyContract.doctorFees.every(f => f.amount === null) ? 'undecided, with nobody\'s name beside it, and its range is read from the document that gives it' : 'decided, by a named person, inside its cited range'}; the engine's simulated provider and bank agree with apps/api's on all ${SAMPLES * 3} sampled answers and decline in the contract's words; every sample week is the nurse's share through the ledger; and Money hears ${heard.length} events on its list and publishes ${emittedKeys.size} of its own.`);
+}
+/* ==== end of Money (Wave 3) ========================================================================== */
+
+/* ==== Care & Nurse (Wave 3): packages/catalog/care.json and packages/engines/src/care ===============
+
+   Added by the Care & Nurse lead. Self-contained. What it holds Care to, in the order a mistake would
+   reach a nurse: every service says who may be offered it; the offer expiry stays a proposal until
+   somebody is named as having decided it; the sample visit is a visit the contracts could produce; the
+   ported distance is packages/geo's to the last bit; every refusal Care cites and every event it
+   publishes is one the contracts declare, and none carries the visit code; a checklist runs under no
+   draft; and no hand-written Care file types a refusal sentence or the expiry the contract owns. */
+{
+ const careContract = JSON.parse(read('packages/catalog/care.json'));
+ const careApi = JSON.parse(read('packages/catalog/apis/care.json'));
+ const careServices = JSON.parse(read('packages/catalog/services.json'));
+ const careVetting = JSON.parse(read('packages/catalog/vetting.json'));
+ const careProtocols = JSON.parse(read('packages/catalog/protocols.json'));
+ const careGeography = JSON.parse(read('packages/catalog/geography.json'));
+ const careScheduling = JSON.parse(read('packages/catalog/scheduling.json'));
+ const careRoster = JSON.parse(read('packages/catalog/roster.json'));
+ const careEventsContract = JSON.parse(read('packages/catalog/events.json'));
+ const sharedRefusalIds = new Set(JSON.parse(read('packages/catalog/apis.json')).sharedRefusals.map(r => r.id));
+
+ /* 1. Every service says who may be offered it, in the register's own words. A service with no row is
+       a service anybody could be sent to; a scope the register does not give a role is a gate nobody
+       can pass, which looks like a shortage rather than a mistake. */
+ const rows = new Map(careContract.services.map(s => [s.serviceId, s]));
+ if (rows.size !== careContract.services.length) throw new Error('packages/catalog/care.json names a service twice. Two rows for one service are two answers to who may be sent.');
+ for (const s of careServices) if (!rows.has(s.id)) throw new Error(`packages/catalog/services.json sells "${s.id}" and packages/catalog/care.json does not say who may be offered it.`);
+ const roleIds = new Set(careVetting.roles.map(r => r.id));
+ for (const s of careContract.services) {
+  if (!careServices.some(x => x.id === s.serviceId)) throw new Error(`packages/catalog/care.json has a row for "${s.serviceId}", which services.json does not sell.`);
+  for (const role of s.roles) if (!roleIds.has(role)) throw new Error(`packages/catalog/care.json lets the role "${role}" be offered ${s.serviceId}, and the vetting register has no such role.`);
+  if (s.scope !== null) for (const role of s.roles) {
+   if (!(careVetting.roles.find(r => r.id === role)?.scope?.options ?? []).includes(s.scope)) throw new Error(`packages/catalog/care.json requires the scope "${s.scope}" for ${s.serviceId}, which the vetting register does not give a ${role}.`);
+  }
+  for (const id of s.protocolIds) if (!careProtocols.protocols.some(p => p.id === id)) throw new Error(`packages/catalog/care.json governs ${s.serviceId} by "${id}", which the protocol register does not hold.`);
+  if (s.supervisedBy !== undefined && !roleIds.has(s.supervisedBy)) throw new Error(`packages/catalog/care.json supervises ${s.serviceId} by "${s.supervisedBy}", which is not a role on the register.`);
+ }
+
+ /* 2. A proposal is not a decision. The expiry is a number somebody proposed; the day it becomes a
+       decision it names who took it and when, or the build says it has not been taken. */
+ const offers = careContract.offers;
+ if (!Number.isInteger(offers.expiresAfterMinutes) || offers.expiresAfterMinutes <= 0) throw new Error('packages/catalog/care.json gives an offer no whole number of minutes to lapse in, so an unanswered offer could hold a patient\'s visit for ever.');
+ if (offers.decidedBy === null ? !offers.awaiting?.trim() : !(String(offers.decidedBy).trim() && /^\d{4}-\d{2}-\d{2}$/.test(offers.decidedOn ?? ''))) {
+  throw new Error('packages/catalog/care.json says the offer expiry was decided without naming who decided it and on what day, or leaves it undecided without saying who it waits on.');
+ }
+ const orderIds = offers.order.map(x => x.id).join(',');
+ if (orderIds !== 'named,previous,nearest') throw new Error(`packages/catalog/care.json orders offers ${orderIds}; packages/engines/src/care/domain/matching.ts ranks named, then previous, then nearest.`);
+
+ /* 3. The sample visit is one the contracts could produce, so the screens walking it walk a real shape. */
+ const pv = careContract.preview;
+ const pvService = careServices.find(s => s.id === pv.serviceId);
+ if (!pvService || pvService.phase > careContract.seedPhase) throw new Error(`The Care preview visit is for "${pv.serviceId}", which is not a service offered in phase ${careContract.seedPhase}.`);
+ if (!careGeography.zones.some(z => z.id === pv.zone)) throw new Error(`The Care preview visit is in "${pv.zone}", which packages/catalog/geography.json does not draw.`);
+ if (!careScheduling.offer.slots.includes(pv.slot)) throw new Error(`The Care preview visit is at ${pv.slot}, which is not a slot packages/catalog/scheduling.json offers.`);
+ if (!careRoster.nurses.some(n => n.id === pv.clinicianRef)) throw new Error(`The Care preview visit is for "${pv.clinicianRef}", who is not on packages/catalog/roster.json.`);
+ if (!/^\d{6}$/.test(pv.visitCode)) throw new Error('The Care preview visit code is not six digits, which is the code every other screen asks for.');
+
+ /* 4. The ported distance is packages/geo's. Run both over every suburb centre and a handful of points
+       chosen to be wrong — Cupertino, null island, a swapped pair, the corners of the box — and ask for
+       equality, not closeness: a port that agrees to twelve places today disagrees at the first edit. */
+ const port = await import('../packages/engines/src/care/domain/geo.ts');
+ const geoPackage = await import('../packages/geo/index.ts');
+ if (port.EARTH_RADIUS_KM !== geoPackage.EARTH_RADIUS_KM || port.MAX_REALISTIC_DISPATCH_KM !== geoPackage.MAX_REALISTIC_DISPATCH_KM || JSON.stringify(port.SA_BOUNDS) !== JSON.stringify(geoPackage.SA_BOUNDS)) {
+  throw new Error('packages/engines/src/care/domain/geo.ts no longer holds packages/geo\'s earth radius, dispatch limit or South Africa box.');
+ }
+ const probes = [...careGeography.zones.map(z => z.at), { lat: 37.33, lng: -122.03 }, { lat: 0, lng: 0 }, { lat: 28.042, lng: -26.146 }, { lat: -35.5, lng: 16 }, { lat: -22, lng: 33.5 }, { lat: -33.925, lng: 18.424 }, { lat: -25.9, lng: 32.6 }];
+ for (const p of probes) {
+  if (port.isInsideSouthAfrica(p) !== geoPackage.isInsideSouthAfrica(p)) throw new Error(`The Care geo port and packages/geo disagree about whether ${p.lat}, ${p.lng} is in South Africa.`);
+  for (const q of probes) if (port.distanceKm(p, q) !== geoPackage.distanceKm(p, q)) throw new Error(`The Care geo port measures ${p.lat}, ${p.lng} to ${q.lat}, ${q.lng} as ${port.distanceKm(p, q)} km and packages/geo as ${geoPackage.distanceKm(p, q)} km.`);
+ }
+
+ /* 5. Every refusal Care answers with is declared where the runtime looks for it. The runtime would
+       refuse an undeclared id at request time as a fault; this refuses it before anybody requests. */
+ const careCode = files('packages/engines/src/care').filter(f => f.endsWith('.ts') && !f.endsWith('.test.ts'));
+ const contractSource = read('packages/engines/src/care/domain/contract.ts');
+ const routePaths = Object.fromEntries([...contractSource.matchAll(/^ (\w+): '(\/v1\/care[^']*)'/gm)].map(m => [m[1], m[2]]));
+ const refusalsOn = path => new Set((careApi.routes.find(r => r.method === 'POST' && r.path === path)?.refusals ?? []).map(r => r.id));
+ const anyCareRefusal = new Set([...careApi.routes.flatMap(r => r.refusals.map(x => x.id)), ...careApi.refusals.map(r => r.id), ...sharedRefusalIds]);
+ let citedRefusals = 0;
+ for (const file of careCode) {
+  const source = read(file);
+  for (const m of source.matchAll(/refuse\(this\.#contract,\s*ROUTES\.(\w+),\s*'([a-z0-9-]+)'\)/g)) {
+   citedRefusals++;
+   const path = routePaths[m[1]];
+   if (!path) throw new Error(`${file} refuses on ROUTES.${m[1]}, which packages/engines/src/care/domain/contract.ts does not name.`);
+   if (!refusalsOn(path).has(m[2]) && !sharedRefusalIds.has(m[2])) throw new Error(`${file} refuses POST ${path} with "${m[2]}", which that route does not declare and no route inherits.`);
+  }
+  for (const m of source.matchAll(/refuse\('([a-z0-9-]+)'\)/g)) {
+   citedRefusals++;
+   if (!anyCareRefusal.has(m[1])) throw new Error(`${file} answers with the refusal "${m[1]}", which no care route, the care engine or the shared refusals declare.`);
+  }
+ }
+ /* The match kinds that are not a match are passed to the offers route as refusal ids by name. */
+ for (const m of read('packages/engines/src/care/domain/matching.ts').matchAll(/kind: '([a-z-]+)' \}/g)) {
+  if (m[1] !== 'matched' && !refusalsOn('/v1/care/offers').has(m[1])) throw new Error(`packages/engines/src/care/domain/matching.ts can answer "${m[1]}", which POST /v1/care/offers passes on as a refusal and does not declare.`);
+ }
+
+ /* 6. Every event Care publishes is live, Care's own, carries only its frozen fields, and never the code.
+       A code on the bus proves nothing at the next door, and a field the event does not declare is a
+       field every subscriber starts logging. */
+ const liveEvents = new Map(careEventsContract.events.filter(e => !e.withdrawn).map(e => [`${e.type}@${e.version}`, e]));
+ const routeEmits = new Set(careApi.routes.flatMap(r => r.emits));
+ const published = [];
+ for (const file of careCode) {
+  const source = read(file);
+  for (const m of source.matchAll(/type: '([a-z_.]+)', version: (\d+),[^]*?payload: \{([^}]*)\}/g)) published.push({ file, key: `${m[1]}@${m[2]}`, keys: m[3], viaRoute: true });
+  for (const m of source.matchAll(/#event\(visit, '([a-z_.]+)', ROUTES\.\w+, \{([^}]*)\}\)/g)) published.push({ file, key: `${m[1]}@1`, keys: m[2], viaRoute: true });
+  for (const m of source.matchAll(/ctx\.publish\('([a-z_.]+@\d+)', \{([^}]*)\}/g)) published.push({ file, key: m[1], keys: m[2], viaRoute: false });
+  if (/visitCode\s*[:,}][^\n]*\bpublish\(|publish\([^)]*visitCode|payload: \{[^}]*visitCode/.test(source)) throw new Error(`${file} puts the visit code on an event. The code is the proof at the door and is never broadcast.`);
+ }
+ if (!published.length) throw new Error('No event was found in packages/engines/src/care; the Care block of this check has stopped reading the code it exists to read.');
+ for (const { file, key, keys, viaRoute } of published) {
+  const e = liveEvents.get(key);
+  if (!e) throw new Error(`${file} publishes ${key}, which is not a live event.`);
+  if (e.owner !== 'care') throw new Error(`${file} publishes ${key}, which the ${e.owner} engine owns.`);
+  if (viaRoute && !routeEmits.has(key)) throw new Error(`${file} publishes ${key} from a route act, and no care route declares that it emits it.`);
+  const declared = new Set(e.payload.map(f => f.field));
+  for (const name of keys.split(',').map(part => part.trim().replace(/^\.\.\./, '').split(/[:\s]/)[0]).filter(Boolean)) {
+   if (/^\(/.test(name) || name === 'requestedFor') continue;
+   if (!declared.has(name)) throw new Error(`${file} publishes ${key} with "${name}", which the event does not declare.`);
+  }
+ }
+
+ /* 7. No checklist runs under a draft. Asked of the domain itself, for every service offered today: a
+       service whose protocols are not all ratified is not runnable and says the route's sentence, and a
+       service with none says it has none. The view has nowhere to put a step. */
+ const { checklistFor } = await import('../packages/engines/src/care/domain/checklist.ts');
+ const { careContract: domainContract } = await import('../packages/engines/src/care/domain/contract.ts');
+ const notRatified = careApi.routes.find(r => r.path === '/v1/care/visits/{appointmentRef}/checklist').refusals.find(r => r.id === 'protocol-not-ratified').statement;
+ for (const s of careContract.services.filter(s => (careServices.find(x => x.id === s.serviceId)?.phase ?? 99) <= careContract.seedPhase)) {
+  const view = checklistFor(domainContract, s.serviceId);
+  const allRatified = s.protocolIds.length > 0 && s.protocolIds.every(id => careProtocols.protocols.find(p => p.id === id)?.status === 'ratified');
+  if ('steps' in view || 'items' in view) throw new Error(`The checklist for ${s.serviceId} carries steps. A protocol's content is read from the register at its version, never from a Care copy.`);
+  if (view.runnable !== allRatified) throw new Error(`The checklist for ${s.serviceId} says it is ${view.runnable ? '' : 'not '}runnable, and its protocols say otherwise.`);
+  const expected = !s.protocolIds.length ? careContract.checklist.noProtocol : allRatified ? null : notRatified;
+  if (view.refusal !== expected) throw new Error(`The checklist for ${s.serviceId} refuses with ${JSON.stringify(view.refusal)} instead of ${JSON.stringify(expected)}.`);
+ }
+
+ /* 8. No hand-written Care file types what a contract owns: a refusal sentence, one of care.json's own
+       sentences, or the expiry. The screens are listed by name so the check reaches them the day they
+       land, and a missing one is not yet an error. */
+ const careScreens = [
+  'apps/web/src/lib/care-visit.ts', 'apps/web/src/features/CareVisit.tsx',
+  'apps/ios/MyThuso/Models/CareVisit.swift', 'apps/ios/MyThuso/Features/CareVisitView.swift',
+  'apps/android/app/src/main/java/za/co/mythuso/model/CareVisit.kt', 'apps/android/app/src/main/java/za/co/mythuso/ui/CareVisitScreens.kt'
+ ].filter(existsSync);
+ const owned = [
+  ...careApi.routes.flatMap(r => r.refusals.map(x => x.statement)), ...careApi.refusals.map(r => r.statement),
+  offers.declined, offers.lapsed, offers.withheldIsNotLast.statement, careContract.checklist.noProtocol,
+  careContract.position.whileShared, careContract.record.sentence, careContract.handover.queued, careContract.complete.billable,
+  ...careContract.withheld.filter(w => w.statement).map(w => w.statement)
+ ];
+ for (const file of [...careCode, ...careScreens]) {
+  const source = read(file);
+  for (const sentence of owned) if (source.includes(sentence)) throw new Error(`${file} types the sentence "${sentence}". It belongs to its contract and is read or generated from there.`);
+ }
+ const expiryLiteral = new RegExp(`\\b${offers.expiresAfterMinutes}\\s*(-\\s*)?(min|minute)`, 'i');
+ for (const file of careScreens) if (expiryLiteral.test(read(file))) throw new Error(`${file} types the offer expiry as ${offers.expiresAfterMinutes} minutes. It is a proposal in packages/catalog/care.json and changes there.`);
+
+ console.log(`Care offers ${careContract.services.length} services by the register's roles and scopes, ${careContract.services.filter(s => !s.protocolIds.length).length} of them with no protocol to run a checklist under and the rest under drafts that run none; an offer lapses after ${offers.expiresAfterMinutes} minutes, a proposal awaiting ${offers.awaiting}. The ported distance agrees with packages/geo at ${probes.length * probes.length} pairs of points, ${citedRefusals} refusals cited in Care's code are declared where the runtime looks, ${published.length} event publications are live, Care's own and carry no visit code, and ${careCode.length + careScreens.length} hand-written Care files type none of the ${owned.length} sentences the contracts own.`);
+}
+/* ==== end of Care & Nurse (Wave 3) ================================================================== */
+
+/* ==== Safety · nurse field safety (Wave 3) ==========================================================
+
+   Added by the Safety lead. Self-contained. What it holds packages/catalog/field-safety.json and the
+   code that runs it to: every field-safety number is a proposal that still carries its question, and the
+   generator that writes them into the native apps is registered; a visit is timed by the service booked
+   rather than by a number anybody sent; the panic sentences type no emergency number of their own; every
+   refusal an engine file or a screen names has a sentence; the desk queue carries exactly its declared
+   keys and never the service, the person visited or the address; a panic has no path to a dispatch, is
+   never shared between callers, and no position is kept; and no hand-written native file types a
+   sentence or a minute the contract holds. */
+{
+ const safetyContract = JSON.parse(read('packages/catalog/field-safety.json'));
+ const safetyApi = JSON.parse(read('packages/catalog/apis/safety.json'));
+ const routeRefusalFor = (route, id) => safetyApi.routes.find(r => `${r.method} ${r.path}` === route)?.refusals.find(x => x.id === id);
+ const sentenceFor = id => safetyContract.refusals.find(x => x.id === id) ?? safetyContract.routeRefusals.map(n => routeRefusalFor(n.route, n.id)).find(x => x?.id === id);
+ const safetyFail = (id, detail) => { const r = sentenceFor(id); throw new Error(`${detail}${r ? ` ${r.statement} ${r.why ?? ''}` : ''}`); };
+
+ /* 1. Proposals stay proposals until somebody decides them, and the generator that carries them is registered. */
+ const proposals = [['timer.graceMinutes', safetyContract.timer.graceMinutes], ['timer.extensionMinutes', safetyContract.timer.extensionMinutes], ['timer.maxExtensionMinutes', safetyContract.timer.maxExtensionMinutes], ['panic.windowMinutes', safetyContract.panic.windowMinutes]];
+ for (const [name, proposal] of proposals) {
+  if (!proposal || !('decidedBy' in proposal) || !proposal.question?.trim() || !proposal.proposedBecause?.trim()) throw new Error(`packages/catalog/field-safety.json ${name} has lost its decidedBy, its question or why it was proposed. A number nobody decided has to say so, or it quietly becomes the policy.`);
+  if (proposal.decidedBy !== null && !(typeof proposal.decidedBy === 'string' && proposal.decidedBy.trim())) throw new Error(`packages/catalog/field-safety.json ${name} has a decidedBy that is neither null nor the name of whoever decided it.`);
+  const values = Array.isArray(proposal.value) ? proposal.value : [proposal.value];
+  if (!values.length || !values.every(v => Number.isInteger(v) && v > 0)) throw new Error(`packages/catalog/field-safety.json ${name} must be whole minutes above zero.`);
+ }
+ if (safetyContract.timer.maxExtensionMinutes.value < Math.max(...safetyContract.timer.extensionMinutes.value)) safetyFail('extension-limit', 'packages/catalog/field-safety.json offers an extension step larger than the ceiling, so the step could never be taken.');
+ const rootScripts = JSON.parse(read('package.json')).scripts;
+ if (rootScripts['field-safety'] !== 'node scripts/emit-field-safety.mjs' || !/npm run field-safety/.test(rootScripts.generate)) throw new Error('package.json no longer registers scripts/emit-field-safety.mjs as npm run field-safety and in npm run generate, so the native copies of the field-safety contract would stop being regenerated.');
+
+ /* 2. A visit is timed by the service booked. */
+ if (safetyContract.timer.expectedMinutesFrom !== 'packages/catalog/services.json#duration') safetyFail('expected-minutes-not-the-service', 'packages/catalog/field-safety.json no longer times a visit by the duration in packages/catalog/services.json.');
+ if (/"(expectedMinutes|durationMinutes|duration)"\s*:\s*\d/.test(read('packages/catalog/field-safety.json'))) safetyFail('expected-minutes-not-the-service', 'packages/catalog/field-safety.json types a visit duration.');
+ const checkinsSource = read('packages/engines/src/safety/domain/checkins.ts');
+ if (!checkinsSource.includes('const minutes = serviceMinutes(input.serviceId);') || !checkinsSource.includes("return refuse('expected-minutes-not-the-service')")) safetyFail('expected-minutes-not-the-service', 'packages/engines/src/safety/domain/checkins.ts no longer reads the minutes of a visit from its service, or no longer refuses a number that disagrees with it.');
+
+ /* 3. The emergency numbers a panic sentence names are sos.json's, never typed a second time. */
+ const sosNumbers = JSON.parse(read('packages/catalog/sos.json')).emergency.numbers.map(n => n.number);
+ const panicSentences = Object.values(safetyContract.panic).filter(v => typeof v === 'string').join(' ');
+ const typedNumber = sosNumbers.find(number => panicSentences.includes(number));
+ if (typedNumber) throw new Error(`packages/catalog/field-safety.json types the emergency number ${typedNumber}. Write {police} or {ambulance}; the domain rules and scripts/emit-field-safety.mjs fill them from packages/catalog/sos.json, so a wrong digit has one place to be wrong.`);
+ if (!/\{police\}/.test(safetyContract.panic.whatDoesNotHappen) || !/\{ambulance\}/.test(safetyContract.panic.whatDoesNotHappen)) throw new Error('The panic confirmation no longer tells a nurse which numbers to call herself. It must name {police} and {ambulance}.');
+
+ /* 4. Every refusal an engine file or a screen names has a sentence, and every named route refusal exists. */
+ for (const named of safetyContract.routeRefusals) if (!routeRefusalFor(named.route, named.id)?.statement?.trim()) throw new Error(`packages/catalog/field-safety.json names the refusal "${named.id}" on ${named.route}, and packages/catalog/apis/safety.json has no such refusal there.`);
+ const knownRefusals = new Set([...safetyContract.refusals.map(r => r.id), ...safetyContract.routeRefusals.map(r => r.id)]);
+ const safetySources = files('packages/engines/src/safety').filter(f => f.endsWith('.ts') && !f.endsWith('.test.ts'));
+ let refusalsNamed = 0;
+ for (const file of [...safetySources, 'apps/web/src/lib/field-safety.ts', 'apps/web/src/features/FieldSafety.tsx']) {
+  for (const m of read(file).matchAll(/\b(?:refuse|refusal)\('([a-z0-9-]+)'/g)) {
+   refusalsNamed++;
+   if (!knownRefusals.has(m[1])) throw new Error(`${file} names the refusal "${m[1]}", which packages/catalog/field-safety.json neither declares nor names on a route. A refusal with no sentence is a screen that says nothing at the moment it matters most.`);
+  }
+ }
+ for (const id of ['share-without-end', 'window-not-the-declared-one', 'dispatch-from-a-panic-without-a-person']) if (!routeRefusalFor('POST /v1/safety/panics', id)) throw new Error(`POST /v1/safety/panics no longer declares "${id}". The runtime renders only a refusal the route declares, so the engine would answer a refused panic with a fault.`);
+
+ /* 5. The desk queue carries exactly its declared keys, and never the three it must not. */
+ const deskSource = read('packages/engines/src/safety/domain/desk.ts');
+ const deskType = (deskSource.match(/export type DeskItem = \{([\s\S]*?)\n\};/) ?? [])[1] ?? '';
+ const deskKeys = [...deskType.matchAll(/readonly (\w+)\??:/g)].map(m => m[1]);
+ if (deskKeys.join(',') !== safetyContract.desk.carries.join(',')) throw new Error(`packages/engines/src/safety/domain/desk.ts DeskItem carries ${JSON.stringify(deskKeys)}, and packages/catalog/field-safety.json desk.carries declares ${JSON.stringify(safetyContract.desk.carries)}. The desk is worked with other people standing behind it; what it shows is the contract's list and nothing else.`);
+ for (const never of safetyContract.desk.neverCarries) if (deskKeys.some(k => k.toLowerCase().includes(never.field.toLowerCase()))) throw new Error(`A desk row carries "${never.field}". ${never.why}`);
+ const deskScreen = read('apps/web/src/features/FieldSafety.tsx');
+ const deskStart = deskScreen.indexOf('export function SafetyDesk');
+ if (deskStart < 0 || /\b(serviceId|service|patient|address)\b/.test(deskScreen.slice(deskStart))) throw new Error(`The desk queue in apps/web/src/features/FieldSafety.tsx reaches for a service, a patient or an address. ${safetyContract.desk.neverCarries.map(n => n.why).join(' ')}`);
+
+ /* 6. A panic has no path to a dispatch, is never shared between callers, and nothing keeps a position. */
+ for (const file of safetySources) if (/\bctx\.call\(/.test(read(file))) safetyFail('dispatch-from-a-panic-without-a-person', `${file} calls another engine's route. Safety sends nobody anywhere; a person at the desk does.`);
+ const panicsSource = read('packages/engines/src/safety/domain/panics.ts');
+ if (!panicsSource.includes('readonly position: Position | null;') || /\bpositions\s*[:=]/.test(panicsSource)) safetyFail('location-retained', 'packages/engines/src/safety/domain/panics.ts holds more than the latest position.');
+ if (!panicsSource.includes('resolved: { at: now, by: request.actor.ref, outcomeId: outcome.id }, position: null }')) safetyFail('location-retained', 'Resolving a panic in packages/engines/src/safety/domain/panics.ts no longer drops the position in the same instant.');
+ if (!panicsSource.includes('if (!isSharing(panic, now)) return afterTheWindow(panic);')) safetyFail('position-after-the-window', 'packages/engines/src/safety/domain/panics.ts no longer refuses a position once sharing has stopped.');
+ const engineSource = read('packages/engines/src/safety/engine.ts');
+ const storeSchema = engineSource.slice(engineSource.indexOf('const schema'), engineSource.indexOf('type OpenPanic'));
+ if (!storeSchema || /\b(lat|lng|latitude|longitude|position|positions|location|coordinates?)\b/i.test(storeSchema)) safetyFail('location-retained', 'The Safety engine store schema has a column for where somebody is.');
+ if (!/raised_by_role = \? AND raised_by_ref = \? AND appointment_ref IS \? AND location_share_ends_at > \?/.test(engineSource)) throw new Error("POST /v1/safety/panics@1 in packages/engines/src/safety/engine.ts no longer folds a repeat press only into the same identified caller's open panic for the same visit. A panic answered with somebody else's is a nurse the desk never hears about.");
+ if (/\bpositions\s*[:=]/.test(read('apps/web/src/lib/field-safety.ts'))) safetyFail('location-retained', 'apps/web/src/lib/field-safety.ts keeps positions somewhere other than the one latest position a panic holds.');
+
+ /* 7. Native copies are generated. A hand-written native file may not type a contract sentence or a minute. */
+ const handNative = ['apps/ios/MyThuso/Models/FieldSafety.swift', 'apps/ios/MyThuso/Features/FieldSafetyView.swift', 'apps/android/app/src/main/java/za/co/mythuso/model/FieldSafety.kt', 'apps/android/app/src/main/java/za/co/mythuso/ui/FieldSafetyScreens.kt'];
+ const blocks = [safetyContract.nurse, safetyContract.panic, safetyContract.desk, safetyContract.desk.kinds];
+ const sentences = [
+  ...blocks.flatMap(b => Object.entries(b).filter(([k, v]) => typeof v === 'string' && !k.startsWith('_')).map(([, v]) => v)),
+  ...[...safetyContract.extensionReasons, ...safetyContract.silenceReasons, ...safetyContract.outcomes, ...safetyContract.states.timer, ...safetyContract.states.panic].map(x => x.label),
+  ...safetyContract.refusals.map(r => r.statement)
+ ];
+ const pieces = sentences.flatMap(s => s.split(/\{\w+\}/)).map(p => p.trim()).filter(p => p.length >= 16);
+ const minuteNumbers = [...new Set([safetyContract.timer.graceMinutes.value, safetyContract.timer.maxExtensionMinutes.value, safetyContract.panic.windowMinutes.value, ...safetyContract.timer.extensionMinutes.value])];
+ const typedMinute = new RegExp(`\\b(${minuteNumbers.join('|')})\\s*(?:\\*\\s*60|min\\b|minutes\\b|\\.minutes)`);
+ for (const file of handNative) {
+  if (!existsSync(file)) throw new Error(`${file} is missing. The nurse safety suite ships on all three platforms from day one.`);
+  const source = read(file);
+  const typed = pieces.find(p => source.includes(p));
+  if (typed) throw new Error(`${file} types "${typed}", which packages/catalog/field-safety.json holds. Read it from FieldSafetyData, which scripts/emit-field-safety.mjs writes from the contract.`);
+  const minute = source.match(typedMinute);
+  if (minute) throw new Error(`${file} types a field-safety minute (${minute[0]}). The grace, the steps, the ceiling and the window are proposals in packages/catalog/field-safety.json and change there.`);
+ }
+
+ console.log(`Field safety holds ${proposals.length} undecided numbers with their questions and a registered generator, times a visit by its service, names no emergency number of its own, finds a sentence for all ${refusalsNamed} refusals the engine and the web name, keeps a desk row to its ${safetyContract.desk.carries.length} declared keys, never shares a panic between callers, keeps no position, and ${handNative.length} hand-written native files type none of its sentences or minutes.`);
+}
+/* ==== end of Safety · nurse field safety (Wave 3) ================================================== */

@@ -618,6 +618,9 @@ struct WorkspaceSectionView: View {
                 pill("Apply to join as a doctor", "", "person.badge.plus") { VettingApplyView(roleId: "doctor") }
                 pill("Every doctor on the platform", "", "stethoscope") { VettingRoleView(roleId: "doctor") }
             }
+            group("Your fees") {
+                pill("Per-case fees", "Every case you sign is recorded; the fee is not decided", "banknote") { DoctorFeesView() }
+            }
         }
     }
 
@@ -671,15 +674,20 @@ struct WorkspaceSectionView: View {
         }
     }
 
+    /* The field-safety queue leads the section: a nurse in trouble is picked up before the register of
+       what went wrong last week is read. */
     private var incidents: some View {
-        group("Open incidents") {
-            ForEach(Incidents.all) { incident in
-                NavigationLink { IncidentDetailView(incident: incident) } label: {
-                    QueueRow(reference: incident.id, subject: incident.title,
-                             note: "\(incident.area) · opened \(incident.opened) · \(incident.status)",
-                             chip: incident.severity,
-                             tone: incident.severity == "Critical" ? .refused : incident.severity == "High" ? .attention : .neutral)
-                }.buttonStyle(.plain)
+        VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
+            SafetyDeskSection()
+            group("Open incidents") {
+                ForEach(Incidents.all) { incident in
+                    NavigationLink { IncidentDetailView(incident: incident) } label: {
+                        QueueRow(reference: incident.id, subject: incident.title,
+                                 note: "\(incident.area) · opened \(incident.opened) · \(incident.status)",
+                                 chip: incident.severity,
+                                 tone: incident.severity == "Critical" ? .refused : incident.severity == "High" ? .attention : .neutral)
+                    }.buttonStyle(.plain)
+                }
             }
         }
     }
@@ -721,6 +729,9 @@ struct WorkspaceSectionView: View {
             .accessibilityValue(available ? "On duty" : "Off duty")
             .accessibilityHint("Changes whether the Control Tower may offer you a visit")
             .accessibilityAddTraits(.isButton)
+            /* An offer is a decision about the day, so it is read directly under whether she is taking
+               visits at all. Off duty it shows nothing new; a visit she has already taken still shows. */
+            CareOfferCard(available: available)
             /* First, not last. A nurse coming out of a house with no signal wants one answer before
                anything else on this screen: is my work safe? */
             group("On this phone") { waitingToSend }

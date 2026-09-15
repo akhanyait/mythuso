@@ -107,6 +107,9 @@ class PreviewStore(book: CaptureBook = MemoryBook(), visitBook: CaptureBook = Me
        rather than carrying copies of them, and because a visit ledger written in the older shape has
        readings inside it that have to be moved there on the way in. */
     val visitQueue = VisitQueueStore(visitBook, capture)
+    /* The visit offered to this nurse, walked from her schedule. After vetting and the visit queue,
+       because it asks the first whether she may be offered it and the second whether it is signed. */
+    val careVisit = CareVisitState(vetting, visitQueue)
     /* Which visits a clinician has already signed. It is the thing stale-write is a disagreement
        with, so the queue has to be able to ask something rather than assume. */
     val signedVisits = mutableStateListOf("TH-2045")
