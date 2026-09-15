@@ -6101,7 +6101,34 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  if (!/if \(options\.env\[settings\.flag\] !== settings\.flagValue\) throw new RuntimeRefusedToStart/.test(runtimeSource)) throw new Error(`createRuntime() in packages/engines/src/runtime/runtime.ts no longer refuses without ${runtimeSettings.flag}=${runtimeSettings.flagValue}, so importing the library skips the door the server goes through.`);
  const enginesServer = read('packages/engines/src/server.ts');
  if (!/const HOST = '127\.0\.0\.1'/.test(enginesServer) || !/server\.listen\(port, host\)/.test(enginesServer) || !/LOOPBACK\.has\(req\.socket\.remoteAddress/.test(enginesServer) || !/loopbackHosts\.has\(hostName\(req\.headers\.host\)\)/.test(enginesServer)) throw new Error('packages/engines/src/server.ts no longer binds to 127.0.0.1 and refuses a request that did not arrive on loopback, addressed to a loopback name.');
- for (const file of files('deploy')) if (/packages\/engines|@mythuso\/engines|MYTHUSO_ENGINES|npm run engines/.test(read(file))) throw new Error(`${file} names the development engine runtime. It answers with synthetic data, believes a role from a header, and is never deployed.`);
+ const enginesInDeploy = new RegExp(`packages/engines|@mythuso/engines|MYTHUSO_ENGINES|npm run engines|\\b${Number(runtimeSettings.defaultPort)}\\b`);
+ for (const file of files('deploy')) {
+  const named = read(file).match(enginesInDeploy);
+  if (named) throw new Error(`${file} names the development engine runtime ("${named[0]}"). It answers with synthetic data, believes a role from a header, and is never deployed.`);
+ }
+
+ /* 2b. One port, one service. The reviewer found the engines defaulting to 8797, the Passport P0's port,
+        whose own check bans \b8797\b from deploy/: one number meant two services, and a developer
+        starting both would have had one refuse to bind while the other answered in its place. So every
+        development service's default is read from where it is set, the engines' comes only from
+        apis.json#engineRuntime, and no two may be the same. */
+ if (!/Number\(env\[settings\.portVariable\] \?\? settings\.defaultPort\)/.test(enginesServer) || /\?\?\s*\d{4,5}\b/.test(enginesServer)) throw new Error('packages/engines/src/server.ts no longer takes its port from apis.json#engineRuntime. A port typed into the server is a second place the number lives, and the first place it drifts from.');
+ const developmentPorts = [
+  ['the identity service', 'apps/api/src/config.ts', /env\.MYTHUSO_PORT \?\? (\d+)/],
+  ['the contract mock', 'packages/mock-api/src/server.ts', /env\.MYTHUSO_MOCK_PORT \?\? (\d+)/],
+  ['the ThusoIQ kernel', 'packages/thusoiq/server.ts', /THUSOIQ_PORT\s*\?\?\s*(\d+)/],
+ ].map(([name, file, pattern]) => {
+  const found = read(file).match(pattern);
+  if (!found) throw new Error(`scripts/check-boundaries.mjs can no longer read ${name}'s default port in ${file}, so it cannot tell whether two development services share one.`);
+  return [name, Number(found[1])];
+ });
+ developmentPorts.push(['the Passport P0', Number(JSON.parse(read('packages/catalog/passport-gateway.json')).service.port)], ['the engine runtime', Number(runtimeSettings.defaultPort)]);
+ const servicesByPort = new Map();
+ for (const [name, port] of developmentPorts) {
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error(`${name} defaults to ${port}, which is not a port a development service can bind without privileges.`);
+  if (servicesByPort.has(port)) throw new Error(`${name} and ${servicesByPort.get(port)} both default to port ${port}. Two services behind one number means one refuses to start and the other answers in its place, and a deploy check that bans one bans both.`);
+  servicesByPort.set(port, name);
+ }
 
  /* 3. Store isolation. One module opens databases; an engine's code imports its own directory, the
        runtime's interface and the catalog, and nothing else — not another engine, not a package. */

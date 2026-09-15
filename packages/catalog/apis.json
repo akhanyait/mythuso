@@ -203,7 +203,7 @@
   "flag": "MYTHUSO_ENGINES",
   "flagValue": "synthetic-data-only",
   "portVariable": "MYTHUSO_ENGINES_PORT",
-  "defaultPort": 8797,
+  "defaultPort": 8798,
   "dataVariable": "MYTHUSO_ENGINES_DATA",
   "defaultDataDirectory": "packages/engines/.data/",
   "callerRefHeader": "x-mythuso-caller-ref",
