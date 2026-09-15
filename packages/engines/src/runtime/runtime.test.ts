@@ -331,3 +331,17 @@ test('the store refuses every statement that reaches past the engine\'s own tabl
  assert.equal(outcomes['a pragma that reads'], '1', 'a read-only pragma on its own table still works');
  runtime.close();
 });
+
+/* The reviewer's last store finding: the boundary check's _runtime_ ban reads source text, so a table
+   name assembled while the engine runs never appears in any file for it to find. The facade reads the
+   statement SQLite is actually handed, so the assembled name is refused as surely as a written one. */
+test('a runtime table name assembled at run time is refused as surely as one written out', () => {
+ let outcome = 'not attempted';
+ const runtime = runtimeWith([defineEngine({ ...empty, id: 'care', tick: ctx => {
+  const table = ['_run', 'time_replays'].join('');
+  try { ctx.store.prepare('DELETE FROM ' + table).run(); outcome = 'ran'; } catch (error) { outcome = (error as Error).name; }
+ } })]);
+ runtime.advance(1);
+ assert.equal(outcome, 'StoreRefused');
+ runtime.close();
+});
