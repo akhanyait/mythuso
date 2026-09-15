@@ -35,6 +35,17 @@ const MINUTE = 60_000;
 /* A Tuesday morning, when the desk is on. */
 const START = new Date('2026-09-15T08:00:00+02:00');
 const clock = (at: number) => new Date(at).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: scheduling.timezone });
+/* Whether a post is on duty at a moment, by the default rota's own windows, read on the day and at the time
+   where the rota is kept — the question the engine asks before a concern is handed to a post. */
+type Window = { post: string; days: string[]; from: string; to: string };
+const windows = (closedLoop.settings.items.find((s: { key: string }) => s.key === closedLoop.escalation.rotaSetting).default.value) as Window[];
+const onDutyAt = (post: string, at: number) => {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: scheduling.timezone, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+    .formatToParts(new Date(at)).map(part => [part.type, part.value]));
+  const day = String(parts.weekday).slice(0, 3).toLowerCase();
+  const time = `${parts.hour}:${parts.minute}`;
+  return windows.some(w => w.post === post && w.days.includes(day) && w.from <= time && time < w.to);
+};
 
 /* The workspace arrives on a dynamic import, whether it is opened by its link or chosen in the same tab, so
    the navigation is waited for before a section is chosen from it. */
@@ -78,13 +89,20 @@ test('under the defaults the same concern waits its full minutes at the desk, an
   await expect(board).toContainText(screen.preview);
 
   /* Where the older concern ran out, worked out from the contract the same way the board does: its owner's
-     time, its fallback's, then each post a role holds for its minutes, the last for the concern's own span. */
+     time, its fallback's, then each post a role holds and that is on duty when the concern reaches it, for its
+     minutes, the last for the concern's own span. A post off duty then is skipped at that moment. */
   let reached = START.getTime() + (2 * longAgo.spanMinutes - longAgo.openedMinutesAgo) * MINUTE;
-  rota.posts.forEach((post, index) => { if (post.role !== null) reached += ((minutes.default.value as number[])[index] ?? longAgo.spanMinutes) * MINUTE; });
+  const offDuty: { post: Post; at: number }[] = [];
+  rota.posts.forEach((post, index) => {
+    if (post.role === null) return;
+    if (!onDutyAt(post.id, reached)) { offDuty.push({ post, at: reached }); return; }
+    reached += ((minutes.default.value as number[])[index] ?? longAgo.spanMinutes) * MINUTE;
+  });
   const first = board.locator('.cl-row').first();
   await expect(first).toContainText(longAgo.loopRef);
   await expect(first).toContainText(fill(screen.exhausted, { at: clock(reached) }));
   for (const post of rota.posts.filter(p => p.role === null)) await expect(first).toContainText(fill(screen.skippedNoRole, { post: post.label }));
+  for (const skip of offDuty) await expect(first).toContainText(fill(screen.skippedOffDuty, { post: skip.post.label, at: clock(skip.at) }));
 
   const row = rowOf(board, reachingTheDesk.loopRef);
   const atTheDesk = (minutes.default.value as number[])[0]!;
@@ -94,4 +112,36 @@ test('under the defaults the same concern waits its full minutes at the desk, an
   await page.clock.fastForward((atTheDesk - 1) * MINUTE);
   await expect(row).toContainText(fill(screen.onRung, { rung: '2', rungs }));
   expect(await noOverflow(page), 'the concerns board scrolls the page sideways').toBe(true);
+});
+
+/* Who holds each post, and closing a concern with its outcome. The Head of Operations post is held by the
+   Head of Operations since the role joined the register, and the Control Tower says so for every post of the
+   rota in force. The operator closes a concern only with one of the outcomes the closed loop lists: pressing
+   close with nothing chosen is refused in the close route's own sentence, and nothing changes. */
+const closeRoute = json('../packages/catalog/apis/core.json').routes.find((r: { path: string; withdrawn?: unknown }) => r.path === '/v1/core/loops/{loopRef}/close' && !r.withdrawn) as { refusals: { id: string; statement: string }[] };
+const closeRefusal = (id: string) => closeRoute.refusals.find(r => r.id === id)!.statement;
+const outcomes = closedLoop.outcomes.value as { id: string; label: string }[];
+
+test('the Control Tower shows who holds each post, the Head of Operations included, and an operator closes a concern only with an outcome', async ({ page }) => {
+  await page.clock.install({ time: START });
+  await openWorkspace(page, 'Control Tower');
+  const board = await openBoard(page);
+  const posts = board.getByRole('list', { name: screen.postsHeading });
+  expect(rota.posts.every(post => post.role !== null), 'every post of the rota is held by a role on the register').toBe(true);
+  for (const post of rota.posts) await expect(posts).toContainText(fill(screen.postHeld, { post: post.label, role: roleName(post.role!) }));
+
+  const row = rowOf(board, longAgo.loopRef);
+  await row.getByRole('button', { name: screen.close }).click();
+  const choices = row.getByRole('group', { name: fill(screen.closeLegend, { loopRef: longAgo.loopRef }) });
+  await row.getByRole('button', { name: screen.confirmClose }).click();
+  await expect(row.getByRole('alert')).toHaveText(closeRefusal('no-outcome'));
+  await expect(rowOf(board, longAgo.loopRef)).toHaveCount(1);
+
+  const outcome = outcomes[0]!;
+  await choices.getByLabel(outcome.label, { exact: true }).check();
+  await row.getByRole('button', { name: screen.confirmClose }).click();
+  await expect(rowOf(board, longAgo.loopRef)).toHaveCount(0);
+  await expect(board.getByRole('status').filter({ hasText: longAgo.loopRef })).toHaveText(fill(screen.closed, { loopRef: longAgo.loopRef, at: clock(START.getTime()), outcome: outcome.label }));
+  await expect(rowOf(board, reachingTheDesk.loopRef)).toHaveCount(1);
+  expect(await noOverflow(page), 'closing a concern scrolls the page sideways').toBe(true);
 });

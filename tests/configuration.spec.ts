@@ -268,6 +268,8 @@ test('the escalation rota is edited window by window: a gap is refused in the co
   const reason = form.getByLabel(say.reason, { exact: true });
   const unheld = escalationRota.posts!.filter(post => post.role === null);
   for (const post of unheld) await expect(editor.getByRole('option', { name: post.label, exact: true })).toHaveCount(0);
+  /* A post a role on the register holds is offered, the Head of Operations' included now that the role exists. */
+  for (const post of escalationRota.posts!.filter(p => p.role !== null)) await expect(editor.getByRole('option', { name: post.label, exact: true }).first()).toBeAttached();
 
   /* The second window is the desk's afternoon: without it, the desk is empty from two to ten. */
   await editor.getByRole('button', { name: say.editors.removeWindow }).nth(1).click();
