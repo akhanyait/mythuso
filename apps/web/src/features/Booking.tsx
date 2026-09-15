@@ -25,8 +25,9 @@ import { methodByName, notOffered, visitMethods } from '../lib/money-methods';
 import type { Money } from '../../../../packages/engines/src/money/domain/ledger.ts';
 import type { PaymentView } from '../lib/money';
 import { HOME_SUBURB, nurseOfVisit } from '../lib/arrival';
-import { confirmBooking, emptyLedger, offeredSlots, personOptions, requestBooking, type Hold, type PersonChoice } from '../../../../packages/engines/src/access/domain/booking.ts';
+import { confirmBooking, emptyLedger, fallbackRuleOf, offeredSlots, personOptions, requestBooking, type FallbackCode, type Hold, type PersonChoice } from '../../../../packages/engines/src/access/domain/booking.ts';
 import { badge, candidatesFor, fill, person as personStep, review, time, zoneInAddress } from '../lib/booking';
+import { accessSettingsNow, offerExpiryNow } from '../lib/settings';
 import { subjectRefOf } from '../lib/names';
 import { NurseChoice } from './NurseChoice';
 import { BookingStatus } from './BookingStatus';
@@ -122,12 +123,23 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
  const options = personOptions(candidates, previousNurseFor?.(person) ?? null);
  const chosen = choice.kind === 'nearest' ? null : options.offered.find(c => c.nurseRef === choice.nurseRef) ?? null;
  const choiceStands = choice.kind === 'nearest' || chosen !== null;
- const scheduledOnly = choice.kind !== 'nearest';
+ /* What happens if a nurse asked for by name cannot take the visit is Access's setting in force, and how
+    long she has to take it is Care's offer window in force. Both are read once, when the booking opens,
+    so the sentence a patient reads and the slot they book against cannot change under them part-way
+    through; a change in the back office reaches the next booking. The setting never produces a booking
+    with no nurse and no message: the rule the patient is shown either sends somebody or says the visit
+    waits, and when the patient is asked, waiting for her is chosen first because she is who they asked for. */
+ const [inForce] = useState(() => ({ access: accessSettingsNow(), expiry: offerExpiryNow() }));
+ const rule = fallbackRuleOf(inForce.access.namedNurseFallback);
+ const [picked, setPicked] = useState<FallbackCode>(personStep.fallback.choices[0]!.id as FallbackCode);
+ const fallback: FallbackCode | null = choice.kind === 'nearest' ? null : rule.asksPatient ? picked : rule.resolvesTo;
+ const scheduledOnly = choice.kind !== 'nearest' && !rule.offersAsap;
  useEffect(() => { if (scheduledOnly && kind === 'asap') setKind('scheduled'); }, [scheduledOnly, kind]);
  /* The hours on the chosen day that the domain offers for this choice. With whoever is nearest that is
-    every hour scheduling.json offers; with a named nurse, less the ones already held against her. */
- const hours = offeredSlots({ now: openedAt, serviceId: service.id, kind: 'scheduled', choice, holds: held })
-  .filter(s => s.date === date).map(s => s.start!);
+    every hour scheduling.json offers; with a named nurse, less the ones already held against her, each
+    carrying what happens if she cannot take it. */
+ const hours = offeredSlots({ now: openedAt, serviceId: service.id, kind: 'scheduled', choice, holds: held, namedNurseFallback: inForce.access.namedNurseFallback })
+  .filter(s => s.date === date && s.fallback === fallback).map(s => s.start!);
  const hourOffered = hours.includes(slot);
  const chosenNurse = chosen ? nurseOfVisit({ address, nurse: { id: chosen.nurseRef } }) : null;
 
@@ -160,11 +172,11 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
     somebody and a made-up hour is the invented slot the route refuses. */
  const requestTheBooking = (): Visit['booking'] | null => {
   const at = new Date();
-  const wanted = offeredSlots({ now: at, serviceId: service.id, kind, choice, holds: held })
-   .find(s => kind === 'asap' || (s.date === date && s.start === slot));
+  const wanted = offeredSlots({ now: at, serviceId: service.id, kind, choice, holds: held, namedNurseFallback: inForce.access.namedNurseFallback })
+   .find(s => (kind === 'asap' || (s.date === date && s.start === slot)) && s.fallback === fallback);
   const requested = requestBooking(emptyLedger,
    { idempotencyKey: reference, subjectRef: subjectRefOf(person), serviceId: service.id, mode: 'home', slotRef: wanted?.slotRef ?? `${date}T${slot}~not-offered`, actorRole: 'patient' },
-   { now: at, candidates, visitCovered: Boolean(zoneInAddress(address)), held });
+   { now: at, candidates, visitCovered: Boolean(zoneInAddress(address)), held, namedNurseFallback: inForce.access.namedNurseFallback });
   if (requested.refused) { setBookingRefusal(requested.statement); return null; }
   const accepted = kind === 'scheduled' ? confirmBooking(requested.value.ledger, requested.value.booking.bookingRef, at) : null;
   const settled = accepted && !accepted.refused ? accepted.value.booking : requested.value.booking;
@@ -290,6 +302,20 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
     </label>)}
    </div>
    {scheduledOnly && <p className="helper">{personStep.asapNeedsNearest}</p>}
+   {/* What happens if the nurse asked for cannot take it, before an hour is chosen: asked, when the rule
+       in force asks, or said, when it does not. Care's offer window is the minutes in the sentence. */}
+   {chosen && <div className="booking-fallback">
+    {rule.asksPatient ? <>
+     <h4 id="booking-fallback-title">{fill(personStep.fallback.heading, { nurse: chosen.name, minutes: String(inForce.expiry.minutes) })}</h4>
+     <p className="helper">{fill(rule.sentence, { nurse: chosen.name, minutes: String(inForce.expiry.minutes) })}</p>
+     <div className="choice-list" role="radiogroup" aria-labelledby="booking-fallback-title">
+      {personStep.fallback.choices.map(option => <label key={option.id} className={`choice-row ${picked === option.id ? 'selected' : ''}`}>
+       <input type="radio" name="booking-fallback" checked={picked === option.id} onChange={() => setPicked(option.id as FallbackCode)}/>
+       <span><strong>{fill(option.name, { nurse: chosen.name })}</strong><small>{option.sentence}</small></span>
+      </label>)}
+     </div>
+    </> : <p className="helper" role="note">{fill(rule.sentence, { nurse: chosen.name, minutes: String(inForce.expiry.minutes) })}</p>}
+   </div>}
    {scheduled ? <>
     <h3 className="space-top">{labels.scheduledHeading}</h3>
     <div className="date-strip" role="group" aria-label="Choose a date">
@@ -351,6 +377,8 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
        before she sets off. The row that stood here named the roster's pick for the suburb whatever the
        patient had asked for. */}
    <div className="review-line"><span>{review.nurseLabel}</span><strong>{chosen ? `${chosen.name} · ${badge.name}` : review.nearestValue}</strong></div>
+   {/* What happens if she cannot take it, in the words of the answer the booking is made with. */}
+   {chosen && fallback && <div className="review-line"><span>{personStep.fallback.reviewLabel}</span><strong>{personStep.fallback.choices.find(c => c.id === fallback)!.sentence}</strong></div>}
    {/* The price from the catalogue and the way out from cancellation.json, both before the button. */}
    <div className="review-line"><span>{review.priceLabel}</span><strong>{money(service.price)}</strong></div>
    <div className="review-line review-cancelling"><span>{review.cancellingLabel}</span><strong>{windowSentence}</strong></div>

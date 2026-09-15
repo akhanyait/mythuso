@@ -7637,3 +7637,131 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  console.log(`Settings: ${settingCount} settings on ${settingsBlocks.length} engines (${settingsBlocks.map(b => `${b.source.engine} ${b.block.items.length}`).join(', ')}), ${decidedCount} of them decided and the rest proposals, every one in the shape of packages/catalog/settings.json's ${settingTypes.size} types, its default inside its own limits, every bound a proposal with a reason or a decision with who and when, every guardrail's forbidden value refused by the rules a change goes through, and the defaults replayed from their changelogs. ${settingsRoutesChecked} settings routes are the shared shapes with the shared sentences and exactly their settings' callers, the history is only appended to, and ${literalsChecked} readings of ${handWritten.length} hand-written files type no setting's value.`);
 }
 /* ==== end of Settings (Wave 3) ======================================================================= */
+
+/* ==== Access settings · six Access questions as admin settings (Wave 3) ===============================
+
+   Added by the Access settings lead. Self-contained. The Settings section above holds Access's block to the
+   shared shape as it holds every engine's; this holds what is Access's own, in the order a mistake would
+   reach somebody:
+
+   1. No value of named-nurse-fallback leaves a booking with no nurse and no message. Every value it may
+      take has a rule in booking.json with a sentence naming the nurse and the offer window, every rule is a
+      value it may take, and a rule that does not ask the patient answers with waiting or the soonest nurse,
+      each with its own sentence. The domain throws on a value with no rule rather than offering a slot.
+   2. The emergency sentence and its numbers are a rule, not a setting. No Access setting holds wording;
+      the thread's "nobody watches" sentence and Gilbert's out-of-hours numbers carry {ambulance} and
+      {mobile} from sos.json; the web and both phones draw the first above the thread's field and the second
+      first out of hours, and neither is conditioned on anything but the desk being shut.
+   3. Photos cannot be switched on without the review marker. visit-thread-photos waits on
+      sign-clinical-review and starts off and unreviewed, the review route is built, the web says photos are
+      not in this preview and not clinically reviewed while it is on, and the thread route still declares
+      no field a photo could travel in.
+   4. No Access screen, domain file or native file types a limit or an hour. The longest message, the hours
+      a thread stays open and the desk's hours are read from the settings — on a phone, from the generated
+      BookingData, each with the sentence saying it is a proposal — and booking.json keeps no second copy of
+      the length.
+   5. The web reads Access's settings through apps/web/src/lib/settings.ts alone, and nothing on the
+      patient's first load imports it. */
+{
+ const accessContract = JSON.parse(read('packages/catalog/booking.json'));
+ const accessApi = JSON.parse(read('packages/catalog/apis/access.json'));
+ const accessSos = JSON.parse(read('packages/catalog/sos.json'));
+ const accessItems = accessContract.settings?.items ?? [];
+ const accessSetting = key => accessItems.find(s => s.key === key);
+ const ACCESS_KEYS = ['named-nurse-fallback', 'visit-thread-max-characters', 'visit-thread-photos', 'visit-thread-open-hours-after-visit', 'handover-answered-by', 'handover-hours'];
+ if (accessItems.map(s => s.key).join(',') !== ACCESS_KEYS.join(',')) throw new Error(`packages/catalog/booking.json settings.items are ${accessItems.map(s => s.key).join(', ') || 'missing'}; Access's settings are ${ACCESS_KEYS.join(', ')}, once each, so no Access question an admin answers is missing or answered twice.`);
+ const accessRouteOf = key => accessApi.routes.find(r => `${r.method} ${r.path}@${r.version}` === key);
+ const slice = (source, from) => { const at = source.indexOf(from); return at < 0 ? '' : source.slice(at); };
+
+ /* 1. Every fallback ends in a nurse or a sentence. */
+ const fallbackSetting = accessSetting('named-nurse-fallback');
+ const fallbackWords = accessContract.person?.fallback ?? {};
+ const fallbackRules = fallbackWords.rules ?? [];
+ const answerIds = (fallbackWords.choices ?? []).map(c => c.id);
+ if ([...answerIds].sort().join(',') !== 'soonest,wait' || (fallbackWords.choices ?? []).some(c => !c.name?.trim() || !c.sentence?.trim())) throw new Error('packages/catalog/booking.json person.fallback.choices are not waiting for her and the soonest nurse, each with a name and a sentence. Those are the only two ways a named nurse\'s visit ends in a nurse or a message.');
+ for (const { value } of fallbackSetting?.allowed ?? []) {
+  const rule = fallbackRules.find(r => r.setting === value);
+  const says = rule && typeof rule.sentence === 'string' && rule.sentence.includes('{nurse}') && rule.sentence.includes('{minutes}') && typeof rule.offersAsap === 'boolean' && typeof rule.asksPatient === 'boolean'
+   && (rule.asksPatient ? rule.resolvesTo === null : answerIds.includes(rule.resolvesTo));
+  if (!says) throw new Error(`named-nurse-fallback may be set to "${value}", and packages/catalog/booking.json person.fallback has no rule for it with a sentence naming the nurse and the offer window that either asks the patient or answers with waiting or the soonest nurse. A value with no sentence is a booking with no nurse and no message.`);
+ }
+ for (const rule of fallbackRules) if (!(fallbackSetting?.allowed ?? []).some(a => a.value === rule.setting)) throw new Error(`packages/catalog/booking.json person.fallback has a rule for "${rule.setting}", which named-nurse-fallback does not allow. A rule nothing can put in force is a sentence no patient is ever shown.`);
+ const accessBookingDomain = read('packages/engines/src/access/domain/booking.ts');
+ if (!accessBookingDomain.includes('no booking may be offered under it') || !accessBookingDomain.includes('namedNurseFallback: context.namedNurseFallback')) throw new Error('packages/engines/src/access/domain/booking.ts no longer refuses to offer a slot under a fallback with no rule, or no longer asks the fallback in force when a booking is made.');
+ const accessEngineSource = read('packages/engines/src/access/engine.ts');
+ if (!accessEngineSource.includes('namedNurseFallback: accessIn(ctx).namedNurseFallback') || !read('apps/web/src/features/Booking.tsx').includes('fallbackRuleOf(inForce.access.namedNurseFallback)')) throw new Error('The Access engine or the web booking flow no longer offers slots under the named-nurse fallback in force.');
+
+ /* 2. The emergency sentence and the numbers are never a setting. */
+ for (const id of ['ambulance', 'mobile']) if (!accessSos.emergency.numbers.some(n => n.id === id && n.number)) throw new Error(`packages/catalog/sos.json has no emergency number "${id}", which the visit thread and Gilbert out of hours both give.`);
+ for (const [at, sentence] of [['thread.nobodyWatches', accessContract.thread?.nobodyWatches], ['handover.outOfHoursNumbers', accessContract.handover?.outOfHoursNumbers]]) {
+  if (typeof sentence !== 'string' || !sentence.includes('{ambulance}') || !sentence.includes('{mobile}')) throw new Error(`packages/catalog/booking.json ${at} no longer carries {ambulance} and {mobile} from packages/catalog/sos.json. Nobody watches a thread for emergencies and nobody is on the desk out of hours, so the numbers are said every time, and they are sos.json's.`);
+ }
+ for (const s of accessItems) if (s.type === 'text' || s.of === 'text' || s.mustKeep !== undefined) throw new Error(`packages/catalog/booking.json setting "${s.key}" holds wording. No Access setting holds wording, so neither the sentence that nobody watches a thread nor the numbers Gilbert gives out of hours can be reworded away by an admin.`);
+ const accessValues = JSON.stringify(accessItems.map(s => [s.default?.value, (s.allowed ?? []).map(a => a.value), s.guardrail?.forbids]));
+ if (/\{ambulance\}|\{mobile\}|nobody watches|10177|\b112\b/i.test(accessValues)) throw new Error('An Access setting\'s value names the emergency numbers or the sentence that nobody watches a thread. Those are rules, said on every thread and out of hours whatever an admin sets.');
+ const visitAccessSource = read('apps/web/src/features/VisitAccess.tsx');
+ const urgentAt = visitAccessSource.indexOf('{words.nobodyWatches}');
+ if (urgentAt < 0 || urgentAt > visitAccessSource.indexOf('<textarea') || /\{[^{}\n]*settings\.[^{}\n]*&&[^\n]*\{words\.nobodyWatches\}/.test(visitAccessSource)) throw new Error('apps/web/src/features/VisitAccess.tsx no longer says nobody watches the thread above its field, or says it only when a setting allows. It is a rule, not a setting.');
+ if (!read('apps/ios/MyThuso/Features/VisitThreadView.swift').includes('Text(BookingData.Thread.nobodyWatches)') || !read('apps/android/app/src/main/java/za/co/mythuso/ui/BookingScreens.kt').includes('Text(BookingData.Thread.nobodyWatches,')) throw new Error('A phone\'s visit thread no longer says nobody watches it for emergencies, with the numbers.');
+ const accessAssistantLib = read('apps/web/src/lib/assistant.ts');
+ if (!accessAssistantLib.includes("numberById('ambulance').number") || !accessAssistantLib.includes("numberById('mobile').number") || !accessAssistantLib.includes('if (desk.open) return { answeredBy, outOfHours: null };') || !read('apps/web/src/features/Assistant.tsx').includes('{desk.outOfHours.numbers}')) throw new Error('Gilbert on the web no longer gives the emergency numbers from sos.json whenever the handover desk is shut.');
+ for (const [file, shut, numbers] of [
+  ['apps/ios/MyThuso/Features/AssistantView.swift', 'if !desk.open {', 'SceneText(BookingData.Handover.outOfHoursNumbers'],
+  ['apps/android/app/src/main/java/za/co/mythuso/ui/GilbertScreens.kt', 'if (!desk.open) {', 'Body(BookingData.Handover.outOfHoursNumbers']
+ ]) {
+  const source = read(file);
+  const between = source.slice(source.indexOf(shut) + shut.length, source.indexOf(numbers));
+  if (source.indexOf(shut) < 0 || source.indexOf(numbers) < source.indexOf(shut) || /\bif\b/.test(between)) throw new Error(`${file} no longer gives the emergency numbers first thing whenever the handover desk is shut, or gives them only under a further condition.`);
+ }
+ if (/booking\.json|outOfHours|\{ambulance\}/.test(slice(read('packages/engines/src/access/domain/handover.ts'), 'export function deskAt'))) throw new Error('packages/engines/src/access/domain/handover.ts deskAt reaches for words. It answers whether the desk is open and when it opens, and nothing else, so it has no way to leave out what is said out of hours.');
+ const emittedBooking = emitBooking();
+ for (const id of ['ambulance', 'mobile']) {
+  const n = accessSos.emergency.numbers.find(x => x.id === id).number;
+  for (const f of [emittedBooking.swift, emittedBooking.kotlin]) if (!f.content.split('\n').some(line => /outOfHoursNumbers = /.test(line) && line.includes(n))) throw new Error(`${f.path} would not give ${n} out of hours. The emergency numbers are written into both phones from sos.json.`);
+ }
+
+ /* 3. Photos wait on a doctor. */
+ const photosSetting = accessSetting('visit-thread-photos');
+ if (photosSetting.type !== 'boolean' || photosSetting.reviewRequired !== 'sign-clinical-review' || photosSetting.default.value !== false || photosSetting.default.reviewedBy !== undefined) throw new Error('packages/catalog/booking.json visit-thread-photos no longer waits on sign-clinical-review, or no longer starts switched off and unreviewed. A wound photo is health information: switching photos on is shown as not clinically reviewed until a doctor confirms it.');
+ const photosReview = accessRouteOf('POST /v1/access/setting-reviews@1');
+ if (!photosReview || photosReview.withdrawn || photosReview.status !== 'built' || !accessEngineSource.includes("review: 'POST /v1/access/setting-reviews@1'")) throw new Error('POST /v1/access/setting-reviews@1 is not built through settingsRoutes(), so nobody could confirm the clinical review visit-thread-photos waits on.');
+ const threadWrite = accessRouteOf('POST /v1/access/visit-threads/{bookingRef}/messages@1');
+ if (threadWrite.request.map(f => f.field).sort().join(',') !== 'bookingRef,idempotencyKey,message' || !threadWrite.refusals.some(r => r.id === 'no-attachments') || !accessEngineSource.includes('ATTACHMENT.test(name)')) throw new Error('POST /v1/access/visit-threads/{bookingRef}/messages@1 declares a field beside the booking, the key and the words, or no longer refuses an attachment. Switching visit-thread-photos on is a decision ahead of a capability; a photo does not travel until a new version of the route carries one.');
+ if (!visitAccessSource.includes('settings.threadPhotos') || !visitAccessSource.includes('words.photosNotInPreview') || !/!photosReviewed && [^\n]*\{settingsWords\.notReviewed\}/.test(visitAccessSource) || !visitAccessSource.includes("clinicallyReviewedNow('access', 'visit-thread-photos')")) throw new Error('apps/web/src/features/VisitAccess.tsx no longer says photos are not in this preview yet, and not clinically reviewed, while visit-thread-photos is on and unreviewed.');
+
+ /* 4. No typed limits or hours. */
+ if ('maxCharacters' in (accessContract.thread ?? {})) throw new Error('packages/catalog/booking.json thread keeps maxCharacters beside the setting visit-thread-max-characters. A number lives in one place.');
+ const accessThreadFiles = ['apps/web/src/features/VisitAccess.tsx', 'packages/engines/src/access/domain/thread.ts', 'packages/engines/src/access/engine.ts', 'apps/ios/MyThuso/Features/VisitThreadView.swift', 'apps/android/app/src/main/java/za/co/mythuso/ui/BookingScreens.kt', 'apps/ios/MyThuso/Models/Booking.swift', 'apps/android/app/src/main/java/za/co/mythuso/model/Booking.kt'];
+ const limitValues = [accessSetting('visit-thread-max-characters'), accessSetting('visit-thread-open-hours-after-visit')].flatMap(s => [s.default.value, s.bounds.lowest.value, s.bounds.highest.value]).filter(v => v > 1);
+ /* A number is a limit only where it stands alone: the 24 in an opacity of 0.24 is not one. */
+ const typedLimit = new RegExp(`\\bMAX_CHARACTERS\\b|maxLength=\\{?\\s*\\d|(?<![.\\d])(${limitValues.join('|')})\\s*(\\*\\s*(60|3600|HOUR)\\b|characters\\b|hours?\\b)|(?<![.\\d])\\d+\\s*\\*\\s*3600\\b|plusHours\\(\\s*\\d|[<>]=?\\s*(${limitValues.join('|')})(?![.\\d])`);
+ for (const file of accessThreadFiles) {
+  const typed = read(file).match(typedLimit);
+  if (typed) throw new Error(`${file} types a thread limit as "${typed[0]}". The longest message and the hours a thread stays open are Access's settings, read in force on the web and the engine and from the generated BookingData on a phone.`);
+ }
+ const accessHandoverFiles = [
+  ['apps/web/src/features/Assistant.tsx', ''], ['apps/web/src/lib/assistant.ts', ''], ['packages/engines/src/access/domain/handover.ts', ''],
+  ['apps/ios/MyThuso/Features/AssistantView.swift', ''], ['apps/android/app/src/main/java/za/co/mythuso/ui/GilbertScreens.kt', ''],
+  ['apps/ios/MyThuso/Models/Booking.swift', 'enum HandoverQueue {'], ['apps/android/app/src/main/java/za/co/mythuso/model/Booking.kt', 'object Handovers {']
+ ];
+ for (const [file, from] of accessHandoverFiles) {
+  const typed = (from ? slice(read(file), from) : read(file)).match(/["'](?:[01]\d|2[0-4]):[0-5]\d["']/);
+  if (typed) throw new Error(`${file} types an hour of the handover desk as ${typed[0]}. The desk's hours are Access's setting handover-hours, read in force on the web and from the generated BookingData on a phone.`);
+ }
+ for (const [file, reads] of [['apps/ios/MyThuso/Features/VisitThreadView.swift', 'BookingData.Thread.maxCharacters'], ['apps/android/app/src/main/java/za/co/mythuso/ui/BookingScreens.kt', 'BookingData.Thread.maxCharacters'], ['apps/ios/MyThuso/Models/Booking.swift', 'BookingData.Thread.openHoursAfterVisit'], ['apps/android/app/src/main/java/za/co/mythuso/model/Booking.kt', 'BookingData.Thread.openHoursAfterVisit'], ['apps/web/src/features/VisitAccess.tsx', 'settings.threadMaxCharacters']]) {
+  if (!read(file).includes(reads)) throw new Error(`${file} no longer reads ${reads}, so the limit it shows is not the setting.`);
+ }
+ const emitBookingSource = read('scripts/emit-booking.mjs');
+ if ((emitBookingSource.match(/settingDefault\(SOURCE, contract, '/g) ?? []).length !== ACCESS_KEYS.length) throw new Error(`scripts/emit-booking.mjs no longer writes each of Access's ${ACCESS_KEYS.length} settings for a phone through scripts/settings-defaults.mjs, with the sentence saying it is a proposal.`);
+ for (const f of [emittedBooking.swift, emittedBooking.kotlin]) if ((f.content.match(/A proposal nobody has decided\./g) ?? []).length < ACCESS_KEYS.length) throw new Error(`${f.path} would not say of every Access default that it is a proposal nobody has decided.`);
+
+ /* 5. One reader on the web, and none on the first load. */
+ for (const f of files('apps/web/src').filter(f => /\.(ts|tsx)$/.test(f) && f !== 'apps/web/src/lib/settings.ts')) {
+  if (/from '[^']*engines\/src\/access\/domain\/settings\.ts'/.test(read(f))) throw new Error(`${f} imports Access's settings directly. A screen reads them through apps/web/src/lib/settings.ts, so every screen reads the one history an admin changes.`);
+ }
+ for (const f of ['apps/web/src/main.tsx', 'apps/web/src/App.tsx', 'apps/web/src/components/AssistantLauncher.tsx', 'apps/web/src/shells/PatientShell.tsx']) {
+  if (existsSync(f) && /^import (?!type\b)[^;]*from '[^']*lib\/settings'/m.test(read(f))) throw new Error(`${f} imports apps/web/src/lib/settings statically. It carries every engine's settings contract, and a patient on metered data must not download them on the first load.`);
+ }
+
+ console.log(`Access settings: named-nurse-fallback's ${fallbackRules.length} values each end in a nurse or a sentence, the emergency sentence and the numbers are rules no Access setting holds, photos wait on ${photosSetting.reviewRequired} behind a route that carries no photo, ${accessThreadFiles.length + accessHandoverFiles.length} Access files type no limit or hour, and the web reads Access's settings through lib/settings alone, off the first load.`);
+}

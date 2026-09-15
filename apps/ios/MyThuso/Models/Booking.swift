@@ -66,6 +66,31 @@ struct BookingThreadClosed: Identifiable, Hashable {
     let sentence: String
 }
 
+/// One value of Access’s setting named-nurse-fallback: whether as soon as possible stays beside a nurse asked
+/// for by name, whether the patient is asked, the answer when they are not, and the sentence that says so.
+struct BookingFallbackRule: Hashable {
+    let setting: String
+    let offersAsap: Bool
+    let asksPatient: Bool
+    let resolvesTo: String?
+    let sentence: String
+}
+
+/// An answer the patient may give to what happens if the nurse they asked for cannot take the visit.
+struct BookingFallbackChoice: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let sentence: String
+}
+
+/// A window of the handover desk’s rota: a post, days and hours in Johannesburg. Never a named person.
+struct HandoverWindow: Hashable {
+    let post: String
+    let days: [String]
+    let from: String
+    let to: String
+}
+
 // MARK: - The capability’s own refusals, by the slug of their words
 
 extension Capabilities {
@@ -283,12 +308,27 @@ enum Booking {
 
     // MARK: The thread
 
-    /// Why a visit’s thread is closed, or nil while it is open.
+    /// Why a visit’s thread is closed, or nil while it is open. A cancelled visit’s closes at once; a completed
+    /// one stays open for Access’s generated openHoursAfterVisit after it ends, and then closes for good.
     static func threadClosed(for visit: BookedVisit, cancelled: Bool, now: Date = Date()) -> BookingThreadClosed? {
         if cancelled { return closedBecause("booking-cancelled") }
-        if let ends = visit.endsAt, ends <= now { return closedBecause("visit-completed") }
+        if let closes = threadClosesAt(visit, now: now), closes <= now { return closedBecause("visit-completed") }
         return nil
     }
+
+    /* When a completed visit’s thread closes: the end of the visit plus the hours the setting holds, fixed
+       by when the visit ended rather than by when somebody looks. Nil while the visit has not ended. */
+    static func threadClosesAt(_ visit: BookedVisit, now: Date = Date()) -> Date? {
+        guard let ends = visit.endsAt, ends <= now else { return nil }
+        return ends.addingTimeInterval(TimeInterval(BookingData.Thread.openHoursAfterVisit * 3600))
+    }
+
+    // MARK: When a nurse asked for by name cannot take the visit
+
+    /// The rule Access’s generated named-nurse fallback is. Nil only if the contract lost it, which the build refuses.
+    static var fallbackRule: BookingFallbackRule? { BookingData.Fallback.rules.first { $0.setting == BookingData.Fallback.inForce } }
+    /// Whether as soon as possible stays beside a nurse asked for by name.
+    static var asapWithNamedNurse: Bool { fallbackRule?.offersAsap ?? false }
 
     static func closedBecause(_ id: String) -> BookingThreadClosed? { BookingData.Thread.closedBecause.first { $0.id == id } }
 
@@ -355,6 +395,43 @@ struct GilbertHandoverRecord: Hashable {
 }
 
 enum HandoverQueue {
+    /* When the handover desk answers, from Access’s generated handover hours, in Johannesburg — the same
+       arithmetic as deskAt in packages/engines/src/access/domain/handover.ts. It returns no words, so it
+       has no way to leave out what Gilbert says first out of hours: nobody is there, and the numbers. */
+    struct Desk {
+        let open: Bool
+        /// 0 for later today, 1 for tomorrow; the day it opens; the hour it opens.
+        let opens: (daysAhead: Int, day: Date, from: String)?
+    }
+
+    static func desk(at now: Date = Date(), hours: [HandoverWindow] = BookingData.Handover.hours) -> Desk {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = Scheduling.zone
+        let ids = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+        func minute(_ hhmm: String) -> Int {
+            let parts = hhmm.split(separator: ":").compactMap { Int($0) }
+            return parts.count == 2 ? parts[0] * 60 + parts[1] : 0
+        }
+        let parts = calendar.dateComponents([.hour, .minute, .weekday], from: now)
+        let nowMinute = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+        let today = ids[(parts.weekday ?? 1) - 1]
+        let open = hours.contains { $0.days.contains(today) && minute($0.from) <= nowMinute && nowMinute < minute($0.to) }
+        for ahead in 0...7 {
+            guard let day = calendar.date(byAdding: .day, value: ahead, to: now) else { continue }
+            let id = ids[calendar.component(.weekday, from: day) - 1]
+            let starts = hours.filter { $0.days.contains(id) && (ahead > 0 || minute($0.from) > nowMinute) }.map(\.from).sorted()
+            if let first = starts.first { return Desk(open: open, opens: (ahead, day, first)) }
+        }
+        return Desk(open: open, opens: nil)
+    }
+
+    /// When the desk next opens, in the contract’s words, or nil for a rota with no window.
+    static func opensWords(_ desk: Desk) -> String? {
+        guard let opens = desk.opens else { return nil }
+        let template = opens.daysAhead == 0 ? BookingData.Handover.opensToday : opens.daysAhead == 1 ? BookingData.Handover.opensTomorrow : BookingData.Handover.opensOn
+        return Booking.fill(template, ["time": opens.from, "day": Scheduling.format(opens.day, "EEEE")])
+    }
+
     /* The contract lists the urgencies most urgent first, so a code’s rank is how far from the end it is. */
     static func rank(_ urgency: String) -> Int {
         let ids = Gilbert.handover.urgency.map(\.id)

@@ -89,3 +89,13 @@
 .thread-refused{margin:0;font-size:14px;color:var(--danger);font-weight:600}
 .thread-closed{display:flex;gap:var(--space-8);align-items:flex-start;margin:0;padding:var(--space-12);border-radius:var(--r-control);background:var(--canvas);border:1px solid var(--line);font-size:14px;color:var(--ink);line-height:1.5}
 .thread-closed svg{flex:none;margin-top:2px;color:var(--slate)}
+
+/* ---- Access settings (Wave 3): what the thread says about photos and its hours, and the fallback ---- */
+.thread-photos{display:flex;gap:var(--space-8);align-items:flex-start;margin:0;font-size:14px;color:var(--body);line-height:1.55}
+.thread-photos svg{flex:none;margin-top:3px;color:var(--slate)}
+.thread-unreviewed{display:inline-flex;gap:var(--space-4);align-items:center;margin-left:var(--space-8);font-size:13px;font-weight:600;color:var(--ink);background:var(--mango-soft);border:1px solid var(--line)}
+.thread-open-after{display:flex;gap:var(--space-8);align-items:flex-start;margin:0;font-size:14px;color:var(--ink);line-height:1.5}
+.thread-open-after svg{flex:none;margin-top:3px;color:var(--slate)}
+.booking-fallback{display:grid;gap:var(--space-8);margin-top:var(--space-12)}
+.booking-fallback h4{margin:0;font-size:15px;color:var(--ink)}
+.booking-fallback .choice-row small{overflow-wrap:anywhere}

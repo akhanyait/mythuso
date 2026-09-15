@@ -30,7 +30,23 @@
   "noPrevious": "There is no earlier visit for {person}, so there is nobody to ask for again.",
   "previousNotOffered": "The nurse {person} saw last time is not being offered. {reason}",
   "asapNeedsNearest": "As soon as someone is free means whoever is nearest. To see one nurse in particular, choose an hour she is offered.",
-  "continuity": "Asking for the same nurse is asking, not booking her. An hour she is not offered at is not shown."
+  "continuity": "Asking for the same nurse is asking, not booking her. An hour she is not offered at is not shown.",
+  "fallback": {
+   "_note": "What happens to a visit asked of one nurse by name when she cannot take it within Care's offer window. Which rule is in force is Access's setting named-nurse-fallback, below; the minutes are Care's setting offer-expiry, in force, filled into {minutes} where a screen shows the sentence, and never written here. Every value the setting may take has a rule here with a sentence, and the build fails on a value that has none, because a booking with no nurse and no message is the one thing the setting may never produce. The fallback a booking ends up with travels in the slot it was booked against, so the frozen booking route carries the patient's choice without a new field: a slot names the hour, the nurse and what happens if she cannot take it.",
+   "heading": "If {nurse} cannot take it within {minutes} minutes",
+   "rules": [
+    { "setting": "patient-chooses", "offersAsap": true, "asksPatient": true, "resolvesTo": null, "sentence": "You choose now what happens if {nurse} cannot take this visit within {minutes} minutes of it reaching her." },
+    { "setting": "wait-for-named", "offersAsap": false, "asksPatient": false, "resolvesTo": "wait", "sentence": "If {nurse} cannot take this visit within {minutes} minutes of it reaching her, it waits for her and you are told so. Nobody else is sent." },
+    { "setting": "soonest-automatically", "offersAsap": true, "asksPatient": false, "resolvesTo": "soonest", "sentence": "If {nurse} cannot take this visit within {minutes} minutes of it reaching her, the soonest nurse whose badge is current takes it, and you are told who before she sets off." }
+   ],
+   "rulesWhy": "offersAsap says whether as soon as possible stays on offer beside a nurse asked for by name. Waiting for one nurse is not as soon as possible, so the rule that waits takes it away and says so in asapNeedsNearest; the two rules that can send somebody else keep it. asksPatient says whether the patient is asked; resolvesTo is the answer when they are not.",
+   "choices": [
+    { "id": "wait", "name": "Wait for {nurse}", "sentence": "The visit waits for her, and you are told she has not taken it yet. Nobody else is sent." },
+    { "id": "soonest", "name": "The soonest nurse who is free", "sentence": "The soonest nurse whose badge is current takes it instead, and you are told who before she sets off." }
+   ],
+   "choicesWhy": "Wait is chosen first when the patient is asked, because they asked for her by name and waiting for her is what they asked for; the other is one tap away and says what it means before anything is booked.",
+   "reviewLabel": "If she cannot take it"
+  }
  },
 
  "time": {
@@ -119,21 +135,220 @@
   "nobodyWatches": "Nobody watches this thread for emergencies. If it cannot wait, call {ambulance}, or {mobile} from a mobile.",
   "inputLabel": "Message to your nurse",
   "sendLabel": "Send",
-  "maxCharacters": 500,
+  "maxCharactersFrom": "Access's setting visit-thread-max-characters, in force when a message is written",
   "empty": "No messages yet. Anything you write stays with this visit.",
   "kept": "Kept with this visit. Not delivered: nothing reaches her phone.",
   "you": "You",
+  "openAfterVisit": "This visit is finished. Its thread stays open for anything that follows from it until {closes}, and then it closes.",
+  "wordsOnly": "Words only. Photos and files cannot be sent in this thread.",
+  "photosNotInPreview": "Photos are not in this preview yet.",
+  "photosWhy": "Access's setting visit-thread-photos says whether a photo may one day travel in a thread. While it is off the thread says words only. Switched on, it says photos are not in this preview yet, beside settings.json's not clinically reviewed until a doctor confirms it, because there is no upload here to switch on and a screen that offered one would be a capability invented for the occasion.",
   "closedBecause": [
    { "id": "visit-completed", "sentence": "This visit is finished, so its thread is closed. What was said stays here to read." },
    { "id": "booking-cancelled", "sentence": "This visit was cancelled, so its thread is closed. What was said stays here to read." }
   ],
   "rules": [
-   { "id": "words-only", "why": "A photo of a wound sent to a nurse's phone is a clinical record kept on a personal device, with no consent behind it and no way to take it back. Whether a visit photo may travel over any messaging channel is an open decision in packages/catalog/capabilities.json, and until it is made nothing can be attached." },
+   { "id": "words-only", "why": "A photo of a wound sent to a nurse's phone is a clinical record kept on a personal device, with no consent behind it and no way to take it back. Whether a visit photo may travel over any messaging channel is Access's setting visit-thread-photos, which waits on a doctor's clinical review, and whatever it says nothing can be attached: the route declares no field for one and this preview has no upload." },
    { "id": "not-a-record", "why": "A clinical record is written by a clinician, in the record, under a grant. A thread written in a hurry at a gate is not that, and treating it as one would make every message about a parking space special personal information held in the wrong place." },
-   { "id": "closes-with-the-visit", "why": "A thread that stays open after the visit becomes a way to reach a nurse privately, outside any rota and after her shift. It closes when the visit is completed or called off, and what was said stays readable." },
+   { "id": "closes-with-the-visit", "why": "A thread that stays open indefinitely after the visit becomes a way to reach a nurse privately, outside any rota and after her shift. It closes at once when the booking is called off, and when the visit is completed it stays open for the hours Access's setting visit-thread-open-hours-after-visit held at that moment — so a question about a dressing the evening after has somewhere to go — and then closes. A thread already closed never opens again, and what was said stays readable." },
    { "id": "nobody-watches", "why": "A message typed here reaches nobody while messaging is simulated, and even when it is connected a nurse driving to a door is not reading her phone. The emergency numbers are said above the field, not after a silence." }
   ],
   "sendsNothing": "Nothing in a thread travels on the bus. A message is words between two people about one visit; no engine acts on it, and free text is where health information goes when nobody meant it to."
+ },
+
+ "handover": {
+  "_note": "Who answers a Gilbert handover and when, as a patient is told it. Who answers is Access's setting handover-answered-by and the hours are handover-hours, both below. The emergency numbers are packages/catalog/sos.json's, filled into {ambulance} and {mobile}, and they are not a setting: no rota, no role list and no hours an admin sets can take them out of what Gilbert says out of hours, and the build fails if a setting ever holds this wording.",
+  "answeredByLabel": "Who answers",
+  "outOfHours": "Nobody is on the nurse handover desk now.",
+  "outOfHoursNumbers": "If this cannot wait, do not wait for a nurse. Call {ambulance}, or {mobile} from a mobile.",
+  "callback": "A nurse on the desk would call you back when it opens, {when}. In this preview nobody will, because nobody is on the other end.",
+  "opensToday": "today at {time}",
+  "opensTomorrow": "tomorrow at {time}",
+  "opensOn": "on {day} at {time}",
+  "why": "Out of hours the first thing said is that nobody is there, and the second is the numbers, before any offer of a call back: a person told a nurse will ring in the morning stops looking for anybody else, and some of them should not. The call back is offered for the next window the rota opens, worked out in Johannesburg from the hours in force when Gilbert is asked, and the preview says nobody will make it."
+ },
+
+ "settings": {
+  "_note": "Access's settings, in the shape packages/catalog/settings.json gives every setting. The founder instructed on 15 September 2026 that open questions become admin settings, and six Access questions became these: what happens when a nurse asked for by name cannot take the visit, how long a thread message may be, whether a photo may one day travel in a thread, how long a thread stays open after the visit, who answers a Gilbert handover, and when. Every default, bound and allowed value is the integrator's proposal and nobody has decided it. packages/engines/src/access reads the values in force from its own history: the booking route when it offers a slot, the thread route when a message is written. GET /v1/access/settings@1, POST /v1/access/setting-changes@1 and POST /v1/access/setting-reviews@1 answer through packages/engines/src/settings; the review route is built because visit-thread-photos waits on a doctor's clinical review. The web reads them through apps/web/src/lib/settings.ts, and neither phone has an admin surface, so each uses the defaults scripts/emit-booking.mjs generates.",
+  "heading": "Access settings",
+  "intro": "How a booking treats a nurse asked for by name, how a visit thread works, and who answers a Gilbert handover and when.",
+  "items": [
+   {
+    "key": "named-nurse-fallback",
+    "label": "When a nurse asked for by name cannot take the visit",
+    "help": "What happens to a visit asked of one nurse by name when she cannot take it within Care's offer window.",
+    "owner": "access",
+    "type": "enum",
+    "unit": null,
+    "default": {
+     "value": "patient-chooses",
+     "decidedBy": null,
+     "proposedBy": "Integrator (Wave 3)",
+     "proposedBecause": "Asking for a nurse by name used to take as soon as possible away, which made a patient choose between the nurse they know and being seen soon without saying what happens if she cannot come. Asking them keeps both: as soon as possible stays on offer, and the patient says now whether the visit waits for her or goes to the soonest nurse whose badge is current. Either answer ends in a nurse or in a sentence saying the visit is waiting."
+    },
+    "allowed": [
+     { "value": "patient-chooses", "label": "The patient chooses", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "The person who asked for her is the one who knows whether waiting for her matters more than being seen soon." },
+     { "value": "wait-for-named", "label": "Wait for her", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "How the booking step behaved before this setting: continuity first, as soon as possible only with whoever is nearest, and the visit waits for her with the patient told so." },
+     { "value": "soonest-automatically", "label": "The soonest nurse, automatically", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "For a week when the roster is thin and a visit waiting for one nurse is a dressing left a day too long. The patient is told who is coming before she sets off." }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "A change applies to bookings asked for after it. A booking already asked for keeps what happens if its nurse cannot take it, because it travels in the slot the booking was made against.",
+    "guardrail": {
+     "statement": "No value leaves a booking with no nurse and no message. Every choice either sends a nurse or tells the patient, in a sentence from this contract, that the visit is waiting for her.",
+     "forbids": ["cancel-quietly", "no-nurse", "", "Patient-Chooses", true]
+    }
+   },
+   {
+    "key": "visit-thread-max-characters",
+    "label": "Longest message in a visit thread",
+    "help": "How many characters one message between a patient and the nurse on their visit may be.",
+    "owner": "access",
+    "type": "count",
+    "unit": "characters",
+    "positive": true,
+    "default": {
+     "value": 500,
+     "decidedBy": null,
+     "proposedBy": "Integrator (Wave 3)",
+     "proposedBecause": "The length the visit thread was built with. Five hundred characters is directions to a gate, a parking space and a dog that needs shutting in, and short of a history being written in the wrong place, which the route's message-too-long refusal exists to stop."
+    },
+    "bounds": {
+     "lowest": { "value": 100, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "About two sentences: the shortest limit in which somebody can still say which house and which gate. Shorter, and a patient splits directions across messages a nurse driving reads one at a time." },
+     "highest": { "value": 1000, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Twice the proposal. Past a thousand characters a message stops being about getting in and starts being a clinical account in a place that is not a record and that nobody reviews." }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to messages written after it. A message already kept is never cut short or refused afterwards.",
+    "guardrail": {
+     "statement": "A thread always takes a message long enough to say which house and which gate, and never one long enough to be a history. Nought characters is a thread nobody can write in.",
+     "forbids": [0, 99, 1001, 5000]
+    }
+   },
+   {
+    "key": "visit-thread-photos",
+    "label": "Photos in a visit thread",
+    "help": "Whether a photo may travel between a patient and the nurse on their visit, once there is a way to send one.",
+    "owner": "access",
+    "type": "boolean",
+    "unit": null,
+    "default": {
+     "value": false,
+     "decidedBy": null,
+     "proposedBy": "Integrator (Wave 3)",
+     "proposedBecause": "A photo of a wound on a nurse's phone is health information kept on a personal device, with no consent behind it and no way to take it back. Until a doctor has reviewed whether a thread photo is clinically safe, and there is somewhere proper to keep one, the thread carries words only."
+    },
+    "allowed": [
+     { "value": false, "label": "Words only", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "The thread as it was built, and the only way it can work today." },
+     { "value": true, "label": "Photos allowed, once the preview has them", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "So the decision can be made and clinically reviewed ahead of the capability. Switched on, nothing can be sent yet: the thread says photos are not in this preview, and the setting shows as not clinically reviewed until a doctor confirms it." }
+    ],
+    "changedBy": "admin",
+    "reviewRequired": "sign-clinical-review",
+    "appliesTo": "A change applies to what a visit thread says from the moment it is made. No photo can be sent either way: this preview has no upload, and the thread route refuses anything attached.",
+    "guardrail": {
+     "statement": "Switching photos on never sends a photo anywhere. The thread says photos are not in this preview yet, and the setting is shown as not clinically reviewed until a doctor confirms it.",
+     "forbids": ["yes", 1, null]
+    }
+   },
+   {
+    "key": "visit-thread-open-hours-after-visit",
+    "label": "Hours a thread stays open after the visit",
+    "help": "How long after a visit is completed its thread still takes messages, for anything that follows from the visit.",
+    "owner": "access",
+    "type": "count",
+    "unit": "hours",
+    "positive": false,
+    "default": {
+     "value": 24,
+     "decidedBy": null,
+     "proposedBy": "Integrator (Wave 3)",
+     "proposedBecause": "A day covers the question a patient has the evening after a dressing and the next morning, and ends before the thread becomes a private line to a nurse outside any rota. A cancelled visit's thread closes at once whatever this says."
+    },
+    "bounds": {
+     "lowest": { "value": 0, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Nought is the thread closing with the visit, as it was built. It is allowed, because a thread that shuts when the visit does is a safe policy rather than a mistake." },
+     "highest": { "value": 72, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Three days reaches past a weekend. Longer, and a thread outlives the nurse's rota for that patient and becomes a way round it." }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to visits completed after it. A thread keeps the hours in force when its visit was completed, a thread already closed never opens again, and a cancelled visit's thread closes at once.",
+    "guardrail": {
+     "statement": "A thread never stays open for more than three days after its visit, and a cancelled visit's thread is never kept open. That nobody watches a thread for emergencies is said above its field however long it stays open.",
+     "forbids": [-1, 73, 168]
+    }
+   },
+   {
+    "key": "handover-answered-by",
+    "label": "Who answers a Gilbert handover",
+    "help": "Which roles on the vetting register read a handover from Gilbert and call the patient back.",
+    "owner": "access",
+    "type": "roleList",
+    "unit": null,
+    "default": {
+     "value": ["nurse"],
+     "decidedBy": null,
+     "proposedBy": "Integrator (Wave 3)",
+     "proposedBecause": "A handover is meant for the nurse on desk duty. The vetting register has no desk-duty role or post, so the closest role it holds is the registered nurse (nurse), who holds view-patient-summary and whose scope a call back about a visit is inside."
+    },
+    "allowedRoles": {
+     "roles": ["nurse", "doctor"],
+     "decidedBy": null,
+     "proposedBy": "Integrator (Wave 3)",
+     "proposedBecause": "A handover carries how somebody asked, what Gilbert matched and whether an emergency was raised: health content about a named person. The register's clinical roles that may read a patient summary are the registered nurse and the doctor. The Control Tower operator and the pharmacy also hold view-patient-summary and are left out, because answering a handover is a clinical conversation rather than dispatch or dispensing; the locum holds no summary capability at all."
+    },
+    "items": {
+     "lowest": { "value": 1, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "A handover that goes to no role goes to nobody, and the patient has been told a nurse would read it." },
+     "highest": { "value": 2, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Both clinical roles the register allows, and no more." }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to handovers made after it. A handover already made stays with whoever it went to.",
+    "guardrail": {
+     "statement": "A handover always goes to somebody clinical: never to nobody, and never to a role that is not a registered nurse or a doctor.",
+     "forbids": [[], ["operator"], ["admin"], ["nurse", "operator"], ["sister-on-duty"]]
+    }
+   },
+   {
+    "key": "handover-hours",
+    "label": "When the handover desk answers",
+    "help": "The hours a handover from Gilbert is answered, in Johannesburg time. Outside them Gilbert says nobody is there and gives the emergency numbers.",
+    "owner": "access",
+    "type": "schedule",
+    "unit": null,
+    "posts": [{ "id": "handover-desk", "label": "Handover desk", "role": "nurse" }],
+    "_mustCoverNote": "No mustCover. mustCover is for hours that must always have somebody on them, because a gap there is an alert with nobody to go to. Out of hours here is not a gap of that kind: it has its own answer, written in handover above and enforced by the build — nobody is there, the emergency numbers, and a call back when the desk opens — so an admin may shorten the hours when there are no nurses to staff them, rather than being made to promise cover nobody can give. The engine's own rule refuses a rota with no window at all, because a desk that never opens offers a call back that never comes.",
+    "default": {
+     "value": [{ "post": "handover-desk", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "06:00", "to": "22:00" }],
+     "decidedBy": null,
+     "proposedBy": "Integrator (Wave 3)",
+     "proposedBecause": "Six in the morning to ten at night, every day, is when the rest of the preview says a nurse is working — the hours Thuso SOS's urgent-visit rota keeps — so a handover is answered when there is somebody who could act on it. Outside them there is nobody, and Gilbert says so first."
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to handovers asked for after it. Somebody already told when the desk opens is not told again.",
+    "guardrail": {
+     "statement": "Out of hours Gilbert always says nobody is on the desk and gives the emergency numbers, whatever the hours are. A rota names a post and never a person, and a window ends after it starts.",
+     "forbids": [
+      [{ "post": "handover-desk", "days": ["mon"], "from": "22:00", "to": "06:00" }],
+      [{ "post": "handover-desk", "days": ["mon"], "from": "06:00", "to": "22:00", "name": "Sister Dlamini" }],
+      [{ "post": "gilbert", "days": ["mon"], "from": "06:00", "to": "22:00" }]
+     ]
+    }
+   }
+  ],
+  "defaults": {
+   "version": 1,
+   "changelog": [
+    {
+     "version": 1,
+     "on": "2026-09-15",
+     "by": "Integrator (Wave 3)",
+     "changed": [
+      { "setting": "named-nurse-fallback", "from": null, "to": "patient-chooses" },
+      { "setting": "visit-thread-max-characters", "from": null, "to": 500 },
+      { "setting": "visit-thread-photos", "from": null, "to": false },
+      { "setting": "visit-thread-open-hours-after-visit", "from": null, "to": 24 },
+      { "setting": "handover-answered-by", "from": null, "to": ["nurse"] },
+      { "setting": "handover-hours", "from": null, "to": [{ "post": "handover-desk", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "06:00", "to": "22:00" }] }
+     ],
+     "why": "The founder instructed that open questions become admin settings. The integrator proposed these six defaults, with their bounds and allowed values, and nobody has decided them."
+    }
+   ]
+  }
  },
 
  "fixtures": {

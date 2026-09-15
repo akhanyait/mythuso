@@ -29,14 +29,23 @@ const shared = (id: string) => (settingsContract.refusals as { route: string; id
 const safetyOwn = (id: string) => safetyApi.routes.find(r => r.path === '/v1/safety/setting-changes' && !r.withdrawn)!.refusals.find(r => r.id === id)!.statement;
 /* How the screen reads a value of each type these journeys meet. A setting of a type not here fails the first
    journey loudly, so the journey is taught the type rather than passing by skipping it. */
-const valueText = (row: TimingRow, value: unknown): string => {
+type Window = { post: string; days: string[]; from: string; to: string };
+type ScheduleRow = { posts?: { id: string; label: string }[] };
+const valueText = (row: TimingRow & ScheduleRow, value: unknown): string => {
   if (row.type === 'minutes' || (row.type === 'list' && row.of === 'minutes')) return minutesText(value as number | number[]);
-  if (row.type === 'boolean') return row.allowed!.find(choice => choice.value === value)!.label;
+  if (row.type === 'count') return fill(say.values.count, { value: String(value), unit: row.unit ?? '' });
+  if (row.type === 'boolean' || row.type === 'enum') return row.allowed!.find(choice => choice.value === value)!.label;
   if (row.type === 'roleList') return (value as string[]).map(roleName).join(', ');
+  if (row.type === 'schedule') return (value as Window[]).map(w => fill(say.values.window, {
+    post: row.posts!.find(post => post.id === w.post)!.label,
+    days: w.days.length === settingsContract.days.length ? say.values.everyDay : w.days.map(d => d[0]!.toUpperCase() + d.slice(1)).join(', '),
+    from: w.from, to: w.to
+  })).join('; ');
   throw new Error(`${row.key} is a ${row.type}, which this journey does not read yet.`);
 };
-const limitsTexts = (row: TimingRow): string[] => [
-  ...(row.bounds ? [fill(say.range, { lowest: minutesText(row.bounds.lowest.value), highest: minutesText(row.bounds.highest.value) })] : []),
+const limitsTexts = (row: TimingRow & ScheduleRow): string[] => [
+  ...(row.bounds ? [fill(say.range, { lowest: valueText(row, row.bounds.lowest.value), highest: valueText(row, row.bounds.highest.value) })] : []),
+  ...(row.posts ? [fill(say.posts, { posts: row.posts.map(post => post.label).join(', ') })] : []),
   ...(row.allowed ? [fill(say.choices, { values: row.allowed.map(choice => choice.label).join(', ') })] : []),
   ...(row.allowedRoles ? [fill(say.roles, { roles: row.allowedRoles.roles.map(roleName).join(', ') })] : []),
   ...(row.items ? [fill(say.listLength, { lowest: String(row.items.lowest.value), highest: String(row.items.highest.value) })] : [])
@@ -88,7 +97,10 @@ test('every engine’s settings are drawn from its contract: in force, the defau
       if (row.guardrail) await expect(item).toContainText(row.guardrail.statement);
       await expect(item).toContainText(say.neverChanged);
       await expect(item.locator('summary')).toHaveText(`${say.historyHeading} (0)`);
-      await expect(item).not.toContainText(say.notReviewed);
+      /* A setting that waits on a clinical review, and whose default nobody reviewed, says so. */
+      const waitsOnReview = Boolean((row as { reviewRequired?: string }).reviewRequired) && !(row.default as { reviewedBy?: string }).reviewedBy;
+      if (waitsOnReview) await expect(item).toContainText(say.notReviewed);
+      else await expect(item).not.toContainText(say.notReviewed);
     }
   }
   expect(await noOverflow(page), 'the Configuration area scrolls sideways').toBe(true);

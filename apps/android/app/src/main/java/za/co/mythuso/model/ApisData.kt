@@ -74,6 +74,9 @@ object ApisData {
     val POST_ACCESS_BOOKINGS_BY_BOOKING_REF_CANCEL = Route("postAccessBookingsByBookingRefCancel", "POST", "/v1/access/bookings/{bookingRef}/cancel", "/v1/access/bookings/{bookingRef}/cancel", 1, "access", listOf("patient", "caregiver", "guardian", "thuso-line-agent"), listOf("dispatch"), true, "built")
     val GET_ACCESS_VISIT_THREADS_BY_BOOKING_REF = Route("getAccessVisitThreadsByBookingRef", "GET", "/v1/access/visit-threads/{bookingRef}", "/v1/access/visit-threads/{bookingRef}", 1, "access", listOf("patient", "caregiver", "guardian", "nurse"), listOf("dispatch"), false, "built")
     val POST_ACCESS_VISIT_THREADS_BY_BOOKING_REF_MESSAGES = Route("postAccessVisitThreadsByBookingRefMessages", "POST", "/v1/access/visit-threads/{bookingRef}/messages", "/v1/access/visit-threads/{bookingRef}/messages", 1, "access", listOf("patient", "caregiver", "guardian", "nurse"), listOf("dispatch"), true, "built")
+    val GET_ACCESS_SETTINGS = Route("getAccessSettings", "GET", "/v1/access/settings", "/v1/access/settings", 1, "access", listOf("admin", "doctor"), listOf("audit"), false, "built")
+    val POST_ACCESS_SETTING_CHANGES = Route("postAccessSettingChanges", "POST", "/v1/access/setting-changes", "/v1/access/setting-changes", 1, "access", listOf("admin"), listOf("audit"), true, "built")
+    val POST_ACCESS_SETTING_REVIEWS = Route("postAccessSettingReviews", "POST", "/v1/access/setting-reviews", "/v1/access/setting-reviews", 1, "access", listOf("doctor"), listOf("audit"), true, "built")
     val POST_CARE_OFFERS = Route("postCareOffers", "POST", "/v1/care/offers", "/v1/care/offers", 1, "care", listOf("dispatcher"), listOf("dispatch"), true, "built")
     val POST_CARE_OFFERS_BY_OFFER_REF_ACCEPT = Route("postCareOffersByOfferRefAccept", "POST", "/v1/care/offers/{offerRef}/accept", "/v1/care/offers/{offerRef}/accept", 1, "care", listOf("nurse", "locum"), listOf("dispatch"), true, "built")
     val POST_CARE_OFFERS_BY_OFFER_REF_DECLINE = Route("postCareOffersByOfferRefDecline", "POST", "/v1/care/offers/{offerRef}/decline", "/v1/care/offers/{offerRef}/decline", 1, "care", listOf("nurse", "locum"), listOf("dispatch"), true, "built")
@@ -236,6 +239,9 @@ object ApisData {
         POST_ACCESS_BOOKINGS_BY_BOOKING_REF_CANCEL,
         GET_ACCESS_VISIT_THREADS_BY_BOOKING_REF,
         POST_ACCESS_VISIT_THREADS_BY_BOOKING_REF_MESSAGES,
+        GET_ACCESS_SETTINGS,
+        POST_ACCESS_SETTING_CHANGES,
+        POST_ACCESS_SETTING_REVIEWS,
         POST_CARE_OFFERS,
         POST_CARE_OFFERS_BY_OFFER_REF_ACCEPT,
         POST_CARE_OFFERS_BY_OFFER_REF_DECLINE,
@@ -726,6 +732,40 @@ object ApisData {
     data class PostAccessVisitThreadsByBookingRefMessagesResponse(
         val messageRef: String,
         val deliveryCode: String
+    )
+    class GetAccessSettingsRequest
+    data class GetAccessSettingsResponse(
+        val settingsVersion: Int,
+        val settings: List<Map<String, Any?>>,
+        val history: List<Map<String, Any?>>
+    )
+    data class PostAccessSettingChangesRequest(
+        val idempotencyKey: String,
+        val setting: String,
+        val wholeNumber: Int? = null,
+        val switchedOn: Boolean? = null,
+        val choice: String? = null,
+        val wording: String? = null,
+        val roles: List<String>? = null,
+        val windows: List<Map<String, Any?>>? = null,
+        val items: List<String>? = null,
+        val parts: Map<String, Any?>? = null,
+        val reason: String? = null,
+        val expectedVersion: Int
+    )
+    data class PostAccessSettingChangesResponse(
+        val settingsVersion: Int,
+        val appliesFrom: String
+    )
+    data class PostAccessSettingReviewsRequest(
+        val idempotencyKey: String,
+        val setting: String,
+        val settingsVersion: Int,
+        val reason: String? = null
+    )
+    data class PostAccessSettingReviewsResponse(
+        val settingsVersion: Int,
+        val reviewedAt: String
     )
     data class PostCareOffersRequest(
         val idempotencyKey: String,

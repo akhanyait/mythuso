@@ -74,6 +74,9 @@ enum ApisData {
     static let postAccessBookingsByBookingRefCancel = Route(id: "postAccessBookingsByBookingRefCancel", method: "POST", path: "/v1/access/bookings/{bookingRef}/cancel", mountedPath: "/v1/access/bookings/{bookingRef}/cancel", version: 1, engine: "access", callers: ["patient", "caregiver", "guardian", "thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "built")
     static let getAccessVisitThreadsByBookingRef = Route(id: "getAccessVisitThreadsByBookingRef", method: "GET", path: "/v1/access/visit-threads/{bookingRef}", mountedPath: "/v1/access/visit-threads/{bookingRef}", version: 1, engine: "access", callers: ["patient", "caregiver", "guardian", "nurse"], purpose: ["dispatch"], idempotent: false, status: "built")
     static let postAccessVisitThreadsByBookingRefMessages = Route(id: "postAccessVisitThreadsByBookingRefMessages", method: "POST", path: "/v1/access/visit-threads/{bookingRef}/messages", mountedPath: "/v1/access/visit-threads/{bookingRef}/messages", version: 1, engine: "access", callers: ["patient", "caregiver", "guardian", "nurse"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let getAccessSettings = Route(id: "getAccessSettings", method: "GET", path: "/v1/access/settings", mountedPath: "/v1/access/settings", version: 1, engine: "access", callers: ["admin", "doctor"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postAccessSettingChanges = Route(id: "postAccessSettingChanges", method: "POST", path: "/v1/access/setting-changes", mountedPath: "/v1/access/setting-changes", version: 1, engine: "access", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
+    static let postAccessSettingReviews = Route(id: "postAccessSettingReviews", method: "POST", path: "/v1/access/setting-reviews", mountedPath: "/v1/access/setting-reviews", version: 1, engine: "access", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "built")
     static let postCareOffers = Route(id: "postCareOffers", method: "POST", path: "/v1/care/offers", mountedPath: "/v1/care/offers", version: 1, engine: "care", callers: ["dispatcher"], purpose: ["dispatch"], idempotent: true, status: "built")
     static let postCareOffersByOfferRefAccept = Route(id: "postCareOffersByOfferRefAccept", method: "POST", path: "/v1/care/offers/{offerRef}/accept", mountedPath: "/v1/care/offers/{offerRef}/accept", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["dispatch"], idempotent: true, status: "built")
     static let postCareOffersByOfferRefDecline = Route(id: "postCareOffersByOfferRefDecline", method: "POST", path: "/v1/care/offers/{offerRef}/decline", mountedPath: "/v1/care/offers/{offerRef}/decline", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["dispatch"], idempotent: true, status: "built")
@@ -236,6 +239,9 @@ enum ApisData {
         postAccessBookingsByBookingRefCancel,
         getAccessVisitThreadsByBookingRef,
         postAccessVisitThreadsByBookingRefMessages,
+        getAccessSettings,
+        postAccessSettingChanges,
+        postAccessSettingReviews,
         postCareOffers,
         postCareOffersByOfferRefAccept,
         postCareOffersByOfferRefDecline,
@@ -726,6 +732,40 @@ enum ApisData {
     struct PostAccessVisitThreadsByBookingRefMessagesResponse {
         let messageRef: String
         let deliveryCode: String
+    }
+    struct GetAccessSettingsRequest {}
+    struct GetAccessSettingsResponse {
+        let settingsVersion: Int
+        let settings: [[String: Any]]
+        let history: [[String: Any]]
+    }
+    struct PostAccessSettingChangesRequest {
+        let idempotencyKey: String
+        let setting: String
+        let wholeNumber: Int?
+        let switchedOn: Bool?
+        let choice: String?
+        let wording: String?
+        let roles: [String]?
+        let windows: [[String: Any]]?
+        let items: [String]?
+        let parts: [String: Any]?
+        let reason: String?
+        let expectedVersion: Int
+    }
+    struct PostAccessSettingChangesResponse {
+        let settingsVersion: Int
+        let appliesFrom: String
+    }
+    struct PostAccessSettingReviewsRequest {
+        let idempotencyKey: String
+        let setting: String
+        let settingsVersion: Int
+        let reason: String?
+    }
+    struct PostAccessSettingReviewsResponse {
+        let settingsVersion: Int
+        let reviewedAt: String
     }
     struct PostCareOffersRequest {
         let idempotencyKey: String

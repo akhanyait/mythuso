@@ -573,7 +573,10 @@ fun serviceIcon(id: String) = when (id) {
     val options = Booking.personOptions(candidates, Booking.previousNurseId(store, person))
     val nurse = Booking.chosenNurse(options, choice, nurseId)
     val choiceStands = choice == Booking.NEAREST || nurse != null
-    LaunchedEffect(choice) { if (choice != Booking.NEAREST && kind == "asap") kind = "scheduled" }
+    LaunchedEffect(choice) { if (choice != Booking.NEAREST && kind == "asap" && !Booking.asapWithNamedNurse) kind = "scheduled" }
+    /* What happens if the nurse asked for by name cannot take it, when Access's generated fallback asks the
+       patient. Waiting for her is chosen first, because she is who they asked for. */
+    var fallbackPick by remember(service.id) { mutableStateOf(BookingData.Fallback.choices.first().id) }
     val scheduled = kind == "scheduled"
     val hours = Booking.offeredSlots(service, chosen.date, nurse?.subject?.id, store.visits)
     val endTime = Scheduling.endTime(slot, service.duration)
@@ -602,10 +605,23 @@ fun serviceIcon(id: String) = when (id) {
                     }
                     2 -> NurseChoiceStep(options, person, choice, nurseId) { next, id -> choice = next; nurseId = id }
                     3 -> {
-                        /* As soon as possible belongs to whoever is nearest, so it is not offered beside a named nurse. */
-                        SchedulingData.kinds.filter { choice == Booking.NEAREST || it.id != "asap" }
+                        /* As soon as possible stays beside a named nurse only when Access's generated fallback can send
+                           somebody else if she cannot take it. */
+                        val rule = Booking.fallbackRule
+                        SchedulingData.kinds.filter { choice == Booking.NEAREST || Booking.asapWithNamedNurse || it.id != "asap" }
                             .forEach { option -> CareChoice(option.name, option.detail, kind == option.id) { kind = option.id } }
-                        if (choice != Booking.NEAREST) Note(BookingData.Person.asapNeedsNearest)
+                        if (choice != Booking.NEAREST && !Booking.asapWithNamedNurse) Note(BookingData.Person.asapNeedsNearest)
+                        /* What happens if she cannot take it within Care's generated offer window: asked when the rule
+                           asks, said when it does not. Either way the patient ends with a nurse or a sentence. */
+                        if (nurse != null && rule != null) {
+                            val minutes = CareData.offerExpiresAfterMinutes.toString()
+                            fun say(text: String) = text.replace("{nurse}", nurse.subject.name).replace("{minutes}", minutes)
+                            if (rule.asksPatient) {
+                                Text(say(BookingData.Fallback.heading), style = MaterialTheme.typography.titleSmall, color = Charcoal)
+                                Note(say(rule.sentence))
+                                BookingData.Fallback.choices.forEach { option -> CareChoice(say(option.name), option.sentence, fallbackPick == option.id) { fallbackPick = option.id } }
+                            } else Note(say(rule.sentence))
+                        }
                         if (scheduled) {
                             VisitTimePicker(days, day, { day = it }, hours, slot, { slot = it },
                                 "${Scheduling.longDate(chosen.date)} · $slot – $endTime (${service.duration} minutes)")
@@ -631,6 +647,11 @@ fun serviceIcon(id: String) = when (id) {
                            cancellation.json, both before the button that books. The payment is the method's
                            name and never a card fragment, because the payment-result door refuses one. */
                         ReviewLine(BookingData.Review.nurseLabel, nurse?.let { "${it.subject.name} · ${BookingData.Person.badgeName}" } ?: BookingData.Review.nearestValue)
+                        /* What happens if she cannot take it, in the words of the answer the booking is made with. */
+                        Booking.fallbackRule?.takeIf { nurse != null }?.let { rule ->
+                            val answer = if (rule.asksPatient) fallbackPick else rule.resolvesTo
+                            BookingData.Fallback.choices.firstOrNull { it.id == answer }?.let { ReviewLine(BookingData.Fallback.reviewLabel, it.sentence) }
+                        }
                         ReviewLine("Payment", payment)
                         ReviewLine(BookingData.Review.priceLabel, "R${service.price}")
                         ReviewLine(BookingData.Review.cancellingLabel, CancellationData.windowSentence)

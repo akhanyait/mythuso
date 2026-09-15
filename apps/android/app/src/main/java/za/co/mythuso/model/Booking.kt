@@ -30,6 +30,13 @@ data class BookingTransition(val from: String?, val to: String)
 /** [route] and [status] are null for a refusal that answers no route: booking.json's own. */
 data class BookingRefusal(val id: String, val route: String?, val status: Int?, val sentence: String)
 data class BookingThreadClosed(val id: String, val sentence: String)
+/** One value of Access's setting named-nurse-fallback: whether as soon as possible stays beside a nurse asked for by
+    name, whether the patient is asked, the answer when they are not, and the sentence that says so. */
+data class BookingFallbackRule(val setting: String, val offersAsap: Boolean, val asksPatient: Boolean, val resolvesTo: String?, val sentence: String)
+/** An answer the patient may give to what happens if the nurse they asked for cannot take the visit. */
+data class BookingFallbackChoice(val id: String, val name: String, val sentence: String)
+/** A window of the handover desk's rota: a post, days and hours in Johannesburg. Never a named person. */
+data class HandoverWindow(val post: String, val days: List<String>, val from: String, val to: String)
 
 /** A nurse as this phone's vetting register sees her today, and whether the roster may offer her. */
 data class BookingCandidate(
@@ -211,10 +218,25 @@ object Booking {
        line to a nurse outside any rota, and what was said stays readable either way. */
     fun threadState(visit: BookedVisit, cancelled: Boolean, now: LocalDateTime = LocalDateTime.now(Scheduling.zone)): ThreadState {
         if (cancelled) return ThreadState.Closed(closedSentence("booking-cancelled"))
-        val ends = endsAt(visit)
-        if (ends != null && !ends.isAfter(now)) return ThreadState.Closed(closedSentence("visit-completed"))
+        val closes = threadClosesAt(visit, now)
+        if (closes != null && !closes.isAfter(now)) return ThreadState.Closed(closedSentence("visit-completed"))
         return ThreadState.Open
     }
+
+    /* When a completed visit's thread closes: the end of the visit plus the hours Access's generated setting
+       holds, fixed by when the visit ended rather than by when somebody looks. Null while it has not ended. */
+    fun threadClosesAt(visit: BookedVisit, now: LocalDateTime = LocalDateTime.now(Scheduling.zone)): LocalDateTime? {
+        val ends = endsAt(visit) ?: return null
+        if (ends.isAfter(now)) return null
+        return ends.plusHours(BookingData.Thread.openHoursAfterVisit.toLong())
+    }
+
+    /* ---- When a nurse asked for by name cannot take the visit ---------------------------------------- */
+
+    /** The rule Access's generated named-nurse fallback is. Null only if the contract lost it, which the build refuses. */
+    val fallbackRule: BookingFallbackRule? get() = BookingData.Fallback.rules.firstOrNull { it.setting == BookingData.Fallback.inForce }
+    /** Whether as soon as possible stays beside a nurse asked for by name. */
+    val asapWithNamedNurse: Boolean get() = fallbackRule?.offersAsap ?: false
 
     fun codePoints(text: String): Int = text.trim().let { it.codePointCount(0, it.length) }
 
@@ -234,6 +256,34 @@ object Booking {
  * same conversation sends something new only when its code outranks the one already held; an emergency
  * at the first message and a calm "can I talk to a nurse" at the tenth is still an emergency. */
 object Handovers {
+    /* When the handover desk answers, from Access's generated handover hours, in Johannesburg — the same
+       arithmetic as deskAt in packages/engines/src/access/domain/handover.ts. It returns no words, so it
+       has no way to leave out what Gilbert says first out of hours: nobody is there, and the numbers. */
+    data class Desk(val open: Boolean, val opensDaysAhead: Int?, val opensOn: LocalDate?, val opensFrom: String?)
+
+    fun desk(now: java.time.ZonedDateTime = java.time.ZonedDateTime.now(Scheduling.zone), hours: List<HandoverWindow> = BookingData.Handover.hours): Desk {
+        val local = now.withZoneSameInstant(Scheduling.zone)
+        fun minute(hhmm: String) = hhmm.split(":").let { it[0].toInt() * 60 + it[1].toInt() }
+        fun id(day: LocalDate) = day.dayOfWeek.name.take(3).lowercase()
+        val nowMinute = local.hour * 60 + local.minute
+        val today = local.toLocalDate()
+        val open = hours.any { it.days.contains(id(today)) && minute(it.from) <= nowMinute && nowMinute < minute(it.to) }
+        for (ahead in 0..7) {
+            val day = today.plusDays(ahead.toLong())
+            val first = hours.filter { it.days.contains(id(day)) && (ahead > 0 || minute(it.from) > nowMinute) }.map { it.from }.minOrNull()
+            if (first != null) return Desk(open, ahead, day, first)
+        }
+        return Desk(open, null, null, null)
+    }
+
+    /** When the desk next opens, in the contract's words, or null for a rota with no window. */
+    fun opensWords(desk: Desk): String? {
+        val day = desk.opensOn ?: return null
+        val from = desk.opensFrom ?: return null
+        val template = when (desk.opensDaysAhead) { 0 -> BookingData.Handover.opensToday; 1 -> BookingData.Handover.opensTomorrow; else -> BookingData.Handover.opensOn }
+        return template.replace("{time}", from).replace("{day}", day.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.UK))
+    }
+
     fun rank(code: String): Int {
         val index = GilbertData.handover.urgency.indexOfFirst { it.id == code }
         return if (index < 0) 0 else GilbertData.handover.urgency.size - index

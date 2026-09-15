@@ -6,9 +6,10 @@ import { confirmBooking, goSection } from './nav';
 
    The person step sits between where and when, and what is asserted here is what it will not do. It
    never offers a nurse without a current badge, and the nurses it refuses are named with the booking
-   capability's own sentence rather than filtered away. Asking for somebody by name takes away "as soon
-   as someone is free", because the first person free and one person in particular are different
-   requests. An hour already held with her is not drawn. And the review names her, the price from the
+   capability's own sentence rather than filtered away. Asking for somebody by name keeps or takes away
+   "as soon as someone is free" as Access's named-nurse fallback in force says, and says what happens if
+   she cannot take the visit — asked, or in the rule's own sentence — so no booking ends with no nurse
+   and no message. An hour already held with her is not drawn. And the review names her, the price from the
    catalogue and the way out from cancellation.json before the button that books.
 
    Every sentence looked for is read from packages/catalog, never typed here. */
@@ -32,6 +33,10 @@ const outside = (roster.nurses as RosterRow[]).find(n => !zoneNames.has(n.zone))
 const badge = trust.tiers.find((t: { id: string }) => t.id === booking.person.badge.tier);
 const option = (id: string) => booking.person.options.find((o: { id: string }) => o.id === id);
 const fill = (text: string, values: Record<string, string>) => text.replace(/\{([a-z]+)\}/gi, (token, key) => values[key] ?? token);
+const care = json('../packages/catalog/care.json');
+/* A setting untouched in this tab is its contract's default: Access's named-nurse fallback, Care's offer window. */
+const settingDefault = (contract: { settings: { items: { key: string; default: { value: unknown } }[] } }, key: string) =>
+  contract.settings.items.find(s => s.key === key)!.default.value;
 
 async function toNurseStep(page: Page, service = /Wound care/) {
   await page.goto('/app/');
@@ -83,17 +88,31 @@ test('the nurse seen last time can be asked for again, and somebody with no earl
   await expect(d.getByRole('radio', { name: new RegExp(option('previous').name) })).toHaveCount(0);
 });
 
-test('asking for a nurse by name takes away as soon as possible, and the review names her, the price and the way out', async ({ page }) => {
+test('asking for a nurse by name keeps as soon as possible under the fallback in force, asks what happens if she cannot take it, and the review names her, the answer, the price and the way out', async ({ page }) => {
   const d = await toNurseStep(page);
   const first = d.locator('.nurse-list .nurse-option').first();
   const name = (await first.locator('strong').innerText()).trim();
   await first.click();
   await d.getByRole('button', { name: 'Continue' }).click(); // nurse → when
 
+  /* Access's named-nurse fallback, untouched in this tab, is its default; its rule says whether as soon as
+     possible stays and whether the patient is asked. The minutes are Care's offer window, untouched too. */
+  const rule = booking.person.fallback.rules.find((r: { setting: string }) => r.setting === settingDefault(booking, 'named-nurse-fallback'));
+  const minutes = String(settingDefault(care, 'offer-expiry'));
   const asap = scheduling.kinds.find((k: { id: string }) => k.id === 'asap');
-  await expect(d.getByRole('radio', { name: new RegExp(asap.name) })).toHaveCount(0);
-  await expect(d.getByText(booking.person.asapNeedsNearest)).toBeVisible();
+  await expect(d.getByRole('radio', { name: new RegExp(asap.name) })).toHaveCount(rule.offersAsap ? 1 : 0);
+  await expect(d.getByText(booking.person.asapNeedsNearest)).toHaveCount(rule.offersAsap ? 0 : 1);
   await expect(d.getByLabel('Your booking summary')).toContainText(name);
+  const soonest = booking.person.fallback.choices.find((c: { id: string }) => c.id === 'soonest');
+  if (rule.asksPatient) {
+    await expect(d.getByRole('heading', { name: fill(booking.person.fallback.heading, { nurse: name, minutes }) })).toBeVisible();
+    await expect(d.getByText(fill(rule.sentence, { nurse: name, minutes }))).toBeVisible();
+    const wait = booking.person.fallback.choices.find((c: { id: string }) => c.id === 'wait');
+    await expect(d.getByRole('radio', { name: new RegExp(fill(wait.name, { nurse: name })) })).toBeChecked();
+    await d.getByRole('radio', { name: new RegExp(soonest.name) }).check();
+  } else {
+    await expect(d.getByText(fill(rule.sentence, { nurse: name, minutes }))).toBeVisible();
+  }
 
   await d.getByRole('button', { name: '10:00', exact: true }).click();
   await d.getByRole('button', { name: 'Continue' }).click(); // when → payment
@@ -101,6 +120,8 @@ test('asking for a nurse by name takes away as soon as possible, and the review 
 
   const line = (label: string) => d.locator('.review-line').filter({ hasText: label });
   await expect(line(booking.review.nurseLabel)).toContainText(`${name} · ${badge.name}`);
+  await expect(line(booking.person.fallback.reviewLabel)).toContainText(rule.asksPatient ? soonest.sentence
+    : booking.person.fallback.choices.find((c: { id: string }) => c.id === rule.resolvesTo).sentence);
   await expect(line(booking.review.priceLabel)).toContainText('R 299');
   await expect(line(booking.review.cancellingLabel)).toContainText(cancellation.window.sentence);
   await expect(d.locator('.clinician-profile h3')).toHaveText(name);

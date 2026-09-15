@@ -5,7 +5,8 @@ import assert from 'node:assert/strict';
 import access from '../../../../catalog/apis/access.json' with { type: 'json' };
 import assistant from '../../../../catalog/assistant.json' with { type: 'json' };
 import events from '../../../../catalog/events.json' with { type: 'json' };
-import { emptyQueue, handOver, summarise, type ConversationTurn } from './handover.ts';
+import { deskAt, emptyQueue, handOver, summarise, type ConversationTurn } from './handover.ts';
+import { accessInForce } from './settings.ts';
 
 const now = new Date('2026-09-14T10:00:00+02:00');
 const turn = (over: Partial<ConversationTurn>): ConversationTurn => ({ channel: 'typed', matchedQuestionId: null, askedForNurse: false, emergency: false, ...over });
@@ -66,4 +67,21 @@ test('a handover without a summary does not go', () => {
 
 test('the urgency codes are the contract’s, most urgent first, and neither of them is calm', () => {
  assert.deepEqual(assistant.answers.handover.urgency.map(u => u.id), ['emergency', 'not-assessed']);
+});
+
+/* The desk's hours are Access's setting handover-hours. 15 September 2026 is a Tuesday in Johannesburg. */
+test('the handover desk is open inside a window of the hours in force, and says when it next opens outside one', () => {
+ const hours = accessInForce([]).handoverHours;
+ const at = (clock: string, on = '2026-09-15') => new Date(`${on}T${clock}:00+02:00`);
+ assert.deepEqual(deskAt(hours, at('08:00')).open, true);
+ assert.deepEqual(deskAt(hours, at('23:00')), { open: false, opens: { daysAhead: 1, date: '2026-09-16', from: hours[0]!.from } });
+ assert.deepEqual(deskAt(hours, at('03:00')), { open: false, opens: { daysAhead: 0, date: '2026-09-15', from: hours[0]!.from } });
+ // A window ends at its closing minute, not a minute after.
+ assert.equal(deskAt(hours, at(hours[0]!.to)).open, false);
+ // Midnight UTC is already two in the morning in Johannesburg, and the answer is Johannesburg's.
+ assert.equal(deskAt(hours, new Date('2026-09-15T21:30:00Z')).open, false);
+ const weekdays = [{ post: 'handover-desk', days: ['mon', 'tue', 'wed', 'thu', 'fri'], from: '08:00', to: '17:00' }];
+ assert.deepEqual(deskAt(weekdays, at('10:00', '2026-09-19')), { open: false, opens: { daysAhead: 2, date: '2026-09-21', from: '08:00' } });
+ // A rota with no window is refused as a setting; if one were handed in, there is no opening to promise.
+ assert.deepEqual(deskAt([], at('08:00')), { open: false, opens: null });
 });

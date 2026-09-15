@@ -21,6 +21,8 @@ struct VisitThreadView: View {
     let closed: BookingThreadClosed?
     /// The nurse the booking names, or nil while it is whoever is nearest.
     var nurseName: String? = nil
+    /// When a completed visit’s thread closes, while it is still open for follow-up; nil otherwise.
+    var closesAt: Date? = nil
     @EnvironmentObject private var store: PreviewStore
     @State private var draft = ""
     @State private var refused: BookingRefusal?
@@ -42,6 +44,16 @@ struct VisitThreadView: View {
                     CapabilityNotice(of: "messaging")
                     Text(BookingData.Thread.notARecord).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                         .fixedSize(horizontal: false, vertical: true)
+                    /* Words only, or — if the generated setting ever says photos are on — that photos are not in
+                       this preview yet. A phone holds no clinical review state, so it never claims one. */
+                    Text(BookingData.Thread.photos ? BookingData.Thread.photosNotInPreview : BookingData.Thread.wordsOnly)
+                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if closed == nil, let closesAt {
+                        Label(Booking.fill(BookingData.Thread.openAfterVisit, ["closes": Scheduling.format(closesAt, "d MMM, HH:mm")]), systemImage: "clock")
+                            .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     conversation
                     if let closed { closedNote(closed) } else { composer.id("thread-composer") }
                 }

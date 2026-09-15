@@ -436,6 +436,11 @@
 .as-lowered { margin: 0; font-weight: 600; padding-left: var(--space-12); border-left: 2px solid var(--brand-orange); }
 .as-sent { display: grid; gap: var(--space-8); padding-top: var(--space-12); border-top: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink)); }
 .as-sent p { margin: 0; }
+/* Out of hours (Wave 3, Access settings): nobody is on the desk, then the numbers, then the call back. Orange
+   as an edge only, never as text, as the emergency answer does. */
+.as-desk { display: grid; gap: var(--space-8); padding-left: var(--space-12); border-left: 2px solid var(--brand-orange); }
+.as-desk p { margin: 0; }
+.as-desk-numbers { font-weight: 600; }
 .as-ref { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; font-weight: 600; }
 .as-said { overflow-wrap: anywhere; }
 .as-rule ul { margin: 0 0 var(--space-12); padding-left: var(--space-20); display: grid; gap: var(--space-8); font-size: 14px; line-height: 1.55; color: var(--surface); }

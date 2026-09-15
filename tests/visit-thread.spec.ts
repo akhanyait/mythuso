@@ -72,8 +72,10 @@ test('a message longer than the thread allows is refused in the route’s own wo
   await page.goto('/app/');
   const visit = await openVisit(page, 'Upcoming');
   await visit.getByRole('button', { name: new RegExp(thread.openLabel) }).click();
-  await visit.getByLabel(thread.inputLabel).fill('a'.repeat(thread.maxCharacters + 1));
-  await expect(visit.locator('.thread-count')).toHaveText(`${thread.maxCharacters + 1} / ${thread.maxCharacters}`);
+  /* The longest message is Access's setting, and with nothing changed in this tab it is the contract's default. */
+  const maxCharacters: number = booking.settings.items.find((s: { key: string }) => s.key === 'visit-thread-max-characters').default.value;
+  await visit.getByLabel(thread.inputLabel).fill('a'.repeat(maxCharacters + 1));
+  await expect(visit.locator('.thread-count')).toHaveText(`${maxCharacters + 1} / ${maxCharacters}`);
   await visit.getByRole('button', { name: thread.sendLabel }).click();
   await expect(visit.getByRole('alert')).toHaveText(routeRefusal('message-too-long'));
   await expect(visit.locator('.thread-message')).toHaveCount(0);

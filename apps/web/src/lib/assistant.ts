@@ -4,7 +4,10 @@ import { labels as schedulingLabels, shortWhenText, type Visit } from './schedul
 import { recordById } from './records';
 import { EXPIRY_WARNING_DAYS } from './vetting';
 import { conditions, emergency as sosEmergency, numberById } from './sos';
-import { summarise, urgencyWords, type ConversationTurn, type HandoverSummary } from '../../../../packages/engines/src/access/domain/handover.ts';
+import { deskAt, summarise, urgencyWords, type ConversationTurn, type HandoverSummary } from '../../../../packages/engines/src/access/domain/handover.ts';
+import booking from '../../../../packages/catalog/booking.json';
+import vetting from '../../../../packages/catalog/vetting.json';
+import { accessSettingsNow } from './settings';
 
 /* Gilbert's reasoning, without a screen attached to it.
 
@@ -178,7 +181,7 @@ export type Reply =
  | { kind: 'voice' }
  | { kind: 'emergency'; groups: EmergencyGroup[] }
  | { kind: 'unmatched' }
- | { kind: 'handover'; rows: SummaryRow[]; summary: HandoverSummary };
+ | { kind: 'handover'; rows: SummaryRow[]; summary: HandoverSummary; desk: DeskWords };
 
 /** `unread` is true when the answer came with words Gilbert could not read; the unread answer follows it. */
 export type Turn = { id: number; asked: string | null; channel: Channel | null; reply: Reply; matched: Question | null; groups: EmergencyGroup[]; unread: boolean };
@@ -229,6 +232,40 @@ const conversationOf = (turns: Turn[]): ConversationTurn[] => turns.map(t => ({
 }));
 export const emergencyIn = (turns: Turn[]) => turns.some(t => t.reply.kind === 'emergency');
 
+/* Who answers a handover and whether anybody is there now: Access's settings handover-answered-by and
+   handover-hours in force, asked once when the handover is shown and kept on the reply, so somebody told
+   when the desk opens is not told something different a minute later. Out of hours the words are, in
+   order, that nobody is on the desk, the emergency numbers from sos.json, and a call back when it next
+   opens — and nothing here can leave out the first two, because neither is a setting: an admin changes
+   the hours, never whether the numbers are given. */
+export type DeskWords = {
+ readonly answeredBy: string;
+ readonly outOfHours: { readonly nobody: string; readonly numbers: string; readonly callback: string | null } | null;
+};
+const fillWords = (text: string, values: Record<string, string>) => text.replace(/\{(\w+)\}/g, (whole, key: string) => values[key] ?? whole);
+export const handoverDeskWords = booking.handover;
+export function handoverDesk(now: Date): DeskWords {
+ const inForce = accessSettingsNow();
+ const words = booking.handover;
+ const answeredBy = inForce.handoverAnsweredBy.map(id => vetting.roles.find(role => role.id === id)?.name ?? id).join(', ');
+ const desk = deskAt(inForce.handoverHours, now);
+ if (desk.open) return { answeredBy, outOfHours: null };
+ const opens = desk.opens;
+ const when = !opens ? null
+  : fillWords(opens.daysAhead === 0 ? words.opensToday : opens.daysAhead === 1 ? words.opensTomorrow : words.opensOn, {
+   time: opens.from,
+   day: new Date(`${opens.date}T12:00:00Z`).toLocaleDateString('en-ZA', { weekday: 'long', timeZone: 'UTC' })
+  });
+ return {
+  answeredBy,
+  outOfHours: {
+   nobody: words.outOfHours,
+   numbers: fillWords(words.outOfHoursNumbers, { ambulance: numberById('ambulance').number, mobile: numberById('mobile').number }),
+   callback: when === null ? null : fillWords(words.callback, { when })
+  }
+ };
+}
+
 export function handoverReply(turns: Turn[], raised = false): Reply {
  const h = answers.handover;
  const label = (id: string) => h.fields.find(f => f.id === id)?.label ?? id;
@@ -241,7 +278,7 @@ export function handoverReply(turns: Turn[], raised = false): Reply {
   { label: label('channel'), value: channel },
   { label: label('matched'), value: matched },
   { label: label('urgency'), value: urgencyWords(summary.urgencyCode).name }
- ] };
+ ], desk: handoverDesk(new Date()) };
 }
 
 /** A message in a person's own words. */

@@ -16,6 +16,7 @@ import {
  stateFromEvents, windowOf, type Candidate, type Ledger
 } from './booking.ts';
 import type { AccessEvent, Outcome } from './contract.ts';
+import { accessInForce } from './settings.ts';
 
 const now = new Date('2026-09-14T10:00:00+02:00');
 const statement = (route: string, id: string) =>
@@ -31,7 +32,9 @@ const candidates: Candidate[] = [
  nurse('N-204', { zone: 'Soweto', badgeCurrent: false, notOfferedBecause: 'Offer a nurse whose simulated vetting has lapsed.', distanceKm: 14 }),
  nurse('N-205', { distanceKm: 2.9 })
 ];
-const context = { now, candidates, visitCovered: true };
+/* Access's named-nurse fallback as it stands with no history: the default, read through the settings code. */
+const fallback = accessInForce([]).namedNurseFallback;
+const context = { now, candidates, visitCovered: true, namedNurseFallback: fallback };
 const ask = (ledger: Ledger, slotRef: string, key = 'k-1', subjectRef = 'subject-lerato', serviceId = 'wound') =>
  requestBooking(ledger, { idempotencyKey: key, subjectRef, serviceId, mode: 'home', slotRef, actorRole: 'patient' }, context);
 function ok<T>(outcome: Outcome<T>) {
@@ -58,16 +61,38 @@ test('only nurses with a current badge in covered suburbs are offered, nearest f
  assert.equal(personOptions(candidates, null).previous, null);
 });
 
-test('the offer is every day and hour scheduling.json gives, and as soon as possible belongs to whoever is nearest', () => {
- const nearest = offeredSlots({ now, serviceId: 'wound', kind: 'scheduled', choice: { kind: 'nearest' }, holds: [] });
+test('the offer is every day and hour scheduling.json gives, and whether as soon as possible stays beside a named nurse is the fallback in force', () => {
+ const nearest = offeredSlots({ now, serviceId: 'wound', kind: 'scheduled', choice: { kind: 'nearest' }, holds: [], namedNurseFallback: fallback });
  assert.equal(nearest.length, scheduling.offer.days * scheduling.offer.slots.length);
- assert.ok(nearest.every(s => s.nurseRef === null && scheduling.offer.slots.includes(s.start!)));
- assert.equal(offeredSlots({ now, serviceId: 'wound', kind: 'asap', choice: { kind: 'nearest' }, holds: [] }).length, 1);
- assert.deepEqual(offeredSlots({ now, serviceId: 'wound', kind: 'asap', choice: { kind: 'named', nurseRef: 'N-205' }, holds: [] }), []);
+ assert.ok(nearest.every(s => s.nurseRef === null && s.fallback === null && scheduling.offer.slots.includes(s.start!)));
+ assert.equal(offeredSlots({ now, serviceId: 'wound', kind: 'asap', choice: { kind: 'nearest' }, holds: [], namedNurseFallback: fallback }).length, 1);
+ const named = { kind: 'named' as const, nurseRef: 'N-205' };
+ const offer = (setting: string, kind: 'asap' | 'scheduled') => offeredSlots({ now, serviceId: 'wound', kind, choice: named, holds: [], namedNurseFallback: setting });
+ // Every value the setting may take has a rule, and each ends in a nurse or a sentence saying the visit waits.
+ for (const rule of contract.person.fallback.rules) {
+  assert.ok(rule.sentence.includes('{nurse}') && rule.sentence.includes('{minutes}'), rule.setting);
+  const asap = offer(rule.setting, 'asap');
+  assert.equal(asap.length > 0, rule.offersAsap, `${rule.setting} and as soon as possible`);
+  const fallbacks = [...new Set(offer(rule.setting, 'scheduled').map(s => s.fallback))].sort();
+  assert.deepEqual(fallbacks, rule.asksPatient ? ['soonest', 'wait'] : [rule.resolvesTo], rule.setting);
+ }
+ assert.deepEqual(offer('wait-for-named', 'asap'), []);
+ assert.deepEqual(offer('patient-chooses', 'asap').map(s => s.slotRef), ['asap~N-205~wait', 'asap~N-205~soonest']);
+ assert.deepEqual(offer('soonest-automatically', 'asap').map(s => s.slotRef), ['asap~N-205~soonest']);
+ assert.throws(() => offer('cancel-quietly', 'asap'), /no rule/);
+});
+
+test('a booking keeps what happens if its nurse cannot take it, and a slot the fallback in force does not offer is refused', () => {
+ const soonest = ok(requestBooking(emptyLedger, { idempotencyKey: 'f-1', subjectRef: 'subject-lerato', serviceId: 'wound', mode: 'home', slotRef: 'asap~N-205~soonest', actorRole: 'patient' }, { ...context, namedNurseFallback: 'patient-chooses' }));
+ assert.deepEqual([soonest.value.booking.slot.kind, soonest.value.booking.slot.nurseRef, soonest.value.booking.slot.fallback], ['asap', 'N-205', 'soonest']);
+ const waiting = requestBooking(emptyLedger, { idempotencyKey: 'f-2', subjectRef: 'subject-lerato', serviceId: 'wound', mode: 'home', slotRef: `${firstDay}T09:00~N-205~soonest`, actorRole: 'patient' }, { ...context, namedNurseFallback: 'wait-for-named' });
+ assert.deepEqual(waiting.refused && [waiting.id, waiting.statement], ['slot-not-offered', statement(BOOK, 'slot-not-offered')]);
+ const unanswered = requestBooking(emptyLedger, { idempotencyKey: 'f-3', subjectRef: 'subject-lerato', serviceId: 'wound', mode: 'home', slotRef: `${firstDay}T09:00~N-205`, actorRole: 'patient' }, context);
+ assert.equal(unanswered.refused && unanswered.id, 'slot-not-offered', 'a named nurse with no answer to what happens if she cannot take it claims nothing');
 });
 
 test('a booking is requested against an offered hour and publishes booking.requested with exactly the frozen payload', () => {
- const outcome = ok(ask(emptyLedger, `${firstDay}T09:00~N-205`));
+ const outcome = ok(ask(emptyLedger, `${firstDay}T09:00~N-205~wait`));
  const { booking } = outcome.value;
  assert.equal(booking.state, 'requested');
  assert.match(booking.bookingRef, /^SIM-BKG-/);
@@ -93,21 +118,21 @@ test('a slot that was never offered is refused in the route’s own words', () =
 });
 
 test('asking for a nurse whose badge is not current is refused, however the slot reference was built', () => {
- const refused = ask(emptyLedger, `${firstDay}T09:00~N-204`);
+ const refused = ask(emptyLedger, `${firstDay}T09:00~N-204~wait`);
  assert.ok(refused.refused);
  assert.equal(refused.id, 'nurse-badge-not-current');
  assert.equal(refused.statement, contract.refusals.find(r => r.id === 'nurse-badge-not-current')!.sentence);
 });
 
 test('an hour already held against a named nurse is no longer offered for her, and still is for whoever is nearest', () => {
- const first = ok(ask(emptyLedger, `${firstDay}T09:00~N-205`)).value.ledger;
+ const first = ok(ask(emptyLedger, `${firstDay}T09:00~N-205~wait`)).value.ledger;
  assert.deepEqual(holdsOf(first), [{ nurseRef: 'N-205', date: firstDay, start: '09:00', minutes: 40 }]);
- const again = ask(first, `${firstDay}T09:00~N-205`, 'k-2', 'subject-nomsa');
+ const again = ask(first, `${firstDay}T09:00~N-205~wait`, 'k-2', 'subject-nomsa');
  assert.ok(again.refused);
  assert.equal(again.id, 'slot-not-offered');
- assert.equal(offeredSlots({ now, serviceId: 'wound', kind: 'scheduled', choice: { kind: 'named', nurseRef: 'N-205' }, holds: holdsOf(first) }).length, scheduling.offer.days * scheduling.offer.slots.length - 1);
+ assert.equal(offeredSlots({ now, serviceId: 'wound', kind: 'scheduled', choice: { kind: 'named', nurseRef: 'N-205' }, holds: holdsOf(first), namedNurseFallback: 'wait-for-named' }).length, scheduling.offer.days * scheduling.offer.slots.length - 1);
  ok(ask(first, `${firstDay}T09:00~nearest`, 'k-3', 'subject-nomsa'));
- ok(ask(first, `${firstDay}T10:00~N-205`, 'k-4', 'subject-nomsa'));
+ ok(ask(first, `${firstDay}T10:00~N-205~wait`, 'k-4', 'subject-nomsa'));
 });
 
 test('a service not offered where the visit would be is refused', () => {
@@ -121,8 +146,8 @@ test('a service not offered where the visit would be is refused', () => {
 });
 
 test('the same idempotency key is the same act once, and never another family’s booking', () => {
- const first = ok(ask(emptyLedger, `${firstDay}T09:00~N-205`));
- const replay = ok(ask(first.value.ledger, `${firstDay}T09:00~N-205`));
+ const first = ok(ask(emptyLedger, `${firstDay}T09:00~N-205~wait`));
+ const replay = ok(ask(first.value.ledger, `${firstDay}T09:00~N-205~wait`));
  assert.equal(replay.value.booking.bookingRef, first.value.booking.bookingRef);
  assert.equal(replay.events.length, 0);
  assert.equal(replay.value.ledger.bookings.length, 1);
@@ -134,7 +159,7 @@ test('the same idempotency key is the same act once, and never another family’
 });
 
 test('requested becomes confirmed once, with the hour held, and nothing moves backwards', () => {
- const booked = ok(ask(emptyLedger, `${firstDay}T09:00~N-205`)).value;
+ const booked = ok(ask(emptyLedger, `${firstDay}T09:00~N-205~wait`)).value;
  const confirmed = ok(confirmBooking(booked.ledger, booked.booking.bookingRef, now));
  assert.equal(confirmed.value.booking.state, 'confirmed');
  assert.deepEqual(confirmed.events.map(e => e.type), ['booking.confirmed']);
@@ -153,7 +178,7 @@ test('requested becomes confirmed once, with the hour held, and nothing moves ba
 });
 
 test('a cancellation records which side of the window it fell on, and a visit that has started is refused', () => {
- const booked = ok(ask(emptyLedger, `${firstDay}T09:00~N-205`)).value;
+ const booked = ok(ask(emptyLedger, `${firstDay}T09:00~N-205~wait`)).value;
  const cancel = (at: Date, reasonCode = 'no-longer-needed') =>
   cancelBooking(booked.ledger, { idempotencyKey: 'c-1', bookingRef: booked.booking.bookingRef, subjectRef: 'subject-lerato', reasonCode, actorRole: 'patient' }, at);
  const early = ok(cancel(now));
@@ -179,7 +204,7 @@ test('a cancellation records which side of the window it fell on, and a visit th
 });
 
 test('reading a booking never says whether it exists for somebody else', () => {
- const booked = ok(ask(emptyLedger, `${firstDay}T09:00~N-205`)).value;
+ const booked = ok(ask(emptyLedger, `${firstDay}T09:00~N-205~wait`)).value;
  assert.equal(ok(readBooking(booked.ledger, booked.booking.bookingRef, 'subject-lerato')).value.stateCode, 'requested');
  const other = readBooking(booked.ledger, booked.booking.bookingRef, 'subject-somebody-else');
  const nothing = readBooking(booked.ledger, 'SIM-BKG-NOTHING0', 'subject-somebody-else');

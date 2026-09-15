@@ -7,7 +7,7 @@ import {
  answers, choose, conversation, depthOf, emergencyAnswer, emergencyIn, handOver, identity, lines, opening, outcomeOf, pulseOf, questionGroups,
  questions, refusals, say, send, silenceIsNotSafety, stateSpec, voice, type Question, type Reply, type Turn
 } from '../lib/assistant';
-import { refusal } from '../lib/assistant';
+import { handoverDeskWords as bookingHandover, refusal } from '../lib/assistant';
 import { emptyQueue, handOver as handToQueue, type Handover, type Queue } from '../../../../packages/engines/src/access/domain/handover.ts';
 import { useReducedMotion } from '../lib/motion';
 import type { Visit } from '../lib/scheduling';
@@ -273,10 +273,19 @@ function ReplyBody({ reply, sos, handOver, sent, onSend }: ReplyProps) {
      reference, and the ambulance numbers. */
   case 'handover': {
    const h = answers.handover;
+   const desk = reply.desk;
    return <>
     <p className="as-headline">{h.title}</p>
+    {/* Out of hours, before anything else about the handover: nobody is there, then the numbers, then
+        the call back. Neither of the first two is a setting, so no hours an admin sets can take them out. */}
+    {desk.outOfHours && <div className="as-desk" role="status">
+     <p className="as-desk-nobody">{desk.outOfHours.nobody}</p>
+     <p className="as-desk-numbers">{desk.outOfHours.numbers}</p>
+     {desk.outOfHours.callback && <p className="as-desk-callback">{desk.outOfHours.callback}</p>}
+    </div>}
     <p>{h.lead}</p>
     <dl className="as-summary">{reply.rows.map(row => <div key={row.label}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}</dl>
+    <p className="as-answered-by"><strong>{bookingHandover.answeredByLabel}</strong> {desk.answeredBy}</p>
     {reply.summary.urgencyCode === 'emergency' && <p className="as-lowered">{h.neverLowered}</p>}
     <div className="as-notcarried">
      <p className="as-subhead">{h.notCarriedHeading}</p>

@@ -497,6 +497,22 @@ founder and are recorded as awaiting a Head of Engineering.
 | **59 events for the engines that had none.** Clinical, Safety, Movement, Medicines, Devices, Access bookings and Money's payments, payouts and claims — including §15C's admission sequence and §26's share-link, anomaly and discharge events, word for word | Every event obeys the existing never-lists and routing rules; a Sentinel level is a `rung`, not a tier, so it cannot be mistaken for a trust word | `packages/catalog/events.json`, `events.lock` |
 | **Typed clients and a contract mock.** Route constants and request and response shapes are generated into TypeScript, Swift and Kotlin; `packages/mock-api` answers every route from fixtures, with a contract test per route (450 tests) | The mock binds to loopback, refuses to start without its development flag and may not be named in `deploy/`; it refuses exactly as each route declares, so a screen built against it meets the real refusals first. Supplier callbacks — WhatsApp, USSD, HL7 v2, lab results, device readings, KYC and AFIS answers, responder positions — are doors still to be added to `feeds.json`, not routes | `scripts/emit-apis.mjs`, `packages/mock-api` |
 
+## Delivered — Access's settings, 15 September 2026 (Wave 3, Access settings lead)
+
+The founder instructed that open questions become admin settings. Six Access questions are now settings in
+`packages/catalog/booking.json`, in the shared shape, each a proposal by the integrator that nobody has
+decided, with bounds or allowed values that are proposals too. Nothing here is a real service: a change
+reaches the engine runtime on loopback or the tab's memory, and no phone, desk or patient is told.
+
+| What landed | The refusals it adds | Where |
+|---|---|---|
+| **When a nurse asked for by name cannot take the visit** — `named-nurse-fallback`: the patient chooses (proposed), wait for her, or the soonest nurse automatically. As soon as possible now stays beside a named nurse unless the rule waits for her; the booking step asks, or says in the rule's sentence, what happens within Care's offer window in force, and the review repeats the answer. The answer travels in the slot, so the frozen booking route carries it without a new field and a booking keeps it | No value leaves a booking with no nurse and no message: every value has a rule with a sentence naming the nurse and the offer window, the domain throws on a value with none, and a slot the rule in force does not offer is refused as not offered | `booking.json` `person.fallback`, `domain/booking.ts`, `Booking.tsx`, iOS `BookingView`, Android `CareScreens.kt` |
+| **The visit thread's length, photos and hours** — `visit-thread-max-characters` 100–1000, proposed 500; `visit-thread-photos` off, waiting on `sign-clinical-review`; `visit-thread-open-hours-after-visit` 0–72, proposed 24. The composer and its count read the length in force; a completed visit's thread stays open for the hours in force when it was completed and says until when | A message is measured against the length in force when written and one already kept is never refused; photos switched on still send nothing — the thread says photos are not in this preview yet and not clinically reviewed, and the route still declares no field for one; a cancelled visit's thread closes at once and a closed thread never reopens; nobody watching it for emergencies is a rule no setting reaches | `domain/thread.ts`, `VisitAccess.tsx`, iOS `VisitThreadView`, Android `VisitThreadScreen` |
+| **Who answers a Gilbert handover, and when** — `handover-answered-by`, a role list of the registered nurse and the doctor, proposed the registered nurse (the register has no desk-duty role); `handover-hours`, a rota of the handover desk, proposed 06:00–22:00 every day. Out of hours Gilbert says nobody is on the desk, gives 10177 and 112 from `sos.json`, and offers a call back when the desk next opens, which the preview says nobody will make | Never nobody and never a role that is not clinical; a rota names a post, never a person, and a rota with no window is Access's own refusal `handover-hours-never-open`; the emergency numbers are not a setting and are said first out of hours on every platform; `mustCover` is not used, because out of hours has its own safe answer | `booking.json` `handover`, `domain/handover.ts` `deskAt`, `lib/assistant.ts`, `Assistant.tsx`, iOS `AssistantView`, Android `GilbertScreens.kt` |
+| **Access's settings routes on the runtime.** `GET /v1/access/settings@1` (admin, doctor), `POST /v1/access/setting-changes@1` (admin) and `POST /v1/access/setting-reviews@1` (doctor), in the shared shapes, built through `settingsRoutes()` with the history in Access's own store; three lock lines. They live with the engine that owns the booking and thread routes, because `apps/api` holds identity only. The Configuration tab shows all six; both phones use the generated defaults, each saying it is a proposal | The shared settings refusals word for word, plus `handover-hours-never-open`; the build fails if a fallback value has no sentence, a setting holds the emergency wording, photos lose their review marker, or an Access screen, domain file or native file types a limit or an hour | `packages/engines/src/access/domain/settings.ts`, `engine.ts`, `apis/access.json`, `apis.lock`, `scripts/emit-booking.mjs`, the Access settings section of `scripts/check-boundaries.mjs`, `tests/access-settings.spec.ts` |
+
+Still open: `POST /v1/access/conversations/{conversationRef}/handover` needs a version two that carries the urgency before it is built, and with it who answers and when are read on the runtime rather than on the device. Access hears no event saying a visit was completed, so the engine never completes a thread; the hours after a visit are applied where completion is known, in the screens. Neither phone holds a clinical review state, so a phone never says a setting was reviewed. The Android booking step's fallback answer was built and not seen on an emulator.
+
 ## Delivered — bookings with a person in them, the visit thread and Gilbert's handover, 15 September 2026 (seed plan, Wave 3, Access)
 
 Nothing here books, sends or hands anything to a real person. The booking and messaging capabilities are
@@ -545,11 +561,12 @@ today — and which now has a server behind it, so the console is a surface rath
 **A clinical review of a setting has its rules and no screen.** `packages/engines/src/settings`
 confirms the review of a setting with `reviewRequired` — by a holder of the capability, never by the
 person who changed it, once, against the value in force — and the Configuration tab says "Not
-clinically reviewed" wherever one is waiting. No setting waits on a review yet, so
-`POST /v1/care/setting-reviews@1` is declared and not built, and there is nowhere a doctor confirms
-one from. The Care lead's scope settings (who may give an injection, family planning or a sick-note
-visit) are the first to need both: the route bound through `settingsRoutes()`, and a confirm action in
-the Doctor workspace.
+clinically reviewed" wherever one is waiting. Access's `visit-thread-photos` is the first setting that
+waits on one, so `POST /v1/access/setting-reviews@1` is built through `settingsRoutes()`; there is still
+nowhere a doctor confirms a review from, and the preview keeps no reviews, so the setting shows as not
+clinically reviewed on the Configuration tab and in the visit thread. The Care lead's scope settings (who
+may give an injection, family planning or a sick-note visit) will need the same route, and all of them a
+confirm action in the Doctor workspace.
 
 **A clinician downloads the patient application.** Merging the entries cost a nurse 87 kB gzipped,
 because `src/Doorway.tsx` imports the patient app statically — it is what `/app/` means with no role

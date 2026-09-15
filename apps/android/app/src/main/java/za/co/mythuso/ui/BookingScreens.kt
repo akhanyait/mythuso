@@ -162,6 +162,13 @@ private val clock = DateTimeFormatter.ofPattern("HH:mm").withZone(Scheduling.zon
             return@ScreenColumn
         }
         val state = Booking.threadState(visit, cancelled = upcoming == null)
+        /* Words only, or — if the generated setting ever says photos are on — that photos are not in this
+           preview yet and the setting is not clinically reviewed. No attachment control either way. */
+        Note(if (BookingData.Thread.photos) BookingData.Thread.photosNotInPreview else BookingData.Thread.wordsOnly)
+        /* A completed visit's thread stays open for follow-up until the hours run out, and says until when. */
+        if (state is ThreadState.Open && upcoming != null) Booking.threadClosesAt(visit)?.let { closes ->
+            Note(Booking.fill(BookingData.Thread.openAfterVisit, "closes", closes.format(java.time.format.DateTimeFormatter.ofPattern("d MMM, HH:mm"))))
+        }
         val messages = store.visitThreadMessages.filter { it.visitReference == reference }
         if (messages.isEmpty() && state is ThreadState.Open) TonedCard { Text(BookingData.Thread.empty, style = MaterialTheme.typography.bodyMedium, color = Charcoal) }
         messages.forEach { message ->

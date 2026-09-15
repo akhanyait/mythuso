@@ -25,7 +25,9 @@
    record, and the references say SIM- so a screenshot cannot be mistaken for a real handover. A
    handover without a summary does not go at all — the route's own no-summary refusal. */
 import assistant from '../../../../catalog/assistant.json' with { type: 'json' };
-import { ROUTES, accept, nowInstant, routeRefusal, simulatedRef, type AccessEvent, type Outcome } from './contract.ts';
+import scheduling from '../../../../catalog/scheduling.json' with { type: 'json' };
+import type { Window } from '../../settings/shape.ts';
+import { ROUTES, accept, isoIn, nowInstant, routeRefusal, simulatedRef, type AccessEvent, type Outcome } from './contract.ts';
 
 export type UrgencyCode = 'emergency' | 'not-assessed';
 export type ChannelCode = 'typed' | 'spoken' | 'chosen' | 'none';
@@ -102,3 +104,39 @@ export function handOver(queue: Queue, request: HandoverRequest): Outcome<{ queu
 }
 
 export const urgencyWords = (code: UrgencyCode) => assistant.answers.handover.urgency.find(u => u.id === code)!;
+
+/* ── When the handover desk answers ───────────────────────────────────────────────────────────────
+
+   The hours are Access's setting handover-hours, handed in as they stand when Gilbert is asked. This
+   answers two questions about a moment in Johannesburg — not in whatever zone the device is set to — and
+   nothing else: whether a window of the rota is open, and when the next one opens. What Gilbert says out
+   of hours is the screen's, from packages/catalog/booking.json, and it always starts with nobody being
+   there and the emergency numbers; this function has no way to leave either out, because it returns no
+   words at all. A rota with no window is refused as a setting, so an opening is always found within a
+   week; null is returned only for a rota that could never be in force. */
+export type DeskOpening = {
+ /** 0 for later today, 1 for tomorrow, and so on. */
+ readonly daysAhead: number;
+ /** The ISO date it opens on, in Johannesburg. */
+ readonly date: string;
+ readonly from: string;
+};
+export type Desk = { readonly open: boolean; readonly opens: DeskOpening | null };
+
+const DAY_MS = 86_400_000;
+const WEEKDAY = new Intl.DateTimeFormat('en-GB', { timeZone: scheduling.timezone, weekday: 'short' });
+const CLOCK = new Intl.DateTimeFormat('en-GB', { timeZone: scheduling.timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+const minuteOf = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+
+export function deskAt(windows: readonly Window[], at: Date): Desk {
+ const nowMinute = minuteOf(CLOCK.format(at));
+ const today = WEEKDAY.format(at).slice(0, 3).toLowerCase();
+ const open = windows.some(w => w.days.includes(today) && minuteOf(w.from) <= nowMinute && nowMinute < minuteOf(w.to));
+ for (let ahead = 0; ahead <= 7; ahead++) {
+  const day = new Date(at.getTime() + ahead * DAY_MS);
+  const id = WEEKDAY.format(day).slice(0, 3).toLowerCase();
+  const starts = windows.filter(w => w.days.includes(id) && (ahead > 0 || minuteOf(w.from) > nowMinute)).map(w => w.from).sort();
+  if (starts.length) return { open, opens: { daysAhead: ahead, date: isoIn(day), from: starts[0]! } };
+ }
+ return { open, opens: null };
+}

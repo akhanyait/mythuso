@@ -108,6 +108,9 @@ struct BookingView: View {
     /// nearest, previous or named, and the nurse picked from the named list.
     @State private var choiceKind = "nearest"
     @State private var namedNurse: String?
+    /* What happens if the nurse asked for by name cannot take the visit, when Access's generated fallback asks
+       the patient. Waiting for her is chosen first, because she is who they asked for. */
+    @State private var fallbackPick = BookingData.Fallback.choices.first?.id ?? ""
     /// Where the booking stood when it landed, for the confirmation.
     @State private var bookedState: BookingState = .requested
     @State private var bookedAsap = false
@@ -179,9 +182,9 @@ struct BookingView: View {
         .onChange(of: booked) { _, completed in
             if completed { store.bookingDrafts.removeValue(forKey: service.id) }
         }
-        /* As soon as possible belongs to whoever is nearest, so asking for somebody in particular turns the
-           request into a visit at an hour she is offered. */
-        .onChange(of: choice) { _, now in if now != .nearest && kind == "asap" { kind = "scheduled" } }
+        /* As soon as possible stays beside somebody asked for by name only when Access's generated fallback can
+           send somebody else if she cannot take it; otherwise the request becomes a visit at an hour she is offered. */
+        .onChange(of: choice) { _, now in if now != .nearest && kind == "asap" && !Booking.asapWithNamedNurse { kind = "scheduled" } }
         .sensoryFeedback(.selection, trigger: step)
         .sensoryFeedback(.selection, trigger: kind)
         .sensoryFeedback(.selection, trigger: payment)
@@ -262,7 +265,7 @@ struct BookingView: View {
         /* Two different promises, chosen rather than inferred. An arrival estimate answers "when will
            somebody get here", which is only a question for the second one — and the second one belongs to
            whoever is nearest, so it is not offered beside a nurse asked for by name. */
-        ForEach(Scheduling.kinds.filter { choice == .nearest || $0.id != "asap" }) { option in
+        ForEach(Scheduling.kinds.filter { choice == .nearest || Booking.asapWithNamedNurse || $0.id != "asap" }) { option in
             Button { kind = option.id } label: {
                 CareCard {
                     HStack(alignment: .top, spacing: ThusoSpacing.space12) {
@@ -278,9 +281,39 @@ struct BookingView: View {
             .buttonStyle(.plain)
             .accessibilityAddTraits(kind == option.id ? [.isSelected] : [])
         }
-        if choice != .nearest {
+        if choice != .nearest && !Booking.asapWithNamedNurse {
             Text(BookingData.Person.asapNeedsNearest).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+        /* What happens if she cannot take it within Care's generated offer window: asked when the rule asks,
+           said when it does not. Either way the patient ends with a nurse or a sentence. */
+        if let nurse = chosenNurse, let rule = Booking.fallbackRule {
+            let words: [String: String] = ["nurse": nurse.name, "minutes": String(CareData.offerExpiresAfterMinutes)]
+            if rule.asksPatient {
+                Text(Booking.fill(BookingData.Fallback.heading, words)).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(Booking.fill(rule.sentence, words)).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+                ForEach(BookingData.Fallback.choices) { option in
+                    Button { fallbackPick = option.id } label: {
+                        CareCard {
+                            HStack(alignment: .top, spacing: ThusoSpacing.space12) {
+                                Image(systemName: fallbackPick == option.id ? "largecircle.fill.circle" : "circle").foregroundStyle(ThusoTheme.charcoal)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(Booking.fill(option.name, words)).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                                    Text(option.sentence).thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                                }
+                                Spacer(minLength: 0)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(fallbackPick == option.id ? [.isSelected] : [])
+                }
+            } else {
+                Text(Booking.fill(rule.sentence, words)).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         if scheduled {
             VisitTimePicker(days: days, day: $day, slot: $slot, minutes: service.duration, slots: hours)
@@ -337,6 +370,15 @@ struct BookingView: View {
                before she sets off. The typed name that stood here named one nurse whoever had been chosen. */
             LabeledContent(BookingData.Review.nurseLabel, value: nurseSummary)
                 .accessibilityHint(chosenNurse == nil ? "" : BookingData.Person.badgeSentence)
+            /* What happens if she cannot take it, in the words of the answer the booking is made with. */
+            if chosenNurse != nil, let rule = Booking.fallbackRule,
+               let answer = BookingData.Fallback.choices.first(where: { $0.id == (rule.asksPatient ? fallbackPick : rule.resolvesTo) }) {
+                VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
+                    Text(BookingData.Fallback.reviewLabel).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                    Text(answer.sentence).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
             /* The moment a person commits is the moment they want to know what it costs and how to get out
                of it. Both are read from the one place each lives — the price from the catalogue, the window
                from packages/catalog/cancellation.json — so this card cannot quote either differently. */
@@ -681,7 +723,8 @@ struct VisitDetailView: View {
                 /* The thread belongs to this visit, so it is opened from it. Once the visit is over it opens
                    closed, with the reason, and what was said stays readable. */
                 NavigationLink {
-                    VisitThreadView(threadKey: visit.id, closed: Booking.threadClosed(for: visit, cancelled: false), nurseName: visit.nurseName)
+                    VisitThreadView(threadKey: visit.id, closed: Booking.threadClosed(for: visit, cancelled: false), nurseName: visit.nurseName,
+                                    closesAt: Booking.threadClosesAt(visit))
                 } label: {
                     Label(BookingData.Thread.openLabel, systemImage: "text.bubble").frame(maxWidth: .infinity)
                 }.buttonStyle(QuietButton())

@@ -54,6 +54,8 @@ export type Candidate = {
 };
 
 export type PersonChoice = { readonly kind: 'nearest' } | { readonly kind: 'previous' | 'named'; readonly nurseRef: string };
+/** What happens to a visit asked of one nurse by name when she cannot take it: it waits for her, or the soonest nurse takes it. */
+export type FallbackCode = 'wait' | 'soonest';
 
 export type Slot = {
  /** Opaque to a client. It says which hour, on which day, with whom — and nothing a client can invent. */
@@ -62,6 +64,8 @@ export type Slot = {
  readonly date: string | null;
  readonly start: string | null;
  readonly nurseRef: string | null;
+ /** For a nurse asked for by name, what happens if she cannot take it. Null for whoever is nearest. */
+ readonly fallback: FallbackCode | null;
 };
 
 export type Cancellation = { readonly windowCode: Exclude<WindowCode, 'in-progress'>; readonly reasonCode: string; readonly byRole: string; readonly at: string };
@@ -146,36 +150,71 @@ const overlaps = (start: string, minutes: number, hold: Hold) =>
  minutesOf(start) < minutesOf(hold.start) + hold.minutes && minutesOf(hold.start) < minutesOf(start) + minutes;
 
 export const serviceById = (id: string) => services.find(s => s.id === id);
-const slotRefOf = (date: string, start: string, nurseRef: string | null) => `${date}T${start}~${nurseRef ?? 'nearest'}`;
-const ASAP_REF = 'asap~nearest';
 
-export type OfferInput = { readonly now: Date; readonly serviceId: string; readonly kind: Kind; readonly choice: PersonChoice; readonly holds: readonly Hold[] };
+/* ---- When a nurse asked for by name cannot take it ---------------------------------------------- */
+
+/* Which rule is in force is Access's setting named-nurse-fallback, handed in by whoever holds the
+   history. The rules and their sentences are packages/catalog/booking.json's, and a setting value with no
+   rule there throws rather than offering a slot nobody can explain: a booking with no nurse and no
+   message is the one thing this setting may never produce. */
+type FallbackRule = { readonly setting: string; readonly offersAsap: boolean; readonly asksPatient: boolean; readonly resolvesTo: FallbackCode | null; readonly sentence: string };
+const FALLBACK_RULES = contract.person.fallback.rules as readonly FallbackRule[];
+const FALLBACK_CODES = contract.person.fallback.choices.map(c => c.id) as FallbackCode[];
+
+export function fallbackRuleOf(setting: string): FallbackRule {
+ const rule = FALLBACK_RULES.find(r => r.setting === setting);
+ if (!rule || (!rule.asksPatient && !FALLBACK_CODES.includes(rule.resolvesTo!))) throw new Error(`packages/catalog/booking.json has no rule for the named-nurse fallback "${setting}", so no booking may be offered under it.`);
+ return rule;
+}
+/** What a named nurse's slots may carry: both answers when the patient is asked, or the one the setting gives. */
+export const fallbacksOffered = (setting: string): FallbackCode[] => {
+ const rule = fallbackRuleOf(setting);
+ return rule.asksPatient ? [...FALLBACK_CODES] : [rule.resolvesTo!];
+};
+
+/* A slot reference says which hour, on which day, with whom — and, for a nurse asked for by name, what
+   happens if she cannot take it. That last part travels in the reference so the frozen booking route
+   carries the patient's answer without a field it never declared, and so a booking keeps the answer it
+   was made with whatever the setting says afterwards. */
+const slotRefOf = (date: string | null, start: string | null, nurseRef: string | null, fallback: FallbackCode | null) =>
+ `${date === null ? 'asap' : `${date}T${start}`}~${nurseRef === null ? 'nearest' : `${nurseRef}~${fallback}`}`;
+
+export type OfferInput = {
+ readonly now: Date; readonly serviceId: string; readonly kind: Kind; readonly choice: PersonChoice; readonly holds: readonly Hold[];
+ /** Access's setting named-nurse-fallback, as it stands when the slots are offered. */
+ readonly namedNurseFallback: string;
+};
 
 /**
  * Every slot that may be booked, and only those.
  *
- * As soon as possible belongs to whoever is nearest: asking for one nurse and for the first person
- * free are two different requests, and pretending otherwise would promise a named nurse at an hour
- * nobody offered. A named nurse's hours are the day's hours less the ones already held against her.
+ * As soon as possible is whoever is nearest, or a nurse asked for by name when the fallback in force can
+ * send somebody else if she cannot take it. A rule that waits for her takes it away: waiting for one
+ * nurse is not as soon as possible, and pretending otherwise would promise her at an hour nobody offered.
+ * A named nurse's hours are the day's hours less the ones already held against her, once for each
+ * answer to what happens if she cannot take it.
  */
-export function offeredSlots({ now, serviceId, kind, choice, holds }: OfferInput): Slot[] {
+export function offeredSlots({ now, serviceId, kind, choice, holds, namedNurseFallback }: OfferInput): Slot[] {
  const service = serviceById(serviceId);
  if (!service) return [];
- if (kind === 'asap') return choice.kind === 'nearest' ? [{ slotRef: ASAP_REF, kind: 'asap', date: null, start: null, nurseRef: null }] : [];
  const nurseRef = choice.kind === 'nearest' ? null : choice.nurseRef;
+ const fallbacks: (FallbackCode | null)[] = nurseRef === null ? [null] : fallbacksOffered(namedNurseFallback);
+ if (kind === 'asap') {
+  if (nurseRef !== null && !fallbackRuleOf(namedNurseFallback).offersAsap) return [];
+  return fallbacks.map(fallback => ({ slotRef: slotRefOf(null, null, nurseRef, fallback), kind: 'asap' as const, date: null, start: null, nurseRef, fallback }));
+ }
  return offeredDays(now).flatMap(date => scheduling.offer.slots
   .filter(start => fitsTheShift(start, service.duration))
   .filter(start => nurseRef === null || !holds.some(h => h.nurseRef === nurseRef && h.date === date && overlaps(start, service.duration, h)))
-  .map(start => ({ slotRef: slotRefOf(date, start, nurseRef), kind: 'scheduled' as const, date, start, nurseRef })));
+  .flatMap(start => fallbacks.map(fallback => ({ slotRef: slotRefOf(date, start, nurseRef, fallback), kind: 'scheduled' as const, date, start, nurseRef, fallback }))));
 }
 
-/** What a slot reference claims, read back. A reference in any other shape claims nothing. */
+/** What a slot reference claims, read back. A reference in any other shape claims nothing, and neither does a named nurse's with no answer to what happens if she cannot take it. */
 export function readSlotRef(slotRef: string): { kind: Kind; date: string | null; start: string | null; choice: PersonChoice } | null {
- if (slotRef === ASAP_REF) return { kind: 'asap', date: null, start: null, choice: { kind: 'nearest' } };
- const match = slotRef.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})~(.+)$/);
+ const match = slotRef.match(/^(?:asap|(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}))~(?:(nearest)|([^~]+)~(wait|soonest))$/);
  if (!match) return null;
- const who = match[3]!;
- return { kind: 'scheduled', date: match[1]!, start: match[2]!, choice: who === 'nearest' ? { kind: 'nearest' } : { kind: 'named', nurseRef: who } };
+ const kind: Kind = match[1] ? 'scheduled' : 'asap';
+ return { kind, date: match[1] ?? null, start: match[2] ?? null, choice: match[3] ? { kind: 'nearest' } : { kind: 'named', nurseRef: match[4]! } };
 }
 
 /* ---- The three acts ----------------------------------------------------------------------------- */
@@ -195,6 +234,8 @@ export type BookingContext = {
  readonly visitCovered: boolean;
  /** Hours held against named nurses that this ledger does not hold, such as a screen's visits already booked. */
  readonly held?: readonly Hold[];
+ /** Access's setting named-nurse-fallback as it stands when the booking is asked for. The slot keeps the answer afterwards. */
+ readonly namedNurseFallback: string;
 };
 
 const replace = (ledger: Ledger, next: Booking): Ledger => ({ bookings: ledger.bookings.map(b => (b.bookingRef === next.bookingRef ? next : b)) });
@@ -213,7 +254,7 @@ export function requestBooking(ledger: Ledger, request: BookingRequest, context:
  if (!claimed) return routeRefusal(ROUTES.book, 'slot-not-offered');
  const refusedPerson = refuseChoice(context.candidates, claimed.choice);
  if (refusedPerson) return refusedPerson;
- const offered = offeredSlots({ now: context.now, serviceId: service.id, kind: claimed.kind, choice: claimed.choice, holds: [...holdsOf(ledger), ...(context.held ?? [])] });
+ const offered = offeredSlots({ now: context.now, serviceId: service.id, kind: claimed.kind, choice: claimed.choice, holds: [...holdsOf(ledger), ...(context.held ?? [])], namedNurseFallback: context.namedNurseFallback });
  const slot = offered.find(s => s.slotRef === request.slotRef);
  if (!slot) return routeRefusal(ROUTES.book, 'slot-not-offered');
 

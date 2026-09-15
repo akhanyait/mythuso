@@ -454,6 +454,43 @@ export interface PostAccessVisitThreadsByBookingRefMessagesResponse {
  readonly deliveryCode: string;
 }
 
+export type GetAccessSettingsRequest = Record<string, never>;
+export interface GetAccessSettingsResponse {
+ readonly settingsVersion: number;
+ readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostAccessSettingChangesRequest {
+ readonly idempotencyKey: string;
+ readonly setting: string;
+ readonly wholeNumber?: number;
+ readonly switchedOn?: boolean;
+ readonly choice?: string;
+ readonly wording?: string;
+ readonly roles?: readonly string[];
+ readonly windows?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly items?: readonly string[];
+ readonly parts?: Readonly<Record<string, unknown>>;
+ readonly reason?: string;
+ readonly expectedVersion: number;
+}
+export interface PostAccessSettingChangesResponse {
+ readonly settingsVersion: number;
+ readonly appliesFrom: string;
+}
+
+export interface PostAccessSettingReviewsRequest {
+ readonly idempotencyKey: string;
+ readonly setting: string;
+ readonly settingsVersion: number;
+ readonly reason?: string;
+}
+export interface PostAccessSettingReviewsResponse {
+ readonly settingsVersion: number;
+ readonly reviewedAt: string;
+}
+
 export interface PostCareOffersRequest {
  readonly idempotencyKey: string;
  readonly appointmentRef: string;
@@ -1487,6 +1524,9 @@ export const apiRoutes = {
  postAccessBookingsByBookingRefCancel: { name: "postAccessBookingsByBookingRefCancel", method: "POST", path: "/v1/access/bookings/{bookingRef}/cancel", mountedPath: "/v1/access/bookings/{bookingRef}/cancel", version: 1, engine: "access", callers: ["patient","caregiver","guardian","thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "built" },
  getAccessVisitThreadsByBookingRef: { name: "getAccessVisitThreadsByBookingRef", method: "GET", path: "/v1/access/visit-threads/{bookingRef}", mountedPath: "/v1/access/visit-threads/{bookingRef}", version: 1, engine: "access", callers: ["patient","caregiver","guardian","nurse"], purpose: ["dispatch"], idempotent: false, status: "built" },
  postAccessVisitThreadsByBookingRefMessages: { name: "postAccessVisitThreadsByBookingRefMessages", method: "POST", path: "/v1/access/visit-threads/{bookingRef}/messages", mountedPath: "/v1/access/visit-threads/{bookingRef}/messages", version: 1, engine: "access", callers: ["patient","caregiver","guardian","nurse"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ getAccessSettings: { name: "getAccessSettings", method: "GET", path: "/v1/access/settings", mountedPath: "/v1/access/settings", version: 1, engine: "access", callers: ["admin","doctor"], purpose: ["audit"], idempotent: false, status: "built" },
+ postAccessSettingChanges: { name: "postAccessSettingChanges", method: "POST", path: "/v1/access/setting-changes", mountedPath: "/v1/access/setting-changes", version: 1, engine: "access", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
+ postAccessSettingReviews: { name: "postAccessSettingReviews", method: "POST", path: "/v1/access/setting-reviews", mountedPath: "/v1/access/setting-reviews", version: 1, engine: "access", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "built" },
  postCareOffers: { name: "postCareOffers", method: "POST", path: "/v1/care/offers", mountedPath: "/v1/care/offers", version: 1, engine: "care", callers: ["dispatcher"], purpose: ["dispatch"], idempotent: true, status: "built" },
  postCareOffersByOfferRefAccept: { name: "postCareOffersByOfferRefAccept", method: "POST", path: "/v1/care/offers/{offerRef}/accept", mountedPath: "/v1/care/offers/{offerRef}/accept", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["dispatch"], idempotent: true, status: "built" },
  postCareOffersByOfferRefDecline: { name: "postCareOffersByOfferRefDecline", method: "POST", path: "/v1/care/offers/{offerRef}/decline", mountedPath: "/v1/care/offers/{offerRef}/decline", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["dispatch"], idempotent: true, status: "built" },

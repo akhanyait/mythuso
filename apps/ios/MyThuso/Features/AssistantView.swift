@@ -431,6 +431,15 @@ struct AssistantView: View {
         let earlier = turns.filter { $0.id < turn.id }
         let raised = (firstEmergency.map { $0 < turn.id } ?? false) || Gilbert.emergencyRaised(in: earlier)
         SceneText(Gilbert.handover.title, weight: .semibold)
+        /* Out of hours, before anything else about the handover: nobody is there, then the emergency numbers,
+           then a call back when the desk opens — from Access’s generated handover hours. Neither of the first
+           two is a setting, so no hours can take them out. */
+        let desk = HandoverQueue.desk()
+        if !desk.open {
+            SceneText(BookingData.Handover.outOfHours, weight: .semibold)
+            SceneText(BookingData.Handover.outOfHoursNumbers, weight: .semibold)
+            if let when = HandoverQueue.opensWords(desk) { SceneText(Booking.fill(BookingData.Handover.callback, ["when": when])) }
+        }
         SceneText(Gilbert.handover.lead)
         ForEach(Gilbert.summary(of: earlier, emergencyEarlier: raised), id: \.label) { row in
             VStack(alignment: .leading, spacing: 2) {
@@ -440,6 +449,12 @@ struct AssistantView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
         }
+        VStack(alignment: .leading, spacing: 2) {
+            Text(BookingData.Handover.answeredByLabel).thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoTheme.brandMint)
+            Text(BookingData.Handover.answeredBy.joined(separator: ", ")).font(.body).foregroundStyle(ThusoTheme.surface).fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
         if raised { SceneText(Gilbert.handover.neverLowered, weight: .semibold) }
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             SceneHeading(Gilbert.handover.notCarriedHeading)

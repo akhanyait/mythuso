@@ -3,6 +3,8 @@ import { proposeChange, snapshotOf, type Change, type ChangeRequest, type Refusa
 import { settingsEngines } from '../../../../packages/engines/src/settings/registry.ts';
 import { inForce, panicWindowOf, type PanicWindow, type SettingsInForce } from '../../../../packages/engines/src/safety/domain/settings.ts';
 import { offerExpiryOf, type OfferExpiry } from '../../../../packages/engines/src/care/domain/settings.ts';
+import { accessInForce, accessInForceAt, type AccessSettingsInForce } from '../../../../packages/engines/src/access/domain/settings.ts';
+import { reviewStateOf, settingsScreen } from '../../../../packages/engines/src/settings/shape.ts';
 import { roleOf, whoIs } from './roles';
 
 /* Every setting in the web preview: one history per engine, in memory, shared by the back office that
@@ -48,6 +50,19 @@ export const snapshotNow = (engine: string): Snapshot => snapshotOf(engineOf(eng
 export const safetySettingsNow = (): SettingsInForce => inForce(historyOf('safety'));
 export const panicWindowNow = (): PanicWindow => panicWindowOf(historyOf('safety'));
 export const offerExpiryNow = (): OfferExpiry => offerExpiryOf(snapshotNow('care'));
+/* Access's six, read the same way: the booking flow asks accessSettingsNow() once when it opens, the thread
+   composer when a message is written, and Gilbert when a handover is asked for. A completed visit's thread
+   asks accessSettingsAt() the moment it was completed, so a change afterwards never moves when it closes. */
+export const accessSettingsNow = (): AccessSettingsInForce => accessInForce(historyOf('access'));
+export const accessSettingsAt = (at: number): AccessSettingsInForce => accessInForceAt(historyOf('access'), at);
+/* The settings screen's own words, for a patient screen that must say a setting is not clinically reviewed
+   in the one sentence the back office uses. The preview keeps no reviews — a review is confirmed through
+   the engine's route, never from a browser tab — so a value is reviewed here only if its contract says so. */
+export const settingsWords = settingsScreen;
+export const clinicallyReviewedNow = (engine: string, key: string): boolean => {
+ const setting = engineOf(engine).block.items.find(s => s.key === key);
+ return setting ? reviewStateOf(setting, snapshotNow(engine), []).reviewed !== null : false;
+};
 
 export const adminOnDuty = (): string | null => roleOf('back-office').subjectId;
 const adminRole = (): string => {

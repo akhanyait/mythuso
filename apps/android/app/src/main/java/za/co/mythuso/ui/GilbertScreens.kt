@@ -350,12 +350,25 @@ import kotlin.math.sin
                 is GilbertReply.Handover -> {
                     val h = GilbertData.handover
                     Body(h.title, strong = true)
+                    /* Out of hours, before anything else about the handover: nobody is there, then the emergency
+                       numbers, then a call back when the desk opens — from Access's generated handover hours.
+                       Neither of the first two is a setting, so no hours can take them out. */
+                    val desk = Handovers.desk()
+                    if (!desk.open) {
+                        Body(BookingData.Handover.outOfHours, strong = true)
+                        Body(BookingData.Handover.outOfHoursNumbers, strong = true)
+                        Handovers.opensWords(desk)?.let { Body(BookingData.Handover.callback.replace("{when}", it)) }
+                    }
                     Body(h.lead)
                     reply.rows.forEach { row ->
                         Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
                             Text(row.label, style = MaterialTheme.typography.labelMedium, color = BrandMint)
                             Text(row.value, style = MaterialTheme.typography.bodyLarge, color = SurfaceWhite)
                         }
+                    }
+                    Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
+                        Text(BookingData.Handover.answeredByLabel, style = MaterialTheme.typography.labelMedium, color = BrandMint)
+                        Text(BookingData.Handover.answeredBy.joinToString(", "), style = MaterialTheme.typography.bodyLarge, color = SurfaceWhite)
                     }
                     if (reply.urgency == "emergency") Body(h.neverLowered, strong = true)
                     Text(h.notCarriedHeading, style = MaterialTheme.typography.labelMedium, color = BrandMint, modifier = Modifier.semantics { heading() })
