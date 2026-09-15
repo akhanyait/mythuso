@@ -84,6 +84,13 @@ export const sweep = (panic: Panic, now: number): Panic =>
 /** There is no way to make a window longer. This exists so the refusal has a caller and a test. */
 export const stretchWindow = (): Refused => refuse('window-does-not-stretch');
 
+/* A second press is never refused and never swallowed. The same nurse pressing again for the same
+   visit while that panic is open and sharing is the same act, answered with the panic she already has;
+   another nurse, another visit, a resolved panic or a closed window is a new panic. The engine applies
+   the same rule to its store, keyed by the caller the runtime identified. */
+export const openPanicFor = (panics: readonly Panic[], nurseRef: string, appointmentRef: string | null, now: number): Panic | undefined =>
+ [...panics].reverse().find(panic => panic.nurseRef === nurseRef && panic.appointmentRef === appointmentRef && !panic.resolved && isSharing(panic, now));
+
 const isDeskPerson = (actor: DeskActor): actor is Extract<DeskActor, { kind: 'person' }> => actor.kind === 'person' && actor.role === 'ops-desk';
 
 export function acknowledge(panic: Panic, actor: DeskActor, now: number): Result<Panic> {

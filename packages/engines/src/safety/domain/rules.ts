@@ -2,10 +2,11 @@
  *
  * Every number here comes from a contract: the grace, the extension steps, the extension ceiling and
  * the panic window from packages/catalog/field-safety.json, a visit's expected minutes from the
- * service's own row in packages/catalog/services.json, and the position precision from
- * packages/catalog/geography.json. Nothing in this directory types a minute.
+ * service's own row in packages/catalog/services.json, the position precision from
+ * packages/catalog/geography.json, and the emergency numbers a panic sentence names from
+ * packages/catalog/sos.json. Nothing in this directory types a minute or a phone number.
  *
- * A refusal is looked up by id, never written here. Five of them already belong to a route in
+ * A refusal is looked up by id, never written here. Some of them already belong to a route in
  * packages/catalog/apis/safety.json and are read from there, so the sentence an API would return and
  * the sentence a nurse reads are one string; the rest are the contract's own. An id that is in
  * neither throws, because a refusal with no sentence is a screen that says nothing at the moment it
@@ -18,6 +19,7 @@ import contract from '../../../../catalog/field-safety.json' with { type: 'json'
 import services from '../../../../catalog/services.json' with { type: 'json' };
 import api from '../../../../catalog/apis/safety.json' with { type: 'json' };
 import geography from '../../../../catalog/geography.json' with { type: 'json' };
+import sos from '../../../../catalog/sos.json' with { type: 'json' };
 
 export const MINUTE = 60_000;
 
@@ -40,6 +42,15 @@ export const silenceReasons = contract.silenceReasons;
 export const outcomes = contract.outcomes;
 export const deskCarries: readonly string[] = contract.desk.carries;
 
+/* The two numbers the panic confirmation tells a nurse to dial herself. Thrown for rather than
+   defaulted: a sentence that says "call  for the police" is worse than a screen that fails to build. */
+const numberOf = (id: string) => {
+ const found = sos.emergency.numbers.find(entry => entry.id === id);
+ if (!found) throw new Error(`packages/catalog/sos.json has no emergency number "${id}", so the panic confirmation cannot say who to call.`);
+ return found.number;
+};
+export const emergencyNumbers: Readonly<Record<string, string>> = { police: numberOf('police'), ambulance: numberOf('ambulance') };
+
 /** The booked duration of a service, or undefined when the catalogue has no such service. */
 export const serviceMinutes = (serviceId: string): number | undefined =>
  services.find(service => service.id === serviceId)?.duration;
@@ -53,6 +64,9 @@ export const instant = (at: number) => new Date(at).toISOString();
 /** A contract sentence with its {tokens} filled. A token with no value stays visible rather than vanishing. */
 export const fill = (sentence: string, values: Readonly<Record<string, string>> = {}) =>
  sentence.replace(/\{(\w+)\}/g, (whole, key: string) => values[key] ?? whole);
+
+/** What pressing panic does not do, with the real numbers from sos.json in it. */
+export const whatPanicDoesNotDo = () => fill(contract.panic.whatDoesNotHappen, emergencyNumbers);
 
 export function refusal(id: string, values?: Readonly<Record<string, string>>): Refusal {
  const own = contract.refusals.find(entry => entry.id === id);

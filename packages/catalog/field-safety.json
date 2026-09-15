@@ -1,10 +1,10 @@
 {
- "_note": "The nurse safety suite, Wave 3: a timer on every visit, a panic button that shows the desk where a nurse is for a fixed window, and the desk queue that works both. The Full Scope's Engine 4 ships the suite 'from day one', and ThusoIQ Master section 58 item 4 names what it must hold: check-in and check-out on every visit, and a panic button with live location to the operations desk. This file holds the states, the numbers and the refusal sentences; packages/engines/src/safety/domain holds the arithmetic; scripts/emit-field-safety.mjs writes both native copies. Nothing here is a running service. No timer reaches a desk, no panic reaches a person, no position is read from a device, and the nurse-position door in packages/catalog/feeds.json stays shut.",
+ "_note": "The nurse safety suite, Wave 3: a timer on every visit, a panic button that shows the desk where a nurse is for a fixed window, and the desk queue that works both. MyThuso Master Blueprint v4's Engine 4 seed scope ships the 'nurse safety suite from day one', and ThusoIQ Master v3.5 section 58 item 4 names what it must hold: 'check-in/check-out on every visit, panic button and live location to the ops desk'. This file holds the states, the numbers and the refusal sentences; packages/engines/src/safety/domain holds the arithmetic; scripts/emit-field-safety.mjs writes both native copies. Nothing here is a running service. No timer reaches a desk, no panic reaches a person, no position is read from a device, and the nurse-position door in packages/catalog/feeds.json stays shut.",
  "version": 1,
  "engine": "safety",
  "api": "packages/catalog/apis/safety.json",
 
- "_numbersNote": "Every number below that is a policy is a proposal. `decidedBy: null` means nobody with the authority to set it has set it: the Full Scope's decision register lists nurse field safety as RED, awaiting 'buddy/no-go rules and panic/escort policy'. The numbers are here so the screens can be built and tested against something; the build refuses a proposal that loses its `decidedBy` key, so a number cannot quietly become policy by having the question deleted around it.",
+ "_numbersNote": "Every number below that is a policy is a proposal. `decidedBy: null` means nobody with the authority to set it has set it: ThusoIQ Master v3.5's readiness review (58A) marks 'Nurse workforce & field safety' RED, and its next step is to 'approve employment/flex model, caseload, pay, routing, buddy/no-go rules and panic/escort policy'. The numbers are here so the screens can be built and tested against something; the build refuses a proposal that loses its `decidedBy` key, so a number cannot quietly become policy by having the question deleted around it.",
  "timer": {
   "expectedMinutesFrom": "packages/catalog/services.json#duration",
   "whyFromTheService": "A visit is timed by the service that was booked. A number typed on a screen or sent with a request is a timer that can be set to anything; the duration in the catalogue is the one the patient was quoted and the nurse's day is drawn from.",
@@ -41,10 +41,12 @@
   "cancel": "Not now",
   "pressedAt": "Pressed at {at}",
   "whatHappens": "The desk is alerted and can see where you are until {ends}. Nobody else can: not the patient, not other nurses, and not any other part of MyThuso.",
-  "whatDoesNotHappen": "Pressing panic does not call the police or an ambulance. A person at the desk decides that. If you can, call 10111 for the police or 10177 for an ambulance yourself.",
+  "whatDoesNotHappen": "Pressing panic does not call the police or an ambulance. A person at the desk decides that. If you can, call {police} for the police or {ambulance} for an ambulance yourself.",
+  "_emergencyNumbersNote": "{police} and {ambulance} are the numbers in packages/catalog/sos.json, filled in by the domain rules on the web and by scripts/emit-field-safety.mjs for the native apps. An emergency number typed twice is one that can be typed wrong twice.",
   "sharingUntil": "The desk can see your position until {ends}.",
   "sharingStopped": "The desk stopped seeing your position at {ended}.",
-  "pressAgain": "If you still need help, press panic again. A new window starts."
+  "pressAgain": "If you still need help, press panic again. A new window starts.",
+  "sameVisit": "A second press by the same nurse for the same visit while its window is open is the same panic, answered again. It is never refused, and a press by anybody else is never folded into it."
  },
 
  "simulation": {
@@ -145,7 +147,7 @@
   { "id": "nothing-to-silence", "status": 409, "statement": "That check-in is not overdue, so there is nothing here for the desk.", "why": "A reason recorded against nothing is noise in the record." },
   { "id": "overdue-acknowledged-first", "status": 409, "statement": "Somebody at the desk picks an overdue check-in up before it is closed.", "why": "The record has to say that a person saw it, for a timer exactly as for a panic." },
   { "id": "position-after-the-window", "status": 410, "statement": "This position is no longer shared. Sharing ended at {ended}.", "why": "The window always ends, and the desk is told when rather than shown the last place she was." },
-  { "id": "panic-resolved-without-outcome", "status": 422, "statement": "A panic is resolved with what happened, or it stays open.", "why": "An emergency closed with no outcome cannot be reviewed within 24 hours, which is the incident review §55 promises." },
+  { "id": "panic-resolved-without-outcome", "status": 422, "statement": "A panic is resolved with what happened, or it stays open.", "why": "A panic closed with no outcome leaves nothing to review. ThusoIQ Master v3.5 section 55 names an incident review within 24 hours for harm to a patient or responder during a Thuso Ride trip; holding a nurse's panic to the same review is this contract's proposal, not the document's, and it needs the outcome written down." },
   { "id": "panic-resolved-before-acknowledged", "status": 409, "statement": "Somebody at the desk picks a panic up before it is resolved.", "why": "The record has to say that a person saw it." },
   { "id": "panic-already-resolved", "status": 409, "statement": "That panic is already resolved. If she needs help again, a new panic starts.", "why": "A resolved panic does not reopen, and its window does not come back." },
   { "id": "window-does-not-stretch", "status": 409, "statement": "The window does not stretch. A nurse who still needs help presses panic again.", "why": "A share that can be extended from the desk is a share with no end." },

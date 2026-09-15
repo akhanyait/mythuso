@@ -7,9 +7,17 @@
  * there is nowhere for one to be kept, and when a position route exists it goes through
  * domain/panics.ts, which keeps only the latest and forgets it when sharing stops.
  *
+ * A PANIC IS NEVER SWALLOWED. The route is idempotent and its key is chosen by the phone, and a key
+ * chosen by a phone is not a promise that nobody else chose it. The first version let two nurses whose
+ * apps generated the same key share one panic: the second press was answered with the first nurse's
+ * panic and nobody at the desk heard about the second nurse at all. The runtime now keys a replay by
+ * the identified caller (72390a1); this handler does not rely on that alone. A press is folded into an
+ * earlier panic only when the same identified caller presses for the same visit while that panic's
+ * window is still open — the same act, answered again, never refused. A different caller, a different
+ * visit, a caller with no reference or a closed window is always a new panic and a new panic.raised.
+ *
  * A PANIC IS NEVER REFUSED OVER BOOKKEEPING. An appointmentRef this engine has never heard of is
- * stored as given. A nurse pressing panic against the wrong visit, or during a gap in what Safety has
- * heard from Care, is still a nurse pressing panic, and the only refusals are the two about the window.
+ * stored as given. The only refusals are the two about the window.
  *
  * HEARD: appointment.in_progress@1. Safety records that a visit is under way, and only one whose code
  * matched, because the event carries visitCodeMatched so that a subscriber can refuse one that says
@@ -46,25 +54,39 @@ const schema = [
  ');'
 ].join('\n');
 
+type OpenPanic = { panic_ref: string; location_share_ends_at: number };
+
 export const engine = defineEngine({
  id: 'safety',
  store: { schema },
  routes: {
   'POST /v1/safety/panics@1': (request, ctx) => {
    const now = ctx.clock.now().getTime();
-   const panicRef = 'panic-' + randomUUID();
+   /* Who pressed it, and the only source for that is the caller the runtime identified. In development
+      that reference arrives in a request header and is believed (apis.json, engineRuntime): it is not
+      proof of identity, and a production door has to establish it before any of this is real. */
+   const callerRef = ctx.caller.ref;
    const appointmentRef = typeof request.fields.appointmentRef === 'string' ? request.fields.appointmentRef : null;
+   const panicRef = 'panic-' + randomUUID();
    const pressed = raisePanic({
-    panicRef, raisedByRole: ctx.caller.role, nurseRef: ctx.caller.ref ?? ctx.caller.role,
+    panicRef, raisedByRole: ctx.caller.role, nurseRef: callerRef ?? panicRef,
     appointmentRef, locationShareMinutes: request.fields.locationShareMinutes as number
    }, now);
    if (!pressed.ok) return refuse(pressed.refusal.id);
+
+   if (callerRef) {
+    const open = ctx.store.prepare(
+     'SELECT panic_ref, location_share_ends_at FROM panics WHERE raised_by_role = ? AND raised_by_ref = ? AND appointment_ref IS ? AND location_share_ends_at > ? ORDER BY raised_at DESC LIMIT 1'
+    ).get(ctx.caller.role, callerRef, appointmentRef, now) as OpenPanic | undefined;
+    if (open) return ok({ panicRef: open.panic_ref, locationShareEndsAt: new Date(open.location_share_ends_at).toISOString() });
+   }
+
    const panic = pressed.value;
    ctx.store.prepare('INSERT INTO panics (panic_ref, raised_by_role, raised_by_ref, appointment_ref, raised_at, location_share_ends_at) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(panic.panicRef, panic.raisedByRole, ctx.caller.ref, panic.appointmentRef, panic.raisedAt, panic.locationShareEndsAt);
-   /* The subject of a panic is the person who pressed it. A caller with no reference is still somebody,
-      and the panic's own reference stands in rather than the event going unsent. */
-   for (const event of pressed.emits) ctx.publish((event.type + '@' + event.version) as EventKey, event.payload, { subjectRef: ctx.caller.ref ?? panic.panicRef });
+    .run(panic.panicRef, panic.raisedByRole, callerRef, panic.appointmentRef, panic.raisedAt, panic.locationShareEndsAt);
+   /* The subject of the event is the identified caller when there is one. Without a reference the
+      panic's own reference stands in, rather than the event going unsent or a subject being guessed. */
+   for (const event of pressed.emits) ctx.publish((event.type + '@' + event.version) as EventKey, event.payload, { subjectRef: callerRef ?? panic.panicRef });
    return ok({ panicRef: panic.panicRef, locationShareEndsAt: new Date(panic.locationShareEndsAt).toISOString() });
   }
  },

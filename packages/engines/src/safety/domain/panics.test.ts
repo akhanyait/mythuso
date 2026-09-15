@@ -4,7 +4,28 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { MINUTE, clockOf, outcomes, panicWindowMinutes, positionDecimals } from './rules.ts';
-import { acknowledge, isSharing, positionFor, raisePanic, receivePosition, resolve, sharingEndsAt, stretchWindow, sweep, type DeskActor, type Panic } from './panics.ts';
+import { acknowledge, isSharing, openPanicFor, positionFor, raisePanic, receivePosition, resolve, sharingEndsAt, stretchWindow, sweep, type DeskActor, type Panic } from './panics.ts';
+import { emergencyNumbers, fieldSafety, whatPanicDoesNotDo } from './rules.ts';
+
+test('a repeat press folds only into the same nurse’s open panic for the same visit', () => {
+ const mine = raised();
+ const theirs = value(raisePanic({ panicRef: 'PNC-2', raisedByRole: 'nurse', nurseRef: 'N-206', appointmentRef: 'APT-1', locationShareMinutes: panicWindowMinutes }, T0));
+ const panics = [mine, theirs];
+ assert.equal(openPanicFor(panics, 'N-205', 'APT-1', T0 + MINUTE)?.panicRef, 'PNC-1');
+ assert.equal(openPanicFor(panics, 'N-206', 'APT-1', T0 + MINUTE)?.panicRef, 'PNC-2', 'never another nurse’s');
+ assert.equal(openPanicFor(panics, 'N-205', 'APT-9', T0 + MINUTE), undefined, 'another visit is a new panic');
+ assert.equal(openPanicFor(panics, 'N-205', 'APT-1', mine.locationShareEndsAt), undefined, 'a closed window is a new panic');
+ const picked = value(acknowledge(mine, desk, T0 + MINUTE));
+ const closed = value(resolve(picked, { outcomeId: outcomes[0].id, actor: desk }, T0 + 2 * MINUTE));
+ assert.equal(openPanicFor([closed], 'N-205', 'APT-1', T0 + 3 * MINUTE), undefined, 'a resolved panic is a new panic');
+});
+
+test('the panic confirmation names the emergency numbers sos.json holds, and types none of its own', () => {
+ assert.ok(!/\d{3,}/.test(fieldSafety.panic.whatDoesNotHappen), 'the contract sentence carries tokens, not numbers');
+ const sentence = whatPanicDoesNotDo();
+ assert.ok(sentence.includes(emergencyNumbers.police) && sentence.includes(emergencyNumbers.ambulance), sentence);
+ assert.ok(!/\{\w+\}/.test(sentence), sentence);
+});
 
 const json = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
 const events = json('../../../../catalog/events.json') as { events: { type: string; version: number; payload: { field: string }[]; neverCarries: { field: string }[] }[] };
