@@ -2,14 +2,18 @@
  "engine": "safety",
  "_note": "Safety is the nurse in the field and the patient in trouble: visit check-in timers, panic with a time-bound live location, patient SOS, next-of-kin nomination and alerting, safeguarding reports, Sentinel deviations at tiers one to three, and the security incident register the identity service already keeps. Wave 2 contract; Waves 3 to 5 build.",
  "version": 1,
- "resources": ["checkins", "panics", "sos", "next-of-kin", "safeguarding-reports", "sentinel-deviations", "incident-kinds", "incidents", "settings", "setting-changes"],
+ "resources": ["checkins", "panics", "sos", "next-of-kin", "safeguarding-reports", "sentinel-deviations", "incident-kinds", "incidents", "settings", "setting-changes", "overdue-checkins", "desk-queue"],
  "doors": ["emergency-acknowledgement"],
  "doorsToAdd": [],
  "refusals": [
   {"id": "dispatch-without-a-human", "status": 409, "statement": "Nothing is dispatched without a human, except for an unresponsive patient or an SOS.", "why": "High specificity for dispatching paramedics; a human confirms (§13)."},
   {"id": "consumer-wearable-raises-tier-four", "status": 422, "statement": "A consumer wearable alone never raises dispatch.", "why": "BYO signals guide conversation; certified devices carry clinical weight."},
   {"id": "next-of-kin-see-clinical-detail", "status": 422, "statement": "Next of kin see plain language, never clinical detail.", "why": "§15."},
-  {"id": "location-kept-after-the-window", "status": 409, "statement": "A location is not kept after the incident window.", "why": "A safety feature that keeps positions is a tracking system."}
+  {"id": "location-kept-after-the-window", "status": 409, "statement": "A location is not kept after the incident window.", "why": "A safety feature that keeps positions is a tracking system."},
+  {"id": "no-such-checkin", "status": 404, "statement": "Safety is timing no visit by that reference.", "why": "A timer starts only when Safety hears appointment.in_progress@2. An act on a reference it never started is refused rather than recorded against nothing.", "answeredBy": ["POST /v1/safety/checkins/{checkinRef}/extend@2", "POST /v1/safety/checkins/{checkinRef}/safe@1", "POST /v1/safety/checkins/{checkinRef}/close@2", "POST /v1/safety/overdue-checkins/{checkinRef}/pick-up@1", "POST /v1/safety/overdue-checkins/{checkinRef}/close@1"]},
+  {"id": "checkin-held-by-another", "status": 403, "statement": "That visit's timer is held by the nurse who first acted on it. Nobody else extends it, says she is safe or checks her out.", "why": "appointment.in_progress@2 names no nurse, so Safety cannot know whose visit a timer is when it starts one. The first identified nurse to act on it holds it and anybody else is refused. A mistake then leaves the timer running, so it pages the desk rather than silencing it.", "answeredBy": ["POST /v1/safety/checkins/{checkinRef}/extend@2", "POST /v1/safety/checkins/{checkinRef}/safe@1", "POST /v1/safety/checkins/{checkinRef}/close@2"]},
+  {"id": "checkin-after-close", "status": 409, "statement": "That visit is checked out. Nothing is being timed.", "why": "A closed timer does not reopen; a new visit starts a new one.", "answeredBy": ["POST /v1/safety/checkins/{checkinRef}/extend@2", "POST /v1/safety/checkins/{checkinRef}/safe@1"]},
+  {"id": "no-such-panic", "status": 404, "statement": "There is no panic by that reference.", "why": "The desk acts on a panic somebody pressed. A pick-up, a resolution or a position read for a panic nobody pressed is refused rather than recorded against nothing.", "answeredBy": ["POST /v1/safety/panics/{panicRef}/pick-up@1", "POST /v1/safety/panics/{panicRef}/resolve@1", "GET /v1/safety/panics/{panicRef}/position@1"]}
  ],
  "ownIds": [
   {"field": "incidentId", "why": "An incident in the register Safety keeps."}
@@ -47,7 +51,7 @@
    "path": "/v1/safety/checkins/{checkinRef}/extend",
    "version": 1,
    "summary": "Extend a visit timer.",
-   "callers": ["nurse", "locum", "responder"],
+   "callers": [],
    "purpose": ["dispatch"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -65,6 +69,7 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E4", "what": "Nurse safety suite: check-in timers"},
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/safety/checkins/{checkinRef}/extend@2", "why": "It carried how many minutes and not why. An extension without a reason is a snooze the desk cannot judge, and the refusal extension-without-reason could not be answered through it. Version two carries the reason, one of packages/catalog/field-safety.json extensionReasons, and takes its steps and ceiling from the settings the timer started under."},
    "status": "proposed"
   },
   {
@@ -72,7 +77,7 @@
    "path": "/v1/safety/checkins/{checkinRef}/close",
    "version": 1,
    "summary": "Check out: close the timer.",
-   "callers": ["nurse", "locum", "responder"],
+   "callers": [],
    "purpose": ["dispatch"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -89,7 +94,179 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E4", "what": "Nurse safety suite: check-in timers"},
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/safety/checkins/{checkinRef}/close@2", "why": "Its only refusal was that a check-in was already closed. It could not refuse a reference Safety never started timing, or a nurse checking out a visit whose timer another nurse holds, and a frozen route cannot gain a refusal without a new version. Version two answers both."},
    "status": "proposed"
+  },
+  {
+   "method": "GET",
+   "path": "/v1/safety/checkins",
+   "version": 1,
+   "summary": "Read the timer on the visit a nurse is in: when she should check out, and how much longer she may ask for.",
+   "callers": ["nurse", "locum", "responder"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit she is in. Safety started its timer when it heard appointment.in_progress@2, so the phone asks by the visit it knows rather than by a reference it was never sent."}
+   ],
+   "response": [
+    {"field": "checkinRef", "type": "string", "required": true, "why": "The timer, which every later act on it names."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "running, overdue or closed, from packages/catalog/field-safety.json states.timer."},
+    {"field": "dueAt", "type": "instant", "required": true, "why": "When the desk is told she has not checked out: the service's booked duration from packages/catalog/services.json, the grace and every extension she took, from the settings the timer started under."},
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The settings version the timer started under. A change made since reaches the next visit, never this one."},
+    {"field": "extensionMinutesLeft", "type": "integer", "required": true, "why": "How many more minutes she may ask for before only the desk can let the visit run on."},
+    {"field": "extensionStepsOffered", "type": "list", "required": true, "why": "The steps, in whole minutes, that the settings the timer started under offer and its ceiling still allows."},
+    {"field": "saidSafeAt", "type": "instant", "required": false, "why": "The last time she said she was safe, when she has. Saying so moved nothing."}
+   ],
+   "refusals": [
+    {"id": "no-timer-for-that-visit", "status": 404, "statement": "No visit timer is running for that visit. A timer starts when the visit code matches.", "why": "Safety times a visit from appointment.in_progress@2 and nothing else. A phone shown a deadline Safety never set is a nurse trusting a clock nobody watches."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'GET /v1/safety/checkins@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/checkins/{checkinRef}/extend",
+   "version": 2,
+   "summary": "Extend a visit timer by a step the desk offers, saying why.",
+   "callers": ["nurse", "locum", "responder"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same extension once."},
+    {"field": "checkinRef", "type": "string", "required": true, "why": "The check-in."},
+    {"field": "extraMinutes", "type": "integer", "required": true, "why": "One of the steps the settings the timer started under offer."},
+    {"field": "reasonCode", "type": "string", "required": false, "why": "Why, as an id from packages/catalog/field-safety.json extensionReasons. Asked for by the handler rather than the binder, so that an extension without one is refused in its own sentence rather than the general one for a missing field."}
+   ],
+   "response": [
+    {"field": "dueAt", "type": "instant", "required": true, "why": "The new deadline, counted from now when she is already past the old one."},
+    {"field": "extensionMinutesLeft", "type": "integer", "required": true, "why": "How many more minutes the ceiling the timer started under still allows."}
+   ],
+   "refusals": [
+    {"id": "extension-without-reason", "status": 422, "statement": "An extension says why, in one of the reasons the desk can read.", "why": "The desk decides whether to call from the reason. An extension with none is a snooze."},
+    {"id": "extension-not-offered", "status": 422, "statement": "Extensions come in the steps the desk offers.", "why": "A free number is how a timer is set to a day."},
+    {"id": "extension-limit", "status": 409, "statement": "That is as long as a visit can run without the desk calling.", "why": "An endless extension is a timer that never fires. The ceiling is the one in force when the visit started."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "An extension is the nurse's own record, with its reason, read by the desk beside her timer. No engine acts on one, and the event contract refuses an event nobody reads.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E4", "what": "Nurse safety suite: check-in timers"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'POST /v1/safety/checkins/{checkinRef}/extend@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/checkins/{checkinRef}/safe",
+   "version": 1,
+   "summary": "I am safe: record that the nurse says she is safe. It moves no deadline and closes nothing the desk was told.",
+   "callers": ["nurse", "locum", "responder"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same word once."},
+    {"field": "checkinRef", "type": "string", "required": true, "why": "The check-in."}
+   ],
+   "response": [
+    {"field": "saidSafeAt", "type": "instant", "required": true, "why": "When she said so."},
+    {"field": "dueAt", "type": "instant", "required": true, "why": "The deadline, unchanged. Saying she is safe never moves it (packages/catalog/field-safety.json checkInRule)."}
+   ],
+   "refusals": [
+    {"id": "safe-is-not-an-extension", "status": 422, "statement": "Saying you are safe moves nothing. To ask for more time, choose More time and say why.", "why": "packages/catalog/field-safety.json checkInRule: an I am safe that carried minutes, or a deadline, would be an extension with no reason and no ceiling, pressed every quarter of an hour."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Saying she is safe is recorded on her timer and shown to the desk beside an overdue it answers. No engine acts on it, the desk still closes the overdue itself, and the event contract refuses an event nobody reads.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'POST /v1/safety/checkins/{checkinRef}/safe@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/checkins/{checkinRef}/close",
+   "version": 2,
+   "summary": "Check out: close the timer.",
+   "callers": ["nurse", "locum", "responder"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "checkinRef", "type": "string", "required": true, "why": "The check-in."}
+   ],
+   "response": [
+    {"field": "closedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "already-closed", "status": 409, "statement": "That check-in is already closed.", "why": "Closed once."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A safe check-out is the absence of an event. An overdue she answers by checking out stays on the desk until a person there closes it.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E4", "what": "Nurse safety suite: check-in timers"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'POST /v1/safety/checkins/{checkinRef}/close@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/overdue-checkins/{checkinRef}/pick-up",
+   "version": 1,
+   "summary": "The desk picks up an overdue check-in: a person has seen it.",
+   "callers": ["operator"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same pick-up once."},
+    {"field": "checkinRef", "type": "string", "required": true, "why": "The overdue check-in."}
+   ],
+   "response": [
+    {"field": "pickedUpAt", "type": "instant", "required": true, "why": "When a person at the desk first picked it up. Picking it up again answers with the same moment."}
+   ],
+   "refusals": [
+    {"id": "nothing-to-pick-up", "status": 409, "statement": "That check-in is not waiting for the desk. It is not overdue, or the desk has already closed it.", "why": "A pick-up recorded against a timer that never paged the desk is noise in the record a review reads."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Core lists itself under checkin.overdue@1 and binds no handler for it, so it opens no concern for an overdue check-in that a pick-up could take on, and Care hears the overdue and acts on nothing. The pick-up is the desk's own record that a person saw it, and the event contract refuses an event nobody reads.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'POST /v1/safety/overdue-checkins/{checkinRef}/pick-up@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/overdue-checkins/{checkinRef}/close",
+   "version": 1,
+   "summary": "The desk closes an overdue check-in it has picked up, with a reason that is true of the timer.",
+   "callers": ["operator"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same close once."},
+    {"field": "checkinRef", "type": "string", "required": true, "why": "The overdue check-in."},
+    {"field": "reasonCode", "type": "string", "required": false, "why": "Why it is safe to close, as an id from packages/catalog/field-safety.json silenceReasons. Asked for by the handler rather than the binder, so that a close without one is refused in its own sentence."}
+   ],
+   "response": [
+    {"field": "closedAt", "type": "instant", "required": true, "why": "When the desk closed it."}
+   ],
+   "refusals": [
+    {"id": "overdue-acknowledged-first", "status": 409, "statement": "Somebody at the desk picks an overdue check-in up before it is closed.", "why": "The record has to say that a person saw it, for a timer exactly as for a panic. It is asked before anything else about the close, so no reason, true or not, closes an overdue nobody picked up."},
+    {"id": "overdue-silenced-without-reason", "status": 422, "statement": "An overdue check-in is closed with a reason, or it stays open.", "why": "An alarm silenced without a reason is an alarm somebody made stop."},
+    {"id": "silence-reason-untrue", "status": 409, "statement": "The nurse has not checked in, extended or checked out, so that cannot be the reason.", "why": "The reason is checked against the timer, not taken on trust."},
+    {"id": "nothing-to-silence", "status": 409, "statement": "That check-in is not overdue, so there is nothing here for the desk.", "why": "A reason recorded against nothing is noise in the record."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "No engine acts on it. Core lists itself under checkin.overdue@1 and binds no handler for it, so it has no concern for an overdue check-in that a close could stand down, and Care hears the overdue and acts on nothing. The event contract refuses an event nobody reads, so the close is Safety's own record, with its reason.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'POST /v1/safety/overdue-checkins/{checkinRef}/close@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
@@ -118,6 +295,130 @@
    "capabilityNamed": {"section": "FS-E4", "what": "panic button, live location"},
    "status": "built",
    "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'POST /v1/safety/panics@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/panics/{panicRef}/pick-up",
+   "version": 1,
+   "summary": "The desk picks up a panic: a person has seen it.",
+   "callers": ["operator"],
+   "purpose": ["emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same pick-up once."},
+    {"field": "panicRef", "type": "string", "required": true, "why": "The panic."}
+   ],
+   "response": [
+    {"field": "pickedUpAt", "type": "instant", "required": true, "why": "When a person at the desk first picked it up. Picking it up again answers with the same moment."}
+   ],
+   "refusals": [
+    {"id": "panic-resolved-nothing-to-pick-up", "status": 409, "statement": "That panic is already resolved, so there is nothing to pick up. If she needs help again, a new panic starts.", "why": "A resolved panic does not reopen, and a pick-up after it would read as a person answering a panic that was already over."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A pick-up is Safety's record that a person at the desk saw the panic. Core's concern for the panic is taken on through Core's own acknowledge route by whoever holds it, no engine acts on a pick-up, and the event contract refuses an event nobody reads.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'POST /v1/safety/panics/{panicRef}/pick-up@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/panics/{panicRef}/resolve",
+   "version": 1,
+   "summary": "The desk resolves a panic it has picked up, with what happened. Sharing her position stops at once.",
+   "callers": ["operator"],
+   "purpose": ["emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same resolution once."},
+    {"field": "panicRef", "type": "string", "required": true, "why": "The panic."},
+    {"field": "outcomeCode", "type": "string", "required": false, "why": "What happened, as an id from packages/catalog/field-safety.json outcomes. Asked for by the handler rather than the binder, so that a resolution without one is refused in its own sentence."}
+   ],
+   "response": [
+    {"field": "resolvedAt", "type": "instant", "required": true, "why": "When the desk resolved it."},
+    {"field": "sharingEndedAt", "type": "instant", "required": true, "why": "When the desk stopped seeing her position: the resolution, or the window if it had already ended."}
+   ],
+   "refusals": [
+    {"id": "panic-resolved-before-acknowledged", "status": 409, "statement": "Somebody at the desk picks a panic up before it is resolved.", "why": "The record has to say that a person saw it. It is asked before anything else about the resolution, so no outcome resolves a panic nobody picked up."},
+    {"id": "panic-resolved-without-outcome", "status": 422, "statement": "A panic is resolved with what happened, or it stays open.", "why": "A panic closed with no outcome leaves nothing to review."},
+    {"id": "panic-already-resolved", "status": 409, "statement": "That panic is already resolved. If she needs help again, a new panic starts.", "why": "A resolved panic does not reopen, and its window does not come back."}
+   ],
+   "emits": ["panic.resolved@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'POST /v1/safety/panics/{panicRef}/resolve@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/safety/panics/{panicRef}/position",
+   "version": 1,
+   "summary": "The desk reads where a nurse who pressed panic is, only while her window is open.",
+   "callers": ["operator"],
+   "purpose": ["emergency"],
+   "request": [
+    {"field": "panicRef", "type": "string", "required": true, "why": "The panic."}
+   ],
+   "response": [
+    {"field": "sharingEndsAt", "type": "instant", "required": true, "why": "When the desk stops seeing her position, which is never later than the window she pressed under."},
+    {"field": "position", "type": "string", "required": false, "object": true, "why": "The latest position, to the precision packages/catalog/geography.json declares. Absent while none has arrived, and on this runtime none ever does: no device reports a position and the nurse-position door in packages/catalog/feeds.json is shut.", "fields": [
+     {"field": "lat", "type": "coordinate", "required": true, "why": "Latitude."},
+     {"field": "lng", "type": "coordinate", "required": true, "why": "Longitude."},
+     {"field": "at", "type": "instant", "required": true, "why": "When it arrived."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "position-no-longer-shared", "status": 410, "statement": "This position is no longer shared. Sharing has ended, and nothing kept where she was.", "why": "The window always ends, at its end or at the resolution, and the desk is told so rather than shown the last place she was."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'GET /v1/safety/panics/{panicRef}/position@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/safety/desk-queue",
+   "version": 1,
+   "summary": "The desk's queue: every panic and every overdue check-in, in the order a person should pick them up.",
+   "callers": ["operator"],
+   "purpose": ["emergency", "dispatch"],
+   "request": [],
+   "response": [
+    {"field": "items", "type": "list", "required": true, "object": true, "why": "A panic nobody has picked up, then an overdue nobody has, then what the desk already has, then what is closed; oldest first inside each. Each carries exactly packages/catalog/field-safety.json desk.carries, and never what the visit was for, who was visited or where.", "fields": [
+     {"field": "kind", "type": "string", "required": true, "why": "panic or overdue."},
+     {"field": "reference", "type": "string", "required": true, "why": "The panic or the check-in."},
+     {"field": "nurse", "type": "string", "required": true, "nullable": true, "why": "The reference of the nurse the runtime identified when she pressed panic or first acted on her timer, or null when nobody has. A name is the roster's, and Safety holds no roster."},
+     {"field": "suburb", "type": "string", "required": true, "nullable": true, "why": "Where she works, from the roster. Null on this runtime, because Safety holds no roster; never the patient's address."},
+     {"field": "raisedAt", "type": "instant", "required": true, "why": "When the panic was pressed or the deadline passed."},
+     {"field": "ageMinutes", "type": "integer", "required": true, "why": "Whole minutes since then."},
+     {"field": "acknowledgement", "type": "string", "required": true, "nullable": true, "object": true, "why": "Who at the desk picked it up and when, or null while nobody has.", "fields": [
+      {"field": "at", "type": "instant", "required": true, "why": "When."},
+      {"field": "by", "type": "string", "required": true, "why": "The reference of the person at the desk."}
+     ]},
+     {"field": "answeredAt", "type": "instant", "required": true, "nullable": true, "why": "When the nurse said she was safe, extended or checked out after an overdue began, or null."},
+     {"field": "outcome", "type": "string", "required": true, "nullable": true, "why": "The outcome or the reason it was closed, as the contract labels it, or null while it is open."},
+     {"field": "sharingEndsAt", "type": "instant", "required": true, "nullable": true, "why": "When the desk stops seeing a panic's position, or null for an overdue, which never shares one."},
+     {"field": "sharing", "type": "boolean", "required": true, "why": "Whether the position may be read now."},
+     {"field": "open", "type": "boolean", "required": true, "why": "Whether the desk still has something to do."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "desk-queue-takes-no-filter", "status": 422, "statement": "The desk queue is read whole. It is never narrowed or sorted by what a visit was for, who was visited or where.", "why": "packages/catalog/field-safety.json desk.neverCarries: a queue that could be filtered by a service is a queue that tells everybody behind the desk which nurses are on family-planning visits."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'GET /v1/safety/desk-queue@1'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {

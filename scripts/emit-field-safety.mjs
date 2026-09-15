@@ -76,9 +76,16 @@ export function emitFieldSafety(root = '') {
 
  const refusals = [
   ...contract.refusals.map(({ id, status, statement }) => ({ id, status, statement })),
+  /* A route named with its version is that version: extend and close are declared at two, and the withdrawn one
+     keeps the sentences it was frozen with. */
   ...contract.routeRefusals.map(({ route, id }) => {
-   const found = api.routes.find(r => `${r.method} ${r.path}` === route)?.refusals.find(r => r.id === id);
+   const found = api.routes.find(r => (route.includes('@') ? `${r.method} ${r.path}@${r.version}` : `${r.method} ${r.path}`) === route)?.refusals.find(r => r.id === id);
    if (!found) throw new Error(`${SOURCE} names the refusal "${id}" on ${route}, and ${API} has no such refusal on that route.`);
+   return { id, status: found.status, statement: found.statement };
+  }),
+  ...(contract.engineRefusals ?? []).map(id => {
+   const found = api.refusals.find(r => r.id === id);
+   if (!found) throw new Error(`${SOURCE} names the engine refusal "${id}", and ${API} declares no such refusal for the engine.`);
    return { id, status: found.status, statement: found.statement };
   })
  ];

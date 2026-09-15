@@ -245,7 +245,14 @@ object FieldSafetyStore {
                     else FieldSafety.fill(nurseText.left, mapOf("minutes" to timer.minutesLeft(now).toString()))
                     val episode = timer.overdue
                     val answeredAt = if (episode != null && episode.silencedReasonId == null) episode.answeredAt else null
-                    val line = if (answeredAt != null) base + " " + FieldSafety.fill(nurseText.answered, mapOf("at" to FieldSafety.clock(answeredAt))) else base
+                    /* Her word that she is safe is shown back with the sentence that it moved nothing, so a nurse
+                       never reads "I am safe" as more time. */
+                    val saidSafeAt = timer.checkIns.lastOrNull()
+                    val line = when {
+                        answeredAt != null -> base + " " + FieldSafety.fill(nurseText.answered, mapOf("at" to FieldSafety.clock(answeredAt)))
+                        saidSafeAt != null -> base + " " + FieldSafety.fill(nurseText.saidSafe, mapOf("at" to FieldSafety.clock(saidSafeAt)))
+                        else -> base
+                    }
                     Text(line, style = MaterialTheme.typography.bodySmall, color = if (standing == "overdue") Danger else Faint)
                 }
             }

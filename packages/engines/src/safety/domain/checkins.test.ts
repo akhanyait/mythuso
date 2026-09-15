@@ -126,12 +126,17 @@ test('closing checks out once, and a closed timer never goes overdue', () => {
 test('the desk closes an overdue with a true reason, after picking it up, or not at all', () => {
  const running = started();
  assert.equal((() => { const r = silenceOverdue(running, { reasonId: 'reached-by-phone', by: 'O-801' }, T0); return !r.ok && r.refusal.id; })(), 'nothing-to-silence');
+ const pickedTooSoon = acknowledgeOverdue(running, 'O-801', T0);
+ assert.equal(!pickedTooSoon.ok && pickedTooSoon.refusal.id, 'nothing-to-pick-up');
  const overdue = value(tick(running, running.dueAt));
- const noReason = silenceOverdue(overdue, { by: 'O-801' }, overdue.dueAt);
- assert.equal(!noReason.ok && noReason.refusal.id, 'overdue-silenced-without-reason');
- const unacknowledged = silenceOverdue(overdue, { reasonId: 'reached-by-phone', by: 'O-801' }, overdue.dueAt);
- assert.equal(!unacknowledged.ok && unacknowledged.refusal.id, 'overdue-acknowledged-first');
+ /* Pick-up comes first: without one, no reason gets past it, a true one included. */
+ for (const reasonId of [undefined, 'reached-by-phone']) {
+  const unacknowledged = silenceOverdue(overdue, { reasonId, by: 'O-801' }, overdue.dueAt);
+  assert.equal(!unacknowledged.ok && unacknowledged.refusal.id, 'overdue-acknowledged-first');
+ }
  const picked = value(acknowledgeOverdue(overdue, 'O-801', overdue.dueAt + MINUTE));
+ const noReason = silenceOverdue(picked, { by: 'O-801' }, overdue.dueAt + MINUTE);
+ assert.equal(!noReason.ok && noReason.refusal.id, 'overdue-silenced-without-reason');
  const untrue = silenceOverdue(picked, { reasonId: 'nurse-answered', by: 'O-801' }, overdue.dueAt + 2 * MINUTE);
  assert.equal(!untrue.ok && untrue.refusal.id, 'silence-reason-untrue');
  const closed = value(silenceOverdue(picked, { reasonId: 'reached-by-phone', by: 'O-801' }, overdue.dueAt + 2 * MINUTE));

@@ -188,6 +188,16 @@ POST /v1/care/visits/{appointmentRef}/handover@2 56d3c99334a43e81
 POST /v1/care/visits/{appointmentRef}/complete@2 1379a901f82dd225
 POST /v1/care/sync-batches@2 0847a45f47120c57
 GET /v1/record/encounter-statuses/{encounterRef}@1 db50565464dbe5e0
+GET /v1/safety/checkins@1 3a8f40034ca5de15
+POST /v1/safety/checkins/{checkinRef}/extend@2 c8e2c31764f93062
+POST /v1/safety/checkins/{checkinRef}/safe@1 440ba47defd87681
+POST /v1/safety/checkins/{checkinRef}/close@2 b147bf90cd70b6a6
+POST /v1/safety/overdue-checkins/{checkinRef}/pick-up@1 0addbc63b2efc18a
+POST /v1/safety/overdue-checkins/{checkinRef}/close@1 966ed6c0c3aeac9d
+POST /v1/safety/panics/{panicRef}/pick-up@1 783bdc5f7e27f64c
+POST /v1/safety/panics/{panicRef}/resolve@1 becb56ceba8ba63e
+GET /v1/safety/panics/{panicRef}/position@1 131fb5d4b1f6c3db
+GET /v1/safety/desk-queue@1 6a85905758138aa1
 POST /v1/money/payments/{paymentRef}/cash-code@2 40faa205cd94c47c
 POST /v1/money/payments/{paymentRef}/release@2 62eb1948c1751c07
 POST /v1/core/loops/{loopRef}/acknowledge@3 f07daa37bdbb4ba1

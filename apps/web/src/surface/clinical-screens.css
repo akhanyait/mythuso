@@ -859,6 +859,11 @@
 .clinical .fs-row-act { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); padding-left: calc(132px + var(--space-16)); }
 .clinical .fs-row-act > button, .clinical .fs-row-act > select { min-height: 44px; }
 .clinical .fs-row-act > select { width: auto; min-width: min(320px, 100%); max-width: 100%; }
+/* The reason and outcome chooser stands on every open row, before a pick-up, so trying to close first is
+   answered in the route's sentence. A select is as wide as its longest option — "A person at the desk called
+   the police or an ambulance" — and on a phone that width pushed the desk, and the whole Incidents page with
+   it, sideways. The desk and its rows may be narrower than what is inside them; the chooser wraps to the row. */
+.clinical .fs-desk, .clinical .fs-desk-list, .clinical .fs-row, .clinical .fs-row-act { min-width: 0; }
 /* A refusal under a row starts where the row's own lines start, so it reads as that row's answer. */
 .clinical .fs-row > .fs-refused { padding-left: calc(132px + var(--space-16)); }
 .clinical .fs-row-choose { font-size: 14px; color: var(--charcoal); }
@@ -880,7 +885,7 @@
  .clinical .fs-row-state { order: 5; grid-column: 1 / -1; }
  .clinical .fs-row-note, .clinical .fs-row-act { padding-left: 0; }
  .clinical .fs-position { margin-left: 0; }
- .clinical .fs-row-act > select { flex: 1 1 100%; }
+ .clinical .fs-row-act > select { flex: 1 1 100%; min-width: 0; width: 100%; }
  .clinical .fs-row-act > button { flex: 1 1 auto; }
 }
 

@@ -31,7 +31,8 @@ export type Refusal = { readonly id: string; readonly status: number; readonly s
 export type Refused = { readonly ok: false; readonly refusal: Refusal };
 export type EmittedEvent =
  | { readonly type: 'checkin.overdue'; readonly version: 1; readonly payload: { readonly checkinRef: string; readonly appointmentRef: string; readonly overdueSince: string } }
- | { readonly type: 'panic.raised'; readonly version: 1; readonly payload: { readonly panicRef: string; readonly raisedByRole: string; readonly locationShareEndsAt: string } };
+ | { readonly type: 'panic.raised'; readonly version: 1; readonly payload: { readonly panicRef: string; readonly raisedByRole: string; readonly locationShareEndsAt: string } }
+ | { readonly type: 'panic.resolved'; readonly version: 1; readonly payload: { readonly panicRef: string; readonly outcomeCode: string; readonly sharingEndedAt: string } };
 export type Done<T> = { readonly ok: true; readonly value: T; readonly emits: readonly EmittedEvent[] };
 export type Result<T> = Done<T> | Refused;
 
@@ -68,14 +69,31 @@ export const fill = (sentence: string, values: Readonly<Record<string, string>> 
 /** What pressing panic does not do, with the real numbers from sos.json in it. */
 export const whatPanicDoesNotDo = () => fill(contract.panic.whatDoesNotHappen, emergencyNumbers);
 
+/* A route named with its version is that version and no other. Extend and close are declared at two versions,
+   and the withdrawn one keeps the sentences it was frozen with, so a name without a version would find whichever
+   was declared first. A name without one is allowed only for a path answered at one version. */
+type NamedRoute = { readonly method: string; readonly path: string; readonly version: number; readonly callers: readonly string[]; readonly refusals: readonly { readonly id: string; readonly status: number; readonly statement: string }[] };
+export const routeNamed = (name: string): NamedRoute | undefined => (api.routes as readonly NamedRoute[]).find(entry =>
+ name.includes('@') ? `${entry.method} ${entry.path}@${entry.version}` === name : `${entry.method} ${entry.path}` === name);
+
 export function refusal(id: string, values?: Readonly<Record<string, string>>): Refusal {
  const own = contract.refusals.find(entry => entry.id === id);
  if (own) return { id, status: own.status, statement: fill(own.statement, values) };
  const named = contract.routeRefusals.find(entry => entry.id === id);
- const route = named && api.routes.find(entry => `${entry.method} ${entry.path}` === named.route);
- const onRoute = route?.refusals.find(entry => entry.id === id);
+ const onRoute = named && routeNamed(named.route)?.refusals.find(entry => entry.id === id);
  if (onRoute) return { id, status: onRoute.status, statement: fill(onRoute.statement, values) };
- throw new Error(`No refusal "${id}" in packages/catalog/field-safety.json or on the route it names in packages/catalog/apis/safety.json`);
+ const engineWide = contract.engineRefusals.includes(id) ? api.refusals.find(entry => entry.id === id) : undefined;
+ if (engineWide) return { id, status: engineWide.status, statement: fill(engineWide.statement, values) };
+ throw new Error(`No refusal "${id}" in packages/catalog/field-safety.json, on the route it names or among the engine's refusals in packages/catalog/apis/safety.json`);
 }
+
+/* Who the desk is: the callers of the desk's own panic routes, read from the contract. A person the runtime
+   admits to pick a panic up and a person the domain lets pick one up are then one list, and a role the register
+   gains for the desk reaches both in one change. */
+export const deskRoles: readonly string[] = [...new Set(['POST /v1/safety/panics/{panicRef}/pick-up@1', 'POST /v1/safety/panics/{panicRef}/resolve@1'].flatMap(name => {
+ const route = routeNamed(name);
+ if (!route?.callers.length) throw new Error(`packages/catalog/apis/safety.json has lost ${name} or its callers, so nobody could be the desk.`);
+ return route.callers;
+}))];
 export const refuse = (id: string, values?: Readonly<Record<string, string>>): Refused => ({ ok: false, refusal: refusal(id, values) });
 export const done = <T>(value: T, emits: readonly EmittedEvent[] = []): Done<T> => ({ ok: true, value, emits });

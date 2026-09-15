@@ -57,7 +57,7 @@
 import { randomUUID } from 'node:crypto';
 import { BusRefused, defineEngine, instant, ok, refuse, type BusEvent, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
 import { SETTINGS_SCHEMA, settingsIn, settingsRoutes } from '../settings/routes.ts';
-import { EXHAUSTED, PANIC, engineIds, highestSeverity, outcomes, ownerRoles, panicSpanMs, reasons, spanForRung } from './domain/contract.ts';
+import { EXHAUSTED, PANIC, PANIC_RESOLVED, engineIds, highestSeverity, outcomes, ownerRoles, panicOutcomes, panicSpanMs, reasons, spanForRung } from './domain/contract.ts';
 import { closeRefusal, everyPostOnDuty, holdersOf, movedTo, nextHolder, postOf, settle, stateCodeOf, towerOrder, type KeptRota, type Loop, type Skip } from './domain/loops.ts';
 import { coreSettings, rotaOf } from './domain/settings.ts';
 
@@ -242,6 +242,31 @@ function heardPanic(event: BusEvent, ctx: EngineContext) {
  publish(ctx, loop, 'loop.opened@1', { loopRef: loop.loopRef, sourceEngine: loop.sourceEngine, ownerRole: loop.ownerRole, dueBy: at(loop.dueBy) });
 }
 
+/* ── A panic resolved ─────────────────────────────────────────────────────────────────────────────── */
+
+/* A person at Safety's desk resolved the panic, so the concern Core opened for it stands down: closed with the
+   closed loop's outcome that closed-loop.json panicResolved maps the panic's outcome to, pointing at the panic,
+   where Safety keeps what happened, by the role that resolved it. It closes through closeRefusal, the rule the
+   close route asks, so a stand-down can never close what a person at the Control Tower could not. A concern
+   somebody already closed is left as it is. An outcome the map does not name is not guessed at: the concern stays
+   open for a person to close, and the audit says why it was not stood down. Only the concern that came from the
+   engine that resolved this panic is touched; nothing else about it moves, and no rota is read. */
+function heardPanicResolved(event: BusEvent, ctx: EngineContext) {
+ const panicRef = text(event.payload['panicRef']);
+ const loop = all(ctx).find(open => open.holder.kind === 'every-post' && open.sourceEngine === event.owner && open.dedupeKey === panicRef);
+ if (!loop) return;
+ const outcomeCode = panicOutcomes.get(text(event.payload['outcomeCode'])) ?? '';
+ const refused = closeRefusal(loop, outcomeCode, outcomes);
+ if (refused) {
+  if (loop.closedAt === null) audit(ctx, loop, 'panic-resolved-not-stood-down', refused);
+  return;
+ }
+ const closed: Loop = { ...loop, closedAt: nowOf(ctx), outcomeRef: panicRef, outcomeCode, closedByRole: event.actorRole };
+ put(ctx, closed);
+ audit(ctx, closed, 'closed', outcomeCode);
+ publish(ctx, closed, 'loop.closed@1', { loopRef: closed.loopRef, outcomeRef: panicRef, closedByRole: event.actorRole });
+}
+
 /* ── Acting on a concern ──────────────────────────────────────────────────────────────────────────── */
 
 function acknowledge(request: HandlerRequest, ctx: EngineContext) {
@@ -343,7 +368,7 @@ export const engine = defineEngine({
   'POST /v1/core/alerts@2': raiseAlert,
   ...settingsRoutes(coreSettings, { read: 'GET /v1/core/settings@1', change: 'POST /v1/core/setting-changes@1' })
  },
- subscriptions: { [PANIC]: heardPanic },
+ subscriptions: { [PANIC]: heardPanic, [PANIC_RESOLVED]: heardPanicResolved },
  tick: ctx => {
   const now = nowOf(ctx);
   for (const loop of all(ctx)) {

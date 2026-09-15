@@ -745,20 +745,61 @@ export interface PostSafetyCheckinsResponse {
  readonly dueAt: string;
 }
 
-export interface PostSafetyCheckinsByCheckinRefExtendRequest {
+export interface GetSafetyCheckinsRequest {
+ readonly appointmentRef: string;
+}
+export interface GetSafetyCheckinsResponse {
+ readonly checkinRef: string;
+ readonly stateCode: string;
+ readonly dueAt: string;
+ readonly settingsVersion: number;
+ readonly extensionMinutesLeft: number;
+ readonly extensionStepsOffered: readonly string[];
+ readonly saidSafeAt?: string;
+}
+
+export interface PostSafetyCheckinsByCheckinRefExtendV2Request {
  readonly idempotencyKey: string;
  readonly checkinRef: string;
  readonly extraMinutes: number;
+ readonly reasonCode?: string;
 }
-export interface PostSafetyCheckinsByCheckinRefExtendResponse {
+export interface PostSafetyCheckinsByCheckinRefExtendV2Response {
  readonly dueAt: string;
+ readonly extensionMinutesLeft: number;
 }
 
-export interface PostSafetyCheckinsByCheckinRefCloseRequest {
+export interface PostSafetyCheckinsByCheckinRefSafeRequest {
  readonly idempotencyKey: string;
  readonly checkinRef: string;
 }
-export interface PostSafetyCheckinsByCheckinRefCloseResponse {
+export interface PostSafetyCheckinsByCheckinRefSafeResponse {
+ readonly saidSafeAt: string;
+ readonly dueAt: string;
+}
+
+export interface PostSafetyCheckinsByCheckinRefCloseV2Request {
+ readonly idempotencyKey: string;
+ readonly checkinRef: string;
+}
+export interface PostSafetyCheckinsByCheckinRefCloseV2Response {
+ readonly closedAt: string;
+}
+
+export interface PostSafetyOverdueCheckinsByCheckinRefPickUpRequest {
+ readonly idempotencyKey: string;
+ readonly checkinRef: string;
+}
+export interface PostSafetyOverdueCheckinsByCheckinRefPickUpResponse {
+ readonly pickedUpAt: string;
+}
+
+export interface PostSafetyOverdueCheckinsByCheckinRefCloseRequest {
+ readonly idempotencyKey: string;
+ readonly checkinRef: string;
+ readonly reasonCode?: string;
+}
+export interface PostSafetyOverdueCheckinsByCheckinRefCloseResponse {
  readonly closedAt: string;
 }
 
@@ -770,6 +811,37 @@ export interface PostSafetyPanicsRequest {
 export interface PostSafetyPanicsResponse {
  readonly panicRef: string;
  readonly locationShareEndsAt: string;
+}
+
+export interface PostSafetyPanicsByPanicRefPickUpRequest {
+ readonly idempotencyKey: string;
+ readonly panicRef: string;
+}
+export interface PostSafetyPanicsByPanicRefPickUpResponse {
+ readonly pickedUpAt: string;
+}
+
+export interface PostSafetyPanicsByPanicRefResolveRequest {
+ readonly idempotencyKey: string;
+ readonly panicRef: string;
+ readonly outcomeCode?: string;
+}
+export interface PostSafetyPanicsByPanicRefResolveResponse {
+ readonly resolvedAt: string;
+ readonly sharingEndedAt: string;
+}
+
+export interface GetSafetyPanicsByPanicRefPositionRequest {
+ readonly panicRef: string;
+}
+export interface GetSafetyPanicsByPanicRefPositionResponse {
+ readonly sharingEndsAt: string;
+ readonly position?: Readonly<Record<string, unknown>>;
+}
+
+export type GetSafetyDeskQueueRequest = Record<string, never>;
+export interface GetSafetyDeskQueueResponse {
+ readonly items: ReadonlyArray<Readonly<Record<string, unknown>>>;
 }
 
 export type GetSafetySettingsV2Request = Record<string, never>;
@@ -1631,9 +1703,17 @@ export const apiRoutes = {
  postClinicalGuidance: { name: "postClinicalGuidance", method: "POST", path: "/v1/clinical/guidance", mountedPath: "/v1/clinical/guidance", version: 1, engine: "clinical", callers: ["nurse","doctor","engine:access"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postClinicalProms: { name: "postClinicalProms", method: "POST", path: "/v1/clinical/proms", mountedPath: "/v1/clinical/proms", version: 1, engine: "clinical", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postSafetyCheckins: { name: "postSafetyCheckins", method: "POST", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
- postSafetyCheckinsByCheckinRefExtend: { name: "postSafetyCheckinsByCheckinRefExtend", method: "POST", path: "/v1/safety/checkins/{checkinRef}/extend", mountedPath: "/v1/safety/checkins/{checkinRef}/extend", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
- postSafetyCheckinsByCheckinRefClose: { name: "postSafetyCheckinsByCheckinRefClose", method: "POST", path: "/v1/safety/checkins/{checkinRef}/close", mountedPath: "/v1/safety/checkins/{checkinRef}/close", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
+ getSafetyCheckins: { name: "getSafetyCheckins", method: "GET", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: false, status: "built" },
+ postSafetyCheckinsByCheckinRefExtendV2: { name: "postSafetyCheckinsByCheckinRefExtendV2", method: "POST", path: "/v1/safety/checkins/{checkinRef}/extend", mountedPath: "/v1/safety/checkins/{checkinRef}/extend", version: 2, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ postSafetyCheckinsByCheckinRefSafe: { name: "postSafetyCheckinsByCheckinRefSafe", method: "POST", path: "/v1/safety/checkins/{checkinRef}/safe", mountedPath: "/v1/safety/checkins/{checkinRef}/safe", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ postSafetyCheckinsByCheckinRefCloseV2: { name: "postSafetyCheckinsByCheckinRefCloseV2", method: "POST", path: "/v1/safety/checkins/{checkinRef}/close", mountedPath: "/v1/safety/checkins/{checkinRef}/close", version: 2, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ postSafetyOverdueCheckinsByCheckinRefPickUp: { name: "postSafetyOverdueCheckinsByCheckinRefPickUp", method: "POST", path: "/v1/safety/overdue-checkins/{checkinRef}/pick-up", mountedPath: "/v1/safety/overdue-checkins/{checkinRef}/pick-up", version: 1, engine: "safety", callers: ["operator"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ postSafetyOverdueCheckinsByCheckinRefClose: { name: "postSafetyOverdueCheckinsByCheckinRefClose", method: "POST", path: "/v1/safety/overdue-checkins/{checkinRef}/close", mountedPath: "/v1/safety/overdue-checkins/{checkinRef}/close", version: 1, engine: "safety", callers: ["operator"], purpose: ["dispatch"], idempotent: true, status: "built" },
  postSafetyPanics: { name: "postSafetyPanics", method: "POST", path: "/v1/safety/panics", mountedPath: "/v1/safety/panics", version: 1, engine: "safety", callers: ["nurse","locum","responder","courier"], purpose: ["emergency"], idempotent: true, status: "built" },
+ postSafetyPanicsByPanicRefPickUp: { name: "postSafetyPanicsByPanicRefPickUp", method: "POST", path: "/v1/safety/panics/{panicRef}/pick-up", mountedPath: "/v1/safety/panics/{panicRef}/pick-up", version: 1, engine: "safety", callers: ["operator"], purpose: ["emergency"], idempotent: true, status: "built" },
+ postSafetyPanicsByPanicRefResolve: { name: "postSafetyPanicsByPanicRefResolve", method: "POST", path: "/v1/safety/panics/{panicRef}/resolve", mountedPath: "/v1/safety/panics/{panicRef}/resolve", version: 1, engine: "safety", callers: ["operator"], purpose: ["emergency"], idempotent: true, status: "built" },
+ getSafetyPanicsByPanicRefPosition: { name: "getSafetyPanicsByPanicRefPosition", method: "GET", path: "/v1/safety/panics/{panicRef}/position", mountedPath: "/v1/safety/panics/{panicRef}/position", version: 1, engine: "safety", callers: ["operator"], purpose: ["emergency"], idempotent: false, status: "built" },
+ getSafetyDeskQueue: { name: "getSafetyDeskQueue", method: "GET", path: "/v1/safety/desk-queue", mountedPath: "/v1/safety/desk-queue", version: 1, engine: "safety", callers: ["operator"], purpose: ["emergency","dispatch"], idempotent: false, status: "built" },
  getSafetySettingsV2: { name: "getSafetySettingsV2", method: "GET", path: "/v1/safety/settings", mountedPath: "/v1/safety/settings", version: 2, engine: "safety", callers: ["admin","operator"], purpose: ["audit"], idempotent: false, status: "built" },
  postSafetySettingChangesV2: { name: "postSafetySettingChangesV2", method: "POST", path: "/v1/safety/setting-changes", mountedPath: "/v1/safety/setting-changes", version: 2, engine: "safety", callers: ["admin","operator"], purpose: ["audit"], idempotent: true, status: "built" },
  postSafetySos: { name: "postSafetySos", method: "POST", path: "/v1/safety/sos", mountedPath: "/v1/safety/sos", version: 1, engine: "safety", callers: ["patient","caregiver"], purpose: ["emergency"], idempotent: true, status: "proposed" },

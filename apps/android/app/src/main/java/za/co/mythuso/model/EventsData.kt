@@ -73,6 +73,7 @@ object EventsData {
             val GUIDANCE_DELIVERED_V1 = EventKey("guidance.delivered", 1, "clinical")
             val CHECKIN_OVERDUE_V1 = EventKey("checkin.overdue", 1, "safety")
             val PANIC_RAISED_V1 = EventKey("panic.raised", 1, "safety")
+            val PANIC_RESOLVED_V1 = EventKey("panic.resolved", 1, "safety")
             val SOS_RAISED_V1 = EventKey("sos.raised", 1, "safety")
             val NOK_NOTIFIED_V1 = EventKey("nok.notified", 1, "safety")
             val SENTINEL_RUNG_RAISED_V1 = EventKey("sentinel.rung_raised", 1, "safety")
@@ -187,6 +188,7 @@ object EventsData {
                 GUIDANCE_DELIVERED_V1,
                 CHECKIN_OVERDUE_V1,
                 PANIC_RAISED_V1,
+                PANIC_RESOLVED_V1,
                 SOS_RAISED_V1,
                 NOK_NOTIFIED_V1,
                 SENTINEL_RUNG_RAISED_V1,

@@ -21,8 +21,8 @@ import { isSharing, sharingEndsAt, type Panic } from './panics.ts';
 export type DeskItem = {
  readonly kind: 'panic' | 'overdue';
  readonly reference: string;
- readonly nurse: string;
- readonly suburb: string;
+ readonly nurse: string | null;
+ readonly suburb: string | null;
  readonly raisedAt: number;
  readonly ageMinutes: number;
  readonly acknowledgement: DeskHand | null;
@@ -32,7 +32,9 @@ export type DeskItem = {
  readonly sharing: boolean;
  readonly open: boolean;
 };
-export type Who = (nurseRef: string) => { readonly nurse: string; readonly suburb: string };
+/* The web preview hands in a roster's name and suburb. The engine holds no roster: it hands in the reference the
+   runtime identified and no suburb, and a timer nobody has acted on yet has no nurse at all. */
+export type Who = (nurseRef: string | null) => { readonly nurse: string | null; readonly suburb: string | null };
 
 const rank = (item: DeskItem) => !item.open ? 3 : item.acknowledgement ? 2 : item.kind === 'panic' ? 0 : 1;
 

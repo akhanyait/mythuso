@@ -234,6 +234,13 @@
   { "id": "waiting-for-doctor", "label": "Waiting for a doctor to call back" },
   { "id": "paperwork", "label": "Finishing up before leaving" }
  ],
+ "checkInRule": {
+  "movesDeadline": false,
+  "standsDownOverdue": false,
+  "statement": "Saying you are safe is recorded and the desk sees it. It never moves when you should check out, and it never closes what the desk was told: a person at the desk does that.",
+  "whyNoDeadline": "An I am safe that moved the deadline, pressed every quarter of an hour, would be an extension with no reason and no ceiling: the exact thing an extension refuses.",
+  "whyTheDeskCloses": "The desk was the one paged. Her word that she is safe is shown beside the overdue it answers, and the reason the nurse-answered close is true, but a person who saw the page closes it. The conservative choice, taken on 15 September 2026 by the Safety lead: a phone that could stand the desk down is a phone that could be made to by whoever is holding it."
+ },
  "_extensionReasonsNote": "A reason is what the desk reads beside an extended timer, so none of them says anything about the patient's health. 'Waiting for a doctor to call back' names who, never why.",
 
  "silenceReasons": [
@@ -255,6 +262,7 @@
   "left": "{minutes} min left. If you have not checked out by then, the desk is told.",
   "overdue": "Past check-out since {since}. The desk has been told.",
   "answered": "You said you were safe at {at}.",
+  "saidSafe": "You said you were safe at {at}. Your check-out time has not moved.",
   "closedByNurse": "You checked out at {at}.",
   "closedBySigning": "Checked out when the visit was signed at {at}.",
   "checkIn": "I am safe",
@@ -298,27 +306,34 @@
  "refusals": [
   { "id": "timer-without-a-matched-code", "status": 409, "statement": "A visit whose code did not match has not started, so it has no timer.", "why": "appointment.in_progress carries visitCodeMatched so that a subscriber can refuse one that says otherwise." },
   { "id": "timer-for-an-unknown-service", "status": 422, "statement": "That visit's service is not in the catalogue, so there is nothing to time it by.", "why": "A timer with a guessed duration is a timer that fires at the wrong time." },
-  { "id": "extension-without-reason", "status": 422, "statement": "An extension says why, in one of the reasons the desk can read.", "why": "The desk decides whether to call from the reason. An extension with none is a snooze." },
-  { "id": "extension-not-offered", "status": 422, "statement": "Extensions come in the steps the desk offers.", "why": "A free number is how a timer is set to a day." },
-  { "id": "checkin-after-close", "status": 409, "statement": "That visit is checked out. Nothing is being timed.", "why": "A closed timer does not reopen; a new visit starts a new one." },
-  { "id": "overdue-silenced-without-reason", "status": 422, "statement": "An overdue check-in is closed with a reason, or it stays open.", "why": "An alarm silenced without a reason is an alarm somebody made stop." },
-  { "id": "silence-reason-untrue", "status": 409, "statement": "The nurse has not checked in, extended or checked out, so that cannot be the reason.", "why": "The reason is checked against the timer, not taken on trust." },
-  { "id": "nothing-to-silence", "status": 409, "statement": "That check-in is not overdue, so there is nothing here for the desk.", "why": "A reason recorded against nothing is noise in the record." },
-  { "id": "overdue-acknowledged-first", "status": 409, "statement": "Somebody at the desk picks an overdue check-in up before it is closed.", "why": "The record has to say that a person saw it, for a timer exactly as for a panic." },
-  { "id": "position-after-the-window", "status": 410, "statement": "This position is no longer shared. Sharing ended at {ended}.", "why": "The window always ends, and the desk is told when rather than shown the last place she was." },
-  { "id": "panic-resolved-without-outcome", "status": 422, "statement": "A panic is resolved with what happened, or it stays open.", "why": "A panic closed with no outcome leaves nothing to review. ThusoIQ Master v3.5 section 55 names an incident review within 24 hours for harm to a patient or responder during a Thuso Ride trip; holding a nurse's panic to the same review is this contract's proposal, not the document's, and it needs the outcome written down." },
-  { "id": "panic-resolved-before-acknowledged", "status": 409, "statement": "Somebody at the desk picks a panic up before it is resolved.", "why": "The record has to say that a person saw it." },
-  { "id": "panic-already-resolved", "status": 409, "statement": "That panic is already resolved. If she needs help again, a new panic starts.", "why": "A resolved panic does not reopen, and its window does not come back." },
+  { "id": "position-after-the-window", "status": 410, "statement": "This position is no longer shared. Sharing ended at {ended}.", "why": "The window always ends, and the desk is told when rather than shown the last place she was. The route's own refusal, position-no-longer-shared, says the same without the time, because a route's sentence has no token to fill." },
   { "id": "window-does-not-stretch", "status": 409, "statement": "The window does not stretch. A nurse who still needs help presses panic again.", "why": "A share that can be extended from the desk is a share with no end." },
   { "id": "location-retained", "status": 409, "statement": "A position is gone when sharing stops. Nothing keeps where she was.", "why": "geography.json's no-history-drawn: a safety feature that keeps positions is a tracking system." }
  ],
  "routeRefusals": [
-  { "route": "POST /v1/safety/checkins/{checkinRef}/extend", "id": "extension-limit" },
-  { "route": "POST /v1/safety/checkins/{checkinRef}/close", "id": "already-closed" },
-  { "route": "POST /v1/safety/checkins", "id": "expected-minutes-not-the-service" },
-  { "route": "POST /v1/safety/panics", "id": "share-without-end" },
-  { "route": "POST /v1/safety/panics", "id": "window-not-the-declared-one" },
-  { "route": "POST /v1/safety/panics", "id": "dispatch-from-a-panic-without-a-person" }
+  { "route": "GET /v1/safety/checkins@1", "id": "no-timer-for-that-visit" },
+  { "route": "POST /v1/safety/checkins/{checkinRef}/extend@2", "id": "extension-without-reason" },
+  { "route": "POST /v1/safety/checkins/{checkinRef}/extend@2", "id": "extension-not-offered" },
+  { "route": "POST /v1/safety/checkins/{checkinRef}/extend@2", "id": "extension-limit" },
+  { "route": "POST /v1/safety/checkins/{checkinRef}/safe@1", "id": "safe-is-not-an-extension" },
+  { "route": "POST /v1/safety/checkins/{checkinRef}/close@2", "id": "already-closed" },
+  { "route": "POST /v1/safety/checkins@1", "id": "expected-minutes-not-the-service" },
+  { "route": "POST /v1/safety/overdue-checkins/{checkinRef}/pick-up@1", "id": "nothing-to-pick-up" },
+  { "route": "POST /v1/safety/overdue-checkins/{checkinRef}/close@1", "id": "overdue-acknowledged-first" },
+  { "route": "POST /v1/safety/overdue-checkins/{checkinRef}/close@1", "id": "overdue-silenced-without-reason" },
+  { "route": "POST /v1/safety/overdue-checkins/{checkinRef}/close@1", "id": "silence-reason-untrue" },
+  { "route": "POST /v1/safety/overdue-checkins/{checkinRef}/close@1", "id": "nothing-to-silence" },
+  { "route": "POST /v1/safety/panics@1", "id": "share-without-end" },
+  { "route": "POST /v1/safety/panics@1", "id": "window-not-the-declared-one" },
+  { "route": "POST /v1/safety/panics@1", "id": "dispatch-from-a-panic-without-a-person" },
+  { "route": "POST /v1/safety/panics/{panicRef}/pick-up@1", "id": "panic-resolved-nothing-to-pick-up" },
+  { "route": "POST /v1/safety/panics/{panicRef}/resolve@1", "id": "panic-resolved-before-acknowledged" },
+  { "route": "POST /v1/safety/panics/{panicRef}/resolve@1", "id": "panic-resolved-without-outcome" },
+  { "route": "POST /v1/safety/panics/{panicRef}/resolve@1", "id": "panic-already-resolved" },
+  { "route": "GET /v1/safety/panics/{panicRef}/position@1", "id": "position-no-longer-shared" },
+  { "route": "GET /v1/safety/desk-queue@1", "id": "desk-queue-takes-no-filter" }
  ],
- "_routeRefusalsNote": "Refusals that already belong to a route are named by route and id and read from packages/catalog/apis/safety.json, so the sentence the API returns and the sentence a screen shows are one string. The settings routes' refusals are packages/catalog/settings.json's, shared by every engine, and are read from there."
+ "_routeRefusalsNote": "Refusals that already belong to a route are named by route, at its version, and id and read from packages/catalog/apis/safety.json, so the sentence the API returns and the sentence a screen shows are one string. A route answered at more than one version names the version, because extend and close were versioned on 15 September and the withdrawn version one keeps the sentences it was frozen with. The desk's and the nurse's refusals moved there from this file on the same day, when their routes were declared; a sentence in both places is two sentences that can disagree. The settings routes' refusals are packages/catalog/settings.json's, shared by every engine, and are read from there.",
+ "engineRefusals": ["checkin-after-close", "no-such-checkin", "checkin-held-by-another", "no-such-panic"],
+ "_engineRefusalsNote": "Refusals more than one route answers, declared once for the engine in packages/catalog/apis/safety.json with the routes that answer them in answeredBy, and read from there."
 }

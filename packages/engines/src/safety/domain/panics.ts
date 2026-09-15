@@ -28,12 +28,13 @@
  * The window does not stretch. A nurse who still needs help presses again and gets a new panic with
  * a new window, which leaves the desk a record of both rather than one share quietly made longer.
  */
-import { MINUTE, clockOf, done, instant, outcomes, positionDecimals, refuse, type Refused, type Result } from './rules.ts';
+import { MINUTE, clockOf, deskRoles, done, instant, outcomes, positionDecimals, refuse, type Refused, type Result } from './rules.ts';
 import type { PanicWindow } from './settings.ts';
 
 export type Position = { readonly lat: number; readonly lng: number; readonly at: number };
+/** A person at the desk, in one of the roles the desk's routes name, or an engine, which is never the desk. */
 export type DeskActor =
- | { readonly kind: 'person'; readonly role: 'ops-desk'; readonly ref: string }
+ | { readonly kind: 'person'; readonly role: string; readonly ref: string }
  | { readonly kind: 'engine'; readonly engine: string };
 export type Panic = {
  readonly panicRef: string;
@@ -106,22 +107,29 @@ export const stretchWindow = (): Refused => refuse('window-does-not-stretch');
 export const openPanicFor = (panics: readonly Panic[], nurseRef: string, appointmentRef: string | null, now: number): Panic | undefined =>
  [...panics].reverse().find(panic => panic.nurseRef === nurseRef && panic.appointmentRef === appointmentRef && !panic.resolved && isSharing(panic, now));
 
-const isDeskPerson = (actor: DeskActor): actor is Extract<DeskActor, { kind: 'person' }> => actor.kind === 'person' && actor.role === 'ops-desk';
+const isDeskPerson = (actor: DeskActor): actor is Extract<DeskActor, { kind: 'person' }> => actor.kind === 'person' && deskRoles.includes(actor.role);
 
 export function acknowledge(panic: Panic, actor: DeskActor, now: number): Result<Panic> {
  if (!isDeskPerson(actor)) return refuse('dispatch-from-a-panic-without-a-person');
- if (panic.resolved) return refuse('panic-already-resolved');
+ if (panic.resolved) return refuse('panic-resolved-nothing-to-pick-up');
  if (panic.acknowledged) return done(panic);
  return done({ ...panic, acknowledged: { at: now, by: actor.ref } });
 }
 
+/* PICK-UP COMES FIRST. Whether a person picked the panic up is asked before the outcome, so resolving a panic
+   nobody saw is always answered with that, whatever outcome was chosen.
+
+   panic.resolved carries the panic, the outcome's code and when sharing ended, and never the position: Core
+   stands its concern down from it, and a subscriber's log is no place for where a nurse was. */
 export function resolve(panic: Panic, request: { readonly outcomeId?: string | null; readonly actor: DeskActor }, now: number): Result<Panic> {
  if (!isDeskPerson(request.actor)) return refuse('dispatch-from-a-panic-without-a-person');
  if (panic.resolved) return refuse('panic-already-resolved');
+ if (!panic.acknowledged) return refuse('panic-resolved-before-acknowledged');
  const outcome = outcomes.find(entry => entry.id === request.outcomeId);
  if (!outcome) return refuse('panic-resolved-without-outcome');
- if (!panic.acknowledged) return refuse('panic-resolved-before-acknowledged');
  /* Resolving stops sharing in the same instant, so the position goes with it rather than waiting for
     a sweep that might be an hour away. */
- return done({ ...panic, resolved: { at: now, by: request.actor.ref, outcomeId: outcome.id }, position: null });
+ const sharingEndedAt = Math.min(panic.locationShareEndsAt, now);
+ return done({ ...panic, resolved: { at: now, by: request.actor.ref, outcomeId: outcome.id }, position: null },
+  [{ type: 'panic.resolved', version: 1, payload: { panicRef: panic.panicRef, outcomeCode: outcome.id, sharingEndedAt: instant(sharingEndedAt) } }]);
 }

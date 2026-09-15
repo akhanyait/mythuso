@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { MINUTE, clockOf, outcomes, positionDecimals } from './rules.ts';
 import { acknowledge, isSharing, openPanicFor, positionFor, raisePanic, receivePosition, resolve, sharingEndsAt, stretchWindow, sweep, type DeskActor, type Panic } from './panics.ts';
-import { emergencyNumbers, fieldSafety, whatPanicDoesNotDo } from './rules.ts';
+import { deskRoles, emergencyNumbers, fieldSafety, whatPanicDoesNotDo } from './rules.ts';
 import { defaultTimings, panicWindowOf } from './settings.ts';
 
 const panicWindowMinutes = defaultTimings.panicWindowMinutes;
@@ -35,7 +35,7 @@ test('the panic confirmation names the emergency numbers sos.json holds, and typ
 const json = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
 const events = json('../../../../catalog/events.json') as { events: { type: string; version: number; payload: { field: string }[]; neverCarries: { field: string }[] }[] };
 const T0 = Date.UTC(2026, 8, 14, 9, 30);
-const desk: DeskActor = { kind: 'person', role: 'ops-desk', ref: 'O-801' };
+const desk: DeskActor = { kind: 'person', role: deskRoles[0]!, ref: 'O-801' };
 const raised = (): Panic => {
  const result = raisePanic({ panicRef: 'PNC-1', raisedByRole: 'nurse', nurseRef: 'N-205', appointmentRef: 'APT-1', locationShareMinutes: panicWindowMinutes }, T0, WINDOW);
  assert.ok(result.ok);
@@ -98,17 +98,25 @@ test('resolving stops sharing at once, before the window, and needs a person, a 
  const panic = value(receivePosition(raised(), { lat: -26.247, lng: 27.911 }, T0 + MINUTE));
  const engine = acknowledge(panic, { kind: 'engine', engine: 'core' }, T0 + 2 * MINUTE);
  assert.equal(!engine.ok && engine.refusal.id, 'dispatch-from-a-panic-without-a-person');
- const early = resolve(panic, { outcomeId: outcomes[0].id, actor: desk }, T0 + 2 * MINUTE);
- assert.equal(!early.ok && early.refusal.id, 'panic-resolved-before-acknowledged');
+ /* Pick-up comes first: with an outcome or without one, resolving what nobody picked up is answered with that. */
+ for (const outcomeId of [outcomes[0].id, undefined]) {
+  const early = resolve(panic, { outcomeId, actor: desk }, T0 + 2 * MINUTE);
+  assert.equal(!early.ok && early.refusal.id, 'panic-resolved-before-acknowledged');
+ }
  const picked = value(acknowledge(panic, desk, T0 + 2 * MINUTE));
  const noOutcome = resolve(picked, { actor: desk }, T0 + 3 * MINUTE);
  assert.equal(!noOutcome.ok && noOutcome.refusal.id, 'panic-resolved-without-outcome');
  const byEngine = resolve(picked, { outcomeId: outcomes[0].id, actor: { kind: 'engine', engine: 'movement' } }, T0 + 3 * MINUTE);
  assert.equal(!byEngine.ok && byEngine.refusal.id, 'dispatch-from-a-panic-without-a-person');
  const at = T0 + 4 * MINUTE;
- const done = value(resolve(picked, { outcomeId: outcomes[0].id, actor: desk }, at));
+ const resolved = resolve(picked, { outcomeId: outcomes[0].id, actor: desk }, at);
+ const done = value(resolved);
  assert.equal(sharingEndsAt(done), at, 'whichever comes first');
  assert.equal(done.position, null);
+ assert.ok(resolved.ok);
+ assert.deepEqual(resolved.emits.map(e => [`${e.type}@${e.version}`, e.payload]), [['panic.resolved@1', { panicRef: done.panicRef, outcomeCode: outcomes[0].id, sharingEndedAt: new Date(at).toISOString() }]], 'panic.resolved carries the panic, the outcome and when sharing ended, and never where she was');
+ const pickedAfter = acknowledge(done, desk, at + MINUTE);
+ assert.equal(!pickedAfter.ok && pickedAfter.refusal.id, 'panic-resolved-nothing-to-pick-up');
  assert.ok(!positionFor(done, at).ok);
  const again = resolve(done, { outcomeId: outcomes[0].id, actor: desk }, at + MINUTE);
  assert.equal(!again.ok && again.refusal.id, 'panic-already-resolved');

@@ -88,6 +88,18 @@
   "why": "POST /v1/core/loops/{loopRef}/close@2 takes one of these or refuses. An exhausted concern closes only with one too, because a concern nobody was left to escalate to is the one a review most needs to count."
  },
 
+ "panicResolved": {
+  "hears": "panic.resolved@1",
+  "closesAs": {
+   "value": { "safe-no-help": "dealt-with", "safe-after-desk-call": "dealt-with", "desk-called-services": "handed-outside-mythuso", "pressed-by-mistake": "raised-in-error" },
+   "decidedBy": null,
+   "proposedBy": "Safety lead (Wave 3)",
+   "proposedBecause": "Each of the outcomes Safety's desk resolves a panic with, in packages/catalog/field-safety.json, said as the closed loop's own: a nurse who was safe, with or without the desk speaking to her, is a concern dealt with; a person at the desk calling the police or an ambulance is a concern handed to a service outside MyThuso; a press confirmed as a mistake is a concern raised in error. None names what the visit was for.",
+   "question": "Which of the closed loop's outcomes the concern opened for a panic is closed as when Safety's desk resolves the panic."
+  },
+  "why": "Core opens a concern for every panic it hears, alerting every post on duty. When a person at Safety's desk resolves the panic, panic.resolved@1 carries the outcome's code, and Core closes that concern through the same closeRefusal rule the close route asks, with the outcome this map gives. A code the map does not name is not guessed at: the concern stays open for a person to close, and Core's audit says it was not stood down. The map lives here, beside the outcomes it names, because Core reads no Safety contract."
+ },
+
  "_reasonsNotSettingsNote":"The snooze reasons and the reasons the desk escalates by hand stay proposals in this file rather than becoming settings, on purpose. Each is a code that travels on the bus — alert.escalated@1 and loop.escalated@1 carry reasonCode — or is sent by an app a nurse already has. A code an admin added on the back office would be put on the bus to subscribers that were built and reviewed against the codes here and cannot read it; a code an admin removed would refuse the reason a nurse's phone still offers her. Neither is an admin choosing within bounds: both are a change to the contract every subscriber and every app is built against, made the way this file is changed. The question each asks stays open beside it until somebody with the authority answers it.",
 
  "exhaustion": {

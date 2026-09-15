@@ -43,6 +43,13 @@ export const reasons = {
 /** The outcomes a concern may be closed with. A close names one of these or is refused. */
 export const outcomes: ReadonlySet<string> = new Set(closedLoop.outcomes.value.map(o => o.id));
 
+/* A panic resolved at Safety's desk: the event Core hears, and which of the outcomes above it closes the concern
+   opened for that panic as, by the code of what happened. The panic's outcomes are Safety's; which outcome of the
+   closed loop each one is belongs here, so Core reads no Safety contract and closes through the same rule the
+   close route asks. */
+export const PANIC_RESOLVED = closedLoop.panicResolved.hears as EventKey;
+export const panicOutcomes: ReadonlyMap<string, string> = new Map(Object.entries(closedLoop.panicResolved.closesAs.value));
+
 /* Who may own a concern: somebody on the vetting register or a caller the API contract names, and
    never a caller the binder cannot tell apart from anybody — nobody is waiting on "anonymous". */
 const cannotOwn = new Set<string>(apis.engineRuntime.binderCannotAdmit);

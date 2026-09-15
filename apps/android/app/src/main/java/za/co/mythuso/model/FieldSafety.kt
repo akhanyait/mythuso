@@ -117,15 +117,17 @@ object FieldSafety {
 
     fun acknowledgeOverdue(timer: VisitTimer, at: Long): SafetyResult<VisitTimer> {
         val episode = timer.overdue
-        if (episode == null || episode.silencedReasonId != null) return refuse("nothing-to-silence")
+        if (episode == null || episode.silencedReasonId != null) return refuse("nothing-to-pick-up")
         return SafetyResult.Done(if (episode.acknowledgedAt != null) timer else timer.copy(overdue = episode.copy(acknowledgedAt = at)))
     }
 
+    /* Pick-up comes first, as the engine asks it: whether a person picked the overdue up is asked before the
+       reason, so closing one nobody saw is always answered with that. */
     fun silenceOverdue(timer: VisitTimer, reasonId: String?): SafetyResult<VisitTimer> {
         val episode = timer.overdue
         if (episode == null || episode.silencedReasonId != null) return refuse("nothing-to-silence")
-        val reason = FieldSafetyData.silenceReasons.firstOrNull { it.id == reasonId } ?: return refuse("overdue-silenced-without-reason")
         if (episode.acknowledgedAt == null) return refuse("overdue-acknowledged-first")
+        val reason = FieldSafetyData.silenceReasons.firstOrNull { it.id == reasonId } ?: return refuse("overdue-silenced-without-reason")
         if (reason.flag && episode.answeredAt == null) return refuse("silence-reason-untrue")
         return SafetyResult.Done(timer.copy(overdue = episode.copy(silencedReasonId = reason.id)))
     }
@@ -159,7 +161,7 @@ object FieldSafety {
         if (panic.position != null && !panic.isSharing(now)) panic.copy(position = null) else panic
 
     fun acknowledge(panic: SafetyPanic, at: Long): SafetyResult<SafetyPanic> = when {
-        panic.resolvedAt != null -> refuse("panic-already-resolved")
+        panic.resolvedAt != null -> refuse("panic-resolved-nothing-to-pick-up")
         panic.acknowledgedAt != null -> SafetyResult.Done(panic)
         else -> SafetyResult.Done(panic.copy(acknowledgedAt = at))
     }
@@ -168,8 +170,8 @@ object FieldSafety {
        from here: the outcome records what a person did. */
     fun resolve(panic: SafetyPanic, outcomeId: String?, at: Long): SafetyResult<SafetyPanic> = when {
         panic.resolvedAt != null -> refuse("panic-already-resolved")
-        FieldSafetyData.outcomes.none { it.id == outcomeId } -> refuse("panic-resolved-without-outcome")
         panic.acknowledgedAt == null -> refuse("panic-resolved-before-acknowledged")
+        FieldSafetyData.outcomes.none { it.id == outcomeId } -> refuse("panic-resolved-without-outcome")
         else -> SafetyResult.Done(panic.copy(resolvedAt = at, outcomeId = outcomeId, position = null))
     }
 }

@@ -24,8 +24,14 @@
  *    extension is a timer that never fires, and the ceiling's sentence is the route's own.
  *  - let the desk close an overdue without a reason, or with a reason that is not true of the timer.
  *
- * A check-in ("I am safe") never moves the deadline. If it did, pressing it every fifteen minutes
- * would be an extension with no reason and no ceiling — the exact thing extend refuses.
+ * A check-in ("I am safe") never moves the deadline, and never closes an overdue. If it moved the
+ * deadline, pressing it every fifteen minutes would be an extension with no reason and no ceiling — the
+ * exact thing extend refuses. If it closed an overdue, a phone could stand down the desk that was paged
+ * about it. packages/catalog/field-safety.json checkInRule says both, and the build holds checkIn to it.
+ *
+ * PICK-UP COMES FIRST. The desk closing an overdue is asked whether a person picked it up before it is
+ * asked for a reason, so the answer to closing an overdue nobody saw is always that somebody must see it,
+ * whatever reason was chosen.
  */
 import { MINUTE, done, extensionReasons, instant, refuse, serviceMinutes, silenceReasons, type Result } from './rules.ts';
 import type { SettingsInForce } from './settings.ts';
@@ -44,7 +50,8 @@ export type Timer = {
  readonly checkinRef: string;
  readonly appointmentRef: string;
  readonly serviceId: string;
- readonly nurseRef: string;
+ /** The nurse timed, or null on the engine until the first identified nurse acts on it: the event names none. */
+ readonly nurseRef: string | null;
  readonly startedAt: number;
  readonly expectedMinutes: number;
  /** The settings version in force when the visit started, and the three timings it copied from it. */
@@ -65,10 +72,10 @@ export type TimerStanding = 'running' | 'overdue' | 'closed';
 
 export type InProgress = { readonly appointmentRef: string; readonly visitCodeMatched: boolean };
 
-/* appointment.in_progress carried no service until version two, so the caller supplies it from the visit.
-   That is a gap in the event, reported rather than papered over: see the Wave 3 report. */
+/* The engine hands this appointment.in_progress@2's own serviceId, and the web preview the service the visit
+   was booked as. Version one carried no service and is withdrawn. */
 export function startTimer(input: {
- readonly checkinRef: string; readonly event: InProgress; readonly serviceId: string; readonly nurseRef: string;
+ readonly checkinRef: string; readonly event: InProgress; readonly serviceId: string; readonly nurseRef: string | null;
  /** Accepted only to be refused when it disagrees with the catalogue: the v1 route still sends it. */
  readonly expectedMinutes?: number;
 }, now: number, settings: SettingsInForce): Result<Timer> {
@@ -134,16 +141,16 @@ export const completeVisit = (timer: Timer, now: number): Result<Timer> =>
  timer.closedAt !== null ? done(timer) : close(timer, 'visit-completed', now);
 
 export function acknowledgeOverdue(timer: Timer, by: string, now: number): Result<Timer> {
- if (!timer.overdue || timer.overdue.silenced) return refuse('nothing-to-silence');
+ if (!timer.overdue || timer.overdue.silenced) return refuse('nothing-to-pick-up');
  if (timer.overdue.acknowledged) return done(timer);
  return done({ ...timer, overdue: { ...timer.overdue, acknowledged: { at: now, by } } });
 }
 
 export function silenceOverdue(timer: Timer, request: { readonly reasonId?: string | null; readonly by: string }, now: number): Result<Timer> {
  if (!timer.overdue || timer.overdue.silenced) return refuse('nothing-to-silence');
+ if (!timer.overdue.acknowledged) return refuse('overdue-acknowledged-first');
  const reason = silenceReasons.find(entry => entry.id === request.reasonId);
  if (!reason) return refuse('overdue-silenced-without-reason');
- if (!timer.overdue.acknowledged) return refuse('overdue-acknowledged-first');
  if (reason.needsNurseAnswer && timer.overdue.answeredAt === null) return refuse('silence-reason-untrue');
  return done({ ...timer, overdue: { ...timer.overdue, silenced: { at: now, by: request.by, reasonId: reason.id } } });
 }

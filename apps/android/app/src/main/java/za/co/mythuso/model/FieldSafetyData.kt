@@ -27,6 +27,7 @@ object FieldSafetyData {
         const val left = "{minutes} min left. If you have not checked out by then, the desk is told."
         const val overdue = "Past check-out since {since}. The desk has been told."
         const val answered = "You said you were safe at {at}."
+        const val saidSafe = "You said you were safe at {at}. Your check-out time has not moved."
         const val closedByNurse = "You checked out at {at}."
         const val closedBySigning = "Checked out when the visit was signed at {at}."
         const val checkIn = "I am safe"
@@ -107,24 +108,33 @@ object FieldSafetyData {
     val refusals = listOf(
         FieldSafetyRefusal("timer-without-a-matched-code", 409, "A visit whose code did not match has not started, so it has no timer."),
         FieldSafetyRefusal("timer-for-an-unknown-service", 422, "That visit's service is not in the catalogue, so there is nothing to time it by."),
+        FieldSafetyRefusal("position-after-the-window", 410, "This position is no longer shared. Sharing ended at {ended}."),
+        FieldSafetyRefusal("window-does-not-stretch", 409, "The window does not stretch. A nurse who still needs help presses panic again."),
+        FieldSafetyRefusal("location-retained", 409, "A position is gone when sharing stops. Nothing keeps where she was."),
+        FieldSafetyRefusal("no-timer-for-that-visit", 404, "No visit timer is running for that visit. A timer starts when the visit code matches."),
         FieldSafetyRefusal("extension-without-reason", 422, "An extension says why, in one of the reasons the desk can read."),
         FieldSafetyRefusal("extension-not-offered", 422, "Extensions come in the steps the desk offers."),
-        FieldSafetyRefusal("checkin-after-close", 409, "That visit is checked out. Nothing is being timed."),
+        FieldSafetyRefusal("extension-limit", 409, "That is as long as a visit can run without the desk calling."),
+        FieldSafetyRefusal("safe-is-not-an-extension", 422, "Saying you are safe moves nothing. To ask for more time, choose More time and say why."),
+        FieldSafetyRefusal("already-closed", 409, "That check-in is already closed."),
+        FieldSafetyRefusal("expected-minutes-not-the-service", 422, "A visit is timed by the service that was booked, not by a number sent with it."),
+        FieldSafetyRefusal("nothing-to-pick-up", 409, "That check-in is not waiting for the desk. It is not overdue, or the desk has already closed it."),
+        FieldSafetyRefusal("overdue-acknowledged-first", 409, "Somebody at the desk picks an overdue check-in up before it is closed."),
         FieldSafetyRefusal("overdue-silenced-without-reason", 422, "An overdue check-in is closed with a reason, or it stays open."),
         FieldSafetyRefusal("silence-reason-untrue", 409, "The nurse has not checked in, extended or checked out, so that cannot be the reason."),
         FieldSafetyRefusal("nothing-to-silence", 409, "That check-in is not overdue, so there is nothing here for the desk."),
-        FieldSafetyRefusal("overdue-acknowledged-first", 409, "Somebody at the desk picks an overdue check-in up before it is closed."),
-        FieldSafetyRefusal("position-after-the-window", 410, "This position is no longer shared. Sharing ended at {ended}."),
-        FieldSafetyRefusal("panic-resolved-without-outcome", 422, "A panic is resolved with what happened, or it stays open."),
-        FieldSafetyRefusal("panic-resolved-before-acknowledged", 409, "Somebody at the desk picks a panic up before it is resolved."),
-        FieldSafetyRefusal("panic-already-resolved", 409, "That panic is already resolved. If she needs help again, a new panic starts."),
-        FieldSafetyRefusal("window-does-not-stretch", 409, "The window does not stretch. A nurse who still needs help presses panic again."),
-        FieldSafetyRefusal("location-retained", 409, "A position is gone when sharing stops. Nothing keeps where she was."),
-        FieldSafetyRefusal("extension-limit", 409, "That is as long as a visit can run without the desk calling."),
-        FieldSafetyRefusal("already-closed", 409, "That check-in is already closed."),
-        FieldSafetyRefusal("expected-minutes-not-the-service", 422, "A visit is timed by the service that was booked, not by a number sent with it."),
         FieldSafetyRefusal("share-without-end", 422, "Live location is shared for a fixed window, and the window always ends."),
         FieldSafetyRefusal("window-not-the-declared-one", 422, "The window is the one the desk's policy sets. A phone does not choose how long it is watched."),
-        FieldSafetyRefusal("dispatch-from-a-panic-without-a-person", 409, "A panic goes to the desk. Nobody is sent to it until a person at the desk decides.")
+        FieldSafetyRefusal("dispatch-from-a-panic-without-a-person", 409, "A panic goes to the desk. Nobody is sent to it until a person at the desk decides."),
+        FieldSafetyRefusal("panic-resolved-nothing-to-pick-up", 409, "That panic is already resolved, so there is nothing to pick up. If she needs help again, a new panic starts."),
+        FieldSafetyRefusal("panic-resolved-before-acknowledged", 409, "Somebody at the desk picks a panic up before it is resolved."),
+        FieldSafetyRefusal("panic-resolved-without-outcome", 422, "A panic is resolved with what happened, or it stays open."),
+        FieldSafetyRefusal("panic-already-resolved", 409, "That panic is already resolved. If she needs help again, a new panic starts."),
+        FieldSafetyRefusal("position-no-longer-shared", 410, "This position is no longer shared. Sharing has ended, and nothing kept where she was."),
+        FieldSafetyRefusal("desk-queue-takes-no-filter", 422, "The desk queue is read whole. It is never narrowed or sorted by what a visit was for, who was visited or where."),
+        FieldSafetyRefusal("checkin-after-close", 409, "That visit is checked out. Nothing is being timed."),
+        FieldSafetyRefusal("no-such-checkin", 404, "Safety is timing no visit by that reference."),
+        FieldSafetyRefusal("checkin-held-by-another", 403, "That visit's timer is held by the nurse who first acted on it. Nobody else extends it, says she is safe or checks her out."),
+        FieldSafetyRefusal("no-such-panic", 404, "There is no panic by that reference.")
     )
 }

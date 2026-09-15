@@ -27,6 +27,7 @@ extension FieldSafety {
         static let left = "{minutes} min left. If you have not checked out by then, the desk is told."
         static let overdue = "Past check-out since {since}. The desk has been told."
         static let answered = "You said you were safe at {at}."
+        static let saidSafe = "You said you were safe at {at}. Your check-out time has not moved."
         static let closedByNurse = "You checked out at {at}."
         static let closedBySigning = "Checked out when the visit was signed at {at}."
         static let checkIn = "I am safe"
@@ -107,24 +108,33 @@ extension FieldSafety {
     static let refusals: [FieldSafetyRefusal] = [
         .init(id: "timer-without-a-matched-code", status: 409, statement: "A visit whose code did not match has not started, so it has no timer."),
         .init(id: "timer-for-an-unknown-service", status: 422, statement: "That visit's service is not in the catalogue, so there is nothing to time it by."),
+        .init(id: "position-after-the-window", status: 410, statement: "This position is no longer shared. Sharing ended at {ended}."),
+        .init(id: "window-does-not-stretch", status: 409, statement: "The window does not stretch. A nurse who still needs help presses panic again."),
+        .init(id: "location-retained", status: 409, statement: "A position is gone when sharing stops. Nothing keeps where she was."),
+        .init(id: "no-timer-for-that-visit", status: 404, statement: "No visit timer is running for that visit. A timer starts when the visit code matches."),
         .init(id: "extension-without-reason", status: 422, statement: "An extension says why, in one of the reasons the desk can read."),
         .init(id: "extension-not-offered", status: 422, statement: "Extensions come in the steps the desk offers."),
-        .init(id: "checkin-after-close", status: 409, statement: "That visit is checked out. Nothing is being timed."),
+        .init(id: "extension-limit", status: 409, statement: "That is as long as a visit can run without the desk calling."),
+        .init(id: "safe-is-not-an-extension", status: 422, statement: "Saying you are safe moves nothing. To ask for more time, choose More time and say why."),
+        .init(id: "already-closed", status: 409, statement: "That check-in is already closed."),
+        .init(id: "expected-minutes-not-the-service", status: 422, statement: "A visit is timed by the service that was booked, not by a number sent with it."),
+        .init(id: "nothing-to-pick-up", status: 409, statement: "That check-in is not waiting for the desk. It is not overdue, or the desk has already closed it."),
+        .init(id: "overdue-acknowledged-first", status: 409, statement: "Somebody at the desk picks an overdue check-in up before it is closed."),
         .init(id: "overdue-silenced-without-reason", status: 422, statement: "An overdue check-in is closed with a reason, or it stays open."),
         .init(id: "silence-reason-untrue", status: 409, statement: "The nurse has not checked in, extended or checked out, so that cannot be the reason."),
         .init(id: "nothing-to-silence", status: 409, statement: "That check-in is not overdue, so there is nothing here for the desk."),
-        .init(id: "overdue-acknowledged-first", status: 409, statement: "Somebody at the desk picks an overdue check-in up before it is closed."),
-        .init(id: "position-after-the-window", status: 410, statement: "This position is no longer shared. Sharing ended at {ended}."),
-        .init(id: "panic-resolved-without-outcome", status: 422, statement: "A panic is resolved with what happened, or it stays open."),
-        .init(id: "panic-resolved-before-acknowledged", status: 409, statement: "Somebody at the desk picks a panic up before it is resolved."),
-        .init(id: "panic-already-resolved", status: 409, statement: "That panic is already resolved. If she needs help again, a new panic starts."),
-        .init(id: "window-does-not-stretch", status: 409, statement: "The window does not stretch. A nurse who still needs help presses panic again."),
-        .init(id: "location-retained", status: 409, statement: "A position is gone when sharing stops. Nothing keeps where she was."),
-        .init(id: "extension-limit", status: 409, statement: "That is as long as a visit can run without the desk calling."),
-        .init(id: "already-closed", status: 409, statement: "That check-in is already closed."),
-        .init(id: "expected-minutes-not-the-service", status: 422, statement: "A visit is timed by the service that was booked, not by a number sent with it."),
         .init(id: "share-without-end", status: 422, statement: "Live location is shared for a fixed window, and the window always ends."),
         .init(id: "window-not-the-declared-one", status: 422, statement: "The window is the one the desk's policy sets. A phone does not choose how long it is watched."),
-        .init(id: "dispatch-from-a-panic-without-a-person", status: 409, statement: "A panic goes to the desk. Nobody is sent to it until a person at the desk decides.")
+        .init(id: "dispatch-from-a-panic-without-a-person", status: 409, statement: "A panic goes to the desk. Nobody is sent to it until a person at the desk decides."),
+        .init(id: "panic-resolved-nothing-to-pick-up", status: 409, statement: "That panic is already resolved, so there is nothing to pick up. If she needs help again, a new panic starts."),
+        .init(id: "panic-resolved-before-acknowledged", status: 409, statement: "Somebody at the desk picks a panic up before it is resolved."),
+        .init(id: "panic-resolved-without-outcome", status: 422, statement: "A panic is resolved with what happened, or it stays open."),
+        .init(id: "panic-already-resolved", status: 409, statement: "That panic is already resolved. If she needs help again, a new panic starts."),
+        .init(id: "position-no-longer-shared", status: 410, statement: "This position is no longer shared. Sharing has ended, and nothing kept where she was."),
+        .init(id: "desk-queue-takes-no-filter", status: 422, statement: "The desk queue is read whole. It is never narrowed or sorted by what a visit was for, who was visited or where."),
+        .init(id: "checkin-after-close", status: 409, statement: "That visit is checked out. Nothing is being timed."),
+        .init(id: "no-such-checkin", status: 404, statement: "Safety is timing no visit by that reference."),
+        .init(id: "checkin-held-by-another", status: 403, statement: "That visit's timer is held by the nurse who first acted on it. Nobody else extends it, says she is safe or checks her out."),
+        .init(id: "no-such-panic", status: 404, statement: "There is no panic by that reference.")
     ]
 }

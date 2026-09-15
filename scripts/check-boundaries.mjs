@@ -6766,7 +6766,7 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  if (!everyPostBody.includes('rota.posts.filter(post => post.role !== null && onDuty(rota, post.id, at))') || /stepsMs|spanMs|settle\(|nextHolder\(/.test(everyPostBody)) coreFail('packages/engines/src/core/domain/loops.ts no longer alerts every post on duty at once for a panic, or reads a minute of the rota on the way. A panic is a rule, not a walk up a setting.');
  if (!loopsSource.includes("if (loop.holder.kind === 'every-post') return { holder: null")) coreFail('packages/engines/src/core/domain/loops.ts would move a panic to somebody after the posts it alerted, which is a panic walked up the rota.');
  const panicHandler = bodyOf(coreEngineSource, 'function heardPanic');
- if (!/subscriptions: \{ \[PANIC\]: heardPanic \}/.test(coreEngineSource) || !panicHandler.includes('everyPostOnDuty(rota, now)') || !panicHandler.includes("holder: { kind: 'every-post' }") || /nextHolder\(|settle\(|stepsMs|settingsIn\(|snapshotOf\(/.test(panicHandler)) coreFail('packages/engines/src/core/engine.ts no longer hears a panic and alerts every post on duty at once, or walks it, or reads a setting on the way other than the rota in force.');
+ if (!/subscriptions: \{ \[PANIC\]: heardPanic[,\s]/.test(coreEngineSource) || !panicHandler.includes('everyPostOnDuty(rota, now)') || !panicHandler.includes("holder: { kind: 'every-post' }") || /nextHolder\(|settle\(|stepsMs|settingsIn\(|snapshotOf\(/.test(panicHandler)) coreFail('packages/engines/src/core/engine.ts no longer hears a panic and alerts every post on duty at once, or walks it, or reads a setting on the way other than the rota in force.');
 
  /* Core reads the rota setting in force, and never a literal post, role or minute — in its code or on the
     Control Tower. A concern is opened with the rota from its own settings history, on the engine and in the
@@ -7927,11 +7927,15 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  {
   const eventsNow = careEventsContract.events;
   const moved = { 'appointment.booked': ['core', 'record', 'money'], 'appointment.in_progress': ['core', 'record', 'safety'], 'appointment.completed': ['core', 'record', 'trust', 'access'] };
+  /* An engine that began hearing version two after the move is not part of the move. Safety joined
+     appointment.completed@2 on 15 September to close a visit's timer when the visit is signed, and hears it at
+     version two and nothing older; subscribers sit outside the fingerprint, so joining is not a new version. */
+  const joinedSince = { 'appointment.completed': ['safety'] };
   const hearing = { money: ['packages/engines/src/money/engine.ts', "'appointment.booked@2'"], safety: ['packages/engines/src/safety/engine.ts', "'appointment.in_progress@2': (event, ctx) =>"], access: ['packages/engines/src/access/engine.ts', "'appointment.completed@2': (event, ctx) =>"] };
   for (const [type, subscribers] of Object.entries(moved)) {
    const one = eventsNow.find(e => e.type === type && e.version === 1), two = eventsNow.find(e => e.type === type && e.version === 2);
    if (!one?.withdrawn || one.withdrawn.supersededBy !== `${type}@2` || one.subscribers.length || [...one.withdrawn.formerSubscribers].sort().join() !== [...subscribers].sort().join()) throw new Error(`${type}@1 is not withdrawn in favour of ${type}@2 with ${subscribers.join(', ')} as its former subscribers and nobody left hearing it.`);
-   if (!two || two.withdrawn || [...two.subscribers].sort().join() !== [...subscribers].sort().join()) throw new Error(`${type}@2 is not live with exactly the subscribers version one had, ${subscribers.join(', ')}. A subscriber move left half done is an engine still built against the withdrawn shape.`);
+   if (!two || two.withdrawn || [...two.subscribers].filter(s => !(joinedSince[type] ?? []).includes(s)).sort().join() !== [...subscribers].sort().join() || (joinedSince[type] ?? []).some(s => !two.subscribers.includes(s) || !read(`packages/engines/src/${s}/engine.ts`).includes(`'${type}@2': (event, ctx) =>`))) throw new Error(`${type}@2 is not live with exactly the subscribers version one had, ${subscribers.join(', ')}. A subscriber move left half done is an engine still built against the withdrawn shape.`);
    if (type !== 'appointment.completed' && !two.payload.some(f => f.field === 'serviceId' && f.required)) throw new Error(`${type}@2 does not carry the serviceId it was versioned for.`);
    if (type === 'appointment.completed' && !two.payload.some(f => f.field === 'bookingRef')) throw new Error('appointment.completed@2 does not carry the bookingRef it was versioned for.');
   }
@@ -8020,8 +8024,10 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
 {
  const safetyContract = JSON.parse(read('packages/catalog/field-safety.json'));
  const safetyApi = JSON.parse(read('packages/catalog/apis/safety.json'));
- const routeRefusalFor = (route, id) => safetyApi.routes.find(r => `${r.method} ${r.path}` === route)?.refusals.find(x => x.id === id);
- const sentenceFor = id => safetyContract.refusals.find(x => x.id === id) ?? safetyContract.routeRefusals.map(n => routeRefusalFor(n.route, n.id)).find(x => x?.id === id);
+ /* A route named with its version is that version, because extend and close are declared at two; a name without
+    one is a path answered at one version. Refusals more than one route answers are the engine's, by id. */
+ const routeRefusalFor = (route, id) => safetyApi.routes.find(r => (route.includes('@') ? `${r.method} ${r.path}@${r.version}` : `${r.method} ${r.path}`) === route)?.refusals.find(x => x.id === id);
+ const sentenceFor = id => safetyContract.refusals.find(x => x.id === id) ?? safetyContract.routeRefusals.map(n => routeRefusalFor(n.route, n.id)).find(x => x?.id === id) ?? ((safetyContract.engineRefusals ?? []).includes(id) ? safetyApi.refusals.find(x => x.id === id) : undefined);
  const safetyFail = (id, detail) => { const r = sentenceFor(id); throw new Error(`${detail}${r ? ` ${r.statement} ${r.why ?? ''}` : ''}`); };
 
  /* 1. The four timings are Safety's settings, and nothing else in the contract holds one. The founder
@@ -8086,7 +8092,8 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
 
  /* 4. Every refusal an engine file or a screen names has a sentence, and every named route refusal exists. */
  for (const named of safetyContract.routeRefusals) if (!routeRefusalFor(named.route, named.id)?.statement?.trim()) throw new Error(`packages/catalog/field-safety.json names the refusal "${named.id}" on ${named.route}, and packages/catalog/apis/safety.json has no such refusal there.`);
- const knownRefusals = new Set([...safetyContract.refusals.map(r => r.id), ...safetyContract.routeRefusals.map(r => r.id)]);
+ for (const id of safetyContract.engineRefusals ?? []) if (!safetyApi.refusals.some(x => x.id === id && x.statement?.trim() && x.answeredBy?.length)) throw new Error(`packages/catalog/field-safety.json names the engine refusal "${id}", and packages/catalog/apis/safety.json declares no engine refusal of that id answered by a route.`);
+ const knownRefusals = new Set([...safetyContract.refusals.map(r => r.id), ...safetyContract.routeRefusals.map(r => r.id), ...(safetyContract.engineRefusals ?? [])]);
  const safetySources = files('packages/engines/src/safety').filter(f => f.endsWith('.ts') && !f.endsWith('.test.ts'));
  let refusalsNamed = 0;
  for (const file of [...safetySources, 'apps/web/src/lib/field-safety.ts', 'apps/web/src/features/FieldSafety.tsx']) {
@@ -8132,13 +8139,117 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  const importsATiming = source => /import \{[^}]*\b(graceMinutes|extensionSteps|maxExtensionMinutes|panicWindowMinutes)\b[^}]*\} from '[^']*rules\.ts'/.test(source);
  if (!/\}, now: number, settings: SettingsInForce\): Result<Timer>/.test(checkinsSource) || !checkinsSource.includes('settingsVersion: settings.settingsVersion') || !checkinsSource.includes('timer.extensionSteps.includes(request.minutes)') || !checkinsSource.includes('extensionUsed(timer) + request.minutes > timer.maxExtensionMinutes') || importsATiming(checkinsSource)) throw new Error('packages/engines/src/safety/domain/checkins.ts no longer starts a timer with the settings in force and reads its own copy afterwards. A timer that reads the settings again is a running visit an admin can make overdue.');
  if (!/\}, now: number, window: PanicWindow\): Result<Panic>/.test(panicsSource) || !panicsSource.includes('now + (window.useWindowInForce ? window.minutes : minutes) * MINUTE') || !panicsSource.includes('settingsVersion: window.settingsVersion') || importsATiming(panicsSource)) safetyFail('window-does-not-stretch', 'packages/engines/src/safety/domain/panics.ts no longer opens a panic with the window in force and keeps its end.');
- if (!engineSource.includes('panicWindowOf(historyOf(ctx.store))') || !/INSERT INTO panics \([^)]*settings_version[^)]*\)/.test(engineSource) || !/INSERT OR IGNORE INTO visits_under_way \([^)]*settings_version[^)]*grace_minutes[^)]*\)/.test(engineSource)) throw new Error('packages/engines/src/safety/engine.ts no longer stores the settings version a panic opened under and a visit started under, or no longer keeps the first a visit was heard under.');
+ /* The timer is started by appointment.in_progress@2 with that event's own service and the settings in force, and
+    stored whole — the version and the timings it copied — keeping the first a visit was heard under. */
+ const inProgressHandler = engineSource.slice(engineSource.indexOf("'appointment.in_progress@2': (event, ctx) =>"), engineSource.indexOf("'appointment.completed@2': (event, ctx) =>"));
+ if (!engineSource.includes('panicWindowOf(historyOf(ctx.store))') || !/INSERT INTO panics \([^)]*settings_version[^)]*\)/.test(engineSource) || !/INSERT OR IGNORE INTO timers \([^)]*settings_version[^)]*doc[^)]*\)/.test(inProgressHandler)
+  || !inProgressHandler.includes('const settings = inForce(historyOf(ctx.store));') || !inProgressHandler.includes('serviceId: String(event.payload.serviceId)') || !/startTimer\([\s\S]*\}, ctx\.clock\.now\(\)\.getTime\(\), settings\);/.test(inProgressHandler)) throw new Error('packages/engines/src/safety/engine.ts no longer starts a visit\'s timer from appointment.in_progress@2 with the service it carries and the settings in force, no longer stores the settings version a panic opened under and a timer started under, or no longer keeps the first a visit was heard under.');
  if (!engineSource.includes("settingsRoutes(safetySettings, { read: 'GET /v1/safety/settings@2', change: 'POST /v1/safety/setting-changes@2' })")) throw new Error('packages/engines/src/safety/engine.ts no longer answers its settings routes through packages/engines/src/settings, so its settings would be changed under a second set of rules.');
  const webSafety = read('apps/web/src/lib/field-safety.ts');
  const count = (source, pattern) => (source.match(pattern) ?? []).length;
  if (importsATiming(webSafety) || importsATiming(read('apps/web/src/features/FieldSafety.tsx')) || /timer\.graceMinutes|panic\.windowMinutes|default\.value/.test(webSafety)
   || count(webSafety, /startTimer\(/g) !== count(webSafety, /startTimer\([^;]*\b(settings|safetySettingsNow\(\))\)/g)
   || count(webSafety, /raisePanic\(/g) !== count(webSafety, /raisePanic\([^;]*\bwindow\)/g)) throw new Error('apps/web/src/lib/field-safety.ts no longer starts every timer with the settings in force and presses every panic with the window in force, or reads a default straight from the contract. The nurse\'s strip and the desk read what an admin set, not a number.');
+
+ /* 6c. The timer, the nurse's word and the desk on the runtime (15 September 2026). Each is a rule a test can go
+        on passing while the code quietly stops keeping it:
+        - "I am safe" never moves the deadline and never closes an overdue: the contract says so, the check-in on
+          every platform touches neither, the route carries nothing to move one with, and its handler asks the
+          domain for nothing else.
+        - Pick-up comes first: closing an overdue and resolving a panic ask whether a person picked it up before
+          they ask for a reason or an outcome, on the engine and on both phones.
+        - The desk reads a position only through positionFor, and is refused once sharing has ended.
+        - The desk is never handed what a visit was for, who was visited, an address, clinical content, or a
+          position anywhere but the position route: the queue carries exactly desk.carries and refuses a filter.
+        - panic.resolved never carries a position, and is heard by Core alone, which binds a handler for it.
+        - A withdrawn extend@1 or close@1 is bound, called and named by nothing. */
+ const bodyAt = (source, start, end = '\n}\n') => { const at = source.indexOf(start); return at < 0 ? '' : source.slice(at, source.indexOf(end, at) + end.length); };
+ const nativeBody = (source, start) => bodyAt(source, start, '\n    }\n');
+ const handlerAt = key => {
+  const at = engineSource.indexOf(`'${key}': `);
+  if (at < 0) return '';
+  const from = at + key.length + 3;
+  const end = engineSource.slice(from).search(/\n  '(?:GET|POST) \/v1\/|\n  \.\.\.settingsRoutes/);
+  return engineSource.slice(at, end < 0 ? undefined : from + end);
+ };
+ const liveSafetyRoute = key => safetyApi.routes.find(r => !r.withdrawn && `${r.method} ${r.path}@${r.version}` === key);
+ const before = (source, first, ...then) => source.indexOf(first) >= 0 && then.every(t => source.indexOf(t) > source.indexOf(first));
+ const iosSafety = read('apps/ios/MyThuso/Models/FieldSafety.swift');
+ const androidSafety = read('apps/android/app/src/main/java/za/co/mythuso/model/FieldSafety.kt');
+
+ const checkInRule = safetyContract.checkInRule ?? {};
+ const safeKey = 'POST /v1/safety/checkins/{checkinRef}/safe@1';
+ const safeRoute = liveSafetyRoute(safeKey);
+ const safeHandler = handlerAt(safeKey);
+ const checkInBodies = [
+  ['checkIn in packages/engines/src/safety/domain/checkins.ts', bodyAt(checkinsSource, 'export function checkIn(')],
+  ['checkIn in apps/ios/MyThuso/Models/FieldSafety.swift', nativeBody(iosSafety, 'func checkIn(')],
+  ['checkIn in apps/android/app/src/main/java/za/co/mythuso/model/FieldSafety.kt', bodyAt(androidSafety, 'fun checkIn(', '\n\n')]
+ ];
+ const movesSomething = checkInBodies.find(([, body]) => !body || /dueAt|silenced|acknowledged|extensions/.test(body));
+ if (checkInRule.movesDeadline !== false || checkInRule.standsDownOverdue !== false || !checkInRule.statement?.trim() || movesSomething
+  || !safeRoute || safeRoute.request.map(f => f.field).sort().join() !== 'checkinRef,idempotencyKey' || safeRoute.emits.length
+  || !safeHandler.includes("? refuse('safe-is-not-an-extension')") || !safeHandler.includes('asHolder(request, ctx, checkIn,') || /\bextend\(|silenceOverdue\(|acknowledgeOverdue\(|dueAt\s*[+=]/.test(safeHandler)) throw new Error(`"I am safe" can move a deadline or close an overdue${movesSomething ? ` (${movesSomething[0]})` : ''}: packages/catalog/field-safety.json checkInRule, the check-in on every platform, or ${safeKey} and its handler no longer keep it to recording her word. ${checkInRule.statement ?? ''} ${checkInRule.whyNoDeadline ?? ''}`);
+
+ const pickUpFirst = [
+  ['silenceOverdue in packages/engines/src/safety/domain/checkins.ts', bodyAt(checkinsSource, 'export function silenceOverdue('), "refuse('overdue-acknowledged-first')", "refuse('overdue-silenced-without-reason')", "refuse('silence-reason-untrue')"],
+  ['resolve in packages/engines/src/safety/domain/panics.ts', bodyAt(panicsSource, 'export function resolve('), "refuse('panic-resolved-before-acknowledged')", "refuse('panic-resolved-without-outcome')"],
+  ['closeOverdue in apps/ios/MyThuso/Models/FieldSafety.swift', nativeBody(iosSafety, 'func closeOverdue('), 'refusal("overdue-acknowledged-first")', 'refusal("overdue-silenced-without-reason")', 'refusal("silence-reason-untrue")'],
+  ['resolve in apps/ios/MyThuso/Models/FieldSafety.swift', nativeBody(iosSafety, 'func resolve('), 'refusal("panic-resolved-before-acknowledged")', 'refusal("panic-resolved-without-outcome")'],
+  ['silenceOverdue in apps/android/app/src/main/java/za/co/mythuso/model/FieldSafety.kt', nativeBody(androidSafety, 'fun silenceOverdue('), 'refuse("overdue-acknowledged-first")', 'refuse("overdue-silenced-without-reason")', 'refuse("silence-reason-untrue")'],
+  ['resolve in apps/android/app/src/main/java/za/co/mythuso/model/FieldSafety.kt', nativeBody(androidSafety, 'fun resolve('), 'refuse("panic-resolved-before-acknowledged")', 'refuse("panic-resolved-without-outcome")']
+ ];
+ const outOfOrder = pickUpFirst.find(([, body, first, ...then]) => !before(body, first, ...then));
+ const overdueCloseKey = 'POST /v1/safety/overdue-checkins/{checkinRef}/close@1';
+ const resolveKey = 'POST /v1/safety/panics/{panicRef}/resolve@1';
+ if (outOfOrder || !liveSafetyRoute(overdueCloseKey)?.refusals.some(x => x.id === 'overdue-acknowledged-first') || !liveSafetyRoute(resolveKey)?.refusals.some(x => x.id === 'panic-resolved-before-acknowledged')
+  || !handlerAt(overdueCloseKey).includes('silenceOverdue(found.timer,') || !handlerAt(resolveKey).includes('resolve(panic,')) safetyFail('overdue-acknowledged-first', `${outOfOrder ? `${outOfOrder[0]} asks for a reason or an outcome before it asks whether a person picked it up` : `${overdueCloseKey} or ${resolveKey} no longer refuses before a pick-up, or no longer asks the domain`}. Pick-up comes first, so closing or resolving what nobody saw is always answered with that.`);
+
+ const positionKey = 'GET /v1/safety/panics/{panicRef}/position@1';
+ const positionHandler = handlerAt(positionKey);
+ if (!liveSafetyRoute(positionKey)?.refusals.some(x => x.id === 'position-no-longer-shared') || !before(positionHandler, 'positionFor(panic, nowOf(ctx))', "if (!seen.ok) return refuse('position-no-longer-shared');", 'return ok(')
+  || !bodyAt(panicsSource, 'export function positionFor(').includes('if (!isSharing(panic, now)) return afterTheWindow(panic);')) safetyFail('position-after-the-window', `${positionKey} no longer reads a position only through positionFor, refusing it once sharing has ended.`);
+
+ const queueKey = 'GET /v1/safety/desk-queue@1';
+ const queueRoute = liveSafetyRoute(queueKey);
+ const queueHandler = handlerAt(queueKey);
+ const namesIn = fields => (fields ?? []).flatMap(f => [f.field, ...namesIn(f.fields)]);
+ const neverOnDesk = [...safetyContract.desk.neverCarries.map(n => n.field), ...JSON.parse(read('packages/catalog/apis.json')).clinicalContent.words].map(w => w.toLowerCase());
+ const deskRoutes = safetyApi.routes.filter(r => !r.withdrawn && /^\/v1\/safety\/(overdue-checkins\/|panics\/\{|desk-queue)/.test(r.path));
+ const deskLeak = deskRoutes.flatMap(r => namesIn([...r.request, ...r.response])
+  .filter(name => neverOnDesk.some(word => name.toLowerCase().includes(word)) || (r.path !== '/v1/safety/panics/{panicRef}/position' && /^(position|lat|lng|latitude|longitude|location)$/i.test(name)))
+  .map(name => `${r.method} ${r.path}@${r.version} carries "${name}"`))[0];
+ if (!deskRoutes.length || !queueRoute || queueRoute.response.map(f => f.field).join() !== 'items' || (queueRoute.response[0].fields ?? []).map(f => f.field).join() !== safetyContract.desk.carries.join() || deskLeak
+  || !queueHandler.includes("if (request.undeclared.length) return refuse('desk-queue-takes-no-filter');") || /service|appointment|position/i.test(queueHandler)) throw new Error(`The desk can be handed what a visit was for, who was visited, where, clinical content or a position outside its window: ${deskLeak ?? `${queueKey} no longer carries exactly desk.carries, refuses a filter, and reads nothing about the visit`}. ${safetyContract.desk.neverCarries.map(n => n.why).join(' ')}`);
+
+ const resolvedEvent = JSON.parse(read('packages/catalog/events.json')).events.find(e => e.type === 'panic.resolved' && e.version === 1);
+ if (!resolvedEvent || resolvedEvent.withdrawn || resolvedEvent.owner !== 'safety' || resolvedEvent.payload.some(f => /position|location|^lat|lng|latitude|longitude|coordinate/i.test(f.field)) || !resolvedEvent.neverCarries.some(n => n.field === 'position')
+  || resolvedEvent.subscribers.join() !== 'core' || !/\[PANIC_RESOLVED\]: heardPanicResolved/.test(read('packages/engines/src/core/engine.ts'))
+  || !panicsSource.includes("payload: { panicRef: panic.panicRef, outcomeCode: outcome.id, sharingEndedAt: instant(sharingEndedAt) } }]") || !liveSafetyRoute(resolveKey)?.emits.includes('panic.resolved@1')) safetyFail('location-retained', 'panic.resolved@1 carries, or could carry, where the nurse was, or is no longer heard by Core alone with a handler that stands its concern down.');
+ /* Core stands a resolved panic's concern down through the close route's own rule, with an outcome the closed loop
+    lists. Every outcome Safety's desk resolves a panic with is mapped, onto an outcome that exists, as a proposal
+    that says so; and the handler asks closeRefusal rather than writing a close of its own. */
+ const closedLoopForPanics = JSON.parse(read('packages/catalog/closed-loop.json'));
+ const closesAs = closedLoopForPanics.panicResolved?.closesAs;
+ const coreOutcomeIds = new Set((closedLoopForPanics.outcomes?.value ?? []).map(o => o.id));
+ const mappedOutcomes = Object.entries(closesAs?.value ?? {});
+ const standDown = bodyAt(read('packages/engines/src/core/engine.ts'), 'function heardPanicResolved(');
+ if (closedLoopForPanics.panicResolved?.hears !== 'panic.resolved@1' || mappedOutcomes.map(([id]) => id).sort().join() !== safetyContract.outcomes.map(o => o.id).sort().join() || mappedOutcomes.some(([, code]) => !coreOutcomeIds.has(code))
+  || !closesAs || !('decidedBy' in closesAs) || !closesAs.question?.trim() || !(closesAs.decidedBy !== null || closesAs.proposedBecause?.trim())
+  || !standDown.includes('panicOutcomes.get(') || !standDown.includes('const refused = closeRefusal(loop, outcomeCode, outcomes);')) throw new Error('packages/catalog/closed-loop.json panicResolved no longer maps every outcome Safety\'s desk resolves a panic with onto an outcome the closed loop lists, as a proposal or a decision that says so, or Core stands a panic\'s concern down without asking closeRefusal. A stand-down closes nothing a person at the Control Tower could not.');
+
+ const withdrawnNurseRoutes = [
+  ['POST', '/v1/safety/checkins/{checkinRef}/extend', 1, 'postSafetyCheckinsByCheckinRefExtend', 'POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND'],
+  ['POST', '/v1/safety/checkins/{checkinRef}/close', 1, 'postSafetyCheckinsByCheckinRefClose', 'POST_SAFETY_CHECKINS_BY_CHECKIN_REF_CLOSE']
+ ];
+ const callableSources = ['packages/engines/src', 'apps/web/src', 'apps/ios/MyThuso', 'apps/android/app/src/main'].flatMap(dir => files(dir)).filter(f => /\.(ts|tsx|swift|kt)$/.test(f) && !f.endsWith('.test.ts'));
+ for (const [method, path, version, tsName, ktName] of withdrawnNurseRoutes) {
+  const key = `${method} ${path}@${version}`;
+  const route = safetyApi.routes.find(r => r.method === method && r.path === path && r.version === version);
+  if (!route?.withdrawn || route.callers.length || route.withdrawn.supersededBy !== `${method} ${path}@${version + 1}`) throw new Error(`${key} is not withdrawn, with no callers, in favour of version ${version + 1}.`);
+  const naming = callableSources.find(f => { const s = read(f); return s.includes(`'${key}'`) || new RegExp(`\\b${tsName}\\b`).test(s) || new RegExp(`\\b${ktName}\\b`).test(s); });
+  if (naming) throw new Error(`${naming} names ${key}, which is withdrawn. A withdrawn route is bound, called and named by nothing; its correction is version ${version + 1}.`);
+ }
 
  /* 7. No screen types a field-safety minute. Native copies are generated; the web reads the settings in
        force; the Configuration screen reads every default and bound from the contract. So none of these
@@ -8155,7 +8266,7 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  const pieces = sentences.flatMap(s => s.split(/\{\w+\}/)).map(p => p.trim()).filter(p => p.length >= 16);
  const minuteNumbers = [...new Set(configurable.flatMap(s => [...[s.default.value].flat(), s.bounds.lowest.value, s.bounds.highest.value]))];
  const typedMinute = new RegExp(`\\b(${minuteNumbers.join('|')})\\s*(?:\\*\\s*60\\b|\\*\\s*MINUTE\\b|min\\b|minutes\\b|\\.minutes\\b)`);
- for (const file of [...handNative, ...webScreens]) {
+ for (const file of [...handNative, ...webScreens, 'packages/engines/src/safety/engine.ts']) {
   if (!existsSync(file)) throw new Error(`${file} is missing. The nurse safety suite ships on all three platforms from day one, and the web reads its settings from one module.`);
   const source = read(file);
   const typed = handNative.includes(file) && pieces.find(p => source.includes(p));
