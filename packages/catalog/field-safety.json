@@ -35,7 +35,7 @@
  },
 
  "settings": {
-  "_note": "The field-safety timings Operations changes on the admin, in the shape packages/catalog/settings.json gives every setting. The founder decided on 15 September 2026 that Operations sets the grace and the panic window on the admin rather than in code (\"Safety: 30min, grace 60min - but configure this on the admin\", clarified as \"panic 30, grace 60\"); the extension steps and ceiling are set in the same place and are still proposals. Each default lives here and nowhere else. What is in force at any moment is these defaults with every accepted admin change replayed in order, kept in the Safety engine's own store through packages/engines/src/settings and, in the web preview, in the tab's memory. POST /v1/safety/setting-changes@1 was built before the shared shape and carries minutes and lists of minutes only; packages/catalog/settings.json legacyRoutes says how its fields are read, and why a Safety setting of any other type needs version two.",
+  "_note": "The field-safety timings Operations changes on the admin, in the shape packages/catalog/settings.json gives every setting. The founder decided on 15 September 2026 that Operations sets the grace and the panic window on the admin rather than in code (\"Safety: 30min, grace 60min - but configure this on the admin\", clarified as \"panic 30, grace 60\"); the extension steps and ceiling are set in the same place and are still proposals. Each default lives here and nowhere else. What is in force at any moment is these defaults with every accepted admin change replayed in order, kept in the Safety engine's own store through packages/engines/src/settings and, in the web preview, in the tab's memory. Its routes are GET /v1/safety/settings@2 and POST /v1/safety/setting-changes@2, in the shared shape; version one of both carried timings in minutes and nothing else, and is withdrawn. Two of the settings are not timings: who changes the field-safety settings, which only the admin changes and which always names somebody, and which window a phone that read an older one is given, which opens her panic either way.",
   "heading": "Field safety settings",
   "intro": "How long the desk waits after a visit's booked time before it looks for a nurse, how long it sees her after a panic, and how much longer she may ask for. Operations changes them here, without a code change.",
   "items": [
@@ -56,7 +56,7 @@
      "lowest": { "value": 15, "decidedBy": null, "proposedBy": "Safety lead (Wave 3)", "proposedBecause": "The fifteen minutes first proposed on 14 September. Below it the desk is paged for visits that are only running a little over, and a desk paged for nothing learns to ignore the page." },
      "highest": { "value": 120, "decidedBy": null, "proposedBy": "Safety lead (Wave 3)", "proposedBecause": "Twice the founder's hour. Past two hours after her booked time a nurse in trouble who cannot press panic is looked for in the afternoon for a morning visit, and moving it that far is a decision for this contract rather than a setting on a screen." }
     },
-    "changedBy": "admin",
+    "changedBy": { "fromSetting": "settings-changed-by" },
     "appliesTo": "A change applies to visits that start after it. A visit already running keeps the deadline it started with, so a shorter grace never makes a nurse overdue who was not.",
     "guardrail": {
      "statement": "The desk is always told when a nurse has not checked out, and never later than two hours after she should have left. No value switches the alert off or pushes it past that.",
@@ -80,7 +80,7 @@
      "lowest": { "value": 15, "decidedBy": null, "proposedBy": "Safety lead (Wave 3)", "proposedBecause": "Shorter than fifteen minutes is shorter than the desk needs to pick a panic up, reach the nurse and send somebody, so the window would end while help was still being arranged." },
      "highest": { "value": 60, "decidedBy": null, "proposedBy": "Safety lead (Wave 3)", "proposedBecause": "The hour first proposed on 14 September. A position shown for longer than that is nearer to tracking a nurse than helping her, and a nurse who still needs help presses again and opens a new window." }
     },
-    "changedBy": "admin",
+    "changedBy": { "fromSetting": "settings-changed-by" },
     "appliesTo": "A change applies to panics pressed after it. A window already open keeps the end it opened with: it is never cut short and never stretched.",
     "guardrail": {
      "statement": "A panic always shows the desk where the nurse is, and the showing always ends within the hour. No value hides her from the desk or turns a panic into tracking.",
@@ -109,7 +109,7 @@
      "lowest": { "value": 1, "decidedBy": null, "proposedBy": "Platform Settings lead (Wave 3)", "proposedBecause": "At least one step, or a nurse whose visit runs long has no way to ask for more time and the desk is paged for a visit that is only running over." },
      "highest": { "value": 3, "decidedBy": null, "proposedBy": "Platform Settings lead (Wave 3)", "proposedBecause": "Three buttons are what a nurse can read and press with one hand at a door. A fourth is a list she has to stop and read." }
     },
-    "changedBy": "admin",
+    "changedBy": { "fromSetting": "settings-changed-by" },
     "appliesTo": "A change applies to visits that start after it. A visit already running keeps the steps it started with.",
     "guardrail": {
      "statement": "A nurse can always ask for more time, and no single press adds more than half an hour.",
@@ -133,16 +133,51 @@
      "lowest": { "value": 30, "decidedBy": null, "proposedBy": "Safety lead (Wave 3)", "proposedBecause": "Half an hour, so that the largest step the range allows can still be taken once." },
      "highest": { "value": 120, "decidedBy": null, "proposedBy": "Safety lead (Wave 3)", "proposedBecause": "Two hours beyond the booked time is as long as a visit should run on a nurse's own word under any setting. Past that a person at the desk speaks to her." }
     },
-    "changedBy": "admin",
+    "changedBy": { "fromSetting": "settings-changed-by" },
     "appliesTo": "A change applies to visits that start after it. A visit already running keeps the ceiling it started with.",
     "guardrail": {
      "statement": "A visit never runs on a nurse's own word for more than two hours past its booked time.",
      "forbids": [0, 121]
     }
+   },
+   {
+    "key": "stale-panic-window-uses-window-in-force",
+    "label": "A panic from a phone that read an older window",
+    "help": "Whether a panic from a phone that read an older window opens the window in force now, rather than the window the phone sent.",
+    "owner": "safety",
+    "type": "boolean",
+    "unit": null,
+    "default": { "value": true, "decidedBy": null, "proposedBy": "Platform Settings lead (Wave 3)", "proposedBecause": "A panic is never refused over bookkeeping, and the window in force is the one Operations decided most recently. Either choice opens the panic: this says only which of two windows the settings have held it opens." },
+    "allowed": [
+     { "value": true, "label": "Open the window in force", "decidedBy": null, "proposedBy": "Platform Settings lead (Wave 3)", "proposedBecause": "The window Operations set most recently is the one the desk is working to." },
+     { "value": false, "label": "Open the window the phone sent", "decidedBy": null, "proposedBy": "Platform Settings lead (Wave 3)", "proposedBecause": "The phone told the nurse a window before she pressed, and the window it sent was the policy a moment ago." }
+    ],
+    "changedBy": { "fromSetting": "settings-changed-by" },
+    "appliesTo": "A change applies to panics pressed after it. A window already open keeps the end it opened with."
+   },
+   {
+    "key": "settings-changed-by",
+    "label": "Who changes the field safety settings",
+    "help": "The roles that may change every field-safety setting other than this one.",
+    "owner": "safety",
+    "type": "roleList",
+    "unit": null,
+    "default": { "value": ["admin"], "decidedBy": null, "proposedBy": "Platform Settings lead (Wave 3)", "proposedBecause": "The founder decided Operations sets the field-safety timings on the admin, and the admin is the role that holds the back office. Until somebody decides otherwise, nobody else changes them." },
+    "allowedRoles": { "roles": ["admin", "operator"], "decidedBy": null, "proposedBy": "Platform Settings lead (Wave 3)", "proposedBecause": "The Control Tower operator works the desk these settings govern and may be asked to hold them. No clinician, nurse or outside party changes how long the desk waits for a nurse." },
+    "items": {
+     "lowest": { "value": 1, "decidedBy": null, "proposedBy": "Platform Settings lead (Wave 3)", "proposedBecause": "Somebody always answers for the desk's timings. A list of nobody is timings nobody may change, and nobody to ask why they are what they are." },
+     "highest": { "value": 2, "decidedBy": null, "proposedBy": "Platform Settings lead (Wave 3)", "proposedBecause": "Both of the roles that may be named." }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to the next change anybody makes. A change already made stays made, and the history keeps who made it.",
+    "guardrail": {
+     "statement": "Somebody may always change the field safety settings, and nobody but an admin or the Control Tower operator ever may. No value leaves the desk's timings to nobody or hands them to a nurse.",
+     "forbids": [[], ["nurse"], ["admin", "nurse"], ["admin", "carer"]]
+    }
    }
   ],
   "defaults": {
-   "version": 2,
+   "version": 3,
    "changelog": [
     {
      "version": 1,
@@ -165,6 +200,16 @@
       { "setting": "panic-window", "from": 60, "to": 30 }
      ],
      "why": "\"Safety: 30min, grace 60min - but configure this on the admin\", clarified as \"panic 30, grace 60\". The extension steps and ceiling were not part of the decision and stay proposals."
+    },
+    {
+     "version": 3,
+     "on": "2026-09-15",
+     "by": "Platform Settings lead (Wave 3), proposed and not decided",
+     "changed": [
+      { "setting": "stale-panic-window-uses-window-in-force", "from": null, "to": true },
+      { "setting": "settings-changed-by", "from": null, "to": ["admin"] }
+     ],
+     "why": "Two answers that lived in code became settings when the founder instructed that open questions be admin settings: who may change the field-safety settings, and which window a phone that read an older one is given."
     }
    ]
   }

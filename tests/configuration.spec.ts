@@ -22,10 +22,25 @@ import { changeTiming, editorLabel, fieldSafety, fill, minutesText, openChangeFo
 const json = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
 const care = json('../packages/catalog/care.json');
 const services = json('../packages/catalog/services.json') as { duration: number }[];
-const safetyApi = json('../packages/catalog/apis/safety.json') as { routes: { path: string; refusals: { id: string; statement: string }[] }[] };
+const safetyApi = json('../packages/catalog/apis/safety.json') as { routes: { path: string; withdrawn?: unknown; refusals: { id: string; statement: string }[] }[] };
+const roleName = (id: string): string => (json('../packages/catalog/vetting.json').roles as { id: string; name: string }[]).find(r => r.id === id)!.name;
 const visitCode: string = care.preview.visitCode;
 const shared = (id: string) => (settingsContract.refusals as { route: string; id: string; statement: string }[]).find(r => r.route === 'change' && r.id === id)!.statement;
-const safetyOwn = (id: string) => safetyApi.routes.find(r => r.path === '/v1/safety/setting-changes')!.refusals.find(r => r.id === id)!.statement;
+const safetyOwn = (id: string) => safetyApi.routes.find(r => r.path === '/v1/safety/setting-changes' && !r.withdrawn)!.refusals.find(r => r.id === id)!.statement;
+/* How the screen reads a value of each type these journeys meet. A setting of a type not here fails the first
+   journey loudly, so the journey is taught the type rather than passing by skipping it. */
+const valueText = (row: TimingRow, value: unknown): string => {
+  if (row.type === 'minutes' || (row.type === 'list' && row.of === 'minutes')) return minutesText(value as number | number[]);
+  if (row.type === 'boolean') return row.allowed!.find(choice => choice.value === value)!.label;
+  if (row.type === 'roleList') return (value as string[]).map(roleName).join(', ');
+  throw new Error(`${row.key} is a ${row.type}, which this journey does not read yet.`);
+};
+const limitsTexts = (row: TimingRow): string[] => [
+  ...(row.bounds ? [fill(say.range, { lowest: minutesText(row.bounds.lowest.value), highest: minutesText(row.bounds.highest.value) })] : []),
+  ...(row.allowed ? [fill(say.choices, { values: row.allowed.map(choice => choice.label).join(', ') })] : []),
+  ...(row.allowedRoles ? [fill(say.roles, { roles: row.allowedRoles.roles.map(roleName).join(', ') })] : []),
+  ...(row.items ? [fill(say.listLength, { lowest: String(row.items.lowest.value), highest: String(row.items.highest.value) })] : [])
+];
 const sources = (settingsContract.sources as { engine: string; file: string }[]).map(s => ({ engine: s.engine, block: json(`../${s.file}`).settings as { heading: string; intro: string; items: TimingRow[] } }));
 const total = String(sources.reduce((sum, s) => sum + s.block.items.length, 0));
 const expiry = (care.settings.items as TimingRow[]).find(s => s.key === 'offer-expiry')!;
@@ -62,15 +77,12 @@ test('every engine’s settings are drawn from its contract: in force, the defau
     await expect(panel).toContainText(block.intro);
     await expect(panel).toContainText(fill(say.version, { version: '1' }));
     for (const row of block.items) {
-      /* This journey reads minutes. A setting of another type is drawn by the same screen; teach the
-         journey its formatting when one lands, rather than letting it pass by skipping the row. */
-      expect(row.unit, `${row.key} is a type this journey does not format yet`).toBe('minutes');
       const item = timingItem(panel, row);
-      await expect(item.locator('.ss-in-force')).toContainText(minutesText(row.default.value));
+      await expect(item.locator('.ss-in-force')).toContainText(valueText(row, row.default.value));
       await expect(item).toContainText(row.help);
-      await expect(item).toContainText(fill(say.defaultIs, { value: minutesText(row.default.value) }));
+      await expect(item).toContainText(fill(say.defaultIs, { value: valueText(row, row.default.value) }));
       await expect(item).toContainText(provenance(row.default));
-      await expect(item).toContainText(fill(say.range, { lowest: minutesText(row.bounds.lowest.value), highest: minutesText(row.bounds.highest.value) }));
+      for (const limit of limitsTexts(row)) await expect(item).toContainText(limit);
       await expect(item).toContainText(say.limitsAreProposals);
       await expect(item).toContainText(row.appliesTo);
       if (row.guardrail) await expect(item).toContainText(row.guardrail.statement);
@@ -87,10 +99,10 @@ test('a search or an engine narrows the settings, and it says so when nothing ma
   const area = await openSettings(page);
   const status = area.locator(':scope > .ss-version');
   const search = area.getByLabel(say.search, { exact: true });
-  const window = timingRow('panic-window');
-  await search.fill(window.label);
+  const grace = timingRow('grace');
+  await search.fill(grace.label);
   await expect(status).toHaveText(fill(say.shown, { shown: '1', total }));
-  await expect(timingItem(group(page, fieldSafety.settings.heading), window)).toBeVisible();
+  await expect(timingItem(group(page, fieldSafety.settings.heading), grace)).toBeVisible();
   await expect(group(page, care.settings.heading)).toHaveCount(0);
 
   await search.fill('');
@@ -214,4 +226,40 @@ test('the Operations tab keeps the way to the field safety settings, and opens C
   await expect(group(page, fieldSafety.settings.heading)).toBeVisible();
   await expect(group(page, care.settings.heading)).toHaveCount(0);
   await expect(page.getByLabel(say.engine, { exact: true })).toHaveValue('safety');
+});
+
+test('who changes the field safety settings, and which window a stale panic opens, are changed in their own editors and refused in the contract’s words', async ({ page }, info) => {
+  await openSettings(page);
+  const panel = group(page, fieldSafety.settings.heading);
+  const changers = timingRow('settings-changed-by');
+  const form = await openChangeForm(panel, changers);
+  const roles = form.getByRole('group', { name: say.editors.roleList });
+  const reason = form.getByLabel(say.reason, { exact: true });
+  await roles.getByRole('checkbox', { name: roleName('admin'), exact: true }).uncheck();
+  await reason.fill('Nobody should hold these.');
+  await form.getByRole('button', { name: say.review }).click();
+  await expect(form.getByRole('alert')).toHaveText(shared('setting-out-of-range'));
+  await roles.getByRole('checkbox', { name: roleName('admin'), exact: true }).check();
+  await roles.getByRole('checkbox', { name: roleName('operator'), exact: true }).check();
+  await reason.fill('The Control Tower operator holds the desk overnight.');
+  await form.getByRole('button', { name: say.review }).click();
+  const both = `${roleName('admin')}, ${roleName('operator')}`;
+  const confirmRoles = form.getByRole('group', { name: fill(say.confirmQuestion, { setting: changers.label, from: roleName('admin'), to: both }) });
+  await expect(confirmRoles).toContainText(changers.appliesTo);
+  await shoot(page, 'configuration-roles', info);
+  await confirmRoles.getByRole('button', { name: say.confirm }).click();
+  await expect(timingItem(panel, changers).locator('.ss-in-force')).toContainText(both);
+
+  const stale = timingRow('stale-panic-window-uses-window-in-force');
+  const on = stale.allowed!.find(choice => choice.value === true)!;
+  const off = stale.allowed!.find(choice => choice.value === false)!;
+  const staleForm = await openChangeForm(panel, stale);
+  await staleForm.getByRole('radio', { name: off.label, exact: true }).check();
+  await staleForm.getByLabel(say.reason, { exact: true }).fill('Nurses are told a window before they press, and should get it.');
+  await staleForm.getByRole('button', { name: say.review }).click();
+  const confirmStale = staleForm.getByRole('group', { name: fill(say.confirmQuestion, { setting: stale.label, from: on.label, to: off.label }) });
+  await confirmStale.getByRole('button', { name: say.confirm }).click();
+  await expect(timingItem(panel, stale).locator('.ss-in-force')).toContainText(off.label);
+  await expect(panel).toContainText(fill(say.version, { version: '3' }));
+  expect(await noOverflow(page), 'the roles and choice editors scroll the page sideways').toBe(true);
 });

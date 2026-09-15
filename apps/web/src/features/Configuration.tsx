@@ -93,7 +93,7 @@ function limitsText(limits: Limits): string {
    return limits.bounds ? fill(say.range, { lowest: valueText(limits, limits.bounds.lowest.value), highest: valueText(limits, limits.bounds.highest.value) }) : '';
   case 'boolean': case 'enum': return limits.allowed ? fill(say.choices, { values: limits.allowed.map(choice => choice.label).join(', ') }) : '';
   case 'text': return limits.maxLength ? fill(say.maxLength, { count: String(limits.maxLength.value) }) : '';
-  case 'roleList': return fill(say.roles, { roles: (limits.allowedRoles?.roles ?? []).map(roleName).join(', ') });
+  case 'roleList': return [fill(say.roles, { roles: (limits.allowedRoles?.roles ?? []).map(roleName).join(', ') }), limits.items ? fill(say.listLength, { lowest: String(limits.items.lowest.value), highest: String(limits.items.highest.value) }) : ''].filter(Boolean).join(' · ');
   case 'schedule': return fill(say.posts, { posts: (limits.posts ?? []).map(post => post.label).join(', ') });
   case 'list': return [limitsText(itemsOf(limits)), limits.items ? fill(say.listLength, { lowest: String(limits.items.lowest.value), highest: String(limits.items.highest.value) }) : ''].filter(Boolean).join(' · ');
   case 'record': return (limits.parts ?? []).map(part => `${part.label}: ${limitsText(part)}`).join(' · ');

@@ -229,7 +229,8 @@ function outOfRange(limits: Limits, value: unknown): boolean {
   case 'text': return (value as string).trim() === '';
   case 'roleList': {
    const roles = value as string[];
-   return new Set(roles).size !== roles.length || !roles.every(role => (limits.allowedRoles?.roles ?? []).includes(role));
+   return new Set(roles).size !== roles.length || !roles.every(role => (limits.allowedRoles?.roles ?? []).includes(role))
+    || (limits.items !== undefined && (roles.length < limits.items.lowest.value || roles.length > limits.items.highest.value));
   }
   case 'schedule': return false;
   case 'list': {
@@ -377,19 +378,8 @@ export function confirmReview(engine: SettingsEngine, history: readonly Change[]
 
 /* ---- From a route's fields ------------------------------------------------------------------------ */
 
-export type ChangeRoute = { readonly method: string; readonly path: string; readonly version: number };
-type LegacyRoute = { route: string; requestFields: Record<string, string> };
-
-/** The name a change route gives a generic field: its own, for a route that predates the shape, or the generic one. */
-export function fieldNamesFor(route: ChangeRoute): (generic: string) => string {
- const legacy = (contract.legacyRoutes as LegacyRoute[]).find(entry => entry.route === `${route.method} ${route.path}@${route.version}`);
- return generic => legacy?.requestFields[generic] ?? generic;
-}
-
 /** The setting and the value a change route's fields carry. The value is read from the one field its type's value travels in. */
-export function changeFromFields(block: SettingsBlock, route: ChangeRoute, fields: Readonly<Record<string, unknown>>): { setting: unknown; value: unknown } {
- const name = fieldNamesFor(route);
- const key = fields[name('setting')];
- const setting = block.items.find(s => s.key === key);
- return { setting: key, value: setting ? fields[name(typeOf(setting.type).valueField)] : undefined };
+export function changeFromFields(block: SettingsBlock, fields: Readonly<Record<string, unknown>>): { setting: unknown; value: unknown } {
+ const setting = block.items.find(s => s.key === fields.setting);
+ return { setting: fields.setting, value: setting ? fields[typeOf(setting.type).valueField] : undefined };
 }

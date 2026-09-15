@@ -125,13 +125,79 @@
    "path": "/v1/safety/settings",
    "version": 1,
    "summary": "Read the field-safety timings in force, the range an admin may set each within, and every change made to them.",
-   "callers": ["admin"],
+   "callers": [],
    "purpose": ["audit"],
    "request": [],
    "response": [
     {"field": "settingsVersion", "type": "integer", "required": true, "why": "The version in force. A change is made against it, and a visit or a panic that starts now keeps it."},
-    {"field": "settings", "type": "list", "required": true, "why": "Each setting, in the shape packages/catalog/settings.json gives every engine's: its key, type, unit, the value in force and the version that set it, its default and provenance, its limits, who may change it, what a change reaches and its guardrail.", "object": true},
+    {"field": "settings", "type": "list", "required": true, "why": "Each timing: its id, unit, the minutes in force, its default, and the lowest and highest an admin may set.", "object": true},
     {"field": "history", "type": "list", "required": true, "why": "Every accepted change, oldest first: who, when, from, to and why. Nothing in it is edited or removed.", "object": true}
+   ],
+   "refusals": [
+    {"id": "settings-read-not-permitted", "status": 403, "statement": "Only an admin reads the field-safety settings and who changed them.", "why": "The history names the people who changed how long the desk waits. It is read by the role that can change it, as the incident register is."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "GET /v1/safety/settings@2", "why": "Its rows carried the four field-safety timings in minutes and nothing else. A Safety setting that is on or off, or a list of roles, cannot be read through it, and packages/catalog/settings.json gives every engine's settings one read route, with each setting's provenance, limits and review. Version two is that route."},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'GET /v1/safety/settings@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/setting-changes",
+   "version": 1,
+   "summary": "Change one field-safety timing, with a reason, against the version in force. It applies to visits and panics that start after it.",
+   "callers": [],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same change once, and the history gains one row."},
+    {"field": "timing", "type": "string", "required": true, "why": "grace, panic-window, extension-steps or extension-ceiling, from packages/catalog/field-safety.json settings.timings."},
+    {"field": "minutes", "type": "integer", "required": false, "why": "The new value, for a timing that is one number of minutes."},
+    {"field": "stepMinutes", "type": "list", "required": false, "why": "The new extension steps, smallest first, for extension-steps."},
+    {"field": "reason", "type": "string", "required": false, "why": "Why. Asked for by the handler rather than the binder, so that a change without one is refused in its own sentence rather than the general one for a missing field."},
+    {"field": "expectedVersion", "type": "integer", "required": true, "why": "The settings version the admin was looking at. A change against an older one is refused."}
+   ],
+   "response": [
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The version this change made."},
+    {"field": "appliesFrom", "type": "instant", "required": true, "why": "When it took effect. A visit or a panic that started before this keeps the version it started under."}
+   ],
+   "refusals": [
+    {"id": "setting-change-not-permitted", "status": 403, "statement": "Only an admin changes a field-safety setting.", "why": "These timings decide how long the desk waits before it looks for a nurse. The admin role in packages/catalog/vetting.json changes them, and the change is recorded against a named person; a nurse, the desk and every engine only read them."},
+    {"id": "setting-not-known", "status": 422, "statement": "There is no field-safety setting by that name.", "why": "An unknown setting is refused rather than stored, or the history fills with changes nothing reads."},
+    {"id": "setting-change-without-reason", "status": 422, "statement": "A change to a field-safety setting says why, or it is not made.", "why": "The history is read after something has gone wrong. A change with no reason is a number somebody moved."},
+    {"id": "settings-version-stale", "status": 409, "statement": "These settings changed after you opened them. Read what is in force now and decide against that.", "why": "Two admins changing one timing from screens opened at the same time would each overwrite a decision they never saw."},
+    {"id": "setting-not-above-zero", "status": 422, "statement": "No field-safety timing is set to zero or less, whatever its range says.", "why": "A grace of nothing pages the desk the moment a visit is due to end, and a panic window of nothing shows a nurse's position to nobody. The range is a proposal and could be set wrongly; this refusal does not depend on it."},
+    {"id": "setting-out-of-range", "status": 422, "statement": "That is outside the range an admin may set for this setting.", "why": "The lowest and highest sit beside the default in packages/catalog/field-safety.json. Moving a timing past them is a change to that contract, not a setting."},
+    {"id": "extension-steps-not-rising", "status": 422, "statement": "Extension steps are listed from the smallest to the largest, each once.", "why": "The steps are the buttons a nurse presses at a door. Two the same, or an order that jumps about, is a choice she has to stop and read."},
+    {"id": "extension-step-above-the-ceiling", "status": 409, "statement": "No extension step can be larger than the most a visit may be extended.", "why": "A step the ceiling never lets a nurse take is a button that is always refused."},
+    {"id": "setting-unchanged", "status": 409, "statement": "That is already the value in force, so there is nothing to change.", "why": "A change that changes nothing is a row in the history saying something happened when nothing did."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "No engine acts on a change to Safety's timings. Core does not read them, because Safety sends the deadline on what it raises, and the event contract refuses an event nobody subscribes to. A change is the row it appends to Safety's own history, which GET /v1/safety/settings@1 reads, and it reaches the next visit and the next panic through the settings in force.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/safety/setting-changes@2", "why": "It carried a timing as minutes or stepMinutes and nothing else, so a Safety setting that is on or off, or a list of roles, cannot be changed through it. Version two is the change route packages/catalog/settings.json gives every engine, carrying every type with the shared refusal sentences."},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'POST /v1/safety/setting-changes@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/safety/settings",
+   "version": 2,
+   "summary": "Read Safety's settings in force — the field-safety timings, who may change them, and which window a phone that read an older one is given — each with its default and who decided it, what an admin may set, and every change made to them.",
+   "callers": ["admin", "operator"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The version in force. A change is made against it, and whatever starts now keeps it."},
+    {"field": "settings", "type": "list", "required": true, "why": "Each setting: its key, type, unit, the value in force and the version that set it, its default and provenance, its limits, who may change it, what a change reaches, its guardrail, and its clinical review.", "object": true},
+    {"field": "history", "type": "list", "required": true, "why": "Every accepted change, oldest first: which setting, from, to, who, when and why. Nothing in it is edited or removed.", "object": true}
    ],
    "refusals": [
     {"id": "settings-read-not-permitted", "status": 403, "statement": "Only somebody who may change these settings reads them and who changed them.", "why": "The history names the people who changed how an engine behaves. It is read by the roles that may change it."}
@@ -142,27 +208,33 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'GET /v1/safety/settings@1'"},
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'GET /v1/safety/settings@2'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
    "path": "/v1/safety/setting-changes",
-   "version": 1,
-   "summary": "Change one field-safety timing, with a reason, against the version in force. It applies to visits and panics that start after it.",
-   "callers": ["admin"],
+   "version": 2,
+   "summary": "Change one field-safety setting, with a reason, against the version in force. It applies to the visits, panics and changes that start after it.",
+   "callers": ["admin", "operator"],
    "purpose": ["audit"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same change once, and the history gains one row."},
-    {"field": "timing", "type": "string", "required": true, "why": "grace, panic-window, extension-steps or extension-ceiling: a setting key from packages/catalog/field-safety.json settings.items. The shared settings code reads this field as the setting, through packages/catalog/settings.json legacyRoutes."},
-    {"field": "minutes", "type": "integer", "required": false, "why": "The new value, for a timing that is one number of minutes."},
-    {"field": "stepMinutes", "type": "list", "required": false, "why": "The new extension steps, smallest first, for extension-steps."},
+    {"field": "setting", "type": "string", "required": true, "why": "The setting's key, from the settings block of the engine's own contract."},
+    {"field": "wholeNumber", "type": "integer", "required": false, "why": "The new value, for a setting in minutes, a count, cents or a percentage."},
+    {"field": "switchedOn", "type": "boolean", "required": false, "why": "The new value, for a setting that is on or off."},
+    {"field": "choice", "type": "string", "required": false, "why": "The new value, for a setting that is one of a few named choices."},
+    {"field": "wording", "type": "string", "required": false, "why": "The new wording, for a setting patients or nurses read."},
+    {"field": "roles", "type": "list", "required": false, "why": "The new roles, for a setting that names roles from packages/catalog/vetting.json."},
+    {"field": "windows", "type": "list", "required": false, "why": "The new rota, for a setting that is windows of a post, days and hours. A post, never a named person.", "object": true},
+    {"field": "items", "type": "list", "required": false, "why": "The new values, for a setting that is a list."},
+    {"field": "parts", "type": "string", "required": false, "why": "The new values, for a setting whose parts change together.", "object": true},
     {"field": "reason", "type": "string", "required": false, "why": "Why. Asked for by the handler rather than the binder, so that a change without one is refused in its own sentence rather than the general one for a missing field."},
     {"field": "expectedVersion", "type": "integer", "required": true, "why": "The settings version the admin was looking at. A change against an older one is refused."}
    ],
    "response": [
     {"field": "settingsVersion", "type": "integer", "required": true, "why": "The version this change made."},
-    {"field": "appliesFrom", "type": "instant", "required": true, "why": "When it took effect. A visit or a panic that started before this keeps the version it started under."}
+    {"field": "appliesFrom", "type": "instant", "required": true, "why": "When it took effect. Whatever started before it keeps the version it started under."}
    ],
    "refusals": [
     {"id": "setting-change-not-permitted", "status": 403, "statement": "Only the role a setting names changes it, and the change is recorded against a named person.", "why": "A setting decides how the platform treats people. The role or capability the setting names changes it, and a change is recorded against somebody who can be asked about it; everybody else only reads what is in force."},
@@ -181,12 +253,12 @@
     {"id": "extension-step-above-the-ceiling", "status": 409, "statement": "No extension step can be larger than the most a visit may be extended.", "why": "A step the ceiling never lets a nurse take is a button that is always refused."}
    ],
    "emits": [],
-   "emitsNoneBecause": "No engine acts on a change to Safety's timings. Core does not read them, because Safety sends the deadline on what it raises, and the event contract refuses an event nobody subscribes to. A change is the row it appends to Safety's own history, which GET /v1/safety/settings@1 reads, and it reaches the next visit and the next panic through the settings in force.",
+   "emitsNoneBecause": "No engine acts on a settings change. The engine that owns a setting reads the value in force when it starts something, and the event contract refuses an event nobody subscribes to. A change is the row it appends to the engine's own history, which the read route returns.",
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'POST /v1/safety/setting-changes@1'"},
+   "evidence": {"file": "packages/engines/src/safety/engine.ts", "handler": "'POST /v1/safety/setting-changes@2'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {

@@ -37,7 +37,7 @@
   { "key": "posts", "required": false, "why": "For a schedule: [{ id, label, role }], the positions a rota is made of, each held by a role on the vetting register. A rota names posts, never people." },
   { "key": "mustCover", "required": false, "why": "For a schedule: [{ post, days, from, to, why }], hours that must always have that post on them." },
   { "key": "of", "required": false, "why": "For a list: the type of every item — minutes, count, moneyCents, percentage, enum or text — whose limits the setting carries as it would for one value." },
-  { "key": "items", "required": false, "why": "For a list: { lowest, highest }, how many items, each with its provenance." },
+  { "key": "items", "required": false, "why": "For a list or a roleList: { lowest, highest }, how many items or roles, each with its provenance. A roleList that must always name somebody says so here." },
   { "key": "parts", "required": false, "why": "For a record: [{ key, label, type, ... }], a few values that only make sense changed together, each with the limits its type needs." },
   { "key": "reviewRequired", "required": false, "why": "For a clinical-scope setting: the vetting capability whose holder must confirm a change. Until then the value is in force and shown everywhere it matters as not clinically reviewed; a reviewer confirms through the engine's review route." },
   { "key": "guardrail", "required": false, "why": "{ statement, forbids }: what no value may do, and values that must always be refused. The build runs every forbidden value through the same rules a change goes through and fails if one is accepted, so a guardrail is bounds and type rules rather than trust." }
@@ -132,14 +132,6 @@
    "emits": [], "emitsNoneBecause": "A confirmation changes no value, so nothing acts differently because of it. It is the row it appends to the engine's own reviews, which the read route returns.", "idempotent": true
   }
  },
- "legacyRoutes": [
-  {
-   "route": "POST /v1/safety/setting-changes@1",
-   "requestFields": { "setting": "timing", "wholeNumber": "minutes", "items": "stepMinutes" },
-   "why": "Built on 15 September 2026, before this shape, for four field-safety timings in minutes. Its request is frozen in packages/catalog/apis.lock, so it keeps its field names and packages/engines/src/settings reads them through this map rather than the route being edited. It can carry minutes and lists of minutes and nothing else: a Safety setting of any other type needs POST /v1/safety/setting-changes@2 in the change shape above, with version one withdrawn."
-  }
- ],
-
  "refusals": [
   { "route": "read", "id": "settings-read-not-permitted", "status": 403, "statement": "Only somebody who may change these settings reads them and who changed them.", "why": "The history names the people who changed how an engine behaves. It is read by the roles that may change it." },
   { "route": "change", "id": "setting-change-not-permitted", "status": 403, "statement": "Only the role a setting names changes it, and the change is recorded against a named person.", "why": "A setting decides how the platform treats people. The role or capability the setting names changes it, and a change is recorded against somebody who can be asked about it; everybody else only reads what is in force." },

@@ -8,16 +8,16 @@
  * so there is nowhere for one to be kept, and when a position route exists it goes through
  * domain/panics.ts, which keeps only the latest and forgets it when sharing stops.
  *
- * BUILT: GET /v1/safety/settings@1 and POST /v1/safety/setting-changes@1, through packages/engines/src/settings,
+ * BUILT: GET /v1/safety/settings@2 and POST /v1/safety/setting-changes@2, through packages/engines/src/settings,
  * which answers every engine's settings routes to the one shape in packages/catalog/settings.json. The
- * founder decided on 15 September 2026 that Operations sets the field-safety timings on the admin. The
- * change route predates the shared shape and its request is frozen, so it keeps its own field names —
- * timing, minutes, stepMinutes — and settings.json legacyRoutes says how the shared code reads them; its
- * fingerprint in apis.lock is unchanged. Safety's own rule between two settings, that the steps rise and
- * none is above the ceiling, is domain/settings.ts's. The history is Safety's own settings_history table,
- * only ever appended to. A change publishes nothing, because no engine acts on one — Core does not read
- * Safety's timings, since Safety sends the deadline on what it raises — and the event contract refuses an
- * event nobody subscribes to.
+ * founder decided on 15 September 2026 that Operations sets the field-safety timings on the admin. Version
+ * one of both routes carried timings in minutes and nothing else, so it is withdrawn and answered by
+ * nothing: a Safety setting that is on or off, or a list of roles, needs the shared shape. Safety's own rule
+ * between two settings, that the steps rise and none is above the ceiling, is domain/settings.ts's, and who
+ * may change a field-safety setting is itself the setting settings-changed-by. The history is Safety's own
+ * settings_history table, only ever appended to. A change publishes nothing, because no engine acts on one
+ * — Core does not read Safety's timings, since Safety sends the deadline on what it raises — and the event
+ * contract refuses an event nobody subscribes to.
  *
  * A CHANGE NEVER MOVES SOMETHING ALREADY RUNNING. A panic stores its end when it is pressed and a visit
  * under way stores the settings version and the timings it started with, and nothing reads the settings
@@ -116,7 +116,7 @@ export const engine = defineEngine({
    return ok({ panicRef: panic.panicRef, locationShareEndsAt: new Date(panic.locationShareEndsAt).toISOString() });
   },
 
-  ...settingsRoutes(safetySettings, { read: 'GET /v1/safety/settings@1', change: 'POST /v1/safety/setting-changes@1' })
+  ...settingsRoutes(safetySettings, { read: 'GET /v1/safety/settings@2', change: 'POST /v1/safety/setting-changes@2' })
  },
  subscriptions: {
   'appointment.in_progress@1': (event, ctx) => {

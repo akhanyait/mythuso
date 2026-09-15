@@ -101,8 +101,8 @@ enum ApisData {
     static let postSafetyCheckinsByCheckinRefExtend = Route(id: "postSafetyCheckinsByCheckinRefExtend", method: "POST", path: "/v1/safety/checkins/{checkinRef}/extend", mountedPath: "/v1/safety/checkins/{checkinRef}/extend", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "proposed")
     static let postSafetyCheckinsByCheckinRefClose = Route(id: "postSafetyCheckinsByCheckinRefClose", method: "POST", path: "/v1/safety/checkins/{checkinRef}/close", mountedPath: "/v1/safety/checkins/{checkinRef}/close", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "proposed")
     static let postSafetyPanics = Route(id: "postSafetyPanics", method: "POST", path: "/v1/safety/panics", mountedPath: "/v1/safety/panics", version: 1, engine: "safety", callers: ["nurse", "locum", "responder", "courier"], purpose: ["emergency"], idempotent: true, status: "built")
-    static let getSafetySettings = Route(id: "getSafetySettings", method: "GET", path: "/v1/safety/settings", mountedPath: "/v1/safety/settings", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built")
-    static let postSafetySettingChanges = Route(id: "postSafetySettingChanges", method: "POST", path: "/v1/safety/setting-changes", mountedPath: "/v1/safety/setting-changes", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
+    static let getSafetySettingsV2 = Route(id: "getSafetySettingsV2", method: "GET", path: "/v1/safety/settings", mountedPath: "/v1/safety/settings", version: 2, engine: "safety", callers: ["admin", "operator"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postSafetySettingChangesV2 = Route(id: "postSafetySettingChangesV2", method: "POST", path: "/v1/safety/setting-changes", mountedPath: "/v1/safety/setting-changes", version: 2, engine: "safety", callers: ["admin", "operator"], purpose: ["audit"], idempotent: true, status: "built")
     static let postSafetySos = Route(id: "postSafetySos", method: "POST", path: "/v1/safety/sos", mountedPath: "/v1/safety/sos", version: 1, engine: "safety", callers: ["patient", "caregiver"], purpose: ["emergency"], idempotent: true, status: "proposed")
     static let postSafetyNextOfKin = Route(id: "postSafetyNextOfKin", method: "POST", path: "/v1/safety/next-of-kin", mountedPath: "/v1/safety/next-of-kin", version: 1, engine: "safety", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "proposed")
     static let postSafetyNextOfKinByNominationRefAlert = Route(id: "postSafetyNextOfKinByNominationRefAlert", method: "POST", path: "/v1/safety/next-of-kin/{nominationRef}/alert", mountedPath: "/v1/safety/next-of-kin/{nominationRef}/alert", version: 1, engine: "safety", callers: ["ops-desk", "engine:core"], purpose: ["emergency"], idempotent: false, status: "proposed")
@@ -263,8 +263,8 @@ enum ApisData {
         postSafetyCheckinsByCheckinRefExtend,
         postSafetyCheckinsByCheckinRefClose,
         postSafetyPanics,
-        getSafetySettings,
-        postSafetySettingChanges,
+        getSafetySettingsV2,
+        postSafetySettingChangesV2,
         postSafetySos,
         postSafetyNextOfKin,
         postSafetyNextOfKinByNominationRefAlert,
@@ -939,21 +939,27 @@ enum ApisData {
         let panicRef: String
         let locationShareEndsAt: String
     }
-    struct GetSafetySettingsRequest {}
-    struct GetSafetySettingsResponse {
+    struct GetSafetySettingsV2Request {}
+    struct GetSafetySettingsV2Response {
         let settingsVersion: Int
         let settings: [[String: Any]]
         let history: [[String: Any]]
     }
-    struct PostSafetySettingChangesRequest {
+    struct PostSafetySettingChangesV2Request {
         let idempotencyKey: String
-        let timing: String
-        let minutes: Int?
-        let stepMinutes: [String]?
+        let setting: String
+        let wholeNumber: Int?
+        let switchedOn: Bool?
+        let choice: String?
+        let wording: String?
+        let roles: [String]?
+        let windows: [[String: Any]]?
+        let items: [String]?
+        let parts: [String: Any]?
         let reason: String?
         let expectedVersion: Int
     }
-    struct PostSafetySettingChangesResponse {
+    struct PostSafetySettingChangesV2Response {
         let settingsVersion: Int
         let appliesFrom: String
     }

@@ -7,7 +7,9 @@
  *
  * THE WINDOW IS THE ONE IN FORCE WHEN SHE PRESSED, AND IT IS KEPT. The window is a setting an admin
  * changes (settings.ts). raisePanic is handed the window in force, stores its end and the settings
- * version on the panic, and nothing reads the setting again. So a window made shorter never ends a
+ * version on the panic, and nothing reads the setting again. A phone that read an older window is given
+ * the window in force or the window it sent, as the setting stale-panic-window-uses-window-in-force says;
+ * both are windows the settings held, and neither refuses her panic. So a window made shorter never ends a
  * share already open, and one made longer never stretches it.
  *
  * SHARING ENDS AT WHICHEVER COMES FIRST: the window running out, or the desk resolving the panic.
@@ -57,10 +59,11 @@ export function raisePanic(input: {
  if (typeof minutes !== 'number' || !Number.isFinite(minutes) || minutes <= 0) return refuse('share-without-end');
  /* The window is the policy's, never the phone's. A phone that read the settings before an admin changed
     them sends a window that was in force a moment ago; refusing that would refuse a nurse's panic over
-    bookkeeping, so it opens the window in force now and the answer tells her when it ends. A number no
+    bookkeeping, so it opens a window the settings held — the one in force unless the setting says the one
+    she sent — and the answer tells her when it ends. A number no
     version of the settings ever held is a phone choosing how long it is watched, and is refused. */
  if (!window.accepts.includes(minutes)) return refuse('window-not-the-declared-one');
- const locationShareEndsAt = now + window.minutes * MINUTE;
+ const locationShareEndsAt = now + (window.useWindowInForce ? window.minutes : minutes) * MINUTE;
  return done({
   panicRef: input.panicRef, raisedByRole: input.raisedByRole, nurseRef: input.nurseRef, appointmentRef: input.appointmentRef ?? null,
   raisedAt: now, settingsVersion: window.settingsVersion, locationShareEndsAt, acknowledged: null, resolved: null, position: null

@@ -18,7 +18,7 @@
  */
 import { ok, refuse, type EngineContext, type EngineStore, type HandlerRequest, type RouteHandler, type RouteKey } from '../runtime/types.ts';
 import {
- changeFromFields, confirmReview, fieldNamesFor, proposeChange, reviewStateOf, rolesGranting, rolesThatChange, snapshotOf,
+ changeFromFields, confirmReview, proposeChange, reviewStateOf, rolesGranting, rolesThatChange, snapshotOf,
  type Change, type Review, type Setting, type SettingsEngine, type Snapshot
 } from './shape.ts';
 
@@ -63,11 +63,6 @@ export const reviewsOf = (store: EngineStore): Review[] =>
 export const settingsIn = (engine: SettingsEngine, store: EngineStore): Snapshot => snapshotOf(engine.block, historyOf(store));
 
 const iso = (at: number) => new Date(at).toISOString();
-const parseKey = (key: RouteKey) => {
- const m = /^(\w+) (\S+)@(\d+)$/.exec(key);
- if (!m) throw new Error(`${key} is not a route key.`);
- return { method: m[1]!, path: m[2]!, version: Number(m[3]) };
-};
 const LIMITS = ['positive', 'bounds', 'allowed', 'maxLength', 'mustKeep', 'allowedRoles', 'posts', 'mustCover', 'of', 'items', 'parts'] as const;
 
 function describe(engine: SettingsEngine, setting: Setting, snapshot: Snapshot, reviews: readonly Review[]) {
@@ -88,8 +83,6 @@ function describe(engine: SettingsEngine, setting: Setting, snapshot: Snapshot, 
 
 export function settingsRoutes(engine: SettingsEngine, keys: { read: RouteKey; change: RouteKey; review?: RouteKey }): Partial<Record<RouteKey, RouteHandler>> {
  const { block } = engine;
- const changeRoute = parseKey(keys.change);
- const name = fieldNamesFor(changeRoute);
  const routes: Partial<Record<RouteKey, RouteHandler>> = {
   [keys.read]: (_request: HandlerRequest, ctx: EngineContext) => {
    const history = historyOf(ctx.store);
@@ -107,9 +100,9 @@ export function settingsRoutes(engine: SettingsEngine, keys: { read: RouteKey; c
   },
 
   [keys.change]: (request: HandlerRequest, ctx: EngineContext) => {
-   const { setting, value } = changeFromFields(block, changeRoute, request.fields);
+   const { setting, value } = changeFromFields(block, request.fields);
    const changed = proposeChange(engine, historyOf(ctx.store), {
-    setting, value, reason: request.fields[name('reason')], expectedVersion: request.fields[name('expectedVersion')],
+    setting, value, reason: request.fields.reason, expectedVersion: request.fields.expectedVersion,
     byRole: ctx.caller.role, byRef: ctx.caller.ref
    }, ctx.clock.now().getTime());
    if (!changed.ok) return refuse(changed.refusal.id);

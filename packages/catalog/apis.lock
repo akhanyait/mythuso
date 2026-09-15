@@ -169,3 +169,5 @@ POST /v1/safety/setting-changes@1 46270bd875fbfa39
 GET /v1/care/settings@1 562977e7214aeb55
 POST /v1/care/setting-changes@1 6b34337436bb99d9
 POST /v1/care/setting-reviews@1 4f4e6bcc7784352b
+GET /v1/safety/settings@2 36ed327835fb428e
+POST /v1/safety/setting-changes@2 0a83f3647d71f0f1

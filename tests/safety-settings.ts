@@ -12,9 +12,10 @@ export const settingsContract = json('../packages/catalog/settings.json');
 export const say = settingsContract.screen as Record<string, string> & { editors: Record<string, string>; values: Record<string, string> };
 export type Bound = { value: number; decidedBy: string | null; decidedOn?: string; proposedBy?: string };
 export type TimingRow = {
-  key: string; label: string; help: string; type: 'minutes' | 'list'; unit: string; appliesTo: string;
-  default: Omit<Bound, 'value'> & { value: number | number[] }; bounds: { lowest: Bound; highest: Bound };
+  key: string; label: string; help: string; type: 'minutes' | 'list' | 'boolean' | 'roleList'; of?: string; unit: string | null; appliesTo: string;
+  default: Omit<Bound, 'value'> & { value: number | number[] | boolean | string[] }; bounds: { lowest: Bound; highest: Bound };
   items?: { lowest: Bound; highest: Bound }; guardrail?: { statement: string };
+  allowed?: (Omit<Bound, 'value'> & { value: boolean | string; label: string })[]; allowedRoles?: { roles: string[] };
 };
 export const timingRows = fieldSafety.settings.items as TimingRow[];
 export const timingRow = (key: string) => timingRows.find(row => row.key === key)!;
@@ -48,12 +49,12 @@ export async function openChangeForm(panel: Locator, row: { label: string }): Pr
 }
 
 /* Review, then confirm: the only way through the screen, so the journeys walk it rather than a shortcut. */
-export async function changeTiming(panel: Locator, row: TimingRow, from: number | number[], to: number | number[], reason: string) {
+export async function changeTiming(panel: Locator, row: TimingRow, from: number | number[] | boolean | string[], to: number | number[], reason: string) {
   const form = await openChangeForm(panel, row);
   await form.getByLabel(editorLabel(row), { exact: true }).fill(Array.isArray(to) ? to.join(', ') : String(to));
   await form.getByLabel(say.reason, { exact: true }).fill(reason);
   await form.getByRole('button', { name: say.review }).click();
-  const confirm = form.getByRole('group', { name: fill(say.confirmQuestion, { setting: row.label, from: minutesText(from), to: minutesText(to) }) });
+  const confirm = form.getByRole('group', { name: fill(say.confirmQuestion, { setting: row.label, from: minutesText(from as number | number[]), to: minutesText(to) }) });
   await expect(confirm).toContainText(row.appliesTo);
   await confirm.getByRole('button', { name: say.confirm }).click();
   await expect(timingItem(panel, row).locator('.ss-in-force')).toContainText(minutesText(to));

@@ -11,7 +11,7 @@
  * refused; each shared refusal is answered in its contract sentence and in its order; who may change a
  * setting is a role, a capability's holders, or another setting; the history replays and a gap is a
  * fault; a clinical review belongs to the value in force and is never confirmed by the person who
- * changed it; and a change route's fields carry each type's value, including Safety's older route. */
+ * changed it; and a change route's fields carry each type's value. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import contract from '../../../catalog/settings.json' with { type: 'json' };
@@ -84,7 +84,7 @@ const example: SettingsBlock = {
   { key: 'vetting-note-length', label: 'Vetting note length', help: 'How long a reviewer’s note may be.', owner: 'example', type: 'count', unit: 'characters', positive: true,
     default: { value: 400, ...proposal('Synthetic.') }, bounds: { lowest: bound(100), highest: bound(1000) }, changedBy: 'review-vetting', appliesTo: APPLIES },
   { key: 'settings-changers', label: 'Who may change the stale-window rule', help: 'The roles that may change the stale-window rule.', owner: 'example', type: 'roleList', unit: null,
-    default: { value: ['admin'], ...proposal('The admin until somebody decides otherwise.') }, allowedRoles: { roles: ['admin', 'operator'], ...proposal('Somebody who answers for the desk.') },
+    default: { value: ['admin'], ...proposal('The admin until somebody decides otherwise.') }, allowedRoles: { roles: ['admin', 'operator'], ...proposal('Somebody who answers for the desk.') }, items: { lowest: bound(1), highest: bound(2) },
     changedBy: 'admin', appliesTo: APPLIES },
   { key: 'stale-window-in-force', label: 'A stale panic window gets the window in force', help: 'Whether a phone that read an old window is given the one in force.', owner: 'example', type: 'boolean', unit: null,
     default: { value: true, ...proposal('A panic is never refused over bookkeeping.') }, allowed: [{ value: true, label: 'Yes', ...proposal('Never refuse a panic.') }],
@@ -146,6 +146,7 @@ test('a role the register does not hold is refused, and one it holds that the se
  refusedWith(ask([], { setting: 'injection-roles', value: ['nurse', 'pharmacist'] }), 'setting-role-not-on-register');
  refusedWith(ask([], { setting: 'injection-roles', value: ['nurse', 'courier'] }), 'setting-out-of-range');
  refusedWith(ask([], { setting: 'injection-roles', value: ['nurse', 'nurse'] }), 'setting-out-of-range', 'a role named twice');
+ refusedWith(ask([], { setting: 'settings-changers', value: [] }), 'setting-out-of-range', 'a list of roles that must name somebody, naming nobody');
  assert.ok(ask([], { setting: 'injection-roles', value: ['nurse'] }).ok);
 });
 
@@ -245,18 +246,15 @@ test('a clinical review belongs to the value in force, is confirmed by a holder 
  assert.ok(review([byDoctor], [], { setting: 'scope-note', settingsVersion: byDoctor.settingsVersion, byRef: 'D-302' }).ok, 'another doctor confirms it');
 });
 
-test('a change route’s fields carry the value its type travels in, and Safety’s route, older than the shape, is read through its own names', () => {
- const route = { method: 'POST', path: '/v1/example/setting-changes', version: 1 };
- assert.deepEqual(changeFromFields(example, route, { setting: 'tiers-stack', switchedOn: false }), { setting: 'tiers-stack', value: false });
- assert.deepEqual(changeFromFields(example, route, { setting: 'tiers-stack', wholeNumber: 0 }), { setting: 'tiers-stack', value: undefined }, 'a value in the wrong field is no value');
- assert.deepEqual(changeFromFields(example, route, { setting: 'rota', windows: [] }), { setting: 'rota', value: [] });
- assert.deepEqual(changeFromFields(example, route, { setting: 'plus-urgent-callouts', parts: { count: 1, period: 'year' } }), { setting: 'plus-urgent-callouts', value: { count: 1, period: 'year' } });
+test('a change route’s fields carry the value its type travels in, and nothing reads a field outside the shape', () => {
+ assert.deepEqual(changeFromFields(example, { setting: 'tiers-stack', switchedOn: false }), { setting: 'tiers-stack', value: false });
+ assert.deepEqual(changeFromFields(example, { setting: 'tiers-stack', wholeNumber: 0 }), { setting: 'tiers-stack', value: undefined }, 'a value in the wrong field is no value');
+ assert.deepEqual(changeFromFields(example, { setting: 'rota', windows: [] }), { setting: 'rota', value: [] });
+ assert.deepEqual(changeFromFields(example, { setting: 'plus-urgent-callouts', parts: { count: 1, period: 'year' } }), { setting: 'plus-urgent-callouts', value: { count: 1, period: 'year' } });
  for (const t of contract.types) assert.ok(contract.routes.change.request.some(f => f.field === t.valueField), `the change route carries ${t.id} in ${t.valueField}`);
 
- const safety = { method: 'POST', path: '/v1/safety/setting-changes', version: 1 };
- assert.deepEqual(changeFromFields(safetyBlock, safety, { timing: 'grace', minutes: 45 }), { setting: 'grace', value: 45 });
- assert.deepEqual(changeFromFields(safetyBlock, safety, { timing: 'extension-steps', stepMinutes: [5, 10] }), { setting: 'extension-steps', value: [5, 10] });
- assert.deepEqual(changeFromFields(safetyBlock, safety, { setting: 'grace', wholeNumber: 45 }), { setting: undefined, value: undefined }, 'version one does not read the new names');
+ assert.deepEqual(changeFromFields(safetyBlock, { setting: 'extension-steps', items: [5, 10] }), { setting: 'extension-steps', value: [5, 10] });
+ assert.deepEqual(changeFromFields(safetyBlock, { timing: 'grace', minutes: 45 }), { setting: undefined, value: undefined }, 'the withdrawn version one\'s field names are read by nothing');
 });
 
 test('every refusal a settings route answers with is the contract’s sentence, and an id no contract declares is a fault', () => {

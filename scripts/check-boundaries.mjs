@@ -6494,7 +6494,9 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
 
  /* 4. A route built on the runtime names a handler in its own engine's directory that registers it. */
  const { routes: routesForRuntime } = loadApis();
- const onRuntime = routesForRuntime.filter(r => r.status === 'built' && r.enforcedBy?.mechanism === runtimeSettings.mechanism);
+ /* A withdrawn route is refused binding by the runtime and answered by nothing, so it is never asked for a
+    handler here: its declaration stays as it was frozen, built or not, and says what it was. */
+ const onRuntime = routesForRuntime.filter(r => !r.withdrawn && r.status === 'built' && r.enforcedBy?.mechanism === runtimeSettings.mechanism);
  for (const r of onRuntime) {
   const where = `${routeKey(r)} in ${r.file}`;
   const directory = `packages/engines/src/${r.engine}/`;
@@ -7210,23 +7212,32 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
        timer or the panic, where a second copy could disagree with the setting an admin changes. */
  const settingsBlock = safetyContract.settings;
  const timingKeys = ['grace', 'panic-window', 'extension-steps', 'extension-ceiling'];
- const configurable = settingsBlock?.items ?? [];
- if (configurable.map(s => s.key).join(',') !== timingKeys.join(',')) throw new Error(`packages/catalog/field-safety.json settings.items are ${configurable.map(s => s.key).join(', ') || 'missing'}; they are ${timingKeys.join(', ')}, once each, so no timing an admin may change is missing and none is changed in two places.`);
- const itemOf = key => configurable.find(s => s.key === key);
+ const safetySettingKeys = [...timingKeys, 'stale-panic-window-uses-window-in-force', 'settings-changed-by'];
+ const allSafetySettings = settingsBlock?.items ?? [];
+ if (allSafetySettings.map(s => s.key).join(',') !== safetySettingKeys.join(',')) throw new Error(`packages/catalog/field-safety.json settings.items are ${allSafetySettings.map(s => s.key).join(', ') || 'missing'}; they are ${safetySettingKeys.join(', ')}, once each, so no setting an admin may change is missing and none is changed in two places.`);
+ const itemOf = key => allSafetySettings.find(s => s.key === key);
+ const configurable = timingKeys.map(itemOf);
  for (const s of configurable) {
   const inMinutes = (s.type === 'minutes' || (s.type === 'list' && s.of === 'minutes')) && s.unit === 'minutes';
   if (!inMinutes || s.owner !== 'safety') throw new Error(`packages/catalog/field-safety.json setting "${s.key}" is not Safety's, or is not in minutes. A visit is timed and a panic is shown in minutes, and nothing else.`);
-  if (s.changedBy !== 'admin') throw new Error(`packages/catalog/field-safety.json setting "${s.key}" is changed by ${JSON.stringify(s.changedBy)}. The founder decided Operations sets the field-safety timings on the admin; every one of them is changed by the admin role and nobody else until a Safety setting says otherwise.`);
  }
+ /* 1a. Who changes a field-safety setting is itself a setting, and only the admin changes that one. It always
+        names somebody and may always name the admin, so no change to it can leave the desk's timings with
+        nobody to answer for them or take them away from the role the founder gave them to. Every other
+        field-safety setting is changed by the roles it names. Whether a phone that read an older panic
+        window is given the window in force is on or off, and the panic is opened either way. */
+ const changersSetting = itemOf('settings-changed-by');
+ if (changersSetting.type !== 'roleList' || changersSetting.changedBy !== 'admin' || !(changersSetting.allowedRoles?.roles ?? []).includes('admin') || !((changersSetting.items?.lowest?.value ?? 0) >= 1)) throw new Error('packages/catalog/field-safety.json settings-changed-by is not a roleList changed by the admin alone that may always name the admin and always names somebody. Who changes the desk\'s timings is never left to nobody, and never changed by anybody but the admin.');
+ for (const s of allSafetySettings) if (s.key !== 'settings-changed-by' && s.changedBy?.fromSetting !== 'settings-changed-by') throw new Error(`packages/catalog/field-safety.json setting "${s.key}" is changed by ${JSON.stringify(s.changedBy)}. Every field-safety setting but settings-changed-by is changed by the roles settings-changed-by names.`);
+ if (itemOf('stale-panic-window-uses-window-in-force').type !== 'boolean') throw new Error('packages/catalog/field-safety.json stale-panic-window-uses-window-in-force is not on or off.');
  const copied = ['graceMinutes', 'extensionMinutes', 'maxExtensionMinutes'].filter(k => k in (safetyContract.timer ?? {})).concat('windowMinutes' in (safetyContract.panic ?? {}) ? ['windowMinutes'] : []);
  if (copied.length) throw new Error(`packages/catalog/field-safety.json holds ${copied.join(', ')} outside its settings block. A timing's default lives in its setting and nowhere else.`);
  const numbers = configurable.map(s => [s.key, s.default]);
  const proposals = numbers.filter(([, entry]) => entry.decidedBy === null);
 
- /* 1b. The change route is Safety's, built, and older than the shared shape. Its request is frozen in
-        apis.lock, so it keeps timing, minutes and stepMinutes, and packages/catalog/settings.json
-        legacyRoutes maps them for the shared code; the Settings section holds the map. What is Safety's is
-        its own rule between two settings — the steps rise and none is above the ceiling — which keeps its
+ /* 1b. The settings routes are Safety's, built at version two in the shared shape, with version one — which
+        carried timings in minutes and nothing else — withdrawn; the Settings section holds the shape. What
+        is Safety's is its own rule between two settings — the steps rise and none is above the ceiling — which keeps its
         two refusals on the route and is asked by domain/settings.ts, and a contract whose ceiling is
         below its largest step. */
  const changeRoute = safetyApi.routes.find(r => r.method === 'POST' && r.path === '/v1/safety/setting-changes' && !r.withdrawn);
@@ -7300,9 +7311,9 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  if (/export const (graceMinutes|extensionSteps|maxExtensionMinutes|panicWindowMinutes)\b/.test(rulesSource)) throw new Error('packages/engines/src/safety/domain/rules.ts exports a field-safety timing. The timings are settings an admin changes; a constant is a default a running timer could read instead of the one it started with.');
  const importsATiming = source => /import \{[^}]*\b(graceMinutes|extensionSteps|maxExtensionMinutes|panicWindowMinutes)\b[^}]*\} from '[^']*rules\.ts'/.test(source);
  if (!/\}, now: number, settings: SettingsInForce\): Result<Timer>/.test(checkinsSource) || !checkinsSource.includes('settingsVersion: settings.settingsVersion') || !checkinsSource.includes('timer.extensionSteps.includes(request.minutes)') || !checkinsSource.includes('extensionUsed(timer) + request.minutes > timer.maxExtensionMinutes') || importsATiming(checkinsSource)) throw new Error('packages/engines/src/safety/domain/checkins.ts no longer starts a timer with the settings in force and reads its own copy afterwards. A timer that reads the settings again is a running visit an admin can make overdue.');
- if (!/\}, now: number, window: PanicWindow\): Result<Panic>/.test(panicsSource) || !panicsSource.includes('now + window.minutes * MINUTE') || !panicsSource.includes('settingsVersion: window.settingsVersion') || importsATiming(panicsSource)) safetyFail('window-does-not-stretch', 'packages/engines/src/safety/domain/panics.ts no longer opens a panic with the window in force and keeps its end.');
+ if (!/\}, now: number, window: PanicWindow\): Result<Panic>/.test(panicsSource) || !panicsSource.includes('now + (window.useWindowInForce ? window.minutes : minutes) * MINUTE') || !panicsSource.includes('settingsVersion: window.settingsVersion') || importsATiming(panicsSource)) safetyFail('window-does-not-stretch', 'packages/engines/src/safety/domain/panics.ts no longer opens a panic with the window in force and keeps its end.');
  if (!engineSource.includes('panicWindowOf(historyOf(ctx.store))') || !/INSERT INTO panics \([^)]*settings_version[^)]*\)/.test(engineSource) || !/INSERT OR IGNORE INTO visits_under_way \([^)]*settings_version[^)]*grace_minutes[^)]*\)/.test(engineSource)) throw new Error('packages/engines/src/safety/engine.ts no longer stores the settings version a panic opened under and a visit started under, or no longer keeps the first a visit was heard under.');
- if (!engineSource.includes("settingsRoutes(safetySettings, { read: 'GET /v1/safety/settings@1', change: 'POST /v1/safety/setting-changes@1' })")) throw new Error('packages/engines/src/safety/engine.ts no longer answers its settings routes through packages/engines/src/settings, so its settings would be changed under a second set of rules.');
+ if (!engineSource.includes("settingsRoutes(safetySettings, { read: 'GET /v1/safety/settings@2', change: 'POST /v1/safety/setting-changes@2' })")) throw new Error('packages/engines/src/safety/engine.ts no longer answers its settings routes through packages/engines/src/settings, so its settings would be changed under a second set of rules.');
  const webSafety = read('apps/web/src/lib/field-safety.ts');
  const count = (source, pattern) => (source.match(pattern) ?? []).length;
  if (importsATiming(webSafety) || importsATiming(read('apps/web/src/features/FieldSafety.tsx')) || /timer\.graceMinutes|panic\.windowMinutes|default\.value/.test(webSafety)
@@ -7333,7 +7344,7 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   if (minute) throw new Error(`${file} types a field-safety minute (${minute[0]}). The grace, the steps, the ceiling, the window and the bounds an admin may set them within live in packages/catalog/field-safety.json and change there.`);
  }
 
- console.log(`Field safety holds ${numbers.length - proposals.length} decided and ${proposals.length} proposed timings, each a setting in the shared shape changed by the admin, with Safety's own rule that the steps rise and none is above the ceiling, and a registered generator. The change route is Safety's, built, older than the shape and read through its own field names; a timer and a panic keep the settings they started under. A visit is timed by its service, no emergency number is typed, all ${refusalsNamed} refusals the engine and the web name have a sentence, a desk row keeps to its ${safetyContract.desk.carries.length} declared keys, no panic is shared between callers, no position is kept, and ${handNative.length + webScreens.length} hand-written screens type none of its minutes.`);
+ console.log(`Field safety holds ${numbers.length - proposals.length} decided and ${proposals.length} proposed timings, each a setting in the shared shape, with Safety's own rule that the steps rise and none is above the ceiling, and a registered generator. Safety's settings routes are built at version two in the shared shape with version one withdrawn, settings-changed-by names who changes the rest and only the admin changes it, and a timer and a panic keep the settings they started under. A visit is timed by its service, no emergency number is typed, all ${refusalsNamed} refusals the engine and the web name have a sentence, a desk row keeps to its ${safetyContract.desk.carries.length} declared keys, no panic is shared between callers, no position is kept, and ${handNative.length + webScreens.length} hand-written screens type none of its minutes.`);
 }
 /* ==== end of Safety · nurse field safety (Wave 3) ================================================== */
 
@@ -7434,6 +7445,11 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
    const roles = l.allowedRoles.roles ?? [];
    if (!roles.length || new Set(roles).size !== roles.length) throw new Error(`${at} allows no roles, or one twice.`);
    for (const role of roles) if (!settingsRoleIds.has(role)) throw new Error(`${at} allows the role "${role}", which is not on the vetting register. A role the register does not hold is a gate nobody can be vetted through.`);
+   if (l.items !== undefined) {
+    bound(`${at} fewest roles`, l.items.lowest, 0);
+    bound(`${at} most roles`, l.items.highest, 1);
+    if (l.items.lowest.value > l.items.highest.value || l.items.highest.value > roles.length) throw new Error(`${at} may name more roles than it allows, or its fewest is above its most.`);
+   }
   }
   if (l.type === 'schedule') {
    const posts = l.posts ?? [];
@@ -7546,19 +7562,8 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
    for (const r of live) {
     settingsRoutesChecked++;
     const key = `${r.method} ${r.path}@${r.version}`;
-    const legacy = settingsContract.legacyRoutes.find(l => l.route === key);
-    if (legacy) {
-     if (kind !== 'change' || !legacy.why?.trim()) throw new Error(`packages/catalog/settings.json lists ${key} in legacyRoutes, which only a change route built before the shape may be, with why.`);
-     const valueFields = [...new Set(block.items.map(s => settingTypes.get(s.type).valueField))];
-     for (const generic of ['idempotencyKey', 'setting', ...valueFields, 'reason', 'expectedVersion']) {
-      const name = legacy.requestFields[generic] ?? generic;
-      const declared = r.request.find(f => f.field === name);
-      const template = t.request.find(f => f.field === generic);
-      if (!declared || declared.type !== template.type || (declared.object === true) !== (template.object === true) || (declared.required === true) !== (template.required === true)) throw new Error(`${key} is read through packages/catalog/settings.json legacyRoutes and does not carry "${generic}" as "${name}" in the change shape's type. A ${source.engine} setting of a type this route cannot carry needs version two of the route in the shared shape. ${legacy.why}`);
-     }
-     if (fieldShape(r.response) !== fieldShape(t.response)) throw new Error(`${key} does not answer in the shared change shape.`);
-    } else if (fieldShape(r.request) !== fieldShape(t.request) || fieldShape(r.response) !== fieldShape(t.response)) {
-     throw new Error(`${key} is not the shared ${kind} shape in packages/catalog/settings.json. A settings route is that shape word for word, so every engine's is answered by one piece of code; a route built before the shape is listed in legacyRoutes, with why.`);
+    if (fieldShape(r.request) !== fieldShape(t.request) || fieldShape(r.response) !== fieldShape(t.response)) {
+     throw new Error(`${key} is not the shared ${kind} shape in packages/catalog/settings.json. A settings route is that shape word for word, so every engine's is answered by one piece of code; a route of another shape is withdrawn and replaced by a version in the shape.`);
     }
     for (const shared of settingsContract.refusals.filter(x => x.route === kind)) {
      const declared = r.refusals.find(x => x.id === shared.id);

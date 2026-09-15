@@ -9,6 +9,10 @@
  * adds the two things only Safety knows: which setting is which field of the timings a timer and a panic
  * are handed, and the rule between two of them, that the steps rise and none is larger than the ceiling.
  *
+ * Two settings are not timings. settings-changed-by names the roles that change every other field-safety
+ * setting, and only the admin changes it. stale-panic-window-uses-window-in-force says which window a phone
+ * that read an older one is given; a panic is opened either way.
+ *
  * A CHANGE NEVER REACHES BACK. A timer takes a copy of the timings in force when it starts and a panic
  * takes its window, and nothing already running reads this file again. So a grace made shorter cannot
  * make a running visit overdue, and a window made shorter cannot end a share a nurse is relying on. It
@@ -33,7 +37,7 @@ export type Timings = {
 export type SettingsChange = Change;
 export type SettingsInForce = { readonly settingsVersion: number; readonly timings: Timings };
 /** The window a panic opens now, and every window a version has held — which a phone may still send. */
-export type PanicWindow = { readonly settingsVersion: number; readonly minutes: number; readonly accepts: readonly number[] };
+export type PanicWindow = { readonly settingsVersion: number; readonly minutes: number; readonly accepts: readonly number[]; readonly useWindowInForce: boolean };
 
 export const safetyBlock = { engine: 'safety', ...contract.settings } as unknown as SettingsBlock;
 
@@ -59,8 +63,8 @@ const check: Check = next => {
  if (Math.max(...steps) > (next['extension-ceiling'] as number)) return 'extension-step-above-the-ceiling';
  return null;
 };
-const changeRoute = api.routes.find(route => route.method === 'POST' && route.path === '/v1/safety/setting-changes' && route.version === 1);
-if (!changeRoute) throw new Error('packages/catalog/apis/safety.json has lost POST /v1/safety/setting-changes@1, whose refusals Safety\'s own settings rule answers with.');
+const changeRoute = api.routes.find(route => route.method === 'POST' && route.path === '/v1/safety/setting-changes' && route.version === 2);
+if (!changeRoute) throw new Error('packages/catalog/apis/safety.json has lost POST /v1/safety/setting-changes@2, whose refusals Safety\'s own settings rule answers with.');
 
 export const safetySettings: SettingsEngine = Object.freeze({ block: safetyBlock, refusals: changeRoute.refusals as readonly Refusal[], check });
 
@@ -74,8 +78,13 @@ export function inForce(history: readonly Change[]): SettingsInForce {
 }
 
 export function panicWindowOf(history: readonly Change[]): PanicWindow {
- const current = inForce(history);
- return { settingsVersion: current.settingsVersion, minutes: current.timings.panicWindowMinutes, accepts: [...new Set(valuesHeld(safetyBlock, history, 'panic-window') as number[])] };
+ const snapshot = snapshotOf(safetyBlock, history);
+ return {
+  settingsVersion: snapshot.settingsVersion,
+  minutes: snapshot.values['panic-window'] as number,
+  accepts: [...new Set(valuesHeld(safetyBlock, history, 'panic-window') as number[])],
+  useWindowInForce: snapshot.values['stale-panic-window-uses-window-in-force'] === true
+ };
 }
 
 export function changeSetting(history: readonly Change[], request: ChangeRequest, now: number): Result<{ readonly change: Change; readonly inForce: SettingsInForce }> {

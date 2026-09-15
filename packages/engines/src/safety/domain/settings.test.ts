@@ -14,8 +14,8 @@ import { raisePanic } from './panics.ts';
 
 const json = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
 const shared = json('../../../../catalog/settings.json') as { refusals: { route: string; id: string; statement: string }[] };
-const api = json('../../../../catalog/apis/safety.json') as { routes: { path: string; refusals: { id: string; statement: string }[] }[] };
-const routeRefusals = api.routes.find(r => r.path === '/v1/safety/setting-changes')!.refusals;
+const api = json('../../../../catalog/apis/safety.json') as { routes: { path: string; version: number; refusals: { id: string; statement: string }[] }[] };
+const routeRefusals = api.routes.find(r => r.path === '/v1/safety/setting-changes' && r.version === 2)!.refusals;
 /* The sentence a refusal is rendered in: the shared one, or Safety's own for its rule between settings. */
 const statement = (id: string) => shared.refusals.find(r => r.route === 'change' && r.id === id)?.statement ?? routeRefusals.find(r => r.id === id)!.statement;
 
@@ -45,8 +45,8 @@ const withBounds = (key: string, lowest: number, highest: number, run: () => voi
 
 test('the defaults are the contract’s, each inside its own bounds, and each setting is the timing its key names', () => {
  assert.deepEqual(inForce([]), defaultsInForce);
- assert.deepEqual(safetyBlock.items.map(s => s.key), ['grace', 'panic-window', 'extension-steps', 'extension-ceiling']);
- for (const s of safetyBlock.items) {
+ assert.deepEqual(safetyBlock.items.map(s => s.key), ['grace', 'panic-window', 'extension-steps', 'extension-ceiling', 'stale-panic-window-uses-window-in-force', 'settings-changed-by']);
+ for (const s of safetyBlock.items.filter(s => s.bounds)) {
   assert.deepEqual(defaultTimings[keyOf(s.key as TimingId)], s.default.value, `${s.key} is the timing it names`);
   const b = bounds(s.key);
   for (const v of Array.isArray(s.default.value) ? s.default.value as number[] : [s.default.value as number]) assert.ok(v >= b.lowest.value && v <= b.highest.value, `${s.key} default ${v} sits inside ${b.lowest.value}–${b.highest.value}`);
@@ -58,7 +58,7 @@ test('the defaults are the contract’s, each inside its own bounds, and each se
 
 test('only an admin, named, changes a setting, and only one Safety holds', () => {
  refusedWith(ask([], { byRole: 'nurse', value: 45 }), 'setting-change-not-permitted', 'a nurse');
- refusedWith(ask([], { byRole: 'operator', value: 45 }), 'setting-change-not-permitted', 'the desk');
+ refusedWith(ask([], { byRole: 'operator', value: 45 }), 'setting-change-not-permitted', 'the operator, until settings-changed-by names her');
  refusedWith(ask([], { byRef: null, value: 45 }), 'setting-change-not-permitted', 'an admin nobody can name');
  refusedWith(ask([], { setting: 'offer-expiry', value: 45 }), 'setting-not-known', 'Care’s offer expiry is Care’s, not Safety’s');
 });

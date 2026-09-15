@@ -23,13 +23,13 @@ import type { Bound } from '../settings/shape.ts';
 
 const START = '2026-09-14T09:00:00+02:00';
 const ROUTE = 'POST /v1/safety/panics@1';
-const READ = 'GET /v1/safety/settings@1';
-const CHANGE = 'POST /v1/safety/setting-changes@1';
+const READ = 'GET /v1/safety/settings@2';
+const CHANGE = 'POST /v1/safety/setting-changes@2';
 const panicWindowMinutes = defaultTimings.panicWindowMinutes;
-const api = JSON.parse(readFileSync(new URL('../../../catalog/apis/safety.json', import.meta.url), 'utf8')) as { routes: { method: string; path: string; refusals: { id: string; statement: string }[] }[] };
+const api = JSON.parse(readFileSync(new URL('../../../catalog/apis/safety.json', import.meta.url), 'utf8')) as { routes: { method: string; path: string; version: number; refusals: { id: string; statement: string }[] }[] };
 const apis = JSON.parse(readFileSync(new URL('../../../catalog/apis.json', import.meta.url), 'utf8')) as { sharedRefusals: { id: string; statement: string }[] };
 const statement = (id: string) => api.routes.find(r => r.path === '/v1/safety/panics')!.refusals.find(r => r.id === id)!.statement;
-const changeStatement = (id: string) => api.routes.find(r => r.path === '/v1/safety/setting-changes')!.refusals.find(r => r.id === id)!.statement;
+const changeStatement = (id: string) => api.routes.find(r => r.path === '/v1/safety/setting-changes' && r.version === 2)!.refusals.find(r => r.id === id)!.statement;
 const runtimeWith = (extra: EngineModule[] = [], dataDirectory: string = MEMORY) =>
  createRuntime({ env: { MYTHUSO_ENGINES: 'synthetic-data-only' }, engines: [engine, ...extra], dataDirectory, clock: createClock(START) });
 const press = (fields: Record<string, unknown>, who: { role?: string; ref?: string } = {}) => ({
@@ -38,7 +38,7 @@ const press = (fields: Record<string, unknown>, who: { role?: string; ref?: stri
 });
 const change = (fields: Record<string, unknown>, who: { role?: string; ref?: string } = {}) => ({
  role: who.role ?? 'admin', ref: who.ref ?? 'party-synthetic-901', purpose: 'audit',
- fields: { idempotencyKey: 'change-1', timing: 'grace', minutes: 45, reason: 'Long dressings were paging the desk.', expectedVersion: 1, ...fields }
+ fields: { idempotencyKey: 'change-1', setting: 'grace', wholeNumber: 45, reason: 'Long dressings were paging the desk.', expectedVersion: 1, ...fields }
 });
 const readSettings = (runtime: ReturnType<typeof runtimeWith>) => runtime.call(READ, { role: 'admin', ref: 'party-synthetic-901', purpose: 'audit', fields: {} });
 const published = (runtime: ReturnType<typeof runtimeWith>, key: string) => runtime.trail.all().filter(entry => entry.kind === 'published' && entry.eventKey === key);
@@ -46,8 +46,8 @@ const raised = (runtime: ReturnType<typeof runtimeWith>) => published(runtime, '
 /* A setting's bounds and unit, read from the contract, so a new bound moves the test with it. */
 const row = (key: string) => {
  const s = safetyBlock.items.find(r => r.key === key)!;
- const bounds = s.bounds as { lowest: Bound; highest: Bound };
- return { key: s.key, unit: s.unit, lowest: bounds.lowest, highest: bounds.highest };
+ const bounds = s.bounds as { lowest: Bound; highest: Bound } | undefined;
+ return { key: s.key, unit: s.unit, lowest: bounds?.lowest as Bound, highest: bounds?.highest as Bound };
 };
 
 test('pressing panic opens the declared window and publishes panic.raised@1, never a position', () => {
@@ -145,8 +145,8 @@ test('an admin reads the timings in force with their ranges and an empty history
  assert.deepEqual(answer.body.history, []);
  const settings = answer.body.settings as { setting: string; inForce: unknown; default: unknown; unit: string; setAtVersion: number; limits: { bounds: { lowest: Bound; highest: Bound } } }[];
  assert.deepEqual(settings.map(s => s.setting), safetyBlock.items.map(r => r.key));
- for (const s of settings) {
-  assert.deepEqual(s.inForce, s.default, `${s.setting} is at its default`);
+ for (const s of settings) assert.deepEqual(s.inForce, s.default, `${s.setting} is at its default`);
+ for (const s of settings.filter(s => s.limits.bounds)) {
   assert.equal(s.setAtVersion, 1, `${s.setting} was set by the contract`);
   assert.deepEqual([s.limits.bounds.lowest.value, s.limits.bounds.highest.value, s.unit], [row(s.setting).lowest.value, row(s.setting).highest.value, row(s.setting).unit]);
  }
@@ -160,9 +160,9 @@ test('a change is refused out of range, without a reason, on a stale version and
   assert.equal(answer.body.error, id, JSON.stringify(answer.body));
   assert.equal(answer.body.message, changeStatement(id));
  };
- refused(runtime.call(CHANGE, change({ idempotencyKey: 'low', minutes: row('grace').lowest.value - 1 })), 'setting-out-of-range');
- refused(runtime.call(CHANGE, change({ idempotencyKey: 'high', minutes: row('grace').highest.value + 1 })), 'setting-out-of-range');
- refused(runtime.call(CHANGE, change({ idempotencyKey: 'zero', timing: 'panic-window', minutes: 0 })), 'setting-not-above-zero');
+ refused(runtime.call(CHANGE, change({ idempotencyKey: 'low', wholeNumber: row('grace').lowest.value - 1 })), 'setting-out-of-range');
+ refused(runtime.call(CHANGE, change({ idempotencyKey: 'high', wholeNumber: row('grace').highest.value + 1 })), 'setting-out-of-range');
+ refused(runtime.call(CHANGE, change({ idempotencyKey: 'zero', setting: 'panic-window', wholeNumber: 0 })), 'setting-not-above-zero');
  refused(runtime.call(CHANGE, change({ idempotencyKey: 'no-reason', reason: undefined })), 'setting-change-without-reason');
  refused(runtime.call(CHANGE, change({ idempotencyKey: 'blank-reason', reason: '   ' })), 'setting-change-without-reason');
  refused(runtime.call(CHANGE, change({ idempotencyKey: 'stale', expectedVersion: 2 })), 'settings-version-stale');
@@ -189,7 +189,7 @@ test('an accepted change records who, when, from, to and why, publishes nothing,
  assert.deepEqual(first.body, { settingsVersion: 2, appliesFrom: at });
  const replay = runtime.call(CHANGE, change({}));
  assert.deepEqual(replay.body, first.body, 'the same key and the same request is answered, not applied again');
- const reused = runtime.call(CHANGE, change({ minutes: 90 }));
+ const reused = runtime.call(CHANGE, change({ wholeNumber: 90 }));
  assert.equal(reused.body.error, 'idempotency-key-reused', 'a reused key with a different change is refused rather than replayed');
 
  const read = readSettings(runtime).body;
@@ -198,7 +198,7 @@ test('an accepted change records who, when, from, to and why, publishes nothing,
  assert.equal((read.settings as { setting: string; inForce: number }[]).find(s => s.setting === 'grace')!.inForce, 45);
 
  assert.equal(runtime.trail.all().filter(entry => entry.kind === 'published').length, 0, 'a change is the row in the history and nothing on the bus: no engine acts on one');
- const second = runtime.call(CHANGE, change({ idempotencyKey: 'change-2', expectedVersion: 1, minutes: 30 }));
+ const second = runtime.call(CHANGE, change({ idempotencyKey: 'change-2', expectedVersion: 1, wholeNumber: 30 }));
  assert.equal(second.body.error, 'settings-version-stale', 'a second admin working from version 1 is told it has moved');
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
@@ -214,7 +214,7 @@ test('a visit that started before a change keeps the grace its deadline is count
   pending.push('appointment-before');
   runtime.advance(MINUTE);
   const shorter = row('grace').lowest.value;
-  assert.equal(runtime.call(CHANGE, change({ minutes: shorter })).status, 200);
+  assert.equal(runtime.call(CHANGE, change({ wholeNumber: shorter })).status, 200);
   pending.push('appointment-after', 'appointment-before');
   runtime.advance(MINUTE);
   assert.deepEqual(runtime.faults(), []);
@@ -238,7 +238,7 @@ test('a panic open before a change keeps its window, and a phone that read the o
  const end = Date.parse(String(first.body.locationShareEndsAt));
  assert.equal(end, Date.parse(START) + panicWindowMinutes * MINUTE);
  const longer = row('panic-window').highest.value;
- assert.equal(runtime.call(CHANGE, change({ timing: 'panic-window', minutes: longer })).status, 200);
+ assert.equal(runtime.call(CHANGE, change({ setting: 'panic-window', wholeNumber: longer })).status, 200);
  runtime.advance(2 * MINUTE);
 
  const again = runtime.call(ROUTE, press({ idempotencyKey: 'again', appointmentRef: 'appointment-synthetic-1' }));
@@ -250,6 +250,40 @@ test('a panic open before a change keeps its window, and a phone that read the o
  const afterFirstEnded = runtime.call(ROUTE, press({ idempotencyKey: 'after', appointmentRef: 'appointment-synthetic-1', locationShareMinutes: longer }));
  assert.notEqual(afterFirstEnded.body.panicRef, first.body.panicRef, 'the first window ended when it always would have');
  assert.equal(raised(runtime).length, 3);
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('who changes a field-safety setting is itself a setting only the admin changes, and it always names somebody', () => {
+ const runtime = runtimeWith();
+ const operator = { role: 'operator', ref: 'party-synthetic-801' };
+ const refused = (answer: { body: Record<string, unknown> }, id: string) => assert.deepEqual([answer.body.error, answer.body.message], [id, changeStatement(id)], JSON.stringify(answer.body));
+ refused(runtime.call(CHANGE, change({ idempotencyKey: 'op-early' }, operator)), 'setting-change-not-permitted');
+ const roles = (fields: Record<string, unknown>, who = {}) => change({ setting: 'settings-changed-by', wholeNumber: undefined, reason: 'The Control Tower operator holds the desk overnight.', ...fields }, who);
+ refused(runtime.call(CHANGE, roles({ idempotencyKey: 'nobody', roles: [] })), 'setting-out-of-range');
+ refused(runtime.call(CHANGE, roles({ idempotencyKey: 'a-nurse', roles: ['admin', 'nurse'] })), 'setting-out-of-range');
+ refused(runtime.call(CHANGE, roles({ idempotencyKey: 'off-register', roles: ['admin', 'desk-lead'] })), 'setting-role-not-on-register');
+ assert.equal(runtime.call(CHANGE, roles({ idempotencyKey: 'widen', roles: ['admin', 'operator'] })).status, 200);
+ const byOperator = runtime.call(CHANGE, change({ idempotencyKey: 'op-grace', expectedVersion: 2 }, operator));
+ assert.equal(byOperator.status, 200, JSON.stringify(byOperator.body));
+ refused(runtime.call(CHANGE, roles({ idempotencyKey: 'op-self', roles: ['operator'], expectedVersion: 3 }, operator)), 'setting-change-not-permitted');
+ const history = readSettings(runtime).body.history as { setting: string; byRole: string }[];
+ assert.deepEqual(history.map(h => [h.setting, h.byRole]), [['settings-changed-by', 'admin'], ['grace', 'operator']]);
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('a phone that read an older panic window is given the window it sent when the setting says so, and its panic opens either way', () => {
+ const runtime = runtimeWith();
+ const longer = row('panic-window').highest.value;
+ assert.equal(runtime.call(CHANGE, change({ setting: 'panic-window', wholeNumber: longer })).status, 200);
+ const inForce = runtime.call(ROUTE, press({ idempotencyKey: 'in-force', appointmentRef: 'appointment-synthetic-1' }));
+ assert.equal(Date.parse(String(inForce.body.locationShareEndsAt)), Date.parse(START) + longer * MINUTE, 'by default the window in force');
+ assert.equal(runtime.call(CHANGE, change({ idempotencyKey: 'stale', setting: 'stale-panic-window-uses-window-in-force', wholeNumber: undefined, switchedOn: false, expectedVersion: 2 })).status, 200);
+ const sent = runtime.call(ROUTE, press({ idempotencyKey: 'sent', appointmentRef: 'appointment-synthetic-2' }));
+ assert.equal(sent.status, 200, 'the panic opens');
+ assert.equal(Date.parse(String(sent.body.locationShareEndsAt)), Date.parse(START) + panicWindowMinutes * MINUTE, 'with the window the phone sent, which a version of the settings held');
+ assert.equal(runtime.call(ROUTE, press({ idempotencyKey: 'never', appointmentRef: 'appointment-synthetic-3', locationShareMinutes: longer * 24 })).body.error, 'window-not-the-declared-one', 'a window no version held is still refused');
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
 });
