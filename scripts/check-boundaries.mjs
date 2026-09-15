@@ -1409,16 +1409,139 @@ for(const {source,command,files} of generated) {
    default: return [];
   }
  };
- /* The handler as written: an identity-service route runs to the next routes.set, a Passport form to the
-    next top-level branch. The mechanism has to be visible in it. */
- const handlerBlock = r => {
-  if (!r.evidence?.file || !existsSync(r.evidence.file)) return '';
-  const source = read(r.evidence.file);
-  const at = source.indexOf(r.evidence.handler);
+ /* What a built route's handler enforces, worked out rather than recognised. The fourth review found the
+    check believed enforcedBy whenever one of the mechanism's marks appeared anywhere in the handler's text:
+    vetting-capability accepted vetting!., which every vault call contains, so GET /v1/trust/standing — asParty
+    and then the caller's own standing — passed when it was declared an admin route. And an identity-service
+    block ran to the next routes.set, so a helper defined between two routes lent its guard to the route
+    before it. Now the block is the handler for this exact route and nothing after it, and what it enforces
+    is read from what it calls: the capability the operator guard checks, whether a gate call can admit the
+    subject (a purpose from actorFor or subject-access, an operation the gate lets a subject perform on
+    their own record, no refusal of self before it), the operation a vault method asks the gate for and
+    whether it refuses a party acting on itself, the grant roles a Passport gateway method admits, the
+    loopback prefix the server holds, and the module the engine runtime binds. enforcedBy must say exactly
+    that, and a built route whose enforcement cannot be worked out is refused. */
+ for (const m of apiContract.enforcementMechanisms) {
+  if (m.handlerMarks !== undefined || m.forbiddenMarks !== undefined || m.pathPrefix !== undefined) throw new Error(`packages/catalog/apis.json still describes the ${m.id} mechanism by marks to look for. A mark that appears somewhere in a handler is not the handler enforcing it; say what the check works out, in extractedFrom.`);
+  if (!m.extractedFrom?.trim()) throw new Error(`packages/catalog/apis.json does not say what the check works out from a handler before it believes the ${m.id} mechanism.`);
+ }
+ const identitySource = read('apps/api/src/server.ts');
+ const vaultSource = read('apps/api/src/vetting/index.ts');
+ const gateSource = read('apps/api/src/protection/gate.ts');
+ const passportServerSource = read('apps/passport/src/server.ts');
+ const gatewaySource = read('apps/passport/src/gateway.ts');
+ const operatorCapability = (identitySource.match(/const asOperator = [\s\S]*?held\.actor\.grants\.includes\('([^']+)'\)/) ?? [])[1] ?? null;
+ const loopbackPrefix = (identitySource.match(/startsWith\('([^']+)'\) && !LOOPBACK\.has\(caller\.address\)/) ?? [])[1] ?? null;
+ const vaultCapability = (vaultSource.match(/^const CAPABILITY = '([^']+)';/m) ?? [])[1] ?? null;
+ const selfOperations = new Set([...((gateSource.match(/const SELF_OPERATIONS[^=]*= new Set\(\[([^\]]*)\]\)/) ?? [])[1] ?? '').matchAll(/'([^']+)'/g)].map(m => m[1]));
+ if (!operatorCapability || !loopbackPrefix || !vaultCapability || !selfOperations.size) throw new Error("scripts/check-boundaries.mjs can no longer read what the identity service enforces — the operator guard's capability, the loopback prefix, the vault's capability or the gate's self operations — so no built route's enforcement can be worked out.");
+ const { grantScopeRefusal: passportScopeRefusal, roleRule: passportRoleRule, isProtectedCategory: passportIsProtected, GATEWAY: passportGatewayContract } = await import('../apps/passport/src/contract.ts');
+ /* A class method's body: from its declaration at one space of indentation to its closing brace. */
+ const classBody = (source, name) => {
+  const at = source.search(new RegExp(`\\n ${name.replace(/[#$]/g, '\\$&')}\\(`));
   if (at < 0) return '';
-  const rest = source.slice(at + r.evidence.handler.length);
-  const next = r.evidence.file === 'apps/api/src/server.ts' ? rest.search(/routes\.set\(/) : rest.search(/\n  (if \(|return refuse\(res, 404)/);
-  return r.evidence.handler + (next < 0 ? rest : rest.slice(0, next));
+  const end = source.indexOf('\n }\n', at + 1);
+  return source.slice(at, end < 0 ? undefined : end);
+ };
+ /* An identity-service handler: its routes.set line to its own closing line at the same indentation. */
+ const identityHandler = r => {
+  const at = identitySource.indexOf(r.evidence.handler);
+  if (at < 0) return '';
+  const firstLineEnd = identitySource.indexOf('\n', at);
+  if (!identitySource.slice(at, firstLineEnd).trimEnd().endsWith('{')) return identitySource.slice(at, firstLineEnd);
+  const close = identitySource.slice(firstLineEnd).search(/\n {2}\}/);
+  return identitySource.slice(at, close < 0 ? undefined : firstLineEnd + close + 4);
+ };
+ const vaultRefusesSelf = method => /if \((?:request\.)?actor\.id === [^)]+\)\s*(?:\{\s*)?return\b/.test(classBody(vaultSource, method));
+ const vaultOperations = method => [...classBody(vaultSource, method).matchAll(/this\.#request\([^;]*?'(read|self-service|administrative)'\)/g)].map(m => m[1]);
+ const identityEnforcement = r => {
+  const handler = identityHandler(r);
+  if (!handler) return null;
+  const path = (r.evidence.handler.match(/routes\.set\('\w+ ([^']+)'/) ?? [])[1] ?? '';
+  const acceptor = (mechanisms.get('supplier-callback')?.acceptors ?? []).find(a => handler.includes(a.call));
+  if (acceptor) return { mechanism: 'supplier-callback', supplier: acceptor.supplier };
+  if (path.startsWith(loopbackPrefix)) return /asParty\(req, res\)|signedIn\(req, res\)/.test(handler) ? null : { mechanism: 'loopback' };
+  const operator = /asOperator\(req, res, '/.test(handler);
+  const granted = (handler.match(/held\.actor\.grants\.includes\('([^']+)'\)/) ?? [])[1];
+  if (/incident\.openedBy === held\.actor\.party\.id/.test(handler)) return granted && (!operator || operatorCapability === granted) ? { mechanism: 'vetting-capability-or-reporter', capability: granted } : null;
+  if (operator) return { mechanism: 'vetting-capability', capability: operatorCapability };
+  if (/asParty\(req, res\)/.test(handler)) {
+   const gate = handler.match(/gate\.access\(\{([^}]*)\}\)/);
+   if (gate) {
+    const capability = (gate[1].match(/capability: '([^']+)'/) ?? [])[1];
+    if (!capability) return null;
+    const operation = (gate[1].match(/operation: '([^']+)'/) ?? [])[1] ?? 'administrative';
+    const bySubject = /purpose: (?:'subject-access'|held\.actor\.actorFor\()/.test(gate[1]);
+    const refusesSelf = /if \(\w+ === held\.actor\.party\.id\)[\s\S]{0,800}?return send\(res, 403/.test(handler);
+    return { mechanism: bySubject && selfOperations.has(operation) && !refusesSelf ? 'vetting-capability-or-self' : 'vetting-capability', capability };
+   }
+   const vault = (handler.match(/vetting!\.(\w+)\(\{?\s*(?:actor: )?held\.actor\.actorFor\(/) ?? [])[1];
+   if (vault) return { mechanism: !vaultRefusesSelf(vault) && vaultOperations(vault).some(op => selfOperations.has(op)) ? 'vetting-capability-or-self' : 'vetting-capability', capability: vaultCapability };
+   if (/vetting!\.standing\(held\.actor\.party\.id\)/.test(handler) && !/queryOf\(req\)|body\.partyId|body\.id\b/.test(handler)) return { mechanism: 'vetting-register-self' };
+   return { mechanism: 'vetting-register' };
+  }
+  if (/signedIn\(req, res\)|identity\.resolve\(readCookie\(req\.headers\.cookie, COOKIE\)\)/.test(handler)) return { mechanism: 'identity-session' };
+  if (/tokenFor\(|requesterOf\(/.test(handler)) return null;
+  return { mechanism: 'anonymous' };
+ };
+ /* A Passport statement: the branch that answers this method and path, and whether a grant requester is in hand. */
+ const passportStatement = r => {
+  const segments = r.path.split('/').filter(Boolean);
+  let at = -1;
+  if (segments[0] === 'fhir') {
+   const branch = passportServerSource.indexOf("parts[0] === 'fhir'");
+   const offset = branch < 0 ? -1 : passportServerSource.slice(branch).indexOf(`method === '${r.method}' && parts.length === ${segments.length}`);
+   at = offset < 0 ? -1 : branch + offset;
+  } else {
+   /* The contract's path is the mounted one, and the server's condition is what the evidence names. Of
+      the lines that hold that condition, the one that also names this method is this route's: the first
+      mention of /summary/emergency is the FHIR branch opening, not the GET that answers it. */
+   const occurrences = [];
+   for (let i = passportServerSource.indexOf(r.evidence.handler); i >= 0; i = passportServerSource.indexOf(r.evidence.handler, i + 1)) occurrences.push(i);
+   const lineOf = i => passportServerSource.slice(passportServerSource.lastIndexOf('\n', i) + 1, passportServerSource.indexOf('\n', i));
+   at = occurrences.find(i => lineOf(i).includes(`method === '${r.method}'`)) ?? occurrences[0] ?? -1;
+  }
+  if (at < 0) return null;
+  const start = passportServerSource.lastIndexOf('\n', at) + 1;
+  const lineEnd = passportServerSource.indexOf('\n', at);
+  const opener = passportServerSource.slice(start, lineEnd);
+  const indent = opener.match(/^ */)[0];
+  let text = opener;
+  if (opener.trimEnd().endsWith('{')) {
+   const close = passportServerSource.slice(lineEnd).search(new RegExp(`\\n${indent}\\}`));
+   text = passportServerSource.slice(start, close < 0 ? undefined : lineEnd + close + 1 + indent.length + 1);
+  }
+  const enclosing = indent.length > 2 ? passportServerSource.slice(passportServerSource.lastIndexOf('\n  if (', start), start) : '';
+  return { text, withRequester: /requesterOf\(req\)/.test(text) || /const requester = requesterOf\(req\);/.test(enclosing) };
+ };
+ const passportEnforcement = r => {
+  const statement = passportStatement(r);
+  if (!statement) return null;
+  const token = (statement.text.match(/tokenFor\(req, '(\w+)'\)/) ?? [])[1];
+  if (token) return ({ Developer: { mechanism: 'development-token' }, Patient: { mechanism: 'passport-patient-session' }, Operator: { mechanism: 'operator-credential' } })[token] ?? null;
+  const method = (statement.text.match(/gateway\.(\w+)\(requester\b/) ?? [])[1];
+  if (!method || !statement.withRequester) return null;
+  const body = classBody(gatewaySource, method);
+  if (!body) return null;
+  const hold = /this\.#hold\(/.test(body) ? classBody(gatewaySource, '#hold') : '';
+  const refusedReads = new Set([...`${body}\n${hold}`.matchAll(/reads === '([a-z-]+)'\)\s*return/g)].map(m => m[1]));
+  const writable = /!held\.held\.role\.writes\)\s*return/.test(body);
+  const scope = /grant\.scope\.includes\(GATEWAY\.emergencySummary\.openedBy\)\)\s*return/.test(body) ? passportGatewayContract.emergencySummary.openedBy : null;
+  const roles = grantRolesForApis.filter(role => !refusedReads.has(role.gateway.reads) && (!writable || role.gateway.writes === true) && (!scope || passportScopeRefusal(passportRoleRule(role.id), [scope], passportIsProtected(scope)) === null)).map(role => role.id);
+  return { mechanism: 'passport-grant', callers: [...(/requester\.kind === 'patient'/.test(body) ? ['patient'] : []), ...roles] };
+ };
+ const enginesEnforcement = async r => {
+  if (!r.evidence.file.startsWith(`packages/engines/src/${r.engine}/`)) return null;
+  let module;
+  try { module = await import(`../${r.evidence.file}`); } catch { return null; }
+  return module.engine?.id === r.engine && typeof module.engine.routes?.[routeKey(r)] === 'function' ? { mechanism: 'engines-runtime:callers' } : null;
+ };
+ const extractEnforcement = async r => {
+  if (!r.evidence?.file || !existsSync(r.evidence.file)) return null;
+  if (r.evidence.file === 'apps/api/src/server.ts') return identityEnforcement(r);
+  if (r.evidence.file === 'apps/passport/src/server.ts') return passportEnforcement(r);
+  if (r.evidence.file.startsWith('packages/engines/src/')) return enginesEnforcement(r);
+  return null;
  };
  const contractIds = new Map(apiContract.contractIds.map(c => {
   if (!existsSync(c.contract)) throw new Error(`packages/catalog/apis.json declares ${c.field} as an entry in ${c.contract}, which does not exist.`);
@@ -1522,9 +1645,18 @@ for(const {source,command,files} of generated) {
    const engineCaller = caller.match(/^engine:([a-z]+)$/);
    if (engineCaller) {
     if (!engineIds.includes(engineCaller[1])) fail('engine-callers-are-named', `${where} names the caller "${caller}", and there is no such engine.`);
+    /* The fourth review found an engine caller could be justified by any event it owned or heard,
+       whether or not the route's own engine had anything to do with it — Money opening care concerns on
+       the strength of a shipped order — and two engines naming themselves as callers of their own
+       routes. An engine does its own next step in its own code. And the event must connect the two:
+       the caller publishes it and the route's engine hears it, or the route's engine publishes it and
+       the caller hears it. Two engines that merely both hear something have no reason to call. */
+    if (engineCaller[1] === doc.engine) fail('engine-callers-are-named', `${where} names its own engine, ${caller}, as a caller. An engine does its own next step in its own code, never through its own route.`);
     const because = r.callerJustifications?.[caller];
     const justifying = liveEventVersions.get(because ?? '');
     if (!justifying || (justifying.owner !== engineCaller[1] && !justifying.subscribers.includes(engineCaller[1]))) fail('engine-callers-are-named', `${where} takes calls from ${caller}, justified by ${JSON.stringify(because ?? null)}, which is not a live event that engine owns or hears.`);
+    const connects = (justifying.owner === engineCaller[1] && justifying.subscribers.includes(doc.engine)) || (justifying.owner === doc.engine && justifying.subscribers.includes(engineCaller[1]));
+    if (!connects) fail('engine-callers-are-named', `${where} takes calls from ${caller}, justified by ${because}, which ${justifying.owner} publishes and ${[...justifying.subscribers].join(', ')} ${justifying.subscribers.length === 1 ? 'hears' : 'hear'}. The route's engine, ${doc.engine}, must hear what the caller publishes, or publish what the caller hears; otherwise the event is no reason for one to call the other.`);
     continue;
    }
    if (supplierIds.has(caller)) {
@@ -1602,20 +1734,27 @@ for(const {source,command,files} of generated) {
    const mechanism = mechanisms.get(enforced?.mechanism);
    if (!mechanism) fail('built-callers-are-enforced', `${where} is built and does not say, in enforcedBy, how its handler decides who may call it.`);
    if (enforced.capability !== undefined && !vettingForApis.capabilities.some(c => c.id === enforced.capability)) throw new Error(`${where} is enforced by the capability "${enforced.capability}", which packages/catalog/vetting.json does not have.`);
-   const derived = deriveCallers(enforced, r);
-   if (derived.length !== r.callers.length || !derived.every(c => r.callers.includes(c))) fail('built-callers-are-enforced', `${where} names the callers ${JSON.stringify([...r.callers].sort())}, and its handler's ${enforced.mechanism} admits ${JSON.stringify([...derived].sort())}.`);
+   /* The handler exists first: nothing can be worked out from a handler that is not there. */
+   if (!r.evidence?.file || !existsSync(r.evidence.file) || !read(r.evidence.file).includes(r.evidence.handler ?? '\0')) fail('built-means-a-handler-exists', `${where} is marked built, and ${r.evidence?.file ?? 'no file'} does not hold ${JSON.stringify(r.evidence?.handler)}.`);
    if (r.enforcement === 'missing') {
     if (!r.finding?.trim()) throw new Error(`${where} says its enforcement is missing without the finding.`);
     missingEnforcement.push(`${where}: ${r.finding}`);
    } else if (r.enforcement !== undefined) {
     throw new Error(`${where} has the enforcement ${JSON.stringify(r.enforcement)}; it is missing or absent.`);
    } else {
-    const block = handlerBlock(r);
-    if (mechanism.handlerMarks?.length && !mechanism.handlerMarks.some(mark => block.includes(mark))) fail('built-callers-are-enforced', `${where} says its handler enforces ${enforced.mechanism}, and ${r.evidence?.file} shows none of ${JSON.stringify(mechanism.handlerMarks)} in it.`);
-    const asks = (mechanism.forbiddenMarks ?? []).find(mark => block.includes(mark));
-    if (asks) fail('built-callers-are-enforced', `${where} says anybody may call it, and its handler asks for ${asks}.`);
-    if (mechanism.pathPrefix && !String(r.evidence?.handler).includes(mechanism.pathPrefix)) fail('built-callers-are-enforced', `${where} says it is answered on loopback only, and its handler is not under ${mechanism.pathPrefix}.`);
+    /* Worked out before the callers are compared, so a declaration that is wrong about the handler is
+       caught as exactly that, not only when its callers happen to disagree as well. */
+    const found = await extractEnforcement(r);
+    if (!found) fail('built-callers-are-enforced', `${where} is built and says its handler enforces ${enforced.mechanism}, and nothing in the handler for this route in ${r.evidence.file} can be worked out as enforcing any mechanism. A built route's enforcement is read from its handler, not taken on trust.`);
+    const said = e => [e.mechanism, e.capability && `capability ${e.capability}`, e.supplier && `supplier ${e.supplier}`].filter(Boolean).join(', ');
+    if (found.mechanism !== enforced.mechanism || (found.capability ?? null) !== (enforced.capability ?? null) || (found.supplier ?? null) !== (enforced.supplier ?? null)) fail('built-callers-are-enforced', `${where} says its handler enforces ${said(enforced)}, and the handler for this route enforces ${said(found)}.`);
+    if (found.callers) {
+     const stated = deriveCallers(enforced, r);
+     if (found.callers.length !== stated.length || !found.callers.every(c => stated.includes(c))) fail('built-callers-are-enforced', `${where} says its grant admits ${JSON.stringify([...stated].sort())}, and the gateway method this route calls admits ${JSON.stringify([...found.callers].sort())}.`);
+    }
    }
+   const derived = deriveCallers(enforced, r);
+   if (derived.length !== r.callers.length || !derived.every(c => r.callers.includes(c))) fail('built-callers-are-enforced', `${where} names the callers ${JSON.stringify([...r.callers].sort())}, and its handler's ${enforced.mechanism} admits ${JSON.stringify([...derived].sort())}.`);
    if (!r.evidence?.file || !existsSync(r.evidence.file) || !read(r.evidence.file).includes(r.evidence.handler ?? ' ')) fail('built-means-a-handler-exists', `${where} is marked built, and ${r.evidence?.file ?? 'no file'} does not hold ${JSON.stringify(r.evidence?.handler)}.`);
   } else if (r.status !== 'proposed' || r.evidence) throw new Error(`${where} has the status "${r.status}"${r.evidence ? ' and evidence, which only a built route has' : ''}.`);
   if (r.status !== 'built' && (r.enforcedBy || r.enforcement || r.finding)) throw new Error(`${where} is proposed and claims an enforcement; only a built route has a handler that enforces anything.`);
@@ -1703,8 +1842,19 @@ for(const {source,command,files} of generated) {
  const { createHash: quoteDigest } = await import('node:crypto');
  const quotesNow = quoteChecks.map(q => [q.named.section, q.named.what, q.named.paraphrase === true]).sort((p, q) => (JSON.stringify(p) < JSON.stringify(q) ? -1 : 1));
  const quotesHashNow = quoteDigest('sha256').update(JSON.stringify(quotesNow)).digest('hex');
+ /* Without the documents the failure names no hash, neither the one just computed nor the one recorded.
+    The reviewer's Money pass found the first version printed the new hash, so a quote edited on a clean
+    clone could be passed off as verified by pasting that hash into the record: the record would then
+    describe a comparison that never happened. Only the documents-present branch prints the record, and
+    only after every quote has been found word for word. So this message is built by one function that
+    is not given a hash, the build refuses that function if its source names one, and the message itself
+    is refused if it carries anything shaped like one, under whatever name it was passed in. */
+ const quotesChangedWithoutDocuments = (count, missing, verifiedOn) => `The capability quotes changed on a machine without the documents: ${missing.join(' and ')} ${missing.length === 1 ? 'is' : 'are'} not here, so the ${count} quotes cannot be compared with the words they cite, and they no longer match what was last verified on ${verifiedOn}. Compare them on a machine where Documentation/ exists; the check there compares every quote and prints the record to write. Nothing is printed here that could be copied into the record, because a record copied from a machine that compared nothing describes a verification that did not happen.`;
+ if (/quotesHash|Digest|sha256/i.test(String(quotesChangedWithoutDocuments))) throw new Error('scripts/check-boundaries.mjs builds the documents-absent quote failure from a hash. A hash printed where the documents are absent can be pasted into apis.json#quoteVerification without a single quote being compared.');
  if (absentDocuments.length) {
-  if (quotesHashNow !== quoteRecord.quotesHash) fail('quotes-are-quotes', `The capability quotes changed on a machine without the documents: ${absentDocuments.join(' and ')} ${absentDocuments.length === 1 ? 'is' : 'are'} not here, so the ${quoteChecks.length} quotes hash to ${quotesHashNow} and packages/catalog/apis.json#quoteVerification recorded ${quoteRecord.quotesHash} on ${quoteRecord.verifiedOn}. Compare them where Documentation/ exists; the check there prints the record to write.`);
+  const quotesChangedMessage = quotesChangedWithoutDocuments(quoteChecks.length, absentDocuments, quoteRecord.verifiedOn);
+  if (/[0-9a-f]{64}/i.test(quotesChangedMessage)) throw new Error('The documents-absent quote failure carries a 64-character hex value. Whatever it is called, a value shaped like the quotes hash printed where the documents are absent can be pasted into apis.json#quoteVerification without a single quote being compared.');
+  if (quotesHashNow !== quoteRecord.quotesHash) fail('quotes-are-quotes', quotesChangedMessage);
   quoteNote = `${absentDocuments.join(' and ')} ${absentDocuments.length === 1 ? 'is' : 'are'} not in this checkout, so ${quoteChecks.length} capability quotes were held to the hash recorded when they were last compared with the documents, on ${quoteRecord.verifiedOn}, and match it`;
  }
  else {
@@ -6159,6 +6309,137 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
 
  console.log(`MyThuso for Mom has ${momContract.tiers.length} tiers priced once, ${momContract.tiers.reduce((n, t) => n + t.includes.length, 0)} inclusions each beside the capability it waits on, and ${momContract.refusals.length} refusals — and no plans screen on any platform types a price.`);
 }
+/* ==== Engine Runtime & Core (Wave 3): packages/engines ==============================================
+
+   Added by the Engine Runtime & Core lead. Self-contained; the one edit inside the Wave 2 API section is
+   the engines-runtime:callers case in deriveCallers. The engines run on a development runtime that binds
+   handlers to the frozen API contract and carries their events on a bus held to the event contract.
+   What this block holds it to: the runtime refuses to start without its flag in the factory, serves
+   loopback only and checks the Host header, and nothing in deploy/ names it; one engine's code never
+   reaches another engine's directory or opens a database of its own; and a route marked built on the
+   runtime names a handler file in its own engine's directory that registers exactly that route. */
+{
+ const runtimeSettings = JSON.parse(read('packages/catalog/apis.json')).engineRuntime;
+ const { posix } = await import('node:path');
+ const runtimeRefusalOf = id => runtimeSettings?.refusals?.find(x => x.id === id);
+ const enginesFail = (id, detail) => { const r = runtimeRefusalOf(id); throw new Error(`${detail}${r ? ` ${r.statement} ${r.why}` : ''}`); };
+ if (!runtimeSettings || runtimeSettings.package !== 'packages/engines' || runtimeSettings.flag !== 'MYTHUSO_ENGINES' || runtimeSettings.flagValue !== 'synthetic-data-only' || !Array.isArray(runtimeSettings.binderCannotAdmit) || !runtimeSettings.why?.trim()) throw new Error('packages/catalog/apis.json no longer describes the engine runtime: its package, its synthetic-data flag, the callers its binder cannot admit and why it exists.');
+ for (const id of ['route-not-in-the-contract', 'route-withdrawn', 'route-belongs-to-another-engine', 'subscription-not-declared', 'engine-fault', 'field-of-the-wrong-type']) if (!runtimeRefusalOf(id)?.statement?.trim() || !runtimeRefusalOf(id)?.why?.trim()) throw new Error(`packages/catalog/apis.json#engineRuntime has lost the refusal "${id}", or its sentence or its reasoning.`);
+
+ /* 1. Registered, zero-dependency, and every suite under src/ run — including each engine's domain tests. */
+ const rootForEngines = JSON.parse(read('package.json'));
+ if (!rootForEngines.workspaces.includes('packages/engines') || !/-w @mythuso\/engines/.test(rootForEngines.scripts.check) || !/-w @mythuso\/engines/.test(rootForEngines.scripts.test)) throw new Error('The root package.json no longer typechecks and tests packages/engines. A runtime whose refusals nobody has seen fire is a runtime that says yes.');
+ const enginesPackage = JSON.parse(read('packages/engines/package.json'));
+ if (enginesPackage.dependencies || enginesPackage.devDependencies) throw new Error('packages/engines declares dependencies; it is zero-dependency, like the services it stands in for.');
+ if (enginesPackage.scripts?.test !== 'node --test "src/**/*.test.ts"') throw new Error('packages/engines no longer runs every src/**/*.test.ts, so an engine\'s domain suite could stop running without anybody noticing.');
+
+ /* 2. Not a service: the flag in the factory, loopback and Host at the door, and nothing in deploy/. */
+ const runtimeSource = read('packages/engines/src/runtime/runtime.ts');
+ if (!/if \(options\.env\[settings\.flag\] !== settings\.flagValue\) throw new RuntimeRefusedToStart/.test(runtimeSource)) throw new Error(`createRuntime() in packages/engines/src/runtime/runtime.ts no longer refuses without ${runtimeSettings.flag}=${runtimeSettings.flagValue}, so importing the library skips the door the server goes through.`);
+ const enginesServer = read('packages/engines/src/server.ts');
+ if (!/const HOST = '127\.0\.0\.1'/.test(enginesServer) || !/server\.listen\(port, host\)/.test(enginesServer) || !/LOOPBACK\.has\(req\.socket\.remoteAddress/.test(enginesServer) || !/loopbackHosts\.has\(hostName\(req\.headers\.host\)\)/.test(enginesServer)) throw new Error('packages/engines/src/server.ts no longer binds to 127.0.0.1 and refuses a request that did not arrive on loopback, addressed to a loopback name.');
+ const enginesInDeploy = new RegExp(`packages/engines|@mythuso/engines|MYTHUSO_ENGINES|npm run engines|\\b${Number(runtimeSettings.defaultPort)}\\b`);
+ for (const file of files('deploy')) {
+  const named = read(file).match(enginesInDeploy);
+  if (named) throw new Error(`${file} names the development engine runtime ("${named[0]}"). It answers with synthetic data, believes a role from a header, and is never deployed.`);
+ }
+
+ /* 2b. One port, one service. The reviewer found the engines defaulting to 8797, the Passport P0's port,
+        whose own check bans \b8797\b from deploy/: one number meant two services, and a developer
+        starting both would have had one refuse to bind while the other answered in its place. So every
+        development service's default is read from where it is set, the engines' comes only from
+        apis.json#engineRuntime, and no two may be the same. */
+ if (!/Number\(env\[settings\.portVariable\] \?\? settings\.defaultPort\)/.test(enginesServer) || /\?\?\s*\d{4,5}\b/.test(enginesServer)) throw new Error('packages/engines/src/server.ts no longer takes its port from apis.json#engineRuntime. A port typed into the server is a second place the number lives, and the first place it drifts from.');
+ const developmentPorts = [
+  ['the identity service', 'apps/api/src/config.ts', /env\.MYTHUSO_PORT \?\? (\d+)/],
+  ['the contract mock', 'packages/mock-api/src/server.ts', /env\.MYTHUSO_MOCK_PORT \?\? (\d+)/],
+  ['the ThusoIQ kernel', 'packages/thusoiq/server.ts', /THUSOIQ_PORT\s*\?\?\s*(\d+)/],
+ ].map(([name, file, pattern]) => {
+  const found = read(file).match(pattern);
+  if (!found) throw new Error(`scripts/check-boundaries.mjs can no longer read ${name}'s default port in ${file}, so it cannot tell whether two development services share one.`);
+  return [name, Number(found[1])];
+ });
+ developmentPorts.push(['the Passport P0', Number(JSON.parse(read('packages/catalog/passport-gateway.json')).service.port)], ['the engine runtime', Number(runtimeSettings.defaultPort)]);
+ const servicesByPort = new Map();
+ for (const [name, port] of developmentPorts) {
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error(`${name} defaults to ${port}, which is not a port a development service can bind without privileges.`);
+  if (servicesByPort.has(port)) throw new Error(`${name} and ${servicesByPort.get(port)} both default to port ${port}. Two services behind one number means one refuses to start and the other answers in its place, and a deploy check that bans one bans both.`);
+  servicesByPort.set(port, name);
+ }
+
+ /* 3. Store isolation. One module opens databases; an engine's code imports its own directory, the
+       runtime's interface and the catalog, and nothing else — not another engine, not a package. */
+ const engineIdsForRuntime = JSON.parse(read('packages/catalog/events.json')).engines.map(e => e.id);
+ const engineSources = files('packages/engines/src').filter(f => f.endsWith('.ts'));
+ let importsRead = 0;
+ for (const file of engineSources) {
+  const source = read(file);
+  const [top] = posix.relative('packages/engines/src', file).split('/');
+  /* The trail's own test opens the trail file to tamper with it, which is the point of the test. */
+  const opensDatabase = /new DatabaseSync\(/.test(source) || /^import (?!type)[^;]*from 'node:sqlite'/m.test(source);
+  if (opensDatabase && file !== 'packages/engines/src/runtime/store.ts' && file !== 'packages/engines/src/runtime/runtime.test.ts') throw new Error(`${file} opens a SQLite database itself. Only packages/engines/src/runtime/store.ts opens a store, and it hands each engine its own.`);
+  if (engineIdsForRuntime.includes(top) && /_runtime_/.test(source)) throw new Error(`${file} names a _runtime_ table. The replay table in an engine's store is the binder's, and an engine that edits it can make a second charge look like a replay.`);
+  for (const m of source.matchAll(/(?:^|\n)\s*(?:import|export)\s[^;]*?from\s+'([^']+)'|import\(\s*'([^']+)'\s*\)/g)) {
+   const spec = m[1] ?? m[2];
+   importsRead++;
+   if (spec.startsWith('node:')) continue;
+   if (!spec.startsWith('.')) throw new Error(`${file} imports "${spec}". packages/engines is zero-dependency.`);
+   const target = posix.normalize(posix.join(posix.dirname(file), spec));
+   const [targetTop] = posix.relative('packages/engines/src', target).split('/');
+   const inside = !target.startsWith('packages/engines/src/') ? null : targetTop;
+   if (engineIdsForRuntime.includes(top)) {
+    if (inside !== top && inside !== 'runtime' && !target.startsWith('packages/catalog/')) enginesFail('route-belongs-to-another-engine', `${file} imports ${target}. An engine's code reaches its own directory, the runtime and the catalog; another engine is reached through a route or an event, and its store not at all.`);
+   } else if (top === 'runtime' && engineIdsForRuntime.includes(inside)) {
+    throw new Error(`${file} imports ${target}. The runtime knows no engine by name; engines are discovered and bound.`);
+   }
+  }
+ }
+
+ /* 3b. A stored reply belongs to one caller and one request. The Money lead found replays keyed by
+        route, role and key, which handed one patient's payment result to another who chose the same
+        key and answered a changed request with the first result. The replay table's key names the
+        caller's reference, the binder compares a digest of the declared fields, and a mismatch is
+        refused with the shared refusal rather than replayed. */
+ const replayStore = read('packages/engines/src/runtime/store.ts');
+ if (!/PRIMARY KEY \(route, role, caller_ref, idempotency_key\)/.test(replayStore) || !/request_digest TEXT NOT NULL/.test(replayStore)) throw new Error('packages/engines/src/runtime/store.ts no longer keys stored replies by the caller\'s reference and keeps the request digest beside each. A reply keyed by role alone is one person\'s answer waiting to be handed to another.');
+ if (!/caller_ref = \?/.test(runtimeSource) || !/row\.request_digest !== digest\) return render\(shared\('idempotency-key-reused'\)\)/.test(runtimeSource) || !/runtimeRefusal\('caller-unidentified'\)/.test(runtimeSource)) throw new Error('packages/engines/src/runtime/runtime.ts no longer looks a replay up by the caller\'s reference, refuses an unidentified caller, and refuses a reused key whose request differs. A replay that skips any of the three answers somebody with an answer that was not theirs.');
+ if (!JSON.parse(read('packages/catalog/apis.json')).sharedRefusals.some(r => r.id === 'idempotency-key-reused' && r.status === 409)) throw new Error('packages/catalog/apis.json has lost the shared refusal idempotency-key-reused, so a reused key has no sentence to be refused with.');
+ /* An engine never redeclares a shared refusal. The Wave 2 section already refuses a route that does;
+    an engine file's own refusals were checked for shape only, so an engine-level idempotency-key-reused
+    with other words would have passed. The binder answers a reused key before any handler runs and a
+    declared refusal is looked up route first, engine second, shared last, so a second definition is at
+    best never read and at worst read instead of the shared one. Every engine inherits the shared list. */
+ const sharedRefusalIds = new Set(JSON.parse(read('packages/catalog/apis.json')).sharedRefusals.map(r => r.id));
+ for (const { file, doc } of loadApis().engines) {
+  for (const refusal of doc.refusals ?? []) if (sharedRefusalIds.has(refusal.id)) throw new Error(`${file} redeclares the shared refusal "${refusal.id}" among its engine refusals. Every engine inherits the shared refusals already, and the binder renders an engine's own definition before the shared one, so two definitions of one refusal can disagree with the sentence a caller reads.`);
+ }
+
+ /* 3c. The store a handler holds is a facade, never the handle. The reviewer attached Safety's file and
+        an arbitrary one through a Care tick and committed half of the binder's transaction, and the
+        grep for new DatabaseSync( above saw none of it, because nothing was opened: it was handed over.
+        So the runtime must hand out the facade and confirm the transaction is still its own before it
+        commits, and the facade's own rule is run here against every spelling of every escape found. */
+ if (!/store: facades\.get\(engine\)!/.test(runtimeSource) || /store: stores\.get\(/.test(runtimeSource)) throw new Error('packages/engines/src/runtime/runtime.ts hands a handler something other than the store facade. The DatabaseSync handle attaches, commits and vacuums whatever its type says.');
+ if ((runtimeSource.match(/if \(!db\.isTransaction\) throw/g) ?? []).length < 2) throw new Error('packages/engines/src/runtime/runtime.ts no longer confirms, after a handler and after a tick or a delivery, that the transaction it is about to commit is still the one it began.');
+ const { refusalFor } = await import('../packages/engines/src/runtime/facade.ts');
+ const storeEscapes = ['COMMIT', "attach database 'x' as y", "/* only a read */ ATTACH 'x' AS y", 'DETACH y', 'BEGIN', 'end', 'ROLLBACK', 'SAVEPOINT s', 'RELEASE s', "VACUUM INTO 'x'", 'EXPLAIN SELECT 1', 'PRAGMA writable_schema = 1', 'PRAGMA other.table_info(t)', 'SELECT * FROM _runtime_replays', 'SELECT * FROM "_RUNTIME_replays"', 'SELECT * FROM [_runtime_replays]', "SELECT * FROM '_runtime_replays'", 'SELECT 1; SELECT 2'];
+ for (const sql of storeEscapes) if (!refusalFor(sql)) throw new Error(`packages/engines/src/runtime/facade.ts lets a handler run ${JSON.stringify(sql)} against its store. ${runtimeRefusalOf('store-statement-refused')?.why ?? ''}`);
+ for (const sql of ['SELECT ref FROM notes', "INSERT INTO notes (ref) VALUES ('a; COMMIT; b')", 'PRAGMA table_info(notes)', 'SELECT 1;', 'CREATE TABLE IF NOT EXISTS notes (ref TEXT)']) if (refusalFor(sql)) throw new Error(`packages/engines/src/runtime/facade.ts refuses ${JSON.stringify(sql)}, which only touches the engine's own tables. A facade that refuses ordinary work is one somebody routes around.`);
+
+ /* 4. A route built on the runtime names a handler in its own engine's directory that registers it. */
+ const { routes: routesForRuntime } = loadApis();
+ const onRuntime = routesForRuntime.filter(r => r.status === 'built' && r.enforcedBy?.mechanism === runtimeSettings.mechanism);
+ for (const r of onRuntime) {
+  const where = `${routeKey(r)} in ${r.file}`;
+  const directory = `packages/engines/src/${r.engine}/`;
+  if (!r.evidence?.file?.startsWith(directory)) enginesFail('route-belongs-to-another-engine', `${where} is built on the engine runtime and its evidence is ${JSON.stringify(r.evidence?.file)}, not a file under ${directory}.`);
+  if (!existsSync(r.evidence.file) || r.evidence.handler !== `'${routeKey(r)}'` || !read(r.evidence.file).includes(r.evidence.handler)) enginesFail('route-not-in-the-contract', `${where} is built on the engine runtime and ${r.evidence.file} does not register '${routeKey(r)}' by that exact key.`);
+ }
+ for (const r of routesForRuntime.filter(r => r.enforcedBy?.mechanism === runtimeSettings.mechanism && r.status !== 'built')) throw new Error(`${routeKey(r)} claims the engine runtime's enforcement and is not built.`);
+
+ console.log(`The engine runtime refuses to start without ${runtimeSettings.flag}=${runtimeSettings.flagValue} in its factory, answers on loopback to a loopback Host only, and nothing in deploy/ names it. ${engineSources.length} source files under packages/engines/src read, ${importsRead} imports among them, and no engine reaches another engine's directory or opens a database; ${onRuntime.length} ${onRuntime.length === 1 ? 'route is' : 'routes are'} built on the runtime, each registered by exactly its key in its own engine's directory.`);
+}
+/* ==== end of Engine Runtime & Core (Wave 3) ========================================================= */
 
 /* ==== PLATFORM INTEGRATIONS: THE OPEN-SOURCE REGISTER ==============================================
    ADDED BY THE PLATFORM INTEGRATIONS LEAD. Kept in one block, after everything else, so a merge with
@@ -6355,111 +6636,6 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  console.log(`The open-source register holds ${register.components.length} components and ${register.owned.length} owned parts, ${linkCount} links to real engines, routes, doors and capabilities, ${proposedDoors.size} proposed doors, ${unverifiedCount} honestly unverified sources — and ${adoptedCount} adopted, across ${manifests.length} manifests that declare none of them.`);
 }
 /* ==== end of PLATFORM INTEGRATIONS: THE OPEN-SOURCE REGISTER ======================================== */
-
-/* ==== Engine Runtime & Core (Wave 3): packages/engines ==============================================
-
-   Added by the Engine Runtime & Core lead. Self-contained; the one edit inside the Wave 2 API section is
-   the engines-runtime:callers case in deriveCallers. The engines run on a development runtime that binds
-   handlers to the frozen API contract and carries their events on a bus held to the event contract.
-   What this block holds it to: the runtime refuses to start without its flag in the factory, serves
-   loopback only and checks the Host header, and nothing in deploy/ names it; one engine's code never
-   reaches another engine's directory or opens a database of its own; and a route marked built on the
-   runtime names a handler file in its own engine's directory that registers exactly that route. */
-{
- const runtimeSettings = JSON.parse(read('packages/catalog/apis.json')).engineRuntime;
- const { posix } = await import('node:path');
- const runtimeRefusalOf = id => runtimeSettings?.refusals?.find(x => x.id === id);
- const enginesFail = (id, detail) => { const r = runtimeRefusalOf(id); throw new Error(`${detail}${r ? ` ${r.statement} ${r.why}` : ''}`); };
- if (!runtimeSettings || runtimeSettings.package !== 'packages/engines' || runtimeSettings.flag !== 'MYTHUSO_ENGINES' || runtimeSettings.flagValue !== 'synthetic-data-only' || !Array.isArray(runtimeSettings.binderCannotAdmit) || !runtimeSettings.why?.trim()) throw new Error('packages/catalog/apis.json no longer describes the engine runtime: its package, its synthetic-data flag, the callers its binder cannot admit and why it exists.');
- for (const id of ['route-not-in-the-contract', 'route-withdrawn', 'route-belongs-to-another-engine', 'subscription-not-declared', 'engine-fault', 'field-of-the-wrong-type']) if (!runtimeRefusalOf(id)?.statement?.trim() || !runtimeRefusalOf(id)?.why?.trim()) throw new Error(`packages/catalog/apis.json#engineRuntime has lost the refusal "${id}", or its sentence or its reasoning.`);
-
- /* 1. Registered, zero-dependency, and every suite under src/ run — including each engine's domain tests. */
- const rootForEngines = JSON.parse(read('package.json'));
- if (!rootForEngines.workspaces.includes('packages/engines') || !/-w @mythuso\/engines/.test(rootForEngines.scripts.check) || !/-w @mythuso\/engines/.test(rootForEngines.scripts.test)) throw new Error('The root package.json no longer typechecks and tests packages/engines. A runtime whose refusals nobody has seen fire is a runtime that says yes.');
- const enginesPackage = JSON.parse(read('packages/engines/package.json'));
- if (enginesPackage.dependencies || enginesPackage.devDependencies) throw new Error('packages/engines declares dependencies; it is zero-dependency, like the services it stands in for.');
- if (enginesPackage.scripts?.test !== 'node --test "src/**/*.test.ts"') throw new Error('packages/engines no longer runs every src/**/*.test.ts, so an engine\'s domain suite could stop running without anybody noticing.');
-
- /* 2. Not a service: the flag in the factory, loopback and Host at the door, and nothing in deploy/. */
- const runtimeSource = read('packages/engines/src/runtime/runtime.ts');
- if (!/if \(options\.env\[settings\.flag\] !== settings\.flagValue\) throw new RuntimeRefusedToStart/.test(runtimeSource)) throw new Error(`createRuntime() in packages/engines/src/runtime/runtime.ts no longer refuses without ${runtimeSettings.flag}=${runtimeSettings.flagValue}, so importing the library skips the door the server goes through.`);
- const enginesServer = read('packages/engines/src/server.ts');
- if (!/const HOST = '127\.0\.0\.1'/.test(enginesServer) || !/server\.listen\(port, host\)/.test(enginesServer) || !/LOOPBACK\.has\(req\.socket\.remoteAddress/.test(enginesServer) || !/loopbackHosts\.has\(hostName\(req\.headers\.host\)\)/.test(enginesServer)) throw new Error('packages/engines/src/server.ts no longer binds to 127.0.0.1 and refuses a request that did not arrive on loopback, addressed to a loopback name.');
- for (const file of files('deploy')) if (/packages\/engines|@mythuso\/engines|MYTHUSO_ENGINES|npm run engines/.test(read(file))) throw new Error(`${file} names the development engine runtime. It answers with synthetic data, believes a role from a header, and is never deployed.`);
-
- /* 3. Store isolation. One module opens databases; an engine's code imports its own directory, the
-       runtime's interface and the catalog, and nothing else — not another engine, not a package. */
- const engineIdsForRuntime = JSON.parse(read('packages/catalog/events.json')).engines.map(e => e.id);
- const engineSources = files('packages/engines/src').filter(f => f.endsWith('.ts'));
- let importsRead = 0;
- for (const file of engineSources) {
-  const source = read(file);
-  const [top] = posix.relative('packages/engines/src', file).split('/');
-  /* The trail's own test opens the trail file to tamper with it, which is the point of the test. */
-  const opensDatabase = /new DatabaseSync\(/.test(source) || /^import (?!type)[^;]*from 'node:sqlite'/m.test(source);
-  if (opensDatabase && file !== 'packages/engines/src/runtime/store.ts' && file !== 'packages/engines/src/runtime/runtime.test.ts') throw new Error(`${file} opens a SQLite database itself. Only packages/engines/src/runtime/store.ts opens a store, and it hands each engine its own.`);
-  if (engineIdsForRuntime.includes(top) && /_runtime_/.test(source)) throw new Error(`${file} names a _runtime_ table. The replay table in an engine's store is the binder's, and an engine that edits it can make a second charge look like a replay.`);
-  for (const m of source.matchAll(/(?:^|\n)\s*(?:import|export)\s[^;]*?from\s+'([^']+)'|import\(\s*'([^']+)'\s*\)/g)) {
-   const spec = m[1] ?? m[2];
-   importsRead++;
-   if (spec.startsWith('node:')) continue;
-   if (!spec.startsWith('.')) throw new Error(`${file} imports "${spec}". packages/engines is zero-dependency.`);
-   const target = posix.normalize(posix.join(posix.dirname(file), spec));
-   const [targetTop] = posix.relative('packages/engines/src', target).split('/');
-   const inside = !target.startsWith('packages/engines/src/') ? null : targetTop;
-   if (engineIdsForRuntime.includes(top)) {
-    if (inside !== top && inside !== 'runtime' && !target.startsWith('packages/catalog/')) enginesFail('route-belongs-to-another-engine', `${file} imports ${target}. An engine's code reaches its own directory, the runtime and the catalog; another engine is reached through a route or an event, and its store not at all.`);
-   } else if (top === 'runtime' && engineIdsForRuntime.includes(inside)) {
-    throw new Error(`${file} imports ${target}. The runtime knows no engine by name; engines are discovered and bound.`);
-   }
-  }
- }
-
- /* 3b. A stored reply belongs to one caller and one request. The Money lead found replays keyed by
-        route, role and key, which handed one patient's payment result to another who chose the same
-        key and answered a changed request with the first result. The replay table's key names the
-        caller's reference, the binder compares a digest of the declared fields, and a mismatch is
-        refused with the shared refusal rather than replayed. */
- const replayStore = read('packages/engines/src/runtime/store.ts');
- if (!/PRIMARY KEY \(route, role, caller_ref, idempotency_key\)/.test(replayStore) || !/request_digest TEXT NOT NULL/.test(replayStore)) throw new Error('packages/engines/src/runtime/store.ts no longer keys stored replies by the caller\'s reference and keeps the request digest beside each. A reply keyed by role alone is one person\'s answer waiting to be handed to another.');
- if (!/caller_ref = \?/.test(runtimeSource) || !/row\.request_digest !== digest\) return render\(shared\('idempotency-key-reused'\)\)/.test(runtimeSource) || !/runtimeRefusal\('caller-unidentified'\)/.test(runtimeSource)) throw new Error('packages/engines/src/runtime/runtime.ts no longer looks a replay up by the caller\'s reference, refuses an unidentified caller, and refuses a reused key whose request differs. A replay that skips any of the three answers somebody with an answer that was not theirs.');
- if (!JSON.parse(read('packages/catalog/apis.json')).sharedRefusals.some(r => r.id === 'idempotency-key-reused' && r.status === 409)) throw new Error('packages/catalog/apis.json has lost the shared refusal idempotency-key-reused, so a reused key has no sentence to be refused with.');
- /* An engine never redeclares a shared refusal. The Wave 2 section already refuses a route that does;
-    an engine file's own refusals were checked for shape only, so an engine-level idempotency-key-reused
-    with other words would have passed. The binder answers a reused key before any handler runs and a
-    declared refusal is looked up route first, engine second, shared last, so a second definition is at
-    best never read and at worst read instead of the shared one. Every engine inherits the shared list. */
- const sharedRefusalIds = new Set(JSON.parse(read('packages/catalog/apis.json')).sharedRefusals.map(r => r.id));
- for (const { file, doc } of loadApis().engines) {
-  for (const refusal of doc.refusals ?? []) if (sharedRefusalIds.has(refusal.id)) throw new Error(`${file} redeclares the shared refusal "${refusal.id}" among its engine refusals. Every engine inherits the shared refusals already, and the binder renders an engine's own definition before the shared one, so two definitions of one refusal can disagree with the sentence a caller reads.`);
- }
-
- /* 3c. The store a handler holds is a facade, never the handle. The reviewer attached Safety's file and
-        an arbitrary one through a Care tick and committed half of the binder's transaction, and the
-        grep for new DatabaseSync( above saw none of it, because nothing was opened: it was handed over.
-        So the runtime must hand out the facade and confirm the transaction is still its own before it
-        commits, and the facade's own rule is run here against every spelling of every escape found. */
- if (!/store: facades\.get\(engine\)!/.test(runtimeSource) || /store: stores\.get\(/.test(runtimeSource)) throw new Error('packages/engines/src/runtime/runtime.ts hands a handler something other than the store facade. The DatabaseSync handle attaches, commits and vacuums whatever its type says.');
- if ((runtimeSource.match(/if \(!db\.isTransaction\) throw/g) ?? []).length < 2) throw new Error('packages/engines/src/runtime/runtime.ts no longer confirms, after a handler and after a tick or a delivery, that the transaction it is about to commit is still the one it began.');
- const { refusalFor } = await import('../packages/engines/src/runtime/facade.ts');
- const storeEscapes = ['COMMIT', "attach database 'x' as y", "/* only a read */ ATTACH 'x' AS y", 'DETACH y', 'BEGIN', 'end', 'ROLLBACK', 'SAVEPOINT s', 'RELEASE s', "VACUUM INTO 'x'", 'EXPLAIN SELECT 1', 'PRAGMA writable_schema = 1', 'PRAGMA other.table_info(t)', 'SELECT * FROM _runtime_replays', 'SELECT * FROM "_RUNTIME_replays"', 'SELECT * FROM [_runtime_replays]', "SELECT * FROM '_runtime_replays'", 'SELECT 1; SELECT 2'];
- for (const sql of storeEscapes) if (!refusalFor(sql)) throw new Error(`packages/engines/src/runtime/facade.ts lets a handler run ${JSON.stringify(sql)} against its store. ${runtimeRefusalOf('store-statement-refused')?.why ?? ''}`);
- for (const sql of ['SELECT ref FROM notes', "INSERT INTO notes (ref) VALUES ('a; COMMIT; b')", 'PRAGMA table_info(notes)', 'SELECT 1;', 'CREATE TABLE IF NOT EXISTS notes (ref TEXT)']) if (refusalFor(sql)) throw new Error(`packages/engines/src/runtime/facade.ts refuses ${JSON.stringify(sql)}, which only touches the engine's own tables. A facade that refuses ordinary work is one somebody routes around.`);
-
- /* 4. A route built on the runtime names a handler in its own engine's directory that registers it. */
- const { routes: routesForRuntime } = loadApis();
- const onRuntime = routesForRuntime.filter(r => r.status === 'built' && r.enforcedBy?.mechanism === runtimeSettings.mechanism);
- for (const r of onRuntime) {
-  const where = `${routeKey(r)} in ${r.file}`;
-  const directory = `packages/engines/src/${r.engine}/`;
-  if (!r.evidence?.file?.startsWith(directory)) enginesFail('route-belongs-to-another-engine', `${where} is built on the engine runtime and its evidence is ${JSON.stringify(r.evidence?.file)}, not a file under ${directory}.`);
-  if (!existsSync(r.evidence.file) || r.evidence.handler !== `'${routeKey(r)}'` || !read(r.evidence.file).includes(r.evidence.handler)) enginesFail('route-not-in-the-contract', `${where} is built on the engine runtime and ${r.evidence.file} does not register '${routeKey(r)}' by that exact key.`);
- }
- for (const r of routesForRuntime.filter(r => r.enforcedBy?.mechanism === runtimeSettings.mechanism && r.status !== 'built')) throw new Error(`${routeKey(r)} claims the engine runtime's enforcement and is not built.`);
-
- console.log(`The engine runtime refuses to start without ${runtimeSettings.flag}=${runtimeSettings.flagValue} in its factory, answers on loopback to a loopback Host only, and nothing in deploy/ names it. ${engineSources.length} source files under packages/engines/src read, ${importsRead} imports among them, and no engine reaches another engine's directory or opens a database; ${onRuntime.length} ${onRuntime.length === 1 ? 'route is' : 'routes are'} built on the runtime, each registered by exactly its key in its own engine's directory.`);
-}
-/* ==== end of Engine Runtime & Core (Wave 3) ========================================================= */
 
 /* ==== Money (Wave 3): payments, payouts and doctors' fees ===========================================
 

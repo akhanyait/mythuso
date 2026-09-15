@@ -23,7 +23,7 @@ object ApisData {
     )
 
     val POST_CORE_EVENTS = Route("postCoreEvents", "POST", "/v1/core/events", "/v1/core/events", 1, "core", listOf("engine:access", "engine:pulse", "engine:care", "engine:clinical", "engine:safety", "engine:movement", "engine:trust", "engine:record", "engine:medicines", "engine:devices", "engine:money"), listOf("audit"), false, "proposed")
-    val POST_CORE_LOOPS = Route("postCoreLoops", "POST", "/v1/core/loops", "/v1/core/loops", 1, "core", listOf("engine:care", "engine:safety", "engine:medicines", "engine:access", "engine:money", "engine:movement"), listOf("treatment", "dispatch", "emergency"), true, "proposed")
+    val POST_CORE_LOOPS = Route("postCoreLoops", "POST", "/v1/core/loops", "/v1/core/loops", 1, "core", listOf("engine:care", "engine:safety", "engine:medicines", "engine:access", "engine:movement"), listOf("treatment", "dispatch", "emergency"), true, "proposed")
     val POST_CORE_LOOPS_BY_LOOP_REF_ACKNOWLEDGE = Route("postCoreLoopsByLoopRefAcknowledge", "POST", "/v1/core/loops/{loopRef}/acknowledge", "/v1/core/loops/{loopRef}/acknowledge", 1, "core", listOf("nurse", "doctor", "ops-desk", "engine:care", "engine:safety"), listOf("treatment", "dispatch", "emergency"), true, "proposed")
     val POST_CORE_LOOPS_BY_LOOP_REF_ESCALATE = Route("postCoreLoopsByLoopRefEscalate", "POST", "/v1/core/loops/{loopRef}/escalate", "/v1/core/loops/{loopRef}/escalate", 1, "core", listOf("ops-desk", "engine:safety"), listOf("treatment", "dispatch", "emergency"), true, "proposed")
     val POST_CORE_LOOPS_BY_LOOP_REF_CLOSE = Route("postCoreLoopsByLoopRefClose", "POST", "/v1/core/loops/{loopRef}/close", "/v1/core/loops/{loopRef}/close", 1, "core", listOf("nurse", "doctor", "ops-desk"), listOf("treatment", "dispatch", "emergency"), true, "proposed")
@@ -70,7 +70,7 @@ object ApisData {
     val POST_ACCESS_HOUSEHOLDS = Route("postAccessHouseholds", "POST", "/v1/access/households", "/v1/access/households", 1, "access", listOf("patient", "caregiver"), listOf("subject-access"), false, "proposed")
     val POST_ACCESS_SPONSORS = Route("postAccessSponsors", "POST", "/v1/access/sponsors", "/v1/access/sponsors", 1, "access", listOf("patient", "sponsor"), listOf("billing"), false, "proposed")
     val POST_ACCESS_BILL_SPLITS = Route("postAccessBillSplits", "POST", "/v1/access/bill-splits", "/v1/access/bill-splits", 1, "access", listOf("patient", "caregiver", "sponsor"), listOf("billing"), false, "proposed")
-    val POST_CARE_OFFERS = Route("postCareOffers", "POST", "/v1/care/offers", "/v1/care/offers", 1, "care", listOf("dispatcher", "engine:care"), listOf("dispatch"), true, "built")
+    val POST_CARE_OFFERS = Route("postCareOffers", "POST", "/v1/care/offers", "/v1/care/offers", 1, "care", listOf("dispatcher"), listOf("dispatch"), true, "built")
     val POST_CARE_OFFERS_BY_OFFER_REF_ACCEPT = Route("postCareOffersByOfferRefAccept", "POST", "/v1/care/offers/{offerRef}/accept", "/v1/care/offers/{offerRef}/accept", 1, "care", listOf("nurse", "locum"), listOf("dispatch"), true, "built")
     val POST_CARE_OFFERS_BY_OFFER_REF_DECLINE = Route("postCareOffersByOfferRefDecline", "POST", "/v1/care/offers/{offerRef}/decline", "/v1/care/offers/{offerRef}/decline", 1, "care", listOf("nurse", "locum"), listOf("dispatch"), true, "built")
     val POST_CARE_VISITS_BY_APPOINTMENT_REF_START = Route("postCareVisitsByAppointmentRefStart", "POST", "/v1/care/visits/{appointmentRef}/start", "/v1/care/visits/{appointmentRef}/start", 1, "care", listOf("nurse", "locum"), listOf("treatment"), false, "built")
@@ -86,7 +86,7 @@ object ApisData {
     val GET_CLINICAL_REVIEWS = Route("getClinicalReviews", "GET", "/v1/clinical/reviews", "/v1/clinical/reviews", 1, "clinical", listOf("doctor"), listOf("treatment"), false, "proposed")
     val POST_CLINICAL_REVIEWS_BY_REVIEW_REF_SIGN = Route("postClinicalReviewsByReviewRefSign", "POST", "/v1/clinical/reviews/{reviewRef}/sign", "/v1/clinical/reviews/{reviewRef}/sign", 1, "clinical", listOf("doctor"), listOf("treatment"), false, "proposed")
     val POST_CLINICAL_CONSULTATIONS = Route("postClinicalConsultations", "POST", "/v1/clinical/consultations", "/v1/clinical/consultations", 1, "clinical", listOf("doctor", "nurse"), listOf("treatment"), false, "proposed")
-    val POST_CLINICAL_TRIAGE_V2 = Route("postClinicalTriageV2", "POST", "/v1/clinical/triage", "/v1/clinical/triage", 2, "clinical", listOf("nurse", "doctor", "engine:access"), listOf("treatment"), false, "proposed")
+    val POST_CLINICAL_TRIAGE_V2 = Route("postClinicalTriageV2", "POST", "/v1/clinical/triage", "/v1/clinical/triage", 2, "clinical", listOf("nurse", "doctor"), listOf("treatment"), false, "proposed")
     val POST_CLINICAL_RESULTS_BY_RESULT_REF_ACKNOWLEDGE = Route("postClinicalResultsByResultRefAcknowledge", "POST", "/v1/clinical/results/{resultRef}/acknowledge", "/v1/clinical/results/{resultRef}/acknowledge", 1, "clinical", listOf("doctor", "nurse"), listOf("diagnostics"), false, "proposed")
     val POST_CLINICAL_GUIDANCE = Route("postClinicalGuidance", "POST", "/v1/clinical/guidance", "/v1/clinical/guidance", 1, "clinical", listOf("nurse", "doctor", "engine:access"), listOf("treatment"), false, "proposed")
     val POST_CLINICAL_PROMS = Route("postClinicalProms", "POST", "/v1/clinical/proms", "/v1/clinical/proms", 1, "clinical", listOf("patient"), listOf("treatment"), false, "proposed")
@@ -171,7 +171,7 @@ object ApisData {
     val POST_MONEY_VOUCHERS = Route("postMoneyVouchers", "POST", "/v1/money/vouchers", "/v1/money/vouchers", 1, "money", listOf("patient", "caregiver", "sponsor", "corner"), listOf("billing"), true, "proposed")
     val POST_MONEY_GIFTS = Route("postMoneyGifts", "POST", "/v1/money/gifts", "/v1/money/gifts", 1, "money", listOf("caregiver", "sponsor"), listOf("billing"), true, "proposed")
     val POST_MONEY_GROUPS = Route("postMoneyGroups", "POST", "/v1/money/groups", "/v1/money/groups", 1, "money", listOf("patient", "sponsor", "employer"), listOf("billing"), true, "proposed")
-    val POST_MONEY_CLAIMS_V2 = Route("postMoneyClaimsV2", "POST", "/v1/money/claims", "/v1/money/claims", 2, "money", listOf("admin", "engine:money"), listOf("billing"), true, "proposed")
+    val POST_MONEY_CLAIMS_V2 = Route("postMoneyClaimsV2", "POST", "/v1/money/claims", "/v1/money/claims", 2, "money", listOf("admin"), listOf("billing"), true, "proposed")
     val POST_MONEY_MARKET_ORDERS = Route("postMoneyMarketOrders", "POST", "/v1/money/market-orders", "/v1/money/market-orders", 1, "money", listOf("patient", "caregiver"), listOf("billing"), true, "proposed")
 
     val routes = listOf(
