@@ -6109,3 +6109,139 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  console.log(`The engine runtime refuses to start without ${runtimeSettings.flag}=${runtimeSettings.flagValue} in its factory, answers on loopback to a loopback Host only, and nothing in deploy/ names it. ${engineSources.length} source files under packages/engines/src read, ${importsRead} imports among them, and no engine reaches another engine's directory or opens a database; ${onRuntime.length} ${onRuntime.length === 1 ? 'route is' : 'routes are'} built on the runtime, each registered by exactly its key in its own engine's directory.`);
 }
 /* ==== end of Engine Runtime & Core (Wave 3) ========================================================= */
+
+/* ==== Money (Wave 3): payments, payouts and doctors' fees ===========================================
+
+   Added by the Money lead. Self-contained. Thuso Money's rules live in packages/catalog/money.json and
+   packages/catalog/apis/money.json and are enforced in packages/engines/src/money; what this block holds
+   them to is the handful of ways each could quietly stop being true while every test still passed:
+
+     1. The native copy of the contract is the generator's output, byte for byte.
+     2. A range is not a price. The doctor's per-case fee is null with nobody's name beside it, or it is
+        a number inside the cited range with a name and a day — and no Money screen types the range.
+     3. The simulated provider says what apps/api's says when it declines, word for word, and
+     4. answers every reference the same way, so the web preview and the engine's tests are told the
+        same thing about the same visit or week.
+     5. A nurse's week is her share of each visit in services.json, and nothing else, through the ledger.
+     6. Money hears only its list and publishes only its own live events. */
+{
+ const { emitMoney } = await import('./emit-money.mjs');
+ const moneyContract = JSON.parse(read('packages/catalog/money.json'));
+ const moneyApi = JSON.parse(read('packages/catalog/apis/money.json'));
+ const modelForMoney = JSON.parse(read('packages/catalog/business-model.json'));
+ const servicesForMoney = JSON.parse(read('packages/catalog/services.json'));
+ const earningsForMoney = JSON.parse(read('packages/catalog/earnings.json'));
+ const eventsForMoney = JSON.parse(read('packages/catalog/events.json'));
+ const moneyRefusal = id => moneyApi.refusals.find(r => r.id === id) ?? moneyApi.routes.flatMap(r => r.refusals).find(r => r.id === id);
+
+ /* 1. Generated, and the same as its sources. Compared here rather than in the shared list because it
+       has two sources, and a refusal sentence changed in the API contract must regenerate it too. */
+ for (const file of emitMoney()) {
+  if (!existsSync(file.path)) throw new Error(`${file.path} has not been generated from packages/catalog/money.json. Run: npm run money`);
+  for (const source of ['packages/catalog/money.json', 'packages/catalog/apis/money.json']) {
+   if (statSync(file.path).mtimeMs < statSync(source).mtimeMs) throw new Error(`${file.path} is older than ${source}. Run: npm run money`);
+  }
+  if (read(file.path) !== file.content) throw new Error(`${file.path} is not what packages/catalog/money.json generates. Either it was edited by hand — it says at the top not to be — or the generator changed. Run: npm run money`);
+ }
+
+ /* 2. A range is not a price. The easy fix for an undecided fee is the middle of the range, and it would
+       be a figure on a doctor's screen that nobody agreed to. */
+ const undecided = moneyRefusal('doctor-fee-undecided');
+ if (!undecided?.statement?.trim()) throw new Error('packages/catalog/apis/money.json has lost the refusal doctor-fee-undecided, so nothing says why a doctor is not paid while the fee is undecided.');
+ if (!moneyContract.doctorFees?.length) throw new Error('packages/catalog/money.json names no doctor\'s fee, so review.billable@1 has nothing to be billed against.');
+ const citedRanges = [];
+ for (const fee of moneyContract.doctorFees) {
+  const cited = fee.rangeFrom?.file === 'packages/catalog/business-model.json' ? modelForMoney : undefined;
+  const range = String(fee.rangeFrom?.path ?? '').split('.').reduce((at, key) => at?.[key], cited);
+  if (!Array.isArray(range) || range.length !== 2 || !(range[0] > 0 && range[0] < range[1])) throw new Error(`The fee "${fee.feeCode}" cites ${JSON.stringify(fee.rangeFrom)}, which is not a range of two numbers. A fee's range is read from the document that gives it, not typed beside it.`);
+  if ('range' in fee || 'price' in fee || 'low' in fee || 'high' in fee) throw new Error(`The fee "${fee.feeCode}" types a range or a price beside its citation. The range lives in ${fee.rangeFrom.file}.`);
+  if (fee.amount === null) {
+   if (fee.decidedBy !== null || fee.decidedOn !== null) throw new Error(`The fee "${fee.feeCode}" names who decided it and when, and has no amount. Either it was decided and the amount is missing, or it was not and the name is invented.`);
+   if (!fee.undecided?.trim() || !fee.whoDecides?.trim()) throw new Error(`The fee "${fee.feeCode}" is undecided and does not say so in a sentence, or does not say who decides it.`);
+  } else if (typeof fee.amount !== 'number' || !fee.decidedBy?.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(fee.decidedOn ?? '') || fee.amount < range[0] || fee.amount > range[1]) {
+   throw new Error(`The fee "${fee.feeCode}" is ${JSON.stringify(fee.amount)}, decided by ${JSON.stringify(fee.decidedBy)} on ${JSON.stringify(fee.decidedOn)}, against a cited range of R${range[0]}–R${range[1]}. A decided fee is a number inside the range with a person and a day beside it. ${undecided.statement}`);
+  }
+  citedRanges.push(range);
+ }
+ const moneyScreens = [
+  'apps/web/src/features/DoctorFees.tsx', 'apps/web/src/lib/money.ts',
+  'apps/ios/MyThuso/Features/DoctorFeesView.swift', 'apps/ios/MyThuso/Models/Money.swift',
+  'apps/android/app/src/main/java/za/co/mythuso/ui/MoneyScreens.kt', 'apps/android/app/src/main/java/za/co/mythuso/model/Money.kt',
+  'packages/engines/src/money/domain/fees.ts', 'packages/engines/src/money/engine.ts'
+ ].filter(existsSync);
+ for (const [low, high] of citedRanges) {
+  const typed = new RegExp(`R\\s?(${low}|${high})\\b|\\b${low}\\s?(–|-|to)\\s?R?\\s?${high}\\b`);
+  for (const file of moneyScreens) if (typed.test(read(file))) throw new Error(`${file} types the doctor's fee range. It is read from packages/catalog/business-model.json — on the phones through the generated MoneyData — so the range on a doctor's screen and the range in the funding proposal's model are one number.`);
+ }
+
+ /* 3. The decline sentences are the contract's. apps/api still carries its own copy and reads no contract
+       for them; until it does, the two are held to each other here rather than allowed to part. */
+ const apiPayments = read('apps/api/src/simulation/payments.ts');
+ const declinesBlock = apiPayments.match(/const DECLINES = \[([\s\S]*?)\] as const/);
+ const apiDeclines = declinesBlock ? [...declinesBlock[1].matchAll(/'([^']+)'/g)].map(m => m[1]) : [];
+ if (!apiDeclines.length) throw new Error('apps/api/src/simulation/payments.ts no longer declares DECLINES where this check can read them, so nothing holds its sentences to packages/catalog/money.json.');
+ if (JSON.stringify(apiDeclines) !== JSON.stringify(moneyContract.declines)) throw new Error(`The simulated provider in apps/api declines in different words from packages/catalog/money.json's declines. A patient walking the web preview and the engine's own tests would be told two different things about the same refused card.`);
+
+ /* 4. The two simulators agree. The engine reproduces apps/api's by contract — the seed, the one in five,
+       the sentences — rather than importing it, so the agreement is measured rather than assumed. */
+ const engineProvider = await import('../packages/engines/src/money/domain/provider.ts');
+ const { cardAndEft } = await import('../apps/api/src/simulation/payments.ts');
+ const { bankPayouts } = await import('../apps/api/src/simulation/payouts.ts');
+ const failedDetail = earningsForMoney.states.find(s => s.id === 'failed').detail;
+ const checkedAt = new Date('2026-09-14T08:00:00+02:00');
+ const disagreements = [];
+ const SAMPLES = 80;
+ for (let i = 0; i < SAMPLES; i += 1) {
+  const subject = `MT-CHECK-${i}`;
+  const attemptNumber = 1 + (i % 3);
+  const service = servicesForMoney[i % servicesForMoney.length];
+  const theirs = cardAndEft.produce({ subject, at: checkedAt, detail: { service: service.id, attempt: attemptNumber } });
+  const ours = engineProvider.attempt(subject, attemptNumber, subject, service.price * 100, checkedAt);
+  if ('refused' in theirs || theirs.payload.outcome !== ours.outcome || (theirs.payload.declineReason ?? null) !== (ours.declineReason ?? null) || theirs.payload.providerReference !== ours.providerReference) disagreements.push(`payment ${subject} attempt ${attemptNumber}`);
+  for (const was of ['closed', 'failed']) {
+   const weekId = `w-check-${i}`;
+   const bank = bankPayouts.produce({ subject: weekId, at: checkedAt, detail: { partyId: 'N-205', amountCents: 10000, was } });
+   const advice = engineProvider.advise(weekId, 'N-205', 10000, was, failedDetail, checkedAt);
+   if ('refused' in bank || bank.payload.outcome !== advice.outcome || (bank.payload.failureReason ?? null) !== (advice.failureReason ?? null)) disagreements.push(`payout ${weekId} after ${was}`);
+  }
+ }
+ if (disagreements.length) throw new Error(`packages/engines/src/money/domain/provider.ts and apps/api's simulators disagree about ${disagreements.length} of ${SAMPLES * 3} answers, the first being ${disagreements[0]}. The engine reproduces them by contract, and a reproduction that answers differently is a second simulator.`);
+
+ /* 5. A week is the nurse's share of each visit, through the ledger — and a visit line that names its own
+       amount is refused by the ledger rather than believed. */
+ const payoutsDomain = await import('../packages/engines/src/money/domain/payouts.ts');
+ for (const week of earningsForMoney.weeks) {
+  const byHand = week.lines.reduce((sum, line) => {
+   const kind = earningsForMoney.lineKinds.find(k => k.id === line.kind);
+   const base = line.service ? servicesForMoney.find(s => s.id === line.service).nurseShare : line.amount;
+   return sum + kind.sign * base * 100;
+  }, 0);
+  const throughTheLedger = payoutsDomain.totalCents(payoutsDomain.linesFromEarningsWeek(week));
+  if (throughTheLedger !== byHand) throw new Error(`The ledger works out week ${week.id} as ${throughTheLedger} cents, and the nurse's share of its visits in packages/catalog/services.json is ${byHand}. A payout is that share and nothing else.`);
+ }
+ const namedAmount = payoutsDomain.acceptLine({ kind: 'visit', reference: 'check', serviceId: servicesForMoney[0].id, amountCents: 1 });
+ if (namedAmount?.id !== 'payout-line-names-its-amount') throw new Error(`The ledger accepted a visit line that names its own amount. ${moneyRefusal('payout-line-names-its-amount').statement}`);
+
+ /* 6. Money hears only its list, and publishes only its own live events, each one a route of its declares. */
+ const moneyEngineSource = read('packages/engines/src/money/engine.ts');
+ const heardBlock = moneyEngineSource.match(/export const HEARD[^=]*=\s*\[([^\]]*)\]/);
+ const heard = heardBlock ? [...heardBlock[1].matchAll(/'([^']+)'/g)].map(m => m[1]) : [];
+ if (!heard.length) throw new Error('packages/engines/src/money/engine.ts no longer lists what it hears in HEARD, so nothing here can hold its subscriptions to moneyHears.');
+ const hearsTypes = new Set(eventsForMoney.moneyHears.events.map(e => e.type));
+ for (const key of heard) {
+  const [type, version] = key.split('@');
+  const event = eventsForMoney.events.find(e => e.type === type && e.version === Number(version));
+  if (!hearsTypes.has(type) || !event || event.withdrawn || !event.subscribers.includes('money')) throw new Error(`Money subscribes to ${key}, which is not a live event on its moneyHears list. ${moneyRefusal('hears-only-its-list').statement}`);
+ }
+ const declaredEmits = new Set([...moneyApi.routes.flatMap(r => r.emits), 'payout.scheduled@1', 'payout.paid@1']);
+ const emittedKeys = new Set([...read('packages/engines/src/money/domain/ledger.ts').matchAll(/emit\('([^']+)'/g)].map(m => m[1]));
+ if (!emittedKeys.size) throw new Error('packages/engines/src/money/domain/ledger.ts publishes nothing this check can find, so nothing holds what Money publishes to the event contract.');
+ for (const key of emittedKeys) {
+  const [type, version] = key.split('@');
+  const event = eventsForMoney.events.find(e => e.type === type && e.version === Number(version));
+  if (!event || event.withdrawn || event.owner !== 'money' || !declaredEmits.has(key)) throw new Error(`Money's ledger publishes ${key}, which is not a live event Money owns and declares. A second publisher is a second source of truth.`);
+ }
+
+ console.log(`Thuso Money's contract is generated into ${emitMoney().length} native files and matches them; ${moneyContract.doctorFees.length} doctor's fee is ${moneyContract.doctorFees.every(f => f.amount === null) ? 'undecided, with nobody\'s name beside it, and its range is read from the document that gives it' : 'decided, by a named person, inside its cited range'}; the engine's simulated provider and bank agree with apps/api's on all ${SAMPLES * 3} sampled answers and decline in the contract's words; every sample week is the nurse's share through the ledger; and Money hears ${heard.length} events on its list and publishes ${emittedKeys.size} of its own.`);
+}
+/* ==== end of Money (Wave 3) ========================================================================== */
