@@ -23,7 +23,10 @@ import type { Refusal } from './outcome.ts';
 export type ServiceRow = { readonly id: string; readonly name: string; readonly phase: number; readonly duration: number };
 export type Requirement = {
  readonly serviceId: string;
- readonly roles: readonly string[];
+ /** The roles the row itself holds, for a service whose roles are not an admin setting. */
+ readonly roles?: readonly string[];
+ /** The roleList setting in packages/catalog/care.json that holds this service's roles instead. */
+ readonly rolesFromSetting?: string;
  readonly scope: string | null;
  readonly protocolIds: readonly string[];
  readonly supervisedBy?: string;
@@ -113,6 +116,16 @@ export function refuse(contract: CareContract, path: RoutePath, id: string): Ref
  const route = routeOf(contract, path);
  const found = route.refusals.find(r => r.id === id) ?? contract.sharedRefusals.find(r => r.id === id);
  if (!found) throw new Error(`POST ${path}@${route.version} declares no refusal "${id}", and no route inherits one by that id.`);
+ return { ok: false, route: `${route.method} ${route.path}@${route.version}`, id: found.id, status: found.status, statement: found.statement };
+}
+
+/* A refusal the care engine declares for itself in packages/catalog/apis/care.json's own refusals, answered
+   on one of its routes. Kept apart from refuse() so that a route's frozen refusals are never read as if they
+   had grown one: the runtime finds an engine refusal beside the route's, and says so in the same words. */
+export function refuseForEngine(contract: CareContract, path: RoutePath, id: string): Refusal {
+ const route = routeOf(contract, path);
+ const found = contract.engineRefusals.find(r => r.id === id);
+ if (!found) throw new Error(`packages/catalog/apis/care.json declares no engine refusal "${id}" for POST ${path}@${route.version} to answer with.`);
  return { ok: false, route: `${route.method} ${route.path}@${route.version}`, id: found.id, status: found.status, statement: found.statement };
 }
 

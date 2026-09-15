@@ -63,7 +63,7 @@ export type WithheldReason = 'outside-scope' | 'carer-without-rn' | 'no-base-to-
 export type Withheld = { readonly candidate: Candidate; readonly reason: WithheldReason; readonly statement: string };
 
 export type Match =
- | { readonly kind: 'matched'; readonly requirement: Requirement; readonly ranked: readonly Ranked[]; readonly withheld: readonly Withheld[] }
+ | { readonly kind: 'matched'; readonly requirement: Requirement; readonly roles: readonly string[]; readonly ranked: readonly Ranked[]; readonly withheld: readonly Withheld[] }
  | { readonly kind: 'service-not-offered' }
  | { readonly kind: 'carer-without-rn' }
  | { readonly kind: 'visit-zone-unknown' };
@@ -73,17 +73,32 @@ const trustStatement = (contract: CareContract) =>
 const carerStatement = (contract: CareContract) =>
  contract.routes.find(r => r.path === '/v1/care/offers')!.refusals.find(r => r.id === 'carer-without-rn')!.statement;
 
+/* A service's roles are the row's own, or — for the three visits no named scope covers — the roles in force
+   in the setting the row names, as the caller read them when it started this match. A row naming a setting
+   the caller did not hand over is a fault rather than a service offered to nobody, because nobody would be
+   told why. Whether that value was clinically reviewed is not asked: it is in force either way, and
+   ./settings.ts says why care is not stopped for a review nobody has done yet. */
+export function rolesFor(requirement: Requirement, rolesInForce: Readonly<Record<string, readonly string[]>>): readonly string[] {
+ if (requirement.rolesFromSetting === undefined) return requirement.roles ?? [];
+ const inForce = rolesInForce[requirement.rolesFromSetting];
+ if (!inForce) throw new Error(`${requirement.serviceId} takes its roles from the setting "${requirement.rolesFromSetting}", and the settings in force handed to the matcher do not hold it.`);
+ return inForce;
+}
+
 export function match(
  appointment: AppointmentToFill,
  candidates: readonly Candidate[],
  trust: TrustReader,
  contract: CareContract,
+ /** The scope settings' roles in force, by setting key, as read once when this offer is being made. */
+ rolesInForce: Readonly<Record<string, readonly string[]>>,
  /** Everybody already asked for this appointment. They are neither ranked nor withheld: they were asked. */
  asked: ReadonlySet<string> = new Set()
 ): Match {
  const requirement = requirementFor(contract, appointment.serviceId);
  const service = serviceFor(contract, appointment.serviceId);
  if (!requirement || !service || service.phase > contract.seedPhase) return { kind: 'service-not-offered' };
+ const roles = rolesFor(requirement, rolesInForce);
  /* A supervised service with nobody supervising it is refused as a whole. Matching anybody first
     and checking supervision afterwards is how a carer is offered a house on her own. */
  if (requirement.supervisedBy && !appointment.supervisorRef) return { kind: 'carer-without-rn' };
@@ -97,7 +112,7 @@ export function match(
  const previous = appointment.previousClinicianRefs ?? [];
  for (const candidate of candidates) {
   if (asked.has(candidate.clinicianRef)) continue;
-  const inScope = requirement.roles.includes(candidate.roleId)
+  const inScope = roles.includes(candidate.roleId)
    && (requirement.scope === null || candidate.scope.includes(requirement.scope));
   if (!inScope) { withheld.push({ candidate, reason: 'outside-scope', statement: contract.sentences.outsideScope }); continue; }
   if (requirement.supervisedBy && candidate.supervisorRef !== appointment.supervisorRef) {
@@ -121,5 +136,5 @@ export function match(
   || (tier(a) === 1 ? previous.indexOf(a.candidate.clinicianRef) - previous.indexOf(b.candidate.clinicianRef) : 0)
   || a.distanceKm - b.distanceKm
   || a.candidate.clinicianRef.localeCompare(b.candidate.clinicianRef));
- return { kind: 'matched', requirement, ranked, withheld };
+ return { kind: 'matched', requirement, roles, ranked, withheld };
 }

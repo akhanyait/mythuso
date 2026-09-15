@@ -7034,8 +7034,14 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  const roleIds = new Set(careVetting.roles.map(r => r.id));
  for (const s of careContract.services) {
   if (!careServices.some(x => x.id === s.serviceId)) throw new Error(`packages/catalog/care.json has a row for "${s.serviceId}", which services.json does not sell.`);
-  for (const role of s.roles) if (!roleIds.has(role)) throw new Error(`packages/catalog/care.json lets the role "${role}" be offered ${s.serviceId}, and the vetting register has no such role.`);
-  if (s.scope !== null) for (const role of s.roles) {
+  /* A row holds its roles, or names the roleList setting that holds them, never both: two answers to who may
+     be sent are two places for them to disagree. */
+  if (('roles' in s) === ('rolesFromSetting' in s)) throw new Error(`packages/catalog/care.json's row for "${s.serviceId}" holds ${'roles' in s ? 'both roles and rolesFromSetting' : 'neither roles nor rolesFromSetting'}. Who may be offered it lives in one place.`);
+  const fromSetting = 'rolesFromSetting' in s ? (careContract.settings?.items ?? []).find(item => item.key === s.rolesFromSetting && item.type === 'roleList') : null;
+  if ('rolesFromSetting' in s && !fromSetting) throw new Error(`packages/catalog/care.json takes ${s.serviceId}'s roles from "${s.rolesFromSetting}", which is not a roleList setting in its settings block.`);
+  const rowRoles = fromSetting ? fromSetting.allowedRoles.roles : s.roles;
+  for (const role of rowRoles) if (!roleIds.has(role)) throw new Error(`packages/catalog/care.json lets the role "${role}" be offered ${s.serviceId}, and the vetting register has no such role.`);
+  if (s.scope !== null) for (const role of rowRoles) {
    if (!(careVetting.roles.find(r => r.id === role)?.scope?.options ?? []).includes(s.scope)) throw new Error(`packages/catalog/care.json requires the scope "${s.scope}" for ${s.serviceId}, which the vetting register does not give a ${role}.`);
   }
   for (const id of s.protocolIds) if (!careProtocols.protocols.some(p => p.id === id)) throw new Error(`packages/catalog/care.json governs ${s.serviceId} by "${id}", which the protocol register does not hold.`);
@@ -7061,10 +7067,14 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
         apps/web/src/lib/settings.ts. An offer that read the setting again is one an admin could make lapse
         under a nurse reading it. */
  const offersSource = read('packages/engines/src/care/domain/offers.ts');
- if (/expiresAfterMinutes/.test(offersSource + read('packages/engines/src/care/domain/contract.ts')) || (offersSource.match(/this\.#expiry\(\)/g) ?? []).length !== 1
-  || !offersSource.includes('expiresAt: addMinutes(now, expiry.minutes).toISOString(),') || !offersSource.includes('settingsVersion: expiry.settingsVersion,')
-  || !offersSource.includes('#lapsedAt = (offer: Offer, now: Date) => now.getTime() >= Date.parse(offer.expiresAt);')) throw new Error('packages/engines/src/care/domain/offers.ts no longer reads the expiry in force once, as it makes an offer, and keeps it on the offer.');
- if (!read('packages/engines/src/care/engine.ts').includes('expiry: () => offerExpiryOf(settingsIn(careSettings, ctx.store))') || !read('apps/web/src/lib/care-visit.ts').includes('expiry: offerExpiryNow')) throw new Error('The Care engine or the web preview no longer hands the offer desk the expiry in force from its own settings history.');
+ if (/expiresAfterMinutes/.test(offersSource + read('packages/engines/src/care/domain/contract.ts')) || (offersSource.match(/this\.#settings\(\)/g) ?? []).length !== 1
+  || !offersSource.includes('expiresAt: addMinutes(now, inForce.offerExpiryMinutes).toISOString(),') || !offersSource.includes('settingsVersion: inForce.settingsVersion,')
+  || !offersSource.includes('match(appointment, this.#candidates(), this.#trust, this.#contract, inForce.roles, asked)') || !offersSource.includes('roles: found.roles,')
+  || !offersSource.includes('#lapsedAt = (offer: Offer, now: Date) => now.getTime() >= Date.parse(offer.expiresAt);')) throw new Error('packages/engines/src/care/domain/offers.ts no longer reads the settings in force once, as it makes an offer, matches with the roles they give, and keeps the expiry and the roles on the offer.');
+ const careEngineSource = read('packages/engines/src/care/engine.ts');
+ const careVisitWeb = read('apps/web/src/lib/care-visit.ts');
+ if (!careEngineSource.includes('const inForce = () => careInForceOf(settingsIn(careSettings, ctx.store));') || !/new OfferDesk\(\{[^\n]*settings: inForce \}\)/.test(careEngineSource) || !/new VisitDesk\(\{[^\n]*settings: inForce,/.test(careEngineSource)
+  || !careVisitWeb.includes('settings: careSettingsNow });') || !careVisitWeb.includes('settings: careSettingsNow, record:')) throw new Error('The Care engine or the web preview no longer hands the offer and visit desks the settings in force from its own settings history.');
  const orderIds = offers.order.map(x => x.id).join(',');
  if (orderIds !== 'named,previous,nearest') throw new Error(`packages/catalog/care.json orders offers ${orderIds}; packages/engines/src/care/domain/matching.ts ranks named, then previous, then nearest.`);
 
@@ -7110,6 +7120,10 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   for (const m of source.matchAll(/refuse\('([a-z0-9-]+)'\)/g)) {
    citedRefusals++;
    if (!anyCareRefusal.has(m[1])) throw new Error(`${file} answers with the refusal "${m[1]}", which no care route, the care engine or the shared refusals declare.`);
+  }
+  for (const m of source.matchAll(/refuseForEngine\(this\.#contract,\s*ROUTES\.(\w+),\s*'([a-z0-9-]+)'\)/g)) {
+   citedRefusals++;
+   if (!routePaths[m[1]] || !careApi.refusals.some(r => r.id === m[2] && r.statement?.trim())) throw new Error(`${file} answers POST ${routePaths[m[1]] ?? m[1]} with the engine refusal "${m[2]}", which packages/catalog/apis/care.json's own refusals do not declare.`);
   }
  }
  /* The match kinds that are not a match are passed to the offers route as refusal ids by name. */
@@ -7178,6 +7192,57 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  }
  const expiryLiteral = new RegExp(`\\b${expiryDefault.value}\\s*(-\\s*)?(min|minute)`, 'i');
  for (const file of careScreens) if (expiryLiteral.test(read(file))) throw new Error(`${file} types the offer expiry as ${expiryDefault.value} minutes. It is the setting offer-expiry in packages/catalog/care.json: the founder's decision by default, and changed by an admin.`);
+
+ /* 9. Clinical scope is clinical governance. Who may be offered the three visits no named scope covers, and
+       whether an Encounter entry counts as signed, are admin settings that wait on a clinical review by
+       somebody holding sign-clinical-review; the Settings section holds their shape, and this holds what is
+       Care's about them, in the order a mistake would reach a patient.
+       a. Each waits on a capability a role on the register actually holds, or "not clinically reviewed"
+          would be a promise nobody can keep.
+       b. No role the register does not let attend a visit is accepted — every role without take-visit is
+          run through the rules a change goes through, not only the ones the guardrail lists — and neither
+          is a role off the register or no role at all.
+       c. Nobody confirms a change they made, and a confirmation is of the exact version it names.
+       d. The review route is built on the runtime, bound through the shared settings code under its key.
+       e. No Care code or screen types a role list: the roles live in the setting and are read in force. */
+ const careShape = await import('../packages/engines/src/settings/shape.ts');
+ const { careSettings: careSettingsEngine } = await import('../packages/engines/src/care/domain/settings.ts');
+ const scopeItems = (careContract.settings?.items ?? []).filter(item => careContract.services.some(s => s.rolesFromSetting === item.key));
+ const encounterRule = (careContract.settings?.items ?? []).find(item => item.key === 'encounter-entry-counts-as-signed');
+ if (scopeItems.length !== 3 || !encounterRule || encounterRule.type !== 'boolean') throw new Error('packages/catalog/care.json no longer holds three role list settings for the visits no named scope covers and the boolean encounter-entry-counts-as-signed.');
+ const takeVisit = careShape.rolesGranting('take-visit');
+ for (const s of [...scopeItems, encounterRule]) {
+  const at = `packages/catalog/care.json setting "${s.key}"`;
+  if (s.reviewRequired !== 'sign-clinical-review' || !careShape.rolesGranting(s.reviewRequired).length) throw new Error(`${at} waits on a clinical review by "${s.reviewRequired}", which is not sign-clinical-review held by a role on the vetting register. Clinical scope is confirmed by somebody who may sign a clinical decision, or it is never confirmed.`);
+  if (s.changedBy !== 'admin') throw new Error(`${at} is changed by ${JSON.stringify(s.changedBy)}. An admin changes clinical scope and a clinician confirms it, so the two are never the same act.`);
+ }
+ for (const s of scopeItems) {
+  const at = `packages/catalog/care.json setting "${s.key}"`;
+  if (s.type !== 'roleList') throw new Error(`${at} is not a role list.`);
+  const offRegister = (s.allowedRoles?.roles ?? []).filter(role => !takeVisit.includes(role));
+  if (offRegister.length) throw new Error(`${at} allows ${offRegister.join(', ')}, which the vetting register does not grant take-visit. A role that may not attend a patient visit is never offered one.`);
+  for (const forbidden of [...careVetting.roles.filter(r => !takeVisit.includes(r.id)).map(r => [r.id]), ['carer'], [], ['nurse', 'operator']]) {
+   if (!careShape.refusalOf(s, forbidden)) throw new Error(`${at} accepts ${JSON.stringify(forbidden)}. It may name only roles the vetting register lets attend a patient visit, and always at least one.`);
+  }
+ }
+ const byAdmin = careShape.proposeChange(careSettingsEngine, [], { setting: scopeItems[0].key, value: [takeVisit[0]], reason: 'Boundary check.', expectedVersion: 1, byRole: 'admin', byRef: 'party-boundary-1' }, 0);
+ if (!byAdmin.ok) throw new Error(`An admin cannot narrow ${scopeItems[0].key} to ${takeVisit[0]}: ${byAdmin.refusal.id}. The boundary check's own change should be accepted.`);
+ const reviewAs = (ref, settingsVersion, reviews = []) => careShape.confirmReview(careSettingsEngine, [byAdmin.value.change], reviews, { setting: scopeItems[0].key, settingsVersion, reason: 'Boundary check.', byRole: 'doctor', byRef: ref }, 1);
+ const selfReview = reviewAs('party-boundary-1', 2);
+ if (selfReview.ok || selfReview.refusal.id !== 'setting-review-own-change') throw new Error(`The person who changed ${scopeItems[0].key} could confirm its clinical review${selfReview.ok ? '' : ` (refused only as ${selfReview.refusal.id})`}. A review by the person who made the change is no review.`);
+ const olderVersion = reviewAs('party-boundary-2', 1);
+ if (olderVersion.ok || olderVersion.refusal.id !== 'setting-review-not-in-force') throw new Error(`A doctor could confirm version 1 of ${scopeItems[0].key} after version 2 replaced it. A reviewer confirms the exact value in force.`);
+ const fair = reviewAs('party-boundary-2', 2);
+ if (!fair.ok) throw new Error(`Another doctor cannot confirm version 2 of ${scopeItems[0].key}: ${fair.refusal.id}.`);
+ const reviewRoute = careApi.routes.find(r => r.method === 'POST' && r.path === '/v1/care/setting-reviews' && r.version === 1);
+ if (reviewRoute?.status !== 'built' || reviewRoute.evidence?.file !== 'packages/engines/src/care/engine.ts' || reviewRoute.enforcedBy?.mechanism !== 'engines-runtime:callers'
+  || !careEngineSource.includes("settingsRoutes(careSettings, { read: 'GET /v1/care/settings@1', change: 'POST /v1/care/setting-changes@1', review: 'POST /v1/care/setting-reviews@1' })")) throw new Error('POST /v1/care/setting-reviews@1 is not built on the engine runtime through settingsRoutes() in packages/engines/src/care/engine.ts, so a doctor has nowhere to confirm the clinical review Care\'s scope settings wait on.');
+ const roleAlternatives = careVetting.roles.map(r => r.id).join('|');
+ const typedRoleList = new RegExp(`(?:\\[|listOf\\(|setOf\\()\\s*(['"])(?:${roleAlternatives})\\1\\s*,\\s*(['"])(?:${roleAlternatives})\\2`);
+ for (const file of [...careCode, ...careScreens]) {
+  const typed = read(file).match(typedRoleList);
+  if (typed) throw new Error(`${file} types a list of roles, ${typed[0]}…. Who may be offered a service is its row in packages/catalog/care.json or the setting the row names, read in force; a typed list is one an admin's change and a clinician's review never reach.`);
+ }
 
  console.log(`Care offers ${careContract.services.length} services by the register's roles and scopes, ${careContract.services.filter(s => !s.protocolIds.length).length} of them with no protocol to run a checklist under and the rest under drafts that run none; an offer lapses after ${expiryDefault.value} minutes by default, decided by the ${expiryDefault.decidedBy} on ${expiryDefault.decidedOn} and changed by an admin within its bounds, and keeps the expiry it was made with. The ported distance agrees with packages/geo at ${probes.length * probes.length} pairs of points, ${citedRefusals} refusals cited in Care's code are declared where the runtime looks, ${published.length} event publications are live, Care's own and carry no visit code, and ${careCode.length + careScreens.length} hand-written Care files type none of the ${owned.length} sentences the contracts own.`);
 }

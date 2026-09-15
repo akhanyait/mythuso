@@ -14,6 +14,16 @@ enum CareData {
     static let seedPhase = 1
     /// Decided by the Founder. A default an admin may change on the web; this app has no admin surface and uses it as written here.
     static let offerExpiresAfterMinutes = 10
+    /// A proposal nobody has decided. Not clinically reviewed. A default an admin may change on the web; this app has no admin surface and uses it as written here.
+    static let encounterEntryCountsAsSigned = true
+
+    struct ScopeSetting { let key: String; let serviceIds: [String]; let roles: [String]; let defaultNotReviewed: Bool }
+    /// Who may be offered the visits no named scope covers, by default. Each role list is an admin setting on the web waiting on a clinical review.
+    static let scopeSettings: [ScopeSetting] = [
+        ScopeSetting(key: "injection-roles", serviceIds: ["injection"], roles: ["nurse", "locum"], defaultNotReviewed: true),
+        ScopeSetting(key: "family-planning-roles", serviceIds: ["planning"], roles: ["nurse", "locum"], defaultNotReviewed: true),
+        ScopeSetting(key: "sick-note-roles", serviceIds: ["certificate"], roles: ["nurse", "locum"], defaultNotReviewed: true)
+    ]
 
     static let outsideScope = "You are only ever dispatched to work inside your registered scope. The Control Tower cannot override that."
     static let noCurrentTrustScore = "Nobody without a current Trust Score is offered a visit."
@@ -41,6 +51,8 @@ enum CareData {
     static let handoverQueued = "Handed to the doctors' review queue."
     static let completeCodeWrong = "The visit code did not match, so the visit is not complete."
     static let encounterUnsigned = "The encounter is not signed."
+    static let encounterSignatureUnconfirmed = "This visit is set to wait for the record to confirm its encounter is signed, and no record route answers Care yet: GET /fhir/{resourceType}/{id} does not take calls from the Care engine. It is not handed over or completed until one does."
+    static let notClinicallyReviewed = "Not clinically reviewed"
     static let completeWithoutStart = "A visit that never started cannot be completed."
     static let billable = "The visit is complete. Money is told it is billable and is told nothing about what happened at it."
 
@@ -84,4 +96,6 @@ enum CareData {
     }
 
     static func requirement(_ serviceId: String) -> Requirement? { requirements.first { $0.serviceId == serviceId } }
+    /// Whether the default roles for this service wait on a clinical review. It describes the default this app offers by, never a value in force on the web.
+    static func scopeNotReviewed(_ serviceId: String) -> Bool { scopeSettings.contains { $0.serviceIds.contains(serviceId) && $0.defaultNotReviewed } }
 }

@@ -163,6 +163,10 @@ class CareVisitState(vetting: VettingStore, private val queue: VisitQueueStore, 
 
     fun handOver() {
         if (startedAtMillis == null) { refusal = CareRefusal(CareStage.HANDOVER, CareData.handoverWithoutVisit); return }
+        /* Whether a signed-off assessment counts as a signed encounter is a setting; the phone uses its generated
+           default, which is today's behaviour. Switched off in the contract, nothing on this phone can prove a
+           signature, so handover and completion are refused in the engine's sentence naming the missing route. */
+        if (!CareData.encounterEntryCountsAsSigned) { refusal = CareRefusal(CareStage.HANDOVER, CareData.encounterSignatureUnconfirmed); return }
         if (!signedOff) { refusal = CareRefusal(CareStage.HANDOVER, CareData.encounterIncomplete); return }
         handedOver = true
         refusal = null
@@ -172,6 +176,7 @@ class CareVisitState(vetting: VettingStore, private val queue: VisitQueueStore, 
     fun complete(code: String, at: Long = System.currentTimeMillis()) {
         if (startedAtMillis == null) { refusal = CareRefusal(CareStage.COMPLETE, CareData.completeWithoutStart); return }
         if (!matches(code)) { refusal = CareRefusal(CareStage.COMPLETE, CareData.completeCodeWrong); return }
+        if (!CareData.encounterEntryCountsAsSigned) { refusal = CareRefusal(CareStage.COMPLETE, CareData.encounterSignatureUnconfirmed); return }
         if (!signedOff) { refusal = CareRefusal(CareStage.COMPLETE, CareData.encounterUnsigned); return }
         completedAtMillis = at
         refusal = null

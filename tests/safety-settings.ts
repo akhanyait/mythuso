@@ -16,6 +16,7 @@ export type TimingRow = {
   default: Omit<Bound, 'value'> & { value: number | number[] | boolean | string[] }; bounds: { lowest: Bound; highest: Bound };
   items?: { lowest: Bound; highest: Bound }; guardrail?: { statement: string };
   allowed?: (Omit<Bound, 'value'> & { value: boolean | string; label: string })[]; allowedRoles?: { roles: string[] };
+  reviewRequired?: string;
 };
 export const timingRows = fieldSafety.settings.items as TimingRow[];
 export const timingRow = (key: string) => timingRows.find(row => row.key === key)!;

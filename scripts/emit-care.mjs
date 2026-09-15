@@ -54,6 +54,15 @@ export function emitCare(root = '') {
     decided without naming who and on what day, or a proposal that does not say why, before two apps are
     told either; scripts/check-boundaries.mjs holds the rest of the setting to its shape on every build. */
  const expiry = settingDefault(SOURCE, contract, 'offer-expiry');
+ /* Who may be offered the three visits no named scope covers, and whether an Encounter entry counts as
+    signed: proposals waiting on a clinical review. A phone uses each default and is told whether that
+    default was reviewed, which is the only value it can describe; scripts/settings-defaults.mjs says why. */
+ const scopeSettings = [...new Set(contract.services.flatMap(s => s.rolesFromSetting ? [s.rolesFromSetting] : []))].map(key => ({
+  key, ...settingDefault(SOURCE, contract, key), serviceIds: contract.services.filter(s => s.rolesFromSetting === key).map(s => s.serviceId)
+ }));
+ const encounterRule = settingDefault(SOURCE, contract, 'encounter-entry-counts-as-signed');
+ const notClinicallyReviewed = read('packages/catalog/settings.json').screen?.notReviewed;
+ if (!notClinicallyReviewed?.trim()) throw new Error('packages/catalog/settings.json has lost the words a setting waiting on a clinical review is shown with.');
  for (const s of contract.services) for (const id of s.protocolIds) {
   if (!protocols.protocols.some(p => p.id === id)) throw new Error(`${SOURCE} gives ${s.serviceId} the protocol "${id}", which the register does not hold.`);
  }
@@ -86,6 +95,8 @@ export function emitCare(root = '') {
   ['handoverQueued', contract.handover.queued],
   ['completeCodeWrong', routeRefusal('/v1/care/visits/{appointmentRef}/complete', 'visit-code-wrong')],
   ['encounterUnsigned', routeRefusal('/v1/care/visits/{appointmentRef}/complete', 'encounter-unsigned')],
+  ['encounterSignatureUnconfirmed', engineRefusal('encounter-signature-unconfirmed')],
+  ['notClinicallyReviewed', notClinicallyReviewed],
   ['completeWithoutStart', routeRefusal('/v1/care/visits/{appointmentRef}/complete', 'complete-without-start')],
   ['billable', contract.complete.billable]
  ];
@@ -112,6 +123,14 @@ enum CareData {
     static let seedPhase = ${contract.seedPhase}
     /// ${expiry.note}
     static let offerExpiresAfterMinutes = ${expiry.value}
+    /// ${encounterRule.note}
+    static let encounterEntryCountsAsSigned = ${encounterRule.value}
+
+    struct ScopeSetting { let key: String; let serviceIds: [String]; let roles: [String]; let defaultNotReviewed: Bool }
+    /// Who may be offered the visits no named scope covers, by default. Each role list is an admin setting on the web waiting on a clinical review.
+    static let scopeSettings: [ScopeSetting] = [
+${scopeSettings.map(s => `        ScopeSetting(key: ${swift(s.key)}, serviceIds: [${s.serviceIds.map(swift).join(', ')}], roles: [${s.value.map(swift).join(', ')}], defaultNotReviewed: ${s.unreviewed})`).join(',\n')}
+    ]
 
 ${sentences.map(([name, value]) => `    static let ${name} = ${swift(value)}`).join('\n')}
 
@@ -136,6 +155,8 @@ ${contract.stages.map(s => `        Stage(id: ${swift(s.id)}, name: ${swift(s.na
     }
 
     static func requirement(_ serviceId: String) -> Requirement? { requirements.first { $0.serviceId == serviceId } }
+    /// Whether the default roles for this service wait on a clinical review. It describes the default this app offers by, never a value in force on the web.
+    static func scopeNotReviewed(_ serviceId: String) -> Bool { scopeSettings.contains { $0.serviceIds.contains(serviceId) && $0.defaultNotReviewed } }
 }
 `;
 
@@ -150,6 +171,14 @@ object CareData {
     const val seedPhase = ${contract.seedPhase}
     /** ${expiry.note} */
     const val offerExpiresAfterMinutes = ${expiry.value}
+    /** ${encounterRule.note} Not const, so a guard on it reads as the rule it is rather than a folded constant. */
+    val encounterEntryCountsAsSigned = ${encounterRule.value}
+
+    data class ScopeSetting(val key: String, val serviceIds: List<String>, val roles: List<String>, val defaultNotReviewed: Boolean)
+    /** Who may be offered the visits no named scope covers, by default. Each role list is an admin setting on the web waiting on a clinical review. */
+    val scopeSettings = listOf(
+${scopeSettings.map(s => `        ScopeSetting(${kotlin(s.key)}, listOf(${s.serviceIds.map(kotlin).join(', ')}), listOf(${s.value.map(kotlin).join(', ')}), ${s.unreviewed})`).join(',\n')}
+    )
 
 ${sentences.map(([name, value]) => `    const val ${name} = ${kotlin(value)}`).join('\n')}
 
@@ -174,6 +203,8 @@ ${contract.stages.map(s => `        Stage(${kotlin(s.id)}, ${kotlin(s.name)})`).
     }
 
     fun requirement(serviceId: String) = requirements.firstOrNull { it.serviceId == serviceId }
+    /** Whether the default roles for this service wait on a clinical review. It describes the default this app offers by, never a value in force on the web. */
+    fun scopeNotReviewed(serviceId: String) = scopeSettings.any { serviceId in it.serviceIds && it.defaultNotReviewed }
 }
 `;
 

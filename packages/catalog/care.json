@@ -10,11 +10,11 @@
   { "serviceId": "wound", "roles": ["nurse", "locum"], "scope": "Wound care", "protocolIds": ["wound-care", "infection-control-and-sharps"] },
   { "serviceId": "mother", "roles": ["nurse", "locum"], "scope": "Maternal & child", "protocolIds": ["mother-and-baby-check"] },
   { "serviceId": "blood", "roles": ["nurse", "locum"], "scope": "Phlebotomy", "protocolIds": ["phlebotomy", "infection-control-and-sharps"] },
-  { "serviceId": "injection", "roles": ["nurse", "locum"], "scope": null, "protocolIds": ["injection-administration", "infection-control-and-sharps"] },
-  { "serviceId": "planning", "roles": ["nurse", "locum"], "scope": null, "protocolIds": [] },
+  { "serviceId": "injection", "rolesFromSetting": "injection-roles", "scope": null, "protocolIds": ["injection-administration", "infection-control-and-sharps"] },
+  { "serviceId": "planning", "rolesFromSetting": "family-planning-roles", "scope": null, "protocolIds": [] },
   { "serviceId": "postop", "roles": ["nurse", "locum"], "scope": "Post-operative", "protocolIds": ["post-operative-assessment", "infection-control-and-sharps"] },
   { "serviceId": "senior", "roles": ["nurse", "locum"], "scope": "Elderly care", "protocolIds": ["elderly-assessment"] },
-  { "serviceId": "certificate", "roles": ["nurse", "locum"], "scope": null, "protocolIds": ["medical-certificate-criteria"] },
+  { "serviceId": "certificate", "rolesFromSetting": "sick-note-roles", "scope": null, "protocolIds": ["medical-certificate-criteria"] },
   { "serviceId": "screening", "roles": ["nurse", "locum"], "scope": null, "protocolIds": ["device-use-and-ai-result-handling"] },
   { "serviceId": "sos", "roles": ["nurse", "locum"], "scope": null, "protocolIds": ["emergency-escalation-and-referral"] },
   { "serviceId": "mens", "roles": ["nurse", "locum"], "scope": null, "protocolIds": [] },
@@ -22,13 +22,13 @@
   { "serviceId": "allied", "roles": [], "scope": null, "protocolIds": [] },
   { "serviceId": "carer", "roles": [], "scope": null, "protocolIds": [], "supervisedBy": "nurse" }
  ],
- "_servicesNote": "One row per service in packages/catalog/services.json, and the build fails on a service without one. A scope is one of the options the vetting register gives a nurse and a locum, or null where none of the seven names the work: an injection, family planning and a sick-note assessment are inside a registered nurse's general scope rather than a named one, and that reading is the programme's, awaiting the Clinical Governance Lead. Allied health and the home carer have no role on the vetting register, so nobody can be matched to either, and the carer row says who a carer would be supervised by so that the refusal is written before the role exists rather than after.",
+ "_servicesNote": "One row per service in packages/catalog/services.json, and the build fails on a service without one. A scope is one of the options the vetting register gives a nurse and a locum, or null where none of the seven names the work: an injection, family planning and a sick-note assessment are inside a registered nurse's general scope rather than a named one, and that reading is the programme's, awaiting the Clinical Governance Lead. Since 15 September 2026 those three rows name the setting that holds their roles (rolesFromSetting) instead of a list of their own: who may be offered them is an admin setting that waits on a clinical review, so the roles live in settings and nowhere else. Allied health and the home carer have no role on the vetting register, so nobody can be matched to either, and the carer row says who a carer would be supervised by so that the refusal is written before the role exists rather than after.",
  "_protocolsNote": "Ids from packages/catalog/protocols.json and nothing else. Family planning and the men's and mental-health check-ins have no protocol in the register; their checklist says so rather than borrowing a neighbour's.",
 
  "settings": {
-  "_note": "Care's settings, in the shape packages/catalog/settings.json gives every setting. How long an offer lasts moved here from offers on 15 September 2026, when the founder instructed that open questions become admin settings: the value, who proposed it and who decided it are unchanged, and an admin now changes it on the back office's Configuration tab within bounds that are themselves proposals. packages/engines/src/care reads the value in force when it makes an offer and keeps the expiry on the offer, so a change never reaches an offer already made. GET /v1/care/settings@1 and POST /v1/care/setting-changes@1 answer through packages/engines/src/settings; POST /v1/care/setting-reviews@1 is declared and not built, because no Care setting waits on a clinical review yet.",
+  "_note": "Care's settings, in the shape packages/catalog/settings.json gives every setting. How long an offer lasts moved here from offers on 15 September 2026, when the founder instructed that open questions become admin settings: the value, who proposed it and who decided it are unchanged, and an admin now changes it on the back office's Configuration tab within bounds that are themselves proposals. packages/engines/src/care reads the value in force when it makes an offer and keeps the expiry on the offer, so a change never reaches an offer already made. GET /v1/care/settings@1, POST /v1/care/setting-changes@1 and POST /v1/care/setting-reviews@1 answer through packages/engines/src/settings. The scope settings — who may be offered an injection, a family planning or a sick-note visit — and whether an Encounter entry counts as signed joined on 15 September 2026 as proposals by the integrator, each waiting on a clinical review by somebody who holds sign-clinical-review. Until a reviewer confirms the exact value in force it is in force and shown as not clinically reviewed; care is not stopped for it, because the value in force is today's behaviour and stopping those visits would take care away from patients over paperwork nobody has done yet.",
   "heading": "Care settings",
-  "intro": "How long a nurse has to answer an offer before it passes to the next nurse who is eligible for it.",
+  "intro": "How long a nurse has to answer an offer, who may be offered the visits no named scope covers, and what Care accepts as a signed encounter until the record can say.",
   "items": [
    {
     "key": "offer-expiry",
@@ -54,10 +54,124 @@
      "statement": "An offer always lapses, and never holds a patient's visit for longer than half an hour. No value lets an unanswered offer keep a visit from the next nurse.",
      "forbids": [0, 31, 1440]
     }
+   },
+   {
+    "key": "injection-roles",
+    "label": "Who may be offered an injection visit",
+    "help": "Which registered roles an injection visit may be offered to.",
+    "owner": "care",
+    "type": "roleList",
+    "unit": null,
+    "default": {
+     "value": ["nurse", "locum"],
+     "decidedBy": null,
+     "proposedBy": "Integrator (Wave 3)",
+     "proposedBecause": "It is exactly what Care does today: any registered nurse or locum. No scope on the vetting register names injections yet, so the programme reads them as inside a registered nurse's general scope, and that reading waits on a clinical reviewer."
+    },
+    "allowedRoles": {
+     "roles": ["nurse", "locum"],
+     "decidedBy": null,
+     "proposedBy": "Integrator (Wave 3)",
+     "proposedBecause": "The roles on the vetting register granted take-visit, which is what lets anybody attend a patient at home. A role without it could be named and never sent, which looks like a shortage rather than a mistake."
+    },
+    "items": {
+     "lowest": { "value": 1, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "A service offered in phase one is offered to somebody. Withdrawing a service is its phase in packages/catalog/services.json, not a role list naming nobody." },
+     "highest": { "value": 2, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Every role that may attend a visit, and no more." }
+    },
+    "reviewRequired": "sign-clinical-review",
+    "changedBy": "admin",
+    "appliesTo": "A change applies to offers made after it. An offer already made keeps the roles it was made under, and a visit already accepted stays with the nurse who accepted it.",
+    "guardrail": {
+     "statement": "Nobody the vetting register does not let attend a patient visit is ever offered an injection: never a carer, an operator, an admin or a courier, and never nobody.",
+     "forbids": [["carer"], ["operator"], ["admin"], ["nurse", "courier"], []]
+    }
+   },
+   {
+    "key": "family-planning-roles",
+    "label": "Who may be offered a family planning visit",
+    "help": "Which registered roles a family planning visit may be offered to.",
+    "owner": "care",
+    "type": "roleList",
+    "unit": null,
+    "default": {
+     "value": ["nurse", "locum"],
+     "decidedBy": null,
+     "proposedBy": "Integrator (Wave 3)",
+     "proposedBecause": "It is exactly what Care does today: any registered nurse or locum. No scope on the vetting register names family planning yet, and no protocol in the register covers it, so the reading that it sits inside a registered nurse's general scope waits on a clinical reviewer."
+    },
+    "allowedRoles": {
+     "roles": ["nurse", "locum"],
+     "decidedBy": null,
+     "proposedBy": "Integrator (Wave 3)",
+     "proposedBecause": "The roles on the vetting register granted take-visit, which is what lets anybody attend a patient at home. A role without it could be named and never sent, which looks like a shortage rather than a mistake."
+    },
+    "items": {
+     "lowest": { "value": 1, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "A service offered in phase one is offered to somebody. Withdrawing a service is its phase in packages/catalog/services.json, not a role list naming nobody." },
+     "highest": { "value": 2, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Every role that may attend a visit, and no more." }
+    },
+    "reviewRequired": "sign-clinical-review",
+    "changedBy": "admin",
+    "appliesTo": "A change applies to offers made after it. An offer already made keeps the roles it was made under, and a visit already accepted stays with the nurse who accepted it.",
+    "guardrail": {
+     "statement": "Nobody the vetting register does not let attend a patient visit is ever offered a family planning visit: never a carer, an operator, an admin or a courier, and never nobody.",
+     "forbids": [["carer"], ["operator"], ["admin"], ["nurse", "courier"], []]
+    }
+   },
+   {
+    "key": "sick-note-roles",
+    "label": "Who may be offered a sick-note visit",
+    "help": "Which registered roles a sick-note assessment may be offered to.",
+    "owner": "care",
+    "type": "roleList",
+    "unit": null,
+    "default": {
+     "value": ["nurse", "locum"],
+     "decidedBy": null,
+     "proposedBy": "Integrator (Wave 3)",
+     "proposedBecause": "It is exactly what Care does today: any registered nurse or locum, under the medical certificate criteria protocol. No scope on the vetting register names sick-note assessments yet, so the reading that they sit inside a registered nurse's general scope waits on a clinical reviewer."
+    },
+    "allowedRoles": {
+     "roles": ["nurse", "locum"],
+     "decidedBy": null,
+     "proposedBy": "Integrator (Wave 3)",
+     "proposedBecause": "The roles on the vetting register granted take-visit, which is what lets anybody attend a patient at home. A role without it could be named and never sent, which looks like a shortage rather than a mistake."
+    },
+    "items": {
+     "lowest": { "value": 1, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "A service offered in phase one is offered to somebody. Withdrawing a service is its phase in packages/catalog/services.json, not a role list naming nobody." },
+     "highest": { "value": 2, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Every role that may attend a visit, and no more." }
+    },
+    "reviewRequired": "sign-clinical-review",
+    "changedBy": "admin",
+    "appliesTo": "A change applies to offers made after it. An offer already made keeps the roles it was made under, and a visit already accepted stays with the nurse who accepted it.",
+    "guardrail": {
+     "statement": "Nobody the vetting register does not let attend a patient visit is ever offered a sick-note assessment: never a carer, an operator, an admin or a courier, and never nobody.",
+     "forbids": [["carer"], ["operator"], ["admin"], ["nurse", "courier"], []]
+    }
+   },
+   {
+    "key": "encounter-entry-counts-as-signed",
+    "label": "An Encounter entry counts as signed",
+    "help": "Whether Care treats an Encounter entry the record has written as a completed and signed encounter, until a record route can tell Care whether it was signed.",
+    "owner": "care",
+    "type": "boolean",
+    "unit": null,
+    "default": {
+     "value": true,
+     "decidedBy": null,
+     "proposedBy": "Integrator (Wave 3)",
+     "proposedBecause": "There is no record route Care may call yet. passport.entry.written@1 for an Encounter is the only way Care learns an encounter exists, so today Care counts that entry as complete and signed, and switching it off would stop every handover and completion until a record route answers."
+    },
+    "allowed": [
+     { "value": true, "label": "Counts as signed", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "Today's behaviour, while no record route answers Care." },
+     { "value": false, "label": "Wait for a record route", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "For a reviewer who decides an entry written is not proof of a signature. Handover and completion are then refused until a record route answers Care." }
+    ],
+    "reviewRequired": "sign-clinical-review",
+    "changedBy": "admin",
+    "appliesTo": "A change applies to visits started after it. A visit already under way is handed over and completed under the value it started with, so a nurse at a door is never refused by a change made after she knocked."
    }
   ],
   "defaults": {
-   "version": 1,
+   "version": 2,
    "changelog": [
     {
      "version": 1,
@@ -65,6 +179,18 @@
      "by": "Founder",
      "changed": [ { "setting": "offer-expiry", "from": null, "to": 10 } ],
      "why": "The Care lead proposed ten minutes and the founder decided it: \"Care: 10min\"."
+    },
+    {
+     "version": 2,
+     "on": "2026-09-15",
+     "by": "Integrator (Wave 3)",
+     "changed": [
+      { "setting": "injection-roles", "from": null, "to": ["nurse", "locum"] },
+      { "setting": "family-planning-roles", "from": null, "to": ["nurse", "locum"] },
+      { "setting": "sick-note-roles", "from": null, "to": ["nurse", "locum"] },
+      { "setting": "encounter-entry-counts-as-signed", "from": null, "to": true }
+     ],
+     "why": "The founder instructed that open questions become admin settings. Who may be offered the three visits no named scope covers, and whether an Encounter entry counts as signed, were questions for the Clinical Governance Lead; each is now a setting whose default is what Care already did, waiting on a clinical review."
     }
    ]
   }

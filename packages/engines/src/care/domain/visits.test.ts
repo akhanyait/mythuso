@@ -7,6 +7,7 @@ import { careContract } from './contract.ts';
 import { checklistFor } from './checklist.ts';
 import { locationShare } from './position.ts';
 import { VisitDesk, type RecordPort } from './visits.ts';
+import { careByDefault } from './settings.ts';
 
 const DAY = new Date('2026-09-14T15:40:00+02:00');
 const NEXT_DAY = new Date('2026-09-15T09:00:00+02:00');
@@ -14,7 +15,7 @@ const CODE = care.preview.visitCode;
 const me = { clinicianRef: 'N-205' };
 
 function desk(record: Partial<RecordPort> = {}) {
- const visits = new VisitDesk({ contract: careContract, record: { encounterComplete: () => true, encounterSigned: () => true, ...record } });
+ const visits = new VisitDesk({ contract: careContract, settings: () => careByDefault, record: { encounterComplete: () => true, encounterSigned: () => true, ...record } });
  visits.hold({ appointmentRef: 'TH-3107', subjectRef: 'sub', serviceId: 'wound', clinicianRef: 'N-205', scheduledFor: '2026-09-14T16:00:00+02:00' }, CODE);
  return visits;
 }

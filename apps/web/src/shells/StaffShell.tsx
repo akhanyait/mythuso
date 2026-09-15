@@ -10,6 +10,7 @@ import '../surface/clinical.css';
    that chunk and a patient never downloads either. */
 import '../surface/clinical-screens.css';
 import { NurseSchedule, ReviewQueue, nurseDayCounts, reviewQueueCounts, roleExtras, sectionDoor, sectionWorkflow } from '../features/Workspaces';
+import { SettingReviews } from '../features/SettingReviews';
 import { useVisitQueue } from '../features/VisitQueue';
 import type { Part } from '../lib/visit-queue';
 import { cycle, weeks } from '../lib/earnings';
@@ -467,7 +468,7 @@ function StaffSection({ role, section, open }: { role: StaffRole; section: strin
    or hand it to the workbench to draw. */
 function sectionBody(section: string, open: (m: string) => void) {
  return section === 'Schedule' ? <NurseSchedule open={open}/>
-  : section === 'Review queue' ? <ReviewQueue open={open}/>
+  : section === 'Review queue' ? <><ReviewQueue open={open}/><SettingReviews/></>
    : section === 'Dispatch' ? <DispatchBoard/>
     : section === 'Incidents' ? <><SafetyDesk/><IncidentBoard open={open} notice={false}/></>
      : section === 'Orders' || section === 'Collections' || section === 'Results' ? <FulfilmentQueue section={section} open={open}/>
