@@ -1416,80 +1416,145 @@ export interface PostMedicinesLabOrdersResponse {
  readonly labOrderRef: string;
 }
 
-export interface PostDevicesRegistryRequest {
+export interface PostDevicesRegistryV2Request {
  readonly serial: string;
  readonly model: string;
  readonly firmware: string;
- readonly calibratedOn?: string;
  readonly deviceClass: string;
+ readonly instrumentKind?: string;
+ readonly calibratedOn?: string;
 }
-export interface PostDevicesRegistryResponse {
+export interface PostDevicesRegistryV2Response {
  readonly deviceRef: string;
+ readonly registeredAt: string;
 }
 
-export interface PostDevicesRegistryByDeviceRefRecallRequest {
+export interface PostDevicesRegistryByDeviceRefRecallV2Request {
  readonly deviceRef: string;
  readonly reasonCode: string;
+ readonly effectiveFrom: string;
 }
-export interface PostDevicesRegistryByDeviceRefRecallResponse {
- readonly holdersLinked: number;
+export interface PostDevicesRegistryByDeviceRefRecallV2Response {
+ readonly recalledAt: string;
+ readonly marksAdded: number;
+ readonly kitsHolding: number;
 }
 
-export interface GetDevicesRegistryByDeviceRefHealthRequest {
+export interface GetDevicesRegistryByDeviceRefHealthV2Request {
  readonly deviceRef: string;
 }
-export interface GetDevicesRegistryByDeviceRefHealthResponse {
+export interface GetDevicesRegistryByDeviceRefHealthV2Response {
+ readonly stateCode: string;
+ readonly deviceClass: string;
  readonly lastSyncAt?: string;
  readonly stale: boolean;
  readonly recalled: boolean;
+ readonly recalledFrom?: string;
+ readonly calibrationStateCode: string;
+ readonly calibrationDueOn?: string;
+ readonly batteryPercent?: number;
+ readonly firmware: string;
+ readonly settingsVersion: number;
 }
 
-export interface PostDevicesReadingsRequest {
+export interface PostDevicesReadingsV2Request {
  readonly subjectRef: string;
  readonly deviceRef: string;
  readonly metric: string;
- readonly value: number;
  readonly unit: string;
  readonly takenAt: string;
- readonly source: string;
- readonly quality: string;
+ readonly source?: string;
+ readonly quality?: string;
  readonly consentState: string;
+ readonly intendedUse: string;
+ readonly simulated: boolean;
+ readonly batteryPercent?: number;
 }
-export interface PostDevicesReadingsResponse {
+export interface PostDevicesReadingsV2Response {
+ readonly readingRef: string;
+ readonly clinicalUseCode: string;
+ readonly markCodes: readonly string[];
+ readonly askedAt: string;
+}
+
+export interface PostDevicesReadingsByReadingRefObservationRequest {
  readonly readingRef: string;
  readonly observationRef: string;
 }
+export interface PostDevicesReadingsByReadingRefObservationResponse {
+ readonly ingestedAt: string;
+ readonly clinicalUseCode: string;
+ readonly published: boolean;
+}
 
-export interface PostDevicesWearableLinksRequest {
+export interface PostDevicesWearableLinksV2Request {
  readonly platform: string;
  readonly consentVersion: number;
+ readonly metrics: readonly string[];
 }
-export interface PostDevicesWearableLinksResponse {
+export interface PostDevicesWearableLinksV2Response {
+ readonly linkRef: string;
+ readonly stateCode: string;
+ readonly requestedAt: string;
+}
+
+export interface PostDevicesWearableLinksByLinkRefWithdrawRequest {
  readonly linkRef: string;
 }
+export interface PostDevicesWearableLinksByLinkRefWithdrawResponse {
+ readonly withdrawnAt: string;
+}
 
-export interface PostDevicesKitsRequest {
+export interface PostDevicesKitsV2Request {
  readonly kitSerial: string;
  readonly holderRef: string;
- readonly depositRef: string;
+ readonly deviceRefs: readonly string[];
 }
-export interface PostDevicesKitsResponse {
+export interface PostDevicesKitsV2Response {
  readonly kitRef: string;
+ readonly depositCents: number;
+ readonly settingsVersion: number;
 }
 
-export interface PostDevicesKitsByKitRefReturnRequest {
+export interface PostDevicesKitsByKitRefReturnV2Request {
  readonly kitRef: string;
 }
-export interface PostDevicesKitsByKitRefReturnResponse {
+export interface PostDevicesKitsByKitRefReturnV2Response {
  readonly returnedAt: string;
 }
 
-export interface PostDevicesKitsByKitRefLossRequest {
+export interface PostDevicesKitsByKitRefLossV2Request {
  readonly kitRef: string;
- readonly reasonCode: string;
+ readonly reasonCode?: string;
 }
-export interface PostDevicesKitsByKitRefLossResponse {
+export interface PostDevicesKitsByKitRefLossV2Response {
  readonly recordedAt: string;
+}
+
+export type GetDevicesSettingsRequest = Record<string, never>;
+export interface GetDevicesSettingsResponse {
+ readonly settingsVersion: number;
+ readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostDevicesSettingChangesRequest {
+ readonly idempotencyKey: string;
+ readonly setting: string;
+ readonly wholeNumber?: number;
+ readonly switchedOn?: boolean;
+ readonly choice?: string;
+ readonly wording?: string;
+ readonly roles?: readonly string[];
+ readonly windows?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly items?: readonly string[];
+ readonly parts?: Readonly<Record<string, unknown>>;
+ readonly reason?: string;
+ readonly expectedVersion: number;
+}
+export interface PostDevicesSettingChangesResponse {
+ readonly settingsVersion: number;
+ readonly appliesFrom: string;
 }
 
 export interface PostMoneyPaymentsRequest {
@@ -1777,14 +1842,18 @@ export const apiRoutes = {
  postMedicinesCollectionsByCollectionRefHandover: { name: "postMedicinesCollectionsByCollectionRefHandover", method: "POST", path: "/v1/medicines/collections/{collectionRef}/handover", mountedPath: "/v1/medicines/collections/{collectionRef}/handover", version: 1, engine: "medicines", callers: ["nurse","courier","responder"], purpose: ["dispensing"], idempotent: false, status: "proposed" },
  getMedicinesOrders: { name: "getMedicinesOrders", method: "GET", path: "/v1/medicines/orders", mountedPath: "/v1/medicines/orders", version: 1, engine: "medicines", callers: ["pharmacy"], purpose: ["dispensing"], idempotent: false, status: "proposed" },
  postMedicinesLabOrders: { name: "postMedicinesLabOrders", method: "POST", path: "/v1/medicines/lab-orders", mountedPath: "/v1/medicines/lab-orders", version: 1, engine: "medicines", callers: ["doctor","nurse"], purpose: ["diagnostics"], idempotent: false, status: "proposed" },
- postDevicesRegistry: { name: "postDevicesRegistry", method: "POST", path: "/v1/devices/registry", mountedPath: "/v1/devices/registry", version: 1, engine: "devices", callers: ["operator"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postDevicesRegistryByDeviceRefRecall: { name: "postDevicesRegistryByDeviceRefRecall", method: "POST", path: "/v1/devices/registry/{deviceRef}/recall", mountedPath: "/v1/devices/registry/{deviceRef}/recall", version: 1, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "proposed" },
- getDevicesRegistryByDeviceRefHealth: { name: "getDevicesRegistryByDeviceRefHealth", method: "GET", path: "/v1/devices/registry/{deviceRef}/health", mountedPath: "/v1/devices/registry/{deviceRef}/health", version: 1, engine: "devices", callers: ["nurse","operator"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postDevicesReadings: { name: "postDevicesReadings", method: "POST", path: "/v1/devices/readings", mountedPath: "/v1/devices/readings", version: 1, engine: "devices", callers: ["patient","nurse","locum"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postDevicesWearableLinks: { name: "postDevicesWearableLinks", method: "POST", path: "/v1/devices/wearable-links", mountedPath: "/v1/devices/wearable-links", version: 1, engine: "devices", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postDevicesKits: { name: "postDevicesKits", method: "POST", path: "/v1/devices/kits", mountedPath: "/v1/devices/kits", version: 1, engine: "devices", callers: ["operator","nurse"], purpose: ["audit"], idempotent: false, status: "proposed" },
- postDevicesKitsByKitRefReturn: { name: "postDevicesKitsByKitRefReturn", method: "POST", path: "/v1/devices/kits/{kitRef}/return", mountedPath: "/v1/devices/kits/{kitRef}/return", version: 1, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "proposed" },
- postDevicesKitsByKitRefLoss: { name: "postDevicesKitsByKitRefLoss", method: "POST", path: "/v1/devices/kits/{kitRef}/loss", mountedPath: "/v1/devices/kits/{kitRef}/loss", version: 1, engine: "devices", callers: ["operator","nurse"], purpose: ["audit"], idempotent: false, status: "proposed" },
+ postDevicesRegistryV2: { name: "postDevicesRegistryV2", method: "POST", path: "/v1/devices/registry", mountedPath: "/v1/devices/registry", version: 2, engine: "devices", callers: ["operator"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postDevicesRegistryByDeviceRefRecallV2: { name: "postDevicesRegistryByDeviceRefRecallV2", method: "POST", path: "/v1/devices/registry/{deviceRef}/recall", mountedPath: "/v1/devices/registry/{deviceRef}/recall", version: 2, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "built" },
+ getDevicesRegistryByDeviceRefHealthV2: { name: "getDevicesRegistryByDeviceRefHealthV2", method: "GET", path: "/v1/devices/registry/{deviceRef}/health", mountedPath: "/v1/devices/registry/{deviceRef}/health", version: 2, engine: "devices", callers: ["nurse","operator"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postDevicesReadingsV2: { name: "postDevicesReadingsV2", method: "POST", path: "/v1/devices/readings", mountedPath: "/v1/devices/readings", version: 2, engine: "devices", callers: ["patient","nurse","locum"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postDevicesReadingsByReadingRefObservation: { name: "postDevicesReadingsByReadingRefObservation", method: "POST", path: "/v1/devices/readings/{readingRef}/observation", mountedPath: "/v1/devices/readings/{readingRef}/observation", version: 1, engine: "devices", callers: ["patient","nurse","locum"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postDevicesWearableLinksV2: { name: "postDevicesWearableLinksV2", method: "POST", path: "/v1/devices/wearable-links", mountedPath: "/v1/devices/wearable-links", version: 2, engine: "devices", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postDevicesWearableLinksByLinkRefWithdraw: { name: "postDevicesWearableLinksByLinkRefWithdraw", method: "POST", path: "/v1/devices/wearable-links/{linkRef}/withdraw", mountedPath: "/v1/devices/wearable-links/{linkRef}/withdraw", version: 1, engine: "devices", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postDevicesKitsV2: { name: "postDevicesKitsV2", method: "POST", path: "/v1/devices/kits", mountedPath: "/v1/devices/kits", version: 2, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "built" },
+ postDevicesKitsByKitRefReturnV2: { name: "postDevicesKitsByKitRefReturnV2", method: "POST", path: "/v1/devices/kits/{kitRef}/return", mountedPath: "/v1/devices/kits/{kitRef}/return", version: 2, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "built" },
+ postDevicesKitsByKitRefLossV2: { name: "postDevicesKitsByKitRefLossV2", method: "POST", path: "/v1/devices/kits/{kitRef}/loss", mountedPath: "/v1/devices/kits/{kitRef}/loss", version: 2, engine: "devices", callers: ["operator","nurse"], purpose: ["audit"], idempotent: false, status: "built" },
+ getDevicesSettings: { name: "getDevicesSettings", method: "GET", path: "/v1/devices/settings", mountedPath: "/v1/devices/settings", version: 1, engine: "devices", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
+ postDevicesSettingChanges: { name: "postDevicesSettingChanges", method: "POST", path: "/v1/devices/setting-changes", mountedPath: "/v1/devices/setting-changes", version: 1, engine: "devices", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
  postMoneyPayments: { name: "postMoneyPayments", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 1, engine: "money", callers: ["patient","caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "built" },
  getMoneyPayouts: { name: "getMoneyPayouts", method: "GET", path: "/v1/money/payouts", mountedPath: "/v1/money/payouts", version: 1, engine: "money", callers: ["nurse","locum","doctor"], purpose: ["billing"], idempotent: false, status: "built" },
  postMoneyPaymentsV2: { name: "postMoneyPaymentsV2", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 2, engine: "money", callers: ["patient","caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "built" },

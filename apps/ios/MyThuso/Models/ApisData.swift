@@ -177,14 +177,18 @@ enum ApisData {
     static let postMedicinesCollectionsByCollectionRefHandover = Route(id: "postMedicinesCollectionsByCollectionRefHandover", method: "POST", path: "/v1/medicines/collections/{collectionRef}/handover", mountedPath: "/v1/medicines/collections/{collectionRef}/handover", version: 1, engine: "medicines", callers: ["nurse", "courier", "responder"], purpose: ["dispensing"], idempotent: false, status: "proposed")
     static let getMedicinesOrders = Route(id: "getMedicinesOrders", method: "GET", path: "/v1/medicines/orders", mountedPath: "/v1/medicines/orders", version: 1, engine: "medicines", callers: ["pharmacy"], purpose: ["dispensing"], idempotent: false, status: "proposed")
     static let postMedicinesLabOrders = Route(id: "postMedicinesLabOrders", method: "POST", path: "/v1/medicines/lab-orders", mountedPath: "/v1/medicines/lab-orders", version: 1, engine: "medicines", callers: ["doctor", "nurse"], purpose: ["diagnostics"], idempotent: false, status: "proposed")
-    static let postDevicesRegistry = Route(id: "postDevicesRegistry", method: "POST", path: "/v1/devices/registry", mountedPath: "/v1/devices/registry", version: 1, engine: "devices", callers: ["operator"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postDevicesRegistryByDeviceRefRecall = Route(id: "postDevicesRegistryByDeviceRefRecall", method: "POST", path: "/v1/devices/registry/{deviceRef}/recall", mountedPath: "/v1/devices/registry/{deviceRef}/recall", version: 1, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "proposed")
-    static let getDevicesRegistryByDeviceRefHealth = Route(id: "getDevicesRegistryByDeviceRefHealth", method: "GET", path: "/v1/devices/registry/{deviceRef}/health", mountedPath: "/v1/devices/registry/{deviceRef}/health", version: 1, engine: "devices", callers: ["nurse", "operator"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postDevicesReadings = Route(id: "postDevicesReadings", method: "POST", path: "/v1/devices/readings", mountedPath: "/v1/devices/readings", version: 1, engine: "devices", callers: ["patient", "nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postDevicesWearableLinks = Route(id: "postDevicesWearableLinks", method: "POST", path: "/v1/devices/wearable-links", mountedPath: "/v1/devices/wearable-links", version: 1, engine: "devices", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postDevicesKits = Route(id: "postDevicesKits", method: "POST", path: "/v1/devices/kits", mountedPath: "/v1/devices/kits", version: 1, engine: "devices", callers: ["operator", "nurse"], purpose: ["audit"], idempotent: false, status: "proposed")
-    static let postDevicesKitsByKitRefReturn = Route(id: "postDevicesKitsByKitRefReturn", method: "POST", path: "/v1/devices/kits/{kitRef}/return", mountedPath: "/v1/devices/kits/{kitRef}/return", version: 1, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "proposed")
-    static let postDevicesKitsByKitRefLoss = Route(id: "postDevicesKitsByKitRefLoss", method: "POST", path: "/v1/devices/kits/{kitRef}/loss", mountedPath: "/v1/devices/kits/{kitRef}/loss", version: 1, engine: "devices", callers: ["operator", "nurse"], purpose: ["audit"], idempotent: false, status: "proposed")
+    static let postDevicesRegistryV2 = Route(id: "postDevicesRegistryV2", method: "POST", path: "/v1/devices/registry", mountedPath: "/v1/devices/registry", version: 2, engine: "devices", callers: ["operator"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postDevicesRegistryByDeviceRefRecallV2 = Route(id: "postDevicesRegistryByDeviceRefRecallV2", method: "POST", path: "/v1/devices/registry/{deviceRef}/recall", mountedPath: "/v1/devices/registry/{deviceRef}/recall", version: 2, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "built")
+    static let getDevicesRegistryByDeviceRefHealthV2 = Route(id: "getDevicesRegistryByDeviceRefHealthV2", method: "GET", path: "/v1/devices/registry/{deviceRef}/health", mountedPath: "/v1/devices/registry/{deviceRef}/health", version: 2, engine: "devices", callers: ["nurse", "operator"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postDevicesReadingsV2 = Route(id: "postDevicesReadingsV2", method: "POST", path: "/v1/devices/readings", mountedPath: "/v1/devices/readings", version: 2, engine: "devices", callers: ["patient", "nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postDevicesReadingsByReadingRefObservation = Route(id: "postDevicesReadingsByReadingRefObservation", method: "POST", path: "/v1/devices/readings/{readingRef}/observation", mountedPath: "/v1/devices/readings/{readingRef}/observation", version: 1, engine: "devices", callers: ["patient", "nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postDevicesWearableLinksV2 = Route(id: "postDevicesWearableLinksV2", method: "POST", path: "/v1/devices/wearable-links", mountedPath: "/v1/devices/wearable-links", version: 2, engine: "devices", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postDevicesWearableLinksByLinkRefWithdraw = Route(id: "postDevicesWearableLinksByLinkRefWithdraw", method: "POST", path: "/v1/devices/wearable-links/{linkRef}/withdraw", mountedPath: "/v1/devices/wearable-links/{linkRef}/withdraw", version: 1, engine: "devices", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postDevicesKitsV2 = Route(id: "postDevicesKitsV2", method: "POST", path: "/v1/devices/kits", mountedPath: "/v1/devices/kits", version: 2, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postDevicesKitsByKitRefReturnV2 = Route(id: "postDevicesKitsByKitRefReturnV2", method: "POST", path: "/v1/devices/kits/{kitRef}/return", mountedPath: "/v1/devices/kits/{kitRef}/return", version: 2, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postDevicesKitsByKitRefLossV2 = Route(id: "postDevicesKitsByKitRefLossV2", method: "POST", path: "/v1/devices/kits/{kitRef}/loss", mountedPath: "/v1/devices/kits/{kitRef}/loss", version: 2, engine: "devices", callers: ["operator", "nurse"], purpose: ["audit"], idempotent: false, status: "built")
+    static let getDevicesSettings = Route(id: "getDevicesSettings", method: "GET", path: "/v1/devices/settings", mountedPath: "/v1/devices/settings", version: 1, engine: "devices", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postDevicesSettingChanges = Route(id: "postDevicesSettingChanges", method: "POST", path: "/v1/devices/setting-changes", mountedPath: "/v1/devices/setting-changes", version: 1, engine: "devices", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
     static let postMoneyPayments = Route(id: "postMoneyPayments", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 1, engine: "money", callers: ["patient", "caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "built")
     static let getMoneyPayouts = Route(id: "getMoneyPayouts", method: "GET", path: "/v1/money/payouts", mountedPath: "/v1/money/payouts", version: 1, engine: "money", callers: ["nurse", "locum", "doctor"], purpose: ["billing"], idempotent: false, status: "built")
     static let postMoneyPaymentsV2 = Route(id: "postMoneyPaymentsV2", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 2, engine: "money", callers: ["patient", "caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "built")
@@ -355,14 +359,18 @@ enum ApisData {
         postMedicinesCollectionsByCollectionRefHandover,
         getMedicinesOrders,
         postMedicinesLabOrders,
-        postDevicesRegistry,
-        postDevicesRegistryByDeviceRefRecall,
-        getDevicesRegistryByDeviceRefHealth,
-        postDevicesReadings,
-        postDevicesWearableLinks,
-        postDevicesKits,
-        postDevicesKitsByKitRefReturn,
-        postDevicesKitsByKitRefLoss,
+        postDevicesRegistryV2,
+        postDevicesRegistryByDeviceRefRecallV2,
+        getDevicesRegistryByDeviceRefHealthV2,
+        postDevicesReadingsV2,
+        postDevicesReadingsByReadingRefObservation,
+        postDevicesWearableLinksV2,
+        postDevicesWearableLinksByLinkRefWithdraw,
+        postDevicesKitsV2,
+        postDevicesKitsByKitRefReturnV2,
+        postDevicesKitsByKitRefLossV2,
+        getDevicesSettings,
+        postDevicesSettingChanges,
         postMoneyPayments,
         getMoneyPayouts,
         postMoneyPaymentsV2,
@@ -1618,73 +1626,134 @@ enum ApisData {
     struct PostMedicinesLabOrdersResponse {
         let labOrderRef: String
     }
-    struct PostDevicesRegistryRequest {
+    struct PostDevicesRegistryV2Request {
         let serial: String
         let model: String
         let firmware: String
-        let calibratedOn: String?
         let deviceClass: String
+        let instrumentKind: String?
+        let calibratedOn: String?
     }
-    struct PostDevicesRegistryResponse {
+    struct PostDevicesRegistryV2Response {
         let deviceRef: String
+        let registeredAt: String
     }
-    struct PostDevicesRegistryByDeviceRefRecallRequest {
+    struct PostDevicesRegistryByDeviceRefRecallV2Request {
         let deviceRef: String
         let reasonCode: String
+        let effectiveFrom: String
     }
-    struct PostDevicesRegistryByDeviceRefRecallResponse {
-        let holdersLinked: Int
+    struct PostDevicesRegistryByDeviceRefRecallV2Response {
+        let recalledAt: String
+        let marksAdded: Int
+        let kitsHolding: Int
     }
-    struct GetDevicesRegistryByDeviceRefHealthRequest {
+    struct GetDevicesRegistryByDeviceRefHealthV2Request {
         let deviceRef: String
     }
-    struct GetDevicesRegistryByDeviceRefHealthResponse {
+    struct GetDevicesRegistryByDeviceRefHealthV2Response {
+        let stateCode: String
+        let deviceClass: String
         let lastSyncAt: String?
         let stale: Bool
         let recalled: Bool
+        let recalledFrom: String?
+        let calibrationStateCode: String
+        let calibrationDueOn: String?
+        let batteryPercent: Int?
+        let firmware: String
+        let settingsVersion: Int
     }
-    struct PostDevicesReadingsRequest {
+    struct PostDevicesReadingsV2Request {
         let subjectRef: String
         let deviceRef: String
         let metric: String
-        let value: Double
         let unit: String
         let takenAt: String
-        let source: String
-        let quality: String
+        let source: String?
+        let quality: String?
         let consentState: String
+        let intendedUse: String
+        let simulated: Bool
+        let batteryPercent: Int?
     }
-    struct PostDevicesReadingsResponse {
+    struct PostDevicesReadingsV2Response {
+        let readingRef: String
+        let clinicalUseCode: String
+        let markCodes: [String]
+        let askedAt: String
+    }
+    struct PostDevicesReadingsByReadingRefObservationRequest {
         let readingRef: String
         let observationRef: String
     }
-    struct PostDevicesWearableLinksRequest {
+    struct PostDevicesReadingsByReadingRefObservationResponse {
+        let ingestedAt: String
+        let clinicalUseCode: String
+        let published: Bool
+    }
+    struct PostDevicesWearableLinksV2Request {
         let platform: String
         let consentVersion: Int
+        let metrics: [String]
     }
-    struct PostDevicesWearableLinksResponse {
+    struct PostDevicesWearableLinksV2Response {
+        let linkRef: String
+        let stateCode: String
+        let requestedAt: String
+    }
+    struct PostDevicesWearableLinksByLinkRefWithdrawRequest {
         let linkRef: String
     }
-    struct PostDevicesKitsRequest {
+    struct PostDevicesWearableLinksByLinkRefWithdrawResponse {
+        let withdrawnAt: String
+    }
+    struct PostDevicesKitsV2Request {
         let kitSerial: String
         let holderRef: String
-        let depositRef: String
+        let deviceRefs: [String]
     }
-    struct PostDevicesKitsResponse {
+    struct PostDevicesKitsV2Response {
+        let kitRef: String
+        let depositCents: Int
+        let settingsVersion: Int
+    }
+    struct PostDevicesKitsByKitRefReturnV2Request {
         let kitRef: String
     }
-    struct PostDevicesKitsByKitRefReturnRequest {
-        let kitRef: String
-    }
-    struct PostDevicesKitsByKitRefReturnResponse {
+    struct PostDevicesKitsByKitRefReturnV2Response {
         let returnedAt: String
     }
-    struct PostDevicesKitsByKitRefLossRequest {
+    struct PostDevicesKitsByKitRefLossV2Request {
         let kitRef: String
-        let reasonCode: String
+        let reasonCode: String?
     }
-    struct PostDevicesKitsByKitRefLossResponse {
+    struct PostDevicesKitsByKitRefLossV2Response {
         let recordedAt: String
+    }
+    struct GetDevicesSettingsRequest {}
+    struct GetDevicesSettingsResponse {
+        let settingsVersion: Int
+        let settings: [[String: Any]]
+        let history: [[String: Any]]
+    }
+    struct PostDevicesSettingChangesRequest {
+        let idempotencyKey: String
+        let setting: String
+        let wholeNumber: Int?
+        let switchedOn: Bool?
+        let choice: String?
+        let wording: String?
+        let roles: [String]?
+        let windows: [[String: Any]]?
+        let items: [String]?
+        let parts: [String: Any]?
+        let reason: String?
+        let expectedVersion: Int
+    }
+    struct PostDevicesSettingChangesResponse {
+        let settingsVersion: Int
+        let appliesFrom: String
     }
     struct PostMoneyPaymentsRequest {
         let idempotencyKey: String
