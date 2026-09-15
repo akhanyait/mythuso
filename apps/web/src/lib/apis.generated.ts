@@ -77,19 +77,6 @@ export interface PostCoreLoopsByLoopRefCloseResponse {
  readonly closedAt: string;
 }
 
-export interface PostCoreAlertsRequest {
- readonly sourceEngine: string;
- readonly rung: number;
- readonly ownerRole: string;
- readonly recordEntryRef?: string;
- readonly dedupeKey: string;
- readonly snoozeReasonCode?: string;
-}
-export interface PostCoreAlertsResponse {
- readonly alertRef: string;
- readonly suppressed: boolean;
-}
-
 export interface PostCoreAlertsV2Request {
  readonly sourceEngine: string;
  readonly rung: number;
@@ -1391,7 +1378,6 @@ export const apiRoutes = {
  postCoreLoopsByLoopRefAcknowledge: { name: "postCoreLoopsByLoopRefAcknowledge", method: "POST", path: "/v1/core/loops/{loopRef}/acknowledge", mountedPath: "/v1/core/loops/{loopRef}/acknowledge", version: 1, engine: "core", callers: ["nurse","doctor","ops-desk","engine:care","engine:safety"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
  postCoreLoopsByLoopRefEscalate: { name: "postCoreLoopsByLoopRefEscalate", method: "POST", path: "/v1/core/loops/{loopRef}/escalate", mountedPath: "/v1/core/loops/{loopRef}/escalate", version: 1, engine: "core", callers: ["ops-desk","engine:safety"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
  postCoreLoopsByLoopRefClose: { name: "postCoreLoopsByLoopRefClose", method: "POST", path: "/v1/core/loops/{loopRef}/close", mountedPath: "/v1/core/loops/{loopRef}/close", version: 1, engine: "core", callers: ["nurse","doctor","ops-desk"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
- postCoreAlerts: { name: "postCoreAlerts", method: "POST", path: "/v1/core/alerts", mountedPath: "/v1/core/alerts", version: 1, engine: "core", callers: ["engine:safety","engine:devices","engine:clinical","engine:medicines"], purpose: ["treatment","emergency"], idempotent: false, status: "proposed" },
  postCoreAlertsV2: { name: "postCoreAlertsV2", method: "POST", path: "/v1/core/alerts", mountedPath: "/v1/core/alerts", version: 2, engine: "core", callers: ["engine:safety","engine:devices","engine:clinical","engine:medicines"], purpose: ["treatment","emergency"], idempotent: false, status: "built" },
  getCoreProtocolsByProtocolVersionId: { name: "getCoreProtocolsByProtocolVersionId", method: "GET", path: "/v1/core/protocols/{protocolVersionId}", mountedPath: "/v1/core/protocols/{protocolVersionId}", version: 1, engine: "core", callers: ["nurse","doctor","medical-director","engine:clinical","engine:care","engine:safety","engine:medicines"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postCoreProtocolsByProtocolIdRatify: { name: "postCoreProtocolsByProtocolIdRatify", method: "POST", path: "/v1/core/protocols/{protocolId}/ratify", mountedPath: "/v1/core/protocols/{protocolId}/ratify", version: 1, engine: "core", callers: ["medical-director"], purpose: ["audit"], idempotent: false, status: "proposed" },

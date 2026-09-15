@@ -28,7 +28,6 @@ object ApisData {
     val POST_CORE_LOOPS_BY_LOOP_REF_ACKNOWLEDGE = Route("postCoreLoopsByLoopRefAcknowledge", "POST", "/v1/core/loops/{loopRef}/acknowledge", "/v1/core/loops/{loopRef}/acknowledge", 1, "core", listOf("nurse", "doctor", "ops-desk", "engine:care", "engine:safety"), listOf("treatment", "dispatch", "emergency"), true, "built")
     val POST_CORE_LOOPS_BY_LOOP_REF_ESCALATE = Route("postCoreLoopsByLoopRefEscalate", "POST", "/v1/core/loops/{loopRef}/escalate", "/v1/core/loops/{loopRef}/escalate", 1, "core", listOf("ops-desk", "engine:safety"), listOf("treatment", "dispatch", "emergency"), true, "built")
     val POST_CORE_LOOPS_BY_LOOP_REF_CLOSE = Route("postCoreLoopsByLoopRefClose", "POST", "/v1/core/loops/{loopRef}/close", "/v1/core/loops/{loopRef}/close", 1, "core", listOf("nurse", "doctor", "ops-desk"), listOf("treatment", "dispatch", "emergency"), true, "built")
-    val POST_CORE_ALERTS = Route("postCoreAlerts", "POST", "/v1/core/alerts", "/v1/core/alerts", 1, "core", listOf("engine:safety", "engine:devices", "engine:clinical", "engine:medicines"), listOf("treatment", "emergency"), false, "proposed")
     val POST_CORE_ALERTS_V2 = Route("postCoreAlertsV2", "POST", "/v1/core/alerts", "/v1/core/alerts", 2, "core", listOf("engine:safety", "engine:devices", "engine:clinical", "engine:medicines"), listOf("treatment", "emergency"), false, "built")
     val GET_CORE_PROTOCOLS_BY_PROTOCOL_VERSION_ID = Route("getCoreProtocolsByProtocolVersionId", "GET", "/v1/core/protocols/{protocolVersionId}", "/v1/core/protocols/{protocolVersionId}", 1, "core", listOf("nurse", "doctor", "medical-director", "engine:clinical", "engine:care", "engine:safety", "engine:medicines"), listOf("treatment"), false, "proposed")
     val POST_CORE_PROTOCOLS_BY_PROTOCOL_ID_RATIFY = Route("postCoreProtocolsByProtocolIdRatify", "POST", "/v1/core/protocols/{protocolId}/ratify", "/v1/core/protocols/{protocolId}/ratify", 1, "core", listOf("medical-director"), listOf("audit"), false, "proposed")
@@ -186,7 +185,6 @@ object ApisData {
         POST_CORE_LOOPS_BY_LOOP_REF_ACKNOWLEDGE,
         POST_CORE_LOOPS_BY_LOOP_REF_ESCALATE,
         POST_CORE_LOOPS_BY_LOOP_REF_CLOSE,
-        POST_CORE_ALERTS,
         POST_CORE_ALERTS_V2,
         GET_CORE_PROTOCOLS_BY_PROTOCOL_VERSION_ID,
         POST_CORE_PROTOCOLS_BY_PROTOCOL_ID_RATIFY,
@@ -387,18 +385,6 @@ object ApisData {
     )
     data class PostCoreLoopsByLoopRefCloseResponse(
         val closedAt: String
-    )
-    data class PostCoreAlertsRequest(
-        val sourceEngine: String,
-        val rung: Int,
-        val ownerRole: String,
-        val recordEntryRef: String? = null,
-        val dedupeKey: String,
-        val snoozeReasonCode: String? = null
-    )
-    data class PostCoreAlertsResponse(
-        val alertRef: String,
-        val suppressed: Boolean
     )
     data class PostCoreAlertsV2Request(
         val sourceEngine: String,

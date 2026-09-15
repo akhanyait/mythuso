@@ -195,8 +195,7 @@
    "path": "/v1/core/alerts",
    "version": 1,
    "summary": "Raise an alert: routed by rung, de-duplicated, suppressible, snoozed only with a reason.",
-   "callers": ["engine:safety", "engine:devices", "engine:clinical", "engine:medicines"],
-   "callerJustifications": {"engine:safety": "sentinel.rung_raised@1", "engine:devices": "device.stale@1", "engine:clinical": "triage.completed@2", "engine:medicines": "lab.result.received@1"},
+   "callers": [],
    "purpose": ["treatment", "emergency"],
    "request": [
     {"field": "sourceEngine", "type": "string", "required": true, "why": "Where the concern came from."},
@@ -218,13 +217,14 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§14", "what": "Deduplication, suppression windows, severity tiers, snooze-with-reason"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/core/alerts@2", "why": "It carried no fallback. Escalation goes to a concern's fallback and nowhere after it, so every alert raised through it would have run out of people the moment its deadline passed, with nobody ever moved to. Version two adds fallbackRole, as every concern opened through POST /v1/core/loops@1 already has."}
   },
   {
    "method": "POST",
    "path": "/v1/core/alerts",
    "version": 2,
-   "summary": "Raise an alert with a fallback: routed by rung, de-duplicated while open, snoozed only with a reason, and never snoozed once nobody is left to escalate to. It serves the §14 capability version one cites; the citation is repeated here only once the quotes are compared again with the documents.",
+   "summary": "Raise an alert with a fallback: routed by rung, de-duplicated while open, snoozed only with a reason, and never snoozed once nobody is left to escalate to.",
    "callers": ["engine:safety", "engine:devices", "engine:clinical", "engine:medicines"],
    "callerJustifications": {"engine:safety": "sentinel.rung_raised@1", "engine:devices": "device.stale@1", "engine:clinical": "triage.completed@2", "engine:medicines": "lab.result.received@1"},
    "purpose": ["treatment", "emergency"],
@@ -253,7 +253,7 @@
    "emits": ["alert.raised@1", "alert.escalated@1"],
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": null,
+   "capabilityNamed": {"section": "§14", "what": "Deduplication, suppression windows, severity tiers, snooze-with-reason"},
    "status": "built",
    "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/alerts@2'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}

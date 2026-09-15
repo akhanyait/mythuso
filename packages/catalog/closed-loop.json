@@ -57,7 +57,7 @@
  "exhaustion": {
   "event": "loop.exhausted@1",
   "declaredIn": null,
-  "_declaredInNote": "Core's lead may not edit packages/catalog/events.json, and this event is not declared there yet. Until it is, the bus refuses it; Core keeps the concern exhausted anyway, writes down that it has not been announced, and tries again on every tick, so a refusal of the announcement never becomes a concern that quietly stopped.",
+  "_declaredInNote": "Not declared in packages/catalog/events.json, deliberately. The event contract refuses a live event with no subscribers, and no engine hears an exhausted concern today: Safety, Care and Access have no handler for it, and listing one to satisfy the rule would be a subscriber that reads nothing. The Control Tower learns of an exhausted concern through GET /v1/core/loops@1, first in the list, and needs no subscriber. It is declared the day an engine acts on it. Until then the bus refuses it; Core keeps the concern exhausted anyway, writes down that it has not been announced, and tries again on every tick, so a refusal of the announcement never becomes a concern that quietly stopped.",
   "severity": "The last of severities.ids.",
   "when": "A concern past its deadline, unacknowledged, and already with its fallback — or opened with no fallback to move to.",
   "stays": ["open", "exhausted, with the time", "first in what the Control Tower reads"],

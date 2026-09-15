@@ -28,7 +28,6 @@ enum ApisData {
     static let postCoreLoopsByLoopRefAcknowledge = Route(id: "postCoreLoopsByLoopRefAcknowledge", method: "POST", path: "/v1/core/loops/{loopRef}/acknowledge", mountedPath: "/v1/core/loops/{loopRef}/acknowledge", version: 1, engine: "core", callers: ["nurse", "doctor", "ops-desk", "engine:care", "engine:safety"], purpose: ["treatment", "dispatch", "emergency"], idempotent: true, status: "built")
     static let postCoreLoopsByLoopRefEscalate = Route(id: "postCoreLoopsByLoopRefEscalate", method: "POST", path: "/v1/core/loops/{loopRef}/escalate", mountedPath: "/v1/core/loops/{loopRef}/escalate", version: 1, engine: "core", callers: ["ops-desk", "engine:safety"], purpose: ["treatment", "dispatch", "emergency"], idempotent: true, status: "built")
     static let postCoreLoopsByLoopRefClose = Route(id: "postCoreLoopsByLoopRefClose", method: "POST", path: "/v1/core/loops/{loopRef}/close", mountedPath: "/v1/core/loops/{loopRef}/close", version: 1, engine: "core", callers: ["nurse", "doctor", "ops-desk"], purpose: ["treatment", "dispatch", "emergency"], idempotent: true, status: "built")
-    static let postCoreAlerts = Route(id: "postCoreAlerts", method: "POST", path: "/v1/core/alerts", mountedPath: "/v1/core/alerts", version: 1, engine: "core", callers: ["engine:safety", "engine:devices", "engine:clinical", "engine:medicines"], purpose: ["treatment", "emergency"], idempotent: false, status: "proposed")
     static let postCoreAlertsV2 = Route(id: "postCoreAlertsV2", method: "POST", path: "/v1/core/alerts", mountedPath: "/v1/core/alerts", version: 2, engine: "core", callers: ["engine:safety", "engine:devices", "engine:clinical", "engine:medicines"], purpose: ["treatment", "emergency"], idempotent: false, status: "built")
     static let getCoreProtocolsByProtocolVersionId = Route(id: "getCoreProtocolsByProtocolVersionId", method: "GET", path: "/v1/core/protocols/{protocolVersionId}", mountedPath: "/v1/core/protocols/{protocolVersionId}", version: 1, engine: "core", callers: ["nurse", "doctor", "medical-director", "engine:clinical", "engine:care", "engine:safety", "engine:medicines"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let postCoreProtocolsByProtocolIdRatify = Route(id: "postCoreProtocolsByProtocolIdRatify", method: "POST", path: "/v1/core/protocols/{protocolId}/ratify", mountedPath: "/v1/core/protocols/{protocolId}/ratify", version: 1, engine: "core", callers: ["medical-director"], purpose: ["audit"], idempotent: false, status: "proposed")
@@ -186,7 +185,6 @@ enum ApisData {
         postCoreLoopsByLoopRefAcknowledge,
         postCoreLoopsByLoopRefEscalate,
         postCoreLoopsByLoopRefClose,
-        postCoreAlerts,
         postCoreAlertsV2,
         getCoreProtocolsByProtocolVersionId,
         postCoreProtocolsByProtocolIdRatify,
@@ -387,18 +385,6 @@ enum ApisData {
     }
     struct PostCoreLoopsByLoopRefCloseResponse {
         let closedAt: String
-    }
-    struct PostCoreAlertsRequest {
-        let sourceEngine: String
-        let rung: Int
-        let ownerRole: String
-        let recordEntryRef: String?
-        let dedupeKey: String
-        let snoozeReasonCode: String?
-    }
-    struct PostCoreAlertsResponse {
-        let alertRef: String
-        let suppressed: Bool
     }
     struct PostCoreAlertsV2Request {
         let sourceEngine: String
