@@ -182,6 +182,8 @@ enum ApisData {
     static let postMoneyGroups = Route(id: "postMoneyGroups", method: "POST", path: "/v1/money/groups", mountedPath: "/v1/money/groups", version: 1, engine: "money", callers: ["patient", "sponsor", "employer"], purpose: ["billing"], idempotent: true, status: "proposed")
     static let postMoneyClaimsV2 = Route(id: "postMoneyClaimsV2", method: "POST", path: "/v1/money/claims", mountedPath: "/v1/money/claims", version: 2, engine: "money", callers: ["admin"], purpose: ["billing"], idempotent: true, status: "proposed")
     static let postMoneyMarketOrders = Route(id: "postMoneyMarketOrders", method: "POST", path: "/v1/money/market-orders", mountedPath: "/v1/money/market-orders", version: 1, engine: "money", callers: ["patient", "caregiver"], purpose: ["billing"], idempotent: true, status: "proposed")
+    static let getMoneySettings = Route(id: "getMoneySettings", method: "GET", path: "/v1/money/settings", mountedPath: "/v1/money/settings", version: 1, engine: "money", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postMoneySettingChanges = Route(id: "postMoneySettingChanges", method: "POST", path: "/v1/money/setting-changes", mountedPath: "/v1/money/setting-changes", version: 1, engine: "money", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
 
     static let routes: [Route] = [
         postCoreEvents,
@@ -343,7 +345,9 @@ enum ApisData {
         postMoneyGifts,
         postMoneyGroups,
         postMoneyClaimsV2,
-        postMoneyMarketOrders
+        postMoneyMarketOrders,
+        getMoneySettings,
+        postMoneySettingChanges
     ]
 
     struct PostCoreEventsRequest {
@@ -1598,5 +1602,29 @@ enum ApisData {
     struct PostMoneyMarketOrdersResponse {
         let marketOrderRef: String
         let totalCents: Int
+    }
+    struct GetMoneySettingsRequest {}
+    struct GetMoneySettingsResponse {
+        let settingsVersion: Int
+        let settings: [[String: Any]]
+        let history: [[String: Any]]
+    }
+    struct PostMoneySettingChangesRequest {
+        let idempotencyKey: String
+        let setting: String
+        let wholeNumber: Int?
+        let switchedOn: Bool?
+        let choice: String?
+        let wording: String?
+        let roles: [String]?
+        let windows: [[String: Any]]?
+        let items: [String]?
+        let parts: [String: Any]?
+        let reason: String?
+        let expectedVersion: Int
+    }
+    struct PostMoneySettingChangesResponse {
+        let settingsVersion: Int
+        let appliesFrom: String
     }
 }

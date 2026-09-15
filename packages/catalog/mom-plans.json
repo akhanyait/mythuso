@@ -1,8 +1,10 @@
 {
  "_note": "MyThuso for Mom: the plan a son or daughter pays for a parent. The three tiers, their prices and what each names are the Master Blueprint v4, Part D, which the founder confirmed on 14 September 2026 replaces the single R249 Thuso Mom this preview carried. The web reads this file; scripts/emit-plans.mjs writes it into Swift and Kotlin. No price here is typed anywhere else, and business-model.json's `mom` subscription points at this file rather than holding a number of its own.",
- "_honestyNote": "Every inclusion names the capability in packages/catalog/capabilities.json that it depends on, and every screen renders that capability's notice beside it. Nothing a tier names is real today, and the valuable half of this file is the refusals and the open questions: the sentences that stop a plan price from being read as a device that exists, a place ahead of somebody more unwell, or medical-aid cover.",
+ "_settingsNote": "Since 15 September 2026, when the founder instructed that open questions become admin settings, the plan's name and each tier's name, whether a tier brings the tier below it, how many urgent call-outs Plus brings and over what period, what priority SOS means and whether WhatsApp is used after a visit are Money's settings in packages/catalog/money.json. This file holds the words each is read into and never a value: a key ending From names the setting, and packages/engines/src/money/domain/settings.ts reads the value in force into these words. The two open questions this file carried and the undecided priority SOS are those settings now, each with a proposal an admin may change.",
+ "_honestyNote": "Every inclusion names the capability in packages/catalog/capabilities.json that it depends on, and every screen renders that capability's notice beside it. Nothing a tier names is real today, and the valuable half of this file is the refusals: the sentences that stop a plan price from being read as a device that exists, a place ahead of somebody more unwell, or medical-aid cover.",
  "id": "mom",
- "name": "MyThuso for Mom",
+ "nameFrom": "plan-family-name",
+ "settingsIn": "packages/catalog/money.json",
  "source": "Master Blueprint v4, Part D",
  "confirmed": "14 September 2026",
  "payer": {
@@ -12,7 +14,7 @@
  "tiers": [
   {
    "id": "essential",
-   "name": "Essential",
+   "nameFrom": "tier-name-essential",
    "price": 399,
    "phase": 2,
    "cadence": "A nurse every month",
@@ -20,12 +22,12 @@
    "includes": [
     { "id": "monthly-visit", "text": "A nurse visit every month: blood pressure, glucose, weight, a medicine check and how they are doing", "capability": "booking" },
     { "id": "medicine-collection", "text": "Chronic medicine collected from the CCMDD pick-up point or the clinic, with their authorisation, and delivered", "capability": "medicine-collection" },
-    { "id": "visit-report", "text": "A WhatsApp report and a photo after every visit", "capability": "messaging" }
+    { "id": "visit-report", "textBy": { "setting": "visit-reports-whatsapp", "values": { "off": "A report and a photo after every visit, in the app", "notify-only": "A report and a photo after every visit, in the app, and a WhatsApp message saying it is ready" } }, "capability": "messaging" }
    ]
   },
   {
    "id": "plus",
-   "name": "Plus",
+   "nameFrom": "tier-name-plus",
    "price": 749,
    "phase": 3,
    "cadence": "A nurse every fortnight",
@@ -35,12 +37,12 @@
     { "id": "quarterly-screening", "text": "A screening every quarter", "capability": "booking" },
     { "id": "doctor-review", "text": "A registered doctor reviews every visit", "capability": "doctor-review" },
     { "id": "band", "text": "A Thuso Band with an SOS button", "capability": "thuso-devices", "device": "band" },
-    { "id": "urgent-call-out", "text": "One urgent nurse call-out", "capability": "emergency" }
+    { "id": "urgent-call-out", "textFrom": "plus-urgent-callouts", "capability": "emergency" }
    ]
   },
   {
    "id": "premium",
-   "name": "Premium",
+   "nameFrom": "tier-name-premium",
    "price": 1299,
    "phase": 3,
    "cadence": "A nurse every week",
@@ -50,15 +52,25 @@
     { "id": "home-station", "text": "A Thuso Home station, for video calls with the doctor and the family", "capability": "thuso-devices", "device": "home" },
     { "id": "pill-dispenser", "text": "A pill dispenser", "capability": "thuso-devices", "device": "home" },
     { "id": "carer-hours", "text": "Carer hours for bathing and meals", "capability": "carers" },
-    { "id": "priority-sos", "text": "What the Blueprint calls priority SOS", "capability": "emergency", "undecided": "What priority SOS adds has not been decided. It will never mean being answered ahead of somebody who is more unwell, and until it is written down this plan claims nothing for it." },
+    { "id": "priority-sos", "text": "Priority SOS", "detailFrom": "priority-sos-wording", "capability": "emergency" },
     { "id": "family-dashboard", "text": "A family dashboard", "capability": "clinical-records" }
    ]
   }
  ],
- "openQuestions": [
-  "Whether Plus and Premium also carry what Essential names, the medicine collection and the report after each visit, has not been decided. Each plan lists only what has been decided for it.",
-  "Whether the one urgent call-out on Plus is one a month or one a year has not been written down."
- ],
+ "stacking": {
+  "setting": "tiers-stack",
+  "inherits": "Everything in {tier}",
+  "why": "Said once above a tier's own items, naming the tier below, rather than repeating that tier's items: the repeated lines would each need their notice again, which is the stacked-notice defect the capabilities contract was written to end. With the setting off, the line is not drawn and each tier lists only what it names."
+ },
+ "callOuts": {
+  "setting": "plus-urgent-callouts",
+  "counts": ["One", "Two", "Three", "Four"],
+  "one": "urgent nurse call-out",
+  "many": "urgent nurse call-outs",
+  "per": { "month": "a month", "year": "a year" },
+  "none": "With nought call-outs set, Plus lists no call-out line rather than one that promises nothing.",
+  "why": "The words the number and the period are read into, so \"One urgent nurse call-out a month\" is worked out from the setting and never typed. counts holds a word for every number the setting's bounds allow above nought, and the build fails when it does not."
+ },
  "addOns": {
   "statement": "These have been named and not priced, so none of them shows a price and none can be added.",
   "items": [

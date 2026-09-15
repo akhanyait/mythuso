@@ -17,13 +17,13 @@ import za.co.mythuso.model.Money
 import za.co.mythuso.model.MoneyData
 
 /*
- * What a doctor is paid for reviewing a case, which is: not decided.
+ * What a doctor is paid for reviewing a case, and whether it may be paid yet.
  *
- * The documents give a range for a doctor's per-case review and no price. A screen like this is where a
- * made-up number would be most tempting and do the most harm — a figure a doctor reads as her rate,
- * which nobody agreed to. So the fee is the contract's null, rendered as the contract's sentence; the
- * range is shown as a range and labelled as one, read from the funding proposal's model when MoneyData
- * was generated; and the one button asks to schedule the payout and shows the refusal, word for word,
+ * The documents give a range for a doctor's per-case review and no price. The fee is Money's setting,
+ * and this app has no admin surface, so it shows the default as generated: a proposal inside that range,
+ * which nobody has confirmed. A proposal pays nobody, so the screen shows the fee beside the contract's
+ * sentence saying it is not confirmed; the range is shown as a range and labelled as one, from the
+ * setting's bounds; and the one button asks to schedule the payout and shows the refusal, word for word,
  * rather than being disabled with no reason given.
  *
  * The cases carry a reference and a date and nothing else. Money hears review.billable, which names the
@@ -31,21 +31,20 @@ import za.co.mythuso.model.MoneyData
  * has nobody to name, which is the design rather than a gap in it.
  */
 private val signedOn = DateTimeFormatter.ofPattern("EEE d MMMM", Locale.forLanguageTag("en-ZA"))
-private fun feeRand(amount: Int) = "R $amount"
 
 @Composable fun DoctorFeesScreen() {
     val fee = Money.reviewFee
     val cases = MoneyData.sampleCases
-    val feeText = fee.amount?.let(::feeRand) ?: "Not decided"
+    val feeText = Money.randCents(fee.amountCents) + if (fee.confirmed) "" else " · not confirmed"
     var answer by rememberSaveable { mutableStateOf<String?>(null) }
     ScreenColumn {
         Heading("Doctor", "Per-case fees", fee.name)
         NotConnected("payouts")
         CareCard {
-            ReviewLine(fee.name, feeText)
-            ReviewLine("The range the documents give", "${feeRand(fee.rangeLow)} to ${feeRand(fee.rangeHigh)}")
-            Note(fee.undecided)
-            Note("${fee.source} Who decides it: ${fee.whoDecides}")
+            ReviewLine(fee.name, Money.randCents(fee.amountCents))
+            ReviewLine("The range the documents give", "${Money.randCents(fee.rangeLowCents)} to ${Money.randCents(fee.rangeHighCents)}")
+            Note(if (fee.confirmed) fee.confirmedWords else fee.unconfirmedWords)
+            Note("${fee.source} ${fee.whoSets}")
         }
         CareCard {
             Text("Cases recorded", style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
@@ -53,14 +52,14 @@ private fun feeRand(amount: Int) = "R $amount"
             Note(MoneyData.casesWords)
         }
         CareCard {
-            ReviewLine("Owed for ${cases.size} cases", Money.owed(cases, fee)?.let(::feeRand) ?: "Not worked out")
+            ReviewLine("Owed for ${cases.size} cases", Money.owed(cases, fee)?.let(Money::randCents) ?: "Not worked out")
             val shown = answer
             if (shown != null) {
                 Text(shown, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
             } else {
-                /* The phone cannot schedule anything; the engine refuses while the fee is null, and this
-                   shows that refusal in its words rather than a figure. */
-                OutlinedButton(onClick = { answer = if (fee.isDecided) null else Money.refusal("doctor-fee-undecided") }, shape = ThusoButtonShape) {
+                /* The phone cannot schedule anything; the engine refuses at a fee nobody has confirmed, and
+                   this shows that refusal in its words rather than a figure. */
+                OutlinedButton(onClick = { answer = if (fee.isPayable) null else Money.refusal("doctor-fee-undecided") }, shape = ThusoButtonShape) {
                     Text("Schedule this week’s payout")
                 }
             }

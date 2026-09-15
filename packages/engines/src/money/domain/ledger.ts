@@ -29,11 +29,11 @@
 import {
  canonical, currency, doorIsLocked, doorOf, earningsContract, feeByCode, heardEvent, isRecordReference,
  isRefusal, methodById, money, outcomeOf, planPriceRand, refusal, serviceById, stateOf,
- type DoctorFee, type MethodId, type PayableKind, type PaymentStateId, type Published, type Refusal
+ type MethodId, type PayableKind, type PaymentStateId, type Published, type Refusal
 } from './contract.ts';
 import { advise, attempt, reversal, type PaymentResultPayload, type PayoutAdvicePayload } from './provider.ts';
 import { isoDateInSouthAfrica, periodEndFor, recompute, totalCents, type PayoutLine, type RecomputeReason } from './payouts.ts';
-import { doctorOwedCents, type DoctorCase } from './fees.ts';
+import { doctorOwedCents, type DoctorCase, type FeeInForce } from './fees.ts';
 import { carriesACard } from './cards.ts';
 import { cashCodeDigest, randomDigits, randomSalt, sameDigest } from './secrets.ts';
 
@@ -116,8 +116,11 @@ export type MoneyOptions = {
  clock?: () => Date;
  /** Whether the simulated provider stands behind the doors. Development only. */
  simulation?: boolean;
- /** The doctors' fees, when a test needs to prove the decided path. Otherwise the contract. */
- doctorFees?: readonly DoctorFee[];
+ /* The doctor's fee in force, asked when a case is heard and when a payout is scheduled. Handed in by
+    whoever holds Money's settings history — the engine's store, or the web preview's memory — rather than
+    imported, so this file never holds a settings history of its own and a patient's payment step, which
+    runs this ledger too, carries no settings code. Without one, no fee is in force and none is paid. */
+ doctorFee?: () => FeeInForce;
  tables?: MoneyTables;
  /** Where an event goes. The engine hands in the bus; without it, events wait in outbox(). */
  publish?: (key: Published, payload: Record<string, unknown>, subjectRef: string) => void;
@@ -143,7 +146,7 @@ const weekOf = (isoDate: string) => periodEndFor(new Date(`${isoDate}T12:00:00+0
 export function createMoney(options: MoneyOptions = {}) {
  const clock = options.clock ?? (() => new Date());
  const simulation = options.simulation ?? false;
- const fees = options.doctorFees;
+ const feeNow = (): FeeInForce | null => options.doctorFee?.() ?? null;
  const t = options.tables ?? memoryTables();
  const outbox: Emitted[] = [];
 
@@ -378,10 +381,13 @@ export function createMoney(options: MoneyOptions = {}) {
    }
   } else if (envelope.type === 'review.billable') {
    const feeCode = String(p['feeCode']);
-   if (!(fees ?? []).some(f => f.feeCode === feeCode) && !feeByCode(feeCode)) return refusal('hears-only-its-list');
+   if (!feeByCode(feeCode)) return refusal('hears-only-its-list');
    const doctorRef = String(p['reviewedByRef']);
    const row = t.cases.get(doctorRef) ?? { doctorRef, cases: [] };
-   if (!row.cases.some(c => c.reviewRef === p['reviewRef'])) row.cases.push({ reviewRef: String(p['reviewRef']), feeCode, on });
+   /* The fee in force today goes onto the case and is never asked again for it: a later change to the
+      fee, or to whether it is confirmed, reaches cases signed after it and not this one. A redelivery
+      keeps the fee the first delivery recorded. */
+   if (!row.cases.some(c => c.reviewRef === p['reviewRef'])) row.cases.push({ reviewRef: String(p['reviewRef']), feeCode, on, fee: feeNow() });
    t.cases.put(doctorRef, row);
   } else if (envelope.type === 'booking.cancelled') {
    refundWhere(payable => payable.bookingRef === p['bookingRef']);
@@ -502,10 +508,10 @@ export function createMoney(options: MoneyOptions = {}) {
 
  function scheduleDoctorPayout(doctorRef: string, periodEnd: string): Payout | Refusal {
   const signed = (t.cases.get(doctorRef)?.cases ?? []).filter(c => c.on <= periodEnd);
-  const owed = doctorOwedCents(signed, fees);
+  const owed = doctorOwedCents(signed, feeNow());
   if (isRefusal(owed)) return owed;
   const payoutRef = `PO-${doctorRef}-${periodEnd}`;
-  /* A doctor's line is a case, not a visit, and carries no amount: the fee is the contract's. */
+  /* A doctor's line is a case, not a visit, and carries no amount: each case's fee is the one it was signed under, or the one confirmed now. */
   const payout: Payout = { payoutRef, partyRef: doctorRef, periodEnd, lines: [], totalCents: owed, state: 'closed' };
   t.payouts.put(payoutRef, payout);
   emit('payout.scheduled@1', { payoutRef, periodEnd, lineCount: signed.length }, doctorRef);

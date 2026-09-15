@@ -6192,10 +6192,10 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  const { emitPlans } = await import('./emit-plans.mjs');
  for (const file of emitPlans()) {
   if (!existsSync(file.path)) throw new Error(`${file.path} has not been generated. Run: npm run plans`);
-  for (const source of ['packages/catalog/mom-plans.json', 'packages/catalog/business-model.json']) {
+  for (const source of ['packages/catalog/mom-plans.json', 'packages/catalog/business-model.json', 'packages/catalog/money.json']) {
    if (statSync(file.path).mtimeMs < statSync(source).mtimeMs) throw new Error(`${file.path} is older than ${source}. Run: npm run plans`);
   }
-  if (read(file.path) !== file.content) throw new Error(`${file.path} is not what packages/catalog/mom-plans.json and packages/catalog/business-model.json generate. Either it was edited by hand — it says at the top not to be — or the generator changed. Run: npm run plans`);
+  if (read(file.path) !== file.content) throw new Error(`${file.path} is not what packages/catalog/mom-plans.json, packages/catalog/business-model.json and Money's settings generate. Either it was edited by hand — it says at the top not to be — or the generator changed. Run: npm run plans`);
  }
 
  /* 1. Three tiers, each priced once, in the one file. The business model's row names the tier file
@@ -6220,7 +6220,7 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   'apps/web/src/features/Pages.tsx': [/import\('\.\/MomPlans'\)/, /<MomPlansPanel\/>/, /<NotConnected of="payments"\/>/],
   'apps/web/src/features/MomPlans.tsx': [/from '\.\.\/lib\/mom-plans'/, /<NotConnected of=\{g\.capability\}/],
   'apps/web/src/features/Landing.tsx': [/monthlyPrices\(/],
-  'apps/web/src/features/Admin.tsx': [/subscriptionLines\(\)/],
+  'apps/web/src/features/Admin.tsx': [/subscriptionLines\(plan\)/, /momPlanNow\(\)/],
   'apps/web/src/lib/mom-plans.ts': [/mom-plans\.json/],
   'apps/ios/MyThuso/Features/PassportView.swift': [/Plans\.subscriptions/, /MomPlansView\(\)/, /CapabilityNotice\(of: "payments"\)/],
   'apps/ios/MyThuso/Features/MomPlansView.swift': [/Plans\.mom\b/, /CapabilityNotice\(of: group\.capability\)/, /CapabilityNotice\(of: "payments"\)/],
@@ -6246,18 +6246,44 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  for (const file of everyScreen) if (/\bThuso Mom\b/.test(stripped(file))) throw new Error(`${file} still names "Thuso Mom". The founder replaced that R249 plan with MyThuso for Mom on 14 September 2026; a screen offering both is offering a plan nobody sells.`);
 
  /* 3. Every inclusion names a capability that exists, or is marked available with evidence somebody
-       can open. There is no third way for a line on a plan to be shown. */
+       can open. There is no third way for a line on a plan to be shown.
+
+       Since 15 September 2026 the plan's and tiers' names, and the words of three inclusions, are Money's
+       settings, read into this file's words by packages/engines/src/money/domain/settings.ts. So what a
+       line says is every wording it could be given — each WhatsApp choice, and every call-out count and
+       period the setting allows — and each is held below exactly as a typed line always was. */
+ const { planTermsOf, moneyDefaults } = await import('../packages/engines/src/money/domain/settings.ts');
+ const moneyForPlans = JSON.parse(read('packages/catalog/money.json'));
+ const planSetting = key => moneyForPlans.settings?.items?.find(s => s.key === key);
+ const momTerms = planTermsOf(moneyDefaults);
+ const tierName = tier => momTerms.tiers.find(t => t.id === tier.id)?.name ?? tier.id;
+ const callOutWords = momContract.callOuts;
+ const wordsOf = item => {
+  if (typeof item.text === 'string') return [item.text];
+  if (item.textBy) return Object.values(item.textBy.values ?? {});
+  if (item.textFrom && item.textFrom === callOutWords?.setting) {
+   const parts = planSetting(item.textFrom)?.parts ?? [];
+   const highest = parts.find(p => p.key === 'count')?.bounds?.highest?.value ?? 0;
+   if (callOutWords.counts.length < highest) throw new Error(`packages/catalog/mom-plans.json has words for ${callOutWords.counts.length} call-outs, and ${item.textFrom} may be set to ${highest}. A number with no word is a plan screen that cannot say what Plus brings.`);
+   return (parts.find(p => p.key === 'period')?.allowed ?? []).flatMap(period => {
+    if (!callOutWords.per?.[period.value]) throw new Error(`packages/catalog/mom-plans.json has no words for call-outs counted per ${period.value}, which ${item.textFrom} allows.`);
+    return callOutWords.counts.map((number, i) => `${number} ${i === 0 ? callOutWords.one : callOutWords.many} ${callOutWords.per[period.value]}`);
+   });
+  }
+  throw new Error(`"${item.id}" in packages/catalog/mom-plans.json has no text, and reads it from nothing Money holds.`);
+ };
  for (const tier of momContract.tiers) {
   const ids = new Set();
   for (const item of tier.includes) {
    if (ids.has(item.id)) throw new Error(`Tier "${tier.id}" lists "${item.id}" twice.`);
    ids.add(item.id);
+   wordsOf(item);
    if (item.available) {
-    if (!item.evidence || !existsSync(item.evidence)) throw new Error(`"${item.id}" on ${tier.name} is marked available and its evidence ${JSON.stringify(item.evidence)} is not a file that exists. Available is a claim about the world.`);
+    if (!item.evidence || !existsSync(item.evidence)) throw new Error(`"${item.id}" on ${tierName(tier)} is marked available and its evidence ${JSON.stringify(item.evidence)} is not a file that exists. Available is a claim about the world.`);
     continue;
    }
-   if (!item.capability) throw new Error(`"${item.id}" on ${tier.name} names no capability and is not marked available with evidence. A plan line with neither is a promise with nothing beside it.`);
-   if (!planCapabilities.has(item.capability)) throw new Error(`"${item.id}" on ${tier.name} depends on capability "${item.capability}", which packages/catalog/capabilities.json does not define — so no notice can be rendered beside it and the screen would stay silent.`);
+   if (!item.capability) throw new Error(`"${item.id}" on ${tierName(tier)} names no capability and is not marked available with evidence. A plan line with neither is a promise with nothing beside it.`);
+   if (!planCapabilities.has(item.capability)) throw new Error(`"${item.id}" on ${tierName(tier)} depends on capability "${item.capability}", which packages/catalog/capabilities.json does not define — so no notice can be rendered beside it and the screen would stay silent.`);
   }
  }
 
@@ -6268,11 +6294,12 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  const ownDevices = new Set(planModel.equipment.ownDevices.map(d => d.id));
  const devicesConnected = planCapabilities.get('thuso-devices')?.connected;
  for (const tier of momContract.tiers) for (const item of tier.includes) {
-  if (/\b(Thuso Band|Thuso Home|Thuso Pod|dispenser|wearable)\b/i.test(item.text) && !item.device) throw new Error(`"${item.id}" on ${tier.name} names a device and does not say which of MyThuso's own devices it is, so nothing can hold it to whether that device exists.`);
+  const words = wordsOf(item).join(' ');
+  if (/\b(Thuso Band|Thuso Home|Thuso Pod|dispenser|wearable)\b/i.test(words) && !item.device) throw new Error(`"${item.id}" on ${tierName(tier)} names a device and does not say which of MyThuso's own devices it is, so nothing can hold it to whether that device exists.`);
   if (!item.device) continue;
-  if (!ownDevices.has(item.device)) throw new Error(`"${item.id}" on ${tier.name} names device "${item.device}", which is not one of the own devices in packages/catalog/business-model.json.`);
-  if (item.capability !== 'thuso-devices') throw new Error(`"${item.id}" on ${tier.name} is a device and depends on "${item.capability}" rather than thuso-devices, so the sentence saying the device has not been built would not be beside it.`);
-  if (!devicesConnected && /\binclud/i.test(item.text)) throw new Error(`"${item.id}" on ${tier.name} calls a device that has not been built included. ${momContract.refusals.find(r => r.id === 'a-device-that-does-not-exist-is-not-included')?.sentence ?? ''}`);
+  if (!ownDevices.has(item.device)) throw new Error(`"${item.id}" on ${tierName(tier)} names device "${item.device}", which is not one of the own devices in packages/catalog/business-model.json.`);
+  if (item.capability !== 'thuso-devices') throw new Error(`"${item.id}" on ${tierName(tier)} is a device and depends on "${item.capability}" rather than thuso-devices, so the sentence saying the device has not been built would not be beside it.`);
+  if (!devicesConnected && /\binclud/i.test(words)) throw new Error(`"${item.id}" on ${tierName(tier)} calls a device that has not been built included. ${momContract.refusals.find(r => r.id === 'a-device-that-does-not-exist-is-not-included')?.sentence ?? ''}`);
  }
  /* Scoped to the plans code in the files that hold many screens. Pages.tsx also draws the nurse
     booking, whose "not included in this nurse booking" is true and about something else; a check that
@@ -6295,23 +6322,29 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   if (/\bincluded\b/i.test(plansCode(file))) throw new Error(`${file} says "included" on a plans screen while thuso-devices is not connected. A plan does not include a device that has not been built; it would bring one, with the notice beside it.`);
  }
 
- /* 5. No price buys clinical priority. Anything on a plan that speaks of priority must say it is
-       undecided, and that sentence must refuse being seen ahead of somebody more unwell. Nothing else
-       on the plan may speak of being faster or ahead at all. */
+ /* 5. No price buys clinical priority. Anything on a plan that speaks of priority must read what it
+       means from a Money wording setting that must always keep the sentence refusing a place ahead of
+       somebody more unwell, so no rewording can drop it. Nothing else on the plan may speak of being
+       faster or ahead at all. */
  const REQUIRED_REFUSALS = ['a-device-that-does-not-exist-is-not-included', 'no-plan-buys-a-place-ahead', 'a-plan-is-not-medical-aid', 'paying-is-not-seeing'];
  for (const id of REQUIRED_REFUSALS) if (!momContract.refusals.some(r => r.id === id && r.sentence?.trim())) throw new Error(`packages/catalog/mom-plans.json has lost the refusal "${id}". It is the half of this plan worth reading.`);
  for (const tier of momContract.tiers) for (const item of tier.includes) {
-  if (/priorit/i.test(item.id + ' ' + item.text)) {
-   if (!item.undecided || !/more unwell|ahead of/i.test(item.undecided)) throw new Error(`"${item.id}" on ${tier.name} speaks of priority without saying what it cannot mean. A plan price may buy faster contact, never a place ahead of somebody more unwell, and until that is written down it claims nothing.`);
+  const words = wordsOf(item).join(' ');
+  if (/priorit/i.test(item.id + ' ' + words)) {
+   const meaning = planSetting(item.detailFrom);
+   if (meaning?.type !== 'text' || !(meaning.mustKeep ?? []).some(keep => /more unwell|ahead of/i.test(keep.words))) throw new Error(`"${item.id}" on ${tierName(tier)} speaks of priority without a Money wording setting that must always say what it cannot mean. A plan price may buy faster contact, never a place ahead of somebody more unwell.`);
   }
-  if (/\b(faster|ahead of|jump|queue|first in line|before other)/i.test(item.text)) throw new Error(`"${item.id}" on ${tier.name} reads "${item.text}". ${momContract.refusals.find(r => r.id === 'no-plan-buys-a-place-ahead').sentence}`);
+  if (/\b(faster|ahead of|jump|queue|first in line|before other)/i.test(words)) throw new Error(`"${item.id}" on ${tierName(tier)} reads "${words}". ${momContract.refusals.find(r => r.id === 'no-plan-buys-a-place-ahead').sentence}`);
  }
 
  /* 6. A plan price never implies scheme cover. The words belong to the refusal that denies them and
-       to nothing a person reads as what they are buying. */
- const sold = [momContract.payer.headline, momContract.payer.statement, momContract.addOns.statement, momContract.splitting.statement,
-  ...momContract.addOns.items.map(a => a.name), ...momContract.tiers.flatMap(t => [t.name, t.cadence, ...t.includes.map(i => i.text)])];
- for (const line of sold) if (/\b(medical aid|medical scheme|scheme|cover(ed|s|age)?|insur\w*|claim\w*|benefit)\b/i.test(line)) throw new Error(`MyThuso for Mom says "${line}". ${momContract.refusals.find(r => r.id === 'a-plan-is-not-medical-aid').sentence}`);
+       to nothing a person reads as what they are buying — the plan's and tiers' names by default included. */
+ const sold = [momContract.payer.headline, momContract.payer.statement, momContract.addOns.statement, momContract.splitting.statement, momTerms.name,
+  ...momContract.addOns.items.map(a => a.name), ...momContract.tiers.flatMap(t => [tierName(t), t.cadence, ...t.includes.flatMap(wordsOf)])];
+ for (const line of sold) if (/\b(medical aid|medical scheme|scheme|cover(ed|s|age)?|insur\w*|claim\w*|benefits?)\b/i.test(line)) throw new Error(`MyThuso for Mom says "${line}". ${momContract.refusals.find(r => r.id === 'a-plan-is-not-medical-aid').sentence}`);
+ /* 6b. The public page names the plan from the business model's row, a document an admin's change in a
+        back office tab never reaches. By default the two are one name, or the page and the app have parted. */
+ if (momRows[0].name !== momTerms.name) throw new Error(`packages/catalog/business-model.json calls the plan "${momRows[0].name}" and Money's setting ${momContract.nameFrom} names it "${momTerms.name}" by default. The public page and the app would call one plan two things.`);
 
  /* 7. The documents name the add-ons and price none of them, and neither does this. */
  for (const addOn of momContract.addOns.items) if ('price' in addOn) throw new Error(`The add-on "${addOn.id}" has a price. The Blueprint names it and does not price it; a number here would be one somebody invented.`);
@@ -6862,8 +6895,12 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
    them to is the handful of ways each could quietly stop being true while every test still passed:
 
      1. The native copy of the contract is the generator's output, byte for byte.
-     2. A range is not a price. The doctor's per-case fee is null with nobody's name beside it, or it is
-        a number inside the cited range with a name and a day — and no Money screen types the range.
+     2. A range is not a price, and a proposal is not a fee. The doctor's per-case fee is Money's setting,
+        bounded by the cited range in cents; a proposal is never confirmed by default and the ledger
+        schedules no payout at one — and no Money screen types the range or the fee.
+     2c. Money's settings (Wave 3, settings): no screen types Plus's call-outs, the fee or a nurse's share
+        wording; Money's own wording rules and the SOS and WhatsApp guardrails are rules a change is
+        refused by; and the web reads Money's settings through apps/web/src/lib/settings.ts alone.
      3. The simulated provider says what apps/api's says when it declines, word for word, and
      4. answers every reference the same way, so the web preview and the engine's tests are told the
         same thing about the same visit or week.
@@ -6889,25 +6926,46 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   if (read(file.path) !== file.content) throw new Error(`${file.path} is not what packages/catalog/money.json generates. Either it was edited by hand — it says at the top not to be — or the generator changed. Run: npm run money`);
  }
 
- /* 2. A range is not a price. The easy fix for an undecided fee is the middle of the range, and it would
-       be a figure on a doctor's screen that nobody agreed to. */
+ /* 2. A range is not a price, and a proposal is not a fee. The easy fix for an undecided fee is the middle
+       of the range, and it would be a figure on a doctor's screen that nobody agreed to. Since 15 September
+       2026 the fee is Money's setting, whose default is a proposal inside the range the documents give,
+       and a proposal pays nobody until an admin confirms it. So the fee entry carries no number of its
+       own, the setting's bounds are the cited range in cents, a proposal is never confirmed by default,
+       every place the ledger runs is handed the fee from the settings in force, and the ledger itself,
+       run here, refuses a payout at the proposal and publishes nothing. */
  const undecided = moneyRefusal('doctor-fee-undecided');
  if (!undecided?.statement?.trim()) throw new Error('packages/catalog/apis/money.json has lost the refusal doctor-fee-undecided, so nothing says why a doctor is not paid while the fee is undecided.');
  if (!moneyContract.doctorFees?.length) throw new Error('packages/catalog/money.json names no doctor\'s fee, so review.billable@1 has nothing to be billed against.');
+ const moneySetting = key => moneyContract.settings?.items?.find(s => s.key === key);
  const citedRanges = [];
  for (const fee of moneyContract.doctorFees) {
-  const cited = fee.rangeFrom?.file === 'packages/catalog/business-model.json' ? modelForMoney : undefined;
-  const range = String(fee.rangeFrom?.path ?? '').split('.').reduce((at, key) => at?.[key], cited);
-  if (!Array.isArray(range) || range.length !== 2 || !(range[0] > 0 && range[0] < range[1])) throw new Error(`The fee "${fee.feeCode}" cites ${JSON.stringify(fee.rangeFrom)}, which is not a range of two numbers. A fee's range is read from the document that gives it, not typed beside it.`);
-  if ('range' in fee || 'price' in fee || 'low' in fee || 'high' in fee) throw new Error(`The fee "${fee.feeCode}" types a range or a price beside its citation. The range lives in ${fee.rangeFrom.file}.`);
-  if (fee.amount === null) {
-   if (fee.decidedBy !== null || fee.decidedOn !== null) throw new Error(`The fee "${fee.feeCode}" names who decided it and when, and has no amount. Either it was decided and the amount is missing, or it was not and the name is invented.`);
-   if (!fee.undecided?.trim() || !fee.whoDecides?.trim()) throw new Error(`The fee "${fee.feeCode}" is undecided and does not say so in a sentence, or does not say who decides it.`);
-  } else if (typeof fee.amount !== 'number' || !fee.decidedBy?.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(fee.decidedOn ?? '') || fee.amount < range[0] || fee.amount > range[1]) {
-   throw new Error(`The fee "${fee.feeCode}" is ${JSON.stringify(fee.amount)}, decided by ${JSON.stringify(fee.decidedBy)} on ${JSON.stringify(fee.decidedOn)}, against a cited range of R${range[0]}–R${range[1]}. A decided fee is a number inside the range with a person and a day beside it. ${undecided.statement}`);
-  }
+  const carried = ['amount', 'decidedBy', 'decidedOn', 'rangeFrom', 'range', 'price', 'low', 'high'].filter(key => key in fee);
+  if (carried.length) throw new Error(`The fee "${fee.feeCode}" carries ${carried.join(', ')} of its own. Its amount, who decided it and its range are the setting ${fee.amountSetting} in packages/catalog/money.json, and nowhere else.`);
+  const amount = moneySetting(fee.amountSetting);
+  const confirmation = moneySetting(fee.confirmedSetting);
+  if (amount?.type !== 'moneyCents' || confirmation?.type !== 'boolean') throw new Error(`The fee "${fee.feeCode}" names ${fee.amountSetting} and ${fee.confirmedSetting}, which are not a moneyCents setting and an on-or-off setting in Money's settings.`);
+  if (!fee.unconfirmed?.trim() || !fee.confirmed?.trim() || !fee.whoSets?.trim()) throw new Error(`The fee "${fee.feeCode}" does not say in a sentence what a doctor reads before and after it is confirmed, or who sets it.`);
+  const cited = amount.bounds?.citedFrom;
+  const range = cited?.file && existsSync(cited.file) ? String(cited.path ?? '').split('.').reduce((at, key) => at?.[key], JSON.parse(read(cited.file))) : undefined;
+  if (!Array.isArray(range) || range.length !== 2 || !(range[0] > 0 && range[0] < range[1])) throw new Error(`The fee setting "${amount.key}" cites ${JSON.stringify(cited)}, which does not resolve to a range of two numbers. A fee's range is read from the document that gives it, not typed beside it.`);
+  if (amount.bounds.lowest.value !== range[0] * 100 || amount.bounds.highest.value !== range[1] * 100) throw new Error(`The fee setting "${amount.key}" may be set from ${amount.bounds.lowest.value} to ${amount.bounds.highest.value} cents, and the range it cites is R${range[0]}–R${range[1]}. Its bounds are that range in cents, or they are a second copy of it that has already parted from it.`);
+  if (confirmation.default.value !== false && amount.default.decidedBy === null) throw new Error(`packages/catalog/money.json confirms the doctor's fee by default while the fee is a proposal nobody decided. A proposal pays nobody until an admin confirms it. ${undecided.statement}`);
   citedRanges.push(range);
  }
+ const moneySettingsDomain = await import('../packages/engines/src/money/domain/settings.ts');
+ const moneyLedgerDomain = await import('../packages/engines/src/money/domain/ledger.ts');
+ const proposedFee = moneySettingsDomain.doctorFeeOf(moneySettingsDomain.moneyDefaults);
+ const checkLedger = moneyLedgerDomain.createMoney({ simulation: true, clock: () => new Date('2026-09-15T08:00:00+02:00'), doctorFee: () => proposedFee });
+ checkLedger.hear({ type: 'review.billable', version: 1, occurredAt: '2026-09-14T10:00:00+02:00', payload: { reviewRef: 'RV-CHECK', reviewedByRef: 'D-CHECK', feeCode: proposedFee.feeCode } });
+ const atProposal = checkLedger.scheduleDoctorPayout('D-CHECK', '2026-09-20');
+ if (proposedFee.confirmed || atProposal?.id !== 'doctor-fee-undecided' || checkLedger.outbox().length) throw new Error(`Money's ledger scheduled a doctor's payout at the proposed fee of ${proposedFee.amountCents} cents, which nobody has confirmed. ${undecided.statement}`);
+ const feeFromSettings = [
+  ['packages/engines/src/money/engine.ts', 'doctorFee: () => doctorFeeOf(settingsIn(moneySettings, ctx.store))'],
+  ['apps/web/src/lib/money.ts', 'createMoney({ simulation: true, clock: () => now, doctorFee: feeNow })'],
+  ['apps/web/src/features/DoctorFees.tsx', 'doctorFeesFor(doctorRef, doctorFeeNow)'],
+  ['packages/engines/src/money/domain/fees.ts', "if (!confirmedNow && (cases.length === 0 || cases.some(signed => signed.fee?.confirmed !== true))) return refusal('doctor-fee-undecided');"]
+ ];
+ for (const [file, needle] of feeFromSettings) if (!read(file).includes(needle)) throw new Error(`${file} no longer does \`${needle}\`. It is how a doctor's payout is scheduled only at a fee an admin has confirmed, read from the settings in force.`);
  const moneyScreens = [
   'apps/web/src/features/DoctorFees.tsx', 'apps/web/src/lib/money.ts',
   'apps/ios/MyThuso/Features/DoctorFeesView.swift', 'apps/ios/MyThuso/Models/Money.swift',
@@ -6918,6 +6976,73 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   const typed = new RegExp(`R\\s?(${low}|${high})\\b|\\b${low}\\s?(–|-|to)\\s?R?\\s?${high}\\b`);
   for (const file of moneyScreens) if (typed.test(read(file))) throw new Error(`${file} types the doctor's fee range. It is read from packages/catalog/business-model.json — on the phones through the generated MoneyData — so the range on a doctor's screen and the range in the funding proposal's model are one number.`);
  }
+
+ /* 2c. Money's settings, where they are read. The founder instructed on 15 September 2026 that open
+        questions become admin settings, and a setting an admin changes is only a setting if nothing typed a
+        copy of it. So no plan screen types a call-out and no plan line does; no Money screen types the
+        fee or its range in cents; no hand-written screen types the sentence a nurse reads about her share
+        or states her share as a fraction; the share rule opens with that setting on all three platforms.
+        Each guardrail is a rule a change is refused by: a share wording that only Money's own rule refuses,
+        SOS wording that drops its kept sentence, and a WhatsApp choice that sends a report. The web reads
+        Money's settings through apps/web/src/lib/settings.ts alone, and the Care plans page, which is the
+        patient's first load, imports none of it. */
+ const strippedForMoney = file => read(file).replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map(l => l.replace(/(^|\s)\/\/.*$/, '')).join('\n');
+ const androidForMoney = 'apps/android/app/src/main/java/za/co/mythuso';
+ const momForMoney = JSON.parse(read('packages/catalog/mom-plans.json'));
+ const momItems = momForMoney.tiers.flatMap(t => t.includes);
+ for (const file of ['apps/web/src/features/MomPlans.tsx', 'apps/web/src/lib/mom-plans.ts', 'apps/web/src/features/Pages.tsx', 'apps/ios/MyThuso/Features/MomPlansView.swift', 'apps/ios/MyThuso/Models/Plans.swift', `${androidForMoney}/ui/MomPlanScreens.kt`, `${androidForMoney}/model/Plans.kt`]) {
+  const typed = strippedForMoney(file).match(/\bcall-outs?\b/i);
+  if (typed) throw new Error(`${file} types "${typed[0]}". How many urgent call-outs Plus brings, and over what period, is Money's setting plus-urgent-callouts, read into packages/catalog/mom-plans.json's words; a typed call-out is one an admin's change never reaches.`);
+ }
+ for (const item of momItems) if (typeof item.text === 'string' && /\bcall-outs?\b/i.test(item.text)) throw new Error(`"${item.id}" in packages/catalog/mom-plans.json types "${item.text}". A call-out line reads its number and period from plus-urgent-callouts through textFrom.`);
+
+ const feeSetting = moneySetting(moneyContract.doctorFees[0].amountSetting);
+ const feeCents = [feeSetting.default.value, feeSetting.bounds.lowest.value, feeSetting.bounds.highest.value];
+ const feeTyped = new RegExp(`(?<![\\w.])(${feeCents.join('|')})(?![\\w.])|\\bR\\s?${String(feeSetting.default.value / 100).replace('.', '[.,]')}(?![\\d.,])`);
+ for (const file of [...moneyScreens, 'packages/engines/src/money/domain/ledger.ts', 'packages/engines/src/money/domain/settings.ts']) {
+  const typed = strippedForMoney(file).match(feeTyped);
+  if (typed) throw new Error(`${file} types "${typed[0]}", the doctor's fee or its range. The fee is Money's setting ${feeSetting.key}, read from the settings in force; a typed fee is a doctor's income an admin's change never reaches.`);
+ }
+
+ const shareSetting = moneySetting(moneyContract.nurseShareSetting);
+ if (shareSetting?.type !== 'text') throw new Error(`packages/catalog/money.json names ${moneyContract.nurseShareSetting} as the sentence a nurse reads about her share, and it is not one of Money's wording settings.`);
+ /* The public page is left to the earnings section above, which holds its percentage to the launch services it lists. */
+ const handWrittenForMoney = [...files('apps/web/src'), ...files('apps/ios/MyThuso'), ...files(androidForMoney), ...files('packages/engines/src/money')]
+  .filter(f => /\.(tsx?|swift|kt)$/.test(f) && !/Data\.(swift|kt)$|\.generated\.ts$|\.test\.ts$/.test(f) && f !== 'apps/web/src/features/Landing.tsx');
+ for (const file of handWrittenForMoney) {
+  const code = strippedForMoney(file);
+  if (code.includes(shareSetting.default.value)) throw new Error(`${file} types the sentence a nurse reads about her share. It is Money's setting ${shareSetting.key}, read from the settings in force; a typed copy is wording an admin's change never reaches.`);
+  const fraction = code.match(/three quarters of (what|every|the)|share is \d+\s*%/i);
+  if (fraction) throw new Error(`${file} says "${fraction[0]}". ${moneyRefusal('share-wording-states-a-fraction').statement}`);
+ }
+ const shareRule = earningsForMoney.rules.find(r => r.id === 'share-is-not-reduced');
+ if (shareRule?.opensWith?.engine !== 'money' || shareRule.opensWith.setting !== shareSetting.key) throw new Error(`packages/catalog/earnings.json's rule share-is-not-reduced no longer opens with Money's setting ${shareSetting.key}, so the sentence saying what a nurse's share is would be missing or typed.`);
+ if (moneySettingsDomain.wordingRefusalOf(shareSetting.key, shareRule.sentence)) throw new Error(`packages/catalog/earnings.json's rule share-is-not-reduced says "${shareRule.sentence}". ${moneyRefusal('share-wording-states-a-fraction').statement}`);
+ for (const [file, needle] of [
+  ['apps/web/src/features/Earnings.tsx', '{nurseShareSentenceNow()} {rule.sentence}'],
+  ['apps/ios/MyThuso/Features/EarningsView.swift', '\\(Money.nurseShareSentence) \\(Earnings.rule("share-is-not-reduced").sentence)'],
+  [`${androidForMoney}/ui/EarningsScreens.kt`, 'MoneyData.nurseShareSentence} ${Earnings.rule("share-is-not-reduced").sentence}']
+ ]) if (!read(file).includes(needle)) throw new Error(`${file} no longer opens the share rule with Money's setting ${shareSetting.key}. A nurse would read the rule without the sentence saying what her share is, or with a typed one.`);
+
+ const moneyShape = await import('../packages/engines/src/settings/shape.ts');
+ for (const rule of moneyContract.wordingRules ?? []) {
+  if (!moneyRefusal(rule.refusal)?.statement?.trim()) throw new Error(`packages/catalog/money.json's wording rule "${rule.id}" refuses with "${rule.refusal}", which packages/catalog/apis/money.json does not declare.`);
+  for (const key of rule.settings) {
+   const s = moneySetting(key);
+   const proves = (s?.guardrail?.forbids ?? []).some(value => moneyShape.refusalOf(s, value) === null && moneySettingsDomain.wordingRefusalOf(key, value) === rule.refusal);
+   if (!proves) throw new Error(`Money's setting ${key} has no guardrail value that only its own rule "${rule.id}" refuses. A forbidden value the shared rules already refuse for another reason proves nothing about this rule.`);
+  }
+ }
+ const sosWording = moneySetting(momItems.find(i => i.id === 'priority-sos')?.detailFrom);
+ if (!sosWording?.mustKeep?.some(keep => /more unwell/i.test(keep.words)) || !(sosWording.guardrail?.forbids ?? []).some(value => moneyShape.refusalOf(sosWording, value) === 'setting-text-loses-a-guardrail')) throw new Error(`What priority SOS means is not held to the sentence that it never means being seen ahead of somebody more unwell, or its guardrail forbids no wording that drops that sentence. ${momForMoney.refusals.find(r => r.id === 'no-plan-buys-a-place-ahead').sentence}`);
+ const reportLine = momItems.find(i => i.id === 'visit-report');
+ const reports = moneySetting(reportLine?.textBy?.setting);
+ const reportChoices = (reports?.allowed ?? []).map(c => c.value).sort();
+ if (reports?.type !== 'enum' || JSON.stringify(reportChoices) !== JSON.stringify(['notify-only', 'off']) || JSON.stringify(Object.keys(reportLine.textBy.values).sort()) !== JSON.stringify(reportChoices) || !(reports.guardrail?.forbids ?? []).includes('full-report') || moneyShape.refusalOf(reports, 'full-report') === null) throw new Error(`What a family is sent on WhatsApp after a visit may be something other than nothing or a notice that a report is ready, or a report line has no words for a choice, or the guardrail does not refuse "full-report". A visit report is special personal information under POPIA, and no messenger nobody has assessed carries it.`);
+
+ for (const file of files('apps/web/src').filter(f => /\.tsx?$/.test(f) && f !== 'apps/web/src/lib/settings.ts')) if (/engines\/src\/money\/domain\/settings\.ts'/.test(read(file))) throw new Error(`${file} imports Money's settings module directly. A screen reads a setting through apps/web/src/lib/settings.ts, so every screen reads the one history an admin changes.`);
+ if (/from '\.\.\/lib\/settings'/.test(read('apps/web/src/features/Pages.tsx'))) throw new Error('apps/web/src/features/Pages.tsx imports apps/web/src/lib/settings.ts, which carries every engine\'s settings. Care plans is on the patient\'s first load; MyThuso for Mom reads its settings inside its own dynamic import.');
+ for (const file of ['scripts/emit-money.mjs', 'scripts/emit-plans.mjs']) if (!/\bsettingDefault\(/.test(read(file))) throw new Error(`${file} no longer writes Money's settings for a phone through scripts/settings-defaults.mjs, so a phone would not be told whether a value was decided.`);
 
  /* 2b. No card fragment where a person pays. The booking screens on all three platforms offered
         "Visa ending 4242" and reviewed "•••• 4242": fictional, and still the last four digits of a card on
@@ -7001,7 +7126,7 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   if (!event || event.withdrawn || event.owner !== 'money' || !declaredEmits.has(key)) throw new Error(`Money's ledger publishes ${key}, which is not a live event Money owns and declares. A second publisher is a second source of truth.`);
  }
 
- console.log(`Thuso Money's contract is generated into ${emitMoney().length} native files and matches them; ${moneyContract.doctorFees.length} doctor's fee is ${moneyContract.doctorFees.every(f => f.amount === null) ? 'undecided, with nobody\'s name beside it, and its range is read from the document that gives it' : 'decided, by a named person, inside its cited range'}; the engine's simulated provider and bank agree with apps/api's on all ${SAMPLES * 3} sampled answers and decline in the contract's words; every sample week is the nurse's share through the ledger; and Money hears ${heard.length} events on its list and publishes ${emittedKeys.size} of its own.`);
+ console.log(`Thuso Money's contract is generated into ${emitMoney().length} native files and matches them; ${moneyContract.doctorFees.length} doctor's fee is a setting whose default of ${proposedFee.amountCents} cents is ${proposedFee.confirmed ? 'confirmed' : 'a proposal nobody has confirmed, which the ledger refuses to pay'}, bounded by the range the documents give; no screen types a call-out, the fee or a nurse's share wording, and Money's ${(moneyContract.wordingRules ?? []).length} wording rules are proven by guardrails only they refuse; the engine's simulated provider and bank agree with apps/api's on all ${SAMPLES * 3} sampled answers and decline in the contract's words; every sample week is the nurse's share through the ledger; and Money hears ${heard.length} events on its list and publishes ${emittedKeys.size} of its own.`);
 }
 /* ==== end of Money (Wave 3) ========================================================================== */
 
@@ -7367,6 +7492,8 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
 {
  const settingsContract = JSON.parse(read('packages/catalog/settings.json'));
  const shape = await import('../packages/engines/src/settings/shape.ts');
+ /* Each engine's own rule between settings, which a change is asked after the shared ones (Money, Wave 3). */
+ const { settingsEngines: settingsRegistry } = await import('../packages/engines/src/settings/registry.ts');
  const settingsVetting = JSON.parse(read('packages/catalog/vetting.json'));
  const settingsRoleIds = new Set(settingsVetting.roles.map(r => r.id));
  const settingsCapabilityIds = new Set(settingsVetting.capabilities.map(c => c.id));
@@ -7516,7 +7643,7 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
    /* 6. A guardrail's forbidden values are refused by the rules a change goes through. */
    if (s.guardrail !== undefined) {
     if (!isSentence(s.guardrail.statement) || !Array.isArray(s.guardrail.forbids) || !s.guardrail.forbids.length) throw new Error(`${at} has a guardrail with no statement, or nothing it forbids. A guardrail is written as values the rules refuse, never as trust.`);
-    for (const forbidden of s.guardrail.forbids) if (!shape.refusalOf(s, forbidden)) throw new Error(`${at}'s guardrail says "${s.guardrail.statement}", and its limits accept ${JSON.stringify(forbidden)}. Tighten the bounds, the allowed values or the type rules until that value is refused.`);
+    for (const forbidden of s.guardrail.forbids) if (!shape.refusalOf(s, forbidden) && !settingsRegistry[source.engine]?.check?.({ ...shape.defaultsOf(block), [s.key]: forbidden }, s)) throw new Error(`${at}'s guardrail says "${s.guardrail.statement}", and its limits accept ${JSON.stringify(forbidden)}. Tighten the bounds, the allowed values or the type rules until that value is refused.`);
    }
   }
 

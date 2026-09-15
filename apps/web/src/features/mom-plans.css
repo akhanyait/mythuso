@@ -41,7 +41,10 @@
 .mom-plan-body h3{font-size:16px;line-height:1.35;margin:0 0 var(--space-12);color:var(--charcoal)}
 .mom-phase{margin-left:var(--space-8);font-size:13px;font-weight:500;color:var(--body);white-space:nowrap}
 
-.mom-groups,.mom-group>ul,.mom-refusals,.mom-open,.mom-addons{list-style:none;margin:0;padding:0}
+.mom-groups,.mom-group>ul,.mom-refusals,.mom-addons{list-style:none;margin:0;padding:0}
+/* "Everything in Essential": one line above a tier's own items, in the body's weight rather than as an
+   inclusion, because it points at another tier's lines and their notices rather than repeating them. */
+.mom-inherits{margin:0 0 var(--space-12);font-size:15px;line-height:1.5;font-weight:600;color:var(--charcoal)}
 .mom-groups{display:grid;gap:var(--space-20)}
 .mom-group>ul{display:grid;gap:var(--space-8)}
 /* A dot rather than a tick. A tick beside "A Thuso Band with an SOS button" is the promise the
@@ -56,8 +59,7 @@
 .mom-aside p{font-size:14px;line-height:1.6;color:var(--body);margin:0}
 .mom-refusals{display:grid;gap:var(--space-12)}
 .mom-refusals li{font-size:14px;line-height:1.6;color:var(--charcoal);padding-left:var(--space-12);border-left:2px solid var(--charcoal)}
-.mom-open{display:grid;gap:var(--space-8)}
-.mom-open li,.mom-addons li{font-size:14px;line-height:1.6;color:var(--body)}
+.mom-addons li{font-size:14px;line-height:1.6;color:var(--body)}
 .mom-addons{margin-top:var(--space-8);display:grid;gap:var(--space-4)}
 
 @media(min-width:1000px){

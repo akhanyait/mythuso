@@ -154,7 +154,9 @@ struct EarningsView: View {
                 legend(DeckInk.sheetInk, rand(parts.nurse), "Yours · \(Int((parts.nurseShareOfPrice * 100).rounded()))% of the price")
                 legend(ThusoTheme.mango, rand(parts.payment), "The card fee, paid by MyThuso")
                 legend(ThusoTheme.teal, rand(parts.platform), "What MyThuso keeps")
-                Text(Earnings.rule("share-is-not-reduced").sentence)
+                /* Opened by what the share is, in Money's setting as generated, which never states a fraction:
+                   the share above it is not the same part of every visit. */
+                Text("\(Money.nurseShareSentence) \(Earnings.rule("share-is-not-reduced").sentence)")
                     .font(.caption).foregroundStyle(DeckInk.sheetQuiet)
                 Text("Across the nine services at launch that is \(rand(Earnings.shareRange.low)) to \(rand(Earnings.shareRange.high)) a visit — the same range the public page advertises, read from the same catalogue.")
                     .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)

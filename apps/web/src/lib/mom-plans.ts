@@ -9,20 +9,17 @@ import { businessModel } from './catalog';
  * with tiers answers with the tiers rather than with a number somebody would otherwise have to
  * choose between R399 and R1 299 and type.
  *
+ * What the plan and its tiers are called, and what each inclusion says, are Money's settings since
+ * 15 September 2026, and this module does not read them: the public page imports it, and a public page
+ * is a document an admin's change in somebody's back office tab never reaches. A screen that names a tier
+ * is handed the plan in force by apps/web/src/lib/settings.ts and passes it here.
+ *
  * Nothing in this module decides whether anything is real. Each inclusion names a capability and the
  * screen asks packages/catalog/capabilities.json, which is the only place that knows. */
 
 export const momPlan = contract;
-export type Tier = typeof contract.tiers[number];
-export type Inclusion = Tier['includes'][number];
 export const tiers = contract.tiers;
 export const momPrices = tiers.map(t => t.price);
-
-export const tier = (id: string): Tier => {
- const found = tiers.find(t => t.id === id);
- if (!found) throw new Error(`No tier "${id}" in packages/catalog/mom-plans.json`);
- return found;
-};
 
 export const refusal = (id: string): string => {
  const found = contract.refusals.find(r => r.id === id);
@@ -36,8 +33,8 @@ export const refusal = (id: string): string => {
    that capability's notice once. Plus names two visits and a screening that all wait on booking; three
    copies of the roster's sentence stacked down one column is the three-notices-on-one-screen defect
    the capabilities contract was written to end, and one copy beside the three is the same disclosure. */
-export function groupsOf(t: Tier): { capability: string; items: Inclusion[] }[] {
- const groups: { capability: string; items: Inclusion[] }[] = [];
+export function groupsOf<I extends { capability: string }>(t: { includes: readonly I[] }): { capability: string; items: I[] }[] {
+ const groups: { capability: string; items: I[] }[] = [];
  for (const item of t.includes) {
   const last = groups[groups.length - 1];
   if (last && last.capability === item.capability) last.items.push(item);
@@ -61,9 +58,9 @@ export const isTiered = tiered;
 
 /* One line per thing a person could pay for each month, which is what the console's revenue table is
    about. A tiered plan is three lines rather than one line with a range, because a range cannot be
-   multiplied by a subscriber count. */
+   multiplied by a subscriber count. The tier names are the plan in force the console hands in. */
 export type SubscriptionLine = { id: string; name: string; price: number | null; phase: number };
-export const subscriptionLines = (): SubscriptionLine[] => businessModel.subscriptions.flatMap(s =>
+export const subscriptionLines = (plan: { readonly tiers: readonly { readonly id: string; readonly name: string }[] }): SubscriptionLine[] => businessModel.subscriptions.flatMap(s =>
  tiered(s)
-  ? tiers.map(t => ({ id: `${s.id}-${t.id}`, name: `${s.name} · ${t.name}`, price: t.price, phase: t.phase }))
+  ? tiers.map(t => ({ id: `${s.id}-${t.id}`, name: `${s.name} · ${plan.tiers.find(x => x.id === t.id)?.name ?? t.id}`, price: t.price, phase: t.phase }))
   : [{ id: s.id, name: s.name, price: s.price, phase: s.phase }]);

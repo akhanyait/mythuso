@@ -173,7 +173,9 @@ internal fun rand(amount: Int): String {
             Legend(DeckInk.sheetInk, rand(split.nurse), "Yours · ${(split.nurseShareOfPrice * 100).roundToInt()}% of the price")
             Legend(Mango, rand(split.payment), "The card fee, paid by MyThuso")
             Legend(AccentSoft, rand(split.platform), "What MyThuso keeps")
-            Text(Earnings.rule("share-is-not-reduced").sentence, style = MaterialTheme.typography.bodyMedium, color = DeckInk.sheetQuiet)
+            /* Opened by what the share is, in Money's setting as generated, which never states a fraction:
+               the share above it is not the same part of every visit. */
+            Text("${za.co.mythuso.model.MoneyData.nurseShareSentence} ${Earnings.rule("share-is-not-reduced").sentence}", style = MaterialTheme.typography.bodyMedium, color = DeckInk.sheetQuiet)
             Note("Across the nine services at launch that is ${rand(Earnings.shareLow)} to ${rand(Earnings.shareHigh)} a visit — the same range the public page advertises, read from the same catalogue.")
         }
 

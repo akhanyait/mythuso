@@ -8,8 +8,10 @@
 import type { SettingsEngine } from './shape.ts';
 import { safetySettings } from '../safety/domain/settings.ts';
 import { careSettings } from '../care/domain/settings.ts';
+import { moneySettings } from '../money/domain/settings.ts';
 
 export const settingsEngines: Readonly<Record<string, SettingsEngine>> = Object.freeze({
  safety: safetySettings,
- care: careSettings
+ care: careSettings,
+ money: moneySettings
 });

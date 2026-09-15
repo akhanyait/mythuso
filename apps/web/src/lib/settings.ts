@@ -3,6 +3,7 @@ import { proposeChange, snapshotOf, type Change, type ChangeRequest, type Refusa
 import { settingsEngines } from '../../../../packages/engines/src/settings/registry.ts';
 import { inForce, panicWindowOf, type PanicWindow, type SettingsInForce } from '../../../../packages/engines/src/safety/domain/settings.ts';
 import { offerExpiryOf, type OfferExpiry } from '../../../../packages/engines/src/care/domain/settings.ts';
+import { doctorFeeOf, nurseShareSentenceOf, planTermsOf, type DoctorFeeInForce, type PlanTerms } from '../../../../packages/engines/src/money/domain/settings.ts';
 import { roleOf, whoIs } from './roles';
 
 /* Every setting in the web preview: one history per engine, in memory, shared by the back office that
@@ -22,6 +23,13 @@ import { roleOf, whoIs } from './roles';
  * it answered is kept by the thing that asked; nothing already running asks again, so a change made in
  * the back office and then seen from the nurse's workspace in the same tab reaches the next visit, panic
  * and offer and never the one already under way.
+ *
+ * Money's readers are asked the same way. The MyThuso for Mom panel asks momPlanNow() when it is drawn,
+ * and is handed the plan already read into its words, so it types no name, no call-out and no wording.
+ * The doctor's fee screen hands doctorFeeNow() to the ledger, which writes the fee in force onto each case
+ * it hears. The nurse's earnings ask nurseShareSentenceNow(). This module is the only web code that imports
+ * a settings module, and none of these screens is on the patient's first load: the plans panel is a
+ * dynamic import, and the fee and earnings screens are in the clinical workspace.
  *
  * The admin a change is recorded against is the party the back office opens as, read from the role
  * list, acting in the vetting role that party holds rather than a role typed here.
@@ -48,6 +56,9 @@ export const snapshotNow = (engine: string): Snapshot => snapshotOf(engineOf(eng
 export const safetySettingsNow = (): SettingsInForce => inForce(historyOf('safety'));
 export const panicWindowNow = (): PanicWindow => panicWindowOf(historyOf('safety'));
 export const offerExpiryNow = (): OfferExpiry => offerExpiryOf(snapshotNow('care'));
+export const momPlanNow = (): PlanTerms => planTermsOf(snapshotNow('money'));
+export const doctorFeeNow = (): DoctorFeeInForce => doctorFeeOf(snapshotNow('money'));
+export const nurseShareSentenceNow = (): string => nurseShareSentenceOf(snapshotNow('money'));
 
 export const adminOnDuty = (): string | null => roleOf('back-office').subjectId;
 const adminRole = (): string => {

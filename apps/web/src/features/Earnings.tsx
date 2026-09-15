@@ -18,6 +18,7 @@ import { can, type VettingSubject } from '../lib/vetting';
    in the same sentences, for the amount the ledger worked out from the week's lines. */
 import { askToVerifyAccount } from '../lib/simulation';
 import { runWeek, type PayoutAdvice } from '../lib/money';
+import { nurseShareSentenceNow } from '../lib/settings';
 import { subjectById } from '../lib/vetting-fixtures';
 import './nurse-kit.css';
 import './nurse-tools.css';
@@ -112,7 +113,9 @@ function Split({ service, onPick }: { service: Service; onPick: (id: string) => 
    <div><span className="key fee"/><strong>{money(split.payment)}</strong><small>The card fee, paid by MyThuso</small></div>
    <div><span className="key platform"/><strong>{money(split.platform)}</strong><small>What MyThuso keeps</small></div>
   </div>
-  <p className="earn-rule"><Info size={15}/>{rule.sentence}</p>
+  {/* The rule opens with what the share is, in the words in force: Money's setting, which never states a
+      fraction, because the share beside it is not the same part of every visit. */}
+  <p className="earn-rule" data-rule="share-is-not-reduced"><Info size={15}/>{nurseShareSentenceNow()} {rule.sentence}</p>
   <p className="helper">Across the nine services at launch that is {money(shareRange.low)} to {money(shareRange.high)} a visit — the same range the public page advertises, read from the same catalogue.</p>
  </div>;
 }
