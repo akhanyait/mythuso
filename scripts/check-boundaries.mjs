@@ -35,6 +35,7 @@ import { emitFieldSafety } from './emit-field-safety.mjs';
 import { emitBooking } from './emit-booking.mjs';
 import { emitClinicalReviewPack } from './emit-clinical-review-pack.mjs';
 import { emitMedicines } from './emit-medicines.mjs';
+import { emitMomEssential } from './emit-mom-essential.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -890,6 +891,12 @@ const generated = [
  { source: 'packages/catalog/medicines.json', command: 'npm run medicines', files: emitMedicines() },
  { source: 'packages/catalog/dispensing.json', command: 'npm run medicines', files: emitMedicines() },
  { source: 'packages/catalog/apis/medicines.json', command: 'npm run medicines', files: emitMedicines() },
+ /* MomEssentialData carries mom-essential.json's journey words, the refusal a sponsor reads from apis/money.json, the
+    caregiver ceiling from consent.json and money.json's providerless sentence, so a change to any of the four regenerates it. */
+ { source: 'packages/catalog/mom-essential.json', command: 'npm run mom-essential', files: emitMomEssential() },
+ { source: 'packages/catalog/apis/money.json', command: 'npm run mom-essential', files: emitMomEssential() },
+ { source: 'packages/catalog/consent.json', command: 'npm run mom-essential', files: emitMomEssential() },
+ { source: 'packages/catalog/money.json', command: 'npm run mom-essential', files: emitMomEssential() },
  /* The clinical review pack reads every contract a clinician has to review, so a change to any of them
     without regenerating is a failed build rather than a pack somebody signs against values no longer in force. */
  ...['settings.json', 'care.json', 'booking.json', 'field-safety.json', 'closed-loop.json', 'money.json', 'protocols.json',
@@ -8761,7 +8768,12 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  const accessItems = accessContract.settings?.items ?? [];
  const accessSetting = key => accessItems.find(s => s.key === key);
  const ACCESS_KEYS = ['named-nurse-fallback', 'visit-thread-max-characters', 'visit-thread-photos', 'visit-thread-open-hours-after-visit', 'handover-answered-by', 'handover-hours'];
- if (accessItems.map(s => s.key).join(',') !== ACCESS_KEYS.join(',')) throw new Error(`packages/catalog/booking.json settings.items are ${accessItems.map(s => s.key).join(', ') || 'missing'}; Access's settings are ${ACCESS_KEYS.join(', ')}, once each, so no Access question an admin answers is missing or answered twice.`);
+ /* Wave 4 added how long a USSD session waits. It is read by the USSD walk in packages/engines/src/access/domain/ussd.ts
+    and the web's simulator, and by no phone: USSD is dialled from a handset's own dialler, not drawn by either app. So it
+    is an Access setting like the six above and is not among the ones scripts/emit-booking.mjs writes for a phone, which is
+    what ACCESS_KEYS counts below. */
+ const ACCESS_WEB_ONLY_KEYS = ['ussd-session-timeout-seconds'];
+ if (accessItems.map(s => s.key).join(',') !== [...ACCESS_KEYS, ...ACCESS_WEB_ONLY_KEYS].join(',')) throw new Error(`packages/catalog/booking.json settings.items are ${accessItems.map(s => s.key).join(', ') || 'missing'}; Access's settings are ${[...ACCESS_KEYS, ...ACCESS_WEB_ONLY_KEYS].join(', ')}, once each, so no Access question an admin answers is missing or answered twice.`);
  const accessRouteOf = key => accessApi.routes.find(r => `${r.method} ${r.path}@${r.version}` === key);
  const slice = (source, from) => { const at = source.indexOf(from); return at < 0 ? '' : source.slice(at); };
 
@@ -8877,4 +8889,158 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  }
 
  console.log(`Access settings: named-nurse-fallback's ${fallbackRules.length} values each end in a nurse or a sentence, the emergency sentence and the numbers are rules no Access setting holds, photos wait on ${photosSetting.reviewRequired} behind a route that carries no photo, ${accessThreadFiles.length + accessHandoverFiles.length} Access files type no limit or hour, and the web reads Access's settings through lib/settings alone, off the first load.`);
+}
+
+/* ==== MyThuso for Mom Essential, vouchers and USSD booking (Wave 4, Gilbert & Access) ====================
+
+   Eight things this wave promises, each asked of the code or the contract that decides it rather than of a screen's
+   good intentions, and each proved to fire by breaking its source deliberately and restoring it:
+
+     1. No plan grants a place ahead of anybody. What priority SOS means is undecided and no plan may put somebody ahead
+        of a person who is more unwell, so a subscription has no field that could rank, the refusal is mom-plans.json's own
+        sentence, and nothing that decides who is seen first reads a plan.
+     2. A Mom plan screen lists only the inclusions packages/catalog/mom-plans.json names.
+     3. A sponsor never receives clinical detail without the parent's grant: Money's plan carries nothing clinical, a
+        sponsor is told the day and not what kind of care unless she chose otherwise, and a summary grant is hers alone.
+     4. A sponsor cannot agree for the parent, on the route, in the ledger and on both phones.
+     5. No voucher cashes out or is tied to a medicine.
+     6. The voucher expiry's lowest bound is the three-year entry in packages/catalog/vouchers.json, cited from there.
+     7. No USSD screen is longer than a handset shows, and none asks for anything clinical, an identity number or a card.
+     8. No new screen or contract types a price. */
+{
+ const w4 = {
+  essential: JSON.parse(read('packages/catalog/mom-essential.json')),
+  plans: JSON.parse(read('packages/catalog/mom-plans.json')),
+  vouchers: JSON.parse(read('packages/catalog/vouchers.json')),
+  ussd: JSON.parse(read('packages/catalog/ussd.json')),
+  money: JSON.parse(read('packages/catalog/money.json')),
+  moneyApi: JSON.parse(read('packages/catalog/apis/money.json')),
+  medicinesApi: JSON.parse(read('packages/catalog/apis/medicines.json')),
+  feeds: JSON.parse(read('packages/catalog/feeds.json')),
+  locales: JSON.parse(read('packages/catalog/locales.json')),
+  services: JSON.parse(read('packages/catalog/services.json')),
+  model: JSON.parse(read('packages/catalog/business-model.json')),
+  records: JSON.parse(read('packages/catalog/records.json')),
+  booking: JSON.parse(read('packages/catalog/booking.json'))
+ };
+ const w4Route = (api, key) => api.routes.find(r => `${r.method} ${r.path}@${r.version}` === key && !r.withdrawn);
+ const w4Fields = fields => (fields ?? []).flatMap(f => [f.field, ...w4Fields(f.fields)]);
+ const w4Block = (source, from, to = '\n};') => { const at = source.indexOf(from); return at < 0 ? '' : source.slice(at, source.indexOf(to, at) + to.length); };
+ const planRoutes = ['POST /v1/money/plan-subscriptions@1', 'POST /v1/money/plan-subscriptions/{subscriptionRef}/accept@1', 'GET /v1/money/plan-subscriptions/{subscriptionRef}@1'].map(key => {
+  const route = w4Route(w4.moneyApi, key);
+  if (!route || route.status !== 'built') throw new Error(`packages/catalog/apis/money.json has no built ${key}, which MyThuso for Mom Essential stands on.`);
+  return route;
+ });
+ const subscriptionsSource = read('packages/engines/src/money/domain/subscriptions.ts');
+ const ledgerSource = read('packages/engines/src/money/domain/ledger.ts');
+ const vouchersSource = read('packages/engines/src/money/domain/vouchers.ts');
+
+ /* 1. No plan grants a place ahead. */
+ const aheadSentence = w4.plans.refusals.find(r => r.id === w4.essential.priority.refusal)?.sentence;
+ if (!aheadSentence || planRoutes[0].refusals.find(r => r.id === w4.essential.priority.refusal)?.statement !== aheadSentence) throw new Error('POST /v1/money/plan-subscriptions@1 does not refuse a place ahead in packages/catalog/mom-plans.json\'s own sentence, word for word.');
+ const subscriptionTypes = w4Block(subscriptionsSource, 'export type Subscription = {') + w4Block(subscriptionsSource, 'export type SubscriptionView = {');
+ if (!subscriptionTypes || /priorit|rank|queue|ahead|urgen|expedit/i.test(subscriptionTypes)) throw new Error('packages/engines/src/money/domain/subscriptions.ts gives a subscription a field that could put somebody ahead of somebody else. What priority SOS means is undecided, and no plan may rank anybody.');
+ for (const route of planRoutes) for (const name of [...w4Fields(route.request), ...w4Fields(route.response)]) if (/priorit|rank|queue|ahead|urgen/i.test(name)) throw new Error(`${route.method} ${route.path}@${route.version} carries "${name}". No plan route carries anything that ranks a person.`);
+ const decidesWhoFirst = [...['safety', 'care', 'movement', 'core'].flatMap(engine => existsSync(`packages/engines/src/${engine}`) ? files(`packages/engines/src/${engine}`) : []).filter(f => f.endsWith('.ts')),
+  ...['apps/web/src/features/Sos.tsx', 'apps/web/src/features/Dispatch.tsx', 'apps/web/src/lib/sos.ts'].filter(existsSync)];
+ for (const f of decidesWhoFirst) if (/mom-plans|mom-essential|subscriptions\.ts|planCode|subscriptionRef/.test(read(f))) throw new Error(`${f} reads a plan. Nothing that decides who is seen first may know what anybody pays.`);
+
+ /* 2. Only the plan's own inclusions. */
+ const essentialTier = w4.plans.tiers.find(t => t.id === w4.essential.planCode);
+ if (!essentialTier) throw new Error(`packages/catalog/mom-essential.json names the tier "${w4.essential.planCode}", which packages/catalog/mom-plans.json does not have.`);
+ for (const included of w4.essential.included) if (!essentialTier.includes.some(i => i.id === included.inclusionId)) throw new Error(`packages/catalog/mom-essential.json counts the inclusion "${included.inclusionId}", which the ${essentialTier.id} tier in packages/catalog/mom-plans.json does not name. A plan counts only what it names.`);
+ if (!w4.services.some(s => s.id === w4.essential.included.find(i => i.serviceId)?.serviceId && s.phase === 1)) throw new Error('packages/catalog/mom-essential.json includes a visit of a service no nurse can be sent for today.');
+ const inclusionWords = w4.plans.tiers.flatMap(t => t.includes.flatMap(i => [i.text, ...Object.values(i.textBy?.values ?? {})])).filter(Boolean);
+ const essentialScreens = ['apps/web/src/features/MomEssential.tsx', 'apps/ios/MyThuso/Features/MomEssentialView.swift', 'apps/android/app/src/main/java/za/co/mythuso/ui/MomEssentialScreens.kt'];
+ for (const file of essentialScreens) {
+  const source = read(file);
+  if (!source.includes('tier.includes')) throw new Error(`${file} no longer lists tier.includes, so what it shows is not the plan's own inclusions.`);
+  const typed = inclusionWords.find(text => source.includes(text));
+  if (typed) throw new Error(`${file} types the inclusion "${typed}". What a tier brings is packages/catalog/mom-plans.json's, read through the plan in force.`);
+ }
+
+ /* 3. Nothing clinical reaches a sponsor without her grant. */
+ for (const route of planRoutes) for (const name of w4Fields(route.response)) if (/summar|report|finding|reading|diagnos|result|note|photo|medic|dose|symptom|reason|observation|vital|condition/i.test(name)) throw new Error(`${route.method} ${route.path}@${route.version} answers with "${name}". Money's plan carries nothing clinical: a sponsor reads a summary only through the Passport's gateway, under the parent's grant.`);
+ const viewOf = w4Block(subscriptionsSource, 'export function viewOf(', '\n}');
+ if (!/const named = reader === 'parent' \|\| sub\.lineDetail === 'service-named';/.test(viewOf) || !/kindCode: named \? l\.kindCode : null/.test(viewOf) || !/serviceId: named \? l\.serviceId : null/.test(viewOf)) throw new Error('packages/engines/src/money/domain/subscriptions.ts viewOf no longer withholds what kind of care and which service from a sponsor unless the parent chose service-named.');
+ if (!/if \(!input\.byRef \|\| input\.byRef !== input\.parentRef\) return \{ ok: false, reason: 'only-the-parent-grants' \};/.test(read('packages/engines/src/access/domain/sharing.ts'))) throw new Error('packages/engines/src/access/domain/sharing.ts no longer refuses a summary grant made by anybody but the parent.');
+ if (w4.essential.sharing.summaries.offDefault !== true) throw new Error('packages/catalog/mom-essential.json shares visit summaries by default. A grant is off until the parent turns it on.');
+ for (const id of w4.essential.sharing.summaries.scope) if (!w4.records.records.some(r => r.id === id)) throw new Error(`packages/catalog/mom-essential.json scopes a summary grant to "${id}", which packages/catalog/records.json does not hold.`);
+ if (!/shared\.shared \? say\(essential\.sharing\.summaries\.shared/.test(read('apps/web/src/features/MomEssential.tsx'))) throw new Error('apps/web/src/features/MomEssential.tsx no longer says whether visit summaries are shared from the parent\'s grant.');
+
+ /* 4. Only the parent agrees. */
+ const acceptRoute = planRoutes[1];
+ if (!acceptRoute.callers.includes('sponsor') || !acceptRoute.refusals.some(r => r.id === w4.essential.agreement.refusal) || acceptRoute.callers.some(c => ['guardian', 'caregiver'].includes(c))) throw new Error('POST /v1/money/plan-subscriptions/{subscriptionRef}/accept@1 must take a sponsor only to refuse them in words, and take no guardian or caregiver: no authority to act for another adult is proven (docs/governance/INFORMATION-OFFICER.md D-10).');
+ if (!/if \(actor\.role !== 'patient' \|\| plan\.subjectRef !== actor\.subjectRef\) return refusal\('only-the-parent-agrees'\);/.test(ledgerSource)) throw new Error('packages/engines/src/money/domain/ledger.ts no longer refuses anybody but the parent, as herself, an agreement to her plan.');
+ if (!/if \(agreesForSomebody\(sent\)\) return refusal\('sponsor-agrees-for-the-parent'\);/.test(ledgerSource)) throw new Error('packages/engines/src/money/domain/ledger.ts no longer refuses a request for a plan that carries an agreement made for the parent.');
+ if (w4Route(w4.medicinesApi, 'POST /v1/medicines/collection-authorisations@1')?.callers.includes('sponsor')) throw new Error('A sponsor may authorise a collector for the parent\'s medicine. Paying for a plan authorises nobody.');
+ if (!/guard acting == \.parent else \{ return MomEssentialData\.Words\.onlyTheParentAgrees \}/.test(read('apps/ios/MyThuso/Models/MomEssential.swift'))) throw new Error('apps/ios/MyThuso/Models/MomEssential.swift lets the journey agree while acting as the sponsor.');
+ if (!/!actingAsParent -> this to MomEssentialData\.Words\.onlyTheParentAgrees/.test(read('apps/android/app/src/main/java/za/co/mythuso/model/MomEssential.kt'))) throw new Error('apps/android/app/src/main/java/za/co/mythuso/model/MomEssential.kt lets the journey agree while acting as the sponsor.');
+
+ /* 5. A voucher is never cash and never tied to a medicine. */
+ if (w4.vouchers.towards.map(t => t.kind).join(',') !== 'service,plan' || !w4.vouchers.towards.every(t => ['visit', 'plan'].includes(t.redeemsAgainst))) throw new Error('packages/catalog/vouchers.json lets a voucher be towards, or redeemed against, something other than a visit or a plan.');
+ for (const word of ['medicine', 'prescription', 'adherence']) if (!w4.vouchers.neverTowards.includes(word)) throw new Error(`packages/catalog/vouchers.json no longer refuses a voucher tied to "${word}" (Medicines and Related Substances Act, section 18A).`);
+ for (const word of ['cash', 'wallet', 'bank']) if (!w4.vouchers.cashOut.towardsKinds.includes(word)) throw new Error(`packages/catalog/vouchers.json no longer refuses a voucher towards "${word}". A voucher is never cash.`);
+ for (const key of ['POST /v1/money/vouchers@2', 'POST /v1/money/voucher-redemptions@1']) {
+  const route = w4Route(w4.moneyApi, key);
+  for (const id of [w4.vouchers.neverTowardsRefusal, w4.vouchers.cashOut.refusal]) if (!route?.refusals.some(r => r.id === id)) throw new Error(`${key} does not declare the refusal "${id}".`);
+ }
+ const issueBlock = w4Block(ledgerSource, ' function issueVoucher(', '\n }');
+ const redeemBlock = w4Block(ledgerSource, ' function redeemVoucher(', '\n }');
+ for (const [name, source] of [['issueVoucher', issueBlock], ['redeemVoucher', redeemBlock]]) {
+  if (!/if \(tiedToAMedicine\(/.test(source) || !/if \(asksForCash\(/.test(source)) throw new Error(`packages/engines/src/money/domain/ledger.ts ${name} no longer refuses a request tied to a medicine or asking for cash.`);
+  if (/\bemit\(|method: 'cash|runPayout|acceptPayoutAdvice|scheduleWeek/.test(source)) throw new Error(`packages/engines/src/money/domain/ledger.ts ${name} publishes or pays something out. A voucher only lowers what a payable owes.`);
+ }
+ if (!/amountCents <= 0\) return refusal\('voucher-cashes-out'\);/.test(redeemBlock)) throw new Error('packages/engines/src/money/domain/ledger.ts no longer refuses a redemption of nought or less, which would move value back onto a voucher.');
+ if (w4.money.methods.some(m => /voucher/i.test(m.id))) throw new Error('packages/catalog/money.json offers a voucher as a way money moves. A voucher lowers what is owed; it is not a method a payment is taken or paid out by.');
+
+ /* 6. The expiry's lowest bound is the law entry. */
+ const voucherLaw = w4.vouchers.expiry.law;
+ const expirySetting = w4.money.settings.items.find(s => s.key === w4.vouchers.expiry.setting);
+ if (!expirySetting) throw new Error(`packages/catalog/money.json has no setting "${w4.vouchers.expiry.setting}", which packages/catalog/vouchers.json names for a voucher's expiry.`);
+ if (!Number.isInteger(voucherLaw.minimumYears) || voucherLaw.minimumYears < 1 || !voucherLaw.act?.trim() || !voucherLaw.section?.trim()) throw new Error('packages/catalog/vouchers.json expiry.law no longer names the act, the section and the fewest years a prepaid voucher lasts.');
+ if (voucherLaw.confirmedByCounsel !== true && !voucherLaw.needsCounsel?.trim()) throw new Error('packages/catalog/vouchers.json expiry.law is not confirmed by counsel and does not say what counsel has to confirm.');
+ if (expirySetting.bounds?.lowest?.value !== voucherLaw.minimumYears || expirySetting.bounds?.citedFrom?.file !== 'packages/catalog/vouchers.json' || expirySetting.bounds?.citedFrom?.path !== 'expiry.law.minimumYears') throw new Error(`packages/catalog/money.json's ${expirySetting.key} lowest bound is ${expirySetting.bounds?.lowest?.value}, cited from ${JSON.stringify(expirySetting.bounds?.citedFrom)}. It is packages/catalog/vouchers.json expiry.law.minimumYears, ${voucherLaw.minimumYears}, and it cites that entry.`);
+ if (expirySetting.default.value < voucherLaw.minimumYears) throw new Error(`packages/catalog/money.json defaults ${expirySetting.key} below the law's minimum.`);
+ if (!/export const MINIMUM_YEARS: number = contract\.expiry\.law\.minimumYears;/.test(vouchersSource) || !/years < MINIMUM_YEARS\) throw/.test(vouchersSource)) throw new Error('packages/engines/src/money/domain/vouchers.ts no longer refuses to issue a voucher for fewer years than the law entry gives, whatever the setting says.');
+
+ /* 7. Every USSD screen fits, and none asks for what a session must not carry. */
+ const { everyScreen, MAX_CHARACTERS, menuNodes, classifyReply } = await import('../packages/engines/src/access/domain/ussd.ts');
+ if (!(MAX_CHARACTERS > 0 && MAX_CHARACTERS <= 182)) throw new Error(`packages/catalog/ussd.json lets a USSD screen run to ${MAX_CHARACTERS} characters. A USSD string carries at most 182 (3GPP TS 23.090), and a longer screen is cut off on the handset.`);
+ const namedNurseFallback = w4.booking.settings.items.find(s => s.key === 'named-nurse-fallback').default.value;
+ let ussdScreens = 0;
+ for (let d = 0; d < 7; d++) for (const { where, text } of everyScreen(new Date(Date.now() + d * 86_400_000), namedNurseFallback)) {
+  ussdScreens++;
+  if (text.length > MAX_CHARACTERS) throw new Error(`The USSD screen "${where}" is ${text.length} characters, past the ${MAX_CHARACTERS} a handset shows: ${JSON.stringify(text)}`);
+ }
+ const nodeKeys = new Set(['id', 'text', 'textFrom', 'choices', 'listOf', 'itemLabel', 'pageSize', 'next', 'why', 'listWhy']);
+ for (const node of menuNodes) {
+  const extra = Object.keys(node).find(k => !nodeKeys.has(k));
+  if (extra) throw new Error(`The USSD screen "${node.id}" has "${extra}". A screen offers choices or a list and nothing else: no screen takes free text.`);
+  if (!node.choices && !node.listOf) throw new Error(`The USSD screen "${node.id}" offers neither choices nor a list.`);
+  /* The one screen that names what the menu never asks, which it does to say it never asks. */
+  if (node.id === 'never') continue;
+  const asks = [node.text ?? '', ...(node.choices ?? []).map(c => c.label), node.itemLabel ?? ''].join(' ').match(/\b(reason|why you need|symptom|describe|type your|enter your|tell us|ID number|identity|passport|card|PIN|medical aid)\b/i);
+  if (asks) throw new Error(`The USSD screen "${node.id}" asks "${asks[0]}". A session is not encrypted and the network operator sees it, so the menu never asks for anything clinical, an identity number or a card.`);
+ }
+ for (const id of ['no-clinical-detail', 'no-identity-number', 'no-card-details']) if (!w4.ussd.channelRefusals.some(r => r.id === id)) throw new Error(`packages/catalog/ussd.json no longer refuses "${id}".`);
+ if (classifyReply('8001015009087') !== 'no-identity-number' || classifyReply('4111 1111 1111 1111') !== 'no-card-details' || classifyReply('pain in my chest') !== 'no-clinical-detail') throw new Error('packages/engines/src/access/domain/ussd.ts no longer refuses an identity number, a card number and words about health as what they are.');
+ const ussdDoor = w4.feeds.feeds.find(f => f.id === w4.ussd.door);
+ if (!ussdDoor || !ussdDoor.capabilities.includes(w4.ussd.capability) || ussdDoor.operator?.determined !== false || ussdDoor.beforeSwitchOn.some(c => c.met) || !['reasonForVisit', 'saIdNumber', 'cardNumber'].every(field => ussdDoor.neverAccepts.some(n => n.field === field))) throw new Error(`packages/catalog/feeds.json's ${w4.ussd.door} door no longer refuses a reason for a visit, an identity number and a card number, with every switch-on condition unmet and section 72 undetermined.`);
+ const localeStrings = new Set(JSON.stringify(w4.locales.strings ?? {}).match(/"(?:[^"\\]|\\.)*"/g)?.map(s => JSON.parse(s)) ?? []);
+ const translated = [...menuNodes.flatMap(n => [n.text, ...(n.choices ?? []).map(c => c.label)]), ...w4.ussd.channelRefusals.map(r => r.sentence), w4.ussd.session.timedOut, w4.ussd.session.ended].filter(Boolean).find(s => s.length > 12 && localeStrings.has(s));
+ if (translated) throw new Error(`packages/catalog/locales.json holds "${translated}", a USSD sentence. The menu's refusals are clinical wording and stay in English in every locale (packages/catalog/locales.json clinicalRule).`);
+
+ /* 8. No price typed. */
+ const w4Prices = [...new Set([...w4.services.map(s => s.price), ...w4.plans.tiers.map(t => t.price), ...w4.model.subscriptions.map(s => s.price).filter(p => typeof p === 'number')])];
+ const priceTyped = new RegExp(`(?<![\\w.])(?:R\\s?)?(?:${w4Prices.flatMap(p => [p * 100, p]).join('|')})(?![\\w.])|\\bR\\s?\\d{2,}`);
+ const w4Files = ['apps/web/src/features/MomEssential.tsx', 'apps/web/src/features/VoucherAtCheckout.tsx', 'apps/web/src/features/UssdSimulator.tsx', 'apps/web/src/lib/mom-essential.ts', 'apps/web/src/lib/vouchers.ts',
+  'apps/ios/MyThuso/Features/MomEssentialView.swift', 'apps/ios/MyThuso/Models/MomEssential.swift', 'apps/android/app/src/main/java/za/co/mythuso/ui/MomEssentialScreens.kt', 'apps/android/app/src/main/java/za/co/mythuso/model/MomEssential.kt',
+  'packages/catalog/mom-essential.json', 'packages/catalog/vouchers.json', 'packages/catalog/ussd.json'];
+ for (const file of w4Files) {
+  const typed = read(file).match(priceTyped);
+  if (typed) throw new Error(`${file} types a price, "${typed[0]}". A visit's price is packages/catalog/services.json's and a plan's is packages/catalog/mom-plans.json's, read where they live.`);
+ }
+
+ console.log(`MyThuso for Mom Essential, vouchers and USSD: no plan ranks anybody and ${decidesWhoFirst.length} files that decide who is seen first read no plan; ${essentialScreens.length} journey screens list only the tier's inclusions; a sponsor's plan read carries nothing clinical and a summary grant is the parent's alone; only the parent agrees; a voucher is never cash or tied to a medicine and lasts at least the ${voucherLaw.minimumYears} years ${voucherLaw.act} section ${voucherLaw.section} gives; ${ussdScreens} USSD screens fit ${MAX_CHARACTERS} characters and none asks for anything clinical, an identity number or a card; ${w4Files.length} files type no price.`);
 }
