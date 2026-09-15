@@ -8,6 +8,7 @@ import { endTime, isoIn, longDateOf } from '../lib/scheduling';
 import { signOffFor, type Part } from '../lib/visit-queue';
 import { useVisitQueue } from './VisitQueue';
 import { formatEventTime } from '../lib/vetting';
+import { CareOfferSlot } from './CareVisit';
 
 /* The four clinical workspaces' own home screens, and the four navigations that reach them.
  *
@@ -182,6 +183,9 @@ export function NurseSchedule({ open }: { open: (s: string) => void }) {
    <button className="secondary duty-toggle" aria-pressed={available} onClick={() => setAvailable(!available)}><span className={`status-dot ${available ? '' : 'offline'}`}/>{available ? 'Available for visits' : 'Off duty'}</button>
   </div>
   <NotConnected of="dispatch"/>
+  {/* An offer is a decision about the day, so it is read under the date and above the day it would
+      join. Off duty it shows nothing new; a visit she has already taken still shows. */}
+  <CareOfferSlot open={open} available={available}/>
   {available ? <div className="nday">
    {/* THE DAY AS ONE RAIL RATHER THAN A CARD AND TWO ROWS.
        It was a lime card, a section heading, two grey rows in a white box and a hairline total —

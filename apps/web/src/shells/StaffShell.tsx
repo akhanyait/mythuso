@@ -18,6 +18,8 @@ import { earningsSummary, rand } from '../features/Earnings';
 import { DispatchBoard, IncidentBoard, QualityBoard, controlTowerCounts } from '../features/Dispatch';
 import { FulfilmentQueue, partnerCounts } from '../features/Fulfilment';
 import { ClinicalProtocols, ReferralLetter, ReferralPathway, VisitAssessment, DoctorReview } from '../features/Clinical';
+import { CareVisit } from '../features/CareVisit';
+import { preview as carePreview } from '../lib/care-visit';
 import { Academy, LocumShifts } from '../features/NurseTools';
 import { ThusoKit } from '../features/Kit';
 import { Earnings } from '../features/Earnings';
@@ -496,7 +498,8 @@ function staffModalTitle(modal: string) {
  if (modal.startsWith('Laboratory order ')) return 'Laboratory order';
  if (modal.startsWith('Incident ')) return 'Incident';
  if (modal.startsWith('Doctor review') || modal.startsWith('Doctor case:')) return 'Clinical review';
- if (modal === 'Visit assessment' || modal.startsWith('Nurse case:')) return 'Visit assessment';
+ if (modal === 'Visit assessment' || modal.startsWith('Nurse case:') || modal === 'Care assessment') return 'Visit assessment';
+ if (modal === 'Care visit') return `Visit ${carePreview.appointmentRef}`;
  if (modal === 'Nurse onboarding & vetting' || modal === 'Nurse vetting') return 'Vetting queue';
  if (modal === 'Weekly payouts' || modal === 'Earnings & payouts') return 'Earnings & payouts';
  if (modal === 'Teleconsultation call') return 'Teleconsultation';
@@ -513,6 +516,11 @@ function staffModalBody(modal: string, close: () => void, open: (m: string) => v
     opened the visit. The visit reference distinguishes them: a case named after a visit is a file,
     a case named after a time is the visit at that time. */
  if (modal.startsWith('Nurse case: TH-')) return <PatientFile open={open}/>;
+ /* The visit a nurse accepted from her day, and the assessment that visit is signed off in. The
+    assessment is opened under the visit's own reference, so the sign-off it seals is the one Care's
+    handover and completion ask for; closing it returns to the visit rather than to the day. */
+ if (modal === 'Care visit') return <CareVisit open={open} onClose={close}/>;
+ if (modal === 'Care assessment') return <VisitAssessment reference={carePreview.appointmentRef} onClose={() => open('Care visit')}/>;
  if (modal === 'Visit assessment' || modal.startsWith('Nurse case:')) return <VisitAssessment {...visitFrom(modal)} onClose={close}/>;
  if (modal.startsWith('Doctor review') || modal.startsWith('Doctor case:')) return <DoctorReview reference={referenceIn(modal) ?? undefined} open={open} onClose={close}/>;
  if (modal.startsWith('Prescription ') || modal === 'Pharmacy orders') return <PrescriptionDetail reference={referenceIn(modal) ?? undefined} open={open}/>;
