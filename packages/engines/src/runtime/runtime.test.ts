@@ -85,6 +85,57 @@ test('an idempotent route replays the same key as the same act once', () => {
  runtime.close();
 });
 
+/* Replays belong to one caller and one request. Acknowledging a loop is idempotent and taken from
+   people, so it is where two callers can choose the same key. */
+const acknowledging = (runs: { count: number }) => defineEngine({
+ ...empty, id: 'core',
+ routes: { 'POST /v1/core/loops/{loopRef}/acknowledge@1': (_request, ctx) => { runs.count++; return ok({ acknowledgedAt: ctx.clock.iso() }); } },
+});
+const acknowledge = (runtime: ReturnType<typeof runtimeWith>, ref: string | null, fields: Record<string, unknown>) =>
+ runtime.call('POST /v1/core/loops/{loopRef}/acknowledge@1', { role: 'nurse', ref, purpose: 'treatment', fields });
+
+test('two callers who choose the same key get their own answers, never each other\'s', () => {
+ const runs = { count: 0 };
+ const runtime = runtimeWith([acknowledging(runs)]);
+ const first = acknowledge(runtime, 'nurse-synthetic-1', { idempotencyKey: 'same', loopRef: 'loop-1' });
+ runtime.advance(60_000);
+ const second = acknowledge(runtime, 'nurse-synthetic-2', { idempotencyKey: 'same', loopRef: 'loop-1' });
+ assert.equal(runs.count, 2, 'the second caller\'s request ran');
+ assert.deepEqual([first.status, second.status], [200, 200], 'both were answered, neither as a fault');
+ assert.notDeepEqual(second.body, first.body);
+ runtime.close();
+});
+
+test('the same caller, key and request is replayed without running the handler again', () => {
+ const runs = { count: 0 };
+ const runtime = runtimeWith([acknowledging(runs)]);
+ const first = acknowledge(runtime, 'nurse-synthetic-1', { idempotencyKey: 'k', loopRef: 'loop-1' });
+ runtime.advance(60_000);
+ const again = acknowledge(runtime, 'nurse-synthetic-1', { idempotencyKey: 'k', loopRef: 'loop-1' });
+ assert.equal(runs.count, 1);
+ assert.deepEqual(again.body, first.body);
+ runtime.close();
+});
+
+test('a reused key with a different request is refused, not replayed', () => {
+ const runs = { count: 0 };
+ const runtime = runtimeWith([acknowledging(runs)]);
+ acknowledge(runtime, 'nurse-synthetic-1', { idempotencyKey: 'k', loopRef: 'loop-1' });
+ const reused = acknowledge(runtime, 'nurse-synthetic-1', { idempotencyKey: 'k', loopRef: 'loop-2' });
+ assert.equal(reused.body.error, 'idempotency-key-reused');
+ assert.equal(reused.status, 409);
+ assert.equal(runs.count, 1);
+ runtime.close();
+});
+
+test('an idempotent write from a person who is not identified is refused, so no stored answer can reach somebody else', () => {
+ const runs = { count: 0 };
+ const runtime = runtimeWith([acknowledging(runs)]);
+ assert.equal(acknowledge(runtime, null, { idempotencyKey: 'k', loopRef: 'loop-1' }).body.error, 'caller-unidentified');
+ assert.equal(runs.count, 0);
+ runtime.close();
+});
+
 test('a declared refusal renders the contract\'s sentence; an undeclared one, a bad shape or a throw is a fault that keeps nothing', () => {
  let mode = 'refuse';
  let rows = 0;
