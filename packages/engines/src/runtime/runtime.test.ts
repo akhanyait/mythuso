@@ -136,6 +136,47 @@ test('an idempotent write from a person who is not identified is refused, so no 
  runtime.close();
 });
 
+/* The reviewer's reproduction, as a test. Before the replay fix, nurse B pressing panic with the key
+   nurse A had chosen was handed A's panicRef, and only one panic.raised went out: one nurse's emergency
+   was answered with another's. The Safety module here is synthetic; the route and the event are real. */
+const panics = () => defineEngine({
+ ...empty, id: 'safety',
+ store: { schema: 'CREATE TABLE IF NOT EXISTS panics (ref TEXT PRIMARY KEY, raised_by TEXT NOT NULL);' },
+ routes: {
+  'POST /v1/safety/panics@1': (request, ctx) => {
+   const count = (ctx.store.prepare('SELECT COUNT(*) AS n FROM panics').get() as { n: number }).n;
+   const panicRef = `panic-synthetic-${count + 1}`;
+   ctx.store.prepare('INSERT INTO panics (ref, raised_by) VALUES (?, ?)').run(panicRef, String(ctx.caller.ref));
+   const locationShareEndsAt = new Date(ctx.clock.now().getTime() + Number(request.fields.locationShareMinutes) * 60_000).toISOString().replace('Z', '+00:00');
+   ctx.publish('panic.raised@1', { panicRef, raisedByRole: ctx.caller.role, locationShareEndsAt }, { subjectRef: 'subject-synthetic-1', actorRole: ctx.caller.role, purposeOfUse: 'emergency' });
+   return ok({ panicRef, locationShareEndsAt });
+  },
+ },
+});
+const press = (runtime: ReturnType<typeof runtimeWith>, ref: string, appointmentRef: string) =>
+ runtime.call('POST /v1/safety/panics@1', { role: 'nurse', ref, purpose: 'emergency', fields: { idempotencyKey: 'press-1', appointmentRef, locationShareMinutes: 30 } });
+const panicsRaised = (runtime: ReturnType<typeof runtimeWith>) => runtime.trail.all().filter(e => e.kind === 'published' && e.eventKey === 'panic.raised@1').length;
+
+test('two nurses who press panic with the same key each raise their own panic', () => {
+ const runtime = runtimeWith([panics()]);
+ const a = press(runtime, 'nurse-synthetic-a', 'appointment-synthetic-1');
+ const b = press(runtime, 'nurse-synthetic-b', 'appointment-synthetic-2');
+ assert.deepEqual([a.status, b.status], [200, 200]);
+ assert.notEqual(b.body.panicRef, a.body.panicRef, 'nurse B is not handed nurse A\'s panic');
+ assert.equal(panicsRaised(runtime), 2, 'both emergencies were published');
+ runtime.close();
+});
+
+test('the same nurse pressing again with the same key and a different visit is refused, and nothing more is raised', () => {
+ const runtime = runtimeWith([panics()]);
+ press(runtime, 'nurse-synthetic-a', 'appointment-synthetic-1');
+ const again = press(runtime, 'nurse-synthetic-a', 'appointment-synthetic-2');
+ assert.equal(again.status, 409);
+ assert.deepEqual(again.body, { error: 'idempotency-key-reused', message: 'That idempotency key was already used for a different request.' });
+ assert.equal(panicsRaised(runtime), 1);
+ runtime.close();
+});
+
 test('a declared refusal renders the contract\'s sentence; an undeclared one, a bad shape or a throw is a fault that keeps nothing', () => {
  let mode = 'refuse';
  let rows = 0;
