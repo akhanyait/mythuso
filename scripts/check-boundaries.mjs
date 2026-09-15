@@ -911,6 +911,9 @@ const generated = [
  { source: 'packages/catalog/apis/devices.json', command: 'npm run devices', files: emitDevices() },
  { source: 'packages/catalog/records.json', command: 'npm run devices', files: emitDevices() },
  { source: 'packages/catalog/consent.json', command: 'npm run devices', files: emitDevices() },
+ /* Wave 5, Record: PassportSharingData names each registered HL7 development partner in the access log by
+    hl7v2-inbound.json's label, so a change to the partners regenerates it. */
+ { source: 'packages/catalog/hl7v2-inbound.json', command: 'npm run passport-sharing', files: emitPassportSharing() },
  /* The clinical review pack reads every contract a clinician has to review, so a change to any of them
     without regenerating is a failed build rather than a pack somebody signs against values no longer in force. */
  ...['settings.json', 'care.json', 'booking.json', 'field-safety.json', 'closed-loop.json', 'money.json', 'protocols.json',
@@ -9605,4 +9608,188 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  }
 
  console.log(`Devices: a consumer device carries no clinical weight across ${devicesContract.sources.length * devicesContract.qualities.length * devicesContract.intendedUses.length} combinations and raises nothing; source, quality, withdrawal and the simulator are refused by the domain's own answers; ${nativeHealthFiles.length} native files name no HealthKit or Health Connect; ${devicesEvents.length} Devices events and ${devicesColumns.length} store columns carry no value; ${devicesScreens.length} screens type no stale interval, calibration window or deposit.`);
+}
+
+/* ==== Record · the HL7 v2 bridge into the Health Passport (Wave 5) ==============================================
+
+   Added by the Trust & Record lead. Self-contained. §26's POST /hl7v2/inbound in the Passport P0 — development only, on
+   synthetic messages from two registered partners — with the patient's link of a hospital number and a developer's read
+   of the quarantine beside it. Eight promises, each held here rather than trusted and each proven to fire by breaking
+   the source it reads (scratchpad/wave5/hl7-proofs.mjs):
+     1. No patient is matched on a name or a date of birth: the one reader of who a message is about reads PID-3 alone,
+        and the gateway matches on what it returns and nothing else.
+     2. No manifest declares an HL7 library. The parser is written here, because nothing has been reviewed (§15D).
+     3. Nothing in deploy/ names the bridge, its routes or MLLP. The HEALTH PASSPORT P0 block already refuses the service.
+     4. A result that arrives by HL7 is received and not acknowledged, and its order never closes before a clinician
+        acknowledges it: Medicines' intake, and the web preview's, take it in through receiveResult and mark neither.
+     5. No event about an admission, a discharge or a result carries a value, anything from PID or the message.
+     6. A quarantined message shows no clinical content: the table, the route and the operator's screen carry who sent
+        it, what kind, why it was refused and when its record goes, and nothing else.
+     7. MLLP is not listened on: apps/passport opens no TCP or TLS server of its own and frames nothing as MLLP does.
+     8. No screen types a retention period or a clock skew; both are the Record settings in force.
+   And beside them: every refusal the bridge answers with is declared by its route in the gateway's words and has its
+   acknowledgement code; a result is announced by Medicines and never by Record; the bridge's code stays off the
+   patient's first load; and encounter-statuses@1 stays proposed while the Passport stores no signature. */
+{
+ const hl7Contract = JSON.parse(read('packages/catalog/hl7v2-inbound.json'));
+ const hl7Gateway = JSON.parse(read('packages/catalog/passport-gateway.json'));
+ const hl7RecordApi = JSON.parse(read('packages/catalog/apis/record.json'));
+ const hl7MedicinesApi = JSON.parse(read('packages/catalog/apis/medicines.json'));
+ const hl7Sharing = JSON.parse(read('packages/catalog/passport-sharing.json'));
+ const hl7MedicinesContract = JSON.parse(read('packages/catalog/medicines.json'));
+ const hl7DomainFile = 'packages/engines/src/record/domain/hl7.ts';
+ const hl7Domain = read(hl7DomainFile);
+ const hl7GatewayFile = 'apps/passport/src/gateway.ts';
+ const hl7GatewaySource = read(hl7GatewayFile);
+ const hl7MedicinesEngine = read('packages/engines/src/medicines/engine.ts');
+ const hl7 = await import('../packages/engines/src/record/domain/hl7.ts');
+ const hl7Labs = await import('../packages/engines/src/medicines/domain/labs.ts');
+ const uncommented = source => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+ /* The body of a function, method or handler: from the brace after its parameters to the brace that closes it. */
+ const hl7Body = (source, signature) => {
+  const at = source.indexOf(signature);
+  if (at < 0) return '';
+  const open = source.indexOf('{', source.indexOf(')', at + signature.length - 1));
+  let depth = 0;
+  for (let i = open; i < source.length; i++) {
+   if (source[i] === '{') depth++;
+   if (source[i] === '}' && --depth === 0) return source.slice(open, i + 1);
+  }
+  return source.slice(open);
+ };
+ const hl7Fail = (promise, detail) => { throw new Error(`${detail} ${promise}`); };
+ const wordsIn = name => String(name).replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+
+ /* 1. No match on a name or a date of birth. */
+ const matchPromise = `A message is matched on an identifier in PID-3 the patient linked, and never on a name or a date of birth (packages/catalog/hl7v2-inbound.json matching). ${hl7Contract.matching.why}`;
+ const identifiersBody = uncommented(hl7Body(hl7Domain, 'export function identifiersIn('));
+ const pidRead = [...identifiersBody.matchAll(/fieldOf\(\s*pid\s*,\s*(\d+)\s*\)/g)].map(m => Number(m[1]));
+ if (!identifiersBody || pidRead.join() !== '3' || /\b(PV1|NK1|name|birth|dob|sex|address|phone)\b/i.test(identifiersBody)) hl7Fail(matchPromise, `${hl7DomainFile} identifiersIn() reads ${pidRead.length ? `PID field${pidRead.length === 1 ? '' : 's'} ${pidRead.join(', ')}` : 'no PID field this check can see'}${/\b(name|birth|dob)\b/i.test(identifiersBody) ? ', and names a name or a date of birth' : ''}.`);
+ const receiveBody = uncommented(hl7Body(hl7GatewaySource, '\n receiveHl7('));
+ if ((receiveBody.match(/subjectLinkedTo\(/g) ?? []).length !== 1 || !receiveBody.includes("identifiersIn(message, facility).map(id => this.#store.subjectLinkedTo(this.#keys.partnerTag('identifier', id.authority, id.value)))") || /subjects\.size !== 1\)/.test(receiveBody) === false) hl7Fail(matchPromise, `${hl7GatewayFile} receiveHl7() no longer finds the patient by the identifiers identifiersIn() returns alone, one patient or nobody.`);
+ for (const field of ['PID-5', 'PID-7']) if (!hl7Contract.matching.neverMatchesOn.some(entry => entry.field === field)) hl7Fail(matchPromise, `packages/catalog/hl7v2-inbound.json matching.neverMatchesOn no longer names ${field}.`);
+ const hl7Hospital = hl7Contract.facilities.find(f => f.kind === 'hospital');
+ const nameOnly = hl7.parseMessage(hl7.syntheticAdt({ facility: hl7Hospital, trigger: 'A01', controlId: 'CHECK-NAME-ONLY', sentAt: Date.UTC(2026, 8, 15, 9), identifier: null, visitNumber: 'CHECK-VISIT', admittedAt: Date.UTC(2026, 8, 15, 8), pid: { 5: 'CHECK^NAME', 7: '19700101', 8: 'F', 11: 'CHECK STREET' } }));
+ if (!nameOnly.ok || hl7.identifiersIn(nameOnly.message, hl7Hospital).length !== 0 || hl7.pidRefusal(nameOnly.message) !== 'hl7-pid-field-without-consent-basis') hl7Fail(matchPromise, `${hl7DomainFile} finds an identifier in a message that carries only a name, a date of birth, a sex and an address, or does not refuse those fields.`);
+
+ /* 2. No HL7 library in any manifest. */
+ const libraryPromise = `${hl7Contract.parser.why}`;
+ if (hl7Contract.parser.handWritten !== true || hl7Contract.parser.library !== null) hl7Fail(libraryPromise, 'packages/catalog/hl7v2-inbound.json no longer says the parser is hand-written with no library.');
+ const HL7_LIBRARY = /(^|[^a-z0-9])(hl7|nhapi|mllp|mirth|hapi-hl7|hl7apy|ca\.uhn\.hapi\.(?!fhir))/i;
+ const hl7Manifests = ['package.json', ...['apps', 'packages'].flatMap(dir => readdirSync(dir).map(name => `${dir}/${name}/package.json`)),
+  'apps/android/app/build.gradle.kts', 'apps/android/build.gradle.kts', 'apps/android/settings.gradle.kts', 'apps/android/gradle/libs.versions.toml', 'apps/ios/MyThuso.xcodeproj/project.pbxproj'].filter(existsSync);
+ for (const manifest of hl7Manifests) {
+  const declared = manifest.endsWith('package.json')
+   ? ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'].flatMap(field => Object.keys(JSON.parse(read(manifest))[field] ?? {}))
+   : read(manifest).split('\n').filter(line => /(implementation|api\(|testImplementation|classpath|repositoryURL|XCRemoteSwiftPackageReference|module\s*=|group\s*=)/.test(line));
+  const found = declared.find(entry => HL7_LIBRARY.test(entry));
+  if (found) hl7Fail(libraryPromise, `${manifest} declares "${found.trim()}", an HL7 library.`);
+ }
+ if (hl7Manifests.length < 8) throw new Error(`The HL7 library check read ${hl7Manifests.length} manifests, so it is looking in the wrong place.`);
+
+ /* 3. Nothing in deploy/ names the bridge. */
+ const deployPromise = `The HL7 v2 bridge is part of the Passport P0 and does not deploy: ${hl7Contract._whyDevelopmentOnly}`;
+ const HL7_DEPLOY = /hl7v2|hl7-?inbound|identifiers\/link|\bMLLP\b|(?<![\d.])2575(?!\d)/i;
+ for (const file of files('deploy')) {
+  const found = read(file).match(HL7_DEPLOY);
+  if (found) hl7Fail(deployPromise, `${file} names the HL7 v2 bridge ("${found[0]}").`);
+ }
+
+ /* 4. A result that arrives by HL7 is never complete until a clinician acknowledges it. */
+ const ackPromise = hl7Contract.results.neverCompleteUntil;
+ const intakeRoute = hl7MedicinesApi.routes.find(r => `${r.method} ${r.path}@${r.version}` === hl7Contract.results.handOff.route && !r.withdrawn);
+ if (!intakeRoute || JSON.stringify(intakeRoute.emits) !== '["lab.result.received@1"]' || JSON.stringify(intakeRoute.callers) !== '["engine:record"]') hl7Fail(ackPromise, `packages/catalog/apis/medicines.json no longer declares ${hl7Contract.results.handOff.route}, called by Record alone and announcing the result as lab.result.received@1.`);
+ const intakeBody = uncommented(hl7Body(hl7MedicinesEngine, "'POST /v1/medicines/lab-results@1':"));
+ const takeBody = uncommented(hl7Body(hl7MedicinesEngine, 'function takeResult('));
+ const webIntakeBody = uncommented(hl7Body(read('apps/web/src/lib/medicines.ts'), 'export function receiveHl7Result('));
+ const marksComplete = /acknowledged\(|\bclose\(|acknowledgedAt:(?!\s*null\b)|closedAt|result\.acknowledged/;
+ if (!/takeResult\(ctx, order,/.test(intakeBody) || marksComplete.test(intakeBody)) hl7Fail(ackPromise, 'packages/engines/src/medicines/engine.ts takes an HL7 result in other than through takeResult, or marks it acknowledged or its order closed.');
+ if (!/receiveResult\(order,/.test(takeBody) || marksComplete.test(takeBody)) hl7Fail(ackPromise, 'packages/engines/src/medicines/engine.ts takeResult() no longer receives a result through receiveResult alone.');
+ if (!/receiveResult\(order,/.test(webIntakeBody) || marksComplete.test(webIntakeBody)) hl7Fail(ackPromise, 'apps/web/src/lib/medicines.ts receiveHl7Result() takes a result in other than through receiveResult, or marks it acknowledged or its order closed.');
+ const servedMode = hl7MedicinesContract.labs.collectionModes.find(mode => mode.servedBy !== null);
+ const placedForCheck = hl7Labs.placeOrder({ labOrderRef: 'check-order', subjectRef: 'check-subject', serviceRequestRef: 'check-service-request', collectionMode: servedMode.id, orderedByRef: 'check-clinician' }, 0);
+ const receivedForCheck = placedForCheck.ok ? hl7Labs.receiveResult(placedForCheck.value, { resultEntryRef: 'check-result', rung: 1, settingsVersion: 1 }, 1) : null;
+ const closedForCheck = receivedForCheck?.ok ? hl7Labs.close(receivedForCheck.value, 2) : null;
+ if (!closedForCheck || closedForCheck.ok || closedForCheck.refusal.id !== 'lab-result-complete-before-acknowledgement') hl7Fail(ackPromise, 'packages/engines/src/medicines/domain/labs.ts closes an order whose result nobody acknowledged.');
+ const inboundRoute = hl7RecordApi.routes.find(r => r.method === 'POST' && r.path === '/hl7v2/inbound' && r.version === 1 && !r.withdrawn);
+ if (!inboundRoute || inboundRoute.emits.some(e => e.startsWith('lab.')) || /'lab\.result\.received/.test(hl7GatewaySource) || hl7Contract.messageTypes.find(t => t.code === 'ORU^R01')?.emits !== null) hl7Fail(ackPromise, 'Record announces a lab result itself. Medicines owns lab.result.received@1 and the acknowledgement path; Record hands the result over.');
+
+ /* 5. No event carries a result value, PID detail or the raw message. */
+ const eventPromise = 'An event says an admission, a discharge or a result happened, by reference. What was found, who the patient is and what the message said stay in the record or nowhere.';
+ const REFUSED_WORDS = ['value', 'values', 'reading', 'readings', 'pid', 'identifier', 'identifiers', 'name', 'birth', 'dob', 'message', 'raw', 'segment', 'obx', 'obr', 'visit', 'address', 'phone', 'diagnosis', 'units', 'range', 'flag', 'test'];
+ const hl7EventTypes = ['passport.admission.detected', 'passport.discharge.received', 'lab.result.received'];
+ const hl7Events = collectEvents().events.filter(e => hl7EventTypes.includes(e.type) && !e.withdrawn);
+ if (hl7Events.length !== hl7EventTypes.length) hl7Fail(eventPromise, `packages/catalog/events.json has ${hl7Events.length} live versions of ${hl7EventTypes.join(', ')}.`);
+ const refusedField = fields => fields.find(f => f.type === 'number' || (wordsIn(f.field).at(-1) !== 'ref' && wordsIn(f.field).some(word => REFUSED_WORDS.includes(word))));
+ for (const e of hl7Events) {
+  const carried = refusedField(e.payload);
+  if (carried) hl7Fail(eventPromise, `${e.type}@${e.version} carries "${carried.field}".`);
+ }
+ for (const e of hl7Events.filter(e => e.owner === 'record')) for (const name of ['diagnosis', 'resultValues', 'patientIdentifier', 'rawMessage']) if (!e.neverCarries.some(n => n.field === name)) hl7Fail(eventPromise, `${e.type}@${e.version} no longer names ${name} as a field it never carries.`);
+ const handedField = refusedField(intakeRoute.request.filter(f => f.field !== 'verifiedByRegistration'));
+ if (handedField || JSON.stringify(intakeRoute.request.map(f => f.field).sort()) !== JSON.stringify([...hl7Contract.results.handOff.carries].sort())) hl7Fail(eventPromise, `${hl7Contract.results.handOff.route} takes ${handedField ? `"${handedField.field}"` : 'fields other than hl7v2-inbound.json results.handOff.carries'}.`);
+ const subscribersOf = type => hl7Events.find(e => e.type === type).subscribers;
+ if (JSON.stringify(subscribersOf('passport.admission.detected')) !== '["care"]' || !read('packages/engines/src/care/engine.ts').includes("'passport.admission.detected@1': (event, ctx) =>")) hl7Fail(eventPromise, 'passport.admission.detected@1 is heard by an engine other than Care, or Care binds no handler for it.');
+ if (JSON.stringify(subscribersOf('passport.discharge.received')) !== '["core"]' || !/\[DISCHARGE\]: heardDischarge\b/.test(read('packages/engines/src/core/engine.ts'))) hl7Fail(eventPromise, 'passport.discharge.received@1 is heard by an engine other than Core, or Core binds no handler for it.');
+
+ /* 6. A quarantined message shows no clinical content. */
+ const quarantinePromise = `${hl7Contract.quarantine.why} It never holds ${hl7Contract.quarantine.neverHolds.join(', ')}.`;
+ const QUARANTINE_COLUMNS = ['facility', 'message_type', 'purge_after', 'received_at', 'ref', 'refusal', 'settings_version'];
+ const quarantineTable = tablesIn(read('apps/passport/src/store.ts')).find(table => table.name === 'hl7_quarantine');
+ if (!quarantineTable || JSON.stringify([...quarantineTable.columns].sort()) !== JSON.stringify(QUARANTINE_COLUMNS)) hl7Fail(quarantinePromise, `apps/passport/src/store.ts gives the quarantine the columns ${quarantineTable ? quarantineTable.columns.join(', ') : 'of no table'}; it holds ${QUARANTINE_COLUMNS.join(', ')} and nothing else.`);
+ const quarantineRoute = hl7RecordApi.routes.find(r => r.method === 'GET' && r.path === '/v1/record/hl7v2-quarantine' && r.version === 1 && !r.withdrawn);
+ const QUARANTINE_FIELDS = ['purgeAfter', 'messageType', 'quarantineRef', 'reason', 'reasonCode', 'receivedAt', 'sendingFacility', 'settingsVersion'];
+ const listed = quarantineRoute?.response.find(f => f.field === 'quarantined')?.fields?.map(f => f.field) ?? [];
+ if (!listed.length || listed.some(field => !QUARANTINE_FIELDS.includes(field))) hl7Fail(quarantinePromise, `GET /v1/record/hl7v2-quarantine@1 carries ${listed.join(', ') || 'no declared fields'}.`);
+ const quarantineScreen = uncommented(read('apps/web/src/features/Hl7Quarantine.tsx'));
+ const shownFields = [...new Set([...quarantineScreen.matchAll(/\bitem\.(\w+)/g)].map(m => m[1]))];
+ if (shownFields.some(field => !['ref', 'facility', 'kind', 'reason', 'receivedAt', 'purgeAfter'].includes(field))) hl7Fail(quarantinePromise, `apps/web/src/features/Hl7Quarantine.tsx shows ${shownFields.join(', ')} of a quarantined message.`);
+ const previewKeys = [...new Set(hl7Contract.preview.quarantine.flatMap(item => Object.keys(item)))];
+ if (previewKeys.some(key => !['dayOffset', 'time', 'facility', 'messageType', 'refusal'].includes(key)) || /identifier|controlId|value|patient/i.test(uncommented(hl7Body(read('apps/web/src/lib/hl7-inbound.ts'), 'export function previewQuarantine(')))) hl7Fail(quarantinePromise, 'packages/catalog/hl7v2-inbound.json preview.quarantine, or the web preview built from it, carries something a message said.');
+
+ /* 7. MLLP is not listened on. */
+ const mllpPromise = `${hl7Contract.transport.mllp.statement} ${hl7Contract.transport.mllp.why}`;
+ if (hl7Contract.transport.mllp.served !== false) hl7Fail(mllpPromise, 'packages/catalog/hl7v2-inbound.json says MLLP is served.');
+ for (const file of files('apps/passport/src')) {
+  const found = read(file).match(/from\s+['"](node:)?(net|tls|dgram)['"]|require\(['"](node:)?(net|tls)['"]\)|\\x0[bB]|\\x1[cC]|\\u000[bB]|\\u001[cC]|String\.fromCharCode\(\s*(11|28)\s*\)/);
+  if (found) hl7Fail(mllpPromise, `${file} opens a socket of its own or frames a message as MLLP does ("${found[0]}").`);
+ }
+ const hl7ServerSource = read('apps/passport/src/server.ts');
+ if ((hl7ServerSource.match(/\.listen\(/g) ?? []).length !== 1 || !hl7ServerSource.includes("import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';") || !/There is no MLLP listener/.test(hl7ServerSource)) hl7Fail(mllpPromise, 'apps/passport/src/server.ts listens more than once, on something other than node:http, or no longer says there is no MLLP listener.');
+
+ /* 8. No screen types a retention period or a skew. */
+ const retentionPromise = 'How long an unmatched message\'s record is kept and how far a message\'s clock may drift are the Record settings in force, and the Information Officer confirms the first.';
+ const typedPeriod = /(?<![\w.])\d+\s*(?:days?|minutes?|mins?|hours?)\b|\d+\s*\*\s*(?:DAY|MINUTE|HOUR)\b|(?:retention|skew|purge)\w*\s*[:=]\s*\d/i;
+ for (const file of ['apps/web/src/features/Hl7Quarantine.tsx', 'apps/web/src/lib/hl7-inbound.ts']) {
+  const typed = uncommented(read(file)).match(typedPeriod);
+  if (typed) hl7Fail(retentionPromise, `${file} types "${typed[0]}".`);
+ }
+ const hl7WebLib = read('apps/web/src/lib/hl7-inbound.ts');
+ if (!/retentionDaysNow\(\)/.test(quarantineScreen) || !/inboundSettingsNow\(\)\.quarantineRetentionDays/.test(hl7WebLib) || !/inboundSettingsNow\(\)\.clockSkewMinutes/.test(hl7WebLib)) hl7Fail(retentionPromise, 'The web quarantine or the preview\'s laboratory no longer reads the retention and the skew in force.');
+ if (!receiveBody.includes('clockRefusal(message, at, inForce.clockSkewMinutes)') || !hl7Body(hl7GatewaySource, '\n #hl7Refuse(').includes('keep.inForce.quarantineRetentionDays * DAY')) hl7Fail(retentionPromise, `${hl7GatewayFile} no longer judges a message's clock and gives a quarantined record its deletion day from the settings in force.`);
+ for (const key of ['hl7-quarantine-retention-days', 'hl7-clock-skew-minutes']) if (!hl7Sharing.settings.items.some(item => item.key === key)) hl7Fail(retentionPromise, `packages/catalog/passport-sharing.json has lost the Record setting ${key}.`);
+ if (!/D-8/.test(hl7Sharing.settings.items.find(item => item.key === 'hl7-quarantine-retention-days').default.proposedBecause ?? '')) hl7Fail(retentionPromise, 'The quarantine retention no longer says it waits on the Information Officer (D-8).');
+
+ /* Sentences, codes, the first load and the encounter statuses. */
+ const identifierRoute = hl7RecordApi.routes.find(r => r.method === 'POST' && r.path === '/v1/record/patient-identifiers' && r.version === 1 && !r.withdrawn);
+ for (const route of [inboundRoute, identifierRoute, quarantineRoute]) {
+  if (!route || route.status !== 'built') throw new Error('packages/catalog/apis/record.json no longer declares the three HL7 bridge routes as built.');
+  for (const r of route.refusals) if (hl7Gateway.refusals.find(g => g.id === r.id)?.sentence !== r.statement) throw new Error(`${route.method} ${route.path}@${route.version} declares "${r.id}" in words the Passport does not answer with.`);
+ }
+ if (inboundRoute.endpointNamed?.section !== '§26' || JSON.stringify(inboundRoute.callers) !== '["developer"]') throw new Error('POST /hl7v2/inbound@1 is called by somebody other than a developer, or no longer says §26 names it. A partner system reaches it only through the door with mutual TLS that is still to add.');
+ const hl7Codes = new Map(hl7Contract.acknowledgements.refusals.map(r => [r.refusal, r.code]));
+ for (const r of inboundRoute.refusals) if (!['AE', 'AR'].includes(hl7Codes.get(r.id))) throw new Error(`POST /hl7v2/inbound@1 refuses "${r.id}" with no acknowledgement code in packages/catalog/hl7v2-inbound.json, so a partner could not tell whether to resend.`);
+ for (const id of hl7Codes.keys()) if (!inboundRoute.refusals.some(r => r.id === id)) throw new Error(`packages/catalog/hl7v2-inbound.json gives "${id}" an acknowledgement code, and POST /hl7v2/inbound@1 does not declare it.`);
+ for (const [, id] of hl7Domain.matchAll(/'(hl7-[a-z-]+)'/g)) if (!hl7Codes.has(id)) throw new Error(`${hl7DomainFile} refuses with "${id}", which POST /hl7v2/inbound@1 does not declare.`);
+ for (const method of ['receiveHl7', '#hl7Encounter', '#hl7Result']) for (const [, id] of uncommented(hl7Body(hl7GatewaySource, `\n ${method}(`)).matchAll(/#hl7Refuse\('([\w-]+)'/g)) if (!hl7Codes.has(id)) throw new Error(`${hl7GatewayFile} ${method} refuses with "${id}", which POST /hl7v2/inbound@1 does not declare.`);
+ for (const [, id] of uncommented(hl7Body(hl7GatewaySource, '\n linkIdentifier(')).matchAll(/'(identifier-[a-z-]+)'/g)) if (!identifierRoute.refusals.some(r => r.id === id)) throw new Error(`${hl7GatewayFile} linkIdentifier refuses with "${id}", which POST /v1/record/patient-identifiers@1 does not declare.`);
+ for (const f of ['apps/web/src/main.tsx', 'apps/web/src/App.tsx', 'apps/web/src/Doorway.tsx', 'apps/web/src/shells/PatientShell.tsx']) {
+  if (existsSync(f) && /^import (?!type\b)[^;]*from '[^']*(hl7-inbound|Hl7Quarantine|hl7v2-inbound\.json)/m.test(read(f))) throw new Error(`${f} imports the HL7 bridge's screens, lib or contract statically. None of it is on a patient's first load.`);
+ }
+ if (!/const Hl7Quarantine = lazy\(\(\) => import\('\.\.\/features\/Hl7Quarantine'\)/.test(read('apps/web/src/shells/StaffShell.tsx'))) throw new Error('apps/web/src/shells/StaffShell.tsx no longer reaches the HL7 quarantine through a dynamic import.');
+ const statusesRoute = hl7RecordApi.routes.find(r => r.path === '/v1/record/encounter-statuses/{encounterRef}' && r.version === 1);
+ const signatureStored = tablesIn(read('apps/passport/src/store.ts')).some(table => table.columns.some(column => /sign|supersed/.test(column)));
+ if (statusesRoute?.status === 'built' ? !signatureStored : hl7Contract.encounters.encounterStatuses.decision !== 'left-proposed' || !hl7Contract.encounters.encounterStatuses.why?.trim()) throw new Error(`GET /v1/record/encounter-statuses/{encounterRef}@1 is ${statusesRoute?.status}${signatureStored ? '' : ' while the Passport stores no signature or supersede'}, or packages/catalog/hl7v2-inbound.json no longer says why it stays proposed. ${hl7Contract.encounters.encounterStatuses.why}`);
+
+ console.log(`Record · HL7 v2 bridge: ${hl7Contract.messageTypes.filter(t => t.built).length} message types from ${hl7Contract.facilities.length} registered synthetic partners, read by a hand-written parser that ${hl7Manifests.length} manifests declare no library beside; a patient is matched on PID-3 alone and never on a name or a date of birth; ${inboundRoute.refusals.length} refusals, each with its acknowledgement code and the gateway's sentence; a result is announced by Medicines, received unacknowledged, and never closed before a clinician acknowledges it; ${hl7Events.length} events carry no value, PID detail or message; the quarantine holds ${QUARANTINE_COLUMNS.length} columns and nothing a message said; no MLLP listener, nothing in deploy/, no typed retention or skew; and encounter-statuses@1 stays ${statusesRoute?.status}.`);
 }

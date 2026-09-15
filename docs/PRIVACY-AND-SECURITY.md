@@ -731,3 +731,41 @@ matters less than before: a link is a copy of access at an address, which makes 
 custody and anchoring of the chain head more pressing, not less.
 
 Nothing in it changes the state of `clinical-records`. The identity service still holds no clinical table, and the boundary check that says so is untouched.
+
+### The HL7 v2 bridge (Wave 5), still development only
+
+§26's `POST /hl7v2/inbound` is built inside the Passport P0 and inherits every reason above that it does not deploy, and
+adds one: a partner interface is a network path from outside into the record, and the mutual TLS per partner, the
+operator agreements under POPIA section 21 and the conformance testing it needs do not exist. So **no partner system
+reaches it**. A developer holding a console-minted credential sends a message from one of two registered synthetic
+partners as JSON over the loopback; **MLLP is not served**, and the build fails if `apps/passport` opens a TCP or TLS
+listener of its own or frames a message as MLLP does, and if anything in `deploy/` names the bridge.
+
+**Minimisation, as refusals.** The parser reads MSH, PID-3, PV1, OBR and OBX and nothing else: a note (NTE) is not read,
+because free text is where a name is written and the Passport cannot screen a name out of prose. A patient is matched
+**only** on a hospital number they linked in their own session — the consent basis for acting on a message — kept as a
+keyed digest under a partner key derived from the master key; the Passport holds no name or date of birth and never
+matches on one. A matched message carrying any other PID field is refused, nothing from it is stored, and the refusal is
+written into that patient's chain. A thirteen-digit identifier is refused whatever authority it is linked under. A
+visit number and a partner's control ID are kept only as tags.
+
+**Unmatched messages are refused, not guessed.** A message the Passport cannot match is refused with AR and recorded in
+a quarantine that holds who sent it, what kind, which refusal and when its record is deleted — never the message, its
+control ID, an identifier or a value — and nothing is ever released from it into a record. Its retention is a Record
+setting proposed at 30 days, which **the Information Officer confirms (D-8)**; each record keeps the deletion day it was
+given, and deleting it is the only DELETE in the service besides the replay rows of messages that reached nobody. The
+audit chain is still never updated or deleted.
+
+**Every message is an access.** Accepted or refused, each is written into the hash-chained audit log under the partner
+that sent it and the developer's reference, in the patient's chain when a patient was found and under nobody when not;
+the patient reads each in `/audit/mine` and on the access log screens, by partner and kind, and never by content. A
+discharge revises its admission's Encounter as a new version and keeps the old one sealed.
+
+**What crosses to an engine.** Nothing a message said. An admission and a discharge are announced by reference, and both
+events now refuse a diagnosis, result values, the patient identifier, a name, the visit number and the raw message. A
+result is handed to Medicines as references, a time and a verifier's registration — the lab-result door's rules — and
+Medicines, not Record, announces it; it is not complete until the clinician who ordered it acknowledges it. An
+Encounter or a DiagnosticReport a partner wrote is left out of the export and of share links, and says so, until new
+versions of those routes declare them.
+
+Nothing in it changes the state of `clinical-records` or `laboratory-results`, which stay absent.
