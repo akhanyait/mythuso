@@ -114,11 +114,15 @@ const PAYOUT_CALLERS = ['nurse', 'locum', 'doctor'];
 /* The roles served in aggregate. A person's payment is never theirs to read. */
 const AGGREGATE_ROLES = ['scheme', 'employer', 'medical-scheme', 'insurer'];
 
-/* A card number is the digits, not the field name: thirteen to nineteen of them in a row. */
-const PAN = /(?:\d[ -]?){13,19}/;
+/* A card number is the digits, not the field name: thirteen to nineteen of them in a row, as written,
+   with at most a single space or dash between any two. The value is read as it stands rather than with
+   everything but digits stripped out first: stripping joined a dated visit reference to the attempt
+   number after it — MT-VITALS-2026-09-16-0900-LERATO:card:1 became thirteen digits — and refused every
+   card payment the web made as a card number. */
+const PAN = /(?<![\d])\d(?:[ -]?\d){12,18}(?![\d])/;
 export function carriesACard(value: unknown, depth = 0): boolean {
  if (depth > 4 || value === null || value === undefined) return false;
- if (typeof value === 'string') return PAN.test(value.replace(/[^\d -]/g, ''));
+ if (typeof value === 'string') return PAN.test(value);
  if (typeof value !== 'object') return false;
  return Object.entries(value as Record<string, unknown>).some(([k, v]) => cardSpellings.has(canonical(k)) || carriesACard(v, depth + 1));
 }

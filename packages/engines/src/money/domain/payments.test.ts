@@ -65,6 +65,26 @@ test('nothing is charged without a key, and a card number is refused before anyt
  assert.equal(money.outbox().length, 0);
 });
 
+test('a key built from a dated visit reference is a key, and a card number in any spacing is still a card', () => {
+ /* The web keys a payment on the visit reference, the method and the attempt. Its digits — a date, an
+    hour, an attempt — are separated by letters and colons, and must not be read as a card. */
+ const ref = 'MT-VITALS-2026-09-16-0900-LERATO';
+ const money = createMoney({ clock, simulation: true });
+ money.openVisitPayable({ payableRef: ref, serviceId: 'vitals', subjectRef: lerato.subjectRef });
+ const vitals = serviceById('vitals');
+ for (const method of ['card', 'eft']) {
+  const answer = money.pay(lerato, { idempotencyKey: `${ref}:${method}:1`, payableRef: ref, method, amountCents: vitals.price * 100 });
+  assert.ok(!isRefusal(answer) || answer.id !== 'card-number-sent', `${method} with a dated reference was refused as a card number`);
+  if (!isRefusal(answer) && answer.stateCode === 'succeeded') break;
+ }
+ const other = createMoney({ clock, simulation: true });
+ other.openVisitPayable({ payableRef: 'MT-X', serviceId: 'vitals', subjectRef: lerato.subjectRef });
+ const four = '4'.repeat(4);
+ for (const shaped of [`${four} ${four} ${four} ${four}`, `${four}-${four}-${four}-${four}`, four.repeat(4)]) {
+  assert.deepEqual(other.pay(lerato, { idempotencyKey: `k ${shaped}`, payableRef: 'MT-X', method: 'card', amountCents: vitals.price * 100 }), refusal('card-number-sent'), shaped);
+ }
+});
+
 test('the amount is the catalogue’s, the payable is somebody’s, and a wallet is not offered yet', () => {
  const ref = payableThat('authorised');
  const money = ledgerWith(ref);
