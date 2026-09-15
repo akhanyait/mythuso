@@ -4,7 +4,7 @@ import {
  type Change, type ChangeRequest, type Refusal, type Review, type ReviewState, type Setting, type SettingValue, type SettingsEngine, type Snapshot
 } from '../../../../packages/engines/src/settings/shape.ts';
 import { settingsEngines } from '../../../../packages/engines/src/settings/registry.ts';
-import { inForce, panicWindowOf, sosSettingsOf, type PanicWindow, type SettingsInForce, type SosSettings } from '../../../../packages/engines/src/safety/domain/settings.ts';
+import { inForce, panicWindowOf, sentinelSettingsOf, sosSettingsOf, type PanicWindow, type SentinelSettings, type SettingsInForce, type SosSettings } from '../../../../packages/engines/src/safety/domain/settings.ts';
 import { careInForceOf, type CareInForce } from '../../../../packages/engines/src/care/domain/settings.ts';
 import { doctorFeeOf, nurseShareSentenceOf, planTermsOf, type DoctorFeeInForce, type PlanTerms } from '../../../../packages/engines/src/money/domain/settings.ts';
 import { rotaOf } from '../../../../packages/engines/src/core/domain/settings.ts';
@@ -115,6 +115,9 @@ export const recordSettingsNow = (): SharingInForce => sharingSettingsOf(snapsho
 /* Devices' three, read the same way: the kit's health and the registry ask devicesSettingsNow() whenever they
    work a device's health out, and a kit is issued with the deposit it answers, which the kit keeps. */
 export const devicesSettingsNow = (): DevicesInForce => devicesInForce(historyOf('devices'));
+/* Sentinel's two, read the same way: a baseline asks sentinelSettingsNow() once, when the first reading of a patient's
+   measure opens it, and keeps the window, the minimum and the version it was handed. */
+export const sentinelSettingsNow = (): SentinelSettings => sentinelSettingsOf(historyOf('safety'));
 
 /* Whether the value a setting held at a settings version has been clinically reviewed. Something that started
    under an older version — an offer on a nurse's screen — is described by the value it started under, not
