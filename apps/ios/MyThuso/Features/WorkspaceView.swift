@@ -724,6 +724,9 @@ struct WorkspaceSectionView: View {
             .accessibilityValue(available ? "On duty" : "Off duty")
             .accessibilityHint("Changes whether the Control Tower may offer you a visit")
             .accessibilityAddTraits(.isButton)
+            /* An offer is a decision about the day, so it is read directly under whether she is taking
+               visits at all. Off duty it shows nothing new; a visit she has already taken still shows. */
+            CareOfferCard(available: available)
             /* First, not last. A nurse coming out of a house with no signal wants one answer before
                anything else on this screen: is my work safe? */
             group("On this phone") { waitingToSend }

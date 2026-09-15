@@ -1,0 +1,119 @@
+/* CARE — THE OFFER ON A NURSE'S DAY, AND THE VISIT BEHIND IT.
+ *
+ * Loaded only by features/CareVisit.tsx, which only the clinical workspace imports, so a patient
+ * downloads none of it.
+ *
+ * The offer is a card on the paper of her day, not a second dark deck: the deck above already says
+ * what the day is, and a second slab of ink would make an offer she has not accepted outrank the visits
+ * she has. What sets it apart is a rule in the logo's ink on its leading edge and an eyebrow that says
+ * in words that it is an offer, so colour is never the only thing marking it. Declined, lapsed and
+ * withheld drop to the canvas with no shadow: they are sentences, not decisions.
+ *
+ * Every pair here is one the palette already measures: ink and body on surface and on canvas, and the
+ * teal and danger inks as icon and rule marks at the 3:1 a mark needs, never as the colour of a word. */
+
+.care-slot {
+ display: grid;
+ gap: var(--space-12);
+ margin: var(--space-16) 0;
+ padding: var(--space-20) var(--space-24);
+ background: var(--surface);
+ border: 1px solid var(--line);
+ border-radius: var(--r-card);
+ box-shadow: var(--shadow);
+ min-width: 0;
+}
+.care-slot h2 { margin: 0; font-size: 20px; line-height: 1.3; letter-spacing: -.2px; color: var(--ink); }
+.care-slot-say { display: grid; gap: var(--space-4); min-width: 0; }
+.care-eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--body); }
+.care-offer { border-left: 4px solid var(--brand-ink); }
+.care-slot.is-held { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.care-slot.is-quiet, .care-slot.is-done { background: var(--canvas); box-shadow: none; }
+.care-slot.is-quiet p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--ink); }
+.care-when { margin: 0; font-size: 14px; color: var(--body); font-variant-numeric: tabular-nums; }
+.care-marker { display: inline-flex; align-items: center; gap: var(--space-8); margin: var(--space-4) 0 0; font-size: 14px; font-weight: 600; color: var(--ink); }
+.care-marker svg { flex: none; color: var(--teal-ink); }
+
+/* Three facts in real columns, numbers under numbers. The decision is when, how far and until when, so
+   those are the three and they are read across; at a phone's width they stack. */
+.care-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-16); margin: 0; }
+.care-facts > div { display: grid; gap: var(--space-4); align-content: start; padding-top: var(--space-8); border-top: 1px solid var(--line); min-width: 0; }
+.care-facts dt { font-size: 13px; color: var(--body); }
+.care-facts dd { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.3; color: var(--ink); font-variant-numeric: tabular-nums; }
+.care-facts dd small { display: block; margin-top: var(--space-4); font-size: 13px; font-weight: 400; color: var(--body); }
+
+.care-note { display: flex; gap: var(--space-8); align-items: flex-start; margin: 0; font-size: 14px; line-height: 1.55; color: var(--body); }
+.care-note svg { flex: none; margin-top: 3px; color: var(--teal-ink); }
+
+/* A refusal stands beside the control that was refused, in the ink every sentence is set in, with the
+   danger ink as a rule rather than as the colour of the words. */
+.care-refusal {
+ display: flex;
+ gap: var(--space-12);
+ align-items: flex-start;
+ margin: 0;
+ padding: var(--space-12) var(--space-16);
+ background: var(--canvas);
+ border-left: 3px solid var(--danger);
+ border-radius: var(--r-control);
+ font-size: 15px;
+ line-height: 1.5;
+ color: var(--ink);
+}
+.care-refusal svg { flex: none; margin-top: 2px; color: var(--danger); }
+.care-refusal > span { display: grid; gap: var(--space-4); min-width: 0; }
+.care-refusal small { font-size: 14px; line-height: 1.5; color: var(--body); }
+.care-refusal-line { min-height: 1.5em; margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink); }
+.care-actions { justify-content: flex-end; flex-wrap: wrap; }
+
+/* ---- The visit ---------------------------------------------------------------------------------- */
+.care-visit { display: grid; gap: var(--space-20); min-width: 0; }
+.care-visit-head { display: grid; gap: var(--space-8); }
+.care-visit-head h3 { margin: 0; font-size: 22px; line-height: 1.3; letter-spacing: -.3px; color: var(--ink); }
+
+/* Six stages as a rail of named steps: what is behind her filled in the logo's ink, where she is ringed
+   and set heavier. A row of identical dots answers neither question a nurse in a kitchen is asking. */
+.care-rail { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--space-8); }
+.care-rail li { display: grid; gap: var(--space-8); align-content: start; font-size: 13px; line-height: 1.35; color: var(--body); min-width: 0; }
+.care-rail-mark {
+ display: inline-grid;
+ place-items: center;
+ width: 28px;
+ height: 28px;
+ border: 1px solid var(--line);
+ border-radius: var(--r-pill);
+ background: var(--surface);
+ font-size: 13px;
+ font-weight: 600;
+ color: var(--body);
+}
+.care-rail li.is-done .care-rail-mark { background: var(--brand-ink); border-color: var(--brand-ink); color: var(--surface); }
+.care-rail li.is-now { font-weight: 600; color: var(--ink); }
+.care-rail li.is-now .care-rail-mark { border: 2px solid var(--brand-ink); color: var(--ink); }
+
+.care-stage { display: grid; gap: var(--space-16); padding: var(--space-20); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); min-width: 0; }
+.care-stage h4 { margin: 0; font-size: 18px; line-height: 1.35; color: var(--ink); }
+.care-fact { display: flex; gap: var(--space-8); align-items: center; margin: 0; font-size: 15px; line-height: 1.5; color: var(--ink); }
+.care-fact svg { flex: none; color: var(--teal-ink); }
+.care-label { display: inline-flex; gap: var(--space-8); align-items: center; font-size: 14px; font-weight: 600; color: var(--ink); }
+.care-map { min-width: 0; border-radius: var(--r-card); overflow: hidden; }
+
+.care-protocols { list-style: none; margin: 0; padding: 0; display: grid; }
+.care-protocols li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-12); align-items: center; padding: var(--space-12) 0; border-top: 1px solid var(--line); }
+.care-protocols li:first-child { border-top: 0; }
+.care-protocols li > svg { color: var(--body); }
+.care-protocols strong { display: block; font-size: 15px; color: var(--ink); }
+.care-protocols small { font-size: 13px; color: var(--body); }
+.care-status { padding: var(--space-4) var(--space-12); border: 1px solid var(--line); border-radius: var(--r-pill); font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+
+.care-vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (max-width: 720px) {
+ .care-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: var(--space-12); }
+}
+@media (max-width: 560px) {
+ .care-slot { padding: var(--space-16); }
+ .care-facts { grid-template-columns: 1fr; gap: var(--space-8); }
+ .care-slot.is-held { grid-template-columns: 1fr; }
+ .care-actions > button { flex: 1 1 auto; }
+}
