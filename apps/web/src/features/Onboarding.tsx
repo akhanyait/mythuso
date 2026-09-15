@@ -8,7 +8,7 @@ import { startSignIn, verifyCode } from '../lib/auth';
    than from a sentence typed into this screen. What it refuses is the interesting half: it will not
    be told a mobile number, it will not accept a code it did not produce, and it does not survive a
    restart — which is why signing in again after a reload starts from the beginning. */
-import { askForCode, checkCode, type CodeAsk } from '../lib/simulation';
+import type { CodeAsk } from '../lib/simulation';
 import { CodeInput } from '../components/Steps';
 /* Sign-up and vetting must agree about what a valid identity number is, so the Luhn check digit
    validation lives in lib/identity.ts and is re-exported here for the screens that already use it. */
@@ -192,9 +192,18 @@ export function SignIn({ live, probed = true, onSignIn, onCreate, onRecover }:
  const [attempt, setAttempt] = useState(0);
  const [ask, setAsk] = useState<CodeAsk | null>(null);
  const phoneOk = /^0\d{9}$/.test(phone.replace(/\s/g, ''));
- const askAgain = () => { const next = attempt + 1; setAttempt(next); setCode(''); setError(''); setAsk(askForCode(next)); };
- const submitSimulatedCode = () => {
+ /* The simulated channel arrives on a dynamic import at the moment a code is asked for or checked, never with the
+    sign-in screen. lib/simulation carries apps/api/src/simulation and, behind it, every supplier door in
+    packages/catalog/feeds.json, and each engine that adds a door would otherwise add it to the first load of a patient
+    who only wanted to see her visits. The refusal still arrives from the simulator in the capability's own words. */
+ const askAgain = async () => {
+  const next = attempt + 1; setAttempt(next); setCode(''); setError('');
+  const { askForCode } = await import('../lib/simulation');
+  setAsk(askForCode(next));
+ };
+ const submitSimulatedCode = async () => {
   if (!ask || ask.refused !== undefined) return;
+  const { checkCode } = await import('../lib/simulation');
   const checked = checkCode(ask.challenge, code);
   if (checked.refused !== undefined) return setError(checked.refused);
   onSignIn({ phone });

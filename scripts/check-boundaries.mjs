@@ -9399,6 +9399,44 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   if (!specifier.startsWith('.')) continue;
   if (p1Modules.includes(join(f.slice(0, f.lastIndexOf('/')), specifier).replace(/\.(tsx?|js)$/, ''))) throw new Error(`${f} imports the Passport P1 screens, their lib or the QR encoder statically ("${specifier}"). Between them they carry four contracts and an encoder a patient on metered data should not download to see their overview; reach them with import().`);
  }
+ /* The same resolution, walked from the patient's entry rather than asked of every file. The simulated suppliers and
+    the capability contract have honest static readers — the lazy booking flow, the staff shell's earnings, the status
+    page — so "nobody imports them" is the wrong rule for them, and "nothing the patient's first view reaches imports
+    them" is the right one. Every relative static import reachable from apps/web/src/main.tsx is followed, into
+    apps/api and packages too, because that is how the door catalogue arrived: lib/simulation imported
+    apps/api/src/simulation, which imported the feeds contract, which imported packages/catalog/feeds.json, and every
+    door any engine added landed on a patient's first load. Added at the Wave 4 integration. */
+ const firstViewForbidden = [
+  ['apps/web/src/lib/simulation.ts', 'the simulated suppliers, which reach it with import() at the moment a screen asks'],
+  ['apps/api/src/simulation/', 'the simulated suppliers themselves'],
+  ['packages/catalog/feeds.json', 'every supplier door every engine has declared'],
+  ['packages/catalog/capabilities.json', 'the whole capability contract, where the first view reads apps/web/src/lib/capabilities.generated.ts']
+ ];
+ const resolveStatic = (from, specifier) => {
+  const base = join(from.slice(0, from.lastIndexOf('/')), specifier.split('?')[0]);
+  return [base, `${base}.ts`, `${base}.tsx`, `${base.replace(/\.js$/, '')}.ts`, `${base}/index.ts`, `${base}/index.tsx`].find(p => existsSync(p) && !statSync(p).isDirectory());
+ };
+ const firstViewEntry = 'apps/web/src/main.tsx';
+ const reachedBy = new Map([[firstViewEntry, null]]);
+ for (const queue = [firstViewEntry]; queue.length;) {
+  const f = queue.shift();
+  if (!/\.tsx?$/.test(f)) continue;
+  for (const specifier of staticSpecifiers(read(f))) {
+   if (!specifier.startsWith('.')) continue;
+   const target = resolveStatic(f, specifier);
+   if (!target || reachedBy.has(target)) continue;
+   reachedBy.set(target, f);
+   const forbidden = firstViewForbidden.find(([path]) => target === path || (path.endsWith('/') && target.startsWith(path)));
+   if (forbidden) {
+    const chain = [target];
+    for (let at = f; at; at = reachedBy.get(at)) chain.unshift(at);
+    throw new Error(`The patient's first view reaches ${target}, which is ${forbidden[1]}: ${chain.join(' → ')}. Reach it with import() from the screen that needs it, so a patient reading her visits on metered data does not download it.`);
+   }
+   queue.push(target);
+  }
+ }
+ if (!reachedBy.has('apps/web/src/App.tsx') || !reachedBy.has('apps/web/src/lib/capabilities.generated.ts')) throw new Error(`Walking the patient's first view from ${firstViewEntry} no longer reaches App.tsx and the capability projection, so the check that holds the door catalogue and the capability contract off it would pass having looked at nothing.`);
+ console.log(`The patient's first view: ${reachedBy.size} modules reached by static import from ${firstViewEntry}, and none of them is lib/simulation, the simulated suppliers, packages/catalog/feeds.json or the whole capability contract.`);
  const { qrCode, qrRows } = await import('../apps/web/src/lib/qr.ts');
  const vectorLines = read('tests/fixtures/qr-vectors.txt').split('\n').filter(line => line && !line.startsWith('#'));
  let vectorsHeld = 0;

@@ -1,4 +1,5 @@
-import { capabilities, connectedCount, noticeFor, rule, simulatedCount, simulationOf, stateOf } from './lib/capabilities';
+import { capabilities, connectedCount, noticeFor, simulatedCount, simulationOf, stateOf } from './lib/capabilities';
+import { rule } from './lib/capability-rules';
 import openSource from '../../../packages/catalog/open-source.json' with { type: 'json' };
 import './surface/core.css';
 import './surface/status.css';

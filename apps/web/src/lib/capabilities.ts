@@ -1,4 +1,4 @@
-import contract from '../../../../packages/catalog/capabilities.json' with { type: 'json' };
+import { capabilities as firstView, type FirstViewCapability } from './capabilities.generated';
 /* What MyThuso can actually do, and what it only draws.
  *
  * Every screen used to carry its own hand-typed "Design preview", "Demonstration record" or
@@ -9,22 +9,17 @@ import contract from '../../../../packages/catalog/capabilities.json' with { typ
  * A screen names the capability it depends on. If that capability is connected, nothing renders. If
  * it is not, the contract's sentence renders, word for word, on all three platforms. When an
  * integration lands, one boolean changes and the notice disappears everywhere at once — which is
- * the only version of this that survives contact with a deadline. */
+ * the only version of this that survives contact with a deadline.
+ *
+ * It reads the projection scripts/emit-capabilities.mjs writes out of packages/catalog/capabilities.json, not the
+ * contract itself. This module is on the patient's first view, and the contract travels whole wherever it is
+ * imported: the rules, the evidence, the surfaces and the commentary are for somebody deciding whether to trust the
+ * product, and no screen on that view reads them. The projection is the contract's own words for everything a screen
+ * does read, and the build fails when it and the contract disagree. The rules reach the status page alone, through
+ * lib/capability-rules.ts. */
 
-export type Capability = typeof contract.capabilities[number];
-export const capabilities = contract.capabilities;
-export const rules = contract.rules;
-
-/* The rules are the contract's own reasoning, and the public status page renders one of them word
-   for word: the one that says a row may not read "Connected" until there is a file to point at.
-   Looked up by id and thrown on rather than found-or-undefined, for the same reason `capability`
-   is — a rule that quietly renders as nothing is a paragraph of accountability that has silently
-   left the page. */
-export const rule = (id: string) => {
- const found = rules.find(r => r.id === id);
- if (!found) throw new Error(`No rule "${id}" in packages/catalog/capabilities.json`);
- return found;
-};
+export type Capability = FirstViewCapability;
+export const capabilities = firstView;
 
 export const capability = (id: string): Capability => {
  const found = capabilities.find(c => c.id === id);
