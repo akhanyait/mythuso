@@ -1674,14 +1674,30 @@ for(const {source,command,files} of generated) {
  for (const field of moneyMayReference.keys()) if (!moneyReferencesUsed.has(field)) throw new Error(`moneyHears.mayReference lets Money hold ${field}, which no event Money hears or publishes carries. A permission nobody uses is one somebody uses later without reading it.`);
  for (const type of moneyMay.keys()) if (!apiEvents.some(e => !e.withdrawn && e.type === type && e.subscribers.includes(moneyHears.engine))) throw new Error(`moneyHears lets Money hear ${type}, which Money does not subscribe to. A permission nobody uses is one somebody uses later without reading it.`);
 
- /* Capability quotes, against the documents themselves when they are in this checkout. They are
-    untracked, so their absence is said in a sentence rather than failed. */
+ /* Capability quotes, against the documents themselves when they are in this checkout. The documents are
+    untracked and confidential, so CI, a fresh clone and every worktree lack them, and the fourth review
+    found that on all of those machines this compared nothing at all. So quotes can now change only where
+    they can be verified: packages/catalog/apis.json#quoteVerification records the day they were last
+    compared, each document's SHA-256 and a hash over every (section, what, paraphrase) the loop below
+    reads. Without the documents the build recomputes that hash and fails if it moved. With them it
+    compares every quote and fails unless the record matches what it just verified, printing the record
+    to write. No document text is committed: a hash of a quote list and of a file says nothing about
+    what either contains. */
  const quoteNorm = t => String(t).toLowerCase().replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/[^a-z0-9]+/g, ' ').trim();
  const quoteFiles = apiContract.documentQuotes.files;
  const absentDocuments = Object.values(quoteFiles).filter(file => !existsSync(file));
  const documentTexts = {};
  let quoteNote = null, quotesFound = 0, paraphrases = 0;
- if (absentDocuments.length) quoteNote = `${absentDocuments.join(' and ')} ${absentDocuments.length === 1 ? 'is' : 'are'} not in this checkout — Documentation/ is untracked — so ${quoteChecks.length} capability quotes were not compared with the documents`;
+ const quoteRecord = apiContract.quoteVerification;
+ if (!quoteRecord || !/^\d{4}-\d{2}-\d{2}$/.test(quoteRecord.verifiedOn ?? '') || !Array.isArray(quoteRecord.sources) || !/^[0-9a-f]{64}$/.test(quoteRecord.quotesHash ?? '') || !quoteRecord.why?.trim()) throw new Error("packages/catalog/apis.json has no quoteVerification record: the day the capability quotes were last compared with the documents, each document's SHA-256, a hash over every quote, and why the record exists.");
+ for (const name of Object.keys(quoteFiles)) if (!quoteRecord.sources.some(s => s.document === name && /^[0-9a-f]{64}$/.test(s.sha256 ?? ''))) throw new Error(`packages/catalog/apis.json#quoteVerification has no SHA-256 for ${name}, so nothing says which version of it the quotes were compared with.`);
+ const { createHash: quoteDigest } = await import('node:crypto');
+ const quotesNow = quoteChecks.map(q => [q.named.section, q.named.what, q.named.paraphrase === true]).sort((p, q) => (JSON.stringify(p) < JSON.stringify(q) ? -1 : 1));
+ const quotesHashNow = quoteDigest('sha256').update(JSON.stringify(quotesNow)).digest('hex');
+ if (absentDocuments.length) {
+  if (quotesHashNow !== quoteRecord.quotesHash) fail('quotes-are-quotes', `The capability quotes changed on a machine without the documents: ${absentDocuments.join(' and ')} ${absentDocuments.length === 1 ? 'is' : 'are'} not here, so the ${quoteChecks.length} quotes hash to ${quotesHashNow} and packages/catalog/apis.json#quoteVerification recorded ${quoteRecord.quotesHash} on ${quoteRecord.verifiedOn}. Compare them where Documentation/ exists; the check there prints the record to write.`);
+  quoteNote = `${absentDocuments.join(' and ')} ${absentDocuments.length === 1 ? 'is' : 'are'} not in this checkout, so ${quoteChecks.length} capability quotes were held to the hash recorded when they were last compared with the documents, on ${quoteRecord.verifiedOn}, and match it`;
+ }
  else {
   try {
    const { execFileSync } = await import('node:child_process');
@@ -1719,6 +1735,12 @@ for(const {source,command,files} of generated) {
   if (!body) fail('quotes-are-quotes', `${where} cites ${named.section}, and no such section was found in ${quoteFiles[document]}.`);
   if (!quoteNorm(body).includes(quoteNorm(named.what))) fail('quotes-are-quotes', `${where} quotes "${named.what}" from ${named.section}, and those words are not in it. Quote the section as written, or mark the phrase paraphrase: true.`);
   quotesFound++;
+ }
+ if (!absentDocuments.length && !quoteNote) {
+  const { readFileSync: readDocument } = await import('node:fs');
+  const documentsNow = Object.entries(quoteFiles).map(([document, file]) => ({ document, sha256: quoteDigest('sha256').update(readDocument(file)).digest('hex') }));
+  const stale = documentsNow.filter(d => !quoteRecord.sources.some(s => s.document === d.document && s.sha256 === d.sha256));
+  if (stale.length || quotesHashNow !== quoteRecord.quotesHash) fail('quotes-are-quotes', `Every capability quote was just compared with the documents and found, and packages/catalog/apis.json#quoteVerification no longer describes what was compared${stale.length ? ` (${stale.map(d => d.document).join(' and ')} changed)` : ''}${quotesHashNow !== quoteRecord.quotesHash ? ' (the quotes changed)' : ''}. Record it: "verifiedOn": "${new Date().toISOString().slice(0, 10)}", "sources": ${JSON.stringify(documentsNow)}, "quotesHash": "${quotesHashNow}".`);
  }
 
  /* The mock is not a service. */
