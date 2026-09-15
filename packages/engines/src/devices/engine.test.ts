@@ -198,6 +198,12 @@ test('a settings change moves health and never a reading\'s marks, and is refuse
  assert.equal(health.body.settingsVersion, 3);
  const linked = call(runtime, OBSERVATION, NURSE, 'treatment', { readingRef: asked.body.readingRef, observationRef: 'Observation/glucose' });
  assert.equal(linked.body.clinicalUseCode, 'clinical', 'an overdue calibration marks a reading and never takes its weight');
+ assert.equal(linked.body.published, true, 'a change made after a reading was asked for takes nothing from it');
+ /* The same moment asked about again under the changed settings carries exactly the marks the first did:
+    a mark is decided by when the reading was taken and what the device was then, never by a setting. */
+ const again = call(runtime, READINGS, NURSE, 'treatment', asking(deviceRef, { metric: 'glucose', unit: 'mmol/L' }));
+ assert.equal(again.status, 200, JSON.stringify(again.body));
+ assert.deepEqual(again.body.markCodes, asked.body.markCodes);
  assert.equal(call(runtime, READ, admin, 'audit', {}).body.settingsVersion, 3);
  refused(call(runtime, CHANGE, admin, 'audit', { idempotencyKey: 'c-3', setting: 'kit-deposit', wholeNumber: 0, reason: 'Free kits.', expectedVersion: 3 }), 'setting-not-above-zero');
 });
