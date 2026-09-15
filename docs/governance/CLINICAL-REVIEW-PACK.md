@@ -1098,4 +1098,8 @@ Listed so that leaving them out is a decision a reviewer can disagree with.
 
 ## Not yet classified
 
-Nothing. Every setting and every proposal in the contracts this pack reads has been classified above.
+Added to a contract after this pack's generator was last taught about them. A reviewer should look at each; `scripts/emit-clinical-review-pack.mjs` should then say whether it is clinical and why.
+
+| Item | What it decides |
+|---|---|
+| `closed-loop.json panicResolved.closesAs` | Which of the closed loop's outcomes the concern opened for a panic is closed as when Safety's desk resolves the panic. |
