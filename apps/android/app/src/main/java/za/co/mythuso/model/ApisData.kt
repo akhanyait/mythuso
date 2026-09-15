@@ -180,8 +180,12 @@ object ApisData {
     val GET_RECORD_FHIR_BY_RESOURCE_TYPE_BY_ID = Route("getRecordFhirByResourceTypeById", "GET", "/fhir/{resourceType}/{id}", "/v1/record/fhir/{resourceType}/{id}", 1, "record", listOf("patient", "caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator"), listOf("treatment", "dispensing", "subject-access"), false, "built")
     val GET_RECORD_FHIR_BY_RESOURCE_TYPE = Route("getRecordFhirByResourceType", "GET", "/fhir/{resourceType}", "/v1/record/fhir/{resourceType}", 1, "record", listOf("patient", "caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator"), listOf("treatment", "dispensing", "subject-access"), false, "built")
     val GET_RECORD_ENCOUNTER_STATUSES_BY_ENCOUNTER_REF = Route("getRecordEncounterStatusesByEncounterRef", "GET", "/v1/record/encounter-statuses/{encounterRef}", "/v1/record/encounter-statuses/{encounterRef}", 1, "record", listOf("engine:care"), listOf("treatment"), false, "proposed")
-    val POST_RECORD_SHARE_LINK = Route("postRecordShareLink", "POST", "/share/link", "/v1/record/share/link", 1, "record", listOf("patient", "responder-on-trip"), listOf("treatment", "emergency"), false, "proposed")
-    val POST_RECORD_EXPORT = Route("postRecordExport", "POST", "/export", "/v1/record/export", 1, "record", listOf("patient"), listOf("subject-access"), false, "proposed")
+    val POST_RECORD_SHARE_LINK_V2 = Route("postRecordShareLinkV2", "POST", "/share/link", "/v1/record/share/link", 2, "record", listOf("patient"), listOf("subject-access"), false, "built")
+    val POST_RECORD_SHARE_LINK_OPENS = Route("postRecordShareLinkOpens", "POST", "/v1/record/share-link-opens", "/v1/record/share-link-opens", 1, "record", listOf("caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator", "responder-on-trip"), listOf("treatment", "emergency", "diagnostics", "dispensing", "dispatch"), true, "built")
+    val POST_RECORD_SHARE_LINK_REVOCATIONS = Route("postRecordShareLinkRevocations", "POST", "/v1/record/share-link-revocations", "/v1/record/share-link-revocations", 1, "record", listOf("patient"), listOf("subject-access"), false, "built")
+    val POST_RECORD_EXPORT_V2 = Route("postRecordExportV2", "POST", "/export", "/v1/record/export", 2, "record", listOf("patient"), listOf("subject-access"), false, "built")
+    val GET_RECORD_SETTINGS = Route("getRecordSettings", "GET", "/v1/record/settings", "/v1/record/settings", 1, "record", listOf("admin"), listOf("audit"), false, "built")
+    val POST_RECORD_SETTING_CHANGES = Route("postRecordSettingChanges", "POST", "/v1/record/setting-changes", "/v1/record/setting-changes", 1, "record", listOf("admin"), listOf("audit"), true, "built")
     val POST_MEDICINES_LAB_ORDERS_V2 = Route("postMedicinesLabOrdersV2", "POST", "/v1/medicines/lab-orders", "/v1/medicines/lab-orders", 2, "medicines", listOf("doctor", "nurse"), listOf("diagnostics"), false, "built")
     val GET_MEDICINES_FORMULARY_V2 = Route("getMedicinesFormularyV2", "GET", "/v1/medicines/formulary", "/v1/medicines/formulary", 2, "medicines", listOf("doctor", "nurse", "pharmacist"), listOf("dispensing", "treatment"), false, "built")
     val POST_MEDICINES_INTERACTION_CHECKS_V2 = Route("postMedicinesInteractionChecksV2", "POST", "/v1/medicines/interaction-checks", "/v1/medicines/interaction-checks", 2, "medicines", listOf("doctor", "pharmacist"), listOf("dispensing", "treatment"), false, "built")
@@ -377,8 +381,12 @@ object ApisData {
         GET_RECORD_FHIR_BY_RESOURCE_TYPE_BY_ID,
         GET_RECORD_FHIR_BY_RESOURCE_TYPE,
         GET_RECORD_ENCOUNTER_STATUSES_BY_ENCOUNTER_REF,
-        POST_RECORD_SHARE_LINK,
-        POST_RECORD_EXPORT,
+        POST_RECORD_SHARE_LINK_V2,
+        POST_RECORD_SHARE_LINK_OPENS,
+        POST_RECORD_SHARE_LINK_REVOCATIONS,
+        POST_RECORD_EXPORT_V2,
+        GET_RECORD_SETTINGS,
+        POST_RECORD_SETTING_CHANGES,
         POST_MEDICINES_LAB_ORDERS_V2,
         GET_MEDICINES_FORMULARY_V2,
         POST_MEDICINES_INTERACTION_CHECKS_V2,
@@ -1711,21 +1719,72 @@ object ApisData {
         val signedAt: String? = null,
         val supersededByRef: String? = null
     )
-    data class PostRecordShareLinkRequest(
+    data class PostRecordShareLinkV2Request(
+        val grantId: String,
+        val recipientRole: String,
+        val kindCode: String,
+        val scope: List<String>? = null,
+        val sealedIncluded: Boolean? = null,
+        val expiresAt: String? = null
+    )
+    data class PostRecordShareLinkV2Response(
+        val linkRef: String,
+        val linkSecret: String,
+        val kindCode: String,
         val scope: List<String>,
         val expiresAt: String,
-        val purpose: String
+        val usesAllowed: Int,
+        val settingsVersion: Int
     )
-    data class PostRecordShareLinkResponse(
-        val linkRef: String,
+    data class PostRecordShareLinkOpensRequest(
+        val idempotencyKey: String
+    )
+    data class PostRecordShareLinkOpensResponse(
+        val opened: List<Map<String, Any?>>,
+        val purpose: String,
+        val usesLeft: Int,
         val expiresAt: String
     )
-    data class PostRecordExportRequest(
-        val format: String,
-        val code: String
+    data class PostRecordShareLinkRevocationsRequest(
+        val linkRef: String
     )
-    data class PostRecordExportResponse(
-        val exportRef: String
+    data class PostRecordShareLinkRevocationsResponse(
+        val revoked: Boolean,
+        val revokedAt: String
+    )
+    data class PostRecordExportV2Request(
+        val format: String,
+        val sealedCategories: List<String>? = null
+    )
+    data class PostRecordExportV2Response(
+        val exportRef: String,
+        val bundle: Map<String, Any?>,
+        val exclusions: List<Map<String, Any?>>,
+        val stepUp: String
+    )
+    class GetRecordSettingsRequest
+    data class GetRecordSettingsResponse(
+        val settingsVersion: Int,
+        val settings: List<Map<String, Any?>>,
+        val history: List<Map<String, Any?>>
+    )
+    data class PostRecordSettingChangesRequest(
+        val idempotencyKey: String,
+        val setting: String,
+        val wholeNumber: Int? = null,
+        val switchedOn: Boolean? = null,
+        val choice: String? = null,
+        val wording: String? = null,
+        val roles: List<String>? = null,
+        val windows: List<Map<String, Any?>>? = null,
+        val items: List<String>? = null,
+        val parts: Map<String, Any?>? = null,
+        val reason: String? = null,
+        val expectedVersion: Int
+    )
+    data class PostRecordSettingChangesResponse(
+        val settingsVersion: Int,
+        val appliesFrom: String
     )
     data class PostMedicinesLabOrdersV2Request(
         val subjectRef: String,

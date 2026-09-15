@@ -1474,22 +1474,77 @@ export interface GetRecordEncounterStatusesByEncounterRefResponse {
  readonly supersededByRef?: string;
 }
 
-export interface PostRecordShareLinkRequest {
+export interface PostRecordShareLinkV2Request {
+ readonly grantId: string;
+ readonly recipientRole: string;
+ readonly kindCode: string;
+ readonly scope?: readonly string[];
+ readonly sealedIncluded?: boolean;
+ readonly expiresAt?: string;
+}
+export interface PostRecordShareLinkV2Response {
+ readonly linkRef: string;
+ readonly linkSecret: string;
+ readonly kindCode: string;
  readonly scope: readonly string[];
  readonly expiresAt: string;
- readonly purpose: string;
+ readonly usesAllowed: number;
+ readonly settingsVersion: number;
 }
-export interface PostRecordShareLinkResponse {
- readonly linkRef: string;
+
+export interface PostRecordShareLinkOpensRequest {
+ readonly idempotencyKey: string;
+}
+export interface PostRecordShareLinkOpensResponse {
+ readonly opened: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly purpose: string;
+ readonly usesLeft: number;
  readonly expiresAt: string;
 }
 
-export interface PostRecordExportRequest {
- readonly format: string;
- readonly code: string;
+export interface PostRecordShareLinkRevocationsRequest {
+ readonly linkRef: string;
 }
-export interface PostRecordExportResponse {
+export interface PostRecordShareLinkRevocationsResponse {
+ readonly revoked: boolean;
+ readonly revokedAt: string;
+}
+
+export interface PostRecordExportV2Request {
+ readonly format: string;
+ readonly sealedCategories?: readonly string[];
+}
+export interface PostRecordExportV2Response {
  readonly exportRef: string;
+ readonly bundle: Readonly<Record<string, unknown>>;
+ readonly exclusions: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly stepUp: string;
+}
+
+export type GetRecordSettingsRequest = Record<string, never>;
+export interface GetRecordSettingsResponse {
+ readonly settingsVersion: number;
+ readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostRecordSettingChangesRequest {
+ readonly idempotencyKey: string;
+ readonly setting: string;
+ readonly wholeNumber?: number;
+ readonly switchedOn?: boolean;
+ readonly choice?: string;
+ readonly wording?: string;
+ readonly roles?: readonly string[];
+ readonly windows?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly items?: readonly string[];
+ readonly parts?: Readonly<Record<string, unknown>>;
+ readonly reason?: string;
+ readonly expectedVersion: number;
+}
+export interface PostRecordSettingChangesResponse {
+ readonly settingsVersion: number;
+ readonly appliesFrom: string;
 }
 
 export interface PostMedicinesLabOrdersV2Request {
@@ -1997,8 +2052,12 @@ export const apiRoutes = {
  getRecordFhirByResourceTypeById: { name: "getRecordFhirByResourceTypeById", method: "GET", path: "/fhir/{resourceType}/{id}", mountedPath: "/v1/record/fhir/{resourceType}/{id}", version: 1, engine: "record", callers: ["patient","caregiver","next-of-kin","nurse-assigned","doctor-assigned","pharmacist","care-coordinator"], purpose: ["treatment","dispensing","subject-access"], idempotent: false, status: "built" },
  getRecordFhirByResourceType: { name: "getRecordFhirByResourceType", method: "GET", path: "/fhir/{resourceType}", mountedPath: "/v1/record/fhir/{resourceType}", version: 1, engine: "record", callers: ["patient","caregiver","next-of-kin","nurse-assigned","doctor-assigned","pharmacist","care-coordinator"], purpose: ["treatment","dispensing","subject-access"], idempotent: false, status: "built" },
  getRecordEncounterStatusesByEncounterRef: { name: "getRecordEncounterStatusesByEncounterRef", method: "GET", path: "/v1/record/encounter-statuses/{encounterRef}", mountedPath: "/v1/record/encounter-statuses/{encounterRef}", version: 1, engine: "record", callers: ["engine:care"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postRecordShareLink: { name: "postRecordShareLink", method: "POST", path: "/share/link", mountedPath: "/v1/record/share/link", version: 1, engine: "record", callers: ["patient","responder-on-trip"], purpose: ["treatment","emergency"], idempotent: false, status: "proposed" },
- postRecordExport: { name: "postRecordExport", method: "POST", path: "/export", mountedPath: "/v1/record/export", version: 1, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "proposed" },
+ postRecordShareLinkV2: { name: "postRecordShareLinkV2", method: "POST", path: "/share/link", mountedPath: "/v1/record/share/link", version: 2, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "built" },
+ postRecordShareLinkOpens: { name: "postRecordShareLinkOpens", method: "POST", path: "/v1/record/share-link-opens", mountedPath: "/v1/record/share-link-opens", version: 1, engine: "record", callers: ["caregiver","next-of-kin","nurse-assigned","doctor-assigned","pharmacist","care-coordinator","responder-on-trip"], purpose: ["treatment","emergency","diagnostics","dispensing","dispatch"], idempotent: true, status: "built" },
+ postRecordShareLinkRevocations: { name: "postRecordShareLinkRevocations", method: "POST", path: "/v1/record/share-link-revocations", mountedPath: "/v1/record/share-link-revocations", version: 1, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "built" },
+ postRecordExportV2: { name: "postRecordExportV2", method: "POST", path: "/export", mountedPath: "/v1/record/export", version: 2, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "built" },
+ getRecordSettings: { name: "getRecordSettings", method: "GET", path: "/v1/record/settings", mountedPath: "/v1/record/settings", version: 1, engine: "record", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
+ postRecordSettingChanges: { name: "postRecordSettingChanges", method: "POST", path: "/v1/record/setting-changes", mountedPath: "/v1/record/setting-changes", version: 1, engine: "record", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
  postMedicinesLabOrdersV2: { name: "postMedicinesLabOrdersV2", method: "POST", path: "/v1/medicines/lab-orders", mountedPath: "/v1/medicines/lab-orders", version: 2, engine: "medicines", callers: ["doctor","nurse"], purpose: ["diagnostics"], idempotent: false, status: "built" },
  getMedicinesFormularyV2: { name: "getMedicinesFormularyV2", method: "GET", path: "/v1/medicines/formulary", mountedPath: "/v1/medicines/formulary", version: 2, engine: "medicines", callers: ["doctor","nurse","pharmacist"], purpose: ["dispensing","treatment"], idempotent: false, status: "built" },
  postMedicinesInteractionChecksV2: { name: "postMedicinesInteractionChecksV2", method: "POST", path: "/v1/medicines/interaction-checks", mountedPath: "/v1/medicines/interaction-checks", version: 2, engine: "medicines", callers: ["doctor","pharmacist"], purpose: ["dispensing","treatment"], idempotent: false, status: "built" },

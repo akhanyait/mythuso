@@ -36,6 +36,7 @@ import { emitBooking } from './emit-booking.mjs';
 import { emitClinicalReviewPack } from './emit-clinical-review-pack.mjs';
 import { emitMedicines } from './emit-medicines.mjs';
 import { emitVerifyInService } from './emit-verify-in-service.mjs';
+import { emitPassportSharing } from './emit-passport-sharing.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -899,6 +900,10 @@ const generated = [
     the tier names from trust.json and the police number from sos.json, so a change to any of them regenerates it. */
  ...['verify-in-service.json', 'apis/trust.json', 'trust.json', 'sos.json']
   .map(file => ({ source: `packages/catalog/${file}`, command: 'npm run verify-in-service', files: emitVerifyInService() })),
+ /* Record P1: PassportSharingData resolves every sentence out of the gateway's contract and every role name out of
+    consent.json, so a change to either regenerates it as surely as a change to its own contract does. */
+ ...['passport-sharing.json', 'passport-gateway.json', 'consent.json', 'records.json']
+  .map(file => ({ source: `packages/catalog/${file}`, command: 'npm run passport-sharing', files: emitPassportSharing() })),
  /* The clinical review pack reads every contract a clinician has to review, so a change to any of them
     without regenerating is a failed build rather than a pack somebody signs against values no longer in force. */
  ...['settings.json', 'care.json', 'booking.json', 'field-safety.json', 'closed-loop.json', 'money.json', 'protocols.json',
@@ -1562,6 +1567,8 @@ for(const {source,command,files} of generated) {
    case 'operator-credential': return [...credentialRoles];
    case 'supplier-callback': return r.legacyCallback && e.supplier ? [e.supplier] : [];
    case 'development-token': return ['developer'];
+   /* Record P1: a share link is opened as the recipient of the grant it rides on, and no link is made for a role that reads aggregates. */
+   case 'passport-share-link': return grantRolesForApis.filter(role => role.gateway.reads !== 'aggregate' && role.identifiable !== false).map(role => role.id);
    /* The engine runtime's binder reads a route's callers from this contract and admits them before the
       handler runs, except the callers it cannot tell apart from anybody — which the contract lists. */
    case 'engines-runtime:callers': return r.callers.filter(c => c.startsWith('engine:') ? engineIds.includes(c.slice('engine:'.length)) : apiCallers.has(c) && !apiContract.engineRuntime.binderCannotAdmit.includes(c));
@@ -1677,7 +1684,7 @@ for(const {source,command,files} of generated) {
   const statement = passportStatement(r);
   if (!statement) return null;
   const token = (statement.text.match(/tokenFor\(req, '(\w+)'\)/) ?? [])[1];
-  if (token) return ({ Developer: { mechanism: 'development-token' }, Patient: { mechanism: 'passport-patient-session' }, Operator: { mechanism: 'operator-credential' } })[token] ?? null;
+  if (token) return ({ Developer: { mechanism: 'development-token' }, Patient: { mechanism: 'passport-patient-session' }, Operator: { mechanism: 'operator-credential' }, Link: { mechanism: 'passport-share-link' } })[token] ?? null;
   const method = (statement.text.match(/gateway\.(\w+)\(requester\b/) ?? [])[1];
   if (!method || !statement.withRequester) return null;
   const body = classBody(gatewaySource, method);
@@ -2066,6 +2073,10 @@ for(const {source,command,files} of generated) {
   if (!shapeLock.proseOnly.includes(k)) fail('inner-shapes-are-data', `packages/catalog/apis.json#proseOnlyObjects excuses ${k}, which no sealed prose-only line in ${apiContract.shapesLock} names. The list only shrinks${declaredRoutes.has(k) ? ': declare the inside of its objects as fields, or with shapeFrom, instead' : ', and there is no such route'}.`);
   if (!proseOnlyNow.has(k)) throw new Error(`${k} declares the inside of every object it carries, and packages/catalog/apis.json#proseOnlyObjects still excuses it. Take it off the list; its shape is frozen by its line in ${apiContract.shapesLock}.`);
  }
+ /* No settings change route is excused here any more. Record P1 excused one whose windows and parts were the shared
+    change shape's own prose; Medicines & Labs then declared that shape's insides in packages/catalog/settings.json,
+    and at the Wave 4 integration every settings change route declares them, so the exemption had no route left to
+    excuse and was deleted rather than kept as a licence for the next one. */
  for (const [k, paths] of proseOnlyNow) if (!excused.routes.includes(k)) fail('inner-shapes-are-data', `${k} carries ${paths.join(', ')} with ${paths.length === 1 ? 'its inside' : 'their insides'} described only in prose. Declare each as fields, or name the contract section that decides it with shapeFrom; packages/catalog/apis.json#objectFields.innerShapes says how.`);
  for (const [k, r] of declaredRoutes) {
   if (!carriesObjects(r) || proseOnlyNow.has(k)) {
@@ -8822,15 +8833,11 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
    for (const r of live) {
     settingsRoutesChecked++;
     const key = `${r.method} ${r.path}@${r.version}`;
-    /* The shared change shape describes windows and parts in prose, and every settings route frozen before an
-       object had to declare its inside is excused by apis.json#proseOnlyObjects, which only shrinks. An engine
-       adding its first settings after that rule cannot copy the prose, so it names the inside the way the shared
-       read route already names a value's: shapeFrom packages/catalog/settings.json#types. That is the same shape
-       with its inside named, and it is accepted as the shared shape. Added by the Trust lead (Wave 4), the first
-       engine to add settings after the rule. */
-    const insideNamed = fields => fields.map(f => (f.object && !f.fields && !f.shapeFrom ? { ...f, shapeFrom: 'packages/catalog/settings.json#types' } : f));
-    const sameShape = (mine, shared) => fieldShape(mine) === fieldShape(shared) || fieldShape(mine) === fieldShape(insideNamed(shared));
-    if (!sameShape(r.request, t.request) || !sameShape(r.response, t.response)) {
+    /* Word for word, with no second shape accepted. The Trust lead once accepted a route that named windows and parts
+       as shapeFrom settings.json#types while the shared shape left them in prose; Medicines & Labs declared them in the
+       shared shape instead, Trust's route moved to that shape at version two, and the alternative was deleted rather
+       than left for a route of another shape to pass through. */
+    if (fieldShape(r.request) !== fieldShape(t.request) || fieldShape(r.response) !== fieldShape(t.response)) {
      throw new Error(`${key} is not the shared ${kind} shape in packages/catalog/settings.json. A settings route is that shape word for word, so every engine's is answered by one piece of code; a route of another shape is withdrawn and replaced by a version in the shape.`);
     }
     for (const shared of settingsContract.refusals.filter(x => x.route === kind)) {
@@ -9233,4 +9240,175 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  }
 
  console.log(`Verify in service: the badge and the door check answer ${outward.length} routes with no number but the tries left, and no door-check screen on three platforms names a score; ${visFieldsRead} fields of ${visLive.size} live Verify routes, ${trustEvents.length} Verify events and ${visColumns} Trust columns carry nothing of a face, and nothing says matched while the ${faceDoor.id} door is not integrated; a complaint names no score, its decision publishes nothing, its header carries none of ${protectedWords.length} protected words and its nurse is never told who complained; a shift, a code and a notice are the caller's own and every write to a party is a reviewer's; and ${visHandWritten.length} files type no lifetime, try or hour.`);
+}
+
+/* ==== Record P1 · share links, the export, the emergency card and the native access log (Wave 4) ===========
+
+   Added by the Record P1 lead. Self-contained. What it holds, in the order a mistake would reach somebody:
+     1. No link outlives a consent grant. Each lifetime setting's highest bound is consent.json's
+        grants.maximumExpiryDays with the founder's decision as its provenance, and the link arithmetic reads that
+        ceiling from consent.json itself and applies it on top of the setting, so a bound set wrongly cannot
+        lengthen a link.
+     2. No link to a scheme, an insurer or an employer: all three are named in neverTo, every grant role that reads
+        aggregates or names nobody is refused by the rules, and the gateway asks before it looks at a grant.
+     3. The emergency card opens the emergency summary and nothing else, on every platform.
+     4. Neither live link event carries the link's secret, an address or anything clinical, and each names the
+        secret, what a link opens and the sealed categories as refused.
+     5. No P1 screen types how long a link lasts or how often it opens.
+     6. The P1 routes refuse in the gateway's sentences word for word; the screens are off the patient's first
+        load; the web encoder draws the QR codes an independent decoder read; iOS uses CoreImage; and no manifest
+        adopts a QR library.
+   That nothing in deploy/ names the Passport is the HEALTH PASSPORT P0 block's, and P1 adds nothing it must widen. */
+{
+ const sharing = JSON.parse(read('packages/catalog/passport-sharing.json'));
+ const consentForLinks = JSON.parse(read('packages/catalog/consent.json'));
+ const gatewayForLinks = JSON.parse(read('packages/catalog/passport-gateway.json'));
+ const recordApi = JSON.parse(read('packages/catalog/apis/record.json'));
+ const recordsForLinks = JSON.parse(read('packages/catalog/records.json'));
+ const apisForLinks = JSON.parse(read('packages/catalog/apis.json'));
+ const linksSource = read('packages/engines/src/record/domain/links.ts');
+ const links = await import('../packages/engines/src/record/domain/links.ts');
+ const { sharingInForce } = await import('../packages/engines/src/record/domain/settings.ts');
+ const ceiling = consentForLinks.grants.maximumExpiryDays;
+ const decision = consentForLinks.grants.maximumExpiryDecision;
+ const DAY_MS = 86_400_000;
+ const at = Date.UTC(2026, 8, 15, 9);
+ const openedBy = gatewayForLinks.emergencySummary.openedBy;
+ const defaultsInForce = sharingInForce([]);
+ const policyForLinks = links.policyOf(consentForLinks);
+ if (policyForLinks.ceilingDays !== ceiling) throw new Error(`packages/engines/src/record/domain/links.ts reads a link ceiling of ${policyForLinks.ceilingDays} days out of consent.json, whose grant ceiling is ${ceiling}.`);
+
+ /* 1. The ceiling. */
+ if (sharing.links.lifetimeCeilingFrom !== 'packages/catalog/consent.json#grants.maximumExpiryDays') throw new Error('packages/catalog/passport-sharing.json no longer says a link\'s lifetime ceiling comes from consent.json\'s grant ceiling.');
+ for (const kind of sharing.links.kinds) {
+  const s = sharing.settings.items.find(item => item.key === kind.lifetimeSetting);
+  if (!s) throw new Error(`packages/catalog/passport-sharing.json gives the link kind ${kind.id} the lifetime setting "${kind.lifetimeSetting}", which it does not declare.`);
+  const highest = s.bounds?.highest;
+  if (highest?.value !== ceiling || highest.decidedBy !== decision.decidedBy || highest.decidedOn !== decision.decidedOn) throw new Error(`packages/catalog/passport-sharing.json lets "${s.key}" be set to ${highest?.value} days, decided by ${highest?.decidedBy} on ${highest?.decidedOn}. No link outlives the longest a consent grant may run: the highest bound is consent.json's grants.maximumExpiryDays (${ceiling}), with the founder's decision of ${decision.decidedOn} as its provenance.`);
+ }
+ if (!/ceilingDays: consent\.grants\.maximumExpiryDays,/.test(linksSource) || /from '[^']*catalog\/consent\.json'/.test(linksSource) || !/const ceilingAt = now \+ policy\.ceilingDays \* DAY;/.test(linksSource) || !/Math\.min\(now \+ lifetimeDays \* DAY, ceilingAt\)/.test(linksSource)) throw new Error('packages/engines/src/record/domain/links.ts no longer reads the grant ceiling from consent.json and applies it on top of the lifetime setting, so a lifetime set wrongly could lengthen a link past any grant.');
+ const shareLinksLib = read('apps/web/src/lib/share-links.ts');
+ if (!/export const LINK_POLICY = policyOf\(consent\);/.test(read('apps/passport/src/contract.ts')) || !/from '[^']*packages\/catalog\/consent\.json\?raw'/.test(shareLinksLib) || !/const consent: ConsentText = JSON\.parse\(consentText\);/.test(shareLinksLib) || !/policyOf\(consent\)/.test(shareLinksLib) || /^import [^;]*from '[^']*packages\/catalog\/consent\.json';/m.test(shareLinksLib)) throw new Error('The Passport P0 or the web preview no longer builds its link policy out of packages/catalog/consent.json with policyOf, so the ceiling and the grant roles a link is held to could be a copy. The web reads the contract as text in its lazy chunk, so the first load is not handed the grant roles.');
+ const longGrant = { recipientRole: 'next-of-kin', scope: [openedBy, 'allergy', 'maternal-health'], purpose: 'emergency', sealedIncluded: true, expiresAt: at + ceiling * 4 * DAY_MS, revokedAt: null };
+ /* A share link with a scope of its own, so this asks the ceiling and nothing the card's scope decides. */
+ const drifted = links.linkTermsFor({ recipientRole: 'next-of-kin', kindCode: 'share-link', scope: ['allergy'] }, longGrant, { ...defaultsInForce, cardLifetimeDays: ceiling * 4, linkLifetimeDays: ceiling * 4 }, at, policyForLinks);
+ if (!drifted.ok || drifted.value.expiresAt !== at + ceiling * DAY_MS) throw new Error(`The link arithmetic let a lifetime set past the grant ceiling make a link that ends ${drifted.ok ? new Date(drifted.value.expiresAt).toISOString() : `refused as ${drifted.refusal}`}. No link outlives the founder's ceiling of ${ceiling} days.`);
+
+ /* 2. Payers. */
+ const payerIds = sharing.links.neverTo.map(payer => payer.id);
+ for (const id of ['scheme-aggregate', 'insurer', 'employer']) if (!payerIds.includes(id)) throw new Error(`packages/catalog/passport-sharing.json links.neverTo no longer names "${id}". No share link is made for a scheme, an insurer or an employer, and neverTo is the list a reader checks.`);
+ for (const role of consentForLinks.grants.recipientRoles) {
+  const payer = role.gateway.reads === 'aggregate' || role.identifiable === false;
+  if (payer !== (links.payerRefusal(role.id, policyForLinks) === 'link-to-a-payer')) throw new Error(`The link rules ${payer ? 'would make' : 'refuse'} a share link for the grant role ${role.id}, which ${payer ? 'reads aggregates or names nobody' : 'is an identifiable role'}.`);
+ }
+ for (const id of payerIds) {
+  const decided = links.linkTermsFor({ recipientRole: id, kindCode: 'share-link' }, { ...longGrant, recipientRole: id, expiresAt: at + DAY_MS }, defaultsInForce, at, policyForLinks);
+  if (decided.ok || decided.refusal !== 'link-to-a-payer') throw new Error(`The link rules made a share link for ${id}, or refused it as something other than a link to a payer.`);
+ }
+ const gatewayForP1 = read('apps/passport/src/gateway.ts');
+ const createLinkBody = gatewayForP1.slice(gatewayForP1.indexOf('\n createLink('), gatewayForP1.indexOf('\n openLink('));
+ const payerAsked = createLinkBody.indexOf("if (payerRefusal(body.recipientRole, LINK_POLICY)) return this.#refuse(403, 'link-to-a-payer', who);");
+ if (payerAsked < 0 || payerAsked > createLinkBody.indexOf('this.#store.grant(')) throw new Error('apps/passport/src/gateway.ts no longer refuses a link to a payer before it looks the grant up, so the refusal could tell a caller which grants a patient holds.');
+
+ /* 3. The card. */
+ const cardKind = sharing.links.kinds.find(kind => kind.id === 'emergency-card');
+ if (cardKind?.scopeFrom !== 'packages/catalog/passport-gateway.json#emergencySummary.openedBy' || JSON.stringify(links.EMERGENCY_SCOPE) !== JSON.stringify([openedBy])) throw new Error(`The emergency card opens ${JSON.stringify(links.EMERGENCY_SCOPE)}. It opens "${openedBy}", the category the gateway opens the emergency summary with, and nothing else.`);
+ for (const asked of [{ scope: ['allergy'] }, { scope: [openedBy, 'allergy'] }, { sealedIncluded: true }, { scope: [openedBy, 'maternal-health'], sealedIncluded: true }]) {
+  const decided = links.linkTermsFor({ recipientRole: 'next-of-kin', kindCode: 'emergency-card', ...asked }, { ...longGrant, expiresAt: at + DAY_MS }, defaultsInForce, at, policyForLinks);
+  if (decided.ok) throw new Error(`The link rules made an emergency card that opens ${JSON.stringify(asked)}. A card opens the emergency summary alone, and never a sealed category.`);
+ }
+ const webCardSource = read('apps/web/src/features/PassportSharing.tsx');
+ if (!/makeLink\(cardGrant, 'emergency-card'\)/.test(webCardSource) || /makeLink\(cardGrant, 'emergency-card',/.test(webCardSource)) throw new Error('apps/web/src/features/PassportSharing.tsx makes the emergency card with a scope of its own. The card is made with none, so the rules give it the emergency summary alone.');
+ for (const f of emitPassportSharing()) if (!f.content.includes(`${f.path.endsWith('.swift') ? 'static let emergencyScope = ' : 'const val EMERGENCY_SCOPE = '}"${openedBy}"`)) throw new Error(`${f.path} would not give the card the emergency summary's category.`);
+ const withoutComments = source => source.replace(/^\s*(\/\/|\/?\*).*$/gm, '');
+ for (const f of ['apps/ios/MyThuso/Models/PassportSharing.swift', 'apps/android/app/src/main/java/za/co/mythuso/model/PassportSharing.kt']) if (/scope/i.test(withoutComments(read(f)))) throw new Error(`${f} gives the emergency card a scope of its own. A phone's card opens the emergency summary alone, which the generated contract names.`);
+
+ /* 4. The link events. */
+ const linkEvents = JSON.parse(read('packages/catalog/events.json')).events.filter(e => /^passport\.share\.link_(created|used)$/.test(e.type) && !e.withdrawn);
+ if (!linkEvents.some(e => e.type === 'passport.share.link_used')) throw new Error('packages/catalog/events.json has no live passport.share.link_used, which the route that opens a link emits.');
+ const clinicalWords = [...apisForLinks.clinicalContent.words, ...recordsForLinks.records.map(r => r.id), ...recordsForLinks.observations.measures.map(m => m.id)];
+ const wordsOf = s => String(s).replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+ const namesWords = (field, name) => { const f = wordsOf(field), n = wordsOf(name); return f.some((_, i) => n.every((w, j) => f[i + j] === w)); };
+ for (const e of linkEvents) {
+  for (const f of e.payload) {
+   const secret = ['secret', 'token', 'url', 'passcode', 'code'].find(w => wordsOf(f.field).includes(w));
+   const clinical = clinicalWords.find(w => namesWords(f.field, w));
+   if (secret || clinical) throw new Error(`${e.type}@${e.version} carries "${f.field}", which names ${secret ? `a link's ${secret}` : `clinical content ("${clinical}")`}. A link event says a link exists or was opened, never what opens it or what it opened.`);
+  }
+  for (const name of ['linkSecret', 'entryContent', 'sealedCategories']) if (!e.neverCarries.some(n => n.field === name)) throw new Error(`${e.type}@${e.version} no longer names ${name} as a field it never carries. The link's secret, what a link opens and the sealed categories are refused by name, so the next field added is matched against them.`);
+ }
+
+ /* 5. No screen types a lifetime. */
+ const readsTheSetting = {
+  'apps/web/src/features/PassportSharing.tsx': /terms\.value\.expiresAt/,
+  'apps/web/src/lib/share-links.ts': /recordSettingsNow\(\)/,
+  'apps/ios/MyThuso/Features/PassportSharingView.swift': /card\.endsOn/,
+  'apps/ios/MyThuso/Models/PassportSharing.swift': /PassportSharingData\.cardLifetimeDays/,
+  'apps/android/app/src/main/java/za/co/mythuso/ui/PassportSharingScreens.kt': /card\.endsOn/,
+  'apps/android/app/src/main/java/za/co/mythuso/model/PassportSharing.kt': /PassportSharingData\.CARD_LIFETIME_DAYS/
+ };
+ const typedLifetime = /(?<![\w.])\d+\s*(?:days?|hours?|weeks?|months?|uses?|times)\b|\d+\s*\*\s*(?:DAY|HOUR|86_?400_?000|3_?600_?000)\b|plusDays\(\s*\d|byAdding:\s*\.day,\s*value:\s*\d/i;
+ for (const [f, reads] of Object.entries(readsTheSetting)) {
+  const code = withoutComments(read(f));
+  const typed = code.match(typedLifetime);
+  if (typed) throw new Error(`${f} types "${typed[0]}". How long a link or a card lasts and how often it opens are the Record settings: the web reads them in force through lib/settings.ts, and a phone from the generated PassportSharingData.`);
+  if (!reads.test(code)) throw new Error(`${f} no longer reads the end it shows from ${f.startsWith('apps/web') ? 'the settings in force' : 'the generated contract'}.`);
+ }
+
+ /* 6. Sentences, the first load and the QR code. */
+ for (const key of ['POST /share/link@2', 'POST /v1/record/share-link-opens@1', 'POST /v1/record/share-link-revocations@1', 'POST /export@2']) {
+  const route = recordApi.routes.find(r => `${r.method} ${r.path}@${r.version}` === key);
+  if (!route || route.status !== 'built' || route.withdrawn) throw new Error(`packages/catalog/apis/record.json no longer declares ${key} as built.`);
+  for (const r of route.refusals) {
+   const sentence = gatewayForLinks.refusals.find(g => g.id === r.id)?.sentence;
+   if (sentence !== r.statement) throw new Error(`${key} declares "${r.id}" in words the Passport does not answer with. A caller is shown the gateway's sentence, so the route declares it word for word: ${JSON.stringify(sentence)}.`);
+  }
+ }
+ /* A refusal the handler returns and its route does not declare is one a caller cannot read in the contract. So each
+    P1 route's gateway method refuses directly only what its route declares, or a shared refusal every route answers
+    without declaring it. The missing idempotency key on a link's use is the shared idempotency-key-required, answered
+    in the Passport's own sentence, as P0's purpose-not-allowed already was; whether the Passport keeps its own words
+    for a shared id is left open for the integrator rather than decided by a finisher. */
+ const p1Methods = { 'POST /share/link@2': 'createLink', 'POST /v1/record/share-link-opens@1': 'openLink', 'POST /v1/record/share-link-revocations@1': 'revokeLink', 'POST /export@2': 'exportRecord' };
+ const sharedRefusalIds = apisForLinks.sharedRefusals.map(s => s.id);
+ for (const [key, method] of Object.entries(p1Methods)) {
+  const start = gatewayForP1.indexOf(`\n ${method}(`);
+  if (start < 0) throw new Error(`apps/passport/src/gateway.ts has no ${method}, which answers ${key}.`);
+  const next = gatewayForP1.slice(start + 1).search(/\n [a-zA-Z#]\w*\(/);
+  const body = gatewayForP1.slice(start, next < 0 ? undefined : start + 1 + next);
+  const declared = recordApi.routes.find(r => `${r.method} ${r.path}@${r.version}` === key).refusals.map(r => r.id);
+  for (const [, id] of body.matchAll(/#refuse\(\d+,\s*'([\w-]+)'/g)) if (!declared.includes(id) && !sharedRefusalIds.includes(id)) throw new Error(`apps/passport/src/gateway.ts ${method} refuses "${id}", which ${key} does not declare and no shared refusal names. A caller reads what a route refuses in its contract: declare it in a new version of the route, or refuse in words the route already declares.`);
+ }
+ const appForP1 = read('apps/web/src/App.tsx');
+ for (const screen of ['sharing', 'card', 'log']) if (!appForP1.includes(`page === '${sharing.screens[screen].route}'`)) throw new Error(`apps/web/src/App.tsx does not route "${sharing.screens[screen].route}", the name packages/catalog/passport-sharing.json gives the ${screen} screen, so its doors open nothing.`);
+ /* Resolved, not matched as text. The first version matched the words features/PassportSharing and so let a relative
+    './PassportSharing' from Pages.tsx or Passport.tsx through, which the Record P1 finisher's proof found. Source alone
+    cannot say which chunk a file lands in, so no file outside the three P1 modules imports one of them statically at
+    all; App.tsx reaches them with import(), which the bundler splits off the patient's first load. */
+ const p1Modules = ['apps/web/src/features/PassportSharing', 'apps/web/src/lib/share-links', 'apps/web/src/lib/qr'];
+ const staticSpecifiers = source => [...source.matchAll(/^\s*(?:import|export)\s+(?!type\b)(?:[^;'"]*?\bfrom\s*)?['"]([^'"]+)['"]/gm)].map(m => m[1]);
+ const p1Readers = files('apps/web/src').filter(f => /\.tsx?$/.test(f) && !p1Modules.includes(f.replace(/\.tsx?$/, '')));
+ for (const f of p1Readers) for (const specifier of staticSpecifiers(read(f))) {
+  if (!specifier.startsWith('.')) continue;
+  if (p1Modules.includes(join(f.slice(0, f.lastIndexOf('/')), specifier).replace(/\.(tsx?|js)$/, ''))) throw new Error(`${f} imports the Passport P1 screens, their lib or the QR encoder statically ("${specifier}"). Between them they carry four contracts and an encoder a patient on metered data should not download to see their overview; reach them with import().`);
+ }
+ const { qrCode, qrRows } = await import('../apps/web/src/lib/qr.ts');
+ const vectorLines = read('tests/fixtures/qr-vectors.txt').split('\n').filter(line => line && !line.startsWith('#'));
+ let vectorsHeld = 0;
+ for (let i = 0; i < vectorLines.length;) {
+  const end = vectorLines.indexOf('end', i);
+  const shape = vectorLines[i + 1]?.match(/^version (\d+) mask (\d+)$/);
+  if (!vectorLines[i].startsWith('text ') || !shape || end < 0) throw new Error(`tests/fixtures/qr-vectors.txt cannot be read at line ${i + 1}.`);
+  const text = Buffer.from(vectorLines[i].slice('text '.length), 'base64').toString('utf8');
+  const drawn = qrCode(text);
+  if (String(drawn.version) !== shape[1] || String(drawn.mask) !== shape[2] || qrRows(drawn).join('\n') !== vectorLines.slice(i + 2, end).join('\n')) throw new Error(`apps/web/src/lib/qr.ts draws "${text.slice(0, 40)}" differently from the code in tests/fixtures/qr-vectors.txt that the Vision framework read back. An encoder changed without its codes being read again is one nobody has shown scans.`);
+  vectorsHeld++;
+  i = end + 1;
+ }
+ if (vectorsHeld < 5) throw new Error('tests/fixtures/qr-vectors.txt holds fewer than five codes, so the QR encoders are held to almost nothing.');
+ if (!read('apps/ios/MyThuso/Features/PassportSharingView.swift').includes('CIFilter(name: "CIQRCodeGenerator")')) throw new Error('apps/ios/MyThuso/Features/PassportSharingView.swift no longer draws the card with CoreImage\'s CIQRCodeGenerator, which ships with iOS.');
+ const qrLibrary = ['package.json', 'apps/web/package.json', 'apps/android/app/build.gradle.kts'].map(read).join('\n').match(/zxing|qrcode|qr-code|qrgen|qrious|jsqr/i);
+ if (qrLibrary) throw new Error(`A manifest declares "${qrLibrary[0]}". packages/catalog/open-source.json and §15D forbid adopting a component before its reviews; the web and Android draw the card's code with the encoder written here, held to codes an independent decoder read.`);
+
+ console.log(`Record P1: ${sharing.links.kinds.length} link kinds, each ending by the ${ceiling}-day grant ceiling read from consent.json; ${payerIds.length} payers and every aggregate grant role refused a link, before any grant is looked up; the emergency card opens ${openedBy} alone on three platforms; ${linkEvents.length} live link events carry no secret, address or clinical field; ${Object.keys(readsTheSetting).length} P1 files type no lifetime or count; 4 P1 routes refuse in the gateway's sentences; the screens are off the first load; and ${vectorsHeld} QR codes the web draws are the ones Vision read back.`);
 }

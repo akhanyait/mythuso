@@ -286,8 +286,11 @@ function SettingItem({ engine, setting, snapshot, history, open, onOpen, onClose
    : <span className="pill cf-review is-unreviewed"><ShieldAlert size={15}/>{say.notReviewed}</span>)}
   <p className="ss-meta">{fill(say.defaultIs, { value: valueText(setting, setting.default.value) })} · {provenanceText(setting.default)}</p>
   {/* Limits that carry no provenance — a rota's posts — were never decided by anybody, so they read as a
-      proposal rather than borrowing the word "decided" from an empty list. */}
-  {limits && <p className="ss-meta">{limits}. {bounds.every(entry => entry.decidedBy === null) ? say.limitsAreProposals : say.limitsDecided}</p>}
+      proposal rather than borrowing the word "decided" from an empty list. A mix is said as a mix: Record's lifetimes
+      take the founder's grant ceiling for their highest bound and a proposal for their lowest, and calling the pair
+      decided would tell an admin somebody agreed to a limit nobody has. */}
+  {limits && <p className="ss-meta">{limits}. {bounds.every(entry => entry.decidedBy === null) ? say.limitsAreProposals
+   : bounds.some(entry => entry.decidedBy === null) ? say.limitsPartlyDecided : say.limitsDecided}</p>}
   <dl className="cf-rules">
    <div><dt>{say.appliesTo}</dt><dd>{setting.appliesTo}</dd></div>
    {setting.guardrail && <div><dt>{say.guardrail}</dt><dd>{setting.guardrail.statement}</dd></div>}

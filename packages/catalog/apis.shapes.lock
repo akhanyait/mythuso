@@ -95,3 +95,7 @@ POST /v1/trust/setting-changes@2 53efb145ed85ddda
 POST /v1/safety/sos@2 9da1b622ca620872
 GET /v1/safety/sos@1 205cde822295144c
 GET /v1/safety/next-of-kin@1 90a51189e4cd8c7a
+POST /v1/record/share-link-opens@1 34b58f4396aa15cb
+POST /export@2 d03669c225e5820f
+GET /v1/record/settings@1 46aa720414e965c3
+POST /v1/record/setting-changes@1 a1eb322e6bd6c16a

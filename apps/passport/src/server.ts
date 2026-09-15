@@ -145,6 +145,14 @@ export function createPassport(env: NodeJS.ProcessEnv, now?: () => number) {
    return answer(res, gateway.check(requester.artefact, requester.purpose, String(body.category ?? '')));
   }
   if (method === 'GET' && url.pathname === '/audit/mine') return answer(res, gateway.auditMine(tokenFor(req, 'Patient')));
+  /* Passport P1. A share link is made and revoked in the patient's own session. It is opened with
+     "Link <secret>" on the Authorization header — never in the address, where a secret ends up in every
+     log and history between here and the person holding it — and the idempotency key in the body, so a
+     retry is the same use. The export is the patient's own record, in their own session. */
+  if (method === 'POST' && url.pathname === '/share/link') return answer(res, gateway.createLink(tokenFor(req, 'Patient'), body as never), 201);
+  if (method === 'POST' && url.pathname === '/share/link/open') return answer(res, gateway.openLink(tokenFor(req, 'Link'), String(body.idempotencyKey ?? '')));
+  if (method === 'POST' && url.pathname === '/share/link/revoke') return answer(res, gateway.revokeLink(tokenFor(req, 'Patient'), String(body.linkRef ?? '')));
+  if (method === 'POST' && url.pathname === '/export') return answer(res, gateway.exportRecord(tokenFor(req, 'Patient'), body as never));
   if (method === 'POST' && url.pathname === '/breakglass') {
    return answer(res, gateway.breakGlass({
     credential: tokenFor(req, 'Operator'), subject: String(body.subject ?? ''),

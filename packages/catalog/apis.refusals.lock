@@ -356,3 +356,9 @@ POST /v1/safety/next-of-kin/{nominationRef}/withdraw@1 b3ab666866df9aa0
 POST /v1/safety/next-of-kin/{nominationRef}/alert@2 b3328c499003b97c
 shared apis/safety.json#refusals no-such-sos 869c508fd08743e3
 shared apis/safety.json#refusals guardian-authority-not-proven 5eb6b8c188359be0
+POST /share/link@2 fcccbb3596c5547a
+POST /v1/record/share-link-opens@1 b91ba70e7443b18e
+POST /v1/record/share-link-revocations@1 a765d4c242f3729c
+POST /export@2 20db1a5f0ce30fbd
+GET /v1/record/settings@1 d8b16dcbade0e629
+POST /v1/record/setting-changes@1 3bca189e45bf8d25

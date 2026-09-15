@@ -208,7 +208,7 @@ the payments and payouts periods; how disposal of the access log is told apart f
 
 | Right | What exists | Evidence | Gap |
 |---|---|---|---|
-| Access (section 23) | Scoped export of the person's own information; the patient reads their Passport audit; a person reads who opened their record | `POST /account/export` (`apps/api/src/subjectExport.ts`); `GET /audit/mine` (`apps/passport/src/server.ts`); `GET /consent/access-log` | No export from the Passport itself |
+| Access (section 23) | Scoped export of the person's own information; the patient reads their Passport audit; a person reads who opened their record | `POST /account/export` (`apps/api/src/subjectExport.ts`); `GET /audit/mine` (`apps/passport/src/server.ts`); `GET /consent/access-log`; `POST /export` at version two (`apps/passport/src/gateway.ts`, development only) | The Passport's export is not stepped up: it has no second factor of its own |
 | Correction (section 24) | Its own route, separate from deletion, with stated refusals | `POST /account/correction` (`apps/api/src/subjectRequests.ts`) | Clinical correction does not exist |
 | Deletion (section 24) | Erasure with a grace period and an answer naming what could not be erased | `apps/api/src/erasure.ts` | Backups keep the person until the archive expires; no per-person key to destroy (`docs/DATA-PROTECTION.md`) |
 | Objection (section 11(3)) and withdrawal of consent | Withdrawal is one call with no reason asked, naming what is kept anyway | `POST /consent/withdraw`; `packages/catalog/consent.json` `retainedOnWithdrawal` | Objection to processing on a basis other than consent has no route |

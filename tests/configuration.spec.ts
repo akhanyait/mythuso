@@ -108,10 +108,17 @@ test('every engine’s settings are drawn from its contract: in force, the defau
       await expect(item).toContainText(fill(say.defaultIs, { value: valueText(row, row.default.value) }));
       await expect(item).toContainText(provenance(row.default));
       for (const limit of limitsTexts(row)) await expect(item).toContainText(limit);
-      /* Only limits that carry a provenance are said to be proposals; a rota's posts carry none and are said to be neither. */
-      const carriesProvenance = Boolean(row.bounds || row.allowed || row.allowedRoles || row.items || (row as { maxLength?: unknown }).maxLength);
-      if (carriesProvenance) await expect(item).toContainText(say.limitsAreProposals);
-      else await expect(item).not.toContainText(say.limitsDecided);
+      /* The limits' provenance, gathered as the screen gathers it. All undecided is a proposal, all decided was decided,
+         and a mix — Record's lifetimes, whose highest bound is the founder's grant ceiling — says it is partly both. A
+         rota's posts carry no provenance and are never said to be decided. */
+      type Provenanced = { decidedBy?: string | null };
+      type Limited = { bounds?: { lowest: Provenanced; highest: Provenanced }; maxLength?: Provenanced; allowedRoles?: Provenanced; items?: { lowest: Provenanced; highest: Provenanced }; allowed?: Provenanced[]; parts?: Limited[] };
+      const provenanceOf = (r: Limited): Provenanced[] => [r.bounds?.lowest, r.bounds?.highest, r.maxLength, r.allowedRoles, r.items?.lowest, r.items?.highest,
+        ...(r.allowed ?? []), ...(r.parts ?? []).flatMap(provenanceOf)].filter((entry): entry is Provenanced => entry !== undefined);
+      const limitEntries = provenanceOf(row as unknown as Limited);
+      const undecided = limitEntries.filter(entry => entry.decidedBy === null).length;
+      if (!limitEntries.length) await expect(item).not.toContainText(say.limitsDecided);
+      else await expect(item).toContainText(undecided === limitEntries.length ? say.limitsAreProposals : undecided ? say.limitsPartlyDecided : say.limitsDecided);
       await expect(item).toContainText(row.appliesTo);
       if (row.guardrail) await expect(item).toContainText(row.guardrail.statement);
       await expect(item).toContainText(say.neverChanged);

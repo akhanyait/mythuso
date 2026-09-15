@@ -81,7 +81,9 @@
   "granted": "Opened under a consent grant, for the purpose it names.",
   "patientSession": "Opened by the patient in their own session.",
   "written": "Written with provenance.",
-  "keys": "Keys are envelope encryption under a master key held in an environment variable. That is not an HSM or a KMS, and nothing here claims it is."
+  "keys": "Keys are envelope encryption under a master key held in an environment variable. That is not an HSM or a KMS, and nothing here claims it is.",
+  "linkUsed": "Opened through a share link the patient made, for the purpose its grant names, and counted against its uses.",
+  "exported": "The patient's own record, exported in their own session."
  },
 
  "refusals": [
@@ -122,6 +124,20 @@
   { "id": "breakglass-role", "sentence": "Refused: only a registered clinician or the dispatch desk, holding an operator credential, may break the glass.", "why": "§21 names the two, and who is asking comes from a credential rather than from what the request says about itself." },
   { "id": "breakglass-justification", "sentence": "Refused: breaking the glass needs one of the listed reasons and a note in words, written before anything is opened.", "why": "§21: by entering a justification. A reason from a list is what the review can count; the note is what it reads." },
   { "id": "breakglass-note-identifying", "sentence": "Refused: the note carries something that looks like a phone number, an identity number or an email address. Say why the glass was broken, not who the patient is.", "why": "The note is kept for the review. Who the patient is, the Passport already knows by a token." },
-  { "id": "not-found", "sentence": "There is no such record that this request may open.", "why": "One sentence for missing and for not yours, so that a refusal does not confirm that somebody else's entry exists." }
+  { "id": "not-found", "sentence": "There is no such record that this request may open.", "why": "One sentence for missing and for not yours, so that a refusal does not confirm that somebody else's entry exists." },
+  { "id": "link-to-a-payer", "sentence": "Refused: no share link is made for a scheme, an insurer or an employer. They receive aggregate figures, and a link would hand one of them a person's record.", "why": "The identifiable grant to a payer does not exist (§17), and a link is a grant made narrower, never a way round one. Asked before any grant is looked at, so the refusal says nothing about which grants a patient holds." },
+  { "id": "link-recipient-not-the-grants", "sentence": "Refused: a share link is for the person the grant it rides on was made to, and this one names somebody else.", "why": "A link that could name a different recipient from its grant would be a grant to that recipient that the patient never made." },
+  { "id": "link-kind-unknown", "sentence": "Refused: that is not a kind of link the Passport makes.", "why": "The kinds are packages/catalog/passport-sharing.json's, so a link's lifetime and uses always come from a setting somebody can read." },
+  { "id": "link-wider-than-grant", "sentence": "Refused: a share link opens no more than the grant it rides on — no category the grant does not name, and nothing sealed the grant did not tick in.", "why": "A link is the grant made narrower. A link wider than its grant is a grant nobody signed." },
+  { "id": "emergency-card-beyond-the-summary", "sentence": "Refused: an emergency card opens the emergency summary and nothing else, and never a sealed category.", "why": "The card is shown to strangers in an emergency. It carries what a stranger needs to keep somebody safe and nothing a stranger could use against them." },
+  { "id": "link-beyond-the-ceiling", "sentence": "Refused: no share link lasts longer than a consent grant may, whatever end date is asked for.", "why": "The founder's ceiling in packages/catalog/consent.json holds for every grant, and a link is never longer than the kind of thing it rides on." },
+  { "id": "link-longer-than-allowed", "sentence": "Refused: this link would last longer than a link of its kind may last today. Ask again with an earlier end date.", "why": "How long a link lasts is an admin setting in force when the link is made. Asking past it is refused rather than quietly shortened, so the patient knows the end they get." },
+  { "id": "link-outlives-its-grant", "sentence": "Refused: a share link ends when the grant it rides on ends, or sooner.", "why": "A link that outlived its grant would keep a door open after the patient's decision about it had run out." },
+  { "id": "link-not-recognised", "sentence": "Refused: this link was not made by the Passport, or it has been altered.", "why": "One sentence for a secret that was never issued and one that was changed, so that a guess learns nothing about which links exist." },
+  { "id": "link-revoked", "sentence": "Refused: the patient has revoked this link.", "why": "Revocation takes effect at the next use, with no grace, as a grant's does (§21)." },
+  { "id": "link-expired", "sentence": "Refused: this link has ended. Links end by default, and a new one has to be asked for.", "why": "Every link ends. A link asked to end in the past is refused in the same words, because it would never have opened." },
+  { "id": "link-used-up", "sentence": "Refused: this link has been opened as many times as it may be. A new one has to be asked for.", "why": "A link opened more often than its uses has probably been forwarded, and the patient decided how many times it would open when it was made." },
+  { "id": "idempotency-key-required", "sentence": "Refused: opening a link needs an idempotency key, so that a retry on a bad connection is the same use rather than a second one.", "why": "A use counts against a link. A clinic on a dropped connection must not use up a patient's link by retrying." },
+  { "id": "export-format-not-built", "sentence": "Refused: the Passport exports a FHIR R4 bundle and nothing else yet. An IPS document and a PDF are not built.", "why": "packages/catalog/passport-sharing.json lists the formats and which are built. A format answered with something else would be a file that is not what it says." }
  ]
 }

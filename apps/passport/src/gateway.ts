@@ -50,10 +50,15 @@
  * OIDC for people and mutual TLS for systems (§22) need a provider and certificates that do not exist,
  * which is one of the reasons this service runs in development only.
  */
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import sharing from '../../../packages/catalog/passport-sharing.json' with { type: 'json' };
+/* The Record engine's settings and link rules are pure arithmetic over contracts, shared with the web preview so
+   the two cannot disagree about a rule. They import no store, no key and nothing from apps/api. */
+import { sharingInForce, type SharingInForce } from '../../../packages/engines/src/record/domain/settings.ts';
+import { linkTermsFor, payerRefusal, statusOf, useRefusal, type GrantTerms } from '../../../packages/engines/src/record/domain/links.ts';
 import { AuditLog, type AuditEntry } from './audit.ts';
 import { PassportRefusedToStart, wasLoaded, type PassportConfig } from './config.ts';
-import { GATEWAY, expiryCeilingDays, grantScopeRefusal, isProtectedCategory, knownCategory, refusalOf, resourceRule, roleRule, sensitivityOf, statement, type GrantRole } from './contract.ts';
+import { GATEWAY, LINK_POLICY, expiryCeilingDays, grantScopeRefusal, isProtectedCategory, knownCategory, refusalOf, resourceRule, roleRule, sensitivityOf, statement, type GrantRole } from './contract.ts';
 import { PassportKeys, openBytes, readToken, sealBytes, signToken } from './keys.ts';
 import { developerOf, operatorOf } from './operator.ts';
 import { identityShaped } from './screen.ts';
@@ -104,8 +109,9 @@ export class PassportGateway {
  #keys: PassportKeys;
  #audit: AuditLog;
  #now: () => number;
+ #settings: () => SharingInForce;
 
- constructor(deps: { config: PassportConfig; store: PassportStore; now?: () => number }) {
+ constructor(deps: { config: PassportConfig; store: PassportStore; now?: () => number; settings?: () => SharingInForce }) {
   /* A gateway built from a configuration nobody loaded would skip every start-up refusal — the
      development flag, the key separation, the separate database. So it is not built. */
   if (!wasLoaded(deps.config)) throw new PassportRefusedToStart(refusalOf('not-development'));
@@ -113,6 +119,9 @@ export class PassportGateway {
   this.#keys = new PassportKeys(deps.config.masterKey);
   this.#audit = new AuditLog(deps.store.database, this.#keys);
   this.#now = deps.now ?? Date.now;
+  /* The Record settings in force, asked once when a link is made. The process has no authenticated way to
+     read the engine runtime's history, so it reads the contract's defaults; a test hands it a history. */
+  this.#settings = deps.settings ?? (() => sharingInForce([]));
  }
 
  get audit(): AuditLog { return this.#audit; }
@@ -190,6 +199,10 @@ export class PassportGateway {
   };
   const artefact = signToken(this.#keys, 'grant', grant);
   this.#store.putGrant({ id: grant.id, subject, expires_at: expiresAt, revoked_at: null, artefact_hash: createHash('sha256').update(artefact).digest('hex'), created_at: this.#now() });
+  /* The terms a share link is later held to, kept sealed beside the grant: the artefact is the recipient's,
+     and a link is made by the patient, who should not have to hand the gateway back what it already signed. */
+  const terms = { recipientRole: grant.recipientRole, scope: grant.scope, purpose: grant.purpose, sealedIncluded: grant.sealedIncluded };
+  this.#store.putGrantTerms(grant.id, subject, sealBytes(this.#dataKey(subject, GENERAL_SCOPE), Buffer.from(JSON.stringify(terms), 'utf8'), `grant-terms|${subject}|${grant.id}`), this.#now());
   this.#log({ ...who, outcome: 'granted', reason: statement('patientSession') });
   return { ok: true, grantId: grant.id, artefact, grant };
  }
@@ -452,6 +465,150 @@ export class PassportGateway {
   if (!session.ok) return this.#refuse(401, session.id, { subject: null, requesterRole: 'patient', requesterRef: null, action: 'audit.read' });
   this.#log({ subject: session.subject, requesterRole: 'patient', requesterRef: session.subject, action: 'audit.read', outcome: 'granted', reason: statement('patientSession') });
   return { ok: true, entries: this.#audit.forSubject(session.subject), chain: this.#audit.verify() };
+ }
+
+ /* ---- Share links (Passport P1) ---------------------------------------------------------------
+
+    A share link is a grant the patient made, made narrower. packages/engines/src/record/domain/links.ts
+    decides what a link may be, from the grant's sealed terms and the Record settings in force when it is
+    made, and the web preview asks the same function, so the two cannot disagree about a rule. This stores
+    what it decided, opens only what it decided, and writes every attempt — made, opened, refused, revoked —
+    into the patient's chain. The secret is kept as a digest and never written into the chain, which names
+    the link by its reference; whoever opens a link is written down as the role of the grant it rides on,
+    because that is who the patient made it for, and the chain cannot know more about a bearer than that. */
+
+ createLink(token: string, fields: { grantId?: unknown; recipientRole?: unknown; kindCode?: unknown; scope?: unknown; sealedIncluded?: unknown; expiresAt?: unknown }): Answer<{ linkRef: string; linkSecret: string; kindCode: string; scope: string[]; expiresAt: string; usesAllowed: number; settingsVersion: number }> {
+  const at = this.#now();
+  const session = this.#session(token);
+  const who: Who = { subject: session.ok ? session.subject : null, requesterRole: 'patient', requesterRef: session.ok ? session.subject : null, action: 'share.link.create' };
+  if (!session.ok) return this.#refuse(401, session.id, who);
+  const body = fields && typeof fields === 'object' ? fields : {};
+  /* A payer before any grant is looked at, so the refusal says nothing about which grants this patient holds. */
+  if (payerRefusal(body.recipientRole, LINK_POLICY)) return this.#refuse(403, 'link-to-a-payer', who);
+  const row = this.#store.grant(String(body.grantId ?? ''));
+  if (!row || row.subject !== session.subject) {
+   if (row) this.#probe(row.subject, who);
+   return this.#refuse(404, 'not-found', who);
+  }
+  const grant = this.#grantTerms(row);
+  if (!grant) return this.#refuse(404, 'not-found', who);
+  who.purpose = grant.purpose;
+  const decided = linkTermsFor(body, grant, this.#settings(), at, LINK_POLICY);
+  if (!decided.ok) return this.#refuse(statusOf(decided.refusal), decided.refusal, who);
+  const terms = decided.value;
+  const id = `lnk_${randomUUID()}`;
+  const linkSecret = `${id}.${randomBytes(24).toString('base64url')}`;
+  const kept = { recipientRole: terms.recipientRole, purpose: terms.purpose, scope: terms.scope, sealedIncluded: terms.sealedIncluded };
+  this.#store.putLink({
+   id, subject: session.subject, grant_id: row.id, kind: terms.kindCode, secret_hash: createHash('sha256').update(linkSecret).digest('hex'),
+   sealed_body: sealBytes(this.#dataKey(session.subject, GENERAL_SCOPE), Buffer.from(JSON.stringify(kept), 'utf8'), `share-link|${session.subject}|${id}`),
+   expires_at: terms.expiresAt, uses_allowed: terms.usesAllowed, settings_version: terms.settingsVersion, revoked_at: null, created_at: at
+  });
+  this.#log({ ...who, outcome: 'granted', reason: statement('patientSession') });
+  return { ok: true, linkRef: id, linkSecret, kindCode: terms.kindCode, scope: [...terms.scope], expiresAt: new Date(terms.expiresAt).toISOString(), usesAllowed: terms.usesAllowed, settingsVersion: terms.settingsVersion };
+ }
+
+ /**
+  * A use of a link: a read through the gateway. Its own revocation and end first, then its grant's, then its
+  * uses — and a retry with a key already counted is the same use, so a clinic on a bad connection does not
+  * use up the patient's link. Refused uses are written into the patient's chain as surely as granted ones.
+  */
+ openLink(secret: string, idempotencyKey: string): Answer<{ opened: { category: string; resources: Record<string, unknown>[] }[]; purpose: string; usesLeft: number; expiresAt: string }> {
+  const at = this.#now();
+  const who: Who = { subject: null, requesterRole: UNAUTHENTICATED, requesterRef: null, action: 'share.link.use' };
+  const presented = typeof secret === 'string' ? secret : '';
+  const shaped = /^(lnk_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.[A-Za-z0-9_-]{32}$/.exec(presented);
+  const row = shaped ? this.#store.link(shaped[1]!) : null;
+  const given = Buffer.from(createHash('sha256').update(presented).digest('hex'), 'utf8');
+  if (!row || !timingSafeEqual(Buffer.from(row.secret_hash, 'utf8'), given)) return this.#refuse(401, 'link-not-recognised', who);
+  const link = this.#linkTerms(row);
+  Object.assign(who, { subject: row.subject, requesterRole: link.recipientRole, requesterRef: row.id, purpose: link.purpose });
+  const key = typeof idempotencyKey === 'string' ? idempotencyKey.trim() : '';
+  if (!key) return this.#refuse(400, 'idempotency-key-required', who);
+  const useKey = createHash('sha256').update(`${row.id}|${key}`).digest('hex');
+  const counted = this.#store.linkUseCounted(row.id, useKey);
+  const grant = this.#store.grant(row.grant_id);
+  const refusal = useRefusal({ revokedAt: row.revoked_at, expiresAt: row.expires_at, usesAllowed: row.uses_allowed }, this.#store.linkUseCount(row.id), grant && { revokedAt: grant.revoked_at, expiresAt: grant.expires_at }, at, counted);
+  if (refusal) return this.#refuse(statusOf(refusal), refusal, who);
+  if (!counted) this.#store.putLinkUse(row.id, useKey, at);
+  const opened = link.scope.map(category => ({ category, resources: this.#linkResources(row.subject, category, link.sealedIncluded) }));
+  this.#log({ ...who, outcome: 'granted', reason: statement('linkUsed') });
+  return { ok: true, opened, purpose: link.purpose, usesLeft: row.uses_allowed - this.#store.linkUseCount(row.id), expiresAt: new Date(row.expires_at).toISOString() };
+ }
+
+ revokeLink(token: string, linkRef: string): Answer<{ revoked: true; revokedAt: string }> {
+  const session = this.#session(token);
+  const who: Who = { subject: session.ok ? session.subject : null, requesterRole: 'patient', requesterRef: session.ok ? session.subject : null, action: 'share.link.revoke' };
+  if (!session.ok) return this.#refuse(401, session.id, who);
+  const row = this.#store.link(String(linkRef ?? ''));
+  if (!row || row.subject !== session.subject) {
+   if (row) this.#probe(row.subject, who);
+   return this.#refuse(404, 'not-found', who);
+  }
+  /* Revoked once. A second revocation changes nothing and says when the first one happened. */
+  this.#store.revokeLink(row.id, this.#now());
+  const revokedAt = this.#store.link(row.id)?.revoked_at ?? this.#now();
+  this.#log({ ...who, outcome: 'granted', reason: statement('patientSession') });
+  return { ok: true, revoked: true, revokedAt: new Date(revokedAt).toISOString() };
+ }
+
+ /* ---- The export (Passport P1) -------------------------------------------------------------------
+
+    The patient's own record as a FHIR R4 Bundle, in their own session. There is no step-up, because the
+    Passport has no second factor, and the answer says so in packages/catalog/passport-sharing.json's
+    sentence rather than implying one. A sealed category goes in only when the patient names it; a private
+    entry never does in P0. Nothing is kept for collection: the bundle is this answer and nowhere else, and
+    the export is written into the chain like any other access. */
+
+ exportRecord(token: string, fields: { format?: unknown; sealedCategories?: unknown }): Answer<{ exportRef: string; bundle: { resourceType: 'Bundle'; id: string; type: 'collection'; timestamp: string; entry: { fullUrl: string; resource: Record<string, unknown> }[] }; exclusions: { excludedCode: string; statement: string }[]; stepUp: string }> {
+  const at = this.#now();
+  const session = this.#session(token);
+  const who: Who = { subject: session.ok ? session.subject : null, requesterRole: 'patient', requesterRef: session.ok ? session.subject : null, action: 'export' };
+  if (!session.ok) return this.#refuse(401, session.id, who);
+  const body = fields && typeof fields === 'object' ? fields : {};
+  if (!sharing.export.formats.some(format => format.built && format.id === body.format)) return this.#refuse(422, 'export-format-not-built', who);
+  const ticked: unknown[] = body.sealedCategories === undefined ? [] : Array.isArray(body.sealedCategories) ? body.sealedCategories : [null];
+  if (!ticked.every(category => typeof category === 'string' && knownCategory(category))) return this.#refuse(400, 'unknown-category', who);
+  const named = ticked as string[];
+  if (!named.every(isProtectedCategory)) return this.#refuse(403, 'sealed-tick-names-nothing', who);
+  const subject = session.subject;
+  const tags = new Set(named.map(category => this.#keys.categoryTag(subject, category)));
+  const rows = this.#store.resourcesOf(subject).filter(row => row.sealed === OPEN || (row.sealed === SEALED && tags.has(row.category_tag)));
+  const exportRef = `export_${randomUUID()}`;
+  const entry = rows.flatMap(row => [
+   { fullUrl: `urn:mythuso:passport:${row.id}`, resource: this.#open(row) },
+   ...this.#provenance(row).map(provenance => ({ fullUrl: `urn:mythuso:passport:${String(provenance.id)}`, resource: provenance }))
+  ]);
+  this.#log({ ...who, outcome: 'granted', reason: statement('exported') });
+  return {
+   ok: true, exportRef,
+   bundle: { resourceType: 'Bundle', id: exportRef, type: 'collection', timestamp: new Date(at).toISOString(), entry },
+   exclusions: sharing.export.exclusions.map(exclusion => ({ excludedCode: exclusion.id, statement: exclusion.sentence })),
+   stepUp: sharing.export.stepUp.sentence
+  };
+ }
+
+ /* A grant's terms as the grant was made, or null for a grant that has none kept — one made before P1 — which a
+    link cannot ride on, because nothing would say what it may open. */
+ #grantTerms(row: { id: string; subject: string; expires_at: number; revoked_at: number | null }): GrantTerms | null {
+  const kept = this.#store.grantTerms(row.id);
+  if (!kept || kept.subject !== row.subject) return null;
+  const terms = JSON.parse(openBytes(this.#dataKey(row.subject, GENERAL_SCOPE), kept.sealed_body, `grant-terms|${row.subject}|${row.id}`).toString('utf8')) as { recipientRole: string; scope: string[]; purpose: string; sealedIncluded: boolean };
+  return { ...terms, expiresAt: row.expires_at, revokedAt: row.revoked_at };
+ }
+
+ #linkTerms(row: { id: string; subject: string; sealed_body: Uint8Array }): { recipientRole: string; purpose: string; scope: string[]; sealedIncluded: boolean } {
+  return JSON.parse(openBytes(this.#dataKey(row.subject, GENERAL_SCOPE), row.sealed_body, `share-link|${row.subject}|${row.id}`).toString('utf8')) as { recipientRole: string; purpose: string; scope: string[]; sealedIncluded: boolean };
+ }
+
+ /* What one category of a link opens: the emergency summary for the card's category, which holds open entries
+    only; otherwise the entries filed under it that are open, or sealed where the link ticked a sealed category
+    in by name. Never a private entry, as for every grant in P0. */
+ #linkResources(subject: string, category: string, sealedIncluded: boolean): Record<string, unknown>[] {
+  if (category === GATEWAY.emergencySummary.openedBy) return Object.values(this.#summary(subject)).flat();
+  const tag = this.#keys.categoryTag(subject, category);
+  const opensSealed = sealedIncluded && isProtectedCategory(category);
+  return this.#store.resourcesOf(subject).filter(row => row.category_tag === tag && (row.sealed === OPEN || (row.sealed === SEALED && opensSealed))).map(row => this.#open(row));
  }
 
  /* ---- Inside ----------------------------------------------------------------------------------- */

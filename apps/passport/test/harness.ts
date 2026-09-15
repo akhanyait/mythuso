@@ -16,6 +16,7 @@ import { PassportGateway, type GrantFields, type Requester } from '../src/gatewa
 import { PassportKeys } from '../src/keys.ts';
 import { mintDeveloperCredential, mintOperatorCredential } from '../src/operator.ts';
 import { PassportStore } from '../src/store.ts';
+import type { SharingInForce } from '../../../packages/engines/src/record/domain/settings.ts';
 
 export const START = Date.UTC(2026, 8, 14, 9, 0, 0);
 export const HOUR = 3_600_000;
@@ -34,12 +35,14 @@ export const sentence = (id: string): string => {
 export const statementOf = (id: keyof typeof contract.statements): string => contract.statements[id];
 export const roleOf = (id: string) => consent.grants.recipientRoles.find(role => role.id === id)!;
 
-export function harness() {
+/* The Record settings in force can be handed in, so a test can change one between two links and show the first
+   keeps what it was made with. Left out, the gateway reads the contract's defaults, as the process does. */
+export function harness(options: { settings?: () => SharingInForce } = {}) {
  let clock = START;
  const config = loadPassportConfig(developmentEnv());
  const store = new PassportStore(':memory:');
  const keys = new PassportKeys(config.masterKey);
- const gateway = new PassportGateway({ config, store, now: () => clock });
+ const gateway = new PassportGateway({ config, store, now: () => clock, ...(options.settings ? { settings: options.settings } : {}) });
  return {
   config, store, keys, gateway,
   advance: (ms: number) => { clock += ms; },

@@ -240,3 +240,9 @@ POST /v1/safety/next-of-kin@2 80116be36b6fc74a
 GET /v1/safety/next-of-kin@1 1edd2b1ef6b16d9c
 POST /v1/safety/next-of-kin/{nominationRef}/withdraw@1 d827177b99bba4d8
 POST /v1/safety/next-of-kin/{nominationRef}/alert@2 3852a1e66d979b9c
+POST /share/link@2 b6874c12ae0e77d5
+POST /v1/record/share-link-opens@1 7ace1bfa177cf01a
+POST /v1/record/share-link-revocations@1 e791cb14e6de3afd
+POST /export@2 8960c365118c45fe
+GET /v1/record/settings@1 2dcafbcb0651e658
+POST /v1/record/setting-changes@1 9eb43fbad220413c

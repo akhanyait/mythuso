@@ -20,6 +20,11 @@ const AuthoriseCollectorFlow = lazy(() => import('./features/Medicines').then(m 
 /* The door check and the complaint form, from Verify, on a dynamic import too: neither is on the first view. */
 const DoorCheckPage = lazy(() => import('./features/VerifyInService').then(m => ({ default: m.DoorCheck })));
 const ComplaintPage = lazy(() => import('./features/VerifyInService').then(m => ({ default: m.ComplaintForm })));
+/* Health Passport P1: share links, the emergency card and who opened the record. Behind a dynamic import, because
+   between them they carry four contracts and a QR encoder, and the patient's first view needs none of them. */
+const ShareLinksPage = lazy(() => import('./features/PassportSharing').then(m => ({ default: m.ShareLinks })));
+const EmergencyCardPage = lazy(() => import('./features/PassportSharing').then(m => ({ default: m.EmergencyCard })));
+const PassportLogPage = lazy(() => import('./features/PassportSharing').then(m => ({ default: m.PassportAccessLog })));
 import { nurseOfVisit } from './lib/arrival';
 import { capability } from './lib/capabilities';
 import {
@@ -197,6 +202,9 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
           onRemove={id => setWellbeing(wellbeing.filter(entry => entry.id !== id))}
           nextVisit={rows.find(row => row.group === 'upcoming')?.id ?? null} viewVisit={setViewing}/>
        : page === 'Health trends' ? <HealthTrends navigate={navigate}/>
+       : page === 'Share part of your record' ? <Suspense fallback={<p className="helper" role="status">Opening your share links.</p>}><ShareLinksPage navigate={navigate}/></Suspense>
+       : page === 'Your emergency card' ? <Suspense fallback={<p className="helper" role="status">Opening your emergency card.</p>}><EmergencyCardPage navigate={navigate}/></Suspense>
+       : page === 'Who opened your record' ? <Suspense fallback={<p className="helper" role="status">Opening who opened your record.</p>}><PassportLogPage navigate={navigate}/></Suspense>
        : page === 'What readings mean' ? <ReadingsExplained navigate={navigate} open={setModal}/>
        : page === 'Care timeline' ? <CareTimeline navigate={navigate} open={setModal}/>
        : page === 'Your care team' ? <CareTeam navigate={navigate} open={setModal}/>

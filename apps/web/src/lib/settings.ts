@@ -13,6 +13,7 @@ import { accessInForce, accessInForceAt, type AccessSettingsInForce } from '../.
 import { resultRungOf, termsOf } from '../../../../packages/engines/src/medicines/domain/settings.ts';
 import type { Terms as CollectionTerms } from '../../../../packages/engines/src/medicines/domain/collections.ts';
 import { trustInForce, type TrustInForce } from '../../../../packages/engines/src/trust/domain/settings.ts';
+import { sharingSettingsOf, type SharingInForce } from '../../../../packages/engines/src/record/domain/settings.ts';
 import { roleOf, whoIs } from './roles';
 import { can } from './vetting';
 /* Whether a rota's post is on duty, and when a shut one opens: the shared settings code's one rule, which the
@@ -106,6 +107,10 @@ export const resultRungNow = (): { readonly rung: number; readonly settingsVersi
 /* Verify's four, asked once when a shift starts, a door code is shown or a complaint arrives, and kept by that
    shift, code or complaint: a change in the back office reaches the next one and never one already under way. */
 export const trustSettingsNow = (): TrustInForce => trustInForce(historyOf('trust'));
+/* The Record engine's five, for the Health Passport's share links and emergency card: asked once when a link or a
+   card is made, and kept by it, so a change on the Configuration screen reaches the next link and never one already
+   made. The Passport P0 is handed the same arithmetic in apps/passport. */
+export const recordSettingsNow = (): SharingInForce => sharingSettingsOf(snapshotNow('record'));
 
 /* Whether the value a setting held at a settings version has been clinically reviewed. Something that started
    under an older version — an offer on a nurse's screen — is described by the value it started under, not

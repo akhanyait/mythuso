@@ -44,6 +44,17 @@ struct PassportView: View {
                         Text(share ? "Demo access active for 24 hours. Turn off to revoke. No real access is granted." : "No active shares. You control who sees your records.")
                             .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                     }
+                    /* Health Passport P1: the emergency card and who opened the record, by the names the generated
+                       contract gives them. */
+                    CareCard(padding: ThusoSpacing.space16, spacing: 0) {
+                        NavigationLink { EmergencyCardView() } label: {
+                            MenuRow(title: PassportSharingData.Card.route, subtitle: PassportSharingData.Card.intro, symbol: "cross.case")
+                        }.buttonStyle(.plain)
+                        Divider().overlay(ThusoTheme.studioLine)
+                        NavigationLink { PassportAccessLogView() } label: {
+                            MenuRow(title: PassportSharingData.Log.route, subtitle: PassportSharingData.Log.intro, symbol: "list.bullet.rectangle")
+                        }.buttonStyle(.plain)
+                    }
                 default:
                     /* Where things stand today, before any curve. Somebody opening their passport
                        wants the current number first and the shape of it second — the reverse is a

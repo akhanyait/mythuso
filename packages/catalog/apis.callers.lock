@@ -272,3 +272,11 @@ POST /v1/safety/checkins@1 callers=- purpose=dispatch because=-
 POST /v1/safety/sos@1 callers=- purpose=emergency because=-
 POST /v1/safety/next-of-kin@1 callers=- purpose=subject-access because=-
 POST /v1/safety/next-of-kin/{nominationRef}/alert@1 callers=- purpose=emergency because=-
+POST /share/link@2 callers=patient purpose=subject-access because=-
+POST /v1/record/share-link-opens@1 callers=care-coordinator,caregiver,doctor-assigned,next-of-kin,nurse-assigned,pharmacist,responder-on-trip purpose=diagnostics,dispatch,dispensing,emergency,treatment because=-
+POST /v1/record/share-link-revocations@1 callers=patient purpose=subject-access because=-
+POST /export@2 callers=patient purpose=subject-access because=-
+GET /v1/record/settings@1 callers=admin purpose=audit because=-
+POST /v1/record/setting-changes@1 callers=admin purpose=audit because=-
+POST /share/link@1 callers=- purpose=emergency,treatment because=-
+POST /export@1 callers=- purpose=subject-access because=-

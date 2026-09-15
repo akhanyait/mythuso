@@ -72,7 +72,8 @@ const NOT_CLINICAL_SETTINGS = {
  'trust:unmatched-shift-start-dispatch': 'Whether somebody nobody could face match may be offered work is a fraud and identity question for Operations and the Information Officer (D-3), among people already vetted to attend.',
  'trust:door-code-lifetime': 'How long a door code works. It decides how a patient checks who is at her door, not what is done once the door is open.',
  'trust:door-code-attempts': 'How many wrong door codes a patient may type before the desk is told. A safety-desk threshold, not a clinical one.',
- 'trust:settings-changed-by': 'Who may change the Verify in service settings. An authority question, not a clinical one.'
+ 'trust:settings-changed-by': 'Who may change the Verify in service settings. An authority question, not a clinical one.',
+ 'record:*': 'How long a share link or an emergency card lasts, how often each opens and what a link opens by default decide who may read a record and for how long. That is a privacy question for the Information Officer and the DPIA, not a clinical one, and none of them decides what is done to a patient.'
 };
 
 /* Proposals outside a settings block (decidedBy: null), classified by where they sit. */

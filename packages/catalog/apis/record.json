@@ -1,8 +1,8 @@
 {
  "engine": "record",
- "_note": "Record is the Health Passport. Its §26 paths keep their names and are mounted under /v1/record by reference; the P0 service answers most of them already, in development, on synthetic data, on loopback. Share links and export are proposed; the HL7 v2 inbound path is a supplier's, so it is a door to add rather than a route. Every read goes through the consent gateway.",
+ "_note": "Record is the Health Passport. Its §26 paths keep their names and are mounted under /v1/record by reference; the P0 service answers most of them already, in development, on synthetic data, on loopback. Share links, their opening and revocation, and the export are built at P1 (Wave 4) in the same service, and version one of the link and the export are withdrawn; the Record engine's settings are answered by the engine runtime. The HL7 v2 inbound path is a supplier's, so it is a door to add rather than a route. Every read goes through the consent gateway.",
  "version": 1,
- "resources": ["fhir", "consent", "audit", "share", "export", "breakglass", "summary", "dev-subjects", "session-ends", "consent-checks", "encounter-statuses"],
+ "resources": ["fhir", "consent", "audit", "share", "export", "breakglass", "summary", "dev-subjects", "session-ends", "consent-checks", "encounter-statuses", "share-link-opens", "share-link-revocations", "settings", "setting-changes"],
  "_encounterStatusesNote": "The resource is encounter-statuses and not encounters. A field ending Ref is read as a reference into the store of the engine that declares its resource, so declaring encounters here would make every frozen encounterRef on Care's and Clinical's routes a reach into the record's store, which they are not: they carry the reference and the entry stays in the record.",
  "doors": [],
  "doorsToAdd": [
@@ -356,7 +356,7 @@
    "path": "/share/link",
    "version": 1,
    "summary": "Create a share link with a scope, an expiry and a passcode.",
-   "callers": ["patient", "responder-on-trip"],
+   "callers": [],
    "purpose": ["treatment", "emergency"],
    "request": [
     {"field": "scope", "type": "list", "required": true, "why": "Record ids the link opens."},
@@ -375,14 +375,19 @@
    "idempotent": false,
    "endpointNamed": {"section": "§26"},
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {
+    "on": "2026-09-15",
+    "supersededBy": "POST /share/link@2",
+    "why": "It could not carry what a link is. It named no grant for the link to ride on, so nothing tied its scope, purpose or end to a decision the patient had made, and nothing refused a scope wider than that decision; it had no field for the link's secret, which is what opens it; and its two refusals were all it refused, with no word for a link to a payer, a link past the grant ceiling or a sealed category without a tick. A responder with an active trip was a caller with no trip to check against in the Passport. Version two rides on a grant, is made by the patient alone, and refuses each of those in the gateway's sentences. Its callers are version two's."
+   }
   },
   {
    "method": "POST",
    "path": "/export",
    "version": 1,
    "summary": "Export the whole record: FHIR bundle, IPS and PDF.",
-   "callers": ["patient"],
+   "callers": [],
    "purpose": ["subject-access"],
    "request": [
     {"field": "format", "type": "string", "required": true, "why": "fhir-bundle, ips or pdf."},
@@ -398,7 +403,274 @@
    "idempotent": false,
    "endpointNamed": {"section": "§26"},
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {
+    "on": "2026-09-15",
+    "supersededBy": "POST /export@2",
+    "why": "It required a second-factor code the Health Passport has no way to check: the Passport has no second factor of its own, and the identity service's step-up does not reach it, so a required code would have been a field the service ignores or a route it could never answer. It offered an IPS document and a PDF nobody has built, and it answered with a reference to an export kept for collection, a copy of the whole record at rest that no store holds. Version two says plainly that there is no step-up, answers the FHIR bundle itself, refuses the formats that are not built, and says what it leaves out and why. Its callers are version two's."
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/share/link",
+   "version": 2,
+   "summary": "Make a share link that rides on a consent grant the patient made: bound to that grant's recipient and purpose, to a scope inside it and to an end no later than it, opened with a secret shown once.",
+   "callers": ["patient"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "grantId", "type": "string", "required": true, "why": "The grant the link rides on. Its recipient, its purpose and its end are the link's, and a link never opens more than it."},
+    {"field": "recipientRole", "type": "string", "required": true, "why": "Who the link is for, which must be the grant's recipient. A scheme, an insurer or an employer is refused before any grant is looked at."},
+    {"field": "kindCode", "type": "string", "required": true, "why": "share-link or emergency-card, from packages/catalog/passport-sharing.json links.kinds. The kind decides which settings its end and its uses come from."},
+    {"field": "scope", "type": "list", "required": false, "why": "Record ids from packages/catalog/records.json, each inside the grant's scope. Left out, the Record setting share-link-default-scope in force; an emergency card opens the emergency summary whatever is sent."},
+    {"field": "sealedIncluded", "type": "boolean", "required": false, "why": "True only when the patient ticks a sealed category into the link by name, and only where the grant ticked it in too."},
+    {"field": "expiresAt", "type": "instant", "required": false, "why": "An earlier end than the link would otherwise have. Later than the setting in force, the grant's end or the founder's grant ceiling is refused rather than shortened."}
+   ],
+   "response": [
+    {"field": "linkRef", "type": "string", "required": true, "why": "The link, as the patient's access log and a revocation name it."},
+    {"field": "linkSecret", "type": "string", "required": true, "why": "What opens the link, shown once. The Passport keeps only its digest."},
+    {"field": "kindCode", "type": "string", "required": true, "why": "The kind the link was made as."},
+    {"field": "scope", "type": "list", "required": true, "why": "The record ids the link opens, as it keeps them."},
+    {"field": "expiresAt", "type": "instant", "required": true, "why": "When it ends: the earliest of the setting in force, the grant's end, the founder's ceiling and any earlier end asked for."},
+    {"field": "usesAllowed", "type": "integer", "required": true, "why": "How many times it may be opened, from the setting in force when it was made."},
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The Record settings version the link was made under and keeps. A later change never lengthens it."}
+   ],
+   "refusals": [
+    {"id": "patient-session-required", "status": 401, "statement": "Refused: only the patient's own session can do this.", "why": "Only the patient makes, revokes or exports anything from their own record, and who is asking comes from the session, never the body."},
+    {"id": "session-ended", "status": 401, "statement": "Refused: this session has ended or expired. Sign in again.", "why": "A development session expires with the identity service's idle limit and can be ended; one that has is no session."},
+    {"id": "not-found", "status": 404, "statement": "There is no such record that this request may open.", "why": "A grant that does not exist and a grant that is somebody else's get one answer, so a link request cannot confirm that another person's grant exists."},
+    {"id": "link-to-a-payer", "status": 403, "statement": "Refused: no share link is made for a scheme, an insurer or an employer. They receive aggregate figures, and a link would hand one of them a person's record.", "why": "The identifiable grant to a payer does not exist (§17), and a link is a grant made narrower, never a way round one."},
+    {"id": "link-kind-unknown", "status": 400, "statement": "Refused: that is not a kind of link the Passport makes.", "why": "A link's end and its uses come from the settings its kind names, so a kind nobody declared has neither."},
+    {"id": "revoked", "status": 403, "statement": "Refused: the patient has revoked this grant.", "why": "A revoked grant carries no new link."},
+    {"id": "expired", "status": 403, "statement": "Refused: this grant has expired. Grants expire by default, and a new one has to be asked for.", "why": "An ended grant carries no new link."},
+    {"id": "link-recipient-not-the-grants", "status": 403, "statement": "Refused: a share link is for the person the grant it rides on was made to, and this one names somebody else.", "why": "A link for somebody other than the grant's recipient is a grant to them the patient never made."},
+    {"id": "emergency-only", "status": 403, "statement": "Refused: a responder on a trip reads the emergency summary and the trip's own transport, and nothing else.", "why": "A responder's grant reads the emergency summary and nothing else (§21), so the only link it carries is an emergency card."},
+    {"id": "unknown-category", "status": 400, "statement": "Refused: that is not a record category the Passport knows.", "why": "Categories are packages/catalog/records.json's, so a link's scope is never a free-text promise."},
+    {"id": "emergency-card-beyond-the-summary", "status": 403, "statement": "Refused: an emergency card opens the emergency summary and nothing else, and never a sealed category.", "why": "An emergency card is shown to strangers and carries what a stranger needs to keep somebody safe, and nothing sealed."},
+    {"id": "link-wider-than-grant", "status": 403, "statement": "Refused: a share link opens no more than the grant it rides on — no category the grant does not name, and nothing sealed the grant did not tick in.", "why": "A link is the grant made narrower. A link wider than its grant is a grant nobody signed."},
+    {"id": "sealed-not-ticked", "status": 403, "statement": "Refused: a sealed category is in this scope without the sealed tick. A sealed category opens only when the patient ticks it in.", "why": "Sealed by default. A sealed category opens through a link only when the patient ticks it in on the link itself."},
+    {"id": "sealed-tick-names-nothing", "status": 403, "statement": "Refused: the sealed tick has to name the sealed category it opens. A tick with no sealed category in the scope is not accepted.", "why": "A tick opens the sealed categories the scope names, and a tick naming none would be a switch."},
+    {"id": "link-expired", "status": 403, "statement": "Refused: this link has ended. Links end by default, and a new one has to be asked for.", "why": "An end already past would make a link that never opens."},
+    {"id": "link-beyond-the-ceiling", "status": 403, "statement": "Refused: no share link lasts longer than a consent grant may, whatever end date is asked for.", "why": "The founder's ceiling in packages/catalog/consent.json holds for every grant, and no link outlives the kind of thing it rides on."},
+    {"id": "link-longer-than-allowed", "status": 403, "statement": "Refused: this link would last longer than a link of its kind may last today. Ask again with an earlier end date.", "why": "How long a link lasts is the Record setting in force for its kind, and asking past it is refused rather than quietly shortened."},
+    {"id": "link-outlives-its-grant", "status": 403, "statement": "Refused: a share link ends when the grant it rides on ends, or sooner.", "why": "A link that outlived its grant would keep a door open after the patient's decision had run out."}
+   ],
+   "emits": ["passport.share.link_created@1"],
+   "idempotent": false,
+   "secretResponseFields": [{"field": "linkSecret", "shownOnce": "The link's secret was shown once, when the link was made, and is not shown again. Make a new link if it was lost."}],
+   "endpointNamed": {"section": "§26"},
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/share/link'"},
+   "enforcedBy": {"mechanism": "passport-patient-session"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/record/share-link-opens",
+   "version": 1,
+   "summary": "Open what a share link opens, as the recipient of the grant it rides on: a read through the consent gateway, counted against the link's uses and written into the patient's access log.",
+   "callers": ["caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator", "responder-on-trip"],
+   "purpose": ["treatment", "emergency", "diagnostics", "dispensing", "dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same use once, so a retry on a dropped connection does not use up the patient's link. The link's secret travels as \"Link <secret>\" in the Authorization header, never in the body or the address."}
+   ],
+   "response": [
+    {"field": "opened", "type": "list", "required": true, "object": true, "why": "What the link opens, category by category: open entries, and a sealed category's entries only where the link ticked it in. An entry the patient marked private is never opened.", "fields": [
+     {"field": "category", "type": "string", "required": true, "why": "A record id from the link's scope."},
+     {"field": "resources", "type": "list", "required": true, "object": true, "shapeFrom": "packages/catalog/passport-gateway.json#resources", "why": "The FHIR R4 resources filed under it that the link opens, each of a type packages/catalog/passport-gateway.json lists."}
+    ]},
+    {"field": "purpose", "type": "string", "required": true, "why": "The purpose of the grant the link rides on, which is the purpose of this read."},
+    {"field": "usesLeft", "type": "integer", "required": true, "why": "How many more times the link may be opened."},
+    {"field": "expiresAt", "type": "instant", "required": true, "why": "When the link ends."}
+   ],
+   "refusals": [
+    {"id": "link-not-recognised", "status": 401, "statement": "Refused: this link was not made by the Passport, or it has been altered.", "why": "A secret never issued and one that was altered get one answer, so a guess learns nothing about which links exist."},
+    {"id": "link-revoked", "status": 403, "statement": "Refused: the patient has revoked this link.", "why": "Revocation takes effect at the next use, with no grace (§21)."},
+    {"id": "link-expired", "status": 403, "statement": "Refused: this link has ended. Links end by default, and a new one has to be asked for.", "why": "Every link ends."},
+    {"id": "revoked", "status": 403, "statement": "Refused: the patient has revoked this grant.", "why": "A link rides on its grant, so revoking the grant closes every link on it at once."},
+    {"id": "expired", "status": 403, "statement": "Refused: this grant has expired. Grants expire by default, and a new one has to be asked for.", "why": "A link never outlives its grant."},
+    {"id": "link-used-up", "status": 403, "statement": "Refused: this link has been opened as many times as it may be. A new one has to be asked for.", "why": "The patient decided how many times the link would open when it was made."}
+   ],
+   "emits": ["passport.share.link_used@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/share/link/open'"},
+   "enforcedBy": {"mechanism": "passport-share-link"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/record/share-link-revocations",
+   "version": 1,
+   "summary": "Revoke one of your share links, in one tap. Its next use is refused.",
+   "callers": ["patient"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "linkRef", "type": "string", "required": true, "why": "The link, as it was made."}
+   ],
+   "response": [
+    {"field": "revoked", "type": "boolean", "required": true, "why": "True, including for a link already revoked, which stays revoked from the first time."},
+    {"field": "revokedAt", "type": "instant", "required": true, "why": "When it was first revoked."}
+   ],
+   "refusals": [
+    {"id": "patient-session-required", "status": 401, "statement": "Refused: only the patient's own session can do this.", "why": "Only the patient makes, revokes or exports anything from their own record, and who is asking comes from the session, never the body."},
+    {"id": "session-ended", "status": 401, "statement": "Refused: this session has ended or expired. Sign in again.", "why": "A development session expires with the identity service's idle limit and can be ended; one that has is no session."},
+    {"id": "not-found", "status": 404, "statement": "There is no such record that this request may open.", "why": "A link that does not exist and a link that is somebody else's get one answer."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "No engine acts on a revoked link: the link refuses its own next use, and the revocation is written into the patient's audit chain, which is where it is read.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/share/link/revoke'"},
+   "enforcedBy": {"mechanism": "passport-patient-session"}
+  },
+  {
+   "method": "POST",
+   "path": "/export",
+   "version": 2,
+   "summary": "Export your own record as a FHIR R4 bundle of synthetic data, saying what it leaves out and why and that it is not stepped up, and writing the export into your access log.",
+   "callers": ["patient"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "format", "type": "string", "required": true, "why": "fhir-bundle. packages/catalog/passport-sharing.json lists an IPS document and a PDF as not built, and asking for either is refused."},
+    {"field": "sealedCategories", "type": "list", "required": false, "why": "The sealed categories the patient ticks into the file by name. Left out, every sealed entry stays out."}
+   ],
+   "response": [
+    {"field": "exportRef", "type": "string", "required": true, "why": "The export, as the access log names it. Nothing is kept for collection: the bundle is this answer and nowhere else."},
+    {"field": "bundle", "type": "string", "required": true, "object": true, "why": "A FHIR R4 Bundle of type collection.", "fields": [
+     {"field": "resourceType", "type": "string", "required": true, "why": "Bundle."},
+     {"field": "id", "type": "string", "required": true, "why": "The export reference."},
+     {"field": "type", "type": "string", "required": true, "why": "collection."},
+     {"field": "timestamp", "type": "instant", "required": true, "why": "When it was assembled."},
+     {"field": "entry", "type": "list", "required": true, "object": true, "why": "One entry per resource and per provenance record.", "fields": [
+      {"field": "fullUrl", "type": "string", "required": true, "why": "The resource, by the Passport's own id."},
+      {"field": "resource", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/passport-gateway.json#resources", "why": "A FHIR R4 resource of a type packages/catalog/passport-gateway.json lists, Provenance included."}
+     ]}
+    ]},
+    {"field": "exclusions", "type": "list", "required": true, "object": true, "why": "Everything the export leaves out, each with its sentence, from packages/catalog/passport-sharing.json export.exclusions.", "fields": [
+     {"field": "excludedCode", "type": "string", "required": true, "why": "Which exclusion, by the contract's id."},
+     {"field": "statement", "type": "string", "required": true, "why": "Why, in the contract's sentence."}
+    ]},
+    {"field": "stepUp", "type": "string", "required": true, "why": "Said plainly: the Passport has no second factor, so the export is not stepped up."}
+   ],
+   "refusals": [
+    {"id": "patient-session-required", "status": 401, "statement": "Refused: only the patient's own session can do this.", "why": "Only the patient makes, revokes or exports anything from their own record, and who is asking comes from the session, never the body."},
+    {"id": "session-ended", "status": 401, "statement": "Refused: this session has ended or expired. Sign in again.", "why": "A development session expires with the identity service's idle limit and can be ended; one that has is no session."},
+    {"id": "export-format-not-built", "status": 422, "statement": "Refused: the Passport exports a FHIR R4 bundle and nothing else yet. An IPS document and a PDF are not built.", "why": "A format answered with something else would be a file that is not what it says."},
+    {"id": "unknown-category", "status": 400, "statement": "Refused: that is not a record category the Passport knows.", "why": "Categories are packages/catalog/records.json's."},
+    {"id": "sealed-tick-names-nothing", "status": 403, "statement": "Refused: the sealed tick has to name the sealed category it opens. A tick with no sealed category in the scope is not accepted.", "why": "The tick names sealed categories. A category that is not sealed is never ticked, so naming one is a mistake worth saying."}
+   ],
+   "emits": ["passport.export.generated@1"],
+   "idempotent": false,
+   "endpointNamed": {"section": "§26"},
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/export'"},
+   "enforcedBy": {"mechanism": "passport-patient-session"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/record/settings",
+   "version": 1,
+   "summary": "Read the Record engine's settings in force — how long a share link and an emergency card last, how many times each opens, and what a link opens by default — each with its default and who proposed it, what an admin may set, and every change made to them.",
+   "callers": ["admin"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The version in force. A change is made against it, and whatever starts now keeps it."},
+    {"field": "settings", "type": "list", "required": true, "why": "Each setting: its key, type, unit, the value in force and the version that set it, its default and provenance, its limits, who may change it, what a change reaches, its guardrail, and its clinical review.", "object": true, "fields": [
+     {"field": "setting", "type": "string", "required": true, "why": "The setting's key, which a change names."},
+     {"field": "label", "type": "string", "required": true, "why": "Its name on the Configuration screen."},
+     {"field": "help", "type": "string", "required": true, "why": "The question it answers, as a sentence."},
+     {"field": "type", "type": "string", "required": true, "why": "One of the types above."},
+     {"field": "unit", "type": "string", "required": true, "nullable": true, "why": "What the value is counted in, or null for a type that has none."},
+     {"field": "inForce", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The value in force: a number, a switch, a word, a list, a rota or a record, as its type gives."},
+     {"field": "setAtVersion", "type": "integer", "required": true, "why": "The settings version that set the value in force, 1 for the contract's default."},
+     {"field": "default", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The contract's default, of the same kind as the value in force."},
+     {"field": "provenance", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#provenance", "why": "Who decided the default, when and why, or who proposed it and why, and who reviewed it where somebody did."},
+     {"field": "limits", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#setting", "why": "What an admin may set — the bounds, allowed values, roles, posts, items or parts its type carries — with their provenance."},
+     {"field": "changedBy", "type": "list", "required": true, "why": "The roles that may change it, resolved from the contract and the settings in force."},
+     {"field": "appliesTo", "type": "string", "required": true, "why": "What a change reaches, as a sentence."},
+     {"field": "guardrail", "type": "string", "required": true, "nullable": true, "why": "The sentence no value may break, or null for a setting with none."},
+     {"field": "reviewRequired", "type": "string", "required": true, "nullable": true, "why": "The capability whose holder confirms its clinical review, or null for a setting that waits on nobody."},
+     {"field": "reviewed", "type": "string", "required": true, "nullable": true, "object": true, "why": "Who confirmed the clinical review of the value in force, or null while it is not clinically reviewed.", "fields": [
+      {"field": "byRef", "type": "string", "required": true, "why": "The reviewer's reference."},
+      {"field": "at", "type": "instant", "required": true, "nullable": true, "why": "When the review was confirmed through the review route, or null for a default reviewed before it shipped."},
+      {"field": "on", "type": "iso-date", "required": true, "nullable": true, "why": "The day a default was reviewed before it shipped, or null for a review confirmed through the route."}
+     ]}
+    ]},
+    {"field": "history", "type": "list", "required": true, "why": "Every accepted change, oldest first: which setting, from, to, who, when and why. Nothing in it is edited or removed.", "object": true, "fields": [
+     {"field": "settingsVersion", "type": "integer", "required": true, "why": "The version this change made."},
+     {"field": "setting", "type": "string", "required": true, "why": "The setting it changed."},
+     {"field": "from", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The value before, of the kind its type gives."},
+     {"field": "to", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The value after."},
+     {"field": "reason", "type": "string", "required": true, "why": "Why, as it was written."},
+     {"field": "byRole", "type": "string", "required": true, "why": "The role of the person who made it."},
+     {"field": "byRef", "type": "string", "required": true, "why": "The reference of the person who made it, from the caller the runtime admitted."},
+     {"field": "at", "type": "instant", "required": true, "why": "When it was made."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "settings-read-not-permitted", "status": 403, "statement": "Only somebody who may change these settings reads them and who changed them.", "why": "The history names the people who changed how an engine behaves. It is read by the roles that may change it."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/record/engine.ts", "handler": "'GET /v1/record/settings@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/record/setting-changes",
+   "version": 1,
+   "summary": "Change one Record setting, with a reason, against the version in force. It applies to the links and cards made after it, and never lengthens one already made.",
+   "callers": ["admin"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same change once, and the history gains one row."},
+    {"field": "setting", "type": "string", "required": true, "why": "The setting's key, from the settings block of the engine's own contract."},
+    {"field": "wholeNumber", "type": "integer", "required": false, "why": "The new value, for a setting in minutes, a count, cents or a percentage."},
+    {"field": "switchedOn", "type": "boolean", "required": false, "why": "The new value, for a setting that is on or off."},
+    {"field": "choice", "type": "string", "required": false, "why": "The new value, for a setting that is one of a few named choices."},
+    {"field": "wording", "type": "string", "required": false, "why": "The new wording, for a setting patients or nurses read."},
+    {"field": "roles", "type": "list", "required": false, "why": "The new roles, for a setting that names roles from packages/catalog/vetting.json."},
+    {"field": "windows", "type": "list", "required": false, "why": "The new rota, for a setting that is windows of a post, days and hours. A post, never a named person.", "object": true, "fields": [{"field": "post", "type": "string", "required": true, "why": "The post the window is for, by its id in the setting's posts. Never a named person."}, {"field": "days", "type": "list", "required": true, "why": "The days of the week it covers, from the days packages/catalog/settings.json lists."}, {"field": "from", "type": "string", "required": true, "why": "When it opens, as hours and minutes from 00:00."}, {"field": "to", "type": "string", "required": true, "why": "When it closes, after it opens and no later than 24:00."}]},
+    {"field": "items", "type": "list", "required": false, "why": "The new values, for a setting that is a list."},
+    {"field": "parts", "type": "string", "required": false, "why": "The new values, for a setting whose parts change together.", "object": true, "shapeFrom": "packages/catalog/settings.json#partTypes"},
+    {"field": "reason", "type": "string", "required": false, "why": "Why. Asked for by the handler rather than the binder, so that a change without one is refused in its own sentence rather than the general one for a missing field."},
+    {"field": "expectedVersion", "type": "integer", "required": true, "why": "The settings version the admin was looking at. A change against an older one is refused."}
+   ],
+   "response": [
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The version this change made."},
+    {"field": "appliesFrom", "type": "instant", "required": true, "why": "When it took effect. Whatever started before it keeps the version it started under."}
+   ],
+   "refusals": [
+    {"id": "setting-change-not-permitted", "status": 403, "statement": "Only the role a setting names changes it, and the change is recorded against a named person.", "why": "A setting decides how the platform treats people. The role or capability the setting names changes it, and a change is recorded against somebody who can be asked about it; everybody else only reads what is in force."},
+    {"id": "setting-not-known", "status": 422, "statement": "There is no setting by that name.", "why": "An unknown setting is refused rather than stored, or the history fills with changes nothing reads."},
+    {"id": "setting-change-without-reason", "status": 422, "statement": "A change to a setting says why, or it is not made.", "why": "The history is read after something has gone wrong. A change with no reason is a number somebody moved."},
+    {"id": "settings-version-stale", "status": 409, "statement": "These settings changed after you opened them. Read what is in force now and decide against that.", "why": "Two admins changing one setting from screens opened at the same time would each overwrite a decision they never saw."},
+    {"id": "setting-value-wrong-type", "status": 422, "statement": "That is not the kind of value this setting holds.", "why": "A word where a number belongs, or a list where one choice belongs, is a guess at what the admin meant, and a setting is never set by a guess."},
+    {"id": "setting-not-above-zero", "status": 422, "statement": "This setting is never nought or less, whatever its range says.", "why": "A wait of nothing, an offer that lapses as it is made and a fee of nothing are never what anybody meant. The range is a proposal and could be set wrongly; this refusal does not depend on it."},
+    {"id": "setting-role-not-on-register", "status": 422, "statement": "Every role a setting names is a role on the vetting register.", "why": "A role the register does not hold is a gate nobody can be vetted through, which looks like a shortage rather than a mistake."},
+    {"id": "setting-text-too-long", "status": 422, "statement": "That wording is longer than this setting allows.", "why": "The maximum is the space the words are read in. Wording that does not fit is cut off where somebody reads it."},
+    {"id": "setting-text-loses-a-guardrail", "status": 422, "statement": "That wording drops a sentence this setting must always keep.", "why": "Some wording carries a promise that protects somebody. It may be reworded around that sentence and never without it."},
+    {"id": "setting-schedule-leaves-a-gap", "status": 422, "statement": "That rota leaves hours uncovered that must always have somebody on them.", "why": "A rota with a gap is an alert with nobody to go to, and nobody finds out until one arrives."},
+    {"id": "setting-out-of-range", "status": 422, "statement": "That is outside what an admin may set for this setting.", "why": "The bounds, the allowed values and the allowed roles sit beside the default in the engine's contract. Moving a setting past them is a change to that contract, not a setting."},
+    {"id": "setting-unchanged", "status": 409, "statement": "That is already the value in force, so there is nothing to change.", "why": "A change that changes nothing is a row in the history saying something happened when nothing did."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "No engine acts on a settings change. The engine that owns a setting reads the value in force when it starts something, and the event contract refuses an event nobody subscribes to. A change is the row it appends to the engine's own history, which the read route returns.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/record/engine.ts", "handler": "'POST /v1/record/setting-changes@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   }
  ]
 }
