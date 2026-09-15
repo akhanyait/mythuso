@@ -24,7 +24,9 @@ const said = (path: string, version: number, id: string): string =>
     .refusals.find((x: { id: string }) => x.id === id).statement;
 const ENTRY = '/v1/money/payments/{paymentRef}/cash-code';
 const RELEASE = '/v1/money/payments/{paymentRef}/release';
-const rand = (n: number) => new RegExp(`R\\s?${n}\\b`);
+/* No word boundary after the figure: a desk row sets the amount directly beside the nurse's reference, and "R 299N-205"
+   has none. What matters is that no further digit follows, so R 299 is never read as R 2990. */
+const rand = (n: number) => new RegExp(`R\\s?${n}(?!\\d)`);
 const digitOne = `${nurse.codeLabel}, digit 1 of ${money.cash.codeLength}`;
 /* A code certainly not the one issued: every digit moved on by one. */
 const notThe = (code: string) => code.split('').map(d => String((Number(d) + 1) % 10)).join('');
