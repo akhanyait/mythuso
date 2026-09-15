@@ -34,8 +34,11 @@ const intervalText = (minutes: number) => minutes % 1440 === 0 ? `${minutes / 14
  : minutes % 60 === 0 ? `${minutes / 60} ${minutes === 60 ? 'hour' : 'hours'}` : `${minutes} minutes`;
 const wearableWording = consent.purposes.find(p => p.id === link.consentPurpose)!.versions.at(-1)!.wording;
 
+/* The document and the workspace's main, which scrolls on its own: a page can stay inside the phone while its
+   main scrolls sideways, and that is how the registry's table once escaped the document-only measure. */
 async function noSidewaysScroll(page: Page) {
- return page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1 ? [document.documentElement.scrollWidth] : []);
+ return page.evaluate(() => [document.documentElement, document.querySelector('main')]
+  .filter((el): el is HTMLElement => Boolean(el)).filter(el => el.scrollWidth > el.clientWidth + 1).map(el => `${el.tagName.toLowerCase()} ${el.scrollWidth}`));
 }
 const card = (region: Locator, kind: string, serial: string) => region.getByRole('listitem', { name: `${instrument(kind)} ${serial}` });
 
@@ -84,6 +87,9 @@ test('the Control Tower\'s recall says why, and marks the readings taken since r
  await expect(registry.getByText(/Readings from it taken since then, marked and kept: 1\. None was deleted\./)).toBeVisible();
  await expect(row.getByText(label(devices.health.states, 'recalled'), { exact: true })).toBeVisible();
  await expect(row.getByRole('button', { name: ops.recall })).toHaveCount(0);
+ /* The registry table is wider than a phone. It scrolls inside its own container, and the Control Tower's
+    Incidents page around it must not scroll sideways, before or after the recall form opened and closed. */
+ expect(await noSidewaysScroll(page)).toEqual([]);
 });
 
 for (const integration of ['Apple Health', 'Health Connect']) {
