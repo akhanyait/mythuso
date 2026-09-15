@@ -1,5 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { goSection, openWorkspace } from './nav';
+/* The share rule and the sentence that opens it, read from the contracts: the rule from earnings.json,
+   and the sentence from Money's setting nurse-share-sentence by default, since no admin changes it here. */
+const json = (path: string) => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
+const shareRule = (json('packages/catalog/earnings.json').rules as { id: string; sentence: string }[]).find(r => r.id === 'share-is-not-reduced')!;
+const shareSentence = String((json('packages/catalog/money.json').settings.items as { key: string; default: { value: unknown } }[]).find(s => s.key === 'nurse-share-sentence')!.default.value);
 /* Nurse earnings and payouts.
  *
  * The landing page tells the public that a nurse keeps three quarters of every visit. These
@@ -22,7 +28,8 @@ test('the split is the catalogue’s arithmetic, and the card fee is not the nur
   await expect(legend.getByText(/Yours · 75% of the price/)).toBeVisible();
   await expect(legend.getByText('R 9', { exact: true })).toBeVisible();
   await expect(legend.getByText('R 66', { exact: true })).toBeVisible();
-  await expect(d.getByText(/never out of yours/)).toBeVisible();
+  /* The rule opens with what the share is, in words that state no fraction, and says nothing comes off it. */
+  await expect(d.locator('[data-rule="share-is-not-reduced"]')).toHaveText(`${shareSentence} ${shareRule.sentence}`);
   // a different service, and the share moves with the price rather than being restated
   await d.getByLabel('Show the split for').selectOption('senior');
   await expect(legend.getByText('R 299', { exact: true })).toBeVisible();

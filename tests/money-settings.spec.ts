@@ -149,6 +149,9 @@ test('a nurse’s share reworded by an admin reaches her earnings, and wording t
   await confirmChange(form, share, quoted(share.default.value), quoted(reworded), 'Nurses asked for the sentence to say who the money is for first.');
 
   await chooseRole(page, 'Nurse');
+  /* The nurse workspace arrives on a dynamic import. goSection picks the sidebar or the tab bar by which one
+     is visible, so it is asked only once the workspace has drawn the section it goes to. */
+  await expect(page.getByRole('button', { name: 'Earnings & payouts', exact: true }).first()).toBeVisible();
   await goSection(page, 'Earnings & payouts');
   const rule = page.locator('[data-rule="share-is-not-reduced"]');
   await expect(rule).toContainText(reworded);
