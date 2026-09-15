@@ -48,6 +48,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { loadApis, routeKey, routeFingerprint } from './emit-apis.mjs';
+import { collectEvents } from './emit-events.mjs';
 
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex').slice(0, 16);
 const byFirst = (a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
@@ -108,10 +109,39 @@ const DIMENSIONS = ['callers', 'purpose', 'because'];
 const within = (inner, outer) => DIMENSIONS.every(d => inner[d].every(x => outer[d].includes(x)));
 const same = (a, b) => within(a, b) && within(b, a);
 
+/* Every withdrawn event version, mapped to the live version its corrections lead to. A justification must
+   name a live event, so when Access withdrew version one of booking.requested, two frozen Core routes had to
+   move their engine:access justification to version two. That is not a new reason to call: it is the same event
+   followed through its own correction, which the event contract already holds to the same type or a rename
+   by the same owner. So a justification is compared by where its chain lands, and the line that named the
+   withdrawn version is left exactly as it was written. A move to any other event is still a widening. */
+export function eventSuccessors(root = '') {
+ const { events } = collectEvents(root);
+ const byKey = new Map(events.map(e => [`${e.type}@${e.version}`, e]));
+ const successors = new Map();
+ for (const [key, event] of byKey) {
+  if (!event.withdrawn) continue;
+  let at = event;
+  for (let steps = 0; at?.withdrawn && steps < byKey.size; steps++) at = byKey.get(at.withdrawn.supersededBy);
+  if (at && !at.withdrawn) successors.set(key, `${at.type}@${at.version}`);
+ }
+ return successors;
+}
+let cachedSuccessors = null;
+const followed = (standing, successors) => ({
+ ...standing,
+ because: sortedSet(standing.because.map(pair => {
+  const cut = pair.indexOf('=');
+  return `${pair.slice(0, cut)}=${successors.get(pair.slice(cut + 1)) ?? pair.slice(cut + 1)}`;
+ }))
+});
+
 /* Where a route stands against its lines: unlocked, one of several lines that do not narrow each other,
-   the same as the narrowest, narrower than it, or wider — with what it adds. */
-export function callerStanding(route, parsed) {
- const now = callersOf(route);
+   the same as the narrowest, narrower than it, or wider — with what it adds. Justifications on both sides are
+   compared by the live event their corrections lead to. */
+export function callerStanding(route, parsedLines, successors = (cachedSuccessors ??= eventSuccessors())) {
+ const now = followed(callersOf(route), successors);
+ const parsed = parsedLines.map(p => followed(p, successors));
  const lines = parsed.filter(p => p.key === routeKey(route));
  if (!lines.length) return { verdict: 'unlocked', now };
  for (const a of lines) for (const b of lines) if (!within(a, b) && !within(b, a)) return { verdict: 'incomparable', now, lines };

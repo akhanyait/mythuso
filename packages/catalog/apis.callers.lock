@@ -181,3 +181,7 @@ POST /v1/money/claims@2 callers=admin purpose=billing because=-
 POST /v1/money/market-orders@1 callers=caregiver,patient purpose=billing because=-
 GET /v1/money/settings@1 callers=admin purpose=audit because=-
 POST /v1/money/setting-changes@1 callers=admin purpose=audit because=-
+POST /v1/access/bookings@2 callers=caregiver,guardian,patient,thuso-line-agent purpose=dispatch because=-
+POST /v1/access/conversations/{conversationRef}/handover@2 callers=caregiver,patient purpose=treatment because=-
+POST /v1/access/bookings@1 callers=- purpose=dispatch because=-
+POST /v1/access/conversations/{conversationRef}/handover@1 callers=- purpose=treatment because=-
