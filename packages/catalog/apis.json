@@ -120,7 +120,8 @@
   { "id": "purpose-not-allowed", "status": 403, "statement": "This route does not serve the purpose you gave.", "why": "A read made for billing that reaches a diagnosis is the processing POPIA section 13 forbids, and it is refused before anything is opened." },
   { "id": "required-field-missing", "status": 400, "statement": "A field this route needs was not sent.", "why": "A route that guesses a missing field has invented part of somebody's request." },
   { "id": "idempotency-key-required", "status": 400, "statement": "A money or dispatch write needs an idempotency key.", "why": "Without one, a retry on a bad connection is a second charge or a second nurse." },
-  { "id": "malformed-path", "status": 400, "statement": "That address could not be read.", "why": "A path that does not decode is refused in words, rather than thrown at the process that was answering it." }
+  { "id": "malformed-path", "status": 400, "statement": "That address could not be read.", "why": "A path that does not decode is refused in words, rather than thrown at the process that was answering it." },
+  { "id": "idempotency-key-reused", "status": 409, "statement": "That idempotency key was already used for a different request.", "why": "The same key twice is the same act once. A key sent again with a different amount or a different visit is not a retry, and answering it with the first result would tell the caller something happened that did not." }
  ],
 
  "neverCrossesAnApi": {
@@ -217,7 +218,8 @@
    {"id": "route-withdrawn", "status": 410, "statement": "A withdrawn route is not answered.", "why": "Its correction is the next version, and a handler for the old one keeps the defect running."},
    {"id": "route-belongs-to-another-engine", "status": 403, "statement": "An engine answers only its own routes.", "why": "An engine answering another's route is writing to a resource whose store it does not own."},
    {"id": "calls-its-own-route", "status": 500, "statement": "An engine does its own next step in its own code, not through its own route.", "why": "An engine calling itself through the binder is a loop with one member and no owner, as a subscription to itself would be."},
-   {"id": "subscription-not-declared", "status": 403, "statement": "An engine hears only the events that list it as a subscriber.", "why": "Every subscriber is declared in the frozen contract, so a new consequence of an event is a reviewed change and not a line of code."}
+   {"id": "subscription-not-declared", "status": 403, "statement": "An engine hears only the events that list it as a subscriber.", "why": "Every subscriber is declared in the frozen contract, so a new consequence of an event is a reviewed change and not a line of code."},
+   {"id": "caller-unidentified", "status": 400, "statement": "An idempotent write needs to know who is asking.", "why": "A stored answer is handed back only to the caller who asked for it. A person the binder cannot tell apart from another would be handed whichever answer was stored first under their key."}
   ],
   "why": "The engines are built one route at a time on a development runtime: a handler bound to a route in this contract, run against its own engine's SQLite store, publishing to an in-process bus held to packages/catalog/events.json. The binder admits a route's callers from this contract and refuses the rest; a route with no handler is answered by the mock. It refuses to start without the flag, binds to loopback, believes a caller's role from a development header, and nothing in deploy/ may name it."
  },
