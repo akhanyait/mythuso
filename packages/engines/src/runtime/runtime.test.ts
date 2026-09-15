@@ -200,6 +200,54 @@ test('a declared refusal renders the contract\'s sentence; an undeclared one, a 
  runtime.close();
 });
 
+/* An engine refusal is answered only by the routes its answeredBy names. no-such-loop names the routes that
+   look a concern up by its reference, and not the one that opens a concern, which issues the reference. A
+   refusal the engine declares is not thereby a refusal every frozen route of the engine may start giving. */
+test('an engine refusal is answered by the routes it names, and is a fault from any other', () => {
+ const runtime = runtimeWith([defineEngine({ ...empty, id: 'core', routes: {
+  'POST /v1/core/loops@1': () => refuse('no-such-loop'),
+  'POST /v1/core/loops/{loopRef}/acknowledge@2': () => refuse('no-such-loop'),
+ } })]);
+ const named = acknowledge(runtime, 'nurse-synthetic-1', { idempotencyKey: 'k', loopRef: 'loop-nobody-issued' });
+ assert.deepEqual([named.status, named.body], [404, { error: 'no-such-loop', message: 'There is no concern under that reference.' }]);
+ const unnamed = runtime.call('POST /v1/core/loops@1', asCare(openLoop));
+ assert.deepEqual([unnamed.status, unnamed.body.error], [500, 'engine-fault']);
+ assert.match((runtime.faults().at(-1)!.error as Error).message, /answeredBy/);
+ runtime.close();
+});
+
+/* The inside of an object is held to its declared fields. Core's settings read declares every key of a
+   settings row and a history row, so a handler that adds a key, drops one, sends null where null is not
+   declared or a limit its contract section does not name is a fault, not an answer a screen finds out about. */
+const settingsRead = (row: Record<string, unknown>, history: unknown[] = []) => defineEngine({
+ ...empty, id: 'core', routes: { 'GET /v1/core/settings@1': () => ok({ settingsVersion: 1, settings: [row], history }) },
+});
+const settingRow = {
+ setting: 'rung-minutes', label: 'Minutes at each rung', help: 'How long a concern waits at each rung.', type: 'list', unit: 'of',
+ inForce: [15, 30], setAtVersion: 1, default: [15, 30], provenance: { decidedBy: null, proposedBy: 'synthetic', proposedBecause: 'synthetic' },
+ limits: { of: 'minutes' }, changedBy: ['admin'], appliesTo: 'Concerns opened after the change.', guardrail: null, reviewRequired: null, reviewed: null
+};
+const settingChange = { settingsVersion: 2, setting: 'rung-minutes', from: [15, 30], to: [20, 30], reason: 'synthetic', byRole: 'admin', byRef: 'admin-synthetic-1', at: '2026-09-14T09:00:00+02:00' };
+
+test('a handler\'s answer is held to the fields declared inside its objects, at every depth', () => {
+ const read = (engine: EngineModule) => {
+  const runtime = runtimeWith([engine]);
+  const answer = runtime.call('GET /v1/core/settings@1', { role: 'admin', ref: 'admin-synthetic-1', purpose: 'audit', fields: {} });
+  runtime.close();
+  return answer;
+ };
+ assert.equal(read(settingsRead(settingRow, [settingChange])).status, 200, 'a row and a change in the declared shape are answered');
+ const strays: [string, EngineModule][] = [
+  ['a key nobody declared', settingsRead({ ...settingRow, ownerName: 'Thandi' })],
+  ['a declared key dropped', settingsRead(Object.fromEntries(Object.entries(settingRow).filter(([k]) => k !== 'appliesTo')))],
+  ['a limit the settings contract does not name', settingsRead({ ...settingRow, limits: { of: 'minutes', colour: 'red' } })],
+  ['null where null is not declared', settingsRead({ ...settingRow, setting: null })],
+  ['a review missing its day', settingsRead({ ...settingRow, reviewed: { byRef: 'doctor-synthetic-1', at: null } })],
+  ['a history row whose moment is not an instant', settingsRead(settingRow, [{ ...settingChange, at: 'yesterday' }])],
+ ];
+ for (const [what, engine] of strays) assert.equal(read(engine).body.error, 'engine-fault', what);
+});
+
 test('a route with no handler is answered by the contract mock', () => {
  const runtime = runtimeWith([]);
  const answer = runtime.handle({ method: 'GET', path: '/v1/core/protocols/injection-administration%401', headers: { 'x-mythuso-role': 'nurse', 'x-mythuso-purpose': 'treatment' }, query: {}, body: {} });

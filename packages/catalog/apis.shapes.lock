@@ -1,0 +1,76 @@
+# packages/catalog/apis.shapes.lock — the inside of every object a frozen route carries.
+#
+# A route line hashes every request and response field at every depth: its name, type, requiredness, object and null
+# flags, the fields inside it, and the content, without commentary, of any contract section it takes its shape from.
+# A prose-only line names a route whose objects were described only in prose on 15 September 2026, when the rule began,
+# and the sealed line closes that list: no prose-only line is added after it. New route lines are appended by
+# `npm run apis -- --seed-new`.
+#
+# METHOD path@version hash
+# prose-only METHOD path@version
+# prose-only sealed <count> <hash>
+prose-only POST /v1/core/events@1
+prose-only GET /v1/core/loops@1
+prose-only GET /v1/core/loops@2
+prose-only GET /v1/core/settings@1
+prose-only POST /v1/core/setting-changes@1
+prose-only POST /v1/access/sign-ins/{challengeId}/verify@1
+prose-only POST /v1/access/sign-ins/{challengeToken}/second-factor@1
+prose-only GET /v1/access/sessions@1
+prose-only POST /v1/access/account-names@1
+prose-only GET /v1/access/second-factors@1
+prose-only GET /v1/access/account-data@1
+prose-only POST /v1/access/erasure-requests@1
+prose-only POST /v1/access/account-exports@1
+prose-only GET /v1/access/correction-requests@1
+prose-only GET /v1/access/consent-contract@1
+prose-only GET /v1/access/consents@1
+prose-only POST /v1/access/consents/{purposeId}/withdraw@1
+prose-only GET /v1/access/access-log@1
+prose-only GET /v1/access/subject-requests@1
+prose-only GET /v1/access/doors@1
+prose-only POST /v1/access/tools/{tool}@1
+prose-only POST /v1/access/bill-splits@1
+prose-only GET /v1/access/visit-threads/{bookingRef}@1
+prose-only GET /v1/access/settings@1
+prose-only POST /v1/access/setting-changes@1
+prose-only GET /v1/care/shifts@1
+prose-only GET /v1/care/services@1
+prose-only GET /v1/care/locum-shifts@1
+prose-only GET /v1/care/circuits@1
+prose-only GET /v1/care/settings@1
+prose-only POST /v1/care/setting-changes@1
+prose-only GET /v1/clinical/reviews@1
+prose-only POST /v1/clinical/proms@1
+prose-only GET /v1/safety/settings@1
+prose-only GET /v1/safety/settings@2
+prose-only POST /v1/safety/setting-changes@2
+prose-only GET /v1/safety/incident-kinds@1
+prose-only GET /v1/safety/incidents@1
+prose-only GET /v1/movement/facilities@1
+prose-only GET /v1/trust/standing@1
+prose-only GET /v1/trust/parties/{id}@1
+prose-only POST /v1/trust/parties@1
+prose-only POST /v1/trust/evidence@1
+prose-only POST /v1/trust/evidence/{evidenceId}/decide@1
+prose-only POST /v1/trust/evidence/{evidenceId}/second@1
+prose-only GET /v1/trust/parties/{partyId}/gates@1
+prose-only POST /consent/grant@1
+prose-only GET /audit/mine@1
+prose-only POST /breakglass@1
+prose-only GET /summary/emergency@1
+prose-only POST /fhir/{resourceType}@1
+prose-only GET /fhir/{resourceType}/{id}@1
+prose-only GET /fhir/{resourceType}@1
+prose-only GET /v1/medicines/formulary@1
+prose-only POST /v1/medicines/interaction-checks@1
+prose-only GET /v1/medicines/orders@1
+prose-only GET /v1/money/payouts@1
+prose-only GET /v1/money/settings@1
+prose-only POST /v1/money/setting-changes@1
+prose-only sealed 59 d4dce81afbed544f
+GET /v1/core/settings@1 df103720938fa8c4
+GET /v1/access/settings@1 16ebac7bf697f552
+GET /v1/care/settings@1 1987a9292e3e1911
+GET /v1/safety/settings@2 7fe01fe50479cc19
+GET /v1/money/settings@1 50f99e1f32406ec2

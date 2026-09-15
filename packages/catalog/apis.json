@@ -7,6 +7,13 @@
  "version": 1,
  "frozen": true,
  "lock": "packages/catalog/apis.lock",
+ "refusalsLock": "packages/catalog/apis.refusals.lock",
+ "callersLock": "packages/catalog/apis.callers.lock",
+ "shapesLock": "packages/catalog/apis.shapes.lock",
+ "lockHistory": {
+  "from": "becf4bc9e3f711b286dca7868454dc4a978509ff",
+  "why": "apis.lock fingerprints a route's top level and nothing else, so a route's refusals, its callers and the inside of its objects are frozen by the three locks beside it, seeded from the tree at this commit. Every API lock and events.lock is compared with its own history in git from this commit onwards: a line in any commit after it, or in HEAD, that is missing from the next is refused, because a lock line rewritten to match an edited contract is the edit and its cover in one change. History before it was written under no such rule and is not re-read."
+ },
 
  "conventions": {
   "pathPattern": "/v1/<engine>/<resource>[/{id}[/<action>]]",
@@ -137,7 +144,73 @@
  },
  "objectFields": {
   "allowedTypes": ["string", "list"],
-  "why": "packages/catalog/feeds.json has no object type, and this contract extends nothing there. A field whose value is a JSON object keeps the nearest type — string for one object, list for a list of them — and says \"object\": true, so the generated clients type it as an object rather than lying that it is text, and the mock answers it with an empty object rather than a string."
+  "why": "packages/catalog/feeds.json has no object type, and this contract extends nothing there. A field whose value is a JSON object keeps the nearest type — string for one object, list for a list of them — and says \"object\": true, so the generated clients type it as an object rather than lying that it is text, and the mock answers it with an empty object rather than a string.",
+  "innerShapes": {
+   "fields": "An object field's inside, as a list of fields in the same shape as a route's own — field, type, required, why, and object with fields of its own — to any depth.",
+   "nullable": "true when the value may be null rather than absent. A field that is always sent and sometimes null is required and nullable; a field that is sometimes left out is not required.",
+   "shapeFrom": "packages/catalog/<file>.json#<dotted path>, in place of fields, for an object whose inside a contract already decides: a setting's limits are keys packages/catalog/settings.json#setting gives, and a setting's value is whichever kind its type gives in #types. The section is hashed with its commentary left out, so a change there is a change to every route that takes its shape from it.",
+   "why": "A settings migration changed a live route's inner rows under an unchanged fingerprint, because the inside of an object was described in its why and apis.lock hashes only the top level. A shape written as a sentence cannot be frozen, compared or checked against what a handler returns. So every object a route carries declares its inside as data, packages/catalog/apis.shapes.lock freezes it, and the routes that predate the rule are listed in proseOnlyObjects."
+  }
+ },
+ "proseOnlyObjects": {
+  "decidedOn": "2026-09-15",
+  "why": "These route versions were frozen before an object's inside had to be declared, and their objects are described only in prose. A frozen route cannot honestly be given a shape nobody has checked against its handler, so each is listed by exact version rather than guessed at. The list only shrinks: a route leaves it by declaring its inner shapes, which appends its line to packages/catalog/apis.shapes.lock, and the build refuses an entry the sealed prose-only lines there do not already name. A new route, or a new version of one of these, declares its shapes from the start.",
+  "routes": [
+   "POST /v1/core/events@1",
+   "GET /v1/core/loops@1",
+   "GET /v1/core/loops@2",
+   "POST /v1/core/setting-changes@1",
+   "POST /v1/access/sign-ins/{challengeId}/verify@1",
+   "POST /v1/access/sign-ins/{challengeToken}/second-factor@1",
+   "GET /v1/access/sessions@1",
+   "POST /v1/access/account-names@1",
+   "GET /v1/access/second-factors@1",
+   "GET /v1/access/account-data@1",
+   "POST /v1/access/erasure-requests@1",
+   "POST /v1/access/account-exports@1",
+   "GET /v1/access/correction-requests@1",
+   "GET /v1/access/consent-contract@1",
+   "GET /v1/access/consents@1",
+   "POST /v1/access/consents/{purposeId}/withdraw@1",
+   "GET /v1/access/access-log@1",
+   "GET /v1/access/subject-requests@1",
+   "GET /v1/access/doors@1",
+   "POST /v1/access/tools/{tool}@1",
+   "POST /v1/access/bill-splits@1",
+   "GET /v1/access/visit-threads/{bookingRef}@1",
+   "POST /v1/access/setting-changes@1",
+   "GET /v1/care/shifts@1",
+   "GET /v1/care/services@1",
+   "GET /v1/care/locum-shifts@1",
+   "GET /v1/care/circuits@1",
+   "POST /v1/care/setting-changes@1",
+   "GET /v1/clinical/reviews@1",
+   "POST /v1/clinical/proms@1",
+   "GET /v1/safety/settings@1",
+   "POST /v1/safety/setting-changes@2",
+   "GET /v1/safety/incident-kinds@1",
+   "GET /v1/safety/incidents@1",
+   "GET /v1/movement/facilities@1",
+   "GET /v1/trust/standing@1",
+   "GET /v1/trust/parties/{id}@1",
+   "POST /v1/trust/parties@1",
+   "POST /v1/trust/evidence@1",
+   "POST /v1/trust/evidence/{evidenceId}/decide@1",
+   "POST /v1/trust/evidence/{evidenceId}/second@1",
+   "GET /v1/trust/parties/{partyId}/gates@1",
+   "POST /consent/grant@1",
+   "GET /audit/mine@1",
+   "POST /breakglass@1",
+   "GET /summary/emergency@1",
+   "POST /fhir/{resourceType}@1",
+   "GET /fhir/{resourceType}/{id}@1",
+   "GET /fhir/{resourceType}@1",
+   "GET /v1/medicines/formulary@1",
+   "POST /v1/medicines/interaction-checks@1",
+   "GET /v1/medicines/orders@1",
+   "GET /v1/money/payouts@1",
+   "POST /v1/money/setting-changes@1"
+  ]
  },
  "legacyCallbacks": {
   "why": "A supplier never calls a route. The identity service already answers one supplier callback — POST /vetting/identity/callback, the identity provider's result — which predates the doors. It is mapped here because it is built, marked legacyCallback with the door it should become, and refused everywhere else: no route may be a supplier callback unless it is built, marked, and names a door to add in its own engine file."
@@ -253,6 +326,12 @@
   { "id": "built-callers-are-enforced", "statement": "A built route's callers are exactly those its handler enforces, worked out from the mechanism it names, and a handler that enforces nothing yet fails the build.", "why": "The contract said admin-only routes were an operator's and the Passport's were narrower than the gateway allowed. A caller list that is written rather than worked out is a claim about security nobody tested." },
   { "id": "engine-callers-are-named", "statement": "No route takes calls from any engine. Each engine caller is one engine, justified by a live event it owns or hears.", "why": "Mutual TLS proves which engine is calling. It does not make every engine entitled to call clinical triage or a next-of-kin alert." },
   { "id": "references-are-declared", "statement": "A field ending Id is an entry in a named contract or an identifier the route's own engine issues. Anything else is a Ref.", "why": "A reference to another engine's store under a name ending Id walked round the rule that only a gateway reaches another engine's data." },
-  { "id": "quotes-are-quotes", "statement": "A capability quote is found word for word in the section it cites, or it says it is a paraphrase.", "why": "Forty phrases that read like quotes were not in the documents as written, which is the same overstatement as counting a route as named when only its capability was." }
+  { "id": "quotes-are-quotes", "statement": "A capability quote is found word for word in the section it cites, or it says it is a paraphrase.", "why": "Forty phrases that read like quotes were not in the documents as written, which is the same overstatement as counting a route as named when only its capability was." },
+  { "id": "refusals-are-frozen-with-the-route", "statement": "A frozen route's refusals are frozen with it: each id, its status and its sentence, and every engine refusal whose answeredBy names it. Adding, removing or rewording one is a new version of the route, never an edit.", "why": "A screen shows the sentence a route answered with, and a caller branches on the id. A settings migration reworded refusals on a live route under a fingerprint that never looked at them, and only a person reading the diff saw it." },
+  { "id": "shared-refusals-are-frozen-by-id", "statement": "A refusal routes share keeps its status and its sentence for as long as it is declared, and different words are a different id. A shared settings refusal changes only with a new version of the settings route shape.", "why": "A shared sentence changed in place changes the answer of every route that inherits it at once, and no caller can stay on the old one. A version on the shared list would only be a label on that edit." },
+  { "id": "engine-refusals-name-their-routes", "statement": "An engine refusal is answered only by the routes its answeredBy names, and the engine runtime refuses it from any other.", "why": "A refusal declared for the whole engine and answered by a frozen route is a refusal added to that route without its version changing, which is how encounter-signature-unconfirmed reached two frozen Care routes." },
+  { "id": "callers-never-widen", "statement": "A frozen route never takes calls from a caller, for a purpose or on an engine's justification it was not frozen with. A narrowing is recorded as a line of its own; a widening is a new version.", "why": "A caller added to a frozen route widens who reaches it without anybody deciding to version it, which is how GET /v1/care/settings@1 gained the doctor. And a caller removed for a reason must not drift back, so the narrowest recorded line is the one in force." },
+  { "id": "inner-shapes-are-data", "statement": "Every object a route carries declares its inside as fields, or names the contract section that decides it. Only the route versions in proseOnlyObjects are excused, and that list only shrinks.", "why": "A shape written as a sentence cannot be frozen, compared or checked against what a handler returns, and a settings migration changed one on a live route without anything noticing." },
+  { "id": "locks-are-append-only", "statement": "No line in a lock file is ever edited or removed. History is added to.", "why": "A lock line rewritten to match an edited contract is the edit and its cover in one change, and the check comparing the two passes." }
  ]
 }

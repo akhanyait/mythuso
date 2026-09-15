@@ -196,8 +196,37 @@
    "request": [],
    "response": [
     {"field": "settingsVersion", "type": "integer", "required": true, "why": "The version in force. A change is made against it, and whatever starts now keeps it."},
-    {"field": "settings", "type": "list", "required": true, "why": "Each setting: its key, type, unit, the value in force and the version that set it, its default and provenance, its limits, who may change it, what a change reaches, its guardrail, and its clinical review.", "object": true},
-    {"field": "history", "type": "list", "required": true, "why": "Every accepted change, oldest first: which setting, from, to, who, when and why. Nothing in it is edited or removed.", "object": true}
+    {"field": "settings", "type": "list", "required": true, "why": "Each setting: its key, type, unit, the value in force and the version that set it, its default and provenance, its limits, who may change it, what a change reaches, its guardrail, and its clinical review.", "object": true, "fields": [
+     {"field": "setting", "type": "string", "required": true, "why": "The setting's key, which a change names."},
+     {"field": "label", "type": "string", "required": true, "why": "Its name on the Configuration screen."},
+     {"field": "help", "type": "string", "required": true, "why": "The question it answers, as a sentence."},
+     {"field": "type", "type": "string", "required": true, "why": "One of the types in packages/catalog/settings.json."},
+     {"field": "unit", "type": "string", "required": true, "nullable": true, "why": "What the value is counted in, or null for a type that has none."},
+     {"field": "inForce", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The value in force: a number, a switch, a word, a list, a rota or a record, as its type gives."},
+     {"field": "setAtVersion", "type": "integer", "required": true, "why": "The settings version that set the value in force, 1 for the contract's default."},
+     {"field": "default", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The contract's default, of the same kind as the value in force."},
+     {"field": "provenance", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#provenance", "why": "Who decided the default, when and why, or who proposed it and why, and who reviewed it where somebody did."},
+     {"field": "limits", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#setting", "why": "What an admin may set — the bounds, allowed values, roles, posts, items or parts its type carries — with their provenance."},
+     {"field": "changedBy", "type": "list", "required": true, "why": "The roles that may change it, resolved from the contract and the settings in force."},
+     {"field": "appliesTo", "type": "string", "required": true, "why": "What a change reaches, as a sentence."},
+     {"field": "guardrail", "type": "string", "required": true, "nullable": true, "why": "The sentence no value may break, or null for a setting with none."},
+     {"field": "reviewRequired", "type": "string", "required": true, "nullable": true, "why": "The capability whose holder confirms its clinical review, or null for a setting that waits on nobody."},
+     {"field": "reviewed", "type": "string", "required": true, "nullable": true, "object": true, "why": "Who confirmed the clinical review of the value in force, or null while it is not clinically reviewed.", "fields": [
+      {"field": "byRef", "type": "string", "required": true, "why": "The reviewer's reference."},
+      {"field": "at", "type": "instant", "required": true, "nullable": true, "why": "When the review was confirmed through the review route, or null for a default reviewed before it shipped."},
+      {"field": "on", "type": "iso-date", "required": true, "nullable": true, "why": "The day a default was reviewed before it shipped, or null for a review confirmed through the route."}
+     ]}
+    ]},
+    {"field": "history", "type": "list", "required": true, "why": "Every accepted change, oldest first: which setting, from, to, who, when and why. Nothing in it is edited or removed.", "object": true, "fields": [
+     {"field": "settingsVersion", "type": "integer", "required": true, "why": "The version this change made."},
+     {"field": "setting", "type": "string", "required": true, "why": "The setting it changed."},
+     {"field": "from", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The value before, of the kind its type gives."},
+     {"field": "to", "type": "string", "required": true, "object": true, "shapeFrom": "packages/catalog/settings.json#types", "why": "The value after."},
+     {"field": "reason", "type": "string", "required": true, "why": "Why, as it was written."},
+     {"field": "byRole", "type": "string", "required": true, "why": "The role of the person who made it."},
+     {"field": "byRef", "type": "string", "required": true, "why": "The reference of the person who made it, from the caller the runtime admitted."},
+     {"field": "at", "type": "instant", "required": true, "why": "When it was made."}
+    ]}
    ],
    "refusals": [
     {"id": "settings-read-not-permitted", "status": 403, "statement": "Only somebody who may change these settings reads them and who changed them.", "why": "The history names the people who changed how an engine behaves. It is read by the roles that may change it."}

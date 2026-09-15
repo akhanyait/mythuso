@@ -11,8 +11,9 @@
  * the route names, the purpose is one the route serves, a money or dispatch write carries its
  * idempotency key, every required field is sent. It adds what a mock could not: every sent field is of
  * its declared type, a handler sees only declared fields (the names of the others and never their
- * values), and a handler's answer is the declared response shape or a refusal the route, its engine or
- * the shared list declares. A refusal is rendered with the contract's status and sentence and nothing
+ * values), and a handler's answer is the declared response shape — inside every object whose fields the
+ * contract declares, too — or a refusal the route declares, the shared list declares, or its engine declares
+ * and names the route in answeredBy. A refusal is rendered with the contract's status and sentence and nothing
  * else. Anything a handler did before refusing or failing is rolled back, and its events are dropped.
  *
  * A route no module has bound is answered by packages/mock-api, imported rather than copied, so the
@@ -31,7 +32,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { createMock, match, needsIdempotencyKey } from '../../../mock-api/src/mock.ts';
 import { BindingRefused, BusRefused, recipientsOf, refusalFrom, validatePublish, validateSubscription, valueOfType } from './bus.ts';
 import { createClock } from './clock.ts';
-import { loadRuntimeContract, repositoryRoot, routeKeyOf, type ContractRoute, type Field, type Refusal, type RuntimeContract } from './contract.ts';
+import { keysAllowedBy, loadRuntimeContract, repositoryRoot, routeKeyOf, type ContractRoute, type Field, type Refusal, type RuntimeContract } from './contract.ts';
 import { openDatabase, openEngineStore, requestDigest } from './store.ts';
 import { StoreRefused, recordTargetFor, storeFacade } from './facade.ts';
 import { createTrail } from './trail.ts';
@@ -117,8 +118,14 @@ export function createRuntime(options: RuntimeOptions): Runtime {
   faults.push({ engine, where, error });
   return render(runtimeRefusal('engine-fault'), 'runtime');
  };
+ /* An engine refusal is answered only by the routes its answeredBy names. Any route used to be able to
+    answer any refusal its engine declared, so a refusal could be added to a frozen route by declaring it
+    one level up — which is how encounter-signature-unconfirmed reached two frozen Care routes — and no
+    lock saw it. The names are part of each route's line in packages/catalog/apis.refusals.lock. */
  const declaredRefusal = (route: ContractRoute, id: string): Refusal | undefined =>
-  route.refusals.find(r => r.id === id) ?? contract.engineRefusals.get(route.engine)?.find(r => r.id === id) ?? contract.shared.find(r => r.id === id);
+  route.refusals.find(r => r.id === id)
+  ?? contract.engineRefusals.get(route.engine)?.find(r => r.id === id && (r.answeredBy ?? []).includes(route.key))
+  ?? contract.shared.find(r => r.id === id);
 
  function flush(outbox: BusEvent[]) {
   for (const event of outbox) {
@@ -176,10 +183,50 @@ export function createRuntime(options: RuntimeOptions): Runtime {
    default: return raw;
   }
  };
+ /* A handler's answer is held to its declared shape at every depth. The inside of an object used to be
+    described only in prose, so a handler could add a key to a settings row or drop one and every screen
+    reading it found out first. Where the contract declares an object's fields, a stray, a missing or a
+    mistyped key inside it is a fault exactly as an undeclared top-level field is. A value whose inside a
+    contract section decides is held to the keys that section allows, where it lists keys, and otherwise
+    left to the section, which the build hashes into the route's line in apis.shapes.lock. */
+ const shapeProblem = (where: string, f: Field, value: unknown): string | null => {
+  if (f.shapeFrom) {
+   const keys = keysAllowedBy(f.shapeFrom);
+   if (!keys) return null;
+   for (const row of f.type === 'list' && Array.isArray(value) ? value : [value]) {
+    if (typeof row !== 'object' || row === null || Array.isArray(row)) return `${where} is not an object.`;
+    const stray = Object.keys(row).find(k => !keys.has(k));
+    if (stray) return `${where} carries "${stray}", which ${f.shapeFrom} does not allow.`;
+   }
+   return null;
+  }
+  if (!valueOfType(f.type, value, f.object)) return `${where} is something other than ${f.object ? (f.type === 'list' ? 'a list of objects' : 'an object') : f.type}.`;
+  if (!f.fields) return null;
+  const rows = (f.type === 'list' ? value : [value]) as unknown[];
+  for (const [i, row] of rows.entries()) {
+   const at = f.type === 'list' ? `${where}[${i}]` : where;
+   if (typeof row !== 'object' || row === null || Array.isArray(row)) return `${at} is not an object.`;
+   const record = row as Record<string, unknown>;
+   for (const inner of f.fields) {
+    const given = record[inner.field];
+    if (given === undefined || (given === null && !inner.nullable)) { if (inner.required) return `${at} has no ${inner.field}${given === null ? ', only null' : ''}.`; continue; }
+    if (given === null) continue;
+    const problem = shapeProblem(`${at}.${inner.field}`, inner, given);
+    if (problem) return problem;
+   }
+   const stray = Object.keys(record).find(k => !f.fields!.some(inner => inner.field === k));
+   if (stray) return `${at} carries "${stray}", which its declared fields do not.`;
+  }
+  return null;
+ };
  const responseProblem = (route: ContractRoute, body: Record<string, unknown>): string | null => {
   for (const f of route.response) {
    if (body[f.field] === undefined || body[f.field] === null) { if (f.required) return `${route.key} answered without ${f.field}.`; continue; }
-   if (!valueOfType(f.type, body[f.field], f.object)) return `${route.key} answered ${f.field} as something other than ${f.type}.`;
+   if (!f.shapeFrom && !valueOfType(f.type, body[f.field], f.object)) return `${route.key} answered ${f.field} as something other than ${f.type}.`;
+   if (f.fields || f.shapeFrom) {
+    const problem = shapeProblem(`${route.key}'s ${f.field}`, f, body[f.field]);
+    if (problem) return problem;
+   }
   }
   const extra = Object.keys(body).find(k => !route.response.some(f => f.field === k));
   return extra ? `${route.key} answered with "${extra}", which its response does not declare.` : null;
@@ -261,7 +308,7 @@ export function createRuntime(options: RuntimeOptions): Runtime {
    if ('refuse' in answer) {
     db.exec('ROLLBACK');
     const refusal = declaredRefusal(route, answer.refuse);
-    if (!refusal) return fault(bound.engine, route.key, new Error(`${route.key} refused with "${answer.refuse}", which neither the route, its engine nor the shared list declares.`));
+    if (!refusal) return fault(bound.engine, route.key, new Error(`${route.key} refused with "${answer.refuse}", which neither the route nor the shared list declares, and no engine refusal of that id names in answeredBy.`));
     if (records.length) {
      if (!(route.keptOnRefusal?.refusals ?? []).includes(answer.refuse)) return fault(bound.engine, route.key, new Error(`${route.key} recorded writes for the refusal "${answer.refuse}", which its keptOnRefusal does not name, so nothing it recorded is kept.`));
      db.exec('BEGIN');

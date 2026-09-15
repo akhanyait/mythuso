@@ -9,6 +9,7 @@ import { emitSos } from './emit-sos.mjs';
 import { emitTeleconsult } from './emit-teleconsult.mjs';
 import { emitEvents, collectEvents, eventFingerprint, swiftKeyName, kotlinKeyName } from './emit-events.mjs';
 import { emitApis, loadApis, routeKey, routeFingerprint } from './emit-apis.mjs';
+import { appendOnlyFindings, callerStanding, carriesObjects, lockFiles, lockLines, parseCallersLine, parseShapesLock, proseOnlyPaths, refusalsPrint, sealOf, sectionAt, shapeOf, shapesPrint, sharedRefusalEntries } from './api-locks.mjs';
 import { emitConsentGrants } from './emit-consent-grants.mjs';
 import { emitProtocols } from './emit-protocols.mjs';
 import { emitLocales } from './emit-locales.mjs';
@@ -1684,31 +1685,45 @@ for(const {source,command,files} of generated) {
   for (const justified of Object.keys(r.callerJustifications ?? {})) if (!r.callers.includes(justified)) throw new Error(`${where} justifies ${justified}, which is not one of its callers.`);
   for (const p of r.purpose) if (!apiPurposes.has(p)) fail('every-route-names-its-scope', `${where} serves the purpose "${p}", which is not in the gate's Purpose union.`);
 
-  for (const [side, list] of [['request', r.request], ['response', r.response]]) {
-   if (!Array.isArray(list)) throw new Error(`${where} has no ${side} field list.`);
+  /* A field's rules hold at every depth. The inside of an object is declared as data now, and a name the
+     rules refuse at the top level is refused inside an object too: an identity number one level down is
+     still an identity number on somebody's phone. */
+  const checkFields = (side, list, within) => {
+   if (!Array.isArray(list)) throw new Error(`${where} has no ${side} field list${within ? ` inside "${within}"` : ''}.`);
    const names = new Set();
    for (const f of list) {
-    if (!f.field?.trim() || names.has(f.field)) throw new Error(`${where} has a ${side} field with no name, or "${f.field}" twice.`);
+    const named = within ? `${within}.${f.field}` : f.field;
+    if (!f.field?.trim() || names.has(f.field)) throw new Error(`${where} has a ${side} field with no name, or "${named}" twice.`);
     names.add(f.field);
-    if (!apiFieldTypes.has(f.type) || typeof f.required !== 'boolean' || !f.why?.trim()) throw new Error(`${where} declares the ${side} field "${f.field}" without a type from packages/catalog/feeds.json, a requiredness or a reason.`);
-    if (f.object !== undefined && (f.object !== true || !apiContract.objectFields.allowedTypes.includes(f.type))) throw new Error(`${where} marks "${f.field}" as an object with the type ${f.type}. ${apiContract.objectFields.why}`);
+    if (!apiFieldTypes.has(f.type) || typeof f.required !== 'boolean' || !f.why?.trim()) throw new Error(`${where} declares the ${side} field "${named}" without a type from packages/catalog/feeds.json, a requiredness or a reason.`);
+    if (f.object !== undefined && (f.object !== true || !apiContract.objectFields.allowedTypes.includes(f.type))) throw new Error(`${where} marks "${named}" as an object with the type ${f.type}. ${apiContract.objectFields.why}`);
+    if (f.nullable !== undefined && f.nullable !== true) throw new Error(`${where} marks "${named}" nullable as ${JSON.stringify(f.nullable)}; it is true or absent. ${apiContract.objectFields.innerShapes.nullable}`);
+    if (f.fields !== undefined || f.shapeFrom !== undefined) {
+     if (f.object !== true) fail('inner-shapes-are-data', `${where} declares the inside of the ${side} field "${named}", which is not an object.`);
+     if (f.fields !== undefined && f.shapeFrom !== undefined) throw new Error(`${where} declares the inside of "${named}" twice, as fields and from ${f.shapeFrom}. One shape has one source.`);
+     if (f.fields !== undefined && (!Array.isArray(f.fields) || !f.fields.length)) fail('inner-shapes-are-data', `${where} declares "${named}" with an empty list of fields. An object with nothing inside it is not an object.`);
+     if (f.shapeFrom !== undefined && sectionAt(f.shapeFrom) === undefined) fail('inner-shapes-are-data', `${where} takes the inside of "${named}" from ${JSON.stringify(f.shapeFrom)}, which is not a section of a contract in packages/catalog. ${apiContract.objectFields.innerShapes.shapeFrom}`);
+    }
     const refused = neverHit(f.field);
-    if (refused) fail('nothing-identifying-or-sealed-crosses-an-api', `${where} carries the ${side} field "${f.field}", refused as "${refused}".`);
+    if (refused) fail('nothing-identifying-or-sealed-crosses-an-api', `${where} carries the ${side} field "${named}", refused as "${refused}".`);
     const trustNamed = apiWords(f.field).some(w => trustWords.includes(w));
-    if (trustNamed && (['integer', 'number'].includes(f.type) || (doc.engine !== trustRule.outsideEngine && (f.field !== trustRule.only || f.type !== 'string')))) fail('nothing-identifying-or-sealed-crosses-an-api', `${where} carries the trust-named ${side} field "${f.field}" as ${f.type}. ${trustRule.why}`);
+    if (trustNamed && (['integer', 'number'].includes(f.type) || (doc.engine !== trustRule.outsideEngine && (f.field !== trustRule.only || f.type !== 'string')))) fail('nothing-identifying-or-sealed-crosses-an-api', `${where} carries the trust-named ${side} field "${named}" as ${f.type}. ${trustRule.why}`);
     const sealed = sealedNames.find(name => containsWords(f.field, name));
-    if (sealed) fail('nothing-identifying-or-sealed-crosses-an-api', `${where} carries the ${side} field "${f.field}", named for the sealed category "${sealed}".`);
+    if (sealed) fail('nothing-identifying-or-sealed-crosses-an-api', `${where} carries the ${side} field "${named}", named for the sealed category "${sealed}".`);
     if (doc.engine !== 'record' && (r.through !== apiContract.clinicalContent.onlyThrough || apiContract.clinicalContent.alwaysForEngines.includes(doc.engine)) && !anyReference(f.field)) {
      const clinical = clinicalNames.find(name => containsWords(f.field, name));
-     if (clinical) fail('clinical-content-only-through-the-record', `${where} carries the ${side} field "${f.field}" ("${clinical}") without going through the Passport gateway.`);
+     if (clinical) fail('clinical-content-only-through-the-record', `${where} carries the ${side} field "${named}" ("${clinical}") without going through the Passport gateway.`);
     }
     if (storeReference(f.field)) {
      const owner = resourceOf(apiWords(f.field.replace(/(Refs|Ref)$/, '')).join('-'));
-     if (owner && owner !== doc.engine && !r.through) fail('no-engine-reads-another-engines-store', `${where} carries "${f.field}", a reference into the ${owner} engine's store.`);
+     if (owner && owner !== doc.engine && !r.through) fail('no-engine-reads-another-engines-store', `${where} carries "${named}", a reference into the ${owner} engine's store.`);
     }
-    if (/Ids?$/.test(f.field) && !contractIds.has(f.field) && !(doc.ownIds ?? []).some(own => own.field === f.field)) fail('references-are-declared', `${where} carries "${f.field}", which is neither an entry in a contract listed in contractIds nor an identifier ${r.file} declares as its own.`);
+    if (/Ids?$/.test(f.field) && !contractIds.has(f.field) && !(doc.ownIds ?? []).some(own => own.field === f.field)) fail('references-are-declared', `${where} carries "${named}", which is neither an entry in a contract listed in contractIds nor an identifier ${r.file} declares as its own.`);
+    if (Array.isArray(f.fields)) checkFields(side, f.fields, named);
    }
-  }
+  };
+  checkFields('request', r.request, '');
+  checkFields('response', r.response, '');
 
   if (!Array.isArray(r.refusals) || !r.refusals.length) fail('every-route-refuses-something', `${where} declares no refusal.`);
   const refusalIds = new Set();
@@ -1786,6 +1801,13 @@ for(const {source,command,files} of generated) {
 
  /* Frozen: the lock, as for events. */
  const apiLockLines = read(apiContract.lock).split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+ /* No lock line is ever edited or removed, and that is asked first, so a rewritten line is reported as a
+    rewrite rather than as the route it was rewritten to match. scripts/api-locks.mjs says how the history
+    is read, and why against the tree as it stands rather than commit by commit. */
+ const seedNew = 'npm run apis -- --seed-new';
+ const lockHistory = appendOnlyFindings(lockFiles(), apiContract.lockHistory.from);
+ if (lockHistory.missingAnchor) throw new Error(`packages/catalog/apis.json#lockHistory starts at ${apiContract.lockHistory.from}, which this checkout does not have, so no lock could be compared with its history. Fetch the whole history rather than a shallow copy.`);
+ if (lockHistory.findings.length) fail('locks-are-append-only', `${lockHistory.findings.length} committed lock ${lockHistory.findings.length === 1 ? 'line is' : 'lines are'} no longer in the lock that held ${lockHistory.findings.length === 1 ? 'it' : 'them'}:\n${lockHistory.findings.map(f => `${f.file}: ${f.line}`).join('\n')}\nPut ${lockHistory.findings.length === 1 ? 'it' : 'them'} back.${lockHistory.findings.some(f => f.file !== apiEventsContract.lock) ? ` A route found wrong is withdrawn and versioned, and the new version's lines are appended by \`${seedNew}\`.` : ''}${lockHistory.findings.some(f => f.file === apiEventsContract.lock) ? ` An event found wrong is withdrawn, and its new version is a new line appended to ${apiEventsContract.lock}.` : ''}`);
  const apiLocked = new Map();
  for (const line of apiLockLines) {
   const cut = line.lastIndexOf(' ');
@@ -1797,10 +1819,116 @@ for(const {source,command,files} of generated) {
  const goneRoutes = [...apiLocked.keys()].filter(k => !declaredRoutes.has(k));
  if (goneRoutes.length) fail('api-frozen-means-frozen', `${goneRoutes.join(', ')} ${goneRoutes.length === 1 ? 'is' : 'are'} frozen in ${apiContract.lock} and no longer declared.`);
  const unlockedRoutes = [...declaredRoutes.values()].filter(r => !apiLocked.has(routeKey(r)));
- if (unlockedRoutes.length) throw new Error(`${unlockedRoutes.length} declared ${unlockedRoutes.length === 1 ? 'route is' : 'routes are'} not in ${apiContract.lock}. A new route joins the frozen contract deliberately — append:\n${unlockedRoutes.map(r => `${routeKey(r)} ${routeFingerprint(r)}`).join('\n')}`);
+ if (unlockedRoutes.length) throw new Error(`${unlockedRoutes.length} declared ${unlockedRoutes.length === 1 ? 'route is' : 'routes are'} not in ${apiContract.lock}. A new route joins the frozen contract deliberately: run \`${seedNew}\`, which appends its line here and in the three locks beside it and never rewrites one. Its line here is:\n${unlockedRoutes.map(r => `${routeKey(r)} ${routeFingerprint(r)}`).join('\n')}`);
  for (const [k, r] of declaredRoutes) if (apiLocked.get(k) !== routeFingerprint(r)) fail('api-frozen-means-frozen', `${k} does not match its line in ${apiContract.lock}: a request or response field's name, type, requiredness or object flag is not what was frozen. Put it back, withdraw it if it is wrong, and declare version ${r.version + 1}.`);
  const apiPrints = [...apiLocked.values()];
  if (new Set(apiPrints).size !== apiPrints.length) throw new Error(`${apiContract.lock} has two lines with one fingerprint.`);
+
+ /* ---- What apis.lock never covered: refusals, callers and the inside of objects -------------------------
+
+    Added by the Platform contracts lead in Wave 3. apis.lock's fingerprint is the top level of a route and
+    nothing else, and a settings migration changed a live route's inner rows and refusal sentences under it.
+    Its arithmetic is left alone, because every line in it was written by it; what it never covered is
+    frozen in three locks beside it, whose reasoning is at the top of scripts/api-locks.mjs. */
+ const lockOf = file => {
+  const lines = lockLines(file);
+  if (!lines) throw new Error(`${file} does not exist. It is seeded once from the tree by \`${seedNew}\` and only appended to after that.`);
+  return lines;
+ };
+ const apiDocs = new Map(apiEngines.map(({ doc }) => [doc.engine, doc]));
+ const toSeed = [];
+
+ /* An engine refusal names the routes that answer it, each one of its own engine's, and none that declares
+    the id itself: the runtime answers with the route's sentence first, so the engine's would never be read. */
+ const answeringRoutes = new Set();
+ let namingRefusals = 0;
+ for (const { file, doc } of apiEngines) for (const refusal of doc.refusals) {
+  if (refusal.answeredBy === undefined) continue;
+  namingRefusals++;
+  if (!Array.isArray(refusal.answeredBy) || !refusal.answeredBy.length || new Set(refusal.answeredBy).size !== refusal.answeredBy.length) fail('engine-refusals-name-their-routes', `${file} gives "${refusal.id}" an answeredBy that is empty or names a route twice. Leave it out when no route answers it.`);
+  for (const key of refusal.answeredBy) {
+   const route = declaredRoutes.get(key);
+   if (!route || route.engine !== doc.engine) fail('engine-refusals-name-their-routes', `${file} says "${refusal.id}" is answered by ${key}, which is not a route in ${file}.`);
+   if (route.refusals.some(x => x.id === refusal.id)) fail('engine-refusals-name-their-routes', `${key} declares "${refusal.id}" itself, and ${file}'s engine refusal of that id names it too. The runtime answers with the route's sentence, so the engine's would never be read.`);
+   answeringRoutes.add(key);
+  }
+ }
+
+ /* Refusals, route by route, withdrawn routes included, and every shared refusal by its scope and id. */
+ const refusalLocked = new Map();
+ for (const line of lockOf(apiContract.refusalsLock)) {
+  const cut = line.lastIndexOf(' ');
+  if (refusalLocked.has(line.slice(0, cut))) throw new Error(`${apiContract.refusalsLock} lists ${line.slice(0, cut)} twice.`);
+  refusalLocked.set(line.slice(0, cut), line.slice(cut + 1));
+ }
+ for (const [k, r] of declaredRoutes) {
+  if (!refusalLocked.has(k)) { toSeed.push(`${k} in ${apiContract.refusalsLock}`); continue; }
+  if (refusalLocked.get(k) !== refusalsPrint(r, apiDocs.get(r.engine))) fail('refusals-are-frozen-with-the-route', `${k}${r.withdrawn ? `, withdrawn on ${r.withdrawn.on},` : ''} does not match its line in ${apiContract.refusalsLock}: one of its refusals has a different id, status or sentence, one was added or taken away, or an engine refusal's answeredBy now names it or no longer does. Adding a refusal is a change as much as rewording one. ${r.withdrawn ? 'A withdrawn route keeps the refusals it was frozen with; put them back.' : `Put them back, withdraw ${k} if it is wrong, and declare version ${r.version + 1} with the refusals it should have.`}`);
+ }
+ const sharedEntries = sharedRefusalEntries();
+ const settingsShapeKinds = JSON.parse(read('packages/catalog/settings.json')).routes;
+ for (const s of sharedEntries) {
+  if (!refusalLocked.has(s.key)) { toSeed.push(`${s.key} in ${apiContract.refusalsLock}`); continue; }
+  if (refusalLocked.get(s.key) !== s.print) fail('shared-refusals-are-frozen-by-id', `The shared refusal "${s.id}" in ${s.scope} does not match its line in ${apiContract.refusalsLock}: its status or its sentence has changed. ${s.kind ? `A shared settings refusal's words change only with a new version of the ${s.kind} route shape in packages/catalog/settings.json, and every live settings route of that kind then follows with a version of its own.` : 'Put them back, and give the new words a new id.'}`);
+ }
+ const sharedKeys = new Set(sharedEntries.map(s => s.key));
+ for (const k of refusalLocked.keys()) {
+  if (declaredRoutes.has(k) || sharedKeys.has(k)) continue;
+  const earlierShape = k.match(/^shared settings\.json#refusals (\w+)@(\d+) /);
+  if (earlierShape && settingsShapeKinds[earlierShape[1]] && Number(earlierShape[2]) < settingsShapeKinds[earlierShape[1]].version) continue;
+  fail(k.startsWith('shared ') ? 'shared-refusals-are-frozen-by-id' : 'refusals-are-frozen-with-the-route', `${apiContract.refusalsLock} freezes ${k}, which is no longer declared. A refusal leaves with the route or the shape version it belongs to, and its line stays.`);
+ }
+
+ /* Callers, written out, so a narrowing is told apart from a widening. */
+ const parsedCallers = lockOf(apiContract.callersLock).map(line => {
+  const parsed = parseCallersLine(line);
+  if (!parsed) throw new Error(`${apiContract.callersLock} has a line it cannot read: ${line}`);
+  return parsed;
+ });
+ if (new Set(parsedCallers.map(p => p.line)).size !== parsedCallers.length) throw new Error(`${apiContract.callersLock} has the same line twice. A narrowing is a narrower line, never a copy.`);
+ for (const p of parsedCallers) if (!declaredRoutes.has(p.key)) fail('callers-never-widen', `${apiContract.callersLock} names ${p.key}, which is no longer declared.`);
+ const narrowedNow = [];
+ let narrowedBefore = 0;
+ for (const [k, r] of declaredRoutes) {
+  const standing = callerStanding(r, parsedCallers);
+  if (standing.verdict === 'unlocked') { toSeed.push(`${k} in ${apiContract.callersLock}`); continue; }
+  if (standing.verdict === 'incomparable') fail('callers-never-widen', `${apiContract.callersLock} has lines for ${k} that do not narrow one another, so none of them is in force:\n${standing.lines.map(p => p.line).join('\n')}`);
+  if (standing.verdict === 'widened') {
+   const added = [['callers', 'the caller'], ['purpose', 'the purpose'], ['because', 'the justification']].flatMap(([d, word]) => standing.added[d].map(x => `${word} ${x}`));
+   fail('callers-never-widen', `${k} names ${added.join(', ')}, which its line in force in ${apiContract.callersLock} does not. That widens who reaches a frozen route. ${r.withdrawn ? 'A withdrawn route takes calls from nobody.' : `Take ${added.length === 1 ? 'it' : 'them'} out, and declare version ${r.version + 1} for the wider access, with lines of its own.`}`);
+  }
+  if (standing.verdict === 'narrowed') narrowedNow.push(k);
+  if (parsedCallers.filter(p => p.key === k).length > 1) narrowedBefore++;
+ }
+ if (narrowedNow.length) throw new Error(`${narrowedNow.join(', ')} ${narrowedNow.length === 1 ? 'takes' : 'take'} calls from fewer callers, purposes or justifications than ${narrowedNow.length === 1 ? 'its line' : 'their lines'} in force in ${apiContract.callersLock}. A narrowing needs no new version, and it is recorded rather than silent: run \`npm run apis -- --record-narrowing\`, which appends the narrower line, so what was taken away cannot come back without a version.`);
+
+ /* The inside of objects: declared and frozen, or sealed as prose from before the rule, and the excused
+    list only ever shorter than the sealed one. */
+ const shapeLock = parseShapesLock(lockOf(apiContract.shapesLock));
+ if (shapeLock.malformed.length) throw new Error(`${apiContract.shapesLock} has lines it cannot read:\n${shapeLock.malformed.join('\n')}`);
+ if (shapeLock.seals.length !== 1) fail('inner-shapes-are-data', `${apiContract.shapesLock} has ${shapeLock.seals.length} sealed lines. The prose-only list is sealed once, when \`${seedNew}\` first seeds the lock, and never again.`);
+ const [proseSeal] = shapeLock.seals;
+ if (new Set(shapeLock.proseOnly).size !== shapeLock.proseOnly.length || proseSeal.count !== shapeLock.proseOnly.length || proseSeal.print !== sealOf(shapeLock.proseOnly)) fail('inner-shapes-are-data', `${apiContract.shapesLock} holds ${shapeLock.proseOnly.length} prose-only lines, and its sealed line was written over ${proseSeal.count} other ones. Only a route frozen before the rule began is excused from declaring its shapes, so no prose-only line is added after the seal.`);
+ const excused = apiContract.proseOnlyObjects;
+ if (!Array.isArray(excused?.routes) || !excused.why?.trim()) throw new Error('packages/catalog/apis.json has no proseOnlyObjects list with a sentence saying why its routes are excused.');
+ if (new Set(excused.routes).size !== excused.routes.length) throw new Error('packages/catalog/apis.json#proseOnlyObjects lists a route twice.');
+ const proseOnlyNow = new Map([...declaredRoutes].map(([k, r]) => [k, proseOnlyPaths(r)]).filter(([, paths]) => paths.length));
+ for (const k of excused.routes) {
+  if (!shapeLock.proseOnly.includes(k)) fail('inner-shapes-are-data', `packages/catalog/apis.json#proseOnlyObjects excuses ${k}, which no sealed prose-only line in ${apiContract.shapesLock} names. The list only shrinks${declaredRoutes.has(k) ? ': declare the inside of its objects as fields, or with shapeFrom, instead' : ', and there is no such route'}.`);
+  if (!proseOnlyNow.has(k)) throw new Error(`${k} declares the inside of every object it carries, and packages/catalog/apis.json#proseOnlyObjects still excuses it. Take it off the list; its shape is frozen by its line in ${apiContract.shapesLock}.`);
+ }
+ for (const [k, paths] of proseOnlyNow) if (!excused.routes.includes(k)) fail('inner-shapes-are-data', `${k} carries ${paths.join(', ')} with ${paths.length === 1 ? 'its inside' : 'their insides'} described only in prose. Declare each as fields, or name the contract section that decides it with shapeFrom; packages/catalog/apis.json#objectFields.innerShapes says how.`);
+ for (const [k, r] of declaredRoutes) {
+  if (!carriesObjects(r) || proseOnlyNow.has(k)) {
+   if (shapeLock.prints.has(k)) fail('inner-shapes-are-data', `${k} has a line in ${apiContract.shapesLock} and no longer declares the inside of its objects. Put the declared shapes back.`);
+   continue;
+  }
+  if (!shapeLock.prints.has(k)) { toSeed.push(`${k} in ${apiContract.shapesLock}`); continue; }
+  if (shapeLock.prints.get(k) !== shapesPrint(r)) fail('inner-shapes-are-data', `${k} does not match its line in ${apiContract.shapesLock}: a field inside one of its objects has a different name, type, requiredness or null flag, was added or taken away, or the contract section it takes its shape from has changed. ${r.withdrawn ? 'A withdrawn route keeps the shape it was frozen with; put it back.' : `Put it back, withdraw ${k} if it is wrong, and declare version ${r.version + 1}.`}`);
+ }
+ for (const k of shapeLock.prints.keys()) if (!declaredRoutes.has(k)) fail('inner-shapes-are-data', `${apiContract.shapesLock} freezes ${k}, which is no longer declared.`);
+ if (toSeed.length) throw new Error(`${toSeed.length} ${toSeed.length === 1 ? 'route version or shared refusal has no line' : 'route versions and shared refusals have no line'}:\n${toSeed.join('\n')}\nRun \`${seedNew}\`. It appends a line for every route version and shared refusal that has none, in all four API locks, and never rewrites one that exists.`);
+ console.log(`Beside ${apiContract.lock}: the refusals of ${declaredRoutes.size} route versions and ${sharedEntries.length} shared refusals are frozen in ${apiContract.refusalsLock}, and ${namingRefusals} engine refusals are answered only by the ${answeringRoutes.size} routes they name; the callers, purposes and justifications of ${declaredRoutes.size} route versions are written out in ${apiContract.callersLock}, ${narrowedBefore} narrowed since they were frozen and none wider; ${shapeLock.prints.size} routes declare the inside of every object and are frozen in ${apiContract.shapesLock}, and ${excused.routes.length} of the ${shapeLock.proseOnly.length} route versions sealed as prose-only are still excused. ${lockHistory.compared ? `No line committed to the five lock files since ${apiContract.lockHistory.from.slice(0, 7)}, over ${lockHistory.commits} ${lockHistory.commits === 1 ? 'commit' : 'commits'}, has been edited or removed.` : 'This is not a git checkout, so no lock was compared with its history.'}`);
 
  /* What Money may hear, as the event contract states it: billing-relevant state changes with a
     reference and a code, and never a reference into the clinical record, heard or published. */
@@ -7935,7 +8063,9 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  /* 8. Every engine with settings has its routes, in the shared shapes and words, bound through the shared
        code; and no engine declares a settings route without settings. */
  const settingsDocs = new Map(settingsApis.engineFiles.map(f => { const doc = JSON.parse(read(f)); return [doc.engine, { file: f, doc }]; }));
- const fieldShape = fields => JSON.stringify((fields ?? []).map(f => [f.field, f.type, f.required === true, f.object === true]));
+ /* Word for word at every depth, including the inside of an object and the section a value takes its shape
+    from: the migration that changed a live settings route's inner rows compared only the top level here. */
+ const fieldShape = fields => JSON.stringify(shapeOf(fields));
  for (const [engineId, { file, doc }] of settingsDocs) for (const r of doc.routes) {
   if (!r.withdrawn && /^\/v1\/[a-z]+\/(settings|setting-changes|setting-reviews)$/.test(r.path) && !settingsContract.sources.some(s => s.engine === engineId)) throw new Error(`${file} declares ${r.method} ${r.path}@${r.version}, and ${engineId} has no settings in packages/catalog/settings.json sources.`);
  }
