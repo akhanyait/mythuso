@@ -44,7 +44,6 @@
     {"id": "card-number-sent", "status": 422, "statement": "MyThuso never takes a card number; the provider's page does.", "why": "Refused before it is logged."},
     {"id": "amount-mismatch", "status": 409, "statement": "That amount is not what is owed.", "why": "A payable's amount comes from the catalogue."},
     {"id": "cash-without-otp", "status": 422, "statement": "Cash is reconciled with the patient's one-time code.", "why": "Cash leakage is a pilot measure."},
-    {"id": "idempotency-key-reused", "status": 409, "statement": "That key was already used for a different payment, so nothing was charged.", "why": "The same key twice is the same act once. The same key with a different payable, method or amount is not a retry, and treating it as one would either charge the wrong thing or hide a second charge."},
     {"id": "payable-not-found", "status": 404, "statement": "Nothing is owed under that reference.", "why": "A payment is taken against Money's own payable, whose amount comes from the catalogue. A payment against nothing is an amount that came from somewhere else."},
     {"id": "someone-elses-payable", "status": 403, "statement": "That is not yours to pay.", "why": "A payable belongs to the person it was opened for. A gift or a sponsor pays through their own routes."},
     {"id": "method-not-offered", "status": 422, "statement": "That way of paying is not offered for this.", "why": "packages/catalog/money.json says which methods each kind of payable takes, and a wallet is not offered until one is built."},

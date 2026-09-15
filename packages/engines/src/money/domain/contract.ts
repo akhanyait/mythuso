@@ -116,9 +116,28 @@ export const isRefusal = (value: unknown): value is Refusal =>
 
 type RawEvent = { type: string; version: number; owner: string; subscribers: string[]; withdrawn?: unknown; payload: { field: string }[] };
 const declared = events.events as RawEvent[];
-export const hearing = events.moneyHears;
+export type Hearing = { engine: string; events: { type: string; why: string }[]; mayReference: { field: string; why: string }[] };
+
+/**
+ * Money's hearing list, read loudly. It used to be a list of references Money may never hold, and when
+ * that list was replaced by an allow-list the old names read as undefined: the set was empty, a suffix
+ * test compared against the word "undefined", and every record reference passed while every test still
+ * did. So a missing or empty list now stops the module from loading rather than meaning "nothing is
+ * refused".
+ */
+export function hearingFrom(raw: unknown): Hearing {
+ const h = raw as Partial<Hearing> | undefined;
+ const listed = (value: unknown, key: 'type' | 'field') =>
+  Array.isArray(value) && value.length > 0 && value.every(entry => typeof entry?.[key] === 'string' && entry[key] && typeof entry?.why === 'string' && entry.why.trim());
+ if (!h || h.engine !== 'money' || !listed(h.events, 'type') || !listed(h.mayReference, 'field')) {
+  throw new Error('packages/catalog/events.json#moneyHears no longer gives Money a list of events, each with why, and a mayReference allow-list, each with why. Without both, nothing Money hears could be held to anything.');
+ }
+ return h as Hearing;
+}
+
+export const hearing = hearingFrom(events.moneyHears);
 export const heardTypes = new Set(hearing.events.map(e => e.type));
-const neverReferences = new Set<string>(hearing.neverReferences);
+const mayReference = new Set(hearing.mayReference.map(r => r.field));
 
 /** A live event Money subscribes to at this version, or undefined. */
 export function heardEvent(type: string, version: number): RawEvent | undefined {
@@ -126,9 +145,12 @@ export function heardEvent(type: string, version: number): RawEvent | undefined 
  return declared.find(e => e.type === type && e.version === version && !e.withdrawn && e.subscribers.includes('money'));
 }
 
-/** Whether a field name is a reference into the record, which Money never holds. */
-export const isRecordReference = (field: string) =>
- neverReferences.has(field) || field.endsWith(hearing.neverReferencesSuffix);
+/* A field shaped like a reference — ending Ref, Refs, Id or Ids — points at something another engine
+   stores or a contract names. Money may hold the ones on its allow-list, each with the reason it needs
+   it, and no other: an encounter, a reading entry or an assessment is refused by being absent, so a new
+   kind of record reference is refused on the day it is invented rather than the day somebody lists it. */
+const REFERENCE_SHAPE = /(Ref|Refs|Id|Ids)$/;
+export const isRecordReference = (field: string) => REFERENCE_SHAPE.test(field) && !mayReference.has(field);
 
 /** The events Money publishes, each checked live and owned by Money when this module loads. */
 export const PUBLISHES = ['payment.succeeded@1', 'payment.failed@1', 'payout.scheduled@1', 'payout.paid@1'] as const;

@@ -115,3 +115,51 @@ test('the tick closes a nurse’s week, pays it on the contract’s day, and sch
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
 });
+
+/* The runtime now keys a stored reply by the caller as well as the key, and compares what was sent.
+   These journeys hold the two layers together: the runtime's refusal for a different request under a
+   used key, the ledger's own behind it, and a key two people happen to choose being two payments. */
+function billableFor(care: ReturnType<typeof publisher>, runtime: ReturnType<typeof createRuntime>, patients: [string, string][]) {
+ for (const [appointmentRef, subjectRef] of patients) {
+  care.queue.push({ key: 'appointment.booked@1', subjectRef, payload: { appointmentRef, clinicianRef: 'N-205', scheduledFor: '2026-09-15T09:00:00+02:00' } });
+ }
+ runtime.advance(1000);
+ for (const [appointmentRef, subjectRef] of patients) {
+  care.queue.push({ key: 'visit.billable@1', subjectRef, payload: { appointmentRef, serviceId: 'vitals', clinicianRef: 'N-205' } });
+ }
+ runtime.advance(1000);
+}
+
+test('the same caller and key with a different payment is refused, and charges nothing', () => {
+ const { care, runtime, published } = world();
+ billableFor(care, runtime, [['APT-1', 'subj-lerato']]);
+ runtime.call('POST /v1/money/payments@1', pay({ idempotencyKey: 'k-1' }));
+ const charged = published('payment.succeeded@1').length + published('payment.failed@1').length;
+ const changed = runtime.call('POST /v1/money/payments@1', pay({ idempotencyKey: 'k-1', method: 'eft' }));
+ assert.equal(changed.status, refusal('idempotency-key-reused').status);
+ assert.equal(changed.body['error'], 'idempotency-key-reused');
+ assert.equal(published('payment.succeeded@1').length + published('payment.failed@1').length, charged);
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('two payers who choose the same key are two independent payments', () => {
+ const { care, runtime, published } = world();
+ billableFor(care, runtime, [['APT-1', 'subj-lerato'], ['APT-3', 'subj-thabo']]);
+ const lerato = runtime.call('POST /v1/money/payments@1', pay({ idempotencyKey: 'shared-key' }));
+ const thabo = runtime.call('POST /v1/money/payments@1', { ...pay({ idempotencyKey: 'shared-key', payableRef: 'PB-APT-3' }), ref: 'subj-thabo' });
+ assert.equal(lerato.status, 200, JSON.stringify(lerato.body));
+ assert.equal(thabo.status, 200, JSON.stringify(thabo.body));
+ assert.notEqual(lerato.body['paymentRef'], thabo.body['paymentRef']);
+ assert.equal(published('payment.succeeded@1').length + published('payment.failed@1').length, 2);
+ runtime.close();
+});
+
+test('a payment from a person the runtime cannot identify is refused before Money is asked', () => {
+ const { care, runtime } = world();
+ billableFor(care, runtime, [['APT-1', 'subj-lerato']]);
+ const { ref: _ref, ...anonymous } = pay({ idempotencyKey: 'k-anon' });
+ const answer = runtime.call('POST /v1/money/payments@1', anonymous);
+ assert.equal(answer.body['error'], 'caller-unidentified');
+ runtime.close();
+});
