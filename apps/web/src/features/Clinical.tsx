@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { VisitSafety } from './FieldSafety';
+import { startVisit, visitSigned } from '../lib/field-safety';
+import { serviceIdFor } from './Workspaces';
 import { Activity, ArrowLeft, ArrowRight, BadgeCheck, Ban, Building2, CalendarClock, Check, CircleAlert, ClipboardList, CloudOff, FlaskConical, Inbox, KeyRound, Pill as PillIcon, Radio, Repeat, Sigma, Stethoscope, ShieldCheck, ShieldX, Undo2, UserCheck, Video, X } from 'lucide-react';
 import { SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
@@ -147,6 +150,7 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
      <span className="cr-rail-label">{s}{i < stage && <span className="cr-vh">, done</span>}</span>
     </li>)}</ol>
    </>}/>
+  <VisitSafety reference={reference}/>
   <div className="c-sheet cr cr-visit">
   {stage === 0 ? <div className="form-stack cr-stage">
    <h3>Confirm you’re at the right door.</h3>
@@ -161,6 +165,9 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
      if (otp !== demoVisitCode) { setOtpError('That code doesn’t match this visit. Call the Control Tower before continuing.'); return; }
      holdPart('identity', `Code confirmed at the door for ${patient.split(' ')[0]}`,
       [['Visit code', 'Six digits, matched'], ['Identity', 'Document seen, or a household member confirmed it']]);
+     /* appointment.in_progress, as the preview has it: the code matched, so the visit has started and
+        so has its timer. */
+     startVisit(reference, serviceIdFor(reference), true);
      setStage(1);
     }}>Confirm identity<ArrowRight size={16}/></button></div>
    {/* The code is checked against the visit this phone already had. With no signal there is nothing
@@ -295,6 +302,7 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
      holdPart('sign-off', `Signed by ${signingNurse.name}`,
       [['Recorded by', `${signingNurse.name} · ${signingNurse.reference}`], ['Readings carried', `${captured.length}`], ['Next step', escalation]]);
      seal(reference);
+     visitSigned(reference);
      setSigned(true);
     }}><Check size={16}/>Sign assessment</button></div>
    </>}

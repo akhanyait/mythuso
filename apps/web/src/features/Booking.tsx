@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useOffline } from '../components/States';
 import { ClinicianProfile } from '../components/ClinicianProfile';
-import { ArrowLeft, ArrowRight, CalendarDays, CalendarClock, Check, CircleAlert, Clock3, CreditCard, Hourglass, MapPin, ShieldCheck, Undo2, X, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Ban, Banknote, CalendarDays, CalendarClock, Check, CircleAlert, Clock3, CreditCard, Hourglass, MapPin, ShieldCheck, Undo2, X, Zap } from 'lucide-react';
 import { type Service, money } from '../lib/catalog';
-import { balance as walletBalance } from '../lib/wallet';
 import { SectionTitle, ServiceIcon } from '../components/UI';
 import { StepHead } from '../components/Steps';
 import { NotConnected } from '../components/NotConnected';
@@ -13,12 +12,18 @@ import {
  resolve, statusFor, useSaslRequirement, waitSentence
 } from '../lib/interpreting';
 import { mayCancel, reasons, refusalById, reschedule, stateById, stateOf, windowSentence, wordsFor } from '../lib/cancelling';
-/* No payment provider is contracted, so the money on this screen goes through the simulated one.
-   It holds no card — it refuses to be handed one, even a fictional one — it prices the visit from
-   the catalogue rather than from whatever the screen thought it was, and roughly one attempt in
-   five is declined, because a booking flow that has only ever seen an authorisation has no screen
-   for the other answer. */
-import { payForVisit, visitReference, type PaymentResult } from '../lib/simulation';
+/* No payment provider is contracted, so the money on this screen goes through Thuso Money's own
+   ledger, with the simulated provider standing behind its locked door. It holds no card — it refuses
+   to be handed one, even a fictional one — it prices the visit from the catalogue rather than from
+   whatever the screen thought it was, keys every attempt so pressing Confirm twice is one payment, and
+   roughly one attempt in five is declined, because a booking flow that has only ever seen an
+   authorisation has no screen for the other answer. */
+import { visitReference } from '../lib/simulation';
+/* Only the ways to pay are on this screen's first load. The ledger that takes the payment reads the API,
+   event and plan contracts, and it is fetched when somebody presses Confirm — see `confirm` below. */
+import { methodByName, notOffered, visitMethods } from '../lib/money-methods';
+import type { Money } from '../../../../packages/engines/src/money/domain/ledger.ts';
+import type { PaymentView } from '../lib/money';
 import { HOME_SUBURB, nurseOfVisit } from '../lib/arrival';
 import { confirmBooking, emptyLedger, offeredSlots, personOptions, requestBooking, type Hold, type PersonChoice } from '../../../../packages/engines/src/access/domain/booking.ts';
 import { badge, candidatesFor, fill, person as personStep, review, time, zoneInAddress } from '../lib/booking';
@@ -54,9 +59,6 @@ import { BookingStatus } from './BookingStatus';
  *
  * This file arrives on a dynamic import from App.tsx. A patient who never books never downloads it. */
 export type DemoVisit = Visit;
-/* The wallet's balance is read rather than restated. It was typed here as "Balance R500.00" and
-   typed again on the wallet screen, which is two places for one number. */
-const payments = [['Card', 'Visa ending 4242', CreditCard], ['Cash', 'Pay the nurse after the visit', CreditCard], ['Thuso Wallet', `Balance ${money(walletBalance)}`, CreditCard]] as const;
 const stepLabels = ['Who', 'Where', personStep.stepLabel, 'When', 'Payment', 'Review'];
 
 type BookingProps = {
@@ -90,7 +92,8 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
  const openedAt = useMemo(() => new Date(), []);
  const [date, setDate] = useState(days[0].iso);
  const [slot, setSlot] = useState('09:00');
- const [payment, setPayment] = useState('Card');
+ /* The ways to pay are packages/catalog/money.json's, by the name a person reads. */
+ const [payment, setPayment] = useState(visitMethods[0].name);
  const [choice, setChoice] = useState<PersonChoice>({ kind: 'nearest' });
  const [consent, setConsent] = useState(false);
  const [bookingRefusal, setBookingRefusal] = useState<string | null>(null);
@@ -101,10 +104,13 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
     Deaf patient does not re-declare themselves at every booking. */
  const [saslRequired] = useSaslRequirement();
  const [mode, setMode] = useState(interpreterModes[0].id);
- /* What the simulated provider said about this visit, and how many times it has been asked. A
-    decline is a real answer rather than an error, so it lives beside the booking rather than in a
-    catch: nothing is booked until money is authorised, and the screen has to be able to say that. */
- const [paid, setPaid] = useState<PaymentResult | null>(null);
+ /* What the ledger said about this visit, and how many times it has been asked. A decline is a real
+    answer rather than an error, so it lives beside the booking rather than in a catch: nothing is
+    booked until money is authorised or cash is owed, and the screen has to be able to say that. The
+    ledger is this booking's own and lives as long as the dialog, which is the whole of what the
+    preview keeps. */
+ const ledger = useRef<Money | null>(null);
+ const [paid, setPaid] = useState<PaymentView | null>(null);
  const [payAttempt, setPayAttempt] = useState(0);
  const ends = endTime(slot, service.duration);
  const scheduled = kind === 'scheduled';
@@ -142,16 +148,17 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
   nurse: chosen ? { id: chosen.nurseRef, name: chosen.name } : undefined
  };
 
- /* Cash is not a payment result. Nobody's card is presented, no provider is asked and the money
-    changes hands at the door — so the visit is booked without one, and saying so is more honest
-    than manufacturing an authorisation for a transaction that has not happened. */
- const throughAProvider = payment !== 'Cash';
+ /* Every way to pay goes through the ledger, cash included. Card and EFT are answered by the simulated
+    provider through the payment-result door. Cash waits, with a code for the patient, and is recorded
+    as paid only when the nurse enters it after the visit — so the visit is booked with money owed,
+    which is more honest than booking it as though nothing were. */
+ const method = methodByName(payment) ?? visitMethods[0];
  const reference = visitReference(visit);
  /* The booking is requested before any money is asked for, so a slot the domain refuses is never
     charged for. The simulated roster then accepts a visit with an hour at once, and says so on the
     confirmation; a visit with no hour stays asked for, because nothing is running that could find
     somebody and a made-up hour is the invented slot the route refuses. */
- const settle = (): Visit['booking'] | null => {
+ const requestTheBooking = (): Visit['booking'] | null => {
   const at = new Date();
   const wanted = offeredSlots({ now: at, serviceId: service.id, kind, choice, holds: held })
    .find(s => kind === 'asap' || (s.date === date && s.start === slot));
@@ -163,19 +170,34 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
   const settled = accepted && !accepted.refused ? accepted.value.booking : requested.value.booking;
   return { bookingRef: settled.bookingRef, asap: kind === 'asap', history: settled.history };
  };
- const confirm = () => {
-  if (offline) return;
-  const booking = settle();
+ /* One payment in flight at a time. The ledger is fetched on the first press, so an answer is no longer
+    immediate — and while it was on its way the last decline and its "Try the payment again" button were
+    still on the screen, so a second press started a second attempt that raced the first. The button says
+    what is happening and is disabled until the answer arrives. */
+ const [paying, setPaying] = useState(false);
+ const confirm = async () => {
+  if (offline || paying) return;
+  /* A booking the domain refuses stops here, before the ledger is fetched or any money is asked for. */
+  const booking = requestTheBooking();
   if (!booking) return;
-  const booked: Visit = { ...visit, booking };
-  if (!throughAProvider) return setDone(booked);
-  const attempt = payAttempt + 1;
-  setPayAttempt(attempt);
-  const result = payForVisit(reference, service.id, attempt);
+  setPaying(true);
+  try {
+   const attempt = payAttempt + 1;
+   setPayAttempt(attempt);
+   /* Fetched on the first press and kept for the life of the dialog: one ledger per booking, and none
+      at all for somebody who only looked. */
+   const { bookingLedger, payForVisit } = await import('../lib/money');
+   ledger.current ??= bookingLedger();
+   settle(payForVisit(ledger.current, reference, service.id, method.id, attempt), { ...visit, booking });
+  } finally {
+   setPaying(false);
+  }
+ };
+ const settle = (result: PaymentView, booked: Visit) => {
   setPaid(result);
-  /* Booked only on an authorisation. A visit confirmed over a declined payment is the one outcome
-     a booking screen must not produce: it is a nurse dispatched to a house against nothing. */
-  if (result.refused === undefined && result.outcome === 'authorised') setDone(booked);
+  /* Booked on an authorisation, or on cash waiting for its code. A visit confirmed over a declined
+     payment is the one outcome a booking screen must not produce: a nurse dispatched against nothing. */
+  if (result.refused === undefined && (result.state === 'succeeded' || (result.method === 'cash-otp' && result.state === 'pending'))) setDone(booked);
  };
 
  /* A held visit does not get the confirmation screen. It says it is waiting, says what for, and
@@ -205,15 +227,23 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
    <p className="success-when">{done.kind === 'scheduled' ? <>{longDateOf(done.date!)}<br/>{done.start} – {endTime(done.start!, service.duration)}</> : labels.asapPending}</p>
    {done.interpreter?.name && <p className="helper">Interpreting: {done.interpreter.name}. {cost.sentence}</p>}
    <p className="helper">{kinds.find(k => k.id === done.kind)!.confirmation}</p>
-   {/* What the provider answered, as a receipt rather than as a tick. The reference begins SIM-
-       because the simulator refuses to produce one that does not say it is simulated. */}
-   {paid && paid.refused === undefined && paid.outcome === 'authorised' ? <>
-    <SectionTitle title="What was paid"/>
-    <div className="review-line"><span>Authorised</span><strong>{money(paid.amount)}</strong></div>
-    <div className="review-line"><span>Paid by</span><strong>{done.payment}</strong></div>
-    <div className="review-line"><span>Receipt</span><strong>{paid.receipt}</strong></div>
+   {/* What the ledger answered, as a record rather than as a tick: the payment's state in the contract's
+       words, and then either the provider's receipt — which begins SIM-, because the simulator refuses
+       to produce one that does not say it is simulated — or the cash code the nurse will ask for. */}
+   {paid && paid.refused === undefined ? <>
+    <SectionTitle title={paid.method === 'cash-otp' ? 'What is owed' : 'What was paid'}/>
+    <div className="review-line pay-status"><span>Payment</span><strong>{paid.stateName}</strong></div>
+    <p className="helper pay-words">{paid.words}</p>
+    {paid.method === 'cash-otp' ? <>
+     <div className="review-line"><span>Owed at the door</span><strong>{money(paid.amount)}</strong></div>
+     <div className="review-line cash-code"><span>Your cash code</span><strong>{paid.cashCode}</strong></div>
+    </> : <>
+     <div className="review-line"><span>Authorised</span><strong>{money(paid.amount)}</strong></div>
+     <div className="review-line"><span>Receipt</span><strong>{paid.receipt}</strong></div>
+    </>}
+    <div className="review-line"><span>{paid.method === 'cash-otp' ? 'To be paid by' : 'Paid by'}</span><strong>{done.payment}</strong></div>
     <div className="review-line"><span>Visit reference</span><strong>{reference}</strong></div>
-   </> : throughAProvider ? null : <p className="helper">Nothing has been charged. You pay the nurse at the door.</p>}
+   </> : null}
    <NotConnected of="payments"/>
    {/* A visit asked for as soon as possible from whoever is nearest names nobody. The status beneath says
        nobody is looking for a nurse, and a name above that sentence was the suburb's roster answer
@@ -299,10 +329,14 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
    <div className="button-row"><button className="secondary" onClick={() => setStep(2)}><ArrowLeft size={16}/>Back</button><button className="primary" disabled={scheduled && !hourOffered} onClick={() => setStep(4)}>Continue<ArrowRight size={16}/></button></div>
   </div> : step === 4 ? <div className="form-stack">
    <h3>How would you like to pay?</h3>
-   <div className="choice-list">{payments.map(([name, detail, Icon]) => <label key={name} className={`choice-row ${payment === name ? 'selected' : ''}`}>
-    <input type="radio" name="payment" checked={payment === name} onChange={() => setPayment(name)}/>
-    <span className="service-icon"><Icon size={20}/></span><span><strong>{name}</strong><small>{detail}</small></span>
+   {/* Named and described by the contract. No card is shown here, not even the last four digits of a
+       made-up one: a fragment of a card number on a screen is a fragment in a screenshot, and the
+       payment-result door refuses the same fragment by name. */}
+   <div className="choice-list">{visitMethods.map(m => <label key={m.id} className={`choice-row ${payment === m.name ? 'selected' : ''}`}>
+    <input type="radio" name="payment" checked={payment === m.name} onChange={() => setPayment(m.name)}/>
+    <span className="service-icon">{m.id === 'cash-otp' ? <Banknote size={20}/> : <CreditCard size={20}/>}</span><span><strong>{m.name}</strong><small>{m.detail}</small></span>
    </label>)}</div>
+   {notOffered.map(m => <p className="helper not-offered" key={m.id}><Ban size={13}/><span>{m.name}: {m.notOfferedBecause}</span></p>)}
    {/* The sentence about what happens to money comes from the payments capability rather than from
        this screen, so it stops being said the moment it stops being true. */}
    <NotConnected of="payments"/>
@@ -330,18 +364,20 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
    </>}
    <div className="journey-edit-links"><button className="text-button" onClick={() => setStep(0)}>Change person</button><button className="text-button" onClick={() => setStep(1)}>Change location</button><button className="text-button" onClick={() => setStep(2)}>Change nurse</button><button className="text-button" onClick={() => setStep(3)}>{labels.changeDate}</button></div>
    {chosenNurse && <ClinicianProfile subject={chosenNurse.roster.subject} name={chosenNurse.name} role={chosenNurse.role} reference={chosenNurse.roster.reference} detail={fill(personStep.worksIn, { zone: chosenNurse.area })}/>}
-   <div className="pay-row"><span className="service-icon"><CreditCard size={20}/></span><span>{payment === 'Card' ? '•••• 4242' : payment}</span><button className="text-button" onClick={() => setStep(4)}>Change</button></div>
+   {/* The method by the contract's name. No card fragment: the payment-result door refuses one by name. */}
+   <div className="pay-row"><span className="service-icon">{method.id === 'cash-otp' ? <Banknote size={20}/> : <CreditCard size={20}/>}</span><span>{method.name}</span><button className="text-button" onClick={() => setStep(4)}>Change</button></div>
    {/* A real gate on a real step: the address and the person are what a nurse is sent to. */}
    <label className="checkbox"><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}/><span>The address and the person above are correct, and I agree to the visit terms.</span></label>
-   {/* A refused booking and a declined payment, in the words a person reads. Each is a state of this
-       screen rather than a dialog, because what they now have to decide is on this screen. */}
+   {/* A refused booking and a declined payment, in the words a person reads: the route's refusal, or the
+       provider's reason and then the contract's sentence for a payment that did not go through. Each is
+       a state of this screen rather than a dialog, because what they now have to decide is on this screen. */}
    {bookingRefusal && <div className="privacy-note pay-refused booking-refused" role="alert"><CircleAlert size={19}/>{bookingRefusal}</div>}
    {paid?.refused !== undefined ? <div className="privacy-note pay-refused"><CircleAlert size={19}/>{paid.refused}</div>
-    : paid && paid.outcome === 'declined' ? <div className="privacy-note pay-declined" role="status">
-      <CircleAlert size={19}/><span>{paid.declineReason} Nothing is booked. You can try again, or choose another way to pay.</span></div>
+    : paid && paid.state === 'failed' ? <div className="privacy-note pay-declined" role="status">
+      <CircleAlert size={19}/><span>{paid.declineReason} {paid.words}</span></div>
     : null}
    <NotConnected of="booking"/>
-   <button className="primary full" disabled={!consent || offline} onClick={confirm}>{paid && paid.refused === undefined && paid.outcome === 'declined' ? <>Try the payment again<ArrowRight size={16}/></> : <>Confirm &amp; book<ArrowRight size={16}/></>}</button>
+   <button className="primary full" disabled={!consent || offline || paying} aria-busy={paying} onClick={() => { void confirm(); }}>{paying ? <>Taking the payment…</> : paid && paid.refused === undefined && paid.state === 'failed' ? <>Try the payment again<ArrowRight size={16}/></> : <>Confirm &amp; book<ArrowRight size={16}/></>}</button>
    <p className="helper">{ruleById('everything-survives-the-booking').sentence}</p>
    <button className="text-button" onClick={() => setStep(4)}><ArrowLeft size={15}/>Back</button>
   </div>}

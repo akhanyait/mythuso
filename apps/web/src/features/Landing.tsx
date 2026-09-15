@@ -85,7 +85,7 @@ const passPoints = [
 /* Prices and counts are derived from the service contracts; labels use patient-facing language. */
 const figures = [
  { source: 'Clear pricing', contract: 'services.json', value: money(fromPrice), unit: 'Starting price · per visit', label: 'Know the full price before you confirm.' },
- { source: 'For our nurses', contract: 'business-model.json', value: `${nurseShare}%`, unit: 'Of each visit fee', label: 'Paid to the nurse who cares for you.' },
+ { source: 'For our nurses', contract: 'business-model.json', value: `${nurseShare}%`, unit: 'Of each launch visit fee', label: 'Paid to the nurse who cares for you.' },
  { source: 'Care at home', contract: 'services.json', value: String(liveServices.length), unit: 'Services at launch', label: `Available for home visits, from a catalogue of ${services.length}.` },
  { source: 'Carefully checked', contract: 'vetting.json', value: String(nurseChecks.length), unit: 'Required checks', label: 'Must pass before a nurse’s first visit.' }
 ];
@@ -410,8 +410,11 @@ export function Landing() {
   <section id="nurses" className="landing-split reverse">
    <div data-reveal>
     <p className="landing-eyebrow"><i>05</i>For nurses</p>
-    <h2>Your registration. Your hours. Three quarters of the fee.</h2>
-    <p className="landing-lede">Thousands of qualified South African nurses are unemployed or on short contracts. MyThuso is designed as a marketplace rather than an agency: you would choose when you work, keep {nurseShare}% of every visit fee, and be paid weekly.</p>
+    {/* The share is the catalogue's, and it is said about the services this page lists — the ones a
+        nurse can be sent to at launch. Some later services pay a smaller share, so "of every fee" would
+        be a promise the catalogue does not keep; scripts/check-boundaries.mjs holds the words to it. */}
+    <h2>Your registration. Your hours. {nurseShare}% of every launch visit.</h2>
+    <p className="landing-lede">Thousands of qualified South African nurses are unemployed or on short contracts. MyThuso is designed as a marketplace rather than an agency: you would choose when you work, keep {nurseShare}% of the fee for every service offered at launch, and be paid weekly.</p>
     {/* The range below is written as two literals on purpose. scripts/check-boundaries.mjs reads
         this exact pattern out of this file and compares it against every phase-one nurse share in
         the catalogue, so the claim cannot outlive the prices it is made about. */}

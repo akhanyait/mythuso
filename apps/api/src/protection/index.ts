@@ -17,7 +17,7 @@ import { statement, stillExtends, type Witness, type WitnessVerdict } from './wi
 /* Which chain a witness statement is about. The gate's own log is the one that would be published;
    the consent module's is already sealed into it, so a head over this one covers both. */
 export const WITNESS_LOG = 'protected_access_log';
-export type { AccessRequest, AccessOutcome, Gate, AuditChain, AuditLink, Purpose, Binding, Sealed, KeyVersion } from './contract.ts';
+export type { AccessOperation, AccessRequest, AccessOutcome, Gate, AuditChain, AuditLink, Purpose, Binding, Sealed, KeyVersion } from './contract.ts';
 export type { Database } from './audit.ts';
 
 /* The lifecycle arithmetic, re-exported rather than reimplemented. EXPIRY_WARNING_DAYS already

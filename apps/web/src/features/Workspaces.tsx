@@ -8,6 +8,7 @@ import { endTime, isoIn, longDateOf } from '../lib/scheduling';
 import { signOffFor, type Part } from '../lib/visit-queue';
 import { useVisitQueue } from './VisitQueue';
 import { formatEventTime } from '../lib/vetting';
+import { CareOfferSlot } from './CareVisit';
 
 /* The four clinical workspaces' own home screens, and the four navigations that reach them.
  *
@@ -41,7 +42,7 @@ export const sectionDoor: Record<string,string> = {
 };
 export const roleExtras: Record<string,string[]> = {
  Nurse:['Locum shifts','Academy'],
- Doctor:['Clinical protocols','Referral pathway'],
+ Doctor:['Clinical protocols','Referral pathway','Per-case fees'],
  Partner:['Prescription RX-0081','Laboratory order LAB-0023'],
  'Control Tower':['Nurse onboarding & vetting','Employer programmes']
 };
@@ -150,6 +151,9 @@ const gapText = (minutes: number) => {
 };
 
 export const referenceFor = (shift: Shift) => shift === nurseDay[0] ? 'TH-2048' : `TH-2048 · ${shift.start}`;
+/** The service a visit on this day is, by the reference it opens under. The field-safety timer runs on the
+    service's own duration, so a visit says which service it is rather than how long it thinks it takes. */
+export const serviceIdFor = (reference: string) => (nurseDay.find(shift => referenceFor(shift) === reference) ?? nurseDay[0]).service.id;
 
 export function NurseSchedule({ open }: { open: (s: string) => void }) {
  const [available, setAvailable] = useState(true);
@@ -182,6 +186,9 @@ export function NurseSchedule({ open }: { open: (s: string) => void }) {
    <button className="secondary duty-toggle" aria-pressed={available} onClick={() => setAvailable(!available)}><span className={`status-dot ${available ? '' : 'offline'}`}/>{available ? 'Available for visits' : 'Off duty'}</button>
   </div>
   <NotConnected of="dispatch"/>
+  {/* An offer is a decision about the day, so it is read under the date and above the day it would
+      join. Off duty it shows nothing new; a visit she has already taken still shows. */}
+  <CareOfferSlot open={open} available={available}/>
   {available ? <div className="nday">
    {/* THE DAY AS ONE RAIL RATHER THAN A CARD AND TWO ROWS.
        It was a lime card, a section heading, two grey rows in a white box and a hairline total —

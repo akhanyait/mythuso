@@ -1278,6 +1278,35 @@ export interface GetMoneyPayoutsResponse {
  readonly payouts: ReadonlyArray<Readonly<Record<string, unknown>>>;
 }
 
+export interface PostMoneyPaymentsV2Request {
+ readonly idempotencyKey: string;
+ readonly payableRef: string;
+ readonly method: string;
+ readonly amountCents: number;
+}
+export interface PostMoneyPaymentsV2Response {
+ readonly paymentRef: string;
+ readonly stateCode: string;
+ readonly cashCode?: string;
+}
+
+export interface PostMoneyPaymentsByPaymentRefCashCodeRequest {
+ readonly idempotencyKey: string;
+ readonly paymentRef: string;
+ readonly code: string;
+}
+export interface PostMoneyPaymentsByPaymentRefCashCodeResponse {
+ readonly stateCode: string;
+}
+
+export interface PostMoneyPaymentsByPaymentRefReleaseRequest {
+ readonly idempotencyKey: string;
+ readonly paymentRef: string;
+}
+export interface PostMoneyPaymentsByPaymentRefReleaseResponse {
+ readonly stateCode: string;
+}
+
 export interface PostMoneyWalletsRequest {
  readonly idempotencyKey: string;
 }
@@ -1385,14 +1414,14 @@ export const apiRoutes = {
  postAccessBookingsByBookingRefCancel: { name: "postAccessBookingsByBookingRefCancel", method: "POST", path: "/v1/access/bookings/{bookingRef}/cancel", mountedPath: "/v1/access/bookings/{bookingRef}/cancel", version: 1, engine: "access", callers: ["patient","caregiver","guardian","thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "built" },
  getAccessVisitThreadsByBookingRef: { name: "getAccessVisitThreadsByBookingRef", method: "GET", path: "/v1/access/visit-threads/{bookingRef}", mountedPath: "/v1/access/visit-threads/{bookingRef}", version: 1, engine: "access", callers: ["patient","caregiver","guardian","nurse"], purpose: ["dispatch"], idempotent: false, status: "built" },
  postAccessVisitThreadsByBookingRefMessages: { name: "postAccessVisitThreadsByBookingRefMessages", method: "POST", path: "/v1/access/visit-threads/{bookingRef}/messages", mountedPath: "/v1/access/visit-threads/{bookingRef}/messages", version: 1, engine: "access", callers: ["patient","caregiver","guardian","nurse"], purpose: ["dispatch"], idempotent: true, status: "built" },
- postCareOffers: { name: "postCareOffers", method: "POST", path: "/v1/care/offers", mountedPath: "/v1/care/offers", version: 1, engine: "care", callers: ["dispatcher"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
- postCareOffersByOfferRefAccept: { name: "postCareOffersByOfferRefAccept", method: "POST", path: "/v1/care/offers/{offerRef}/accept", mountedPath: "/v1/care/offers/{offerRef}/accept", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
- postCareOffersByOfferRefDecline: { name: "postCareOffersByOfferRefDecline", method: "POST", path: "/v1/care/offers/{offerRef}/decline", mountedPath: "/v1/care/offers/{offerRef}/decline", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
- postCareVisitsByAppointmentRefStart: { name: "postCareVisitsByAppointmentRefStart", method: "POST", path: "/v1/care/visits/{appointmentRef}/start", mountedPath: "/v1/care/visits/{appointmentRef}/start", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postCareVisitsByAppointmentRefChecklist: { name: "postCareVisitsByAppointmentRefChecklist", method: "POST", path: "/v1/care/visits/{appointmentRef}/checklist", mountedPath: "/v1/care/visits/{appointmentRef}/checklist", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postCareVisitsByAppointmentRefCapture: { name: "postCareVisitsByAppointmentRefCapture", method: "POST", path: "/v1/care/visits/{appointmentRef}/capture", mountedPath: "/v1/care/visits/{appointmentRef}/capture", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postCareVisitsByAppointmentRefHandover: { name: "postCareVisitsByAppointmentRefHandover", method: "POST", path: "/v1/care/visits/{appointmentRef}/handover", mountedPath: "/v1/care/visits/{appointmentRef}/handover", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "proposed" },
- postCareVisitsByAppointmentRefComplete: { name: "postCareVisitsByAppointmentRefComplete", method: "POST", path: "/v1/care/visits/{appointmentRef}/complete", mountedPath: "/v1/care/visits/{appointmentRef}/complete", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "proposed" },
+ postCareOffers: { name: "postCareOffers", method: "POST", path: "/v1/care/offers", mountedPath: "/v1/care/offers", version: 1, engine: "care", callers: ["dispatcher"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ postCareOffersByOfferRefAccept: { name: "postCareOffersByOfferRefAccept", method: "POST", path: "/v1/care/offers/{offerRef}/accept", mountedPath: "/v1/care/offers/{offerRef}/accept", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ postCareOffersByOfferRefDecline: { name: "postCareOffersByOfferRefDecline", method: "POST", path: "/v1/care/offers/{offerRef}/decline", mountedPath: "/v1/care/offers/{offerRef}/decline", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ postCareVisitsByAppointmentRefStart: { name: "postCareVisitsByAppointmentRefStart", method: "POST", path: "/v1/care/visits/{appointmentRef}/start", mountedPath: "/v1/care/visits/{appointmentRef}/start", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postCareVisitsByAppointmentRefChecklist: { name: "postCareVisitsByAppointmentRefChecklist", method: "POST", path: "/v1/care/visits/{appointmentRef}/checklist", mountedPath: "/v1/care/visits/{appointmentRef}/checklist", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postCareVisitsByAppointmentRefCapture: { name: "postCareVisitsByAppointmentRefCapture", method: "POST", path: "/v1/care/visits/{appointmentRef}/capture", mountedPath: "/v1/care/visits/{appointmentRef}/capture", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postCareVisitsByAppointmentRefHandover: { name: "postCareVisitsByAppointmentRefHandover", method: "POST", path: "/v1/care/visits/{appointmentRef}/handover", mountedPath: "/v1/care/visits/{appointmentRef}/handover", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postCareVisitsByAppointmentRefComplete: { name: "postCareVisitsByAppointmentRefComplete", method: "POST", path: "/v1/care/visits/{appointmentRef}/complete", mountedPath: "/v1/care/visits/{appointmentRef}/complete", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "built" },
  postCareSyncBatches: { name: "postCareSyncBatches", method: "POST", path: "/v1/care/sync-batches", mountedPath: "/v1/care/sync-batches", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: true, status: "proposed" },
  getCareShifts: { name: "getCareShifts", method: "GET", path: "/v1/care/shifts", mountedPath: "/v1/care/shifts", version: 1, engine: "care", callers: ["nurse","locum","dispatcher"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
  getCareServices: { name: "getCareServices", method: "GET", path: "/v1/care/services", mountedPath: "/v1/care/services", version: 1, engine: "care", callers: ["patient","caregiver","nurse","dispatcher","thuso-line-agent"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
@@ -1408,7 +1437,7 @@ export const apiRoutes = {
  postSafetyCheckins: { name: "postSafetyCheckins", method: "POST", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
  postSafetyCheckinsByCheckinRefExtend: { name: "postSafetyCheckinsByCheckinRefExtend", method: "POST", path: "/v1/safety/checkins/{checkinRef}/extend", mountedPath: "/v1/safety/checkins/{checkinRef}/extend", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
  postSafetyCheckinsByCheckinRefClose: { name: "postSafetyCheckinsByCheckinRefClose", method: "POST", path: "/v1/safety/checkins/{checkinRef}/close", mountedPath: "/v1/safety/checkins/{checkinRef}/close", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "proposed" },
- postSafetyPanics: { name: "postSafetyPanics", method: "POST", path: "/v1/safety/panics", mountedPath: "/v1/safety/panics", version: 1, engine: "safety", callers: ["nurse","locum","responder","courier"], purpose: ["emergency"], idempotent: true, status: "proposed" },
+ postSafetyPanics: { name: "postSafetyPanics", method: "POST", path: "/v1/safety/panics", mountedPath: "/v1/safety/panics", version: 1, engine: "safety", callers: ["nurse","locum","responder","courier"], purpose: ["emergency"], idempotent: true, status: "built" },
  postSafetySos: { name: "postSafetySos", method: "POST", path: "/v1/safety/sos", mountedPath: "/v1/safety/sos", version: 1, engine: "safety", callers: ["patient","caregiver"], purpose: ["emergency"], idempotent: true, status: "proposed" },
  postSafetyNextOfKin: { name: "postSafetyNextOfKin", method: "POST", path: "/v1/safety/next-of-kin", mountedPath: "/v1/safety/next-of-kin", version: 1, engine: "safety", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "proposed" },
  postSafetyNextOfKinByNominationRefAlert: { name: "postSafetyNextOfKinByNominationRefAlert", method: "POST", path: "/v1/safety/next-of-kin/{nominationRef}/alert", mountedPath: "/v1/safety/next-of-kin/{nominationRef}/alert", version: 1, engine: "safety", callers: ["ops-desk","engine:core"], purpose: ["emergency"], idempotent: false, status: "proposed" },
@@ -1477,8 +1506,11 @@ export const apiRoutes = {
  postDevicesKits: { name: "postDevicesKits", method: "POST", path: "/v1/devices/kits", mountedPath: "/v1/devices/kits", version: 1, engine: "devices", callers: ["operator","nurse"], purpose: ["audit"], idempotent: false, status: "proposed" },
  postDevicesKitsByKitRefReturn: { name: "postDevicesKitsByKitRefReturn", method: "POST", path: "/v1/devices/kits/{kitRef}/return", mountedPath: "/v1/devices/kits/{kitRef}/return", version: 1, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "proposed" },
  postDevicesKitsByKitRefLoss: { name: "postDevicesKitsByKitRefLoss", method: "POST", path: "/v1/devices/kits/{kitRef}/loss", mountedPath: "/v1/devices/kits/{kitRef}/loss", version: 1, engine: "devices", callers: ["operator","nurse"], purpose: ["audit"], idempotent: false, status: "proposed" },
- postMoneyPayments: { name: "postMoneyPayments", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 1, engine: "money", callers: ["patient","caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "proposed" },
- getMoneyPayouts: { name: "getMoneyPayouts", method: "GET", path: "/v1/money/payouts", mountedPath: "/v1/money/payouts", version: 1, engine: "money", callers: ["nurse","locum","doctor"], purpose: ["billing"], idempotent: false, status: "proposed" },
+ postMoneyPayments: { name: "postMoneyPayments", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 1, engine: "money", callers: ["patient","caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "built" },
+ getMoneyPayouts: { name: "getMoneyPayouts", method: "GET", path: "/v1/money/payouts", mountedPath: "/v1/money/payouts", version: 1, engine: "money", callers: ["nurse","locum","doctor"], purpose: ["billing"], idempotent: false, status: "built" },
+ postMoneyPaymentsV2: { name: "postMoneyPaymentsV2", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 2, engine: "money", callers: ["patient","caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "built" },
+ postMoneyPaymentsByPaymentRefCashCode: { name: "postMoneyPaymentsByPaymentRefCashCode", method: "POST", path: "/v1/money/payments/{paymentRef}/cash-code", mountedPath: "/v1/money/payments/{paymentRef}/cash-code", version: 1, engine: "money", callers: ["nurse"], purpose: ["billing"], idempotent: true, status: "proposed" },
+ postMoneyPaymentsByPaymentRefRelease: { name: "postMoneyPaymentsByPaymentRefRelease", method: "POST", path: "/v1/money/payments/{paymentRef}/release", mountedPath: "/v1/money/payments/{paymentRef}/release", version: 1, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: true, status: "proposed" },
  postMoneyWallets: { name: "postMoneyWallets", method: "POST", path: "/v1/money/wallets", mountedPath: "/v1/money/wallets", version: 1, engine: "money", callers: ["patient","caregiver"], purpose: ["billing"], idempotent: true, status: "proposed" },
  postMoneyVouchers: { name: "postMoneyVouchers", method: "POST", path: "/v1/money/vouchers", mountedPath: "/v1/money/vouchers", version: 1, engine: "money", callers: ["patient","caregiver","sponsor","corner"], purpose: ["billing"], idempotent: true, status: "proposed" },
  postMoneyGifts: { name: "postMoneyGifts", method: "POST", path: "/v1/money/gifts", mountedPath: "/v1/money/gifts", version: 1, engine: "money", callers: ["caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "proposed" },

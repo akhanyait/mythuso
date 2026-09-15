@@ -292,6 +292,9 @@ type Stage = 'break-glass' | 'capability' | 'vetting-standing' | 'purpose' | 'pr
    where the two quietly stop agreeing. */
 type Intent = 'read' | 'write';
 
+/* The two operation kinds a data subject may perform on their own record by identity alone. */
+const SELF_OPERATIONS: ReadonlySet<string> = new Set(['read', 'self-service']);
+
 export class AccessGate implements Gate {
  /* Written out rather than constructor parameter properties: Node runs these files by stripping
     types, and stripping cannot rewrite a parameter property into a field. */
@@ -391,9 +394,16 @@ export class AccessGate implements Gate {
      capability stage is satisfied by identity here and by nothing else. Anyone else asking on their
      behalf — a guardian, a sponsor, a relative — falls through to the ordinary grants, which is
      where a guardian's proven authority is meant to be checked. */
-  const isSubjectThemselves = request.purpose === 'subject-access' && request.actorId === request.subjectId;
+  /* And only for reading or self-service. The shortcut used to apply to anything a subject did to
+     their own record, so a nurse on the register could enrol herself as an admin and a suspended
+     party could lift their own suspension: both were "subject access" by the only test the gate had,
+     which was whose record it was. An administrative write passes the capability and standing stages
+     or it does not pass, whoever it is about, and an operation nobody named is administrative. */
+  const actingOnSelf = request.purpose === 'subject-access' && request.actorId === request.subjectId;
+  const isSubjectThemselves = actingOnSelf && SELF_OPERATIONS.has(request.operation ?? 'administrative');
   const grant = role?.grants.find(candidate => candidate.capability === request.capability);
   if (!isSubjectThemselves && !grant) {
+   if (actingOnSelf) return this.#refuse(request, 'capability', vetting.selfActionRefusals.administrativeOnSelf, []);
    if (request.purpose === 'subject-access') {
     return this.#refuse(request, 'capability', 'Subject access is the person reading their own record. Reading somebody else\'s is a different request, under a different purpose, with the authority for it proven.', []);
    }

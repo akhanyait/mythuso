@@ -696,3 +696,49 @@ describe('renewal warnings', () => {
   assert.equal(noticesFor(evidence, 'Police clearance', START, already).send, null);
  });
 });
+
+describe('a party does not act administratively on their own register entry', () => {
+ /* Each layer is proved on its own. A cleared reviewer holds the capability and passes the standing
+    stage, so the gate would let these through: what refuses them is the vault and the store. */
+ const self = (id: string, role: string): Actor => ({ id, role, purpose: 'subject-access' });
+ const inChain = (h: ReturnType<typeof harness>, event: string) =>
+  (h.db.prepare('SELECT * FROM protected_access_log').all() as unknown[]).filter(row => JSON.stringify(row).includes(event)).length;
+
+ test('a cleared reviewer still cannot enrol themselves or change their own role, and each refusal is in the chain', () => {
+  const h = reviewers(harness());
+  for (const actor of [self('admin-1', 'admin'), reviewer('admin-1')]) {
+   const refused = h.vault.enrol(actor, { id: 'admin-1', roleId: 'nurse' });
+   assert.equal(refused.ok, false);
+   assert.equal(refused.ok ? '' : refused.reason, catalogue.selfActionRefusals.enrol);
+  }
+  assert.equal(h.store.findParty('admin-1')!.roleId, 'admin');
+  assert.equal(inChain(h, 'vetting.self.refused'), 2);
+ });
+
+ test('nobody lifts their own suspension, suspended or not', () => {
+  const h = reviewers(harness());
+  const notSuspended = h.vault.restore(self('admin-1', 'admin'), 'admin-1');
+  assert.equal(notSuspended.ok ? '' : notSuspended.reason, catalogue.selfActionRefusals.restore);
+  assert.ok(h.vault.suspend(reviewer('admin-2'), 'admin-1', 'Synthetic complaint under review.').ok);
+  const suspended = h.vault.restore(reviewer('admin-1'), 'admin-1');
+  assert.equal(suspended.ok ? '' : suspended.reason, catalogue.selfActionRefusals.restore);
+  assert.notEqual(h.store.findParty('admin-1')!.suspendedAt, null);
+  assert.ok(h.vault.restore(reviewer('admin-2'), 'admin-1').ok);
+ });
+
+ test('enrolling somebody already on the register is refused, and never rewrites their role', () => {
+  const h = reviewers(harness());
+  assert.ok(h.vault.enrol(reviewer('admin-1'), { id: 'nurse-9', roleId: 'nurse' }).ok);
+  const again = h.vault.enrol(reviewer('admin-1'), { id: 'nurse-9', roleId: 'admin' });
+  assert.equal(again.ok ? '' : again.reason, catalogue.selfActionRefusals.alreadyEnrolled);
+  assert.equal(h.store.findParty('nurse-9')!.roleId, 'nurse');
+ });
+
+ test('the store creates a party and never changes one', () => {
+  const h = reviewers(harness());
+  const row = h.store.findParty('admin-1')!;
+  h.store.putParty({ ...row, roleId: 'nurse', reference: 'rewritten' });
+  assert.equal(h.store.findParty('admin-1')!.roleId, 'admin');
+  assert.equal(h.store.findParty('admin-1')!.reference, row.reference);
+ });
+});

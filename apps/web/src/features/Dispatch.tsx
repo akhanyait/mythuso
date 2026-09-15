@@ -264,7 +264,7 @@ export const controlTowerCounts = () => ({
 const SEVERITY_ORDER = ['Critical', 'High', 'Medium', 'Low'];
 const bySeverity = (a: { severity: string; opened: string }, b: { severity: string; opened: string }) =>
  SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity) || a.opened.localeCompare(b.opened);
-export function IncidentBoard({ open }: { open: (s: string) => void }) {
+export function IncidentBoard({ open, notice = true }: { open: (s: string) => void; notice?: boolean }) {
  return <div className="panel incident-panel">
   {/* The severity word stays on the row beside the rule that marks it. The rule is faster to read
       down a list and the word is what a reader who cannot see it gets — colour is never the only
@@ -277,7 +277,9 @@ export function IncidentBoard({ open }: { open: (s: string) => void }) {
     <span className="incident-opened">{i.opened}</span>
     <ArrowRight size={17}/>
    </button></li>)}</ol>
-  <NotConnected of="dispatch" tone="inline"/>
+  {/* Off only where the field-safety queue stands above this board and already carries the same
+      notice: one sentence a screen, not the same one twice. */}
+  {notice && <NotConnected of="dispatch" tone="inline"/>}
  </div>;
 }
 export function IncidentDetail({ reference = 'INC-015', onClose }: { reference?: string; onClose: () => void }) {

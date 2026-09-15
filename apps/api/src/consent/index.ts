@@ -456,6 +456,8 @@ export class RecordAccessLog {
    actorId: attempt.actorId, actorRole: attempt.actorRole, capability: attempt.capability,
    purpose: attempt.purpose, recordType: attempt.recordType, recordId: attempt.recordId,
    subjectId: attempt.subjectId, field: attempt.field,
+   /* Every reading made through the log is a read — including a person reading their own log. */
+   operation: 'read',
    ...(attempt.reason ? { reason: attempt.reason } : {})
   };
  }

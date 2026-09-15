@@ -352,6 +352,11 @@ import za.co.mythuso.model.mokoenaHousehold
         title == "First-run & recovery" -> firstRun()
         title == "Invite a guardian" -> InviteGuardianScreen(store) { open("My family") }
         title == "Visit assessment" -> VisitAssessmentScreen(store, close = { open("Nurse workspace") }, open = open)
+        /* The visit a nurse accepted from her schedule, and the assessment it is signed off in — opened
+           under the visit's own reference, so the sign-off it seals is the one handover and completion
+           ask for, and closing it returns to the visit. */
+        title == "Care visit" -> CareVisitScreen(store, open)
+        title == "Care assessment" -> VisitAssessmentScreen(store, reference = za.co.mythuso.model.CareData.Preview.appointmentRef, close = { open("Care visit") }, open = open)
         /* The whole visit, one level up from the readings. Its own route because it is worth opening
            when no instrument is anywhere near — it is where the morning’s work sits when there is no
            signal, and on this platform it is on the disk rather than in memory. */
@@ -367,6 +372,8 @@ import za.co.mythuso.model.mokoenaHousehold
         title == "Thuso Kit" || title == "Diagnostic kit" -> ThusoKitScreen(store, open)
         title == "Capture queue" -> CaptureQueueScreen(store, open)
         title == "Weekly payouts" || title == "Earnings & payouts" -> EarningsScreen(store, open)
+        /* A doctor's per-case fees: the cases Money recorded and a fee nobody has decided. */
+        title == "Per-case fees" -> DoctorFeesScreen()
         title == "Thuso SOS" || title == "Emergency & urgent care" -> SosScreen(store)
         /* Gilbert full screen, for a link; the orb on the patient shell opens the same content in a sheet. */
         title == za.co.mythuso.model.GilbertData.name -> GilbertScreen(store, open)
@@ -828,6 +835,9 @@ private fun sectionDeck(role: String, section: String) =
         when {
             role == "Nurse" && section == "Schedule" -> {
                 CareCard { Setting("Available for visits", available) { available = it } }
+                /* An offer is a decision about the day, so it is read directly under whether she is
+                   taking visits at all. Off duty it shows nothing new; a visit she has taken still shows. */
+                CareOfferCard(store, available, open)
                 /* First, not last. A nurse coming out of a house with no signal wants one answer
                    before anything else on this screen: is my work safe? */
                 CareCard {
@@ -931,6 +941,10 @@ private fun sectionDeck(role: String, section: String) =
                     Text("Your vetting", style = MaterialTheme.typography.titleMedium)
                     listOf("Vetting: D-401", "Apply for vetting: doctor").forEach { item -> ToolRow(label(item)) { open(item) } }
                 }
+                CareCard {
+                    Text("Your fees", style = MaterialTheme.typography.titleMedium)
+                    ToolRow("Per-case fees") { open("Per-case fees") }
+                }
             }
             role == "Doctor" && section == "Teleconsultation" -> CareCard { ToolRow("Teleconsultation") { open("Teleconsultation") } }
             role == "Doctor" && section == "Patient context" -> {
@@ -990,12 +1004,17 @@ private fun sectionDeck(role: String, section: String) =
                 ToolRow("Live dispatch board") { open("Live dispatch board") }
                 ToolRow(label("Vetting: O-802")) { open("Vetting: O-802") }
             }
-            role == "Control Tower" && section == "Incidents" -> CareCard {
-                Text("Open incidents", style = MaterialTheme.typography.titleMedium)
-                incidents.forEach { incident ->
-                    Column(Modifier.fillMaxWidth()) {
-                        ToolRow("${incident.id} · ${incident.title}") { open("Incident ${incident.id}") }
-                        Note("${incident.severity} · ${incident.area} · Opened ${incident.opened} · ${incident.status}")
+            /* The field-safety queue leads the section: a nurse in trouble is picked up before the
+               register of what went wrong last week is read. */
+            role == "Control Tower" && section == "Incidents" -> Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
+                SafetyDeskSection()
+                CareCard {
+                    Text("Open incidents", style = MaterialTheme.typography.titleMedium)
+                    incidents.forEach { incident ->
+                        Column(Modifier.fillMaxWidth()) {
+                            ToolRow("${incident.id} · ${incident.title}") { open("Incident ${incident.id}") }
+                            Note("${incident.severity} · ${incident.area} · Opened ${incident.opened} · ${incident.status}")
+                        }
                     }
                 }
             }

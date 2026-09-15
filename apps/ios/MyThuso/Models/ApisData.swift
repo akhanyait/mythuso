@@ -73,14 +73,14 @@ enum ApisData {
     static let postAccessBookingsByBookingRefCancel = Route(id: "postAccessBookingsByBookingRefCancel", method: "POST", path: "/v1/access/bookings/{bookingRef}/cancel", mountedPath: "/v1/access/bookings/{bookingRef}/cancel", version: 1, engine: "access", callers: ["patient", "caregiver", "guardian", "thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "built")
     static let getAccessVisitThreadsByBookingRef = Route(id: "getAccessVisitThreadsByBookingRef", method: "GET", path: "/v1/access/visit-threads/{bookingRef}", mountedPath: "/v1/access/visit-threads/{bookingRef}", version: 1, engine: "access", callers: ["patient", "caregiver", "guardian", "nurse"], purpose: ["dispatch"], idempotent: false, status: "built")
     static let postAccessVisitThreadsByBookingRefMessages = Route(id: "postAccessVisitThreadsByBookingRefMessages", method: "POST", path: "/v1/access/visit-threads/{bookingRef}/messages", mountedPath: "/v1/access/visit-threads/{bookingRef}/messages", version: 1, engine: "access", callers: ["patient", "caregiver", "guardian", "nurse"], purpose: ["dispatch"], idempotent: true, status: "built")
-    static let postCareOffers = Route(id: "postCareOffers", method: "POST", path: "/v1/care/offers", mountedPath: "/v1/care/offers", version: 1, engine: "care", callers: ["dispatcher"], purpose: ["dispatch"], idempotent: true, status: "proposed")
-    static let postCareOffersByOfferRefAccept = Route(id: "postCareOffersByOfferRefAccept", method: "POST", path: "/v1/care/offers/{offerRef}/accept", mountedPath: "/v1/care/offers/{offerRef}/accept", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["dispatch"], idempotent: true, status: "proposed")
-    static let postCareOffersByOfferRefDecline = Route(id: "postCareOffersByOfferRefDecline", method: "POST", path: "/v1/care/offers/{offerRef}/decline", mountedPath: "/v1/care/offers/{offerRef}/decline", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["dispatch"], idempotent: true, status: "proposed")
-    static let postCareVisitsByAppointmentRefStart = Route(id: "postCareVisitsByAppointmentRefStart", method: "POST", path: "/v1/care/visits/{appointmentRef}/start", mountedPath: "/v1/care/visits/{appointmentRef}/start", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postCareVisitsByAppointmentRefChecklist = Route(id: "postCareVisitsByAppointmentRefChecklist", method: "POST", path: "/v1/care/visits/{appointmentRef}/checklist", mountedPath: "/v1/care/visits/{appointmentRef}/checklist", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postCareVisitsByAppointmentRefCapture = Route(id: "postCareVisitsByAppointmentRefCapture", method: "POST", path: "/v1/care/visits/{appointmentRef}/capture", mountedPath: "/v1/care/visits/{appointmentRef}/capture", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postCareVisitsByAppointmentRefHandover = Route(id: "postCareVisitsByAppointmentRefHandover", method: "POST", path: "/v1/care/visits/{appointmentRef}/handover", mountedPath: "/v1/care/visits/{appointmentRef}/handover", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postCareVisitsByAppointmentRefComplete = Route(id: "postCareVisitsByAppointmentRefComplete", method: "POST", path: "/v1/care/visits/{appointmentRef}/complete", mountedPath: "/v1/care/visits/{appointmentRef}/complete", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "proposed")
+    static let postCareOffers = Route(id: "postCareOffers", method: "POST", path: "/v1/care/offers", mountedPath: "/v1/care/offers", version: 1, engine: "care", callers: ["dispatcher"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let postCareOffersByOfferRefAccept = Route(id: "postCareOffersByOfferRefAccept", method: "POST", path: "/v1/care/offers/{offerRef}/accept", mountedPath: "/v1/care/offers/{offerRef}/accept", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let postCareOffersByOfferRefDecline = Route(id: "postCareOffersByOfferRefDecline", method: "POST", path: "/v1/care/offers/{offerRef}/decline", mountedPath: "/v1/care/offers/{offerRef}/decline", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let postCareVisitsByAppointmentRefStart = Route(id: "postCareVisitsByAppointmentRefStart", method: "POST", path: "/v1/care/visits/{appointmentRef}/start", mountedPath: "/v1/care/visits/{appointmentRef}/start", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postCareVisitsByAppointmentRefChecklist = Route(id: "postCareVisitsByAppointmentRefChecklist", method: "POST", path: "/v1/care/visits/{appointmentRef}/checklist", mountedPath: "/v1/care/visits/{appointmentRef}/checklist", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postCareVisitsByAppointmentRefCapture = Route(id: "postCareVisitsByAppointmentRefCapture", method: "POST", path: "/v1/care/visits/{appointmentRef}/capture", mountedPath: "/v1/care/visits/{appointmentRef}/capture", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postCareVisitsByAppointmentRefHandover = Route(id: "postCareVisitsByAppointmentRefHandover", method: "POST", path: "/v1/care/visits/{appointmentRef}/handover", mountedPath: "/v1/care/visits/{appointmentRef}/handover", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postCareVisitsByAppointmentRefComplete = Route(id: "postCareVisitsByAppointmentRefComplete", method: "POST", path: "/v1/care/visits/{appointmentRef}/complete", mountedPath: "/v1/care/visits/{appointmentRef}/complete", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postCareSyncBatches = Route(id: "postCareSyncBatches", method: "POST", path: "/v1/care/sync-batches", mountedPath: "/v1/care/sync-batches", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: true, status: "proposed")
     static let getCareShifts = Route(id: "getCareShifts", method: "GET", path: "/v1/care/shifts", mountedPath: "/v1/care/shifts", version: 1, engine: "care", callers: ["nurse", "locum", "dispatcher"], purpose: ["dispatch"], idempotent: false, status: "proposed")
     static let getCareServices = Route(id: "getCareServices", method: "GET", path: "/v1/care/services", mountedPath: "/v1/care/services", version: 1, engine: "care", callers: ["patient", "caregiver", "nurse", "dispatcher", "thuso-line-agent"], purpose: ["dispatch"], idempotent: false, status: "proposed")
@@ -96,7 +96,7 @@ enum ApisData {
     static let postSafetyCheckins = Route(id: "postSafetyCheckins", method: "POST", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "proposed")
     static let postSafetyCheckinsByCheckinRefExtend = Route(id: "postSafetyCheckinsByCheckinRefExtend", method: "POST", path: "/v1/safety/checkins/{checkinRef}/extend", mountedPath: "/v1/safety/checkins/{checkinRef}/extend", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "proposed")
     static let postSafetyCheckinsByCheckinRefClose = Route(id: "postSafetyCheckinsByCheckinRefClose", method: "POST", path: "/v1/safety/checkins/{checkinRef}/close", mountedPath: "/v1/safety/checkins/{checkinRef}/close", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "proposed")
-    static let postSafetyPanics = Route(id: "postSafetyPanics", method: "POST", path: "/v1/safety/panics", mountedPath: "/v1/safety/panics", version: 1, engine: "safety", callers: ["nurse", "locum", "responder", "courier"], purpose: ["emergency"], idempotent: true, status: "proposed")
+    static let postSafetyPanics = Route(id: "postSafetyPanics", method: "POST", path: "/v1/safety/panics", mountedPath: "/v1/safety/panics", version: 1, engine: "safety", callers: ["nurse", "locum", "responder", "courier"], purpose: ["emergency"], idempotent: true, status: "built")
     static let postSafetySos = Route(id: "postSafetySos", method: "POST", path: "/v1/safety/sos", mountedPath: "/v1/safety/sos", version: 1, engine: "safety", callers: ["patient", "caregiver"], purpose: ["emergency"], idempotent: true, status: "proposed")
     static let postSafetyNextOfKin = Route(id: "postSafetyNextOfKin", method: "POST", path: "/v1/safety/next-of-kin", mountedPath: "/v1/safety/next-of-kin", version: 1, engine: "safety", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "proposed")
     static let postSafetyNextOfKinByNominationRefAlert = Route(id: "postSafetyNextOfKinByNominationRefAlert", method: "POST", path: "/v1/safety/next-of-kin/{nominationRef}/alert", mountedPath: "/v1/safety/next-of-kin/{nominationRef}/alert", version: 1, engine: "safety", callers: ["ops-desk", "engine:core"], purpose: ["emergency"], idempotent: false, status: "proposed")
@@ -165,8 +165,11 @@ enum ApisData {
     static let postDevicesKits = Route(id: "postDevicesKits", method: "POST", path: "/v1/devices/kits", mountedPath: "/v1/devices/kits", version: 1, engine: "devices", callers: ["operator", "nurse"], purpose: ["audit"], idempotent: false, status: "proposed")
     static let postDevicesKitsByKitRefReturn = Route(id: "postDevicesKitsByKitRefReturn", method: "POST", path: "/v1/devices/kits/{kitRef}/return", mountedPath: "/v1/devices/kits/{kitRef}/return", version: 1, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "proposed")
     static let postDevicesKitsByKitRefLoss = Route(id: "postDevicesKitsByKitRefLoss", method: "POST", path: "/v1/devices/kits/{kitRef}/loss", mountedPath: "/v1/devices/kits/{kitRef}/loss", version: 1, engine: "devices", callers: ["operator", "nurse"], purpose: ["audit"], idempotent: false, status: "proposed")
-    static let postMoneyPayments = Route(id: "postMoneyPayments", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 1, engine: "money", callers: ["patient", "caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "proposed")
-    static let getMoneyPayouts = Route(id: "getMoneyPayouts", method: "GET", path: "/v1/money/payouts", mountedPath: "/v1/money/payouts", version: 1, engine: "money", callers: ["nurse", "locum", "doctor"], purpose: ["billing"], idempotent: false, status: "proposed")
+    static let postMoneyPayments = Route(id: "postMoneyPayments", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 1, engine: "money", callers: ["patient", "caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "built")
+    static let getMoneyPayouts = Route(id: "getMoneyPayouts", method: "GET", path: "/v1/money/payouts", mountedPath: "/v1/money/payouts", version: 1, engine: "money", callers: ["nurse", "locum", "doctor"], purpose: ["billing"], idempotent: false, status: "built")
+    static let postMoneyPaymentsV2 = Route(id: "postMoneyPaymentsV2", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 2, engine: "money", callers: ["patient", "caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "built")
+    static let postMoneyPaymentsByPaymentRefCashCode = Route(id: "postMoneyPaymentsByPaymentRefCashCode", method: "POST", path: "/v1/money/payments/{paymentRef}/cash-code", mountedPath: "/v1/money/payments/{paymentRef}/cash-code", version: 1, engine: "money", callers: ["nurse"], purpose: ["billing"], idempotent: true, status: "proposed")
+    static let postMoneyPaymentsByPaymentRefRelease = Route(id: "postMoneyPaymentsByPaymentRefRelease", method: "POST", path: "/v1/money/payments/{paymentRef}/release", mountedPath: "/v1/money/payments/{paymentRef}/release", version: 1, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: true, status: "proposed")
     static let postMoneyWallets = Route(id: "postMoneyWallets", method: "POST", path: "/v1/money/wallets", mountedPath: "/v1/money/wallets", version: 1, engine: "money", callers: ["patient", "caregiver"], purpose: ["billing"], idempotent: true, status: "proposed")
     static let postMoneyVouchers = Route(id: "postMoneyVouchers", method: "POST", path: "/v1/money/vouchers", mountedPath: "/v1/money/vouchers", version: 1, engine: "money", callers: ["patient", "caregiver", "sponsor", "corner"], purpose: ["billing"], idempotent: true, status: "proposed")
     static let postMoneyGifts = Route(id: "postMoneyGifts", method: "POST", path: "/v1/money/gifts", mountedPath: "/v1/money/gifts", version: 1, engine: "money", callers: ["caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "proposed")
@@ -320,6 +323,9 @@ enum ApisData {
         postDevicesKitsByKitRefLoss,
         postMoneyPayments,
         getMoneyPayouts,
+        postMoneyPaymentsV2,
+        postMoneyPaymentsByPaymentRefCashCode,
+        postMoneyPaymentsByPaymentRefRelease,
         postMoneyWallets,
         postMoneyVouchers,
         postMoneyGifts,
@@ -1439,6 +1445,32 @@ enum ApisData {
     }
     struct GetMoneyPayoutsResponse {
         let payouts: [[String: Any]]
+    }
+    struct PostMoneyPaymentsV2Request {
+        let idempotencyKey: String
+        let payableRef: String
+        let method: String
+        let amountCents: Int
+    }
+    struct PostMoneyPaymentsV2Response {
+        let paymentRef: String
+        let stateCode: String
+        let cashCode: String?
+    }
+    struct PostMoneyPaymentsByPaymentRefCashCodeRequest {
+        let idempotencyKey: String
+        let paymentRef: String
+        let code: String
+    }
+    struct PostMoneyPaymentsByPaymentRefCashCodeResponse {
+        let stateCode: String
+    }
+    struct PostMoneyPaymentsByPaymentRefReleaseRequest {
+        let idempotencyKey: String
+        let paymentRef: String
+    }
+    struct PostMoneyPaymentsByPaymentRefReleaseResponse {
+        let stateCode: String
     }
     struct PostMoneyWalletsRequest {
         let idempotencyKey: String

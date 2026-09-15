@@ -46,10 +46,11 @@
  * single-use and loud in the log. It does not make it checked.
  */
 import { createHash, randomUUID } from 'node:crypto';
+import vettingCatalogue from '../../../../packages/catalog/vetting.json' with { type: 'json' };
 /* The envelope encoding is reached through the same door as everything else. This file knows that a
    sealed value has a shape and that the database wants one blob; it knows nothing about what is in
    it, and it cannot open one. */
-import { decodeSealedValue, encodeSealedValue, standingOf, type AccessRequest, type AuditChain, type BootstrapAuthorisation, type BootstrapAuthority, type Gate, type Standing } from '../protection/index.ts';
+import { decodeSealedValue, encodeSealedValue, standingOf, type AccessOperation, type AccessRequest, type AuditChain, type BootstrapAuthorisation, type BootstrapAuthority, type Gate, type Standing } from '../protection/index.ts';
 import type { Actor, Answer, AuthorityStanding, Evidence, EvidenceVersion, Party, ResolvedEvidence } from './contract.ts';
 import { authorityVerifiers, integrationSummary, isConfirmation, type AuthorityAnswer, type AuthorityOutcome, type AuthorityVerifier, type Credential } from './authority.ts';
 import { authorityAnswerDueAt, daysUntil, expiryFrom, noticesFor, resolve, type RenewalNotice } from './expiry.ts';
@@ -75,6 +76,8 @@ export type { IdentityProvider, IdentityCallback, IdentityMode, IdentitySession,
 
 /** The record type the gate knows this by, and the one capability that opens it. */
 const RECORD_TYPE = 'vetting-evidence';
+/* What a party is refused in when they act on their own register entry. The contract's sentences. */
+export const SELF_REFUSALS = vettingCatalogue.selfActionRefusals;
 const CAPABILITY = 'review-vetting';
 /* How many parties the bootstrap may seed. Two, because one reviewer cannot satisfy a rule that
    requires two different ones — see openBootstrap(). */
@@ -288,13 +291,21 @@ export class VettingVault {
 
  /** Enrolling somebody is a vetting decision, so it goes through the gate like every other one. */
  enrol(actor: Actor, party: { id: string; roleId: string; reference?: string }): Answer<{ party: Party }> {
+  /* Nobody enrols themselves, and nobody changes their own role by enrolling again. Refused before
+     the gate is asked, whatever purpose the actor arrived with, so a gate that ever again let a
+     subject through on their own record would still meet this. */
+  if (actor.id === party.id) return this.#refuseSelf(actor, party.id, 'enrolment', SELF_REFUSALS.enrol);
   if (!roleChecks(party.roleId).length) {
    return { ok: false, reason: `packages/catalog/vetting.json has no role "${party.roleId}", so there is no set of checks to hold this party to.` };
   }
   /* Decided against the party being created, which is the record about to exist. A reviewer who may
      not open this party's evidence may not create them either. */
-  const outcome = this.#gate.access(this.#request(actor, party.id, party.id, 'enrolment'));
+  const outcome = this.#gate.access(this.#request(actor, party.id, party.id, 'enrolment', 'administrative'));
   if (!outcome.allowed) return { ok: false, reason: outcome.reason };
+  /* Enrolment creates a party and does nothing else. A second enrolment of somebody already on the
+     register used to rewrite their role through the store's upsert; there is no role-change route,
+     so a changed role is refused rather than smuggled in as a re-enrolment. */
+  if (this.#store.findParty(party.id)) return this.#refuseSelf(actor, party.id, 'enrolment', SELF_REFUSALS.alreadyEnrolled, 'vetting.enrol.refused');
   const created = this.#put(party);
   this.#log('vetting.enrolled', actor, party.id, party.id, 'enrolment', `Enrolled as ${roleName(party.roleId)}`);
   return { ok: true, party: created };
@@ -337,7 +348,7 @@ export class VettingVault {
   const versionNumber = this.#store.countVersions(evidence.id) + 1;
   const field = documentField(versionNumber);
 
-  const sealed = this.#gate.protect(this.#request(request.actor, evidence.id, party.id, field), document);
+  const sealed = this.#gate.protect(this.#request(request.actor, evidence.id, party.id, field, 'self-service'), document);
   if (!sealed.ok) return { ok: false, reason: sealed.reason };
 
   const version: EvidenceVersion = {
@@ -384,7 +395,7 @@ export class VettingVault {
 
   const field = documentField(versionNumber);
   const revealed = this.#gate.reveal(
-   this.#request(actor, evidence.id, evidence.partyId, field),
+   this.#request(actor, evidence.id, evidence.partyId, field, 'read'),
    decodeSealedValue(stored.document, { recordType: RECORD_TYPE, recordId: evidence.id, field, subjectId: evidence.partyId })
   );
   if (!revealed.ok) return { ok: false, reason: revealed.reason };
@@ -412,13 +423,14 @@ export class VettingVault {
  decide(request: Decision): Answer<{ evidence: ResolvedEvidence }> {
   const evidence = this.#store.findEvidence(request.evidenceId);
   if (!evidence) return { ok: false, reason: 'There is no such evidence record.' };
-  const outcome = this.#gate.access(this.#request(request.actor, evidence.id, evidence.partyId, 'state'));
-  if (!outcome.allowed) return { ok: false, reason: outcome.reason };
   /* The person the evidence is about does not decide about it. Subject access is a right to read
-     your own file, and it has never been a right to mark it verified. */
+     your own file, and it has never been a right to mark it verified. Asked before the gate, like
+     enrol() and restore(), so the party is told the vault's sentence whatever their standing. */
   if (request.actor.id === evidence.partyId) {
    return { ok: false, reason: 'Nobody decides their own vetting. A check is verified by a reviewer, and you are the party it is about.' };
   }
+  const outcome = this.#gate.access(this.#request(request.actor, evidence.id, evidence.partyId, 'state', 'administrative'));
+  if (!outcome.allowed) return { ok: false, reason: outcome.reason };
   if (request.decision === 'verified' && !this.#store.countVersions(evidence.id)) {
    return { ok: false, reason: 'There is no document on file for this check. Verifying against nothing is the failure this vault exists to make impossible.' };
   }
@@ -465,7 +477,7 @@ export class VettingVault {
  second(actor: Actor, evidenceId: string): Answer<{ evidence: ResolvedEvidence }> {
   const evidence = this.#store.findEvidence(evidenceId);
   if (!evidence) return { ok: false, reason: 'There is no such evidence record.' };
-  const outcome = this.#gate.access(this.#request(actor, evidence.id, evidence.partyId, 'state'));
+  const outcome = this.#gate.access(this.#request(actor, evidence.id, evidence.partyId, 'state', 'administrative'));
   if (!outcome.allowed) return { ok: false, reason: outcome.reason };
   if (evidence.risk !== 'high') {
    return { ok: false, reason: `${this.#checkName(evidence)} is a standard-risk check. It does not take a second reviewer, and recording one would suggest the ones that do are optional.` };
@@ -496,7 +508,7 @@ export class VettingVault {
   */
  suspend(actor: Actor, partyId: string, reason: string): Answer<{ suspended?: true }> {
   if (!reason.trim()) return { ok: false, reason: 'A suspension has to say why. Somebody\'s work has just stopped, and they are owed the sentence that explains it.' };
-  const outcome = this.#gate.access(this.#request(actor, partyId, partyId, 'suspension'));
+  const outcome = this.#gate.access(this.#request(actor, partyId, partyId, 'suspension', 'administrative'));
   if (!outcome.allowed) return { ok: false, reason: outcome.reason };
   if (actor.id === partyId) return { ok: false, reason: 'Nobody suspends themselves through this route. Ask a reviewer.' };
   this.#store.suspend(partyId, this.#now(), reason);
@@ -505,7 +517,9 @@ export class VettingVault {
  }
 
  restore(actor: Actor, partyId: string): Answer<{ suspended?: true }> {
-  const outcome = this.#gate.access(this.#request(actor, partyId, partyId, 'suspension'));
+  /* The mirror of suspend(), and checked before the gate for the same reason enrol() is. */
+  if (actor.id === partyId) return this.#refuseSelf(actor, partyId, 'suspension', SELF_REFUSALS.restore);
+  const outcome = this.#gate.access(this.#request(actor, partyId, partyId, 'suspension', 'administrative'));
   if (!outcome.allowed) return { ok: false, reason: outcome.reason };
   this.#store.restore(partyId);
   this.#log('vetting.restored', actor, partyId, partyId, 'suspension', 'Suspension lifted');
@@ -651,7 +665,7 @@ export class VettingVault {
  async checkWithAuthority(request: AuthorityRequest): Promise<Answer<{ answer: AuthorityAnswer; recorded: boolean; contradicts: boolean }>> {
   const evidence = this.#store.findEvidence(request.evidenceId);
   if (!evidence) return { ok: false, reason: 'There is no such evidence record.' };
-  const outcome = this.#gate.access(this.#request(request.actor, evidence.id, evidence.partyId, 'authority'));
+  const outcome = this.#gate.access(this.#request(request.actor, evidence.id, evidence.partyId, 'authority', 'administrative'));
   if (!outcome.allowed) return { ok: false, reason: outcome.reason };
 
   const verifier = this.#verifiers.get(evidence.authority);
@@ -695,7 +709,7 @@ export class VettingVault {
  async openIdentitySession(actor: Actor, evidenceId: string): Promise<Answer<{ reference: string; url: string; mode: string }>> {
   const evidence = this.#store.findEvidence(evidenceId);
   if (!evidence) return { ok: false, reason: 'There is no such evidence record.' };
-  const outcome = this.#gate.access(this.#request(actor, evidence.id, evidence.partyId, 'authority'));
+  const outcome = this.#gate.access(this.#request(actor, evidence.id, evidence.partyId, 'authority', 'administrative'));
   if (!outcome.allowed) return { ok: false, reason: outcome.reason };
   if (evidence.authority !== 'dha') {
    return { ok: false, reason: `${this.#checkName(evidence)} is verified by ${evidence.authority}, not by the identity provider. Opening an identity session against it would record an answer about the wrong thing.` };
@@ -1007,12 +1021,23 @@ export class VettingVault {
   };
  }
 
- #request(actor: Actor, recordId: string, subjectId: string, field: string): AccessRequest {
+ /* A refusal about acting on the vetting register, written into the chain before the caller is told. */
+ #refuseSelf(actor: Actor, partyId: string, field: string, reason: string, event = 'vetting.self.refused'): { ok: false; reason: string } {
+  this.#audit.append({
+   event, actorId: actor.id, actorRole: actor.role, capability: CAPABILITY, purpose: actor.purpose,
+   recordType: RECORD_TYPE, recordId: partyId, subjectId: partyId, field, allowed: false, reason
+  });
+  return { ok: false, reason };
+ }
+
+ /* The operation kind is required and named at every call, never inferred from whose record it is:
+    only a read or a self-service act lets the party it is about past the gate on identity alone. */
+ #request(actor: Actor, recordId: string, subjectId: string, field: string, operation: AccessOperation): AccessRequest {
   /* The capability is fixed. There is exactly one that opens this record type, so accepting one
      from the caller would only ever be accepting a wrong one. */
   return {
    actorId: actor.id, actorRole: actor.role, capability: CAPABILITY,
-   purpose: actor.purpose, recordType: RECORD_TYPE, recordId, subjectId, field
+   purpose: actor.purpose, recordType: RECORD_TYPE, recordId, subjectId, field, operation
   };
  }
 

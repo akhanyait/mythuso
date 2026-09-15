@@ -156,6 +156,9 @@ POST /v1/money/claims@1 b2d508a3ebaba9f2
 POST /v1/money/market-orders@1 2f8e69a90c4bdcb5
 POST /v1/clinical/triage@2 a8a371c00392e232
 POST /v1/money/claims@2 0f16f514c00f878a
+POST /v1/money/payments@2 1791cf2e1a604347
+POST /v1/money/payments/{paymentRef}/cash-code@1 99258984aa6cc54b
+POST /v1/money/payments/{paymentRef}/release@1 e45dcb6e09583bc3
 POST /v1/access/bookings/{bookingRef}/cancel@1 fba3f9ec80279e01
 GET /v1/access/visit-threads/{bookingRef}@1 cbe1a7fc9e818c57
 POST /v1/access/visit-threads/{bookingRef}/messages@1 ce20bca270a493da

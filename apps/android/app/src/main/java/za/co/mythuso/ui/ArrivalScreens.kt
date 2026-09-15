@@ -56,7 +56,7 @@ import za.co.mythuso.model.*
  * are still two marks to a reader who cannot separate them by hue.
  *
  * Nothing moves. A dot that animates towards a house is a promise about a road. */
-@Composable private fun ArrivalMap(from: Zone?, to: Zone, summary: String) {
+@Composable internal fun ArrivalMap(from: Zone?, to: Zone, summary: String) {
     Canvas(
         Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(ThusoRadius.control))
             .semantics { contentDescription = summary; role = Role.Image }

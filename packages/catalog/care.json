@@ -1,0 +1,112 @@
+{
+ "_note": "The Care engine's own contract: who may be offered which visit, in what order, what an offer does when nobody answers it, which protocols a visit's checklist runs under, and the sample visit the nurse workspace walks. packages/catalog/apis/care.json is the frozen shape of the routes and holds every refusal sentence a route answers with; this file holds the rules those routes are computed from, and points at a route's sentence rather than repeating it. packages/engines/src/care/domain reads it; scripts/emit-care.mjs writes it, with the route sentences it points at, into Swift and Kotlin.",
+ "_fiction": "Nothing here dispatches anybody. The candidates are packages/catalog/roster.json's nine fictional nurses, the Trust Score badges are stood in for by the preview's own vetting arithmetic, and the sample visit is walked on one device with nobody at the other end of it.",
+
+ "seedPhase": 1,
+ "_seedPhaseNote": "A service in packages/catalog/services.json whose phase is later than this one is not offered to anybody. The phase lives in services.json and nowhere else; this is the line the engine reads it against.",
+
+ "services": [
+  { "serviceId": "vitals", "roles": ["nurse", "locum"], "scope": "Chronic care", "protocolIds": ["vitals-and-chronic-check", "infection-control-and-sharps"] },
+  { "serviceId": "wound", "roles": ["nurse", "locum"], "scope": "Wound care", "protocolIds": ["wound-care", "infection-control-and-sharps"] },
+  { "serviceId": "mother", "roles": ["nurse", "locum"], "scope": "Maternal & child", "protocolIds": ["mother-and-baby-check"] },
+  { "serviceId": "blood", "roles": ["nurse", "locum"], "scope": "Phlebotomy", "protocolIds": ["phlebotomy", "infection-control-and-sharps"] },
+  { "serviceId": "injection", "roles": ["nurse", "locum"], "scope": null, "protocolIds": ["injection-administration", "infection-control-and-sharps"] },
+  { "serviceId": "planning", "roles": ["nurse", "locum"], "scope": null, "protocolIds": [] },
+  { "serviceId": "postop", "roles": ["nurse", "locum"], "scope": "Post-operative", "protocolIds": ["post-operative-assessment", "infection-control-and-sharps"] },
+  { "serviceId": "senior", "roles": ["nurse", "locum"], "scope": "Elderly care", "protocolIds": ["elderly-assessment"] },
+  { "serviceId": "certificate", "roles": ["nurse", "locum"], "scope": null, "protocolIds": ["medical-certificate-criteria"] },
+  { "serviceId": "screening", "roles": ["nurse", "locum"], "scope": null, "protocolIds": ["device-use-and-ai-result-handling"] },
+  { "serviceId": "sos", "roles": ["nurse", "locum"], "scope": null, "protocolIds": ["emergency-escalation-and-referral"] },
+  { "serviceId": "mens", "roles": ["nurse", "locum"], "scope": null, "protocolIds": [] },
+  { "serviceId": "mental", "roles": ["nurse", "locum"], "scope": null, "protocolIds": [] },
+  { "serviceId": "allied", "roles": [], "scope": null, "protocolIds": [] },
+  { "serviceId": "carer", "roles": [], "scope": null, "protocolIds": [], "supervisedBy": "nurse" }
+ ],
+ "_servicesNote": "One row per service in packages/catalog/services.json, and the build fails on a service without one. A scope is one of the options the vetting register gives a nurse and a locum, or null where none of the seven names the work: an injection, family planning and a sick-note assessment are inside a registered nurse's general scope rather than a named one, and that reading is the programme's, awaiting the Clinical Governance Lead. Allied health and the home carer have no role on the vetting register, so nobody can be matched to either, and the carer row says who a carer would be supervised by so that the refusal is written before the role exists rather than after.",
+ "_protocolsNote": "Ids from packages/catalog/protocols.json and nothing else. Family planning and the men's and mental-health check-ins have no protocol in the register; their checklist says so rather than borrowing a neighbour's.",
+
+ "offers": {
+  "expiresAfterMinutes": 10,
+  "proposedBy": "Care lead (Wave 3)",
+  "decidedBy": null,
+  "awaiting": "Head of Operations",
+  "whyExpires": "An unanswered offer must not hold a patient's visit, which is the reason appointment.offered carries offerExpiresAt at all. Ten minutes is long enough for a nurse finishing a dressing to wash her hands and read it, and short enough that three nurses in a row not answering is half an hour rather than half a morning. It is a proposal with no author until the Head of Operations decides it.",
+  "order": [
+   { "id": "named", "marker": "Your patient asked for you", "why": "A patient who names a nurse is asking for the person she already trusts in her house. She is asked first, if every gate lets her be asked at all." },
+   { "id": "previous", "marker": "You have seen this patient before", "why": "Continuity is clinical before it is courtesy: a nurse who dressed a wound last week can see whether it is better. The most recent nurse is asked first." },
+   { "id": "nearest", "marker": null, "why": "Everybody else, nearest first, by the straight line between two suburb centres in packages/geo. Not a driving time, and the offer card says so." }
+  ],
+  "declined": "It has gone to the next nurse who is eligible for it.",
+  "lapsed": "Nobody answered in time, so it went to the next nurse who is eligible for it.",
+  "distanceBasis": "Straight line between suburb centres",
+  "withheldIsNotLast": {
+   "statement": "A nurse who fails a gate is withheld, not ranked last. She is not on the list at all, and the reason is said.",
+   "why": "A list ordered with the ineligible at the bottom is a list somebody works down to the bottom of on a busy morning. Withholding is the only arrangement in which a failed gate cannot be reached by patience."
+  }
+ },
+
+ "withheld": [
+  { "id": "outside-scope", "sentenceFrom": "packages/catalog/vetting.json#roles.nurse.scope.note" },
+  { "id": "no-current-trust-score", "sentenceFrom": "packages/catalog/apis/care.json#POST /v1/care/offers@1:no-current-trust-score" },
+  { "id": "carer-without-rn", "sentenceFrom": "packages/catalog/apis/care.json#POST /v1/care/offers@1:carer-without-rn" },
+  {
+   "id": "no-base-to-measure-from",
+   "statement": "Nobody is offered a visit from a place the map cannot measure a distance from.",
+   "why": "Three of the roster's nurses work where packages/catalog/geography.json has no suburb. A distance invented for them would rank them against people whose distance is real."
+  }
+ ],
+
+ "position": {
+  "sentenceFrom": "packages/catalog/apis/care.json#location-beyond-the-visit",
+  "whileShared": "Today, until this visit is complete, this patient is shown the suburb you are in. Never a street, and nothing after the visit ends.",
+  "why": "packages/catalog/geography.json already refuses a patient a street-level position and anything before the day. Care adds the other end: the visit's completion is when the sharing stops, not the end of the nurse's shift."
+ },
+
+ "stages": [
+  { "id": "route", "name": "On the way" },
+  { "id": "start", "name": "Start with the code" },
+  { "id": "checklist", "name": "Checklist" },
+  { "id": "record", "name": "Readings and sign-off" },
+  { "id": "handover", "name": "Hand to a doctor" },
+  { "id": "complete", "name": "Complete with the code" }
+ ],
+
+ "checklist": {
+  "noProtocol": "No protocol in the register covers this service, so there is no checklist to run.",
+  "draftSentenceFrom": "packages/catalog/protocols.json#refusals.a-draft-carries-nothing"
+ },
+
+ "record": {
+  "sentence": "The readings and your sign-off are the visit assessment. This visit is handed over and completed against what it seals, and against nothing typed here.",
+  "unsignedSentenceFrom": "packages/catalog/apis/care.json#POST /v1/care/visits/{appointmentRef}/complete@1:encounter-unsigned"
+ },
+
+ "handover": {
+  "queued": "Handed to the doctors' review queue."
+ },
+
+ "complete": {
+  "billable": "The visit is complete. Money is told it is billable and is told nothing about what happened at it."
+ },
+
+ "sync": {
+  "conflictsFrom": "packages/catalog/capture.json#conflicts",
+  "operationKinds": ["capture"],
+  "whyOnlyCapture": "A reading taken with no signal is the one piece of a visit that has to be allowed to arrive late. A start, a handover and a completion each ask something of somebody at the time — the code from the patient, a complete encounter from the record — and replaying one from a queue an hour later would be answering that question on the patient's behalf."
+ },
+
+ "preview": {
+  "appointmentRef": "TH-3107",
+  "subjectRef": "sub-preview-3107",
+  "serviceId": "wound",
+  "zone": "parktown",
+  "dayOffset": 0,
+  "slot": "16:00",
+  "clinicianRef": "N-205",
+  "previousClinicianRefs": ["N-205"],
+  "namedClinicianRef": null,
+  "visitCode": "482190",
+  "encounterRef": "enc-preview-3107",
+  "why": "The one visit the nurse workspace walks. Sister Naledi Mokoena dressed this patient's wound before, so continuity puts her first if every gate lets her be asked; the order is computed from the roster, not chosen here. The code is the preview's published one, printed on the screen so the preview can be walked; a real visit code is issued to the patient and never written anywhere a nurse can read it."
+ }
+}
