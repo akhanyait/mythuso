@@ -160,7 +160,6 @@ export function CareVisit({ open, onClose }: { open: (modal: string) => void; on
    {done ? <>
     <h4 id="care-stage-title">The visit is complete</h4>
     <p className="care-fact" role="status"><BadgeCheck size={17} aria-hidden="true"/>{sentences.billable}</p>
-    {visit.handover && <p className="care-fact"><Check size={17} aria-hidden="true"/>{sentences.queued}</p>}
     <p className="care-note"><Route size={15} aria-hidden="true"/>{view.location.shared ? sentences.whileShared : view.location.statement}</p>
     <div className="button-row care-actions"><button className="primary" onClick={onClose}>Back to your day</button></div>
    </>

@@ -163,7 +163,6 @@ struct CareVisitView: View {
             SurfacePanel {
                 careTitle("The visit is complete")
                 careNote(CareData.billable, strong: true)
-                if store.handedOver { careNote(CareData.handoverQueued) }
                 careNote(store.locationSentence)
             }
         } else {

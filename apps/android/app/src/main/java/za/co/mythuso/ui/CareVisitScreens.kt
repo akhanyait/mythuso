@@ -137,7 +137,6 @@ private const val TICK_MILLIS = 15_000L
             CareCard {
                 CareTitle("The visit is complete")
                 CareStrong(CareData.billable)
-                if (care.handedOver) Note(CareData.handoverQueued)
                 Note(care.locationSentence)
             }
             return@ScreenColumn
