@@ -65,6 +65,12 @@ const answer = <T>(res: ServerResponse, result: Answer<T>, okStatus = 200) => {
  return send(res, okStatus, rest);
 };
 
+/* An HL7 answer: the acknowledgement on an acceptance, and on a refusal beside the sentence every refusal carries. */
+const answerHl7 = (res: ServerResponse, result: ReturnType<PassportGateway['receiveHl7']>) => {
+ if (!result.ok) return send(res, result.status, { error: 'refused', message: result.reason, acknowledgementCode: result.acknowledgementCode, acknowledgement: result.acknowledgement, replayed: result.replayed });
+ return send(res, 200, { acknowledgementCode: result.acknowledgementCode, acknowledgement: result.acknowledgement, replayed: result.replayed });
+};
+
 /* The name in a Host header without its port: "[::1]:8797" is ::1, "localhost:8797" is localhost. */
 export function hostName(header: string | undefined): string {
  const value = (header ?? '').trim().toLowerCase();
@@ -153,6 +159,15 @@ export function createPassport(env: NodeJS.ProcessEnv, now?: () => number) {
   if (method === 'POST' && url.pathname === '/share/link/open') return answer(res, gateway.openLink(tokenFor(req, 'Link'), String(body.idempotencyKey ?? '')));
   if (method === 'POST' && url.pathname === '/share/link/revoke') return answer(res, gateway.revokeLink(tokenFor(req, 'Patient'), String(body.linkRef ?? '')));
   if (method === 'POST' && url.pathname === '/export') return answer(res, gateway.exportRecord(tokenFor(req, 'Patient'), body as never));
+  /* The HL7 v2 bridge, §26's POST /hl7v2/inbound, in development only. A developer holding a credential minted at
+     the console sends a registered synthetic partner's message as JSON over this loopback; which partner it is comes
+     from the message, never the credential. There is no MLLP listener and never a TCP socket of its own: no partner
+     is connected, nothing here checks a certificate, and the Passport has no network path to be reached by. Every
+     answer, refused or not, carries the HL7 acknowledgement. A patient links the hospital number a message is
+     matched on in their own session, and a developer reads the quarantine, which holds nothing a message said. */
+  if (method === 'POST' && url.pathname === '/hl7v2/inbound') return answerHl7(res, gateway.receiveHl7(tokenFor(req, 'Developer'), body as never));
+  if (method === 'GET' && url.pathname === '/hl7v2/quarantine') return answer(res, gateway.hl7Quarantine(tokenFor(req, 'Developer')));
+  if (method === 'POST' && url.pathname === '/identifiers/link') return answer(res, gateway.linkIdentifier(tokenFor(req, 'Patient'), body as never), 201);
   if (method === 'POST' && url.pathname === '/breakglass') {
    return answer(res, gateway.breakGlass({
     credential: tokenFor(req, 'Operator'), subject: String(body.subject ?? ''),

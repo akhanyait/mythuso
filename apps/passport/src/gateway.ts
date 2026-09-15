@@ -55,7 +55,15 @@ import sharing from '../../../packages/catalog/passport-sharing.json' with { typ
 /* The Record engine's settings and link rules are pure arithmetic over contracts, shared with the web preview so
    the two cannot disagree about a rule. They import no store, no key and nothing from apps/api. */
 import { sharingInForce, type SharingInForce } from '../../../packages/engines/src/record/domain/settings.ts';
+import { inboundInForce, type InboundInForce } from '../../../packages/engines/src/record/domain/inbound-settings.ts';
 import { linkTermsFor, payerRefusal, statusOf, useRefusal, type GrantTerms } from '../../../packages/engines/src/record/domain/links.ts';
+/* The HL7 v2 bridge's reading and rules, shared with the web preview the same way (Wave 5). */
+import {
+ HL7, acknowledgementOf, ackCodeOf, clockRefusal, encounterFrom, facilityOf, handOffFor, identifierRefusal, identifiersIn, laboratoryContracted,
+ parseMessage, pidRefusal, processingRefusal, reportFrom, resultOf, typeOf, verifierOf, visitOf,
+ type AckCode, type Facility, type HandOff, type Message, type MessageType
+} from '../../../packages/engines/src/record/domain/hl7.ts';
+import recordApi from '../../../packages/catalog/apis/record.json' with { type: 'json' };
 import { AuditLog, type AuditEntry } from './audit.ts';
 import { PassportRefusedToStart, wasLoaded, type PassportConfig } from './config.ts';
 import { GATEWAY, LINK_POLICY, expiryCeilingDays, grantScopeRefusal, isProtectedCategory, knownCategory, refusalOf, resourceRule, roleRule, sensitivityOf, statement, type GrantRole } from './contract.ts';
@@ -104,14 +112,42 @@ const UNAUTHENTICATED = 'unauthenticated';
 type Held = { subject: string; role: GrantRole; grant: GrantArtefact };
 type Who = Partial<AuditEntry> & Pick<AuditEntry, 'requesterRole' | 'action'>;
 
+/* What an HL7 message is answered with. A refusal carries its acknowledgement as surely as an acceptance does, because
+   a partner's interface engine reads MSA-1 and nothing else to decide whether to send the message again. */
+export type Hl7Accepted = { ok: true; acknowledgementCode: AckCode; acknowledgement: string; replayed: boolean };
+export type Hl7Refused = Refused & { acknowledgementCode: AckCode; acknowledgement: string; replayed: boolean };
+/** A lab order Record heard placed, and for whom. The Passport is handed these; see hl7v2-inbound.json results. */
+export type PlacedOrder = { subjectRef: string };
+
+/* The route's own statuses, so the status a refusal is answered with is the one its contract declares. */
+const INBOUND_ROUTE = recordApi.routes.find(route => route.method === 'POST' && route.path === '/hl7v2/inbound' && route.version === 1);
+const LINK_ROUTE = recordApi.routes.find(route => route.method === 'POST' && route.path === '/v1/record/patient-identifiers' && route.version === 1);
+const routeStatus = (route: typeof INBOUND_ROUTE, id: string): number => route?.refusals.find(refusal => refusal.id === id)?.status ?? 422;
+const HL7_ACTION = 'hl7v2.inbound';
+/* A share link's opening and the export are frozen as carrying the resource types packages/catalog/passport-gateway.json
+   lists (shapeFrom its resources). An Encounter or a DiagnosticReport a partner's message wrote is neither, so both leave
+   it out, and the export says so in passport-sharing.json's words, until a new version of each route declares them. A
+   clinician reads one by the reference Medicines or Care holds, under a grant, and the patient in their own session. */
+const FROZEN_TYPES = new Set(GATEWAY.resources.map(rule => rule.type));
+const frozenType = (row: ResourceRow): boolean => FROZEN_TYPES.has(row.resource_type);
+/* What a message from a registered partner keeps whatever it is answered with: the settings it arrived under, its partner and the tags its replay row is found by. */
+type Hl7Keep = { inForce: InboundInForce; facility: Facility; tags: { control: string; content: string } };
+const CODE_SHAPE = /^[A-Z][A-Z0-9]{2}\^[A-Z][A-Z0-9]{2}$/;
+
 export class PassportGateway {
  #store: PassportStore;
  #keys: PassportKeys;
  #audit: AuditLog;
  #now: () => number;
  #settings: () => SharingInForce;
+ #inbound: () => InboundInForce;
+ #placedOrder: (labOrderRef: string) => PlacedOrder | null;
+ #facilities: readonly Facility[];
 
- constructor(deps: { config: PassportConfig; store: PassportStore; now?: () => number; settings?: () => SharingInForce }) {
+ constructor(deps: {
+  config: PassportConfig; store: PassportStore; now?: () => number; settings?: () => SharingInForce;
+  inbound?: () => InboundInForce; placedOrder?: (labOrderRef: string) => PlacedOrder | null; facilities?: readonly Facility[];
+ }) {
   /* A gateway built from a configuration nobody loaded would skip every start-up refusal — the
      development flag, the key separation, the separate database. So it is not built. */
   if (!wasLoaded(deps.config)) throw new PassportRefusedToStart(refusalOf('not-development'));
@@ -122,6 +158,12 @@ export class PassportGateway {
   /* The Record settings in force, asked once when a link is made. The process has no authenticated way to
      read the engine runtime's history, so it reads the contract's defaults; a test hands it a history. */
   this.#settings = deps.settings ?? (() => sharingInForce([]));
+  /* The HL7 bridge's settings, asked once when a message arrives. The lab orders Record heard placed arrive on the
+     bus at the engine runtime, which this process cannot reach, so it knows none unless it is handed them; and the
+     registered partners are the contract's, unless a test hands it one the contract does not register. */
+  this.#inbound = deps.inbound ?? (() => inboundInForce([]));
+  this.#placedOrder = deps.placedOrder ?? (() => null);
+  this.#facilities = deps.facilities ?? HL7.facilities;
  }
 
  get audit(): AuditLog { return this.#audit; }
@@ -573,7 +615,7 @@ export class PassportGateway {
   if (!named.every(isProtectedCategory)) return this.#refuse(403, 'sealed-tick-names-nothing', who);
   const subject = session.subject;
   const tags = new Set(named.map(category => this.#keys.categoryTag(subject, category)));
-  const rows = this.#store.resourcesOf(subject).filter(row => row.sealed === OPEN || (row.sealed === SEALED && tags.has(row.category_tag)));
+  const rows = this.#store.resourcesOf(subject).filter(row => frozenType(row) && (row.sealed === OPEN || (row.sealed === SEALED && tags.has(row.category_tag))));
   const exportRef = `export_${randomUUID()}`;
   const entry = rows.flatMap(row => [
    { fullUrl: `urn:mythuso:passport:${row.id}`, resource: this.#open(row) },
@@ -586,6 +628,225 @@ export class PassportGateway {
    exclusions: sharing.export.exclusions.map(exclusion => ({ excludedCode: exclusion.id, statement: exclusion.sentence })),
    stepUp: sharing.export.stepUp.sentence
   };
+ }
+
+ /* ---- The HL7 v2 bridge (Wave 5) --------------------------------------------------------------------
+
+    packages/catalog/hl7v2-inbound.json decides the rules and packages/engines/src/record/domain/hl7.ts reads the
+    messages; this stores what they decided and writes every message into the chain. The order is the order a
+    partner can act on and a patient can be protected by: who is sending, whether it is the same message again,
+    what it is, whether its clock can be believed — and only then whose it is, on a number the patient linked and
+    nothing else. Everything refused before a patient is found is recorded in the quarantine with nothing the
+    message said, and written into the chain under nobody. Everything refused after is written into that
+    patient's own chain, so they can see what a partner sent. */
+
+ /** The patient links a hospital number to their own record, which is the consent basis for matching a message on it. */
+ linkIdentifier(token: string, fields: { assigningAuthority?: unknown; identifier?: unknown }): Answer<{ linkedAt: string }> {
+  const at = this.#now();
+  const session = this.#session(token);
+  const who: Who = { subject: session.ok ? session.subject : null, requesterRole: 'patient', requesterRef: session.ok ? session.subject : null, action: 'identifier.link' };
+  if (!session.ok) return this.#refuse(routeStatus(LINK_ROUTE, 'patient-session-required'), session.id, who);
+  const authority = typeof fields?.assigningAuthority === 'string' ? fields.assigningAuthority.trim() : '';
+  const identifier = typeof fields?.identifier === 'string' ? fields.identifier.trim() : '';
+  const refused = identifierRefusal(authority, identifier);
+  if (refused) return this.#refuse(routeStatus(LINK_ROUTE, refused), refused, who);
+  const tag = this.#keys.partnerTag('identifier', authority, identifier);
+  const holder = this.#store.subjectLinkedTo(tag);
+  if (holder && holder !== session.subject) {
+   /* Written into the chain of the patient the number is linked to, under the asker's role and no reference: they
+      learn that somebody tried, and nothing about who. */
+   this.#log({ subject: holder, requesterRole: 'patient', requesterRef: null, action: 'identifier.link.contested', outcome: 'refused', reason: refusalOf('identifier-already-linked') });
+   return this.#refuse(routeStatus(LINK_ROUTE, 'identifier-already-linked'), 'identifier-already-linked', who);
+  }
+  if (!holder) this.#store.linkIdentifier(tag, session.subject, at);
+  this.#log({ ...who, outcome: 'granted', reason: statement('identifierLinked') });
+  return { ok: true, linkedAt: new Date(at).toISOString() };
+ }
+
+ /** One HL7 v2 message from a registered development partner, sent in development by a developer. */
+ receiveHl7(credential: string, body: { message?: unknown }): Hl7Accepted | Hl7Refused {
+  const at = this.#now();
+  this.#store.purgeHl7(at);
+  const inForce = this.#inbound();
+  const developer = developerOf(this.#keys, String(credential ?? ''), at);
+  const who: Who = { subject: null, requesterRole: UNAUTHENTICATED, requesterRef: developer?.ref ?? null, action: HL7_ACTION };
+  if (!developer) return this.#hl7Refuse('hl7-developer-credential-required', who, null, { inForce, quarantine: false });
+  const text = body && typeof body === 'object' ? body.message : undefined;
+  const parsed = parseMessage(text);
+  if (!parsed.ok) return this.#hl7Refuse(parsed.refusal, who, null, { inForce, quarantine: true });
+  const message = parsed.message;
+  const facility = facilityOf(message, this.#facilities);
+  if (!facility) return this.#hl7Refuse('hl7-facility-not-registered', who, message, { inForce, quarantine: true });
+  who.requesterRole = facility.id;
+
+  /* The same ID twice is the same message once, answered with its first acknowledgement word for word; a different
+     message under a used ID is refused, and the used ID keeps the answer it was first given. */
+  const tags = { control: this.#keys.partnerTag('control', facility.id, message.controlId), content: this.#keys.partnerTag('content', facility.id, String(text)) };
+  const seen = this.#store.hl7Message(facility.id, tags.control);
+  if (seen && seen.content_tag === tags.content) {
+   this.#log({ ...who, subject: seen.subject, action: 'hl7v2.replay', outcome: 'granted', reason: statement('hl7Replayed') });
+   const code = seen.ack_code as AckCode;
+   return seen.status < 300
+    ? { ok: true, acknowledgementCode: code, acknowledgement: seen.acknowledgement, replayed: true }
+    : { ok: false, status: seen.status, reason: this.#reasonIn(seen.acknowledgement), acknowledgementCode: code, acknowledgement: seen.acknowledgement, replayed: true };
+  }
+  if (seen) return this.#hl7Refuse('hl7-control-id-reused', who, message, { inForce, quarantine: true, facility });
+  const keep: Hl7Keep = { inForce, facility, tags };
+
+  const notSynthetic = processingRefusal(message);
+  if (notSynthetic) return this.#hl7Refuse(notSynthetic, who, message, { ...keep, quarantine: true });
+  const type = typeOf(message, facility);
+  if (!type) return this.#hl7Refuse('hl7-message-type-not-built', who, message, { ...keep, quarantine: true });
+  Object.assign(who, { action: type.action, resourceType: type.storesAs, purpose: type.purpose });
+  if (type.storesAs === 'DiagnosticReport' && !laboratoryContracted(facility)) return this.#hl7Refuse('hl7-laboratory-not-contracted', who, message, { ...keep, quarantine: true });
+  const skewed = clockRefusal(message, at, inForce.clockSkewMinutes);
+  if (skewed) return this.#hl7Refuse(skewed, who, message, { ...keep, quarantine: true });
+
+  /* Whose it is: the identifiers in PID-3 under an authority this partner may use, each looked up as a tag, and one
+     patient or nobody. Two patients is nobody too. A name or a date of birth is never read. */
+  const subjects = new Set(identifiersIn(message, facility).map(id => this.#store.subjectLinkedTo(this.#keys.partnerTag('identifier', id.authority, id.value))).filter((s): s is string => s !== null));
+  if (subjects.size !== 1) return this.#hl7Refuse('hl7-patient-not-matched', who, message, { ...keep, quarantine: true });
+  const subject = [...subjects][0]!;
+  who.subject = subject;
+  const pid = pidRefusal(message);
+  if (pid) return this.#hl7Refuse(pid, who, message, { ...keep, quarantine: false });
+  return type.storesAs === 'Encounter' ? this.#hl7Encounter(message, facility, type, subject, who, keep) : this.#hl7Result(message, facility, subject, who, keep);
+ }
+
+ /** The quarantine, for a developer: who sent each message the Passport could not file, what kind, why and when its record goes. */
+ hl7Quarantine(credential: string): Answer<{ retentionDays: number; settingsVersion: number; quarantined: Record<string, unknown>[] }> {
+  const at = this.#now();
+  this.#store.purgeHl7(at);
+  const developer = developerOf(this.#keys, String(credential ?? ''), at);
+  const who: Who = { subject: null, requesterRole: developer ? 'developer' : UNAUTHENTICATED, requesterRef: developer?.ref ?? null, action: 'hl7v2.quarantine.read' };
+  if (!developer) return this.#refuse(401, 'hl7-developer-credential-required', who);
+  const inForce = this.#inbound();
+  this.#log({ ...who, outcome: 'granted', reason: statement('quarantineRead') });
+  return {
+   ok: true, retentionDays: inForce.quarantineRetentionDays, settingsVersion: inForce.settingsVersion,
+   quarantined: this.#store.quarantine().map(row => ({
+    quarantineRef: row.ref, sendingFacility: row.facility, messageType: row.message_type, reasonCode: row.refusal, reason: refusalOf(row.refusal),
+    receivedAt: new Date(row.received_at).toISOString(), purgeAfter: new Date(row.purge_after).toISOString(), settingsVersion: row.settings_version
+   }))
+  };
+ }
+
+ /** What each result's hand-off to Medicines would carry. The call between the two services does not exist, so nothing
+     routed reads this; a test does, to hold the hand-off to the shape POST /v1/medicines/lab-results@1 takes. */
+ hl7HandOffs(): HandOff[] {
+  return this.#store.handOffs().map(row => JSON.parse(openBytes(this.#dataKey(row.subject, GENERAL_SCOPE), row.sealed_body, `hl7-handoff|${row.subject}|${row.resource_id}`).toString('utf8')) as HandOff);
+ }
+
+ #hl7Encounter(message: Message, facility: Facility, type: MessageType, subject: string, who: Who, keep: Hl7Keep): Hl7Accepted | Hl7Refused {
+  const at = this.#now();
+  const visit = visitOf(message, type);
+  if (!visit) return this.#hl7Refuse('hl7-message-unreadable', who, message, { ...keep, quarantine: false });
+  const visitTag = this.#keys.partnerTag('visit', facility.id, visit.visitNumber);
+  const held = this.#store.hl7Encounter(visitTag);
+  /* A visit number already held for another patient is a message about somebody else, whatever PID-3 says. */
+  if (held && held.subject !== subject) return this.#hl7Refuse('hl7-patient-not-matched', { ...who, subject: null }, message, { ...keep, quarantine: true });
+  const provenance = { authorRole: facility.id, authorRef: facility.id, activity: `HL7 v2 ${message.code} message`, sourceSystem: `${facility.label} (${facility.sendingApplication}), a synthetic development partner` };
+  const row = held ? this.#store.resource(held.resource_id) : null;
+  if (!row) {
+   const resource = encounterFrom(visit, type, facility);
+   if (identityShaped(resource)) return this.#hl7Refuse('hl7-identity-in-message', who, message, { ...keep, quarantine: false });
+   const id = this.#file(subject, 'Encounter', HL7.encounters.category, resource, provenance, at);
+   this.#store.putHl7Encounter(visitTag, subject, id, facility.id, at);
+  } else if (type.encounterStatus === 'finished') {
+   const resource = encounterFrom(visit, type, facility, this.#open(row));
+   if (identityShaped(resource)) return this.#hl7Refuse('hl7-identity-in-message', who, message, { ...keep, quarantine: false });
+   this.#refile(row, resource, provenance, at);
+  }
+  /* A second admission for a visit already admitted changes nothing, and is filed as received. */
+  return this.#hl7Accept(who, message, keep, subject);
+ }
+
+ #hl7Result(message: Message, facility: Facility, subject: string, who: Who, keep: Hl7Keep): Hl7Accepted | Hl7Refused {
+  const at = this.#now();
+  const result = resultOf(message);
+  if (!result) return this.#hl7Refuse('hl7-message-unreadable', who, message, { ...keep, quarantine: false });
+  const verifiedBy = verifierOf(result);
+  if (!verifiedBy) return this.#hl7Refuse('hl7-result-without-verifier', who, message, { ...keep, quarantine: false });
+  /* An order Record heard placed, for this patient. One placed for somebody else is refused in the same words as one
+     nobody placed, so a result cannot be used to learn whose an order is. */
+  const placed = this.#placedOrder(result.placerOrder);
+  if (!placed || placed.subjectRef !== subject) return this.#hl7Refuse('hl7-lab-order-not-placed', who, message, { ...keep, quarantine: false });
+  const resource = reportFrom(result);
+  if (identityShaped(resource)) return this.#hl7Refuse('hl7-identity-in-message', who, message, { ...keep, quarantine: false });
+  const provenance = { authorRole: facility.id, authorRef: facility.id, activity: `HL7 v2 ${message.code} message, released by ${verifiedBy}`, sourceSystem: `${facility.label} (${facility.sendingApplication}), a synthetic development partner` };
+  const id = this.#file(subject, 'DiagnosticReport', HL7.results.category, resource, provenance, at);
+  const handOff = handOffFor({ labOrderRef: result.placerOrder, resultEntryRef: id, facility, result, verifiedBy });
+  this.#store.putHandOff(id, subject, sealBytes(this.#dataKey(subject, GENERAL_SCOPE), Buffer.from(JSON.stringify(handOff), 'utf8'), `hl7-handoff|${subject}|${id}`), at);
+  return this.#hl7Accept(who, message, keep, subject);
+ }
+
+ #hl7Accept(who: Who, message: Message, keep: Hl7Keep, subject: string): Hl7Accepted {
+  const at = this.#now();
+  const acknowledgement = acknowledgementOf({ message, code: 'AA', text: statement('hl7Received'), at });
+  this.#log({ ...who, subject, outcome: 'granted', reason: statement('hl7Received') });
+  this.#store.putHl7Message({ facility: keep.facility.id, control_tag: keep.tags.control, content_tag: keep.tags.content, status: 200, ack_code: 'AA', acknowledgement, subject, received_at: at, purge_after: null });
+  return { ok: true, acknowledgementCode: 'AA', acknowledgement, replayed: false };
+ }
+
+ /* A refusal, its acknowledgement, the chain entry, and — for a message nobody was found for — its quarantine record
+    and the deletion day the retention in force gives it, which the record keeps. */
+ #hl7Refuse(id: string, who: Who, message: Message | null, keep: { inForce: InboundInForce; quarantine: boolean; facility?: Facility; tags?: { control: string; content: string } }): Hl7Refused {
+  const at = this.#now();
+  const reason = refusalOf(id);
+  const code = ackCodeOf(id);
+  const status = routeStatus(INBOUND_ROUTE, id);
+  const acknowledgement = acknowledgementOf({ message, code, text: reason, at });
+  const subject = keep.quarantine ? null : who.subject ?? null;
+  this.#log({ ...who, subject, outcome: 'refused', reason });
+  const purgeAfter = at + keep.inForce.quarantineRetentionDays * DAY;
+  if (keep.quarantine) {
+   this.#store.putQuarantine({
+    ref: `quarantine_${randomUUID()}`, facility: keep.facility?.id ?? (message ? facilityOf(message, this.#facilities)?.id ?? null : null),
+    message_type: message && CODE_SHAPE.test(message.code) ? message.code : null, refusal: id, received_at: at, purge_after: purgeAfter, settings_version: keep.inForce.settingsVersion
+   });
+  }
+  if (keep.facility && keep.tags) this.#store.putHl7Message({ facility: keep.facility.id, control_tag: keep.tags.control, content_tag: keep.tags.content, status, ack_code: code, acknowledgement, subject, received_at: at, purge_after: subject ? null : purgeAfter });
+  return { ok: false, status, reason, acknowledgementCode: code, acknowledgement, replayed: false };
+ }
+
+ /* The sentence an acknowledgement carries in MSA-3, for a replayed refusal. */
+ #reasonIn(acknowledgement: string): string {
+  const msa = acknowledgement.split('\r').find(line => line.startsWith('MSA|')) ?? '';
+  return msa.split('|').slice(3).join('|').replace(/\\F\\/g, '|').replace(/\\S\\/g, '^').replace(/\\T\\/g, '&').replace(/\\R\\/g, '~').replace(/\\E\\/g, '\\');
+ }
+
+ /* An entry a partner's message wrote: filed like a caller's write, open or sealed by its category, with the partner as
+    its provenance, and never through POST /fhir, which refuses both types. */
+ #file(subject: string, resourceType: string, category: string, body: Record<string, unknown>, provenance: { authorRole: string; authorRef: string; activity: string; sourceSystem: string }, at: number): string {
+  const id = `res_${randomUUID()}`;
+  const tag = this.#keys.categoryTag(subject, category);
+  const kind = isProtectedCategory(category) ? SEALED : OPEN;
+  const keyScope = kind === OPEN ? GENERAL_SCOPE : `sealed:${tag}`;
+  const version = 1;
+  const resource = { ...body, resourceType, id, meta: { versionId: String(version), lastUpdated: new Date(at).toISOString() }, subject: { reference: `Patient/${subject}` }, category, markedPrivate: false };
+  const key = this.#dataKey(subject, keyScope);
+  this.#store.putResource({ id, subject, resource_type: resourceType, category_tag: tag, key_scope: keyScope, sealed: kind, version, sealed_body: sealBytes(key, Buffer.from(JSON.stringify(resource), 'utf8'), `${subject}|${id}|${keyScope}|${version}`), written_at: at });
+  this.#provenanceFor(subject, id, keyScope, provenance, at);
+  return id;
+ }
+
+ /* A discharge's revision of the Encounter its admission wrote: the next version, sealed under the same key, with
+    the version it replaces kept beside it by the store and its own provenance. */
+ #refile(row: ResourceRow, body: Record<string, unknown>, provenance: { authorRole: string; authorRef: string; activity: string; sourceSystem: string }, at: number): void {
+  const version = row.version + 1;
+  const previous = this.#open(row);
+  const resource = { ...body, resourceType: row.resource_type, id: row.id, meta: { versionId: String(version), lastUpdated: new Date(at).toISOString() }, subject: previous['subject'], category: previous['category'], markedPrivate: false };
+  const sealed = sealBytes(this.#dataKey(row.subject, row.key_scope), Buffer.from(JSON.stringify(resource), 'utf8'), `${row.subject}|${row.id}|${row.key_scope}|${version}`);
+  if (!this.#store.reviseResource(row, { version, sealed_body: sealed, written_at: at })) throw new Error(`The Encounter ${row.id} moved on while a discharge was revising it.`);
+  this.#provenanceFor(row.subject, row.id, row.key_scope, provenance, at);
+ }
+
+ #provenanceFor(subject: string, target: string, keyScope: string, provenance: { authorRole: string; authorRef: string; activity: string; sourceSystem: string }, at: number): void {
+  const id = `prov_${randomUUID()}`;
+  this.#store.putProvenance({
+   id, subject, target, key_scope: keyScope, recorded_at: at,
+   sealed_body: sealBytes(this.#dataKey(subject, keyScope), Buffer.from(JSON.stringify(provenance), 'utf8'), `provenance|${subject}|${id}|${target}|${keyScope}`)
+  });
  }
 
  /* A grant's terms as the grant was made, or null for a grant that has none kept — one made before P1 — which a
@@ -608,7 +869,7 @@ export class PassportGateway {
   if (category === GATEWAY.emergencySummary.openedBy) return Object.values(this.#summary(subject)).flat();
   const tag = this.#keys.categoryTag(subject, category);
   const opensSealed = sealedIncluded && isProtectedCategory(category);
-  return this.#store.resourcesOf(subject).filter(row => row.category_tag === tag && (row.sealed === OPEN || (row.sealed === SEALED && opensSealed))).map(row => this.#open(row));
+  return this.#store.resourcesOf(subject).filter(row => frozenType(row) && row.category_tag === tag && (row.sealed === OPEN || (row.sealed === SEALED && opensSealed))).map(row => this.#open(row));
  }
 
  /* ---- Inside ----------------------------------------------------------------------------------- */

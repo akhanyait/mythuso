@@ -893,15 +893,16 @@
    },
    "dependencyMarkers": {},
    "links": [
-    {"engine": "record", "apiRoutes": [], "doors": ["proposed:hl7v2-inbound"], "capabilities": ["clinical-records"], "through": ["passport-gateway"], "how": "ADT, ORU and ORM messages from partner systems would arrive on the hl7v2-inbound door and be mapped to FHIR at the gateway, with outbound ADT so the Passport knows a patient was admitted."}
+    {"engine": "record", "apiRoutes": ["POST /hl7v2/inbound"], "doors": ["proposed:hl7v2-inbound"], "capabilities": ["clinical-records"], "through": ["passport-gateway"], "how": "ADT, ORU and ORM messages from partner systems would arrive on the hl7v2-inbound door and be mapped to FHIR at the gateway. In development (Wave 5) the Passport P0 answers §26's POST /hl7v2/inbound for a developer sending a registered synthetic partner's ADT A01, A03 or ORU R01, read by a parser written in this repository rather than by any HL7 library."}
    ],
    "adoption": {
     "status": "not-adopted",
     "review": {"licence": null, "security": null, "maintenance": null, "dataFlow": null, "clinicalUse": null},
-    "blockedBy": ["The hl7v2-inbound door does not exist and no hospital group or laboratory has agreed to connect."]
+    "blockedBy": ["The hl7v2-inbound door does not exist and no hospital group or laboratory has agreed to connect.", "The development route takes synthetic messages from two registered synthetic partners only, over HTTP on the loopback, and serves no MLLP."]
    },
    "refusals": [
-    {"id": "the-bridge-is-not-optional", "statement": "No integration plan with a South African hospital group or laboratory assumes FHIR alone.", "why": "§20: most SA private hospital groups and labs still speak HL7 v2, and the bridge is not optional."}
+    {"id": "the-bridge-is-not-optional", "statement": "No integration plan with a South African hospital group or laboratory assumes FHIR alone.", "why": "§20: most SA private hospital groups and labs still speak HL7 v2, and the bridge is not optional."},
+    {"id": "no-hl7-library-before-its-review", "statement": "No HL7 v2 library is declared by any manifest; the few segments the Passport reads are read by code written here.", "why": "§15D: open source does not mean production-approved, and no HL7 library has had its licence, security, maintenance, data-flow or clinical-use review. The Record · HL7 v2 bridge block of scripts/check-boundaries.mjs holds every manifest to it."}
    ]
   },
   {

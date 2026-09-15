@@ -1,0 +1,13 @@
+/* The HL7 v2 quarantine (Wave 5), in Medicines & Labs' vocabulary: a panel that says what it is, rows read down,
+ * and under each row the refusal as a sentence. Three short facts sit side by side where there is room and stack on a
+ * phone. Nothing here is loud: the list is a record of what was turned away, not an alarm. Every value is a token. */
+
+.hq-retention, .hq-no-release { margin: 0; max-width: 68ch; font-size: 14px; line-height: 1.5; color: var(--body); }
+.hq-rows { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: var(--r-control); min-width: 0; }
+.hq-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-8) var(--space-16); margin: 0; min-width: 0; }
+.hq-facts > div { display: grid; gap: 2px; min-width: 0; }
+.hq-facts dt { font-size: 12px; font-weight: 500; color: var(--faint); }
+.hq-facts dd { margin: 0; font-size: 14px; color: var(--charcoal); overflow-wrap: anywhere; }
+.hq-reason { margin: 0; font-size: 14px; line-height: 1.5; color: var(--body); }
+.hq-reason > span { font-weight: 600; color: var(--charcoal); }
+.hq-deleted { font-size: 13px; color: var(--faint); }

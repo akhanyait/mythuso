@@ -380,3 +380,7 @@ POST /v1/money/voucher-redemptions@1 dd3bf4a607d16c53
 POST /v1/money/plan-subscriptions@1 216c74a9c0848aa0
 POST /v1/money/plan-subscriptions/{subscriptionRef}/accept@1 191f5d95643452e7
 GET /v1/money/plan-subscriptions/{subscriptionRef}@1 44c9ca3267e64200
+POST /hl7v2/inbound@1 6262fc54aa1ea717
+POST /v1/record/patient-identifiers@1 231dd76fdb7be802
+GET /v1/record/hl7v2-quarantine@1 a9d1a7fafa197e7e
+POST /v1/medicines/lab-results@1 873e477d30a3765f

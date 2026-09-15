@@ -264,3 +264,7 @@ POST /v1/money/voucher-redemptions@1 4d361844d6c5f58e
 POST /v1/money/plan-subscriptions@1 091d65da31b03b97
 POST /v1/money/plan-subscriptions/{subscriptionRef}/accept@1 2f462b75ab7a6977
 GET /v1/money/plan-subscriptions/{subscriptionRef}@1 50cc73908a5dd892
+POST /hl7v2/inbound@1 8e86131afa97f759
+POST /v1/record/patient-identifiers@1 a5b1ef23996571dc
+GET /v1/record/hl7v2-quarantine@1 9222424d1e20fa4b
+POST /v1/medicines/lab-results@1 f9f6ba3cec900d75

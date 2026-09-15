@@ -1,0 +1,320 @@
+{
+ "_note": "The HL7 v2 bridge into the Health Passport, Wave 5 of the approved build plan: POST /hl7v2/inbound, the endpoint §26 of ThusoIQ Master v3.5 names. One synthetic hospital and one synthetic laboratory are registered as development partners. An ADT A01 or A03 becomes a FHIR Encounter, an ORU R01 becomes a DiagnosticReport handed to Medicines' intake, and every message is an access written into the patient's audit chain. apps/passport answers it, packages/engines/src/record/domain/hl7.ts reads the messages and decides every rule here, the web preview runs the same code, and every sentence a message is refused with is packages/catalog/passport-gateway.json's.",
+ "_fiction": "Synthetic General Hospital and Synthetic Pathology Laboratory do not exist. No hospital group or laboratory has agreed to send anything, no message has ever arrived from a real system, and every identifier, visit number and result in this repository is invented. Every screen that shows one says so.",
+ "_whyDevelopmentOnly": "The bridge is part of the Passport P0 and inherits every reason it does not deploy (docs/PRIVACY-AND-SECURITY.md, 'Health Passport P0, and why it does not deploy'): no signed DPIA, no Information Officer, no residency decision, no KMS custody. It adds one reason of its own: a partner interface is a network path from outside into the record, and the mutual TLS, the operator agreements under POPIA section 21 and the conformance testing that path needs do not exist either.",
+ "version": 1,
+ "engine": "record",
+ "api": "packages/catalog/apis/record.json",
+
+ "route": {
+  "path": "/hl7v2/inbound",
+  "calledBy": "developer",
+  "why": "A hospital or laboratory system never calls this route. §26 names the path, and packages/catalog/apis/record.json still holds hl7v2-inbound as a door to add, with mutual TLS per partner, because a certificate is what would say which partner sent a message. In development a developer holding a credential minted at the console sends a synthetic partner's message, and which partner it is comes from MSH-3 and MSH-4 against the registered facilities below, never from the credential."
+ },
+
+ "transport": {
+  "http": {
+   "field": "message",
+   "why": "The ER7 message travels as one string in a JSON body, so the Passport's one body reader, its size limit and its refusal of anything that is not a JSON object apply to it unchanged. Segments may be separated by a carriage return or a new line."
+  },
+  "mllp": {
+   "served": false,
+   "statement": "MLLP is not served. The Passport opens no TCP listener for HL7 messages; it reads a developer's synthetic message over HTTP on the loopback, and nothing else.",
+   "why": "An MLLP listener is a socket a partner's interface engine connects to from its own network. No production partner exists, nothing in front of the Passport terminates TLS or checks a partner's certificate, and the Passport may have no network exposure at all until its DPIA is signed. scripts/check-boundaries.mjs fails the build if apps/passport opens a TCP server or frames a message the way MLLP does."
+  }
+ },
+
+ "parser": {
+  "handWritten": true,
+  "library": null,
+  "why": "packages/catalog/open-source.json and §15D's procurement rules forbid adopting a component before its licence, security, maintenance, data-flow and clinical-use reviews are recorded, and none has been done for any HL7 library. So the few segments below are read by code written here, and the build fails if a manifest declares an HL7 library.",
+  "versionPrefix": "2.",
+  "processingIdsAccepted": ["D", "T"],
+  "_processingIdsNote": "MSH-11 says whether a message is production data (P), debugging (D) or training (T). A message marked P is refused: this Passport holds synthetic data only, and a partner that says otherwise is either misconfigured or is not a development partner.",
+  "maxSegments": 64,
+  "maxObservations": 32,
+  "segmentsRead": [
+   {
+    "segment": "MSH",
+    "fields": [
+     { "field": 3, "name": "Sending application", "use": "Which registered partner sent it, with MSH-4." },
+     { "field": 4, "name": "Sending facility", "use": "Which registered partner sent it, with MSH-3." },
+     { "field": 7, "name": "Date/time of message", "use": "Held to the clock skew in force. It must carry its offset." },
+     { "field": 9, "name": "Message type", "use": "Which message this is, and whether the facility is registered to send it." },
+     { "field": 10, "name": "Message control ID", "use": "The partner's own reference for the message. The same ID twice is the same message once." },
+     { "field": 11, "name": "Processing ID", "use": "Refused unless it says debugging or training." },
+     { "field": 12, "name": "Version ID", "use": "A version 2 message, or nothing is read." }
+    ]
+   },
+   {
+    "segment": "PID",
+    "fields": [
+     { "field": 3, "name": "Patient identifier list", "use": "Matching only. Each identifier is kept as a keyed digest and the identifier itself is never stored." }
+    ]
+   },
+   {
+    "segment": "PV1",
+    "fields": [
+     { "field": 2, "name": "Patient class", "use": "The Encounter's class: inpatient, emergency or outpatient." },
+     { "field": 19, "name": "Visit number", "use": "Which admission a discharge closes. Kept as a keyed digest and never stored." },
+     { "field": 44, "name": "Admit date/time", "use": "When the Encounter began." },
+     { "field": 45, "name": "Discharge date/time", "use": "When the Encounter ended." }
+    ]
+   },
+   {
+    "segment": "OBR",
+    "fields": [
+     { "field": 2, "name": "Placer order number", "use": "The lab order Medicines placed, by its reference." },
+     { "field": 4, "name": "Universal service identifier", "use": "What was tested, written into the DiagnosticReport in the record and never onto the bus or into the hand-off." },
+     { "field": 7, "name": "Observation date/time", "use": "When the sample was taken." },
+     { "field": 22, "name": "Results report date/time", "use": "When the laboratory released the result." },
+     { "field": 25, "name": "Result status", "use": "Final, preliminary or corrected, as the laboratory says. It is not a clinician's acknowledgement." }
+    ]
+   },
+   {
+    "segment": "OBX",
+    "fields": [
+     { "field": 2, "name": "Value type", "use": "Whether the value is a number or text." },
+     { "field": 3, "name": "Observation identifier", "use": "What was measured." },
+     { "field": 5, "name": "Observation value", "use": "The value, written into the record and nowhere else." },
+     { "field": 6, "name": "Units", "use": "The value's unit." },
+     { "field": 7, "name": "Reference range", "use": "The laboratory's own range, as text." },
+     { "field": 8, "name": "Abnormal flags", "use": "The laboratory's flag, as its code. It is not an interpretation anybody at MyThuso made." },
+     { "field": 11, "name": "Observation result status", "use": "The status of this one value." },
+     { "field": 16, "name": "Responsible observer", "use": "Only the registration of the person who verified the result. Their name is not read." }
+    ]
+   }
+  ],
+  "notRead": [
+   { "segment": "NTE", "why": "A note is free text, and free text is where a name, a phone number or an interpretation is written. The Passport cannot screen a name out of prose, so it does not read prose." },
+   { "segment": "NK1", "why": "Next of kin is who a person is, and who a person is lives in the identity service." },
+   { "segment": "IN1", "why": "A medical aid number is an identifier a scheme joins to its own claims history." },
+   { "segment": "DG1", "why": "A diagnosis from a hospital would be filed by a mapping no clinician has reviewed. It stays in the hospital's record until one has." },
+   { "segment": "AL1", "why": "An allergy filed from a message would sit in the emergency summary beside the ones the patient and their clinicians wrote, with no way yet to tell the two apart on a responder's screen." },
+   { "segment": "PD1", "why": "A patient's registered practice and advance directives are not needed to file an admission or a result." }
+  ]
+ },
+
+ "messageTypes": [
+  {
+   "code": "ADT^A01",
+   "name": "Admit",
+   "built": true,
+   "from": "hospital",
+   "storesAs": "Encounter",
+   "encounterStatus": "in-progress",
+   "action": "hl7v2.adt.admit",
+   "purpose": "treatment",
+   "emits": "passport.admission.detected@1"
+  },
+  {
+   "code": "ADT^A03",
+   "name": "Discharge",
+   "built": true,
+   "from": "hospital",
+   "storesAs": "Encounter",
+   "encounterStatus": "finished",
+   "action": "hl7v2.adt.discharge",
+   "purpose": "treatment",
+   "emits": "passport.discharge.received@1"
+  },
+  {
+   "code": "ORU^R01",
+   "name": "Observation result",
+   "built": true,
+   "from": "laboratory",
+   "storesAs": "DiagnosticReport",
+   "action": "hl7v2.oru.result",
+   "purpose": "diagnostics",
+   "emits": null,
+   "handsTo": "POST /v1/medicines/lab-results@1"
+  },
+  {
+   "code": "ADT^A08",
+   "name": "Update patient information",
+   "built": false,
+   "why": "An update carries who a person is — a name, an address, a next of kin — which the Passport does not hold and will not store."
+  },
+  {
+   "code": "ORM^O01",
+   "name": "Order",
+   "built": false,
+   "why": "An order is placed by Medicines through its own route, and an interface that sends orders to a laboratory is not built."
+  }
+ ],
+ "_resultOwnershipNote": "An ORU result is not announced by Record. Medicines owns lab orders, lab.result.received@1 and the rule that a result is not complete until a clinician acknowledges it, so the Passport writes the DiagnosticReport, keeps a hand-off in the shape POST /v1/medicines/lab-results@1 takes, and Medicines publishes lab.result.received@1 when it takes it in. Clinical records the acknowledgement by the clinician who ordered the test, Core stands its concern down, and only then may Medicines close the order. A second announcement from Record would be a second source of truth for one result, and a way round the acknowledgement.",
+
+ "facilities": [
+  {
+   "id": "synthetic-general-hospital",
+   "label": "Synthetic General Hospital",
+   "kind": "hospital",
+   "sendingApplication": "SYN-ADT",
+   "sendingFacility": "SYNGH",
+   "assigningAuthorities": ["SYNGH"],
+   "messageTypes": ["ADT^A01", "ADT^A03"],
+   "laboratory": null,
+   "synthetic": true,
+   "agreement": null,
+   "mutualTls": null
+  },
+  {
+   "id": "synthetic-pathology-laboratory",
+   "label": "Synthetic Pathology Laboratory",
+   "kind": "laboratory",
+   "sendingApplication": "SYN-LIS",
+   "sendingFacility": "SYNLAB",
+   "assigningAuthorities": ["SYNGH"],
+   "messageTypes": ["ORU^R01"],
+   "laboratory": "synthetic-development-lab",
+   "synthetic": true,
+   "agreement": null,
+   "mutualTls": null
+  }
+ ],
+ "_facilitiesNote": "Registered here, in a contract change reviewed in a diff, and not an admin setting. A facility that may send messages into people's records is a responsible party under POPIA section 21 with an agreement, a certificate and conformance testing behind it; none of that is a value somebody moves on a Configuration screen, and a registry an admin could extend would be a door an admin could open. The laboratory's own name for itself on the vetting register and in packages/catalog/medicines.json is its laboratory, and whether it is contracted is Medicines' rule, not this file's. agreement and mutualTls are null because neither exists.",
+
+ "assigningAuthorities": [
+  {
+   "id": "SYNGH",
+   "label": "Synthetic General Hospital record number",
+   "identifierPattern": "^SYN[0-9]{6}$",
+   "why": "The hospital's own record number, which its laboratory uses too. Its shape is written down so that a number which is not one — an identity number typed into the wrong field — is refused rather than linked."
+  }
+ ],
+
+ "matching": {
+  "rule": "A message is matched to a patient by an identifier in PID-3, under an assigning authority the sending facility is registered to use, that the patient linked to their own record in their own session. Nothing else in the message is compared with anything.",
+  "keptAs": "A keyed digest of the authority and the identifier, under the Passport's index key. The identifier itself is never stored, so the table does not say which people have a hospital number.",
+  "neverMatchesOn": [
+   { "field": "PID-5", "name": "Patient name" },
+   { "field": "PID-7", "name": "Date of birth" },
+   { "field": "PID-8", "name": "Administrative sex" },
+   { "field": "PID-11", "name": "Patient address" },
+   { "field": "PID-13", "name": "Home phone number" },
+   { "field": "PID-19", "name": "Identity number" }
+  ],
+  "moreThanOne": "A message whose identifiers reach two different patients is matched to neither.",
+  "unmatched": "An unmatched message is refused, recorded in the quarantine with nothing from its content, and never matched by a best guess.",
+  "why": "A result filed against the wrong patient is two clinical errors at once: the wrong person is told something about their health, and the right person is not. A name and a date of birth are shared by more people than anybody expects, and the Passport holds neither, so the only match it can honestly make is on a number the patient said is theirs."
+ },
+
+ "identifierLinks": {
+  "identityNumberPattern": "^[0-9]{13}$",
+  "why": "The patient links a hospital number to their own record in their own session, which is the consent basis for the Passport to act on a message carrying it. A thirteen-digit number is refused whatever authority it is linked under, because a South African identity number is never the key a record is found by. One identifier is linked to one patient: a second patient linking a number already linked is refused, because a hospital number is issued to one person, and two people claiming it is a mistake or an attempt to receive somebody else's results."
+ },
+
+ "pid": {
+  "consentBasis": [1, 3],
+  "why": "PID-1 is a sequence number and PID-3 is the identifier the patient linked. Every other PID field is who a person is — a name, a date of birth, an address, a phone number, an identity number — and the Passport has no consent basis to store any of it and does not read what it will not store. A matched message that carries one is refused in the patient's own chain, so the patient can see that a partner sent more than it should, and nothing from it is stored."
+ },
+
+ "encounters": {
+  "classes": [
+   { "code": "I", "fhir": "IMP", "label": "Inpatient" },
+   { "code": "E", "fhir": "EMER", "label": "Emergency" },
+   { "code": "O", "fhir": "AMB", "label": "Outpatient" }
+  ],
+  "category": "admission",
+  "dischargeWithoutAdmission": "A discharge for a visit number the Passport holds no admission for is written as an Encounter that has already finished, because the patient was discharged whether or not the admission reached the record.",
+  "revisions": "A discharge revises the Encounter its admission wrote, as version two, and the first version is kept sealed beside it. Nothing is overwritten and lost.",
+  "encounterStatuses": {
+   "route": "GET /v1/record/encounter-statuses/{encounterRef}@1",
+   "decision": "left-proposed",
+   "why": "The route says whether an encounter is written, signed or superseded, for Care deciding whether a nurse's visit may be handed over or completed. The Passport now stores an Encounter, but it is a hospital's admission, written by a partner's message and signed by nobody; the Passport still stores no signature and no supersede. Built on what an Encounter now holds, the route could only ever answer written, and Care would wait for a signature that cannot arrive — or, worse, read a hospital admission as the encounter a nurse completes a visit against. It stays proposed until the record holds a signed encounter."
+  }
+ },
+
+ "results": {
+  "category": "laboratory",
+  "statusMap": [
+   { "code": "F", "fhir": "final" },
+   { "code": "C", "fhir": "corrected" },
+   { "code": "P", "fhir": "preliminary" }
+  ],
+  "neverCompleteUntil": "A result that arrives by HL7 is taken in by Medicines as a result received and not acknowledged. It is complete only when the clinician who ordered the test acknowledges it through POST /v1/clinical/results/{resultRef}/acknowledge@1, and Medicines refuses to close the order before it hears that. The laboratory's final status is the laboratory's verification, not a clinician's acknowledgement.",
+  "handOff": {
+   "route": "POST /v1/medicines/lab-results@1",
+   "carries": ["labOrderRef", "resultEntryRef", "labPartyRef", "releasedAt", "verifiedByRegistration"],
+   "neverCarries": ["resultValues", "testName", "units", "referenceRange", "abnormalFlag", "patientIdentifier", "rawMessage"],
+   "why": "Medicines holds references and states and never what a result says (packages/catalog/medicines.json, whereContentLives), and the lab-result door in packages/catalog/feeds.json refuses a laboratory's message that carries a value, a test name or who the patient is. The hand-off is held to the same rules."
+  },
+  "laboratoryContractedFrom": "packages/catalog/medicines.json#labs.collectionModes",
+  "orderPlacedFrom": "lab.order.placed@1",
+  "_orderPlacedNote": "The Record engine hears lab.order.placed@1 and keeps which order was placed for which patient, so a result for an order nobody placed, or for somebody else's, is refused. The Passport P0 and the engine runtime are separate services and the authenticated call between them does not exist: the Passport is handed the placed orders rather than reaching the runtime's store, so in development it knows none unless a test or the web preview hands them to it, and refuses every result for an order it does not know.",
+  "verifiedBy": "OBX-16",
+  "why": "§20: lab-confirmed and self-reported data must always be distinguishable, so a result is written with Provenance naming the laboratory and the message, and a caller of POST /fhir cannot write a DiagnosticReport at all."
+ },
+
+ "acknowledgements": {
+  "receiver": { "application": "MYTHUSO-PASSPORT", "facility": "MYTHUSO" },
+  "codes": [
+   { "code": "AA", "meaning": "Application accept. The message was read and filed." },
+   { "code": "AE", "meaning": "Application error. The message was read and refused for what it carries; the partner corrects it and sends it again." },
+   { "code": "AR", "meaning": "Application reject. The message was not accepted from this sender, in this form or for this patient." }
+  ],
+  "refusals": [
+   { "refusal": "hl7-developer-credential-required", "code": "AR" },
+   { "refusal": "hl7-message-unreadable", "code": "AR" },
+   { "refusal": "hl7-not-synthetic", "code": "AR" },
+   { "refusal": "hl7-facility-not-registered", "code": "AR" },
+   { "refusal": "hl7-message-type-not-built", "code": "AR" },
+   { "refusal": "hl7-control-id-reused", "code": "AR" },
+   { "refusal": "hl7-clock-skew", "code": "AE" },
+   { "refusal": "hl7-patient-not-matched", "code": "AR" },
+   { "refusal": "hl7-pid-field-without-consent-basis", "code": "AE" },
+   { "refusal": "hl7-lab-order-not-placed", "code": "AE" },
+   { "refusal": "hl7-laboratory-not-contracted", "code": "AR" },
+   { "refusal": "hl7-result-without-verifier", "code": "AE" },
+   { "refusal": "hl7-identity-in-message", "code": "AE" }
+  ],
+  "replay": "A message whose control ID this facility has already sent, with the same content, is answered with the acknowledgement it was first given, word for word, and nothing is written twice.",
+  "why": "A partner's interface engine reads MSA-1 and nothing else to decide whether to resend. So every refusal carries its code here and its sentence in MSA-3, word for word from packages/catalog/passport-gateway.json, and a partner is never left to guess which of its messages were filed."
+ },
+
+ "quarantine": {
+  "holds": ["which registered facility sent it, or none", "the message type", "the refusal's id", "when it arrived", "the day its record is deleted", "the settings version that day was worked out under"],
+  "neverHolds": ["the message", "the control ID", "any identifier", "a name or a date of birth", "a visit number", "an order number", "a result, a unit or a range"],
+  "release": {
+   "built": false,
+   "why": "A quarantined message is not released into a record later. Releasing it would be matching it after the fact, by a person choosing whose it is, which is the guess the rule exists to refuse. The partner was told AR and resends the message once the patient has linked the number it carries."
+  },
+  "retentionSetting": "hl7-quarantine-retention-days",
+  "readBy": "developer",
+  "why": "An operator needs to see that messages are being refused, from whom and why, to fix a partner's interface. None of that needs a message's content, so none is kept: a copy of a message about nobody in particular is still a copy of somebody's health information, held for a purpose nobody consented to."
+ },
+
+ "screens": {
+  "quarantine": {
+   "heading": "HL7 quarantine (development)",
+   "intro": "Messages from registered development partners that the Passport could not file, with who sent them, what kind they were and why they were refused. Nothing a message said is kept, so nothing is shown.",
+   "preview": "A preview. These are synthetic rejections, no partner is connected, and the Passport service that would keep this list runs only on a developer's machine.",
+   "facility": "From",
+   "kind": "Kind",
+   "reason": "Refused because",
+   "received": "Arrived",
+   "deleted": "Record deleted {when}",
+   "retention": "Records are kept for the quarantine retention setting in force when each message arrived: {days} days now. The Information Officer confirms that period.",
+   "unknownFacility": "A sender the Passport has not registered",
+   "noRelease": "A quarantined message is never released into a record. The partner resends it once the patient has linked the number it carries.",
+   "empty": "No message is in quarantine."
+  },
+  "results": {
+   "receiveHl7": "Receive the result as HL7 from {facility}",
+   "arrivedBy": "Arrived as an HL7 {kind} message from {facility}",
+   "notComplete": "Not complete until you acknowledge it.",
+   "preview": "A preview. The synthetic laboratory sends no real message: the preview builds one, reads it with the Passport's own parser and files a reference to a result that does not exist."
+  }
+ },
+
+ "preview": {
+  "why": "The web preview's patient and its laboratory's verifier. Both are invented: the number is shaped like the synthetic hospital's and belongs to nobody, and the registration is a medical technologist who does not exist.",
+  "patient": { "authority": "SYNGH", "identifier": "SYN048213" },
+  "verifiedBy": "SYN-MT-0417",
+  "quarantine": [
+   { "dayOffset": -3, "time": "07:42", "facility": "synthetic-pathology-laboratory", "messageType": "ORU^R01", "refusal": "hl7-patient-not-matched" },
+   { "dayOffset": -2, "time": "15:06", "facility": null, "messageType": "ADT^A01", "refusal": "hl7-facility-not-registered" },
+   { "dayOffset": -1, "time": "10:19", "facility": "synthetic-general-hospital", "messageType": "ADT^A03", "refusal": "hl7-patient-not-matched" }
+  ]
+ }
+}

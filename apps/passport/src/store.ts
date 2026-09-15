@@ -30,6 +30,18 @@
  * for both. Resources are written once per version; P0 has no supersede, so it has no update either.
  * The UPDATEs are a grant's revoked_at and a session's revoked_at, which are the patient ending
  * something, and both are audited.
+ *
+ * ── The HL7 v2 bridge (Wave 5) ───────────────────────────────────────────────────────────────
+ *
+ * One more UPDATE: a discharge revises the Encounter its admission wrote. The version it replaces is
+ * copied, still sealed, into resource_versions first, so a revision loses nothing and a resource's
+ * history is rows rather than an edited number. A linked hospital number, a visit number and a
+ * partner's control ID are kept only as tags under the Passport's partner key. The replay table holds
+ * the acknowledgement a partner was sent — its control ID and a contract sentence, never what the
+ * message said — so a retry is answered word for word. The quarantine holds nothing a message said at
+ * all: who sent it, what kind, why it was refused and when its record is deleted. Its rows, and the
+ * replay rows of messages that reached nobody, are the only DELETEs in this service, and they are the
+ * retention period carrying itself out.
  */
 import { DatabaseSync } from 'node:sqlite';
 
@@ -111,6 +123,54 @@ CREATE TABLE IF NOT EXISTS share_link_uses (
  used_at INTEGER NOT NULL,
  PRIMARY KEY (link_id, use_key)
 );
+CREATE TABLE IF NOT EXISTS resource_versions (
+ id TEXT NOT NULL,
+ version INTEGER NOT NULL,
+ subject TEXT NOT NULL,
+ key_scope TEXT NOT NULL,
+ sealed_body BLOB NOT NULL,
+ written_at INTEGER NOT NULL,
+ PRIMARY KEY (id, version)
+);
+CREATE TABLE IF NOT EXISTS identifier_links (
+ tag TEXT PRIMARY KEY,
+ subject TEXT NOT NULL,
+ linked_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS hl7_messages (
+ facility TEXT NOT NULL,
+ control_tag TEXT NOT NULL,
+ content_tag TEXT NOT NULL,
+ status INTEGER NOT NULL,
+ ack_code TEXT NOT NULL,
+ acknowledgement TEXT NOT NULL,
+ subject TEXT,
+ received_at INTEGER NOT NULL,
+ purge_after INTEGER,
+ PRIMARY KEY (facility, control_tag)
+);
+CREATE TABLE IF NOT EXISTS hl7_encounters (
+ visit_tag TEXT PRIMARY KEY,
+ subject TEXT NOT NULL,
+ resource_id TEXT NOT NULL,
+ facility TEXT NOT NULL,
+ written_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS hl7_quarantine (
+ ref TEXT PRIMARY KEY,
+ facility TEXT,
+ message_type TEXT,
+ refusal TEXT NOT NULL,
+ received_at INTEGER NOT NULL,
+ purge_after INTEGER NOT NULL,
+ settings_version INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS hl7_handoffs (
+ resource_id TEXT PRIMARY KEY,
+ subject TEXT NOT NULL,
+ sealed_body BLOB NOT NULL,
+ created_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS audit_events (
  seq INTEGER PRIMARY KEY,
  at INTEGER NOT NULL,
@@ -152,6 +212,9 @@ export type LinkRow = {
  id: string; subject: string; grant_id: string; kind: string; secret_hash: string; sealed_body: Uint8Array;
  expires_at: number; uses_allowed: number; settings_version: number; revoked_at: number | null; created_at: number;
 };
+
+/** A message the Passport could not file, as the quarantine keeps it: nothing the message said. */
+export type QuarantineRow = { ref: string; facility: string | null; message_type: string | null; refusal: string; received_at: number; purge_after: number; settings_version: number };
 
 const rows = <T>(value: unknown): T[] => value as T[];
 const row = <T>(value: unknown): T | null => (value as T | undefined) ?? null;
@@ -265,6 +328,63 @@ export class PassportStore {
  }
  breakGlassNote(auditSeq: number): { subject: string; sealed_body: Uint8Array } | null {
   return row(this.#db.prepare('SELECT subject, sealed_body FROM breakglass_notes WHERE audit_seq = ?').get(auditSeq));
+ }
+
+ /* ---- The HL7 v2 bridge ------------------------------------------------------------------------ */
+
+ /* A revision keeps the version it replaces, sealed as it was, before the row moves on. Only a row still at the
+    version the caller read is revised, so two discharges for one admission cannot both think they were first. */
+ reviseResource(previous: ResourceRow, next: { version: number; sealed_body: Uint8Array; written_at: number }): boolean {
+  this.#db.prepare('INSERT INTO resource_versions (id, version, subject, key_scope, sealed_body, written_at) VALUES (?, ?, ?, ?, ?, ?)')
+   .run(previous.id, previous.version, previous.subject, previous.key_scope, previous.sealed_body, previous.written_at);
+  return this.#db.prepare('UPDATE resources SET version = ?, sealed_body = ?, written_at = ? WHERE id = ? AND version = ?')
+   .run(next.version, next.sealed_body, next.written_at, previous.id, previous.version).changes === 1;
+ }
+ resourceVersions(id: string): { version: number; key_scope: string; sealed_body: Uint8Array }[] {
+  return rows(this.#db.prepare('SELECT version, key_scope, sealed_body FROM resource_versions WHERE id = ? ORDER BY version').all(id));
+ }
+
+ linkIdentifier(tag: string, subject: string, at: number): void {
+  this.#db.prepare('INSERT INTO identifier_links (tag, subject, linked_at) VALUES (?, ?, ?)').run(tag, subject, at);
+ }
+ subjectLinkedTo(tag: string): string | null {
+  return row<{ subject: string }>(this.#db.prepare('SELECT subject FROM identifier_links WHERE tag = ?').get(tag))?.subject ?? null;
+ }
+
+ hl7Message(facility: string, controlTag: string): { content_tag: string; status: number; ack_code: string; acknowledgement: string; subject: string | null } | null {
+  return row(this.#db.prepare('SELECT content_tag, status, ack_code, acknowledgement, subject FROM hl7_messages WHERE facility = ? AND control_tag = ?').get(facility, controlTag));
+ }
+ putHl7Message(message: { facility: string; control_tag: string; content_tag: string; status: number; ack_code: string; acknowledgement: string; subject: string | null; received_at: number; purge_after: number | null }): void {
+  this.#db.prepare('INSERT INTO hl7_messages (facility, control_tag, content_tag, status, ack_code, acknowledgement, subject, received_at, purge_after) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+   .run(message.facility, message.control_tag, message.content_tag, message.status, message.ack_code, message.acknowledgement, message.subject, message.received_at, message.purge_after);
+ }
+
+ hl7Encounter(visitTag: string): { subject: string; resource_id: string } | null {
+  return row(this.#db.prepare('SELECT subject, resource_id FROM hl7_encounters WHERE visit_tag = ?').get(visitTag));
+ }
+ putHl7Encounter(visitTag: string, subject: string, resourceId: string, facility: string, at: number): void {
+  this.#db.prepare('INSERT INTO hl7_encounters (visit_tag, subject, resource_id, facility, written_at) VALUES (?, ?, ?, ?, ?)').run(visitTag, subject, resourceId, facility, at);
+ }
+
+ putQuarantine(item: QuarantineRow): void {
+  this.#db.prepare('INSERT INTO hl7_quarantine (ref, facility, message_type, refusal, received_at, purge_after, settings_version) VALUES (?, ?, ?, ?, ?, ?, ?)')
+   .run(item.ref, item.facility, item.message_type, item.refusal, item.received_at, item.purge_after, item.settings_version);
+ }
+ quarantine(): QuarantineRow[] {
+  return rows<QuarantineRow>(this.#db.prepare('SELECT ref, facility, message_type, refusal, received_at, purge_after, settings_version FROM hl7_quarantine ORDER BY received_at, rowid').all());
+ }
+ /* Retention carried out: a quarantined record whose day has come, and the replay row of a message that reached
+    nobody, kept for the same period so a retry inside it is still answered word for word. */
+ purgeHl7(now: number): void {
+  this.#db.prepare('DELETE FROM hl7_quarantine WHERE purge_after <= ?').run(now);
+  this.#db.prepare('DELETE FROM hl7_messages WHERE subject IS NULL AND purge_after IS NOT NULL AND purge_after <= ?').run(now);
+ }
+
+ putHandOff(resourceId: string, subject: string, sealed: Buffer, at: number): void {
+  this.#db.prepare('INSERT INTO hl7_handoffs (resource_id, subject, sealed_body, created_at) VALUES (?, ?, ?, ?)').run(resourceId, subject, sealed, at);
+ }
+ handOffs(): { resource_id: string; subject: string; sealed_body: Uint8Array }[] {
+  return rows(this.#db.prepare('SELECT resource_id, subject, sealed_body FROM hl7_handoffs ORDER BY created_at, resource_id').all());
  }
 
  close(): void { this.#db.close(); }

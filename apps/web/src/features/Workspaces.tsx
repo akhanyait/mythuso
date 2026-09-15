@@ -45,11 +45,16 @@ export const sectionDoor: Record<string,string> = {
 /* Medicines & Labs arrives as More tools rather than as sections: each is one piece of a chain the four workspaces
    share, and a sixth tab on a nurse's or a doctor's phone would push the work she opened the app for off the bar.
    The names are the contract's own headings, so the link and the dialog it opens cannot drift. */
+/* The HL7 quarantine's heading, typed rather than imported (Wave 5): importing packages/catalog/hl7v2-inbound.json here
+   would split it into a chunk the patient's first load names in its preload list. scripts/check-boundaries.mjs holds
+   this to the contract's screens.quarantine.heading word for word, as it holds App.tsx's P1 route names. */
+export const HL7_QUARANTINE_HEADING = 'HL7 quarantine (development)';
 export const roleExtras: Record<string,string[]> = {
  Nurse:['Locum shifts','Academy',medicines.screen.handover.heading],
  Doctor:['Clinical protocols','Referral pathway','Per-case fees',medicines.screen.prescribe.heading,medicines.screen.results.heading],
  Partner:['Prescription RX-0081','Laboratory order LAB-0023',medicines.screen.pharmacy.heading],
- 'Control Tower':['Nurse onboarding & vetting','Employer programmes']
+ /* The HL7 quarantine is a development operator's view (Wave 5), under its contract heading, which says so. */
+ 'Control Tower':['Nurse onboarding & vetting','Employer programmes',HL7_QUARANTINE_HEADING]
 };
 /* A nurse's morning, a doctor's queue, a controller's board and a partner's orders — four screens
  * that each have exactly one thing a person opened them for.

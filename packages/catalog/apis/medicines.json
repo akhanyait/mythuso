@@ -2,7 +2,7 @@
  "engine": "medicines",
  "_note": "Medicines & Labs is Thuso Pharmacy: the formulary, interaction checks at prescribe and dispense, prescriptions through the §5.4 states, collections with a chain of custody (§10), the partner pharmacy's queue and lab orders whose results arrive on the lab-result door. Wave 2 contract; built in Wave 4 on packages/engines. The version ones the engine could not honestly answer are withdrawn, each naming its correction. Medicines keeps references and states, never a medicine, a dose or a result: packages/catalog/medicines.json#whereContentLives.",
  "version": 1,
- "resources": ["formulary", "interaction-checks", "prescriptions", "collection-authorisations", "collections", "orders", "lab-orders", "settings", "setting-changes", "setting-reviews"],
+ "resources": ["formulary", "interaction-checks", "prescriptions", "collection-authorisations", "collections", "orders", "lab-orders", "settings", "setting-changes", "setting-reviews", "lab-results"],
  "doors": ["pharmacy-order", "lab-result"],
  "doorsToAdd": [],
  "refusals": [
@@ -674,6 +674,37 @@
    "capabilityNamed": null,
    "status": "built",
    "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'POST /v1/medicines/setting-reviews@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/lab-results",
+   "version": 1,
+   "summary": "Take in a result the Health Passport filed from a registered laboratory's HL7 message, as a reference to its entry, for an order Medicines placed with a laboratory that serves it. The result is received and not acknowledged: it is complete only when the clinician who ordered the test acknowledges it. Added by the Trust & Record lead (Wave 5).",
+   "callers": ["engine:record"],
+   "callerJustifications": {"engine:record": "lab.order.placed@1"},
+   "purpose": ["diagnostics"],
+   "request": [
+    {"field": "labOrderRef", "type": "string", "required": true, "why": "The order the result answers, from OBR-2 of the laboratory's message."},
+    {"field": "resultEntryRef", "type": "string", "required": true, "why": "The DiagnosticReport the Passport wrote. What the result says is there, and never in this request."},
+    {"field": "labPartyRef", "type": "string", "required": true, "why": "The laboratory that released it, as packages/catalog/medicines.json labs.collectionModes names the laboratory that serves a mode."},
+    {"field": "releasedAt", "type": "instant", "required": true, "why": "When the laboratory released it."},
+    {"field": "verifiedByRegistration", "type": "string", "required": true, "why": "The registration of whoever verified the result before release, from OBX-16."}
+   ],
+   "response": [
+    {"field": "receivedAt", "type": "instant", "required": true, "why": "When Medicines took it in, which is when its concern was raised with Core."}
+   ],
+   "refusals": [
+    {"id": "no-such-lab-order", "status": 404, "statement": "Medicines holds no lab order by that reference.", "why": "A result for an order Medicines never placed has nobody responsible for acknowledging it."},
+    {"id": "lab-not-contracted", "status": 503, "statement": "No partner lab is contracted yet.", "why": "A result from a laboratory that does not serve the order's collection mode is from a laboratory nobody sent the sample to."},
+    {"id": "lab-result-already-received", "status": 409, "statement": "A result has already been received for that order.", "why": "An order is answered by one result. A second is the same result again or a correction, and taking in a correction is not built."}
+   ],
+   "emits": ["lab.result.received@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'POST /v1/medicines/lab-results@1'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   }
  ]

@@ -9,7 +9,7 @@ import {
 import { clearedOn, mayAct, type Standing, type StandingReader } from '../../../../packages/engines/src/medicines/domain/standing.ts';
 import { dispense, prescribe, queueFor, runCheck, stateOf, verify, type Check, type Prescription } from '../../../../packages/engines/src/medicines/domain/prescriptions.ts';
 import { attemptsLeft, authorise, collect, handOver, voidedBy, type Attempt, type Authorisation, type Collection } from '../../../../packages/engines/src/medicines/domain/collections.ts';
-import { acknowledged, close, labStateOf, placeOrder, receiveResult, syntheticResultDue, type LabOrder } from '../../../../packages/engines/src/medicines/domain/labs.ts';
+import { acknowledged, close, labStateOf, placeOrder, receiveResult, servedBy, syntheticResultDue, type LabOrder } from '../../../../packages/engines/src/medicines/domain/labs.ts';
 import { randomDigits, randomSalt, sha256Hex } from '../../../../packages/engines/src/money/domain/secrets.ts';
 import { roleOf } from './roles';
 import { can, roleById } from './vetting';
@@ -90,7 +90,9 @@ export const doctorCleared = () => clearedOn(standing.of(DOCTOR, 'doctor'), toda
 
 /* ---- The store ---------------------------------------------------------------------------------------- */
 
-type ResultRecord = { readonly resultRef: string; readonly labOrderRef: string; readonly responsibleRef: string; readonly acknowledgedAt: number | null };
+/* arrivedBy is null for the synthetic laboratory's reference and says who sent it and what kind for a result that
+   arrived as an HL7 message (Wave 5). Either way the result is received and not acknowledged until the clinician says. */
+type ResultRecord = { readonly resultRef: string; readonly labOrderRef: string; readonly responsibleRef: string; readonly acknowledgedAt: number | null; readonly arrivedBy: { readonly kind: string; readonly facility: string } | null };
 export type MedicinesState = {
  readonly checks: readonly Check[];
  readonly prescriptions: readonly Prescription[];
@@ -119,7 +121,7 @@ function advance(s: MedicinesState, now: number): MedicinesState {
   next = {
    ...next,
    orders: next.orders.map(o => o.labOrderRef === order.labOrderRef ? received.value : o),
-   results: [...next.results, { resultRef: received.value.resultEntryRef!, labOrderRef: order.labOrderRef, responsibleRef: order.orderedByRef, acknowledgedAt: null }]
+   results: [...next.results, { resultRef: received.value.resultEntryRef!, labOrderRef: order.labOrderRef, responsibleRef: order.orderedByRef, acknowledgedAt: null, arrivedBy: null }]
   };
  }
  return next;
@@ -184,6 +186,32 @@ export function acknowledgeResult(resultRef: string, byRef: string = DOCTOR) {
  if (result.acknowledgedAt !== null) { commit(s); return sentence('already-acknowledged'); }
  const order = s.orders.find(o => o.labOrderRef === result.labOrderRef)!;
  commit({ ...s, results: replace(s.results, r => r.resultRef === resultRef, { ...result, acknowledgedAt: now }), orders: replace(s.orders, o => o.labOrderRef === order.labOrderRef, acknowledged(order, byRef, now)) });
+ return null;
+}
+
+/* Wave 5: the synthetic laboratory's result as an HL7 message instead of a bare reference. The message is built and read
+   by the Passport's own parser and rules (lib/hl7-inbound.ts), then taken in by Medicines' own receiveResult with the
+   intake route's refusals — an order nobody holds, a laboratory that does not serve it, a result already received — so it
+   is received and not acknowledged, and closeOrder still refuses until acknowledgeResult. Nothing here acknowledges.
+   The HL7 lib arrives on a dynamic import: this file is in the patient's collector dialog's chunk too. */
+export async function receiveHl7Result(labOrderRef: string): Promise<Refusal | null> {
+ const { laboratoryResult } = await import('./hl7-inbound');
+ const now = Date.now();
+ const s = advance(state, now);
+ const order = s.orders.find(o => o.labOrderRef === labOrderRef);
+ if (!order) { commit(s); return refusal('no-such-lab-order'); }
+ const arrived = laboratoryResult({ labOrderRef, placed: ref => s.orders.some(o => o.labOrderRef === ref && o.subjectRef === PATIENT), now });
+ if (!arrived.ok) { commit(s); return arrived.refusal; }
+ if (!servedBy(order, arrived.labPartyRef)) { commit(s); return refusal('lab-not-contracted'); }
+ if (order.resultEntryRef !== null) { commit(s); return refusal('lab-result-already-received'); }
+ const { rung, settingsVersion } = resultRungNow();
+ const received = receiveResult(order, { resultEntryRef: arrived.resultEntryRef, rung, settingsVersion }, now);
+ if (!received.ok) { commit(s); return received.refusal; }
+ commit({
+  ...s,
+  orders: replace(s.orders, o => o.labOrderRef === labOrderRef, received.value),
+  results: [...s.results, { resultRef: arrived.resultEntryRef, labOrderRef, responsibleRef: order.orderedByRef, acknowledgedAt: null, arrivedBy: { kind: arrived.kind, facility: arrived.facility } }]
+ });
  return null;
 }
 

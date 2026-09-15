@@ -12,7 +12,9 @@ import { randomBytes } from 'node:crypto';
 import consent from '../../../packages/catalog/consent.json' with { type: 'json' };
 import contract from '../../../packages/catalog/passport-gateway.json' with { type: 'json' };
 import { loadPassportConfig } from '../src/config.ts';
-import { PassportGateway, type GrantFields, type Requester } from '../src/gateway.ts';
+import { PassportGateway, type GrantFields, type PlacedOrder, type Requester } from '../src/gateway.ts';
+import type { InboundInForce } from '../../../packages/engines/src/record/domain/inbound-settings.ts';
+import type { Facility } from '../../../packages/engines/src/record/domain/hl7.ts';
 import { PassportKeys } from '../src/keys.ts';
 import { mintDeveloperCredential, mintOperatorCredential } from '../src/operator.ts';
 import { PassportStore } from '../src/store.ts';
@@ -37,12 +39,19 @@ export const roleOf = (id: string) => consent.grants.recipientRoles.find(role =>
 
 /* The Record settings in force can be handed in, so a test can change one between two links and show the first
    keeps what it was made with. Left out, the gateway reads the contract's defaults, as the process does. */
-export function harness(options: { settings?: () => SharingInForce } = {}) {
+/* The HL7 bridge's settings, the lab orders Record heard placed and the registered partners can be handed in the same way:
+   the process knows no placed order and reads the contract's partners, and a test says otherwise. */
+export function harness(options: {
+ settings?: () => SharingInForce; inbound?: () => InboundInForce; placedOrder?: (labOrderRef: string) => PlacedOrder | null; facilities?: readonly Facility[];
+} = {}) {
  let clock = START;
  const config = loadPassportConfig(developmentEnv());
  const store = new PassportStore(':memory:');
  const keys = new PassportKeys(config.masterKey);
- const gateway = new PassportGateway({ config, store, now: () => clock, ...(options.settings ? { settings: options.settings } : {}) });
+ const gateway = new PassportGateway({
+  config, store, now: () => clock, ...(options.settings ? { settings: options.settings } : {}),
+  ...(options.inbound ? { inbound: options.inbound } : {}), ...(options.placedOrder ? { placedOrder: options.placedOrder } : {}), ...(options.facilities ? { facilities: options.facilities } : {})
+ });
  return {
   config, store, keys, gateway,
   advance: (ms: number) => { clock += ms; },

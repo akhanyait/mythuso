@@ -65,6 +65,7 @@ import { randomUUID } from 'node:crypto';
 import { BusRefused, defineEngine, instant, ok, refuse, type BusEvent, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
 import { SETTINGS_SCHEMA, settingsIn, settingsRoutes } from '../settings/routes.ts';
 import { EXHAUSTED, PANIC, PANIC_RESOLVED, RESULT_ACKNOWLEDGED, resultAlertsFrom, resultClosesAs, engineIds, highestSeverity, outcomes, ownerRoles, panicOutcomes, panicSpanMs, reasons, spanForRung, SOS, SOS_STOOD_DOWN, sosFallbackRole, sosOutcomes, sosOwnerRole, sosSpanMs } from './domain/contract.ts';
+import { DISCHARGE, dischargeFallbackRole, dischargeOwnerRole, dischargeSpanMs } from './domain/contract.ts';
 import { closeRefusal, everyPostOnDuty, holdersOf, movedTo, nextHolder, postOf, settle, stateCodeOf, towerOrder, type KeptRota, type Loop, type Skip } from './domain/loops.ts';
 import { coreSettings, rotaOf } from './domain/settings.ts';
 
@@ -333,6 +334,21 @@ function heardSosStoodDown(event: BusEvent, ctx: EngineContext) {
  publish(ctx, closed, 'loop.closed@1', { loopRef: closed.loopRef, outcomeRef: sosRef, closedByRole: event.actorRole });
 }
 
+/* ── A hospital discharge (Wave 5) ────────────────────────────────────────────────────────────────────── */
+
+/* One discharge is one follow-up concern however often the bus delivers it, keyed by its encounter and pointing at it,
+   so the nurse who takes it on reads the discharge in the record under her own grant rather than from the concern. A
+   person closes it with an outcome through the close route; nothing on the bus closes it for them, because a follow-up
+   that closed itself would be one nobody made. */
+function heardDischarge(event: BusEvent, ctx: EngineContext) {
+ const encounterRef = text(event.payload['encounterRef']);
+ if (!encounterRef || all(ctx).some(loop => loop.alertRef === null && loop.sourceEngine === event.owner && loop.dedupeKey === encounterRef)) return;
+ const loop: Loop = { ...fresh(ctx, { sourceEngine: event.owner, ownerRole: dischargeOwnerRole, fallbackRole: dischargeFallbackRole }, nowOf(ctx), dischargeSpanMs, rotaNow(ctx)), dedupeKey: encounterRef, recordEntryRef: encounterRef };
+ put(ctx, loop);
+ audit(ctx, loop, 'discharge-opened', String(loop.rota.settingsVersion));
+ publish(ctx, loop, 'loop.opened@1', { loopRef: loop.loopRef, sourceEngine: loop.sourceEngine, ownerRole: loop.ownerRole, dueBy: at(loop.dueBy) });
+}
+
 /* ── Acting on a concern ──────────────────────────────────────────────────────────────────────────── */
 
 function acknowledge(request: HandlerRequest, ctx: EngineContext) {
@@ -434,7 +450,7 @@ export const engine = defineEngine({
   'POST /v1/core/alerts@2': raiseAlert,
   ...settingsRoutes(coreSettings, { read: 'GET /v1/core/settings@1', change: 'POST /v1/core/setting-changes@1' })
  },
- subscriptions: { [PANIC]: heardPanic, [PANIC_RESOLVED]: heardPanicResolved, [RESULT_ACKNOWLEDGED]: heardResultAcknowledged, [SOS]: heardSos, [SOS_STOOD_DOWN]: heardSosStoodDown },
+ subscriptions: { [PANIC]: heardPanic, [PANIC_RESOLVED]: heardPanicResolved, [RESULT_ACKNOWLEDGED]: heardResultAcknowledged, [SOS]: heardSos, [SOS_STOOD_DOWN]: heardSosStoodDown, [DISCHARGE]: heardDischarge },
  tick: ctx => {
   const now = nowOf(ctx);
   for (const loop of all(ctx)) {

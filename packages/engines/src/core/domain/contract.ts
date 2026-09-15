@@ -76,3 +76,13 @@ const sosSpan = spanForRung(closedLoop.sos.ladderRung.value);
 if (sosSpan === undefined) throw new Error('packages/catalog/closed-loop.json gives an SOS a ladder rung the ladder does not hold, so the desk would have no time anybody chose.');
 export const sosSpanMs: number = sosSpan;
 export const sosOutcomes: ReadonlyMap<string, string> = new Map(Object.entries(closedLoop.sosStoodDown.closesAs.value));
+
+/* A hospital discharge, heard from Record (Wave 5): who owns the follow-up concern, who it falls back to, and how long its
+   owner has to take it on — the rung closed-loop.json proposes. Core reads no Record contract. */
+export const DISCHARGE = closedLoop.dischargeReceived.hears as EventKey;
+export const dischargeOwnerRole: string = closedLoop.dischargeReceived.ownerRole.value;
+export const dischargeFallbackRole: string = closedLoop.dischargeReceived.fallbackRole.value;
+if (!ownerRoles.has(dischargeOwnerRole) || !ownerRoles.has(dischargeFallbackRole) || dischargeOwnerRole === dischargeFallbackRole) throw new Error('packages/catalog/closed-loop.json gives a discharge follow-up an owner or a fallback nobody can be, or the same role twice, so a patient home from hospital would be followed up by nobody.');
+const dischargeSpan = spanForRung(closedLoop.dischargeReceived.ladderRung.value);
+if (dischargeSpan === undefined) throw new Error('packages/catalog/closed-loop.json gives a discharge follow-up a ladder rung the ladder does not hold, so its owner would have no time anybody chose.');
+export const dischargeSpanMs: number = dischargeSpan;

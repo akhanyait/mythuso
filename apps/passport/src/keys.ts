@@ -14,7 +14,9 @@
  *     ├─ HKDF → session-signing key    signs the development patient session      (HMAC-SHA-256)
  *     ├─ HKDF → operator-signing key   signs the development operator credential  (HMAC-SHA-256)
  *     ├─ HKDF → audit key              chains the audit log                       (HMAC-SHA-256)
- *     └─ HKDF → index key              blinds which category a row is filed under (HMAC-SHA-256)
+ *     ├─ HKDF → index key              blinds which category a row is filed under (HMAC-SHA-256)
+ *     └─ HKDF → partner key            blinds a linked hospital number, a visit number and a partner's
+ *                                      message control ID, so none is kept as itself (HMAC-SHA-256)
  *
  * A data key is random, 32 bytes, generated per subject per scope, and stored only wrapped: the
  * wrapped bytes are bound to the subject and scope as associated data, so a wrapped key copied onto
@@ -64,6 +66,7 @@ export class PassportKeys {
  #signing: Record<SigningKind, Buffer>;
  #audit: Buffer;
  #index: Buffer;
+ #partner: Buffer;
 
  constructor(master: Buffer) {
   if (master.length !== KEY_BYTES) throw new Error('The Passport master key must be 32 bytes.');
@@ -71,6 +74,14 @@ export class PassportKeys {
   this.#signing = { grant: derive(master, 'grant'), session: derive(master, 'session'), operator: derive(master, 'operator'), developer: derive(master, 'developer') };
   this.#audit = derive(master, 'audit');
   this.#index = derive(master, 'index');
+  this.#partner = derive(master, 'partner');
+ }
+
+ /** A partner's number — a hospital number, a visit number, a message control ID or a message's content — blinded,
+     so a row can be found by it without the row holding it. The parts are a JSON array, so no value's separator
+     makes two different tuples blind alike. */
+ partnerTag(...parts: string[]): string {
+  return createHmac('sha256', this.#partner).update(JSON.stringify(parts)).digest('hex');
  }
 
  /** A fresh data key, returned in the clear for immediate use and wrapped for storage. */

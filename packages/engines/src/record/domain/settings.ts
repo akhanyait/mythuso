@@ -50,3 +50,6 @@ export const sharingSettingsOf = (snapshot: Snapshot): SharingInForce => Object.
 
 /** The settings in force after a history of accepted changes. An empty history is the contract's defaults. */
 export const sharingInForce = (history: readonly Change[]): SharingInForce => sharingSettingsOf(snapshotOf(recordBlock, history));
+
+/* The two further Record settings the Wave 5 bridge reads are read through ./inbound-settings.ts, which keeps them off
+   the web preview's first load, where this file is. */

@@ -1547,6 +1547,30 @@ export interface PostRecordSettingChangesResponse {
  readonly appliesFrom: string;
 }
 
+export interface PostRecordHl7v2InboundRequest {
+ readonly message: string;
+}
+export interface PostRecordHl7v2InboundResponse {
+ readonly acknowledgementCode: string;
+ readonly acknowledgement: string;
+ readonly replayed: boolean;
+}
+
+export interface PostRecordPatientIdentifiersRequest {
+ readonly assigningAuthority: string;
+ readonly identifier: string;
+}
+export interface PostRecordPatientIdentifiersResponse {
+ readonly linkedAt: string;
+}
+
+export type GetRecordHl7v2QuarantineRequest = Record<string, never>;
+export interface GetRecordHl7v2QuarantineResponse {
+ readonly retentionDays: number;
+ readonly settingsVersion: number;
+ readonly quarantined: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
 export interface PostMedicinesLabOrdersV2Request {
  readonly subjectRef: string;
  readonly serviceRequestRef: string;
@@ -1686,6 +1710,17 @@ export interface PostMedicinesSettingReviewsRequest {
 export interface PostMedicinesSettingReviewsResponse {
  readonly settingsVersion: number;
  readonly reviewedAt: string;
+}
+
+export interface PostMedicinesLabResultsRequest {
+ readonly labOrderRef: string;
+ readonly resultEntryRef: string;
+ readonly labPartyRef: string;
+ readonly releasedAt: string;
+ readonly verifiedByRegistration: string;
+}
+export interface PostMedicinesLabResultsResponse {
+ readonly receivedAt: string;
 }
 
 export interface PostDevicesRegistryV2Request {
@@ -2178,6 +2213,9 @@ export const apiRoutes = {
  postRecordExportV2: { name: "postRecordExportV2", method: "POST", path: "/export", mountedPath: "/v1/record/export", version: 2, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "built" },
  getRecordSettings: { name: "getRecordSettings", method: "GET", path: "/v1/record/settings", mountedPath: "/v1/record/settings", version: 1, engine: "record", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
  postRecordSettingChanges: { name: "postRecordSettingChanges", method: "POST", path: "/v1/record/setting-changes", mountedPath: "/v1/record/setting-changes", version: 1, engine: "record", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
+ postRecordHl7v2Inbound: { name: "postRecordHl7v2Inbound", method: "POST", path: "/hl7v2/inbound", mountedPath: "/v1/record/hl7v2/inbound", version: 1, engine: "record", callers: ["developer"], purpose: ["treatment","diagnostics"], idempotent: true, status: "built" },
+ postRecordPatientIdentifiers: { name: "postRecordPatientIdentifiers", method: "POST", path: "/v1/record/patient-identifiers", mountedPath: "/v1/record/patient-identifiers", version: 1, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: true, status: "built" },
+ getRecordHl7v2Quarantine: { name: "getRecordHl7v2Quarantine", method: "GET", path: "/v1/record/hl7v2-quarantine", mountedPath: "/v1/record/hl7v2-quarantine", version: 1, engine: "record", callers: ["developer"], purpose: ["audit"], idempotent: false, status: "built" },
  postMedicinesLabOrdersV2: { name: "postMedicinesLabOrdersV2", method: "POST", path: "/v1/medicines/lab-orders", mountedPath: "/v1/medicines/lab-orders", version: 2, engine: "medicines", callers: ["doctor","nurse"], purpose: ["diagnostics"], idempotent: false, status: "built" },
  getMedicinesFormularyV2: { name: "getMedicinesFormularyV2", method: "GET", path: "/v1/medicines/formulary", mountedPath: "/v1/medicines/formulary", version: 2, engine: "medicines", callers: ["doctor","nurse","pharmacist"], purpose: ["dispensing","treatment"], idempotent: false, status: "built" },
  postMedicinesInteractionChecksV2: { name: "postMedicinesInteractionChecksV2", method: "POST", path: "/v1/medicines/interaction-checks", mountedPath: "/v1/medicines/interaction-checks", version: 2, engine: "medicines", callers: ["doctor","pharmacist"], purpose: ["dispensing","treatment"], idempotent: false, status: "built" },
@@ -2192,6 +2230,7 @@ export const apiRoutes = {
  getMedicinesSettings: { name: "getMedicinesSettings", method: "GET", path: "/v1/medicines/settings", mountedPath: "/v1/medicines/settings", version: 1, engine: "medicines", callers: ["admin","doctor"], purpose: ["audit"], idempotent: false, status: "built" },
  postMedicinesSettingChanges: { name: "postMedicinesSettingChanges", method: "POST", path: "/v1/medicines/setting-changes", mountedPath: "/v1/medicines/setting-changes", version: 1, engine: "medicines", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
  postMedicinesSettingReviews: { name: "postMedicinesSettingReviews", method: "POST", path: "/v1/medicines/setting-reviews", mountedPath: "/v1/medicines/setting-reviews", version: 1, engine: "medicines", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "built" },
+ postMedicinesLabResults: { name: "postMedicinesLabResults", method: "POST", path: "/v1/medicines/lab-results", mountedPath: "/v1/medicines/lab-results", version: 1, engine: "medicines", callers: ["engine:record"], purpose: ["diagnostics"], idempotent: false, status: "built" },
  postDevicesRegistryV2: { name: "postDevicesRegistryV2", method: "POST", path: "/v1/devices/registry", mountedPath: "/v1/devices/registry", version: 2, engine: "devices", callers: ["operator"], purpose: ["treatment"], idempotent: false, status: "built" },
  postDevicesRegistryByDeviceRefRecallV2: { name: "postDevicesRegistryByDeviceRefRecallV2", method: "POST", path: "/v1/devices/registry/{deviceRef}/recall", mountedPath: "/v1/devices/registry/{deviceRef}/recall", version: 2, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "built" },
  getDevicesRegistryByDeviceRefHealthV2: { name: "getDevicesRegistryByDeviceRefHealthV2", method: "GET", path: "/v1/devices/registry/{deviceRef}/health", mountedPath: "/v1/devices/registry/{deviceRef}/health", version: 2, engine: "devices", callers: ["nurse","operator"], purpose: ["treatment"], idempotent: false, status: "built" },

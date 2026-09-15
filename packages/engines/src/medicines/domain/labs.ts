@@ -40,6 +40,12 @@ export function placeOrder(input: { labOrderRef: string; subjectRef: string; ser
 export const syntheticResultDue = (o: LabOrder, now: number): boolean =>
  o.resultEntryRef === null && labModes.find(m => m.id === o.collectionMode)?.servedBy === syntheticLab.id && now >= o.orderedAt + syntheticLab.turnaroundMinutes * MINUTE;
 
+/** Whether the laboratory named is the one packages/catalog/medicines.json says serves this order's collection mode. A
+    result from any other laboratory — or from one nobody serves the mode with — is from a laboratory nobody sent the
+    sample to (Wave 5, the HL7 bridge's hand-off). */
+export const servedBy = (o: LabOrder, labPartyRef: string): boolean =>
+ labPartyRef !== '' && labModes.find(m => m.id === o.collectionMode)?.servedBy === labPartyRef;
+
 /** A result reference, and the rung its concern is raised on, which the order keeps. */
 export function receiveResult(o: LabOrder, input: { resultEntryRef: string; rung: number; settingsVersion: number }, now: number): Result<LabOrder> {
  const received: LabOrder = { ...o, resultEntryRef: input.resultEntryRef, resultAt: now, alertRung: input.rung, rungSettingsVersion: input.settingsVersion };

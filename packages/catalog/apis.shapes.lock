@@ -103,3 +103,4 @@ GET /v1/devices/settings@1 d36af35b57f71c3d
 POST /v1/devices/setting-changes@1 0021ed001782a1fc
 POST /v1/devices/setting-changes@2 665edcfd8bcf6edb
 GET /v1/money/plan-subscriptions/{subscriptionRef}@1 5929c2d228ae0312
+GET /v1/record/hl7v2-quarantine@1 88cc732c3661ec6d

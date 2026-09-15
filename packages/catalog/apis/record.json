@@ -1,12 +1,12 @@
 {
  "engine": "record",
- "_note": "Record is the Health Passport. Its §26 paths keep their names and are mounted under /v1/record by reference; the P0 service answers most of them already, in development, on synthetic data, on loopback. Share links, their opening and revocation, and the export are built at P1 (Wave 4) in the same service, and version one of the link and the export are withdrawn; the Record engine's settings are answered by the engine runtime. The HL7 v2 inbound path is a supplier's, so it is a door to add rather than a route. Every read goes through the consent gateway.",
+ "_note": "Record is the Health Passport. Its §26 paths keep their names and are mounted under /v1/record by reference; the P0 service answers most of them already, in development, on synthetic data, on loopback. Share links, their opening and revocation, and the export are built at P1 (Wave 4) in the same service, and version one of the link and the export are withdrawn; the Record engine's settings are answered by the engine runtime. The HL7 v2 inbound path is a partner's, so the door with mutual TLS per partner is still to add; Wave 5 builds §26's POST /hl7v2/inbound in the same service for a developer sending a registered synthetic partner's message, with the patient's link of a hospital number and a developer's read of the quarantine beside it (packages/catalog/hl7v2-inbound.json). Every read goes through the consent gateway.",
  "version": 1,
- "resources": ["fhir", "consent", "audit", "share", "export", "breakglass", "summary", "dev-subjects", "session-ends", "consent-checks", "encounter-statuses", "share-link-opens", "share-link-revocations", "settings", "setting-changes"],
+ "resources": ["fhir", "consent", "audit", "share", "export", "breakglass", "summary", "dev-subjects", "session-ends", "consent-checks", "encounter-statuses", "share-link-opens", "share-link-revocations", "settings", "setting-changes", "hl7v2", "patient-identifiers", "hl7v2-quarantine"],
  "_encounterStatusesNote": "The resource is encounter-statuses and not encounters. A field ending Ref is read as a reference into the store of the engine that declares its resource, so declaring encounters here would make every frozen encounterRef on Care's and Clinical's routes a reach into the record's store, which they are not: they carry the reference and the entry stays in the record.",
  "doors": [],
  "doorsToAdd": [
-  {"id": "hl7v2-inbound", "why": "ADT, ORU and ORM messages from partner systems are supplier callbacks. §26 names the path /hl7v2/inbound; it is mounted as a door with mutual TLS per partner, not answered as a route.", "passportPath": "/hl7v2/inbound", "capabilityNamed": {"section": "§26", "what": "ADT/ORU/ORM bridge from partner systems"}},
+  {"id": "hl7v2-inbound", "why": "ADT, ORU and ORM messages from partner systems are supplier callbacks. §26 names the path /hl7v2/inbound; a partner's system reaches it only through a door with mutual TLS per partner, which is still to add. The development route of the same path answers a developer, never a supplier.", "passportPath": "/hl7v2/inbound", "capabilityNamed": {"section": "§26", "what": "ADT/ORU/ORM bridge from partner systems"}},
   {"id": "claim-submission", "why": "A claim's diagnosis coding is assembled inside the record and clinical boundary from the signed encounter and handed to the switching partner through this door. Money records the billing side and never holds the coding.", "capabilityNamed": {"section": "FS-E10", "what": "tariff and ICD-10 coding from Engine 3"}}
  ],
  "refusals": [
@@ -671,6 +671,109 @@
    "status": "built",
    "evidence": {"file": "packages/engines/src/record/engine.ts", "handler": "'POST /v1/record/setting-changes@1'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/hl7v2/inbound",
+   "version": 1,
+   "summary": "Take one HL7 v2 message from a registered synthetic development partner — an admission, a discharge or a laboratory result — match it to a patient on an identifier they linked and on nothing else, file it as FHIR with Provenance, write it into that patient's audit chain and answer with an HL7 acknowledgement. In development a developer sends it: no partner system reaches the Passport, and MLLP is not served.",
+   "callers": ["developer"],
+   "purpose": ["treatment", "diagnostics"],
+   "request": [
+    {"field": "message", "type": "string", "required": true, "why": "The message in ER7, its segments separated by a carriage return or a new line. packages/catalog/hl7v2-inbound.json names every segment and field that is read, and nothing else in the message is."}
+   ],
+   "response": [
+    {"field": "acknowledgementCode", "type": "string", "required": true, "why": "AA when the message was filed. A refusal answers with its own status and carries AE or AR here as well, beside its sentence."},
+    {"field": "acknowledgement", "type": "string", "required": true, "why": "The HL7 ACK in ER7: MSA-1 the code, MSA-2 the message's control ID and MSA-3 the sentence, word for word from packages/catalog/passport-gateway.json."},
+    {"field": "replayed", "type": "boolean", "required": true, "why": "True when this facility already sent this message under this control ID, and its first acknowledgement was sent again with nothing written twice."}
+   ],
+   "refusals": [
+    {"id": "hl7-developer-credential-required", "status": 401, "statement": "Refused: in development an HL7 message, and the list of messages the Passport could not file, need a developer credential minted at the console. No hospital or laboratory system reaches the Passport.", "why": "The door with mutual TLS per partner does not exist. Until it does, nothing on the loopback sends a message into somebody's record on its own."},
+    {"id": "hl7-message-unreadable", "status": 400, "statement": "Refused: this is not an HL7 version 2 message the Passport reads. It has no readable MSH segment, or it lacks a segment or a field its message type needs.", "why": "A message read by guessing at its structure is a message filed by guessing."},
+    {"id": "hl7-not-synthetic", "status": 422, "statement": "Refused: the message says it is production data. The Passport takes development and training messages on synthetic data only, never one marked for production.", "why": "MSH-11 is the partner's own statement of what the data is, and this Passport holds synthetic data only."},
+    {"id": "hl7-facility-not-registered", "status": 403, "statement": "Refused: this message's sending application and facility are not a development partner registered with the Passport.", "why": "A sender nobody registered is a stranger writing into somebody's record."},
+    {"id": "hl7-message-type-not-built", "status": 422, "statement": "Refused: this is not a kind of message the Passport reads from this facility.", "why": "Each facility is registered for the messages it sends, and each message type says whether it is built."},
+    {"id": "hl7-control-id-reused", "status": 409, "statement": "Refused: this facility has already sent a different message under this control ID. The same ID twice is the same message once, so a different message needs an ID of its own.", "why": "A retry of the same message is answered with its first acknowledgement. A different message under a used ID is not a retry, and its first answer would describe something else."},
+    {"id": "hl7-laboratory-not-contracted", "status": 503, "statement": "Refused: this laboratory is registered to send messages, and no lab order is served by it. A result from a laboratory nobody contracted is not filed.", "why": "Whether a laboratory is contracted is Medicines' rule, read from packages/catalog/medicines.json labs.collectionModes."},
+    {"id": "hl7-clock-skew", "status": 422, "statement": "Refused: the time this message says it was sent is missing its offset, or is further from the Passport's clock than a message may be, so it cannot be told apart from one replayed or held back.", "why": "How far a partner's clock may drift is the Record setting hl7-clock-skew-minutes, read when the message arrives."},
+    {"id": "hl7-patient-not-matched", "status": 422, "statement": "Refused and quarantined: no patient has linked an identifier in this message, under an authority this facility may use. The message was matched to nobody, and the Passport never matches on a name or a date of birth.", "why": "A result filed against the wrong patient is two clinical errors at once. The quarantine records the refusal with nothing the message said."},
+    {"id": "hl7-pid-field-without-consent-basis", "status": 422, "statement": "Refused: the patient segment carries more than the patient's identifier — a name, a date of birth, an address, a phone number or another field the Passport has no consent basis to store. Nothing from this message was stored.", "why": "Who a person is lives in the identity service, and the patient sees in their own log that a partner sent it."},
+    {"id": "hl7-lab-order-not-placed", "status": 422, "statement": "Refused: this result names no lab order placed for this patient. A result for an order nobody placed is not filed.", "why": "A result with no order behind it has no clinician to acknowledge it, and one for somebody else's order is the wrong patient's."},
+    {"id": "hl7-result-without-verifier", "status": 422, "statement": "Refused: this result names nobody who verified it before it was released. A result with nobody behind it is not filed.", "why": "The lab-result door's own switch-on condition, a-result-names-who-verified-it, held to the development route too."},
+    {"id": "hl7-identity-in-message", "status": 422, "statement": "Refused: a value in this message looks like a phone number, an identity number or an email address. Nothing from this message was stored.", "why": "The same identity screen every write to the Passport passes."}
+   ],
+   "emits": ["passport.admission.detected@1", "passport.discharge.received@1"],
+   "idempotent": true,
+   "endpointNamed": {"section": "§26"},
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/hl7v2/inbound'"},
+   "enforcedBy": {"mechanism": "development-token"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/record/patient-identifiers",
+   "version": 1,
+   "summary": "Link a hospital number to your own record, under an assigning authority a registered development partner uses, so that a message carrying it may be matched to you. The number is kept only as a keyed digest, and a number already linked to somebody else is refused.",
+   "callers": ["patient"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "assigningAuthority", "type": "string", "required": true, "why": "The authority that issued the number, from packages/catalog/hl7v2-inbound.json assigningAuthorities."},
+    {"field": "identifier", "type": "string", "required": true, "why": "The number itself, shaped as its authority issues numbers. Never an identity number."}
+   ],
+   "response": [
+    {"field": "linkedAt", "type": "instant", "required": true, "why": "When the link was made, or when it was first made if this patient already linked this number."}
+   ],
+   "refusals": [
+    {"id": "patient-session-required", "status": 401, "statement": "Refused: only the patient's own session can do this.", "why": "Linking a number is the patient's consent to be matched on it, and nobody gives it for them."},
+    {"id": "session-ended", "status": 401, "statement": "Refused: this session has ended or expired. Sign in again.", "why": "A consent given in a session that has ended is a consent nobody gave."},
+    {"id": "identifier-authority-not-registered", "status": 422, "statement": "Refused: that is not an assigning authority a registered development partner uses.", "why": "A number under an authority no partner uses would match no message."},
+    {"id": "identifier-is-an-identity-number", "status": 422, "statement": "Refused: that looks like a South African identity number. The Passport never finds a record by one.", "why": "The SA identity number is never a database key (§19)."},
+    {"id": "identifier-not-for-this-authority", "status": 422, "statement": "Refused: that number is not shaped like a number this authority issues.", "why": "A number typed into the wrong field is refused rather than linked, because a link is what a message is matched on."},
+    {"id": "identifier-already-linked", "status": 409, "statement": "Refused: that number is already linked to a record. A hospital number belongs to one person, so ask the hospital which number is yours.", "why": "Two people claiming one number is a mistake or an attempt to receive somebody else's results, and the patient it is linked to sees that somebody tried."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A link changes which messages may be matched to a record, and no engine acts on that. It is written into the patient's own access log, and an attempt on a number linked to somebody else into theirs.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/identifiers/link'"},
+   "enforcedBy": {"mechanism": "passport-patient-session"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/record/hl7v2-quarantine",
+   "version": 1,
+   "summary": "Read the messages from registered development partners that the Passport could not file — who sent each, what kind it was, why it was refused and when its record is deleted — with nothing any of them said. Development only.",
+   "callers": ["developer"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "retentionDays", "type": "integer", "required": true, "why": "The quarantine retention in force now. Each record keeps the deletion day it was given when it arrived."},
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The Record settings version in force now."},
+    {"field": "quarantined", "type": "list", "required": true, "object": true, "why": "Each message refused before it could be matched to a patient, oldest first.", "fields": [
+     {"field": "quarantineRef", "type": "string", "required": true, "why": "The record, by the Passport's own reference."},
+     {"field": "sendingFacility", "type": "string", "required": true, "nullable": true, "why": "The registered facility that sent it, by its id in packages/catalog/hl7v2-inbound.json, or null for a sender nobody registered."},
+     {"field": "messageType", "type": "string", "required": true, "nullable": true, "why": "The message type, as MSH-9 gave it, or null for a message that could not be read that far."},
+     {"field": "reasonCode", "type": "string", "required": true, "why": "The refusal's id in packages/catalog/passport-gateway.json."},
+     {"field": "reason", "type": "string", "required": true, "why": "The refusal's sentence, word for word."},
+     {"field": "receivedAt", "type": "instant", "required": true, "why": "When it arrived."},
+     {"field": "purgeAfter", "type": "instant", "required": true, "why": "When its record is deleted."},
+     {"field": "settingsVersion", "type": "integer", "required": true, "why": "The Record settings version its deletion day was worked out under."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "hl7-developer-credential-required", "status": 401, "statement": "Refused: in development an HL7 message, and the list of messages the Passport could not file, need a developer credential minted at the console. No hospital or laboratory system reaches the Passport.", "why": "The list says which partners' messages are being refused and why, which is an operator's to read, and there is no operator login yet."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing. The read is written into the audit chain under nobody, because the list is about no patient.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/hl7v2/quarantine'"},
+   "enforcedBy": {"mechanism": "development-token"}
   }
  ]
 }
