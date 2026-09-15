@@ -131,3 +131,5 @@ sentinel.rung_raised@1 cf360b6858b7d0af
 claim.submitted@2 9afa8f9f019440b3
 visit.billable@1 555b7a8cba46d934
 review.billable@1 4b8b342eb83b4b1a
+booking.requested@2 fea53e4e5c970ff9
+booking.confirmed@2 1d0e3295ccc42297

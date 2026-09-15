@@ -85,7 +85,7 @@ const shown = (payout: Payout) => ({
 
 /* The billable state changes Money needs for Wave 3, each on its moneyHears list. A refusal from the
    ledger is thrown, so the runtime rolls the delivery back and writes it to the trail by name. */
-export const HEARD: readonly EventKey[] = ['appointment.booked@1', 'visit.billable@1', 'review.billable@1', 'booking.cancelled@1', 'appointment.cancelled@1', 'partner.suspended@1'];
+export const HEARD: readonly EventKey[] = ['appointment.booked@1', 'visit.billable@1', 'review.billable@1', 'booking.confirmed@2', 'booking.cancelled@1', 'appointment.cancelled@1', 'partner.suspended@1'];
 const onEvent: SubscriptionHandler = (event, ctx) => {
  const heard = ledgerFor(ctx).hear({ type: event.type, version: event.version, occurredAt: event.occurredAt, subjectRef: event.subjectRef, payload: { ...event.payload } });
  if (isRefusal(heard)) throw new Error(`${heard.id}: ${heard.statement}`);

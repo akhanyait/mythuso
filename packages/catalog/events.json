@@ -182,7 +182,7 @@
    "neverCarries": [
     { "field": "findings", "why": "What the nurse found is the encounter. The event says the encounter exists and where; it does not repeat it." }
    ],
-   "subscribers": ["core", "record", "trust"]
+   "subscribers": ["core", "record", "trust", "access"]
   },
   {
    "type": "appointment.no_show", "version": 1, "owner": "care",
@@ -756,6 +756,8 @@
   {
    "type": "booking.requested", "version": 1, "owner": "access",
    "summary": "A patient, a family member or the Thuso Line asked for a visit through the booking flow.",
+   "withdrawn": { "on": "2026-09-15", "supersededBy": "booking.requested@2", "formerSubscribers": ["care", "core"],
+    "why": "It said nothing about where the visit is, so Care, which measures every nurse's distance to the visit's suburb, refused every real booking with visit-zone-unknown and only the preview visit could ever be offered. It also dropped the nurse asked for by name and what happens if she cannot take the visit, which the patient had just answered. Version two carries the zone id from packages/catalog/geography.json — the suburb, never the street or a coordinate — and both." },
    "payload": [
     { "field": "bookingRef", "type": "string", "required": true, "why": "The booking every later event refers to." },
     { "field": "serviceId", "type": "string", "required": true, "why": "An id from packages/catalog/services.json." },
@@ -765,17 +767,52 @@
    "neverCarries": [
     { "field": "reasonForVisit", "why": "What is wrong is written into the record at intake, not broadcast with the booking." }
    ],
+   "subscribers": []
+  },
+  {
+   "type": "booking.requested", "version": 2, "owner": "access",
+   "summary": "A patient, a family member or the Thuso Line asked for a visit through the booking flow, in a suburb dispatch reaches.",
+   "payload": [
+    { "field": "bookingRef", "type": "string", "required": true, "why": "The booking every later event refers to." },
+    { "field": "serviceId", "type": "string", "required": true, "why": "An id from packages/catalog/services.json, so Care matches the service's scope and duration from the catalogue rather than from the event." },
+    { "field": "mode", "type": "string", "required": true, "why": "home or video." },
+    { "field": "requestedFor", "type": "instant", "required": true, "why": "The time chosen from the slots offered. A booking never invents a slot." },
+    { "field": "zoneId", "type": "string", "required": true, "why": "A zone id from packages/catalog/geography.json: the suburb the visit is in, whose centre Care measures a nurse's distance to. It is all the bus is told about where. The booking route refuses a zone geography.json does not hold, and Care refuses to offer a visit whose zone it cannot find." },
+    { "field": "namedClinicianRef", "type": "string", "required": false, "why": "The nurse asked for by name, when the patient asked for one. Absent means whoever is nearest, which is an answer rather than a gap." },
+    { "field": "namedNurseFallback", "type": "string", "required": false, "why": "What happens if the nurse asked for by name cannot take the visit within Care's offer window: wait or soonest, from packages/catalog/booking.json person.fallback.choices, as the patient answered it or as Access's setting named-nurse-fallback resolved it when the booking was asked for. Present exactly when namedClinicianRef is, so a named nurse never reaches Care with no answer to what happens if she cannot come." }
+   ],
+   "neverCarries": [
+    { "field": "reasonForVisit", "why": "What is wrong is written into the record at intake, not broadcast with the booking." },
+    { "field": "streetAddress", "why": "A house beside a visit type tells every subscriber which home has an ill person in it. Care needs the suburb to rank nurses; the door is released to the one nurse who accepts, in the visit, not on the bus." },
+    { "field": "coordinates", "why": "A position precise enough to route to is an address by another name. Distance is measured to the zone's centre in geography.json, which is drawn to a hundred metres on purpose." }
+   ],
    "subscribers": ["care", "core"]
   },
   {
    "type": "booking.confirmed", "version": 1, "owner": "access",
    "summary": "Care accepted the booking and the patient has been told.",
+   "withdrawn": { "on": "2026-09-15", "supersededBy": "booking.confirmed@2", "formerSubscribers": ["core", "money"],
+    "why": "It named the booking and the hour held and not the service, so Money, which takes a payment against a confirmed booking, could not price it from packages/catalog/services.json without asking Access what had been booked. Version two carries the serviceId." },
    "payload": [
     { "field": "bookingRef", "type": "string", "required": true, "why": "The booking confirmed." },
     { "field": "scheduledFor", "type": "instant", "required": true, "why": "The time held." }
    ],
    "neverCarries": [
     { "field": "visitCode", "why": "The visit code is between the patient and the visit." }
+   ],
+   "subscribers": []
+  },
+  {
+   "type": "booking.confirmed", "version": 2, "owner": "access",
+   "summary": "Care accepted the booking and the patient has been told, with the service that was booked.",
+   "payload": [
+    { "field": "bookingRef", "type": "string", "required": true, "why": "The booking confirmed." },
+    { "field": "scheduledFor", "type": "instant", "required": true, "why": "The time held." },
+    { "field": "serviceId", "type": "string", "required": true, "why": "An id from packages/catalog/services.json, so Money prices what was confirmed from the catalogue rather than from a number on the event." }
+   ],
+   "neverCarries": [
+    { "field": "visitCode", "why": "The visit code is between the patient and the visit." },
+    { "field": "priceCents", "why": "The price belongs to packages/catalog/services.json and the charge to Money. A price on the booking is a second copy that disagrees the day the catalogue changes." }
    ],
    "subscribers": ["core", "money"]
   },
