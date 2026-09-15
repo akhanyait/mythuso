@@ -8890,8 +8890,16 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  }
  const appForP1 = read('apps/web/src/App.tsx');
  for (const screen of ['sharing', 'card', 'log']) if (!appForP1.includes(`page === '${sharing.screens[screen].route}'`)) throw new Error(`apps/web/src/App.tsx does not route "${sharing.screens[screen].route}", the name packages/catalog/passport-sharing.json gives the ${screen} screen, so its doors open nothing.`);
- for (const f of ['apps/web/src/main.tsx', 'apps/web/src/App.tsx', 'apps/web/src/shells/PatientShell.tsx', 'apps/web/src/features/Pages.tsx', 'apps/web/src/features/Passport.tsx']) {
-  if (/^import (?!type\b)[^;]*from '[^']*(features\/PassportSharing|lib\/share-links|lib\/qr)'/m.test(read(f))) throw new Error(`${f} imports the Passport P1 screens, their lib or the QR encoder statically. Between them they carry four contracts and an encoder a patient on metered data should not download to see their overview.`);
+ /* Resolved, not matched as text. The first version matched the words features/PassportSharing and so let a relative
+    './PassportSharing' from Pages.tsx or Passport.tsx through, which the Record P1 finisher's proof found. Source alone
+    cannot say which chunk a file lands in, so no file outside the three P1 modules imports one of them statically at
+    all; App.tsx reaches them with import(), which the bundler splits off the patient's first load. */
+ const p1Modules = ['apps/web/src/features/PassportSharing', 'apps/web/src/lib/share-links', 'apps/web/src/lib/qr'];
+ const staticSpecifiers = source => [...source.matchAll(/^\s*(?:import|export)\s+(?!type\b)(?:[^;'"]*?\bfrom\s*)?['"]([^'"]+)['"]/gm)].map(m => m[1]);
+ const p1Readers = files('apps/web/src').filter(f => /\.tsx?$/.test(f) && !p1Modules.includes(f.replace(/\.tsx?$/, '')));
+ for (const f of p1Readers) for (const specifier of staticSpecifiers(read(f))) {
+  if (!specifier.startsWith('.')) continue;
+  if (p1Modules.includes(join(f.slice(0, f.lastIndexOf('/')), specifier).replace(/\.(tsx?|js)$/, ''))) throw new Error(`${f} imports the Passport P1 screens, their lib or the QR encoder statically ("${specifier}"). Between them they carry four contracts and an encoder a patient on metered data should not download to see their overview; reach them with import().`);
  }
  const { qrCode, qrRows } = await import('../apps/web/src/lib/qr.ts');
  const vectorLines = read('tests/fixtures/qr-vectors.txt').split('\n').filter(line => line && !line.startsWith('#'));
