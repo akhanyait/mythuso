@@ -10,13 +10,13 @@
 package za.co.mythuso.model
 
 object FieldSafetyData {
-    /** Decided by the Founder. A default an admin may change on the web. */
+    /** Decided by the Founder. A default an admin may change on the web; this app has no admin surface and uses it as written here. */
     const val graceMinutes = 60
-    /** A proposal nobody has decided. A default an admin may change on the web. */
+    /** A proposal nobody has decided. A default an admin may change on the web; this app has no admin surface and uses it as written here. */
     val extensionSteps = listOf(10, 20, 30)
-    /** A proposal nobody has decided. A default an admin may change on the web. */
+    /** A proposal nobody has decided. A default an admin may change on the web; this app has no admin surface and uses it as written here. */
     const val maxExtensionMinutes = 60
-    /** Decided by the Founder. A default an admin may change on the web. */
+    /** Decided by the Founder. A default an admin may change on the web; this app has no admin surface and uses it as written here. */
     const val panicWindowMinutes = 30
     /** The simulated feed's cadence, not a policy. */
     const val positionEverySeconds = 15
@@ -125,16 +125,6 @@ object FieldSafetyData {
         FieldSafetyRefusal("expected-minutes-not-the-service", 422, "A visit is timed by the service that was booked, not by a number sent with it."),
         FieldSafetyRefusal("share-without-end", 422, "Live location is shared for a fixed window, and the window always ends."),
         FieldSafetyRefusal("window-not-the-declared-one", 422, "The window is the one the desk's policy sets. A phone does not choose how long it is watched."),
-        FieldSafetyRefusal("dispatch-from-a-panic-without-a-person", 409, "A panic goes to the desk. Nobody is sent to it until a person at the desk decides."),
-        FieldSafetyRefusal("settings-read-not-permitted", 403, "Only an admin reads the field-safety settings and who changed them."),
-        FieldSafetyRefusal("setting-change-not-permitted", 403, "Only an admin changes a field-safety setting."),
-        FieldSafetyRefusal("setting-not-known", 422, "There is no field-safety setting by that name."),
-        FieldSafetyRefusal("setting-change-without-reason", 422, "A change to a field-safety setting says why, or it is not made."),
-        FieldSafetyRefusal("settings-version-stale", 409, "These settings changed after you opened them. Read what is in force now and decide against that."),
-        FieldSafetyRefusal("setting-not-above-zero", 422, "No field-safety timing is set to zero or less, whatever its range says."),
-        FieldSafetyRefusal("setting-out-of-range", 422, "That is outside the range an admin may set for this setting."),
-        FieldSafetyRefusal("extension-steps-not-rising", 422, "Extension steps are listed from the smallest to the largest, each once."),
-        FieldSafetyRefusal("extension-step-above-the-ceiling", 409, "No extension step can be larger than the most a visit may be extended."),
-        FieldSafetyRefusal("setting-unchanged", 409, "That is already the value in force, so there is nothing to change.")
+        FieldSafetyRefusal("dispatch-from-a-panic-without-a-person", 409, "A panic goes to the desk. Nobody is sent to it until a person at the desk decides.")
     )
 }

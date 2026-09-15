@@ -1,4 +1,4 @@
-/* The Care engine on the development runtime: eight routes, three subscriptions and a tick, each a
+/* The Care engine on the development runtime: ten routes, three subscriptions and a tick, each a
  * thin binding of the pure domain in ./domain to this engine's own SQLite store.
  *
  * WHAT A HANDLER DOES, AND ALL IT DOES. Load the desks from the store, hand the domain the declared
@@ -23,18 +23,25 @@
  *   Codes       The preview's published code for the preview visit; a random six digits for any other,
  *               issued at acceptance and held beside the visit. Who hands it to the patient is Access's
  *               to build and is not here.
+ *   Settings    GET /v1/care/settings@1 and POST /v1/care/setting-changes@1, through
+ *               packages/engines/src/settings, with the history in this store's settings_history. The
+ *               offer desk is handed the expiry in force, read from that history when it makes an offer,
+ *               and the offer keeps it: a change reaches the next offer and never one already made.
  *
  * WHAT IS NOT BOUND. POST /v1/care/sync-batches: its frozen request carries operation references and
  * nothing else, and capture.json's conflicts cannot be decided without each operation's visit and
  * observation — the domain's SyncIntake decides them, tested, against a shape the route has not got.
- * The four reads (shifts, services, locum shifts, circuits) are answered by the contract mock. */
+ * POST /v1/care/setting-reviews: no Care setting waits on a clinical review yet, so there is nothing to
+ * confirm; packages/engines/src/settings answers it the day one does. The four reads (shifts, services,
+ * locum shifts, circuits) are answered by the contract mock. */
 import { randomInt } from 'node:crypto';
 import roster from '../../../catalog/roster.json' with { type: 'json' };
 import geography from '../../../catalog/geography.json' with { type: 'json' };
 import care from '../../../catalog/care.json' with { type: 'json' };
 import { defineEngine, ok, refuse, type Answer, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
+import { SETTINGS_SCHEMA, settingsIn, settingsRoutes } from '../settings/routes.ts';
 import {
- careContract, instantAt, OfferDesk, TrustCache, VisitDesk,
+ careContract, careSettings, instantAt, offerExpiryOf, OfferDesk, TrustCache, VisitDesk,
  type AppointmentToFill, type Candidate, type CareEvent, type Offer, type Visit
 } from './domain/index.ts';
 
@@ -57,6 +64,7 @@ CREATE TABLE IF NOT EXISTS care_encounters (entry_ref TEXT PRIMARY KEY, author_r
 INSERT OR IGNORE INTO care_appointments (appointment_ref, subject_ref, service_id, zone_id, day_offset, slot, named_clinician_ref, previous_clinician_refs, visit_code)
  VALUES (${sql(preview.appointmentRef)}, ${sql(preview.subjectRef)}, ${sql(preview.serviceId)}, ${sql(preview.zone)}, ${preview.dayOffset}, ${sql(preview.slot)},
          ${sql(preview.namedClinicianRef)}, ${sql(JSON.stringify(preview.previousClinicianRefs))}, ${sql(preview.visitCode)});
+${SETTINGS_SCHEMA}
 `;
 
 type AppointmentRow = {
@@ -88,7 +96,11 @@ function load(ctx: EngineContext): Desks {
  const trust = new TrustCache(careContract.badgeTiers, badges);
  return {
   trust, rows,
-  offers: new OfferDesk({ contract: careContract, trust, candidates: () => CANDIDATES, book: { appointments, offers, bookings: held.map(h => h.visit) } }),
+  offers: new OfferDesk({
+   contract: careContract, trust, candidates: () => CANDIDATES, book: { appointments, offers, bookings: held.map(h => h.visit) },
+   /* Asked when an offer is made, from this store's own history, and kept on the offer. */
+   expiry: () => offerExpiryOf(settingsIn(careSettings, ctx.store))
+  }),
   visits: new VisitDesk({ contract: careContract, held, record: { encounterComplete: ref => written.has(ref), encounterSigned: ref => written.has(ref) } })
  };
 }
@@ -193,7 +205,9 @@ export const engine = defineEngine({
    if (!done.ok) return refuse(done.id);
    publish(ctx, done.events);
    return ok({ completedAt: done.value.completedAt });
-  })
+  }),
+
+  ...settingsRoutes(careSettings, { read: 'GET /v1/care/settings@1', change: 'POST /v1/care/setting-changes@1' })
  },
 
  subscriptions: {

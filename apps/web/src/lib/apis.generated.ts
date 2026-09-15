@@ -554,6 +554,43 @@ export interface GetCareCircuitsResponse {
  readonly circuits: ReadonlyArray<Readonly<Record<string, unknown>>>;
 }
 
+export type GetCareSettingsRequest = Record<string, never>;
+export interface GetCareSettingsResponse {
+ readonly settingsVersion: number;
+ readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostCareSettingChangesRequest {
+ readonly idempotencyKey: string;
+ readonly setting: string;
+ readonly wholeNumber?: number;
+ readonly switchedOn?: boolean;
+ readonly choice?: string;
+ readonly wording?: string;
+ readonly roles?: readonly string[];
+ readonly windows?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly items?: readonly string[];
+ readonly parts?: Readonly<Record<string, unknown>>;
+ readonly reason?: string;
+ readonly expectedVersion: number;
+}
+export interface PostCareSettingChangesResponse {
+ readonly settingsVersion: number;
+ readonly appliesFrom: string;
+}
+
+export interface PostCareSettingReviewsRequest {
+ readonly idempotencyKey: string;
+ readonly setting: string;
+ readonly settingsVersion: number;
+ readonly reason?: string;
+}
+export interface PostCareSettingReviewsResponse {
+ readonly settingsVersion: number;
+ readonly reviewedAt: string;
+}
+
 export interface GetClinicalReviewsRequest {
  readonly stateCode?: string;
 }
@@ -1457,6 +1494,9 @@ export const apiRoutes = {
  getCareServices: { name: "getCareServices", method: "GET", path: "/v1/care/services", mountedPath: "/v1/care/services", version: 1, engine: "care", callers: ["patient","caregiver","nurse","dispatcher","thuso-line-agent"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
  getCareLocumShifts: { name: "getCareLocumShifts", method: "GET", path: "/v1/care/locum-shifts", mountedPath: "/v1/care/locum-shifts", version: 1, engine: "care", callers: ["locum"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
  getCareCircuits: { name: "getCareCircuits", method: "GET", path: "/v1/care/circuits", mountedPath: "/v1/care/circuits", version: 1, engine: "care", callers: ["nurse","dispatcher"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
+ getCareSettings: { name: "getCareSettings", method: "GET", path: "/v1/care/settings", mountedPath: "/v1/care/settings", version: 1, engine: "care", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
+ postCareSettingChanges: { name: "postCareSettingChanges", method: "POST", path: "/v1/care/setting-changes", mountedPath: "/v1/care/setting-changes", version: 1, engine: "care", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
+ postCareSettingReviews: { name: "postCareSettingReviews", method: "POST", path: "/v1/care/setting-reviews", mountedPath: "/v1/care/setting-reviews", version: 1, engine: "care", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "proposed" },
  getClinicalReviews: { name: "getClinicalReviews", method: "GET", path: "/v1/clinical/reviews", mountedPath: "/v1/clinical/reviews", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postClinicalReviewsByReviewRefSign: { name: "postClinicalReviewsByReviewRefSign", method: "POST", path: "/v1/clinical/reviews/{reviewRef}/sign", mountedPath: "/v1/clinical/reviews/{reviewRef}/sign", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postClinicalConsultations: { name: "postClinicalConsultations", method: "POST", path: "/v1/clinical/consultations", mountedPath: "/v1/clinical/consultations", version: 1, engine: "clinical", callers: ["doctor","nurse"], purpose: ["treatment"], idempotent: false, status: "proposed" },

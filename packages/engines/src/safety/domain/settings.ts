@@ -1,12 +1,13 @@
-/* The field-safety timings an admin changes, and the rule that makes changing them safe.
+/* The field-safety timings, read the way a timer and a panic need them, over the shared settings shape.
  *
  * The founder decided on 15 September 2026 that Operations sets the grace and the panic window on the
- * admin rather than in code ("Safety: 30min, grace 60min - but configure this on the admin"), and the
- * extension steps and ceiling are set in the same place. A number still lives in one place:
- * packages/catalog/field-safety.json holds each default, the range an admin may set it within, the unit
- * and who may change it. What is in force is those defaults with every accepted change replayed in
- * version order. The engine keeps the changes in its own store and the web preview keeps them in memory;
- * both hand them to this file, so the arithmetic and the refusals are one piece of code.
+ * admin rather than in code — the words are in the contract's defaults changelog, beside the values — and
+ * the extension steps and ceiling are set in the same place. A number still lives in one place: the four
+ * timings are settings in packages/catalog/field-safety.json, in the shape packages/catalog/settings.json
+ * gives every setting, and every rule a change obeys — who, a reason, the version, nought before the
+ * bounds, the bounds, whether anything changed — is packages/engines/src/settings/shape.ts's. This file
+ * adds the two things only Safety knows: which setting is which field of the timings a timer and a panic
+ * are handed, and the rule between two of them, that the steps rise and none is larger than the ceiling.
  *
  * A CHANGE NEVER REACHES BACK. A timer takes a copy of the timings in force when it starts and a panic
  * takes its window, and nothing already running reads this file again. So a grace made shorter cannot
@@ -14,14 +15,13 @@
  * is enforced where a timer and a panic are made — checkins.ts and panics.ts take the settings as an
  * argument and keep what they were given — and the timing constants are deliberately not exported from
  * rules.ts, so there is no default for a running timer to fall back on.
- *
- * WHAT A CHANGE IS REFUSED FOR, in the order it is asked: somebody other than an admin; a setting that
- * does not exist; no reason; a version that is no longer in force; zero or less, asked before the range
- * so that a range set wrongly cannot let it through; outside the range; steps out of order; a step the
- * ceiling would never allow; and a value already in force. Every sentence is the route's, in
- * packages/catalog/apis/safety.json.
  */
-import { done, fieldSafety, refuse, type Result } from './rules.ts';
+import contract from '../../../../catalog/field-safety.json' with { type: 'json' };
+import api from '../../../../catalog/apis/safety.json' with { type: 'json' };
+import {
+ FIRST_SETTINGS_VERSION, proposeChange, snapshotOf, valuesHeld,
+ type Change, type ChangeRequest, type Check, type Refusal, type Result, type SettingsBlock, type SettingsEngine, type Snapshot
+} from '../../settings/shape.ts';
 
 export type TimingId = 'grace' | 'panic-window' | 'extension-steps' | 'extension-ceiling';
 export type Timings = {
@@ -30,111 +30,56 @@ export type Timings = {
  readonly extensionSteps: readonly number[];
  readonly maxExtensionMinutes: number;
 };
-export type TimingValue = number | readonly number[];
-export type Bound = { readonly value: number; readonly decidedBy: string | null; readonly proposedBecause: string };
-export type TimingRow = {
- readonly id: TimingId; readonly label: string; readonly defaultFrom: string; readonly shape: 'minutes' | 'steps';
- readonly unit: string; readonly changeableBy: string; readonly lowest: Bound; readonly highest: Bound;
-};
-/** One accepted change. Added to a history, and never edited or removed. */
-export type SettingsChange = {
- readonly settingsVersion: number;
- readonly timing: TimingId;
- readonly from: TimingValue;
- readonly to: TimingValue;
- readonly reason: string;
- readonly byRole: string;
- readonly byRef: string;
- readonly at: number;
-};
+export type SettingsChange = Change;
 export type SettingsInForce = { readonly settingsVersion: number; readonly timings: Timings };
 /** The window a panic opens now, and every window a version has held — which a phone may still send. */
 export type PanicWindow = { readonly settingsVersion: number; readonly minutes: number; readonly accepts: readonly number[] };
-export type ChangeRequest = {
- readonly timing: unknown;
- readonly minutes?: unknown;
- readonly stepMinutes?: unknown;
- readonly reason?: unknown;
- readonly expectedVersion: unknown;
- readonly byRole: string;
- readonly byRef: string | null;
-};
 
-const settings = fieldSafety.settings;
-export const timingRows = settings.timings as readonly TimingRow[];
-export const settingsScreen = settings.screen;
-export const changeableBy: string = settings.changeableBy;
-/** The version of a history nobody has added to: the contract's defaults. */
-export const FIRST_SETTINGS_VERSION = 1;
+export const safetyBlock = { engine: 'safety', ...contract.settings } as unknown as SettingsBlock;
 
-/* Which field of Timings each contract id is. Written once, and the node test holds it to defaultFrom in
-   the contract, so a timing cannot be read from one place and changed in another. */
+/* Which field of Timings each setting is. Written once, and the node test holds it to the contract, so a
+   timing cannot be read from one place and changed in another. */
 const KEY: Readonly<Record<TimingId, keyof Timings>> = {
  grace: 'graceMinutes', 'panic-window': 'panicWindowMinutes', 'extension-steps': 'extensionSteps', 'extension-ceiling': 'maxExtensionMinutes'
 };
 export const keyOf = (id: TimingId): keyof Timings => KEY[id];
-
-export const defaultTimings: Timings = Object.freeze({
- graceMinutes: fieldSafety.timer.graceMinutes.value,
- panicWindowMinutes: fieldSafety.panic.windowMinutes.value,
- extensionSteps: Object.freeze([...fieldSafety.timer.extensionMinutes.value]),
- maxExtensionMinutes: fieldSafety.timer.maxExtensionMinutes.value
+const timingsOf = (values: Snapshot['values']): Timings => Object.freeze({
+ graceMinutes: values.grace as number,
+ panicWindowMinutes: values['panic-window'] as number,
+ extensionSteps: values['extension-steps'] as readonly number[],
+ maxExtensionMinutes: values['extension-ceiling'] as number
 });
+
+/* Safety's own rule between two settings, asked of what a change would put in force. Steps are the
+   buttons a nurse presses at a door: two the same, or an order that jumps about, is a choice she has to
+   stop and read, and a step the ceiling never lets her take is a button that is always refused. */
+const check: Check = next => {
+ const steps = next['extension-steps'] as readonly number[];
+ if (steps.some((step, i) => i > 0 && step <= steps[i - 1]!)) return 'extension-steps-not-rising';
+ if (Math.max(...steps) > (next['extension-ceiling'] as number)) return 'extension-step-above-the-ceiling';
+ return null;
+};
+const changeRoute = api.routes.find(route => route.method === 'POST' && route.path === '/v1/safety/setting-changes' && route.version === 1);
+if (!changeRoute) throw new Error('packages/catalog/apis/safety.json has lost POST /v1/safety/setting-changes@1, whose refusals Safety\'s own settings rule answers with.');
+
+export const safetySettings: SettingsEngine = Object.freeze({ block: safetyBlock, refusals: changeRoute.refusals as readonly Refusal[], check });
+
+export const defaultTimings: Timings = timingsOf(snapshotOf(safetyBlock, []).values);
 export const defaultsInForce: SettingsInForce = Object.freeze({ settingsVersion: FIRST_SETTINGS_VERSION, timings: defaultTimings });
 
-const same = (a: TimingValue, b: TimingValue) => JSON.stringify(a) === JSON.stringify(b);
-
 /** The timings in force after a history of accepted changes. */
-export function inForce(history: readonly SettingsChange[]): SettingsInForce {
- let timings = defaultTimings;
- let settingsVersion = FIRST_SETTINGS_VERSION;
- for (const change of [...history].sort((a, b) => a.settingsVersion - b.settingsVersion)) {
-  /* A history with a gap or a repeat is a history somebody edited. It is a fault rather than something
-     to read around, because the version a running timer kept would no longer mean one thing. */
-  if (change.settingsVersion !== settingsVersion + 1) throw new Error(`The field-safety settings history goes from version ${settingsVersion} to ${change.settingsVersion}. It is added to and never edited.`);
-  timings = { ...timings, [KEY[change.timing]]: change.to };
-  settingsVersion = change.settingsVersion;
- }
- return { settingsVersion, timings };
+export function inForce(history: readonly Change[]): SettingsInForce {
+ const snapshot = snapshotOf(safetyBlock, history);
+ return { settingsVersion: snapshot.settingsVersion, timings: timingsOf(snapshot.values) };
 }
 
-export function panicWindowOf(history: readonly SettingsChange[]): PanicWindow {
+export function panicWindowOf(history: readonly Change[]): PanicWindow {
  const current = inForce(history);
- const held = [defaultTimings.panicWindowMinutes, ...history.flatMap(change => change.timing === 'panic-window' ? [change.to as number] : [])];
- return { settingsVersion: current.settingsVersion, minutes: current.timings.panicWindowMinutes, accepts: [...new Set(held)] };
+ return { settingsVersion: current.settingsVersion, minutes: current.timings.panicWindowMinutes, accepts: [...new Set(valuesHeld(safetyBlock, history, 'panic-window') as number[])] };
 }
 
-export function changeSetting(history: readonly SettingsChange[], request: ChangeRequest, now: number): Result<{ readonly change: SettingsChange; readonly inForce: SettingsInForce }> {
- /* Who, before anything about what. The history records a named person, so a caller with no reference
-    is refused as not permitted rather than written down as nobody. */
- if (request.byRole !== changeableBy || !request.byRef) return refuse('setting-change-not-permitted');
- const timing = timingRows.find(row => row.id === request.timing);
- if (!timing) return refuse('setting-not-known');
- if (timing.changeableBy !== request.byRole) return refuse('setting-change-not-permitted');
- const reason = typeof request.reason === 'string' ? request.reason.trim() : '';
- if (!reason) return refuse('setting-change-without-reason');
- const current = inForce(history);
- if (request.expectedVersion !== current.settingsVersion) return refuse('settings-version-stale');
-
- const sent = timing.shape === 'steps' ? request.stepMinutes : request.minutes;
- const values: unknown[] = timing.shape === 'steps' ? (Array.isArray(sent) ? sent : []) : sent === undefined || sent === null ? [] : [sent];
- if (!values.length || !values.every((v): v is number => typeof v === 'number' && Number.isFinite(v))) return refuse('setting-out-of-range');
- const minutes = values as number[];
- /* Before the range, and not derived from it. The range is a proposal and could be set wrongly; a grace
-    or a window of nothing is refused whatever it says. */
- if (minutes.some(v => v <= 0)) return refuse('setting-not-above-zero');
- if (!minutes.every(v => Number.isInteger(v) && v >= timing.lowest.value && v <= timing.highest.value)) return refuse('setting-out-of-range');
- if (timing.shape === 'steps' && minutes.some((v, i) => i > 0 && v <= minutes[i - 1]!)) return refuse('extension-steps-not-rising');
-
- const to: TimingValue = timing.shape === 'steps' ? Object.freeze([...minutes]) : minutes[0]!;
- const next: Timings = { ...current.timings, [KEY[timing.id]]: to };
- if (Math.max(...next.extensionSteps) > next.maxExtensionMinutes) return refuse('extension-step-above-the-ceiling');
- const from = current.timings[KEY[timing.id]];
- if (same(from, to)) return refuse('setting-unchanged');
-
- const change: SettingsChange = { settingsVersion: current.settingsVersion + 1, timing: timing.id, from, to, reason, byRole: request.byRole, byRef: request.byRef, at: now };
- /* Nothing is published. No engine acts on a settings change — Core does not read Safety's timings,
-    because Safety sends the deadline on what it raises — and the event contract refuses an event nobody
-    subscribes to. So a change is the history row the engine appends, and nothing else. */
- return done({ change, inForce: { settingsVersion: change.settingsVersion, timings: next } });
+export function changeSetting(history: readonly Change[], request: ChangeRequest, now: number): Result<{ readonly change: Change; readonly inForce: SettingsInForce }> {
+ const result = proposeChange(safetySettings, history, request, now);
+ if (!result.ok) return result;
+ return { ok: true, value: { change: result.value.change, inForce: { settingsVersion: result.value.snapshot.settingsVersion, timings: timingsOf(result.value.snapshot.values) } } };
 }

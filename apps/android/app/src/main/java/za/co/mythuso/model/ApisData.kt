@@ -87,6 +87,9 @@ object ApisData {
     val GET_CARE_SERVICES = Route("getCareServices", "GET", "/v1/care/services", "/v1/care/services", 1, "care", listOf("patient", "caregiver", "nurse", "dispatcher", "thuso-line-agent"), listOf("dispatch"), false, "proposed")
     val GET_CARE_LOCUM_SHIFTS = Route("getCareLocumShifts", "GET", "/v1/care/locum-shifts", "/v1/care/locum-shifts", 1, "care", listOf("locum"), listOf("dispatch"), false, "proposed")
     val GET_CARE_CIRCUITS = Route("getCareCircuits", "GET", "/v1/care/circuits", "/v1/care/circuits", 1, "care", listOf("nurse", "dispatcher"), listOf("dispatch"), false, "proposed")
+    val GET_CARE_SETTINGS = Route("getCareSettings", "GET", "/v1/care/settings", "/v1/care/settings", 1, "care", listOf("admin"), listOf("audit"), false, "built")
+    val POST_CARE_SETTING_CHANGES = Route("postCareSettingChanges", "POST", "/v1/care/setting-changes", "/v1/care/setting-changes", 1, "care", listOf("admin"), listOf("audit"), true, "built")
+    val POST_CARE_SETTING_REVIEWS = Route("postCareSettingReviews", "POST", "/v1/care/setting-reviews", "/v1/care/setting-reviews", 1, "care", listOf("doctor"), listOf("audit"), true, "proposed")
     val GET_CLINICAL_REVIEWS = Route("getClinicalReviews", "GET", "/v1/clinical/reviews", "/v1/clinical/reviews", 1, "clinical", listOf("doctor"), listOf("treatment"), false, "proposed")
     val POST_CLINICAL_REVIEWS_BY_REVIEW_REF_SIGN = Route("postClinicalReviewsByReviewRefSign", "POST", "/v1/clinical/reviews/{reviewRef}/sign", "/v1/clinical/reviews/{reviewRef}/sign", 1, "clinical", listOf("doctor"), listOf("treatment"), false, "proposed")
     val POST_CLINICAL_CONSULTATIONS = Route("postClinicalConsultations", "POST", "/v1/clinical/consultations", "/v1/clinical/consultations", 1, "clinical", listOf("doctor", "nurse"), listOf("treatment"), false, "proposed")
@@ -246,6 +249,9 @@ object ApisData {
         GET_CARE_SERVICES,
         GET_CARE_LOCUM_SHIFTS,
         GET_CARE_CIRCUITS,
+        GET_CARE_SETTINGS,
+        POST_CARE_SETTING_CHANGES,
+        POST_CARE_SETTING_REVIEWS,
         GET_CLINICAL_REVIEWS,
         POST_CLINICAL_REVIEWS_BY_REVIEW_REF_SIGN,
         POST_CLINICAL_CONSULTATIONS,
@@ -807,6 +813,40 @@ object ApisData {
     class GetCareCircuitsRequest
     data class GetCareCircuitsResponse(
         val circuits: List<Map<String, Any?>>
+    )
+    class GetCareSettingsRequest
+    data class GetCareSettingsResponse(
+        val settingsVersion: Int,
+        val settings: List<Map<String, Any?>>,
+        val history: List<Map<String, Any?>>
+    )
+    data class PostCareSettingChangesRequest(
+        val idempotencyKey: String,
+        val setting: String,
+        val wholeNumber: Int? = null,
+        val switchedOn: Boolean? = null,
+        val choice: String? = null,
+        val wording: String? = null,
+        val roles: List<String>? = null,
+        val windows: List<Map<String, Any?>>? = null,
+        val items: List<String>? = null,
+        val parts: Map<String, Any?>? = null,
+        val reason: String? = null,
+        val expectedVersion: Int
+    )
+    data class PostCareSettingChangesResponse(
+        val settingsVersion: Int,
+        val appliesFrom: String
+    )
+    data class PostCareSettingReviewsRequest(
+        val idempotencyKey: String,
+        val setting: String,
+        val settingsVersion: Int,
+        val reason: String? = null
+    )
+    data class PostCareSettingReviewsResponse(
+        val settingsVersion: Int,
+        val reviewedAt: String
     )
     data class GetClinicalReviewsRequest(
         val stateCode: String? = null

@@ -3,12 +3,19 @@
    events the bus actually carried. Verify, the record and Access are stood in for by synthetic
    publishers, because Care learns a badge, an encounter and a booking only from their events. Every
    person calling carries a caller reference: the runtime keys a replay to the caller who asked, and
-   refuses an idempotent write from somebody it cannot identify. */
+   refuses an idempotent write from somebody it cannot identify.
+
+   And Care's settings, through packages/engines/src/settings: an admin reads the offer expiry in force
+   with who decided it and its bounds; a change is refused in the shared sentences of
+   packages/catalog/settings.json, is recorded once and replayed under the same key; and an offer made
+   before a change lapses when it said it would, while the next offer reads the change. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import care from '../../../catalog/care.json' with { type: 'json' };
 import roster from '../../../catalog/roster.json' with { type: 'json' };
+import settingsContract from '../../../catalog/settings.json' with { type: 'json' };
 import { MEMORY, createClock, createRuntime, defineEngine, type EngineContext, type RouteKey, type Runtime } from '../runtime/index.ts';
+import { careBlock, offerExpiryByDefault } from './domain/settings.ts';
 import { engine } from './engine.ts';
 
 const START = '2026-09-14T09:00:00+02:00';
@@ -16,7 +23,13 @@ const P = care.preview;
 const WOUND = roster.nurses.filter(n => n.scope.includes('Wound care')).map(n => n.id);
 const ACCEPT: RouteKey = 'POST /v1/care/offers/{offerRef}/accept@1';
 const DECLINE: RouteKey = 'POST /v1/care/offers/{offerRef}/decline@1';
+const READ: RouteKey = 'GET /v1/care/settings@1';
+const CHANGE: RouteKey = 'POST /v1/care/setting-changes@1';
 const DISPATCHER = 'dispatcher-synthetic-1';
+const ADMIN = { role: 'admin', ref: 'party-synthetic-901', purpose: 'audit' };
+const MINUTE = 60_000;
+const expiry = careBlock.items.find(s => s.key === 'offer-expiry')!;
+const { lowest, highest } = expiry.bounds!;
 
 function setup(cleared: readonly string[]) {
  const queues: Record<string, ((ctx: EngineContext) => void)[]> = { trust: [], record: [], access: [] };
@@ -39,6 +52,9 @@ const offer = (runtime: Runtime, key = 'offer-1', appointmentRef = P.appointment
 const asNurse = (runtime: Runtime, ref: string, route: RouteKey, purpose: string, fields: Record<string, unknown>) =>
  runtime.call(route, { role: 'nurse', ref, purpose, fields });
 const published = (runtime: Runtime, key: string) => runtime.trail.all().filter(e => e.kind === 'published' && e.eventKey === key);
+const change = (runtime: Runtime, fields: Record<string, unknown>) =>
+ runtime.call(CHANGE, { ...ADMIN, fields: { idempotencyKey: 'change-1', setting: 'offer-expiry', wholeNumber: offerExpiryByDefault.minutes * 2, reason: 'Nurses in the outer suburbs need longer to read an offer.', expectedVersion: 1, ...fields } });
+const sentence = (id: string) => settingsContract.refusals.find(r => r.route === 'change' && r.id === id)!.statement;
 
 test('with no badge heard, nobody is offered the visit, and the refusal is the Trust Score one', () => {
  const { runtime } = setup([]);
@@ -94,10 +110,10 @@ test('a decline passes the visit on at the next tick; the declined offer cannot 
  runtime.close();
 });
 
-test('an unanswered offer lapses when the contract says, passes on, and cannot be accepted after', () => {
+test('an unanswered offer lapses when the setting in force says, passes on, and cannot be accepted after', () => {
  const { runtime } = setup(WOUND);
  const offerRef = String(offer(runtime).body.offerRef);
- runtime.advance(care.offers.expiresAfterMinutes * 60_000);
+ runtime.advance(offerExpiryByDefault.minutes * MINUTE);
  assert.equal(published(runtime, 'appointment.offered@1').length, 2);
  const late = asNurse(runtime, P.clinicianRef, ACCEPT, 'dispatch', { idempotencyKey: 'a-1', offerRef });
  assert.deepEqual([late.status, late.body.message], [410, 'That offer has lapsed.']);
@@ -142,6 +158,85 @@ test('a booking heard on the bus becomes an appointment Care owns, and waits for
  assert.equal(published(runtime, 'appointment.requested@1').length, 1);
  const answer = offer(runtime, 'o-bk', 'apt-bk-1');
  assert.deepEqual([answer.status, answer.body.error], [409, 'visit-zone-unknown']);
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+/* ---- Settings ---------------------------------------------------------------------------------- */
+
+test('an admin reads the offer expiry in force with who decided it and its bounds, and a nurse or the dispatcher cannot', () => {
+ const { runtime } = setup([]);
+ const answer = runtime.call(READ, { ...ADMIN, fields: {} });
+ assert.equal(answer.status, 200, JSON.stringify(answer.body));
+ assert.equal(answer.body.settingsVersion, 1);
+ assert.deepEqual(answer.body.history, []);
+ const [row] = answer.body.settings as { setting: string; inForce: number; default: number; setAtVersion: number; provenance: { decidedBy: string; decidedOn: string }; limits: { bounds: { lowest: { value: number }; highest: { value: number } } }; changedBy: string[]; appliesTo: string; reviewRequired: string | null }[];
+ assert.equal(row!.setting, 'offer-expiry');
+ assert.deepEqual([row!.inForce, row!.default, row!.setAtVersion], [offerExpiryByDefault.minutes, offerExpiryByDefault.minutes, 1]);
+ assert.deepEqual([row!.provenance.decidedBy, row!.provenance.decidedOn], [expiry.default.decidedBy, expiry.default.decidedOn]);
+ assert.deepEqual([row!.limits.bounds.lowest.value, row!.limits.bounds.highest.value], [lowest.value, highest.value]);
+ assert.deepEqual(row!.changedBy, ['admin']);
+ assert.equal(row!.appliesTo, expiry.appliesTo);
+ assert.equal(row!.reviewRequired, null);
+ for (const role of ['nurse', 'dispatcher']) assert.equal(runtime.call(READ, { role, ref: 'party-synthetic-1', purpose: 'audit', fields: {} }).body.error, 'caller-not-allowed', role);
+ runtime.close();
+});
+
+test('a change is refused in the shared sentences, and nothing is recorded or published', () => {
+ const { runtime } = setup([]);
+ const refused = (answer: { body: Record<string, unknown> }, id: string) => assert.deepEqual([answer.body.error, answer.body.message], [id, sentence(id)], JSON.stringify(answer.body));
+ refused(change(runtime, { idempotencyKey: 'grace', setting: 'grace' }), 'setting-not-known');
+ refused(change(runtime, { idempotencyKey: 'no-reason', reason: undefined }), 'setting-change-without-reason');
+ refused(change(runtime, { idempotencyKey: 'blank', reason: '  ' }), 'setting-change-without-reason');
+ refused(change(runtime, { idempotencyKey: 'stale', expectedVersion: 2 }), 'settings-version-stale');
+ refused(change(runtime, { idempotencyKey: 'as-words', wholeNumber: undefined, wording: 'twenty' }), 'setting-value-wrong-type');
+ refused(change(runtime, { idempotencyKey: 'zero', wholeNumber: 0 }), 'setting-not-above-zero');
+ refused(change(runtime, { idempotencyKey: 'below', wholeNumber: lowest.value - 1 }), 'setting-out-of-range');
+ refused(change(runtime, { idempotencyKey: 'above', wholeNumber: highest.value + 1 }), 'setting-out-of-range');
+ refused(change(runtime, { idempotencyKey: 'same', wholeNumber: offerExpiryByDefault.minutes }), 'setting-unchanged');
+ assert.equal(change(runtime, { idempotencyKey: 'a-word', wholeNumber: 'twenty' }).body.error, 'field-of-the-wrong-type', 'the binder refuses a word where the route declares a number');
+ assert.equal(runtime.call(CHANGE, { role: 'nurse', ref: 'N-205', purpose: 'audit', fields: { idempotencyKey: 'n', setting: 'offer-expiry', wholeNumber: 20, reason: 'x', expectedVersion: 1 } }).body.error, 'caller-not-allowed');
+ assert.equal(runtime.call(CHANGE, { ...ADMIN, ref: null, fields: { idempotencyKey: 'nobody', setting: 'offer-expiry', wholeNumber: 20, reason: 'x', expectedVersion: 1 } }).body.error, 'caller-unidentified', 'an admin nobody can name is never recorded as having changed anything');
+ assert.deepEqual(runtime.call(READ, { ...ADMIN, fields: {} }).body.history, []);
+ assert.equal(runtime.trail.all().filter(e => e.kind === 'published').length, 0);
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('an accepted change is recorded once with who, when, from, to and why, and the same key replays it rather than repeating it', () => {
+ const { runtime } = setup([]);
+ runtime.advance(5 * MINUTE);
+ const at = runtime.clock.iso();
+ const to = offerExpiryByDefault.minutes * 2;
+ const first = change(runtime, {});
+ assert.equal(first.status, 200, JSON.stringify(first.body));
+ assert.deepEqual(first.body, { settingsVersion: 2, appliesFrom: new Date(Date.parse(at)).toISOString() });
+ assert.deepEqual(change(runtime, {}).body, first.body, 'the same key and the same request is answered, not applied again');
+ assert.equal(change(runtime, { wholeNumber: to + 1 }).body.error, 'idempotency-key-reused', 'a reused key with a different change is refused rather than replayed');
+ const read = runtime.call(READ, { ...ADMIN, fields: {} }).body;
+ assert.equal(read.settingsVersion, 2);
+ assert.deepEqual(read.history, [{ settingsVersion: 2, setting: 'offer-expiry', from: offerExpiryByDefault.minutes, to, reason: 'Nurses in the outer suburbs need longer to read an offer.', byRole: 'admin', byRef: ADMIN.ref, at: new Date(Date.parse(at)).toISOString() }]);
+ assert.equal(runtime.trail.all().filter(e => e.kind === 'published').length, 0, 'a change is the row in the history and nothing on the bus');
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('an offer made before a change lapses when it said it would, and the offer after it reads the change', () => {
+ const { runtime } = setup(WOUND);
+ const madeAt = runtime.clock.now().getTime();
+ const made = offer(runtime);
+ assert.equal(made.status, 200, JSON.stringify(made.body));
+ assert.equal(Date.parse(String(made.body.offerExpiresAt)), madeAt + offerExpiryByDefault.minutes * MINUTE);
+
+ const longer = highest.value;
+ assert.equal(change(runtime, { wholeNumber: longer }).status, 200);
+ runtime.advance(offerExpiryByDefault.minutes * MINUTE - 1);
+ assert.equal(published(runtime, 'appointment.offered@1').length, 1, 'a longer expiry does not keep the first offer open past its own');
+ runtime.advance(1);
+ const offered = published(runtime, 'appointment.offered@1').map(e => (JSON.parse(e.body) as { payload: { offerExpiresAt: string } }).payload.offerExpiresAt);
+ assert.equal(offered.length, 2, 'the first offer lapsed at its own expiry and passed on');
+ assert.equal(Date.parse(offered[0]!), madeAt + offerExpiryByDefault.minutes * MINUTE, 'the first offer kept the expiry it was made with');
+ assert.equal(Date.parse(offered[1]!), runtime.clock.now().getTime() + longer * MINUTE, 'the next offer was made with the expiry in force');
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
 });

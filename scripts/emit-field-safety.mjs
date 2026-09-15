@@ -25,6 +25,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { settingDefault } from './settings-defaults.mjs';
 
 const SOURCE = 'packages/catalog/field-safety.json';
 const API = 'packages/catalog/apis/safety.json';
@@ -54,23 +55,14 @@ export function emitFieldSafety(root = '') {
  const api = JSON.parse(readFileSync(root + API, 'utf8'));
  const sos = JSON.parse(readFileSync(root + SOS, 'utf8'));
 
- /* A decided number names who decided it; a proposal says why it was proposed. Either way the constant's
-    comment says which it is. The day and the reasoning a decision carries, and the question every number
-    keeps, are held by scripts/check-boundaries.mjs on every build; the phones are told who, not when. */
- const timing = (name, entry, list = false) => {
-  if (!entry || !('decidedBy' in entry)) throw new Error(`${SOURCE} ${name} has lost its decidedBy. A number nobody decided must say so.`);
-  const decided = entry.decidedBy !== null;
-  if (decided ? !String(entry.decidedBy).trim() : !entry.proposedBecause?.trim()) {
-   throw new Error(`${SOURCE} ${name} ${decided ? 'says it was decided without naming who decided it' : 'is a proposal that does not say why it was proposed'}.`);
-  }
-  const values = list ? entry.value : [entry.value];
-  if (!Array.isArray(values) || !values.length || !values.every(v => Number.isInteger(v) && v > 0)) throw new Error(`${SOURCE} ${name} must be ${list ? 'a list of' : ''} whole minutes above zero.`);
-  return { value: entry.value, note: decided ? `Decided by the ${entry.decidedBy}. A default an admin may change on the web.` : 'A proposal nobody has decided. A default an admin may change on the web.' };
- };
- const grace = timing('timer.graceMinutes', contract.timer.graceMinutes);
- const steps = timing('timer.extensionMinutes', contract.timer.extensionMinutes, true);
- const ceiling = timing('timer.maxExtensionMinutes', contract.timer.maxExtensionMinutes);
- const window = timing('panic.windowMinutes', contract.panic.windowMinutes);
+ /* The four timings are settings in the contract's settings block. A decided default names who decided it;
+    a proposal says who proposed it and why; either way the constant's comment says which it is, in the one
+    sentence scripts/settings-defaults.mjs writes for every engine. The day and the reasoning, and every
+    bound, are held by scripts/check-boundaries.mjs on every build; the phones are told who, not when. */
+ const grace = settingDefault(SOURCE, contract, 'grace');
+ const steps = settingDefault(SOURCE, contract, 'extension-steps', { list: true });
+ const ceiling = settingDefault(SOURCE, contract, 'extension-ceiling');
+ const window = settingDefault(SOURCE, contract, 'panic-window');
  const feed = contract.simulation.positionEverySeconds;
 
  /* {police} and {ambulance} are resolved here and nowhere else in the native copy. Every other token

@@ -18,6 +18,7 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { settingDefault } from './settings-defaults.mjs';
 
 const SOURCE = 'packages/catalog/care.json';
 
@@ -48,12 +49,11 @@ export function emitCare(root = '') {
  if (!draft) throw new Error('packages/catalog/protocols.json has lost "a-draft-carries-nothing".');
  const noBase = contract.withheld.find(w => w.id === 'no-base-to-measure-from')?.statement;
  if (!noBase) throw new Error(`${SOURCE} has lost the withheld sentence "no-base-to-measure-from".`);
- /* The expiry is the founder's decision of 15 September 2026, and the phones are told who decided it. A
-    contract that names nobody is refused here, before two apps are told somebody did; the day, and that it
-    is no longer waiting on anybody, are held by scripts/check-boundaries.mjs, which reads the contract on
-    every build and does not need the phones to carry the date to hold it. */
- if (!String(contract.offers.decidedBy ?? '').trim()) throw new Error(`${SOURCE} says the offer expiry was decided without naming who decided it.`);
- const expiryNote = `Decided by the ${contract.offers.decidedBy}. packages/catalog/care.json records the day.`;
+ /* How long an offer lasts is the setting offer-expiry: the founder's decision of 15 September 2026, and a
+    default an admin changes on the web. scripts/settings-defaults.mjs refuses a default that says it was
+    decided without naming who and on what day, or a proposal that does not say why, before two apps are
+    told either; scripts/check-boundaries.mjs holds the rest of the setting to its shape on every build. */
+ const expiry = settingDefault(SOURCE, contract, 'offer-expiry');
  for (const s of contract.services) for (const id of s.protocolIds) {
   if (!protocols.protocols.some(p => p.id === id)) throw new Error(`${SOURCE} gives ${s.serviceId} the protocol "${id}", which the register does not hold.`);
  }
@@ -110,8 +110,8 @@ enum CareData {
     struct Stage: Identifiable { let id: String; let name: String }
 
     static let seedPhase = ${contract.seedPhase}
-    /// ${expiryNote}
-    static let offerExpiresAfterMinutes = ${contract.offers.expiresAfterMinutes}
+    /// ${expiry.note}
+    static let offerExpiresAfterMinutes = ${expiry.value}
 
 ${sentences.map(([name, value]) => `    static let ${name} = ${swift(value)}`).join('\n')}
 
@@ -148,8 +148,8 @@ object CareData {
     data class Stage(val id: String, val name: String)
 
     const val seedPhase = ${contract.seedPhase}
-    /** ${expiryNote} */
-    const val offerExpiresAfterMinutes = ${contract.offers.expiresAfterMinutes}
+    /** ${expiry.note} */
+    const val offerExpiresAfterMinutes = ${expiry.value}
 
 ${sentences.map(([name, value]) => `    const val ${name} = ${kotlin(value)}`).join('\n')}
 

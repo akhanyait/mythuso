@@ -130,11 +130,11 @@
    "request": [],
    "response": [
     {"field": "settingsVersion", "type": "integer", "required": true, "why": "The version in force. A change is made against it, and a visit or a panic that starts now keeps it."},
-    {"field": "settings", "type": "list", "required": true, "why": "Each timing: its id, unit, the minutes in force, its default, and the lowest and highest an admin may set.", "object": true},
+    {"field": "settings", "type": "list", "required": true, "why": "Each setting, in the shape packages/catalog/settings.json gives every engine's: its key, type, unit, the value in force and the version that set it, its default and provenance, its limits, who may change it, what a change reaches and its guardrail.", "object": true},
     {"field": "history", "type": "list", "required": true, "why": "Every accepted change, oldest first: who, when, from, to and why. Nothing in it is edited or removed.", "object": true}
    ],
    "refusals": [
-    {"id": "settings-read-not-permitted", "status": 403, "statement": "Only an admin reads the field-safety settings and who changed them.", "why": "The history names the people who changed how long the desk waits. It is read by the role that can change it, as the incident register is."}
+    {"id": "settings-read-not-permitted", "status": 403, "statement": "Only somebody who may change these settings reads them and who changed them.", "why": "The history names the people who changed how an engine behaves. It is read by the roles that may change it."}
    ],
    "emits": [],
    "emitsNoneBecause": "Reading changes nothing.",
@@ -154,7 +154,7 @@
    "purpose": ["audit"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same change once, and the history gains one row."},
-    {"field": "timing", "type": "string", "required": true, "why": "grace, panic-window, extension-steps or extension-ceiling, from packages/catalog/field-safety.json settings.timings."},
+    {"field": "timing", "type": "string", "required": true, "why": "grace, panic-window, extension-steps or extension-ceiling: a setting key from packages/catalog/field-safety.json settings.items. The shared settings code reads this field as the setting, through packages/catalog/settings.json legacyRoutes."},
     {"field": "minutes", "type": "integer", "required": false, "why": "The new value, for a timing that is one number of minutes."},
     {"field": "stepMinutes", "type": "list", "required": false, "why": "The new extension steps, smallest first, for extension-steps."},
     {"field": "reason", "type": "string", "required": false, "why": "Why. Asked for by the handler rather than the binder, so that a change without one is refused in its own sentence rather than the general one for a missing field."},
@@ -165,15 +165,20 @@
     {"field": "appliesFrom", "type": "instant", "required": true, "why": "When it took effect. A visit or a panic that started before this keeps the version it started under."}
    ],
    "refusals": [
-    {"id": "setting-change-not-permitted", "status": 403, "statement": "Only an admin changes a field-safety setting.", "why": "These timings decide how long the desk waits before it looks for a nurse. The admin role in packages/catalog/vetting.json changes them, and the change is recorded against a named person; a nurse, the desk and every engine only read them."},
-    {"id": "setting-not-known", "status": 422, "statement": "There is no field-safety setting by that name.", "why": "An unknown setting is refused rather than stored, or the history fills with changes nothing reads."},
-    {"id": "setting-change-without-reason", "status": 422, "statement": "A change to a field-safety setting says why, or it is not made.", "why": "The history is read after something has gone wrong. A change with no reason is a number somebody moved."},
-    {"id": "settings-version-stale", "status": 409, "statement": "These settings changed after you opened them. Read what is in force now and decide against that.", "why": "Two admins changing one timing from screens opened at the same time would each overwrite a decision they never saw."},
-    {"id": "setting-not-above-zero", "status": 422, "statement": "No field-safety timing is set to zero or less, whatever its range says.", "why": "A grace of nothing pages the desk the moment a visit is due to end, and a panic window of nothing shows a nurse's position to nobody. The range is a proposal and could be set wrongly; this refusal does not depend on it."},
-    {"id": "setting-out-of-range", "status": 422, "statement": "That is outside the range an admin may set for this setting.", "why": "The lowest and highest sit beside the default in packages/catalog/field-safety.json. Moving a timing past them is a change to that contract, not a setting."},
+    {"id": "setting-change-not-permitted", "status": 403, "statement": "Only the role a setting names changes it, and the change is recorded against a named person.", "why": "A setting decides how the platform treats people. The role or capability the setting names changes it, and a change is recorded against somebody who can be asked about it; everybody else only reads what is in force."},
+    {"id": "setting-not-known", "status": 422, "statement": "There is no setting by that name.", "why": "An unknown setting is refused rather than stored, or the history fills with changes nothing reads."},
+    {"id": "setting-change-without-reason", "status": 422, "statement": "A change to a setting says why, or it is not made.", "why": "The history is read after something has gone wrong. A change with no reason is a number somebody moved."},
+    {"id": "settings-version-stale", "status": 409, "statement": "These settings changed after you opened them. Read what is in force now and decide against that.", "why": "Two admins changing one setting from screens opened at the same time would each overwrite a decision they never saw."},
+    {"id": "setting-value-wrong-type", "status": 422, "statement": "That is not the kind of value this setting holds.", "why": "A word where a number belongs, or a list where one choice belongs, is a guess at what the admin meant, and a setting is never set by a guess."},
+    {"id": "setting-not-above-zero", "status": 422, "statement": "This setting is never nought or less, whatever its range says.", "why": "A wait of nothing, an offer that lapses as it is made and a fee of nothing are never what anybody meant. The range is a proposal and could be set wrongly; this refusal does not depend on it."},
+    {"id": "setting-role-not-on-register", "status": 422, "statement": "Every role a setting names is a role on the vetting register.", "why": "A role the register does not hold is a gate nobody can be vetted through, which looks like a shortage rather than a mistake."},
+    {"id": "setting-text-too-long", "status": 422, "statement": "That wording is longer than this setting allows.", "why": "The maximum is the space the words are read in. Wording that does not fit is cut off where somebody reads it."},
+    {"id": "setting-text-loses-a-guardrail", "status": 422, "statement": "That wording drops a sentence this setting must always keep.", "why": "Some wording carries a promise that protects somebody. It may be reworded around that sentence and never without it."},
+    {"id": "setting-schedule-leaves-a-gap", "status": 422, "statement": "That rota leaves hours uncovered that must always have somebody on them.", "why": "A rota with a gap is an alert with nobody to go to, and nobody finds out until one arrives."},
+    {"id": "setting-out-of-range", "status": 422, "statement": "That is outside what an admin may set for this setting.", "why": "The bounds, the allowed values and the allowed roles sit beside the default in the engine's contract. Moving a setting past them is a change to that contract, not a setting."},
+    {"id": "setting-unchanged", "status": 409, "statement": "That is already the value in force, so there is nothing to change.", "why": "A change that changes nothing is a row in the history saying something happened when nothing did."},
     {"id": "extension-steps-not-rising", "status": 422, "statement": "Extension steps are listed from the smallest to the largest, each once.", "why": "The steps are the buttons a nurse presses at a door. Two the same, or an order that jumps about, is a choice she has to stop and read."},
-    {"id": "extension-step-above-the-ceiling", "status": 409, "statement": "No extension step can be larger than the most a visit may be extended.", "why": "A step the ceiling never lets a nurse take is a button that is always refused."},
-    {"id": "setting-unchanged", "status": 409, "statement": "That is already the value in force, so there is nothing to change.", "why": "A change that changes nothing is a row in the history saying something happened when nothing did."}
+    {"id": "extension-step-above-the-ceiling", "status": 409, "statement": "No extension step can be larger than the most a visit may be extended.", "why": "A step the ceiling never lets a nurse take is a button that is always refused."}
    ],
    "emits": [],
    "emitsNoneBecause": "No engine acts on a change to Safety's timings. Core does not read them, because Safety sends the deadline on what it raises, and the event contract refuses an event nobody subscribes to. A change is the row it appends to Safety's own history, which GET /v1/safety/settings@1 reads, and it reaches the next visit and the next panic through the settings in force.",

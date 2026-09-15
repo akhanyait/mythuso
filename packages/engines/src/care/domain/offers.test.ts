@@ -1,34 +1,60 @@
-/* Offers: expiry, accept and decline, the cascade, and the same key twice. */
+/* Offers: expiry, accept and decline, the cascade, and the same key twice. And the rule the offer-expiry
+   setting rests on: an offer keeps the expiry it was made with, and only the next offer reads a change. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import geography from '../../../../catalog/geography.json' with { type: 'json' };
 import { careContract } from './contract.ts';
 import { addMinutes } from './clock.ts';
 import { OfferDesk } from './offers.ts';
+import { offerExpiryByDefault, type OfferExpiry } from './settings.ts';
 import { HEARD, TrustCache } from './trust.ts';
 import type { Candidate } from './matching.ts';
 
 const at = (id: string) => geography.zones.find(z => z.id === id)!.at;
 const NOW = new Date('2026-09-14T09:00:00+02:00');
+const EXPIRY = offerExpiryByDefault.minutes;
 
-function desk(people: Candidate[], withBadges = people.map(p => p.clinicianRef)) {
+function desk(people: Candidate[], withBadges = people.map(p => p.clinicianRef), expiry: () => OfferExpiry = () => offerExpiryByDefault) {
  const trust = new TrustCache(careContract.badgeTiers);
  for (const ref of withBadges) trust.learn({ ...HEARD, subjectRef: ref, occurredAt: '2026-09-14T06:00:00+02:00', payload: { badgeTier: 'verified', hardGatesPassed: true } });
- const offers = new OfferDesk({ contract: careContract, trust, candidates: () => people });
+ const offers = new OfferDesk({ contract: careContract, trust, candidates: () => people, expiry });
  offers.register({ appointmentRef: 'TH-9', subjectRef: 'sub-9', serviceId: 'wound', zone: at('parktown'), scheduledFor: '2026-09-14T16:00:00+02:00', previousClinicianRefs: [] });
  return offers;
 }
 const nurse = (clinicianRef: string, zone: string): Candidate => ({ clinicianRef, roleId: 'nurse', scope: ['Wound care'], base: at(zone) });
 
-test('an offer goes to the first eligible nurse, expires when the contract says, and emits appointment.offered without the patient’s place', () => {
+test('an offer goes to the first eligible nurse, expires when the setting in force says, and emits appointment.offered without the patient’s place', () => {
  const offers = desk([nurse('far', 'soweto'), nurse('near', 'parktown')]);
  const made = offers.offer({ idempotencyKey: 'k1', appointmentRef: 'TH-9', serviceId: 'wound' }, NOW);
  assert.ok(made.ok);
  if (!made.ok) return;
- assert.equal(made.value.offerExpiresAt, addMinutes(NOW, careContract.offerExpiresAfterMinutes).toISOString());
+ assert.equal(made.value.offerExpiresAt, addMinutes(NOW, EXPIRY).toISOString());
  assert.deepEqual(made.events.map(e => [e.type, e.version]), [['appointment.offered', 1]]);
  assert.deepEqual(Object.keys(made.events[0]!.payload).sort(), ['appointmentRef', 'clinicianRef', 'offerExpiresAt']);
  assert.equal(made.events[0]!.payload.clinicianRef, 'near');
+});
+
+test('an offer made before the expiry changes keeps the expiry it was made with, and the next offer reads the change', () => {
+ let inForce: OfferExpiry = offerExpiryByDefault;
+ const offers = desk([nurse('near', 'parktown'), nurse('next', 'rosebank')], undefined, () => inForce);
+ const made = offers.offer({ idempotencyKey: 'k', appointmentRef: 'TH-9', serviceId: 'wound' }, NOW);
+ assert.ok(made.ok);
+ if (!made.ok) return;
+ const longer = EXPIRY * 2;
+ inForce = { minutes: longer, settingsVersion: offerExpiryByDefault.settingsVersion + 1 };
+
+ const first = offers.offerRef(made.value.offerRef)!;
+ assert.equal(first.expiresAt, addMinutes(NOW, EXPIRY).toISOString(), 'the offer she is reading still lapses when it said it would');
+ assert.equal(first.settingsVersion, offerExpiryByDefault.settingsVersion);
+ assert.equal(offers.lapse(addMinutes(NOW, EXPIRY - 1)).length, 0);
+ const lapsed = offers.lapse(addMinutes(NOW, EXPIRY));
+ assert.equal(lapsed.length, 1, 'it lapses at its own expiry, not at the longer one now in force');
+
+ const next = lapsed[0]!.next;
+ assert.ok(next.ok);
+ if (!next.ok) return;
+ assert.equal(next.value.offerExpiresAt, addMinutes(addMinutes(NOW, EXPIRY), longer).toISOString(), 'the next offer is made with the expiry in force');
+ assert.equal(offers.offerRef(next.value.offerRef)!.settingsVersion, inForce.settingsVersion);
 });
 
 test('the same idempotency key twice is one offer and no second event', () => {
@@ -85,7 +111,7 @@ test('a desk restored from its own state answers as the one it was taken from', 
  if (!made.ok) return;
  const trust = new TrustCache(careContract.badgeTiers);
  for (const ref of ['near', 'next']) trust.learn({ ...HEARD, subjectRef: ref, occurredAt: '2026-09-14T06:00:00+02:00', payload: { badgeTier: 'verified', hardGatesPassed: true } });
- const again = new OfferDesk({ contract: careContract, trust, candidates: () => [nurse('near', 'parktown'), nurse('next', 'rosebank')], book: first.state() });
+ const again = new OfferDesk({ contract: careContract, trust, candidates: () => [nurse('near', 'parktown'), nurse('next', 'rosebank')], expiry: () => offerExpiryByDefault, book: first.state() });
  const stranger = again.accept({ idempotencyKey: 'x', offerRef: made.value.offerRef }, { clinicianRef: 'next' }, NOW);
  assert.equal(stranger.ok ? null : stranger.id, 'not-your-offer');
  assert.ok(again.accept({ idempotencyKey: 'a', offerRef: made.value.offerRef }, { clinicianRef: 'near' }, NOW).ok);
@@ -96,9 +122,9 @@ test('an unanswered offer lapses at its expiry, cannot then be accepted, and pas
  const made = offers.offer({ idempotencyKey: 'k', appointmentRef: 'TH-9', serviceId: 'wound' }, NOW);
  assert.ok(made.ok);
  if (!made.ok) return;
- const justBefore = addMinutes(NOW, careContract.offerExpiresAfterMinutes - 1);
+ const justBefore = addMinutes(NOW, EXPIRY - 1);
  assert.equal(offers.lapse(justBefore).length, 0);
- const atExpiry = addMinutes(NOW, careContract.offerExpiresAfterMinutes);
+ const atExpiry = addMinutes(NOW, EXPIRY);
  const late = offers.accept({ idempotencyKey: 'a1', offerRef: made.value.offerRef }, { clinicianRef: 'near' }, atExpiry);
  assert.equal(late.ok ? null : late.id, 'offer-expired');
  assert.equal(late.ok ? null : late.status, 410);

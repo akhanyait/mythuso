@@ -1,21 +1,23 @@
 /* Safety on the engine runtime: what Wave 3 can build honestly against the frozen v1 contract.
  *
  * BUILT: POST /v1/safety/panics@1. A nurse, locum, responder or courier presses panic; the domain
- * opens the window in force (packages/catalog/field-safety.json panic.windowMinutes, as an admin last
- * set it) and refuses any window no version of the settings ever held; the panic is stored with the
+ * opens the window in force (the setting panic-window in packages/catalog/field-safety.json, as an admin
+ * last set it) and refuses any window no version of the settings ever held; the panic is stored with the
  * settings version it opened under and panic.raised@1 goes on the bus with who pressed it by role and
  * when sharing ends. The store has no position column, deliberately: no route carries a position yet,
  * so there is nowhere for one to be kept, and when a position route exists it goes through
  * domain/panics.ts, which keeps only the latest and forgets it when sharing stops.
  *
- * BUILT: GET /v1/safety/settings@1 and POST /v1/safety/setting-changes@1. The founder decided on 15
- * September 2026 that Operations sets the field-safety timings on the admin. An admin reads the timings
- * in force with their ranges and history, and changes one with a reason against the version in force;
- * domain/settings.ts decides whether the change is allowed and this file appends it to settings_changes.
- * Nothing in this file updates or deletes a settings_changes row: the history is added to, and the
- * settings in force are always the defaults with it replayed. A change publishes nothing, because no
- * engine acts on one — Core does not read Safety's timings, since Safety sends the deadline on what it
- * raises — and the event contract refuses an event nobody subscribes to.
+ * BUILT: GET /v1/safety/settings@1 and POST /v1/safety/setting-changes@1, through packages/engines/src/settings,
+ * which answers every engine's settings routes to the one shape in packages/catalog/settings.json. The
+ * founder decided on 15 September 2026 that Operations sets the field-safety timings on the admin. The
+ * change route predates the shared shape and its request is frozen, so it keeps its own field names —
+ * timing, minutes, stepMinutes — and settings.json legacyRoutes says how the shared code reads them; its
+ * fingerprint in apis.lock is unchanged. Safety's own rule between two settings, that the steps rise and
+ * none is above the ceiling, is domain/settings.ts's. The history is Safety's own settings_history table,
+ * only ever appended to. A change publishes nothing, because no engine acts on one — Core does not read
+ * Safety's timings, since Safety sends the deadline on what it raises — and the event contract refuses an
+ * event nobody subscribes to.
  *
  * A CHANGE NEVER MOVES SOMETHING ALREADY RUNNING. A panic stores its end when it is pressed and a visit
  * under way stores the settings version and the timings it started with, and nothing reads the settings
@@ -53,10 +55,9 @@
  */
 import { randomUUID } from 'node:crypto';
 import { defineEngine, ok, refuse, type EventKey } from '../runtime/index.ts';
-import type { EngineStore } from '../runtime/types.ts';
-import { instant } from './domain/rules.ts';
+import { SETTINGS_SCHEMA, historyOf, settingsRoutes } from '../settings/routes.ts';
 import { raisePanic } from './domain/panics.ts';
-import { changeSetting, defaultTimings, inForce, keyOf, panicWindowOf, timingRows, type SettingsChange, type TimingId } from './domain/settings.ts';
+import { inForce, panicWindowOf, safetySettings } from './domain/settings.ts';
 
 const schema = [
  'CREATE TABLE IF NOT EXISTS panics (',
@@ -76,26 +77,10 @@ const schema = [
  ' extension_steps TEXT NOT NULL,',
  ' max_extension_minutes INTEGER NOT NULL',
  ');',
- 'CREATE TABLE IF NOT EXISTS settings_changes (',
- ' settings_version INTEGER PRIMARY KEY,',
- ' timing TEXT NOT NULL,',
- ' from_minutes TEXT NOT NULL,',
- ' to_minutes TEXT NOT NULL,',
- ' reason TEXT NOT NULL,',
- ' changed_by_role TEXT NOT NULL,',
- ' changed_by_ref TEXT NOT NULL,',
- ' changed_at INTEGER NOT NULL',
- ');'
+ SETTINGS_SCHEMA
 ].join('\n');
 
 type OpenPanic = { panic_ref: string; location_share_ends_at: number };
-type ChangeRow = { settings_version: number; timing: string; from_minutes: string; to_minutes: string; reason: string; changed_by_role: string; changed_by_ref: string; changed_at: number };
-
-/* The history, oldest first, exactly as it was appended. Read afresh for every act, so the settings in
-   force are never a copy this module holds that could fall behind its own table. */
-const historyOf = (store: EngineStore): SettingsChange[] =>
- (store.prepare('SELECT settings_version, timing, from_minutes, to_minutes, reason, changed_by_role, changed_by_ref, changed_at FROM settings_changes ORDER BY settings_version').all() as ChangeRow[])
-  .map(row => ({ settingsVersion: row.settings_version, timing: row.timing as TimingId, from: JSON.parse(row.from_minutes), to: JSON.parse(row.to_minutes), reason: row.reason, byRole: row.changed_by_role, byRef: row.changed_by_ref, at: row.changed_at }));
 
 export const engine = defineEngine({
  id: 'safety',
@@ -131,37 +116,7 @@ export const engine = defineEngine({
    return ok({ panicRef: panic.panicRef, locationShareEndsAt: new Date(panic.locationShareEndsAt).toISOString() });
   },
 
-  'GET /v1/safety/settings@1': (_request, ctx) => {
-   const history = historyOf(ctx.store);
-   const current = inForce(history);
-   return ok({
-    settingsVersion: current.settingsVersion,
-    settings: timingRows.map(row => ({
-     timing: row.id, unit: row.unit, inForce: current.timings[keyOf(row.id)], default: defaultTimings[keyOf(row.id)],
-     lowest: row.lowest.value, highest: row.highest.value
-    })),
-    history: history.map(change => ({
-     settingsVersion: change.settingsVersion, timing: change.timing, from: change.from, to: change.to,
-     reason: change.reason, byRole: change.byRole, byRef: change.byRef, at: instant(change.at)
-    }))
-   });
-  },
-
-  'POST /v1/safety/setting-changes@1': (request, ctx) => {
-   const now = ctx.clock.now().getTime();
-   /* The caller's role and reference are the runtime's, never a field: who made a change is recorded from
-      the caller the binder admitted, so a request cannot name somebody else as having made it. */
-   const changed = changeSetting(historyOf(ctx.store), {
-    timing: request.fields.timing, minutes: request.fields.minutes, stepMinutes: request.fields.stepMinutes,
-    reason: request.fields.reason, expectedVersion: request.fields.expectedVersion,
-    byRole: ctx.caller.role, byRef: ctx.caller.ref
-   }, now);
-   if (!changed.ok) return refuse(changed.refusal.id);
-   const { change } = changed.value;
-   ctx.store.prepare('INSERT INTO settings_changes (settings_version, timing, from_minutes, to_minutes, reason, changed_by_role, changed_by_ref, changed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(change.settingsVersion, change.timing, JSON.stringify(change.from), JSON.stringify(change.to), change.reason, change.byRole, change.byRef, change.at);
-   return ok({ settingsVersion: change.settingsVersion, appliesFrom: instant(change.at) });
-  }
+  ...settingsRoutes(safetySettings, { read: 'GET /v1/safety/settings@1', change: 'POST /v1/safety/setting-changes@1' })
  },
  subscriptions: {
   'appointment.in_progress@1': (event, ctx) => {

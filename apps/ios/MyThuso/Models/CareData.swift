@@ -12,7 +12,7 @@ enum CareData {
     struct Stage: Identifiable { let id: String; let name: String }
 
     static let seedPhase = 1
-    /// Decided by the Founder. packages/catalog/care.json records the day.
+    /// Decided by the Founder. A default an admin may change on the web; this app has no admin surface and uses it as written here.
     static let offerExpiresAfterMinutes = 10
 
     static let outsideScope = "You are only ever dispatched to work inside your registered scope. The Control Tower cannot override that."

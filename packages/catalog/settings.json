@@ -1,0 +1,259 @@
+{
+ "_note": "One shape for every setting an admin changes, on every engine. The founder instructed on 15 September 2026: \"All the questions you are asking please factor them as the admin setup on config so that they are dynamic.\" So an open policy question stops being a question to the founder and becomes a setting: a proposed default, the bounds an admin may set it within, a reason and an audited history for every change, and a screen to change it on. This file holds the shape, the rules every setting obeys and the sentences a change is refused in. Each engine declares its own settings in its own contract, under a settings block in this shape, and never holds another engine's number. packages/engines/src/settings enforces the rules once, for the engine runtime and for the web preview alike, and scripts/check-boundaries.mjs holds every contract to the shape. Nothing here is a real service: a change reaches the engine runtime on loopback, or the tab's memory in the preview, and no phone, desk or patient is told.",
+ "version": 1,
+ "decidedBy": "Founder",
+ "decidedOn": "2026-09-15",
+ "why": "\"All the questions you are asking please factor them as the admin setup on config so that they are dynamic.\" The shape itself — the types, the rules and the routes — is the Platform Settings lead's proposal under that instruction, and every bound and allowed value in an engine's block says whether somebody decided it.",
+
+ "sources": [
+  { "engine": "safety", "file": "packages/catalog/field-safety.json" },
+  { "engine": "care", "file": "packages/catalog/care.json" }
+ ],
+ "_sourcesNote": "Every contract that holds a settings block, and the engine that owns it. packages/engines/src/settings/blocks.ts imports exactly these, and the build fails on a settings block in a contract this list does not name. An engine adding its first setting adds its contract here.",
+
+ "block": [
+  { "key": "heading", "required": true, "why": "What the engine's group is called on the Configuration screen." },
+  { "key": "intro", "required": true, "why": "One sentence saying what the group decides, in the words somebody in the office would use." },
+  { "key": "items", "required": true, "why": "The settings, each in the shape below." },
+  { "key": "defaults", "required": true, "why": "{ version, changelog }: every change to a default in the contract, replayed by the build from nothing, as packages/catalog/gilbert-emergency-terms.json is. A running admin change is not here; it is in the engine's history." }
+ ],
+
+ "setting": [
+  { "key": "key", "required": true, "why": "Lower case and hyphenated, unique within the engine. It is what a change names and what the history records." },
+  { "key": "label", "required": true, "why": "The setting's name on the screen." },
+  { "key": "help", "required": true, "why": "The question the setting answers, as a sentence. A number that loses its question quietly becomes the policy." },
+  { "key": "owner", "required": true, "why": "The engine whose contract holds it. An engine never holds another engine's number." },
+  { "key": "type", "required": true, "why": "One of the types below." },
+  { "key": "unit", "required": true, "why": "What the value is counted in, as the type requires, or null for a type that has none." },
+  { "key": "default", "required": true, "why": "{ value } with its provenance: decided (decidedBy, decidedOn, why) or a proposal (decidedBy null, proposedBy, proposedBecause)." },
+  { "key": "changedBy", "required": true, "why": "The role or the capability in packages/catalog/vetting.json that may change it, or { fromSetting } naming a roleList setting on the same engine. The change route's callers are exactly the roles this resolves to." },
+  { "key": "appliesTo", "required": true, "why": "What a change reaches, as a sentence. The rule is that a change applies only to what starts after it and never alters something already under way; a setting that does otherwise says so and says why." },
+  { "key": "bounds", "required": false, "why": "{ lowest, highest }, each { value } with its provenance, for a type whose limits are bounds. A moneyCents setting also carries citedFrom, the contract path of the range a document gives, or notCitedBecause." },
+  { "key": "positive", "required": false, "why": "true or false, for a count or a percentage: whether nought is refused. Minutes and money are always above nought and do not carry it." },
+  { "key": "allowed", "required": false, "why": "For an enum, and optionally a boolean: each value that may be chosen, { value, label } with its provenance." },
+  { "key": "maxLength", "required": false, "why": "For text: { value } in characters, with its provenance." },
+  { "key": "mustKeep", "required": false, "why": "For text: [{ words, why }], sentences no rewording may drop. The way a guardrail on wording is written as a rule rather than trusted." },
+  { "key": "allowedRoles", "required": false, "why": "For a roleList: { roles } from the vetting register, with its provenance." },
+  { "key": "posts", "required": false, "why": "For a schedule: [{ id, label, role }], the positions a rota is made of, each held by a role on the vetting register. A rota names posts, never people." },
+  { "key": "mustCover", "required": false, "why": "For a schedule: [{ post, days, from, to, why }], hours that must always have that post on them." },
+  { "key": "of", "required": false, "why": "For a list: the type of every item — minutes, count, moneyCents, percentage, enum or text — whose limits the setting carries as it would for one value." },
+  { "key": "items", "required": false, "why": "For a list: { lowest, highest }, how many items, each with its provenance." },
+  { "key": "parts", "required": false, "why": "For a record: [{ key, label, type, ... }], a few values that only make sense changed together, each with the limits its type needs." },
+  { "key": "reviewRequired", "required": false, "why": "For a clinical-scope setting: the vetting capability whose holder must confirm a change. Until then the value is in force and shown everywhere it matters as not clinically reviewed; a reviewer confirms through the engine's review route." },
+  { "key": "guardrail", "required": false, "why": "{ statement, forbids }: what no value may do, and values that must always be refused. The build runs every forbidden value through the same rules a change goes through and fails if one is accepted, so a guardrail is bounds and type rules rather than trust." }
+ ],
+
+ "provenance": {
+  "decided": ["decidedBy", "decidedOn", "why"],
+  "proposal": ["proposedBy", "proposedBecause"],
+  "reviewed": ["reviewedBy", "reviewedOn"],
+  "why": "A decided value names who decided it, on what day and why, in the shape packages/catalog/consent.json gives maximumExpiryDecision. A proposal keeps decidedBy: null and says who proposed it and why, so a number cannot become policy by having the question deleted around it. A decided value may keep who proposed it. A clinical-scope default reviewed before it shipped names the reviewer and the day."
+ },
+
+ "types": [
+  { "id": "minutes", "limits": "bounds", "positive": "always", "unit": "minutes", "valueField": "wholeNumber", "why": "A time a desk waits, an offer lasts or a window stays open. Nought is never a time anybody meant." },
+  { "id": "count", "limits": "bounds", "positive": "setting", "unit": "named", "valueField": "wholeNumber", "why": "How many of something: characters, hours, call-outs. Whether nought is allowed is the setting's, because nought call-outs is a plan with no call-outs and nought characters is a thread nobody can write in." },
+  { "id": "moneyCents", "limits": "bounds", "positive": "always", "unit": "cents", "valueField": "wholeNumber", "cited": true, "why": "An amount of money in whole cents. Its bounds come from a range a document gives, cited, where one does." },
+  { "id": "percentage", "limits": "bounds", "positive": "setting", "unit": "percent", "valueField": "wholeNumber", "ceiling": 100, "why": "A whole-number share of a hundred." },
+  { "id": "boolean", "limits": "allowed-optional", "unit": null, "valueField": "switchedOn", "why": "On or off. A guardrail on a boolean leaves the forbidden side out of allowed." },
+  { "id": "enum", "limits": "allowed", "unit": null, "valueField": "choice", "why": "One of a few named choices, each with a label and a reason it may be chosen." },
+  { "id": "text", "limits": "maxLength", "unit": "characters", "valueField": "wording", "why": "Wording patients or nurses read. Never empty, never longer than its maximum, and never without a sentence it must keep." },
+  { "id": "roleList", "limits": "allowedRoles", "unit": null, "valueField": "roles", "why": "Roles from packages/catalog/vetting.json, each once. Never a person." },
+  { "id": "schedule", "limits": "posts", "unit": null, "valueField": "windows", "why": "A rota: windows of a post, days and hours. Hours are 00:00 to 24:00 and a window ends after it starts, so a night shift is two windows. Never a named person." },
+  { "id": "list", "limits": "of", "unit": "of", "valueField": "items", "why": "A list of one of minutes, count, moneyCents, percentage, enum or text, each item held to the setting's limits." },
+  { "id": "record", "limits": "parts", "unit": null, "valueField": "parts", "why": "A few values that only make sense changed together, like a number of call-outs and the period they are counted over. Changed separately, the first change alone would be in force for a moment it was never meant to be." }
+ ],
+ "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+ "listOf": ["minutes", "count", "moneyCents", "percentage", "enum", "text"],
+ "partTypes": ["minutes", "count", "moneyCents", "percentage", "boolean", "enum"],
+
+ "rules": [
+  { "id": "reason-required", "refusal": "setting-change-without-reason", "statement": "Every change says why, and the reason is recorded beside who made it." },
+  { "id": "expected-version", "refusal": "settings-version-stale", "statement": "A change is made against the settings version the admin was looking at, or not at all." },
+  { "id": "inside-limits", "refusal": "setting-out-of-range", "statement": "A value is inside its bounds, one of its allowed values, its allowed roles or posts, and its list length." },
+  { "id": "positive", "refusal": "setting-not-above-zero", "statement": "A value whose type demands it is above nought, asked before its bounds so that bounds set wrongly cannot let nought through." },
+  { "id": "must-change", "refusal": "setting-unchanged", "statement": "A change changes the value in force." },
+  { "id": "roles-on-register", "refusal": "setting-role-not-on-register", "statement": "Every role a setting names is a role on the vetting register." },
+  { "id": "text-fits", "refusal": "setting-text-too-long", "statement": "Wording fits its maximum." },
+  { "id": "text-keeps-its-guardrail", "refusal": "setting-text-loses-a-guardrail", "statement": "Wording keeps every sentence it must keep." },
+  { "id": "rota-covers", "refusal": "setting-schedule-leaves-a-gap", "statement": "A rota covers every window it must cover." },
+  { "id": "history-append-only", "refusal": null, "statement": "The history is added to and never updated or deleted, and what is in force is always the defaults with it replayed in version order." },
+  { "id": "running-item-keeps-its-version", "refusal": null, "statement": "Something that has started keeps the settings version it started with, and nothing already under way reads a setting again." }
+ ],
+
+ "routes": {
+  "read": {
+   "method": "GET", "resource": "settings", "version": 1, "callersFrom": "changedBy", "purpose": ["audit"],
+   "summary": "Read this engine's settings in force, each with its default and provenance, its limits and review state, and every change made to them.",
+   "request": [],
+   "response": [
+    { "field": "settingsVersion", "type": "integer", "required": true, "why": "The version in force. A change is made against it, and whatever starts now keeps it." },
+    { "field": "settings", "type": "list", "required": true, "why": "Each setting: its key, type, unit, the value in force and the version that set it, its default and provenance, its limits, who may change it, what a change reaches, its guardrail, and its clinical review.", "object": true },
+    { "field": "history", "type": "list", "required": true, "why": "Every accepted change, oldest first: which setting, from, to, who, when and why. Nothing in it is edited or removed.", "object": true }
+   ],
+   "emits": [], "emitsNoneBecause": "Reading changes nothing.", "idempotent": false
+  },
+  "change": {
+   "method": "POST", "resource": "setting-changes", "version": 1, "callersFrom": "changedBy", "purpose": ["audit"],
+   "summary": "Change one setting, with a reason, against the version in force. It applies to what starts after it.",
+   "request": [
+    { "field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same change once, and the history gains one row." },
+    { "field": "setting", "type": "string", "required": true, "why": "The setting's key, from the settings block of the engine's own contract." },
+    { "field": "wholeNumber", "type": "integer", "required": false, "why": "The new value, for a setting in minutes, a count, cents or a percentage." },
+    { "field": "switchedOn", "type": "boolean", "required": false, "why": "The new value, for a setting that is on or off." },
+    { "field": "choice", "type": "string", "required": false, "why": "The new value, for a setting that is one of a few named choices." },
+    { "field": "wording", "type": "string", "required": false, "why": "The new wording, for a setting patients or nurses read." },
+    { "field": "roles", "type": "list", "required": false, "why": "The new roles, for a setting that names roles from packages/catalog/vetting.json." },
+    { "field": "windows", "type": "list", "required": false, "why": "The new rota, for a setting that is windows of a post, days and hours. A post, never a named person.", "object": true },
+    { "field": "items", "type": "list", "required": false, "why": "The new values, for a setting that is a list." },
+    { "field": "parts", "type": "string", "required": false, "why": "The new values, for a setting whose parts change together.", "object": true },
+    { "field": "reason", "type": "string", "required": false, "why": "Why. Asked for by the handler rather than the binder, so that a change without one is refused in its own sentence rather than the general one for a missing field." },
+    { "field": "expectedVersion", "type": "integer", "required": true, "why": "The settings version the admin was looking at. A change against an older one is refused." }
+   ],
+   "response": [
+    { "field": "settingsVersion", "type": "integer", "required": true, "why": "The version this change made." },
+    { "field": "appliesFrom", "type": "instant", "required": true, "why": "When it took effect. Whatever started before it keeps the version it started under." }
+   ],
+   "emits": [], "emitsNoneBecause": "No engine acts on a settings change. The engine that owns a setting reads the value in force when it starts something, and the event contract refuses an event nobody subscribes to. A change is the row it appends to the engine's own history, which the read route returns.", "idempotent": true
+  },
+  "review": {
+   "method": "POST", "resource": "setting-reviews", "version": 1, "callersFrom": "reviewRequired", "purpose": ["audit"],
+   "summary": "Confirm the clinical review of the value in force for a setting that waits on one.",
+   "request": [
+    { "field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same confirmation once." },
+    { "field": "setting", "type": "string", "required": true, "why": "The setting's key, from the settings block of the engine's own contract." },
+    { "field": "settingsVersion", "type": "integer", "required": true, "why": "The version that set the value being confirmed: 1 for the contract's default, or the version of the change. A reviewer confirms a value they read, never whatever happens to be in force when the request lands." },
+    { "field": "reason", "type": "string", "required": false, "why": "Why the value is clinically safe. Asked for by the handler, so a confirmation without one is refused in its own sentence." }
+   ],
+   "response": [
+    { "field": "settingsVersion", "type": "integer", "required": true, "why": "The version confirmed." },
+    { "field": "reviewedAt", "type": "instant", "required": true, "why": "When the confirmation was recorded." }
+   ],
+   "emits": [], "emitsNoneBecause": "A confirmation changes no value, so nothing acts differently because of it. It is the row it appends to the engine's own reviews, which the read route returns.", "idempotent": true
+  }
+ },
+ "legacyRoutes": [
+  {
+   "route": "POST /v1/safety/setting-changes@1",
+   "requestFields": { "setting": "timing", "wholeNumber": "minutes", "items": "stepMinutes" },
+   "why": "Built on 15 September 2026, before this shape, for four field-safety timings in minutes. Its request is frozen in packages/catalog/apis.lock, so it keeps its field names and packages/engines/src/settings reads them through this map rather than the route being edited. It can carry minutes and lists of minutes and nothing else: a Safety setting of any other type needs POST /v1/safety/setting-changes@2 in the change shape above, with version one withdrawn."
+  }
+ ],
+
+ "refusals": [
+  { "route": "read", "id": "settings-read-not-permitted", "status": 403, "statement": "Only somebody who may change these settings reads them and who changed them.", "why": "The history names the people who changed how an engine behaves. It is read by the roles that may change it." },
+  { "route": "change", "id": "setting-change-not-permitted", "status": 403, "statement": "Only the role a setting names changes it, and the change is recorded against a named person.", "why": "A setting decides how the platform treats people. The role or capability the setting names changes it, and a change is recorded against somebody who can be asked about it; everybody else only reads what is in force." },
+  { "route": "change", "id": "setting-not-known", "status": 422, "statement": "There is no setting by that name.", "why": "An unknown setting is refused rather than stored, or the history fills with changes nothing reads." },
+  { "route": "change", "id": "setting-change-without-reason", "status": 422, "statement": "A change to a setting says why, or it is not made.", "why": "The history is read after something has gone wrong. A change with no reason is a number somebody moved." },
+  { "route": "change", "id": "settings-version-stale", "status": 409, "statement": "These settings changed after you opened them. Read what is in force now and decide against that.", "why": "Two admins changing one setting from screens opened at the same time would each overwrite a decision they never saw." },
+  { "route": "change", "id": "setting-value-wrong-type", "status": 422, "statement": "That is not the kind of value this setting holds.", "why": "A word where a number belongs, or a list where one choice belongs, is a guess at what the admin meant, and a setting is never set by a guess." },
+  { "route": "change", "id": "setting-not-above-zero", "status": 422, "statement": "This setting is never nought or less, whatever its range says.", "why": "A wait of nothing, an offer that lapses as it is made and a fee of nothing are never what anybody meant. The range is a proposal and could be set wrongly; this refusal does not depend on it." },
+  { "route": "change", "id": "setting-role-not-on-register", "status": 422, "statement": "Every role a setting names is a role on the vetting register.", "why": "A role the register does not hold is a gate nobody can be vetted through, which looks like a shortage rather than a mistake." },
+  { "route": "change", "id": "setting-text-too-long", "status": 422, "statement": "That wording is longer than this setting allows.", "why": "The maximum is the space the words are read in. Wording that does not fit is cut off where somebody reads it." },
+  { "route": "change", "id": "setting-text-loses-a-guardrail", "status": 422, "statement": "That wording drops a sentence this setting must always keep.", "why": "Some wording carries a promise that protects somebody. It may be reworded around that sentence and never without it." },
+  { "route": "change", "id": "setting-schedule-leaves-a-gap", "status": 422, "statement": "That rota leaves hours uncovered that must always have somebody on them.", "why": "A rota with a gap is an alert with nobody to go to, and nobody finds out until one arrives." },
+  { "route": "change", "id": "setting-out-of-range", "status": 422, "statement": "That is outside what an admin may set for this setting.", "why": "The bounds, the allowed values and the allowed roles sit beside the default in the engine's contract. Moving a setting past them is a change to that contract, not a setting." },
+  { "route": "change", "id": "setting-unchanged", "status": 409, "statement": "That is already the value in force, so there is nothing to change.", "why": "A change that changes nothing is a row in the history saying something happened when nothing did." },
+  { "route": "review", "id": "setting-review-not-permitted", "status": 403, "statement": "Only somebody holding the capability this setting names confirms its clinical review, and the confirmation is recorded against a named person.", "why": "A clinical-scope setting decides who may do what to a patient. Confirming it is a clinician's act, attributed like a signed review." },
+  { "route": "review", "id": "setting-not-known", "status": 422, "statement": "There is no setting by that name.", "why": "An unknown setting is refused rather than stored, or the reviews fill with confirmations of nothing." },
+  { "route": "review", "id": "setting-review-not-needed", "status": 409, "statement": "This setting does not wait on a clinical review.", "why": "A confirmation of a setting nobody asked a clinician about reads, later, as if one had been needed." },
+  { "route": "review", "id": "setting-review-without-reason", "status": 422, "statement": "A clinical review says why the value is safe, or it is not recorded.", "why": "A confirmation with no reason is a signature under nothing." },
+  { "route": "review", "id": "setting-review-not-in-force", "status": 409, "statement": "That is not the value in force for this setting. Review what is in force now.", "why": "A reviewer confirms the value they read. A value replaced since is not the one patients are being treated under." },
+  { "route": "review", "id": "setting-review-already-confirmed", "status": 409, "statement": "That value has already been clinically reviewed.", "why": "Two confirmations of one value are one review recorded twice." },
+  { "route": "review", "id": "setting-review-own-change", "status": 403, "statement": "Nobody confirms the clinical review of a change they made themselves.", "why": "packages/catalog/vetting.json's selfActionRefusals, applied to settings: a review by the person who made the change is no review." }
+ ],
+
+ "screen": {
+  "tab": "Configuration",
+  "blurb": "Every setting the engines work to: what is in force, who decided it, what an admin may set, and every change with its reason.",
+  "intro": "Each setting says what is in force, its default and who decided it, what an admin may set, what a change reaches and what no value may do. A change is reviewed before it is confirmed, and every change is kept with who made it and why.",
+  "preview": "This preview keeps changes in this tab's memory and nowhere else. No phone, desk or patient is told, and a reload puts the defaults back.",
+  "search": "Find a setting",
+  "searchHelp": "By its name, what it decides or the engine that owns it.",
+  "engine": "Engine",
+  "everyEngine": "Every engine",
+  "noMatch": "No setting matches that.",
+  "shown": "{shown} of {total} settings",
+  "version": "Settings version {version}",
+  "inForce": "In force",
+  "defaultIs": "Default {value}",
+  "decided": "Decided by the {who} on {on}",
+  "undecided": "A proposal nobody has decided",
+  "proposedBy": "Proposed by the {who}",
+  "range": "An admin may set {lowest} to {highest}",
+  "choices": "An admin may choose {values}",
+  "maxLength": "Up to {count} characters",
+  "roles": "Only these roles may be named: {roles}",
+  "posts": "A rota of posts: {posts}",
+  "listLength": "{lowest} to {highest} items",
+  "limitsAreProposals": "What an admin may set is a proposal nobody has decided.",
+  "limitsDecided": "What an admin may set was decided.",
+  "appliesTo": "What a change reaches",
+  "guardrail": "What no value may do",
+  "notReviewed": "Not clinically reviewed",
+  "reviewed": "Clinically reviewed by {who} on {on}",
+  "reviewWaitsOn": "Waits on somebody who may {capability} to confirm it, from the engine's review route.",
+  "changedBy": "Changed by {who}",
+  "lastChanged": "Last changed by {who} at {when}",
+  "neverChanged": "Not changed from the default.",
+  "change": "Change",
+  "reason": "Why",
+  "reasonHelp": "Written into the history beside your name. It is read when somebody asks why the platform behaved as it did.",
+  "review": "Review the change",
+  "confirmQuestion": "Change {setting} from {from} to {to}?",
+  "confirm": "Confirm the change",
+  "cancel": "Cancel",
+  "applied": "Version {version} is in force from {at}.",
+  "historyHeading": "History",
+  "historyEmpty": "Nothing has been changed from the default yet.",
+  "historyNeverEdited": "Every change is added here with who made it, when and why. Nothing here is edited or removed.",
+  "when": "When",
+  "who": "Who",
+  "from": "From",
+  "to": "To",
+  "why": "Why",
+  "operationsNote": "How long the safety desk waits, and what an admin may set it to, is on the Configuration tab with every other setting.",
+  "operationsOpen": "Open the field safety settings",
+  "editors": {
+   "minutes": "New value, in minutes",
+   "count": "New value, in {unit}",
+   "moneyCents": "New amount, in rand",
+   "percentage": "New value, as a percentage",
+   "boolean": "New value",
+   "enum": "New choice",
+   "text": "New wording",
+   "roleList": "Roles",
+   "schedule": "Rota",
+   "list": "New values in {unit}, smallest first, separated by commas",
+   "record": "New values",
+   "post": "Post",
+   "days": "Days",
+   "from": "From",
+   "to": "Until",
+   "addWindow": "Add a window",
+   "removeWindow": "Remove this window"
+  },
+  "values": {
+   "minutes": "{value} min",
+   "count": "{value} {unit}",
+   "moneyCents": "R{rand}",
+   "percentage": "{value}%",
+   "on": "On",
+   "off": "Off",
+   "noRoles": "No role",
+   "noWindows": "Nobody on the rota",
+   "window": "{post} · {days} · {from}–{to}",
+   "everyDay": "every day",
+   "empty": "Nothing"
+  }
+ },
+
+ "howToChange": [
+  "An engine's settings live in its own contract, under settings, in this shape. Add the contract to sources here the first time it has one.",
+  "Change a default in the setting's own default block, never in code, and add a changelog entry to that contract's settings.defaults: the next version, the day, who by role, every setting changed as { setting, from, to }, and why. npm run check replays the changelog from nothing and fails if it does not arrive at the defaults.",
+  "A decided default names who decided it, on what day and why. A default nobody decided keeps decidedBy: null and says who proposed it and why. So does every bound, allowed value, maximum length, allowed role list and list length.",
+  "Every default sits inside its own limits, and every value a guardrail forbids is refused by the same rules a change goes through.",
+  "Declare the engine's read and change routes in packages/catalog/apis/<engine>.json to the shapes in routes above, word for word, with every refusal above for that route, and append them to apis.lock. A setting with reviewRequired needs the review route too. Mark a route built only when the engine binds it through packages/engines/src/settings.",
+  "Whatever an engine starts with a setting keeps the settings version it started with. Read the value in force when something starts, keep it on the thing started, and never read it again for that thing."
+ ]
+}

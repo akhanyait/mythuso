@@ -7,6 +7,13 @@
  * line the tap was — the patient's visit has already gone to the next person, and two nurses holding
  * one door is the failure an expiry exists to prevent.
  *
+ * THE EXPIRY IS THE ONE IN FORCE WHEN THE OFFER IS MADE, AND THE OFFER KEEPS IT. How long an offer lasts
+ * is the setting offer-expiry in packages/catalog/care.json, which an admin changes. The desk is handed a
+ * reader for the expiry in force, asks it once as it makes an offer, and writes the instant the offer
+ * lapses and the settings version onto the offer; nothing reads the setting again for that offer, and
+ * every lapse is decided by the instant the offer carries. So a change reaches the next offer and never
+ * one a nurse is already reading. The desk holds no default of its own to fall back on.
+ *
  * A DECLINE AND A LAPSE CASCADE. Either one asks the matcher again with everybody already asked
  * left out, and offers the visit to whoever is first now. Where that happens is the caller's choice:
  * the web preview passes it on at once, and the engine runtime passes it on from its tick, because
@@ -26,6 +33,7 @@ import { answer, type Answer, type CareEvent } from './outcome.ts';
 import { purposeOf, refuse, ROUTES, type CareContract } from './contract.ts';
 import { addMinutes } from './clock.ts';
 import { match, type AppointmentToFill, type Candidate, type Continuity, type Withheld } from './matching.ts';
+import type { OfferExpiry } from './settings.ts';
 import type { TrustReader } from './trust.ts';
 
 export type OfferState = 'open' | 'accepted' | 'declined' | 'lapsed';
@@ -36,6 +44,8 @@ export type Offer = {
  readonly clinicianRef: string;
  readonly offeredAt: string;
  readonly expiresAt: string;
+ /** The Care settings version the expiry was read under. An offer made before a change says so. */
+ readonly settingsVersion: number;
  readonly continuity: Continuity;
  readonly distanceKm: number;
  state: OfferState;
@@ -58,6 +68,7 @@ export class OfferDesk {
  #contract: CareContract;
  #trust: TrustReader;
  #candidates: () => readonly Candidate[];
+ #expiry: () => OfferExpiry;
  #appointments = new Map<string, AppointmentToFill>();
  #offers = new Map<string, Offer>();
  #asked = new Map<string, Set<string>>();
@@ -66,10 +77,11 @@ export class OfferDesk {
  #withheld = new Map<string, readonly Withheld[]>();
  #sequence = 0;
 
- constructor(options: { contract: CareContract; trust: TrustReader; candidates: () => readonly Candidate[]; book?: OfferBook }) {
+ constructor(options: { contract: CareContract; trust: TrustReader; candidates: () => readonly Candidate[]; expiry: () => OfferExpiry; book?: OfferBook }) {
   this.#contract = options.contract;
   this.#trust = options.trust;
   this.#candidates = options.candidates;
+  this.#expiry = options.expiry;
   for (const a of options.book?.appointments ?? []) this.#appointments.set(a.appointmentRef, a);
   for (const o of options.book?.offers ?? []) {
    this.#offers.set(o.offerRef, { ...o });
@@ -153,6 +165,7 @@ export class OfferDesk {
  /** Who the last match withheld for this appointment, and why. A dispatcher's view; never a nurse's. */
  withheldFor(appointmentRef: string): readonly Withheld[] { return this.#withheld.get(appointmentRef) ?? []; }
 
+ /* Decided by the instant the offer carries, never by the setting in force now. */
  #lapsedAt = (offer: Offer, now: Date) => now.getTime() >= Date.parse(offer.expiresAt);
 
  #make(appointmentRef: string, serviceId: string, now: Date): Answer<Made> {
@@ -176,12 +189,14 @@ export class OfferDesk {
    return refuse(this.#contract, ROUTES.offer, onlyTrust ? 'no-current-trust-score' : 'no-eligible-clinician');
   }
   this.#sequence += 1;
+  const expiry = this.#expiry();
   const offer: Offer = {
    offerRef: `ofr-${appointmentRef}-${this.#sequence}`,
    appointmentRef, serviceId,
    clinicianRef: first.candidate.clinicianRef,
    offeredAt: now.toISOString(),
-   expiresAt: addMinutes(now, this.#contract.offerExpiresAfterMinutes).toISOString(),
+   expiresAt: addMinutes(now, expiry.minutes).toISOString(),
+   settingsVersion: expiry.settingsVersion,
    continuity: first.continuity,
    distanceKm: first.distanceKm,
    state: 'open'

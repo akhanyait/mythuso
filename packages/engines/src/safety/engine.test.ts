@@ -18,7 +18,8 @@ import { MEMORY, createClock, createRuntime, defineEngine, type EngineModule } f
 import { openDatabase } from '../runtime/store.ts';
 import { engine } from './engine.ts';
 import { MINUTE } from './domain/rules.ts';
-import { defaultTimings, timingRows } from './domain/settings.ts';
+import { defaultTimings, safetyBlock } from './domain/settings.ts';
+import type { Bound } from '../settings/shape.ts';
 
 const START = '2026-09-14T09:00:00+02:00';
 const ROUTE = 'POST /v1/safety/panics@1';
@@ -42,7 +43,12 @@ const change = (fields: Record<string, unknown>, who: { role?: string; ref?: str
 const readSettings = (runtime: ReturnType<typeof runtimeWith>) => runtime.call(READ, { role: 'admin', ref: 'party-synthetic-901', purpose: 'audit', fields: {} });
 const published = (runtime: ReturnType<typeof runtimeWith>, key: string) => runtime.trail.all().filter(entry => entry.kind === 'published' && entry.eventKey === key);
 const raised = (runtime: ReturnType<typeof runtimeWith>) => published(runtime, 'panic.raised@1');
-const row = (id: string) => timingRows.find(r => r.id === id)!;
+/* A setting's bounds and unit, read from the contract, so a new bound moves the test with it. */
+const row = (key: string) => {
+ const s = safetyBlock.items.find(r => r.key === key)!;
+ const bounds = s.bounds as { lowest: Bound; highest: Bound };
+ return { key: s.key, unit: s.unit, lowest: bounds.lowest, highest: bounds.highest };
+};
 
 test('pressing panic opens the declared window and publishes panic.raised@1, never a position', () => {
  const runtime = runtimeWith();
@@ -137,11 +143,12 @@ test('an admin reads the timings in force with their ranges and an empty history
  assert.equal(answer.status, 200, JSON.stringify(answer.body));
  assert.equal(answer.body.settingsVersion, 1);
  assert.deepEqual(answer.body.history, []);
- const settings = answer.body.settings as { timing: string; inForce: unknown; default: unknown; lowest: number; highest: number; unit: string }[];
- assert.deepEqual(settings.map(s => s.timing), timingRows.map(r => r.id));
+ const settings = answer.body.settings as { setting: string; inForce: unknown; default: unknown; unit: string; setAtVersion: number; limits: { bounds: { lowest: Bound; highest: Bound } } }[];
+ assert.deepEqual(settings.map(s => s.setting), safetyBlock.items.map(r => r.key));
  for (const s of settings) {
-  assert.deepEqual(s.inForce, s.default, `${s.timing} is at its default`);
-  assert.deepEqual([s.lowest, s.highest, s.unit], [row(s.timing).lowest.value, row(s.timing).highest.value, row(s.timing).unit]);
+  assert.deepEqual(s.inForce, s.default, `${s.setting} is at its default`);
+  assert.equal(s.setAtVersion, 1, `${s.setting} was set by the contract`);
+  assert.deepEqual([s.limits.bounds.lowest.value, s.limits.bounds.highest.value, s.unit], [row(s.setting).lowest.value, row(s.setting).highest.value, row(s.setting).unit]);
  }
  for (const role of ['nurse', 'ops-desk']) assert.equal(runtime.call(READ, { role, ref: 'party-synthetic-1', purpose: 'audit', fields: {} }).body.error, 'caller-not-allowed', role);
  runtime.close();
@@ -187,8 +194,8 @@ test('an accepted change records who, when, from, to and why, publishes nothing,
 
  const read = readSettings(runtime).body;
  assert.equal(read.settingsVersion, 2);
- assert.deepEqual(read.history, [{ settingsVersion: 2, timing: 'grace', from: defaultTimings.graceMinutes, to: 45, reason: 'Long dressings were paging the desk.', byRole: 'admin', byRef: 'party-synthetic-901', at }]);
- assert.equal((read.settings as { timing: string; inForce: number }[]).find(s => s.timing === 'grace')!.inForce, 45);
+ assert.deepEqual(read.history, [{ settingsVersion: 2, setting: 'grace', from: defaultTimings.graceMinutes, to: 45, reason: 'Long dressings were paging the desk.', byRole: 'admin', byRef: 'party-synthetic-901', at }]);
+ assert.equal((read.settings as { setting: string; inForce: number }[]).find(s => s.setting === 'grace')!.inForce, 45);
 
  assert.equal(runtime.trail.all().filter(entry => entry.kind === 'published').length, 0, 'a change is the row in the history and nothing on the bus: no engine acts on one');
  const second = runtime.call(CHANGE, change({ idempotencyKey: 'change-2', expectedVersion: 1, minutes: 30 }));

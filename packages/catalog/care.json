@@ -25,12 +25,53 @@
  "_servicesNote": "One row per service in packages/catalog/services.json, and the build fails on a service without one. A scope is one of the options the vetting register gives a nurse and a locum, or null where none of the seven names the work: an injection, family planning and a sick-note assessment are inside a registered nurse's general scope rather than a named one, and that reading is the programme's, awaiting the Clinical Governance Lead. Allied health and the home carer have no role on the vetting register, so nobody can be matched to either, and the carer row says who a carer would be supervised by so that the refusal is written before the role exists rather than after.",
  "_protocolsNote": "Ids from packages/catalog/protocols.json and nothing else. Family planning and the men's and mental-health check-ins have no protocol in the register; their checklist says so rather than borrowing a neighbour's.",
 
+ "settings": {
+  "_note": "Care's settings, in the shape packages/catalog/settings.json gives every setting. How long an offer lasts moved here from offers on 15 September 2026, when the founder instructed that open questions become admin settings: the value, who proposed it and who decided it are unchanged, and an admin now changes it on the back office's Configuration tab within bounds that are themselves proposals. packages/engines/src/care reads the value in force when it makes an offer and keeps the expiry on the offer, so a change never reaches an offer already made. GET /v1/care/settings@1 and POST /v1/care/setting-changes@1 answer through packages/engines/src/settings; POST /v1/care/setting-reviews@1 is declared and not built, because no Care setting waits on a clinical review yet.",
+  "heading": "Care settings",
+  "intro": "How long a nurse has to answer an offer before it passes to the next nurse who is eligible for it.",
+  "items": [
+   {
+    "key": "offer-expiry",
+    "label": "Offer expiry",
+    "help": "How long a nurse has to answer an offer before it goes to the next nurse who is eligible for it.",
+    "owner": "care",
+    "type": "minutes",
+    "unit": "minutes",
+    "default": {
+     "value": 10,
+     "proposedBy": "Care lead (Wave 3)",
+     "decidedBy": "Founder",
+     "decidedOn": "2026-09-15",
+     "why": "An unanswered offer must not hold a patient's visit, which is the reason appointment.offered carries offerExpiresAt at all. Ten minutes is long enough for a nurse finishing a dressing to wash her hands and read it, and short enough that three nurses in a row not answering is half an hour rather than half a morning. The Care lead proposed it and the founder decided it on 15 September 2026 (\"Care: 10min\")."
+    },
+    "bounds": {
+     "lowest": { "value": 3, "decidedBy": null, "proposedBy": "Platform Settings lead (Wave 3)", "proposedBecause": "Three minutes is about as quickly as a nurse can finish what her hands are doing, wash them and read an offer. Shorter, and offers lapse on nurses who were about to take them, and the visit goes down the list for nothing." },
+     "highest": { "value": 30, "decidedBy": null, "proposedBy": "Platform Settings lead (Wave 3)", "proposedBecause": "Three times the founder's ten. Past half an hour, three nurses in a row not answering holds a patient's visit for an hour and a half, which is a morning lost rather than a wait." }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to offers made after it. An offer already made keeps the expiry it was made with, and lapses when it said it would.",
+    "guardrail": {
+     "statement": "An offer always lapses, and never holds a patient's visit for longer than half an hour. No value lets an unanswered offer keep a visit from the next nurse.",
+     "forbids": [0, 31, 1440]
+    }
+   }
+  ],
+  "defaults": {
+   "version": 1,
+   "changelog": [
+    {
+     "version": 1,
+     "on": "2026-09-15",
+     "by": "Founder",
+     "changed": [ { "setting": "offer-expiry", "from": null, "to": 10 } ],
+     "why": "The Care lead proposed ten minutes and the founder decided it: \"Care: 10min\"."
+    }
+   ]
+  }
+ },
+
  "offers": {
-  "expiresAfterMinutes": 10,
-  "proposedBy": "Care lead (Wave 3)",
-  "decidedBy": "Founder",
-  "decidedOn": "2026-09-15",
-  "whyExpires": "An unanswered offer must not hold a patient's visit, which is the reason appointment.offered carries offerExpiresAt at all. Ten minutes is long enough for a nurse finishing a dressing to wash her hands and read it, and short enough that three nurses in a row not answering is half an hour rather than half a morning. The Care lead proposed it and the founder decided it on 15 September 2026 (\"Care: 10min\"), so changing it is the founder's decision rather than an edit.",
+  "_expiryNote": "How long an offer lasts is the setting offer-expiry in settings above: decided by the founder, changed by an admin within its bounds, and read by the engine when it makes an offer. Nothing in this block holds it.",
   "order": [
    { "id": "named", "marker": "Your patient asked for you", "why": "A patient who names a nurse is asking for the person she already trusts in her house. She is asked first, if every gate lets her be asked at all." },
    { "id": "previous", "marker": "You have seen this patient before", "why": "Continuity is clinical before it is courtesy: a nurse who dressed a wound last week can see whether it is better. The most recent nurse is asked first." },

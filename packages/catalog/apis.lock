@@ -166,3 +166,6 @@ GET /v1/core/loops@1 fee5ad15f2887537
 POST /v1/core/alerts@2 6dc3dae4de80864f
 GET /v1/safety/settings@1 6f6de632fdd22e1f
 POST /v1/safety/setting-changes@1 46270bd875fbfa39
+GET /v1/care/settings@1 562977e7214aeb55
+POST /v1/care/setting-changes@1 6b34337436bb99d9
+POST /v1/care/setting-reviews@1 4f4e6bcc7784352b

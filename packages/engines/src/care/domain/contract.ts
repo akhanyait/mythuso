@@ -38,7 +38,6 @@ export type CareContract = {
  readonly seedPhase: number;
  readonly services: readonly ServiceRow[];
  readonly requirements: readonly Requirement[];
- readonly offerExpiresAfterMinutes: number;
  readonly protocols: readonly ProtocolRow[];
  readonly badgeTiers: readonly string[];
  readonly conflicts: readonly ConflictRow[];
@@ -72,7 +71,6 @@ export const careContract: CareContract = {
  seedPhase: care.seedPhase,
  services: services as ServiceRow[],
  requirements: care.services as Requirement[],
- offerExpiresAfterMinutes: care.offers.expiresAfterMinutes,
  protocols: protocols.protocols as ProtocolRow[],
  badgeTiers: trust.tiers.map(tier => tier.id),
  conflicts: capture.conflicts as ConflictRow[],
