@@ -47,6 +47,9 @@ const DeviceRegistryDesk = lazy(() => import('../features/Devices').then(m => ({
 /* Thuso Ride and admissions arrive when a clinician opens a patient's context or assessments, or the Control Tower
    opens dispatch, and not before: they carry the Movement contract and every engine's settings through lib/settings. */
 const Movement = lazy(() => import('../features/Movement').then(m => ({ default: m.MovementSurface })));
+/* One loader and one wrapper for all three places Thuso Ride stands, because this file is in the chunk the patient's
+   first load already pays for: three copies of the same Suspense cost her bytes to read her own visits. */
+const ride = (of: 'nurse' | 'doctor' | 'desk') => <Suspense fallback={null}><Movement of={of}/></Suspense>;
 import { VettingApplication, VettingQueue } from '../features/Vetting';
 import { t } from '../lib/i18n';
 import { endSession } from '../lib/auth';
@@ -245,7 +248,7 @@ const OnDeck = ({ role, children }: { role: StaffRole; children: ReactNode }) =>
 function renderSection(role: StaffRole, section: string, open: (m: string) => void, home: () => void) {
  const head = <SectionHead role={role} section={section}/>;
  if (role === 'Nurse') {
-  if (section === 'Assessments') return <OnDeck role={role}><VisitAssessment onClose={home}/><Suspense fallback={null}><Movement of="nurse"/></Suspense></OnDeck>;
+  if (section === 'Assessments') return <OnDeck role={role}><VisitAssessment onClose={home}/>{ride('nurse')}</OnDeck>;
   if (section === 'Thuso Kit') return <OnDeck role={role}><ThusoKit/><Suspense fallback={null}><KitHealth/></Suspense></OnDeck>;
   if (section === 'Earnings & payouts') return <OnDeck role={role}><Earnings/></OnDeck>;
   if (section === 'Vetting') return <OnDeck role={role}><VettingApplication roleId="nurse" onClose={home}/></OnDeck>;
@@ -253,7 +256,7 @@ function renderSection(role: StaffRole, section: string, open: (m: string) => vo
  if (role === 'Doctor') {
   if (section === 'Protocols') return <OnDeck role={role}><ClinicalProtocols/></OnDeck>;
   if (section === 'Teleconsultation') return <>{head}<Teleconsult/></>;
-  if (section === 'Patient context') return <OnDeck role={role}><PatientFile open={open}/><Suspense fallback={null}><Movement of="doctor"/></Suspense></OnDeck>;
+  if (section === 'Patient context') return <OnDeck role={role}><PatientFile open={open}/>{ride('doctor')}</OnDeck>;
   if (section === 'Consultation records') return <OnDeck role={role}><ConsultationRecord title="Consultation records"/></OnDeck>;
  }
  if (role === 'Partner' && section === 'Substitution & repeats') return <>{head}<Dispensing/></>;
@@ -483,7 +486,7 @@ function StaffSection({ role, section, open }: { role: StaffRole; section: strin
 function sectionBody(section: string, open: (m: string) => void) {
  return section === 'Schedule' ? <NurseSchedule open={open}/>
   : section === 'Review queue' ? <><ReviewQueue open={open}/><SettingReviews/></>
-   : section === 'Dispatch' ? <><DispatchBoard/><Suspense fallback={null}><Movement of="desk"/></Suspense></>
+   : section === 'Dispatch' ? <><DispatchBoard/>{ride('desk')}</>
     : section === 'Incidents' ? <><SafetyDesk/><SosDesk/><ConcernBoard/><IncidentBoard open={open} notice={false}/><HeldCashPayments/><Suspense fallback={null}><DeviceRegistryDesk/></Suspense></>
      : section === 'Orders' || section === 'Collections' || section === 'Results' ? <FulfilmentQueue section={section} open={open}/>
       /* The last fallback. Protocols and Quality used to land here — a card whose only control
