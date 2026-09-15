@@ -263,7 +263,10 @@ echo "$nginx_out"
 # So the test is whether a name *we* claim is claimed twice. If it is, that is ours and we stop. If
 # it is not, we say so loudly — a co-tenant is silently losing a server block and somebody should
 # know — and carry on.
-conflicts=$(printf '%s\n' "$nginx_out" | grep -o 'conflicting server name "[^"]*"' | sed 's/.*"\(.*\)"/\1/' | sort -u)
+# `|| true` because a clean configuration is the case this must survive: grep finds nothing, exits 1,
+# and under `set -euo pipefail` that ended the deploy after publishing and before verifying. It only
+# ever passed while a co-tenant's own conflict gave grep something to find.
+conflicts=$(printf '%s\n' "$nginx_out" | { grep -o 'conflicting server name "[^"]*"' || true; } | sed 's/.*"\(.*\)"/\1/' | sort -u)
 if [ -n "$conflicts" ]; then
   ours=""
   for name in $HOST $ALIASES; do
