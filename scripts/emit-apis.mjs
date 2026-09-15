@@ -22,7 +22,11 @@
    `routeFingerprint` and `loadApis` are exported for scripts/check-boundaries.mjs and for whoever
    appends a line to packages/catalog/apis.lock. The fingerprint covers the method, path, version and
    every request and response field's name, type, requiredness and object flag — the shape a client is
-   built against — and nothing else, so rewording a why or adding a caller is not a version change.
+   built against — and nothing else. Its arithmetic is never changed, because every line in apis.lock was
+   written by it. What it leaves out — a route's refusals, its callers and the inside of its objects — is
+   frozen by the three locks in scripts/api-locks.mjs instead. `npm run apis -- --seed-new` appends a line
+   to every API lock for a route version that has none, and `npm run apis -- --record-narrowing` records a
+   route whose callers were narrowed; neither ever rewrites a line.
 
    Escaping: Swift needs its quotes escaped; Kotlin needs backslash, quote and dollar, because a lone $
    starts a template. */
@@ -220,7 +224,15 @@ ${live.map(route => {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
- for (const file of emitApis()) {
+ const flags = process.argv.slice(2);
+ if (flags.length > 1 || flags.some(flag => !['--seed-new', '--record-narrowing'].includes(flag))) {
+  console.error(`npm run apis takes nothing, -- --seed-new or -- --record-narrowing, not ${flags.join(' ')}.`);
+  process.exit(2);
+ }
+ /* Appending to the locks is a separate act from emitting the clients: it never regenerates a file, and
+    emitting never appends a line, so running the generators cannot freeze anything by accident. */
+ if (flags.length) import('./api-locks.mjs').then(locks => { process.exitCode = flags[0] === '--seed-new' ? locks.seedNew() : locks.recordNarrowing(); });
+ else for (const file of emitApis()) {
   writeFileSync(file.path, file.content);
   console.log(`apis → ${file.path}`);
  }

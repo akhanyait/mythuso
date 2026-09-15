@@ -1,0 +1,284 @@
+# packages/catalog/apis.refusals.lock — what every frozen route refuses, and every refusal routes share.
+#
+# A route line hashes the route's own refusals — each id, its status and its sentence — and every engine refusal whose
+# answeredBy names the route. A shared line hashes one shared refusal's status and sentence, by its scope and id. The why
+# is left out, because no caller is ever sent it. scripts/check-boundaries.mjs fails the build when a route or a shared
+# refusal no longer matches its line: the fix is a new route version, or a new refusal id, and never an edit here.
+# Seeded on 15 September 2026 from the tree as it stood. New lines are appended by `npm run apis -- --seed-new`.
+#
+# METHOD path@version hash
+# shared <scope> <id> hash
+POST /v1/core/events@1 efbeb0fe7f83cc5f
+POST /v1/core/loops@1 53781fff8a3c3fd1
+GET /v1/core/loops@1 750c2300aa4f6dd7
+GET /v1/core/loops@2 f8b5b9a77e6811b1
+POST /v1/core/loops/{loopRef}/acknowledge@1 1e870492a8f22132
+POST /v1/core/loops/{loopRef}/acknowledge@2 1a3e8cfac1b47978
+POST /v1/core/loops/{loopRef}/escalate@1 69305cb3dbdcc081
+POST /v1/core/loops/{loopRef}/escalate@2 2f82e85cf9933db9
+POST /v1/core/loops/{loopRef}/close@1 07bd1273857d2046
+POST /v1/core/alerts@1 47f17d0cc337d0cd
+POST /v1/core/alerts@2 f6b6a1a82264ac62
+GET /v1/core/settings@1 5d6aa4a1a1c498a2
+POST /v1/core/setting-changes@1 ca8219b1f72b0736
+GET /v1/core/protocols/{protocolVersionId}@1 ef0f266c3dd38e0b
+POST /v1/core/protocols/{protocolId}/ratify@1 2604fb3f3844b93f
+POST /v1/core/permission-checks@1 90c22a3d0866e4b9
+GET /v1/core/audit-exports@1 e0973387cdd72704
+POST /v1/access/sign-ins@1 73009c6273d0e0ae
+POST /v1/access/sign-ins/{challengeId}/verify@1 9f9990920dac17d1
+POST /v1/access/sign-ins/{challengeToken}/second-factor@1 7abbcc076f820377
+GET /v1/access/sessions@1 461fed2e9262f19e
+POST /v1/access/sign-outs@1 e702c248916e03a5
+POST /v1/access/account-names@1 4bf68eda7a3c5c8a
+GET /v1/access/second-factors@1 3b4279d542860409
+POST /v1/access/second-factors@1 e52cfe10be9d1613
+POST /v1/access/second-factor-confirmations@1 a4145fd6e5726f3f
+POST /v1/access/second-factor-removals@1 04bc10415ca82da8
+GET /v1/access/account-data@1 8d61d27a87bd63fb
+POST /v1/access/erasure-requests@1 c58f54fef9afed41
+POST /v1/access/erasure-cancellations@1 527c67c7d4f47486
+POST /v1/access/account-exports@1 ecee01cbbb7bb687
+POST /v1/access/correction-requests@1 9629bb671296c7fa
+GET /v1/access/correction-requests@1 5b963eb35b41b849
+GET /v1/access/consent-contract@1 1b3eccb38d1674ab
+GET /v1/access/consents@1 bf8c71b8083efca7
+POST /v1/access/consents@1 b3fe2281a057780c
+POST /v1/access/consents/{purposeId}/withdraw@1 1e4595ce670c2382
+GET /v1/access/access-log@1 45fbf445a3bd7d2f
+GET /v1/access/subject-requests@1 36891a5140a38a72
+POST /v1/access/subject-requests/{requestId}/respond@1 2c82117f1633d18f
+GET /v1/access/health@1 bfeff8dbca0cb402
+GET /v1/access/audit-chain@1 8873b77836875a28
+POST /v1/access/witness-statements@1 27605b3d87e99363
+GET /v1/access/access-log-integrity@1 30a925cce388918d
+GET /v1/access/verification-status@1 89df8a9ebdefc6fd
+GET /v1/access/rate-limits@1 81c702354945d2d7
+GET /v1/access/doors@1 6a4ddc2d0c52cb43
+POST /v1/access/bookings@1 aa7d9da33452306b
+GET /v1/access/bookings/{bookingRef}@1 48dcd70f27dbe393
+POST /v1/access/conversations/{conversationRef}/messages@1 3d04307cb73964b9
+POST /v1/access/conversations/{conversationRef}/handover@1 cbf4f76f5af44983
+POST /v1/access/tools/{tool}@1 f3ade0881455f0e8
+POST /v1/access/households@1 e540b0e8017963cb
+POST /v1/access/sponsors@1 5d6f1eec72cd2a91
+POST /v1/access/bill-splits@1 eec41b1847f6137a
+POST /v1/access/bookings/{bookingRef}/cancel@1 0e5c4927198cea2a
+GET /v1/access/visit-threads/{bookingRef}@1 514b3f5aa425c9c0
+POST /v1/access/visit-threads/{bookingRef}/messages@1 443b1d8524b2b1d4
+GET /v1/access/settings@1 b96ce5310f0bcee3
+POST /v1/access/setting-changes@1 77437491cef8a511
+POST /v1/access/setting-reviews@1 2de7aee6ffe3da12
+POST /v1/care/offers@1 fc5a3ae50a9f776e
+POST /v1/care/offers/{offerRef}/accept@1 2b530db2c6cbc011
+POST /v1/care/offers/{offerRef}/decline@1 5ed651baa18c7ebe
+POST /v1/care/visits/{appointmentRef}/start@1 9bee3fd714751692
+POST /v1/care/visits/{appointmentRef}/checklist@1 f3b3e6904120b319
+POST /v1/care/visits/{appointmentRef}/capture@1 334720840b413ad0
+POST /v1/care/visits/{appointmentRef}/handover@1 3c4a274d54d05b45
+POST /v1/care/visits/{appointmentRef}/complete@1 d06b5654ee164319
+POST /v1/care/sync-batches@1 971eb0c3a733093f
+GET /v1/care/shifts@1 bba00bf2f2e03ba4
+GET /v1/care/services@1 d896721c7397912c
+GET /v1/care/locum-shifts@1 405f24c82dabb0e1
+GET /v1/care/circuits@1 5e61ef5cf5bf4fb8
+GET /v1/care/settings@1 e38bbef322ff6d96
+POST /v1/care/setting-changes@1 6b7a58855e335e2f
+POST /v1/care/setting-reviews@1 9771da1d3eb155af
+GET /v1/clinical/reviews@1 26ccdfd6218e7817
+POST /v1/clinical/reviews/{reviewRef}/sign@1 375023aa7db7d619
+POST /v1/clinical/consultations@1 122181317a6ebc22
+POST /v1/clinical/triage@1 25fbeb8a0f8b76dc
+POST /v1/clinical/triage@2 7d6d01226e21e2cc
+POST /v1/clinical/results/{resultRef}/acknowledge@1 0e6da5b184f45f5f
+POST /v1/clinical/guidance@1 72af9751b37944b9
+POST /v1/clinical/proms@1 298626a9fcd56c9b
+POST /v1/safety/checkins@1 e7ec713f36ca7aca
+POST /v1/safety/checkins/{checkinRef}/extend@1 c6216a7ca5744164
+POST /v1/safety/checkins/{checkinRef}/close@1 26179e6b135aeefd
+POST /v1/safety/panics@1 de33bb28fef477ba
+GET /v1/safety/settings@1 61636700bdcce6d3
+POST /v1/safety/setting-changes@1 73d6e616a1aaeeab
+GET /v1/safety/settings@2 630c52c7c478ff5f
+POST /v1/safety/setting-changes@2 2609deef5d8356ed
+POST /v1/safety/sos@1 f3babdc2913b5418
+POST /v1/safety/next-of-kin@1 9f4b4ea985268c0c
+POST /v1/safety/next-of-kin/{nominationRef}/alert@1 9b2b51add199253c
+POST /v1/safety/safeguarding-reports@1 77f08737c6f25942
+POST /v1/safety/sentinel-deviations@1 dcbd2d07c0f84917
+GET /v1/safety/incident-kinds@1 3812987b184368bb
+POST /v1/safety/incidents@1 7e9e2d3db6a2be98
+POST /v1/safety/incidents/{incidentId}/contain@1 5ad194b6abe8a03f
+POST /v1/safety/incidents/{incidentId}/notified@1 789aa880b3254800
+POST /v1/safety/incidents/{incidentId}/close@1 dfd19b061a9eb932
+GET /v1/safety/incidents@1 174123dab1782f18
+POST /v1/movement/trips@1 d630f80d3edfdf0e
+POST /v1/movement/responder-heartbeats@1 d58df73b92bf0261
+POST /v1/movement/trips/{tripRef}/accept@1 18280dc360c246f7
+POST /v1/movement/trips/{tripRef}/decline@1 1cddff8416e207b2
+POST /v1/movement/trips/{tripRef}/handover@1 5e1471c6c9685b7c
+GET /v1/movement/facilities@1 d3f018bf7419f6d6
+POST /v1/movement/admissions@1 bad2be86c2e00dbc
+GET /v1/movement/admissions/{admissionRef}@1 8ea3c90f469afccf
+POST /v1/movement/admissions/{admissionRef}/packet@1 c6f631a2a46190c1
+POST /v1/movement/admissions/{admissionRef}/decision@1 59aef85b5216d4d5
+POST /v1/movement/admissions/{admissionRef}/arrival@1 5019094013e28a05
+POST /v1/movement/admissions/{admissionRef}/handover@1 7441b13f01f69a0b
+GET /v1/trust/standing@1 dd352c4492677088
+GET /v1/trust/parties/{id}@1 f9bb46bd4d03976b
+POST /v1/trust/parties@1 903084e4088f8eec
+POST /v1/trust/evidence@1 75ac1968ea10947d
+POST /v1/trust/evidence/{evidenceId}/open@1 7400bcfd42a4b1e8
+POST /v1/trust/evidence/{evidenceId}/decide@1 c00687b28d12e046
+POST /v1/trust/evidence/{evidenceId}/second@1 a4b1d707ae9879c3
+POST /v1/trust/parties/{partyId}/suspend@1 5ba81a14e75d9625
+POST /v1/trust/parties/{partyId}/restore@1 9eaae2e5ce06db1d
+POST /v1/trust/identity-callbacks@1 5598706211af79b6
+GET /v1/trust/parties/{partyId}/gates@1 93d2bd085c3efa2b
+GET /v1/trust/parties/{partyId}/badge@1 362c017b28469ada
+POST /v1/trust/shift-starts@1 175259b64d69f1bd
+POST /v1/trust/door-verifications@1 d734d93514d97fcb
+POST /v1/trust/complaints@1 ac920feefe2cf593
+POST /v1/record/dev-subjects@1 a493f413c6797ea0
+POST /v1/record/session-ends@1 d14be9ee9a3f220b
+POST /consent/grant@1 b116aea4443cd0f8
+POST /consent/revoke@1 553bd31000e4eaa8
+POST /v1/record/consent-checks@1 a915b2da4e990ebb
+GET /audit/mine@1 f2bd70e2cc702cf3
+POST /breakglass@1 6430a1a05db3e7b9
+GET /summary/emergency@1 615317e1adb850db
+POST /fhir/{resourceType}@1 a579ead97cc7cbd4
+GET /fhir/{resourceType}/{id}@1 ac1eff6881bafca8
+GET /fhir/{resourceType}@1 c4f23b1a27a55a36
+POST /share/link@1 488e1b7313c23293
+POST /export@1 5aa9426ed5ed2377
+GET /v1/medicines/formulary@1 c30719ce22b2b767
+POST /v1/medicines/interaction-checks@1 afa11f1f84a96349
+POST /v1/medicines/prescriptions@1 e502a0962df11570
+POST /v1/medicines/prescriptions/{prescriptionRef}/verify@1 aee05c9725830812
+POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@1 0dc8bc17df97a339
+POST /v1/medicines/collections@1 f42ca8c0baf00217
+POST /v1/medicines/collections/{collectionRef}/handover@1 e54809c14f144240
+GET /v1/medicines/orders@1 666ff0be3b577033
+POST /v1/medicines/lab-orders@1 5e2fd1f1b2a2df60
+POST /v1/devices/registry@1 4220f1fdd3fb419d
+POST /v1/devices/registry/{deviceRef}/recall@1 8b9647ae8426dfa5
+GET /v1/devices/registry/{deviceRef}/health@1 243b8658b276a0c4
+POST /v1/devices/readings@1 ae655380933c993f
+POST /v1/devices/wearable-links@1 8fa8f8a9bdd43634
+POST /v1/devices/kits@1 5006bafee1d7ac97
+POST /v1/devices/kits/{kitRef}/return@1 8bbb30e675cf1b6b
+POST /v1/devices/kits/{kitRef}/loss@1 a8d83a7d4cdd7093
+POST /v1/money/payments@1 3f9f887acc5e2f23
+GET /v1/money/payouts@1 837eda1bdc1bae8c
+POST /v1/money/payments@2 b796ea449abfb107
+POST /v1/money/payments/{paymentRef}/cash-code@1 3aec8b562f274ed2
+POST /v1/money/payments/{paymentRef}/release@1 83eb5a061aed9bb3
+POST /v1/money/wallets@1 2c19c1655eab0c8d
+POST /v1/money/vouchers@1 564afa93a82cab44
+POST /v1/money/gifts@1 bc16cfb67a8ae700
+POST /v1/money/groups@1 26f75f6299c513a1
+POST /v1/money/claims@1 6d71a28ab1a7c21e
+POST /v1/money/claims@2 7a53935234411745
+POST /v1/money/market-orders@1 266d8b6d82b2f175
+GET /v1/money/settings@1 30f6d7f00e0630ec
+POST /v1/money/setting-changes@1 4d15044eaf37e28b
+shared apis.json#sharedRefusals caller-not-allowed 8b05aee8a022c1cb
+shared apis.json#sharedRefusals purpose-not-allowed 571f4ee91f51a329
+shared apis.json#sharedRefusals required-field-missing d61764f3983b6e0b
+shared apis.json#sharedRefusals idempotency-key-required 8041715d710778a4
+shared apis.json#sharedRefusals malformed-path 7df19c39cc77aebe
+shared apis.json#sharedRefusals idempotency-key-reused d6c66879a0123ac9
+shared apis.json#sharedRefusals route-version-required 7c3c4986bc55238b
+shared apis.json#sharedRefusals route-version-not-declared e578943c3fd67789
+shared apis.json#engineRuntime.refusals field-of-the-wrong-type e591796ee3f9597e
+shared apis.json#engineRuntime.refusals engine-fault d0fe029b81a052a0
+shared apis.json#engineRuntime.refusals no-route 452011ba22f5056c
+shared apis.json#engineRuntime.refusals engine-not-declared f4204ca8dfcbba5f
+shared apis.json#engineRuntime.refusals route-not-in-the-contract 8dd81e0b3bb14a80
+shared apis.json#engineRuntime.refusals route-withdrawn 4a4d967e7a6a1f2c
+shared apis.json#engineRuntime.refusals route-belongs-to-another-engine d9e973b61f10a755
+shared apis.json#engineRuntime.refusals calls-its-own-route b0c8e7d220eec386
+shared apis.json#engineRuntime.refusals subscription-not-declared 96aee20caef8c3e8
+shared apis.json#engineRuntime.refusals caller-unidentified 64851d35e5473409
+shared apis.json#engineRuntime.refusals store-statement-refused 48f6793edbcc80a2
+shared apis.json#engineRuntime.refusals store-runtime-table-refused 7bbacff304ecf2b4
+shared apis.json#engineRuntime.refusals refusal-record-refused 718c7a76fb120e5d
+shared apis/core.json#refusals publish-only-what-you-own a2329b022070eaaa
+shared apis/core.json#refusals no-loop-without-an-outcome 59aec1b2a3beed0d
+shared apis/core.json#refusals no-ratification-without-a-signature c07e6c1af1d9748f
+shared apis/core.json#refusals no-subscription-to-a-withdrawn-version 0ed926e68291cfb6
+shared apis/core.json#refusals no-such-loop ca0dccec1d6a3800
+shared apis/core.json#refusals not-your-concern 85a1b1a2ddf315d8
+shared apis/access.json#refusals tool-not-on-allow-list f62f6f0a9f94d3bb
+shared apis/access.json#refusals booking-invents-a-slot 389af2dad7615621
+shared apis/access.json#refusals answer-lowers-an-emergency 9af0da04b87b69c5
+shared apis/access.json#refusals scheme-or-employer-as-caller 509652dae9b06449
+shared apis/pulse.json#refusals no-routes-of-its-own c582dc392e4134a4
+shared apis/care.json#refusals offer-without-trust-score 1f3826cce680aeb6
+shared apis/care.json#refusals visit-without-code ed02e77b3129333e
+shared apis/care.json#refusals location-beyond-the-visit 37c54a69434fd06c
+shared apis/care.json#refusals carer-without-their-rn 5d2af41d69183a4f
+shared apis/care.json#refusals encounter-signature-unconfirmed 5ce6e17728ba3a0c
+shared apis/clinical.json#refusals triage-without-ratified-protocol e7b04dbe6309dce1
+shared apis/clinical.json#refusals model-lowers-priority ea401158c399cd02
+shared apis/clinical.json#refusals you-have-x 06a57e99d493eb87
+shared apis/clinical.json#refusals auto-signed-note 4f7e4345329d8517
+shared apis/clinical.json#refusals result-complete-before-acknowledgement 12fb8de9f16bf574
+shared apis/safety.json#refusals dispatch-without-a-human 1c0e83208311a1c4
+shared apis/safety.json#refusals consumer-wearable-raises-tier-four d17dbdf616d80bff
+shared apis/safety.json#refusals next-of-kin-see-clinical-detail d2bccbffa5737920
+shared apis/safety.json#refusals location-kept-after-the-window 088a366348e7c299
+shared apis/movement.json#refusals p1-not-an-ambulance bdce1cd787d8dbbc
+shared apis/movement.json#refusals self-assigned-p2 7be325c449adb816
+shared apis/movement.json#refusals pending-bed-shown-as-booked d4b6641068e0a495
+shared apis/movement.json#refusals responder-reads-more-than-the-summary 204ae00e20484a62
+shared apis/trust.json#refusals raw-score-leaves-verify f273d50f6f940356
+shared apis/trust.json#refusals weight-nobody-decided 3b863a482eeb7147
+shared apis/trust.json#refusals activation-past-a-failed-gate 006526f96f1b9ee7
+shared apis/trust.json#refusals clearance-document-stored b47ed93b73cd36ec
+shared apis/record.json#refusals read-without-a-grant 895c934b4bd4254d
+shared apis/record.json#refusals sealed-without-a-tick e87307422a991404
+shared apis/record.json#refusals break-glass-beyond-the-summary 9e22719b9408055a
+shared apis/record.json#refusals identifiable-grant-to-a-payer 9fc805df64fa991e
+shared apis/medicines.json#refusals prescriber-verifies-own-script 0a78396bd51a59b6
+shared apis/medicines.json#refusals schedule-five-six-by-driver 5a512bf6a946433c
+shared apis/medicines.json#refusals lab-result-complete-before-acknowledgement 9305b77db9d769ce
+shared apis/medicines.json#refusals reward-for-taking-a-medicine 09c071920c7490c6
+shared apis/devices.json#refusals ingestion-after-withdrawal b27942907dd0cbe7
+shared apis/devices.json#refusals consumer-device-clinical-weight d7285811b6a8860d
+shared apis/devices.json#refusals reading-without-source-and-quality f4a817a3e17d5aa8
+shared apis/devices.json#refusals simulator-as-real a001f5456007b6f9
+shared apis/money.json#refusals card-number-held 18e491fcabdfc199
+shared apis/money.json#refusals payout-line-names-its-amount afd4d49253356c2c
+shared apis/money.json#refusals suspension-touches-earned-money 960c3f584c9d29bc
+shared apis/money.json#refusals scheme-hears-about-a-grant 64ad4c2b01bea287
+shared apis/money.json#refusals charge-without-a-key 49bcc0f82829da79
+shared apis/money.json#refusals hears-only-its-list ce5a70af6d0d58cd
+shared apis/money.json#refusals doctor-fee-undecided a8441aeaef00596e
+shared apis/money.json#refusals scheme-sees-a-payment 0ff6b0863df38524
+shared apis/money.json#refusals door-locked 2b7d82c69b447aa0
+shared apis/money.json#refusals cash-code-held 22fa403666f54d9f
+shared apis/money.json#refusals cash-before-the-visit-finished d4613efcd5437677
+shared apis/money.json#refusals payable-not-priced a6df8be53d873518
+shared apis/money.json#refusals deduction-without-a-reason 40cb406198b46655
+shared settings.json#refusals read@1 settings-read-not-permitted f71035e5a8f54836
+shared settings.json#refusals change@1 setting-change-not-permitted e1af44f0b5c9400c
+shared settings.json#refusals change@1 setting-not-known 0c0e7c6a206f1ae5
+shared settings.json#refusals change@1 setting-change-without-reason 0e4e945a702009a7
+shared settings.json#refusals change@1 settings-version-stale 7c521d4c50f9bad4
+shared settings.json#refusals change@1 setting-value-wrong-type 07b80fa77a8cc9b2
+shared settings.json#refusals change@1 setting-not-above-zero ef60d027a5a584ed
+shared settings.json#refusals change@1 setting-role-not-on-register 972f1dfd45c19219
+shared settings.json#refusals change@1 setting-text-too-long b14284d04513f706
+shared settings.json#refusals change@1 setting-text-loses-a-guardrail d3f29205be157b0b
+shared settings.json#refusals change@1 setting-schedule-leaves-a-gap e733ebb8dd63c445
+shared settings.json#refusals change@1 setting-out-of-range e2bf5838aac15fb2
+shared settings.json#refusals change@1 setting-unchanged 90d34afcaf1fe4de
+shared settings.json#refusals review@1 setting-review-not-permitted 243408a0dc1435ed
+shared settings.json#refusals review@1 setting-not-known 0bf34b200449661c
+shared settings.json#refusals review@1 setting-review-not-needed f63c32cc391341c2
+shared settings.json#refusals review@1 setting-review-without-reason 585c0b34b4c4aacc
+shared settings.json#refusals review@1 setting-review-not-in-force 5837857857116d3c
+shared settings.json#refusals review@1 setting-review-already-confirmed 8131b812e1dd6e2a
+shared settings.json#refusals review@1 setting-review-own-change f993db8386db86f5
