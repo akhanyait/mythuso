@@ -192,19 +192,28 @@ export function SignIn({ live, probed = true, onSignIn, onCreate, onRecover }:
  const [attempt, setAttempt] = useState(0);
  const [ask, setAsk] = useState<CodeAsk | null>(null);
  const phoneOk = /^0\d{9}$/.test(phone.replace(/\s/g, ''));
- /* The simulated channel arrives on a dynamic import at the moment a code is asked for or checked, never with the
-    sign-in screen. lib/simulation carries apps/api/src/simulation and, behind it, every supplier door in
+ /* The simulated channel arrives on a dynamic import when this screen opens on the simulated side, never with the
+    patient's first load. lib/simulation carries apps/api/src/simulation and, behind it, every supplier door in
     packages/catalog/feeds.json, and each engine that adds a door would otherwise add it to the first load of a patient
-    who only wanted to see her visits. The refusal still arrives from the simulator in the capability's own words. */
- const askAgain = async () => {
+    who only wanted to see her visits. It is loaded before anything can be pressed rather than awaited inside the press:
+    a press that waited would leave the previous answer on the screen until the new one came, so a person asking for a
+    new code would for a moment be shown the old one as if it still worked. Until it has loaded the buttons that ask it
+    are not offered, and the refusal still arrives from the simulator in the capability's own words. */
+ const [simulation, setSimulation] = useState<typeof import('../lib/simulation') | null>(null);
+ useEffect(() => {
+  if (live) return;
+  let open = true;
+  void import('../lib/simulation').then(loaded => { if (open) setSimulation(loaded); });
+  return () => { open = false; };
+ }, [live]);
+ const askAgain = () => {
+  if (!simulation) return;
   const next = attempt + 1; setAttempt(next); setCode(''); setError('');
-  const { askForCode } = await import('../lib/simulation');
-  setAsk(askForCode(next));
+  setAsk(simulation.askForCode(next));
  };
- const submitSimulatedCode = async () => {
-  if (!ask || ask.refused !== undefined) return;
-  const { checkCode } = await import('../lib/simulation');
-  const checked = checkCode(ask.challenge, code);
+ const submitSimulatedCode = () => {
+  if (!ask || ask.refused !== undefined || !simulation) return;
+  const checked = simulation.checkCode(ask.challenge, code);
   if (checked.refused !== undefined) return setError(checked.refused);
   onSignIn({ phone });
  };
@@ -260,7 +269,7 @@ export function SignIn({ live, probed = true, onSignIn, onCreate, onRecover }:
        the number stays in this tab for the sole purpose of being shown back to the person who
        typed it. Nothing can leave the machine because nothing here knows anywhere to leave for. */}
    <p className="helper" id="sim-help" role="status">{error || 'Your number stays in this tab. The simulator is never told where to send, and refuses to be.'}</p>
-   {!ask ? <div className="door-actions"><button className="primary full" disabled={!phoneOk} onClick={askAgain}>Send my code<ArrowRight size={17}/></button></div> : null}
+   {!ask ? <div className="door-actions"><button className="primary full" disabled={!phoneOk || !simulation} onClick={askAgain}>Send my code<ArrowRight size={17}/></button></div> : null}
    {ask?.refused !== undefined ? <div className="privacy-note"><Ban size={19}/><span>{ask.refused}</span></div> : null}
    {ask && ask.refused === undefined && ask.status === 'failed' ? <>
     {/* The state the seam exists for. feeds.json says a provider reporting only success turns every
