@@ -248,6 +248,9 @@ private fun stateTone(state: CaptureState) = when (state) {
            reading taken on one carries. It reads the serials and calibrations this phone already holds. */
         KitHealthSection(capture)
 
+        /* The patient's Sentinel state, made only of what the instruments above published with clinical weight. */
+        SentinelSection(patient, capture)
+
         DeckSectionHead("Paired instruments", count = "${capture.paired.size}")
         if (capture.paired.isEmpty()) EmptyStateCard("Nothing is paired", "Discover below. In this preview discovery is a timer and a list compiled into the app.")
         capture.paired.forEach { paired ->

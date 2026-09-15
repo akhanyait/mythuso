@@ -22,7 +22,7 @@
     "tokens": "node scripts/emit-tokens.mjs",
     "vetting": "node scripts/emit-vetting.mjs",
     "records": "node scripts/emit-records.mjs",
-    "generate": "npm run tokens && npm run vetting && npm run records && npm run earnings && npm run sos && npm run teleconsult && npm run locales && npm run dispensing && npm run programmes && npm run interpreting && npm run scheduling && npm run geography && npm run capabilities && npm run cancellation && npm run passport && npm run capture && npm run framing && npm run wellbeing && npm run rewards && npm run shop && npm run thusoiq-contract && npm run events && npm run consent-grants && npm run protocols && npm run assistant && npm run apis && npm run plans && npm run open-source && npm run money && npm run care && npm run field-safety && npm run booking && npm run medicines && npm run verify-in-service && npm run passport-sharing && npm run devices && npm run review-pack",
+    "generate": "npm run tokens && npm run vetting && npm run records && npm run earnings && npm run sos && npm run teleconsult && npm run locales && npm run dispensing && npm run programmes && npm run interpreting && npm run scheduling && npm run geography && npm run capabilities && npm run cancellation && npm run passport && npm run capture && npm run framing && npm run wellbeing && npm run rewards && npm run shop && npm run thusoiq-contract && npm run events && npm run consent-grants && npm run protocols && npm run assistant && npm run apis && npm run plans && npm run open-source && npm run money && npm run care && npm run field-safety && npm run booking && npm run medicines && npm run verify-in-service && npm run passport-sharing && npm run devices && npm run sentinel && npm run review-pack",
     "check": "npm run check -w @mythuso/thusoiq && npm run check -w @mythuso/commerce && npm run check -w @mythuso/geo && npm run check -w @mythuso/web && npm run check -w @mythuso/api && npm run check -w @mythuso/passport && npm run check -w @mythuso/mock-api && npm run check -w @mythuso/engines && node scripts/check-boundaries.mjs",
     "test": "npm run test -w @mythuso/geo && npm run test -w @mythuso/thusoiq && npm run test -w @mythuso/commerce && npm run test -w @mythuso/api && npm run test -w @mythuso/passport && npm run test -w @mythuso/mock-api && npm run test -w @mythuso/engines && playwright test",
     "preview": "npm run preview -w @mythuso/web -- --host 0.0.0.0",
@@ -67,7 +67,8 @@
     "medicines": "node scripts/emit-medicines.mjs",
     "verify-in-service": "node scripts/emit-verify-in-service.mjs",
     "passport-sharing": "node scripts/emit-passport-sharing.mjs",
-    "devices": "node scripts/emit-devices.mjs"
+    "devices": "node scripts/emit-devices.mjs",
+    "sentinel": "node scripts/emit-sentinel.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",

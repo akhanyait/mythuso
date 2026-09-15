@@ -1,0 +1,230 @@
+import SwiftUI
+
+/* Sentinel and safeguarding on iOS, where a nurse carries them: under her kit, the patient's baselines, why nothing is
+ * evaluated, a tier raised by hand and the sentence tier four is refused in; and a safeguarding concern recorded by
+ * choosing who it is about and the kind, with nothing typed. The Control Tower's safeguarding list is web-only, because
+ * the desk works at a desk.
+ *
+ * Every sentence is SentinelData.swift's, generated from packages/catalog/sentinel.json and
+ * packages/catalog/apis/safety.json, and every state is Sentinel.swift's arithmetic. No reading's value is on any of
+ * these screens, and the kind of concern is never shown again after it is chosen. */
+
+struct SentinelSection: View {
+    let patient: String
+    var now = Date()
+    @ObservedObject private var store = SentinelStore.shared
+    @State private var entryId: String?
+    @State private var rung: Int?
+    @State private var refused: SentinelRefusal?
+    @State private var notice = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            DeckSectionHead(title: Sentinel.SentinelText.heading, count: "\(store.baselines.count)", note: Sentinel.SentinelText.intro)
+            CareCard {
+                Text(Sentinel.fill(Sentinel.SentinelText.patient, ["patient": patient]))
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+                StatusPill(text: Sentinel.SentinelText.evaluation, tone: "quiet")
+                Text(Sentinel.RuleText.notEvaluated).font(.footnote).foregroundStyle(DeckInk.sheetInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityIdentifier("sentinel-evaluation")
+            ForEach(store.views(now: now)) { view in
+                CareCard { baselineCard(view) }
+                    .accessibilityIdentifier("sentinel-baseline-\(view.metric)")
+            }
+            note(Sentinel.RuleText.suspendedMeans, symbol: "pause.circle")
+            note(Sentinel.RuleText.recalledMeans, symbol: "xmark.shield")
+            note(Sentinel.fill(Sentinel.SentinelText.staleFrom, ["interval": Devices.intervalText(minutes: Devices.staleAfterMinutes)]), symbol: "clock")
+            CareCard { raiseForm }
+            CareCard { tierFour }
+            raisedList
+            NavigationLink { SafeguardingReportView(patient: patient) } label: {
+                Label(Sentinel.ReportText.heading, systemImage: "hand.raised")
+            }
+            .buttonStyle(QuietButton())
+            note(Sentinel.RuleText.preview, symbol: "antenna.radiowaves.left.and.right.slash")
+        }
+    }
+
+    private func stateTone(_ id: String) -> String {
+        switch id { case "suspended": return "amber"; case "formed": return "teal"; default: return "quiet" }
+    }
+    private func toldTone(_ code: String) -> String {
+        switch code { case "core-loop": return "danger"; case "nurse-queue": return "amber"; default: return "quiet" }
+    }
+    private func note(_ text: String, symbol: String) -> some View {
+        Label(text, systemImage: symbol).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    @ViewBuilder private func baselineCard(_ view: Sentinel.BaselineView) -> some View {
+        HStack(spacing: ThusoSpacing.space8) {
+            Text(Devices.measureLabel(view.metric)).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+            Spacer(minLength: 6)
+            StatusPill(text: Sentinel.label(Sentinel.baselineStates, view.stateId), tone: stateTone(view.stateId))
+        }
+        .accessibilityElement(children: .combine)
+        Text(Sentinel.fill(Sentinel.SentinelText.counted, ["counted": "\(view.counted)", "needed": "\(view.needed)", "days": "\(view.windowDays)"]))
+            .font(.footnote).foregroundStyle(DeckInk.sheetInk)
+            .fixedSize(horizontal: false, vertical: true)
+        if let since = view.suspendedSince {
+            Text(Sentinel.fill(Sentinel.SentinelText.suspendedSince, ["time": captureStamp(since)]))
+                .font(.footnote).foregroundStyle(ThusoTheme.mangoInk)
+        }
+        if view.leftByRecall > 0 {
+            Text(Sentinel.fill(Sentinel.SentinelText.leftByRecall, ["count": "\(view.leftByRecall)"]))
+                .font(.footnote).foregroundStyle(ThusoTheme.danger)
+        }
+    }
+
+    @ViewBuilder private var raiseForm: some View {
+        Text(Sentinel.SentinelText.raiseHeading).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+        Text(Sentinel.SentinelText.raiseIntro).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+            .fixedSize(horizontal: false, vertical: true)
+        Picker(Sentinel.SentinelText.entry, selection: $entryId) {
+            Text("Choose…").tag(String?.none)
+            ForEach(store.entries) { entry in
+                Text("\(Devices.measureLabel(entry.metric)) · \(captureStamp(entry.heardAt))").tag(String?.some(entry.id))
+            }
+        }
+        .pickerStyle(.menu)
+        ForEach(Sentinel.rungs) { option in
+            Button {
+                rung = option.rung
+                refused = nil
+            } label: {
+                HStack(alignment: .top, spacing: ThusoSpacing.space8) {
+                    Image(systemName: rung == option.rung ? "largecircle.fill.circle" : "circle").foregroundStyle(DeckInk.sheetInk)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(option.label).font(.footnote.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+                        Text(option.whoIsTold).thusoFont(ThusoType.caption).foregroundStyle(DeckInk.sheetQuiet)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(rung == option.rung ? .isSelected : [])
+        }
+        Button(Sentinel.SentinelText.raise) {
+            if let refusal = store.raise(entryId: entryId, rung: rung) { refused = refusal; return }
+            refused = nil
+            if let latest = store.raised.first {
+                notice = "\(Sentinel.fill(Sentinel.SentinelText.raised, ["rung": "\(latest.rung.rung)", "time": captureStamp(latest.raisedAt)])) \(latest.rung.whoIsTold)"
+            }
+            entryId = nil
+            rung = nil
+        }
+        .buttonStyle(CareButton())
+        if let refused {
+            Text(refused.statement).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        if !notice.isEmpty {
+            Text(notice).font(.footnote).foregroundStyle(DeckInk.sheetInk)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.updatesFrequently)
+        }
+    }
+
+    @ViewBuilder private var tierFour: some View {
+        Text(Sentinel.SentinelText.tierFourHeading).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+        Text(Sentinel.tierFourRefusal).font(.footnote).foregroundStyle(DeckInk.sheetInk)
+            .fixedSize(horizontal: false, vertical: true)
+        ForEach(Sentinel.tierFourNeeds, id: \.self) { need in
+            Label(need, systemImage: "minus").font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder private var raisedList: some View {
+        Text(Sentinel.SentinelText.raisedList).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+        if store.raised.isEmpty {
+            Text(Sentinel.SentinelText.noneRaised).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+        }
+        ForEach(store.raised) { item in
+            HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
+                StatusPill(text: item.rung.label, tone: toldTone(item.rung.toldCode))
+                Text("\(Devices.measureLabel(item.metric)) · \(captureStamp(item.raisedAt))").font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+            }
+        }
+    }
+}
+
+/* Recording a safeguarding concern. Nothing is typed: who it is about and the kind are chosen from the contract, and the
+   button is never disabled, so a report without either is refused in the route's own sentence. Once recorded, the
+   screen says it is open, held for an officer nobody holds yet and not sent, and never shows the kind again. */
+struct SafeguardingReportView: View {
+    let patient: String
+    @ObservedObject private var store = SentinelStore.shared
+    @State private var groupCode: String?
+    @State private var categoryCode: String?
+    @State private var recorded: Sentinel.Report?
+    @State private var refused: SentinelRefusal?
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
+                CareCard {
+                    Text(Sentinel.ReportText.intro).font(.footnote).foregroundStyle(DeckInk.sheetInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(Sentinel.fill(Sentinel.ReportText.patient, ["patient": patient]))
+                        .font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+                    Picker(Sentinel.ReportText.group, selection: $groupCode) {
+                        Text("Choose…").tag(String?.none)
+                        ForEach(Sentinel.groups) { group in Text(group.label).tag(String?.some(group.id)) }
+                    }
+                    .pickerStyle(.menu)
+                    Picker(Sentinel.ReportText.category, selection: $categoryCode) {
+                        Text("Choose…").tag(String?.none)
+                        ForEach(Sentinel.categories) { category in Text(category.label).tag(String?.some(category.id)) }
+                    }
+                    .pickerStyle(.menu)
+                    Text(Sentinel.RuleText.categoryIsProtected).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(Sentinel.RuleText.noNarrative).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button(Sentinel.ReportText.record) {
+                        let result = store.record(groupCode: groupCode, categoryCode: categoryCode)
+                        refused = result.refusal
+                        if let report = result.report {
+                            recorded = report
+                            groupCode = nil
+                            categoryCode = nil
+                        }
+                    }
+                    .buttonStyle(CareButton())
+                    if let refused {
+                        Text(refused.statement).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                if let recorded {
+                    CareCard {
+                        Text(Sentinel.fill(Sentinel.ReportText.recorded, ["time": captureStamp(recorded.recordedAt)]))
+                            .font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+                        Label(Sentinel.RuleText.notSent, systemImage: "exclamationmark.shield")
+                            .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let applies = Sentinel.statutoryMayApply.first(where: { $0.id == recorded.groupCode }) {
+                            Text(applies.sentence).font(.footnote).foregroundStyle(DeckInk.sheetInk)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        ForEach([Sentinel.RuleText.heldFor, Sentinel.RuleText.neverAutoCloses, Sentinel.RuleText.reporterNeverShown], id: \.self) { sentence in
+                            Text(sentence).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+                Label(Sentinel.RuleText.preview, systemImage: "antenna.radiowaves.left.and.right.slash")
+                    .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(ThusoSpacing.space16)
+        }
+        .thusoGround()
+        .navigationTitle(Sentinel.ReportText.heading).navigationBarTitleDisplayMode(.inline)
+    }
+}
