@@ -13,7 +13,7 @@ import consent from '../../../packages/catalog/consent.json' with { type: 'json'
 import contract from '../../../packages/catalog/passport-gateway.json' with { type: 'json' };
 import { loadPassportConfig } from '../src/config.ts';
 import { PassportGateway, type GrantFields, type PlacedOrder, type Requester } from '../src/gateway.ts';
-import type { InboundInForce } from '../../../packages/engines/src/record/domain/settings.ts';
+import type { InboundInForce } from '../../../packages/engines/src/record/domain/inbound-settings.ts';
 import type { Facility } from '../../../packages/engines/src/record/domain/hl7.ts';
 import { PassportKeys } from '../src/keys.ts';
 import { mintDeveloperCredential, mintOperatorCredential } from '../src/operator.ts';

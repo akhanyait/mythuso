@@ -54,7 +54,8 @@ import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypt
 import sharing from '../../../packages/catalog/passport-sharing.json' with { type: 'json' };
 /* The Record engine's settings and link rules are pure arithmetic over contracts, shared with the web preview so
    the two cannot disagree about a rule. They import no store, no key and nothing from apps/api. */
-import { inboundInForce, sharingInForce, type InboundInForce, type SharingInForce } from '../../../packages/engines/src/record/domain/settings.ts';
+import { sharingInForce, type SharingInForce } from '../../../packages/engines/src/record/domain/settings.ts';
+import { inboundInForce, type InboundInForce } from '../../../packages/engines/src/record/domain/inbound-settings.ts';
 import { linkTermsFor, payerRefusal, statusOf, useRefusal, type GrantTerms } from '../../../packages/engines/src/record/domain/links.ts';
 /* The HL7 v2 bridge's reading and rules, shared with the web preview the same way (Wave 5). */
 import {

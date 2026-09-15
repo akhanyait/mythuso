@@ -51,19 +51,5 @@ export const sharingSettingsOf = (snapshot: Snapshot): SharingInForce => Object.
 /** The settings in force after a history of accepted changes. An empty history is the contract's defaults. */
 export const sharingInForce = (history: readonly Change[]): SharingInForce => sharingSettingsOf(snapshotOf(recordBlock, history));
 
-/* The HL7 v2 bridge's two, Wave 5. A message reads them once, when it arrives: the skew it is judged against, and
-   — if it is quarantined — how long its record is kept, which the quarantine row keeps with the settings version,
-   so a change afterwards moves no deletion day already given. */
-export type InboundInForce = {
- readonly settingsVersion: number;
- readonly quarantineRetentionDays: number;
- readonly clockSkewMinutes: number;
-};
-
-export const inboundSettingsOf = (snapshot: Snapshot): InboundInForce => Object.freeze({
- settingsVersion: snapshot.settingsVersion,
- quarantineRetentionDays: snapshot.values['hl7-quarantine-retention-days'] as number,
- clockSkewMinutes: snapshot.values['hl7-clock-skew-minutes'] as number
-});
-
-export const inboundInForce = (history: readonly Change[]): InboundInForce => inboundSettingsOf(snapshotOf(recordBlock, history));
+/* The two further Record settings the Wave 5 bridge reads are read through ./inbound-settings.ts, which keeps them off
+   the web preview's first load, where this file is. */

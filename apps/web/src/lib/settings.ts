@@ -13,7 +13,7 @@ import { accessInForce, accessInForceAt, type AccessSettingsInForce } from '../.
 import { resultRungOf, termsOf } from '../../../../packages/engines/src/medicines/domain/settings.ts';
 import type { Terms as CollectionTerms } from '../../../../packages/engines/src/medicines/domain/collections.ts';
 import { trustInForce, type TrustInForce } from '../../../../packages/engines/src/trust/domain/settings.ts';
-import { inboundSettingsOf, sharingSettingsOf, type InboundInForce, type SharingInForce } from '../../../../packages/engines/src/record/domain/settings.ts';
+import { sharingSettingsOf, type SharingInForce } from '../../../../packages/engines/src/record/domain/settings.ts';
 import { devicesInForce, type DevicesInForce } from '../../../../packages/engines/src/devices/domain/settings.ts';
 import { roleOf, whoIs } from './roles';
 import { can } from './vetting';
@@ -112,9 +112,6 @@ export const trustSettingsNow = (): TrustInForce => trustInForce(historyOf('trus
    card is made, and kept by it, so a change on the Configuration screen reaches the next link and never one already
    made. The Passport P0 is handed the same arithmetic in apps/passport. */
 export const recordSettingsNow = (): SharingInForce => sharingSettingsOf(snapshotNow('record'));
-/* The Record engine's two for the HL7 v2 bridge (Wave 5): the quarantine's retention and a message's clock skew, asked
-   when the development quarantine view is drawn and when the preview's laboratory sends a message. */
-export const inboundSettingsNow = (): InboundInForce => inboundSettingsOf(snapshotNow('record'));
 /* Devices' three, read the same way: the kit's health and the registry ask devicesSettingsNow() whenever they
    work a device's health out, and a kit is issued with the deposit it answers, which the kit keeps. */
 export const devicesSettingsNow = (): DevicesInForce => devicesInForce(historyOf('devices'));

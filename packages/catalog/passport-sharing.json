@@ -77,9 +77,11 @@
    { "id": "registered-clinician", "label": "A registered clinician" },
    { "id": "dispatch-desk", "label": "The dispatch desk" },
    { "id": "developer", "label": "A developer, making the synthetic record" },
-   { "id": "unauthenticated", "label": "Nobody the Passport could identify" }
+   { "id": "unauthenticated", "label": "Nobody the Passport could identify" },
+   { "id": "synthetic-general-hospital", "label": "Synthetic General Hospital" },
+   { "id": "synthetic-pathology-laboratory", "label": "Synthetic Pathology Laboratory" }
   ],
-  "_roleLabelsNote": "The grant roles are named by packages/catalog/consent.json and the registered HL7 development partners by packages/catalog/hl7v2-inbound.json, and neither is repeated here.",
+  "_roleLabelsNote": "The grant roles are named by packages/catalog/consent.json and are not repeated here. The two registered HL7 development partners (Wave 5) are named in packages/catalog/hl7v2-inbound.json, and their labels are copied here because the access log's lazy chunk would otherwise split that contract into a chunk the patient's first load has to name; scripts/check-boundaries.mjs holds each copy to its facility's label word for word, and to a facility the contract registers.",
   "actions": [
    { "id": "dev.subjects", "label": "Made this synthetic record" },
    { "id": "session.end", "label": "Ended a session" },

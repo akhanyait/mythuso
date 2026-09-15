@@ -1,16 +1,22 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { Smartphone } from 'lucide-react';
 import { NotConnected } from '../components/NotConnected';
 import { CodeInput } from '../components/Steps';
 import type { Refusal } from '../../../../packages/engines/src/medicines/domain/contract.ts';
 import {
- PHARMACY, acknowledgeResult, acknowledgement, authoriseCollector, clockOf, closeOrder, collectBag, collectorChoices, custodyLabel, fillHl7, hl7Laboratory, hl7Words, receiveHl7Result,
+ PHARMACY, acknowledgeResult, acknowledgement, authoriseCollector, clockOf, closeOrder, collectBag, collectorChoices, custodyLabel,
  dispensePrescription, fill, formulary, handOverBag, labModes, labStateLabel, labStateOf, newSealRef, orderTest, outcomeLabel, outcomeReason,
  patientPrescriptions, pinDigits, queue, roundFor, runDispenseCheck, runPrescribeCheck, scheduleName, search, stateLabel, stateOf, useMedicines,
  verifyPrescription, words, writePrescription, type Round
 } from '../lib/medicines';
 import { subjectById } from '../lib/vetting-fixtures';
 import './medicines.css';
+/* The HL7 v2 bridge's parts of the lab results (Wave 5), on their own import: this file is also the patient's collector
+   dialog, and nothing the doctor's HL7 result needs may ride in the chunk that dialog loads. */
+const Hl7ResultsNotice = lazy(() => import('./Hl7Results').then(m => ({ default: m.Hl7ResultsNotice })));
+const Hl7ArrivedBy = lazy(() => import('./Hl7Results').then(m => ({ default: m.Hl7ArrivedBy })));
+const Hl7NotComplete = lazy(() => import('./Hl7Results').then(m => ({ default: m.Hl7NotComplete })));
+const Hl7ReceiveButton = lazy(() => import('./Hl7Results').then(m => ({ default: m.Hl7ReceiveButton })));
 
 /* Medicines & Labs, on the four screens the people in the chain work from.
  *
@@ -101,7 +107,7 @@ export function LabResults() {
  return <div className="md-screen"><section className="md-panel">
   <Head intro={words.results.intro}/>
   <NotConnected of="laboratory-results" tone="inline"/>
-  <p className="md-notice" role="note">{hl7Words.results.preview}</p>
+  <Suspense fallback={null}><Hl7ResultsNotice/></Suspense>
   <div className="md-order">
    <fieldset className="md-choices is-pair"><legend>{words.results.mode}</legend>{labModes.map(m =>
     <label key={m.id} className="md-choice"><input type="radio" name="md-mode" checked={mode === m.id} onChange={() => setMode(m.id)}/><span><strong>{m.label}</strong></span></label>)}</fieldset>
@@ -117,12 +123,12 @@ export function LabResults() {
     <div className="md-row-line">
      <span className="md-ref">{order.labOrderRef}</span>
      <span className="md-row-what"><strong>{labModes.find(m => m.id === order.collectionMode)?.label}</strong>{result && <small>{result.resultRef}</small>}
-      {result?.arrivedBy && <small>{fillHl7(hl7Words.results.arrivedBy, result.arrivedBy)}</small>}</span>
+      {result?.arrivedBy && <Suspense fallback={null}><Hl7ArrivedBy arrivedBy={result.arrivedBy}/></Suspense>}</span>
      <State label={labStateLabel(state)} tone={state === 'result-received' ? 'waiting' : state === 'ordered' ? '' : 'done'}/>
     </div>
-    {state === 'result-received' && result?.arrivedBy && <p className="md-empty">{hl7Words.results.notComplete}</p>}
+    {state === 'result-received' && result?.arrivedBy && <Suspense fallback={null}><Hl7NotComplete/></Suspense>}
     {state !== 'closed' && <div className="md-row-act">
-     {state === 'ordered' && <button className="secondary" onClick={() => setRefusals({ ...refusals, [order.labOrderRef]: receiveHl7Result(order.labOrderRef) })}>{fillHl7(hl7Words.results.receiveHl7, { facility: hl7Laboratory.label })}</button>}
+     {state === 'ordered' && <Suspense fallback={null}><Hl7ReceiveButton labOrderRef={order.labOrderRef} onAnswer={refusal => setRefusals(current => ({ ...current, [order.labOrderRef]: refusal }))}/></Suspense>}
      <button className="secondary" disabled={!result || result.acknowledgedAt !== null} onClick={() => setRefusals({ ...refusals, [order.labOrderRef]: result ? acknowledgeResult(result.resultRef) : null })}>{words.results.acknowledge}</button>
      <button className="secondary" onClick={() => setRefusals({ ...refusals, [order.labOrderRef]: closeOrder(order.labOrderRef).refusal })}>{words.results.close}</button>
     </div>}

@@ -40,12 +40,9 @@ export function emitPassportSharing(root = '') {
   if (!found) throw new Error(`${SOURCE} names the record category "${id}", which packages/catalog/records.json does not hold.`);
   return found.name;
  };
- /* Wave 5: a registered HL7 development partner is named by packages/catalog/hl7v2-inbound.json, so the phones say who
-    sent a message in the words the web does, and a partner the contract does not register cannot be named at all. */
- const hl7 = readJson(root, 'packages/catalog/hl7v2-inbound.json');
  const roleName = id => {
-  const name = consent.grants.recipientRoles.find(role => role.id === id)?.name ?? contract.accessLog.roleLabels.find(role => role.id === id)?.label ?? hl7.facilities.find(facility => facility.id === id)?.label;
-  if (!name) throw new Error(`${SOURCE} names the role "${id}" in its preview log, and neither consent.json, its own roleLabels nor hl7v2-inbound.json's facilities names it.`);
+  const name = consent.grants.recipientRoles.find(role => role.id === id)?.name ?? contract.accessLog.roleLabels.find(role => role.id === id)?.label;
+  if (!name) throw new Error(`${SOURCE} names the role "${id}" in its preview log, and neither consent.json nor its own roleLabels names it.`);
   return name;
  };
  const actionName = id => {

@@ -1,14 +1,13 @@
 import hl7 from '../../../../packages/catalog/hl7v2-inbound.json';
-import gateway from '../../../../packages/catalog/passport-gateway.json';
 import recordApi from '../../../../packages/catalog/apis/record.json';
 import scheduling from '../../../../packages/catalog/scheduling.json';
 import {
  clockRefusal, facilityOf, identifiersIn, laboratoryContracted, parseMessage, pidRefusal, processingRefusal, resultOf, syntheticOru, typeOf, verifierOf,
  type Facility
 } from '../../../../packages/engines/src/record/domain/hl7.ts';
-import { inboundInForce } from '../../../../packages/engines/src/record/domain/settings.ts';
+import { inboundInForce, inboundSettingsOf, type InboundInForce } from '../../../../packages/engines/src/record/domain/inbound-settings.ts';
 import type { Refusal } from '../../../../packages/engines/src/medicines/domain/contract.ts';
-import { inboundSettingsNow } from './settings';
+import { snapshotNow } from './settings';
 
 /* The HL7 v2 bridge in the web preview (Wave 5): the laboratory's result a doctor acknowledges, and the development
  * quarantine an operator reads.
@@ -25,13 +24,18 @@ import { inboundSettingsNow } from './settings';
  * retention each record was given when it arrived — before this tab changed anything, so the contract's — and the
  * retention in force now is read from the Record settings, never typed.
  *
- * Only the clinical workspace reads this, behind its own dynamic import. It is not on the patient's first load.
+ * OFF EVERY FIRST LOAD. Only dynamic imports reach this file — the Medicines screen's HL7 parts, the result it takes in
+ * and the Control Tower's quarantine — and every sentence it shows is the inbound route's, from apis/record.json, which
+ * the patient's first load already carries, so no contract of its own is split into a chunk the first load has to name.
  */
 
 export const hl7Words = hl7.screens;
 export const hl7Laboratory: Facility = hl7.facilities.find(facility => facility.kind === 'laboratory')!;
 const DAY = 86_400_000;
 const inboundRoute = recordApi.routes.find(route => route.method === 'POST' && route.path === '/hl7v2/inbound' && route.version === 1)!;
+
+/** The Record settings for the bridge in force now, from the tab's settings history. */
+export const inboundSettingsNow = (): InboundInForce => inboundSettingsOf(snapshotNow('record'));
 
 /** A refusal of the inbound route, in its contract's words, shaped as the Medicines screens render one. */
 export function inboundRefusal(id: string): Refusal {
@@ -77,7 +81,6 @@ export function laboratoryResult(input: { readonly labOrderRef: string; readonly
 
 export type QuarantineItem = { readonly ref: string; readonly facility: string; readonly kind: string | null; readonly reason: string; readonly receivedAt: number; readonly purgeAfter: number };
 
-const sentenceOf = (id: string): string => gateway.refusals.find(refusal => refusal.id === id)?.sentence ?? id;
 const atOffset = (now: number, dayOffset: number, time: string): number => {
  const day = new Date(now + dayOffset * DAY);
  const [hours, minutes] = time.split(':').map(Number);
@@ -93,7 +96,7 @@ export function previewQuarantine(now: number): QuarantineItem[] {
   return {
    ref: `quarantine-preview-${index + 1}`,
    facility: hl7.facilities.find(facility => facility.id === item.facility)?.label ?? hl7Words.quarantine.unknownFacility,
-   kind: item.messageType, reason: sentenceOf(item.refusal), receivedAt, purgeAfter: receivedAt + given.quarantineRetentionDays * DAY
+   kind: item.messageType, reason: inboundRefusal(item.refusal).statement, receivedAt, purgeAfter: receivedAt + given.quarantineRetentionDays * DAY
   };
  }).filter(item => item.purgeAfter > now);
 }

@@ -10,7 +10,6 @@ import { clearedOn, mayAct, type Standing, type StandingReader } from '../../../
 import { dispense, prescribe, queueFor, runCheck, stateOf, verify, type Check, type Prescription } from '../../../../packages/engines/src/medicines/domain/prescriptions.ts';
 import { attemptsLeft, authorise, collect, handOver, voidedBy, type Attempt, type Authorisation, type Collection } from '../../../../packages/engines/src/medicines/domain/collections.ts';
 import { acknowledged, close, labStateOf, placeOrder, receiveResult, servedBy, syntheticResultDue, type LabOrder } from '../../../../packages/engines/src/medicines/domain/labs.ts';
-import { fillHl7, hl7Laboratory, hl7Words, laboratoryResult } from './hl7-inbound';
 import { randomDigits, randomSalt, sha256Hex } from '../../../../packages/engines/src/money/domain/secrets.ts';
 import { roleOf } from './roles';
 import { can, roleById } from './vetting';
@@ -193,8 +192,10 @@ export function acknowledgeResult(resultRef: string, byRef: string = DOCTOR) {
 /* Wave 5: the synthetic laboratory's result as an HL7 message instead of a bare reference. The message is built and read
    by the Passport's own parser and rules (lib/hl7-inbound.ts), then taken in by Medicines' own receiveResult with the
    intake route's refusals — an order nobody holds, a laboratory that does not serve it, a result already received — so it
-   is received and not acknowledged, and closeOrder still refuses until acknowledgeResult. Nothing here acknowledges. */
-export function receiveHl7Result(labOrderRef: string): Refusal | null {
+   is received and not acknowledged, and closeOrder still refuses until acknowledgeResult. Nothing here acknowledges.
+   The HL7 lib arrives on a dynamic import: this file is in the patient's collector dialog's chunk too. */
+export async function receiveHl7Result(labOrderRef: string): Promise<Refusal | null> {
+ const { laboratoryResult } = await import('./hl7-inbound');
  const now = Date.now();
  const s = advance(state, now);
  const order = s.orders.find(o => o.labOrderRef === labOrderRef);
@@ -213,7 +214,6 @@ export function receiveHl7Result(labOrderRef: string): Refusal | null {
  });
  return null;
 }
-export { hl7Laboratory, hl7Words, fillHl7 };
 
 export const closeOrder = (labOrderRef: string) => act((s, now) => { const order = s.orders.find(o => o.labOrderRef === labOrderRef); return order ? close(order, now) : refused('no-such-lab-order'); },
  (s, order) => ({ ...s, orders: replace(s.orders, o => o.labOrderRef === order.labOrderRef, order) }));

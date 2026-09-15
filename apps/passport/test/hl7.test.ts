@@ -13,7 +13,8 @@ import recordApi from '../../../packages/catalog/apis/record.json' with { type: 
 import medicinesApi from '../../../packages/catalog/apis/medicines.json' with { type: 'json' };
 import sharing from '../../../packages/catalog/passport-sharing.json' with { type: 'json' };
 import { proposeChange, type Change } from '../../../packages/engines/src/settings/shape.ts';
-import { inboundInForce, recordSettings } from '../../../packages/engines/src/record/domain/settings.ts';
+import { recordSettings } from '../../../packages/engines/src/record/domain/settings.ts';
+import { inboundInForce } from '../../../packages/engines/src/record/domain/inbound-settings.ts';
 import { syntheticAdt, syntheticOru, type Facility, type Identifier } from '../../../packages/engines/src/record/domain/hl7.ts';
 import type { PlacedOrder } from '../src/gateway.ts';
 import { DAY, HOUR, harness, seed, sentence, statementOf } from './harness.ts';

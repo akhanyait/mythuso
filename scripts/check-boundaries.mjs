@@ -911,9 +911,6 @@ const generated = [
  { source: 'packages/catalog/apis/devices.json', command: 'npm run devices', files: emitDevices() },
  { source: 'packages/catalog/records.json', command: 'npm run devices', files: emitDevices() },
  { source: 'packages/catalog/consent.json', command: 'npm run devices', files: emitDevices() },
- /* Wave 5, Record: PassportSharingData names each registered HL7 development partner in the access log by
-    hl7v2-inbound.json's label, so a change to the partners regenerates it. */
- { source: 'packages/catalog/hl7v2-inbound.json', command: 'npm run passport-sharing', files: emitPassportSharing() },
  /* The clinical review pack reads every contract a clinician has to review, so a change to any of them
     without regenerating is a failed build rather than a pack somebody signs against values no longer in force. */
  ...['settings.json', 'care.json', 'booking.json', 'field-safety.json', 'closed-loop.json', 'money.json', 'protocols.json',
@@ -9704,7 +9701,7 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  if (!intakeRoute || JSON.stringify(intakeRoute.emits) !== '["lab.result.received@1"]' || JSON.stringify(intakeRoute.callers) !== '["engine:record"]') hl7Fail(ackPromise, `packages/catalog/apis/medicines.json no longer declares ${hl7Contract.results.handOff.route}, called by Record alone and announcing the result as lab.result.received@1.`);
  const intakeBody = uncommented(hl7Body(hl7MedicinesEngine, "'POST /v1/medicines/lab-results@1':"));
  const takeBody = uncommented(hl7Body(hl7MedicinesEngine, 'function takeResult('));
- const webIntakeBody = uncommented(hl7Body(read('apps/web/src/lib/medicines.ts'), 'export function receiveHl7Result('));
+ const webIntakeBody = uncommented(hl7Body(read('apps/web/src/lib/medicines.ts'), 'export async function receiveHl7Result('));
  const marksComplete = /acknowledged\(|\bclose\(|acknowledgedAt:(?!\s*null\b)|closedAt|result\.acknowledged/;
  if (!/takeResult\(ctx, order,/.test(intakeBody) || marksComplete.test(intakeBody)) hl7Fail(ackPromise, 'packages/engines/src/medicines/engine.ts takes an HL7 result in other than through takeResult, or marks it acknowledged or its order closed.');
  if (!/receiveResult\(order,/.test(takeBody) || marksComplete.test(takeBody)) hl7Fail(ackPromise, 'packages/engines/src/medicines/engine.ts takeResult() no longer receives a result through receiveResult alone.');
@@ -9786,10 +9783,23 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  for (const [, id] of hl7Domain.matchAll(/'(hl7-[a-z-]+)'/g)) if (!hl7Codes.has(id)) throw new Error(`${hl7DomainFile} refuses with "${id}", which POST /hl7v2/inbound@1 does not declare.`);
  for (const method of ['receiveHl7', '#hl7Encounter', '#hl7Result']) for (const [, id] of uncommented(hl7Body(hl7GatewaySource, `\n ${method}(`)).matchAll(/#hl7Refuse\('([\w-]+)'/g)) if (!hl7Codes.has(id)) throw new Error(`${hl7GatewayFile} ${method} refuses with "${id}", which POST /hl7v2/inbound@1 does not declare.`);
  for (const [, id] of uncommented(hl7Body(hl7GatewaySource, '\n linkIdentifier(')).matchAll(/'(identifier-[a-z-]+)'/g)) if (!identifierRoute.refusals.some(r => r.id === id)) throw new Error(`${hl7GatewayFile} linkIdentifier refuses with "${id}", which POST /v1/record/patient-identifiers@1 does not declare.`);
- for (const f of ['apps/web/src/main.tsx', 'apps/web/src/App.tsx', 'apps/web/src/Doorway.tsx', 'apps/web/src/shells/PatientShell.tsx']) {
-  if (existsSync(f) && /^import (?!type\b)[^;]*from '[^']*(hl7-inbound|Hl7Quarantine|hl7v2-inbound\.json)/m.test(read(f))) throw new Error(`${f} imports the HL7 bridge's screens, lib or contract statically. None of it is on a patient's first load.`);
+ /* Off the first load, and off every chunk the first load names. The patient's entry lazily reaches the Medicines screen
+    (the collector dialog), the access log and the clinical workspace, and a contract any of them imports statically beside
+    a lazy HL7 screen is split into a chunk the first load lists; measured, that was 0.06 kB of file names. So those
+    files reach the bridge only through dynamic imports, the Record settings module the first load carries holds nothing
+    of the bridge's, and the two words they need are copies held to the contract here. */
+ const firstLoadReach = ['apps/web/src/main.tsx', 'apps/web/src/App.tsx', 'apps/web/src/Doorway.tsx', 'apps/web/src/shells/PatientShell.tsx', 'apps/web/src/shells/StaffShell.tsx', 'apps/web/src/features/Workspaces.tsx', 'apps/web/src/features/Medicines.tsx', 'apps/web/src/lib/medicines.ts', 'apps/web/src/lib/share-links.ts', 'apps/web/src/features/PassportSharing.tsx', 'apps/web/src/lib/settings.ts'];
+ for (const f of firstLoadReach) {
+  if (existsSync(f) && /^\s*import (?!type\b)[^;]*from '[^']*(hl7-inbound|Hl7Quarantine|Hl7Results|hl7v2-inbound\.json|record\/domain\/hl7\.ts|inbound-settings)/m.test(read(f))) throw new Error(`${f} imports the HL7 bridge's screens, lib, contract or settings statically. A patient's first load names every chunk a file it lazily reaches imports, so the bridge arrives only on a dynamic import.`);
  }
+ if (/hl7|inbound/i.test(uncommented(read('packages/engines/src/record/domain/settings.ts')).replace(/inbound-settings\.ts/g, ''))) throw new Error('packages/engines/src/record/domain/settings.ts, which the patient\'s first load carries, holds the HL7 bridge\'s settings. They live in ./inbound-settings.ts.');
  if (!/const Hl7Quarantine = lazy\(\(\) => import\('\.\.\/features\/Hl7Quarantine'\)/.test(read('apps/web/src/shells/StaffShell.tsx'))) throw new Error('apps/web/src/shells/StaffShell.tsx no longer reaches the HL7 quarantine through a dynamic import.');
+ if (!/lazy\(\(\) => import\('\.\/Hl7Results'\)/.test(read('apps/web/src/features/Medicines.tsx')) || !/await import\('\.\/hl7-inbound'\)/.test(webIntakeBody)) throw new Error('The doctor\'s lab results no longer reach the HL7 parts and lib through dynamic imports.');
+ const typedHeading = (read('apps/web/src/features/Workspaces.tsx').match(/export const HL7_QUARANTINE_HEADING = '([^']+)';/) ?? [])[1];
+ if (typedHeading !== hl7Contract.screens.quarantine.heading) throw new Error(`apps/web/src/features/Workspaces.tsx types the HL7 quarantine's heading as ${JSON.stringify(typedHeading)}; packages/catalog/hl7v2-inbound.json's is ${JSON.stringify(hl7Contract.screens.quarantine.heading)}. The copy is there to keep the contract off the first load, and it says what the contract says.`);
+ for (const facility of hl7Contract.facilities) if (hl7Sharing.accessLog.roleLabels.find(label => label.id === facility.id)?.label !== facility.label) throw new Error(`packages/catalog/passport-sharing.json accessLog.roleLabels does not name the registered partner ${facility.id} "${facility.label}", as packages/catalog/hl7v2-inbound.json does.`);
+ const hl7RoleIds = new Set(hl7Contract.facilities.map(facility => facility.id));
+ for (const label of hl7Sharing.accessLog.roleLabels) if (/^synthetic-/.test(label.id) && !hl7RoleIds.has(label.id)) throw new Error(`packages/catalog/passport-sharing.json accessLog.roleLabels names "${label.id}", which packages/catalog/hl7v2-inbound.json does not register.`);
  const statusesRoute = hl7RecordApi.routes.find(r => r.path === '/v1/record/encounter-statuses/{encounterRef}' && r.version === 1);
  const signatureStored = tablesIn(read('apps/passport/src/store.ts')).some(table => table.columns.some(column => /sign|supersed/.test(column)));
  if (statusesRoute?.status === 'built' ? !signatureStored : hl7Contract.encounters.encounterStatuses.decision !== 'left-proposed' || !hl7Contract.encounters.encounterStatuses.why?.trim()) throw new Error(`GET /v1/record/encounter-statuses/{encounterRef}@1 is ${statusesRoute?.status}${signatureStored ? '' : ' while the Passport stores no signature or supersede'}, or packages/catalog/hl7v2-inbound.json no longer says why it stays proposed. ${hl7Contract.encounters.encounterStatuses.why}`);
