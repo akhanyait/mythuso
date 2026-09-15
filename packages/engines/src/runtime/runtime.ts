@@ -204,8 +204,10 @@ export function createRuntime(options: RuntimeOptions): Runtime {
      An engine is one caller under its own name; a person is identified by their reference, and an
      idempotent write from a person the binder cannot tell apart from another is refused, because the
      only alternative is a stored answer that could reach the wrong one. A reused key whose declared
-     fields differ is refused rather than replayed, so an engine's own "same key, different request"
-     refusal is never answered for it with somebody's earlier result. */
+     fields differ is refused rather than replayed. The binder answers that refusal itself, with the
+     shared idempotency-key-reused, before the handler runs: the handler cannot see the earlier request,
+     so it could not tell the difference. No engine file redeclares it, at route or engine level: every
+     route inherits the shared refusals, and the boundary check refuses a second definition of one. */
   const replayKey = route.idempotent && typeof key === 'string' && key ? key : null;
   const engineCaller = caller.role.startsWith('engine:');
   if (replayKey && !engineCaller && !caller.ref) return render(runtimeRefusal('caller-unidentified'));

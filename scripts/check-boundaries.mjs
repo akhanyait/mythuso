@@ -6140,6 +6140,15 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  if (!/PRIMARY KEY \(route, role, caller_ref, idempotency_key\)/.test(replayStore) || !/request_digest TEXT NOT NULL/.test(replayStore)) throw new Error('packages/engines/src/runtime/store.ts no longer keys stored replies by the caller\'s reference and keeps the request digest beside each. A reply keyed by role alone is one person\'s answer waiting to be handed to another.');
  if (!/caller_ref = \?/.test(runtimeSource) || !/row\.request_digest !== digest\) return render\(shared\('idempotency-key-reused'\)\)/.test(runtimeSource) || !/runtimeRefusal\('caller-unidentified'\)/.test(runtimeSource)) throw new Error('packages/engines/src/runtime/runtime.ts no longer looks a replay up by the caller\'s reference, refuses an unidentified caller, and refuses a reused key whose request differs. A replay that skips any of the three answers somebody with an answer that was not theirs.');
  if (!JSON.parse(read('packages/catalog/apis.json')).sharedRefusals.some(r => r.id === 'idempotency-key-reused' && r.status === 409)) throw new Error('packages/catalog/apis.json has lost the shared refusal idempotency-key-reused, so a reused key has no sentence to be refused with.');
+ /* An engine never redeclares a shared refusal. The Wave 2 section already refuses a route that does;
+    an engine file's own refusals were checked for shape only, so an engine-level idempotency-key-reused
+    with other words would have passed. The binder answers a reused key before any handler runs and a
+    declared refusal is looked up route first, engine second, shared last, so a second definition is at
+    best never read and at worst read instead of the shared one. Every engine inherits the shared list. */
+ const sharedRefusalIds = new Set(JSON.parse(read('packages/catalog/apis.json')).sharedRefusals.map(r => r.id));
+ for (const { file, doc } of loadApis().engines) {
+  for (const refusal of doc.refusals ?? []) if (sharedRefusalIds.has(refusal.id)) throw new Error(`${file} redeclares the shared refusal "${refusal.id}" among its engine refusals. Every engine inherits the shared refusals already, and the binder renders an engine's own definition before the shared one, so two definitions of one refusal can disagree with the sentence a caller reads.`);
+ }
 
  /* 3c. The store a handler holds is a facade, never the handle. The reviewer attached Safety's file and
         an arbitrary one through a Care tick and committed half of the binder's transaction, and the
