@@ -35,7 +35,7 @@ import { dayOf, outcomeOf, pinDigits, resultAlert, searchFormulary, type Emitted
 import { STANDING_EVENTS, learn, mayAct, type Standing, type StandingReader } from './domain/standing.ts';
 import { dispense, prescribe, queueFor, runCheck, verify, type Check, type Prescription } from './domain/prescriptions.ts';
 import { authorise, collect, handOver, voidedBy, type Attempt, type Authorisation, type Collection } from './domain/collections.ts';
-import { acknowledged, close, placeOrder, receiveResult, syntheticResultDue, type LabOrder } from './domain/labs.ts';
+import { acknowledged, close, placeOrder, receiveResult, servedBy, syntheticResultDue, type LabOrder } from './domain/labs.ts';
 import { medicinesSettings, resultRungOf, termsOf } from './domain/settings.ts';
 
 const TABLES = ['checks', 'prescriptions', 'authorisations', 'collections', 'lab_orders', 'standings'] as const;
@@ -235,6 +235,22 @@ export const engine = defineEngine({
    return ok({ closedAt: instant(new Date(closed.value.closedAt!)) });
   },
 
+  /* Wave 5, added by the Trust & Record lead: a result the Health Passport filed from a registered laboratory's HL7
+     message. Record hands over references, a time and who verified it, never what the result says, and Medicines
+     takes it in exactly as it takes in the synthetic laboratory's — through takeResult, so the order is result
+     received and not acknowledged, lab.result.received@1 is Medicines' to publish, Core is given its concern, and the
+     close still refuses until Clinical says the clinician who ordered the test acknowledged it. Nothing here marks a
+     result acknowledged or an order closed. */
+  'POST /v1/medicines/lab-results@1': (request, ctx) => {
+   const order = get<LabOrder>(ctx, 'lab_orders', request.fields['labOrderRef']);
+   if (!order) return refuse('no-such-lab-order');
+   if (!servedBy(order, text(request.fields['labPartyRef']))) return refuse('lab-not-contracted');
+   if (order.resultEntryRef !== null) return refuse('lab-result-already-received');
+   const now = nowOf(ctx);
+   takeResult(ctx, order, text(request.fields['resultEntryRef']), now);
+   return ok({ receivedAt: instant(new Date(now)) });
+  },
+
   ...settingsRoutes(medicinesSettings, { read: 'GET /v1/medicines/settings@1', change: 'POST /v1/medicines/setting-changes@1', review: 'POST /v1/medicines/setting-reviews@1' })
  },
  subscriptions: {
@@ -250,19 +266,27 @@ export const engine = defineEngine({
   const now = nowOf(ctx);
   for (const order of all<LabOrder>(ctx, 'lab_orders')) {
    if (!syntheticResultDue(order, now)) continue;
-   const { rung, settingsVersion } = resultRungOf(settingsIn(medicinesSettings, ctx.store));
-   const received = receiveResult(order, { resultEntryRef: `synthetic-result-${randomUUID()}`, rung, settingsVersion }, now);
-   if (!received.ok) continue;
-   put(ctx, 'lab_orders', order.labOrderRef, received.value);
-   publishAll(ctx, received.emits, order.subjectRef, 'diagnostics');
-   const raised = ctx.call('POST /v1/core/alerts@2', {
-    sourceEngine: 'medicines', rung, ownerRole: resultAlert.ownerRole, fallbackRole: resultAlert.fallbackRole,
-    recordEntryRef: received.value.resultEntryRef, dedupeKey: received.value.resultEntryRef
-   }, { purpose: 'treatment' });
-   if (raised.status !== 200) throw new Error(`Core did not take the concern for a lab result (${String(raised.body['error'])}), so the result is not received until it does.`);
+   takeResult(ctx, order, `synthetic-result-${randomUUID()}`, now);
   }
  }
 });
+
+/* A result taken in, however it arrived — the synthetic laboratory's tick or the Passport's hand-off: kept on the order on
+   the rung Medicines' settings name now, announced as lab.result.received@1, and raised with Core as a concern keyed by
+   its entry. A refusal from Core throws, so whatever took the result in is rolled back and it is not received until Core
+   takes the concern. */
+function takeResult(ctx: EngineContext, order: LabOrder, resultEntryRef: string, now: number): void {
+ const { rung, settingsVersion } = resultRungOf(settingsIn(medicinesSettings, ctx.store));
+ const received = receiveResult(order, { resultEntryRef, rung, settingsVersion }, now);
+ if (!received.ok) return;
+ put(ctx, 'lab_orders', order.labOrderRef, received.value);
+ publishAll(ctx, received.emits, order.subjectRef, 'diagnostics');
+ const raised = ctx.call('POST /v1/core/alerts@2', {
+  sourceEngine: 'medicines', rung, ownerRole: resultAlert.ownerRole, fallbackRole: resultAlert.fallbackRole,
+  recordEntryRef: received.value.resultEntryRef, dedupeKey: received.value.resultEntryRef
+ }, { purpose: 'treatment' });
+ if (raised.status !== 200) throw new Error(`Core did not take the concern for a lab result (${String(raised.body['error'])}), so the result is not received until it does.`);
+}
 
 /* The reason a check came out as it did, as the contract's sentence. */
 const outcomeReason = (check: Check): string => {

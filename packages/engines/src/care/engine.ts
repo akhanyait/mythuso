@@ -59,6 +59,7 @@ import {
  type AppointmentToFill, type Candidate, type CareEvent, type NamedFallback, type NamedWait, type Offer, type QueuedCapture, type Received, type Visit
 } from './domain/index.ts';
 import { opensAnUrgentVisit, urgentVisitFor, withdrawnOnStandDown } from './domain/sos.ts';
+import { withdrawnOnAdmission } from './domain/admission.ts';
 
 const FALLBACKS: readonly NamedFallback[] = ['wait', 'soonest'];
 const OPERATION_KINDS: readonly string[] = care.sync.operationKinds;
@@ -342,6 +343,16 @@ export const engine = defineEngine({
    ctx.store.prepare('UPDATE care_sos SET stood_down_at = ? WHERE sos_ref = ? AND stood_down_at IS NULL').run(ctx.clock.iso(), sosRef);
    const desks = load(ctx);
    for (const offer of withdrawnOnStandDown(desks.offers.offersFor(held.appointment_ref), sosRef)) offer.state = 'withdrawn';
+   save(ctx, desks);
+  },
+
+  /* Wave 5: a hospital admitted the patient, so an offer nobody accepted for any of their visits is withdrawn. See
+     ./domain/admission.ts for what is left for a person, and why nothing about the admission is kept. */
+  'passport.admission.detected@1': (event, ctx) => {
+   const refs = (ctx.store.prepare('SELECT appointment_ref FROM care_appointments WHERE subject_ref = ?').all(event.subjectRef) as { appointment_ref: string }[]).map(row => row.appointment_ref);
+   if (!refs.length) return;
+   const desks = load(ctx);
+   for (const offer of withdrawnOnAdmission(refs.flatMap(ref => desks.offers.offersFor(ref)))) offer.state = 'withdrawn';
    save(ctx, desks);
   },
 
