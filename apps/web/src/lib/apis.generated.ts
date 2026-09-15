@@ -1612,15 +1612,6 @@ export interface PostMoneyWalletsResponse {
  readonly walletRef: string;
 }
 
-export interface PostMoneyVouchersRequest {
- readonly idempotencyKey: string;
- readonly voucherCode: string;
-}
-export interface PostMoneyVouchersResponse {
- readonly redeemedCents: number;
- readonly walletRef: string;
-}
-
 export interface PostMoneyGiftsRequest {
  readonly idempotencyKey: string;
  readonly beneficiarySubjectRef: string;
@@ -1684,6 +1675,70 @@ export interface PostMoneySettingChangesRequest {
 export interface PostMoneySettingChangesResponse {
  readonly settingsVersion: number;
  readonly appliesFrom: string;
+}
+
+export interface PostMoneyVouchersV2Request {
+ readonly idempotencyKey: string;
+ readonly towardsKind: string;
+ readonly serviceId?: string;
+ readonly planCode?: string;
+}
+export interface PostMoneyVouchersV2Response {
+ readonly voucherRef: string;
+ readonly voucherCode: string;
+ readonly issuedCents: number;
+ readonly expiresOn: string;
+}
+
+export interface PostMoneyVoucherRedemptionsRequest {
+ readonly idempotencyKey: string;
+ readonly voucherCode: string;
+ readonly payableRef: string;
+ readonly amountCents: number;
+}
+export interface PostMoneyVoucherRedemptionsResponse {
+ readonly redemptionRef: string;
+ readonly redeemedCents: number;
+ readonly remainingCents: number;
+ readonly owedCents: number;
+ readonly expiresOn: string;
+}
+
+export interface PostMoneyPlanSubscriptionsRequest {
+ readonly idempotencyKey: string;
+ readonly subjectRef: string;
+ readonly planCode: string;
+}
+export interface PostMoneyPlanSubscriptionsResponse {
+ readonly subscriptionRef: string;
+ readonly stateCode: string;
+ readonly amountCents: number;
+}
+
+export interface PostMoneyPlanSubscriptionsBySubscriptionRefAcceptRequest {
+ readonly idempotencyKey: string;
+ readonly subscriptionRef: string;
+ readonly lineDetail: string;
+}
+export interface PostMoneyPlanSubscriptionsBySubscriptionRefAcceptResponse {
+ readonly stateCode: string;
+ readonly payableRef: string;
+ readonly lineDetail: string;
+}
+
+export interface GetMoneyPlanSubscriptionsBySubscriptionRefRequest {
+ readonly subscriptionRef: string;
+}
+export interface GetMoneyPlanSubscriptionsBySubscriptionRefResponse {
+ readonly stateCode: string;
+ readonly planCode: string;
+ readonly amountCents: number;
+ readonly payableRef?: string;
+ readonly startedOn?: string;
+ readonly monthEndsOn?: string;
+ readonly lineDetail?: string;
+ readonly included: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly lines: ReadonlyArray<Readonly<Record<string, unknown>>>;
 }
 
 export const apiRoutes = {
@@ -1861,11 +1916,15 @@ export const apiRoutes = {
  postMoneyPaymentsByPaymentRefCashCodeV2: { name: "postMoneyPaymentsByPaymentRefCashCodeV2", method: "POST", path: "/v1/money/payments/{paymentRef}/cash-code", mountedPath: "/v1/money/payments/{paymentRef}/cash-code", version: 2, engine: "money", callers: ["nurse"], purpose: ["billing"], idempotent: true, status: "built" },
  postMoneyPaymentsByPaymentRefReleaseV2: { name: "postMoneyPaymentsByPaymentRefReleaseV2", method: "POST", path: "/v1/money/payments/{paymentRef}/release", mountedPath: "/v1/money/payments/{paymentRef}/release", version: 2, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: true, status: "built" },
  postMoneyWallets: { name: "postMoneyWallets", method: "POST", path: "/v1/money/wallets", mountedPath: "/v1/money/wallets", version: 1, engine: "money", callers: ["patient","caregiver"], purpose: ["billing"], idempotent: true, status: "proposed" },
- postMoneyVouchers: { name: "postMoneyVouchers", method: "POST", path: "/v1/money/vouchers", mountedPath: "/v1/money/vouchers", version: 1, engine: "money", callers: ["patient","caregiver","sponsor","corner"], purpose: ["billing"], idempotent: true, status: "proposed" },
  postMoneyGifts: { name: "postMoneyGifts", method: "POST", path: "/v1/money/gifts", mountedPath: "/v1/money/gifts", version: 1, engine: "money", callers: ["caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "proposed" },
  postMoneyGroups: { name: "postMoneyGroups", method: "POST", path: "/v1/money/groups", mountedPath: "/v1/money/groups", version: 1, engine: "money", callers: ["patient","sponsor","employer"], purpose: ["billing"], idempotent: true, status: "proposed" },
  postMoneyClaimsV2: { name: "postMoneyClaimsV2", method: "POST", path: "/v1/money/claims", mountedPath: "/v1/money/claims", version: 2, engine: "money", callers: ["admin"], purpose: ["billing"], idempotent: true, status: "proposed" },
  postMoneyMarketOrders: { name: "postMoneyMarketOrders", method: "POST", path: "/v1/money/market-orders", mountedPath: "/v1/money/market-orders", version: 1, engine: "money", callers: ["patient","caregiver"], purpose: ["billing"], idempotent: true, status: "proposed" },
  getMoneySettings: { name: "getMoneySettings", method: "GET", path: "/v1/money/settings", mountedPath: "/v1/money/settings", version: 1, engine: "money", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
- postMoneySettingChanges: { name: "postMoneySettingChanges", method: "POST", path: "/v1/money/setting-changes", mountedPath: "/v1/money/setting-changes", version: 1, engine: "money", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" }
+ postMoneySettingChanges: { name: "postMoneySettingChanges", method: "POST", path: "/v1/money/setting-changes", mountedPath: "/v1/money/setting-changes", version: 1, engine: "money", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
+ postMoneyVouchersV2: { name: "postMoneyVouchersV2", method: "POST", path: "/v1/money/vouchers", mountedPath: "/v1/money/vouchers", version: 2, engine: "money", callers: ["corner","admin"], purpose: ["billing"], idempotent: true, status: "built" },
+ postMoneyVoucherRedemptions: { name: "postMoneyVoucherRedemptions", method: "POST", path: "/v1/money/voucher-redemptions", mountedPath: "/v1/money/voucher-redemptions", version: 1, engine: "money", callers: ["patient","caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "built" },
+ postMoneyPlanSubscriptions: { name: "postMoneyPlanSubscriptions", method: "POST", path: "/v1/money/plan-subscriptions", mountedPath: "/v1/money/plan-subscriptions", version: 1, engine: "money", callers: ["sponsor","patient"], purpose: ["billing"], idempotent: true, status: "built" },
+ postMoneyPlanSubscriptionsBySubscriptionRefAccept: { name: "postMoneyPlanSubscriptionsBySubscriptionRefAccept", method: "POST", path: "/v1/money/plan-subscriptions/{subscriptionRef}/accept", mountedPath: "/v1/money/plan-subscriptions/{subscriptionRef}/accept", version: 1, engine: "money", callers: ["patient","sponsor"], purpose: ["billing"], idempotent: true, status: "built" },
+ getMoneyPlanSubscriptionsBySubscriptionRef: { name: "getMoneyPlanSubscriptionsBySubscriptionRef", method: "GET", path: "/v1/money/plan-subscriptions/{subscriptionRef}", mountedPath: "/v1/money/plan-subscriptions/{subscriptionRef}", version: 1, engine: "money", callers: ["patient","sponsor"], purpose: ["billing"], idempotent: false, status: "built" }
 } as const satisfies Record<string, ApiRoute>;

@@ -62,11 +62,12 @@ import { SETTINGS_SCHEMA, settingsIn, settingsRoutes } from '../settings/routes.
 import { canonical, cardSpellings, isRefusal } from './domain/contract.ts';
 import { createMoney, TABLE_NAMES, type MoneyTables, type Payout, type Table } from './domain/ledger.ts';
 import { isoDateInSouthAfrica, paysOnFor } from './domain/payouts.ts';
-import { doctorFeeOf, moneySettings } from './domain/settings.ts';
+import { doctorFeeOf, moneySettings, voucherExpiryYearsOf } from './domain/settings.ts';
 
 const SQL_NAME: Record<typeof TABLE_NAMES[number], string> = {
  payables: 'payables', payments: 'payments', cashCodes: 'cash_codes', cashAudit: 'cash_audit', attempts: 'payment_attempts', keys: 'payment_keys',
- billable: 'billable_visits', earned: 'earned_lines', cases: 'signed_cases', payouts: 'payouts', suspensions: 'partner_suspensions'
+ billable: 'billable_visits', earned: 'earned_lines', cases: 'signed_cases', payouts: 'payouts', suspensions: 'partner_suspensions',
+ vouchers: 'vouchers', redemptions: 'voucher_redemptions', subscriptions: 'plan_subscriptions', acts: 'act_keys'
 };
 
 /* Every table is a reference and a document. Money's rows are billing facts — a payable, an attempt,
@@ -97,6 +98,7 @@ const ledgerFor = (ctx: EngineContext, keepsAttempts = false) => createMoney({
  clock: () => ctx.clock.now(),
  simulation: true,
  doctorFee: () => doctorFeeOf(settingsIn(moneySettings, ctx.store)),
+ voucherExpiryYears: () => voucherExpiryYearsOf(settingsIn(moneySettings, ctx.store)),
  publish: (key, payload, subjectRef) => { ctx.publish(key as EventKey, payload, { subjectRef, purposeOfUse: 'billing' }); }
 });
 
@@ -112,7 +114,10 @@ const shown = (payout: Payout) => ({
 
 /* The billable state changes Money needs for Wave 3, each on its moneyHears list. A refusal from the
    ledger is thrown, so the runtime rolls the delivery back and writes it to the trail by name. */
-export const HEARD: readonly EventKey[] = ['appointment.booked@2', 'visit.billable@1', 'review.billable@1', 'booking.confirmed@2', 'booking.cancelled@1', 'appointment.cancelled@1', 'partner.suspended@1'];
+export const HEARD: readonly EventKey[] = ['appointment.booked@2', 'visit.billable@1', 'review.billable@1', 'booking.confirmed@2', 'booking.cancelled@1', 'appointment.cancelled@1', 'partner.suspended@1', 'delivery.handed_over@1'];
+
+/* The caller as the ledger knows one: a role and the reference the runtime admitted, never a field. */
+const actorOf = (ctx: EngineContext) => ({ role: ctx.caller.role, subjectRef: ctx.caller.ref ?? '' });
 const onEvent: SubscriptionHandler = (event, ctx) => {
  const heard = ledgerFor(ctx).hear({ type: event.type, version: event.version, occurredAt: event.occurredAt, subjectRef: event.subjectRef, payload: { ...event.payload } });
  if (isRefusal(heard)) throw new Error(`${heard.id}: ${heard.statement}`);
@@ -152,6 +157,44 @@ export const engine = defineEngine({
    const answer = ledgerFor(ctx).releaseCashCode({ role: ctx.caller.role, subjectRef: ctx.caller.ref ?? '' }, { paymentRef: String(request.fields['paymentRef']), reasonCode });
    return isRefusal(answer) ? refuse(answer.id) : ok({ stateCode: answer.stateCode });
   },
+  /* Vouchers. The code is in the issuing answer only; the route declares it a secret response field, so the
+     runtime's replay table never holds it, and a redemption's code is a secret request field for the same reason.
+     The names of undeclared fields are handed to the ledger, which refuses a request tied to a medicine or asking
+     for cash by them rather than dropping them. */
+  'POST /v1/money/vouchers@2': (request, ctx) => {
+   const answer = ledgerFor(ctx).issueVoucher(actorOf(ctx), { ...request.fields }, request.undeclared);
+   if (isRefusal(answer)) return refuse(answer.id);
+   return ok({ voucherRef: answer.voucherRef, voucherCode: answer.voucherCode, issuedCents: answer.issuedCents, expiresOn: answer.expiresOn });
+  },
+  'POST /v1/money/voucher-redemptions@1': (request, ctx) => {
+   const answer = ledgerFor(ctx).redeemVoucher(actorOf(ctx), { ...request.fields }, request.undeclared);
+   if (isRefusal(answer)) return refuse(answer.id);
+   return ok({ redemptionRef: answer.redemptionRef, redeemedCents: answer.redeemedCents, remainingCents: answer.remainingCents, owedCents: answer.owedCents, expiresOn: answer.expiresOn });
+  },
+
+  /* MyThuso for Mom Essential. Asked for, agreed to by the person it is for, read by her and by whoever asked. */
+  'POST /v1/money/plan-subscriptions@1': (request, ctx) => {
+   const answer = ledgerFor(ctx).subscribe(actorOf(ctx), { ...request.fields }, request.undeclared);
+   if (isRefusal(answer)) return refuse(answer.id);
+   return ok({ subscriptionRef: answer.subscriptionRef, stateCode: answer.stateCode, amountCents: answer.amountCents });
+  },
+  'POST /v1/money/plan-subscriptions/{subscriptionRef}/accept@1': (request, ctx) => {
+   const answer = ledgerFor(ctx).acceptSubscription(actorOf(ctx), { ...request.fields });
+   if (isRefusal(answer)) return refuse(answer.id);
+   return ok({ stateCode: answer.stateCode, payableRef: answer.payableRef, lineDetail: answer.lineDetail });
+  },
+  'GET /v1/money/plan-subscriptions/{subscriptionRef}@1': (request, ctx) => {
+   const answer = ledgerFor(ctx).subscriptionFor(actorOf(ctx), String(request.fields['subscriptionRef']));
+   if (isRefusal(answer)) return refuse(answer.id);
+   /* What has not happened yet is left out rather than sent as null: the payable before she agrees, the month before
+      it is paid, and her choice before she makes it. The route declares them optional for that reason. */
+   const { payableRef, startedOn, monthEndsOn, lineDetail, ...always } = answer;
+   return ok({
+    ...always, included: answer.included.map(i => ({ ...i })), lines: answer.lines.map(l => ({ ...l })),
+    ...(payableRef ? { payableRef } : {}), ...(startedOn ? { startedOn } : {}), ...(monthEndsOn ? { monthEndsOn } : {}), ...(lineDetail ? { lineDetail } : {})
+   });
+  },
+
   ...settingsRoutes(moneySettings, { read: 'GET /v1/money/settings@1', change: 'POST /v1/money/setting-changes@1' })
  },
  subscriptions: Object.fromEntries(HEARD.map(key => [key, onEvent])),

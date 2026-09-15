@@ -1135,6 +1135,7 @@ Listed so that leaving them out is a decision a reviewer can disagree with.
 | `money:doctor-case-fee` | What is a doctor paid for one signed review? | Money's plan names, prices, shares and wording are commercial decisions. None of them decides who may do what to a patient. |
 | `money:doctor-fee-confirmed` | Has an admin confirmed the doctor's fee in force, so that a doctor's payout may be scheduled at it? | Money's plan names, prices, shares and wording are commercial decisions. None of them decides who may do what to a patient. |
 | `money:nurse-share-sentence` | In what words is a nurse told how much of a visit's price is hers? | Money's plan names, prices, shares and wording are commercial decisions. None of them decides who may do what to a patient. |
+| `money:voucher-expiry-years` | For how many years after it was issued may a voucher still pay towards a visit or a plan? | Money's plan names, prices, shares and wording are commercial decisions. None of them decides who may do what to a patient. |
 | `access:named-nurse-fallback` | What happens to a visit asked of one nurse by name when she cannot take it within Care's offer window. | What happens when a patient's named nurse is not free, among roles already cleared to attend. |
 | `access:visit-thread-max-characters` | How many characters one message between a patient and the nurse on their visit may be. | How long one message in a visit thread may be. |
 | `access:visit-thread-open-hours-after-visit` | How long after a visit is completed its thread still takes messages, for anything that follows from the visit. | How long a visit thread stays open. Nobody watches a thread for emergencies however long it is open, and the thread says so. |
@@ -1150,4 +1151,5 @@ Added to a contract after this pack's generator was last taught about them. A re
 
 | Item | What it decides |
 |---|---|
+| `access:ussd-session-timeout-seconds` | How many seconds a USSD booking session waits for the next reply before it ends with nothing booked. |
 | `closed-loop.json panicResolved.closesAs` | Which of the closed loop's outcomes the concern opened for a panic is closed as when Safety's desk resolves the panic. |

@@ -196,13 +196,17 @@ object ApisData {
     val POST_MONEY_PAYMENTS_BY_PAYMENT_REF_CASH_CODE_V2 = Route("postMoneyPaymentsByPaymentRefCashCodeV2", "POST", "/v1/money/payments/{paymentRef}/cash-code", "/v1/money/payments/{paymentRef}/cash-code", 2, "money", listOf("nurse"), listOf("billing"), true, "built")
     val POST_MONEY_PAYMENTS_BY_PAYMENT_REF_RELEASE_V2 = Route("postMoneyPaymentsByPaymentRefReleaseV2", "POST", "/v1/money/payments/{paymentRef}/release", "/v1/money/payments/{paymentRef}/release", 2, "money", listOf("ops-desk"), listOf("billing"), true, "built")
     val POST_MONEY_WALLETS = Route("postMoneyWallets", "POST", "/v1/money/wallets", "/v1/money/wallets", 1, "money", listOf("patient", "caregiver"), listOf("billing"), true, "proposed")
-    val POST_MONEY_VOUCHERS = Route("postMoneyVouchers", "POST", "/v1/money/vouchers", "/v1/money/vouchers", 1, "money", listOf("patient", "caregiver", "sponsor", "corner"), listOf("billing"), true, "proposed")
     val POST_MONEY_GIFTS = Route("postMoneyGifts", "POST", "/v1/money/gifts", "/v1/money/gifts", 1, "money", listOf("caregiver", "sponsor"), listOf("billing"), true, "proposed")
     val POST_MONEY_GROUPS = Route("postMoneyGroups", "POST", "/v1/money/groups", "/v1/money/groups", 1, "money", listOf("patient", "sponsor", "employer"), listOf("billing"), true, "proposed")
     val POST_MONEY_CLAIMS_V2 = Route("postMoneyClaimsV2", "POST", "/v1/money/claims", "/v1/money/claims", 2, "money", listOf("admin"), listOf("billing"), true, "proposed")
     val POST_MONEY_MARKET_ORDERS = Route("postMoneyMarketOrders", "POST", "/v1/money/market-orders", "/v1/money/market-orders", 1, "money", listOf("patient", "caregiver"), listOf("billing"), true, "proposed")
     val GET_MONEY_SETTINGS = Route("getMoneySettings", "GET", "/v1/money/settings", "/v1/money/settings", 1, "money", listOf("admin"), listOf("audit"), false, "built")
     val POST_MONEY_SETTING_CHANGES = Route("postMoneySettingChanges", "POST", "/v1/money/setting-changes", "/v1/money/setting-changes", 1, "money", listOf("admin"), listOf("audit"), true, "built")
+    val POST_MONEY_VOUCHERS_V2 = Route("postMoneyVouchersV2", "POST", "/v1/money/vouchers", "/v1/money/vouchers", 2, "money", listOf("corner", "admin"), listOf("billing"), true, "built")
+    val POST_MONEY_VOUCHER_REDEMPTIONS = Route("postMoneyVoucherRedemptions", "POST", "/v1/money/voucher-redemptions", "/v1/money/voucher-redemptions", 1, "money", listOf("patient", "caregiver", "sponsor"), listOf("billing"), true, "built")
+    val POST_MONEY_PLAN_SUBSCRIPTIONS = Route("postMoneyPlanSubscriptions", "POST", "/v1/money/plan-subscriptions", "/v1/money/plan-subscriptions", 1, "money", listOf("sponsor", "patient"), listOf("billing"), true, "built")
+    val POST_MONEY_PLAN_SUBSCRIPTIONS_BY_SUBSCRIPTION_REF_ACCEPT = Route("postMoneyPlanSubscriptionsBySubscriptionRefAccept", "POST", "/v1/money/plan-subscriptions/{subscriptionRef}/accept", "/v1/money/plan-subscriptions/{subscriptionRef}/accept", 1, "money", listOf("patient", "sponsor"), listOf("billing"), true, "built")
+    val GET_MONEY_PLAN_SUBSCRIPTIONS_BY_SUBSCRIPTION_REF = Route("getMoneyPlanSubscriptionsBySubscriptionRef", "GET", "/v1/money/plan-subscriptions/{subscriptionRef}", "/v1/money/plan-subscriptions/{subscriptionRef}", 1, "money", listOf("patient", "sponsor"), listOf("billing"), false, "built")
 
     val routes = listOf(
         POST_CORE_EVENTS,
@@ -379,13 +383,17 @@ object ApisData {
         POST_MONEY_PAYMENTS_BY_PAYMENT_REF_CASH_CODE_V2,
         POST_MONEY_PAYMENTS_BY_PAYMENT_REF_RELEASE_V2,
         POST_MONEY_WALLETS,
-        POST_MONEY_VOUCHERS,
         POST_MONEY_GIFTS,
         POST_MONEY_GROUPS,
         POST_MONEY_CLAIMS_V2,
         POST_MONEY_MARKET_ORDERS,
         GET_MONEY_SETTINGS,
-        POST_MONEY_SETTING_CHANGES
+        POST_MONEY_SETTING_CHANGES,
+        POST_MONEY_VOUCHERS_V2,
+        POST_MONEY_VOUCHER_REDEMPTIONS,
+        POST_MONEY_PLAN_SUBSCRIPTIONS,
+        POST_MONEY_PLAN_SUBSCRIPTIONS_BY_SUBSCRIPTION_REF_ACCEPT,
+        GET_MONEY_PLAN_SUBSCRIPTIONS_BY_SUBSCRIPTION_REF
     )
 
     data class PostCoreEventsRequest(
@@ -1805,14 +1813,6 @@ object ApisData {
     data class PostMoneyWalletsResponse(
         val walletRef: String
     )
-    data class PostMoneyVouchersRequest(
-        val idempotencyKey: String,
-        val voucherCode: String
-    )
-    data class PostMoneyVouchersResponse(
-        val redeemedCents: Int,
-        val walletRef: String
-    )
     data class PostMoneyGiftsRequest(
         val idempotencyKey: String,
         val beneficiarySubjectRef: String,
@@ -1871,5 +1871,64 @@ object ApisData {
     data class PostMoneySettingChangesResponse(
         val settingsVersion: Int,
         val appliesFrom: String
+    )
+    data class PostMoneyVouchersV2Request(
+        val idempotencyKey: String,
+        val towardsKind: String,
+        val serviceId: String? = null,
+        val planCode: String? = null
+    )
+    data class PostMoneyVouchersV2Response(
+        val voucherRef: String,
+        val voucherCode: String,
+        val issuedCents: Int,
+        val expiresOn: String
+    )
+    data class PostMoneyVoucherRedemptionsRequest(
+        val idempotencyKey: String,
+        val voucherCode: String,
+        val payableRef: String,
+        val amountCents: Int
+    )
+    data class PostMoneyVoucherRedemptionsResponse(
+        val redemptionRef: String,
+        val redeemedCents: Int,
+        val remainingCents: Int,
+        val owedCents: Int,
+        val expiresOn: String
+    )
+    data class PostMoneyPlanSubscriptionsRequest(
+        val idempotencyKey: String,
+        val subjectRef: String,
+        val planCode: String
+    )
+    data class PostMoneyPlanSubscriptionsResponse(
+        val subscriptionRef: String,
+        val stateCode: String,
+        val amountCents: Int
+    )
+    data class PostMoneyPlanSubscriptionsBySubscriptionRefAcceptRequest(
+        val idempotencyKey: String,
+        val subscriptionRef: String,
+        val lineDetail: String
+    )
+    data class PostMoneyPlanSubscriptionsBySubscriptionRefAcceptResponse(
+        val stateCode: String,
+        val payableRef: String,
+        val lineDetail: String
+    )
+    data class GetMoneyPlanSubscriptionsBySubscriptionRefRequest(
+        val subscriptionRef: String
+    )
+    data class GetMoneyPlanSubscriptionsBySubscriptionRefResponse(
+        val stateCode: String,
+        val planCode: String,
+        val amountCents: Int,
+        val payableRef: String? = null,
+        val startedOn: String? = null,
+        val monthEndsOn: String? = null,
+        val lineDetail: String? = null,
+        val included: List<Map<String, Any?>>,
+        val lines: List<Map<String, Any?>>
     )
 }

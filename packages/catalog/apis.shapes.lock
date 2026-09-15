@@ -86,3 +86,4 @@ POST /v1/care/setting-changes@1 17328c4a3a5354b9
 POST /v1/safety/setting-changes@2 4bfab8dc1ed2849a
 POST /v1/medicines/setting-changes@1 cb1622e3390d00ec
 POST /v1/money/setting-changes@1 bd9aa2fcacbf3923
+GET /v1/money/plan-subscriptions/{subscriptionRef}@1 5929c2d228ae0312

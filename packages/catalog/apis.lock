@@ -218,3 +218,8 @@ GET /v1/medicines/settings@1 11d14be365ef4079
 POST /v1/medicines/setting-changes@1 03cbb2b1552b1751
 POST /v1/medicines/setting-reviews@1 77465a0245446afc
 POST /v1/medicines/lab-orders@2 1f3dc4afbb2a92f2
+POST /v1/money/vouchers@2 5ec5a1e167a1c5ae
+POST /v1/money/voucher-redemptions@1 4d361844d6c5f58e
+POST /v1/money/plan-subscriptions@1 091d65da31b03b97
+POST /v1/money/plan-subscriptions/{subscriptionRef}/accept@1 2f462b75ab7a6977
+GET /v1/money/plan-subscriptions/{subscriptionRef}@1 50cc73908a5dd892

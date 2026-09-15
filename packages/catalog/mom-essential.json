@@ -1,0 +1,140 @@
+{
+ "_note": "MyThuso for Mom Essential, delivered end to end as a preview, Wave 4 of the approved build plan: a son or daughter asks for the plan for a parent, the parent agrees in her own account and chooses what they see, the first month is paid through Money's simulated provider or a voucher, the visit it includes books through the booking rules, and the medicine it includes is collected under Medicines' authorisation and handed over against the parent's PIN. What the tier is called, costs and names is packages/catalog/mom-plans.json's and Money's settings, and never this file's. packages/engines/src/money/domain/subscriptions.ts holds the arithmetic; scripts/emit-mom-essential.mjs writes this file into Swift and Kotlin; every refusal a route answers with is packages/catalog/apis/money.json's. Nothing here is a real service: no plan is sold, no debit order runs, no nurse is sent and no medicine is collected.",
+ "version": 1,
+ "engine": "money",
+ "api": "packages/catalog/apis/money.json",
+ "plan": "packages/catalog/mom-plans.json",
+ "planId": "mom",
+ "planCode": "essential",
+ "planCodeWhy": "The only tier a person may ask for in this preview. Plus and Premium name a Thuso Band, a Thuso Home station, carers and a doctor's review of every visit, none of which exists, and a subscription to a promise nobody can keep is refused in its own sentence rather than sold.",
+
+ "included": [
+  {
+   "inclusionId": "monthly-visit",
+   "serviceId": "vitals",
+   "perPeriod": 1,
+   "heardOn": "appointment.booked@2",
+   "why": "Essential's visit is blood pressure, glucose, weight, a medicine check and how the parent is doing, which is packages/catalog/services.json's Vitals & chronic check. The first one a nurse accepts in a plan month is the plan's: Money hears appointment.booked@2, which names the service, and opens it as a plan visit that owes nothing, and a nurse is paid for it at the same rate as the same visit booked on its own (packages/catalog/earnings.json). A second one that month is an ordinary visit at its own price."
+  },
+  {
+   "inclusionId": "medicine-collection",
+   "perPeriod": 1,
+   "heardOn": "delivery.handed_over@1",
+   "why": "Essential's collection is the Medicines engine's chain of custody and nothing of its own: the parent authorises a collector for a prescription, the collector collects the bag sealed at dispense, and hands it over against her PIN. Money hears the hand-over, which names the collection and whether the seal held and never the medicine, and records it as the plan's collection for the month."
+  },
+  {
+   "inclusionId": "visit-report",
+   "perPeriod": null,
+   "heardOn": null,
+   "why": "The report after a visit is written into the parent's Health Passport, and Money never holds it. Whether her son or daughter reads it is her grant, below, and never a line on a statement."
+  }
+ ],
+ "period": "month",
+ "periodWhy": "A plan month runs from the day the plan started to the same day of the next month, in Johannesburg, because the plan is paid monthly. Only the first month is simulated: no debit order runs a second time.",
+
+ "states": [
+  { "id": "awaiting-parent", "name": "Waiting for her to agree", "sponsorWords": "Waiting for {parent} to agree, in her own account. Nothing is paid until she does.", "parentWords": "{sponsor} would like to pay for {plan} for you. It starts only if you agree." },
+  { "id": "awaiting-payment", "name": "Agreed, not paid", "sponsorWords": "{parent} agreed. The plan starts when the first month is paid.", "parentWords": "You agreed. It starts when the first month is paid." },
+  { "id": "active", "name": "Started", "sponsorWords": "Started on {day}. This month runs to {end}.", "parentWords": "Started on {day}. This month runs to {end}." }
+ ],
+ "transitions": [
+  { "from": null, "to": "awaiting-parent" },
+  { "from": "awaiting-parent", "to": "awaiting-payment" },
+  { "from": "awaiting-payment", "to": "active" }
+ ],
+ "transitionsWhy": "A plan is asked for, agreed to by the person it is for, and then paid for, in that order and no other. Nothing is paid before she agrees, because money taken for a plan somebody has not agreed to is money taken for a decision made about her. Stopping a plan that has started is not built in this preview, and the screens say so rather than drawing a control that does nothing.",
+ "notBuilt": "Stopping a plan after it has started is not in this preview. Not agreeing is how a parent says no.",
+
+ "agreement": {
+  "byWhom": "patient",
+  "route": "POST /v1/money/plan-subscriptions/{subscriptionRef}/accept@1",
+  "refusal": "only-the-parent-agrees",
+  "fieldWords": ["consent", "agree", "accept", "signature", "signed", "behalf", "guardian", "authority", "mandate"],
+  "fieldWordsWhy": "A request to ask for a plan that also carries any of these words as a field is an agreement made for the parent by somebody else, and is refused in the route's sentence sponsor-agrees-for-the-parent rather than recorded.",
+  "guardian": {
+   "sentence": "Nobody agrees to a plan for a parent here: not a son or daughter, and not a guardian. MyThuso cannot yet check anybody's authority to act for another adult.",
+   "decision": "docs/governance/INFORMATION-OFFICER.md D-10",
+   "why": "Who may act for somebody else, and what proves it, is decision D-10 on the Information Officer's checklist, and it is not made. No guardian code exists. So the agreement route takes only the parent as herself, a sponsor is refused in the route's own sentence, and the vetting register's guardian role is not a caller."
+  }
+ },
+
+ "sharing": {
+  "lineDetailFrom": "packages/catalog/programmes.json#sponsor.lineDetail",
+  "seesFrom": "packages/catalog/programmes.json#sponsor.sees",
+  "neverSeesFrom": "packages/catalog/programmes.json#sponsor.neverSees",
+  "summaries": {
+   "recipientRole": "caregiver",
+   "scope": ["home-visit"],
+   "purpose": "treatment",
+   "expiryFrom": "packages/catalog/consent.json#grants.recipientRoles",
+   "offDefault": true,
+   "label": "Let {sponsor} read my visit summaries",
+   "detail": "Until {until}, and you can stop it before then. Nothing else in your record is shared.",
+   "none": "{parent} has not shared her visit summaries with you. You see that a visit happened and when, and nothing about what was found.",
+   "shared": "{parent} shares her visit summaries with you until {until}. You read them in her Health Passport, where she can see that you did.",
+   "read": "Read her latest visit summary",
+   "why": "A visit summary is health information, special personal information under POPIA, and paying for the plan is not a reason to read it (packages/catalog/mom-plans.json, paying-is-not-seeing). So it reaches a sponsor only under a grant the parent makes herself: the caregiver role in packages/catalog/consent.json, narrowed to the home-visit record, for no longer than that role's ceiling, off unless she turns it on. Money's routes never carry a summary either way: a sponsor with a grant reads it through the Passport's consent gateway, and a sponsor without one is shown this sentence and nothing clinical."
+  }
+ },
+
+ "medicine": {
+  "capability": "medicine-collection",
+  "authorisedBy": "patient",
+  "route": "POST /v1/medicines/collection-authorisations@1",
+  "sentence": "Medicine is collected only for a prescription, only by the collector {parent} authorises, and handed over only against her PIN. Paying for the plan authorises nobody.",
+  "delegate": "A delegate authorising a collector for her is not in this preview: the authorisation route takes only the patient, and whether a caregiver's grant lets somebody authorise one is a question for the Medicines engine's next version.",
+  "why": "Essential's collection rides on the chain packages/catalog/medicines.json already enforces, so the plan adds no second way for a bag to leave a pharmacy. A sponsor is never a collector by paying, and never shown the PIN."
+ },
+
+ "priority": {
+  "refusalFrom": "packages/catalog/mom-plans.json#refusals",
+  "refusal": "no-plan-buys-a-place-ahead",
+  "fieldWords": ["priority", "prioritise", "prioritize", "rank", "queue", "ahead", "first", "jump", "expedite", "fasttrack"],
+  "fieldWordsWhy": "A request to ask for a plan that carries any of these words as a field is asking to be put ahead of somebody, and is refused in packages/catalog/mom-plans.json's own sentence rather than ignored.",
+  "why": "The founder has not decided what priority SOS means, and Essential names none. A subscription carries no field that could put anybody ahead of somebody more unwell, no engine that decides who is seen first reads a plan, and scripts/check-boundaries.mjs fails the build if either becomes untrue."
+ },
+
+ "screen": {
+  "open": "Ask for {plan} for a parent",
+  "previewNote": "In this preview both phones are this tab: you act as the son or daughter who pays, then as the parent who agrees.",
+  "actingSponsor": "Acting as {sponsor}, who pays",
+  "actingParent": "Acting as {parent}, whose plan it is",
+  "seesHeading": "What you see",
+  "neverSeesHeading": "What you never see",
+  "sponsor": {
+   "heading": "{plan}, for a parent",
+   "who": "Who is it for?",
+   "ask": "Ask {parent} to agree",
+   "asked": "Asked. {parent} agrees in her own account, or nothing starts.",
+   "openAsParent": "Open as {parent}",
+   "pay": "Pay the first month",
+   "payWith": "How the first month is paid",
+   "voucher": "Pay with a voucher towards {plan}",
+   "view": "What you see of {parent}'s plan",
+   "included": "{used} of {allowed} included visits used this month",
+   "lines": "What has happened",
+   "careGiven": "Care was given",
+   "noLines": "Nothing has happened on the plan yet."
+  },
+  "parent": {
+   "heading": "Your plan, and what {sponsor} sees",
+   "lineDetailLegend": "What a line on {sponsor}'s statement says",
+   "agree": "I agree to {plan}, paid for by {sponsor}",
+   "backToSponsor": "Back to {sponsor}",
+   "book": "Book this month's included visit",
+   "booked": "Asked for {day} at {hour}, as this month's included visit. Nothing is owed for it.",
+   "medicine": "Your medicine"
+  }
+ },
+
+ "routeRefusals": [
+  { "route": "POST /v1/money/plan-subscriptions@1", "id": "plan-not-offered" },
+  { "route": "POST /v1/money/plan-subscriptions@1", "id": "plan-already-held" },
+  { "route": "POST /v1/money/plan-subscriptions@1", "id": "no-plan-buys-a-place-ahead" },
+  { "route": "POST /v1/money/plan-subscriptions@1", "id": "sponsor-agrees-for-the-parent" },
+  { "route": "POST /v1/money/plan-subscriptions/{subscriptionRef}/accept@1", "id": "only-the-parent-agrees" },
+  { "route": "POST /v1/money/plan-subscriptions/{subscriptionRef}/accept@1", "id": "subscription-not-found" },
+  { "route": "POST /v1/money/plan-subscriptions/{subscriptionRef}/accept@1", "id": "line-detail-not-offered" },
+  { "route": "GET /v1/money/plan-subscriptions/{subscriptionRef}@1", "id": "subscription-not-found" }
+ ]
+}

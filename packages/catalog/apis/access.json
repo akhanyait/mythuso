@@ -3,10 +3,10 @@
  "_note": "Access is how a person reaches MyThuso: the identity service's sign-in, account, consent and operator routes (built, in development), and Gilbert's bookings, conversations, handover, allow-listed tools and household arrangements (proposed). Wave 2 contract; Wave 3 build.",
  "version": 1,
  "resources": ["sign-ins", "sessions", "sign-outs", "account-names", "second-factors", "second-factor-confirmations", "second-factor-removals", "account-data", "erasure-requests", "erasure-cancellations", "account-exports", "correction-requests", "consent-contract", "consents", "access-log", "subject-requests", "health", "audit-chain", "witness-statements", "access-log-integrity", "verification-status", "rate-limits", "doors", "bookings", "conversations", "tools", "households", "sponsors", "bill-splits", "visit-threads", "settings", "setting-changes", "setting-reviews"],
- "doors": ["message-delivery"],
+ "doors": ["message-delivery", "ussd-session"],
  "doorsToAdd": [
   {"id": "whatsapp-inbound", "why": "Inbound WhatsApp from the provider is a supplier callback, so it is a door to add to packages/catalog/feeds.json, not a route.", "capabilityNamed": {"section": "FS-E1", "what": "phone and WhatsApp booking"}},
-  {"id": "ussd-session", "why": "USSD sessions arrive from an aggregator; a door to add.", "capabilityNamed": {"section": "FS-E1", "what": "USSD *120# and IVR booking and check-in"}}
+  {"id": "ivr-session", "why": "A spoken-menu call arrives from a voice provider; a door to add. The USSD half of the same capability arrived in Wave 4 as the ussd-session door in packages/catalog/feeds.json, with its menu in packages/catalog/ussd.json, and it refuses every payload.", "capabilityNamed": {"section": "FS-E1", "what": "USSD *120# and IVR booking and check-in"}}
  ],
  "refusals": [
   {"id": "tool-not-on-allow-list", "status": 403, "statement": "Gilbert reaches only the tools on its allow-list.", "why": "§15D: never a generic tool in front of a patient-facing model."},

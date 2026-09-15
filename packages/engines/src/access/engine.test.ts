@@ -160,13 +160,17 @@ const shared = (id: string) => settingsContract.refusals.find(r => r.route === '
 const changeSetting = (runtime: Runtime, idempotencyKey: string, fields: Record<string, unknown>, expectedVersion = 1) =>
  runtime.call(CHANGE_SETTING, { ...ADMIN, fields: { idempotencyKey, reason: 'Synthetic, for the Access engine test.', expectedVersion, ...fields } });
 
-test('an admin and a doctor read Access’s six settings with their proposals, and a patient or a nurse cannot', () => {
+test('an admin and a doctor read Access’s settings with their proposals, and a patient or a nurse cannot', () => {
  const runtime = start();
  const read = runtime.call(SETTINGS, { ...ADMIN, fields: {} });
  assert.equal(read.status, 200, JSON.stringify(read.body));
  const rows = read.body.settings as { setting: string; provenance: { decidedBy: string | null; proposedBy: string }; reviewRequired: string | null; reviewed: unknown }[];
  assert.deepEqual(rows.map(r => r.setting), booking.settings.items.map(s => s.key));
- assert.ok(rows.every(r => r.provenance.decidedBy === null && r.provenance.proposedBy === 'Integrator (Wave 3)'), 'every Access default is a proposal nobody has decided');
+ /* Every default is a proposal nobody has decided, each saying who proposed it: the six Wave 3 questions the
+    integrator's, and the USSD session's wait, added in Wave 4, the Gilbert & Access lead's. */
+ assert.ok(rows.every(r => r.provenance.decidedBy === null && r.provenance.proposedBy.trim()), 'every Access default is a proposal nobody has decided');
+ const wave3 = ['named-nurse-fallback', 'visit-thread-max-characters', 'visit-thread-photos', 'visit-thread-open-hours-after-visit', 'handover-answered-by', 'handover-hours'];
+ assert.ok(rows.filter(r => wave3.includes(r.setting)).every(r => r.provenance.proposedBy === 'Integrator (Wave 3)'), 'the six Wave 3 settings are still the integrator\'s proposals');
  const photos = rows.find(r => r.setting === 'visit-thread-photos')!;
  assert.deepEqual([photos.reviewRequired, photos.reviewed], ['sign-clinical-review', null]);
  assert.equal(runtime.call(SETTINGS, { ...DOCTOR, fields: {} }).status, 200);

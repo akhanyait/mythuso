@@ -24,6 +24,7 @@
 import contract from '../../../../catalog/money.json' with { type: 'json' };
 import momPlans from '../../../../catalog/mom-plans.json' with { type: 'json' };
 import api from '../../../../catalog/apis/money.json' with { type: 'json' };
+import vouchers from '../../../../catalog/vouchers.json' with { type: 'json' };
 import { snapshotOf, type Check, type Refusal, type SettingValue, type SettingsBlock, type SettingsEngine, type Snapshot } from '../../settings/shape.ts';
 import type { FeeInForce } from './fees.ts';
 
@@ -73,6 +74,16 @@ export const doctorFeeOf = (snapshot: Snapshot): DoctorFeeInForce => Object.free
  lowestCents: doctorFeeRangeCents.lowest,
  highestCents: doctorFeeRangeCents.highest
 });
+
+/* ---- A voucher's expiry -------------------------------------------------------------------------- */
+
+/* The setting packages/catalog/vouchers.json names. Read once, when a voucher is issued, and kept on the voucher,
+   so a change reaches vouchers issued after it and never one already in somebody's hand. */
+const VOUCHER_EXPIRY = vouchers.expiry.setting;
+if (!moneyBlock.items.some(s => s.key === VOUCHER_EXPIRY)) throw new Error(`packages/catalog/vouchers.json names the setting "${VOUCHER_EXPIRY}", which packages/catalog/money.json does not declare.`);
+
+/** How many years a voucher issued now lasts. */
+export const voucherExpiryYearsOf = (snapshot: Snapshot): number => valueOf(snapshot.values, VOUCHER_EXPIRY) as number;
 
 /* ---- A nurse's share ----------------------------------------------------------------------------- */
 

@@ -331,10 +331,36 @@
       [{ "post": "gilbert", "days": ["mon"], "from": "06:00", "to": "22:00" }]
      ]
     }
+   },
+   {
+    "key": "ussd-session-timeout-seconds",
+    "label": "How long a USSD session waits for a reply",
+    "help": "How many seconds a USSD booking session waits for the next reply before it ends with nothing booked.",
+    "_menuNote": "The menu, its words and what it refuses are packages/catalog/ussd.json's. This is the one number the menu waits by.",
+    "owner": "access",
+    "type": "count",
+    "unit": "seconds",
+    "positive": true,
+    "default": {
+     "value": 120,
+     "decidedBy": null,
+     "proposedBy": "Gilbert & Access lead (Wave 4)",
+     "proposedBecause": "Two minutes is long enough to read a full screen twice on a small phone and find the number wanted, and short enough that a session somebody walked away from has ended before anybody else picks the phone up. No aggregator is contracted, so no network's own session limit is known; this is MyThuso's wait inside whatever that limit is."
+    },
+    "bounds": {
+     "lowest": { "value": 60, "decidedBy": null, "proposedBy": "Gilbert & Access lead (Wave 4)", "proposedBecause": "A minute. Less, and somebody reading the longest screen slowly, or asking the person beside them which suburb to choose, is cut off in the middle of a booking." },
+     "highest": { "value": 180, "decidedBy": null, "proposedBy": "Gilbert & Access lead (Wave 4)", "proposedBecause": "Three minutes, pending an aggregator's statement of each network's own session limit. A wait longer than the network keeps a session open is a session the network has already ended, with the menu still waiting for a reply that cannot come." }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to sessions dialled after it. A session already open keeps the wait it was dialled with.",
+    "guardrail": {
+     "statement": "A session always ends when nothing is sent for too long, and a reply after it has ended never books anything.",
+     "forbids": [0, 59, 181, 3600]
+    }
    }
   ],
   "defaults": {
-   "version": 1,
+   "version": 2,
    "changelog": [
     {
      "version": 1,
@@ -349,6 +375,15 @@
       { "setting": "handover-hours", "from": null, "to": [{ "post": "handover-desk", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "06:00", "to": "22:00" }] }
      ],
      "why": "The founder instructed that open questions become admin settings. The integrator proposed these six defaults, with their bounds and allowed values, and nobody has decided them."
+    },
+    {
+     "version": 2,
+     "on": "2026-09-15",
+     "by": "Gilbert & Access lead (Wave 4)",
+     "changed": [
+      { "setting": "ussd-session-timeout-seconds", "from": null, "to": 120 }
+     ],
+     "why": "USSD booking, in Wave 4. How long a session waits for a reply became an admin setting with a proposed default, as the founder instructed open questions do, and nobody has decided it."
     }
    ]
   }

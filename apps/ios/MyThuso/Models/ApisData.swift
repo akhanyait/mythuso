@@ -196,13 +196,17 @@ enum ApisData {
     static let postMoneyPaymentsByPaymentRefCashCodeV2 = Route(id: "postMoneyPaymentsByPaymentRefCashCodeV2", method: "POST", path: "/v1/money/payments/{paymentRef}/cash-code", mountedPath: "/v1/money/payments/{paymentRef}/cash-code", version: 2, engine: "money", callers: ["nurse"], purpose: ["billing"], idempotent: true, status: "built")
     static let postMoneyPaymentsByPaymentRefReleaseV2 = Route(id: "postMoneyPaymentsByPaymentRefReleaseV2", method: "POST", path: "/v1/money/payments/{paymentRef}/release", mountedPath: "/v1/money/payments/{paymentRef}/release", version: 2, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: true, status: "built")
     static let postMoneyWallets = Route(id: "postMoneyWallets", method: "POST", path: "/v1/money/wallets", mountedPath: "/v1/money/wallets", version: 1, engine: "money", callers: ["patient", "caregiver"], purpose: ["billing"], idempotent: true, status: "proposed")
-    static let postMoneyVouchers = Route(id: "postMoneyVouchers", method: "POST", path: "/v1/money/vouchers", mountedPath: "/v1/money/vouchers", version: 1, engine: "money", callers: ["patient", "caregiver", "sponsor", "corner"], purpose: ["billing"], idempotent: true, status: "proposed")
     static let postMoneyGifts = Route(id: "postMoneyGifts", method: "POST", path: "/v1/money/gifts", mountedPath: "/v1/money/gifts", version: 1, engine: "money", callers: ["caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "proposed")
     static let postMoneyGroups = Route(id: "postMoneyGroups", method: "POST", path: "/v1/money/groups", mountedPath: "/v1/money/groups", version: 1, engine: "money", callers: ["patient", "sponsor", "employer"], purpose: ["billing"], idempotent: true, status: "proposed")
     static let postMoneyClaimsV2 = Route(id: "postMoneyClaimsV2", method: "POST", path: "/v1/money/claims", mountedPath: "/v1/money/claims", version: 2, engine: "money", callers: ["admin"], purpose: ["billing"], idempotent: true, status: "proposed")
     static let postMoneyMarketOrders = Route(id: "postMoneyMarketOrders", method: "POST", path: "/v1/money/market-orders", mountedPath: "/v1/money/market-orders", version: 1, engine: "money", callers: ["patient", "caregiver"], purpose: ["billing"], idempotent: true, status: "proposed")
     static let getMoneySettings = Route(id: "getMoneySettings", method: "GET", path: "/v1/money/settings", mountedPath: "/v1/money/settings", version: 1, engine: "money", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built")
     static let postMoneySettingChanges = Route(id: "postMoneySettingChanges", method: "POST", path: "/v1/money/setting-changes", mountedPath: "/v1/money/setting-changes", version: 1, engine: "money", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
+    static let postMoneyVouchersV2 = Route(id: "postMoneyVouchersV2", method: "POST", path: "/v1/money/vouchers", mountedPath: "/v1/money/vouchers", version: 2, engine: "money", callers: ["corner", "admin"], purpose: ["billing"], idempotent: true, status: "built")
+    static let postMoneyVoucherRedemptions = Route(id: "postMoneyVoucherRedemptions", method: "POST", path: "/v1/money/voucher-redemptions", mountedPath: "/v1/money/voucher-redemptions", version: 1, engine: "money", callers: ["patient", "caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "built")
+    static let postMoneyPlanSubscriptions = Route(id: "postMoneyPlanSubscriptions", method: "POST", path: "/v1/money/plan-subscriptions", mountedPath: "/v1/money/plan-subscriptions", version: 1, engine: "money", callers: ["sponsor", "patient"], purpose: ["billing"], idempotent: true, status: "built")
+    static let postMoneyPlanSubscriptionsBySubscriptionRefAccept = Route(id: "postMoneyPlanSubscriptionsBySubscriptionRefAccept", method: "POST", path: "/v1/money/plan-subscriptions/{subscriptionRef}/accept", mountedPath: "/v1/money/plan-subscriptions/{subscriptionRef}/accept", version: 1, engine: "money", callers: ["patient", "sponsor"], purpose: ["billing"], idempotent: true, status: "built")
+    static let getMoneyPlanSubscriptionsBySubscriptionRef = Route(id: "getMoneyPlanSubscriptionsBySubscriptionRef", method: "GET", path: "/v1/money/plan-subscriptions/{subscriptionRef}", mountedPath: "/v1/money/plan-subscriptions/{subscriptionRef}", version: 1, engine: "money", callers: ["patient", "sponsor"], purpose: ["billing"], idempotent: false, status: "built")
 
     static let routes: [Route] = [
         postCoreEvents,
@@ -379,13 +383,17 @@ enum ApisData {
         postMoneyPaymentsByPaymentRefCashCodeV2,
         postMoneyPaymentsByPaymentRefReleaseV2,
         postMoneyWallets,
-        postMoneyVouchers,
         postMoneyGifts,
         postMoneyGroups,
         postMoneyClaimsV2,
         postMoneyMarketOrders,
         getMoneySettings,
-        postMoneySettingChanges
+        postMoneySettingChanges,
+        postMoneyVouchersV2,
+        postMoneyVoucherRedemptions,
+        postMoneyPlanSubscriptions,
+        postMoneyPlanSubscriptionsBySubscriptionRefAccept,
+        getMoneyPlanSubscriptionsBySubscriptionRef
     ]
 
     struct PostCoreEventsRequest {
@@ -1805,14 +1813,6 @@ enum ApisData {
     struct PostMoneyWalletsResponse {
         let walletRef: String
     }
-    struct PostMoneyVouchersRequest {
-        let idempotencyKey: String
-        let voucherCode: String
-    }
-    struct PostMoneyVouchersResponse {
-        let redeemedCents: Int
-        let walletRef: String
-    }
     struct PostMoneyGiftsRequest {
         let idempotencyKey: String
         let beneficiarySubjectRef: String
@@ -1871,5 +1871,64 @@ enum ApisData {
     struct PostMoneySettingChangesResponse {
         let settingsVersion: Int
         let appliesFrom: String
+    }
+    struct PostMoneyVouchersV2Request {
+        let idempotencyKey: String
+        let towardsKind: String
+        let serviceId: String?
+        let planCode: String?
+    }
+    struct PostMoneyVouchersV2Response {
+        let voucherRef: String
+        let voucherCode: String
+        let issuedCents: Int
+        let expiresOn: String
+    }
+    struct PostMoneyVoucherRedemptionsRequest {
+        let idempotencyKey: String
+        let voucherCode: String
+        let payableRef: String
+        let amountCents: Int
+    }
+    struct PostMoneyVoucherRedemptionsResponse {
+        let redemptionRef: String
+        let redeemedCents: Int
+        let remainingCents: Int
+        let owedCents: Int
+        let expiresOn: String
+    }
+    struct PostMoneyPlanSubscriptionsRequest {
+        let idempotencyKey: String
+        let subjectRef: String
+        let planCode: String
+    }
+    struct PostMoneyPlanSubscriptionsResponse {
+        let subscriptionRef: String
+        let stateCode: String
+        let amountCents: Int
+    }
+    struct PostMoneyPlanSubscriptionsBySubscriptionRefAcceptRequest {
+        let idempotencyKey: String
+        let subscriptionRef: String
+        let lineDetail: String
+    }
+    struct PostMoneyPlanSubscriptionsBySubscriptionRefAcceptResponse {
+        let stateCode: String
+        let payableRef: String
+        let lineDetail: String
+    }
+    struct GetMoneyPlanSubscriptionsBySubscriptionRefRequest {
+        let subscriptionRef: String
+    }
+    struct GetMoneyPlanSubscriptionsBySubscriptionRefResponse {
+        let stateCode: String
+        let planCode: String
+        let amountCents: Int
+        let payableRef: String?
+        let startedOn: String?
+        let monthEndsOn: String?
+        let lineDetail: String?
+        let included: [[String: Any]]
+        let lines: [[String: Any]]
     }
 }
