@@ -24,7 +24,10 @@
 /* The registry sits in the Control Tower's stacked Incidents page. A grid or flex child keeps its content's width
    unless told otherwise, so the table widened the page on a phone instead of scrolling inside its own container. */
 .dv-registry, .dv-health, .dv-link { min-width: 0; max-width: 100%; }
-.dv-registry > .table-scroll { max-width: 100%; min-width: 0; overflow-x: auto; }
+/* Positioned, because an overflow clips only what it contains: the visually hidden label in the table's last
+   header is absolutely positioned, and while the scroller was not its containing block it escaped the clip at
+   the fifth column's edge and made the Control Tower's main scroll sideways on a phone. */
+.dv-registry > .table-scroll { position: relative; max-width: 100%; min-width: 0; overflow-x: auto; }
 .dv-table th small { display: block; font-weight: 400; color: var(--ink-quiet, #5b6b6a); }
 .dv-table td button { white-space: nowrap; }
 .dv-not-connected { margin: 0; }
