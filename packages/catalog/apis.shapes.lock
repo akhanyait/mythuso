@@ -106,3 +106,7 @@ GET /v1/clinical/reviews@2 5c2902a22a84610b
 POST /v1/clinical/proms@2 3f8dada80584d222
 GET /v1/clinical/settings@1 032799b46d5abc2f
 POST /v1/clinical/setting-changes@1 243cf3aa54159368
+GET /v1/access/settings@2 7a3ded0d9f06dd22
+GET /v1/care/settings@2 260672d14e21089f
+GET /v1/clinical/settings@2 51789e871cf2577e
+GET /v1/medicines/settings@2 d2b7aecd399b6d11

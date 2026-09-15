@@ -13,6 +13,7 @@ import { CaptureStanding, WaitingToSend, useSeededQueue, useSignal, useVisitQueu
 import { nextCaptureId, rules, type Capture } from '../lib/capture';
 import { hold, isPending, seal } from '../lib/visit-queue';
 import { can } from '../lib/vetting';
+import { mayConfirmClinicalReview } from '../lib/settings';
 import { subjectById, subjectsByRole } from '../lib/vetting-fixtures';
 import { ConsultationComposer, assessmentFields } from './Consultation';
 import { documentById, refusedDocuments } from '../lib/teleconsult';
@@ -386,7 +387,8 @@ export function DoctorReview({ reference = 'TH-2048', open, onClose }: { referen
  const [referral, setReferral] = useState(false);
  const [returned, setReturned] = useState(false);
  const doctor = doctors.find(d => d.id === signing)!;
- const maySign = can(doctor, 'sign-clinical-review');
+ /* Who may sign is Clinical's review-confirmer setting in force, asked through lib/settings (Wave 5). */
+ const maySign = mayConfirmClinicalReview(doctor);
  const mayPrescribe = can(doctor, 'prescribe');
  /* The decision and the record are the same encounter. The doctor's outcome and rationale open the
     consultation already filled in, under the registration that made them — retyping a decision into

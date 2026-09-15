@@ -492,13 +492,6 @@ export interface PostAccessVisitThreadsByBookingRefMessagesResponse {
  readonly deliveryCode: string;
 }
 
-export type GetAccessSettingsRequest = Record<string, never>;
-export interface GetAccessSettingsResponse {
- readonly settingsVersion: number;
- readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
- readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
-}
-
 export interface PostAccessSettingChangesRequest {
  readonly idempotencyKey: string;
  readonly setting: string;
@@ -518,13 +511,20 @@ export interface PostAccessSettingChangesResponse {
  readonly appliesFrom: string;
 }
 
-export interface PostAccessSettingReviewsRequest {
+export type GetAccessSettingsV2Request = Record<string, never>;
+export interface GetAccessSettingsV2Response {
+ readonly settingsVersion: number;
+ readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostAccessSettingReviewsV2Request {
  readonly idempotencyKey: string;
  readonly setting: string;
  readonly settingsVersion: number;
  readonly reason?: string;
 }
-export interface PostAccessSettingReviewsResponse {
+export interface PostAccessSettingReviewsV2Response {
  readonly settingsVersion: number;
  readonly reviewedAt: string;
 }
@@ -633,13 +633,6 @@ export interface GetCareCircuitsResponse {
  readonly circuits: ReadonlyArray<Readonly<Record<string, unknown>>>;
 }
 
-export type GetCareSettingsRequest = Record<string, never>;
-export interface GetCareSettingsResponse {
- readonly settingsVersion: number;
- readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
- readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
-}
-
 export interface PostCareSettingChangesRequest {
  readonly idempotencyKey: string;
  readonly setting: string;
@@ -659,13 +652,20 @@ export interface PostCareSettingChangesResponse {
  readonly appliesFrom: string;
 }
 
-export interface PostCareSettingReviewsRequest {
+export type GetCareSettingsV2Request = Record<string, never>;
+export interface GetCareSettingsV2Response {
+ readonly settingsVersion: number;
+ readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostCareSettingReviewsV2Request {
  readonly idempotencyKey: string;
  readonly setting: string;
  readonly settingsVersion: number;
  readonly reason?: string;
 }
-export interface PostCareSettingReviewsResponse {
+export interface PostCareSettingReviewsV2Response {
  readonly settingsVersion: number;
  readonly reviewedAt: string;
 }
@@ -744,13 +744,6 @@ export interface PostClinicalPromsV2Response {
  readonly promEntryRef: string;
 }
 
-export type GetClinicalSettingsRequest = Record<string, never>;
-export interface GetClinicalSettingsResponse {
- readonly settingsVersion: number;
- readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
- readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
-}
-
 export interface PostClinicalSettingChangesRequest {
  readonly idempotencyKey: string;
  readonly setting: string;
@@ -770,13 +763,26 @@ export interface PostClinicalSettingChangesResponse {
  readonly appliesFrom: string;
 }
 
-export interface PostClinicalSettingReviewsRequest {
+export type GetClinicalReviewConfirmersRequest = Record<string, never>;
+export interface GetClinicalReviewConfirmersResponse {
+ readonly settingsVersion: number;
+ readonly confirmers: readonly string[];
+}
+
+export type GetClinicalSettingsV2Request = Record<string, never>;
+export interface GetClinicalSettingsV2Response {
+ readonly settingsVersion: number;
+ readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostClinicalSettingReviewsV2Request {
  readonly idempotencyKey: string;
  readonly setting: string;
  readonly settingsVersion: number;
  readonly reason?: string;
 }
-export interface PostClinicalSettingReviewsResponse {
+export interface PostClinicalSettingReviewsV2Response {
  readonly settingsVersion: number;
  readonly reviewedAt: string;
 }
@@ -1697,13 +1703,6 @@ export interface PostMedicinesLabOrdersByLabOrderRefCloseResponse {
  readonly closedAt: string;
 }
 
-export type GetMedicinesSettingsRequest = Record<string, never>;
-export interface GetMedicinesSettingsResponse {
- readonly settingsVersion: number;
- readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
- readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
-}
-
 export interface PostMedicinesSettingChangesRequest {
  readonly idempotencyKey: string;
  readonly setting: string;
@@ -1723,13 +1722,20 @@ export interface PostMedicinesSettingChangesResponse {
  readonly appliesFrom: string;
 }
 
-export interface PostMedicinesSettingReviewsRequest {
+export type GetMedicinesSettingsV2Request = Record<string, never>;
+export interface GetMedicinesSettingsV2Response {
+ readonly settingsVersion: number;
+ readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostMedicinesSettingReviewsV2Request {
  readonly idempotencyKey: string;
  readonly setting: string;
  readonly settingsVersion: number;
  readonly reason?: string;
 }
-export interface PostMedicinesSettingReviewsResponse {
+export interface PostMedicinesSettingReviewsV2Response {
  readonly settingsVersion: number;
  readonly reviewedAt: string;
 }
@@ -2059,9 +2065,9 @@ export const apiRoutes = {
  postAccessBookingsByBookingRefCancel: { name: "postAccessBookingsByBookingRefCancel", method: "POST", path: "/v1/access/bookings/{bookingRef}/cancel", mountedPath: "/v1/access/bookings/{bookingRef}/cancel", version: 1, engine: "access", callers: ["patient","caregiver","guardian","thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "built" },
  getAccessVisitThreadsByBookingRef: { name: "getAccessVisitThreadsByBookingRef", method: "GET", path: "/v1/access/visit-threads/{bookingRef}", mountedPath: "/v1/access/visit-threads/{bookingRef}", version: 1, engine: "access", callers: ["patient","caregiver","guardian","nurse"], purpose: ["dispatch"], idempotent: false, status: "built" },
  postAccessVisitThreadsByBookingRefMessages: { name: "postAccessVisitThreadsByBookingRefMessages", method: "POST", path: "/v1/access/visit-threads/{bookingRef}/messages", mountedPath: "/v1/access/visit-threads/{bookingRef}/messages", version: 1, engine: "access", callers: ["patient","caregiver","guardian","nurse"], purpose: ["dispatch"], idempotent: true, status: "built" },
- getAccessSettings: { name: "getAccessSettings", method: "GET", path: "/v1/access/settings", mountedPath: "/v1/access/settings", version: 1, engine: "access", callers: ["admin","doctor"], purpose: ["audit"], idempotent: false, status: "built" },
  postAccessSettingChanges: { name: "postAccessSettingChanges", method: "POST", path: "/v1/access/setting-changes", mountedPath: "/v1/access/setting-changes", version: 1, engine: "access", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
- postAccessSettingReviews: { name: "postAccessSettingReviews", method: "POST", path: "/v1/access/setting-reviews", mountedPath: "/v1/access/setting-reviews", version: 1, engine: "access", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "built" },
+ getAccessSettingsV2: { name: "getAccessSettingsV2", method: "GET", path: "/v1/access/settings", mountedPath: "/v1/access/settings", version: 2, engine: "access", callers: ["admin","doctor","nurse"], purpose: ["audit"], idempotent: false, status: "built" },
+ postAccessSettingReviewsV2: { name: "postAccessSettingReviewsV2", method: "POST", path: "/v1/access/setting-reviews", mountedPath: "/v1/access/setting-reviews", version: 2, engine: "access", callers: ["doctor","nurse"], purpose: ["audit"], idempotent: true, status: "built" },
  postCareOffersV2: { name: "postCareOffersV2", method: "POST", path: "/v1/care/offers", mountedPath: "/v1/care/offers", version: 2, engine: "care", callers: ["dispatcher"], purpose: ["dispatch"], idempotent: true, status: "built" },
  postCareOffersByOfferRefAccept: { name: "postCareOffersByOfferRefAccept", method: "POST", path: "/v1/care/offers/{offerRef}/accept", mountedPath: "/v1/care/offers/{offerRef}/accept", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["dispatch"], idempotent: true, status: "built" },
  postCareOffersByOfferRefDecline: { name: "postCareOffersByOfferRefDecline", method: "POST", path: "/v1/care/offers/{offerRef}/decline", mountedPath: "/v1/care/offers/{offerRef}/decline", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["dispatch"], idempotent: true, status: "built" },
@@ -2075,9 +2081,9 @@ export const apiRoutes = {
  getCareServices: { name: "getCareServices", method: "GET", path: "/v1/care/services", mountedPath: "/v1/care/services", version: 1, engine: "care", callers: ["patient","caregiver","nurse","dispatcher","thuso-line-agent"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
  getCareLocumShifts: { name: "getCareLocumShifts", method: "GET", path: "/v1/care/locum-shifts", mountedPath: "/v1/care/locum-shifts", version: 1, engine: "care", callers: ["locum"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
  getCareCircuits: { name: "getCareCircuits", method: "GET", path: "/v1/care/circuits", mountedPath: "/v1/care/circuits", version: 1, engine: "care", callers: ["nurse","dispatcher"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
- getCareSettings: { name: "getCareSettings", method: "GET", path: "/v1/care/settings", mountedPath: "/v1/care/settings", version: 1, engine: "care", callers: ["admin","doctor"], purpose: ["audit"], idempotent: false, status: "built" },
  postCareSettingChanges: { name: "postCareSettingChanges", method: "POST", path: "/v1/care/setting-changes", mountedPath: "/v1/care/setting-changes", version: 1, engine: "care", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
- postCareSettingReviews: { name: "postCareSettingReviews", method: "POST", path: "/v1/care/setting-reviews", mountedPath: "/v1/care/setting-reviews", version: 1, engine: "care", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "built" },
+ getCareSettingsV2: { name: "getCareSettingsV2", method: "GET", path: "/v1/care/settings", mountedPath: "/v1/care/settings", version: 2, engine: "care", callers: ["admin","doctor","nurse"], purpose: ["audit"], idempotent: false, status: "built" },
+ postCareSettingReviewsV2: { name: "postCareSettingReviewsV2", method: "POST", path: "/v1/care/setting-reviews", mountedPath: "/v1/care/setting-reviews", version: 2, engine: "care", callers: ["doctor","nurse"], purpose: ["audit"], idempotent: true, status: "built" },
  postClinicalResultsByResultRefAcknowledge: { name: "postClinicalResultsByResultRefAcknowledge", method: "POST", path: "/v1/clinical/results/{resultRef}/acknowledge", mountedPath: "/v1/clinical/results/{resultRef}/acknowledge", version: 1, engine: "clinical", callers: ["doctor","nurse"], purpose: ["diagnostics"], idempotent: false, status: "built" },
  postClinicalGuidance: { name: "postClinicalGuidance", method: "POST", path: "/v1/clinical/guidance", mountedPath: "/v1/clinical/guidance", version: 1, engine: "clinical", callers: ["nurse","doctor","engine:access"], purpose: ["treatment"], idempotent: false, status: "built" },
  getClinicalReviewsV2: { name: "getClinicalReviewsV2", method: "GET", path: "/v1/clinical/reviews", mountedPath: "/v1/clinical/reviews", version: 2, engine: "clinical", callers: ["doctor","nurse"], purpose: ["treatment"], idempotent: false, status: "built" },
@@ -2085,9 +2091,10 @@ export const apiRoutes = {
  postClinicalConsultationsV2: { name: "postClinicalConsultationsV2", method: "POST", path: "/v1/clinical/consultations", mountedPath: "/v1/clinical/consultations", version: 2, engine: "clinical", callers: ["doctor","nurse"], purpose: ["treatment"], idempotent: false, status: "built" },
  postClinicalTriageV3: { name: "postClinicalTriageV3", method: "POST", path: "/v1/clinical/triage", mountedPath: "/v1/clinical/triage", version: 3, engine: "clinical", callers: ["nurse","doctor"], purpose: ["treatment"], idempotent: false, status: "built" },
  postClinicalPromsV2: { name: "postClinicalPromsV2", method: "POST", path: "/v1/clinical/proms", mountedPath: "/v1/clinical/proms", version: 2, engine: "clinical", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "built" },
- getClinicalSettings: { name: "getClinicalSettings", method: "GET", path: "/v1/clinical/settings", mountedPath: "/v1/clinical/settings", version: 1, engine: "clinical", callers: ["admin","doctor"], purpose: ["audit"], idempotent: false, status: "built" },
  postClinicalSettingChanges: { name: "postClinicalSettingChanges", method: "POST", path: "/v1/clinical/setting-changes", mountedPath: "/v1/clinical/setting-changes", version: 1, engine: "clinical", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
- postClinicalSettingReviews: { name: "postClinicalSettingReviews", method: "POST", path: "/v1/clinical/setting-reviews", mountedPath: "/v1/clinical/setting-reviews", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "built" },
+ getClinicalReviewConfirmers: { name: "getClinicalReviewConfirmers", method: "GET", path: "/v1/clinical/review-confirmers", mountedPath: "/v1/clinical/review-confirmers", version: 1, engine: "clinical", callers: ["engine:access","engine:care","engine:medicines"], purpose: ["audit"], idempotent: false, status: "built" },
+ getClinicalSettingsV2: { name: "getClinicalSettingsV2", method: "GET", path: "/v1/clinical/settings", mountedPath: "/v1/clinical/settings", version: 2, engine: "clinical", callers: ["admin","doctor","nurse"], purpose: ["audit"], idempotent: false, status: "built" },
+ postClinicalSettingReviewsV2: { name: "postClinicalSettingReviewsV2", method: "POST", path: "/v1/clinical/setting-reviews", mountedPath: "/v1/clinical/setting-reviews", version: 2, engine: "clinical", callers: ["doctor","nurse"], purpose: ["audit"], idempotent: true, status: "built" },
  getSafetyCheckins: { name: "getSafetyCheckins", method: "GET", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: false, status: "built" },
  postSafetyCheckinsByCheckinRefExtendV2: { name: "postSafetyCheckinsByCheckinRefExtendV2", method: "POST", path: "/v1/safety/checkins/{checkinRef}/extend", mountedPath: "/v1/safety/checkins/{checkinRef}/extend", version: 2, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "built" },
  postSafetyCheckinsByCheckinRefSafe: { name: "postSafetyCheckinsByCheckinRefSafe", method: "POST", path: "/v1/safety/checkins/{checkinRef}/safe", mountedPath: "/v1/safety/checkins/{checkinRef}/safe", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "built" },
@@ -2183,9 +2190,9 @@ export const apiRoutes = {
  postMedicinesCollectionsByCollectionRefHandoverV2: { name: "postMedicinesCollectionsByCollectionRefHandoverV2", method: "POST", path: "/v1/medicines/collections/{collectionRef}/handover", mountedPath: "/v1/medicines/collections/{collectionRef}/handover", version: 2, engine: "medicines", callers: ["nurse","courier","responder"], purpose: ["dispensing"], idempotent: false, status: "built" },
  getMedicinesOrdersV2: { name: "getMedicinesOrdersV2", method: "GET", path: "/v1/medicines/orders", mountedPath: "/v1/medicines/orders", version: 2, engine: "medicines", callers: ["pharmacy"], purpose: ["dispensing"], idempotent: false, status: "built" },
  postMedicinesLabOrdersByLabOrderRefClose: { name: "postMedicinesLabOrdersByLabOrderRefClose", method: "POST", path: "/v1/medicines/lab-orders/{labOrderRef}/close", mountedPath: "/v1/medicines/lab-orders/{labOrderRef}/close", version: 1, engine: "medicines", callers: ["doctor","nurse"], purpose: ["diagnostics"], idempotent: false, status: "built" },
- getMedicinesSettings: { name: "getMedicinesSettings", method: "GET", path: "/v1/medicines/settings", mountedPath: "/v1/medicines/settings", version: 1, engine: "medicines", callers: ["admin","doctor"], purpose: ["audit"], idempotent: false, status: "built" },
  postMedicinesSettingChanges: { name: "postMedicinesSettingChanges", method: "POST", path: "/v1/medicines/setting-changes", mountedPath: "/v1/medicines/setting-changes", version: 1, engine: "medicines", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
- postMedicinesSettingReviews: { name: "postMedicinesSettingReviews", method: "POST", path: "/v1/medicines/setting-reviews", mountedPath: "/v1/medicines/setting-reviews", version: 1, engine: "medicines", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "built" },
+ getMedicinesSettingsV2: { name: "getMedicinesSettingsV2", method: "GET", path: "/v1/medicines/settings", mountedPath: "/v1/medicines/settings", version: 2, engine: "medicines", callers: ["admin","doctor","nurse"], purpose: ["audit"], idempotent: false, status: "built" },
+ postMedicinesSettingReviewsV2: { name: "postMedicinesSettingReviewsV2", method: "POST", path: "/v1/medicines/setting-reviews", mountedPath: "/v1/medicines/setting-reviews", version: 2, engine: "medicines", callers: ["doctor","nurse"], purpose: ["audit"], idempotent: true, status: "built" },
  postDevicesRegistryV2: { name: "postDevicesRegistryV2", method: "POST", path: "/v1/devices/registry", mountedPath: "/v1/devices/registry", version: 2, engine: "devices", callers: ["operator"], purpose: ["treatment"], idempotent: false, status: "built" },
  postDevicesRegistryByDeviceRefRecallV2: { name: "postDevicesRegistryByDeviceRefRecallV2", method: "POST", path: "/v1/devices/registry/{deviceRef}/recall", mountedPath: "/v1/devices/registry/{deviceRef}/recall", version: 2, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "built" },
  getDevicesRegistryByDeviceRefHealthV2: { name: "getDevicesRegistryByDeviceRefHealthV2", method: "GET", path: "/v1/devices/registry/{deviceRef}/health", mountedPath: "/v1/devices/registry/{deviceRef}/health", version: 2, engine: "devices", callers: ["nurse","operator"], purpose: ["treatment"], idempotent: false, status: "built" },

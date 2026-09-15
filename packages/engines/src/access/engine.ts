@@ -35,7 +35,7 @@
 
    ── Settings ─────────────────────────────────────────────────────────────────────────────────────
 
-   GET /v1/access/settings@1, POST /v1/access/setting-changes@1 and POST /v1/access/setting-reviews@1,
+   GET /v1/access/settings@2, POST /v1/access/setting-changes@1 and POST /v1/access/setting-reviews@2,
    through packages/engines/src/settings, with the history in this store's settings_history. They live
    here rather than in apps/api because apps/api holds identity only, and these are policy about the
    bookings, threads and handovers this engine answers. Each act reads the value in force once, when it
@@ -70,7 +70,7 @@
 import booking from '../../../catalog/booking.json' with { type: 'json' };
 import sos from '../../../catalog/sos.json' with { type: 'json' };
 import { defineEngine, ok, refuse, type Answer, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
-import { SETTINGS_SCHEMA, historyOf, settingsIn, settingsRoutes } from '../settings/routes.ts';
+import { SETTINGS_SCHEMA, confirmersFromClinical, historyOf, settingsIn, settingsRoutes } from '../settings/routes.ts';
 import { rotaAt } from '../settings/shape.ts';
 import { cancelBooking, readBooking, recordRefund, requestBooking, type Booking, type Ledger } from './domain/booking.ts';
 import { instantOf, isoIn, type AccessEvent, type Outcome } from './domain/contract.ts';
@@ -256,6 +256,7 @@ export const engine = defineEngine({
    });
   },
 
-  ...settingsRoutes(accessSettings, { read: 'GET /v1/access/settings@1', change: 'POST /v1/access/setting-changes@1', review: 'POST /v1/access/setting-reviews@1' })
+  /* Who confirms a clinical review is Clinical's review-confirmer setting in force, asked of Clinical (Wave 5). */
+  ...settingsRoutes(accessSettings, { read: 'GET /v1/access/settings@2', change: 'POST /v1/access/setting-changes@1', review: 'POST /v1/access/setting-reviews@2' }, { confirmers: confirmersFromClinical })
  }
 });

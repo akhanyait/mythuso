@@ -629,7 +629,8 @@ struct DoctorReviewView: View {
        is a separate answer again — so the queue asks twice, and refuses rather than warns. */
     private var doctor: VettingSubject? { vetting.subject(signingDoctor) }
     private var signDecision: VettingDecision {
-        doctor.map { can($0, "sign-clinical-review") }
+        /* Who may sign is the review-confirmer setting, asked through Clinical (Wave 5). */
+        doctor.map { Clinical.confirmDecision($0) }
             ?? VettingDecision(allowed: false, reason: "No vetted doctor is signed in, so nothing here can be signed.", blockedBy: [])
     }
     private var prescribeDecision: VettingDecision {

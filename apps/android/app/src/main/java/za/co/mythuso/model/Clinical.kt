@@ -47,10 +47,21 @@ object Clinical {
 
     fun roles(ids: List<String>): String = ids.joinToString(", ") { ClinicalData.roleNames[it] ?: it }
 
-    /** A role the settings name, which the register grants every clinical capability, to a person it lets act on each today. */
-    fun mayConfirm(subject: VettingSubject?): Boolean =
-        subject != null && subject.roleId in ClinicalData.confirmers && ClinicalData.roleNames.containsKey(subject.roleId) &&
-            ClinicalData.clinicalRoleHolds.all { can(subject, it).allowed }
+    /** Who may confirm a clinical review, asked in one place: a role the review-confirmer setting names (its generated
+     *  default on a phone) and a person the register lets act today on every capability a clinical role holds. The
+     *  register's grant of sign-clinical-review decides none of it. */
+    fun confirmDecision(subject: VettingSubject): VettingDecision {
+        if (subject.roleId !in ClinicalData.confirmers || !ClinicalData.roleNames.containsKey(subject.roleId)) {
+            return VettingDecision(false, refusal("not-a-confirmer").statement, emptyList())
+        }
+        for (capability in ClinicalData.clinicalRoleHolds) {
+            val decision = can(subject, capability)
+            if (!decision.allowed) return decision
+        }
+        return VettingDecision(true, null, emptyList())
+    }
+
+    fun mayConfirm(subject: VettingSubject?): Boolean = subject != null && confirmDecision(subject).allowed
 
     /** The sentence a signature carries: the ratified protocol it follows, or that it follows none and why. */
     fun signedSentence(mode: String, visitProtocol: String?): String {

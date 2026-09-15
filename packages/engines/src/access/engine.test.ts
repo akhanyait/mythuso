@@ -8,7 +8,7 @@ import access from '../../../catalog/apis/access.json' with { type: 'json' };
 import assistant from '../../../catalog/assistant.json' with { type: 'json' };
 import geography from '../../../catalog/geography.json' with { type: 'json' };
 import sos from '../../../catalog/sos.json' with { type: 'json' };
-import { MEMORY, createClock, createRuntime, defineEngine, type EngineContext, type RouteKey } from '../runtime/index.ts';
+import { MEMORY, createClock, createRuntime, defineEngine, ok, type EngineContext, type RouteKey } from '../runtime/index.ts';
 import settingsContract from '../../../catalog/settings.json' with { type: 'json' };
 import booking from '../../../catalog/booking.json' with { type: 'json' };
 import { rotaAt } from '../settings/shape.ts';
@@ -16,13 +16,22 @@ import { offeredDays } from './domain/booking.ts';
 import { instantOf, isoIn } from './domain/contract.ts';
 import { accessInForce } from './domain/settings.ts';
 import { engine } from './engine.ts';
+import clinicalContract from '../../../catalog/clinical.json' with { type: 'json' };
+
+/* Clinical, standing in (Wave 5): who confirms a clinical review is Clinical's review-confirmer setting, which Access asks
+   Clinical for. An engine's tests reach no other engine's code, so the stand-in answers that one route with the
+   setting's contract default, read from the catalog. */
+const clinical = defineEngine({
+ id: 'clinical', subscriptions: {}, store: { schema: '' },
+ routes: { 'GET /v1/clinical/review-confirmers@1': () => ok({ settingsVersion: 1, confirmers: [...clinicalContract.settings.items.find(s => s.key === clinicalContract.reviews.confirmerSetting)!.default.value] }) }
+});
 
 const START = '2026-09-14T09:00:00+02:00';
 /* Care, standing in: a tick that publishes what a test queued, so a completion arrives through the real bus. */
 function world(at = START) {
  const queue: ((ctx: EngineContext) => void)[] = [];
  const care = defineEngine({ id: 'care', routes: {}, subscriptions: {}, store: { schema: '' }, tick: (ctx: EngineContext) => { for (const act of queue.splice(0)) act(ctx); } });
- const runtime = createRuntime({ env: { MYTHUSO_ENGINES: 'synthetic-data-only' }, engines: [engine, care], dataDirectory: MEMORY, clock: createClock(at) });
+ const runtime = createRuntime({ env: { MYTHUSO_ENGINES: 'synthetic-data-only' }, engines: [engine, care, clinical], dataDirectory: MEMORY, clock: createClock(at) });
  const asCare = (act: (ctx: EngineContext) => void) => { queue.push(act); runtime.advance(1); };
  return { runtime, asCare };
 }
@@ -151,9 +160,9 @@ test('a visit thread takes words from the two people on the visit and nothing at
 
 /* ---- Settings ---------------------------------------------------------------------------------- */
 
-const SETTINGS: RouteKey = 'GET /v1/access/settings@1';
+const SETTINGS: RouteKey = 'GET /v1/access/settings@2';
 const CHANGE_SETTING: RouteKey = 'POST /v1/access/setting-changes@1';
-const REVIEW_SETTING: RouteKey = 'POST /v1/access/setting-reviews@1';
+const REVIEW_SETTING: RouteKey = 'POST /v1/access/setting-reviews@2';
 const ADMIN = { role: 'admin', ref: 'party-admin-1', purpose: 'audit' };
 const DOCTOR = { role: 'doctor', ref: 'party-doctor-1', purpose: 'audit' };
 const shared = (id: string) => settingsContract.refusals.find(r => r.route === 'change' && r.id === id)!.statement;
@@ -170,7 +179,9 @@ test('an admin and a doctor read Access’s six settings with their proposals, a
  const photos = rows.find(r => r.setting === 'visit-thread-photos')!;
  assert.deepEqual([photos.reviewRequired, photos.reviewed], ['sign-clinical-review', null]);
  assert.equal(runtime.call(SETTINGS, { ...DOCTOR, fields: {} }).status, 200);
- for (const caller of [lerato, { role: 'nurse', ref: 'N-205', purpose: 'audit' }]) assert.equal(runtime.call(SETTINGS, { ...caller, purpose: 'audit', fields: {} }).body.error, 'caller-not-allowed', caller.role);
+ assert.equal(runtime.call(SETTINGS, { ...lerato, purpose: 'audit', fields: {} }).body.error, 'caller-not-allowed', 'patient');
+ /* A nurse is admitted since Clinical's review-confirmer setting may name her, and refused while it names the doctor alone. */
+ assert.equal(runtime.call(SETTINGS, { role: 'nurse', ref: 'N-205', purpose: 'audit', fields: {} }).body.error, 'settings-read-not-permitted', 'nurse');
  runtime.close();
 });
 

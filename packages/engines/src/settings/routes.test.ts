@@ -62,7 +62,7 @@ const block: SettingsBlock = {
 };
 
 function runtime() {
- const engine = defineEngine({ id: 'core', store: { schema: SETTINGS_SCHEMA }, subscriptions: {}, routes: settingsRoutes({ block }, { read: READ, change: CHANGE, review: REVIEW }) });
+ const engine = defineEngine({ id: 'core', store: { schema: SETTINGS_SCHEMA }, subscriptions: {}, routes: settingsRoutes({ block }, { read: READ, change: CHANGE, review: REVIEW }, { confirmers: () => ['doctor'] }) });
  return createRuntime({ env: { MYTHUSO_ENGINES: 'synthetic-data-only' }, engines: [engine], dataDirectory: MEMORY, clock: createClock(START), contract: contract() });
 }
 const ADMIN = { role: 'admin', ref: 'A-901', purpose: 'audit' };

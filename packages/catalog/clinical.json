@@ -20,6 +20,8 @@
    { "code": "outside-any-protocol", "label": "Reviewed outside any protocol", "sentence": "Reviewed outside any protocol. The visit named {protocol}, which the clinical governance board has not ratified, so this signature follows no protocol and says so.", "noProtocolSentence": "Reviewed outside any protocol. The visit named no protocol, so this signature follows none and says so." }
   ],
   "confirmerSetting": "review-confirmer",
+  "confirmerCapability": "sign-clinical-review",
+  "_confirmerNote": "Every setting on every engine that waits on a clinical review names sign-clinical-review, and who holds it for that purpose is the review-confirmer setting in force, not the vetting register's grant. packages/engines/src/settings/shape.ts reviewersOf() is the one answer: Clinical reads the value from its own store, every other engine asks GET /v1/clinical/review-confirmers@1, and the web preview reads the tab's history.",
   "clinicalRoleHolds": ["view-clinical-record", "write-clinical-note"],
   "_clinicalRoleHoldsNote": "What makes a role on packages/catalog/vetting.json a clinical role for the purpose of confirming a review: it both reads the clinical record and writes a clinical note. The review-confirmer setting may name only roles that hold both, and scripts/check-boundaries.mjs holds its allowed roles to it. A guardian reads a record and writes no note; a pharmacy dispenses and reads a summary; neither answers for a nurse's visit.",
   "autoSign": {

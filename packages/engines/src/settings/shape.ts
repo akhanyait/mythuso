@@ -26,6 +26,7 @@
 import contract from '../../../catalog/settings.json' with { type: 'json' };
 import scheduling from '../../../catalog/scheduling.json' with { type: 'json' };
 import vetting from '../../../catalog/vetting.json' with { type: 'json' };
+import clinical from '../../../catalog/clinical.json' with { type: 'json' };
 
 export const settingsContract = contract;
 export const settingsScreen = contract.screen;
@@ -401,12 +402,37 @@ export function reviewStateOf(setting: Setting, snapshot: Snapshot, reviews: rea
  return { required: setting.reviewRequired, reviewed: null };
 }
 
-export type ReviewRequest = { readonly setting: unknown; readonly settingsVersion: unknown; readonly reason?: unknown; readonly byRole: string; readonly byRef: string | null };
+/* ---- Who confirms a clinical review -----------------------------------------------------------------
+   One answer, for every engine and for the web preview: the roles Clinical's review-confirmer setting names in
+   force, and only those of them its own limits allow (packages/catalog/clinical.json). The vetting register still
+   grants sign-clinical-review to a role, and that grant no longer decides who confirms: an admin who names a senior
+   nurse on the Configuration screen reaches every engine's review route at once, and a value outside the setting's
+   limits is refused before it is ever in force. The value is Clinical's, kept in Clinical's store, so whoever asks
+   hands it in — Clinical from its own store, every other engine from GET /v1/clinical/review-confirmers@1, the
+   preview from the tab's history — and hands in null when it could not be read, which confirms nobody rather than
+   falling back to a list somebody typed. */
+const confirmerSetting = (clinical.settings.items as readonly { key: string; allowedRoles?: { roles: readonly string[] } }[]).find(s => s.key === clinical.reviews.confirmerSetting);
+if (!confirmerSetting?.allowedRoles) throw new Error('packages/catalog/clinical.json has lost the review-confirmer setting or its allowed roles, so nobody could be said to confirm a clinical review.');
+/** The capability every clinical review waits on. */
+export const CLINICAL_REVIEW: string = clinical.reviews.confirmerCapability;
+/** Every role the review-confirmer setting may name. */
+export const confirmerRoles: readonly string[] = Object.freeze([...confirmerSetting.allowedRoles.roles]);
+/** Who may confirm this setting's clinical review, given the roles review-confirmer names in force. */
+export function reviewersOf(setting: { readonly reviewRequired?: string }, confirmers: readonly string[] | null): string[] {
+ if (setting.reviewRequired !== CLINICAL_REVIEW || !confirmers) return [];
+ return confirmerRoles.filter(role => confirmers.includes(role));
+}
+
+export type ReviewRequest = {
+ readonly setting: unknown; readonly settingsVersion: unknown; readonly reason?: unknown; readonly byRole: string; readonly byRef: string | null;
+ /** The roles review-confirmer names in force, or null when they could not be read. */
+ readonly confirmers: readonly string[] | null;
+};
 
 export function confirmReview(engine: SettingsEngine, history: readonly Change[], reviews: readonly Review[], request: ReviewRequest, now: number): Result<Review> {
  const { block } = engine;
  const current = snapshotOf(block, history);
- const reviewers = (s: Setting) => s.reviewRequired ? rolesGranting(s.reviewRequired) : [];
+ const reviewers = (s: Setting) => reviewersOf(s, request.confirmers);
  const setting = block.items.find(s => s.key === request.setting);
  if (!request.byRef) return refused('review', 'setting-review-not-permitted');
  if (!setting) return refused('review', block.items.some(s => reviewers(s).includes(request.byRole)) ? 'setting-not-known' : 'setting-review-not-permitted');

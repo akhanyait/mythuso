@@ -383,3 +383,12 @@ POST /v1/clinical/proms@2 1156d5694ddcdba7
 GET /v1/clinical/settings@1 0cdd6daa9db8f694
 POST /v1/clinical/setting-changes@1 d01435c522b85dbf
 POST /v1/clinical/setting-reviews@1 71baa5cb9b710074
+GET /v1/access/settings@2 5d1ea7624d8b4960
+POST /v1/access/setting-reviews@2 423eac05efc01912
+GET /v1/care/settings@2 bdfd9e7f7156dfae
+POST /v1/care/setting-reviews@2 9bc6301671af19ae
+GET /v1/clinical/review-confirmers@1 4221ebe1573059c9
+GET /v1/clinical/settings@2 88713c920bea1db8
+POST /v1/clinical/setting-reviews@2 96b511c045292eab
+GET /v1/medicines/settings@2 2be0a453dd0db0a8
+POST /v1/medicines/setting-reviews@2 17f189893e01af15

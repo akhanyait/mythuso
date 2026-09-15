@@ -487,7 +487,8 @@ private fun VisitPart.fact(label: String): String? = detail.firstOrNull { it.lab
     val doctors = store.vetting.subjects.filter { it.roleId == "doctor" }
     val doctor = doctors.firstOrNull { it.id == signingAs } ?: doctors.firstOrNull()
     val mayRead = doctor?.let { can(it, "view-clinical-record") }
-    val maySign = doctor?.let { can(it, "sign-clinical-review") }
+    /* Who may sign is the review-confirmer setting, asked through Clinical (Wave 5). */
+    val maySign = doctor?.let { za.co.mythuso.model.Clinical.confirmDecision(it) }
     ScreenColumn {
         DemoBadge()
         Heading("Clinical review", "$reference · Lerato Molefe", "Submitted by Sister Naledi Mokoena, 4 September 11:24. Two readings were flagged by the nurse.")

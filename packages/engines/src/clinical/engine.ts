@@ -188,7 +188,16 @@ export const engine = defineEngine({
    return ok({ acknowledgedAt: instant(new Date(now)) });
   },
 
-  ...settingsRoutes(clinicalSettings, { read: 'GET /v1/clinical/settings@1', change: 'POST /v1/clinical/setting-changes@1', review: 'POST /v1/clinical/setting-reviews@1' })
+  /* Who confirms a clinical review, for every other engine whose settings wait on one. The value in force, with the
+     version that set it and nothing else: who changed it and why is read on the settings route, by a person. */
+  'GET /v1/clinical/review-confirmers@1': (_request, ctx) => {
+   if (!ctx.caller.role.startsWith('engine:')) return refuse('confirmers-read-by-engines');
+   const inForce = inForceOf(ctx);
+   return ok({ settingsVersion: inForce.settingsVersion, confirmers: [...inForce.confirmers] });
+  },
+
+  /* Clinical's own settings wait on a clinical review too, and read who confirms from its own store. */
+  ...settingsRoutes(clinicalSettings, { read: 'GET /v1/clinical/settings@2', change: 'POST /v1/clinical/setting-changes@1', review: 'POST /v1/clinical/setting-reviews@2' }, { confirmers: ctx => inForceOf(ctx).confirmers })
  },
  subscriptions: {
   ...Object.fromEntries(STANDING_EVENTS.map(key => [key, heardStanding])),

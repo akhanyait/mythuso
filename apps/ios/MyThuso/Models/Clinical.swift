@@ -57,10 +57,23 @@ enum Clinical {
         ids.map { ClinicalData.roleNames[$0] ?? $0 }.joined(separator: ", ")
     }
 
-    /// A role the settings name, which the register grants every clinical capability, to a person it lets act on each today.
+    /// Who may confirm a clinical review, asked in one place: a role the review-confirmer setting names (its generated
+    /// default on a phone) and a person the register lets act today on every capability a clinical role holds. The
+    /// register's grant of sign-clinical-review decides none of it.
+    static func confirmDecision(_ subject: VettingSubject) -> VettingDecision {
+        guard ClinicalData.confirmers.contains(subject.roleId), ClinicalData.roleNames[subject.roleId] != nil else {
+            return VettingDecision(allowed: false, reason: refusal("not-a-confirmer").statement, blockedBy: [])
+        }
+        for capability in ClinicalData.clinicalRoleHolds {
+            let decision = can(subject, capability)
+            if !decision.allowed { return decision }
+        }
+        return VettingDecision(allowed: true, reason: nil, blockedBy: [])
+    }
+
     static func mayConfirm(_ subject: VettingSubject?) -> Bool {
-        guard let subject, ClinicalData.confirmers.contains(subject.roleId), ClinicalData.roleNames[subject.roleId] != nil else { return false }
-        return ClinicalData.clinicalRoleHolds.allSatisfy { can(subject, $0).allowed }
+        guard let subject else { return false }
+        return confirmDecision(subject).allowed
     }
 
     /// The sentence a signature carries: the ratified protocol it follows, or that it follows none and why.

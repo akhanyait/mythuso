@@ -849,8 +849,19 @@ Still open. `review.signed@1`, `triage.completed@2` and `guidance.delivered@1` w
 subscribers bind no handler yet, and Money will subscribe to `review.signed` when claims act on it. Care does not yet
 put the protocol a visit was carried out under on the handover's envelope, so every review from the engine names none.
 The runtime holds a top-level response field to `required` without reading `nullable`, so the sign and consultation
-routes leave an absent value out rather than answering null. The review-confirmer setting is read by Clinical; the
-settings review route still resolves `sign-clinical-review` from the vetting register.
+routes leave an absent value out rather than answering null.
+
+**Who confirms a clinical review is the review-confirmer setting, everywhere (16 September).** Every engine whose
+settings wait on a clinical review — Access, Care, Medicines and Clinical — withdrew `GET …/settings@1` and
+`POST …/setting-reviews@1`, which admitted a doctor from the vetting register's grant of `sign-clinical-review`, for
+version two, which admits every clinical role the setting may name (doctor, nurse). The handlers confirm, and let read,
+only the roles it names in force: `packages/engines/src/settings/shape.ts reviewersOf()` is the one answer, Clinical
+reads it from its own store, and the other three ask the new `GET /v1/clinical/review-confirmers@1`, confirming nobody
+if Clinical does not answer. The web's setting reviews and the doctor-review screen on web, iOS and Android ask the same
+setting. Refusal: confirmers-read-by-engines. Build guarantee 11 in the Clinical Intelligence block holds it, and
+`packages/engines/src/review-confirmer-reaches-every-engine.test.ts` proves a nurse refused and then admitted on Clinical
+and on Care. Still open: a consultation's diagnosis field and a teleconsultation read `sign-clinical-review` as a
+capability to diagnose and to consult, which is not confirming a review, and are unchanged.
 
 ## Next UI increments
 

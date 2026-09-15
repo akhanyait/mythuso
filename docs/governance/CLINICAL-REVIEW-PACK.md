@@ -23,8 +23,8 @@ recommendation for the board.
 
 Writing in this pack changes nothing. A decision takes effect only through the contract's own process:
 
-- **Settings (sections A and E).** An admin puts a value in force on the Configuration tab (`POST /v1/safety/setting-changes@2`, `POST /v1/care/setting-changes@1`, `POST /v1/money/setting-changes@1`, `POST /v1/core/setting-changes@1`, `POST /v1/access/setting-changes@1`, `POST /v1/medicines/setting-changes@1`, `POST /v1/trust/setting-changes@2`, `POST /v1/record/setting-changes@1`, `POST /v1/devices/setting-changes@2`, `POST /v1/clinical/setting-changes@1`). For a setting that waits on a clinical review, somebody holding `sign-clinical-review` (Sign a clinical decision) then confirms that exact value, with a reason, in the doctor workspace's "Settings waiting for clinical review" panel (`apps/web/src/features/SettingReviews.tsx`, `POST /v1/care/setting-reviews@1`, `POST /v1/access/setting-reviews@1`, `POST /v1/medicines/setting-reviews@1`, `POST /v1/clinical/setting-reviews@1`). "Nobody confirms the clinical review of a change they made themselves." A default can instead be changed in the contract itself, naming the reviewer and the day (`packages/catalog/settings.json` `provenance.reviewed`) with a changelog entry, as `settings.json` `howToChange` describes.
-- **Who can confirm through the panel today:** Doctor (`doctor`), because only that role holds `sign-clinical-review` in `packages/catalog/vetting.json`. A Clinical Governance Lead who is a registered nurse could not confirm a setting through the panel. Their decision can still be recorded in the contract default, or the register can be changed — which is a question for the founder.
+- **Settings (sections A and E).** An admin puts a value in force on the Configuration tab (`POST /v1/safety/setting-changes@2`, `POST /v1/care/setting-changes@1`, `POST /v1/money/setting-changes@1`, `POST /v1/core/setting-changes@1`, `POST /v1/access/setting-changes@1`, `POST /v1/medicines/setting-changes@1`, `POST /v1/trust/setting-changes@2`, `POST /v1/record/setting-changes@1`, `POST /v1/devices/setting-changes@2`, `POST /v1/clinical/setting-changes@1`). For a setting that waits on a clinical review, somebody holding `sign-clinical-review` (Sign a clinical decision) then confirms that exact value, with a reason, in the doctor workspace's "Settings waiting for clinical review" panel (`apps/web/src/features/SettingReviews.tsx`, `POST /v1/care/setting-reviews@2`, `POST /v1/access/setting-reviews@2`, `POST /v1/medicines/setting-reviews@2`, `POST /v1/clinical/setting-reviews@2`). "Nobody confirms the clinical review of a change they made themselves." A default can instead be changed in the contract itself, naming the reviewer and the day (`packages/catalog/settings.json` `provenance.reviewed`) with a changelog entry, as `settings.json` `howToChange` describes.
+- **Who can confirm through the panel today:** Doctor (`doctor`), because Clinical's `review-confirmer` setting names that role by default (`packages/catalog/clinical.json`), and every engine's review route confirms for the roles that setting names in force and for nobody else. An admin may name any of Doctor (`doctor`), Registered nurse (`nurse`) on the Configuration tab, and that change waits on a clinical review of its own. A Clinical Governance Lead who is a registered nurse could confirm through the panel once the setting names her role.
 - **Protocols (section B).** "A protocol is not ratified until the register names the role and the person who signed it off, and the day they did." "Changing a ratified protocol means adding a new version that names the one it supersedes. The ratified row is never edited." The row in `packages/catalog/protocols.json` changes status, ratifiedBy and ratifiedOn, and gains a contentRef once the text exists. Core announces a ratification as `protocol.ratified@1`.
 - **Gilbert's emergency terms (section C).** Only in `packages/catalog/gilbert-emergency-terms.json`: raise `version`, add a changelog entry (day, role, terms added and removed, why, the new `termsHash`), keep the shared fixtures passing on all three platforms, and record `clinicalReview.reviewedBy` and `reviewedOn`. `CLAUDE.md` holds the rule; `npm run check` replays the changelog.
 - **The vetting register (section D).** A scope or a check changes in `packages/catalog/vetting.json` and is regenerated with `npm run vetting`. A proposed role is decided in `packages/catalog/vetting-proposals.json` by naming who decided it.
@@ -64,7 +64,7 @@ the question for the reviewer, and blank sign-off fields.
 | Why this default | A proposal nobody has decided. Proposed by the Integrator (Wave 3): It is exactly what Care does today: any registered nurse or locum. No scope on the vetting register names injections yet, so the programme reads them as inside a registered nurse's general scope, and that reading waits on a clinical reviewer. |
 | Who may change it | Internal admin staff (`admin`) |
 | What a change reaches | A change applies to offers made after it. An offer already made keeps the roles it was made under, and a visit already accepted stays with the nurse who accepted it. |
-| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/care/setting-reviews@1` |
+| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/care/setting-reviews@2` |
 
 **Question for the reviewer:** is Registered nurse (`nurse`), Locum nurse (`locum`) clinically safe as the answer to "Which registered roles an injection visit may be offered to", and are the limits an admin may set safe as well?
 
@@ -88,7 +88,7 @@ the question for the reviewer, and blank sign-off fields.
 | Why this default | A proposal nobody has decided. Proposed by the Integrator (Wave 3): It is exactly what Care does today: any registered nurse or locum. No scope on the vetting register names family planning yet, and no protocol in the register covers it, so the reading that it sits inside a registered nurse's general scope waits on a clinical reviewer. |
 | Who may change it | Internal admin staff (`admin`) |
 | What a change reaches | A change applies to offers made after it. An offer already made keeps the roles it was made under, and a visit already accepted stays with the nurse who accepted it. |
-| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/care/setting-reviews@1` |
+| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/care/setting-reviews@2` |
 
 **Question for the reviewer:** is Registered nurse (`nurse`), Locum nurse (`locum`) clinically safe as the answer to "Which registered roles a family planning visit may be offered to", and are the limits an admin may set safe as well?
 
@@ -112,7 +112,7 @@ the question for the reviewer, and blank sign-off fields.
 | Why this default | A proposal nobody has decided. Proposed by the Integrator (Wave 3): It is exactly what Care does today: any registered nurse or locum, under the medical certificate criteria protocol. No scope on the vetting register names sick-note assessments yet, so the reading that they sit inside a registered nurse's general scope waits on a clinical reviewer. |
 | Who may change it | Internal admin staff (`admin`) |
 | What a change reaches | A change applies to offers made after it. An offer already made keeps the roles it was made under, and a visit already accepted stays with the nurse who accepted it. |
-| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/care/setting-reviews@1` |
+| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/care/setting-reviews@2` |
 
 **Question for the reviewer:** is Registered nurse (`nurse`), Locum nurse (`locum`) clinically safe as the answer to "Which registered roles a sick-note assessment may be offered to", and are the limits an admin may set safe as well?
 
@@ -136,7 +136,7 @@ the question for the reviewer, and blank sign-off fields.
 | Why this default | A proposal nobody has decided. Proposed by the Integrator (Wave 3): There is no record route Care may call yet. passport.entry.written@1 for an Encounter is the only way Care learns an encounter exists, so today Care counts that entry as complete and signed, and switching it off would stop every handover and completion until a record route answers. |
 | Who may change it | Internal admin staff (`admin`) |
 | What a change reaches | A change applies to visits started after it. A visit already under way is handed over and completed under the value it started with, so a nurse at a door is never refused by a change made after she knocked. |
-| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/care/setting-reviews@1` |
+| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/care/setting-reviews@2` |
 
 **Question for the reviewer:** is Counts as signed (`true`) clinically safe as the answer to "Whether Care treats an Encounter entry the record has written as a completed and signed encounter, until a record route can tell Care whether it was signed", and are the limits an admin may set safe as well?
 
@@ -162,7 +162,7 @@ the question for the reviewer, and blank sign-off fields.
 | Why this default | A proposal nobody has decided. Proposed by the Integrator (Wave 3): A photo of a wound on a nurse's phone is health information kept on a personal device, with no consent behind it and no way to take it back. Until a doctor has reviewed whether a thread photo is clinically safe, and there is somewhere proper to keep one, the thread carries words only. |
 | Who may change it | Internal admin staff (`admin`) |
 | What a change reaches | A change applies to what a visit thread says from the moment it is made. No photo can be sent either way: this preview has no upload, and the thread route refuses anything attached. |
-| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/access/setting-reviews@1` |
+| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/access/setting-reviews@2` |
 
 **Question for the reviewer:** is Words only (`false`) clinically safe as the answer to "Whether a photo may travel between a patient and the nurse on their visit, once there is a way to send one", and are the limits an admin may set safe as well?
 
@@ -188,7 +188,7 @@ the question for the reviewer, and blank sign-off fields.
 | Why this default | A proposal nobody has decided. Proposed by the Medicines & Labs lead (Wave 4): A result is written for a clinician to read, and rung three of packages/catalog/closed-loop.json's ladder is the clinician rung. Medicines cannot see a result's values, so it cannot tell a routine result from an alarming one, and it treats every result as one a clinician must take on rather than guessing which ones may wait. |
 | Who may change it | Internal admin staff (`admin`) |
 | What a change reaches | A change applies to results that arrive after it. A result already raised keeps the rung it was raised on. |
-| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/medicines/setting-reviews@1` |
+| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/medicines/setting-reviews@2` |
 
 **Question for the reviewer:** is 3 rung clinically safe as the answer to "Which rung of Core's escalation ladder a lab result is raised on when it arrives, which decides how long its clinician has to take it on before it goes to the next person", and are the limits an admin may set safe as well?
 
@@ -214,7 +214,7 @@ the question for the reviewer, and blank sign-off fields.
 | Why this default | A proposal nobody has decided. Proposed by the Clinical Safety lead (Wave 5): It is what the vetting register already says: sign-clinical-review is granted to a doctor, and the planning documents put the review of a nurse's visit with a registered doctor. Whether a senior nurse may confirm some reviews is a clinical governance question, so the choice is here and the default is the documents' answer. |
 | Who may change it | Internal admin staff (`admin`) |
 | What a change reaches | A change applies to reviews read or signed after it. A review already signed keeps the signature it was given. |
-| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/clinical/setting-reviews@1` |
+| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/clinical/setting-reviews@2` |
 
 **Question for the reviewer:** is Doctor (`doctor`) clinically safe as the answer to "Which registered clinical roles may sign the review of a visit a nurse handed over", and are the limits an admin may set safe as well?
 
@@ -238,7 +238,7 @@ the question for the reviewer, and blank sign-off fields.
 | Why this default | A proposal nobody has decided. Proposed by the Clinical Safety lead (Wave 5): The planning documents give these days: MyThuso Full Scope v1.0 names PROMs at 7 and 30 days, and ThusoIQ Master v3.5 asks whether it fixed it at 7 and 30 days after every episode. Nobody with clinical authority has decided them for MyThuso, so they are proposed exactly as the documents give them. |
 | Who may change it | Internal admin staff (`admin`) |
 | What a change reaches | A change applies to episodes that start after it, when a review is signed. An episode already scheduled keeps the days it was scheduled with. |
-| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/clinical/setting-reviews@1` |
+| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/clinical/setting-reviews@2` |
 
 **Question for the reviewer:** is 7 days, 30 days clinically safe as the answer to "How many days after a review is signed a patient is asked the outcome questions for that episode of care", and are the limits an admin may set safe as well?
 

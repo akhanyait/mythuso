@@ -572,7 +572,7 @@
    "path": "/v1/medicines/settings",
    "version": 1,
    "summary": "Read Medicines' settings in force — how long a hand-over PIN works, how many wrong PINs a collector may enter, how long a collection may take and how urgently an unacknowledged result goes to a clinician — each with its default and who proposed it, what an admin may set, its clinical review, and every change made to them.",
-   "callers": ["admin", "doctor"],
+   "callers": [],
    "purpose": ["audit"],
    "request": [],
    "response": [
@@ -588,6 +588,7 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
+   "withdrawn": {"on": "2026-09-16", "supersededBy": "GET /v1/medicines/settings@2", "why": "Withdrawn by the Clinical Safety lead in Wave 5. It admitted an admin and a doctor, the doctor from the vetting register's grant of sign-clinical-review, so a nurse Clinical's review-confirmer setting names could not read the value she is asked to confirm. Version two admits every role that setting may name, and the handler reads who confirms from Clinical in force."},
    "status": "built",
    "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'GET /v1/medicines/settings@1'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
@@ -646,7 +647,7 @@
    "path": "/v1/medicines/setting-reviews",
    "version": 1,
    "summary": "Confirm the clinical review of the value in force for a Medicines setting that waits on one: how urgently an unacknowledged lab result goes to a clinician. A doctor holds sign-clinical-review.",
-   "callers": ["doctor"],
+   "callers": [],
    "purpose": ["audit"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same confirmation once."},
@@ -672,8 +673,47 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": null,
+   "withdrawn": {"on": "2026-09-16", "supersededBy": "POST /v1/medicines/setting-reviews@2", "why": "Withdrawn by the Clinical Safety lead in Wave 5. It admitted a doctor alone, from the vetting register's grant of sign-clinical-review, so who confirms how urgently a result goes to a clinician was decided by the register rather than by Clinical's review-confirmer setting, which an admin changes. Version two admits every clinical role that setting may name, and confirms only for the roles it names in force."},
    "status": "built",
    "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'POST /v1/medicines/setting-reviews@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/medicines/settings",
+   "version": 2,
+   "summary": "Read Medicines' settings in force — how long a hand-over PIN works, how many wrong PINs a collector may enter, how long a collection may take and how urgently an unacknowledged result goes to a clinician — each with its default and who proposed it, what an admin may set, its clinical review, and every change made to them. Read by the admin who changes them and by the clinical roles Clinical's review-confirmer setting names in force.",
+   "callers": ["admin", "doctor", "nurse"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [{"field":"settingsVersion","type":"integer","required":true,"why":"The version in force. A change is made against it, and whatever starts now keeps it."},{"field":"settings","type":"list","required":true,"why":"Each setting: its key, type, unit, the value in force and the version that set it, its default and provenance, its limits, who may change it, what a change reaches, its guardrail, and its clinical review.","object":true,"fields":[{"field":"setting","type":"string","required":true,"why":"The setting's key, which a change names."},{"field":"label","type":"string","required":true,"why":"Its name on the Configuration screen."},{"field":"help","type":"string","required":true,"why":"The question it answers, as a sentence."},{"field":"type","type":"string","required":true,"why":"One of the types in packages/catalog/settings.json."},{"field":"unit","type":"string","required":true,"nullable":true,"why":"What the value is counted in, or null for a type that has none."},{"field":"inForce","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#types","why":"The value in force: a number, a switch, a word, a list, a rota or a record, as its type gives."},{"field":"setAtVersion","type":"integer","required":true,"why":"The settings version that set the value in force, 1 for the contract's default."},{"field":"default","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#types","why":"The contract's default, of the same kind as the value in force."},{"field":"provenance","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#provenance","why":"Who decided the default, when and why, or who proposed it and why, and who reviewed it where somebody did."},{"field":"limits","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#setting","why":"What an admin may set — the bounds, allowed values, roles, posts, items or parts its type carries — with their provenance."},{"field":"changedBy","type":"list","required":true,"why":"The roles that may change it, resolved from the contract and the settings in force."},{"field":"appliesTo","type":"string","required":true,"why":"What a change reaches, as a sentence."},{"field":"guardrail","type":"string","required":true,"nullable":true,"why":"The sentence no value may break, or null for a setting with none."},{"field":"reviewRequired","type":"string","required":true,"nullable":true,"why":"The capability whose holder confirms its clinical review, or null for a setting that waits on nobody."},{"field":"reviewed","type":"string","required":true,"nullable":true,"object":true,"why":"Who confirmed the clinical review of the value in force, or null while it is not clinically reviewed.","fields":[{"field":"byRef","type":"string","required":true,"why":"The reviewer's reference."},{"field":"at","type":"instant","required":true,"nullable":true,"why":"When the review was confirmed through the review route, or null for a default reviewed before it shipped."},{"field":"on","type":"iso-date","required":true,"nullable":true,"why":"The day a default was reviewed before it shipped, or null for a review confirmed through the route."}]}]},{"field":"history","type":"list","required":true,"why":"Every accepted change, oldest first: which setting, from, to, who, when and why. Nothing in it is edited or removed.","object":true,"fields":[{"field":"settingsVersion","type":"integer","required":true,"why":"The version this change made."},{"field":"setting","type":"string","required":true,"why":"The setting it changed."},{"field":"from","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#types","why":"The value before, of the kind its type gives."},{"field":"to","type":"string","required":true,"object":true,"shapeFrom":"packages/catalog/settings.json#types","why":"The value after."},{"field":"reason","type":"string","required":true,"why":"Why, as it was written."},{"field":"byRole","type":"string","required":true,"why":"The role of the person who made it."},{"field":"byRef","type":"string","required":true,"why":"The reference of the person who made it, from the caller the runtime admitted."},{"field":"at","type":"instant","required":true,"why":"When it was made."}]}],
+   "refusals": [{"id":"settings-read-not-permitted","status":403,"statement":"Only somebody who may change these settings reads them and who changed them.","why":"The history names the people who changed how an engine behaves. It is read by the roles that may change it."}],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'GET /v1/medicines/settings@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/setting-reviews",
+   "version": 2,
+   "summary": "Confirm the clinical review of the value in force for a Medicines setting that waits on one: how urgently an unacknowledged lab result goes to a clinician. Confirmed only by a role Clinical's review-confirmer setting names in force.",
+   "callers": ["doctor", "nurse"],
+   "purpose": ["audit"],
+   "request": [{"field":"idempotencyKey","type":"string","required":true,"why":"Chosen by the caller. The same key twice is the same confirmation once."},{"field":"setting","type":"string","required":true,"why":"The setting's key, from the settings block of the engine's own contract."},{"field":"settingsVersion","type":"integer","required":true,"why":"The version that set the value being confirmed: 1 for the contract's default, or the version of the change. A reviewer confirms a value they read, never whatever happens to be in force when the request lands."},{"field":"reason","type":"string","required":false,"why":"Why the value is clinically safe. Asked for by the handler, so a confirmation without one is refused in its own sentence."}],
+   "response": [{"field":"settingsVersion","type":"integer","required":true,"why":"The version confirmed."},{"field":"reviewedAt","type":"instant","required":true,"why":"When the confirmation was recorded."}],
+   "refusals": [{"id":"setting-review-not-permitted","status":403,"statement":"Only somebody holding the capability this setting names confirms its clinical review, and the confirmation is recorded against a named person.","why":"A clinical-scope setting decides who may do what to a patient. Confirming it is a clinician's act, attributed like a signed review."},{"id":"setting-not-known","status":422,"statement":"There is no setting by that name.","why":"An unknown setting is refused rather than stored, or the reviews fill with confirmations of nothing."},{"id":"setting-review-not-needed","status":409,"statement":"This setting does not wait on a clinical review.","why":"A confirmation of a setting nobody asked a clinician about reads, later, as if one had been needed."},{"id":"setting-review-without-reason","status":422,"statement":"A clinical review says why the value is safe, or it is not recorded.","why":"A confirmation with no reason is a signature under nothing."},{"id":"setting-review-not-in-force","status":409,"statement":"That is not the value in force for this setting. Review what is in force now.","why":"A reviewer confirms the value they read. A value replaced since is not the one patients are being treated under."},{"id":"setting-review-already-confirmed","status":409,"statement":"That value has already been clinically reviewed.","why":"Two confirmations of one value are one review recorded twice."},{"id":"setting-review-own-change","status":403,"statement":"Nobody confirms the clinical review of a change they made themselves.","why":"packages/catalog/vetting.json's selfActionRefusals, applied to settings: a review by the person who made the change is no review."}],
+   "emits": [],
+   "emitsNoneBecause": "A confirmation changes no value, so nothing acts differently because of it. It is the row it appends to the engine's own reviews, which the read route returns.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'POST /v1/medicines/setting-reviews@2'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   }
  ]

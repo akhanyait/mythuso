@@ -76,9 +76,9 @@ object ApisData {
     val POST_ACCESS_BOOKINGS_BY_BOOKING_REF_CANCEL = Route("postAccessBookingsByBookingRefCancel", "POST", "/v1/access/bookings/{bookingRef}/cancel", "/v1/access/bookings/{bookingRef}/cancel", 1, "access", listOf("patient", "caregiver", "guardian", "thuso-line-agent"), listOf("dispatch"), true, "built")
     val GET_ACCESS_VISIT_THREADS_BY_BOOKING_REF = Route("getAccessVisitThreadsByBookingRef", "GET", "/v1/access/visit-threads/{bookingRef}", "/v1/access/visit-threads/{bookingRef}", 1, "access", listOf("patient", "caregiver", "guardian", "nurse"), listOf("dispatch"), false, "built")
     val POST_ACCESS_VISIT_THREADS_BY_BOOKING_REF_MESSAGES = Route("postAccessVisitThreadsByBookingRefMessages", "POST", "/v1/access/visit-threads/{bookingRef}/messages", "/v1/access/visit-threads/{bookingRef}/messages", 1, "access", listOf("patient", "caregiver", "guardian", "nurse"), listOf("dispatch"), true, "built")
-    val GET_ACCESS_SETTINGS = Route("getAccessSettings", "GET", "/v1/access/settings", "/v1/access/settings", 1, "access", listOf("admin", "doctor"), listOf("audit"), false, "built")
     val POST_ACCESS_SETTING_CHANGES = Route("postAccessSettingChanges", "POST", "/v1/access/setting-changes", "/v1/access/setting-changes", 1, "access", listOf("admin"), listOf("audit"), true, "built")
-    val POST_ACCESS_SETTING_REVIEWS = Route("postAccessSettingReviews", "POST", "/v1/access/setting-reviews", "/v1/access/setting-reviews", 1, "access", listOf("doctor"), listOf("audit"), true, "built")
+    val GET_ACCESS_SETTINGS_V2 = Route("getAccessSettingsV2", "GET", "/v1/access/settings", "/v1/access/settings", 2, "access", listOf("admin", "doctor", "nurse"), listOf("audit"), false, "built")
+    val POST_ACCESS_SETTING_REVIEWS_V2 = Route("postAccessSettingReviewsV2", "POST", "/v1/access/setting-reviews", "/v1/access/setting-reviews", 2, "access", listOf("doctor", "nurse"), listOf("audit"), true, "built")
     val POST_CARE_OFFERS_V2 = Route("postCareOffersV2", "POST", "/v1/care/offers", "/v1/care/offers", 2, "care", listOf("dispatcher"), listOf("dispatch"), true, "built")
     val POST_CARE_OFFERS_BY_OFFER_REF_ACCEPT = Route("postCareOffersByOfferRefAccept", "POST", "/v1/care/offers/{offerRef}/accept", "/v1/care/offers/{offerRef}/accept", 1, "care", listOf("nurse", "locum"), listOf("dispatch"), true, "built")
     val POST_CARE_OFFERS_BY_OFFER_REF_DECLINE = Route("postCareOffersByOfferRefDecline", "POST", "/v1/care/offers/{offerRef}/decline", "/v1/care/offers/{offerRef}/decline", 1, "care", listOf("nurse", "locum"), listOf("dispatch"), true, "built")
@@ -92,9 +92,9 @@ object ApisData {
     val GET_CARE_SERVICES = Route("getCareServices", "GET", "/v1/care/services", "/v1/care/services", 1, "care", listOf("patient", "caregiver", "nurse", "dispatcher", "thuso-line-agent"), listOf("dispatch"), false, "proposed")
     val GET_CARE_LOCUM_SHIFTS = Route("getCareLocumShifts", "GET", "/v1/care/locum-shifts", "/v1/care/locum-shifts", 1, "care", listOf("locum"), listOf("dispatch"), false, "proposed")
     val GET_CARE_CIRCUITS = Route("getCareCircuits", "GET", "/v1/care/circuits", "/v1/care/circuits", 1, "care", listOf("nurse", "dispatcher"), listOf("dispatch"), false, "proposed")
-    val GET_CARE_SETTINGS = Route("getCareSettings", "GET", "/v1/care/settings", "/v1/care/settings", 1, "care", listOf("admin", "doctor"), listOf("audit"), false, "built")
     val POST_CARE_SETTING_CHANGES = Route("postCareSettingChanges", "POST", "/v1/care/setting-changes", "/v1/care/setting-changes", 1, "care", listOf("admin"), listOf("audit"), true, "built")
-    val POST_CARE_SETTING_REVIEWS = Route("postCareSettingReviews", "POST", "/v1/care/setting-reviews", "/v1/care/setting-reviews", 1, "care", listOf("doctor"), listOf("audit"), true, "built")
+    val GET_CARE_SETTINGS_V2 = Route("getCareSettingsV2", "GET", "/v1/care/settings", "/v1/care/settings", 2, "care", listOf("admin", "doctor", "nurse"), listOf("audit"), false, "built")
+    val POST_CARE_SETTING_REVIEWS_V2 = Route("postCareSettingReviewsV2", "POST", "/v1/care/setting-reviews", "/v1/care/setting-reviews", 2, "care", listOf("doctor", "nurse"), listOf("audit"), true, "built")
     val POST_CLINICAL_RESULTS_BY_RESULT_REF_ACKNOWLEDGE = Route("postClinicalResultsByResultRefAcknowledge", "POST", "/v1/clinical/results/{resultRef}/acknowledge", "/v1/clinical/results/{resultRef}/acknowledge", 1, "clinical", listOf("doctor", "nurse"), listOf("diagnostics"), false, "built")
     val POST_CLINICAL_GUIDANCE = Route("postClinicalGuidance", "POST", "/v1/clinical/guidance", "/v1/clinical/guidance", 1, "clinical", listOf("nurse", "doctor", "engine:access"), listOf("treatment"), false, "built")
     val GET_CLINICAL_REVIEWS_V2 = Route("getClinicalReviewsV2", "GET", "/v1/clinical/reviews", "/v1/clinical/reviews", 2, "clinical", listOf("doctor", "nurse"), listOf("treatment"), false, "built")
@@ -102,9 +102,10 @@ object ApisData {
     val POST_CLINICAL_CONSULTATIONS_V2 = Route("postClinicalConsultationsV2", "POST", "/v1/clinical/consultations", "/v1/clinical/consultations", 2, "clinical", listOf("doctor", "nurse"), listOf("treatment"), false, "built")
     val POST_CLINICAL_TRIAGE_V3 = Route("postClinicalTriageV3", "POST", "/v1/clinical/triage", "/v1/clinical/triage", 3, "clinical", listOf("nurse", "doctor"), listOf("treatment"), false, "built")
     val POST_CLINICAL_PROMS_V2 = Route("postClinicalPromsV2", "POST", "/v1/clinical/proms", "/v1/clinical/proms", 2, "clinical", listOf("patient"), listOf("treatment"), false, "built")
-    val GET_CLINICAL_SETTINGS = Route("getClinicalSettings", "GET", "/v1/clinical/settings", "/v1/clinical/settings", 1, "clinical", listOf("admin", "doctor"), listOf("audit"), false, "built")
     val POST_CLINICAL_SETTING_CHANGES = Route("postClinicalSettingChanges", "POST", "/v1/clinical/setting-changes", "/v1/clinical/setting-changes", 1, "clinical", listOf("admin"), listOf("audit"), true, "built")
-    val POST_CLINICAL_SETTING_REVIEWS = Route("postClinicalSettingReviews", "POST", "/v1/clinical/setting-reviews", "/v1/clinical/setting-reviews", 1, "clinical", listOf("doctor"), listOf("audit"), true, "built")
+    val GET_CLINICAL_REVIEW_CONFIRMERS = Route("getClinicalReviewConfirmers", "GET", "/v1/clinical/review-confirmers", "/v1/clinical/review-confirmers", 1, "clinical", listOf("engine:access", "engine:care", "engine:medicines"), listOf("audit"), false, "built")
+    val GET_CLINICAL_SETTINGS_V2 = Route("getClinicalSettingsV2", "GET", "/v1/clinical/settings", "/v1/clinical/settings", 2, "clinical", listOf("admin", "doctor", "nurse"), listOf("audit"), false, "built")
+    val POST_CLINICAL_SETTING_REVIEWS_V2 = Route("postClinicalSettingReviewsV2", "POST", "/v1/clinical/setting-reviews", "/v1/clinical/setting-reviews", 2, "clinical", listOf("doctor", "nurse"), listOf("audit"), true, "built")
     val GET_SAFETY_CHECKINS = Route("getSafetyCheckins", "GET", "/v1/safety/checkins", "/v1/safety/checkins", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), false, "built")
     val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND_V2 = Route("postSafetyCheckinsByCheckinRefExtendV2", "POST", "/v1/safety/checkins/{checkinRef}/extend", "/v1/safety/checkins/{checkinRef}/extend", 2, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "built")
     val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_SAFE = Route("postSafetyCheckinsByCheckinRefSafe", "POST", "/v1/safety/checkins/{checkinRef}/safe", "/v1/safety/checkins/{checkinRef}/safe", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "built")
@@ -200,9 +201,9 @@ object ApisData {
     val POST_MEDICINES_COLLECTIONS_BY_COLLECTION_REF_HANDOVER_V2 = Route("postMedicinesCollectionsByCollectionRefHandoverV2", "POST", "/v1/medicines/collections/{collectionRef}/handover", "/v1/medicines/collections/{collectionRef}/handover", 2, "medicines", listOf("nurse", "courier", "responder"), listOf("dispensing"), false, "built")
     val GET_MEDICINES_ORDERS_V2 = Route("getMedicinesOrdersV2", "GET", "/v1/medicines/orders", "/v1/medicines/orders", 2, "medicines", listOf("pharmacy"), listOf("dispensing"), false, "built")
     val POST_MEDICINES_LAB_ORDERS_BY_LAB_ORDER_REF_CLOSE = Route("postMedicinesLabOrdersByLabOrderRefClose", "POST", "/v1/medicines/lab-orders/{labOrderRef}/close", "/v1/medicines/lab-orders/{labOrderRef}/close", 1, "medicines", listOf("doctor", "nurse"), listOf("diagnostics"), false, "built")
-    val GET_MEDICINES_SETTINGS = Route("getMedicinesSettings", "GET", "/v1/medicines/settings", "/v1/medicines/settings", 1, "medicines", listOf("admin", "doctor"), listOf("audit"), false, "built")
     val POST_MEDICINES_SETTING_CHANGES = Route("postMedicinesSettingChanges", "POST", "/v1/medicines/setting-changes", "/v1/medicines/setting-changes", 1, "medicines", listOf("admin"), listOf("audit"), true, "built")
-    val POST_MEDICINES_SETTING_REVIEWS = Route("postMedicinesSettingReviews", "POST", "/v1/medicines/setting-reviews", "/v1/medicines/setting-reviews", 1, "medicines", listOf("doctor"), listOf("audit"), true, "built")
+    val GET_MEDICINES_SETTINGS_V2 = Route("getMedicinesSettingsV2", "GET", "/v1/medicines/settings", "/v1/medicines/settings", 2, "medicines", listOf("admin", "doctor", "nurse"), listOf("audit"), false, "built")
+    val POST_MEDICINES_SETTING_REVIEWS_V2 = Route("postMedicinesSettingReviewsV2", "POST", "/v1/medicines/setting-reviews", "/v1/medicines/setting-reviews", 2, "medicines", listOf("doctor", "nurse"), listOf("audit"), true, "built")
     val POST_DEVICES_REGISTRY_V2 = Route("postDevicesRegistryV2", "POST", "/v1/devices/registry", "/v1/devices/registry", 2, "devices", listOf("operator"), listOf("treatment"), false, "built")
     val POST_DEVICES_REGISTRY_BY_DEVICE_REF_RECALL_V2 = Route("postDevicesRegistryByDeviceRefRecallV2", "POST", "/v1/devices/registry/{deviceRef}/recall", "/v1/devices/registry/{deviceRef}/recall", 2, "devices", listOf("operator"), listOf("audit"), false, "built")
     val GET_DEVICES_REGISTRY_BY_DEVICE_REF_HEALTH_V2 = Route("getDevicesRegistryByDeviceRefHealthV2", "GET", "/v1/devices/registry/{deviceRef}/health", "/v1/devices/registry/{deviceRef}/health", 2, "devices", listOf("nurse", "operator"), listOf("treatment"), false, "built")
@@ -284,9 +285,9 @@ object ApisData {
         POST_ACCESS_BOOKINGS_BY_BOOKING_REF_CANCEL,
         GET_ACCESS_VISIT_THREADS_BY_BOOKING_REF,
         POST_ACCESS_VISIT_THREADS_BY_BOOKING_REF_MESSAGES,
-        GET_ACCESS_SETTINGS,
         POST_ACCESS_SETTING_CHANGES,
-        POST_ACCESS_SETTING_REVIEWS,
+        GET_ACCESS_SETTINGS_V2,
+        POST_ACCESS_SETTING_REVIEWS_V2,
         POST_CARE_OFFERS_V2,
         POST_CARE_OFFERS_BY_OFFER_REF_ACCEPT,
         POST_CARE_OFFERS_BY_OFFER_REF_DECLINE,
@@ -300,9 +301,9 @@ object ApisData {
         GET_CARE_SERVICES,
         GET_CARE_LOCUM_SHIFTS,
         GET_CARE_CIRCUITS,
-        GET_CARE_SETTINGS,
         POST_CARE_SETTING_CHANGES,
-        POST_CARE_SETTING_REVIEWS,
+        GET_CARE_SETTINGS_V2,
+        POST_CARE_SETTING_REVIEWS_V2,
         POST_CLINICAL_RESULTS_BY_RESULT_REF_ACKNOWLEDGE,
         POST_CLINICAL_GUIDANCE,
         GET_CLINICAL_REVIEWS_V2,
@@ -310,9 +311,10 @@ object ApisData {
         POST_CLINICAL_CONSULTATIONS_V2,
         POST_CLINICAL_TRIAGE_V3,
         POST_CLINICAL_PROMS_V2,
-        GET_CLINICAL_SETTINGS,
         POST_CLINICAL_SETTING_CHANGES,
-        POST_CLINICAL_SETTING_REVIEWS,
+        GET_CLINICAL_REVIEW_CONFIRMERS,
+        GET_CLINICAL_SETTINGS_V2,
+        POST_CLINICAL_SETTING_REVIEWS_V2,
         GET_SAFETY_CHECKINS,
         POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND_V2,
         POST_SAFETY_CHECKINS_BY_CHECKIN_REF_SAFE,
@@ -408,9 +410,9 @@ object ApisData {
         POST_MEDICINES_COLLECTIONS_BY_COLLECTION_REF_HANDOVER_V2,
         GET_MEDICINES_ORDERS_V2,
         POST_MEDICINES_LAB_ORDERS_BY_LAB_ORDER_REF_CLOSE,
-        GET_MEDICINES_SETTINGS,
         POST_MEDICINES_SETTING_CHANGES,
-        POST_MEDICINES_SETTING_REVIEWS,
+        GET_MEDICINES_SETTINGS_V2,
+        POST_MEDICINES_SETTING_REVIEWS_V2,
         POST_DEVICES_REGISTRY_V2,
         POST_DEVICES_REGISTRY_BY_DEVICE_REF_RECALL_V2,
         GET_DEVICES_REGISTRY_BY_DEVICE_REF_HEALTH_V2,
@@ -855,12 +857,6 @@ object ApisData {
         val messageRef: String,
         val deliveryCode: String
     )
-    class GetAccessSettingsRequest
-    data class GetAccessSettingsResponse(
-        val settingsVersion: Int,
-        val settings: List<Map<String, Any?>>,
-        val history: List<Map<String, Any?>>
-    )
     data class PostAccessSettingChangesRequest(
         val idempotencyKey: String,
         val setting: String,
@@ -879,13 +875,19 @@ object ApisData {
         val settingsVersion: Int,
         val appliesFrom: String
     )
-    data class PostAccessSettingReviewsRequest(
+    class GetAccessSettingsV2Request
+    data class GetAccessSettingsV2Response(
+        val settingsVersion: Int,
+        val settings: List<Map<String, Any?>>,
+        val history: List<Map<String, Any?>>
+    )
+    data class PostAccessSettingReviewsV2Request(
         val idempotencyKey: String,
         val setting: String,
         val settingsVersion: Int,
         val reason: String? = null
     )
-    data class PostAccessSettingReviewsResponse(
+    data class PostAccessSettingReviewsV2Response(
         val settingsVersion: Int,
         val reviewedAt: String
     )
@@ -980,12 +982,6 @@ object ApisData {
     data class GetCareCircuitsResponse(
         val circuits: List<Map<String, Any?>>
     )
-    class GetCareSettingsRequest
-    data class GetCareSettingsResponse(
-        val settingsVersion: Int,
-        val settings: List<Map<String, Any?>>,
-        val history: List<Map<String, Any?>>
-    )
     data class PostCareSettingChangesRequest(
         val idempotencyKey: String,
         val setting: String,
@@ -1004,13 +1000,19 @@ object ApisData {
         val settingsVersion: Int,
         val appliesFrom: String
     )
-    data class PostCareSettingReviewsRequest(
+    class GetCareSettingsV2Request
+    data class GetCareSettingsV2Response(
+        val settingsVersion: Int,
+        val settings: List<Map<String, Any?>>,
+        val history: List<Map<String, Any?>>
+    )
+    data class PostCareSettingReviewsV2Request(
         val idempotencyKey: String,
         val setting: String,
         val settingsVersion: Int,
         val reason: String? = null
     )
-    data class PostCareSettingReviewsResponse(
+    data class PostCareSettingReviewsV2Response(
         val settingsVersion: Int,
         val reviewedAt: String
     )
@@ -1081,12 +1083,6 @@ object ApisData {
     data class PostClinicalPromsV2Response(
         val promEntryRef: String
     )
-    class GetClinicalSettingsRequest
-    data class GetClinicalSettingsResponse(
-        val settingsVersion: Int,
-        val settings: List<Map<String, Any?>>,
-        val history: List<Map<String, Any?>>
-    )
     data class PostClinicalSettingChangesRequest(
         val idempotencyKey: String,
         val setting: String,
@@ -1105,13 +1101,24 @@ object ApisData {
         val settingsVersion: Int,
         val appliesFrom: String
     )
-    data class PostClinicalSettingReviewsRequest(
+    class GetClinicalReviewConfirmersRequest
+    data class GetClinicalReviewConfirmersResponse(
+        val settingsVersion: Int,
+        val confirmers: List<String>
+    )
+    class GetClinicalSettingsV2Request
+    data class GetClinicalSettingsV2Response(
+        val settingsVersion: Int,
+        val settings: List<Map<String, Any?>>,
+        val history: List<Map<String, Any?>>
+    )
+    data class PostClinicalSettingReviewsV2Request(
         val idempotencyKey: String,
         val setting: String,
         val settingsVersion: Int,
         val reason: String? = null
     )
-    data class PostClinicalSettingReviewsResponse(
+    data class PostClinicalSettingReviewsV2Response(
         val settingsVersion: Int,
         val reviewedAt: String
     )
@@ -1936,12 +1943,6 @@ object ApisData {
     data class PostMedicinesLabOrdersByLabOrderRefCloseResponse(
         val closedAt: String
     )
-    class GetMedicinesSettingsRequest
-    data class GetMedicinesSettingsResponse(
-        val settingsVersion: Int,
-        val settings: List<Map<String, Any?>>,
-        val history: List<Map<String, Any?>>
-    )
     data class PostMedicinesSettingChangesRequest(
         val idempotencyKey: String,
         val setting: String,
@@ -1960,13 +1961,19 @@ object ApisData {
         val settingsVersion: Int,
         val appliesFrom: String
     )
-    data class PostMedicinesSettingReviewsRequest(
+    class GetMedicinesSettingsV2Request
+    data class GetMedicinesSettingsV2Response(
+        val settingsVersion: Int,
+        val settings: List<Map<String, Any?>>,
+        val history: List<Map<String, Any?>>
+    )
+    data class PostMedicinesSettingReviewsV2Request(
         val idempotencyKey: String,
         val setting: String,
         val settingsVersion: Int,
         val reason: String? = null
     )
-    data class PostMedicinesSettingReviewsResponse(
+    data class PostMedicinesSettingReviewsV2Response(
         val settingsVersion: Int,
         val reviewedAt: String
     )

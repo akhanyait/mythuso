@@ -1038,6 +1038,50 @@ if(existsSync('apps/api/src')) {
  }
  for (const s of cSettings.clinicalBlock.items) if (s.reviewRequired !== 'sign-clinical-review' || s.changedBy !== 'admin') cFail(10, `packages/catalog/clinical.json setting "${s.key}" no longer waits on a clinical review by somebody holding sign-clinical-review, or is changed by somebody other than an admin.`);
 
+ /* 11. Nothing decides who may confirm a clinical review but the review-confirmer setting in force. Asked of the one
+        rule every engine and the preview go through, of each engine's own settings, of every engine's binding, and of
+        the doctor-review screens on three platforms — the places a vetting grant used to decide it. */
+ const cShape = await import('../packages/engines/src/settings/shape.ts');
+ const { settingsEngines: cSettingsEngines } = await import('../packages/engines/src/settings/registry.ts');
+ const confirmerPromise = cContract.reviews._confirmerNote;
+ if (!confirmerPromise?.trim()) cFail(11, 'packages/catalog/clinical.json reviews has lost the note saying who confirms a clinical review, so this check would fail in silence.');
+ const sameRoles = (a, b) => [...a].sort().join() === [...b].sort().join();
+ if (cShape.CLINICAL_REVIEW !== cContract.reviews.confirmerCapability || !sameRoles(cShape.confirmerRoles, confirmer.allowedRoles.roles)) cFail(11, `packages/engines/src/settings/shape.ts reads a confirmer capability or confirmer roles other than packages/catalog/clinical.json's. ${confirmerPromise}`);
+ let reviewSettings = 0;
+ for (const [engineId, settingsEngine] of Object.entries(cSettingsEngines)) for (const s of settingsEngine.block.items.filter(item => item.reviewRequired)) {
+  reviewSettings++;
+  const at = `${engineId}:${s.key}`;
+  if (s.reviewRequired !== cShape.CLINICAL_REVIEW) cFail(11, `${at} waits on a review by "${s.reviewRequired}", which review-confirmer does not answer. ${confirmerPromise}`);
+  for (const [given, expected] of [[['doctor'], ['doctor']], [['doctor', 'nurse'], ['doctor', 'nurse']], [['nurse'], ['nurse']], [null, []], [[], []], [['admin', 'pharmacy', 'guardian'], []]]) {
+   const got = cShape.reviewersOf(s, given);
+   if (!sameRoles(got, expected.filter(role => cShape.confirmerRoles.includes(role)))) cFail(11, `packages/engines/src/settings/shape.ts answers ${JSON.stringify(got)} as who confirms ${at} when review-confirmer names ${JSON.stringify(given)}. ${confirmerPromise}`);
+  }
+  if (s.default.reviewedBy) continue;
+  const asked = confirmers => cShape.confirmReview(settingsEngine, [], [], { setting: s.key, settingsVersion: 1, reason: 'Boundary check.', byRole: 'nurse', byRef: 'party-check-nurse', confirmers }, 0);
+  if (!refusedAs(asked(['doctor']), 'setting-review-not-permitted') || !asked(['doctor', 'nurse']).ok || !refusedAs(asked(null), 'setting-review-not-permitted')) cFail(11, `A nurse confirming ${at} is not refused while review-confirmer names the doctor alone or could not be read, or is refused once it names her. ${confirmerPromise}`);
+ }
+ const vettingDecides = /rolesGranting\(\s*[^)]*(reviewRequired|sign-clinical-review)|\bcan\(\s*[^,()]+,\s*[^)]*(reviewRequired|['"]sign-clinical-review['"])/;
+ for (const f of [...files('packages/engines/src'), ...files('apps/web/src')].filter(f => /\.(ts|tsx)$/.test(f) && !/\.test\.ts$|\.generated\.ts$/.test(f))) {
+  const decided = codeLines(read(f)).find(line => vettingDecides.test(line) && !/mayDiagnose|mayConsult|roleGrants/.test(line));
+  if (decided && !['apps/web/src/features/Consultation.tsx', 'apps/web/src/lib/teleconsult.ts'].includes(f)) cFail(11, `${f} decides who may confirm a clinical review from a vetting grant: ${decided.trim().slice(0, 140)}. ${confirmerPromise}`);
+ }
+ for (const [f, forbidden, required] of [
+  ['apps/web/src/features/Clinical.tsx', "can(doctor, 'sign-clinical-review')", 'mayConfirmClinicalReview(doctor)'],
+  ['apps/web/src/lib/settings.ts', 'setting.reviewRequired).allowed', 'confirmers: clinicalSettingsNow().confirmers'],
+  ['apps/ios/MyThuso/Features/AssessmentView.swift', 'can($0, "sign-clinical-review")', 'Clinical.confirmDecision($0)'],
+  ['apps/android/app/src/main/java/za/co/mythuso/ui/ClinicalScreens.kt', 'can(it, "sign-clinical-review")', 'Clinical.confirmDecision(it)']
+ ]) if (read(f).includes(forbidden) || !read(f).includes(required)) cFail(11, `${f} decides who may sign or confirm a clinical review with ${read(f).includes(forbidden) ? forbidden : 'something other than the review-confirmer setting'}. ${confirmerPromise}`);
+ const settingsRoutesSrc = read('packages/engines/src/settings/routes.ts');
+ if (!settingsRoutesSrc.includes("ctx.call('GET /v1/clinical/review-confirmers@1'") || !settingsRoutesSrc.includes("answer.answeredBy === 'engine'") || !/confirmers: confirmersIn\(ctx\)/.test(settingsRoutesSrc) || !/reviewersOf\(s, confirmers\)/.test(settingsRoutesSrc)) cFail(11, `packages/engines/src/settings/routes.ts no longer reads who confirms from Clinical, accepts an answer Clinical did not give, or confirms or reads without it. ${confirmerPromise}`);
+ for (const f of files('packages/engines/src').filter(f => /\/engine\.ts$/.test(f))) {
+  const source = read(f);
+  if (!/review: 'POST \/v1\/[a-z]+\/setting-reviews@\d+'/.test(source)) continue;
+  const bound = f === cEngineFile ? source.includes('}, { confirmers: ctx => inForceOf(ctx).confirmers })') : source.includes('}, { confirmers: confirmersFromClinical })');
+  if (!bound) cFail(11, `${f} binds a settings review route without reading who confirms from Clinical's review-confirmer setting. ${confirmerPromise}`);
+ }
+ const confirmersRoute = cApi.routes.find(r => r.path === '/v1/clinical/review-confirmers' && r.version === 1 && !r.withdrawn);
+ if (confirmersRoute?.status !== 'built' || confirmersRoute.response.map(f => f.field).join() !== 'settingsVersion,confirmers' || !confirmersRoute.callers.every(c => c.startsWith('engine:'))) cFail(11, `GET /v1/clinical/review-confirmers@1 is not built, answers something beside the version and the roles, or is called by somebody other than an engine. ${confirmerPromise}`);
+
  /* And none of it on a patient's first load. */
  for (const f of ['apps/web/src/main.tsx', 'apps/web/src/App.tsx', 'apps/web/src/Doorway.tsx', 'apps/web/src/shells/PatientShell.tsx']) {
   if (existsSync(f) && /^import (?!type\b)[^;]*from '[^']*(features\/ClinicalIntelligence|lib\/clinical)'/m.test(read(f))) cFail(0, `${f} imports the Clinical Intelligence screens or store statically. They are the clinical workspace's, and a patient on metered data must not download them.`);
@@ -8270,16 +8314,16 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  }
  const byAdmin = careShape.proposeChange(careSettingsEngine, [], { setting: scopeItems[0].key, value: [takeVisit[0]], reason: 'Boundary check.', expectedVersion: 1, byRole: 'admin', byRef: 'party-boundary-1' }, 0);
  if (!byAdmin.ok) throw new Error(`An admin cannot narrow ${scopeItems[0].key} to ${takeVisit[0]}: ${byAdmin.refusal.id}. The boundary check's own change should be accepted.`);
- const reviewAs = (ref, settingsVersion, reviews = []) => careShape.confirmReview(careSettingsEngine, [byAdmin.value.change], reviews, { setting: scopeItems[0].key, settingsVersion, reason: 'Boundary check.', byRole: 'doctor', byRef: ref }, 1);
+ const reviewAs = (ref, settingsVersion, reviews = []) => careShape.confirmReview(careSettingsEngine, [byAdmin.value.change], reviews, { setting: scopeItems[0].key, settingsVersion, reason: 'Boundary check.', byRole: 'doctor', byRef: ref, confirmers: ['doctor'] }, 1);
  const selfReview = reviewAs('party-boundary-1', 2);
  if (selfReview.ok || selfReview.refusal.id !== 'setting-review-own-change') throw new Error(`The person who changed ${scopeItems[0].key} could confirm its clinical review${selfReview.ok ? '' : ` (refused only as ${selfReview.refusal.id})`}. A review by the person who made the change is no review.`);
  const olderVersion = reviewAs('party-boundary-2', 1);
  if (olderVersion.ok || olderVersion.refusal.id !== 'setting-review-not-in-force') throw new Error(`A doctor could confirm version 1 of ${scopeItems[0].key} after version 2 replaced it. A reviewer confirms the exact value in force.`);
  const fair = reviewAs('party-boundary-2', 2);
  if (!fair.ok) throw new Error(`Another doctor cannot confirm version 2 of ${scopeItems[0].key}: ${fair.refusal.id}.`);
- const reviewRoute = careApi.routes.find(r => r.method === 'POST' && r.path === '/v1/care/setting-reviews' && r.version === 1);
+ const reviewRoute = careApi.routes.find(r => r.method === 'POST' && r.path === '/v1/care/setting-reviews' && r.version === 2);
  if (reviewRoute?.status !== 'built' || reviewRoute.evidence?.file !== 'packages/engines/src/care/engine.ts' || reviewRoute.enforcedBy?.mechanism !== 'engines-runtime:callers'
-  || !careEngineSource.includes("settingsRoutes(careSettings, { read: 'GET /v1/care/settings@1', change: 'POST /v1/care/setting-changes@1', review: 'POST /v1/care/setting-reviews@1' })")) throw new Error('POST /v1/care/setting-reviews@1 is not built on the engine runtime through settingsRoutes() in packages/engines/src/care/engine.ts, so a doctor has nowhere to confirm the clinical review Care\'s scope settings wait on.');
+  || !careEngineSource.includes("settingsRoutes(careSettings, { read: 'GET /v1/care/settings@2', change: 'POST /v1/care/setting-changes@1', review: 'POST /v1/care/setting-reviews@2' }, { confirmers: confirmersFromClinical })")) throw new Error('POST /v1/care/setting-reviews@2 is not built on the engine runtime through settingsRoutes() in packages/engines/src/care/engine.ts, so a doctor has nowhere to confirm the clinical review Care\'s scope settings wait on.');
  const roleAlternatives = careVetting.roles.map(r => r.id).join('|');
  const typedRoleList = new RegExp(`(?:\\[|listOf\\(|setOf\\()\\s*(['"])(?:${roleAlternatives})\\1\\s*,\\s*(['"])(?:${roleAlternatives})\\2`);
  for (const file of [...careCode, ...careScreens]) {
@@ -8995,7 +9039,10 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
    for (const role of changedBy) changers.add(role);
    if (s.reviewRequired !== undefined) {
     if (!settingsCapabilityIds.has(s.reviewRequired) || !shape.rolesGranting(s.reviewRequired).length) throw new Error(`${at} waits on a clinical review by "${s.reviewRequired}", which is not a capability any role on the vetting register holds.`);
-    for (const role of shape.rolesGranting(s.reviewRequired)) reviewers.add(role);
+    /* Wave 5: who confirms a clinical review is Clinical's review-confirmer setting in force, so every review route admits
+       every role that setting may name, and the handler confirms only for the roles it names. */
+    if (s.reviewRequired !== shape.CLINICAL_REVIEW) throw new Error(`${at} waits on a clinical review by "${s.reviewRequired}". Every clinical review waits on ${shape.CLINICAL_REVIEW}, and who confirms one is Clinical's review-confirmer setting in force.`);
+    for (const role of shape.confirmerRoles) reviewers.add(role);
    }
 
    /* 5. The default is a value its own limits accept, and roleList defaults are on the register. */
@@ -9246,8 +9293,8 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  /* 3. Photos wait on a doctor. */
  const photosSetting = accessSetting('visit-thread-photos');
  if (photosSetting.type !== 'boolean' || photosSetting.reviewRequired !== 'sign-clinical-review' || photosSetting.default.value !== false || photosSetting.default.reviewedBy !== undefined) throw new Error('packages/catalog/booking.json visit-thread-photos no longer waits on sign-clinical-review, or no longer starts switched off and unreviewed. A wound photo is health information: switching photos on is shown as not clinically reviewed until a doctor confirms it.');
- const photosReview = accessRouteOf('POST /v1/access/setting-reviews@1');
- if (!photosReview || photosReview.withdrawn || photosReview.status !== 'built' || !accessEngineSource.includes("review: 'POST /v1/access/setting-reviews@1'")) throw new Error('POST /v1/access/setting-reviews@1 is not built through settingsRoutes(), so nobody could confirm the clinical review visit-thread-photos waits on.');
+ const photosReview = accessRouteOf('POST /v1/access/setting-reviews@2');
+ if (!photosReview || photosReview.withdrawn || photosReview.status !== 'built' || !accessEngineSource.includes("review: 'POST /v1/access/setting-reviews@2'")) throw new Error('POST /v1/access/setting-reviews@2 is not built through settingsRoutes(), so nobody could confirm the clinical review visit-thread-photos waits on.');
  const threadWrite = accessRouteOf('POST /v1/access/visit-threads/{bookingRef}/messages@1');
  if (threadWrite.request.map(f => f.field).sort().join(',') !== 'bookingRef,idempotencyKey,message' || !threadWrite.refusals.some(r => r.id === 'no-attachments') || !accessEngineSource.includes('ATTACHMENT.test(name)')) throw new Error('POST /v1/access/visit-threads/{bookingRef}/messages@1 declares a field beside the booking, the key and the words, or no longer refuses an attachment. Switching visit-thread-photos on is a decision ahead of a capability; a photo does not travel until a new version of the route carries one.');
  if (!visitAccessSource.includes('settings.threadPhotos') || !visitAccessSource.includes('words.photosNotInPreview') || !/!photosReviewed && [^\n]*\{settingsScreen\.notReviewed\}/.test(visitAccessSource) || !visitAccessSource.includes("reviewStateAt('access', 'visit-thread-photos').reviewed !== null")) throw new Error('apps/web/src/features/VisitAccess.tsx no longer says photos are not in this preview yet, and not clinically reviewed, while visit-thread-photos is on and unreviewed.');

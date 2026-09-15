@@ -217,7 +217,7 @@ test('a change says why, is made against the version in force and changes someth
 
 test('a clinical review belongs to the value in force, is confirmed by a holder of the capability, never by the person who changed it, and once', () => {
  const review = (history: readonly Change[], reviews: readonly Review[], request: Partial<ReviewRequest> = {}, at = T0) =>
-  confirmReview(engine, history, reviews, { setting: 'injection-roles', settingsVersion: 1, reason: 'Inside a registered nurse’s general scope.', byRole: 'doctor', byRef: 'D-301', ...request }, at);
+  confirmReview(engine, history, reviews, { setting: 'injection-roles', settingsVersion: 1, reason: 'Inside a registered nurse’s general scope.', byRole: 'doctor', byRef: 'D-301', confirmers: ['doctor'], ...request }, at);
  const state = (history: readonly Change[], reviews: readonly Review[], key = 'injection-roles') => reviewStateOf(setting(key), snapshotOf(example, history), reviews);
  assert.deepEqual(rolesGranting('sign-clinical-review'), ['doctor']);
  assert.deepEqual(state([], []), { required: 'sign-clinical-review', reviewed: null }, 'not clinically reviewed until somebody confirms it');
