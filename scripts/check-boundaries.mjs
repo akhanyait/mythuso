@@ -1396,6 +1396,9 @@ for(const {source,command,files} of generated) {
    case 'operator-credential': return [...credentialRoles];
    case 'supplier-callback': return r.legacyCallback && e.supplier ? [e.supplier] : [];
    case 'development-token': return ['developer'];
+   /* The engine runtime's binder reads a route's callers from this contract and admits them before the
+      handler runs, except the callers it cannot tell apart from anybody — which the contract lists. */
+   case 'engines-runtime:callers': return r.callers.filter(c => c.startsWith('engine:') ? engineIds.includes(c.slice('engine:'.length)) : apiCallers.has(c) && !apiContract.engineRuntime.binderCannotAdmit.includes(c));
    default: return [];
   }
  };
@@ -1644,7 +1647,18 @@ for(const {source,command,files} of generated) {
   if (!found) throw new Error(`packages/catalog/events.json has lost the refusal "${id}".`);
   return found;
  };
- if (!moneyHears || moneyHears.engine !== 'money' || !moneyHears.why?.trim() || !Array.isArray(moneyHears.events) || !Array.isArray(moneyHears.neverReferences) || !moneyHears.neverReferencesSuffix) throw new Error('packages/catalog/events.json no longer states what Money may hear.');
+ /* An allow-list of references, not a deny-list of clinical ones. The fourth review found the deny-list
+    let review.billable give Money reviewRef and would have let a new assessmentRef through: a list of
+    what may not reach Money is always one name short. So every reference-shaped field — one ending in a
+    store or contract suffix — on an event Money hears or publishes must be on mayReference with the
+    reason Money needs it, and an entry nothing uses is refused as a permission waiting to be misused. */
+ if (!moneyHears || moneyHears.engine !== 'money' || !moneyHears.why?.trim() || !Array.isArray(moneyHears.events) || !Array.isArray(moneyHears.mayReference) || moneyHears.neverReferences !== undefined || moneyHears.neverReferencesSuffix !== undefined) throw new Error('packages/catalog/events.json no longer states what Money may hear and which references it may hold, as an allow-list.');
+ const moneyMayReference = new Map(moneyHears.mayReference.map(x => {
+  if (!x.field?.trim() || !x.why?.trim()) throw new Error(`packages/catalog/events.json lets Money hold the reference ${JSON.stringify(x)} without saying why.`);
+  return [x.field, x];
+ }));
+ const referenceShaped = field => [...apiContract.conventions.references.storeSuffixes, ...apiContract.conventions.references.contractSuffixes].some(s => field.endsWith(s));
+ const moneyReferencesUsed = new Set();
  const moneyMay = new Map(moneyHears.events.map(x => {
   if (!x.type || !x.why?.trim()) throw new Error(`packages/catalog/events.json lets Money hear ${JSON.stringify(x)} without saying why.`);
   return [x.type, x];
@@ -1654,19 +1668,38 @@ for(const {source,command,files} of generated) {
   const hears = e.subscribers.includes(moneyHears.engine), publishes = e.owner === moneyHears.engine;
   if (!hears && !publishes) continue;
   if (hears && !moneyMay.has(e.type)) moneyFail(`${e.type}@${e.version} is subscribed to by money and is not among the events moneyHears lets it hear.`);
-  const clinicalReference = e.payload.find(f => moneyHears.neverReferences.includes(f.field) || f.field.endsWith(moneyHears.neverReferencesSuffix));
-  if (clinicalReference) moneyFail(`${e.type}@${e.version} ${hears ? 'reaches' : 'is published by'} money carrying "${clinicalReference.field}".`);
+  for (const f of e.payload.filter(f => referenceShaped(f.field))) {
+   if (!moneyMayReference.has(f.field)) moneyFail(`${e.type}@${e.version} ${hears ? 'reaches' : 'is published by'} money carrying "${f.field}", which moneyHears.mayReference does not list with a reason Money needs it.`);
+   moneyReferencesUsed.add(f.field);
+  }
  }
+ for (const field of moneyMayReference.keys()) if (!moneyReferencesUsed.has(field)) throw new Error(`moneyHears.mayReference lets Money hold ${field}, which no event Money hears or publishes carries. A permission nobody uses is one somebody uses later without reading it.`);
  for (const type of moneyMay.keys()) if (!apiEvents.some(e => !e.withdrawn && e.type === type && e.subscribers.includes(moneyHears.engine))) throw new Error(`moneyHears lets Money hear ${type}, which Money does not subscribe to. A permission nobody uses is one somebody uses later without reading it.`);
 
- /* Capability quotes, against the documents themselves when they are in this checkout. They are
-    untracked, so their absence is said in a sentence rather than failed. */
+ /* Capability quotes, against the documents themselves when they are in this checkout. The documents are
+    untracked and confidential, so CI, a fresh clone and every worktree lack them, and the fourth review
+    found that on all of those machines this compared nothing at all. So quotes can now change only where
+    they can be verified: packages/catalog/apis.json#quoteVerification records the day they were last
+    compared, each document's SHA-256 and a hash over every (section, what, paraphrase) the loop below
+    reads. Without the documents the build recomputes that hash and fails if it moved. With them it
+    compares every quote and fails unless the record matches what it just verified, printing the record
+    to write. No document text is committed: a hash of a quote list and of a file says nothing about
+    what either contains. */
  const quoteNorm = t => String(t).toLowerCase().replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/[^a-z0-9]+/g, ' ').trim();
  const quoteFiles = apiContract.documentQuotes.files;
  const absentDocuments = Object.values(quoteFiles).filter(file => !existsSync(file));
  const documentTexts = {};
  let quoteNote = null, quotesFound = 0, paraphrases = 0;
- if (absentDocuments.length) quoteNote = `${absentDocuments.join(' and ')} ${absentDocuments.length === 1 ? 'is' : 'are'} not in this checkout — Documentation/ is untracked — so ${quoteChecks.length} capability quotes were not compared with the documents`;
+ const quoteRecord = apiContract.quoteVerification;
+ if (!quoteRecord || !/^\d{4}-\d{2}-\d{2}$/.test(quoteRecord.verifiedOn ?? '') || !Array.isArray(quoteRecord.sources) || !/^[0-9a-f]{64}$/.test(quoteRecord.quotesHash ?? '') || !quoteRecord.why?.trim()) throw new Error("packages/catalog/apis.json has no quoteVerification record: the day the capability quotes were last compared with the documents, each document's SHA-256, a hash over every quote, and why the record exists.");
+ for (const name of Object.keys(quoteFiles)) if (!quoteRecord.sources.some(s => s.document === name && /^[0-9a-f]{64}$/.test(s.sha256 ?? ''))) throw new Error(`packages/catalog/apis.json#quoteVerification has no SHA-256 for ${name}, so nothing says which version of it the quotes were compared with.`);
+ const { createHash: quoteDigest } = await import('node:crypto');
+ const quotesNow = quoteChecks.map(q => [q.named.section, q.named.what, q.named.paraphrase === true]).sort((p, q) => (JSON.stringify(p) < JSON.stringify(q) ? -1 : 1));
+ const quotesHashNow = quoteDigest('sha256').update(JSON.stringify(quotesNow)).digest('hex');
+ if (absentDocuments.length) {
+  if (quotesHashNow !== quoteRecord.quotesHash) fail('quotes-are-quotes', `The capability quotes changed on a machine without the documents: ${absentDocuments.join(' and ')} ${absentDocuments.length === 1 ? 'is' : 'are'} not here, so the ${quoteChecks.length} quotes hash to ${quotesHashNow} and packages/catalog/apis.json#quoteVerification recorded ${quoteRecord.quotesHash} on ${quoteRecord.verifiedOn}. Compare them where Documentation/ exists; the check there prints the record to write.`);
+  quoteNote = `${absentDocuments.join(' and ')} ${absentDocuments.length === 1 ? 'is' : 'are'} not in this checkout, so ${quoteChecks.length} capability quotes were held to the hash recorded when they were last compared with the documents, on ${quoteRecord.verifiedOn}, and match it`;
+ }
  else {
   try {
    const { execFileSync } = await import('node:child_process');
@@ -1704,6 +1737,12 @@ for(const {source,command,files} of generated) {
   if (!body) fail('quotes-are-quotes', `${where} cites ${named.section}, and no such section was found in ${quoteFiles[document]}.`);
   if (!quoteNorm(body).includes(quoteNorm(named.what))) fail('quotes-are-quotes', `${where} quotes "${named.what}" from ${named.section}, and those words are not in it. Quote the section as written, or mark the phrase paraphrase: true.`);
   quotesFound++;
+ }
+ if (!absentDocuments.length && !quoteNote) {
+  const { readFileSync: readDocument } = await import('node:fs');
+  const documentsNow = Object.entries(quoteFiles).map(([document, file]) => ({ document, sha256: quoteDigest('sha256').update(readDocument(file)).digest('hex') }));
+  const stale = documentsNow.filter(d => !quoteRecord.sources.some(s => s.document === d.document && s.sha256 === d.sha256));
+  if (stale.length || quotesHashNow !== quoteRecord.quotesHash) fail('quotes-are-quotes', `Every capability quote was just compared with the documents and found, and packages/catalog/apis.json#quoteVerification no longer describes what was compared${stale.length ? ` (${stale.map(d => d.document).join(' and ')} changed)` : ''}${quotesHashNow !== quoteRecord.quotesHash ? ' (the quotes changed)' : ''}. Record it: "verifiedOn": "${new Date().toISOString().slice(0, 10)}", "sources": ${JSON.stringify(documentsNow)}, "quotesHash": "${quotesHashNow}".`);
  }
 
  /* The mock is not a service. */
@@ -6279,3 +6318,258 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  console.log(`The open-source register holds ${register.components.length} components and ${register.owned.length} owned parts, ${linkCount} links to real engines, routes, doors and capabilities, ${proposedDoors.size} proposed doors, ${unverifiedCount} honestly unverified sources — and ${adoptedCount} adopted, across ${manifests.length} manifests that declare none of them.`);
 }
 /* ==== end of PLATFORM INTEGRATIONS: THE OPEN-SOURCE REGISTER ======================================== */
+
+/* ==== Engine Runtime & Core (Wave 3): packages/engines ==============================================
+
+   Added by the Engine Runtime & Core lead. Self-contained; the one edit inside the Wave 2 API section is
+   the engines-runtime:callers case in deriveCallers. The engines run on a development runtime that binds
+   handlers to the frozen API contract and carries their events on a bus held to the event contract.
+   What this block holds it to: the runtime refuses to start without its flag in the factory, serves
+   loopback only and checks the Host header, and nothing in deploy/ names it; one engine's code never
+   reaches another engine's directory or opens a database of its own; and a route marked built on the
+   runtime names a handler file in its own engine's directory that registers exactly that route. */
+{
+ const runtimeSettings = JSON.parse(read('packages/catalog/apis.json')).engineRuntime;
+ const { posix } = await import('node:path');
+ const runtimeRefusalOf = id => runtimeSettings?.refusals?.find(x => x.id === id);
+ const enginesFail = (id, detail) => { const r = runtimeRefusalOf(id); throw new Error(`${detail}${r ? ` ${r.statement} ${r.why}` : ''}`); };
+ if (!runtimeSettings || runtimeSettings.package !== 'packages/engines' || runtimeSettings.flag !== 'MYTHUSO_ENGINES' || runtimeSettings.flagValue !== 'synthetic-data-only' || !Array.isArray(runtimeSettings.binderCannotAdmit) || !runtimeSettings.why?.trim()) throw new Error('packages/catalog/apis.json no longer describes the engine runtime: its package, its synthetic-data flag, the callers its binder cannot admit and why it exists.');
+ for (const id of ['route-not-in-the-contract', 'route-withdrawn', 'route-belongs-to-another-engine', 'subscription-not-declared', 'engine-fault', 'field-of-the-wrong-type']) if (!runtimeRefusalOf(id)?.statement?.trim() || !runtimeRefusalOf(id)?.why?.trim()) throw new Error(`packages/catalog/apis.json#engineRuntime has lost the refusal "${id}", or its sentence or its reasoning.`);
+
+ /* 1. Registered, zero-dependency, and every suite under src/ run — including each engine's domain tests. */
+ const rootForEngines = JSON.parse(read('package.json'));
+ if (!rootForEngines.workspaces.includes('packages/engines') || !/-w @mythuso\/engines/.test(rootForEngines.scripts.check) || !/-w @mythuso\/engines/.test(rootForEngines.scripts.test)) throw new Error('The root package.json no longer typechecks and tests packages/engines. A runtime whose refusals nobody has seen fire is a runtime that says yes.');
+ const enginesPackage = JSON.parse(read('packages/engines/package.json'));
+ if (enginesPackage.dependencies || enginesPackage.devDependencies) throw new Error('packages/engines declares dependencies; it is zero-dependency, like the services it stands in for.');
+ if (enginesPackage.scripts?.test !== 'node --test "src/**/*.test.ts"') throw new Error('packages/engines no longer runs every src/**/*.test.ts, so an engine\'s domain suite could stop running without anybody noticing.');
+
+ /* 2. Not a service: the flag in the factory, loopback and Host at the door, and nothing in deploy/. */
+ const runtimeSource = read('packages/engines/src/runtime/runtime.ts');
+ if (!/if \(options\.env\[settings\.flag\] !== settings\.flagValue\) throw new RuntimeRefusedToStart/.test(runtimeSource)) throw new Error(`createRuntime() in packages/engines/src/runtime/runtime.ts no longer refuses without ${runtimeSettings.flag}=${runtimeSettings.flagValue}, so importing the library skips the door the server goes through.`);
+ const enginesServer = read('packages/engines/src/server.ts');
+ if (!/const HOST = '127\.0\.0\.1'/.test(enginesServer) || !/server\.listen\(port, host\)/.test(enginesServer) || !/LOOPBACK\.has\(req\.socket\.remoteAddress/.test(enginesServer) || !/loopbackHosts\.has\(hostName\(req\.headers\.host\)\)/.test(enginesServer)) throw new Error('packages/engines/src/server.ts no longer binds to 127.0.0.1 and refuses a request that did not arrive on loopback, addressed to a loopback name.');
+ for (const file of files('deploy')) if (/packages\/engines|@mythuso\/engines|MYTHUSO_ENGINES|npm run engines/.test(read(file))) throw new Error(`${file} names the development engine runtime. It answers with synthetic data, believes a role from a header, and is never deployed.`);
+
+ /* 3. Store isolation. One module opens databases; an engine's code imports its own directory, the
+       runtime's interface and the catalog, and nothing else — not another engine, not a package. */
+ const engineIdsForRuntime = JSON.parse(read('packages/catalog/events.json')).engines.map(e => e.id);
+ const engineSources = files('packages/engines/src').filter(f => f.endsWith('.ts'));
+ let importsRead = 0;
+ for (const file of engineSources) {
+  const source = read(file);
+  const [top] = posix.relative('packages/engines/src', file).split('/');
+  /* The trail's own test opens the trail file to tamper with it, which is the point of the test. */
+  const opensDatabase = /new DatabaseSync\(/.test(source) || /^import (?!type)[^;]*from 'node:sqlite'/m.test(source);
+  if (opensDatabase && file !== 'packages/engines/src/runtime/store.ts' && file !== 'packages/engines/src/runtime/runtime.test.ts') throw new Error(`${file} opens a SQLite database itself. Only packages/engines/src/runtime/store.ts opens a store, and it hands each engine its own.`);
+  if (engineIdsForRuntime.includes(top) && /_runtime_/.test(source)) throw new Error(`${file} names a _runtime_ table. The replay table in an engine's store is the binder's, and an engine that edits it can make a second charge look like a replay.`);
+  for (const m of source.matchAll(/(?:^|\n)\s*(?:import|export)\s[^;]*?from\s+'([^']+)'|import\(\s*'([^']+)'\s*\)/g)) {
+   const spec = m[1] ?? m[2];
+   importsRead++;
+   if (spec.startsWith('node:')) continue;
+   if (!spec.startsWith('.')) throw new Error(`${file} imports "${spec}". packages/engines is zero-dependency.`);
+   const target = posix.normalize(posix.join(posix.dirname(file), spec));
+   const [targetTop] = posix.relative('packages/engines/src', target).split('/');
+   const inside = !target.startsWith('packages/engines/src/') ? null : targetTop;
+   if (engineIdsForRuntime.includes(top)) {
+    if (inside !== top && inside !== 'runtime' && !target.startsWith('packages/catalog/')) enginesFail('route-belongs-to-another-engine', `${file} imports ${target}. An engine's code reaches its own directory, the runtime and the catalog; another engine is reached through a route or an event, and its store not at all.`);
+   } else if (top === 'runtime' && engineIdsForRuntime.includes(inside)) {
+    throw new Error(`${file} imports ${target}. The runtime knows no engine by name; engines are discovered and bound.`);
+   }
+  }
+ }
+
+ /* 3b. A stored reply belongs to one caller and one request. The Money lead found replays keyed by
+        route, role and key, which handed one patient's payment result to another who chose the same
+        key and answered a changed request with the first result. The replay table's key names the
+        caller's reference, the binder compares a digest of the declared fields, and a mismatch is
+        refused with the shared refusal rather than replayed. */
+ const replayStore = read('packages/engines/src/runtime/store.ts');
+ if (!/PRIMARY KEY \(route, role, caller_ref, idempotency_key\)/.test(replayStore) || !/request_digest TEXT NOT NULL/.test(replayStore)) throw new Error('packages/engines/src/runtime/store.ts no longer keys stored replies by the caller\'s reference and keeps the request digest beside each. A reply keyed by role alone is one person\'s answer waiting to be handed to another.');
+ if (!/caller_ref = \?/.test(runtimeSource) || !/row\.request_digest !== digest\) return render\(shared\('idempotency-key-reused'\)\)/.test(runtimeSource) || !/runtimeRefusal\('caller-unidentified'\)/.test(runtimeSource)) throw new Error('packages/engines/src/runtime/runtime.ts no longer looks a replay up by the caller\'s reference, refuses an unidentified caller, and refuses a reused key whose request differs. A replay that skips any of the three answers somebody with an answer that was not theirs.');
+ if (!JSON.parse(read('packages/catalog/apis.json')).sharedRefusals.some(r => r.id === 'idempotency-key-reused' && r.status === 409)) throw new Error('packages/catalog/apis.json has lost the shared refusal idempotency-key-reused, so a reused key has no sentence to be refused with.');
+ /* An engine never redeclares a shared refusal. The Wave 2 section already refuses a route that does;
+    an engine file's own refusals were checked for shape only, so an engine-level idempotency-key-reused
+    with other words would have passed. The binder answers a reused key before any handler runs and a
+    declared refusal is looked up route first, engine second, shared last, so a second definition is at
+    best never read and at worst read instead of the shared one. Every engine inherits the shared list. */
+ const sharedRefusalIds = new Set(JSON.parse(read('packages/catalog/apis.json')).sharedRefusals.map(r => r.id));
+ for (const { file, doc } of loadApis().engines) {
+  for (const refusal of doc.refusals ?? []) if (sharedRefusalIds.has(refusal.id)) throw new Error(`${file} redeclares the shared refusal "${refusal.id}" among its engine refusals. Every engine inherits the shared refusals already, and the binder renders an engine's own definition before the shared one, so two definitions of one refusal can disagree with the sentence a caller reads.`);
+ }
+
+ /* 3c. The store a handler holds is a facade, never the handle. The reviewer attached Safety's file and
+        an arbitrary one through a Care tick and committed half of the binder's transaction, and the
+        grep for new DatabaseSync( above saw none of it, because nothing was opened: it was handed over.
+        So the runtime must hand out the facade and confirm the transaction is still its own before it
+        commits, and the facade's own rule is run here against every spelling of every escape found. */
+ if (!/store: facades\.get\(engine\)!/.test(runtimeSource) || /store: stores\.get\(/.test(runtimeSource)) throw new Error('packages/engines/src/runtime/runtime.ts hands a handler something other than the store facade. The DatabaseSync handle attaches, commits and vacuums whatever its type says.');
+ if ((runtimeSource.match(/if \(!db\.isTransaction\) throw/g) ?? []).length < 2) throw new Error('packages/engines/src/runtime/runtime.ts no longer confirms, after a handler and after a tick or a delivery, that the transaction it is about to commit is still the one it began.');
+ const { refusalFor } = await import('../packages/engines/src/runtime/facade.ts');
+ const storeEscapes = ['COMMIT', "attach database 'x' as y", "/* only a read */ ATTACH 'x' AS y", 'DETACH y', 'BEGIN', 'end', 'ROLLBACK', 'SAVEPOINT s', 'RELEASE s', "VACUUM INTO 'x'", 'EXPLAIN SELECT 1', 'PRAGMA writable_schema = 1', 'PRAGMA other.table_info(t)', 'SELECT * FROM _runtime_replays', 'SELECT * FROM "_RUNTIME_replays"', 'SELECT * FROM [_runtime_replays]', "SELECT * FROM '_runtime_replays'", 'SELECT 1; SELECT 2'];
+ for (const sql of storeEscapes) if (!refusalFor(sql)) throw new Error(`packages/engines/src/runtime/facade.ts lets a handler run ${JSON.stringify(sql)} against its store. ${runtimeRefusalOf('store-statement-refused')?.why ?? ''}`);
+ for (const sql of ['SELECT ref FROM notes', "INSERT INTO notes (ref) VALUES ('a; COMMIT; b')", 'PRAGMA table_info(notes)', 'SELECT 1;', 'CREATE TABLE IF NOT EXISTS notes (ref TEXT)']) if (refusalFor(sql)) throw new Error(`packages/engines/src/runtime/facade.ts refuses ${JSON.stringify(sql)}, which only touches the engine's own tables. A facade that refuses ordinary work is one somebody routes around.`);
+
+ /* 4. A route built on the runtime names a handler in its own engine's directory that registers it. */
+ const { routes: routesForRuntime } = loadApis();
+ const onRuntime = routesForRuntime.filter(r => r.status === 'built' && r.enforcedBy?.mechanism === runtimeSettings.mechanism);
+ for (const r of onRuntime) {
+  const where = `${routeKey(r)} in ${r.file}`;
+  const directory = `packages/engines/src/${r.engine}/`;
+  if (!r.evidence?.file?.startsWith(directory)) enginesFail('route-belongs-to-another-engine', `${where} is built on the engine runtime and its evidence is ${JSON.stringify(r.evidence?.file)}, not a file under ${directory}.`);
+  if (!existsSync(r.evidence.file) || r.evidence.handler !== `'${routeKey(r)}'` || !read(r.evidence.file).includes(r.evidence.handler)) enginesFail('route-not-in-the-contract', `${where} is built on the engine runtime and ${r.evidence.file} does not register '${routeKey(r)}' by that exact key.`);
+ }
+ for (const r of routesForRuntime.filter(r => r.enforcedBy?.mechanism === runtimeSettings.mechanism && r.status !== 'built')) throw new Error(`${routeKey(r)} claims the engine runtime's enforcement and is not built.`);
+
+ console.log(`The engine runtime refuses to start without ${runtimeSettings.flag}=${runtimeSettings.flagValue} in its factory, answers on loopback to a loopback Host only, and nothing in deploy/ names it. ${engineSources.length} source files under packages/engines/src read, ${importsRead} imports among them, and no engine reaches another engine's directory or opens a database; ${onRuntime.length} ${onRuntime.length === 1 ? 'route is' : 'routes are'} built on the runtime, each registered by exactly its key in its own engine's directory.`);
+}
+/* ==== end of Engine Runtime & Core (Wave 3) ========================================================= */
+
+/* ==== Money (Wave 3): payments, payouts and doctors' fees ===========================================
+
+   Added by the Money lead. Self-contained. Thuso Money's rules live in packages/catalog/money.json and
+   packages/catalog/apis/money.json and are enforced in packages/engines/src/money; what this block holds
+   them to is the handful of ways each could quietly stop being true while every test still passed:
+
+     1. The native copy of the contract is the generator's output, byte for byte.
+     2. A range is not a price. The doctor's per-case fee is null with nobody's name beside it, or it is
+        a number inside the cited range with a name and a day — and no Money screen types the range.
+     3. The simulated provider says what apps/api's says when it declines, word for word, and
+     4. answers every reference the same way, so the web preview and the engine's tests are told the
+        same thing about the same visit or week.
+     5. A nurse's week is her share of each visit in services.json, and nothing else, through the ledger.
+     6. Money hears only its list and publishes only its own live events. */
+{
+ const { emitMoney } = await import('./emit-money.mjs');
+ const moneyContract = JSON.parse(read('packages/catalog/money.json'));
+ const moneyApi = JSON.parse(read('packages/catalog/apis/money.json'));
+ const modelForMoney = JSON.parse(read('packages/catalog/business-model.json'));
+ const servicesForMoney = JSON.parse(read('packages/catalog/services.json'));
+ const earningsForMoney = JSON.parse(read('packages/catalog/earnings.json'));
+ const eventsForMoney = JSON.parse(read('packages/catalog/events.json'));
+ const moneyRefusal = id => moneyApi.refusals.find(r => r.id === id) ?? moneyApi.routes.flatMap(r => r.refusals).find(r => r.id === id);
+
+ /* 1. Generated, and the same as its sources. Compared here rather than in the shared list because it
+       has two sources, and a refusal sentence changed in the API contract must regenerate it too. */
+ for (const file of emitMoney()) {
+  if (!existsSync(file.path)) throw new Error(`${file.path} has not been generated from packages/catalog/money.json. Run: npm run money`);
+  for (const source of ['packages/catalog/money.json', 'packages/catalog/apis/money.json']) {
+   if (statSync(file.path).mtimeMs < statSync(source).mtimeMs) throw new Error(`${file.path} is older than ${source}. Run: npm run money`);
+  }
+  if (read(file.path) !== file.content) throw new Error(`${file.path} is not what packages/catalog/money.json generates. Either it was edited by hand — it says at the top not to be — or the generator changed. Run: npm run money`);
+ }
+
+ /* 2. A range is not a price. The easy fix for an undecided fee is the middle of the range, and it would
+       be a figure on a doctor's screen that nobody agreed to. */
+ const undecided = moneyRefusal('doctor-fee-undecided');
+ if (!undecided?.statement?.trim()) throw new Error('packages/catalog/apis/money.json has lost the refusal doctor-fee-undecided, so nothing says why a doctor is not paid while the fee is undecided.');
+ if (!moneyContract.doctorFees?.length) throw new Error('packages/catalog/money.json names no doctor\'s fee, so review.billable@1 has nothing to be billed against.');
+ const citedRanges = [];
+ for (const fee of moneyContract.doctorFees) {
+  const cited = fee.rangeFrom?.file === 'packages/catalog/business-model.json' ? modelForMoney : undefined;
+  const range = String(fee.rangeFrom?.path ?? '').split('.').reduce((at, key) => at?.[key], cited);
+  if (!Array.isArray(range) || range.length !== 2 || !(range[0] > 0 && range[0] < range[1])) throw new Error(`The fee "${fee.feeCode}" cites ${JSON.stringify(fee.rangeFrom)}, which is not a range of two numbers. A fee's range is read from the document that gives it, not typed beside it.`);
+  if ('range' in fee || 'price' in fee || 'low' in fee || 'high' in fee) throw new Error(`The fee "${fee.feeCode}" types a range or a price beside its citation. The range lives in ${fee.rangeFrom.file}.`);
+  if (fee.amount === null) {
+   if (fee.decidedBy !== null || fee.decidedOn !== null) throw new Error(`The fee "${fee.feeCode}" names who decided it and when, and has no amount. Either it was decided and the amount is missing, or it was not and the name is invented.`);
+   if (!fee.undecided?.trim() || !fee.whoDecides?.trim()) throw new Error(`The fee "${fee.feeCode}" is undecided and does not say so in a sentence, or does not say who decides it.`);
+  } else if (typeof fee.amount !== 'number' || !fee.decidedBy?.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(fee.decidedOn ?? '') || fee.amount < range[0] || fee.amount > range[1]) {
+   throw new Error(`The fee "${fee.feeCode}" is ${JSON.stringify(fee.amount)}, decided by ${JSON.stringify(fee.decidedBy)} on ${JSON.stringify(fee.decidedOn)}, against a cited range of R${range[0]}–R${range[1]}. A decided fee is a number inside the range with a person and a day beside it. ${undecided.statement}`);
+  }
+  citedRanges.push(range);
+ }
+ const moneyScreens = [
+  'apps/web/src/features/DoctorFees.tsx', 'apps/web/src/lib/money.ts',
+  'apps/ios/MyThuso/Features/DoctorFeesView.swift', 'apps/ios/MyThuso/Models/Money.swift',
+  'apps/android/app/src/main/java/za/co/mythuso/ui/MoneyScreens.kt', 'apps/android/app/src/main/java/za/co/mythuso/model/Money.kt',
+  'packages/engines/src/money/domain/fees.ts', 'packages/engines/src/money/engine.ts'
+ ].filter(existsSync);
+ for (const [low, high] of citedRanges) {
+  const typed = new RegExp(`R\\s?(${low}|${high})\\b|\\b${low}\\s?(–|-|to)\\s?R?\\s?${high}\\b`);
+  for (const file of moneyScreens) if (typed.test(read(file))) throw new Error(`${file} types the doctor's fee range. It is read from packages/catalog/business-model.json — on the phones through the generated MoneyData — so the range on a doctor's screen and the range in the funding proposal's model are one number.`);
+ }
+
+ /* 2b. No card fragment where a person pays. The booking screens on all three platforms offered
+        "Visa ending 4242" and reviewed "•••• 4242": fictional, and still the last four digits of a card on
+        the screen where somebody decides to pay — a fragment in every screenshot, and the very fragment
+        the payment-result door refuses by name. The ways to pay are money.json's, and nothing else is. */
+ const bookingScreens = [
+  'apps/web/src/features/Booking.tsx', 'apps/ios/MyThuso/Features/BookingView.swift',
+  'apps/android/app/src/main/java/za/co/mythuso/ui/CareScreens.kt'
+ ];
+ for (const file of bookingScreens) {
+  if (!existsSync(file)) throw new Error(`${file} is gone, so nothing holds its payment step to the ways to pay in packages/catalog/money.json.`);
+  const fragment = read(file).match(/\b\d{4}\b(?=[^\n]*(Visa|Mastercard|ending|card))|Visa ending|••••\s?\d|\*{4}\s?\d{4}/);
+  if (fragment) throw new Error(`${file} shows a card fragment ("${fragment[0]}") on the screen where a person pays. ${moneyRefusal('card-number-held').statement} The ways to pay are named in packages/catalog/money.json, and none of them is a card number.`);
+ }
+
+ /* 3. The decline sentences are the contract's. apps/api still carries its own copy and reads no contract
+       for them; until it does, the two are held to each other here rather than allowed to part. */
+ const apiPayments = read('apps/api/src/simulation/payments.ts');
+ const declinesBlock = apiPayments.match(/const DECLINES = \[([\s\S]*?)\] as const/);
+ const apiDeclines = declinesBlock ? [...declinesBlock[1].matchAll(/'([^']+)'/g)].map(m => m[1]) : [];
+ if (!apiDeclines.length) throw new Error('apps/api/src/simulation/payments.ts no longer declares DECLINES where this check can read them, so nothing holds its sentences to packages/catalog/money.json.');
+ if (JSON.stringify(apiDeclines) !== JSON.stringify(moneyContract.declines)) throw new Error(`The simulated provider in apps/api declines in different words from packages/catalog/money.json's declines. A patient walking the web preview and the engine's own tests would be told two different things about the same refused card.`);
+
+ /* 4. The two simulators agree. The engine reproduces apps/api's by contract — the seed, the one in five,
+       the sentences — rather than importing it, so the agreement is measured rather than assumed. */
+ const engineProvider = await import('../packages/engines/src/money/domain/provider.ts');
+ const { cardAndEft } = await import('../apps/api/src/simulation/payments.ts');
+ const { bankPayouts } = await import('../apps/api/src/simulation/payouts.ts');
+ const failedDetail = earningsForMoney.states.find(s => s.id === 'failed').detail;
+ const checkedAt = new Date('2026-09-14T08:00:00+02:00');
+ const disagreements = [];
+ const SAMPLES = 80;
+ for (let i = 0; i < SAMPLES; i += 1) {
+  const subject = `MT-CHECK-${i}`;
+  const attemptNumber = 1 + (i % 3);
+  const service = servicesForMoney[i % servicesForMoney.length];
+  const theirs = cardAndEft.produce({ subject, at: checkedAt, detail: { service: service.id, attempt: attemptNumber } });
+  const ours = engineProvider.attempt(subject, attemptNumber, subject, service.price * 100, checkedAt);
+  if ('refused' in theirs || theirs.payload.outcome !== ours.outcome || (theirs.payload.declineReason ?? null) !== (ours.declineReason ?? null) || theirs.payload.providerReference !== ours.providerReference) disagreements.push(`payment ${subject} attempt ${attemptNumber}`);
+  for (const was of ['closed', 'failed']) {
+   const weekId = `w-check-${i}`;
+   const bank = bankPayouts.produce({ subject: weekId, at: checkedAt, detail: { partyId: 'N-205', amountCents: 10000, was } });
+   const advice = engineProvider.advise(weekId, 'N-205', 10000, was, failedDetail, checkedAt);
+   if ('refused' in bank || bank.payload.outcome !== advice.outcome || (bank.payload.failureReason ?? null) !== (advice.failureReason ?? null)) disagreements.push(`payout ${weekId} after ${was}`);
+  }
+ }
+ if (disagreements.length) throw new Error(`packages/engines/src/money/domain/provider.ts and apps/api's simulators disagree about ${disagreements.length} of ${SAMPLES * 3} answers, the first being ${disagreements[0]}. The engine reproduces them by contract, and a reproduction that answers differently is a second simulator.`);
+
+ /* 5. A week is the nurse's share of each visit, through the ledger — and a visit line that names its own
+       amount is refused by the ledger rather than believed. */
+ const payoutsDomain = await import('../packages/engines/src/money/domain/payouts.ts');
+ for (const week of earningsForMoney.weeks) {
+  const byHand = week.lines.reduce((sum, line) => {
+   const kind = earningsForMoney.lineKinds.find(k => k.id === line.kind);
+   const base = line.service ? servicesForMoney.find(s => s.id === line.service).nurseShare : line.amount;
+   return sum + kind.sign * base * 100;
+  }, 0);
+  const throughTheLedger = payoutsDomain.totalCents(payoutsDomain.linesFromEarningsWeek(week));
+  if (throughTheLedger !== byHand) throw new Error(`The ledger works out week ${week.id} as ${throughTheLedger} cents, and the nurse's share of its visits in packages/catalog/services.json is ${byHand}. A payout is that share and nothing else.`);
+ }
+ const namedAmount = payoutsDomain.acceptLine({ kind: 'visit', reference: 'check', serviceId: servicesForMoney[0].id, amountCents: 1 });
+ if (namedAmount?.id !== 'payout-line-names-its-amount') throw new Error(`The ledger accepted a visit line that names its own amount. ${moneyRefusal('payout-line-names-its-amount').statement}`);
+
+ /* 6. Money hears only its list, and publishes only its own live events, each one a route of its declares. */
+ const moneyEngineSource = read('packages/engines/src/money/engine.ts');
+ const heardBlock = moneyEngineSource.match(/export const HEARD[^=]*=\s*\[([^\]]*)\]/);
+ const heard = heardBlock ? [...heardBlock[1].matchAll(/'([^']+)'/g)].map(m => m[1]) : [];
+ if (!heard.length) throw new Error('packages/engines/src/money/engine.ts no longer lists what it hears in HEARD, so nothing here can hold its subscriptions to moneyHears.');
+ const hearsTypes = new Set(eventsForMoney.moneyHears.events.map(e => e.type));
+ for (const key of heard) {
+  const [type, version] = key.split('@');
+  const event = eventsForMoney.events.find(e => e.type === type && e.version === Number(version));
+  if (!hearsTypes.has(type) || !event || event.withdrawn || !event.subscribers.includes('money')) throw new Error(`Money subscribes to ${key}, which is not a live event on its moneyHears list. ${moneyRefusal('hears-only-its-list').statement}`);
+ }
+ const declaredEmits = new Set([...moneyApi.routes.flatMap(r => r.emits), 'payout.scheduled@1', 'payout.paid@1']);
+ const emittedKeys = new Set([...read('packages/engines/src/money/domain/ledger.ts').matchAll(/emit\('([^']+)'/g)].map(m => m[1]));
+ if (!emittedKeys.size) throw new Error('packages/engines/src/money/domain/ledger.ts publishes nothing this check can find, so nothing holds what Money publishes to the event contract.');
+ for (const key of emittedKeys) {
+  const [type, version] = key.split('@');
+  const event = eventsForMoney.events.find(e => e.type === type && e.version === Number(version));
+  if (!event || event.withdrawn || event.owner !== 'money' || !declaredEmits.has(key)) throw new Error(`Money's ledger publishes ${key}, which is not a live event Money owns and declares. A second publisher is a second source of truth.`);
+ }
+
+ console.log(`Thuso Money's contract is generated into ${emitMoney().length} native files and matches them; ${moneyContract.doctorFees.length} doctor's fee is ${moneyContract.doctorFees.every(f => f.amount === null) ? 'undecided, with nobody\'s name beside it, and its range is read from the document that gives it' : 'decided, by a named person, inside its cited range'}; the engine's simulated provider and bank agree with apps/api's on all ${SAMPLES * 3} sampled answers and decline in the contract's words; every sample week is the nurse's share through the ledger; and Money hears ${heard.length} events on its list and publishes ${emittedKeys.size} of its own.`);
+}
+/* ==== end of Money (Wave 3) ========================================================================== */

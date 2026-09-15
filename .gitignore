@@ -34,3 +34,6 @@ test-results/
 
 # Agent worktrees live here.
 .claude/worktrees/
+
+# The engines' development stores and bus trail. Synthetic data, and never committed.
+packages/engines/.data/

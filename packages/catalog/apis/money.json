@@ -12,7 +12,14 @@
   {"id": "payout-line-names-its-amount", "status": 422, "statement": "A payout line does not name its own amount for a visit.", "why": "The share is packages/catalog/earnings.json's arithmetic."},
   {"id": "suspension-touches-earned-money", "status": 409, "statement": "A suspension never touches money already earned.", "why": "Money does not subscribe to a suspension."},
   {"id": "scheme-hears-about-a-grant", "status": 403, "statement": "A scheme receives nothing about a person's grant.", "why": "Money serves only the scheme's aggregate role."},
-  {"id": "charge-without-a-key", "status": 400, "statement": "Nothing is charged without an idempotency key.", "why": "A retry is not a second charge."}
+  {"id": "charge-without-a-key", "status": 400, "statement": "Nothing is charged without an idempotency key.", "why": "A retry is not a second charge."},
+  {"id": "hears-only-its-list", "status": 422, "statement": "Money does not hear that event.", "why": "Money hears the billable state changes packages/catalog/events.json lists under moneyHears, and an event carrying a reference into the record is refused even when its type is on the list."},
+  {"id": "doctor-fee-undecided", "status": 409, "statement": "No doctor's payout is scheduled while the fee is undecided.", "why": "The documents give a range for a doctor's per-case fee, not a price. packages/catalog/money.json holds the fee as null until somebody named decides it, and a payout worked out from a number nobody decided is a promise nobody made."},
+  {"id": "scheme-sees-a-payment", "status": 403, "statement": "No scheme or employer sees what one person paid.", "why": "A scheme and an employer are served in aggregate. A person's payment tells whoever reads it that a visit happened, and when."},
+  {"id": "door-locked", "status": 423, "statement": "That door is locked until its switch-on conditions are evidenced.", "why": "Payment results and payout advice arrive only through the doors in packages/catalog/feeds.json, and none of their conditions is met. In development the simulated provider stands behind them, in process, and nothing from the network does."},
+  {"id": "cash-before-the-visit-finished", "status": 409, "statement": "Cash is recorded against a finished visit, and this one has not finished.", "why": "A cash code entered before Care says the visit was billable would record money for a visit that may still not happen."},
+  {"id": "payable-not-priced", "status": 409, "statement": "This visit has no price Money can read yet, so nothing is charged.", "why": "appointment.booked@1 carries no service, so the payable it opens has no amount until visit.billable@1 names one. A charge against a payable with no catalogue price is an amount that came from the caller."},
+  {"id": "deduction-without-a-reason", "status": 422, "statement": "A payout does not go down without a line naming the visit and the reason.", "why": "packages/catalog/earnings.json's every-deduction-is-named rule, enforced on the ledger rather than only drawn on the screen."}
  ],
  "ownIds": [],
  "routes": [
@@ -36,13 +43,19 @@
    "refusals": [
     {"id": "card-number-sent", "status": 422, "statement": "MyThuso never takes a card number; the provider's page does.", "why": "Refused before it is logged."},
     {"id": "amount-mismatch", "status": 409, "statement": "That amount is not what is owed.", "why": "A payable's amount comes from the catalogue."},
-    {"id": "cash-without-otp", "status": 422, "statement": "Cash is reconciled with the patient's one-time code.", "why": "Cash leakage is a pilot measure."}
+    {"id": "cash-without-otp", "status": 422, "statement": "Cash is reconciled with the patient's one-time code.", "why": "Cash leakage is a pilot measure."},
+    {"id": "payable-not-found", "status": 404, "statement": "Nothing is owed under that reference.", "why": "A payment is taken against Money's own payable, whose amount comes from the catalogue. A payment against nothing is an amount that came from somewhere else."},
+    {"id": "someone-elses-payable", "status": 403, "statement": "That is not yours to pay.", "why": "A payable belongs to the person it was opened for. A gift or a sponsor pays through their own routes."},
+    {"id": "method-not-offered", "status": 422, "statement": "That way of paying is not offered for this.", "why": "packages/catalog/money.json says which methods each kind of payable takes, and a wallet is not offered until one is built."},
+    {"id": "already-paid", "status": 409, "statement": "This has already been paid. Nothing was charged again.", "why": "A second payment for a paid payable under a new key is a patient charged twice by somebody pressing a button twice."}
    ],
    "emits": ["payment.succeeded@1", "payment.failed@1"],
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E10", "what": "Card, EFT, debit order, cash with OTP reconciliation"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/payments@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "GET",
@@ -65,7 +78,9 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E10", "what": "Nurse weekly payouts (75%) and doctor per-case fees"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'GET /v1/money/payouts@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",

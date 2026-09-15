@@ -618,6 +618,9 @@ struct WorkspaceSectionView: View {
                 pill("Apply to join as a doctor", "", "person.badge.plus") { VettingApplyView(roleId: "doctor") }
                 pill("Every doctor on the platform", "", "stethoscope") { VettingRoleView(roleId: "doctor") }
             }
+            group("Your fees") {
+                pill("Per-case fees", "Every case you sign is recorded; the fee is not decided", "banknote") { DoctorFeesView() }
+            }
         }
     }
 
