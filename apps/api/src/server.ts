@@ -24,7 +24,7 @@ import {
   ROUTES as CONSENT_ROUTES, WHY as CONSENT_WHY, currentVersion, openConsentStore, optionalPurposes, requiredPurposes
 } from './consent/index.ts';
 
-import { SEALED_COLUMNS, VettingVault, authorityVerifiers, createIdentityProvider, openVettingStore, roleName, vettingSource } from './vetting/index.ts';
+import { SELF_REFUSALS, SEALED_COLUMNS, VettingVault, authorityVerifiers, createIdentityProvider, openVettingStore, roleName, vettingSource } from './vetting/index.ts';
 import {
   FEEDS, FEED_RULES, NO_SEAM as FEED_NO_SEAM, REFUSAL_SENTENCES as FEED_REFUSAL_KINDS,
   decide as decideFeed, describe as describeFeed
@@ -561,9 +561,24 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
     if (!held) return;
     const partyId = queryOf(req).get('id') ?? '';
     if (!partyId) return send(res, 400, { error: 'no-party', message: 'Name the party this is about.' });
+    /* A reviewer's route, and only a reviewer's. Two things make it so, and both are deliberate.
+       Reading your own record here is refused before the gate is asked, in a sentence that sends you
+       to /vetting/me — which returns the same standing — and the refusal is audited. And the purpose
+       handed to the gate is always the reviewer's, never actorFor's subject-access: with that purpose
+       and a read, the gate's subject shortcut would let anybody on the register through on their own
+       id, and this route's contract names admin as its only caller. The explicit refusal is what the
+       person reads; the fixed purpose is what holds if somebody later removes it. */
+    if (partyId === held.actor.party.id) {
+      protection!.audit.append({
+        event: 'vetting.party.self.refused', actorId: held.actor.party.id, actorRole: held.actor.party.roleId,
+        capability: 'review-vetting', purpose: 'vetting', recordType: 'vetting-evidence',
+        recordId: partyId, subjectId: partyId, field: 'standing', allowed: false, reason: SELF_REFUSALS.readOwnThroughReviewerRoute
+      });
+      return send(res, 403, { error: 'refused', message: SELF_REFUSALS.readOwnThroughReviewerRoute });
+    }
     const outcome = protection!.gate.access({
       actorId: held.actor.party.id, actorRole: held.actor.party.roleId, capability: 'review-vetting',
-      purpose: held.actor.actorFor(partyId).purpose, recordType: 'vetting-evidence',
+      purpose: 'vetting', recordType: 'vetting-evidence',
       recordId: partyId, subjectId: partyId, field: 'standing', operation: 'read'
     });
     if (!outcome.allowed) return send(res, 403, { error: 'refused', message: outcome.reason, blockedBy: outcome.blockedBy, audit: outcome.auditId });
