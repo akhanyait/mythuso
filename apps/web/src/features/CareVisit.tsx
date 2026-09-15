@@ -111,6 +111,12 @@ export function CareVisit({ open, onClose }: { open: (modal: string) => void; on
  useCareTick();
  const [code, setCode] = useState('');
  const visit = view.visit;
+ /* A new stage starts at the top of the sheet. The route stage is tall with its map and the code stage
+    is short, so a dialog that kept its scroll offset put the nurse half-way down a screen that had just
+    changed under her thumb — and on a phone the next tap landed outside the sheet and closed it. */
+ useEffect(() => {
+  document.querySelector('dialog[open] .care-visit')?.closest('dialog')?.scrollTo({ top: 0 });
+ }, [view.stage, visit?.state]);
 
  if (!visit) return <div className="care-visit">
   <p className="care-note">There is no visit to continue. An offer is accepted from your day, and the visit opens here once you have.</p>
@@ -215,7 +221,8 @@ export function CareVisit({ open, onClose }: { open: (modal: string) => void; on
 
    : <>
     <h4 id="care-stage-title">Complete with the code</h4>
-    {visit.handover && <p className="care-fact"><Check size={17} aria-hidden="true"/>{sentences.queued}</p>}
+    {/* "Handed to the doctors' review queue" is only true beside the sentence that says nobody reads it yet. */}
+    {visit.handover && <><p className="care-fact"><Check size={17} aria-hidden="true"/>{sentences.queued}</p><NotConnected of="doctor-review" tone="inline"/></>}
     {codeStep('complete', complete, 'Complete the visit')}
    </>}
   </section>

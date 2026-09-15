@@ -111,10 +111,16 @@ test('the visit starts only with the code, runs no checklist under a draft, and 
 test('signed off in the assessment, the visit is handed over, completed with the code, and the position stops being shared', async ({ page }, info) => {
   test.setTimeout(90_000);
   const d = await acceptAndOpen(page);
+  await expect(d).toContainText(care.position.whileShared);
   await d.getByRole('button', { name: 'I am at the door' }).click();
+  await expect(d.getByRole('heading', { name: 'Confirm you are at the right door' })).toBeVisible();
   await d.getByLabel('Visit code, digit 1 of 6').fill(care.preview.visitCode);
   await d.getByRole('button', { name: 'Start the visit' }).click();
+  await expect(d).toContainText(refusal('/v1/care/visits/{appointmentRef}/checklist', 'protocol-not-ratified'));
   await d.getByRole('button', { name: 'Continue to readings and sign-off' }).click();
+  /* Each stage is a different height, and the sheet returns to its top when one changes, so a click
+     sent before the new stage has settled can land on the dialog's own padding — which is outside. */
+  await expect(d.getByRole('heading', { name: 'Readings and sign-off' })).toBeVisible();
   await d.getByRole('button', { name: 'Open the visit assessment' }).click();
 
   /* The assessment the preview's record is: the same five stages the schedule's visit walks. */
