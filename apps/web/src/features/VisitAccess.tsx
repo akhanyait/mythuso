@@ -145,7 +145,7 @@ export default function VisitAccess({ row, held, onThread, talking, setTalking }
   : thread.closesAt ? fill(words.openAfterVisit, { closes: timeOf(thread.closesAt) })
   : words.empty;
  return <div className="visit-access">
-  {row.visit.booking && row.group === 'upcoming' && <BookingStatus history={row.visit.booking.history} asap={row.visit.booking.asap}/>}
+  {row.visit.booking && (row.group === 'upcoming' || (row.group === 'cancelled' && row.visit.booking.refund)) && <BookingStatus history={row.visit.booking.history} asap={row.visit.booking.asap} refund={row.visit.booking.refund}/>}
   <button type="button" className="thread-door" onClick={() => setTalking(true)}>
    <span className="service-icon"><MessageSquare size={20} aria-hidden="true"/></span>
    <span><strong>{words.openLabel}</strong>

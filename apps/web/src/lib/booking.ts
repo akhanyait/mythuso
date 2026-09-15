@@ -23,6 +23,7 @@ export const time = contract.time;
 export const review = contract.review;
 export const statusHeading = contract.statusHeading;
 export const statusWords = contract.statusWords;
+export const refundedWords = contract.refunded;
 export const acceptedBy = contract.acceptedBy;
 export const asapStaysRequested = contract.asapStaysRequested;
 export const bookingStates = contract.states;

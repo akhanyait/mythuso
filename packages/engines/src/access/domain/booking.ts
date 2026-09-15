@@ -89,7 +89,11 @@ export type Booking = {
  readonly scheduledFor: string | null;
  readonly cancellation: Cancellation | null;
  readonly history: readonly { readonly state: BookingState; readonly at: string }[];
+ /** What Money returned for this booking, as payment.refunded@1 said: its payment and the amount, never a price worked out here. Absent until Money refunds it. */
+ readonly refund?: Refund;
 };
+
+export type Refund = { readonly paymentRef: string; readonly amountCents: number; readonly at: string };
 
 export type Ledger = { readonly bookings: readonly Booking[] };
 export const emptyLedger: Ledger = { bookings: [] };
@@ -371,6 +375,19 @@ export function cancelBooking(ledger: Ledger, request: CancelRequest, now: Date)
   payload: { bookingRef: found.bookingRef, cancelledByRole: request.actorRole, reasonCode: request.reasonCode }
  };
  return accept({ ledger: replace(ledger, booking), booking }, [event]);
+}
+
+/* Money returned what was paid for a booking. Access does not decide a refund and does not work one out: it writes
+   down the payment and the amount payment.refunded@1 carried against its own booking, found by that booking's own
+   reference, so the booking says refunded where the patient reads it. The first refund recorded stays — a
+   redelivery is the same refund — and a booking Access does not hold is left alone, because a refund for
+   somebody else's booking is not Access's to write anywhere. Nothing is published: the patient's screen is the
+   whole of what a refund changes here. */
+export function recordRefund(ledger: Ledger, refund: { bookingRef: string; paymentRef: string; amountCents: number; at: string }): { ledger: Ledger; booking: Booking } | null {
+ const found = ledger.bookings.find(b => b.bookingRef === refund.bookingRef);
+ if (!found || found.refund) return null;
+ const booking: Booking = { ...found, refund: { paymentRef: refund.paymentRef, amountCents: refund.amountCents, at: refund.at } };
+ return { ledger: replace(ledger, booking), booking };
 }
 
 /** GET /v1/access/bookings/{bookingRef}: never says whether a booking exists for somebody else. */

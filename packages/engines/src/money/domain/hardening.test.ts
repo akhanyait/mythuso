@@ -58,8 +58,12 @@ test('five wrong codes hold the payment, the right code is refused until the des
  assert.deepEqual(money.enterCashCode(nurse, { paymentRef: receipt.paymentRef, code }), refusal('cash-code-held'), 'the right code after the limit');
  assert.equal(money.payment(receipt.paymentRef)!.stateCode, 'pending');
 
- assert.deepEqual(money.releaseCashCode(nurse, receipt.paymentRef), refusal('caller-not-allowed'), 'a nurse cannot release her own hold');
- assert.ok(!isRefusal(money.releaseCashCode(desk, receipt.paymentRef)));
+ const reasonCode = contract.cash.releaseReasons[0]!.id;
+ assert.deepEqual(money.releaseCashCode(nurse, { paymentRef: receipt.paymentRef, reasonCode }), refusal('caller-not-allowed'), 'a nurse cannot release her own hold');
+ assert.deepEqual(money.releaseCashCode(desk, { paymentRef: receipt.paymentRef }), refusal('release-without-a-reason'));
+ assert.deepEqual(money.releaseCashCode(desk, { paymentRef: receipt.paymentRef, reasonCode: 'because-synthetic' }), refusal('release-reason-not-known'));
+ assert.ok(!isRefusal(money.releaseCashCode(desk, { paymentRef: receipt.paymentRef, reasonCode })));
+ assert.deepEqual(money.releaseCashCode(desk, { paymentRef: receipt.paymentRef, reasonCode }), refusal('cash-code-not-held'), 'a second release would reset attempts on a payment that is not held');
  const paid = money.enterCashCode(nurse, { paymentRef: receipt.paymentRef, code }) as Payment;
  assert.equal(paid.stateCode, 'succeeded');
  assert.equal(money.outbox().filter(e => e.type === 'payment.succeeded').length, 1);
@@ -67,7 +71,9 @@ test('five wrong codes hold the payment, the right code is refused until the des
  const trail = money.cashAuditFor(receipt.paymentRef);
  assert.deepEqual(trail.map(r => r.outcome), [...Array(limit - 1).fill('wrong'), 'held', 'refused-while-held', 'released', 'accepted']);
  for (const row of trail) {
-  assert.deepEqual(Object.keys(row).sort(), ['actorRef', 'actorRole', 'at', 'outcome', 'paymentRef'], 'an audit row carries who and when, never what was entered');
+  const expectedKeys = ['actorRef', 'actorRole', 'at', 'outcome', 'paymentRef', ...(row.outcome === 'released' ? ['reasonCode'] : [])].sort();
+  assert.deepEqual(Object.keys(row).sort(), expectedKeys, 'an audit row carries who and when, and for a release why — never what was entered');
+  if (row.outcome === 'released') assert.equal(row.reasonCode, reasonCode);
   assert.ok(!JSON.stringify(row).includes(code));
  }
 });

@@ -7523,7 +7523,9 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   const event = eventsForMoney.events.find(e => e.type === type && e.version === Number(version));
   if (!hearsTypes.has(type) || !event || event.withdrawn || !event.subscribers.includes('money')) throw new Error(`Money subscribes to ${key}, which is not a live event on its moneyHears list. ${moneyRefusal('hears-only-its-list').statement}`);
  }
- const declaredEmits = new Set([...moneyApi.routes.flatMap(r => r.emits), 'payout.scheduled@1', 'payout.paid@1']);
+ /* Three are published by something other than a route: the payouts by the tick, and a refund by the reversal a
+    heard cancellation sends through the payment-result door. Each is named here rather than inferred. */
+ const declaredEmits = new Set([...moneyApi.routes.flatMap(r => r.emits), 'payout.scheduled@1', 'payout.paid@1', 'payment.refunded@1']);
  const emittedKeys = new Set([...read('packages/engines/src/money/domain/ledger.ts').matchAll(/emit\('([^']+)'/g)].map(m => m[1]));
  if (!emittedKeys.size) throw new Error('packages/engines/src/money/domain/ledger.ts publishes nothing this check can find, so nothing holds what Money publishes to the event contract.');
  for (const key of emittedKeys) {
@@ -7535,6 +7537,131 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  console.log(`Thuso Money's contract is generated into ${emitMoney().length} native files and matches them; ${moneyContract.doctorFees.length} doctor's fee is a setting whose default of ${proposedFee.amountCents} cents is ${proposedFee.confirmed ? 'confirmed' : 'a proposal nobody has confirmed, which the ledger refuses to pay'}, bounded by the range the documents give; no screen types a call-out, the fee or a nurse's share wording, and Money's ${(moneyContract.wordingRules ?? []).length} wording rules are proven by guardrails only they refuse; the engine's simulated provider and bank agree with apps/api's on all ${SAMPLES * 3} sampled answers and decline in the contract's words; every sample week is the nurse's share through the ledger; and Money hears ${heard.length} events on its list and publishes ${emittedKeys.size} of its own.`);
 }
 /* ==== end of Money (Wave 3) ========================================================================== */
+
+/* ==== Money events and routes (Wave 3, Phase C) =====================================================
+
+   Added by the Money events & routes lead. Self-contained. Each check below was proven to fire by breaking the
+   source it reads and restoring it:
+
+     1. payment.refunded@1 carries references and amounts, never card data, the cash code or clinical detail —
+        as declared, and as the ledger actually publishes it, once for a reversal sent twice.
+     2. A payable is priced from its serviceId through packages/catalog/services.json, for every service in it,
+        and a service the catalogue does not sell opens nothing.
+     3. The nurse's cash-code entry keeps the wrong-code count and the audit row on refusal and nothing else, and
+        its code is kept out of the digest the replay table holds.
+     4. The desk's release refuses a release without a reason, a refused release leaves the hold, and the audit
+        of a release says who, when and why and never what was entered.
+     5. No cash-code or refund screen types an amount. */
+{
+ const phaseApi = JSON.parse(read('packages/catalog/apis/money.json'));
+ const phaseMoney = JSON.parse(read('packages/catalog/money.json'));
+ const phaseEvents = JSON.parse(read('packages/catalog/events.json'));
+ const phaseServices = JSON.parse(read('packages/catalog/services.json'));
+ const phaseApis = JSON.parse(read('packages/catalog/apis.json'));
+ const phaseLedger = await import('../packages/engines/src/money/domain/ledger.ts');
+ const phaseProvider = await import('../packages/engines/src/money/domain/provider.ts');
+ const phaseAt = () => new Date('2026-09-15T08:00:00+02:00');
+ const phaseRoute = (path, version) => phaseApi.routes.find(r => r.method === 'POST' && r.path === path && r.version === version);
+ const phaseStatement = id => [...phaseApi.refusals, ...phaseApi.routes.flatMap(r => r.refusals)].find(r => r.id === id)?.statement ?? '';
+ const phaseStripped = file => read(file).replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map(l => l.replace(/(^|\s)\/\/.*$/, '')).join('\n');
+
+ /* 1. A refund is references and an amount. A card fragment, the cash code or why the visit was needed on the
+       bus is in every subscriber's log, and a refund needs none of them to be acted on. */
+ const refunded = phaseEvents.events.find(e => e.type === 'payment.refunded' && e.version === 1);
+ if (!refunded || refunded.withdrawn || refunded.owner !== 'money') throw new Error('packages/catalog/events.json does not declare payment.refunded@1 live and owned by Money, so a refund would be issued and nobody told.');
+ const refusedOnRefund = /card|cvv|cash|code|otp|pin$|account|bank/i;
+ const clinicalOnRefund = new Set(phaseApis.clinicalContent.words.map(w => w.toLowerCase()));
+ for (const f of refunded.payload) {
+  if (!/(Ref|Cents)$/.test(f.field) || refusedOnRefund.test(f.field) || clinicalOnRefund.has(f.field.toLowerCase())) throw new Error(`payment.refunded@1 carries ${f.field}. A refund carries references and amounts, never card data, the cash code or anything clinical.`);
+ }
+ const refundNever = new Set((refunded.neverCarries ?? []).map(n => n.field));
+ for (const need of ['cardNumber', 'cashCode']) if (!refundNever.has(need)) throw new Error(`payment.refunded@1 does not declare that it never carries ${need}.`);
+ if (![...refundNever].some(field => clinicalOnRefund.has(field.toLowerCase()))) throw new Error('payment.refunded@1 does not declare that it never carries clinical detail.');
+ const refundLedger = phaseLedger.createMoney({ simulation: true, clock: phaseAt });
+ let paidForRefund = null;
+ for (let i = 0; i < 40 && !paidForRefund; i += 1) {
+  const payableRef = `PB-CHECK-REFUND-${i}`;
+  refundLedger.openVisitPayable({ payableRef, serviceId: phaseServices[0].id, subjectRef: 'subj-check', bookingRef: `BK-CHECK-${i}` });
+  const receipt = refundLedger.pay({ role: 'patient', subjectRef: 'subj-check' }, { idempotencyKey: `k-${i}`, payableRef, method: 'card', amountCents: phaseServices[0].price * 100 });
+  if (receipt.stateCode === 'succeeded') paidForRefund = receipt;
+ }
+ if (!paidForRefund) throw new Error('No simulated card payment succeeded in forty attempts, so what a refund publishes could not be checked.');
+ const reversed = phaseProvider.reversal(paidForRefund.payableRef, paidForRefund.paymentRef, paidForRefund.amountCents, phaseAt());
+ refundLedger.acceptPaymentResult(reversed, 'simulated-provider');
+ refundLedger.acceptPaymentResult(reversed, 'simulated-provider');
+ const refundsTold = refundLedger.outbox().filter(e => e.type === 'payment.refunded');
+ if (refundsTold.length !== 1) throw new Error(`Money's ledger published payment.refunded@1 ${refundsTold.length} times for one reversal sent twice. A refund is told once.`);
+ const refundFields = new Set(refunded.payload.map(f => f.field));
+ for (const key of Object.keys(refundsTold[0].payload)) if (!refundFields.has(key) || refusedOnRefund.test(key)) throw new Error(`Money's ledger publishes payment.refunded@1 with ${key}, which the event does not declare or must never carry.`);
+ if (refundsTold[0].payload.amountCents !== paidForRefund.amountCents) throw new Error('payment.refunded@1 names an amount other than the payment it returns. packages/catalog/cancellation.json decides no late-cancellation charge, so the whole payment goes back.');
+
+ /* 2. The payable's price is the catalogue's for the service booked@2 names, from the moment it opens. An amount
+       read from anywhere else — the event, a caller, a default — is an amount nobody set. */
+ const priceLedger = phaseLedger.createMoney({ simulation: true, clock: phaseAt });
+ for (const s of phaseServices) {
+  priceLedger.hear({ type: 'appointment.booked', version: 2, subjectRef: 'subj-check', payload: { appointmentRef: `APT-CHECK-${s.id}`, clinicianRef: 'N-CHECK', scheduledFor: '2026-09-15T09:00:00+02:00', serviceId: s.id } });
+  const opened = priceLedger.payable(`PB-APT-CHECK-${s.id}`);
+  if (opened?.amountCents !== s.price * 100 || opened.serviceId !== s.id) throw new Error(`appointment.booked@2 for ${s.id} opened a payable of ${opened?.amountCents ?? 'no'} cents. A payable is the price packages/catalog/services.json holds for its serviceId, from the moment it opens.`);
+ }
+ let unsoldRefused = false;
+ try { priceLedger.hear({ type: 'appointment.booked', version: 2, subjectRef: 'subj-check', payload: { appointmentRef: 'APT-CHECK-UNSOLD', clinicianRef: 'N-CHECK', scheduledFor: '2026-09-15T09:00:00+02:00', serviceId: 'not-sold-check' } }); } catch { unsoldRefused = true; }
+ if (!unsoldRefused || priceLedger.payable('PB-APT-CHECK-UNSOLD')) throw new Error('appointment.booked@2 for a service packages/catalog/services.json does not sell was not refused, or opened a payable anyway.');
+ const bookedBranch = (read('packages/engines/src/money/domain/ledger.ts').match(/if \(envelope\.type === 'appointment\.booked'\) \{([\s\S]*?)\} else if/) ?? [])[1] ?? '';
+ if (!bookedBranch.includes("serviceById(String(p['serviceId']))") || !bookedBranch.includes('amountCents: service.price * 100')) throw new Error("packages/engines/src/money/domain/ledger.ts no longer prices the payable appointment.booked@2 opens from serviceById(String(p['serviceId'])).price.");
+
+ /* 3. A wrong code is refused, and the refusal rolls back everything else. The count and the audit row must
+       survive it — through the route's keptOnRefusal and the ledger's recorded writes — or the limit never bites. */
+ const entryRoute = phaseRoute('/v1/money/payments/{paymentRef}/cash-code', 2);
+ if (!entryRoute || entryRoute.withdrawn || entryRoute.status !== 'built') throw new Error('POST /v1/money/payments/{paymentRef}/cash-code@2 is not declared, live and built.');
+ const keptForEntry = entryRoute.keptOnRefusal ?? {};
+ if (JSON.stringify([...(keptForEntry.tables ?? [])].sort()) !== JSON.stringify(['cash_audit', 'cash_codes']) || !['cash-without-otp', 'cash-code-held'].every(id => (keptForEntry.refusals ?? []).includes(id))) throw new Error(`POST /v1/money/payments/{paymentRef}/cash-code@2 does not keep the wrong-code count and the audit row, and nothing else, on a wrong code and on a hold. "${phaseStatement('cash-code-held')}" is only true of a limit whose count is not rolled back with each refusal.`);
+ if (!(entryRoute.secretRequestFields ?? []).some(s => s.field === 'code')) throw new Error('POST /v1/money/payments/{paymentRef}/cash-code@2 does not declare code a secret request field, so the runtime would keep an unsalted digest of the cash code in its replay table.');
+ const moneyEngineForEntry = read('packages/engines/src/money/engine.ts');
+ for (const needle of ['const KEPT_ON_A_WRONG_CODE = new Set([SQL_NAME.cashCodes, SQL_NAME.cashAudit]);', 'if (record && KEPT_ON_A_WRONG_CODE.has(name)) record(sql, key, JSON.stringify(value));', "'POST /v1/money/payments/{paymentRef}/cash-code@2': (request, ctx) => {\n   const answer = ledgerFor(ctx, true).enterCashCode("]) {
+  if (!moneyEngineForEntry.includes(needle)) throw new Error(`packages/engines/src/money/engine.ts no longer does \`${needle.split('\n')[0]}\`. It is how a wrong code's count and audit row are recorded for the refusal to keep.`);
+ }
+ if (!read('packages/engines/src/runtime/runtime.ts').includes('.filter(([name]) => !secretRequests.has(name))')) throw new Error('packages/engines/src/runtime/runtime.ts no longer leaves a declared secret request field out of the digest the replay table keeps.');
+
+ /* 4. The hold is what stops a six-digit code being walked. It is lifted only for a reason, which is written down
+       beside who lifted it and when; a release without one is refused and leaves the hold where it was. */
+ const releaseRoute = phaseRoute('/v1/money/payments/{paymentRef}/release', 2);
+ if (!releaseRoute || releaseRoute.withdrawn || releaseRoute.status !== 'built' || !releaseRoute.request.some(f => f.field === 'reasonCode') || !releaseRoute.refusals.some(r => r.id === 'release-without-a-reason')) throw new Error('POST /v1/money/payments/{paymentRef}/release@2 is not live and built with a reasonCode and the refusal release-without-a-reason.');
+ const reasonsForRelease = phaseMoney.cash.releaseReasons ?? [];
+ if (!reasonsForRelease.length || reasonsForRelease.some(r => !r.id || !r.text?.trim())) throw new Error('packages/catalog/money.json gives the desk no reason, or a reason with no words, to release a held cash payment for.');
+ const holdLedger = phaseLedger.createMoney({ simulation: true, clock: phaseAt });
+ holdLedger.openVisitPayable({ payableRef: 'PB-CHECK-HOLD', serviceId: phaseServices[0].id, subjectRef: 'subj-check', appointmentRef: 'APT-CHECK-HOLD' });
+ const cashForHold = holdLedger.pay({ role: 'patient', subjectRef: 'subj-check' }, { idempotencyKey: 'k-hold', payableRef: 'PB-CHECK-HOLD', method: 'cash-otp', amountCents: phaseServices[0].price * 100 });
+ holdLedger.hear({ type: 'visit.billable', version: 1, payload: { appointmentRef: 'APT-CHECK-HOLD', serviceId: phaseServices[0].id, clinicianRef: 'N-CHECK' } });
+ const wrongForHold = cashForHold.cashCode.split('').map(d => String((Number(d) + 1) % 10)).join('');
+ for (let i = 0; i < phaseMoney.cash.attemptLimit; i += 1) holdLedger.enterCashCode({ role: 'nurse', subjectRef: 'N-CHECK' }, { paymentRef: cashForHold.paymentRef, code: wrongForHold });
+ if (holdLedger.cashStanding(cashForHold.paymentRef)?.held !== true) throw new Error(`${phaseMoney.cash.attemptLimit} wrong codes did not hold the cash payment. ${phaseStatement('cash-code-held')}`);
+ const deskForCheck = { role: 'ops-desk', subjectRef: 'O-CHECK' };
+ const releasedWithout = holdLedger.releaseCashCode(deskForCheck, { paymentRef: cashForHold.paymentRef });
+ if (releasedWithout?.id !== 'release-without-a-reason' || holdLedger.cashStanding(cashForHold.paymentRef)?.held !== true) throw new Error(`Money's ledger released a held cash payment without a reason. ${phaseStatement('release-without-a-reason')}`);
+ const releasedWith = holdLedger.releaseCashCode(deskForCheck, { paymentRef: cashForHold.paymentRef, reasonCode: reasonsForRelease[0].id });
+ const releaseRow = holdLedger.cashAuditFor(cashForHold.paymentRef).at(-1);
+ if (releasedWith?.refused || holdLedger.cashStanding(cashForHold.paymentRef)?.held !== false || releaseRow?.outcome !== 'released' || releaseRow.reasonCode !== reasonsForRelease[0].id || releaseRow.actorRef !== deskForCheck.subjectRef || !releaseRow.at) throw new Error('A release with a reason did not lift the hold, or its audit row does not say who released it, when and why.');
+ for (const row of holdLedger.cashAuditFor(cashForHold.paymentRef)) if (Object.values(row).some(v => v === wrongForHold || v === cashForHold.cashCode)) throw new Error('A cash audit row keeps the code that was entered. It says who and when, never what.');
+
+ /* 5. What is owed at the door and what went back are the ledger's figures, from services.json's price. A screen
+       that types one is a second price, and the first to be wrong. */
+ const cashScreens = [
+  'apps/web/src/features/CashCode.tsx', 'apps/web/src/lib/cash-codes.ts', 'apps/web/src/features/BookingStatus.tsx',
+  'apps/ios/MyThuso/Features/CareVisitView.swift', 'apps/ios/MyThuso/Models/Money.swift',
+  'apps/android/app/src/main/java/za/co/mythuso/ui/CareVisitScreens.kt', 'apps/android/app/src/main/java/za/co/mythuso/model/Money.kt'
+ ];
+ const centsOfServices = new Set(phaseServices.flatMap(s => [s.price * 100, s.nurseShare * 100]));
+ const pricesOfServices = new Set(phaseServices.flatMap(s => [s.price, s.nurseShare]));
+ for (const file of cashScreens) {
+  const code = phaseStripped(file);
+  const typed = code.match(/\bR\s?\d{2,}\b|\b(amount|price|owed|refund)\w*\s*[:=]\s*\d{2,}/i)
+   ?? [...code.matchAll(/(?<![\w.$%])(\d{3,6})(?![\w.])/g)].find(m => centsOfServices.has(Number(m[1])) || pricesOfServices.has(Number(m[1])));
+  if (typed) throw new Error(`${file} types an amount ("${typed[0]}"). What is owed at the door and what went back are the ledger's figures, from the price packages/catalog/services.json holds.`);
+ }
+
+ console.log(`Money's events and routes: payment.refunded@1 carries ${refunded.payload.map(f => f.field).join(', ')} and is published once for a reversal sent twice; every one of ${phaseServices.length} services prices the payable appointment.booked@2 opens, and a service nobody sells opens nothing; the cash-code entry keeps only its count and audit on refusal and keeps the code out of the replay digest; a release without a reason is refused and leaves the hold, among ${reasonsForRelease.length} reasons; and none of ${cashScreens.length} cash-code and refund screens types an amount.`);
+}
+/* ==== end of Money events and routes (Wave 3, Phase C) ================================================ */
 
 /* ==== Care & Nurse (Wave 3): packages/catalog/care.json and packages/engines/src/care ===============
 

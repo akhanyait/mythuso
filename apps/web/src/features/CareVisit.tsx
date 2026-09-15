@@ -11,6 +11,7 @@ import { timezone } from '../lib/scheduling';
 import {
  accept, attachReadings, complete, decline, goTo, handOver, markerFor, notClinicallyReviewed, preview, scopeNotReviewedFor, sentences, stages, start, tick, useCareVisit
 } from '../lib/care-visit';
+import { CashAtTheDoor } from './CashCode';
 import './care-visit.css';
 
 /* A visit offered to a nurse, and the visit itself — the Care engine's domain on the nurse's screen.
@@ -164,6 +165,8 @@ export function CareVisit({ open, onClose }: { open: (modal: string) => void; on
     <h4 id="care-stage-title">The visit is complete</h4>
     <p className="care-fact" role="status"><BadgeCheck size={17} aria-hidden="true"/>{sentences.billable}</p>
     <p className="care-note"><Route size={15} aria-hidden="true"/>{view.location.shared ? sentences.whileShared : view.location.statement}</p>
+    {/* Cash is recorded only against a completed visit, so the code is asked for here and nowhere earlier. */}
+    <CashAtTheDoor/>
     <div className="button-row care-actions"><button className="primary" onClick={onClose}>Back to your day</button></div>
    </>
 

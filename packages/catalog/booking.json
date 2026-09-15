@@ -7,8 +7,8 @@
 
  "publishes": ["booking.requested@2", "booking.confirmed@2", "booking.cancelled@1", "conversation.handover@1"],
  "publishesWhy": "Access tells the bus a visit was asked for, accepted and called off, and that a Gilbert conversation went to the nurse queue. It does not turn a booking into an offer, a nurse or a route to a door: that is Care's engine, which hears booking.requested and answers with appointment events of its own. booking.requested says which suburb the visit is in by its zone id and never the address, and booking.confirmed says which service was booked so Money prices it from the catalogue.",
- "hears": ["appointment.completed@2"],
- "hearsWhy": "Care completes a visit; Access closes its thread. A completed visit's thread stays open for the hours Access's setting visit-thread-open-hours-after-visit held at the moment of completion, worked out by the engine from its own settings history rather than only by the screens. appointment.completed@2 carries the bookingRef Care heard on booking.requested, so Access finds the thread by its own booking's reference and knows nothing about how Care names an appointment. Until 15 September Access found it through a naming rule written here, careAppointmentRef, which version one of the event forced and which is retired with it. A completion that carries no bookingRef, or one no booking of Access's holds, such as the preview visit, closes nothing.",
+ "hears": ["appointment.completed@2", "payment.refunded@1"],
+ "hearsWhy": "Money refunds a cancelled booking; Access marks it refunded by the bookingRef payment.refunded@1 carries, once. Care completes a visit; Access closes its thread. A completed visit's thread stays open for the hours Access's setting visit-thread-open-hours-after-visit held at the moment of completion, worked out by the engine from its own settings history rather than only by the screens. appointment.completed@2 carries the bookingRef Care heard on booking.requested, so Access finds the thread by its own booking's reference and knows nothing about how Care names an appointment. Until 15 September Access found it through a naming rule written here, careAppointmentRef, which version one of the event forced and which is retired with it. A completion that carries no bookingRef, or one no booking of Access's holds, such as the preview visit, closes nothing.",
 
  "person": {
   "stepLabel": "Nurse",
@@ -95,6 +95,7 @@
  "transitionsWhy": "Three states and four arrows, and none of them points backwards. A cancelled booking is not confirmed afterwards, and a confirmed one is not asked for again: a visit wanted after it was called off is a new booking with a new reference, so the record of the first one still says what happened to it.",
  "statusHeading": "Where this booking stands",
  "statusWords": { "reached": "Done", "current": "Now", "waiting": "Not yet" },
+ "refunded": { "name": "Refunded", "words": "What you paid for this visit went back to the account it came from." },
  "statusWordsWhy": "Whether a state has been reached is said in words beside its name on every platform, so the filled mark is never the only difference between a step that happened and one still waiting.",
  "acceptedBy": "Care's engine is not running, so the simulated roster stands in for it. It accepts a chosen hour at once and says that it did, because a preview that waited for nobody would be a screen that never moves.",
  "asapStaysRequested": "Nobody is looking for a nurse, because nothing is running that could. This visit stays asked for, and the screen says so rather than inventing somebody on the way.",

@@ -1,5 +1,10 @@
 package za.co.mythuso.model
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import java.security.MessageDigest
+import java.security.SecureRandom
 import java.time.LocalDate
 
 /* Thuso Money, as far as a phone with no provider can honestly go.
@@ -64,4 +69,63 @@ object Money {
     /** What the payment step says once a visit is booked on a phone with no provider. */
     fun afterBooking(methodName: String): String =
         if (method(methodName)?.id == "cash-otp") MoneyData.cashPendingWords else MoneyData.providerlessWords
+}
+
+/* The cash code at the door, for the one preview visit the nurse walks.
+
+   A phone runs no ledger, so this holds what the ledger holds for a cash payment and nothing more: a random
+   salt and the SHA-256 of salt and code, the count of wrong codes, and whether the payment is held for the
+   operations desk. The code comes from SecureRandom, is shown on the patient's simulated screen once, and is
+   dropped the moment the nurse enters anything. A wrong code counts; at MoneyData.cashAttemptLimit the payment
+   is held and the right code is refused too, in the contract's words. The phone has no desk, so a held payment
+   stays held here: the release is the operations desk's, on the web. */
+class CashCodeDoor(serviceId: String = CareData.Preview.serviceId) {
+    /** What the patient owes, from the preview visit's service in the catalogue. Null if the catalogue has lost it. */
+    val amountCents: Int? = services.firstOrNull { it.id == serviceId }?.price?.let { it * 100 }
+
+    var patientCode by mutableStateOf<String?>(null)
+        private set
+    var held by mutableStateOf(false)
+        private set
+    var recorded by mutableStateOf(false)
+        private set
+    var refusal by mutableStateOf<String?>(null)
+        private set
+
+    private val random = SecureRandom()
+    private val salt: String = ByteArray(16).also { random.nextBytes(it) }.joinToString("") { "%02x".format(it) }
+    private val digest: String
+    private var wrongAttempts = 0
+
+    init {
+        val code = (1..MoneyData.cashCodeLength).joinToString("") { random.nextInt(10).toString() }
+        digest = digestOf(code)
+        patientCode = code
+    }
+
+    /** The nurse enters the code the patient gives her. The patient's screen forgets its code as she does. */
+    fun enter(code: String) {
+        patientCode = null
+        if (recorded) return
+        if (held) { refusal = Money.refusal("cash-code-held"); return }
+        if (!same(digestOf(code), digest)) {
+            wrongAttempts += 1
+            held = wrongAttempts >= MoneyData.cashAttemptLimit
+            refusal = Money.refusal(if (held) "cash-code-held" else "cash-without-otp")
+            return
+        }
+        recorded = true
+        refusal = null
+    }
+
+    private fun digestOf(code: String): String =
+        MessageDigest.getInstance("SHA-256").digest("$salt:$code".toByteArray()).joinToString("") { "%02x".format(it) }
+
+    /* Compared across the whole length whatever the first difference, as the ledger does. */
+    private fun same(left: String, right: String): Boolean {
+        if (left.length != right.length) return false
+        var difference = 0
+        for (index in left.indices) difference = difference or (left[index].code xor right[index].code)
+        return difference == 0
+    }
 }

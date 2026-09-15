@@ -81,6 +81,7 @@
   { "key": "withdrawn", "required": false, "why": "As for events: { on, supersededBy, why }, the route keeps its lock line and loses its callers." },
   { "key": "callerJustifications", "required": false, "why": "For every engine:<id> caller, the live event that engine owns or hears which justifies the call." },
   { "key": "secretResponseFields", "required": false, "why": "[{ field, shownOnce }] for every response field named like a secret in engineRuntime.secretResponseNames. The secret is shown to the caller once, never written to the replay table, and a replay answers with shownOnce in its place." },
+  { "key": "secretRequestFields", "required": false, "why": "[{ field, why }] for a request field that is a secret the caller types, such as a cash code. The runtime leaves it out of the digest of the request it keeps for replays, because an unsalted hash of a short code is the code." },
   { "key": "keptOnRefusal", "required": false, "why": "{ refusals, tables, why }: the route's own refusals whose recorded writes survive the rollback, and the only tables those writes may touch — an attempt counter and an audit row, never a charge." },
   { "key": "enforcedBy", "required": false, "why": "Required when built: the mechanism the handler decides callers by, from enforcementMechanisms, and its parameters. The callers are worked out from it." },
   { "key": "enforcement", "required": false, "why": "missing, when the handler does not yet enforce the intended callers; the build fails on it." },

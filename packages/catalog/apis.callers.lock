@@ -206,6 +206,10 @@ GET /v1/safety/panics/{panicRef}/position@1 callers=operator purpose=emergency b
 GET /v1/safety/desk-queue@1 callers=operator purpose=dispatch,emergency because=-
 POST /v1/safety/checkins/{checkinRef}/extend@1 callers=- purpose=dispatch because=-
 POST /v1/safety/checkins/{checkinRef}/close@1 callers=- purpose=dispatch because=-
+POST /v1/money/payments/{paymentRef}/cash-code@2 callers=nurse purpose=billing because=-
+POST /v1/money/payments/{paymentRef}/release@2 callers=ops-desk purpose=billing because=-
+POST /v1/money/payments/{paymentRef}/cash-code@1 callers=- purpose=billing because=-
+POST /v1/money/payments/{paymentRef}/release@1 callers=- purpose=billing because=-
 POST /v1/core/loops/{loopRef}/acknowledge@3 callers=doctor,engine:care,engine:safety,head-of-operations,nurse,operator,ops-desk purpose=dispatch,emergency,treatment because=engine:care=loop.opened@1,engine:safety=loop.opened@1
 POST /v1/core/loops/{loopRef}/escalate@3 callers=engine:safety,head-of-operations,operator,ops-desk purpose=dispatch,emergency,treatment because=engine:safety=loop.opened@1
 POST /v1/core/loops/{loopRef}/close@2 callers=doctor,head-of-operations,nurse,operator,ops-desk purpose=dispatch,emergency,treatment because=-

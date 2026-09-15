@@ -19,7 +19,7 @@
   {"id": "door-locked", "status": 423, "statement": "That door is locked until its switch-on conditions are evidenced.", "why": "Payment results and payout advice arrive only through the doors in packages/catalog/feeds.json, and none of their conditions is met. In development the simulated provider stands behind them, in process, and nothing from the network does."},
   {"id": "cash-code-held", "status": 423, "statement": "This cash payment has had too many wrong codes and is held for the operations desk.", "why": "packages/catalog/money.json's attemptLimit. A six-digit code that can be tried without limit is a code that can be walked; after the limit even the right code is refused until the desk releases the payment."},
   {"id": "cash-before-the-visit-finished", "status": 409, "statement": "Cash is recorded against a finished visit, and this one has not finished.", "why": "A cash code entered before Care says the visit was billable would record money for a visit that may still not happen."},
-  {"id": "payable-not-priced", "status": 409, "statement": "This visit has no price Money can read yet, so nothing is charged.", "why": "appointment.booked@1 carries no service, so the payable it opens has no amount until visit.billable@1 names one. A charge against a payable with no catalogue price is an amount that came from the caller.", "answeredBy": ["POST /v1/money/payments@1", "POST /v1/money/payments@2"]},
+  {"id": "payable-not-priced", "status": 409, "statement": "This visit has no price Money can read yet, so nothing is charged.", "why": "appointment.booked@2 names the service, so the payable it opens is priced from packages/catalog/services.json as it opens. A payable can still have no price: one a store opened under appointment.booked@1, which named no service and is withdrawn, stays unpriced until visit.billable@1 names one. A charge against a payable with no catalogue price is an amount that came from the caller.", "answeredBy": ["POST /v1/money/payments@1", "POST /v1/money/payments@2"]},
   {"id": "deduction-without-a-reason", "status": 422, "statement": "A payout does not go down without a line naming the visit and the reason.", "why": "packages/catalog/earnings.json's every-deduction-is-named rule, enforced on the ledger rather than only drawn on the screen."}
  ],
  "ownIds": [],
@@ -124,7 +124,7 @@
    "path": "/v1/money/payments/{paymentRef}/cash-code",
    "version": 1,
    "summary": "The visit's nurse enters the patient's cash code after the visit, and the cash is recorded as paid.",
-   "callers": ["nurse"],
+   "callers": [],
    "purpose": ["billing"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -144,14 +144,47 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/money/payments/{paymentRef}/cash-code@2", "why": "Built on the runtime, it had no true answer for two things a nurse can send. A reference to no cash payment could only be refused as a wrong code, which would count an attempt against nothing, or as a visit not finished, which is false. A nurse who does not hold the visit could only be told her role may not call the route, and a nurse's role may. Version two adds payable-not-found and cash-code-not-your-visit and keeps everything else. Its callers are version two's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/payments/{paymentRef}/cash-code",
+   "version": 2,
+   "summary": "The nurse who held the visit enters the patient's cash code after the visit, and the cash is recorded as paid.",
+   "callers": ["nurse"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once, for an entry that was accepted. A refused entry is never replayed, so every wrong code counts, whatever key it came with."},
+    {"field": "paymentRef", "type": "string", "required": true, "why": "The cash payment, Money's own."},
+    {"field": "code", "type": "string", "required": true, "why": "The code the patient gives the nurse. Compared with a salted digest and never stored, audited or published."}
+   ],
+   "response": [
+    {"field": "stateCode", "type": "string", "required": true, "why": "succeeded once the right code is entered, or the payment's state as it already was."}
+   ],
+   "refusals": [
+    {"id": "cash-without-otp", "status": 422, "statement": "Cash is reconciled with the patient's one-time code.", "why": "A wrong code records nothing but the attempt, and the attempt is audited by who and when."},
+    {"id": "cash-before-the-visit-finished", "status": 409, "statement": "Cash is recorded against a finished visit, and this one has not finished.", "why": "Money learns a visit finished from visit.billable@1 and nowhere else."},
+    {"id": "cash-code-held", "status": 423, "statement": "This cash payment has had too many wrong codes and is held for the operations desk.", "why": "After packages/catalog/money.json's attemptLimit even the right code is refused until the desk releases the payment."},
+    {"id": "payable-not-found", "status": 404, "statement": "Nothing is owed under that reference.", "why": "Only a cash payment has a code. A reference to anything else is refused before a code is compared, so it counts no attempt and writes no audit row."},
+    {"id": "cash-code-not-your-visit", "status": 403, "statement": "Only the nurse who held this visit enters its cash code.", "why": "The nurse visit.billable@1 names is the one the patient paid at the door. Another nurse is refused before a code is compared, so she can neither record the cash nor use up the attempts of the nurse who was there."}
+   ],
+   "keptOnRefusal": {"refusals": ["cash-without-otp", "cash-code-held"], "tables": ["cash_codes", "cash_audit"], "why": "A wrong code is refused, and the refusal rolls back everything else the handler did. The count of wrong codes and the audit row saying who entered one and when must survive that refusal, or the attempt limit never bites and a code can be walked by trying."},
+   "emits": ["payment.succeeded@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "secretRequestFields": [{"field": "code", "why": "The patient's cash code. The runtime keeps a digest of every accepted request's fields to refuse a reused key; a digest of six digits would be the six digits to anybody holding the store file, so the code is left out of it."}],
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/payments/{paymentRef}/cash-code@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
    "path": "/v1/money/payments/{paymentRef}/release",
    "version": 1,
    "summary": "The operations desk releases a cash payment held for too many wrong codes, after speaking to the patient.",
-   "callers": ["ops-desk"],
+   "callers": [],
    "purpose": ["billing"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -168,7 +201,38 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/money/payments/{paymentRef}/release@2", "why": "It released a hold with no reason and had no field to carry one, so the audit of a release could say who and when and never why — and a hold lifted for no recorded reason is a code that can be walked five attempts at a time. Nor could it refuse releasing a payment that was not held. Version two takes a reason code from packages/catalog/money.json and refuses a release without one, with one the desk is not given, and of a payment that is not held. Its callers are version two's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/payments/{paymentRef}/release",
+   "version": 2,
+   "summary": "The operations desk releases a cash payment held for too many wrong codes, after speaking to the patient, with the reason written down.",
+   "callers": ["ops-desk"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same release once, and the audit gains one row."},
+    {"field": "paymentRef", "type": "string", "required": true, "why": "The held cash payment, Money's own."},
+    {"field": "reasonCode", "type": "string", "required": false, "why": "Why the hold is released, as one of packages/catalog/money.json's cash.releaseReasons: a code rather than free text, because the audit is read by finance and a desk's own words about a patient are where health information goes. Asked for by the handler rather than the binder, so that a release without one is refused in its own sentence."}
+   ],
+   "response": [
+    {"field": "stateCode", "type": "string", "required": true, "why": "The payment's state, unchanged: releasing a hold pays nothing."}
+   ],
+   "refusals": [
+    {"id": "payable-not-found", "status": 404, "statement": "Nothing is owed under that reference.", "why": "Only a cash payment with a code can be held or released."},
+    {"id": "release-without-a-reason", "status": 422, "statement": "A held cash payment is released with a reason, or it is not released.", "why": "A hold is what stops a six-digit code being walked. Lifting it for no recorded reason gives whoever is trying another five attempts, and nobody reading the audit afterwards can tell a desk that spoke to the patient from one that pressed a button."},
+    {"id": "release-reason-not-known", "status": 422, "statement": "That is not one of the reasons a held cash payment is released for.", "why": "The reasons are packages/catalog/money.json's. A reason nobody declared is a word nothing reads, and the audit is only useful if every row means something somebody agreed."},
+    {"id": "cash-code-not-held", "status": 409, "statement": "This cash payment is not held, so there is nothing to release.", "why": "A release resets the wrong-code count. On a payment that is not held that would be a quiet way to hand a nurse, or whoever holds her phone, a fresh set of attempts."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A release lets the nurse try again; the payment is published when the right code is entered. No engine acts on a hold being lifted, and the event contract refuses an event nobody reads.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/payments/{paymentRef}/release@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",

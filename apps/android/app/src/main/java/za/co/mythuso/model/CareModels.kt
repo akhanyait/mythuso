@@ -123,6 +123,8 @@ class PreviewStore(book: CaptureBook = MemoryBook(), visitBook: CaptureBook = Me
     /* The visit offered to this nurse, walked from her schedule. After vetting and the visit queue,
        because it asks the first whether she may be offered it and the second whether it is signed. */
     val careVisit = CareVisitState(vetting, visitQueue)
+    /* The preview visit's cash code, held for as long as the preview store: a code re-issued on every screen would be shown more than once. */
+    val cashDoor = CashCodeDoor()
     /* Which visits a clinician has already signed. It is the thing stale-write is a disagreement
        with, so the queue has to be able to ask something rather than assume. */
     val signedVisits = mutableStateListOf("TH-2045")

@@ -304,6 +304,8 @@ shared apis/safety.json#refusals no-such-checkin 5a16a7b23699bcd4
 shared apis/safety.json#refusals checkin-held-by-another e550d40061fe2ebe
 shared apis/safety.json#refusals checkin-after-close c67790c6bdbdcc63
 shared apis/safety.json#refusals no-such-panic e426d6a03f8aaff8
+POST /v1/money/payments/{paymentRef}/cash-code@2 d532b2c9a2e2273e
+POST /v1/money/payments/{paymentRef}/release@2 bbeddfce51b517fb
 POST /v1/core/loops/{loopRef}/acknowledge@3 42438f13fae2a2f6
 POST /v1/core/loops/{loopRef}/escalate@3 5d0f6e5835cef67f
 POST /v1/core/loops/{loopRef}/close@2 221b6d73508baf4d

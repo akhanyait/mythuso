@@ -13,8 +13,8 @@ import events from '../../../../catalog/events.json' with { type: 'json' };
 import geography from '../../../../catalog/geography.json' with { type: 'json' };
 import scheduling from '../../../../catalog/scheduling.json' with { type: 'json' };
 import {
- cancelBooking, confirmBooking, emptyLedger, fallbacksOffered, holdsOf, offeredDays, offeredSlots, personOptions, readBooking, readSlotRef, requestBooking,
- stateFromEvents, windowOf, type Candidate, type Ledger
+ cancelBooking, confirmBooking, emptyLedger, fallbacksOffered, holdsOf, offeredDays, offeredSlots, personOptions, readBooking, readSlotRef, recordRefund, requestBooking,
+ stateFromEvents, windowOf, type Booking, type Candidate, type Ledger
 } from './booking.ts';
 import type { AccessEvent, Outcome } from './contract.ts';
 import { accessInForce } from './settings.ts';
@@ -24,6 +24,18 @@ const statement = (route: string, id: string) =>
  access.routes.find(r => `${r.method} ${r.path}@${r.version}` === route)!.refusals.find(r => r.id === id)!.statement;
 const BOOK = 'POST /v1/access/bookings@2';
 const CANCEL = 'POST /v1/access/bookings/{bookingRef}/cancel@1';
+
+/* payment.refunded@1 marks the booking it names, once, with Money's amount; it marks nothing it does not hold. */
+test('a refund is written against the booking it names, once, and a booking Access does not hold is left alone', () => {
+ const held = { bookingRef: 'BK-REFUND-1', subjectRef: 'subject-lerato', state: 'cancelled' } as unknown as Booking;
+ const ledger: Ledger = { bookings: [held] };
+ const first = recordRefund(ledger, { bookingRef: 'BK-REFUND-1', paymentRef: 'PAY-1', amountCents: 29_900, at: '2026-09-14T10:00:00+02:00' });
+ assert.deepEqual(first?.booking.refund, { paymentRef: 'PAY-1', amountCents: 29_900, at: '2026-09-14T10:00:00+02:00' });
+ assert.equal(recordRefund(first!.ledger, { bookingRef: 'BK-REFUND-1', paymentRef: 'PAY-2', amountCents: 1, at: '2026-09-14T11:00:00+02:00' }), null, 'a second refund rewrote the first');
+ assert.equal(recordRefund(ledger, { bookingRef: 'BK-NOT-HELD', paymentRef: 'PAY-3', amountCents: 1, at: '2026-09-14T10:00:00+02:00' }), null);
+ assert.ok(contract.hears.includes('payment.refunded@1'));
+ assert.deepEqual(events.events.find(e => e.type === 'payment.refunded' && e.version === 1)?.subscribers, ['access']);
+});
 
 const nurse = (nurseRef: string, over: Partial<Candidate>): Candidate =>
  ({ nurseRef, name: nurseRef, zone: 'Rosebank', covered: true, badgeCurrent: true, notOfferedBecause: null, distanceKm: 3, ...over });
