@@ -1,6 +1,7 @@
 import { Check, Circle, X } from 'lucide-react';
-import type { BookingState } from '../../../../packages/engines/src/access/domain/booking.ts';
-import { acceptedBy, asapStaysRequested, bookingStates, statusHeading, statusWords } from '../lib/booking';
+import type { BookingState, Refund } from '../../../../packages/engines/src/access/domain/booking.ts';
+import { acceptedBy, asapStaysRequested, bookingStates, refundedWords, statusHeading, statusWords } from '../lib/booking';
+import { money } from '../lib/catalog';
 import './booking-access.css';
 
 /* Where a booking stands, as the three states the contract draws and nothing in between.
@@ -16,7 +17,10 @@ export type StatusHistory = readonly { readonly state: BookingState; readonly at
 const timeOf = (instant: string) =>
  new Intl.DateTimeFormat('en-ZA', { timeZone: 'Africa/Johannesburg', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(instant));
 
-export function BookingStatus({ history, asap }: { history: StatusHistory; asap: boolean }) {
+/* A refund is said under a cancelled booking only when payment.refunded@1 recorded one, with Money's amount: a
+   cancelled booking that was never paid says nothing about money. The amount is formatted with the patient's own
+   rand formatter, never worked out; a refund is the whole payment of a catalogue price, which is whole rand. */
+export function BookingStatus({ history, asap, refund }: { history: StatusHistory; asap: boolean; refund?: Refund }) {
  const current = history[history.length - 1]?.state ?? 'requested';
  const shown = bookingStates.filter(s => (s.id !== 'cancelled' || current === 'cancelled')
   && !(current === 'cancelled' && s.id === 'confirmed' && !history.some(h => h.state === 'confirmed')));
@@ -39,6 +43,7 @@ export function BookingStatus({ history, asap }: { history: StatusHistory; asap:
     </li>;
    })}
   </ol>
+  {current === 'cancelled' && refund && <p className="helper booking-refunded" role="status"><strong>{refundedWords.name} · {money(refund.amountCents / 100)}</strong> {refundedWords.words}</p>}
   {current === 'confirmed' && <p className="helper">{acceptedBy}</p>}
   {current === 'requested' && asap && <p className="helper">{asapStaysRequested}</p>}
  </section>;

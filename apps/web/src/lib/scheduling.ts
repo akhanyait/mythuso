@@ -98,6 +98,8 @@ export type Visit = {
   namedNurseFallback: 'wait' | 'soonest' | null;
   /** What Care's matching tells the patient about the nurse they named, in packages/catalog/care.json's words. Absent when there is nothing to tell. */
   careTold?: string;
+  /** What Money returned for the booking, as payment.refunded@1 carried it to Access. Absent until a refund is recorded; never worked out here. */
+  refund?: { paymentRef: string; amountCents: number; at: string };
  };
 };
 

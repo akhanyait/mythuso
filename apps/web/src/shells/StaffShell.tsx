@@ -33,6 +33,9 @@ import { PatientFile, PrescribingRoute, UploadDocument } from '../features/Patie
 import { LabOrderDetail, PrescriptionDetail } from '../features/Orders';
 import { IncidentDetail, NurseVetting } from '../features/Dispatch';
 import { SafetyDesk } from '../features/FieldSafety';
+/* The desk's held cash payments sit under the incident register: the desk opens this screen for a panic, and a
+   held payment is a phone call that can wait below it. */
+import { HeldCashPayments } from '../features/CashCode';
 import { ConcernBoard } from '../features/ConcernBoard';
 import { VettingApplication, VettingQueue } from '../features/Vetting';
 import { t } from '../lib/i18n';
@@ -471,7 +474,7 @@ function sectionBody(section: string, open: (m: string) => void) {
  return section === 'Schedule' ? <NurseSchedule open={open}/>
   : section === 'Review queue' ? <><ReviewQueue open={open}/><SettingReviews/></>
    : section === 'Dispatch' ? <DispatchBoard/>
-    : section === 'Incidents' ? <><SafetyDesk/><ConcernBoard/><IncidentBoard open={open} notice={false}/></>
+    : section === 'Incidents' ? <><SafetyDesk/><ConcernBoard/><IncidentBoard open={open} notice={false}/><HeldCashPayments/></>
      : section === 'Orders' || section === 'Collections' || section === 'Results' ? <FulfilmentQueue section={section} open={open}/>
       /* The last fallback. Protocols and Quality used to land here — a card whose only control
          opened a dialog saying nothing happens — and both are screens of their own now. What is left
