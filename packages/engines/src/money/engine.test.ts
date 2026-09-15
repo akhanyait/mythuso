@@ -165,3 +165,43 @@ test('a payment from a person the runtime cannot identify is refused before Mone
  assert.equal(answer.body['error'], 'caller-unidentified');
  runtime.close();
 });
+
+test('version one refuses cash and names version two, which carries the code to the caller who paid and nobody else', () => {
+ const { care, runtime, published } = world();
+ billableFor(care, runtime, [['APT-1', 'subj-lerato']]);
+ const cash = { idempotencyKey: 'k-cash', method: 'cash-otp' };
+ const onOne = runtime.call('POST /v1/money/payments@1', pay(cash));
+ assert.deepEqual(onOne.body, { error: 'cash-needs-version-2', message: refusal('cash-needs-version-2').statement });
+ const onTwo = runtime.call('POST /v1/money/payments@2', pay(cash));
+ assert.equal(onTwo.status, 200, JSON.stringify(onTwo.body));
+ assert.equal(onTwo.body['stateCode'], 'pending');
+ assert.match(String(onTwo.body['cashCode']), /^\d{6}$/);
+ /* Somebody else calling with the payer's key is a different caller: no payable of theirs, no code. */
+ const stranger = runtime.call('POST /v1/money/payments@2', { ...pay(cash), ref: 'subj-somebody-else' });
+ assert.equal(stranger.body['error'], 'someone-elses-payable');
+ assert.equal(stranger.body['cashCode'], undefined);
+ /* Nothing on the bus carries the code. */
+ assert.ok(!runtime.trail.all().some(e => e.body.includes(String(onTwo.body['cashCode']))), 'the cash code reached the bus trail');
+ assert.equal(published('payment.succeeded@1').length, 0);
+ runtime.close();
+});
+
+test('a runtime that sleeps through two weeks pays both when it wakes, once each', () => {
+ const { care, runtime, published } = world();
+ care.queue.push({ key: 'visit.billable@1', subjectRef: 'subj-lerato', payload: { appointmentRef: 'APT-W1', serviceId: 'wound', clinicianRef: 'N-205' } });
+ runtime.advance(1000);
+ runtime.advance(7 * DAY);
+ care.queue.push({ key: 'visit.billable@1', subjectRef: 'subj-lerato', payload: { appointmentRef: 'APT-W2', serviceId: 'vitals', clinicianRef: 'N-205' } });
+ /* Delivered with a short step, then the runtime sleeps past the week it belongs to and the one after:
+    the first tick it runs on waking is the only chance that week gets. */
+ runtime.advance(1000);
+ runtime.advance(15 * DAY);
+ const payouts = runtime.call('GET /v1/money/payouts@1', { role: 'nurse', ref: 'N-205', purpose: 'billing', fields: {} }).body['payouts'] as { totalCents: number; lines: { reference: string }[] }[];
+ const references = payouts.flatMap(p => p.lines.map(l => l.reference)).sort();
+ assert.deepEqual(references, ['APT-W1', 'APT-W2'], 'a billable visit was left unpaid after the runtime woke');
+ assert.equal(published('payout.scheduled@1').length, payouts.length, 'a week was scheduled more than once');
+ runtime.advance(1000);
+ assert.equal(published('payout.scheduled@1').length, payouts.length);
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});

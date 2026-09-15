@@ -35,8 +35,13 @@
  ],
  "declinesNote": "What the simulated provider says when it declines, in words a person reads. apps/api/src/simulation/payments.ts carries the same three sentences, and scripts/check-boundaries.mjs holds them to these until it reads them from here.",
 
+ "cardFieldNames": ["ccnum", "ccnumber", "cardnum", "cardnumber", "number", "lastfour", "lastfourdigits", "cardlast4", "creditcard", "debitcard"],
+ "cardFieldNamesNote": "Field names that hold a card number whatever their value, beside the payment-result door's own spellings in packages/catalog/feeds.json. A value is judged by its digits: any Unicode decimal digit read as its value, separators dropped, and a card only at thirteen to nineteen digits passing the Luhn check. A thirteen-digit run starting with a valid date is an identity number, not a card, and a field ending Ref is read as one reference rather than as free text.",
+
  "cash": {
   "codeLength": 6,
+  "attemptLimit": 5,
+  "attemptLimitWhy": "Six digits are a million codes. Five wrong entries on one payment hold it for the operations desk, which releases it after speaking to the patient — so a code cannot be walked by trying, and a nurse who mistypes twice is not locked out of being paid.",
   "pendingWords": "Nothing has been paid yet. You pay the nurse at the door, and it is recorded as paid when she enters this code after the visit.",
   "reconciledOn": "visit.billable@1",
   "why": "Cash leakage is a pilot measure, and a nurse's word that she was paid is not a record. The code is issued by Money to the patient and entered by the nurse, so a cash payment is recorded only when the person who paid and the person who was paid agree — and only against a visit Care has said was completed. It is not the visit code the nurse checks at the door: that one belongs to Care and never reaches Money."

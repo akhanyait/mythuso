@@ -3,44 +3,44 @@
  *
  * ── What is bound, and what is left to the mock ──────────────────────────────────────────────
  *
- * Wave 3 builds payments, payouts and doctors' fees, so two routes are answered here: taking a
- * payment and reading your payouts. Wallets, vouchers, gifts, groups, claims and Market orders stay
- * proposed and are answered by packages/mock-api until their waves. Every rule lives in ./domain —
- * this file only opens the ledger over the engine's own store, hands it the bus and the simulated
- * clock, and turns its answers into the runtime's ok and refuse.
+ * Wave 3 builds payments, payouts and doctors' fees. Three routes are answered here: taking a payment
+ * at versions one and two, and reading your payouts. Wallets, vouchers, gifts, groups, claims, Market
+ * orders, the nurse's cash-code entry and the desk's release stay proposed and are answered by
+ * packages/mock-api. Every rule lives in ./domain — this file only opens the ledger over the engine's
+ * own store, hands it the bus and the simulated clock, and turns its answers into ok and refuse.
  *
- * ── What the binder does first, and what it does not ─────────────────────────────────────────
+ * ── Why a payment has two versions ───────────────────────────────────────────────────────────
  *
- * The runtime checks the caller, the purpose, the idempotency key and the fields' types before a
- * handler runs, and replays a stored answer for a key it has already seen. Two things are the
- * ledger's on top of that: a card number is refused even when it arrives as a field the route does
- * not declare — its value never reaches a handler, but its name does, and the name is enough — and a
- * payment is keyed per caller with its fingerprint compared, so a different payment under a used key
- * is refused whenever the ledger is the one asked.
+ * Version one answers a payment reference and a state, which is all a card or EFT payment needs, and it
+ * stays for them: nothing is wrong with it for the payments it can finish. Cash is different — the
+ * patient needs the code the nurse will ask for, and version one has nowhere to carry it — so version
+ * one refuses cash and names version two, whose answer carries the code to the caller who paid and to
+ * nobody else. Answering cash on version one would book money owed with no way for the patient ever to
+ * pay it.
  *
  * ── The week ─────────────────────────────────────────────────────────────────────────────────
  *
- * `tick` runs whenever the simulated clock moves. It closes the week that ended on the contract's
- * weekEndsOn once that day has passed, sends a closed week to the simulated bank on its paysOn, and
- * sends a returned week again with the next run. It never schedules a doctor's payout: the fee is
- * undecided, the ledger refuses, and a tick has nobody to show the refusal to — so the refusal is met
- * where a person meets it, on the doctor's fee screen.
+ * `tick` runs whenever the simulated clock moves. It closes every week that has ended and still has
+ * unscheduled lines — not only the last one, so a week the runtime slept through is still paid — sends
+ * a closed week to the simulated bank on its paysOn, and sends a returned week again with the next run.
+ * It never schedules a doctor's payout: the fee is undecided and the ledger refuses.
  */
 import {
  defineEngine, ok, refuse,
- type EngineContext, type EngineStore, type EventKey, type SubscriptionHandler
+ type EngineContext, type EngineStore, type EventKey, type HandlerRequest, type SubscriptionHandler
 } from '../runtime/index.ts';
 import { canonical, cardSpellings, isRefusal } from './domain/contract.ts';
 import { createMoney, TABLE_NAMES, type MoneyTables, type Payout, type Table } from './domain/ledger.ts';
-import { isoDateInSouthAfrica, paysOnFor, periodEndFor } from './domain/payouts.ts';
+import { isoDateInSouthAfrica, paysOnFor } from './domain/payouts.ts';
 
 const SQL_NAME: Record<typeof TABLE_NAMES[number], string> = {
- payables: 'payables', payments: 'payments', cashCodes: 'cash_codes', attempts: 'payment_attempts', keys: 'payment_keys',
+ payables: 'payables', payments: 'payments', cashCodes: 'cash_codes', cashAudit: 'cash_audit', attempts: 'payment_attempts', keys: 'payment_keys',
  billable: 'billable_visits', earned: 'earned_lines', cases: 'signed_cases', payouts: 'payouts', suspensions: 'partner_suspensions'
 };
 
 /* Every table is a reference and a document. Money's rows are billing facts — a payable, an attempt,
-   a week — and none of them is health information; the names above are the whole schema. */
+   a week — and none of them is health information; the names above are the whole schema. The cash
+   code table holds a salt and a digest, never a code. */
 const schema = TABLE_NAMES.map(name => `CREATE TABLE IF NOT EXISTS ${SQL_NAME[name]} (ref TEXT PRIMARY KEY, doc TEXT NOT NULL);`).join('\n');
 
 function storeTables(store: EngineStore): MoneyTables {
@@ -78,18 +78,25 @@ const onEvent: SubscriptionHandler = (event, ctx) => {
  if (isRefusal(heard)) throw new Error(`${heard.id}: ${heard.statement}`);
 };
 
-const DAY = 86_400_000;
+/* The part both versions share. `withCode` is version two's: the code travels only in that answer, and
+   only to the caller who made the payment. */
+function takePayment(request: HandlerRequest, ctx: EngineContext, withCode: boolean) {
+ if (request.undeclared.some(name => cardSpellings.has(canonical(name)))) return refuse('card-number-sent');
+ if (!withCode && request.fields['method'] === 'cash-otp') return refuse('cash-needs-version-2');
+ const payer = ctx.caller.ref ?? '';
+ const answer = ledgerFor(ctx).pay({ role: ctx.caller.role, subjectRef: payer }, { ...request.fields });
+ if (isRefusal(answer)) return refuse(answer.id);
+ const body: Record<string, unknown> = { paymentRef: answer.paymentRef, stateCode: answer.stateCode };
+ if (withCode && answer.cashCode !== undefined && payer) body['cashCode'] = answer.cashCode;
+ return ok(body);
+}
 
 export const engine = defineEngine({
  id: 'money',
  store: { schema },
  routes: {
-  'POST /v1/money/payments@1': (request, ctx) => {
-   if (request.undeclared.some(name => cardSpellings.has(canonical(name)))) return refuse('card-number-sent');
-   const answer = ledgerFor(ctx).pay({ role: ctx.caller.role, subjectRef: ctx.caller.ref ?? '' }, { ...request.fields });
-   if (isRefusal(answer)) return refuse(answer.id);
-   return ok({ paymentRef: answer.paymentRef, stateCode: answer.stateCode });
-  },
+  'POST /v1/money/payments@1': (request, ctx) => takePayment(request, ctx, false),
+  'POST /v1/money/payments@2': (request, ctx) => takePayment(request, ctx, true),
   'GET /v1/money/payouts@1': (request, ctx) => {
    const periodEnd = typeof request.fields['periodEnd'] === 'string' ? request.fields['periodEnd'] : undefined;
    const answer = ledgerFor(ctx).payoutsFor({ role: ctx.caller.role, subjectRef: ctx.caller.ref ?? '' }, periodEnd);
@@ -102,8 +109,7 @@ export const engine = defineEngine({
   const money = ledgerFor(ctx);
   const now = ctx.clock.now();
   const today = isoDateInSouthAfrica(now);
-  /* The week that ended most recently: its weekEndsOn is behind us, so it is closed. */
-  money.schedulePayouts(periodEndFor(new Date(now.getTime() - 7 * DAY)));
+  money.scheduleClosedWeeks(now);
   for (const payout of money.allPayouts()) {
    const due = payout.state === 'closed' ? paysOnFor(payout.periodEnd) <= today
     : payout.state === 'failed' ? paysOnFor(payout.ranOn ?? payout.periodEnd) <= today

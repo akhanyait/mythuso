@@ -1,6 +1,6 @@
 import { createMoney, type Money, type Payout } from '../../../../packages/engines/src/money/domain/ledger.ts';
 import {
- doctorFees, earningsContract, isRefusal, methods, money as contract, rangeOf, refusal, stateOf, type MethodId, type PaymentStateId
+ doctorFees, earningsContract, isRefusal, money as contract, rangeOf, refusal, stateOf, type MethodId, type PaymentStateId
 } from '../../../../packages/engines/src/money/domain/contract.ts';
 import { linesFromEarningsWeek } from '../../../../packages/engines/src/money/domain/payouts.ts';
 /* The web's door onto Thuso Money.
@@ -29,9 +29,9 @@ import { linesFromEarningsWeek } from '../../../../packages/engines/src/money/do
 /** The patient the preview books as. Money keys a payable on a subject token, never a name. */
 export const PREVIEW_PAYER = 'subj-preview-patient';
 
-export const visitMethods = methods.filter(m => m.offered && m.for.includes('visit'));
-export const notOffered = methods.filter(m => !m.offered);
-export const methodByName = (name: string) => methods.find(m => m.name === name);
+/* The ways to pay are drawn from their own small module, so the booking screen can show them without
+   loading this one. Re-exported here so there is one list. */
+export { methodByName, notOffered, visitMethods } from './money-methods';
 
 export type Refused = { refused: string };
 
