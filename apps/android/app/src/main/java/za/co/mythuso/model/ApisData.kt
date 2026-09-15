@@ -123,6 +123,7 @@ object ApisData {
     val POST_SAFETY_SENTINEL_DEVIATIONS = Route("postSafetySentinelDeviations", "POST", "/v1/safety/sentinel-deviations", "/v1/safety/sentinel-deviations", 1, "safety", listOf("engine:devices"), listOf("treatment"), false, "proposed")
     val GET_SAFETY_INCIDENT_KINDS = Route("getSafetyIncidentKinds", "GET", "/v1/safety/incident-kinds", "/v1/safety/incident-kinds", 1, "safety", listOf("anonymous"), listOf("audit"), false, "built")
     val POST_SAFETY_INCIDENTS_V2 = Route("postSafetyIncidentsV2", "POST", "/v1/safety/incidents", "/v1/safety/incidents", 2, "safety", listOf("nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin", "employer", "sponsor", "guardian", "corner", "carer", "head-of-operations"), listOf("audit"), false, "built")
+    val POST_SAFETY_INCIDENTS_V3 = Route("postSafetyIncidentsV3", "POST", "/v1/safety/incidents", "/v1/safety/incidents", 3, "safety", listOf("nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin", "employer", "sponsor", "guardian", "corner", "carer", "head-of-operations", "engine:trust"), listOf("audit"), false, "proposed")
     val POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_CONTAIN = Route("postSafetyIncidentsByIncidentIdContain", "POST", "/v1/safety/incidents/{incidentId}/contain", "/v1/safety/incidents/{incidentId}/contain", 1, "safety", listOf("admin", "incident-reporter"), listOf("audit"), false, "built")
     val POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_NOTIFIED = Route("postSafetyIncidentsByIncidentIdNotified", "POST", "/v1/safety/incidents/{incidentId}/notified", "/v1/safety/incidents/{incidentId}/notified", 1, "safety", listOf("admin"), listOf("audit"), false, "built")
     val POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_CLOSE = Route("postSafetyIncidentsByIncidentIdClose", "POST", "/v1/safety/incidents/{incidentId}/close", "/v1/safety/incidents/{incidentId}/close", 1, "safety", listOf("admin"), listOf("audit"), false, "built")
@@ -149,11 +150,20 @@ object ApisData {
     val POST_TRUST_PARTIES_BY_PARTY_ID_SUSPEND = Route("postTrustPartiesByPartyIdSuspend", "POST", "/v1/trust/parties/{partyId}/suspend", "/v1/trust/parties/{partyId}/suspend", 1, "trust", listOf("admin"), listOf("vetting"), false, "built")
     val POST_TRUST_PARTIES_BY_PARTY_ID_RESTORE = Route("postTrustPartiesByPartyIdRestore", "POST", "/v1/trust/parties/{partyId}/restore", "/v1/trust/parties/{partyId}/restore", 1, "trust", listOf("admin"), listOf("vetting"), false, "built")
     val POST_TRUST_IDENTITY_CALLBACKS = Route("postTrustIdentityCallbacks", "POST", "/v1/trust/identity-callbacks", "/v1/trust/identity-callbacks", 1, "trust", listOf("kyc-provider"), listOf("vetting"), false, "built")
-    val GET_TRUST_PARTIES_BY_PARTY_ID_GATES = Route("getTrustPartiesByPartyIdGates", "GET", "/v1/trust/parties/{partyId}/gates", "/v1/trust/parties/{partyId}/gates", 1, "trust", listOf("admin", "self"), listOf("vetting"), false, "proposed")
-    val GET_TRUST_PARTIES_BY_PARTY_ID_BADGE = Route("getTrustPartiesByPartyIdBadge", "GET", "/v1/trust/parties/{partyId}/badge", "/v1/trust/parties/{partyId}/badge", 1, "trust", listOf("patient", "caregiver", "dispatcher", "nurse"), listOf("dispatch"), false, "proposed")
-    val POST_TRUST_SHIFT_STARTS = Route("postTrustShiftStarts", "POST", "/v1/trust/shift-starts", "/v1/trust/shift-starts", 1, "trust", listOf("nurse", "locum", "responder", "courier"), listOf("vetting"), false, "proposed")
-    val POST_TRUST_DOOR_VERIFICATIONS = Route("postTrustDoorVerifications", "POST", "/v1/trust/door-verifications", "/v1/trust/door-verifications", 1, "trust", listOf("patient", "caregiver"), listOf("vetting"), false, "proposed")
-    val POST_TRUST_COMPLAINTS = Route("postTrustComplaints", "POST", "/v1/trust/complaints", "/v1/trust/complaints", 1, "trust", listOf("patient", "caregiver", "thuso-line-agent"), listOf("vetting"), false, "proposed")
+    val GET_TRUST_PARTIES_BY_PARTY_ID_GATES = Route("getTrustPartiesByPartyIdGates", "GET", "/v1/trust/parties/{partyId}/gates", "/v1/trust/parties/{partyId}/gates", 1, "trust", listOf("admin"), listOf("vetting"), false, "built")
+    val GET_TRUST_PARTIES_BY_PARTY_ID_BADGE = Route("getTrustPartiesByPartyIdBadge", "GET", "/v1/trust/parties/{partyId}/badge", "/v1/trust/parties/{partyId}/badge", 1, "trust", listOf("patient", "caregiver", "dispatcher", "nurse"), listOf("dispatch"), false, "built")
+    val POST_TRUST_SHIFT_STARTS_V2 = Route("postTrustShiftStartsV2", "POST", "/v1/trust/shift-starts", "/v1/trust/shift-starts", 2, "trust", listOf("nurse", "locum", "responder", "courier"), listOf("vetting"), false, "built")
+    val GET_TRUST_SHIFT_STARTS = Route("getTrustShiftStarts", "GET", "/v1/trust/shift-starts", "/v1/trust/shift-starts", 1, "trust", listOf("operator", "admin"), listOf("dispatch"), false, "built")
+    val POST_TRUST_DOOR_CODES = Route("postTrustDoorCodes", "POST", "/v1/trust/door-codes", "/v1/trust/door-codes", 1, "trust", listOf("nurse", "locum"), listOf("vetting"), false, "built")
+    val POST_TRUST_DOOR_VERIFICATIONS_V2 = Route("postTrustDoorVerificationsV2", "POST", "/v1/trust/door-verifications", "/v1/trust/door-verifications", 2, "trust", listOf("patient", "caregiver"), listOf("vetting"), false, "built")
+    val POST_TRUST_DOOR_VERIFICATIONS_BY_APPOINTMENT_REF_ANSWER = Route("postTrustDoorVerificationsByAppointmentRefAnswer", "POST", "/v1/trust/door-verifications/{appointmentRef}/answer", "/v1/trust/door-verifications/{appointmentRef}/answer", 1, "trust", listOf("patient", "caregiver"), listOf("vetting"), false, "built")
+    val POST_TRUST_COMPLAINTS_V2 = Route("postTrustComplaintsV2", "POST", "/v1/trust/complaints", "/v1/trust/complaints", 2, "trust", listOf("patient", "caregiver", "thuso-line-agent"), listOf("vetting"), false, "built")
+    val GET_TRUST_COMPLAINTS = Route("getTrustComplaints", "GET", "/v1/trust/complaints", "/v1/trust/complaints", 1, "trust", listOf("admin"), listOf("vetting"), false, "built")
+    val GET_TRUST_COMPLAINTS_BY_COMPLAINT_REF = Route("getTrustComplaintsByComplaintRef", "GET", "/v1/trust/complaints/{complaintRef}", "/v1/trust/complaints/{complaintRef}", 1, "trust", listOf("admin"), listOf("vetting"), false, "built")
+    val POST_TRUST_COMPLAINTS_BY_COMPLAINT_REF_DECIDE = Route("postTrustComplaintsByComplaintRefDecide", "POST", "/v1/trust/complaints/{complaintRef}/decide", "/v1/trust/complaints/{complaintRef}/decide", 1, "trust", listOf("admin"), listOf("vetting"), false, "built")
+    val GET_TRUST_COMPLAINT_NOTICES = Route("getTrustComplaintNotices", "GET", "/v1/trust/complaint-notices", "/v1/trust/complaint-notices", 1, "trust", listOf("nurse", "locum"), listOf("vetting"), false, "built")
+    val GET_TRUST_SETTINGS = Route("getTrustSettings", "GET", "/v1/trust/settings", "/v1/trust/settings", 1, "trust", listOf("admin", "operator"), listOf("audit"), false, "built")
+    val POST_TRUST_SETTING_CHANGES = Route("postTrustSettingChanges", "POST", "/v1/trust/setting-changes", "/v1/trust/setting-changes", 1, "trust", listOf("admin", "operator"), listOf("audit"), true, "built")
     val POST_RECORD_DEV_SUBJECTS = Route("postRecordDevSubjects", "POST", "/v1/record/dev-subjects", "/v1/record/dev-subjects", 1, "record", listOf("developer"), listOf("audit"), false, "built")
     val POST_RECORD_SESSION_ENDS = Route("postRecordSessionEnds", "POST", "/v1/record/session-ends", "/v1/record/session-ends", 1, "record", listOf("patient"), listOf("subject-access"), false, "built")
     val POST_RECORD_CONSENT_GRANT = Route("postRecordConsentGrant", "POST", "/consent/grant", "/v1/record/consent/grant", 1, "record", listOf("patient"), listOf("subject-access"), false, "built")
@@ -301,6 +311,7 @@ object ApisData {
         POST_SAFETY_SENTINEL_DEVIATIONS,
         GET_SAFETY_INCIDENT_KINDS,
         POST_SAFETY_INCIDENTS_V2,
+        POST_SAFETY_INCIDENTS_V3,
         POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_CONTAIN,
         POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_NOTIFIED,
         POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_CLOSE,
@@ -329,9 +340,18 @@ object ApisData {
         POST_TRUST_IDENTITY_CALLBACKS,
         GET_TRUST_PARTIES_BY_PARTY_ID_GATES,
         GET_TRUST_PARTIES_BY_PARTY_ID_BADGE,
-        POST_TRUST_SHIFT_STARTS,
-        POST_TRUST_DOOR_VERIFICATIONS,
-        POST_TRUST_COMPLAINTS,
+        POST_TRUST_SHIFT_STARTS_V2,
+        GET_TRUST_SHIFT_STARTS,
+        POST_TRUST_DOOR_CODES,
+        POST_TRUST_DOOR_VERIFICATIONS_V2,
+        POST_TRUST_DOOR_VERIFICATIONS_BY_APPOINTMENT_REF_ANSWER,
+        POST_TRUST_COMPLAINTS_V2,
+        GET_TRUST_COMPLAINTS,
+        GET_TRUST_COMPLAINTS_BY_COMPLAINT_REF,
+        POST_TRUST_COMPLAINTS_BY_COMPLAINT_REF_DECIDE,
+        GET_TRUST_COMPLAINT_NOTICES,
+        GET_TRUST_SETTINGS,
+        POST_TRUST_SETTING_CHANGES,
         POST_RECORD_DEV_SUBJECTS,
         POST_RECORD_SESSION_ENDS,
         POST_RECORD_CONSENT_GRANT,
@@ -1189,6 +1209,17 @@ object ApisData {
         val incidentId: String,
         val notificationOwed: Boolean
     )
+    data class PostSafetyIncidentsV3Request(
+        val kind: String,
+        val whatHappened: String,
+        val informationReached: Boolean,
+        val peopleAffected: Int? = null,
+        val discoveredAt: Int? = null
+    )
+    data class PostSafetyIncidentsV3Response(
+        val incidentId: String,
+        val notificationOwed: Boolean
+    )
     data class PostSafetyIncidentsByIncidentIdContainRequest(
         val incidentId: String,
         val containment: String
@@ -1422,27 +1453,112 @@ object ApisData {
         val badgeTier: String,
         val verified: Boolean
     )
-    data class PostTrustShiftStartsRequest(
-        val livenessCaptureRef: String
+    class PostTrustShiftStartsV2Request
+    data class PostTrustShiftStartsV2Response(
+        val shiftStartRef: String,
+        val matchOutcome: String,
+        val online: Boolean,
+        val dispatchRule: String,
+        val settingsVersion: Int,
+        val startedAt: String
     )
-    data class PostTrustShiftStartsResponse(
-        val online: Boolean
+    class GetTrustShiftStartsRequest
+    data class GetTrustShiftStartsResponse(
+        val items: List<Map<String, Any?>>
     )
-    data class PostTrustDoorVerificationsRequest(
+    data class PostTrustDoorCodesRequest(
+        val appointmentRef: String
+    )
+    data class PostTrustDoorCodesResponse(
+        val doorCode: String,
+        val expiresAt: String,
+        val attemptsAllowed: Int,
+        val settingsVersion: Int
+    )
+    data class PostTrustDoorVerificationsV2Request(
         val appointmentRef: String,
-        val lanyardCode: String
+        val doorCode: String
     )
-    data class PostTrustDoorVerificationsResponse(
-        val matched: Boolean,
-        val badgeTier: String? = null
+    data class PostTrustDoorVerificationsV2Response(
+        val codeMatched: Boolean,
+        val attemptsLeft: Int,
+        val nurseName: String? = null,
+        val badgeTier: String? = null,
+        val incidentRaised: Boolean
     )
-    data class PostTrustComplaintsRequest(
+    data class PostTrustDoorVerificationsByAppointmentRefAnswerRequest(
+        val appointmentRef: String,
+        val answer: String
+    )
+    data class PostTrustDoorVerificationsByAppointmentRefAnswerResponse(
+        val verified: Boolean,
+        val incidentRaised: Boolean
+    )
+    data class PostTrustComplaintsV2Request(
         val partyRef: String,
-        val categoryCode: String
+        val appointmentRef: String,
+        val categoryCode: String,
+        val whatHappened: String
     )
-    data class PostTrustComplaintsResponse(
+    data class PostTrustComplaintsV2Response(
         val complaintRef: String,
-        val reviewBy: String
+        val reviewBy: String,
+        val reviewWithinHours: Int,
+        val settingsVersion: Int
+    )
+    class GetTrustComplaintsRequest
+    data class GetTrustComplaintsResponse(
+        val items: List<Map<String, Any?>>
+    )
+    data class GetTrustComplaintsByComplaintRefRequest(
+        val complaintRef: String
+    )
+    data class GetTrustComplaintsByComplaintRefResponse(
+        val complaintRef: String,
+        val partyRef: String,
+        val appointmentRef: String,
+        val categoryCode: String,
+        val whatHappened: String,
+        val state: String,
+        val reviewBy: String,
+        val outcomeCode: String? = null
+    )
+    data class PostTrustComplaintsByComplaintRefDecideRequest(
+        val complaintRef: String,
+        val outcomeCode: String,
+        val reason: String
+    )
+    data class PostTrustComplaintsByComplaintRefDecideResponse(
+        val outcomeCode: String,
+        val decidedAt: String
+    )
+    class GetTrustComplaintNoticesRequest
+    data class GetTrustComplaintNoticesResponse(
+        val items: List<Map<String, Any?>>
+    )
+    class GetTrustSettingsRequest
+    data class GetTrustSettingsResponse(
+        val settingsVersion: Int,
+        val settings: List<Map<String, Any?>>,
+        val history: List<Map<String, Any?>>
+    )
+    data class PostTrustSettingChangesRequest(
+        val idempotencyKey: String,
+        val setting: String,
+        val wholeNumber: Int? = null,
+        val switchedOn: Boolean? = null,
+        val choice: String? = null,
+        val wording: String? = null,
+        val roles: List<String>? = null,
+        val windows: List<Map<String, Any?>>? = null,
+        val items: List<String>? = null,
+        val parts: Map<String, Any?>? = null,
+        val reason: String? = null,
+        val expectedVersion: Int
+    )
+    data class PostTrustSettingChangesResponse(
+        val settingsVersion: Int,
+        val appliesFrom: String
     )
     class PostRecordDevSubjectsRequest
     data class PostRecordDevSubjectsResponse(

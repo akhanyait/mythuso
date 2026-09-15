@@ -310,3 +310,18 @@ POST /v1/core/loops/{loopRef}/acknowledge@3 42438f13fae2a2f6
 POST /v1/core/loops/{loopRef}/escalate@3 5d0f6e5835cef67f
 POST /v1/core/loops/{loopRef}/close@2 221b6d73508baf4d
 POST /v1/safety/incidents@2 3210c5f7964fc24e
+POST /v1/safety/incidents@3 ffbff87c2bfa52c6
+POST /v1/trust/shift-starts@2 f0b2987ba56783b6
+GET /v1/trust/shift-starts@1 0f5c9aac647555c9
+POST /v1/trust/door-codes@1 3bfcc15ce41d6761
+POST /v1/trust/door-verifications@2 db9e5fc02f8d8ce4
+POST /v1/trust/door-verifications/{appointmentRef}/answer@1 9e14ebe94e1644f8
+POST /v1/trust/complaints@2 fe3d49aab17b21a2
+GET /v1/trust/complaints@1 d09b1b7c9bb5b65d
+GET /v1/trust/complaints/{complaintRef}@1 f36f5c47c8423951
+POST /v1/trust/complaints/{complaintRef}/decide@1 c67949a521bbf926
+GET /v1/trust/complaint-notices@1 170411b67d3ce4b8
+GET /v1/trust/settings@1 ed60c541555c0e08
+POST /v1/trust/setting-changes@1 414e9947d75b18ab
+shared apis/trust.json#refusals no-such-complaint 92673f07cc28429d
+shared apis/trust.json#refusals complaint-about-you 6be773e5faa89296

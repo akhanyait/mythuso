@@ -207,6 +207,46 @@
     { "field": "entry", "why": "The broken entry is evidence, and it stays where it is. Copying it into an event is copying it somewhere it can be altered too." }
    ],
    "subscribers": ["core", "safety"]
+  },
+  {
+   "type": "trust.shift_start.unmatched",
+   "version": 1,
+   "owner": "trust",
+   "summary": "A nurse, locum, courier or responder started a shift and no face match was performed, because the face-match door answers not-integrated. Whether she may be offered work is the dispatch rule in force.",
+   "payload": [
+    { "field": "shiftStartRef", "type": "string", "required": true, "why": "The shift start in Verify's store, so the desk's board and a later review point at one row." },
+    { "field": "matchOutcome", "type": "string", "required": true, "why": "What the door answered. not-integrated while no provider is contracted; never matched without one, which is trust.shift_start.matched@1's to say." },
+    { "field": "dispatchRule", "type": "string", "required": true, "why": "The allowed value of unmatched-shift-start-dispatch in force when the shift started, so a dispatch engine applies the rule the shift started under rather than the one in force when it hears." },
+    { "field": "online", "type": "boolean", "required": true, "why": "Whether the rule lets her be offered work from this shift. Dispatch withholds on false." }
+   ],
+   "neverCarries": [
+    { "field": "faceTemplate", "why": "Whether a face match is biometric information is the Information Officer's undecided D-3. No template exists, and the event has nowhere to put one." },
+    { "field": "faceImage", "why": "A photograph of a face on the bus is a photograph in every subscriber's log." },
+    { "field": "faceEmbedding", "why": "A template in another shape." },
+    { "field": "score", "why": "A shift start is not a reason to move a Trust Score, and the number never leaves Verify." },
+    { "field": "complainantRef", "why": "Nothing about a complaint travels with a shift, however recent the complaint." },
+    { "field": "protectedCategory", "why": "Nothing about anybody's health rides on a person's shift." }
+   ],
+   "subscribers": ["care", "core"]
+  },
+  {
+   "type": "trust.complaint.received",
+   "version": 1,
+   "owner": "trust",
+   "summary": "A complaint about a person arrived and is waiting for review within the window in force when it arrived. Nothing about the person has changed.",
+   "payload": [
+    { "field": "complaintRef", "type": "string", "required": true, "why": "The complaint in Verify's store, which the closed loop follows until it is decided." },
+    { "field": "reviewBy", "type": "instant", "required": true, "why": "When the review window closes, worked out from complaint-review-hours when it arrived, so Core escalates a complaint nobody has read without keeping its own count." }
+   ],
+   "neverCarries": [
+    { "field": "complainantRef", "why": "Who complained is for the reviewer. On the bus it reaches every engine that dispatches the nurse the complaint is about." },
+    { "field": "whatHappened", "why": "The account names a family and describes a visit, and it is read by a reviewer, not broadcast." },
+    { "field": "categoryCode", "why": "Core needs the deadline, not the kind. A kind on the bus is a label on a nurse in every subscriber's log before anybody has read it." },
+    { "field": "score", "why": "A complaint never changes a Trust Score by itself: the complaint-rate weight is null, and a number on the bus would be a weight nobody decided." },
+    { "field": "faceTemplate", "why": "Nothing about a face travels anywhere in Verify." },
+    { "field": "protectedCategory", "why": "A complaint's header carries no protected category, and neither does news of one." }
+   ],
+   "subscribers": ["core"]
   }
  ]
 }

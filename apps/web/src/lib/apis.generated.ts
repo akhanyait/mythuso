@@ -933,6 +933,18 @@ export interface PostSafetyIncidentsV2Response {
  readonly notificationOwed: boolean;
 }
 
+export interface PostSafetyIncidentsV3Request {
+ readonly kind: string;
+ readonly whatHappened: string;
+ readonly informationReached: boolean;
+ readonly peopleAffected?: number;
+ readonly discoveredAt?: number;
+}
+export interface PostSafetyIncidentsV3Response {
+ readonly incidentId: string;
+ readonly notificationOwed: boolean;
+}
+
 export interface PostSafetyIncidentsByIncidentIdContainRequest {
  readonly incidentId: string;
  readonly containment: string;
@@ -1194,29 +1206,123 @@ export interface GetTrustPartiesByPartyIdBadgeResponse {
  readonly verified: boolean;
 }
 
-export interface PostTrustShiftStartsRequest {
- readonly livenessCaptureRef: string;
-}
-export interface PostTrustShiftStartsResponse {
+export type PostTrustShiftStartsV2Request = Record<string, never>;
+export interface PostTrustShiftStartsV2Response {
+ readonly shiftStartRef: string;
+ readonly matchOutcome: string;
  readonly online: boolean;
+ readonly dispatchRule: string;
+ readonly settingsVersion: number;
+ readonly startedAt: string;
 }
 
-export interface PostTrustDoorVerificationsRequest {
+export type GetTrustShiftStartsRequest = Record<string, never>;
+export interface GetTrustShiftStartsResponse {
+ readonly items: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostTrustDoorCodesRequest {
  readonly appointmentRef: string;
- readonly lanyardCode: string;
 }
-export interface PostTrustDoorVerificationsResponse {
- readonly matched: boolean;
- readonly badgeTier?: string;
+export interface PostTrustDoorCodesResponse {
+ readonly doorCode: string;
+ readonly expiresAt: string;
+ readonly attemptsAllowed: number;
+ readonly settingsVersion: number;
 }
 
-export interface PostTrustComplaintsRequest {
- readonly partyRef: string;
- readonly categoryCode: string;
+export interface PostTrustDoorVerificationsV2Request {
+ readonly appointmentRef: string;
+ readonly doorCode: string;
 }
-export interface PostTrustComplaintsResponse {
+export interface PostTrustDoorVerificationsV2Response {
+ readonly codeMatched: boolean;
+ readonly attemptsLeft: number;
+ readonly nurseName?: string;
+ readonly badgeTier?: string;
+ readonly incidentRaised: boolean;
+}
+
+export interface PostTrustDoorVerificationsByAppointmentRefAnswerRequest {
+ readonly appointmentRef: string;
+ readonly answer: string;
+}
+export interface PostTrustDoorVerificationsByAppointmentRefAnswerResponse {
+ readonly verified: boolean;
+ readonly incidentRaised: boolean;
+}
+
+export interface PostTrustComplaintsV2Request {
+ readonly partyRef: string;
+ readonly appointmentRef: string;
+ readonly categoryCode: string;
+ readonly whatHappened: string;
+}
+export interface PostTrustComplaintsV2Response {
  readonly complaintRef: string;
  readonly reviewBy: string;
+ readonly reviewWithinHours: number;
+ readonly settingsVersion: number;
+}
+
+export type GetTrustComplaintsRequest = Record<string, never>;
+export interface GetTrustComplaintsResponse {
+ readonly items: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface GetTrustComplaintsByComplaintRefRequest {
+ readonly complaintRef: string;
+}
+export interface GetTrustComplaintsByComplaintRefResponse {
+ readonly complaintRef: string;
+ readonly partyRef: string;
+ readonly appointmentRef: string;
+ readonly categoryCode: string;
+ readonly whatHappened: string;
+ readonly state: string;
+ readonly reviewBy: string;
+ readonly outcomeCode?: string;
+}
+
+export interface PostTrustComplaintsByComplaintRefDecideRequest {
+ readonly complaintRef: string;
+ readonly outcomeCode: string;
+ readonly reason: string;
+}
+export interface PostTrustComplaintsByComplaintRefDecideResponse {
+ readonly outcomeCode: string;
+ readonly decidedAt: string;
+}
+
+export type GetTrustComplaintNoticesRequest = Record<string, never>;
+export interface GetTrustComplaintNoticesResponse {
+ readonly items: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export type GetTrustSettingsRequest = Record<string, never>;
+export interface GetTrustSettingsResponse {
+ readonly settingsVersion: number;
+ readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostTrustSettingChangesRequest {
+ readonly idempotencyKey: string;
+ readonly setting: string;
+ readonly wholeNumber?: number;
+ readonly switchedOn?: boolean;
+ readonly choice?: string;
+ readonly wording?: string;
+ readonly roles?: readonly string[];
+ readonly windows?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly items?: readonly string[];
+ readonly parts?: Readonly<Record<string, unknown>>;
+ readonly reason?: string;
+ readonly expectedVersion: number;
+}
+export interface PostTrustSettingChangesResponse {
+ readonly settingsVersion: number;
+ readonly appliesFrom: string;
 }
 
 export type PostRecordDevSubjectsRequest = Record<string, never>;
@@ -1723,6 +1829,7 @@ export const apiRoutes = {
  postSafetySentinelDeviations: { name: "postSafetySentinelDeviations", method: "POST", path: "/v1/safety/sentinel-deviations", mountedPath: "/v1/safety/sentinel-deviations", version: 1, engine: "safety", callers: ["engine:devices"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  getSafetyIncidentKinds: { name: "getSafetyIncidentKinds", method: "GET", path: "/v1/safety/incident-kinds", mountedPath: "/v1/safety/incident-kinds", version: 1, engine: "safety", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built" },
  postSafetyIncidentsV2: { name: "postSafetyIncidentsV2", method: "POST", path: "/v1/safety/incidents", mountedPath: "/v1/safety/incidents", version: 2, engine: "safety", callers: ["nurse","locum","doctor","pharmacy","laboratory","courier","interpreter","operator","admin","employer","sponsor","guardian","corner","carer","head-of-operations"], purpose: ["audit"], idempotent: false, status: "built" },
+ postSafetyIncidentsV3: { name: "postSafetyIncidentsV3", method: "POST", path: "/v1/safety/incidents", mountedPath: "/v1/safety/incidents", version: 3, engine: "safety", callers: ["nurse","locum","doctor","pharmacy","laboratory","courier","interpreter","operator","admin","employer","sponsor","guardian","corner","carer","head-of-operations","engine:trust"], purpose: ["audit"], idempotent: false, status: "proposed" },
  postSafetyIncidentsByIncidentIdContain: { name: "postSafetyIncidentsByIncidentIdContain", method: "POST", path: "/v1/safety/incidents/{incidentId}/contain", mountedPath: "/v1/safety/incidents/{incidentId}/contain", version: 1, engine: "safety", callers: ["admin","incident-reporter"], purpose: ["audit"], idempotent: false, status: "built" },
  postSafetyIncidentsByIncidentIdNotified: { name: "postSafetyIncidentsByIncidentIdNotified", method: "POST", path: "/v1/safety/incidents/{incidentId}/notified", mountedPath: "/v1/safety/incidents/{incidentId}/notified", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
  postSafetyIncidentsByIncidentIdClose: { name: "postSafetyIncidentsByIncidentIdClose", method: "POST", path: "/v1/safety/incidents/{incidentId}/close", mountedPath: "/v1/safety/incidents/{incidentId}/close", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
@@ -1749,11 +1856,20 @@ export const apiRoutes = {
  postTrustPartiesByPartyIdSuspend: { name: "postTrustPartiesByPartyIdSuspend", method: "POST", path: "/v1/trust/parties/{partyId}/suspend", mountedPath: "/v1/trust/parties/{partyId}/suspend", version: 1, engine: "trust", callers: ["admin"], purpose: ["vetting"], idempotent: false, status: "built" },
  postTrustPartiesByPartyIdRestore: { name: "postTrustPartiesByPartyIdRestore", method: "POST", path: "/v1/trust/parties/{partyId}/restore", mountedPath: "/v1/trust/parties/{partyId}/restore", version: 1, engine: "trust", callers: ["admin"], purpose: ["vetting"], idempotent: false, status: "built" },
  postTrustIdentityCallbacks: { name: "postTrustIdentityCallbacks", method: "POST", path: "/v1/trust/identity-callbacks", mountedPath: "/v1/trust/identity-callbacks", version: 1, engine: "trust", callers: ["kyc-provider"], purpose: ["vetting"], idempotent: false, status: "built" },
- getTrustPartiesByPartyIdGates: { name: "getTrustPartiesByPartyIdGates", method: "GET", path: "/v1/trust/parties/{partyId}/gates", mountedPath: "/v1/trust/parties/{partyId}/gates", version: 1, engine: "trust", callers: ["admin","self"], purpose: ["vetting"], idempotent: false, status: "proposed" },
- getTrustPartiesByPartyIdBadge: { name: "getTrustPartiesByPartyIdBadge", method: "GET", path: "/v1/trust/parties/{partyId}/badge", mountedPath: "/v1/trust/parties/{partyId}/badge", version: 1, engine: "trust", callers: ["patient","caregiver","dispatcher","nurse"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
- postTrustShiftStarts: { name: "postTrustShiftStarts", method: "POST", path: "/v1/trust/shift-starts", mountedPath: "/v1/trust/shift-starts", version: 1, engine: "trust", callers: ["nurse","locum","responder","courier"], purpose: ["vetting"], idempotent: false, status: "proposed" },
- postTrustDoorVerifications: { name: "postTrustDoorVerifications", method: "POST", path: "/v1/trust/door-verifications", mountedPath: "/v1/trust/door-verifications", version: 1, engine: "trust", callers: ["patient","caregiver"], purpose: ["vetting"], idempotent: false, status: "proposed" },
- postTrustComplaints: { name: "postTrustComplaints", method: "POST", path: "/v1/trust/complaints", mountedPath: "/v1/trust/complaints", version: 1, engine: "trust", callers: ["patient","caregiver","thuso-line-agent"], purpose: ["vetting"], idempotent: false, status: "proposed" },
+ getTrustPartiesByPartyIdGates: { name: "getTrustPartiesByPartyIdGates", method: "GET", path: "/v1/trust/parties/{partyId}/gates", mountedPath: "/v1/trust/parties/{partyId}/gates", version: 1, engine: "trust", callers: ["admin"], purpose: ["vetting"], idempotent: false, status: "built" },
+ getTrustPartiesByPartyIdBadge: { name: "getTrustPartiesByPartyIdBadge", method: "GET", path: "/v1/trust/parties/{partyId}/badge", mountedPath: "/v1/trust/parties/{partyId}/badge", version: 1, engine: "trust", callers: ["patient","caregiver","dispatcher","nurse"], purpose: ["dispatch"], idempotent: false, status: "built" },
+ postTrustShiftStartsV2: { name: "postTrustShiftStartsV2", method: "POST", path: "/v1/trust/shift-starts", mountedPath: "/v1/trust/shift-starts", version: 2, engine: "trust", callers: ["nurse","locum","responder","courier"], purpose: ["vetting"], idempotent: false, status: "built" },
+ getTrustShiftStarts: { name: "getTrustShiftStarts", method: "GET", path: "/v1/trust/shift-starts", mountedPath: "/v1/trust/shift-starts", version: 1, engine: "trust", callers: ["operator","admin"], purpose: ["dispatch"], idempotent: false, status: "built" },
+ postTrustDoorCodes: { name: "postTrustDoorCodes", method: "POST", path: "/v1/trust/door-codes", mountedPath: "/v1/trust/door-codes", version: 1, engine: "trust", callers: ["nurse","locum"], purpose: ["vetting"], idempotent: false, status: "built" },
+ postTrustDoorVerificationsV2: { name: "postTrustDoorVerificationsV2", method: "POST", path: "/v1/trust/door-verifications", mountedPath: "/v1/trust/door-verifications", version: 2, engine: "trust", callers: ["patient","caregiver"], purpose: ["vetting"], idempotent: false, status: "built" },
+ postTrustDoorVerificationsByAppointmentRefAnswer: { name: "postTrustDoorVerificationsByAppointmentRefAnswer", method: "POST", path: "/v1/trust/door-verifications/{appointmentRef}/answer", mountedPath: "/v1/trust/door-verifications/{appointmentRef}/answer", version: 1, engine: "trust", callers: ["patient","caregiver"], purpose: ["vetting"], idempotent: false, status: "built" },
+ postTrustComplaintsV2: { name: "postTrustComplaintsV2", method: "POST", path: "/v1/trust/complaints", mountedPath: "/v1/trust/complaints", version: 2, engine: "trust", callers: ["patient","caregiver","thuso-line-agent"], purpose: ["vetting"], idempotent: false, status: "built" },
+ getTrustComplaints: { name: "getTrustComplaints", method: "GET", path: "/v1/trust/complaints", mountedPath: "/v1/trust/complaints", version: 1, engine: "trust", callers: ["admin"], purpose: ["vetting"], idempotent: false, status: "built" },
+ getTrustComplaintsByComplaintRef: { name: "getTrustComplaintsByComplaintRef", method: "GET", path: "/v1/trust/complaints/{complaintRef}", mountedPath: "/v1/trust/complaints/{complaintRef}", version: 1, engine: "trust", callers: ["admin"], purpose: ["vetting"], idempotent: false, status: "built" },
+ postTrustComplaintsByComplaintRefDecide: { name: "postTrustComplaintsByComplaintRefDecide", method: "POST", path: "/v1/trust/complaints/{complaintRef}/decide", mountedPath: "/v1/trust/complaints/{complaintRef}/decide", version: 1, engine: "trust", callers: ["admin"], purpose: ["vetting"], idempotent: false, status: "built" },
+ getTrustComplaintNotices: { name: "getTrustComplaintNotices", method: "GET", path: "/v1/trust/complaint-notices", mountedPath: "/v1/trust/complaint-notices", version: 1, engine: "trust", callers: ["nurse","locum"], purpose: ["vetting"], idempotent: false, status: "built" },
+ getTrustSettings: { name: "getTrustSettings", method: "GET", path: "/v1/trust/settings", mountedPath: "/v1/trust/settings", version: 1, engine: "trust", callers: ["admin","operator"], purpose: ["audit"], idempotent: false, status: "built" },
+ postTrustSettingChanges: { name: "postTrustSettingChanges", method: "POST", path: "/v1/trust/setting-changes", mountedPath: "/v1/trust/setting-changes", version: 1, engine: "trust", callers: ["admin","operator"], purpose: ["audit"], idempotent: true, status: "built" },
  postRecordDevSubjects: { name: "postRecordDevSubjects", method: "POST", path: "/v1/record/dev-subjects", mountedPath: "/v1/record/dev-subjects", version: 1, engine: "record", callers: ["developer"], purpose: ["audit"], idempotent: false, status: "built" },
  postRecordSessionEnds: { name: "postRecordSessionEnds", method: "POST", path: "/v1/record/session-ends", mountedPath: "/v1/record/session-ends", version: 1, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "built" },
  postRecordConsentGrant: { name: "postRecordConsentGrant", method: "POST", path: "/consent/grant", mountedPath: "/v1/record/consent/grant", version: 1, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "built" },

@@ -1,0 +1,369 @@
+{
+ "_note": "Verify in service: what ThusoIQ Verify does about a person once they are working, rather than while they apply. The badge a patient or a desk reads, the shift a nurse starts, the code she shows at a door and the complaint a family makes about a visit. The routes are in packages/catalog/apis/trust.json and the Trust engine answers them on the development runtime, from packages/engines/src/trust. Every sentence a screen shows about them is here, so the web reads this file through the engine's domain and iOS and Android read VerifyInServiceData generated from it by scripts/emit-verify-in-service.mjs. The numbers an admin changes — how long a door code lasts, how many tries a patient has, how soon a complaint is reviewed and what an unmatched shift start does to dispatch — are settings in the shape packages/catalog/settings.json gives, and nothing else here restates them.",
+ "_fiction": "Nothing here is a real service. No face is matched, no code reaches a door, no desk is told and no complaint is reviewed by anybody. The people are packages/catalog/roster.json's nine, none of whom exists.",
+ "version": 1,
+ "engine": "trust",
+ "api": "packages/catalog/apis/trust.json",
+
+ "badge": {
+  "patientViewFrom": "packages/catalog/trust.json#patientView",
+  "carries": ["badgeTier", "verified"],
+  "sentence": "You are shown her badge and never a number. A badge says her identity, registration and background are in order today.",
+  "why": "The badge is the outward view of Verify and it is tier only, because packages/catalog/trust.json gives the Trust Score's number to the vetting team alone. The route that answers it declares two fields and neither is a number, so a score cannot leave through it without the contract changing first."
+ },
+
+ "shiftStart": {
+  "door": "face-match-result",
+  "outcome": "not-integrated",
+  "matchPerformed": false,
+  "heading": "Start your shift",
+  "intro": "Starting a shift tells the desk you are working. It is where a face match would happen, and none does.",
+  "button": "Start my shift",
+  "started": "Shift started at {at}.",
+  "noMatch": "No face match was performed. MyThuso has no identity provider to compare your face with, so nothing was compared, and nothing of your face was taken, kept or sent.",
+  "whyNoMatch": "Whether matching a face is biometric information under POPIA section 26 is a decision the Information Officer has not taken (D-3), and no identity provider is contracted. Until both are settled, no image, template or embedding of anybody's face is held anywhere in MyThuso.",
+  "dispatchRuleSetting": "unmatched-shift-start-dispatch",
+  "dispatchRules": [
+   {
+    "id": "withhold",
+    "nurse": "Because no match was performed, you are not offered visits from this shift. The desk can see that, and why.",
+    "desk": "Not offered work: no face match was performed at the start of this shift."
+   },
+   {
+    "id": "offer-with-desk-flag",
+    "nurse": "You may be offered visits from this shift, and the desk sees that no face match was performed.",
+    "desk": "Offered work without a face match: none was performed at the start of this shift."
+   }
+  ],
+  "deskHeading": "Shift starts today",
+  "deskIntro": "Every shift started today, and what the rule in force did with it. No shift has been face matched, because nothing can match one.",
+  "deskEmpty": "Nobody has started a shift today.",
+  "neverHeld": [
+   { "field": "faceTemplate", "why": "A template is the face in the shape a matcher compares. Whether holding one is biometric processing is D-3, and it is undecided." },
+   { "field": "faceImage", "why": "A photograph of a face is the raw material of a template, and a store of them is a store of every nurse's face." },
+   { "field": "faceEmbedding", "why": "An embedding is a template in another shape." },
+   { "field": "livenessCapture", "why": "A liveness capture is a video or a burst of photographs of a face. Version one of the route asked for a reference to one, and it is withdrawn for that." },
+   { "field": "selfie", "why": "The word a phone uses for the same photograph." }
+  ],
+  "_neverHeldNote": "What no Trust route, event, table or log carries. scripts/check-boundaries.mjs holds every route and event Verify owns, and every table its engine creates, to this list."
+ },
+
+ "door": {
+  "form": "digits",
+  "digits": 6,
+  "formWhy": "Digits, on every platform. A QR code is one more thing a patient's phone has to scan, which on the web and on Android needs a third-party library the open-source register has not procured (packages/catalog/open-source.json, section 15D). iOS could draw one with CoreImage, but no patient app could read it without a scanner, so a code only the nurse's phone can draw is decoration. Six digits are read aloud through a closed door as easily as they are typed.",
+  "nurse": {
+   "heading": "Your door code",
+   "intro": "Show these digits to the person who opens the door. They type them into their own MyThuso app, and it tells them the code is for their visit.",
+   "button": "Show my door code",
+   "again": "Show a new code",
+   "expires": "This code stops working at {at}.",
+   "tries": "They have {attempts} tries before the desk is told."
+  },
+  "patient": {
+   "heading": "Check the nurse at your door",
+   "open": "Check the nurse at your door",
+   "intro": "Before you open the door, ask her for her door code and type it here. MyThuso checks it is the code for your visit.",
+   "codeLabel": "Door code",
+   "check": "Check the code",
+   "wrong": "That code does not match your visit. You have {attempts} more tries before the desk is told.",
+   "matched": "The code matches your visit.",
+   "question": "Is this the person at your door?",
+   "name": "Name",
+   "badge": "Badge",
+   "noBadge": "She has no current verification, so there is no badge to show. Do not open the door.",
+   "verified": "You checked the code and the name. The desk has been told she arrived.",
+   "mismatch": "Do not open the door. The desk has been told, and a safety incident has been raised.",
+   "anyTime": "If the person at the door is not who you expected, say so at any time, with or without a code.",
+   "danger": "If you are in danger, call {police} now."
+  },
+  "photo": {
+   "held": false,
+   "sentence": "MyThuso holds no photograph of a nurse, so none is shown. Check the name and the badge, and ask to see her SANC card.",
+   "why": "A photograph shown to match a face at the door is a face kept for matching, which is the question D-3 has not answered. The initials stand where a photograph would be."
+  },
+  "answers": [
+   { "id": "she-is-my-nurse", "label": "Yes, she is my nurse" },
+   { "id": "not-my-nurse", "label": "This is not my nurse" }
+  ],
+  "mismatchReasons": [
+   { "id": "not-my-nurse", "why": "The patient said the person at the door is not the nurse expected, with or without a code." },
+   { "id": "attempts-used", "why": "Every try the settings in force allow was used, and none matched." }
+  ],
+  "incident": {
+   "route": "POST /v1/safety/incidents@3",
+   "kind": "other",
+   "whatHappened": "A patient could not confirm that the person at their door was the nurse expected for their visit.",
+   "informationReached": false,
+   "why": "The incident register holds what a reviewer has to look at afterwards, and a stranger at a patient's door holding a visit's details is one. Its wording is this sentence and nothing a patient typed, so no name, address or condition reaches the register through it."
+  }
+ },
+
+ "complaints": {
+  "reviewWindow": {
+   "setting": "complaint-review-hours",
+   "citedFrom": { "document": "MyThuso Full Scope v1.0", "section": "FS-E6", "route": "POST /v1/trust/complaints@1" },
+   "why": "The Full Scope's Verify engine reviews a complaint within a day, and the first complaints route was frozen saying so in its summary. The number is the setting's default and nowhere else; scripts/check-boundaries.mjs reads the frozen summary and fails if the two disagree."
+  },
+  "categories": [
+   { "id": "late-or-missed", "label": "The nurse was late, or did not come" },
+   { "id": "conduct", "label": "How I was spoken to or treated" },
+   { "id": "care-given", "label": "The care I was given" },
+   { "id": "privacy", "label": "My information was not kept private" },
+   { "id": "identity-at-the-door", "label": "I was not sure who was at my door" },
+   { "id": "payment", "label": "What I was charged" }
+  ],
+  "_categoriesNote": "No category is a protected category in packages/catalog/records.json, and none may be: a category is what the reviewer's queue, the nurse's notice and the event about the complaint carry, and a queue row that said 'mental health' would be a diagnosis in a header.",
+  "outcomes": [
+   { "id": "upheld", "label": "Upheld", "nurse": "A reviewer upheld this complaint. It does not change your badge by itself; if anything else follows, you are told separately." },
+   { "id": "not-upheld", "label": "Not upheld", "nurse": "A reviewer did not uphold this complaint. Nothing changes." },
+   { "id": "referred-to-panel", "label": "Sent to the review panel", "nurse": "A reviewer sent this complaint to the review panel, which decides what happens next and tells you." }
+  ],
+  "states": [
+   { "id": "awaiting-review", "label": "Waiting to be reviewed" },
+   { "id": "decided", "label": "Decided" }
+  ],
+  "maxCharacters": 1000,
+  "nurseSees": ["complaintRef", "categoryCode", "state", "outcomeCode"],
+  "complainantShownToNurse": false,
+  "complainantWhy": "The nurse is told that a complaint about her exists, what kind it is and what was decided. She is not told who made it, which visit it was about, what was written or when it arrived, because a nurse with a handful of visits a day can work out a family from any one of those, and a family afraid of being named is a family that does not complain.",
+  "scoreRule": {
+   "sentence": "A complaint never changes anybody's Trust Score by itself. A reviewer decides it, and anything that follows is a separate decision.",
+   "why": "The complaint rate is one of the Trust Score's soft inputs, and its weight is null in packages/catalog/trust.json: nobody has decided how much a complaint should count. A complaint that lowered a score on arrival would be a weight nobody decided, so no complaint route touches a score and a request that tries is refused."
+  },
+  "patient": {
+   "heading": "Make a complaint",
+   "open": "Make a complaint about this visit",
+   "intro": "Tell us what went wrong. A reviewer reads it within {hours} hours.",
+   "category": "What is it about?",
+   "account": "What happened",
+   "accountHelp": "In your own words. Up to {characters} characters.",
+   "nurseNotTold": "The nurse is told a complaint was made and what was decided. She is not told who made it or what you wrote.",
+   "submit": "Send the complaint",
+   "sent": "Your complaint was received. A reviewer reads it by {at}."
+  },
+  "reviewer": {
+   "heading": "Complaints",
+   "intro": "Every complaint, oldest first, with how long it has waited against the review window it arrived under. A row says what kind of complaint it is and never what was written; open it to read that.",
+   "empty": "No complaints are waiting.",
+   "age": "Waiting {age} of {hours} hours",
+   "overdue": "Past its {hours}-hour review window",
+   "open": "Read the complaint",
+   "decide": "Record the decision",
+   "reason": "Why",
+   "decided": "Decided: {outcome}.",
+   "noScore": "Deciding a complaint changes nobody's Trust Score. A suspension, if one is needed, is its own decision on the register."
+  },
+  "nurse": {
+   "heading": "Complaints about you",
+   "empty": "There are no complaints about you.",
+   "intro": "You are told a complaint exists, what kind it is and what was decided. You are not told who made it or what they wrote."
+  }
+ },
+
+ "settings": {
+  "_note": "The Trust engine's settings, in the shape packages/catalog/settings.json gives every setting. Four were questions this lead would otherwise have put to the founder; the founder instructed on 15 September 2026 that such questions become admin settings with proposed defaults. Every default and bound here is a proposal, and one of them — the review window — is the Full Scope's number, cited rather than restated.",
+  "heading": "Verify in service",
+  "intro": "What an unmatched shift start does to dispatch, how long a door code lasts and how many tries a patient has, and how soon a complaint is reviewed. The office changes them here, without a code change.",
+  "items": [
+   {
+    "key": "unmatched-shift-start-dispatch",
+    "label": "A shift started without a face match",
+    "help": "Whether somebody who started a shift with no face match performed may be offered work from that shift.",
+    "owner": "trust",
+    "type": "enum",
+    "unit": null,
+    "default": {
+     "value": "withhold",
+     "decidedBy": null,
+     "proposedBy": "Trust lead (Wave 4)",
+     "proposedBecause": "The conservative answer. Account sharing is the fraud a shift-start match exists to catch (§11), and with no provider nothing is matched, so offering work anyway is trusting that nobody lends a phone. It withholds every shift while no provider is connected, which is why it is a setting rather than a rule: the office can choose to offer work with the desk told, and the choice is recorded against a name."
+    },
+    "allowed": [
+     {
+      "value": "withhold",
+      "label": "Withhold work from the shift",
+      "decidedBy": null,
+      "proposedBy": "Trust lead (Wave 4)",
+      "proposedBecause": "Nobody is offered work on a shift nothing has checked the person on."
+     },
+     {
+      "value": "offer-with-desk-flag",
+      "label": "Offer work, and flag the shift to the desk",
+      "decidedBy": null,
+      "proposedBy": "Trust lead (Wave 4)",
+      "proposedBecause": "A service with no provider still has to send nurses. Every shift started this way is on the desk's board saying no match was performed, so the risk is carried by somebody who can see it."
+     }
+    ],
+    "changedBy": { "fromSetting": "settings-changed-by" },
+    "appliesTo": "A change applies to shifts started after it. A shift already started keeps the rule it started under.",
+    "guardrail": {
+     "statement": "No value treats a shift as face matched. A shift with no match is withheld or flagged, never passed as checked.",
+     "forbids": ["treat-as-matched", "matched", ""]
+    }
+   },
+   {
+    "key": "door-code-lifetime",
+    "label": "How long a door code lasts",
+    "help": "How long the code a nurse shows at a door keeps working after she shows it.",
+    "owner": "trust",
+    "type": "minutes",
+    "unit": "minutes",
+    "default": {
+     "value": 5,
+     "decidedBy": null,
+     "proposedBy": "Trust lead (Wave 4)",
+     "proposedBecause": "Long enough to walk from the gate, knock, find a phone and type six digits; short enough that a code read over a shoulder in the street is dead before it can be used at somebody else's door."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 2,
+      "decidedBy": null,
+      "proposedBy": "Trust lead (Wave 4)",
+      "proposedBecause": "Under two minutes a patient who is slow to the door, or slow to type, is told the code has expired by a nurse who is standing right there."
+     },
+     "highest": {
+      "value": 10,
+      "decidedBy": null,
+      "proposedBy": "Trust lead (Wave 4)",
+      "proposedBecause": "A code that lasts longer than the walk to a door is a code that can be carried to another one."
+     }
+    },
+    "changedBy": { "fromSetting": "settings-changed-by" },
+    "appliesTo": "A change applies to codes shown after it. A code already shown keeps the expiry it was shown with.",
+    "guardrail": {
+     "statement": "A door code always expires, and never lasts longer than ten minutes.",
+     "forbids": [0, 11, 1440]
+    }
+   },
+   {
+    "key": "door-code-attempts",
+    "label": "Tries at a door code",
+    "help": "How many times a patient may type a door code that does not match before the desk is told.",
+    "owner": "trust",
+    "type": "count",
+    "unit": "tries",
+    "positive": true,
+    "default": {
+     "value": 3,
+     "decidedBy": null,
+     "proposedBy": "Trust lead (Wave 4)",
+     "proposedBecause": "Enough for a digit misheard through a door and a digit mistyped; not enough to guess six digits, which takes a million tries."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 1,
+      "decidedBy": null,
+      "proposedBy": "Trust lead (Wave 4)",
+      "proposedBecause": "At least one try, or no patient could ever check a code."
+     },
+     "highest": {
+      "value": 5,
+      "decidedBy": null,
+      "proposedBy": "Trust lead (Wave 4)",
+      "proposedBecause": "Past five, a person at the door is guessing rather than mistyping, and the desk should already know."
+     }
+    },
+    "changedBy": { "fromSetting": "settings-changed-by" },
+    "appliesTo": "A change applies to codes shown after it. A code already shown keeps the tries it was shown with.",
+    "guardrail": {
+     "statement": "A patient always has a try, and the desk is always told within five wrong ones.",
+     "forbids": [0, 6, 100]
+    }
+   },
+   {
+    "key": "complaint-review-hours",
+    "label": "Complaint review window",
+    "help": "Within how many hours of arriving a complaint is reviewed.",
+    "owner": "trust",
+    "type": "count",
+    "unit": "hours",
+    "positive": true,
+    "default": {
+     "value": 24,
+     "decidedBy": null,
+     "proposedBy": "Trust lead (Wave 4), citing MyThuso Full Scope v1.0, Engine 6 — Trust (Verify)",
+     "proposedBecause": "The Full Scope's Verify engine reviews a complaint within a day (FS-E6), and POST /v1/trust/complaints@1 was frozen with that window in its summary. It is the document's number, and nobody has yet decided to hold the office to it, so it stays a proposal until somebody does."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 1,
+      "decidedBy": null,
+      "proposedBy": "Trust lead (Wave 4)",
+      "proposedBecause": "An hour is as fast as a reviewer on duty can read a complaint and the visit it is about."
+     },
+     "highest": {
+      "value": 72,
+      "decidedBy": null,
+      "proposedBy": "Trust lead (Wave 4)",
+      "proposedBecause": "Three days covers a weekend. Longer, and a nurse the complaint is about has worked several more shifts before anybody has read it."
+     }
+    },
+    "changedBy": { "fromSetting": "settings-changed-by" },
+    "appliesTo": "A change applies to complaints received after it. A complaint already received keeps the window it arrived under, so a longer window never makes a late review on time.",
+    "guardrail": {
+     "statement": "Every complaint is reviewed, and within three days of arriving.",
+     "forbids": [0, 73, 720]
+    }
+   },
+   {
+    "key": "settings-changed-by",
+    "label": "Who changes the Verify in service settings",
+    "help": "The roles that may change every Verify in service setting other than this one.",
+    "owner": "trust",
+    "type": "roleList",
+    "unit": null,
+    "default": {
+     "value": ["admin"],
+     "decidedBy": null,
+     "proposedBy": "Trust lead (Wave 4)",
+     "proposedBecause": "The admin holds the vetting register these settings govern. Until somebody decides otherwise, nobody else changes them."
+    },
+    "allowedRoles": {
+     "roles": ["admin", "operator"],
+     "decidedBy": null,
+     "proposedBy": "Trust lead (Wave 4)",
+     "proposedBecause": "The Control Tower operator works the desk a door mismatch and an unmatched shift reach, and may be asked to hold them. No nurse changes how she is checked."
+    },
+    "items": {
+     "lowest": {
+      "value": 1,
+      "decidedBy": null,
+      "proposedBy": "Trust lead (Wave 4)",
+      "proposedBecause": "Somebody always answers for how nurses are checked in service."
+     },
+     "highest": {
+      "value": 2,
+      "decidedBy": null,
+      "proposedBy": "Trust lead (Wave 4)",
+      "proposedBecause": "Both of the roles that may be named."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to the next change anybody makes. A change already made stays made, and the history keeps who made it.",
+    "guardrail": {
+     "statement": "Somebody may always change these settings, and nobody but an admin or the Control Tower operator ever may. No value hands how a nurse is checked to a nurse.",
+     "forbids": [[], ["nurse"], ["admin", "nurse"], ["admin", "carer"]]
+    }
+   }
+  ],
+  "defaults": {
+   "version": 1,
+   "changelog": [
+    {
+     "version": 1,
+     "on": "2026-09-15",
+     "by": "Trust lead (Wave 4), proposed and not decided",
+     "changed": [
+      { "setting": "unmatched-shift-start-dispatch", "from": null, "to": "withhold" },
+      { "setting": "door-code-lifetime", "from": null, "to": 5 },
+      { "setting": "door-code-attempts", "from": null, "to": 3 },
+      { "setting": "complaint-review-hours", "from": null, "to": 24 },
+      { "setting": "settings-changed-by", "from": null, "to": ["admin"] }
+     ],
+     "why": "The first proposals, so the shift start, the door check and the complaints queue could be built against something an admin can change."
+    }
+   ]
+  }
+ }
+}

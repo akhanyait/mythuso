@@ -204,3 +204,16 @@ POST /v1/core/loops/{loopRef}/acknowledge@3 f07daa37bdbb4ba1
 POST /v1/core/loops/{loopRef}/escalate@3 ecbd6ef3e26d2ea2
 POST /v1/core/loops/{loopRef}/close@2 e82547e5ee5acbdf
 POST /v1/safety/incidents@2 f7ffc26910393482
+POST /v1/safety/incidents@3 a7c9ae212a78d5d5
+POST /v1/trust/shift-starts@2 03483e40d5b0f0f8
+GET /v1/trust/shift-starts@1 b6326f03e7d3f581
+POST /v1/trust/door-codes@1 f166dca8964d6aea
+POST /v1/trust/door-verifications@2 0767832b19808352
+POST /v1/trust/door-verifications/{appointmentRef}/answer@1 8f63b4c5d22bde52
+POST /v1/trust/complaints@2 bf8fa529066a7b38
+GET /v1/trust/complaints@1 b9b22940047ff83a
+GET /v1/trust/complaints/{complaintRef}@1 6e88e48cc2b186b9
+POST /v1/trust/complaints/{complaintRef}/decide@1 25a0d59de2dbf6d5
+GET /v1/trust/complaint-notices@1 4ca2141acee0425e
+GET /v1/trust/settings@1 50130f5e3f1d9db3
+POST /v1/trust/setting-changes@1 e2356d56dd1060f1

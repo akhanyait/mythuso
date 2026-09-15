@@ -34,6 +34,7 @@ import { emitCare } from './emit-care.mjs';
 import { emitFieldSafety } from './emit-field-safety.mjs';
 import { emitBooking } from './emit-booking.mjs';
 import { emitClinicalReviewPack } from './emit-clinical-review-pack.mjs';
+import { emitVerifyInService } from './emit-verify-in-service.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -884,11 +885,15 @@ const generated = [
  { source: 'packages/catalog/booking.json', command: 'npm run booking', files: Object.values(emitBooking()) },
  { source: 'packages/catalog/apis/access.json', command: 'npm run booking', files: Object.values(emitBooking()) },
  { source: 'packages/catalog/trust.json', command: 'npm run booking', files: Object.values(emitBooking()) },
+ /* VerifyInServiceData carries verify-in-service.json's words, the route refusals it names from apis/trust.json,
+    the tier names from trust.json and the police number from sos.json, so a change to any of them regenerates it. */
+ ...['verify-in-service.json', 'apis/trust.json', 'trust.json', 'sos.json']
+  .map(file => ({ source: `packages/catalog/${file}`, command: 'npm run verify-in-service', files: emitVerifyInService() })),
  /* The clinical review pack reads every contract a clinician has to review, so a change to any of them
     without regenerating is a failed build rather than a pack somebody signs against values no longer in force. */
  ...['settings.json', 'care.json', 'booking.json', 'field-safety.json', 'closed-loop.json', 'money.json', 'protocols.json',
   'gilbert-emergency-terms.json', 'assistant.json', 'vetting.json', 'vetting-proposals.json', 'records.json', 'sos.json',
-  'locales.json', 'events.json', 'apis/care.json', 'apis/access.json']
+  'locales.json', 'events.json', 'apis/care.json', 'apis/access.json', 'verify-in-service.json']
   .map(file => ({ source: `packages/catalog/${file}`, command: 'npm run review-pack', files: emitClinicalReviewPack() }))
 ];
 for(const {source,command,files} of generated) {
@@ -8511,7 +8516,15 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
    for (const r of live) {
     settingsRoutesChecked++;
     const key = `${r.method} ${r.path}@${r.version}`;
-    if (fieldShape(r.request) !== fieldShape(t.request) || fieldShape(r.response) !== fieldShape(t.response)) {
+    /* The shared change shape describes windows and parts in prose, and every settings route frozen before an
+       object had to declare its inside is excused by apis.json#proseOnlyObjects, which only shrinks. An engine
+       adding its first settings after that rule cannot copy the prose, so it names the inside the way the shared
+       read route already names a value's: shapeFrom packages/catalog/settings.json#types. That is the same shape
+       with its inside named, and it is accepted as the shared shape. Added by the Trust lead (Wave 4), the first
+       engine to add settings after the rule. */
+    const insideNamed = fields => fields.map(f => (f.object && !f.fields && !f.shapeFrom ? { ...f, shapeFrom: 'packages/catalog/settings.json#types' } : f));
+    const sameShape = (mine, shared) => fieldShape(mine) === fieldShape(shared) || fieldShape(mine) === fieldShape(insideNamed(shared));
+    if (!sameShape(r.request, t.request) || !sameShape(r.response, t.response)) {
      throw new Error(`${key} is not the shared ${kind} shape in packages/catalog/settings.json. A settings route is that shape word for word, so every engine's is answered by one piece of code; a route of another shape is withdrawn and replaced by a version in the shape.`);
     }
     for (const shared of settingsContract.refusals.filter(x => x.route === kind)) {
