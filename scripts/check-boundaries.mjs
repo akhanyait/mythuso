@@ -6488,7 +6488,54 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  }
  for (const r of routesForRuntime.filter(r => r.enforcedBy?.mechanism === runtimeSettings.mechanism && r.status !== 'built')) throw new Error(`${routeKey(r)} claims the engine runtime's enforcement and is not built.`);
 
+ /* 5. Core: the closed loop and the alert router (packages/catalog/closed-loop.json, packages/engines/src/core).
+       Escalation goes to a concern's fallback and stops, because no rota exists; a concern that runs out of
+       people stays open, first in the Control Tower, and is never quietened. What is held here is what a
+       test cannot see coming: a proposal losing its question, a policy number typed into Core's code, a
+       rota guessed into the contract, Safety's timing copied instead of read, the tick closing or moving a
+       concern down, and a filter that hides an exhausted one. */
+ const closedLoop = JSON.parse(read('packages/catalog/closed-loop.json'));
+ const coreApi = JSON.parse(read('packages/catalog/apis/core.json'));
+ const coreFail = detail => { throw new Error(`${detail} ${closedLoop.exhaustion?.why ?? ''}`); };
+ const proposals = [
+  ...closedLoop.ladder.rungs.map(r => [`ladder rung ${r.rung} acknowledgeWithinMinutes`, r.acknowledgeWithinMinutes]),
+  ['snooze.reasons', closedLoop.snooze.reasons], ['escalationReasons.byCaller', closedLoop.escalationReasons.byCaller]
+ ];
+ for (const [name, proposal] of proposals) {
+  if (!proposal || !('decidedBy' in proposal) || !proposal.question?.trim() || !proposal.proposedBecause?.trim()) throw new Error(`packages/catalog/closed-loop.json ${name} has lost its decidedBy, its question or why it was proposed. A number or a code nobody decided must keep saying so.`);
+  if (proposal.decidedBy !== null && !(typeof proposal.decidedBy === 'string' && proposal.decidedBy.trim() && /^\d{4}-\d{2}-\d{2}$/.test(proposal.decidedOn ?? ''))) throw new Error(`packages/catalog/closed-loop.json ${name} names a decider without a day it was decided.`);
+ }
+ const rungNumbers = closedLoop.ladder.rungs.map(r => r.rung);
+ if (rungNumbers.some((n, i) => n !== i + 1) || closedLoop.ladder.rungs.some(r => !(Number.isInteger(r.acknowledgeWithinMinutes.value) && r.acknowledgeWithinMinutes.value > 0))) throw new Error('packages/catalog/closed-loop.json ladder is not one rung after another from one, each with a whole number of minutes to acknowledge it.');
+ if (!Array.isArray(closedLoop.severities?.ids) || !closedLoop.severities.ids.length) throw new Error('packages/catalog/closed-loop.json has no severities, so an exhausted concern has no highest severity to be announced at.');
+ const noFallbackLeft = coreApi.routes.find(r => r.method === 'POST' && r.path === '/v1/core/loops/{loopRef}/escalate' && r.version === 1)?.refusals.find(x => x.id === 'no-fallback-left');
+ if (closedLoop.rota !== null || !closedLoop._rotaNote?.trim()) coreFail('packages/catalog/closed-loop.json names a rota. No rota has been decided; escalation goes to a concern\'s fallback and stops, and a rota is added by the people who run the desk, with this check changed beside it.');
+ if (!/\brota\b/.test(noFallbackLeft?.statement ?? '')) coreFail('POST /v1/core/loops/{loopRef}/escalate@1 no longer refuses with no-fallback-left in words that name the missing rota, so a caller who asks for somebody further is not told why there is nobody.');
+
+ const coreCode = engineSources.filter(f => f.startsWith('packages/engines/src/core/') && !f.endsWith('.test.ts'));
+ if (!coreCode.includes('packages/engines/src/core/engine.ts')) throw new Error('packages/engines/src/core/engine.ts is gone, so nothing here reads the closed loop this block exists to hold.');
+ const withoutCommentsOrStrings = source => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '').replace(/'(?:[^'\\\n]|\\.)*'/g, "''");
+ for (const file of coreCode) {
+  const source = read(file);
+  /* A unit is not a policy: a minute in milliseconds is allowed, and nothing else bigger than one. */
+  const typed = [...withoutCommentsOrStrings(source).matchAll(/(?<![\w$.])\d[\d_]*(?:\.\d+)?(?![\w$])/g)].map(m => m[0]).filter(n => !['0', '1', '60_000'].includes(n));
+  if (typed.length) coreFail(`${file} types the number ${typed[0]}. Every deadline, window and severity Core uses is read from packages/catalog/closed-loop.json, where a number nobody decided says so.`);
+  const safetyTiming = source.match(/field-safety\.json|apis\/safety\.json|graceMinutes|windowMinutes|extensionMinutes/);
+  if (safetyTiming) coreFail(`${file} names "${safetyTiming[0]}". Core reads no Safety timing: a Safety concern arrives with its deadline worked out from the settings in force, and a copy of the grace or the panic window here is the one that goes stale when an admin changes it.`);
+  if (/'loop\.exhausted@/.test(source)) coreFail(`${file} types the exhaustion event's name. It is packages/catalog/closed-loop.json's exhaustion.event, read once, so the event and the contract that asks for it cannot name two different things.`);
+ }
+ const coreEngineSource = read('packages/engines/src/core/engine.ts');
+ const tickBody = coreEngineSource.slice(coreEngineSource.indexOf(' tick: ctx =>'));
+ if (!tickBody.startsWith(' tick: ctx =>')) throw new Error('packages/engines/src/core/engine.ts has no tick this check can find, so nothing proves the clock never closes a concern.');
+ const quietening = tickBody.match(/closedAt:|outcomeRef:|rung:|snooze/);
+ if (quietening) coreFail(`packages/engines/src/core/engine.ts's tick writes "${quietening[0]}". The clock moves a concern to its fallback or marks it exhausted, and nothing else: it never closes one, never snoozes one and never moves one down a rung.`);
+ if (!/\.filter\(loop => sourceEngine === null \|\| loop\.sourceEngine === sourceEngine \|\| loop\.exhaustedAt !== null\)/.test(coreEngineSource)) coreFail('GET /v1/core/loops@1 in packages/engines/src/core/engine.ts no longer lists every exhausted concern whatever the filter says, so a Control Tower narrowed to one engine can stop seeing a concern with nobody left.');
+ const exhaustedEvent = JSON.parse(read('packages/catalog/events.json')).events.find(e => `${e.type}@${e.version}` === closedLoop.exhaustion.event);
+ if (exhaustedEvent && (exhaustedEvent.owner !== 'core' || exhaustedEvent.alert !== true || !exhaustedEvent.payload.some(f => f.field === 'severityCode'))) throw new Error(`${closedLoop.exhaustion.event} is declared, and not as Core's alert carrying a severityCode, which is how packages/engines/src/core announces an exhausted concern.`);
+ const coreBuilt = coreApi.routes.filter(r => r.status === 'built').length;
+
  console.log(`The engine runtime refuses to start without ${runtimeSettings.flag}=${runtimeSettings.flagValue} in its factory, answers on loopback to a loopback Host only, and nothing in deploy/ names it. ${engineSources.length} source files under packages/engines/src read, ${importsRead} imports among them, and no engine reaches another engine's directory or opens a database; ${onRuntime.length} ${onRuntime.length === 1 ? 'route is' : 'routes are'} built on the runtime, each registered by exactly its key in its own engine's directory.`);
+ console.log(`Core builds ${coreBuilt} of its ${coreApi.routes.length} routes on the runtime. Its ladder has ${rungNumbers.length} rungs whose minutes nobody has decided, escalation stops at a concern's fallback because there is no rota, an exhausted concern is announced at "${closedLoop.severities.ids.at(-1)}" through ${closedLoop.exhaustion.event}, which is ${exhaustedEvent ? 'declared' : 'not yet declared in packages/catalog/events.json and refused by the bus until it is'}, and Core's ${coreCode.length} source files type no policy number and read no Safety timing.`);
 }
 /* ==== end of Engine Runtime & Core (Wave 3) ========================================================= */
 

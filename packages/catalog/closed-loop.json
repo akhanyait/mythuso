@@ -1,0 +1,80 @@
+{
+ "_note": "ThusoIQ Core's closed loop and alert router, Wave 3: the rungs an alert is routed by and how long each has to be acknowledged, the codes an escalation and a snooze are given, what happens when there is nobody left to escalate to, and the order the Control Tower reads concerns in. MyThuso Master Blueprint v4's Core table and ThusoIQ Master v3.5 §14 name what it must do: 'concern → owner → SLA → fallback → outcome', 'every alert has an owner and a response expectation', 'deduplication, suppression windows, severity tiers, snooze-with-reason'. packages/engines/src/core holds the arithmetic; every refusal sentence is packages/catalog/apis/core.json's. There is no emitter beside this file on purpose: no app renders Core, and the Control Tower reads it through GET /v1/core/loops@1. Nothing here is a running service. No alert reaches a person, no page is sent and nobody is on call.",
+ "version": 1,
+ "engine": "core",
+ "api": "packages/catalog/apis/core.json",
+
+ "_numbersNote": "Every number below is a proposal. `decidedBy: null` means nobody with the authority to set it has set it. ThusoIQ Master v3.5 names the ladder's response times and its readiness review names the missing 'rota and authority matrix'; the numbers are here so the router can be built and tested against something, and the build refuses a proposal that loses its `decidedBy`, its question or why it was proposed.",
+
+ "ladder": {
+  "source": "ThusoIQ Master v3.5 §13, Figure 8 — the escalation ladder",
+  "why": "A rung is how urgent a concern is. It decides how long the owner has to acknowledge it and nothing else: moving a concern up a rung is a clinician's decision on the ladder, not the router's when a deadline passes, and a deadline that passes moves the concern to its fallback.",
+  "rungs": [
+   {"rung": 1, "name": "Nudge", "documentSays": "Immediate", "acknowledgeWithinMinutes": {"value": 5, "decidedBy": null, "proposedBecause": "The document says immediate, and a deadline of nought would move a concern on before anybody could press acknowledge. Five minutes is how long ThusoIQ Master v3.5's mental-health pathway lets a clinician be unreachable in a crisis before it goes to the next person, borrowed here for every rung the document calls immediate.", "question": "How long the owner of a rung-one concern has to acknowledge it."}},
+   {"rung": 2, "name": "Nurse review", "documentSays": "Urgent <2h · Critical <15 min", "acknowledgeWithinMinutes": {"value": 15, "decidedBy": null, "proposedBecause": "The document gives two response times for this rung, and an alert carries nothing that tells an urgent one from a critical one. Holding every rung-two alert to the critical time means an urgent one is acknowledged early; the other choice means a critical one waits two hours.", "question": "How long the owner of a rung-two concern has to acknowledge it, while an alert cannot say whether it is urgent or critical."}},
+   {"rung": 3, "name": "Clinician alert", "documentSays": "<15 min", "acknowledgeWithinMinutes": {"value": 15, "decidedBy": null, "proposedBecause": "The document's own figure for this rung.", "question": "How long the owner of a rung-three concern has to acknowledge it."}},
+   {"rung": 4, "name": "Sentinel Dispatch", "documentSays": "Immediate", "acknowledgeWithinMinutes": {"value": 5, "decidedBy": null, "proposedBecause": "As for rung one: immediate, with enough time to press acknowledge. Rung four hands to dispatch in the document, and nothing here dispatches.", "question": "How long the owner of a rung-four concern has to acknowledge it."}},
+   {"rung": 5, "name": "Family alert", "documentSays": "Immediate", "acknowledgeWithinMinutes": {"value": 5, "decidedBy": null, "proposedBecause": "As for rung one. Rung five tells the family in the document, and nothing here tells anybody.", "question": "How long the owner of a rung-five concern has to acknowledge it."}}
+  ]
+ },
+
+ "severities": {
+  "source": "ThusoIQ Master v3.5 §15 — routine (tier 2), moderate (tier 3), major or critical (tiers 4–5)",
+  "ids": ["routine", "moderate", "major"],
+  "why": "Least severe first. They are the three words nok.notified@1's severityCode already carries, so the bus has one vocabulary for how bad a thing is. The highest the contract allows is the last."
+ },
+
+ "fallbackDeadline": {
+  "derivedFrom": "The concern's own span: the deadline it was opened with, less the moment it was opened. An alert's span is its rung's acknowledgeWithinMinutes.",
+  "why": "A fallback is given the time the owner was given. A second number for the fallback would be a second answer to how urgent the same concern is."
+ },
+
+ "dedupe": {
+  "window": "While the alert it matches is open.",
+  "why": "Two alerts with one key are one alert for as long as the first is still open, and it is answered with suppressed: true and no event. A key raised again after its alert was closed is a new alert: that concern was closed with an outcome, and a concern that comes back is a concern again. A timed suppression window that swallows alerts after a close is not built — it would need a number somebody decides, and until then nothing is absorbed that is not already open.",
+  "higherRung": "An alert raised again at a higher rung than the open one is escalated to that rung, with alert.escalated@1 and the reason raisedAgainHigher. It is never lowered by being raised again at a lower one."
+ },
+
+ "snooze": {
+  "buys": "One more span of the alert's own rung, from when it is snoozed.",
+  "reasons": {"value": [
+   {"id": "awaiting-patient-reply", "means": "The owner has contacted the patient and is waiting to hear back."},
+   {"id": "owner-with-another-patient", "means": "The owner is attending to another patient and will take this on next."}
+  ], "decidedBy": null, "proposedBecause": "Two reasons a nurse or a doctor gives for not acting yet that are about time and not about whether the concern matters. A reason that says the concern does not matter is a close, which needs an outcome.", "question": "The reasons an owner may give for snoozing an alert."},
+  "why": "A snooze is a code from this list or it is refused. It is never given to a concern that has run out of people to escalate to, because a snooze there is a second way of nobody being told."
+ },
+
+ "escalationReasons": {
+  "deadlinePassed": "deadline-passed",
+  "raisedAgainHigher": "raised-again-at-a-higher-rung",
+  "byCaller": {"value": [
+   {"id": "owner-not-answering", "means": "The owner has been tried and has not answered."},
+   {"id": "needs-more-authority", "means": "The owner has seen it and it needs somebody who can decide more."}
+  ], "decidedBy": null, "proposedBecause": "The two reasons the desk moves a concern before its deadline: nobody answered, or the person who answered cannot decide it.", "question": "The reasons the desk may give for escalating a concern before its deadline."},
+  "why": "A code, never free text: the reason travels on loop.escalated@1 and alert.escalated@1, and words on the bus are words with none of the record's protections."
+ },
+
+ "exhaustion": {
+  "event": "loop.exhausted@1",
+  "declaredIn": null,
+  "_declaredInNote": "Core's lead may not edit packages/catalog/events.json, and this event is not declared there yet. Until it is, the bus refuses it; Core keeps the concern exhausted anyway, writes down that it has not been announced, and tries again on every tick, so a refusal of the announcement never becomes a concern that quietly stopped.",
+  "severity": "The last of severities.ids.",
+  "when": "A concern past its deadline, unacknowledged, and already with its fallback — or opened with no fallback to move to.",
+  "stays": ["open", "exhausted, with the time", "first in what the Control Tower reads"],
+  "never": ["closed by a tick", "closed without an outcome", "snoozed", "moved down a rung"],
+  "why": "Escalation goes to a concern's fallback and nowhere after it, because there is no rota to say who comes next. When that runs out, the honest thing is to say so loudly and keep saying it until a person closes the concern with an outcome."
+ },
+
+ "rota": null,
+ "_rotaNote": "No rota exists. ThusoIQ Master v3.5 lists 'rota, escalation authority and downtime procedures' among the desk's open design work, and escalation here goes to a concern's fallbackRole and stops. A caller who asks to escalate further is refused with no-fallback-left, whose sentence names the missing rota. Do not replace this null with a list of roles: a rota is people on duty at a time, decided by operations, and a guessed order of roles would page somebody who is not on call.",
+
+ "controlTower": {
+  "order": ["exhausted, longest exhausted first", "unacknowledged, nearest deadline first", "acknowledged, nearest deadline first"],
+  "why": "The concerns nobody is left to escalate to are the ones only the Control Tower can still do something about, so they are read first whatever else is waiting, and a filter by engine never hides one."
+ },
+
+ "safetyTiming": {
+  "reads": [],
+  "why": "Core reads no Safety timing. A Safety concern arrives with its deadline already worked out by Safety from the grace and the panic window in force, and Core's fallback deadline is that concern's own span. If Core ever needs the grace or the panic window, it reads the settings in force through Safety's settings route or safety.settings.changed@1, never a copy of the number."
+ }
+}
