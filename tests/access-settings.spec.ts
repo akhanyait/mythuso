@@ -109,3 +109,45 @@ test('with the handover desk’s hours moved so nobody is there now, Gilbert say
   expect(order.findIndex(t => t.includes(number('ambulance')))).toBeLessThan(order.findIndex(t => t === fill(booking.handover.callback, { when: fill(booking.handover.opensToday, { time: opens }) })));
   await expect(shut.locator('.as-notsent')).toHaveText(gilbert.answers.handover.notSent);
 });
+
+test('after the desk’s hours in force have closed for the night, an emergency handed over says nobody is there and the numbers first, offers tomorrow’s call back, and stays an emergency', async ({ page }) => {
+  /* An hour after the default rota's last window closes, on the same evening in Johannesburg — worked out from the
+     setting rather than typed, so a changed default moves the moment with it. */
+  const hours = setting('handover-hours');
+  const window = (hours.default.value as { from: string; to: string }[])[0]!;
+  const nightHour = String((Number(window.to.slice(0, 2)) + 1) % 24).padStart(2, '0');
+  await page.clock.install({ time: new Date(`2026-09-15T${nightHour}:${window.to.slice(3)}:00+02:00`) });
+  await page.goto('/app/?open=assistant');
+  const panel = page.getByRole('dialog', { name: gilbert.identity.name });
+  const log = panel.getByRole('log', { name: gilbert.conversation.logLabel });
+  const ask = async (words: string) => {
+    await panel.getByLabel(gilbert.conversation.inputLabel).fill(words);
+    await panel.getByLabel(gilbert.conversation.inputLabel).press('Enter');
+  };
+  const h = gilbert.answers.handover;
+  const emergency = h.urgency.find((u: { id: string }) => u.id === 'emergency');
+
+  await ask('My chest hurts and I feel sick');
+  await expect(log.locator('.as-reply').last().locator('.as-numbers li').first()).toContainText(number('ambulance'));
+  await ask('can I talk to a nurse');
+  const handover = log.locator('.as-reply').last();
+  const desk = handover.locator('.as-desk');
+  /* Nobody, then the numbers, then tomorrow's call back — in that order, before anything about the summary. */
+  await expect(desk.locator('p')).toHaveText([
+    booking.handover.outOfHours,
+    booking.handover.outOfHoursNumbers.replace('{ambulance}', number('ambulance')).replace('{mobile}', number('mobile')),
+    fill(booking.handover.callback, { when: fill(booking.handover.opensTomorrow, { time: window.from }) })
+  ]);
+  /* Out of hours changes who is there, never how urgent it is: the emergency stays an emergency. */
+  await expect(handover.locator('.as-summary > div').nth(2)).toContainText(emergency.name);
+  await expect(handover).toContainText(h.neverLowered);
+  await handover.getByRole('button', { name: h.sendLabel }).click();
+  await expect(handover.locator('.as-sent .as-headline')).toHaveText(h.sentTitle);
+
+  await ask('can I talk to a nurse');
+  const again = log.locator('.as-reply').last();
+  await expect(again.locator('.as-desk .as-desk-numbers')).toContainText(number('ambulance'));
+  await expect(again.locator('.as-summary > div').nth(2)).toContainText(emergency.name);
+  await again.getByRole('button', { name: h.sendLabel }).click();
+  await expect(again.locator('.as-sent .as-headline')).toHaveText(h.alreadySent);
+});

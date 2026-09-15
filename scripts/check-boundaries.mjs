@@ -1105,7 +1105,10 @@ for(const {source,command,files} of generated) {
  }));
  const eventCode = [
   ...files('apps/web/src'), ...files('apps/api/src'), ...(existsSync('apps/passport') ? files('apps/passport').filter(f => !f.includes('node_modules')) : []),
-  ...files('apps/ios/MyThuso'), ...files('apps/android/app/src/main'), ...files('packages/thusoiq'), ...files('packages/commerce'), ...files('tests'), ...files('scripts')
+  ...files('apps/ios/MyThuso'), ...files('apps/android/app/src/main'), ...files('packages/thusoiq'), ...files('packages/commerce'), ...files('tests'), ...files('scripts'),
+  /* The engines are where a withdrawn version would actually be published or heard. Their tests are left out,
+     because the runtime's and Money's tests name a withdrawn version on purpose, to prove the bus refuses it. */
+  ...files('packages/engines/src').filter(f => !f.endsWith('.test.ts')), ...(existsSync('packages/mock-api/src') ? files('packages/mock-api/src').filter(f => !f.endsWith('.test.ts')) : [])
  ].filter(f => /\.(tsx?|mjs|js|swift|kt|json)$/.test(f) && f !== 'scripts/check-boundaries.mjs' && !eventsContract.sources.includes(f));
  for (const file of eventCode) {
   const source = read(file);
@@ -6686,8 +6689,15 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
 
    A visit thread carries words only: no screen that draws one may offer a file, a photo or a camera.
 
-   The handover route is not marked built until it carries an urgency. conversation.handover@1 must say the
-   urgency the rules set, and a handler that had to guess one would be the lowered emergency Access refuses. */
+   The handover route is built at version two, which carries the urgency conversation.handover must say, and
+   the engine evaluates it against the settings in force. Version one could not carry one, and a handler that
+   had to guess would be the lowered emergency Access refuses; it is withdrawn.
+
+   Added on 15 September by the Access events lead, for the versions that let Care, Money and Core build on a
+   booking: booking.requested@2 says the suburb and never an address; nothing any engine publishes, hears or
+   registers is a withdrawn version; the booking route never folds the named-nurse answer into a reference; and
+   the thread Care's completion closes is found by the one name booking.json says Care gives a booking's
+   appointment. */
 {
  const bookingForAccess = JSON.parse(read('packages/catalog/booking.json'));
  const accessForBooking = JSON.parse(read('packages/catalog/apis/access.json'));
@@ -6758,11 +6768,110 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   if (offered) throw new Error(`${file} offers "${offered[0]}" in a visit thread. A thread carries words only: a photo of a wound on a nurse's phone is a clinical record on a personal device with no consent behind it.`);
  }
 
- /* 8. The handover route is not built until it carries the urgency its event must. */
- const handoverRoute = accessRoute('POST /v1/access/conversations/{conversationRef}/handover@1');
- if (handoverRoute?.status === 'built' && !handoverRoute.request.some(f => /urgency/i.test(f.field))) throw new Error('POST /v1/access/conversations/{conversationRef}/handover@1 is marked built without an urgency in its request. conversation.handover@1 must carry the urgency the rules set, and a handler that guessed one would be the lowered emergency Access refuses.');
+ /* 8. The handover route is built at version two with the urgency its event must carry, and the engine evaluates
+       it against the settings in force. Version one is withdrawn in favour of it. The handler reads the settings
+       in force as the handover is asked for, evaluates the desk with the shared rotaAt, answers out of hours with
+       booking.json's sentence and sos.json's numbers, and refuses nothing but a caller it cannot name and what the
+       domain refuses — never because the desk is shut, which is when a person most needs to be told something.
+       And the domain refuses an urgency the contract does not list, and keeps the highest sent. */
+ const accessEngineForAccess = read('packages/engines/src/access/engine.ts');
+ const HANDOVER_TWO = 'POST /v1/access/conversations/{conversationRef}/handover@2';
+ const handoverOne = accessRoute('POST /v1/access/conversations/{conversationRef}/handover@1');
+ const handoverTwo = accessRoute(HANDOVER_TWO);
+ if (!handoverOne?.withdrawn || handoverOne.withdrawn.supersededBy !== HANDOVER_TWO) throw new Error(`POST /v1/access/conversations/{conversationRef}/handover@1 is not withdrawn in favour of ${HANDOVER_TWO}. It cannot carry the urgency conversation.handover must, and a handler that guessed one would be the lowered emergency Access refuses.`);
+ if (!handoverTwo || handoverTwo.withdrawn || handoverTwo.status !== 'built' || !handoverTwo.request.some(f => f.field === 'urgencyCode' && f.required === true)
+  || !['deskStateCode', 'answeredByRoles', 'outOfHours', 'outOfHoursNumbers', 'callbackFrom'].every(field => handoverTwo.response.some(f => f.field === field))
+  || !handoverTwo.refusals.some(r => r.id === 'urgency-not-listed')) throw new Error(`${HANDOVER_TWO} is not built with a required urgencyCode, the desk's state, who answers, and out of hours the sentence, the numbers and the call back, and a refusal for an urgency the contract does not list.`);
+ const handoverAt = accessEngineForAccess.indexOf(`'${HANDOVER_TWO}':`);
+ const handoverBody = handoverAt < 0 ? '' : accessEngineForAccess.slice(handoverAt, accessEngineForAccess.indexOf('...settingsRoutes(', handoverAt));
+ for (const need of ['accessIn(ctx)', 'rotaAt(inForce.handoverHours, now.getTime())', 'inForce.handoverAnsweredBy', 'queueHandover(', 'words.outOfHours', 'withNumbers(words.outOfHoursNumbers)']) {
+  if (!handoverBody.includes(need)) throw new Error(`packages/engines/src/access/engine.ts answers ${HANDOVER_TWO} without ${need}. Who answers and whether anybody is on the desk are the settings in force when the handover is asked for, evaluated by the shared rule for a rota, and out of hours the answer says nobody is there and gives the numbers from sos.json.`);
+ }
+ const handoverRefusals = [...handoverBody.matchAll(/\brefuse\(([^)]*)\)/g)].map(m => m[1].trim());
+ if (handoverRefusals.some(r => r !== "'caller-not-allowed'" && r !== 'outcome.id')) throw new Error(`packages/engines/src/access/engine.ts refuses ${HANDOVER_TWO} with ${handoverRefusals.join(', ')}. The handover refuses a caller it cannot name and what the domain refuses, and nothing because of the hour: out of hours a person is told nobody is there and given the numbers, not turned away.`);
+ const handoverDomainSource = read('packages/engines/src/access/domain/handover.ts');
+ if (!handoverDomainSource.includes("if (!isUrgency(request.urgencyCode)) return routeRefusal(ROUTES.handover, 'urgency-not-listed');") || !handoverDomainSource.includes('if (held && rank(urgencyCode) <= rank(held.urgencyCode)) return accept({ queue, handover: held, sentNow: false });')) throw new Error('packages/engines/src/access/domain/handover.ts no longer refuses an urgency the assistant contract does not list, or no longer keeps the highest urgency sent for a conversation. Nothing sent afterwards lowers an emergency.');
 
- console.log(`Access: ${bookingForAccess.routeRefusals.length} route refusals booking.json names are declared on their routes, the cancel route and cancellation.json say one sentence about a visit already under way, the handover carries ${assistantForAccess.answers.handover.fields.map(f => f.id).join(', ')} and never the words, ${bookingSentences.size} booking sentences are typed in none of ${handWrittenForBooking.length} hand-written files, the booking flow is a dynamic import, and no visit thread offers an attachment.`);
+ /* 9. booking.requested@2 says where a visit is by its zone id in geography.json and never by an address. Care
+       needs the suburb to measure a nurse's distance to; every subscriber keeps what it hears, and a house beside
+       a visit type is a diagnosis with a doorstep. The event declares the zone, refuses a street and a coordinate
+       by name, carries no field named like either, and the domain that publishes it resolves the zone from
+       geography.json and puts nothing else about place on it. */
+ const PLACE_WORDS = /address|street|coordinat|latitude|longitude|\blat\b|\blng\b|location|position|\bgps\b|geohash/i;
+ const spaced = name => String(name).replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+ const requestedTwo = eventsForAccess.events.find(e => e.type === 'booking.requested' && e.version === 2);
+ const zoneField = requestedTwo?.payload.find(f => f.field === 'zoneId');
+ if (!requestedTwo || requestedTwo.withdrawn || requestedTwo.owner !== 'access' || !zoneField || zoneField.type !== 'string' || zoneField.required !== true || !/geography\.json/.test(zoneField.why)) throw new Error('booking.requested@2 does not carry a required zoneId from packages/catalog/geography.json. Care cannot offer a booking it cannot place, and the zone is the one way to place it without an address.');
+ const placed = requestedTwo.payload.filter(f => f.field !== 'zoneId' && PLACE_WORDS.test(spaced(f.field)));
+ if (placed.length) throw new Error(`booking.requested@2 carries ${placed.map(f => f.field).join(', ')}. It says where a visit is by its zone id and nothing finer: a street or a position on the bus is the house every subscriber keeps.`);
+ for (const refused of ['streetAddress', 'coordinates']) if (!requestedTwo.neverCarries.some(n => n.field === refused && n.why?.trim())) throw new Error(`booking.requested@2 no longer says it never carries ${refused}, and why.`);
+ const bookingDomainSource = read('packages/engines/src/access/domain/booking.ts');
+ const requestedAt = bookingDomainSource.indexOf("type: 'booking.requested', version: 2");
+ const requestedBlock = requestedAt < 0 ? '' : bookingDomainSource.slice(requestedAt, bookingDomainSource.indexOf('return accept(', requestedAt));
+ if (!requestedBlock || PLACE_WORDS.test(spaced(requestedBlock)) || !bookingDomainSource.includes('geography.zones.find(z => z.id === request.zoneId)')) throw new Error('packages/engines/src/access/domain/booking.ts no longer publishes booking.requested@2 with the zone resolved from geography.json and nothing else about where the visit is.');
+ if (!read('packages/engines/src/care/engine.ts').includes("'booking.requested@2': (event, ctx) =>") || !read('packages/engines/src/care/engine.ts').includes('String(event.payload.zoneId)')) throw new Error('packages/engines/src/care/engine.ts no longer hears booking.requested@2 and keeps its zone id, so a real booking cannot be offered.');
+
+ /* 10. Nothing an engine publishes, hears or answers is a withdrawn version. Frozen events above hold every engine's
+        code to naming no withdrawn type@version; here the routes each engine registers are held to the same, and
+        what booking.json says Access publishes and hears is live, with Access among the subscribers of what it
+        hears and its engine subscribed to exactly those. */
+ const { routes: routesForWithdrawal } = loadApis();
+ const engineCodeForWithdrawal = files('packages/engines/src').filter(f => f.endsWith('.ts') && !f.endsWith('.test.ts'));
+ for (const r of routesForWithdrawal.filter(x => x.withdrawn)) {
+  for (const file of engineCodeForWithdrawal) if (read(file).includes(`'${routeKey(r)}'`)) throw new Error(`${file} names ${routeKey(r)}, which is withdrawn in favour of ${r.withdrawn.supersededBy}: ${r.withdrawn.why}`);
+ }
+ for (const key of [...bookingForAccess.publishes, ...(bookingForAccess.hears ?? [])]) {
+  const [type, version] = key.split('@');
+  const e = eventsForAccess.events.find(x => x.type === type && x.version === Number(version));
+  const hears = (bookingForAccess.hears ?? []).includes(key);
+  if (!e || e.withdrawn || (hears ? !e.subscribers.includes('access') : e.owner !== 'access')) throw new Error(`packages/catalog/booking.json says Access ${hears ? 'hears' : 'publishes'} ${key}, which is ${!e ? 'not declared' : e.withdrawn ? 'withdrawn' : hears ? 'not subscribed to by access' : `owned by ${e.owner}`}.`);
+ }
+ const subscriptionsBlock = accessEngineForAccess.slice(accessEngineForAccess.indexOf(' subscriptions: {'), accessEngineForAccess.indexOf(' routes: {'));
+ const heardByEngine = [...subscriptionsBlock.matchAll(/'([a-z_.]+@\d+)':/g)].map(m => m[1]).sort();
+ if (heardByEngine.join(',') !== [...(bookingForAccess.hears ?? [])].sort().join(',')) throw new Error(`packages/engines/src/access/engine.ts subscribes to ${heardByEngine.join(', ') || 'nothing'}, and packages/catalog/booking.json says Access hears ${(bookingForAccess.hears ?? []).join(', ') || 'nothing'}.`);
+
+ /* 11. The booking route never folds the named-nurse answer into a slot reference. Version one did, because its
+        frozen request had no field for it, and an instruction inside a string a client is meant to hand back unread
+        is one nobody reading the contract can see. Version one is withdrawn; version two declares the answer as its
+        own field and refuses one the setting in force does not offer. No slot the domain offers under any rule
+        carries an answer, a reference that carries one claims nothing, and no screen or engine builds one. */
+ const BOOK_TWO = 'POST /v1/access/bookings@2';
+ const bookOne = accessRoute('POST /v1/access/bookings@1');
+ const bookTwo = accessRoute(BOOK_TWO);
+ if (!bookOne?.withdrawn || bookOne.withdrawn.supersededBy !== BOOK_TWO) throw new Error(`POST /v1/access/bookings@1 is not withdrawn in favour of ${BOOK_TWO}. It carries the named-nurse answer inside the slot reference.`);
+ if (!bookTwo || bookTwo.withdrawn || !bookTwo.request.some(f => f.field === 'namedNurseFallback') || !bookTwo.request.some(f => f.field === 'zoneId' && f.required === true)
+  || !bookTwo.request.some(f => f.field === 'idempotencyKey' && f.required === true) || bookTwo.idempotent !== true || !bookTwo.refusals.some(r => r.id === 'fallback-not-offered')
+  || !['slot-not-offered', 'service-not-here'].every(id => bookTwo.refusals.some(r => r.id === id))) throw new Error(`${BOOK_TWO} does not declare namedNurseFallback as its own field, a required zoneId, its idempotency key and every refusal version one had, with fallback-not-offered beside them.`);
+ const bookingDomain = await import('../packages/engines/src/access/domain/booking.ts');
+ const answerIds = bookingForAccess.person.fallback.choices.map(c => c.id);
+ const slotsAt = new Date(`${new Date().getFullYear()}-06-01T10:00:00+02:00`);
+ const anyService = JSON.parse(read('packages/catalog/services.json')).find(s => s.phase === 1).id;
+ for (const rule of bookingForAccess.person.fallback.rules) for (const kind of ['asap', 'scheduled']) {
+  for (const slot of bookingDomain.offeredSlots({ now: slotsAt, serviceId: anyService, kind, choice: { kind: 'named', nurseRef: 'N-synthetic' }, holds: [], namedNurseFallback: rule.setting })) {
+   if (slot.slotRef.split('~').length !== 2 || 'fallback' in slot) throw new Error(`packages/engines/src/access/domain/booking.ts offers the slot ${slot.slotRef} under ${rule.setting}. A slot is the hour and the nurse and nothing else; what happens if she cannot take it travels in namedNurseFallback.`);
+  }
+ }
+ for (const id of answerIds) if (bookingDomain.readSlotRef(`2026-09-15T09:00~N-synthetic~${id}`) !== null || bookingDomain.readSlotRef(`asap~N-synthetic~${id}`) !== null) throw new Error(`packages/engines/src/access/domain/booking.ts reads a slot reference ending ~${id} as a claim. A reference that carries the named-nurse answer was never offered.`);
+ const foldedAnswer = new RegExp(`~(?:${answerIds.join('|')})\\b|~\\$\\{\\s*(?:fallback|picked|answer|namedNurseFallback)|~\\\\\\((?:fallbackPick|answer)|~\\$(?:fallbackPick|answer)\\b`);
+ for (const file of ['packages/engines/src/access/domain/booking.ts', 'packages/engines/src/access/engine.ts', 'apps/web/src/features/Booking.tsx', 'apps/ios/MyThuso/Features/BookingView.swift', 'apps/ios/MyThuso/Models/Booking.swift', 'apps/android/app/src/main/java/za/co/mythuso/ui/CareScreens.kt', 'apps/android/app/src/main/java/za/co/mythuso/model/Booking.kt']) {
+  const folded = read(file).match(foldedAnswer);
+  if (folded) throw new Error(`${file} builds a slot reference with the named-nurse answer in it ("${folded[0]}"). ${BOOK_TWO} carries the answer in namedNurseFallback.`);
+ }
+
+ /* 12. A visit thread is closed by the engine after Care completes the visit, for the hours in force at completion.
+        Care names the appointment it opens for a booking one way, booking.json's careAppointmentRef, and Access finds
+        the thread by that name; if Care renamed it, every completion would close nothing and every thread would stay
+        open indefinitely, so the name Care builds and the name Access reads are held to the one template. */
+ const careEngineForAccess = read('packages/engines/src/care/engine.ts');
+ const careTemplate = bookingForAccess.careAppointmentRef;
+ if (typeof careTemplate !== 'string' || !careTemplate.includes('{bookingRef}') || !careEngineForAccess.includes('`' + careTemplate.replace('{bookingRef}', '${String(event.payload.bookingRef)}') + '`')) throw new Error(`packages/engines/src/care/engine.ts no longer names the appointment it opens for a booking as packages/catalog/booking.json's careAppointmentRef (${JSON.stringify(careTemplate)}), so Access's engine could close no visit thread on completion.`);
+ const completedAt = subscriptionsBlock.indexOf("'appointment.completed@1':");
+ const completedBody = completedAt < 0 ? '' : subscriptionsBlock.slice(completedAt);
+ for (const need of ["booking.careAppointmentRef.replace('{bookingRef}', bookingRef)", 'accessInForceAt(historyOf(ctx.store), at).threadOpenHoursAfterVisit', 'completeThread(']) {
+  if (!accessEngineForAccess.includes(need) || (need !== "booking.careAppointmentRef.replace('{bookingRef}', bookingRef)" && !completedBody.includes(need))) throw new Error(`packages/engines/src/access/engine.ts no longer closes a visit thread on appointment.completed@1 with ${need}. The hours a thread stays open are the setting in force when the visit was completed, read from the engine's own history.`);
+ }
+
+ console.log(`Access: ${bookingForAccess.routeRefusals.length} route refusals booking.json names are declared on their routes, the cancel route and cancellation.json say one sentence about a visit already under way, the handover carries ${assistantForAccess.answers.handover.fields.map(f => f.id).join(', ')} and never the words, ${bookingSentences.size} booking sentences are typed in none of ${handWrittenForBooking.length} hand-written files, the booking flow is a dynamic import, and no visit thread offers an attachment. ${HANDOVER_TWO} is built and evaluated against the desk's hours in force, never refusing because it is shut; booking.requested@2 says the suburb by its zone id and never an address; no engine registers any of ${routesForWithdrawal.filter(x => x.withdrawn).length} withdrawn routes; ${BOOK_TWO} carries the named-nurse answer in its own field and no slot under any of ${bookingForAccess.person.fallback.rules.length} rules folds it into a reference; and a completed visit's thread is found by the one name Care gives its appointment.`);
 }
 /* ==== end of Access (Wave 3) ========================================================================= */
 
@@ -7996,9 +8105,25 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   const between = source.slice(source.indexOf(shut) + shut.length, source.indexOf(numbers));
   if (source.indexOf(shut) < 0 || source.indexOf(numbers) < source.indexOf(shut) || /\bif\b/.test(between)) throw new Error(`${file} no longer gives the emergency numbers first thing whenever the handover desk is shut, or gives them only under a further condition.`);
  }
- /* Whether the desk is open is Core's rule for a rota and no second one: Gilbert's web lib asks Core's onDuty and
-    localTimeOf, and Access's own domain keeps no evaluation of hours to drift from Core's. */
- if (!/import \{[^}]*\blocalTimeOf\b[^}]*\bonDuty\b[^}]*\} from '[^']*core\/domain\/loops\.ts'/.test(accessAssistantLib) || !accessAssistantLib.includes('onDuty(rota, post, at)') || /export function deskAt|hourCycle/.test(read('packages/engines/src/access/domain/handover.ts'))) throw new Error('Gilbert\'s handover desk is no longer evaluated by Core\'s onDuty and localTimeOf, or a second evaluation of a rota\'s hours has been written beside it. A window counts as open by one rule, Core\'s, so the handover desk and the escalation rota never disagree about the hour.');
+ /* Whether a rota's post is on duty is one rule, and it exists once: onDuty, localTimeOf and rotaAt are defined in
+    packages/engines/src/settings/shape.ts and nowhere else in the engines or the web. Core's loops, the Access
+    engine's handover route and Gilbert's web lib all import it — the web through lib/settings.ts, the one door a
+    screen's lib has to the settings code — and no Access file keeps a clock of its own beside it. It moved out of
+    Core's directory on 15 September because an engine may not import another engine's code, and the Access engine
+    needed it to evaluate handover@2; a second copy written there instead would be two answers about the hour. */
+ const rotaRuleFiles = [...files('packages/engines/src'), ...files('apps/web/src')].filter(f => /\.(ts|tsx)$/.test(f) && !f.endsWith('.test.ts'));
+ for (const name of ['onDuty', 'localTimeOf', 'rotaAt']) {
+  const defining = rotaRuleFiles.filter(f => new RegExp(`(?:^|\\n)\\s*(?:export\\s+)?(?:const|let|function)\\s+${name}\\b`).test(read(f)));
+  if (defining.length !== 1 || defining[0] !== 'packages/engines/src/settings/shape.ts') throw new Error(`${name} is defined in ${defining.join(', ') || 'no file'}. It exists once, in packages/engines/src/settings/shape.ts, so the escalation rota, the handover route and Gilbert's desk never disagree about whether a window has begun.`);
+ }
+ if (!/import \{[^}]*\bonDuty\b[^}]*\} from '\.\.\/\.\.\/settings\/shape\.ts'/.test(read('packages/engines/src/core/domain/loops.ts'))) throw new Error('packages/engines/src/core/domain/loops.ts no longer takes onDuty from the shared settings code.');
+ if (!/import \{[^}]*\brotaAt\b[^}]*\} from '\.\/settings'/.test(accessAssistantLib) || !accessAssistantLib.includes('rotaAt(inForce.handoverHours, now.getTime())') || !/export \{ rotaAt \} from '[^']*engines\/src\/settings\/shape\.ts'/.test(read('apps/web/src/lib/settings.ts'))) throw new Error('Gilbert\'s handover desk on the web is no longer evaluated by the shared rotaAt, reached through lib/settings.ts, against the hours in force.');
+ /* Stamping a time with the timezone's clock is Access's own business (contract.ts's nowInstant); comparing a
+    moment with a rota's windows is not, and that is what is refused here. */
+ for (const f of files('packages/engines/src/access').filter(f => f.endsWith('.ts'))) {
+  const evaluated = read(f).match(/export function deskAt|\.from\s*<=\s*\w*time|time\s*<\s*\w+\.to\b|weekday:\s*'short'|getUTCHours\(|getHours\(/);
+  if (evaluated) throw new Error(`${f} evaluates a rota's hours itself ("${evaluated[0]}"). Whether the handover desk is open is the shared settings code's rotaAt, and a second evaluation of a rota's hours is a second answer.`);
+ }
  const emittedBooking = emitBooking();
  for (const id of ['ambulance', 'mobile']) {
   const n = accessSos.emergency.numbers.find(x => x.id === id).number;
