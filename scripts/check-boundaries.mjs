@@ -28,6 +28,7 @@ import { emitShop } from './emit-shop.mjs';
 import { emitRewards } from './emit-rewards.mjs';
 import { emitThusoIQ } from './emit-thusoiq.mjs';
 import { emitAssistant } from './emit-assistant.mjs';
+import { emitFieldSafety } from './emit-field-safety.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -866,7 +867,10 @@ const generated = [
  { source: 'packages/catalog/rewards.json', command: 'npm run rewards', files: emitRewards() },
  { source: 'packages/catalog/thusoiq.json', command: 'npm run thusoiq-contract', files: emitThusoIQ() },
  { source: 'packages/catalog/assistant.json', command: 'npm run assistant', files: emitAssistant() },
- { source: 'packages/catalog/gilbert-emergency-terms.json', command: 'npm run assistant', files: emitAssistant() }
+ { source: 'packages/catalog/gilbert-emergency-terms.json', command: 'npm run assistant', files: emitAssistant() },
+ { source: 'packages/catalog/field-safety.json', command: 'npm run field-safety', files: emitFieldSafety() },
+ { source: 'packages/catalog/apis/safety.json', command: 'npm run field-safety', files: emitFieldSafety() },
+ { source: 'packages/catalog/sos.json', command: 'npm run field-safety', files: emitFieldSafety() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -6176,3 +6180,103 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  console.log(`The engine runtime refuses to start without ${runtimeSettings.flag}=${runtimeSettings.flagValue} in its factory, answers on loopback to a loopback Host only, and nothing in deploy/ names it. ${engineSources.length} source files under packages/engines/src read, ${importsRead} imports among them, and no engine reaches another engine's directory or opens a database; ${onRuntime.length} ${onRuntime.length === 1 ? 'route is' : 'routes are'} built on the runtime, each registered by exactly its key in its own engine's directory.`);
 }
 /* ==== end of Engine Runtime & Core (Wave 3) ========================================================= */
+/* ==== Safety · nurse field safety (Wave 3) ==========================================================
+
+   Added by the Safety lead. Self-contained. What it holds packages/catalog/field-safety.json and the
+   code that runs it to: every field-safety number is a proposal that still carries its question, and the
+   generator that writes them into the native apps is registered; a visit is timed by the service booked
+   rather than by a number anybody sent; the panic sentences type no emergency number of their own; every
+   refusal an engine file or a screen names has a sentence; the desk queue carries exactly its declared
+   keys and never the service, the person visited or the address; a panic has no path to a dispatch, is
+   never shared between callers, and no position is kept; and no hand-written native file types a
+   sentence or a minute the contract holds. */
+{
+ const safetyContract = JSON.parse(read('packages/catalog/field-safety.json'));
+ const safetyApi = JSON.parse(read('packages/catalog/apis/safety.json'));
+ const routeRefusalFor = (route, id) => safetyApi.routes.find(r => `${r.method} ${r.path}` === route)?.refusals.find(x => x.id === id);
+ const sentenceFor = id => safetyContract.refusals.find(x => x.id === id) ?? safetyContract.routeRefusals.map(n => routeRefusalFor(n.route, n.id)).find(x => x?.id === id);
+ const safetyFail = (id, detail) => { const r = sentenceFor(id); throw new Error(`${detail}${r ? ` ${r.statement} ${r.why ?? ''}` : ''}`); };
+
+ /* 1. Proposals stay proposals until somebody decides them, and the generator that carries them is registered. */
+ const proposals = [['timer.graceMinutes', safetyContract.timer.graceMinutes], ['timer.extensionMinutes', safetyContract.timer.extensionMinutes], ['timer.maxExtensionMinutes', safetyContract.timer.maxExtensionMinutes], ['panic.windowMinutes', safetyContract.panic.windowMinutes]];
+ for (const [name, proposal] of proposals) {
+  if (!proposal || !('decidedBy' in proposal) || !proposal.question?.trim() || !proposal.proposedBecause?.trim()) throw new Error(`packages/catalog/field-safety.json ${name} has lost its decidedBy, its question or why it was proposed. A number nobody decided has to say so, or it quietly becomes the policy.`);
+  if (proposal.decidedBy !== null && !(typeof proposal.decidedBy === 'string' && proposal.decidedBy.trim())) throw new Error(`packages/catalog/field-safety.json ${name} has a decidedBy that is neither null nor the name of whoever decided it.`);
+  const values = Array.isArray(proposal.value) ? proposal.value : [proposal.value];
+  if (!values.length || !values.every(v => Number.isInteger(v) && v > 0)) throw new Error(`packages/catalog/field-safety.json ${name} must be whole minutes above zero.`);
+ }
+ if (safetyContract.timer.maxExtensionMinutes.value < Math.max(...safetyContract.timer.extensionMinutes.value)) safetyFail('extension-limit', 'packages/catalog/field-safety.json offers an extension step larger than the ceiling, so the step could never be taken.');
+ const rootScripts = JSON.parse(read('package.json')).scripts;
+ if (rootScripts['field-safety'] !== 'node scripts/emit-field-safety.mjs' || !/npm run field-safety/.test(rootScripts.generate)) throw new Error('package.json no longer registers scripts/emit-field-safety.mjs as npm run field-safety and in npm run generate, so the native copies of the field-safety contract would stop being regenerated.');
+
+ /* 2. A visit is timed by the service booked. */
+ if (safetyContract.timer.expectedMinutesFrom !== 'packages/catalog/services.json#duration') safetyFail('expected-minutes-not-the-service', 'packages/catalog/field-safety.json no longer times a visit by the duration in packages/catalog/services.json.');
+ if (/"(expectedMinutes|durationMinutes|duration)"\s*:\s*\d/.test(read('packages/catalog/field-safety.json'))) safetyFail('expected-minutes-not-the-service', 'packages/catalog/field-safety.json types a visit duration.');
+ const checkinsSource = read('packages/engines/src/safety/domain/checkins.ts');
+ if (!checkinsSource.includes('const minutes = serviceMinutes(input.serviceId);') || !checkinsSource.includes("return refuse('expected-minutes-not-the-service')")) safetyFail('expected-minutes-not-the-service', 'packages/engines/src/safety/domain/checkins.ts no longer reads the minutes of a visit from its service, or no longer refuses a number that disagrees with it.');
+
+ /* 3. The emergency numbers a panic sentence names are sos.json's, never typed a second time. */
+ const sosNumbers = JSON.parse(read('packages/catalog/sos.json')).emergency.numbers.map(n => n.number);
+ const panicSentences = Object.values(safetyContract.panic).filter(v => typeof v === 'string').join(' ');
+ const typedNumber = sosNumbers.find(number => panicSentences.includes(number));
+ if (typedNumber) throw new Error(`packages/catalog/field-safety.json types the emergency number ${typedNumber}. Write {police} or {ambulance}; the domain rules and scripts/emit-field-safety.mjs fill them from packages/catalog/sos.json, so a wrong digit has one place to be wrong.`);
+ if (!/\{police\}/.test(safetyContract.panic.whatDoesNotHappen) || !/\{ambulance\}/.test(safetyContract.panic.whatDoesNotHappen)) throw new Error('The panic confirmation no longer tells a nurse which numbers to call herself. It must name {police} and {ambulance}.');
+
+ /* 4. Every refusal an engine file or a screen names has a sentence, and every named route refusal exists. */
+ for (const named of safetyContract.routeRefusals) if (!routeRefusalFor(named.route, named.id)?.statement?.trim()) throw new Error(`packages/catalog/field-safety.json names the refusal "${named.id}" on ${named.route}, and packages/catalog/apis/safety.json has no such refusal there.`);
+ const knownRefusals = new Set([...safetyContract.refusals.map(r => r.id), ...safetyContract.routeRefusals.map(r => r.id)]);
+ const safetySources = files('packages/engines/src/safety').filter(f => f.endsWith('.ts') && !f.endsWith('.test.ts'));
+ let refusalsNamed = 0;
+ for (const file of [...safetySources, 'apps/web/src/lib/field-safety.ts', 'apps/web/src/features/FieldSafety.tsx']) {
+  for (const m of read(file).matchAll(/\b(?:refuse|refusal)\('([a-z0-9-]+)'/g)) {
+   refusalsNamed++;
+   if (!knownRefusals.has(m[1])) throw new Error(`${file} names the refusal "${m[1]}", which packages/catalog/field-safety.json neither declares nor names on a route. A refusal with no sentence is a screen that says nothing at the moment it matters most.`);
+  }
+ }
+ for (const id of ['share-without-end', 'window-not-the-declared-one', 'dispatch-from-a-panic-without-a-person']) if (!routeRefusalFor('POST /v1/safety/panics', id)) throw new Error(`POST /v1/safety/panics no longer declares "${id}". The runtime renders only a refusal the route declares, so the engine would answer a refused panic with a fault.`);
+
+ /* 5. The desk queue carries exactly its declared keys, and never the three it must not. */
+ const deskSource = read('packages/engines/src/safety/domain/desk.ts');
+ const deskType = (deskSource.match(/export type DeskItem = \{([\s\S]*?)\n\};/) ?? [])[1] ?? '';
+ const deskKeys = [...deskType.matchAll(/readonly (\w+)\??:/g)].map(m => m[1]);
+ if (deskKeys.join(',') !== safetyContract.desk.carries.join(',')) throw new Error(`packages/engines/src/safety/domain/desk.ts DeskItem carries ${JSON.stringify(deskKeys)}, and packages/catalog/field-safety.json desk.carries declares ${JSON.stringify(safetyContract.desk.carries)}. The desk is worked with other people standing behind it; what it shows is the contract's list and nothing else.`);
+ for (const never of safetyContract.desk.neverCarries) if (deskKeys.some(k => k.toLowerCase().includes(never.field.toLowerCase()))) throw new Error(`A desk row carries "${never.field}". ${never.why}`);
+ const deskScreen = read('apps/web/src/features/FieldSafety.tsx');
+ const deskStart = deskScreen.indexOf('export function SafetyDesk');
+ if (deskStart < 0 || /\b(serviceId|service|patient|address)\b/.test(deskScreen.slice(deskStart))) throw new Error(`The desk queue in apps/web/src/features/FieldSafety.tsx reaches for a service, a patient or an address. ${safetyContract.desk.neverCarries.map(n => n.why).join(' ')}`);
+
+ /* 6. A panic has no path to a dispatch, is never shared between callers, and nothing keeps a position. */
+ for (const file of safetySources) if (/\bctx\.call\(/.test(read(file))) safetyFail('dispatch-from-a-panic-without-a-person', `${file} calls another engine's route. Safety sends nobody anywhere; a person at the desk does.`);
+ const panicsSource = read('packages/engines/src/safety/domain/panics.ts');
+ if (!panicsSource.includes('readonly position: Position | null;') || /\bpositions\s*[:=]/.test(panicsSource)) safetyFail('location-retained', 'packages/engines/src/safety/domain/panics.ts holds more than the latest position.');
+ if (!panicsSource.includes('resolved: { at: now, by: request.actor.ref, outcomeId: outcome.id }, position: null }')) safetyFail('location-retained', 'Resolving a panic in packages/engines/src/safety/domain/panics.ts no longer drops the position in the same instant.');
+ if (!panicsSource.includes('if (!isSharing(panic, now)) return afterTheWindow(panic);')) safetyFail('position-after-the-window', 'packages/engines/src/safety/domain/panics.ts no longer refuses a position once sharing has stopped.');
+ const engineSource = read('packages/engines/src/safety/engine.ts');
+ const storeSchema = engineSource.slice(engineSource.indexOf('const schema'), engineSource.indexOf('type OpenPanic'));
+ if (!storeSchema || /\b(lat|lng|latitude|longitude|position|positions|location|coordinates?)\b/i.test(storeSchema)) safetyFail('location-retained', 'The Safety engine store schema has a column for where somebody is.');
+ if (!/raised_by_role = \? AND raised_by_ref = \? AND appointment_ref IS \? AND location_share_ends_at > \?/.test(engineSource)) throw new Error("POST /v1/safety/panics@1 in packages/engines/src/safety/engine.ts no longer folds a repeat press only into the same identified caller's open panic for the same visit. A panic answered with somebody else's is a nurse the desk never hears about.");
+ if (/\bpositions\s*[:=]/.test(read('apps/web/src/lib/field-safety.ts'))) safetyFail('location-retained', 'apps/web/src/lib/field-safety.ts keeps positions somewhere other than the one latest position a panic holds.');
+
+ /* 7. Native copies are generated. A hand-written native file may not type a contract sentence or a minute. */
+ const handNative = ['apps/ios/MyThuso/Models/FieldSafety.swift', 'apps/ios/MyThuso/Features/FieldSafetyView.swift', 'apps/android/app/src/main/java/za/co/mythuso/model/FieldSafety.kt', 'apps/android/app/src/main/java/za/co/mythuso/ui/FieldSafetyScreens.kt'];
+ const blocks = [safetyContract.nurse, safetyContract.panic, safetyContract.desk, safetyContract.desk.kinds];
+ const sentences = [
+  ...blocks.flatMap(b => Object.entries(b).filter(([k, v]) => typeof v === 'string' && !k.startsWith('_')).map(([, v]) => v)),
+  ...[...safetyContract.extensionReasons, ...safetyContract.silenceReasons, ...safetyContract.outcomes, ...safetyContract.states.timer, ...safetyContract.states.panic].map(x => x.label),
+  ...safetyContract.refusals.map(r => r.statement)
+ ];
+ const pieces = sentences.flatMap(s => s.split(/\{\w+\}/)).map(p => p.trim()).filter(p => p.length >= 16);
+ const minuteNumbers = [...new Set([safetyContract.timer.graceMinutes.value, safetyContract.timer.maxExtensionMinutes.value, safetyContract.panic.windowMinutes.value, ...safetyContract.timer.extensionMinutes.value])];
+ const typedMinute = new RegExp(`\\b(${minuteNumbers.join('|')})\\s*(?:\\*\\s*60|min\\b|minutes\\b|\\.minutes)`);
+ for (const file of handNative) {
+  if (!existsSync(file)) throw new Error(`${file} is missing. The nurse safety suite ships on all three platforms from day one.`);
+  const source = read(file);
+  const typed = pieces.find(p => source.includes(p));
+  if (typed) throw new Error(`${file} types "${typed}", which packages/catalog/field-safety.json holds. Read it from FieldSafetyData, which scripts/emit-field-safety.mjs writes from the contract.`);
+  const minute = source.match(typedMinute);
+  if (minute) throw new Error(`${file} types a field-safety minute (${minute[0]}). The grace, the steps, the ceiling and the window are proposals in packages/catalog/field-safety.json and change there.`);
+ }
+
+ console.log(`Field safety holds ${proposals.length} undecided numbers with their questions and a registered generator, times a visit by its service, names no emergency number of its own, finds a sentence for all ${refusalsNamed} refusals the engine and the web name, keeps a desk row to its ${safetyContract.desk.carries.length} declared keys, never shares a panic between callers, keeps no position, and ${handNative.length} hand-written native files type none of its sentences or minutes.`);
+}
+/* ==== end of Safety · nurse field safety (Wave 3) ================================================== */

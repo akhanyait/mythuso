@@ -150,6 +150,9 @@ const gapText = (minutes: number) => {
 };
 
 export const referenceFor = (shift: Shift) => shift === nurseDay[0] ? 'TH-2048' : `TH-2048 · ${shift.start}`;
+/** The service a visit on this day is, by the reference it opens under. The field-safety timer runs on the
+    service's own duration, so a visit says which service it is rather than how long it thinks it takes. */
+export const serviceIdFor = (reference: string) => (nurseDay.find(shift => referenceFor(shift) === reference) ?? nurseDay[0]).service.id;
 
 export function NurseSchedule({ open }: { open: (s: string) => void }) {
  const [available, setAvailable] = useState(true);

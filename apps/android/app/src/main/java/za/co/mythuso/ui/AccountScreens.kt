@@ -987,12 +987,17 @@ private fun sectionDeck(role: String, section: String) =
                 ToolRow("Live dispatch board") { open("Live dispatch board") }
                 ToolRow(label("Vetting: O-802")) { open("Vetting: O-802") }
             }
-            role == "Control Tower" && section == "Incidents" -> CareCard {
-                Text("Open incidents", style = MaterialTheme.typography.titleMedium)
-                incidents.forEach { incident ->
-                    Column(Modifier.fillMaxWidth()) {
-                        ToolRow("${incident.id} · ${incident.title}") { open("Incident ${incident.id}") }
-                        Note("${incident.severity} · ${incident.area} · Opened ${incident.opened} · ${incident.status}")
+            /* The field-safety queue leads the section: a nurse in trouble is picked up before the
+               register of what went wrong last week is read. */
+            role == "Control Tower" && section == "Incidents" -> Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
+                SafetyDeskSection()
+                CareCard {
+                    Text("Open incidents", style = MaterialTheme.typography.titleMedium)
+                    incidents.forEach { incident ->
+                        Column(Modifier.fillMaxWidth()) {
+                            ToolRow("${incident.id} · ${incident.title}") { open("Incident ${incident.id}") }
+                            Note("${incident.severity} · ${incident.area} · Opened ${incident.opened} · ${incident.status}")
+                        }
                     }
                 }
             }

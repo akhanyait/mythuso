@@ -671,15 +671,20 @@ struct WorkspaceSectionView: View {
         }
     }
 
+    /* The field-safety queue leads the section: a nurse in trouble is picked up before the register of
+       what went wrong last week is read. */
     private var incidents: some View {
-        group("Open incidents") {
-            ForEach(Incidents.all) { incident in
-                NavigationLink { IncidentDetailView(incident: incident) } label: {
-                    QueueRow(reference: incident.id, subject: incident.title,
-                             note: "\(incident.area) · opened \(incident.opened) · \(incident.status)",
-                             chip: incident.severity,
-                             tone: incident.severity == "Critical" ? .refused : incident.severity == "High" ? .attention : .neutral)
-                }.buttonStyle(.plain)
+        VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
+            SafetyDeskSection()
+            group("Open incidents") {
+                ForEach(Incidents.all) { incident in
+                    NavigationLink { IncidentDetailView(incident: incident) } label: {
+                        QueueRow(reference: incident.id, subject: incident.title,
+                                 note: "\(incident.area) · opened \(incident.opened) · \(incident.status)",
+                                 chip: incident.severity,
+                                 tone: incident.severity == "Critical" ? .refused : incident.severity == "High" ? .attention : .neutral)
+                    }.buttonStyle(.plain)
+                }
             }
         }
     }
