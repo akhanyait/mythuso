@@ -217,3 +217,4 @@ POST /v1/medicines/lab-orders/{labOrderRef}/close@1 5ecca7f71bed799c
 GET /v1/medicines/settings@1 11d14be365ef4079
 POST /v1/medicines/setting-changes@1 03cbb2b1552b1751
 POST /v1/medicines/setting-reviews@1 77465a0245446afc
+POST /v1/medicines/lab-orders@2 1f3dc4afbb2a92f2

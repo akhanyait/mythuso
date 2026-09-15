@@ -329,3 +329,4 @@ shared apis/medicines.json#refusals unnamed-caller 02ff70a7329cfdde
 shared apis/medicines.json#refusals check-not-for-this 49a7017833193822
 shared apis/medicines.json#refusals check-already-cited 82537212b6becf91
 shared apis/medicines.json#refusals not-checked-not-read d1ecb3f6dc5caae6
+POST /v1/medicines/lab-orders@2 ef55b5e7b63c0228

@@ -168,7 +168,7 @@ object ApisData {
     val GET_RECORD_ENCOUNTER_STATUSES_BY_ENCOUNTER_REF = Route("getRecordEncounterStatusesByEncounterRef", "GET", "/v1/record/encounter-statuses/{encounterRef}", "/v1/record/encounter-statuses/{encounterRef}", 1, "record", listOf("engine:care"), listOf("treatment"), false, "proposed")
     val POST_RECORD_SHARE_LINK = Route("postRecordShareLink", "POST", "/share/link", "/v1/record/share/link", 1, "record", listOf("patient", "responder-on-trip"), listOf("treatment", "emergency"), false, "proposed")
     val POST_RECORD_EXPORT = Route("postRecordExport", "POST", "/export", "/v1/record/export", 1, "record", listOf("patient"), listOf("subject-access"), false, "proposed")
-    val POST_MEDICINES_LAB_ORDERS = Route("postMedicinesLabOrders", "POST", "/v1/medicines/lab-orders", "/v1/medicines/lab-orders", 1, "medicines", listOf("doctor", "nurse"), listOf("diagnostics"), false, "built")
+    val POST_MEDICINES_LAB_ORDERS_V2 = Route("postMedicinesLabOrdersV2", "POST", "/v1/medicines/lab-orders", "/v1/medicines/lab-orders", 2, "medicines", listOf("doctor", "nurse"), listOf("diagnostics"), false, "built")
     val GET_MEDICINES_FORMULARY_V2 = Route("getMedicinesFormularyV2", "GET", "/v1/medicines/formulary", "/v1/medicines/formulary", 2, "medicines", listOf("doctor", "nurse", "pharmacist"), listOf("dispensing", "treatment"), false, "built")
     val POST_MEDICINES_INTERACTION_CHECKS_V2 = Route("postMedicinesInteractionChecksV2", "POST", "/v1/medicines/interaction-checks", "/v1/medicines/interaction-checks", 2, "medicines", listOf("doctor", "pharmacist"), listOf("dispensing", "treatment"), false, "built")
     val POST_MEDICINES_PRESCRIPTIONS_V2 = Route("postMedicinesPrescriptionsV2", "POST", "/v1/medicines/prescriptions", "/v1/medicines/prescriptions", 2, "medicines", listOf("doctor"), listOf("treatment"), false, "built")
@@ -351,7 +351,7 @@ object ApisData {
         GET_RECORD_ENCOUNTER_STATUSES_BY_ENCOUNTER_REF,
         POST_RECORD_SHARE_LINK,
         POST_RECORD_EXPORT,
-        POST_MEDICINES_LAB_ORDERS,
+        POST_MEDICINES_LAB_ORDERS_V2,
         GET_MEDICINES_FORMULARY_V2,
         POST_MEDICINES_INTERACTION_CHECKS_V2,
         POST_MEDICINES_PRESCRIPTIONS_V2,
@@ -1561,12 +1561,12 @@ object ApisData {
     data class PostRecordExportResponse(
         val exportRef: String
     )
-    data class PostMedicinesLabOrdersRequest(
+    data class PostMedicinesLabOrdersV2Request(
         val subjectRef: String,
         val serviceRequestRef: String,
         val collectionMode: String
     )
-    data class PostMedicinesLabOrdersResponse(
+    data class PostMedicinesLabOrdersV2Response(
         val labOrderRef: String
     )
     data class GetMedicinesFormularyV2Request(

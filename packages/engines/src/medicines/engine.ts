@@ -212,13 +212,13 @@ export const engine = defineEngine({
    });
   },
 
-  /* Built as frozen: it names no refusal for a caller the runtime cannot name, so an unnamed caller's order is
-     ordered by nobody Clinical can match, and no clinician can acknowledge its result. It then escalates on Core's
-     rota like any result nobody acknowledged, which is the loud way for that to go wrong. */
-  'POST /v1/medicines/lab-orders@1': (request, ctx) => {
+  /* Version two, because only the clinician who ordered a test may acknowledge its result, and version one could not
+     refuse a caller the runtime cannot name: such an order was ordered by nobody Clinical could match. */
+  'POST /v1/medicines/lab-orders@2': (request, ctx) => {
+   if (!ctx.caller.ref) return refuse('unnamed-caller');
    const placed = placeOrder({
     labOrderRef: `lab-order-${randomUUID()}`, subjectRef: text(request.fields['subjectRef']), serviceRequestRef: text(request.fields['serviceRequestRef']),
-    collectionMode: text(request.fields['collectionMode']), orderedByRef: ctx.caller.ref ?? `unnamed ${ctx.caller.role}`
+    collectionMode: text(request.fields['collectionMode']), orderedByRef: ctx.caller.ref
    }, nowOf(ctx));
    if (!placed.ok) return refuse(placed.refusal.id);
    put(ctx, 'lab_orders', placed.value.labOrderRef, placed.value);

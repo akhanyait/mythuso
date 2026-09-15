@@ -1340,12 +1340,12 @@ export interface PostRecordExportResponse {
  readonly exportRef: string;
 }
 
-export interface PostMedicinesLabOrdersRequest {
+export interface PostMedicinesLabOrdersV2Request {
  readonly subjectRef: string;
  readonly serviceRequestRef: string;
  readonly collectionMode: string;
 }
-export interface PostMedicinesLabOrdersResponse {
+export interface PostMedicinesLabOrdersV2Response {
  readonly labOrderRef: string;
 }
 
@@ -1833,7 +1833,7 @@ export const apiRoutes = {
  getRecordEncounterStatusesByEncounterRef: { name: "getRecordEncounterStatusesByEncounterRef", method: "GET", path: "/v1/record/encounter-statuses/{encounterRef}", mountedPath: "/v1/record/encounter-statuses/{encounterRef}", version: 1, engine: "record", callers: ["engine:care"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postRecordShareLink: { name: "postRecordShareLink", method: "POST", path: "/share/link", mountedPath: "/v1/record/share/link", version: 1, engine: "record", callers: ["patient","responder-on-trip"], purpose: ["treatment","emergency"], idempotent: false, status: "proposed" },
  postRecordExport: { name: "postRecordExport", method: "POST", path: "/export", mountedPath: "/v1/record/export", version: 1, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "proposed" },
- postMedicinesLabOrders: { name: "postMedicinesLabOrders", method: "POST", path: "/v1/medicines/lab-orders", mountedPath: "/v1/medicines/lab-orders", version: 1, engine: "medicines", callers: ["doctor","nurse"], purpose: ["diagnostics"], idempotent: false, status: "built" },
+ postMedicinesLabOrdersV2: { name: "postMedicinesLabOrdersV2", method: "POST", path: "/v1/medicines/lab-orders", mountedPath: "/v1/medicines/lab-orders", version: 2, engine: "medicines", callers: ["doctor","nurse"], purpose: ["diagnostics"], idempotent: false, status: "built" },
  getMedicinesFormularyV2: { name: "getMedicinesFormularyV2", method: "GET", path: "/v1/medicines/formulary", mountedPath: "/v1/medicines/formulary", version: 2, engine: "medicines", callers: ["doctor","nurse","pharmacist"], purpose: ["dispensing","treatment"], idempotent: false, status: "built" },
  postMedicinesInteractionChecksV2: { name: "postMedicinesInteractionChecksV2", method: "POST", path: "/v1/medicines/interaction-checks", mountedPath: "/v1/medicines/interaction-checks", version: 2, engine: "medicines", callers: ["doctor","pharmacist"], purpose: ["dispensing","treatment"], idempotent: false, status: "built" },
  postMedicinesPrescriptionsV2: { name: "postMedicinesPrescriptionsV2", method: "POST", path: "/v1/medicines/prescriptions", mountedPath: "/v1/medicines/prescriptions", version: 2, engine: "medicines", callers: ["doctor"], purpose: ["treatment"], idempotent: false, status: "built" },

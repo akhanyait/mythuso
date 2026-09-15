@@ -12,7 +12,7 @@
   {"id": "reward-for-taking-a-medicine", "status": 422, "statement": "Nothing rewards taking a medicine.", "why": "Section 18A of the Medicines and Related Substances Act; held pending counsel, which is the founder's decision. No route offers a reward, so no route answers this: scripts/check-boundaries.mjs holds rewards.json, the engine and every screen to it instead."},
   {"id": "no-such-prescription", "status": 404, "statement": "Medicines holds no prescription by that reference.", "why": "A reference Medicines never issued is refused rather than acted on, so a mistyped reference cannot become a verification, a dispense or a collection of nothing.", "answeredBy": ["POST /v1/medicines/prescriptions/{prescriptionRef}/verify@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@2", "POST /v1/medicines/collection-authorisations@1", "POST /v1/medicines/collections@2"]},
   {"id": "not-vetted-for-this", "status": 403, "statement": "Only somebody the vetting register clears for this, today, may do it.", "why": "packages/catalog/vetting.json grants prescribe and dispense to roles, and Trust's events say whether the person or the pharmacy is verified today. A role the register does not grant, a person never heard verified, and one suspended or deactivated since, are each refused.", "answeredBy": ["POST /v1/medicines/prescriptions@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/verify@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@2"]},
-  {"id": "unnamed-caller", "status": 403, "statement": "This is done by a named person, and nobody was named.", "why": "Separation of duties, a patient's authorisation and a PIN's custody are arithmetic on who acted. A caller the runtime cannot name cannot be compared with anybody, so it is refused rather than treated as nobody in particular.", "answeredBy": ["POST /v1/medicines/prescriptions@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/verify@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@2", "POST /v1/medicines/collection-authorisations@1", "POST /v1/medicines/collections@2", "POST /v1/medicines/collections/{collectionRef}/handover@2", "GET /v1/medicines/orders@2"]},
+  {"id": "unnamed-caller", "status": 403, "statement": "This is done by a named person, and nobody was named.", "why": "Separation of duties, a patient's authorisation and a PIN's custody are arithmetic on who acted. A caller the runtime cannot name cannot be compared with anybody, so it is refused rather than treated as nobody in particular.", "answeredBy": ["POST /v1/medicines/prescriptions@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/verify@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@2", "POST /v1/medicines/collection-authorisations@1", "POST /v1/medicines/collections@2", "POST /v1/medicines/collections/{collectionRef}/handover@2", "GET /v1/medicines/orders@2", "POST /v1/medicines/lab-orders@2"]},
   {"id": "check-not-for-this", "status": 422, "statement": "That interaction check was not run for this patient at this stage.", "why": "A check at prescribe is not a check at dispense, and a check on one patient is not a check on another.", "answeredBy": ["POST /v1/medicines/prescriptions@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@2"]},
   {"id": "check-already-cited", "status": 409, "statement": "That interaction check has already been cited.", "why": "One check stands behind one prescription or one dispense. A check cited twice is a second act that nobody checked.", "answeredBy": ["POST /v1/medicines/prescriptions@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@2"]},
   {"id": "not-checked-not-read", "status": 422, "statement": "That check was not run. Say you have read why before you go on.", "why": "With no licensed source the check answers not checked, and a prescriber or a pharmacist who goes ahead does so knowing it, on the record, rather than reading an unrun check as a clean one.", "answeredBy": ["POST /v1/medicines/prescriptions@2", "POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@2"]}
@@ -227,7 +227,7 @@
    "path": "/v1/medicines/lab-orders",
    "version": 1,
    "summary": "Order a lab test from the partner lab.",
-   "callers": ["doctor", "nurse"],
+   "callers": [],
    "purpose": ["diagnostics"],
    "request": [
     {"field": "subjectRef", "type": "string", "required": true, "why": "For whom."},
@@ -244,8 +244,33 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E8", "what": "Home sample collection"},
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/medicines/lab-orders@2", "why": "Only the clinician who ordered a test may acknowledge its result, and this version could not refuse a caller the runtime cannot name, so such an order was ordered by nobody and its result could never be acknowledged. Version two refuses the unnamed caller."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/lab-orders",
+   "version": 2,
+   "summary": "Order a lab test, placed with a laboratory that serves the collection mode, by the named clinician who will acknowledge its result.",
+   "callers": ["doctor", "nurse"],
+   "purpose": ["diagnostics"],
+   "request": [
+    {"field": "subjectRef", "type": "string", "required": true, "why": "For whom."},
+    {"field": "serviceRequestRef", "type": "string", "required": true, "why": "The ServiceRequest in the Passport, where what is tested for is."},
+    {"field": "collectionMode", "type": "string", "required": true, "why": "A collection mode from packages/catalog/medicines.json labs.collectionModes."}
+   ],
+   "response": [
+    {"field": "labOrderRef", "type": "string", "required": true, "why": "The order."}
+   ],
+   "refusals": [
+    {"id": "lab-not-contracted", "status": 503, "statement": "No partner lab is contracted yet.", "why": "An order to nobody is a sample that sits. A collection mode no laboratory serves, and one nobody offers, are both that."}
+   ],
+   "emits": ["lab.order.placed@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E8", "what": "Home sample collection"},
    "status": "built",
-   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'POST /v1/medicines/lab-orders@1'"},
+   "evidence": {"file": "packages/engines/src/medicines/engine.ts", "handler": "'POST /v1/medicines/lab-orders@2'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {

@@ -168,7 +168,7 @@ enum ApisData {
     static let getRecordEncounterStatusesByEncounterRef = Route(id: "getRecordEncounterStatusesByEncounterRef", method: "GET", path: "/v1/record/encounter-statuses/{encounterRef}", mountedPath: "/v1/record/encounter-statuses/{encounterRef}", version: 1, engine: "record", callers: ["engine:care"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let postRecordShareLink = Route(id: "postRecordShareLink", method: "POST", path: "/share/link", mountedPath: "/v1/record/share/link", version: 1, engine: "record", callers: ["patient", "responder-on-trip"], purpose: ["treatment", "emergency"], idempotent: false, status: "proposed")
     static let postRecordExport = Route(id: "postRecordExport", method: "POST", path: "/export", mountedPath: "/v1/record/export", version: 1, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "proposed")
-    static let postMedicinesLabOrders = Route(id: "postMedicinesLabOrders", method: "POST", path: "/v1/medicines/lab-orders", mountedPath: "/v1/medicines/lab-orders", version: 1, engine: "medicines", callers: ["doctor", "nurse"], purpose: ["diagnostics"], idempotent: false, status: "built")
+    static let postMedicinesLabOrdersV2 = Route(id: "postMedicinesLabOrdersV2", method: "POST", path: "/v1/medicines/lab-orders", mountedPath: "/v1/medicines/lab-orders", version: 2, engine: "medicines", callers: ["doctor", "nurse"], purpose: ["diagnostics"], idempotent: false, status: "built")
     static let getMedicinesFormularyV2 = Route(id: "getMedicinesFormularyV2", method: "GET", path: "/v1/medicines/formulary", mountedPath: "/v1/medicines/formulary", version: 2, engine: "medicines", callers: ["doctor", "nurse", "pharmacist"], purpose: ["dispensing", "treatment"], idempotent: false, status: "built")
     static let postMedicinesInteractionChecksV2 = Route(id: "postMedicinesInteractionChecksV2", method: "POST", path: "/v1/medicines/interaction-checks", mountedPath: "/v1/medicines/interaction-checks", version: 2, engine: "medicines", callers: ["doctor", "pharmacist"], purpose: ["dispensing", "treatment"], idempotent: false, status: "built")
     static let postMedicinesPrescriptionsV2 = Route(id: "postMedicinesPrescriptionsV2", method: "POST", path: "/v1/medicines/prescriptions", mountedPath: "/v1/medicines/prescriptions", version: 2, engine: "medicines", callers: ["doctor"], purpose: ["treatment"], idempotent: false, status: "built")
@@ -351,7 +351,7 @@ enum ApisData {
         getRecordEncounterStatusesByEncounterRef,
         postRecordShareLink,
         postRecordExport,
-        postMedicinesLabOrders,
+        postMedicinesLabOrdersV2,
         getMedicinesFormularyV2,
         postMedicinesInteractionChecksV2,
         postMedicinesPrescriptionsV2,
@@ -1561,12 +1561,12 @@ enum ApisData {
     struct PostRecordExportResponse {
         let exportRef: String
     }
-    struct PostMedicinesLabOrdersRequest {
+    struct PostMedicinesLabOrdersV2Request {
         let subjectRef: String
         let serviceRequestRef: String
         let collectionMode: String
     }
-    struct PostMedicinesLabOrdersResponse {
+    struct PostMedicinesLabOrdersV2Response {
         let labOrderRef: String
     }
     struct GetMedicinesFormularyV2Request {

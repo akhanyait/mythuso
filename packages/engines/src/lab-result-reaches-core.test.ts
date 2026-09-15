@@ -22,7 +22,7 @@ import { medicinesDefaults, resultRungOf } from './medicines/domain/settings.ts'
 import { contract as closedLoop, spanForRung } from './core/domain/contract.ts';
 
 const START = '2026-09-15T09:00:00+02:00';
-const ORDER = 'POST /v1/medicines/lab-orders@1';
+const ORDER = 'POST /v1/medicines/lab-orders@2';
 const CLOSE = 'POST /v1/medicines/lab-orders/{labOrderRef}/close@1';
 const ACKNOWLEDGE = 'POST /v1/clinical/results/{resultRef}/acknowledge@1';
 const DOCTOR = 'party-synthetic-doctor', OTHER_DOCTOR = 'party-synthetic-other-doctor', PATIENT = 'subject-synthetic-patient';
@@ -84,7 +84,8 @@ test('a result nobody acknowledges is never closed: its concern escalates on Cor
  assert.ok(closedLoop.resultAcknowledged.alertsFrom === 'medicines');
 });
 
-test('an order to a laboratory nobody serves is refused in the contract\'s sentence', () => {
- const { order } = world();
+test('an order to a laboratory nobody serves, or from a caller nobody can name, is refused in the contract\'s sentence', () => {
+ const { order, runtime } = world();
  refusedBy(order('lab'), refusal('lab-not-contracted'));
+ refusedBy(runtime.call(ORDER as RouteKey, { role: 'doctor', ref: null, purpose: 'diagnostics', fields: { subjectRef: PATIENT, serviceRequestRef: 'service-request-synthetic-1', collectionMode: 'home' } }), refusal('unnamed-caller'));
 });

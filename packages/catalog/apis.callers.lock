@@ -239,3 +239,5 @@ POST /v1/medicines/prescriptions/{prescriptionRef}/dispense@1 callers=- purpose=
 POST /v1/medicines/collections@1 callers=- purpose=dispensing because=-
 POST /v1/medicines/collections/{collectionRef}/handover@1 callers=- purpose=dispensing because=-
 GET /v1/medicines/orders@1 callers=- purpose=dispensing because=-
+POST /v1/medicines/lab-orders@2 callers=doctor,nurse purpose=diagnostics because=-
+POST /v1/medicines/lab-orders@1 callers=- purpose=diagnostics because=-
