@@ -64,7 +64,8 @@ const NOT_CLINICAL_SETTINGS = {
  'access:visit-thread-max-characters': 'How long one message in a visit thread may be.',
  'access:visit-thread-open-hours-after-visit': 'How long a visit thread stays open. Nobody watches a thread for emergencies however long it is open, and the thread says so.',
  'money:visit-reports-whatsapp': 'What reaches a family on WhatsApp is a privacy and third-party question for the Information Officer, and is in docs/governance/DPIA-DRAFT.md rather than here.',
- 'money:*': 'Money\'s plan names, prices, shares and wording are commercial decisions. None of them decides who may do what to a patient.'
+ 'money:*': 'Money\'s plan names, prices, shares and wording are commercial decisions. None of them decides who may do what to a patient.',
+ 'record:*': 'How long a share link or an emergency card lasts, how often each opens and what a link opens by default decide who may read a record and for how long. That is a privacy question for the Information Officer and the DPIA, not a clinical one, and none of them decides what is done to a patient.'
 };
 
 /* Proposals outside a settings block (decidedBy: null), classified by where they sit. */

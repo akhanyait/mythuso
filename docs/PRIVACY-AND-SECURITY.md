@@ -711,4 +711,23 @@ Real urgent-care functionality must not launch until referral/ambulance pathways
 
 The master document puts the Passport in Phase 0 — its own service, database and keys, live before the first visit — and makes a signed DPIA and a governance sign-off its exit criteria. `apps/passport` is the first half of that: the separation, the gateway, the sealed keys, the audit chain and break-glass, built and tested against synthetic data. The second half is not code. There is no data protection impact assessment, no registered Information Officer and no decision on where the data may reside; the master key is an environment variable rather than a key held in an HSM or KMS; nothing authenticates a requester beyond a signed grant artefact; and the chain head is anchored nowhere. So the service refuses to start without an explicit development flag, answers only on the loopback, and `scripts/check-boundaries.mjs` fails the build if anything under `deploy/` names it or its port. When the DPIA is signed, that check is the one to change — deliberately, in the same commit that says why.
 
+### Passport P1: share links, the export and the emergency card, still development only
+
+P1 adds three things the Passport does and changes nothing about where it may run. **A share link** is made by the
+patient in their own session and rides on a consent grant they already made: it opens no more than that grant, for
+that grant's purpose, ends with the grant or sooner and never after the grant ceiling in `packages/catalog/consent.json`,
+and is never made for a scheme, an insurer or an employer. Its secret is shown once, kept only as a SHA-256 digest,
+travels on the Authorization header and never in an address, and is never written into the audit chain, which names
+the link by its reference. Every use, granted or refused, is a gateway read in the patient's chain, written as the role
+of the grant the link rides on — the chain knows no more about a bearer than that, and says nothing it cannot know. A
+grant's terms and a link's scope are sealed under the subject's own key, because a scope can name a sealed category.
+**The export** is the patient's own record as a FHIR R4 Bundle, in their own session; it is **not stepped up**, because
+the Passport has no second factor and the identity service's step-up does not reach it, and the answer says so rather
+than implying a control. Sealed entries go in only when ticked by name; private entries, break-glass notes, the chain
+itself, keys and blinded tags never do. Nothing is kept for collection. **The emergency card** is a share link
+restricted to the emergency summary, and every screen that shows one says first that it is a preview and connected to
+no responder; its QR code reads as a sentence saying so. None of this is absent from the list above in any way that
+matters less than before: a link is a copy of access at an address, which makes the missing OIDC, mutual TLS, KMS
+custody and anchoring of the chain head more pressing, not less.
+
 Nothing in it changes the state of `clinical-records`. The identity service still holds no clinical table, and the boundary check that says so is untouched.
