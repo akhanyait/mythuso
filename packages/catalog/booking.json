@@ -5,8 +5,11 @@
  "engine": "access",
  "routesFrom": "packages/catalog/apis/access.json",
 
- "publishes": ["booking.requested@1", "booking.confirmed@1", "booking.cancelled@1"],
- "publishesWhy": "Access tells the bus a visit was asked for, accepted and called off. It does not turn a booking into an offer, a nurse or a route to a door: that is Care's engine, which hears booking.requested and answers with appointment events of its own.",
+ "publishes": ["booking.requested@2", "booking.confirmed@2", "booking.cancelled@1", "conversation.handover@1"],
+ "publishesWhy": "Access tells the bus a visit was asked for, accepted and called off, and that a Gilbert conversation went to the nurse queue. It does not turn a booking into an offer, a nurse or a route to a door: that is Care's engine, which hears booking.requested and answers with appointment events of its own. booking.requested says which suburb the visit is in by its zone id and never the address, and booking.confirmed says which service was booked so Money prices it from the catalogue.",
+ "hears": ["appointment.completed@1"],
+ "careAppointmentRef": "apt-{bookingRef}",
+ "hearsWhy": "Care completes a visit; Access closes its thread. A completed visit's thread stays open for the hours Access's setting visit-thread-open-hours-after-visit held at the moment of completion, worked out by the engine from its own settings history rather than only by the screens. Care names the appointment it opens for a booking apt- and the booking's reference, which is how Access finds the thread; a completion for an appointment no booking of Access's opened, such as the preview visit, closes nothing.",
 
  "person": {
   "stepLabel": "Nurse",
@@ -32,7 +35,7 @@
   "asapNeedsNearest": "As soon as someone is free means whoever is nearest. To see one nurse in particular, choose an hour she is offered.",
   "continuity": "Asking for the same nurse is asking, not booking her. An hour she is not offered at is not shown.",
   "fallback": {
-   "_note": "What happens to a visit asked of one nurse by name when she cannot take it within Care's offer window. Which rule is in force is Access's setting named-nurse-fallback, below; the minutes are Care's setting offer-expiry, in force, filled into {minutes} where a screen shows the sentence, and never written here. Every value the setting may take has a rule here with a sentence, and the build fails on a value that has none, because a booking with no nurse and no message is the one thing the setting may never produce. The fallback a booking ends up with travels in the slot it was booked against, so the frozen booking route carries the patient's choice without a new field: a slot names the hour, the nurse and what happens if she cannot take it.",
+   "_note": "What happens to a visit asked of one nurse by name when she cannot take it within Care's offer window. Which rule is in force is Access's setting named-nurse-fallback, below; the minutes are Care's setting offer-expiry, in force, filled into {minutes} where a screen shows the sentence, and never written here. Every value the setting may take has a rule here with a sentence, and the build fails on a value that has none, because a booking with no nurse and no message is the one thing the setting may never produce. The answer travels in its own field, namedNurseFallback on POST /v1/access/bookings@2, and on booking.requested@2 to Care: a slot names the hour and the nurse and nothing else. Until 15 September it was folded into the slot reference so the frozen route could carry it without a field, and version one of the route was withdrawn for it.",
    "heading": "If {nurse} cannot take it within {minutes} minutes",
    "rules": [
     { "setting": "patient-chooses", "offersAsap": true, "asksPatient": true, "resolvesTo": null, "sentence": "You choose now what happens if {nurse} cannot take this visit within {minutes} minutes of it reaching her." },
@@ -69,13 +72,13 @@
    "id": "requested",
    "name": "Asked for",
    "patientWords": "You asked for this visit. Nothing is held until a nurse's hour is accepted.",
-   "event": "booking.requested@1"
+   "event": "booking.requested@2"
   },
   {
    "id": "confirmed",
    "name": "Accepted",
    "patientWords": "The simulated roster accepted it and holds the hour. No real nurse did.",
-   "event": "booking.confirmed@1"
+   "event": "booking.confirmed@2"
   },
   {
    "id": "cancelled",
@@ -115,8 +118,8 @@
   }
  ],
  "routeRefusals": [
-  { "route": "POST /v1/access/bookings@1", "id": "slot-not-offered" },
-  { "route": "POST /v1/access/bookings@1", "id": "service-not-here" },
+  { "route": "POST /v1/access/bookings@2", "id": "slot-not-offered" },
+  { "route": "POST /v1/access/bookings@2", "id": "service-not-here" },
   { "route": "GET /v1/access/bookings/{bookingRef}@1", "id": "booking-not-found" },
   { "route": "POST /v1/access/bookings/{bookingRef}/cancel@1", "id": "cancel-after-arrival" },
   { "route": "POST /v1/access/bookings/{bookingRef}/cancel@1", "id": "reason-not-listed" },
@@ -124,7 +127,7 @@
   { "route": "POST /v1/access/visit-threads/{bookingRef}/messages@1", "id": "no-attachments" },
   { "route": "POST /v1/access/visit-threads/{bookingRef}/messages@1", "id": "not-on-this-visit" },
   { "route": "POST /v1/access/visit-threads/{bookingRef}/messages@1", "id": "message-too-long" },
-  { "route": "POST /v1/access/conversations/{conversationRef}/handover@1", "id": "no-summary" }
+  { "route": "POST /v1/access/conversations/{conversationRef}/handover@2", "id": "no-summary" }
  ],
 
  "thread": {
@@ -192,7 +195,7 @@
      { "value": "soonest-automatically", "label": "The soonest nurse, automatically", "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "For a week when the roster is thin and a visit waiting for one nurse is a dressing left a day too long. The patient is told who is coming before she sets off." }
     ],
     "changedBy": "admin",
-    "appliesTo": "A change applies to bookings asked for after it. A booking already asked for keeps what happens if its nurse cannot take it, because it travels in the slot the booking was made against.",
+    "appliesTo": "A change applies to bookings asked for after it. A booking already asked for keeps what happens if its nurse cannot take it, because the booking holds the answer it was asked for with.",
     "guardrail": {
      "statement": "No value leaves a booking with no nurse and no message. Every choice either sends a nurse or tells the patient, in a sentence from this contract, that the visit is waiting for her.",
      "forbids": ["cancel-quietly", "no-nurse", "", "Patient-Chooses", true]

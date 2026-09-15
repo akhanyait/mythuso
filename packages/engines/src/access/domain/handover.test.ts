@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import access from '../../../../catalog/apis/access.json' with { type: 'json' };
 import assistant from '../../../../catalog/assistant.json' with { type: 'json' };
 import events from '../../../../catalog/events.json' with { type: 'json' };
-import { emptyQueue, handOver, summarise, type ConversationTurn } from './handover.ts';
+import { emptyQueue, handOver, queueHandover, summarise, type ConversationTurn } from './handover.ts';
 
 const now = new Date('2026-09-14T10:00:00+02:00');
 const turn = (over: Partial<ConversationTurn>): ConversationTurn => ({ channel: 'typed', matchedQuestionId: null, askedForNurse: false, emergency: false, ...over });
@@ -60,8 +60,27 @@ test('the same urgency twice sends nothing new, and a risen one does', () => {
 test('a handover without a summary does not go', () => {
  const refused = handOver(emptyQueue, { conversationRef: 'conv-1', summary: null, actorRole: 'patient', subjectRef: 's', now });
  assert.ok(refused.refused);
- const route = access.routes.find(r => r.path === '/v1/access/conversations/{conversationRef}/handover')!;
+ const route = access.routes.find(r => r.path === '/v1/access/conversations/{conversationRef}/handover' && r.version === 2)!;
  assert.deepEqual([refused.id, refused.status, refused.statement], ['no-summary', 422, route.refusals.find(r => r.id === 'no-summary')!.statement]);
+ const blank = queueHandover(emptyQueue, { conversationRef: 'conv-1', summaryEntryRef: '', urgencyCode: 'not-assessed', actorRole: 'patient', subjectRef: 's', now });
+ assert.equal(blank.refused && blank.id, 'no-summary');
+});
+
+test('the engine’s side takes a code: one the contract does not list is refused, and a calmer one after an emergency sends nothing', () => {
+ const route = access.routes.find(r => r.path === '/v1/access/conversations/{conversationRef}/handover' && r.version === 2)!;
+ const ask = (urgencyCode: string, queue = emptyQueue) => queueHandover(queue, { conversationRef: 'conv-9', summaryEntryRef: 'entry-9', urgencyCode, actorRole: 'patient', subjectRef: 's', now });
+ for (const calm of ['routine', 'low', '', 'EMERGENCY']) {
+  const refused = ask(calm);
+  assert.deepEqual(refused.refused && [refused.id, refused.statement], ['urgency-not-listed', route.refusals.find(r => r.id === 'urgency-not-listed')!.statement], calm);
+ }
+ const raised = ask('emergency');
+ assert.ok(!raised.refused);
+ assert.deepEqual([raised.value.sentNow, raised.value.handover.summaryEntryRef, raised.value.handover.summary], [true, 'entry-9', null]);
+ const [event] = raised.events;
+ assert.deepEqual(event!.payload, { conversationRef: 'conv-9', summaryEntryRef: 'entry-9', urgencyCode: 'emergency' });
+ const calmer = ask('not-assessed', raised.value.queue);
+ assert.ok(!calmer.refused);
+ assert.deepEqual([calmer.value.sentNow, calmer.value.handover.urgencyCode, calmer.events.length], [false, 'emergency', 0]);
 });
 
 test('the urgency codes are the contract’s, most urgent first, and neither of them is calm', () => {

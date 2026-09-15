@@ -4,6 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import access from '../../../../catalog/apis/access.json' with { type: 'json' };
+import geography from '../../../../catalog/geography.json' with { type: 'json' };
 import { cancelBooking, emptyLedger, offeredDays, requestBooking, type Candidate, type Ledger } from './booking.ts';
 import { accessInForce } from './settings.ts';
 import { closeThread, closedSentence, completeThread, postMessage, readThread, threadAt, threadFor, type Post, type Thread } from './thread.ts';
@@ -23,8 +24,8 @@ function ok<T>(outcome: Outcome<T>) {
 }
 const naledi: Candidate = { nurseRef: 'N-205', name: 'N-205', zone: 'Rosebank', covered: true, badgeCurrent: true, notOfferedBecause: null, distanceKm: 3 };
 const book = (slotRef: string): { ledger: Ledger; thread: Thread; bookingRef: string } => {
- const { value } = ok(requestBooking(emptyLedger, { idempotencyKey: slotRef, subjectRef: 'subject-lerato', serviceId: 'vitals', mode: 'home', slotRef, actorRole: 'patient' },
-  { now, candidates: [naledi], visitCovered: true, namedNurseFallback: inForce.namedNurseFallback }));
+ const { value } = ok(requestBooking(emptyLedger, { idempotencyKey: slotRef, subjectRef: 'subject-lerato', serviceId: 'vitals', mode: 'home', slotRef, zoneId: geography.zones[0]!.id, actorRole: 'patient' },
+  { now, candidates: [naledi], namedNurseFallback: inForce.namedNurseFallback }));
  return { ledger: value.ledger, thread: threadFor(value.booking), bookingRef: value.booking.bookingRef };
 };
 const post = (thread: Thread, p: Omit<Post, 'maxCharacters' | 'now'> & { maxCharacters?: number; now?: Date }) =>
@@ -34,7 +35,7 @@ const patient = { role: 'patient' as const, ref: 'subject-lerato' };
 const theNurse = { role: 'nurse' as const, ref: 'N-205' };
 
 test('the patient and the named nurse write, a message is kept and not delivered, and nothing is published', () => {
- const { thread } = book(`${day}T09:00~N-205~wait`);
+ const { thread } = book(`${day}T09:00~N-205`);
  const first = ok(post(thread, { idempotencyKey: 'm-1', actor: patient, message: '  The gate code is at the guard hut.  ' }));
  assert.equal(first.events.length, 0);
  assert.equal(first.value.message.message, 'The gate code is at the guard hut.');
@@ -45,7 +46,7 @@ test('the patient and the named nurse write, a message is kept and not delivered
 });
 
 test('somebody who is not on the visit is refused, and a read never says whether the thread exists', () => {
- const { thread } = book(`${day}T09:00~N-205~wait`);
+ const { thread } = book(`${day}T09:00~N-205`);
  const stranger = post(thread, { idempotencyKey: 'x', actor: { role: 'nurse', ref: 'N-201' }, message: 'Hello' });
  assert.ok(stranger.refused);
  assert.deepEqual([stranger.id, stranger.status, stranger.statement], ['not-on-this-visit', 403, statement(WRITE, 'not-on-this-visit')]);
@@ -58,7 +59,7 @@ test('somebody who is not on the visit is refused, and a read never says whether
 });
 
 test('words only, and no longer than the length in force when the message is written', () => {
- const { thread } = book(`${day}T09:00~N-205~wait`);
+ const { thread } = book(`${day}T09:00~N-205`);
  const photo = post(thread, { idempotencyKey: 'p', actor: patient, message: 'Here is the wound', attachments: 1 });
  assert.ok(photo.refused);
  assert.deepEqual([photo.id, photo.statement], ['no-attachments', statement(WRITE, 'no-attachments')]);
@@ -78,7 +79,7 @@ test('words only, and no longer than the length in force when the message is wri
 });
 
 test('a cancelled thread closes, keeps what was said, and refuses anything more', () => {
- const { thread } = book(`${day}T09:00~N-205~wait`);
+ const { thread } = book(`${day}T09:00~N-205`);
  const said = ok(post(thread, { idempotencyKey: 'm-1', actor: patient, message: 'See you at nine.' })).value.thread;
  const closed = closeThread(said, 'booking-cancelled');
  const late = post(closed, { idempotencyKey: 'm-2', actor: patient, message: 'One more thing' });
@@ -90,7 +91,7 @@ test('a cancelled thread closes, keeps what was said, and refuses anything more'
 });
 
 test('a completed visit keeps its thread open for the hours in force at completion, then closes it for good', () => {
- const { thread } = book(`${day}T09:00~N-205~wait`);
+ const { thread } = book(`${day}T09:00~N-205`);
  const hours = inForce.threadOpenHoursAfterVisit;
  const completed = completeThread(thread, now, hours);
  assert.equal(completed.state, 'open');
@@ -110,14 +111,14 @@ test('a completed visit keeps its thread open for the hours in force at completi
 });
 
 test('a cancelled booking has a closed thread', () => {
- const { ledger, bookingRef } = book(`${day}T09:00~N-205~wait`);
+ const { ledger, bookingRef } = book(`${day}T09:00~N-205`);
  const { value } = ok(cancelBooking(ledger, { idempotencyKey: 'c', bookingRef, subjectRef: 'subject-lerato', reasonCode: 'unstated', actorRole: 'patient' }, now));
  const thread = threadFor(value.booking);
  assert.deepEqual([thread.state, thread.closedBecause], ['closed', 'booking-cancelled']);
 });
 
 test('the same idempotency key is one message', () => {
- const { thread } = book(`${day}T09:00~N-205~wait`);
+ const { thread } = book(`${day}T09:00~N-205`);
  const once = ok(post(thread, { idempotencyKey: 'm-1', actor: patient, message: 'Running late' })).value.thread;
  const twice = ok(post(once, { idempotencyKey: 'm-1', actor: patient, message: 'Running late' })).value.thread;
  assert.equal(twice.messages.length, 1);

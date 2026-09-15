@@ -8,6 +8,10 @@
    a nurse, and the acceptance below is a function somebody calls when Care has accepted — in this
    preview, the simulated roster, which says that it did.
 
+   What Care is told is what it needs to offer the visit and no more: the suburb, by its zone id in
+   geography.json, never the street or a coordinate, because every subscriber keeps what it hears; and,
+   for a nurse asked for by name, who and what happens if she cannot take it.
+
    ── The four refusals that are the point of it ───────────────────────────────────────────────────
 
    A booking is made only against an hour that was offered. The offer is worked out here from
@@ -26,6 +30,7 @@
    The same idempotency key twice is the same act once: no second booking, no second event. */
 import cancellation from '../../../../catalog/cancellation.json' with { type: 'json' };
 import contract from '../../../../catalog/booking.json' with { type: 'json' };
+import geography from '../../../../catalog/geography.json' with { type: 'json' };
 import roster from '../../../../catalog/roster.json' with { type: 'json' };
 import scheduling from '../../../../catalog/scheduling.json' with { type: 'json' };
 import services from '../../../../catalog/services.json' with { type: 'json' };
@@ -58,14 +63,12 @@ export type PersonChoice = { readonly kind: 'nearest' } | { readonly kind: 'prev
 export type FallbackCode = 'wait' | 'soonest';
 
 export type Slot = {
- /** Opaque to a client. It says which hour, on which day, with whom — and nothing a client can invent. */
+ /** Opaque to a client. It says which hour, on which day, with whom — and nothing else, and nothing a client can invent. */
  readonly slotRef: string;
  readonly kind: Kind;
  readonly date: string | null;
  readonly start: string | null;
  readonly nurseRef: string | null;
- /** For a nurse asked for by name, what happens if she cannot take it. Null for whoever is nearest. */
- readonly fallback: FallbackCode | null;
 };
 
 export type Cancellation = { readonly windowCode: Exclude<WindowCode, 'in-progress'>; readonly reasonCode: string; readonly byRole: string; readonly at: string };
@@ -77,6 +80,10 @@ export type Booking = {
  readonly serviceId: string;
  readonly mode: 'home';
  readonly slot: Slot;
+ /** The zone id in geography.json the visit is in. */
+ readonly zoneId: string;
+ /** For a nurse asked for by name, what happens if she cannot take it, kept whatever the setting says afterwards. Null for whoever is nearest. */
+ readonly namedNurseFallback: FallbackCode | null;
  readonly requestedFor: string;
  readonly state: BookingState;
  readonly scheduledFor: string | null;
@@ -166,18 +173,32 @@ export function fallbackRuleOf(setting: string): FallbackRule {
  if (!rule || (!rule.asksPatient && !FALLBACK_CODES.includes(rule.resolvesTo!))) throw new Error(`packages/catalog/booking.json has no rule for the named-nurse fallback "${setting}", so no booking may be offered under it.`);
  return rule;
 }
-/** What a named nurse's slots may carry: both answers when the patient is asked, or the one the setting gives. */
+/** The answers a patient may give for a named nurse: both when the patient is asked, or the one the setting gives. */
 export const fallbacksOffered = (setting: string): FallbackCode[] => {
  const rule = fallbackRuleOf(setting);
  return rule.asksPatient ? [...FALLBACK_CODES] : [rule.resolvesTo!];
 };
 
-/* A slot reference says which hour, on which day, with whom — and, for a nurse asked for by name, what
-   happens if she cannot take it. That last part travels in the reference so the frozen booking route
-   carries the patient's answer without a field it never declared, and so a booking keeps the answer it
-   was made with whatever the setting says afterwards. */
-const slotRefOf = (date: string | null, start: string | null, nurseRef: string | null, fallback: FallbackCode | null) =>
- `${date === null ? 'asap' : `${date}T${start}`}~${nurseRef === null ? 'nearest' : `${nurseRef}~${fallback}`}`;
+/* What happens if the nurse asked for by name cannot take the visit, as POST /v1/access/bookings@2's own field
+   says it. The answers that may be sent are the setting's in force; an answer left out is the one the setting
+   gives — its own, or waiting for her when the patient is asked, because the contract lists waiting first and
+   she is who they asked for. For whoever is nearest there is nobody to wait for, so an answer is refused rather
+   than kept as an instruction about a nurse nobody named. */
+export function fallbackAnswer(setting: string, nurseRef: string | null, sent: string | null | undefined): Outcome<FallbackCode | null> {
+ const given = sent === undefined || sent === null || sent === '' ? null : sent;
+ if (nurseRef === null) return given === null ? accept(null) : routeRefusal(ROUTES.book, 'fallback-not-offered');
+ const offered = fallbacksOffered(setting);
+ if (given === null) return accept(fallbackRuleOf(setting).asksPatient ? FALLBACK_CODES[0]! : offered[0]!);
+ return offered.includes(given as FallbackCode) ? accept(given as FallbackCode) : routeRefusal(ROUTES.book, 'fallback-not-offered');
+}
+
+/* A slot reference says which hour, on which day, with whom — and nothing else. Until 15 September it also
+   carried what happens if a nurse asked for by name cannot take the visit, because the frozen booking route had
+   no field for the answer and a reference was the one string that went through; that put an instruction where
+   nobody reading the contract could see it. POST /v1/access/bookings@2 carries the answer in namedNurseFallback,
+   so a reference with anything after the nurse was never offered and claims nothing. */
+const slotRefOf = (date: string | null, start: string | null, nurseRef: string | null) =>
+ `${date === null ? 'asap' : `${date}T${start}`}~${nurseRef === null ? 'nearest' : nurseRef}`;
 
 export type OfferInput = {
  readonly now: Date; readonly serviceId: string; readonly kind: Kind; readonly choice: PersonChoice; readonly holds: readonly Hold[];
@@ -191,27 +212,28 @@ export type OfferInput = {
  * As soon as possible is whoever is nearest, or a nurse asked for by name when the fallback in force can
  * send somebody else if she cannot take it. A rule that waits for her takes it away: waiting for one
  * nurse is not as soon as possible, and pretending otherwise would promise her at an hour nobody offered.
- * A named nurse's hours are the day's hours less the ones already held against her, once for each
- * answer to what happens if she cannot take it.
+ * A named nurse's hours are the day's hours less the ones already held against her.
  */
 export function offeredSlots({ now, serviceId, kind, choice, holds, namedNurseFallback }: OfferInput): Slot[] {
  const service = serviceById(serviceId);
  if (!service) return [];
  const nurseRef = choice.kind === 'nearest' ? null : choice.nurseRef;
- const fallbacks: (FallbackCode | null)[] = nurseRef === null ? [null] : fallbacksOffered(namedNurseFallback);
  if (kind === 'asap') {
   if (nurseRef !== null && !fallbackRuleOf(namedNurseFallback).offersAsap) return [];
-  return fallbacks.map(fallback => ({ slotRef: slotRefOf(null, null, nurseRef, fallback), kind: 'asap' as const, date: null, start: null, nurseRef, fallback }));
+  return [{ slotRef: slotRefOf(null, null, nurseRef), kind: 'asap', date: null, start: null, nurseRef }];
  }
+ /* Asked of the rule for a named nurse even when as soon as possible is not on the table, so a setting value
+    with no rule offers no hour either. */
+ if (nurseRef !== null) fallbackRuleOf(namedNurseFallback);
  return offeredDays(now).flatMap(date => scheduling.offer.slots
   .filter(start => fitsTheShift(start, service.duration))
   .filter(start => nurseRef === null || !holds.some(h => h.nurseRef === nurseRef && h.date === date && overlaps(start, service.duration, h)))
-  .flatMap(start => fallbacks.map(fallback => ({ slotRef: slotRefOf(date, start, nurseRef, fallback), kind: 'scheduled' as const, date, start, nurseRef, fallback }))));
+  .map(start => ({ slotRef: slotRefOf(date, start, nurseRef), kind: 'scheduled' as const, date, start, nurseRef })));
 }
 
-/** What a slot reference claims, read back. A reference in any other shape claims nothing, and neither does a named nurse's with no answer to what happens if she cannot take it. */
+/** What a slot reference claims, read back: an hour or as soon as possible, and whoever is nearest or one nurse. A reference in any other shape — one with anything after the nurse among them — claims nothing. */
 export function readSlotRef(slotRef: string): { kind: Kind; date: string | null; start: string | null; choice: PersonChoice } | null {
- const match = slotRef.match(/^(?:asap|(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}))~(?:(nearest)|([^~]+)~(wait|soonest))$/);
+ const match = slotRef.match(/^(?:asap|(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}))~(?:(nearest)|([^~]+))$/);
  if (!match) return null;
  const kind: Kind = match[1] ? 'scheduled' : 'asap';
  return { kind, date: match[1] ?? null, start: match[2] ?? null, choice: match[3] ? { kind: 'nearest' } : { kind: 'named', nurseRef: match[4]! } };
@@ -225,16 +247,18 @@ export type BookingRequest = {
  readonly serviceId: string;
  readonly mode: 'home';
  readonly slotRef: string;
+ /** The zone id in geography.json the visit is in. One geography.json does not hold is a suburb dispatch does not reach. */
+ readonly zoneId: string;
+ /** The route's namedNurseFallback, as sent: wait, soonest, or nothing for the setting's own answer. */
+ readonly namedNurseFallback?: string | null;
  readonly actorRole: string;
 };
 export type BookingContext = {
  readonly now: Date;
  readonly candidates: readonly Candidate[];
- /** Whether packages/catalog/geography.json covers the suburb the visit would be in. */
- readonly visitCovered: boolean;
  /** Hours held against named nurses that this ledger does not hold, such as a screen's visits already booked. */
  readonly held?: readonly Hold[];
- /** Access's setting named-nurse-fallback as it stands when the booking is asked for. The slot keeps the answer afterwards. */
+ /** Access's setting named-nurse-fallback as it stands when the booking is asked for. The booking keeps the answer afterwards. */
  readonly namedNurseFallback: string;
 };
 
@@ -249,7 +273,10 @@ export function requestBooking(ledger: Ledger, request: BookingRequest, context:
  if (again) return accept({ ledger, booking: again });
 
  const service = serviceById(request.serviceId);
- if (!service || service.phase !== 1 || !context.visitCovered) return routeRefusal(ROUTES.book, 'service-not-here');
+ /* Where the visit is, by its zone id and nothing finer. A zone geography.json does not hold is a suburb
+    dispatch does not reach, and it is refused here rather than handed to Care to refuse later. */
+ const zone = geography.zones.find(z => z.id === request.zoneId);
+ if (!service || service.phase !== 1 || !zone) return routeRefusal(ROUTES.book, 'service-not-here');
  const claimed = readSlotRef(request.slotRef);
  if (!claimed) return routeRefusal(ROUTES.book, 'slot-not-offered');
  const refusedPerson = refuseChoice(context.candidates, claimed.choice);
@@ -257,9 +284,11 @@ export function requestBooking(ledger: Ledger, request: BookingRequest, context:
  const offered = offeredSlots({ now: context.now, serviceId: service.id, kind: claimed.kind, choice: claimed.choice, holds: [...holdsOf(ledger), ...(context.held ?? [])], namedNurseFallback: context.namedNurseFallback });
  const slot = offered.find(s => s.slotRef === request.slotRef);
  if (!slot) return routeRefusal(ROUTES.book, 'slot-not-offered');
+ const answered = fallbackAnswer(context.namedNurseFallback, slot.nurseRef, request.namedNurseFallback);
+ if (answered.refused) return answered;
 
  const at = nowInstant(context.now);
- /* An as-soon-as-possible request has no hour to name, and booking.requested@1 requires one. The moment
+ /* An as-soon-as-possible request has no hour to name, and booking.requested requires one. The moment
     it was asked is the only true instant there is; a slot picked on the patient's behalf would be the
     invented slot this file exists to refuse. Recorded as a contract question for the lead. */
  const requestedFor = slot.kind === 'asap' ? at : instantOf(slot.date!, slot.start!, context.now);
@@ -270,6 +299,8 @@ export function requestBooking(ledger: Ledger, request: BookingRequest, context:
   serviceId: service.id,
   mode: request.mode,
   slot,
+  zoneId: zone.id,
+  namedNurseFallback: answered.value,
   requestedFor,
   state: 'requested',
   scheduledFor: null,
@@ -277,8 +308,11 @@ export function requestBooking(ledger: Ledger, request: BookingRequest, context:
   history: [{ state: 'requested', at }]
  };
  const event: AccessEvent = {
-  type: 'booking.requested', version: 1, actorRole: request.actorRole, subjectRef: request.subjectRef, occurredAt: at,
-  payload: { bookingRef: booking.bookingRef, serviceId: booking.serviceId, mode: booking.mode, requestedFor }
+  type: 'booking.requested', version: 2, actorRole: request.actorRole, subjectRef: request.subjectRef, occurredAt: at,
+  payload: {
+   bookingRef: booking.bookingRef, serviceId: booking.serviceId, mode: booking.mode, requestedFor, zoneId: booking.zoneId,
+   ...(slot.nurseRef !== null && answered.value !== null ? { namedClinicianRef: slot.nurseRef, namedNurseFallback: answered.value } : {})
+  }
  };
  return accept({ ledger: { bookings: [...ledger.bookings, booking] }, booking }, [event]);
 }
@@ -293,8 +327,8 @@ export function confirmBooking(ledger: Ledger, bookingRef: string, now: Date): O
  const at = nowInstant(now);
  const booking: Booking = { ...found, state: 'confirmed', scheduledFor: found.requestedFor, history: [...found.history, { state: 'confirmed', at }] };
  const event: AccessEvent = {
-  type: 'booking.confirmed', version: 1, actorRole: 'system', subjectRef: found.subjectRef, occurredAt: at,
-  payload: { bookingRef, scheduledFor: found.requestedFor }
+  type: 'booking.confirmed', version: 2, actorRole: 'system', subjectRef: found.subjectRef, occurredAt: at,
+  payload: { bookingRef, scheduledFor: found.requestedFor, serviceId: found.serviceId }
  };
  return accept({ ledger: replace(ledger, booking), booking }, [event]);
 }

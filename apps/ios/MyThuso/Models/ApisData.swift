@@ -65,10 +65,10 @@ enum ApisData {
     static let getAccessVerificationStatus = Route(id: "getAccessVerificationStatus", method: "GET", path: "/v1/access/verification-status", mountedPath: "/v1/access/verification-status", version: 1, engine: "access", callers: ["loopback"], purpose: ["audit"], idempotent: false, status: "built")
     static let getAccessRateLimits = Route(id: "getAccessRateLimits", method: "GET", path: "/v1/access/rate-limits", mountedPath: "/v1/access/rate-limits", version: 1, engine: "access", callers: ["loopback"], purpose: ["audit"], idempotent: false, status: "built")
     static let getAccessDoors = Route(id: "getAccessDoors", method: "GET", path: "/v1/access/doors", mountedPath: "/v1/access/doors", version: 1, engine: "access", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built")
-    static let postAccessBookings = Route(id: "postAccessBookings", method: "POST", path: "/v1/access/bookings", mountedPath: "/v1/access/bookings", version: 1, engine: "access", callers: ["patient", "caregiver", "guardian", "thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let postAccessBookingsV2 = Route(id: "postAccessBookingsV2", method: "POST", path: "/v1/access/bookings", mountedPath: "/v1/access/bookings", version: 2, engine: "access", callers: ["patient", "caregiver", "guardian", "thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "built")
     static let getAccessBookingsByBookingRef = Route(id: "getAccessBookingsByBookingRef", method: "GET", path: "/v1/access/bookings/{bookingRef}", mountedPath: "/v1/access/bookings/{bookingRef}", version: 1, engine: "access", callers: ["patient", "caregiver", "guardian", "thuso-line-agent"], purpose: ["subject-access", "dispatch"], idempotent: false, status: "built")
     static let postAccessConversationsByConversationRefMessages = Route(id: "postAccessConversationsByConversationRefMessages", method: "POST", path: "/v1/access/conversations/{conversationRef}/messages", mountedPath: "/v1/access/conversations/{conversationRef}/messages", version: 1, engine: "access", callers: ["patient", "caregiver"], purpose: ["treatment"], idempotent: false, status: "proposed")
-    static let postAccessConversationsByConversationRefHandover = Route(id: "postAccessConversationsByConversationRefHandover", method: "POST", path: "/v1/access/conversations/{conversationRef}/handover", mountedPath: "/v1/access/conversations/{conversationRef}/handover", version: 1, engine: "access", callers: ["patient", "caregiver"], purpose: ["treatment"], idempotent: false, status: "proposed")
+    static let postAccessConversationsByConversationRefHandoverV2 = Route(id: "postAccessConversationsByConversationRefHandoverV2", method: "POST", path: "/v1/access/conversations/{conversationRef}/handover", mountedPath: "/v1/access/conversations/{conversationRef}/handover", version: 2, engine: "access", callers: ["patient", "caregiver"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postAccessToolsByTool = Route(id: "postAccessToolsByTool", method: "POST", path: "/v1/access/tools/{tool}", mountedPath: "/v1/access/tools/{tool}", version: 1, engine: "access", callers: ["patient", "caregiver"], purpose: ["treatment", "dispatch", "dispensing", "subject-access"], idempotent: true, status: "proposed")
     static let postAccessHouseholds = Route(id: "postAccessHouseholds", method: "POST", path: "/v1/access/households", mountedPath: "/v1/access/households", version: 1, engine: "access", callers: ["patient", "caregiver"], purpose: ["subject-access"], idempotent: false, status: "proposed")
     static let postAccessSponsors = Route(id: "postAccessSponsors", method: "POST", path: "/v1/access/sponsors", mountedPath: "/v1/access/sponsors", version: 1, engine: "access", callers: ["patient", "sponsor"], purpose: ["billing"], idempotent: false, status: "proposed")
@@ -234,10 +234,10 @@ enum ApisData {
         getAccessVerificationStatus,
         getAccessRateLimits,
         getAccessDoors,
-        postAccessBookings,
+        postAccessBookingsV2,
         getAccessBookingsByBookingRef,
         postAccessConversationsByConversationRefMessages,
-        postAccessConversationsByConversationRefHandover,
+        postAccessConversationsByConversationRefHandoverV2,
         postAccessToolsByTool,
         postAccessHouseholds,
         postAccessSponsors,
@@ -677,16 +677,19 @@ enum ApisData {
     struct GetAccessDoorsResponse {
         let feeds: [[String: Any]]
     }
-    struct PostAccessBookingsRequest {
+    struct PostAccessBookingsV2Request {
         let idempotencyKey: String
         let subjectRef: String
         let serviceId: String
         let mode: String
         let slotRef: String
+        let zoneId: String
+        let namedNurseFallback: String?
     }
-    struct PostAccessBookingsResponse {
+    struct PostAccessBookingsV2Response {
         let bookingRef: String
         let stateCode: String
+        let namedNurseFallback: String?
     }
     struct GetAccessBookingsByBookingRefRequest {
         let bookingRef: String
@@ -705,12 +708,20 @@ enum ApisData {
         let interactionStateCode: String
         let escalated: Bool
     }
-    struct PostAccessConversationsByConversationRefHandoverRequest {
+    struct PostAccessConversationsByConversationRefHandoverV2Request {
         let conversationRef: String
         let summaryEntryRef: String
+        let urgencyCode: String
     }
-    struct PostAccessConversationsByConversationRefHandoverResponse {
+    struct PostAccessConversationsByConversationRefHandoverV2Response {
         let handoverRef: String
+        let urgencyCode: String
+        let sentNow: Bool
+        let deskStateCode: String
+        let answeredByRoles: [String]
+        let outOfHours: String?
+        let outOfHoursNumbers: String?
+        let callbackFrom: String?
     }
     struct PostAccessToolsByToolRequest {
         let idempotencyKey: String
