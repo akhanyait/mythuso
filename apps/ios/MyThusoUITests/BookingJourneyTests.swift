@@ -211,6 +211,25 @@ final class BookingJourneyTests: XCTestCase {
         XCTAssertTrue(nurse.waitForExistence(timeout: 10))
     }
 
+    /* The keyboard rose over the visit thread's field and left a person typing into something they could
+       not see. The field is read off the screen once the keyboard is up, and must sit wholly above it. */
+    func testTheVisitThreadFieldStaysAboveTheKeyboard() {
+        let app = launchApp()
+        app.tabBars.buttons.element(boundBy: 2).tap()
+        tapAfterScrolling(app, app.buttons["View details"].firstMatch)
+        XCTAssertTrue(app.navigationBars["Visit details"].waitForExistence(timeout: 10))
+        tapAfterScrolling(app, app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Messages with your nurse")).firstMatch)
+        let field = app.descendants(matching: .any)["thread-input"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        tapAfterScrolling(app, field)
+        let keyboard = app.keyboards.firstMatch
+        guard keyboard.waitForExistence(timeout: 5) else { return XCTFail("No software keyboard appeared, so the field's place above it was not checked.") }
+        sleep(1)
+        XCTAssertTrue(field.isHittable, "The thread's field is not hittable with the keyboard up.")
+        XCTAssertLessThanOrEqual(field.frame.maxY, keyboard.frame.minY, "The thread's field ends at \(field.frame.maxY) and the keyboard starts at \(keyboard.frame.minY).")
+        let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "thread-field-above-keyboard"; shot.lifetime = .keepAlways; add(shot)
+    }
+
     // MARK: - Reading numbers back off a screen
 
     private func firstNumber(in text: String, before word: String) -> Int? {

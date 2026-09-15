@@ -31,7 +31,9 @@ async function toPaymentStep(page: Page) {
   await page.goto('/app/');
   await page.getByRole('button', { name: /Vitals & chronic check/ }).first().click();
   const d = page.getByRole('dialog');
-  for (let i = 0; i < 3; i += 1) await d.getByRole('button', { name: 'Continue' }).click();
+  /* Who, where, who comes and when, then payment. The person step (Wave 3 Access) sits between where and
+     when, and whoever is nearest is already chosen, so its Continue needs nothing pressed first. */
+  for (let i = 0; i < 4; i += 1) await d.getByRole('button', { name: 'Continue' }).click();
   await expect(d.getByRole('heading', { name: 'How would you like to pay?' })).toBeVisible();
   return d;
 }

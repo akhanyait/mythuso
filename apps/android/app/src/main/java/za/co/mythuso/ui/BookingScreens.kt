@@ -191,7 +191,11 @@ private val clock = DateTimeFormatter.ofPattern("HH:mm").withZone(Scheduling.zon
     var refusal by remember(reference) { mutableStateOf<String?>(null) }
     val count = Booking.codePoints(draft)
     val over = count > BookingData.Thread.maxCharacters
-    Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+    /* The app draws edge to edge, so the keyboard's height is not taken off the screen for it. On iOS the
+       keyboard rose over this field and left a person typing into something they could not see; the
+       padding gives the scrolling screen room to bring the field up above the keyboard. Not yet seen on
+       an emulator. */
+    Column(Modifier.imePadding(), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
         /* Above the field, before anything is typed, rather than after a silence. */
         TonedCard(Modifier.semantics(mergeDescendants = true) {}) {
             Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
