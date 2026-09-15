@@ -86,7 +86,14 @@ const PROPOSALS = [
  { file: 'closed-loop.json', path: /^\.snooze\.reasons$/, title: 'The reasons a concern may be snoozed', clinical:'A snooze lets a concern about a patient wait. Whether a reason is good enough for that is a clinical judgement.' },
  { file: 'closed-loop.json', path: /^\.outcomes$/, title: 'The outcomes a concern is closed with', clinical:'Every concern is closed with one of these and a review counts them. Whether they are enough to tell a harmful outcome from a safe one, without naming a condition, is a clinical governance question.' },
  { file: 'closed-loop.json', path: /^\.escalationReasons\.byCaller$/, notClinical: 'The reasons the desk moves a concern early say who answered and who can decide, not anything about the patient.' },
- { file: 'closed-loop.json', path: /^\.resultAcknowledged\.closesAs$/, title: 'The outcome an acknowledged lab result\'s concern is closed with', clinical: 'A clinician acknowledging a result closes the concern Core opened for it as dealt with. Whether acknowledging a result is enough to call its concern dealt with, before anybody has acted on what it says, is a clinical governance question (Full Scope v1.0, Engine 8: a result is not complete until acknowledged).' }
+ { file: 'closed-loop.json', path: /^\.resultAcknowledged\.closesAs$/, title: 'The outcome an acknowledged lab result\'s concern is closed with', clinical: 'A clinician acknowledging a result closes the concern Core opened for it as dealt with. Whether acknowledging a result is enough to call its concern dealt with, before anybody has acted on what it says, is a clinical governance question (Full Scope v1.0, Engine 8: a result is not complete until acknowledged).' },
+ /* Sentinel and safeguarding (Wave 5). */
+ { file: 'closed-loop.json', path: /^\.sentinel\.opensAtRung$/, title: 'The Sentinel tier that opens a concern on the rota', clinical: 'A tier below it pages nobody and a tier at it pages a doctor. Which tier a patient\'s concern must reach before a clinician is asked to take it on is a clinical judgement.' },
+ { file: 'closed-loop.json', path: /^\.sentinel\.(ownerRole|fallbackRole)$/, title: 'Who owns a Sentinel concern, and who it falls back to', clinical: 'A Sentinel tier three is a concern about a patient\'s monitoring that nobody has taken on. Which clinician owns it first, and who holds it when they do not answer, decides who judges what the patient needs.' },
+ { file: 'closed-loop.json', path: /^\.safeguarding\.ladderRung$/, title: 'How long the desk has to take on a safeguarding concern', clinical: 'A safeguarding concern is somebody who may be at risk. How long it waits before it goes to somebody else belongs with the safeguarding protocol the Clinical Governance Lead signs.' },
+ { file: 'sentinel.json', path: /^\.rungs\[\d+\]$/, title: 'What a Sentinel tier means, and who is told', clinical: 'Each tier says how urgent a concern about a patient\'s monitoring is and who hears of it: nobody, the nurse\'s queue, or a doctor on the rota. What each tier means, and whether the right people are told at each, is a clinical decision.' },
+ { file: 'sentinel.json', path: /^\.safeguarding\.groupsAndCategories$/, title: 'The groups and kinds of concern a safeguarding report is recorded under', clinical: 'A safeguarding report is recorded against these and nothing typed. Whether they name what a nurse or a doctor needs to say about a child, an older person or an adult at risk belongs with the safeguarding protocol.' },
+ { file: 'closed-loop.json', path: /^\.safeguarding\.(ownerRole|fallbackRole)$/, notClinical: 'Who owns the desk\'s concern for a safeguarding report says who makes sure the report reaches the safeguarding officer. The report itself is held for that officer, and nothing about the patient is on the concern.' },
 ];
 const PROPOSED_ROLES = {
  carer: 'A carer is in a patient\'s home beside a registered nurse. What a carer may do, how they are trained, and when they must call the nurse rather than act are questions about the patient\'s care.',
@@ -96,7 +103,7 @@ const PROPOSED_ROLES_NOT_CLINICAL = {
  'head-of-operations': 'Operations authority over the desk\'s escalations. The register grants it no record, no summary and no dispatch.'
 };
 
-const WALKED = ['closed-loop.json', 'field-safety.json', 'care.json', 'booking.json'];
+const WALKED = ['closed-loop.json', 'field-safety.json', 'care.json', 'booking.json', 'sentinel.json'];
 
 export function emitClinicalReviewPack(root = '') {
  const json = name => JSON.parse(readFileSync(root + CATALOG + name, 'utf8'));
