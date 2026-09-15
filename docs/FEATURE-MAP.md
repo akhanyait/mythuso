@@ -852,6 +852,37 @@ a gift books for its receiver and a voucher does not, and no voucher route carri
 menu are web only; the network's own USSD session limit is unknown until an aggregator states it; what happens to value
 left on an expired voucher, and whether section 63 reaches a voucher towards care, wait on counsel.
 
+## Delivered — group payers and claims to a medical scheme, 16 September 2026 (seed plan, Wave 5, Money)
+
+A stokvel, a church or an employer paying for the care of members who each agreed to it, and the billing half of a claim
+to a medical scheme, drafted by the doctor who signed the visit's review and stopped before it is sent. **MyThuso holds
+no group's money**, and **no claim reaches a scheme**: no switching partner is connected and no code set is adopted.
+
+| What landed | The refusals it adds | Where |
+|---|---|---|
+| **Group payers**: a group is opened by the role its kind names (`POST /v1/money/groups@2`, version one withdrawn: it created a group wallet and named its members in the request), invites (`POST /v1/money/group-memberships@1`), the person invited agrees as herself and chooses how the group's screen reads what it paid for her (`…/accept@1`), may leave (`…/leave@1`), and asks the group to pay for a visit she owes (`POST /v1/money/group-payments@1`), which charges the group's own account through the provider up to the limit in force. The treasurer reads amounts and days (`GET /v1/money/groups/{groupRef}@1`); she reads her own memberships (`GET /v1/money/group-memberships@1`) | `group-holds-money`, `group-kind-not-offered`, `group-kind-not-yours`, `member-added-without-agreement`, `already-invited`, `group-full`, `only-the-member-agrees`, `employer-sees-health`, `group-line-detail-not-offered`, `not-a-group-member`, `group-pays-only-members`, `group-limit-reached`, `group-memberships-are-your-own` | `groups.json`, `money/domain/groups.ts`, `money/domain/ledger.ts` |
+| **No pooled money, and no wallet**: a group is a reference, a kind and who opened it, with no field that can hold an amount and no table named for a balance. `wallets@1` stays **proposed** and is never built — a prepaid balance MyThuso keeps for anybody is money held for other people, which only a bank may take (Banks Act 94 of 1990), and it waits on counsel and a licensed partner rather than on code | A request carrying a balance, a deposit, a pool, a wallet, a float or a contribution is refused rather than ignored | `groups.json` `noPooledMoney`, `check-boundaries.mjs` |
+| **An employer is told nothing about an employee's health**: no member rows at all, and the month's total and the number who agreed only above the employer programmes' suppression floor, read from `programmes.json` rather than restated. An employee cannot choose to show an employer the day a visit was paid for | `employer-sees-health` on agreeing and on reading | `groups.json` `employer`, `groups.ts` `groupViewOf` |
+| **Claims**: drafted by the doctor who signed the visit's review (`POST /v1/money/claims@3`, version two withdrawn: it took a typed tariff code and an amount of the caller's and answered "submitted"), agreed to by the patient (`…/consent@1`), asked to be sent (`…/submit@1`) and read by either (`GET /v1/money/claims@1`). Money finds the signed review from `review.billable@1`, never from a `reviewRef` on a route — Clinical declares the `reviews` resource — and hears no `review.signed@1`, which carries the encounter reference | `claim-visit-not-finished`, `claim-review-not-signed`, `claim-review-not-yours`, `claim-code-typed`, `diagnosis-sent-to-money`, `claim-already-drafted`, `claim-without-consent`, `claim-consent-expired`, `claim-consented-already`, `scheme-told-about-a-grant`, `claims-are-your-own` | `claims.json`, `money/domain/claims.ts` |
+| **Where every claim stops**: `claim-not-submitted` — "Not submitted: no switching partner is connected." The `claim-response` door in `feeds.json` refuses every payload, names its operator and leaves section 72 undetermined, and the `scheme-claims` capability is absent. The code gate is asked after it, because a code set is adopted with the switching partner; nothing in the ledger can mark a claim sent, answered, paid or rejected | `claim-not-submitted`, `claim-without-an-adopted-code` | `feeds.json`, `capabilities.json`, `ledger.ts` `submitClaim` |
+| **No code set**: no licensed tariff code set and no adopted ICD-10 code set exist, so a claim carries no code — none typed, none chosen from a list and none worked out from a service's name — and the doctor's draft leads with "No adopted code set" | A request carrying a field named for a code, a coding, a diagnosis or a reason is refused in the code-set sentence | `claims.json` `codeSets` |
+| **Settings**, each a proposal an admin may change: `group-member-monthly-limit-cents` (R1,500 proposed, R500–R5,000), `group-member-cap` (50 proposed, 2–500), `claim-consent-days` (30 proposed, 1–90, the highest cited from `consent.json`'s ninety-day ceiling) | A change reaches charges asked for, invitations sent and agreements given after it, and never one already made | `money.json` `settings` |
+| **A list of held cash payments for the desk** (`GET /v1/money/held-cash-payments@1`): the payment, its wrong codes and when it was held, and never the patient or a code | `held-cash-list-names-nobody` | `ledger.ts` `heldCashList` |
+| **Screens**: the member's opt-in on the web and on both phones, the treasurer's screen with its "see it as an employer" view, the claim on the patient's record and the doctor's claim draft, each behind its own dynamic import and none on the patient's first load | Every refusal word for word from the route that declares it | `Groups.tsx`, `Claims.tsx`, `GroupOptInView.swift`, `GroupScreens.kt` |
+| **The build** holds this wave to eight things: no pooled money or wallet, nothing about care to a group and nothing at all to an employer, no claim without a signed review and consent, no typed tariff or ICD-10 code, no claim marked sent while the switch is locked, no event carrying a diagnosis, a membership number or a group, every money write keyed before it writes, and no screen typing a limit | Each proved by breaking its source | `scripts/check-boundaries.mjs` |
+
+No event was declared. Money publishes `payment.succeeded@1` for a group's charge as for any payment, and nothing else
+acts on a group, a membership or a claim that was never sent; an event nobody but its publisher acts on is refused by
+the event contract. `claim.submitted@2` and `claim.decided@1` stay frozen and unpublished, for the day a partner exists.
+
+Still open: no group pays for a plan or a medicine collection, only a visit; a group's own payment method is the
+provider's page and no mandate is modelled; a treasurer sees her members by the names she invited them under, which the
+preview holds and no route carries; the pre-authorisation frame is a frame only — Movement owns
+`admission.preauth.submitted@1`, so Money builds no route for one; a claim is never re-drafted after a visit is
+refunded; `gifts@1` and `market-orders@1` stay proposed; the Banks Act reading behind "no pooled money" and what a
+group's charge is under the National Payment System Act have not been put to counsel; and the employer suppression
+floor is the programmes' judgement, which no Information Officer has agreed to.
+
 ## Next UI increments
 
 Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only

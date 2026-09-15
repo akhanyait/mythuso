@@ -38,6 +38,7 @@ import { emitMedicines } from './emit-medicines.mjs';
 import { emitVerifyInService } from './emit-verify-in-service.mjs';
 import { emitPassportSharing } from './emit-passport-sharing.mjs';
 import { emitDevices } from './emit-devices.mjs';
+import { emitGroups } from './emit-groups.mjs';
 import { emitMomEssential } from './emit-mom-essential.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
@@ -918,6 +919,11 @@ const generated = [
  { source: 'packages/catalog/apis/money.json', command: 'npm run mom-essential', files: emitMomEssential() },
  { source: 'packages/catalog/consent.json', command: 'npm run mom-essential', files: emitMomEssential() },
  { source: 'packages/catalog/money.json', command: 'npm run mom-essential', files: emitMomEssential() },
+ /* GroupsData carries groups.json's member half, the refusals a member meets from apis/money.json and the monthly
+    limit from money.json's setting, so a change to any of the three regenerates it. */
+ { source: 'packages/catalog/groups.json', command: 'npm run groups', files: emitGroups() },
+ { source: 'packages/catalog/apis/money.json', command: 'npm run groups', files: emitGroups() },
+ { source: 'packages/catalog/money.json', command: 'npm run groups', files: emitGroups() },
  /* The clinical review pack reads every contract a clinician has to review, so a change to any of them
     without regenerating is a failed build rather than a pack somebody signs against values no longer in force. */
  ...['settings.json', 'care.json', 'booking.json', 'field-safety.json', 'closed-loop.json', 'money.json', 'protocols.json',
@@ -9656,6 +9662,190 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
 
  console.log(`Devices: a consumer device carries no clinical weight across ${devicesContract.sources.length * devicesContract.qualities.length * devicesContract.intendedUses.length} combinations and raises nothing; source, quality, withdrawal and the simulator are refused by the domain's own answers; ${nativeHealthFiles.length} native files name no HealthKit or Health Connect; ${devicesEvents.length} Devices events and ${devicesColumns.length} store columns carry no value; ${devicesScreens.length} screens type no stale interval, calibration window or deposit.`);
 }
+
+/* ==== Group payers and claims (Wave 5, Money) =======================================================
+
+   Eight things this wave promises, each asked of the code or the contract that decides it rather than of a screen's
+   good intentions, and each proved to fire by breaking its source deliberately and restoring it:
+
+     1. MyThuso holds no group's money. No group balance, pool, float or wallet exists in the contract, in a table, in a
+        type or on a route, and wallets@1 is never built.
+     2. A group is never told what a member's care was, and an employer is told nothing about an employee at all: no
+        member rows, and no figures until as many have agreed as the employer programmes' own suppression floor.
+     3. No claim without a visit Care said happened, a review Money heard the calling doctor sign, and the patient's own
+        agreement — asked in the order packages/catalog/claims.json gives.
+     4. No tariff or ICD-10 code is typed, listed or worked out from a service, anywhere in this wave's files.
+     5. Nothing marks a claim sent, answered, paid or rejected: the switching door is locked, and nothing that runs hands
+        the ledger a connected one.
+     6. No event Money owns carries a diagnosis, a code's description, a scheme membership number or a group.
+     7. Every money write this wave adds asks for its idempotency key before it writes anything.
+     8. No screen types the limit, the cap or the days an agreement to send a claim lasts. */
+{
+ const w5 = {
+  groups: JSON.parse(read('packages/catalog/groups.json')),
+  claims: JSON.parse(read('packages/catalog/claims.json')),
+  money: JSON.parse(read('packages/catalog/money.json')),
+  moneyApi: JSON.parse(read('packages/catalog/apis/money.json')),
+  feeds: JSON.parse(read('packages/catalog/feeds.json')),
+  events: JSON.parse(read('packages/catalog/events.json')),
+  consent: JSON.parse(read('packages/catalog/consent.json')),
+  programmes: JSON.parse(read('packages/catalog/programmes.json')),
+  capabilities: JSON.parse(read('packages/catalog/capabilities.json'))
+ };
+ const w5Route = key => w5.moneyApi.routes.find(r => `${r.method} ${r.path}@${r.version}` === key && !r.withdrawn);
+ const w5Fields = fields => (fields ?? []).flatMap(f => [f.field, ...w5Fields(f.fields)]);
+ const w5Block = (source, from, to = '\n }') => { const at = source.indexOf(from); return at < 0 ? '' : source.slice(at, source.indexOf(to, at) + to.length); };
+ const ledger = read('packages/engines/src/money/domain/ledger.ts');
+ const groupsDomain = read('packages/engines/src/money/domain/groups.ts');
+ const claimsDomain = read('packages/engines/src/money/domain/claims.ts');
+ const moneyEngine = read('packages/engines/src/money/engine.ts');
+ const w5Web = ['apps/web/src/lib/groups.ts', 'apps/web/src/lib/claims.ts', 'apps/web/src/features/Groups.tsx', 'apps/web/src/features/Claims.tsx'];
+ const w5Native = ['apps/ios/MyThuso/Models/Groups.swift', 'apps/ios/MyThuso/Features/GroupOptInView.swift',
+  'apps/android/app/src/main/java/za/co/mythuso/model/Groups.kt', 'apps/android/app/src/main/java/za/co/mythuso/ui/GroupScreens.kt'];
+ const GROUP_ROUTES = ['POST /v1/money/groups@2', 'POST /v1/money/group-memberships@1', 'POST /v1/money/group-memberships/{membershipRef}/accept@1',
+  'POST /v1/money/group-memberships/{membershipRef}/leave@1', 'POST /v1/money/group-payments@1', 'GET /v1/money/groups/{groupRef}@1', 'GET /v1/money/group-memberships@1'];
+ const CLAIM_ROUTES = ['POST /v1/money/claims@3', 'POST /v1/money/claims/{claimRef}/consent@1', 'POST /v1/money/claims/{claimRef}/submit@1', 'GET /v1/money/claims@1'];
+ for (const key of [...GROUP_ROUTES, ...CLAIM_ROUTES, 'GET /v1/money/held-cash-payments@1']) {
+  if (w5Route(key)?.status !== 'built') throw new Error(`packages/catalog/apis/money.json has no built ${key}, which Wave 5's groups and claims stand on.`);
+ }
+
+ /* 1. No pooled money, and no wallet. A group is a payer of record: it is charged, one payable at a time, and nothing
+       rests here. Holding money for other people is taking deposits, which only a bank may do. */
+ const POOL = /balance|deposit|pooled|pool|float|contribution|escrow|topup|prefund|savings|wallet/i;
+ const withoutComments = source => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+ const groupType = w5Block(groupsDomain, 'export type Group = {', '};');
+ if (!groupType || POOL.test(withoutComments(groupType))) throw new Error('packages/engines/src/money/domain/groups.ts gives a group a field that could hold money. A group is a reference, a kind and who opened it: MyThuso never holds a group\'s money.');
+ for (const key of GROUP_ROUTES) {
+  for (const name of [...w5Fields(w5Route(key).request), ...w5Fields(w5Route(key).response)]) {
+   if (POOL.test(name)) throw new Error(`${key} carries "${name}". ${w5.groups.noPooledMoney.statement}`);
+  }
+ }
+ const wallets = w5.moneyApi.routes.find(r => r.path === '/v1/money/wallets');
+ if (!wallets || wallets.status === 'built') throw new Error('POST /v1/money/wallets@1 is built. A prepaid balance MyThuso keeps for anybody is money held for other people, and packages/catalog/groups.json wallet says it stays proposed until counsel and a licensed partner say otherwise.');
+ if (w5.groups.wallet.stays !== 'proposed' || w5.money.methods.find(m => m.id === 'wallet')?.offered !== false) throw new Error('packages/catalog/groups.json no longer says the wallet stays proposed, or packages/catalog/money.json offers one as a way to pay.');
+ if (!w5.groups.noPooledMoney.needsCounsel?.trim()) throw new Error('packages/catalog/groups.json noPooledMoney no longer says what counsel has not been asked. A reading of the Banks Act that stops saying it is a reading is a legal opinion nobody gave.');
+ const tables = (ledger.match(/export const TABLE_NAMES = \[([^\]]*)\]/) ?? [])[1] ?? '';
+ const sqlNames = w5Block(moneyEngine, 'const SQL_NAME', '};');
+ for (const [where, text] of [['packages/engines/src/money/domain/ledger.ts TABLE_NAMES', tables], ['packages/engines/src/money/engine.ts SQL_NAME', sqlNames]]) {
+  if (!text) throw new Error(`${where} could not be read, so nothing here holds Money's tables to keeping no balance.`);
+  if (POOL.test(text)) throw new Error(`${where} has a table named for a balance, a pool, a float or a wallet. Money keeps no money for anybody: a payable, a payment and a charge are all it records.`);
+ }
+
+ /* 2. A group hears amounts and days; an employer hears nothing about anybody. */
+ const CARE_ON_A_GROUP_ROUTE = /service|visit|appointment|clinic|diagnos|finding|reading|symptom|medicine|prescription|encounter/i;
+ const groupRead = w5Route('GET /v1/money/groups/{groupRef}@1');
+ for (const name of w5Fields(groupRead.response)) {
+  if (CARE_ON_A_GROUP_ROUTE.test(name)) throw new Error(`GET /v1/money/groups/{groupRef}@1 answers with "${name}". A group is told what it paid and when, and never what the care was.`);
+ }
+ const groupView = w5Block(groupsDomain, 'export function groupViewOf(', '\n}');
+ if (!/groupKind === 'employer'/.test(groupView) || !/members: \[\]/.test(groupView)) throw new Error('packages/engines/src/money/domain/groups.ts groupViewOf no longer hands an employer a view with no member rows at all.');
+ if (!/agreed >= EMPLOYER_FLOOR/.test(groupView)) throw new Error(`packages/engines/src/money/domain/groups.ts groupViewOf no longer withholds an employer's figures below the floor. ${w5.groups.employer.statement}`);
+ if (!/m\.lineDetail === 'amount-and-day' \? paid/.test(groupView)) throw new Error('packages/engines/src/money/domain/groups.ts groupViewOf no longer withholds a member\'s days and amounts from her group unless she chose amount-and-day.');
+ if (!/EMPLOYER_FLOOR: number = programmes\.floor\.minimumCohort/.test(groupsDomain) || w5.groups.employer.floorFrom !== 'packages/catalog/programmes.json#floor.minimumCohort') {
+  throw new Error(`The employer floor is ${w5.programmes.floor.minimumCohort} in packages/catalog/programmes.json and is read from there, in the contract and in packages/engines/src/money/domain/groups.ts. A second copy is a suppression rule that can disagree with the one the employer programmes work to.`);
+ }
+ const employerKind = w5.groups.kinds.find(k => k.id === 'employer');
+ if (employerKind.lineDetails.includes('amount-and-day')) throw new Error(`packages/catalog/groups.json offers an employer's member the day a visit was paid for. ${w5.groups.employer.statement}`);
+ for (const key of ['POST /v1/money/group-memberships/{membershipRef}/accept@1', 'GET /v1/money/groups/{groupRef}@1']) {
+  if (!w5Route(key).refusals.some(r => r.id === 'employer-sees-health' && r.statement === w5.groups.employer.statement)) {
+   throw new Error(`${key} does not refuse an employer in packages/catalog/groups.json's own sentence, word for word.`);
+  }
+ }
+
+ /* 3. A signed review, a visit that happened, and her agreement — in the contract's order. */
+ const draftBlock = w5Block(ledger, ' function draftClaim(');
+ for (const [pattern, missing] of [[/t\.billable\.get\(/, 'a visit Care said was billable'], [/t\.reviews\.all\(\)/, 'a review Money heard signed'],
+  [/claim-review-not-yours/, 'the refusal for a review another doctor signed'], [/claim-already-drafted/, 'the refusal for a visit that already has a claim']]) {
+  if (!pattern.test(draftBlock)) throw new Error(`packages/engines/src/money/domain/ledger.ts draftClaim no longer asks for ${missing}. A claim is for care that happened and was signed for.`);
+ }
+ if (/reviewRef/.test(JSON.stringify(CLAIM_ROUTES.map(w5Route)))) throw new Error('A claim route carries a reviewRef. packages/catalog/apis/clinical.json declares the reviews resource, so that is a reference into Clinical\'s store; Money finds the review from what it heard.');
+ const submitBlock = w5Block(ledger, ' function submitClaim(');
+ const gateOrder = w5.claims.gates.filter(g => g.asked === 'submit').map(g => g.refusal);
+ const askedAt = gateOrder.map(id => submitBlock.indexOf(id));
+ if (askedAt.some(at => at < 0) || askedAt.some((at, i) => i > 0 && at < askedAt[i - 1])) {
+  throw new Error(`packages/engines/src/money/domain/ledger.ts submitClaim no longer asks ${gateOrder.join(', then ')}, which is the order packages/catalog/claims.json gates gives. ${w5.claims.gatesNote}`);
+ }
+ if (!w5.claims.builtFrom.review.startsWith('review.billable@') || w5.events.events.some(e => e.type === 'review.signed' && !e.withdrawn && e.subscribers.includes('money'))) {
+  throw new Error('Money subscribes to review.signed, which carries the encounter reference, or packages/catalog/claims.json no longer says it builds a claim from review.billable. The engine facing payers holds no reference into the record.');
+ }
+
+ /* 4. No code, anywhere. */
+ if (w5.claims.codeSets.adopted.length) throw new Error('packages/catalog/claims.json adopts a code set. No licensed tariff code set and no ICD-10 code set exist in this build, and a claim carries no code until one does.');
+ const QUOTED_ICD = /["'`][A-TV-Z]\d{2}(?:\.\d{1,2})?["'`]/;
+ const TYPED_TARIFF = /tariff\w*\s*[:=]\s*["'`]?\d{3,5}/i;
+ for (const file of ['packages/catalog/claims.json', 'packages/engines/src/money/domain/claims.ts', 'packages/engines/src/money/domain/ledger.ts', ...w5Web, ...w5Native]) {
+  const source = read(file);
+  const icd = source.match(QUOTED_ICD);
+  if (icd) throw new Error(`${file} holds ${icd[0]}, which reads as an ICD-10 code. ${w5.claims.codeSets.statement}`);
+  if (TYPED_TARIFF.test(source)) throw new Error(`${file} types a tariff code. ${w5.claims.codeSets.statement}`);
+ }
+ for (const key of CLAIM_ROUTES) {
+  for (const name of [...w5Fields(w5Route(key).request), ...w5Fields(w5Route(key).response)]) {
+   if (/^(tariffCode|icd10Codes?|procedureCode|diagnosisCode)$/.test(name)) throw new Error(`${key} carries "${name}". ${w5.claims.codeSets.statement}`);
+  }
+ }
+
+ /* 5. Nothing is sent, and nothing pretends to be. */
+ const claimDoor = w5.feeds.feeds.find(f => f.id === w5.claims.stop.door);
+ if (!claimDoor || !claimDoor.capabilities.includes(w5.claims.stop.capability) || claimDoor.beforeSwitchOn.some(c => c.met) || claimDoor.operator?.determined !== false || !w5.moneyApi.doors.includes(w5.claims.stop.door)) {
+  throw new Error(`packages/catalog/feeds.json's ${w5.claims.stop.door} door is missing, linked to no engine, met, or records section 72 as determined. Every claim stops there: "${w5.claims.stop.words}"`);
+ }
+ if (w5.capabilities.capabilities.find(c => c.id === w5.claims.stop.capability)?.connected !== false) throw new Error(`packages/catalog/capabilities.json marks ${w5.claims.stop.capability} connected. No switching partner is contracted, and the claim screens render its notice.`);
+ for (const state of w5.claims.states.filter(s => !s.reachable)) {
+  if (new RegExp(`stateCode: '${state.id}'`).test(ledger)) throw new Error(`packages/engines/src/money/domain/ledger.ts writes the claim state "${state.id}". ${state.unreachableBecause}`);
+ }
+ if (!/export type ReachedState = 'drafted' \| 'consented';/.test(claimsDomain)) throw new Error('packages/engines/src/money/domain/claims.ts no longer holds a claim to the two states this build reaches, so a claim could be stored as sent.');
+ for (const file of ['packages/engines/src/money/engine.ts', ...w5Web]) {
+  if (/claimSwitchConnected/.test(read(file))) throw new Error(`${file} hands the ledger a connected switching partner. That option is for a test that shows the gate after the door; what runs reads the door's own switch-on conditions, and none is met.`);
+ }
+
+ /* 6. What Money publishes carries none of it. */
+ const NEVER_ON_MONEYS_EVENTS = /diagnos|icd|membernumber|medicalaid|schememember|groupref|membership|codedescription/i;
+ for (const event of w5.events.events.filter(e => e.owner === 'money' && !e.withdrawn)) {
+  for (const field of event.payload) {
+   if (NEVER_ON_MONEYS_EVENTS.test(field.field)) throw new Error(`${event.type}@${event.version} carries "${field.field}". Nothing Money publishes says why care was needed, who a person's scheme thinks she is, or which group paid.`);
+  }
+ }
+ if (/emit\(/.test(w5Block(ledger, ' function payFromGroup('))) throw new Error('packages/engines/src/money/domain/ledger.ts payFromGroup publishes an event of its own. A group\'s charge is published as the payment it is, through the payment-result door, and a group never reaches the bus.');
+ for (const name of ['openGroup', 'inviteMember', 'acceptMembership', 'leaveGroup', 'draftClaim', 'consentToClaim', 'submitClaim']) {
+  if (/emit\(/.test(w5Block(ledger, ` function ${name}(`))) throw new Error(`packages/engines/src/money/domain/ledger.ts ${name} publishes an event. No other engine acts on a group, a membership or a claim that was never sent, and the event contract refuses an event nobody subscribes to.`);
+ }
+
+ /* 7. Every write is keyed, and asks before it writes. */
+ for (const key of [...GROUP_ROUTES, ...CLAIM_ROUTES].filter(k => k.startsWith('POST'))) {
+  const route = w5Route(key);
+  if (route.idempotent !== true || !route.request.some(f => f.field === 'idempotencyKey' && f.type === 'string' && f.required === true)) throw new Error(`${key} is a money write without a required idempotencyKey.`);
+ }
+ for (const name of ['openGroup', 'inviteMember', 'acceptMembership', 'leaveGroup', 'payFromGroup', 'draftClaim', 'consentToClaim']) {
+  const block = w5Block(ledger, ` function ${name}(`);
+  const asks = block.indexOf('keyOf(request)');
+  const writes = block.search(/t\.\w+\.put\(/);
+  if (!block || asks < 0 || (writes >= 0 && writes < asks)) throw new Error(`packages/engines/src/money/domain/ledger.ts ${name} writes before it asks for the idempotency key, or asks for none. A retry on a bad connection is a second group, a second invitation or a second charge.`);
+ }
+
+ /* 8. No screen types a limit. */
+ const w5Settings = [w5.groups.settings.monthlyLimit, w5.groups.settings.memberCap, w5.claims.consent.setting].map(key => {
+  const setting = w5.money.settings.items.find(s => s.key === key);
+  if (!setting) throw new Error(`packages/catalog/money.json has no setting "${key}", which packages/catalog/groups.json or claims.json names.`);
+  return setting;
+ });
+ const consentDays = w5Settings[2];
+ if (consentDays.bounds.highest.value !== w5.consent.grants.maximumExpiryDays || consentDays.bounds.citedFrom?.path !== 'grants.maximumExpiryDays') {
+  throw new Error(`packages/catalog/money.json's ${consentDays.key} may be set to ${consentDays.bounds.highest.value} days, and the ceiling on every consent grant in packages/catalog/consent.json is ${w5.consent.grants.maximumExpiryDays}. An agreement to send a claim is not a grant, and it lasts no longer than one.`);
+ }
+ for (const setting of w5Settings) {
+  const value = setting.default.value;
+  const patterns = [new RegExp(`\\b${value}\\b`), ...(setting.type === 'moneyCents' ? [new RegExp(`\\bR\\s?${value / 100}\\b`)] : [])];
+  for (const file of [...w5Web, ...w5Native, 'packages/catalog/groups.json', 'packages/catalog/claims.json']) {
+   const source = read(file);
+   const typed = patterns.map(p => source.match(p)).find(Boolean);
+   if (typed) throw new Error(`${file} types Money's setting "${setting.key}" as ${typed[0]}. It is a default an admin changes, read from the settings in force through apps/web/src/lib/settings.ts or generated for a phone; a typed copy is a number an admin's change never reaches.`);
+  }
+ }
+
+ console.log(`Group payers and claims: no group balance, pool or wallet in ${GROUP_ROUTES.length} routes, ${tables.split(',').length} ledger tables or the engine's schema, and wallets@1 stays proposed; an employer is handed no member rows and no figures below the floor of ${w5.programmes.floor.minimumCohort} read from packages/catalog/programmes.json; a claim needs a visit that happened, a review its own doctor signed and the patient's agreement, and is stopped in the order ${gateOrder.join(', ')}; no code set is adopted and none of ${w5Web.length + w5Native.length + 3} files types a tariff or ICD-10 code; ${w5.claims.states.filter(s => !s.reachable).length} claim states are unreachable and nothing that runs hands the ledger a connected switch; ${w5.events.events.filter(e => e.owner === 'money' && !e.withdrawn).length} live Money events carry no diagnosis, membership number or group; ${[...GROUP_ROUTES, ...CLAIM_ROUTES].filter(k => k.startsWith('POST')).length} writes are keyed before they write; and no screen types the limit, the cap or the days an agreement lasts.`);
+}
+/* ==== end of group payers and claims (Wave 5, Money) ================================================ */
 
 /* ==== MyThuso for Mom Essential, vouchers and USSD booking (Wave 4, Gilbert & Access) ====================
 
