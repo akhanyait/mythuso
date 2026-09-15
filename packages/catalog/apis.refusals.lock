@@ -290,3 +290,17 @@ POST /v1/care/visits/{appointmentRef}/complete@2 2ef4a1ed883a1069
 POST /v1/care/sync-batches@2 9b252a2d59a17229
 GET /v1/record/encounter-statuses/{encounterRef}@1 bd4ed62a683e4740
 shared apis/care.json#refusals encounter-signature-awaits-status-route ce8542abf3c5f197
+GET /v1/safety/checkins@1 6769391aa10c2be4
+POST /v1/safety/checkins/{checkinRef}/extend@2 6d04aa65e14c5ff9
+POST /v1/safety/checkins/{checkinRef}/safe@1 dd1752ea3253fdbf
+POST /v1/safety/checkins/{checkinRef}/close@2 7c3fe22687ae82ef
+POST /v1/safety/overdue-checkins/{checkinRef}/pick-up@1 0133476d44682f48
+POST /v1/safety/overdue-checkins/{checkinRef}/close@1 107e6904d80692de
+POST /v1/safety/panics/{panicRef}/pick-up@1 5d542fa93031618c
+POST /v1/safety/panics/{panicRef}/resolve@1 ff665be881d58afd
+GET /v1/safety/panics/{panicRef}/position@1 18222f98f5b0e257
+GET /v1/safety/desk-queue@1 219fb2db8cf460fb
+shared apis/safety.json#refusals no-such-checkin 5a16a7b23699bcd4
+shared apis/safety.json#refusals checkin-held-by-another e550d40061fe2ebe
+shared apis/safety.json#refusals checkin-after-close c67790c6bdbdcc63
+shared apis/safety.json#refusals no-such-panic e426d6a03f8aaff8

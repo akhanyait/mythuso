@@ -103,9 +103,17 @@ enum ApisData {
     static let postClinicalGuidance = Route(id: "postClinicalGuidance", method: "POST", path: "/v1/clinical/guidance", mountedPath: "/v1/clinical/guidance", version: 1, engine: "clinical", callers: ["nurse", "doctor", "engine:access"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let postClinicalProms = Route(id: "postClinicalProms", method: "POST", path: "/v1/clinical/proms", mountedPath: "/v1/clinical/proms", version: 1, engine: "clinical", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let postSafetyCheckins = Route(id: "postSafetyCheckins", method: "POST", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "proposed")
-    static let postSafetyCheckinsByCheckinRefExtend = Route(id: "postSafetyCheckinsByCheckinRefExtend", method: "POST", path: "/v1/safety/checkins/{checkinRef}/extend", mountedPath: "/v1/safety/checkins/{checkinRef}/extend", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "proposed")
-    static let postSafetyCheckinsByCheckinRefClose = Route(id: "postSafetyCheckinsByCheckinRefClose", method: "POST", path: "/v1/safety/checkins/{checkinRef}/close", mountedPath: "/v1/safety/checkins/{checkinRef}/close", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "proposed")
+    static let getSafetyCheckins = Route(id: "getSafetyCheckins", method: "GET", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: false, status: "built")
+    static let postSafetyCheckinsByCheckinRefExtendV2 = Route(id: "postSafetyCheckinsByCheckinRefExtendV2", method: "POST", path: "/v1/safety/checkins/{checkinRef}/extend", mountedPath: "/v1/safety/checkins/{checkinRef}/extend", version: 2, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let postSafetyCheckinsByCheckinRefSafe = Route(id: "postSafetyCheckinsByCheckinRefSafe", method: "POST", path: "/v1/safety/checkins/{checkinRef}/safe", mountedPath: "/v1/safety/checkins/{checkinRef}/safe", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let postSafetyCheckinsByCheckinRefCloseV2 = Route(id: "postSafetyCheckinsByCheckinRefCloseV2", method: "POST", path: "/v1/safety/checkins/{checkinRef}/close", mountedPath: "/v1/safety/checkins/{checkinRef}/close", version: 2, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let postSafetyOverdueCheckinsByCheckinRefPickUp = Route(id: "postSafetyOverdueCheckinsByCheckinRefPickUp", method: "POST", path: "/v1/safety/overdue-checkins/{checkinRef}/pick-up", mountedPath: "/v1/safety/overdue-checkins/{checkinRef}/pick-up", version: 1, engine: "safety", callers: ["operator"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let postSafetyOverdueCheckinsByCheckinRefClose = Route(id: "postSafetyOverdueCheckinsByCheckinRefClose", method: "POST", path: "/v1/safety/overdue-checkins/{checkinRef}/close", mountedPath: "/v1/safety/overdue-checkins/{checkinRef}/close", version: 1, engine: "safety", callers: ["operator"], purpose: ["dispatch"], idempotent: true, status: "built")
     static let postSafetyPanics = Route(id: "postSafetyPanics", method: "POST", path: "/v1/safety/panics", mountedPath: "/v1/safety/panics", version: 1, engine: "safety", callers: ["nurse", "locum", "responder", "courier"], purpose: ["emergency"], idempotent: true, status: "built")
+    static let postSafetyPanicsByPanicRefPickUp = Route(id: "postSafetyPanicsByPanicRefPickUp", method: "POST", path: "/v1/safety/panics/{panicRef}/pick-up", mountedPath: "/v1/safety/panics/{panicRef}/pick-up", version: 1, engine: "safety", callers: ["operator"], purpose: ["emergency"], idempotent: true, status: "built")
+    static let postSafetyPanicsByPanicRefResolve = Route(id: "postSafetyPanicsByPanicRefResolve", method: "POST", path: "/v1/safety/panics/{panicRef}/resolve", mountedPath: "/v1/safety/panics/{panicRef}/resolve", version: 1, engine: "safety", callers: ["operator"], purpose: ["emergency"], idempotent: true, status: "built")
+    static let getSafetyPanicsByPanicRefPosition = Route(id: "getSafetyPanicsByPanicRefPosition", method: "GET", path: "/v1/safety/panics/{panicRef}/position", mountedPath: "/v1/safety/panics/{panicRef}/position", version: 1, engine: "safety", callers: ["operator"], purpose: ["emergency"], idempotent: false, status: "built")
+    static let getSafetyDeskQueue = Route(id: "getSafetyDeskQueue", method: "GET", path: "/v1/safety/desk-queue", mountedPath: "/v1/safety/desk-queue", version: 1, engine: "safety", callers: ["operator"], purpose: ["emergency", "dispatch"], idempotent: false, status: "built")
     static let getSafetySettingsV2 = Route(id: "getSafetySettingsV2", method: "GET", path: "/v1/safety/settings", mountedPath: "/v1/safety/settings", version: 2, engine: "safety", callers: ["admin", "operator"], purpose: ["audit"], idempotent: false, status: "built")
     static let postSafetySettingChangesV2 = Route(id: "postSafetySettingChangesV2", method: "POST", path: "/v1/safety/setting-changes", mountedPath: "/v1/safety/setting-changes", version: 2, engine: "safety", callers: ["admin", "operator"], purpose: ["audit"], idempotent: true, status: "built")
     static let postSafetySos = Route(id: "postSafetySos", method: "POST", path: "/v1/safety/sos", mountedPath: "/v1/safety/sos", version: 1, engine: "safety", callers: ["patient", "caregiver"], purpose: ["emergency"], idempotent: true, status: "proposed")
@@ -273,9 +281,17 @@ enum ApisData {
         postClinicalGuidance,
         postClinicalProms,
         postSafetyCheckins,
-        postSafetyCheckinsByCheckinRefExtend,
-        postSafetyCheckinsByCheckinRefClose,
+        getSafetyCheckins,
+        postSafetyCheckinsByCheckinRefExtendV2,
+        postSafetyCheckinsByCheckinRefSafe,
+        postSafetyCheckinsByCheckinRefCloseV2,
+        postSafetyOverdueCheckinsByCheckinRefPickUp,
+        postSafetyOverdueCheckinsByCheckinRefClose,
         postSafetyPanics,
+        postSafetyPanicsByPanicRefPickUp,
+        postSafetyPanicsByPanicRefResolve,
+        getSafetyPanicsByPanicRefPosition,
+        getSafetyDeskQueue,
         getSafetySettingsV2,
         postSafetySettingChangesV2,
         postSafetySos,
@@ -1004,19 +1020,56 @@ enum ApisData {
         let checkinRef: String
         let dueAt: String
     }
-    struct PostSafetyCheckinsByCheckinRefExtendRequest {
+    struct GetSafetyCheckinsRequest {
+        let appointmentRef: String
+    }
+    struct GetSafetyCheckinsResponse {
+        let checkinRef: String
+        let stateCode: String
+        let dueAt: String
+        let settingsVersion: Int
+        let extensionMinutesLeft: Int
+        let extensionStepsOffered: [String]
+        let saidSafeAt: String?
+    }
+    struct PostSafetyCheckinsByCheckinRefExtendV2Request {
         let idempotencyKey: String
         let checkinRef: String
         let extraMinutes: Int
+        let reasonCode: String?
     }
-    struct PostSafetyCheckinsByCheckinRefExtendResponse {
+    struct PostSafetyCheckinsByCheckinRefExtendV2Response {
         let dueAt: String
+        let extensionMinutesLeft: Int
     }
-    struct PostSafetyCheckinsByCheckinRefCloseRequest {
+    struct PostSafetyCheckinsByCheckinRefSafeRequest {
         let idempotencyKey: String
         let checkinRef: String
     }
-    struct PostSafetyCheckinsByCheckinRefCloseResponse {
+    struct PostSafetyCheckinsByCheckinRefSafeResponse {
+        let saidSafeAt: String
+        let dueAt: String
+    }
+    struct PostSafetyCheckinsByCheckinRefCloseV2Request {
+        let idempotencyKey: String
+        let checkinRef: String
+    }
+    struct PostSafetyCheckinsByCheckinRefCloseV2Response {
+        let closedAt: String
+    }
+    struct PostSafetyOverdueCheckinsByCheckinRefPickUpRequest {
+        let idempotencyKey: String
+        let checkinRef: String
+    }
+    struct PostSafetyOverdueCheckinsByCheckinRefPickUpResponse {
+        let pickedUpAt: String
+    }
+    struct PostSafetyOverdueCheckinsByCheckinRefCloseRequest {
+        let idempotencyKey: String
+        let checkinRef: String
+        let reasonCode: String?
+    }
+    struct PostSafetyOverdueCheckinsByCheckinRefCloseResponse {
         let closedAt: String
     }
     struct PostSafetyPanicsRequest {
@@ -1027,6 +1080,33 @@ enum ApisData {
     struct PostSafetyPanicsResponse {
         let panicRef: String
         let locationShareEndsAt: String
+    }
+    struct PostSafetyPanicsByPanicRefPickUpRequest {
+        let idempotencyKey: String
+        let panicRef: String
+    }
+    struct PostSafetyPanicsByPanicRefPickUpResponse {
+        let pickedUpAt: String
+    }
+    struct PostSafetyPanicsByPanicRefResolveRequest {
+        let idempotencyKey: String
+        let panicRef: String
+        let outcomeCode: String?
+    }
+    struct PostSafetyPanicsByPanicRefResolveResponse {
+        let resolvedAt: String
+        let sharingEndedAt: String
+    }
+    struct GetSafetyPanicsByPanicRefPositionRequest {
+        let panicRef: String
+    }
+    struct GetSafetyPanicsByPanicRefPositionResponse {
+        let sharingEndsAt: String
+        let position: [String: Any]?
+    }
+    struct GetSafetyDeskQueueRequest {}
+    struct GetSafetyDeskQueueResponse {
+        let items: [[String: Any]]
     }
     struct GetSafetySettingsV2Request {}
     struct GetSafetySettingsV2Response {

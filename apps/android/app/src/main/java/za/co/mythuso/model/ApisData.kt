@@ -103,9 +103,17 @@ object ApisData {
     val POST_CLINICAL_GUIDANCE = Route("postClinicalGuidance", "POST", "/v1/clinical/guidance", "/v1/clinical/guidance", 1, "clinical", listOf("nurse", "doctor", "engine:access"), listOf("treatment"), false, "proposed")
     val POST_CLINICAL_PROMS = Route("postClinicalProms", "POST", "/v1/clinical/proms", "/v1/clinical/proms", 1, "clinical", listOf("patient"), listOf("treatment"), false, "proposed")
     val POST_SAFETY_CHECKINS = Route("postSafetyCheckins", "POST", "/v1/safety/checkins", "/v1/safety/checkins", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "proposed")
-    val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND = Route("postSafetyCheckinsByCheckinRefExtend", "POST", "/v1/safety/checkins/{checkinRef}/extend", "/v1/safety/checkins/{checkinRef}/extend", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "proposed")
-    val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_CLOSE = Route("postSafetyCheckinsByCheckinRefClose", "POST", "/v1/safety/checkins/{checkinRef}/close", "/v1/safety/checkins/{checkinRef}/close", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "proposed")
+    val GET_SAFETY_CHECKINS = Route("getSafetyCheckins", "GET", "/v1/safety/checkins", "/v1/safety/checkins", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), false, "built")
+    val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND_V2 = Route("postSafetyCheckinsByCheckinRefExtendV2", "POST", "/v1/safety/checkins/{checkinRef}/extend", "/v1/safety/checkins/{checkinRef}/extend", 2, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "built")
+    val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_SAFE = Route("postSafetyCheckinsByCheckinRefSafe", "POST", "/v1/safety/checkins/{checkinRef}/safe", "/v1/safety/checkins/{checkinRef}/safe", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "built")
+    val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_CLOSE_V2 = Route("postSafetyCheckinsByCheckinRefCloseV2", "POST", "/v1/safety/checkins/{checkinRef}/close", "/v1/safety/checkins/{checkinRef}/close", 2, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "built")
+    val POST_SAFETY_OVERDUE_CHECKINS_BY_CHECKIN_REF_PICK_UP = Route("postSafetyOverdueCheckinsByCheckinRefPickUp", "POST", "/v1/safety/overdue-checkins/{checkinRef}/pick-up", "/v1/safety/overdue-checkins/{checkinRef}/pick-up", 1, "safety", listOf("operator"), listOf("dispatch"), true, "built")
+    val POST_SAFETY_OVERDUE_CHECKINS_BY_CHECKIN_REF_CLOSE = Route("postSafetyOverdueCheckinsByCheckinRefClose", "POST", "/v1/safety/overdue-checkins/{checkinRef}/close", "/v1/safety/overdue-checkins/{checkinRef}/close", 1, "safety", listOf("operator"), listOf("dispatch"), true, "built")
     val POST_SAFETY_PANICS = Route("postSafetyPanics", "POST", "/v1/safety/panics", "/v1/safety/panics", 1, "safety", listOf("nurse", "locum", "responder", "courier"), listOf("emergency"), true, "built")
+    val POST_SAFETY_PANICS_BY_PANIC_REF_PICK_UP = Route("postSafetyPanicsByPanicRefPickUp", "POST", "/v1/safety/panics/{panicRef}/pick-up", "/v1/safety/panics/{panicRef}/pick-up", 1, "safety", listOf("operator"), listOf("emergency"), true, "built")
+    val POST_SAFETY_PANICS_BY_PANIC_REF_RESOLVE = Route("postSafetyPanicsByPanicRefResolve", "POST", "/v1/safety/panics/{panicRef}/resolve", "/v1/safety/panics/{panicRef}/resolve", 1, "safety", listOf("operator"), listOf("emergency"), true, "built")
+    val GET_SAFETY_PANICS_BY_PANIC_REF_POSITION = Route("getSafetyPanicsByPanicRefPosition", "GET", "/v1/safety/panics/{panicRef}/position", "/v1/safety/panics/{panicRef}/position", 1, "safety", listOf("operator"), listOf("emergency"), false, "built")
+    val GET_SAFETY_DESK_QUEUE = Route("getSafetyDeskQueue", "GET", "/v1/safety/desk-queue", "/v1/safety/desk-queue", 1, "safety", listOf("operator"), listOf("emergency", "dispatch"), false, "built")
     val GET_SAFETY_SETTINGS_V2 = Route("getSafetySettingsV2", "GET", "/v1/safety/settings", "/v1/safety/settings", 2, "safety", listOf("admin", "operator"), listOf("audit"), false, "built")
     val POST_SAFETY_SETTING_CHANGES_V2 = Route("postSafetySettingChangesV2", "POST", "/v1/safety/setting-changes", "/v1/safety/setting-changes", 2, "safety", listOf("admin", "operator"), listOf("audit"), true, "built")
     val POST_SAFETY_SOS = Route("postSafetySos", "POST", "/v1/safety/sos", "/v1/safety/sos", 1, "safety", listOf("patient", "caregiver"), listOf("emergency"), true, "proposed")
@@ -273,9 +281,17 @@ object ApisData {
         POST_CLINICAL_GUIDANCE,
         POST_CLINICAL_PROMS,
         POST_SAFETY_CHECKINS,
-        POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND,
-        POST_SAFETY_CHECKINS_BY_CHECKIN_REF_CLOSE,
+        GET_SAFETY_CHECKINS,
+        POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND_V2,
+        POST_SAFETY_CHECKINS_BY_CHECKIN_REF_SAFE,
+        POST_SAFETY_CHECKINS_BY_CHECKIN_REF_CLOSE_V2,
+        POST_SAFETY_OVERDUE_CHECKINS_BY_CHECKIN_REF_PICK_UP,
+        POST_SAFETY_OVERDUE_CHECKINS_BY_CHECKIN_REF_CLOSE,
         POST_SAFETY_PANICS,
+        POST_SAFETY_PANICS_BY_PANIC_REF_PICK_UP,
+        POST_SAFETY_PANICS_BY_PANIC_REF_RESOLVE,
+        GET_SAFETY_PANICS_BY_PANIC_REF_POSITION,
+        GET_SAFETY_DESK_QUEUE,
         GET_SAFETY_SETTINGS_V2,
         POST_SAFETY_SETTING_CHANGES_V2,
         POST_SAFETY_SOS,
@@ -1004,19 +1020,56 @@ object ApisData {
         val checkinRef: String,
         val dueAt: String
     )
-    data class PostSafetyCheckinsByCheckinRefExtendRequest(
+    data class GetSafetyCheckinsRequest(
+        val appointmentRef: String
+    )
+    data class GetSafetyCheckinsResponse(
+        val checkinRef: String,
+        val stateCode: String,
+        val dueAt: String,
+        val settingsVersion: Int,
+        val extensionMinutesLeft: Int,
+        val extensionStepsOffered: List<String>,
+        val saidSafeAt: String? = null
+    )
+    data class PostSafetyCheckinsByCheckinRefExtendV2Request(
         val idempotencyKey: String,
         val checkinRef: String,
-        val extraMinutes: Int
+        val extraMinutes: Int,
+        val reasonCode: String? = null
     )
-    data class PostSafetyCheckinsByCheckinRefExtendResponse(
-        val dueAt: String
+    data class PostSafetyCheckinsByCheckinRefExtendV2Response(
+        val dueAt: String,
+        val extensionMinutesLeft: Int
     )
-    data class PostSafetyCheckinsByCheckinRefCloseRequest(
+    data class PostSafetyCheckinsByCheckinRefSafeRequest(
         val idempotencyKey: String,
         val checkinRef: String
     )
-    data class PostSafetyCheckinsByCheckinRefCloseResponse(
+    data class PostSafetyCheckinsByCheckinRefSafeResponse(
+        val saidSafeAt: String,
+        val dueAt: String
+    )
+    data class PostSafetyCheckinsByCheckinRefCloseV2Request(
+        val idempotencyKey: String,
+        val checkinRef: String
+    )
+    data class PostSafetyCheckinsByCheckinRefCloseV2Response(
+        val closedAt: String
+    )
+    data class PostSafetyOverdueCheckinsByCheckinRefPickUpRequest(
+        val idempotencyKey: String,
+        val checkinRef: String
+    )
+    data class PostSafetyOverdueCheckinsByCheckinRefPickUpResponse(
+        val pickedUpAt: String
+    )
+    data class PostSafetyOverdueCheckinsByCheckinRefCloseRequest(
+        val idempotencyKey: String,
+        val checkinRef: String,
+        val reasonCode: String? = null
+    )
+    data class PostSafetyOverdueCheckinsByCheckinRefCloseResponse(
         val closedAt: String
     )
     data class PostSafetyPanicsRequest(
@@ -1027,6 +1080,33 @@ object ApisData {
     data class PostSafetyPanicsResponse(
         val panicRef: String,
         val locationShareEndsAt: String
+    )
+    data class PostSafetyPanicsByPanicRefPickUpRequest(
+        val idempotencyKey: String,
+        val panicRef: String
+    )
+    data class PostSafetyPanicsByPanicRefPickUpResponse(
+        val pickedUpAt: String
+    )
+    data class PostSafetyPanicsByPanicRefResolveRequest(
+        val idempotencyKey: String,
+        val panicRef: String,
+        val outcomeCode: String? = null
+    )
+    data class PostSafetyPanicsByPanicRefResolveResponse(
+        val resolvedAt: String,
+        val sharingEndedAt: String
+    )
+    data class GetSafetyPanicsByPanicRefPositionRequest(
+        val panicRef: String
+    )
+    data class GetSafetyPanicsByPanicRefPositionResponse(
+        val sharingEndsAt: String,
+        val position: Map<String, Any?>? = null
+    )
+    class GetSafetyDeskQueueRequest
+    data class GetSafetyDeskQueueResponse(
+        val items: List<Map<String, Any?>>
     )
     class GetSafetySettingsV2Request
     data class GetSafetySettingsV2Response(

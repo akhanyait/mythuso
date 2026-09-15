@@ -96,6 +96,7 @@ enum EventsData {
     static let guidanceDeliveredV1 = EventKey("guidance.delivered", 1, "clinical")
     static let checkinOverdueV1 = EventKey("checkin.overdue", 1, "safety")
     static let panicRaisedV1 = EventKey("panic.raised", 1, "safety")
+    static let panicResolvedV1 = EventKey("panic.resolved", 1, "safety")
     static let sosRaisedV1 = EventKey("sos.raised", 1, "safety")
     static let nokNotifiedV1 = EventKey("nok.notified", 1, "safety")
     static let sentinelRungRaisedV1 = EventKey("sentinel.rung_raised", 1, "safety")
@@ -209,6 +210,7 @@ enum EventsData {
         guidanceDeliveredV1,
         checkinOverdueV1,
         panicRaisedV1,
+        panicResolvedV1,
         sosRaisedV1,
         nokNotifiedV1,
         sentinelRungRaisedV1,

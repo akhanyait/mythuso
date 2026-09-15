@@ -226,7 +226,7 @@
    "neverCarries": [
     { "field": "findings", "why": "What the nurse found is the encounter. The event says the encounter exists and where; it does not repeat it." }
    ],
-   "subscribers": ["core", "record", "trust", "access"]
+   "subscribers": ["core", "record", "trust", "access", "safety"]
   },
   {
    "type": "appointment.no_show", "version": 1, "owner": "care",
@@ -996,6 +996,22 @@
     { "field": "liveLocation", "why": "A position stream is not an event." }
    ],
    "subscribers": ["core", "care", "movement"]
+  },
+  {
+   "type": "panic.resolved", "version": 1, "owner": "safety",
+   "summary": "A person at the desk resolved a panic with what happened, and the desk stopped seeing the nurse's position.",
+   "alert": true,
+   "payload": [
+    { "field": "panicRef", "type": "string", "required": true, "why": "The panic resolved, as panic.raised@1 named it." },
+    { "field": "outcomeCode", "type": "string", "required": true, "why": "What happened, an id from packages/catalog/field-safety.json outcomes. A code and never a description, because a description of a nurse's emergency on the bus is in every subscriber's log. Core closes the concern it opened for the panic with it, and the outcome itself stays on the panic in Safety's store." },
+    { "field": "sharingEndedAt", "type": "instant", "required": true, "why": "When the desk stopped seeing her position: the resolution, or the window if it had already ended." }
+   ],
+   "neverCarries": [
+    { "field": "position", "why": "Where she was is shown to the desk while the window is open and is kept nowhere, the bus included." },
+    { "field": "clinicalDetail", "why": "A panic is about the nurse. What the visit was for is clinical, and nothing about the patient or the service reaches the bus from the desk." }
+   ],
+   "subscribers": ["core"],
+   "_subscribersNote": "Core, because it opened a concern for the panic when it heard panic.raised@1, alerting every post on duty, and that concern stands down only when a person resolved the panic. Care and Movement hear panic.raised@1 and bind nothing that a resolution would undo, so neither is listed: the contract refuses an event nobody reads, and a subscriber that acts on nothing is one."
   },
   {
    "type": "sos.raised", "version": 1, "owner": "safety",

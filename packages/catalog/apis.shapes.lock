@@ -75,3 +75,5 @@ GET /v1/care/settings@1 1987a9292e3e1911
 GET /v1/safety/settings@2 7fe01fe50479cc19
 GET /v1/money/settings@1 50f99e1f32406ec2
 POST /v1/care/sync-batches@2 25e913f326a7ff96
+GET /v1/safety/panics/{panicRef}/position@1 5eb8e3b227f0e7a8
+GET /v1/safety/desk-queue@1 0fe814590c296860
