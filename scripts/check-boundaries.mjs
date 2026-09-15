@@ -8888,6 +8888,21 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
    if (sentence !== r.statement) throw new Error(`${key} declares "${r.id}" in words the Passport does not answer with. A caller is shown the gateway's sentence, so the route declares it word for word: ${JSON.stringify(sentence)}.`);
   }
  }
+ /* A refusal the handler returns and its route does not declare is one a caller cannot read in the contract. So each
+    P1 route's gateway method refuses directly only what its route declares, or a shared refusal every route answers
+    without declaring it. The missing idempotency key on a link's use is the shared idempotency-key-required, answered
+    in the Passport's own sentence, as P0's purpose-not-allowed already was; whether the Passport keeps its own words
+    for a shared id is left open for the integrator rather than decided by a finisher. */
+ const p1Methods = { 'POST /share/link@2': 'createLink', 'POST /v1/record/share-link-opens@1': 'openLink', 'POST /v1/record/share-link-revocations@1': 'revokeLink', 'POST /export@2': 'exportRecord' };
+ const sharedRefusalIds = apisForLinks.sharedRefusals.map(s => s.id);
+ for (const [key, method] of Object.entries(p1Methods)) {
+  const start = gatewayForP1.indexOf(`\n ${method}(`);
+  if (start < 0) throw new Error(`apps/passport/src/gateway.ts has no ${method}, which answers ${key}.`);
+  const next = gatewayForP1.slice(start + 1).search(/\n [a-zA-Z#]\w*\(/);
+  const body = gatewayForP1.slice(start, next < 0 ? undefined : start + 1 + next);
+  const declared = recordApi.routes.find(r => `${r.method} ${r.path}@${r.version}` === key).refusals.map(r => r.id);
+  for (const [, id] of body.matchAll(/#refuse\(\d+,\s*'([\w-]+)'/g)) if (!declared.includes(id) && !sharedRefusalIds.includes(id)) throw new Error(`apps/passport/src/gateway.ts ${method} refuses "${id}", which ${key} does not declare and no shared refusal names. A caller reads what a route refuses in its contract: declare it in a new version of the route, or refuse in words the route already declares.`);
+ }
  const appForP1 = read('apps/web/src/App.tsx');
  for (const screen of ['sharing', 'card', 'log']) if (!appForP1.includes(`page === '${sharing.screens[screen].route}'`)) throw new Error(`apps/web/src/App.tsx does not route "${sharing.screens[screen].route}", the name packages/catalog/passport-sharing.json gives the ${screen} screen, so its doors open nothing.`);
  /* Resolved, not matched as text. The first version matched the words features/PassportSharing and so let a relative
