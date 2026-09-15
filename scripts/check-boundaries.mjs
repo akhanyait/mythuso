@@ -1402,16 +1402,139 @@ for(const {source,command,files} of generated) {
    default: return [];
   }
  };
- /* The handler as written: an identity-service route runs to the next routes.set, a Passport form to the
-    next top-level branch. The mechanism has to be visible in it. */
- const handlerBlock = r => {
-  if (!r.evidence?.file || !existsSync(r.evidence.file)) return '';
-  const source = read(r.evidence.file);
-  const at = source.indexOf(r.evidence.handler);
+ /* What a built route's handler enforces, worked out rather than recognised. The fourth review found the
+    check believed enforcedBy whenever one of the mechanism's marks appeared anywhere in the handler's text:
+    vetting-capability accepted vetting!., which every vault call contains, so GET /v1/trust/standing — asParty
+    and then the caller's own standing — passed when it was declared an admin route. And an identity-service
+    block ran to the next routes.set, so a helper defined between two routes lent its guard to the route
+    before it. Now the block is the handler for this exact route and nothing after it, and what it enforces
+    is read from what it calls: the capability the operator guard checks, whether a gate call can admit the
+    subject (a purpose from actorFor or subject-access, an operation the gate lets a subject perform on
+    their own record, no refusal of self before it), the operation a vault method asks the gate for and
+    whether it refuses a party acting on itself, the grant roles a Passport gateway method admits, the
+    loopback prefix the server holds, and the module the engine runtime binds. enforcedBy must say exactly
+    that, and a built route whose enforcement cannot be worked out is refused. */
+ for (const m of apiContract.enforcementMechanisms) {
+  if (m.handlerMarks !== undefined || m.forbiddenMarks !== undefined || m.pathPrefix !== undefined) throw new Error(`packages/catalog/apis.json still describes the ${m.id} mechanism by marks to look for. A mark that appears somewhere in a handler is not the handler enforcing it; say what the check works out, in extractedFrom.`);
+  if (!m.extractedFrom?.trim()) throw new Error(`packages/catalog/apis.json does not say what the check works out from a handler before it believes the ${m.id} mechanism.`);
+ }
+ const identitySource = read('apps/api/src/server.ts');
+ const vaultSource = read('apps/api/src/vetting/index.ts');
+ const gateSource = read('apps/api/src/protection/gate.ts');
+ const passportServerSource = read('apps/passport/src/server.ts');
+ const gatewaySource = read('apps/passport/src/gateway.ts');
+ const operatorCapability = (identitySource.match(/const asOperator = [\s\S]*?held\.actor\.grants\.includes\('([^']+)'\)/) ?? [])[1] ?? null;
+ const loopbackPrefix = (identitySource.match(/startsWith\('([^']+)'\) && !LOOPBACK\.has\(caller\.address\)/) ?? [])[1] ?? null;
+ const vaultCapability = (vaultSource.match(/^const CAPABILITY = '([^']+)';/m) ?? [])[1] ?? null;
+ const selfOperations = new Set([...((gateSource.match(/const SELF_OPERATIONS[^=]*= new Set\(\[([^\]]*)\]\)/) ?? [])[1] ?? '').matchAll(/'([^']+)'/g)].map(m => m[1]));
+ if (!operatorCapability || !loopbackPrefix || !vaultCapability || !selfOperations.size) throw new Error("scripts/check-boundaries.mjs can no longer read what the identity service enforces — the operator guard's capability, the loopback prefix, the vault's capability or the gate's self operations — so no built route's enforcement can be worked out.");
+ const { grantScopeRefusal: passportScopeRefusal, roleRule: passportRoleRule, isProtectedCategory: passportIsProtected, GATEWAY: passportGatewayContract } = await import('../apps/passport/src/contract.ts');
+ /* A class method's body: from its declaration at one space of indentation to its closing brace. */
+ const classBody = (source, name) => {
+  const at = source.search(new RegExp(`\\n ${name.replace(/[#$]/g, '\\$&')}\\(`));
   if (at < 0) return '';
-  const rest = source.slice(at + r.evidence.handler.length);
-  const next = r.evidence.file === 'apps/api/src/server.ts' ? rest.search(/routes\.set\(/) : rest.search(/\n  (if \(|return refuse\(res, 404)/);
-  return r.evidence.handler + (next < 0 ? rest : rest.slice(0, next));
+  const end = source.indexOf('\n }\n', at + 1);
+  return source.slice(at, end < 0 ? undefined : end);
+ };
+ /* An identity-service handler: its routes.set line to its own closing line at the same indentation. */
+ const identityHandler = r => {
+  const at = identitySource.indexOf(r.evidence.handler);
+  if (at < 0) return '';
+  const firstLineEnd = identitySource.indexOf('\n', at);
+  if (!identitySource.slice(at, firstLineEnd).trimEnd().endsWith('{')) return identitySource.slice(at, firstLineEnd);
+  const close = identitySource.slice(firstLineEnd).search(/\n {2}\}/);
+  return identitySource.slice(at, close < 0 ? undefined : firstLineEnd + close + 4);
+ };
+ const vaultRefusesSelf = method => /if \((?:request\.)?actor\.id === [^)]+\)\s*(?:\{\s*)?return\b/.test(classBody(vaultSource, method));
+ const vaultOperations = method => [...classBody(vaultSource, method).matchAll(/this\.#request\([^;]*?'(read|self-service|administrative)'\)/g)].map(m => m[1]);
+ const identityEnforcement = r => {
+  const handler = identityHandler(r);
+  if (!handler) return null;
+  const path = (r.evidence.handler.match(/routes\.set\('\w+ ([^']+)'/) ?? [])[1] ?? '';
+  const acceptor = (mechanisms.get('supplier-callback')?.acceptors ?? []).find(a => handler.includes(a.call));
+  if (acceptor) return { mechanism: 'supplier-callback', supplier: acceptor.supplier };
+  if (path.startsWith(loopbackPrefix)) return /asParty\(req, res\)|signedIn\(req, res\)/.test(handler) ? null : { mechanism: 'loopback' };
+  const operator = /asOperator\(req, res, '/.test(handler);
+  const granted = (handler.match(/held\.actor\.grants\.includes\('([^']+)'\)/) ?? [])[1];
+  if (/incident\.openedBy === held\.actor\.party\.id/.test(handler)) return granted && (!operator || operatorCapability === granted) ? { mechanism: 'vetting-capability-or-reporter', capability: granted } : null;
+  if (operator) return { mechanism: 'vetting-capability', capability: operatorCapability };
+  if (/asParty\(req, res\)/.test(handler)) {
+   const gate = handler.match(/gate\.access\(\{([^}]*)\}\)/);
+   if (gate) {
+    const capability = (gate[1].match(/capability: '([^']+)'/) ?? [])[1];
+    if (!capability) return null;
+    const operation = (gate[1].match(/operation: '([^']+)'/) ?? [])[1] ?? 'administrative';
+    const bySubject = /purpose: (?:'subject-access'|held\.actor\.actorFor\()/.test(gate[1]);
+    const refusesSelf = /if \(\w+ === held\.actor\.party\.id\)[\s\S]{0,800}?return send\(res, 403/.test(handler);
+    return { mechanism: bySubject && selfOperations.has(operation) && !refusesSelf ? 'vetting-capability-or-self' : 'vetting-capability', capability };
+   }
+   const vault = (handler.match(/vetting!\.(\w+)\(\{?\s*(?:actor: )?held\.actor\.actorFor\(/) ?? [])[1];
+   if (vault) return { mechanism: !vaultRefusesSelf(vault) && vaultOperations(vault).some(op => selfOperations.has(op)) ? 'vetting-capability-or-self' : 'vetting-capability', capability: vaultCapability };
+   if (/vetting!\.standing\(held\.actor\.party\.id\)/.test(handler) && !/queryOf\(req\)|body\.partyId|body\.id\b/.test(handler)) return { mechanism: 'vetting-register-self' };
+   return { mechanism: 'vetting-register' };
+  }
+  if (/signedIn\(req, res\)|identity\.resolve\(readCookie\(req\.headers\.cookie, COOKIE\)\)/.test(handler)) return { mechanism: 'identity-session' };
+  if (/tokenFor\(|requesterOf\(/.test(handler)) return null;
+  return { mechanism: 'anonymous' };
+ };
+ /* A Passport statement: the branch that answers this method and path, and whether a grant requester is in hand. */
+ const passportStatement = r => {
+  const segments = r.path.split('/').filter(Boolean);
+  let at = -1;
+  if (segments[0] === 'fhir') {
+   const branch = passportServerSource.indexOf("parts[0] === 'fhir'");
+   const offset = branch < 0 ? -1 : passportServerSource.slice(branch).indexOf(`method === '${r.method}' && parts.length === ${segments.length}`);
+   at = offset < 0 ? -1 : branch + offset;
+  } else {
+   /* The contract's path is the mounted one, and the server's condition is what the evidence names. Of
+      the lines that hold that condition, the one that also names this method is this route's: the first
+      mention of /summary/emergency is the FHIR branch opening, not the GET that answers it. */
+   const occurrences = [];
+   for (let i = passportServerSource.indexOf(r.evidence.handler); i >= 0; i = passportServerSource.indexOf(r.evidence.handler, i + 1)) occurrences.push(i);
+   const lineOf = i => passportServerSource.slice(passportServerSource.lastIndexOf('\n', i) + 1, passportServerSource.indexOf('\n', i));
+   at = occurrences.find(i => lineOf(i).includes(`method === '${r.method}'`)) ?? occurrences[0] ?? -1;
+  }
+  if (at < 0) return null;
+  const start = passportServerSource.lastIndexOf('\n', at) + 1;
+  const lineEnd = passportServerSource.indexOf('\n', at);
+  const opener = passportServerSource.slice(start, lineEnd);
+  const indent = opener.match(/^ */)[0];
+  let text = opener;
+  if (opener.trimEnd().endsWith('{')) {
+   const close = passportServerSource.slice(lineEnd).search(new RegExp(`\\n${indent}\\}`));
+   text = passportServerSource.slice(start, close < 0 ? undefined : lineEnd + close + 1 + indent.length + 1);
+  }
+  const enclosing = indent.length > 2 ? passportServerSource.slice(passportServerSource.lastIndexOf('\n  if (', start), start) : '';
+  return { text, withRequester: /requesterOf\(req\)/.test(text) || /const requester = requesterOf\(req\);/.test(enclosing) };
+ };
+ const passportEnforcement = r => {
+  const statement = passportStatement(r);
+  if (!statement) return null;
+  const token = (statement.text.match(/tokenFor\(req, '(\w+)'\)/) ?? [])[1];
+  if (token) return ({ Developer: { mechanism: 'development-token' }, Patient: { mechanism: 'passport-patient-session' }, Operator: { mechanism: 'operator-credential' } })[token] ?? null;
+  const method = (statement.text.match(/gateway\.(\w+)\(requester\b/) ?? [])[1];
+  if (!method || !statement.withRequester) return null;
+  const body = classBody(gatewaySource, method);
+  if (!body) return null;
+  const hold = /this\.#hold\(/.test(body) ? classBody(gatewaySource, '#hold') : '';
+  const refusedReads = new Set([...`${body}\n${hold}`.matchAll(/reads === '([a-z-]+)'\)\s*return/g)].map(m => m[1]));
+  const writable = /!held\.held\.role\.writes\)\s*return/.test(body);
+  const scope = /grant\.scope\.includes\(GATEWAY\.emergencySummary\.openedBy\)\)\s*return/.test(body) ? passportGatewayContract.emergencySummary.openedBy : null;
+  const roles = grantRolesForApis.filter(role => !refusedReads.has(role.gateway.reads) && (!writable || role.gateway.writes === true) && (!scope || passportScopeRefusal(passportRoleRule(role.id), [scope], passportIsProtected(scope)) === null)).map(role => role.id);
+  return { mechanism: 'passport-grant', callers: [...(/requester\.kind === 'patient'/.test(body) ? ['patient'] : []), ...roles] };
+ };
+ const enginesEnforcement = async r => {
+  if (!r.evidence.file.startsWith(`packages/engines/src/${r.engine}/`)) return null;
+  let module;
+  try { module = await import(`../${r.evidence.file}`); } catch { return null; }
+  return module.engine?.id === r.engine && typeof module.engine.routes?.[routeKey(r)] === 'function' ? { mechanism: 'engines-runtime:callers' } : null;
+ };
+ const extractEnforcement = async r => {
+  if (!r.evidence?.file || !existsSync(r.evidence.file)) return null;
+  if (r.evidence.file === 'apps/api/src/server.ts') return identityEnforcement(r);
+  if (r.evidence.file === 'apps/passport/src/server.ts') return passportEnforcement(r);
+  if (r.evidence.file.startsWith('packages/engines/src/')) return enginesEnforcement(r);
+  return null;
  };
  const contractIds = new Map(apiContract.contractIds.map(c => {
   if (!existsSync(c.contract)) throw new Error(`packages/catalog/apis.json declares ${c.field} as an entry in ${c.contract}, which does not exist.`);
@@ -1604,20 +1727,27 @@ for(const {source,command,files} of generated) {
    const mechanism = mechanisms.get(enforced?.mechanism);
    if (!mechanism) fail('built-callers-are-enforced', `${where} is built and does not say, in enforcedBy, how its handler decides who may call it.`);
    if (enforced.capability !== undefined && !vettingForApis.capabilities.some(c => c.id === enforced.capability)) throw new Error(`${where} is enforced by the capability "${enforced.capability}", which packages/catalog/vetting.json does not have.`);
-   const derived = deriveCallers(enforced, r);
-   if (derived.length !== r.callers.length || !derived.every(c => r.callers.includes(c))) fail('built-callers-are-enforced', `${where} names the callers ${JSON.stringify([...r.callers].sort())}, and its handler's ${enforced.mechanism} admits ${JSON.stringify([...derived].sort())}.`);
+   /* The handler exists first: nothing can be worked out from a handler that is not there. */
+   if (!r.evidence?.file || !existsSync(r.evidence.file) || !read(r.evidence.file).includes(r.evidence.handler ?? '\0')) fail('built-means-a-handler-exists', `${where} is marked built, and ${r.evidence?.file ?? 'no file'} does not hold ${JSON.stringify(r.evidence?.handler)}.`);
    if (r.enforcement === 'missing') {
     if (!r.finding?.trim()) throw new Error(`${where} says its enforcement is missing without the finding.`);
     missingEnforcement.push(`${where}: ${r.finding}`);
    } else if (r.enforcement !== undefined) {
     throw new Error(`${where} has the enforcement ${JSON.stringify(r.enforcement)}; it is missing or absent.`);
    } else {
-    const block = handlerBlock(r);
-    if (mechanism.handlerMarks?.length && !mechanism.handlerMarks.some(mark => block.includes(mark))) fail('built-callers-are-enforced', `${where} says its handler enforces ${enforced.mechanism}, and ${r.evidence?.file} shows none of ${JSON.stringify(mechanism.handlerMarks)} in it.`);
-    const asks = (mechanism.forbiddenMarks ?? []).find(mark => block.includes(mark));
-    if (asks) fail('built-callers-are-enforced', `${where} says anybody may call it, and its handler asks for ${asks}.`);
-    if (mechanism.pathPrefix && !String(r.evidence?.handler).includes(mechanism.pathPrefix)) fail('built-callers-are-enforced', `${where} says it is answered on loopback only, and its handler is not under ${mechanism.pathPrefix}.`);
+    /* Worked out before the callers are compared, so a declaration that is wrong about the handler is
+       caught as exactly that, not only when its callers happen to disagree as well. */
+    const found = await extractEnforcement(r);
+    if (!found) fail('built-callers-are-enforced', `${where} is built and says its handler enforces ${enforced.mechanism}, and nothing in the handler for this route in ${r.evidence.file} can be worked out as enforcing any mechanism. A built route's enforcement is read from its handler, not taken on trust.`);
+    const said = e => [e.mechanism, e.capability && `capability ${e.capability}`, e.supplier && `supplier ${e.supplier}`].filter(Boolean).join(', ');
+    if (found.mechanism !== enforced.mechanism || (found.capability ?? null) !== (enforced.capability ?? null) || (found.supplier ?? null) !== (enforced.supplier ?? null)) fail('built-callers-are-enforced', `${where} says its handler enforces ${said(enforced)}, and the handler for this route enforces ${said(found)}.`);
+    if (found.callers) {
+     const stated = deriveCallers(enforced, r);
+     if (found.callers.length !== stated.length || !found.callers.every(c => stated.includes(c))) fail('built-callers-are-enforced', `${where} says its grant admits ${JSON.stringify([...stated].sort())}, and the gateway method this route calls admits ${JSON.stringify([...found.callers].sort())}.`);
+    }
    }
+   const derived = deriveCallers(enforced, r);
+   if (derived.length !== r.callers.length || !derived.every(c => r.callers.includes(c))) fail('built-callers-are-enforced', `${where} names the callers ${JSON.stringify([...r.callers].sort())}, and its handler's ${enforced.mechanism} admits ${JSON.stringify([...derived].sort())}.`);
    if (!r.evidence?.file || !existsSync(r.evidence.file) || !read(r.evidence.file).includes(r.evidence.handler ?? ' ')) fail('built-means-a-handler-exists', `${where} is marked built, and ${r.evidence?.file ?? 'no file'} does not hold ${JSON.stringify(r.evidence?.handler)}.`);
   } else if (r.status !== 'proposed' || r.evidence) throw new Error(`${where} has the status "${r.status}"${r.evidence ? ' and evidence, which only a built route has' : ''}.`);
   if (r.status !== 'built' && (r.enforcedBy || r.enforcement || r.finding)) throw new Error(`${where} is proposed and claims an enforcement; only a built route has a handler that enforces anything.`);
