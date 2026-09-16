@@ -1,0 +1,159 @@
+{
+ "_note": "Households, sponsorships and bill splits: the three arrangements a family makes around one person's care, and the one thing none of them is. Access's contract for them, beside packages/catalog/apis/access.json, which holds every route and every refusal sentence with its status, and packages/catalog/programmes.json, which owns every word about what a sponsor sees and never sees. Read by packages/engines/src/access/domain/household.ts, sponsorship.ts and bill-split.ts and by the web; the sentences a phone renders are generated into Swift and Kotlin by scripts/emit-household.mjs. Nothing here is a real service: no household exists, nobody is added to one, no sponsorship is agreed, no share is accepted and nothing is charged.",
+ "_honestyNote": "The valuable half of this file is what an arrangement never becomes. A household is a roster: a list of references, saying who is in it and who put them there, and it opens nobody's record — not the member's, not the person who added them, not a nurse's. A sponsorship is a payment: what was paid, when and how much, and the service only where the person being paid for has switched that on herself. A bill split is an amount cut into shares each payer accepts for themselves, and no payer learns anything about the care they are paying for. None of these is a screen's good manners; each is a refusal on a route, arithmetic in a response shape, and a check on the build.",
+ "_noGuardianAuthority": "Nothing here proves that one adult may act for another. docs/PRIVACY-AND-SECURITY.md records that guardian authority is absent and why — a birth certificate, an adoption order or a court order verified against Home Affairs or a court, none of which MyThuso can reach — and a roster that granted authority by listing somebody would be exactly the assertion-as-proof that document refuses. So a membership carries no relationship, no authority and no scope, and adding one changes nothing about who may open what.",
+
+ "membership": {
+  "refusal": { "id": "membership-is-not-consent", "on": ["POST /v1/access/households@1", "POST /v1/access/household-memberships@1"] },
+  "recordSays": { "contract": "packages/catalog/records.json", "record": "household", "field": "summary" },
+  "why": "The refusal sentence is the route's, in packages/catalog/apis/access.json, and the record's sentence is packages/catalog/records.json's. Neither is copied here: this file names where each lives so that a reworded sentence is reworded once. The two say the same thing from two sides — the route refuses the act, the record describes the state.",
+  "holds": [
+   { "field": "householdRef", "why": "Which household. Access's own reference, and nothing a person is called." },
+   { "field": "memberSubjectRef", "why": "Who is in it, as an opaque reference to an account." },
+   { "field": "addedBySubjectRef", "why": "Who put them on the roster. A roster with no author is a roster nobody can question." },
+   { "field": "addedOnDay", "why": "The day it was added, in Johannesburg. A roster line with no date cannot be read as history." }
+  ],
+  "neverHolds": [
+   { "field": "a name, a number or an address", "why": "A roster that carried them would be a directory of a family, and a directory is worth stealing. A reference is not." },
+   { "field": "a relationship", "why": "Mother, son, guardian: each of those reads as authority, and no authority is proven here." },
+   { "field": "a scope, a grant, a purpose or an expiry", "why": "Those are the parts of a consent grant, which packages/catalog/consent.json owns and the person themselves makes. A membership that could carry one would be a grant under another name." },
+   { "field": "anything clinical", "why": "A household is an arrangement of accounts. Health information reaches nobody through it." }
+  ],
+  "grantFieldWords": ["scope", "scopes", "grant", "grants", "granted", "consent", "consents", "permission", "permissions", "access", "allow", "allowed", "share", "shares", "shared", "sharing", "record", "records", "category", "categories", "read", "reads", "view", "clinical", "diagnosis", "expires", "expiry", "until"],
+  "grantFieldWordsWhy": "A request that adds somebody to a household and carries a scope, a grant or an expiry beside them is asking for the roster to be a permission. It is refused by the words of its name, before anything is keyed, rather than having the field quietly dropped — because a dropped field is a field somebody believes worked. The route declares no such field, so an attempt arrives undeclared and is answered with membership-is-not-consent.",
+  "rosterIsInformation": "A household is listed only to the people in it. Who lives with whom is a fact about all of them, so a roster is never read by somebody outside it, and a refusal says so rather than answering with an empty list."
+ },
+
+ "sponsorship": {
+  "wordsFrom": { "contract": "packages/catalog/programmes.json", "sees": "sponsor.sees", "neverSees": "sponsor.neverSees", "lineDetail": "sponsor.lineDetail", "consent": "sponsor.consent", "rule": "rules#paying-is-not-permission", "refusal": "refusals#require-the-detail" },
+  "wordsFromWhy": "Every sentence about what a sponsor sees, never sees, and cannot make a condition of paying is already written in packages/catalog/programmes.json, and the back office has rendered them since before this route existed. They are pointed at, never copied. What this file adds is the shape the reference takes: a sponsorship names a household membership rather than a person.",
+  "holds": [
+   { "field": "sponsorshipRef", "why": "Access's own reference for the arrangement." },
+   { "field": "householdRef", "why": "The household the person being paid for belongs to. The sponsorship is bound to a membership, never to a typed name." },
+   { "field": "sponsoredSubjectRef", "why": "Whose care is paid for: a member of that household, as an opaque reference." },
+   { "field": "payerSubjectRef", "why": "Who pays. Vetted as a sponsor before they pay anything, which is where packages/catalog/vetting.json's sponsor-care refusal is read to them." },
+   { "field": "stateCode", "why": "offered, agreed or stopped. A sponsorship starts when the person being paid for says yes, and never because somebody offered." },
+   { "field": "lineDetailId", "why": "Which of programmes.json's two line details the recipient has switched on for this sponsor. Hers, never the sponsor's, and never a control on a sponsor's screen." }
+  ],
+  "neverHolds": [
+   { "field": "a diagnosis, a finding, a result or a note", "why": "Paying for a visit is not a grant. programmes.json says it in the sponsor's own words; this route has nowhere to put one." },
+   { "field": "a reason for the visit", "why": "The reason for care is the care." },
+   { "field": "anything about what happens next", "why": "‘A second visit is needed’ is a finding wearing a diary entry's clothes." }
+  ],
+  "states": [
+   { "id": "offered", "name": "Offered", "recipientWords": "Somebody has offered to pay for your visits. Nothing is paid, and nothing about your care is shared, unless you agree.", "sponsorWords": "Offered. Nothing is paid for until she agrees in her own account." },
+   { "id": "agreed", "name": "Agreed", "recipientWords": "You agreed to let this sponsorship pay for your visits. You can stop it at any time, without saying why.", "sponsorWords": "Agreed. You see what was paid, when and how much — and nothing about the care." },
+   { "id": "stopped", "name": "Stopped", "recipientWords": "You stopped it. Nothing further is paid for, and what was already paid stays paid.", "sponsorWords": "Stopped. Future payments end; care already given is not undone and nobody is billed for it." }
+  ],
+  "billingLine": {
+   "holds": ["paidOnDay", "amountCents"],
+   "serviceNamedBy": "service-named",
+   "why": "A statement line is a day and an amount. The service is added only where the recipient's line detail is service-named, which is her switch in her own account, and the route works that out before the answer is built rather than leaving a screen to hide a field it was sent. Nothing else a visit produced is in the shape at all, so there is nothing to hide."
+  },
+  "careFieldWords": ["diagnosis", "diagnoses", "condition", "conditions", "result", "results", "reading", "readings", "note", "notes", "referral", "referrals", "service", "visit", "visits", "record", "records", "summary", "finding", "findings", "clinical", "treatment", "medicine", "medicines", "prescription", "reason", "outcome", "followup"],
+  "careFieldWordsWhy": "A sponsor who sends a field asking for the service, the reason or the finding is asking to be told what the care was. programmes.json refuses that in its own words — a sponsor cannot make payment conditional on being told what the care was for — so the request is answered with the route's refusal rather than being served a shape that happens to leave the field out."
+ },
+
+ "split": {
+  "holds": [
+   { "field": "splitRef", "why": "Access's own reference for the split." },
+   { "field": "payableRef", "why": "Money's payable, named and never copied. The amount owed is Money's, out of packages/catalog/services.json through Money's own ledger; nothing here prices anything." },
+   { "field": "amountCents", "why": "What the payable owes in full, as the caller was told by Money. The shares are measured against it and nothing else." },
+   { "field": "stateCode", "why": "proposed until every payer has accepted their own share; payable once they all have." }
+  ],
+  "shareHolds": [
+   { "field": "payerSubjectRef", "why": "Who owes this share, as an opaque reference." },
+   { "field": "amountCents", "why": "What they owe, in cents." },
+   { "field": "stateCode", "why": "waiting until that person accepts it, accepted afterwards." }
+  ],
+  "states": [
+   { "id": "proposed", "name": "Proposed", "words": "The shares add up. Each person accepts their own before anything is payable." },
+   { "id": "payable", "name": "Everyone has accepted", "words": "Every share has been accepted by the person who owes it. Each is paid separately, through Money's own route." }
+  ],
+  "shareStates": [
+   { "id": "waiting", "name": "Waiting for them", "words": "Not accepted yet. Nobody is charged, and nothing is owed until they accept it themselves." },
+   { "id": "accepted", "name": "Accepted", "words": "Accepted. This share can be paid, and only by the person who accepted it." }
+  ],
+  "rules": [
+   { "id": "shares-must-total", "refusalOn": "POST /v1/access/bill-splits@2", "why": "The shares are added up and compared with the payable's own amount in cents. A split that is short leaves somebody owing an amount nobody agreed, and one that is over charges a family more than the visit cost. Neither is a rounding problem to be tidied afterwards: the split is refused." },
+   { "id": "not-your-share", "refusalOn": "POST /v1/access/bill-splits/{splitRef}/accept@1", "why": "A share is somebody else's money. Only the person who owes it accepts it, so nobody is ever committed to an amount a relative agreed to for them." },
+   { "id": "split-shows-no-care", "refusalOn": "POST /v1/access/bill-splits@2", "why": "A payer sees the amount they owe, and nothing about the visit. The response shape carries no service, no subject and nothing clinical, and a request asking for one is refused in the route's own words rather than served a shape that leaves it out." }
+  ],
+  "unacceptedIsNotOwed": {
+   "arithmetic": "packages/engines/src/access/domain/bill-split.ts#payableShares",
+   "statement": "A share nobody has accepted is not owed, so there is nothing to charge for it.",
+   "why": "This is not a refusal on a route, because no route here takes money: Money charges a share through its own payment route. It is arithmetic instead — the only shares a split offers for payment are the ones the people who owe them accepted — and a check on the build holds it there, because a rule enforced only by a disabled button is a rule until somebody writes a second screen."
+  },
+  "sharesFrom": {
+   "wholeFrom": "the payable's amountCents, which Money holds",
+   "remainder": "to the first share",
+   "why": "A preview split is written as parts rather than amounts — two adult children are one part each — and the amounts are worked out from the payable. There is nowhere in this contract to type a rand, because the price of a visit lives in packages/catalog/services.json and nowhere else. Cents do not always divide evenly by the number of payers, so the remainder goes to the first share and the total is exact by construction rather than by rounding."
+  }
+ },
+
+ "screen": {
+  "household": {
+   "heading": "Who is in this household",
+   "intro": "A roster, and only a roster. Adding somebody here puts their name on a list you both can see, and opens nothing of theirs to you and nothing of yours to them.",
+   "add": "Add someone to this household",
+   "addLabel": "Their MyThuso reference",
+   "added": "Added to the roster. Nothing of theirs opened, and nothing of yours.",
+   "addedBy": "Added by {who}",
+   "grantsNothing": "This roster grants nothing. Every clinical line on this page is still asked for twice — once of the vetting register, once of the record itself — and a household is neither.",
+   "neverHeading": "What a roster never carries",
+   "preview": "Nothing typed here is stored or sent. The roster below is a preview held in this page while it is open."
+  },
+  "sponsor": {
+   "heading": "The sponsorship, by reference",
+   "intro": "This sponsorship names a member of a household rather than a person somebody typed. What it pays for, and what it never shows, is the contract's and not this screen's.",
+   "linkedTo": "A member of household {household}",
+   "stateLabel": "Where it stands",
+   "detailLabel": "How each line reads",
+   "detailIsHers": "{who} decides this, in her own account. It is not a setting on this screen and there is no way to ask for it."
+  },
+  "split": {
+   "heading": "Split this between you",
+   "intro": "One visit's cost, cut into shares. Each person accepts their own share before anything of theirs can be paid, and nobody is told what the visit was for.",
+   "wholeLabel": "What is owed in full",
+   "shareLabel": "{who}'s share",
+   "propose": "Propose this split",
+   "accept": "Accept my share",
+   "accepted": "Accepted. Yours can be paid; the others are still theirs to accept.",
+   "allAccepted": "Everyone has accepted. Each share is paid on its own, through the payment route, and no payment carries anything about the visit.",
+   "neverHeading": "What a payer never sees",
+   "never": ["What the visit was for", "Anything a nurse or a doctor found", "Anybody else's record, in any part", "Whose visit it was, beyond the reference on the payable"],
+   "preview": "No split exists, nobody is asked to accept anything and nothing is charged."
+  }
+ },
+
+ "preview": {
+  "householdRef": "SIM-HH-PREVIEW",
+  "openedBy": "subj-preview-thando",
+  "members": [
+   { "subjectRef": "subj-preview-thando", "memberId": "thando", "name": "Thando", "addedBy": "subj-preview-thando", "addedOnDays": -420 },
+   { "subjectRef": "subj-preview-sipho", "memberId": "sipho", "name": "Sipho", "addedBy": "subj-preview-thando", "addedOnDays": -420 },
+   { "subjectRef": "subj-preview-lebo", "memberId": "lebo", "name": "Lebo", "addedBy": "subj-preview-thando", "addedOnDays": -418 },
+   { "subjectRef": "subj-preview-amahle", "memberId": "amahle", "name": "Amahle", "addedBy": "subj-preview-thando", "addedOnDays": -418 }
+  ],
+  "sponsorship": {
+   "sponsorshipRef": "SIM-SP-PREVIEW",
+   "payerSubjectRef": "subj-preview-sponsor",
+   "sponsoredSubjectRef": "subj-preview-thando",
+   "stateCode": "agreed",
+   "statementFrom": "packages/catalog/programmes.json#statement",
+   "why": "The sponsorship the back office already shows, said as a reference: the vetted sponsor in programmes.json's statement pays for a member of this household. The figures — what was set aside, and each line's day and service — stay programmes.json's, and the line detail in force is read from that statement rather than set here, because whether the service is named is the recipient's switch and the statement's own note records how she has it set."
+  },
+  "split": {
+   "splitRef": "SIM-BS-PREVIEW",
+   "payableRef": "SIM-PAY-PREVIEW",
+   "forMemberRef": "subj-preview-lebo",
+   "serviceId": "vitals",
+   "shares": [
+    { "payerSubjectRef": "subj-preview-thando", "parts": 1 },
+    { "payerSubjectRef": "subj-preview-sipho", "parts": 1 }
+   ],
+   "why": "Two adults splitting one visit's cost for a child in the same household. The amount is the catalogue's price for the service in cents; the shares are parts, so the arithmetic is the split's and no rand is typed here."
+  },
+  "why": "The household the web's family screens already draw, said as references. The names are first names the people on the roster already know each other by; the roster the route holds carries none of them, which is why they are here in the preview and nowhere in the shape."
+ }
+}

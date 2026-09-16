@@ -70,9 +70,14 @@ object ApisData {
     val POST_ACCESS_CONVERSATIONS_BY_CONVERSATION_REF_MESSAGES = Route("postAccessConversationsByConversationRefMessages", "POST", "/v1/access/conversations/{conversationRef}/messages", "/v1/access/conversations/{conversationRef}/messages", 1, "access", listOf("patient", "caregiver"), listOf("treatment"), false, "proposed")
     val POST_ACCESS_CONVERSATIONS_BY_CONVERSATION_REF_HANDOVER_V2 = Route("postAccessConversationsByConversationRefHandoverV2", "POST", "/v1/access/conversations/{conversationRef}/handover", "/v1/access/conversations/{conversationRef}/handover", 2, "access", listOf("patient", "caregiver"), listOf("treatment"), false, "built")
     val POST_ACCESS_TOOLS_BY_TOOL = Route("postAccessToolsByTool", "POST", "/v1/access/tools/{tool}", "/v1/access/tools/{tool}", 1, "access", listOf("patient", "caregiver"), listOf("treatment", "dispatch", "dispensing", "subject-access"), true, "proposed")
-    val POST_ACCESS_HOUSEHOLDS = Route("postAccessHouseholds", "POST", "/v1/access/households", "/v1/access/households", 1, "access", listOf("patient", "caregiver"), listOf("subject-access"), false, "proposed")
-    val POST_ACCESS_SPONSORS = Route("postAccessSponsors", "POST", "/v1/access/sponsors", "/v1/access/sponsors", 1, "access", listOf("patient", "sponsor"), listOf("billing"), false, "proposed")
-    val POST_ACCESS_BILL_SPLITS = Route("postAccessBillSplits", "POST", "/v1/access/bill-splits", "/v1/access/bill-splits", 1, "access", listOf("patient", "caregiver", "sponsor"), listOf("billing"), false, "proposed")
+    val POST_ACCESS_HOUSEHOLDS = Route("postAccessHouseholds", "POST", "/v1/access/households", "/v1/access/households", 1, "access", listOf("patient", "caregiver"), listOf("subject-access"), false, "built")
+    val GET_ACCESS_HOUSEHOLDS = Route("getAccessHouseholds", "GET", "/v1/access/households", "/v1/access/households", 1, "access", listOf("patient", "caregiver"), listOf("subject-access"), false, "built")
+    val POST_ACCESS_HOUSEHOLD_MEMBERSHIPS = Route("postAccessHouseholdMemberships", "POST", "/v1/access/household-memberships", "/v1/access/household-memberships", 1, "access", listOf("patient", "caregiver"), listOf("subject-access"), true, "built")
+    val POST_ACCESS_SPONSORS_V2 = Route("postAccessSponsorsV2", "POST", "/v1/access/sponsors", "/v1/access/sponsors", 2, "access", listOf("patient", "sponsor"), listOf("billing"), true, "built")
+    val POST_ACCESS_SPONSORS_BY_SPONSORSHIP_REF_ANSWER = Route("postAccessSponsorsBySponsorshipRefAnswer", "POST", "/v1/access/sponsors/{sponsorshipRef}/answer", "/v1/access/sponsors/{sponsorshipRef}/answer", 1, "access", listOf("patient"), listOf("billing"), true, "built")
+    val GET_ACCESS_SPONSORS = Route("getAccessSponsors", "GET", "/v1/access/sponsors", "/v1/access/sponsors", 1, "access", listOf("patient", "sponsor"), listOf("billing"), false, "built")
+    val POST_ACCESS_BILL_SPLITS_V2 = Route("postAccessBillSplitsV2", "POST", "/v1/access/bill-splits", "/v1/access/bill-splits", 2, "access", listOf("patient", "caregiver", "sponsor"), listOf("billing"), true, "built")
+    val POST_ACCESS_BILL_SPLITS_BY_SPLIT_REF_ACCEPT = Route("postAccessBillSplitsBySplitRefAccept", "POST", "/v1/access/bill-splits/{splitRef}/accept", "/v1/access/bill-splits/{splitRef}/accept", 1, "access", listOf("patient", "caregiver", "sponsor"), listOf("billing"), true, "built")
     val POST_ACCESS_BOOKINGS_BY_BOOKING_REF_CANCEL = Route("postAccessBookingsByBookingRefCancel", "POST", "/v1/access/bookings/{bookingRef}/cancel", "/v1/access/bookings/{bookingRef}/cancel", 1, "access", listOf("patient", "caregiver", "guardian", "thuso-line-agent"), listOf("dispatch"), true, "built")
     val GET_ACCESS_VISIT_THREADS_BY_BOOKING_REF = Route("getAccessVisitThreadsByBookingRef", "GET", "/v1/access/visit-threads/{bookingRef}", "/v1/access/visit-threads/{bookingRef}", 1, "access", listOf("patient", "caregiver", "guardian", "nurse"), listOf("dispatch"), false, "built")
     val POST_ACCESS_VISIT_THREADS_BY_BOOKING_REF_MESSAGES = Route("postAccessVisitThreadsByBookingRefMessages", "POST", "/v1/access/visit-threads/{bookingRef}/messages", "/v1/access/visit-threads/{bookingRef}/messages", 1, "access", listOf("patient", "caregiver", "guardian", "nurse"), listOf("dispatch"), true, "built")
@@ -306,8 +311,13 @@ object ApisData {
         POST_ACCESS_CONVERSATIONS_BY_CONVERSATION_REF_HANDOVER_V2,
         POST_ACCESS_TOOLS_BY_TOOL,
         POST_ACCESS_HOUSEHOLDS,
-        POST_ACCESS_SPONSORS,
-        POST_ACCESS_BILL_SPLITS,
+        GET_ACCESS_HOUSEHOLDS,
+        POST_ACCESS_HOUSEHOLD_MEMBERSHIPS,
+        POST_ACCESS_SPONSORS_V2,
+        POST_ACCESS_SPONSORS_BY_SPONSORSHIP_REF_ANSWER,
+        GET_ACCESS_SPONSORS,
+        POST_ACCESS_BILL_SPLITS_V2,
+        POST_ACCESS_BILL_SPLITS_BY_SPLIT_REF_ACCEPT,
         POST_ACCESS_BOOKINGS_BY_BOOKING_REF_CANCEL,
         GET_ACCESS_VISIT_THREADS_BY_BOOKING_REF,
         POST_ACCESS_VISIT_THREADS_BY_BOOKING_REF_MESSAGES,
@@ -870,18 +880,69 @@ object ApisData {
     data class PostAccessHouseholdsResponse(
         val householdRef: String
     )
-    data class PostAccessSponsorsRequest(
+    data class GetAccessHouseholdsRequest(
+        val householdRef: String? = null
+    )
+    data class GetAccessHouseholdsResponse(
+        val households: List<Map<String, Any?>>
+    )
+    data class PostAccessHouseholdMembershipsRequest(
+        val idempotencyKey: String,
+        val householdRef: String,
+        val memberSubjectRef: String
+    )
+    data class PostAccessHouseholdMembershipsResponse(
+        val householdRef: String,
+        val memberSubjectRef: String,
+        val addedOnDay: String
+    )
+    data class PostAccessSponsorsV2Request(
+        val idempotencyKey: String,
+        val householdRef: String,
         val sponsoredSubjectRef: String
     )
-    data class PostAccessSponsorsResponse(
-        val sponsorshipRef: String
+    data class PostAccessSponsorsV2Response(
+        val sponsorshipRef: String,
+        val stateCode: String,
+        val lineDetailId: String
     )
-    data class PostAccessBillSplitsRequest(
-        val planRef: String,
+    data class PostAccessSponsorsBySponsorshipRefAnswerRequest(
+        val idempotencyKey: String,
+        val sponsorshipRef: String,
+        val answerCode: String
+    )
+    data class PostAccessSponsorsBySponsorshipRefAnswerResponse(
+        val sponsorshipRef: String,
+        val stateCode: String
+    )
+    data class GetAccessSponsorsRequest(
+        val sponsorshipRef: String? = null
+    )
+    data class GetAccessSponsorsResponse(
+        val sponsorships: List<Map<String, Any?>>
+    )
+    data class PostAccessBillSplitsV2Request(
+        val idempotencyKey: String,
+        val payableRef: String,
+        val amountCents: Int,
         val shares: List<Map<String, Any?>>
     )
-    data class PostAccessBillSplitsResponse(
-        val splitRef: String
+    data class PostAccessBillSplitsV2Response(
+        val splitRef: String,
+        val stateCode: String,
+        val shares: List<Map<String, Any?>>
+    )
+    data class PostAccessBillSplitsBySplitRefAcceptRequest(
+        val idempotencyKey: String,
+        val splitRef: String,
+        val amountCents: Int
+    )
+    data class PostAccessBillSplitsBySplitRefAcceptResponse(
+        val splitRef: String,
+        val stateCode: String,
+        val shareStateCode: String,
+        val acceptedCount: Int,
+        val shareCount: Int
     )
     data class PostAccessBookingsByBookingRefCancelRequest(
         val idempotencyKey: String,

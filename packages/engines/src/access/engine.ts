@@ -11,8 +11,30 @@
 
    Nine routes: book, read a booking, cancel one, read a visit thread and write in it, hand a Gilbert
    conversation to the nurse queue, and Access's settings — read them, change one, confirm the clinical
-   review of one. And two subscriptions: appointment.completed@2, from Care, and payment.refunded@1, from Money,
-   which marks a booking refunded by the bookingRef it carries.
+   review of one. Eight more since Wave 6, the family arrangements below. And three subscriptions:
+   appointment.completed@2, from Care; payment.refunded@1, from Money, which marks a booking refunded by the
+   bookingRef it carries; and payment.succeeded@1, which becomes a line on a sponsor's statement and nothing
+   more.
+
+   ── The family arrangements ──────────────────────────────────────────────────────────────────────
+
+   A household, a sponsorship and a bill split, and the thing none of them is. A household is a roster:
+   POST /v1/access/households@1 opens one, POST /v1/access/household-memberships@1 adds a line to one, and
+   GET /v1/access/households@1 reads one to somebody on it. It grants nothing to anybody — not the member,
+   not the person who added them — and a request that arrives carrying a scope, a grant or an expiry beside
+   the person is refused in the route's own words rather than having the field dropped.
+
+   A sponsorship names a household membership rather than a person, which is what version two of the sponsors
+   route exists for. It is offered, and packages/catalog/programmes.json decides what happens next: it starts
+   when the person being paid for says yes, in her own account, through .../answer@1, and she stops it there
+   too without giving a reason. GET /v1/access/sponsors@1 answers a statement whose lines were built with the
+   service already removed unless her line detail names it — the refusal as arithmetic, so no handler and no
+   screen is ever handed a field it is meant to hide.
+
+   A bill split divides one of Money's payables. The shares are added up against the payable's own amount in
+   cents and refused if they do not reach it, and each payer accepts their own share at the amount they were
+   shown before any of it is owed. Nothing here charges anybody: Money does that through its own route, and
+   domain/bill-split.ts offers it only the shares somebody accepted.
 
    POST /v1/access/bookings@2 is the booking route. Version one was withdrawn on 15 September: it had no
    field for what happens if a nurse asked for by name cannot take the visit, so the answer rode inside the
@@ -72,8 +94,11 @@ import sos from '../../../catalog/sos.json' with { type: 'json' };
 import { defineEngine, ok, refuse, type Answer, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
 import { SETTINGS_SCHEMA, confirmersFromClinical, historyOf, settingsIn, settingsRoutes } from '../settings/routes.ts';
 import { rotaAt } from '../settings/shape.ts';
+import { acceptShare, proposeSplit, splitState, type Split, type SplitLedger } from './domain/bill-split.ts';
 import { cancelBooking, readBooking, recordRefund, requestBooking, type Booking, type Ledger } from './domain/booking.ts';
 import { instantOf, isoIn, type AccessEvent, type Outcome } from './domain/contract.ts';
+import { addMember, householdsOf, openHousehold, readHousehold, type Household, type HouseholdLedger } from './domain/household.ts';
+import { answerSponsorship, offerSponsorship, statementsFor, type Sponsorship, type SponsoredPayment, type SponsorshipLedger } from './domain/sponsorship.ts';
 import { queueHandover, type Handover } from './domain/handover.ts';
 import { rosterCandidates } from './domain/roster.ts';
 import { accessInForceAt, accessSettings, accessSettingsOf } from './domain/settings.ts';
@@ -83,6 +108,13 @@ const schema = [
  'CREATE TABLE IF NOT EXISTS bookings (booking_ref TEXT PRIMARY KEY, subject_ref TEXT NOT NULL, body TEXT NOT NULL);',
  'CREATE TABLE IF NOT EXISTS threads (booking_ref TEXT PRIMARY KEY, body TEXT NOT NULL);',
  'CREATE TABLE IF NOT EXISTS handovers (subject_ref TEXT NOT NULL, conversation_ref TEXT NOT NULL, body TEXT NOT NULL, PRIMARY KEY (subject_ref, conversation_ref));',
+ /* The three family arrangements. Every one of them holds references, states and amounts in cents, and no
+    name, no relationship and nothing a visit produced — which is why a column here is a ref and never a
+    person. sponsored_payments keeps the subject on its own column because a statement is read by subject. */
+ 'CREATE TABLE IF NOT EXISTS households (household_ref TEXT PRIMARY KEY, body TEXT NOT NULL);',
+ 'CREATE TABLE IF NOT EXISTS sponsorships (sponsorship_ref TEXT PRIMARY KEY, body TEXT NOT NULL);',
+ 'CREATE TABLE IF NOT EXISTS sponsored_payments (payment_ref TEXT PRIMARY KEY, subject_ref TEXT NOT NULL, body TEXT NOT NULL);',
+ 'CREATE TABLE IF NOT EXISTS bill_splits (split_ref TEXT PRIMARY KEY, body TEXT NOT NULL);',
  SETTINGS_SCHEMA
 ].join('\n');
 
@@ -113,6 +145,29 @@ const keptHandover = (ctx: EngineContext, subjectRef: string, conversationRef: s
 const keepHandover = (ctx: EngineContext, subjectRef: string, kept: Kept) =>
  ctx.store.prepare('INSERT INTO handovers (subject_ref, conversation_ref, body) VALUES (?, ?, ?) ON CONFLICT(subject_ref, conversation_ref) DO UPDATE SET body = excluded.body')
   .run(subjectRef, kept.handover.conversationRef, JSON.stringify(kept));
+
+/* ---- The family arrangements, read out of this store ------------------------------------------------ */
+const rows = (ctx: EngineContext, sql: string, ...params: string[]) => (ctx.store.prepare(sql).all(...params) as { body: string }[]).map(row => row.body);
+const householdLedger = (ctx: EngineContext): HouseholdLedger =>
+ ({ households: rows(ctx, 'SELECT body FROM households ORDER BY rowid').map(body => JSON.parse(body) as Household) });
+const saveHousehold = (ctx: EngineContext, held: Household) =>
+ ctx.store.prepare('INSERT INTO households (household_ref, body) VALUES (?, ?) ON CONFLICT(household_ref) DO UPDATE SET body = excluded.body').run(held.householdRef, JSON.stringify(held));
+const sponsorshipLedger = (ctx: EngineContext): SponsorshipLedger => ({
+ sponsorships: rows(ctx, 'SELECT body FROM sponsorships ORDER BY rowid').map(body => JSON.parse(body) as Sponsorship),
+ payments: rows(ctx, 'SELECT body FROM sponsored_payments ORDER BY rowid').map(body => JSON.parse(body) as SponsoredPayment)
+});
+const saveSponsorship = (ctx: EngineContext, held: Sponsorship) =>
+ ctx.store.prepare('INSERT INTO sponsorships (sponsorship_ref, body) VALUES (?, ?) ON CONFLICT(sponsorship_ref) DO UPDATE SET body = excluded.body').run(held.sponsorshipRef, JSON.stringify(held));
+const splitLedger = (ctx: EngineContext): SplitLedger =>
+ ({ splits: rows(ctx, 'SELECT body FROM bill_splits ORDER BY rowid').map(body => JSON.parse(body) as Split) });
+const saveSplit = (ctx: EngineContext, held: Split) =>
+ ctx.store.prepare('INSERT INTO bill_splits (split_ref, body) VALUES (?, ?) ON CONFLICT(split_ref) DO UPDATE SET body = excluded.body').run(held.splitRef, JSON.stringify(held));
+
+/* A refusal or the handler's own answer, for the routes that publish nothing. The family arrangements emit
+   no event at all — nothing is owed, dispatched or paid by making one — so there is no outbox to flush. */
+function settle<T>(outcome: Outcome<T>, body: (value: T) => Record<string, unknown>): Answer {
+ return outcome.refused ? refuse(outcome.id) : ok(body(outcome.value));
+}
 
 /* The emergency numbers are sos.json's, filled into booking.json's sentence by their ids. Nothing here types one. */
 const withNumbers = (text: string) => text.replace(/\{(\w+)\}/g, (token, id: string) => sos.emergency.numbers.find(n => n.id === id)?.number ?? token);
@@ -161,12 +216,27 @@ export const engine = defineEngine({
    if (completed !== thread) saveThread(ctx, completed);
   },
   /* Money returned what was paid for a booking. Found by the bookingRef the event carries, and marked once; a
-     refund with no bookingRef, or for a booking this store does not hold, marks nothing. See recordRefund. */
+     refund with no bookingRef, or for a booking this store does not hold, marks nothing. See recordRefund.
+     A refunded payment also leaves a sponsor's statement, because a line for money that came back is a line
+     for care that was not paid for. */
   'payment.refunded@1': (event, ctx) => {
+   if (typeof event.payload.paymentRef === 'string') ctx.store.prepare('DELETE FROM sponsored_payments WHERE payment_ref = ?').run(event.payload.paymentRef);
    const bookingRef = typeof event.payload.bookingRef === 'string' ? event.payload.bookingRef : null;
    if (bookingRef === null || typeof event.payload.paymentRef !== 'string' || typeof event.payload.amountCents !== 'number') return;
    const marked = recordRefund(ledgerOf(ctx), { bookingRef, paymentRef: event.payload.paymentRef, amountCents: event.payload.amountCents, at: event.occurredAt });
    if (marked) saveBooking(ctx, marked.booking);
+  },
+  /* A payment went through. It is kept here only where the person it was for has an agreed sponsorship, and
+     only as a day and an amount: the event names the payment, the payable, the amount and the method, and
+     nothing about the care, so there is nothing else a statement could carry. The event names no payer
+     either, which is why domain/sponsorship.ts attributes a line to one sponsorship and never to one of two. */
+  'payment.succeeded@1': (event, ctx) => {
+   const { paymentRef, amountCents } = event.payload as { paymentRef?: unknown; amountCents?: unknown };
+   if (typeof paymentRef !== 'string' || typeof amountCents !== 'number' || !event.subjectRef) return;
+   if (!sponsorshipLedger(ctx).sponsorships.some(s => s.sponsoredSubjectRef === event.subjectRef && s.stateCode === 'agreed')) return;
+   const line: SponsoredPayment = { paymentRef, subjectRef: event.subjectRef, paidOnDay: isoIn(new Date(event.occurredAt)), amountCents, serviceId: null };
+   ctx.store.prepare('INSERT INTO sponsored_payments (payment_ref, subject_ref, body) VALUES (?, ?, ?) ON CONFLICT(payment_ref) DO UPDATE SET body = excluded.body')
+    .run(paymentRef, event.subjectRef, JSON.stringify(line));
   }
  },
  routes: {
@@ -254,6 +324,102 @@ export const engine = defineEngine({
     deskStateCode, answeredByRoles: [...inForce.handoverAnsweredBy],
     ...(desk.open ? {} : { outOfHours: words.outOfHours, outOfHoursNumbers: withNumbers(words.outOfHoursNumbers), ...(callbackFrom ? { callbackFrom } : {}) })
    });
+  },
+
+  /* ---- The family arrangements (Wave 6) ------------------------------------------------------------
+     A household is a roster: opening one, adding to one and reading one. None of the three opens anybody's
+     record, and the refusal that says so fires on the words of a field the routes never declared, rather
+     than on a field being quietly dropped — the binder hands over the names of everything undeclared, which
+     is the same door the visit thread reads an attachment through. */
+  'POST /v1/access/households@1': (request: HandlerRequest, ctx: EngineContext) => {
+   const f = request.fields as { memberSubjectRefs: readonly string[] };
+   const outcome = openHousehold(householdLedger(ctx),
+    { idempotencyKey: ctx.idempotencyKey ?? '', openedBySubjectRef: ctx.caller.ref ?? '', memberSubjectRefs: f.memberSubjectRefs, sent: request.undeclared, now: ctx.clock.now() });
+   if (!outcome.refused) saveHousehold(ctx, outcome.value.household);
+   return settle(outcome, v => ({ householdRef: v.household.householdRef }));
+  },
+
+  'POST /v1/access/household-memberships@1': (request: HandlerRequest, ctx: EngineContext) => {
+   const f = request.fields as { householdRef: string; memberSubjectRef: string };
+   const outcome = addMember(householdLedger(ctx),
+    { householdRef: f.householdRef, memberSubjectRef: f.memberSubjectRef, addedBySubjectRef: ctx.caller.ref ?? '', sent: request.undeclared, now: ctx.clock.now() });
+   if (!outcome.refused) saveHousehold(ctx, outcome.value.household);
+   return settle(outcome, v => ({ householdRef: v.household.householdRef, memberSubjectRef: v.membership.memberSubjectRef, addedOnDay: v.membership.addedOnDay }));
+  },
+
+  /* Named, one household, to somebody on it. Unnamed, every household the caller is on — which is an empty
+     list for somebody on none, because there is no household they were refused. */
+  'GET /v1/access/households@1': (request: HandlerRequest, ctx: EngineContext) => {
+   const householdRef = typeof request.fields.householdRef === 'string' ? request.fields.householdRef : null;
+   const ledger = householdLedger(ctx);
+   const subjectRef = ctx.caller.ref ?? '';
+   const said = (households: readonly Household[]) => ({
+    households: households.map(h => ({
+     householdRef: h.householdRef,
+     members: h.members.map(m => ({ memberSubjectRef: m.memberSubjectRef, addedBySubjectRef: m.addedBySubjectRef, addedOnDay: m.addedOnDay }))
+    }))
+   });
+   if (householdRef === null) return ok(said(householdsOf(ledger, subjectRef)));
+   return settle(readHousehold(ledger, householdRef, subjectRef), v => said([v.household]));
+  },
+
+  /* A sponsorship names a household membership, never a typed name, and starts offered: packages/catalog/
+     programmes.json says it starts when the person being paid for says yes, and she says it below. */
+  'POST /v1/access/sponsors@2': (request: HandlerRequest, ctx: EngineContext) => {
+   const f = request.fields as { householdRef: string; sponsoredSubjectRef: string };
+   const outcome = offerSponsorship(sponsorshipLedger(ctx), householdLedger(ctx),
+    { idempotencyKey: ctx.idempotencyKey ?? '', householdRef: f.householdRef, sponsoredSubjectRef: f.sponsoredSubjectRef, payerSubjectRef: ctx.caller.ref ?? '', sent: request.undeclared, now: ctx.clock.now() });
+   if (!outcome.refused) saveSponsorship(ctx, outcome.value.sponsorship);
+   return settle(outcome, v => ({ sponsorshipRef: v.sponsorship.sponsorshipRef, stateCode: v.sponsorship.stateCode, lineDetailId: v.sponsorship.lineDetailId }));
+  },
+
+  'POST /v1/access/sponsors/{sponsorshipRef}/answer@1': (request: HandlerRequest, ctx: EngineContext) => {
+   const f = request.fields as { sponsorshipRef: string; answerCode: string };
+   const outcome = answerSponsorship(sponsorshipLedger(ctx),
+    { sponsorshipRef: f.sponsorshipRef, answerCode: f.answerCode, bySubjectRef: ctx.caller.ref ?? '', now: ctx.clock.now() });
+   if (!outcome.refused) saveSponsorship(ctx, outcome.value.sponsorship);
+   return settle(outcome, v => ({ sponsorshipRef: v.sponsorship.sponsorshipRef, stateCode: v.sponsorship.stateCode }));
+  },
+
+  /* The statement, which is the refusal done as arithmetic: the lines were built by domain/sponsorship.ts
+     with the service already removed unless the recipient's line detail names it, so there is no field
+     here for this handler to decide to leave out. */
+  'GET /v1/access/sponsors@1': (request: HandlerRequest, ctx: EngineContext) => {
+   const sponsorshipRef = typeof request.fields.sponsorshipRef === 'string' ? request.fields.sponsorshipRef : null;
+   const outcome = statementsFor(sponsorshipLedger(ctx), { subjectRef: ctx.caller.ref ?? '', sponsorshipRef, sent: request.undeclared });
+   return settle(outcome, v => ({
+    sponsorships: v.statements.map(({ sponsorship, lines }) => ({
+     sponsorshipRef: sponsorship.sponsorshipRef, householdRef: sponsorship.householdRef,
+     sponsoredSubjectRef: sponsorship.sponsoredSubjectRef, payerSubjectRef: sponsorship.payerSubjectRef,
+     stateCode: sponsorship.stateCode, lineDetailId: sponsorship.lineDetailId,
+     paidCents: lines.reduce((total, line) => total + line.amountCents, 0),
+     lines: lines.map(line => ({ ...line }))
+    }))
+   }));
+  },
+
+  /* A split divides one payable's amount and nothing else. The shares must add up to it in cents, and each
+     payer accepts their own before any of it is owed. */
+  'POST /v1/access/bill-splits@2': (request: HandlerRequest, ctx: EngineContext) => {
+   const f = request.fields as { payableRef: string; amountCents: number; shares: readonly { payerSubjectRef: string; amountCents: number }[] };
+   const outcome = proposeSplit(splitLedger(ctx),
+    { idempotencyKey: ctx.idempotencyKey ?? '', payableRef: f.payableRef, amountCents: f.amountCents, shares: f.shares, proposedBySubjectRef: ctx.caller.ref ?? '', sent: request.undeclared, now: ctx.clock.now() });
+   if (!outcome.refused) saveSplit(ctx, outcome.value.split);
+   return settle(outcome, v => ({
+    splitRef: v.split.splitRef, stateCode: splitState(v.split),
+    shares: v.split.shares.map(s => ({ payerSubjectRef: s.payerSubjectRef, amountCents: s.amountCents, stateCode: s.stateCode }))
+   }));
+  },
+
+  'POST /v1/access/bill-splits/{splitRef}/accept@1': (request: HandlerRequest, ctx: EngineContext) => {
+   const f = request.fields as { splitRef: string; amountCents: number };
+   const outcome = acceptShare(splitLedger(ctx),
+    { splitRef: f.splitRef, amountCents: f.amountCents, bySubjectRef: ctx.caller.ref ?? '', sent: request.undeclared, now: ctx.clock.now() });
+   if (!outcome.refused) saveSplit(ctx, outcome.value.split);
+   return settle(outcome, v => ({
+    splitRef: v.split.splitRef, stateCode: splitState(v.split), shareStateCode: v.share.stateCode,
+    acceptedCount: v.split.shares.filter(s => s.stateCode === 'accepted').length, shareCount: v.split.shares.length
+   }));
   },
 
   /* Who confirms a clinical review is Clinical's review-confirmer setting in force, asked of Clinical (Wave 5). */

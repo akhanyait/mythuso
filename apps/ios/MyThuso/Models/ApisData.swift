@@ -70,9 +70,14 @@ enum ApisData {
     static let postAccessConversationsByConversationRefMessages = Route(id: "postAccessConversationsByConversationRefMessages", method: "POST", path: "/v1/access/conversations/{conversationRef}/messages", mountedPath: "/v1/access/conversations/{conversationRef}/messages", version: 1, engine: "access", callers: ["patient", "caregiver"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let postAccessConversationsByConversationRefHandoverV2 = Route(id: "postAccessConversationsByConversationRefHandoverV2", method: "POST", path: "/v1/access/conversations/{conversationRef}/handover", mountedPath: "/v1/access/conversations/{conversationRef}/handover", version: 2, engine: "access", callers: ["patient", "caregiver"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postAccessToolsByTool = Route(id: "postAccessToolsByTool", method: "POST", path: "/v1/access/tools/{tool}", mountedPath: "/v1/access/tools/{tool}", version: 1, engine: "access", callers: ["patient", "caregiver"], purpose: ["treatment", "dispatch", "dispensing", "subject-access"], idempotent: true, status: "proposed")
-    static let postAccessHouseholds = Route(id: "postAccessHouseholds", method: "POST", path: "/v1/access/households", mountedPath: "/v1/access/households", version: 1, engine: "access", callers: ["patient", "caregiver"], purpose: ["subject-access"], idempotent: false, status: "proposed")
-    static let postAccessSponsors = Route(id: "postAccessSponsors", method: "POST", path: "/v1/access/sponsors", mountedPath: "/v1/access/sponsors", version: 1, engine: "access", callers: ["patient", "sponsor"], purpose: ["billing"], idempotent: false, status: "proposed")
-    static let postAccessBillSplits = Route(id: "postAccessBillSplits", method: "POST", path: "/v1/access/bill-splits", mountedPath: "/v1/access/bill-splits", version: 1, engine: "access", callers: ["patient", "caregiver", "sponsor"], purpose: ["billing"], idempotent: false, status: "proposed")
+    static let postAccessHouseholds = Route(id: "postAccessHouseholds", method: "POST", path: "/v1/access/households", mountedPath: "/v1/access/households", version: 1, engine: "access", callers: ["patient", "caregiver"], purpose: ["subject-access"], idempotent: false, status: "built")
+    static let getAccessHouseholds = Route(id: "getAccessHouseholds", method: "GET", path: "/v1/access/households", mountedPath: "/v1/access/households", version: 1, engine: "access", callers: ["patient", "caregiver"], purpose: ["subject-access"], idempotent: false, status: "built")
+    static let postAccessHouseholdMemberships = Route(id: "postAccessHouseholdMemberships", method: "POST", path: "/v1/access/household-memberships", mountedPath: "/v1/access/household-memberships", version: 1, engine: "access", callers: ["patient", "caregiver"], purpose: ["subject-access"], idempotent: true, status: "built")
+    static let postAccessSponsorsV2 = Route(id: "postAccessSponsorsV2", method: "POST", path: "/v1/access/sponsors", mountedPath: "/v1/access/sponsors", version: 2, engine: "access", callers: ["patient", "sponsor"], purpose: ["billing"], idempotent: true, status: "built")
+    static let postAccessSponsorsBySponsorshipRefAnswer = Route(id: "postAccessSponsorsBySponsorshipRefAnswer", method: "POST", path: "/v1/access/sponsors/{sponsorshipRef}/answer", mountedPath: "/v1/access/sponsors/{sponsorshipRef}/answer", version: 1, engine: "access", callers: ["patient"], purpose: ["billing"], idempotent: true, status: "built")
+    static let getAccessSponsors = Route(id: "getAccessSponsors", method: "GET", path: "/v1/access/sponsors", mountedPath: "/v1/access/sponsors", version: 1, engine: "access", callers: ["patient", "sponsor"], purpose: ["billing"], idempotent: false, status: "built")
+    static let postAccessBillSplitsV2 = Route(id: "postAccessBillSplitsV2", method: "POST", path: "/v1/access/bill-splits", mountedPath: "/v1/access/bill-splits", version: 2, engine: "access", callers: ["patient", "caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "built")
+    static let postAccessBillSplitsBySplitRefAccept = Route(id: "postAccessBillSplitsBySplitRefAccept", method: "POST", path: "/v1/access/bill-splits/{splitRef}/accept", mountedPath: "/v1/access/bill-splits/{splitRef}/accept", version: 1, engine: "access", callers: ["patient", "caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "built")
     static let postAccessBookingsByBookingRefCancel = Route(id: "postAccessBookingsByBookingRefCancel", method: "POST", path: "/v1/access/bookings/{bookingRef}/cancel", mountedPath: "/v1/access/bookings/{bookingRef}/cancel", version: 1, engine: "access", callers: ["patient", "caregiver", "guardian", "thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "built")
     static let getAccessVisitThreadsByBookingRef = Route(id: "getAccessVisitThreadsByBookingRef", method: "GET", path: "/v1/access/visit-threads/{bookingRef}", mountedPath: "/v1/access/visit-threads/{bookingRef}", version: 1, engine: "access", callers: ["patient", "caregiver", "guardian", "nurse"], purpose: ["dispatch"], idempotent: false, status: "built")
     static let postAccessVisitThreadsByBookingRefMessages = Route(id: "postAccessVisitThreadsByBookingRefMessages", method: "POST", path: "/v1/access/visit-threads/{bookingRef}/messages", mountedPath: "/v1/access/visit-threads/{bookingRef}/messages", version: 1, engine: "access", callers: ["patient", "caregiver", "guardian", "nurse"], purpose: ["dispatch"], idempotent: true, status: "built")
@@ -306,8 +311,13 @@ enum ApisData {
         postAccessConversationsByConversationRefHandoverV2,
         postAccessToolsByTool,
         postAccessHouseholds,
-        postAccessSponsors,
-        postAccessBillSplits,
+        getAccessHouseholds,
+        postAccessHouseholdMemberships,
+        postAccessSponsorsV2,
+        postAccessSponsorsBySponsorshipRefAnswer,
+        getAccessSponsors,
+        postAccessBillSplitsV2,
+        postAccessBillSplitsBySplitRefAccept,
         postAccessBookingsByBookingRefCancel,
         getAccessVisitThreadsByBookingRef,
         postAccessVisitThreadsByBookingRefMessages,
@@ -870,18 +880,69 @@ enum ApisData {
     struct PostAccessHouseholdsResponse {
         let householdRef: String
     }
-    struct PostAccessSponsorsRequest {
+    struct GetAccessHouseholdsRequest {
+        let householdRef: String?
+    }
+    struct GetAccessHouseholdsResponse {
+        let households: [[String: Any]]
+    }
+    struct PostAccessHouseholdMembershipsRequest {
+        let idempotencyKey: String
+        let householdRef: String
+        let memberSubjectRef: String
+    }
+    struct PostAccessHouseholdMembershipsResponse {
+        let householdRef: String
+        let memberSubjectRef: String
+        let addedOnDay: String
+    }
+    struct PostAccessSponsorsV2Request {
+        let idempotencyKey: String
+        let householdRef: String
         let sponsoredSubjectRef: String
     }
-    struct PostAccessSponsorsResponse {
+    struct PostAccessSponsorsV2Response {
         let sponsorshipRef: String
+        let stateCode: String
+        let lineDetailId: String
     }
-    struct PostAccessBillSplitsRequest {
-        let planRef: String
+    struct PostAccessSponsorsBySponsorshipRefAnswerRequest {
+        let idempotencyKey: String
+        let sponsorshipRef: String
+        let answerCode: String
+    }
+    struct PostAccessSponsorsBySponsorshipRefAnswerResponse {
+        let sponsorshipRef: String
+        let stateCode: String
+    }
+    struct GetAccessSponsorsRequest {
+        let sponsorshipRef: String?
+    }
+    struct GetAccessSponsorsResponse {
+        let sponsorships: [[String: Any]]
+    }
+    struct PostAccessBillSplitsV2Request {
+        let idempotencyKey: String
+        let payableRef: String
+        let amountCents: Int
         let shares: [[String: Any]]
     }
-    struct PostAccessBillSplitsResponse {
+    struct PostAccessBillSplitsV2Response {
         let splitRef: String
+        let stateCode: String
+        let shares: [[String: Any]]
+    }
+    struct PostAccessBillSplitsBySplitRefAcceptRequest {
+        let idempotencyKey: String
+        let splitRef: String
+        let amountCents: Int
+    }
+    struct PostAccessBillSplitsBySplitRefAcceptResponse {
+        let splitRef: String
+        let stateCode: String
+        let shareStateCode: String
+        let acceptedCount: Int
+        let shareCount: Int
     }
     struct PostAccessBookingsByBookingRefCancelRequest {
         let idempotencyKey: String
