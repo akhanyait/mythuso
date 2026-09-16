@@ -550,6 +550,9 @@ export function WalletPage({open,navigate}:{open:(s:string)=>void;navigate:(s:st
  <div className="shortcut-list">
   <button className="shortcut-row" onClick={()=>navigate('Groups that pay for you')}><span className="service-icon"><Users size={20}/></span><span className="shortcut-text"><strong>Groups that pay for you</strong><small>A stokvel, a church or your employer, if you agree.</small></span><ChevronRight size={17}/></button>
   <button className="shortcut-row" onClick={()=>navigate('A group you pay for')}><span className="service-icon"><Wallet size={20}/></span><span className="shortcut-text"><strong>A group you pay for</strong><small>What it paid, and what it never sees.</small></span><ChevronRight size={17}/></button>
+  {/* Splitting one visit between two people in a household. On its own dynamic import for the reason the
+      two rows above are: it carries the Access domain, and a patient reading her visits opens none of it. */}
+  <button className="shortcut-row" onClick={()=>navigate('Split a visit between you')}><span className="service-icon"><Users size={20}/></span><span className="shortcut-text"><strong>Split a visit between you</strong><small>Each person accepts their own share. Nobody sees what the visit was.</small></span><ChevronRight size={17}/></button>
  </div>
  {/* Gift a visit, both sides, behind their own dynamic import. A gift pays for one visit for one named person; it
      never books it — she does, in her own account. */}

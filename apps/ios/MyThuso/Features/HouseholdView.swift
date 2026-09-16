@@ -118,6 +118,17 @@ struct HouseholdView: View {
             FieldRow(label: "Care area", value: household.area)
             Text(Records.type("household")?.summary ?? "").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
         }
+        /* What a roster is and what it never carries, in the words of the route that refuses it — generated
+           into HouseholdData from packages/catalog/apis/access.json rather than written again here. The
+           roster below is the household record's; the routes behind it do not run on a phone. */
+        CareCard {
+            Text(HouseholdData.membershipIsNotConsent).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Text(HouseholdData.Roster.grantsNothing).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            SectionHeading(title: HouseholdData.Roster.neverHeading)
+            ForEach(HouseholdData.Roster.neverHolds, id: \.field) { never in
+                FieldRow(label: never.field, value: never.why)
+            }
+        }
     }
 
     @ViewBuilder private var rosterSection: some View {

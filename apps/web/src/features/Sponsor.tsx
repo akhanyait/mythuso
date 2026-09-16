@@ -5,9 +5,11 @@ import { Metric, Metrics } from '../surface/Surface';
 import { scopes } from './Guardian';
 import { money } from '../lib/catalog';
 import {
- amountOnlyDetail, cannotRequireDetail, day, left, lines, namedDetail, namingNote,
- payingIsNotPermission, serviceIsNamed, setAside, sponsorContract, used, visitsPaidFor
+ amountOnlyDetail, cannotRequireDetail, day, left, namedDetail, namingNote,
+ payingIsNotPermission, readableLines, serviceIsNamed, serviceNameOf, setAside, sponsorContract,
+ sponsorshipLink, sponsorshipStateOf, used, visitsPaidFor
 } from '../lib/sponsorship';
+import { previewHousehold, sponsorWords } from '../lib/household';
 
 /* What you are paying for, and what paying for it does not buy you.
  *
@@ -45,6 +47,12 @@ export function SponsoredCare({ person, relation, navigate, open }: {
     screen has nothing of its own to say about either. */
  const named = serviceIsNamed;
  const detail = named ? namedDetail : amountOnlyDetail;
+ /* The sponsorship as a link into the household, and the lines the Access domain lets through. The
+    screen is never handed a service to leave out: statementFor removed it before it got here if her
+    line detail says so, which is why the table below can render what it was given without a guard. */
+ const link = sponsorshipLink(previewHousehold().householdRef);
+ const shown = readableLines(link);
+ const standing = sponsorshipStateOf(link.stateCode);
  return <>
   <div className="page-intro"><div className="eyebrow">THUSO FAMILY</div>
    <h1>Care you pay for.</h1>
@@ -74,10 +82,10 @@ export function SponsoredCare({ person, relation, navigate, open }: {
     <table className="chart-table fact-table sponsor-statement">
      <caption className="visually-hidden">Care paid for out of what you set aside, by date and amount.</caption>
      <thead><tr><th scope="col">When</th><th scope="col">What</th><th scope="col">Amount</th></tr></thead>
-     <tbody>{lines.map(line => <tr key={line.on + line.service}>
-      <th scope="row">{day(line.on)}</th>
-      <td>{named ? line.service : 'Care was given'}</td>
-      <td>{money(line.amount)}</td>
+     <tbody>{shown.map(line => <tr key={line.paidOnDay + line.amountCents}>
+      <th scope="row">{day(line.paidOnDay)}</th>
+      <td>{serviceNameOf(line.serviceId) ?? 'Care was given'}</td>
+      <td>{money(line.amountCents / 100)}</td>
      </tr>)}</tbody>
      <tfoot><tr><th scope="row" colSpan={2}>Drawn from what you set aside</th><td>{money(used)}</td></tr></tfoot>
     </table>
@@ -90,6 +98,17 @@ export function SponsoredCare({ person, relation, navigate, open }: {
      <small>{first} decides this, in her own account. It is not a setting on this screen and there is no way to ask for it.</small></span>
    </div>
    {named && <p className="helper">{namingNote}</p>}
+  </div>
+
+  {/* The link itself, said plainly. A sponsorship names a member of a household rather than a person
+      typed into a form, which is what version two of the sponsors route exists for. */}
+  <div className="panel">
+   <h3>{sponsorWords.heading}</h3>
+   <p className="muted">{sponsorWords.intro}</p>
+   <div className="review-line"><span>{sponsorWords.linkedTo.replace('{household}', link.householdRef)}</span><strong>{link.sponsoredSubjectRef}</strong></div>
+   <div className="review-line"><span>{sponsorWords.stateLabel}</span><strong>{standing.name}</strong></div>
+   <div className="review-line"><span>{sponsorWords.detailLabel}</span><strong>{detail.name}</strong></div>
+   <p className="helper">{sponsorWords.detailIsHers.replace('{who}', first)}</p>
   </div>
 
   {/* The two lists, side by side and the same size. This is the screen. */}

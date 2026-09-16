@@ -448,19 +448,75 @@ export interface PostAccessHouseholdsResponse {
  readonly householdRef: string;
 }
 
-export interface PostAccessSponsorsRequest {
- readonly sponsoredSubjectRef: string;
+export interface GetAccessHouseholdsRequest {
+ readonly householdRef?: string;
 }
-export interface PostAccessSponsorsResponse {
- readonly sponsorshipRef: string;
+export interface GetAccessHouseholdsResponse {
+ readonly households: ReadonlyArray<Readonly<Record<string, unknown>>>;
 }
 
-export interface PostAccessBillSplitsRequest {
- readonly planRef: string;
+export interface PostAccessHouseholdMembershipsRequest {
+ readonly idempotencyKey: string;
+ readonly householdRef: string;
+ readonly memberSubjectRef: string;
+}
+export interface PostAccessHouseholdMembershipsResponse {
+ readonly householdRef: string;
+ readonly memberSubjectRef: string;
+ readonly addedOnDay: string;
+}
+
+export interface PostAccessSponsorsV2Request {
+ readonly idempotencyKey: string;
+ readonly householdRef: string;
+ readonly sponsoredSubjectRef: string;
+}
+export interface PostAccessSponsorsV2Response {
+ readonly sponsorshipRef: string;
+ readonly stateCode: string;
+ readonly lineDetailId: string;
+}
+
+export interface PostAccessSponsorsBySponsorshipRefAnswerRequest {
+ readonly idempotencyKey: string;
+ readonly sponsorshipRef: string;
+ readonly answerCode: string;
+}
+export interface PostAccessSponsorsBySponsorshipRefAnswerResponse {
+ readonly sponsorshipRef: string;
+ readonly stateCode: string;
+}
+
+export interface GetAccessSponsorsRequest {
+ readonly sponsorshipRef?: string;
+}
+export interface GetAccessSponsorsResponse {
+ readonly sponsorships: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostAccessBillSplitsV2Request {
+ readonly idempotencyKey: string;
+ readonly payableRef: string;
+ readonly amountCents: number;
  readonly shares: ReadonlyArray<Readonly<Record<string, unknown>>>;
 }
-export interface PostAccessBillSplitsResponse {
+export interface PostAccessBillSplitsV2Response {
  readonly splitRef: string;
+ readonly stateCode: string;
+ readonly shares: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostAccessBillSplitsBySplitRefAcceptRequest {
+ readonly idempotencyKey: string;
+ readonly splitRef: string;
+ readonly amountCents: number;
+}
+export interface PostAccessBillSplitsBySplitRefAcceptResponse {
+ readonly splitRef: string;
+ readonly stateCode: string;
+ readonly shareStateCode: string;
+ readonly acceptedCount: number;
+ readonly shareCount: number;
 }
 
 export interface PostAccessBookingsByBookingRefCancelRequest {
@@ -2336,9 +2392,14 @@ export const apiRoutes = {
  postAccessConversationsByConversationRefMessages: { name: "postAccessConversationsByConversationRefMessages", method: "POST", path: "/v1/access/conversations/{conversationRef}/messages", mountedPath: "/v1/access/conversations/{conversationRef}/messages", version: 1, engine: "access", callers: ["patient","caregiver"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postAccessConversationsByConversationRefHandoverV2: { name: "postAccessConversationsByConversationRefHandoverV2", method: "POST", path: "/v1/access/conversations/{conversationRef}/handover", mountedPath: "/v1/access/conversations/{conversationRef}/handover", version: 2, engine: "access", callers: ["patient","caregiver"], purpose: ["treatment"], idempotent: false, status: "built" },
  postAccessToolsByTool: { name: "postAccessToolsByTool", method: "POST", path: "/v1/access/tools/{tool}", mountedPath: "/v1/access/tools/{tool}", version: 1, engine: "access", callers: ["patient","caregiver"], purpose: ["treatment","dispatch","dispensing","subject-access"], idempotent: true, status: "proposed" },
- postAccessHouseholds: { name: "postAccessHouseholds", method: "POST", path: "/v1/access/households", mountedPath: "/v1/access/households", version: 1, engine: "access", callers: ["patient","caregiver"], purpose: ["subject-access"], idempotent: false, status: "proposed" },
- postAccessSponsors: { name: "postAccessSponsors", method: "POST", path: "/v1/access/sponsors", mountedPath: "/v1/access/sponsors", version: 1, engine: "access", callers: ["patient","sponsor"], purpose: ["billing"], idempotent: false, status: "proposed" },
- postAccessBillSplits: { name: "postAccessBillSplits", method: "POST", path: "/v1/access/bill-splits", mountedPath: "/v1/access/bill-splits", version: 1, engine: "access", callers: ["patient","caregiver","sponsor"], purpose: ["billing"], idempotent: false, status: "proposed" },
+ postAccessHouseholds: { name: "postAccessHouseholds", method: "POST", path: "/v1/access/households", mountedPath: "/v1/access/households", version: 1, engine: "access", callers: ["patient","caregiver"], purpose: ["subject-access"], idempotent: false, status: "built" },
+ getAccessHouseholds: { name: "getAccessHouseholds", method: "GET", path: "/v1/access/households", mountedPath: "/v1/access/households", version: 1, engine: "access", callers: ["patient","caregiver"], purpose: ["subject-access"], idempotent: false, status: "built" },
+ postAccessHouseholdMemberships: { name: "postAccessHouseholdMemberships", method: "POST", path: "/v1/access/household-memberships", mountedPath: "/v1/access/household-memberships", version: 1, engine: "access", callers: ["patient","caregiver"], purpose: ["subject-access"], idempotent: true, status: "built" },
+ postAccessSponsorsV2: { name: "postAccessSponsorsV2", method: "POST", path: "/v1/access/sponsors", mountedPath: "/v1/access/sponsors", version: 2, engine: "access", callers: ["patient","sponsor"], purpose: ["billing"], idempotent: true, status: "built" },
+ postAccessSponsorsBySponsorshipRefAnswer: { name: "postAccessSponsorsBySponsorshipRefAnswer", method: "POST", path: "/v1/access/sponsors/{sponsorshipRef}/answer", mountedPath: "/v1/access/sponsors/{sponsorshipRef}/answer", version: 1, engine: "access", callers: ["patient"], purpose: ["billing"], idempotent: true, status: "built" },
+ getAccessSponsors: { name: "getAccessSponsors", method: "GET", path: "/v1/access/sponsors", mountedPath: "/v1/access/sponsors", version: 1, engine: "access", callers: ["patient","sponsor"], purpose: ["billing"], idempotent: false, status: "built" },
+ postAccessBillSplitsV2: { name: "postAccessBillSplitsV2", method: "POST", path: "/v1/access/bill-splits", mountedPath: "/v1/access/bill-splits", version: 2, engine: "access", callers: ["patient","caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "built" },
+ postAccessBillSplitsBySplitRefAccept: { name: "postAccessBillSplitsBySplitRefAccept", method: "POST", path: "/v1/access/bill-splits/{splitRef}/accept", mountedPath: "/v1/access/bill-splits/{splitRef}/accept", version: 1, engine: "access", callers: ["patient","caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "built" },
  postAccessBookingsByBookingRefCancel: { name: "postAccessBookingsByBookingRefCancel", method: "POST", path: "/v1/access/bookings/{bookingRef}/cancel", mountedPath: "/v1/access/bookings/{bookingRef}/cancel", version: 1, engine: "access", callers: ["patient","caregiver","guardian","thuso-line-agent"], purpose: ["dispatch"], idempotent: true, status: "built" },
  getAccessVisitThreadsByBookingRef: { name: "getAccessVisitThreadsByBookingRef", method: "GET", path: "/v1/access/visit-threads/{bookingRef}", mountedPath: "/v1/access/visit-threads/{bookingRef}", version: 1, engine: "access", callers: ["patient","caregiver","guardian","nurse"], purpose: ["dispatch"], idempotent: false, status: "built" },
  postAccessVisitThreadsByBookingRefMessages: { name: "postAccessVisitThreadsByBookingRefMessages", method: "POST", path: "/v1/access/visit-threads/{bookingRef}/messages", mountedPath: "/v1/access/visit-threads/{bookingRef}/messages", version: 1, engine: "access", callers: ["patient","caregiver","guardian","nurse"], purpose: ["dispatch"], idempotent: true, status: "built" },

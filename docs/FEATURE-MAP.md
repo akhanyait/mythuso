@@ -1114,6 +1114,34 @@ Four Care reads Wave 2 declared and nothing answered until now, on the Care engi
 
 Still open. **Locum shifts has nothing to list**: the moment a hospital or a care home shift exists anywhere in the catalogue, this route stops being honestly empty and needs a real source. **Circuits has no route grouping**: the two named are a place to publish from, not a routed set of visits — a circuit that goes live needs the visits it groups and the order a nurse works them in, which nothing here builds. `POST /v1/safety/incidents@3` needs a real engine-authentication door in front of `apps/api` before it can leave "proposed": until one exists, an engine's report reaches the register only through `packages/mock-api` on this development runtime, never through the identity service's own HTTP path.
 
+## Delivered — households, sponsorships and bill splits, 16 September 2026 (seed plan, Wave 6, Access)
+
+The three arrangements a family makes around one person's care, and the one thing none of them is. A household is a
+**roster** and grants nobody access to anybody's record; a sponsor **pays and reads nothing about the care**; a bill
+split is one payable cut into shares **each payer accepts for themselves**. Three routes were declared in Wave 2 and
+never built; two of them could not be built as written and are withdrawn and versioned.
+
+| What landed | The refusals it adds | Where |
+|---|---|---|
+| **A household roster** (`POST /v1/access/households@1`, built as it was frozen; `POST /v1/access/household-memberships@1` adds a line; `GET /v1/access/households@1` reads one). A membership holds four things — the household, the member, who added them and the day — and there is no field for a scope, a purpose, an expiry or a relationship, because each of those is half of a consent grant. **Listing somebody grants nothing to them and nothing to the person who added them** | `membership-is-not-consent` on both writes; `not-in-this-household` on reading a roster and on adding to one — who lives with whom is a fact about all of them | `household.json`, `access/domain/household.ts`, `Household.tsx` |
+| **A request that tries to attach a grant to a roster line is refused rather than ignored.** The routes declare no such field, so an attempt arrives undeclared; the binder hands the handler the *names* of what was sent, and the words are read from `household.json` `grantFieldWords`. A dropped field is a field somebody believes worked | `membership-is-not-consent`, on the words `scope`, `grant`, `permission`, `consent`, `access`, `expires` and the rest | `household.ts` `namesAGrant` |
+| **A sponsorship names a household membership, never a typed name** (`POST /v1/access/sponsors@2`; version one withdrawn: it took a subject reference and nothing else, so a sponsorship could be opened against any string, and it had nowhere for the recipient's agreement to live). It starts **offered** and moves only when the person being paid for answers in her own account (`…/answer@1`), which is what `programmes.json` has always said | `not-a-household-member`, `sponsor-reads-nothing`, `only-the-recipient-answers`, `answer-not-offered` | `access/domain/sponsorship.ts`, `Sponsor.tsx` |
+| **Billing visibility, as arithmetic rather than manners** (`GET /v1/access/sponsors@1`). `statementFor` returns a day and an amount per line, with the service present only where the recipient's own line detail is `programmes.json`'s `service-named`. A screen is never handed a field it is meant to hide, and the response shape has no place for a reason, a finding or a follow-up at all | `sponsor-reads-nothing`, `sponsorship-not-yours` | `sponsorship.ts` `statementFor` |
+| **A bill split over one payable** (`POST /v1/access/bill-splits@2`; version one withdrawn: it split a *plan*, so the refusal it declared could not fire — nothing in the request said what the whole was — and it had no acceptance). The shares are added up against the payable's own amount in cents; each payer accepts their own at the amount they were shown (`…/accept@1`); and `payableShares` offers only the accepted ones, so **an unaccepted share is not owed and there is nothing to charge for it** | `shares-must-total`, `one-share-each`, `split-shows-no-care`, `not-your-share`, `share-amount-differs` | `access/domain/bill-split.ts`, `BillSplit.tsx` |
+| **Access hears `payment.succeeded@1`** and keeps a day and an amount, only for somebody who has agreed to a sponsorship. The event names **no payer**, so a person with two agreed sponsorships has a line attributed to neither rather than to the wrong one. Closing that needs a payer on Money's event, which is a new version of somebody else's event | — | `access/engine.ts`, `booking.json` `hears` |
+| **Screens**: the roster inside the household record, the sponsorship link and its statement, and a split anybody can propose short on purpose to see the refusal. All three behind dynamic imports; the household record, the health summary and the sponsor's statement moved behind theirs in the same change, and the patient's first load fell from **295.49 kB to 281.59 kB** | Every refusal word for word from the route that declares it | `Household.tsx`, `Sponsor.tsx`, `BillSplit.tsx`, `lib/household.ts` |
+| **Both phones** render what a roster is and the four things it never holds, from `HouseholdData`, whose refusal sentences are resolved out of `apis/access.json` by id rather than typed. Neither phone gains a route | — | `emit-household.mjs`, `HouseholdView.swift`, `HouseholdScreens.kt` |
+| **The build** holds this wave to seven things: no family route or store column named for a scope, a grant, a permission or an expiry; the roster refused to strangers on both the read and the write; no refusal sentence restated in `household.json`; no field named for a finding, a reason or a result; the service removed under the default line detail and kept under the recipient's switch; a split short, over, named twice or of nothing refused by four calls to the domain; and an unaccepted share offered to nobody | Each proved by breaking its source | `scripts/check-boundaries.mjs` |
+
+**Still open: the sponsor's naming join.** `programmes.json`'s statement names its recipient in words ("Grace Mokoena")
+while the household names hers by reference, and the patient application's own family is a third set of names. This wave
+closes the half it can — the sponsorship is a link between a household reference, a member reference and a payer
+reference, and whether the service is named is now derived from the statement rather than a hardcoded `true` in
+`lib/sponsorship.ts` — and leaves the naming join open rather than adding a fourth name to hide it. Closing it means one
+preview family across `programmes.json`, `App.tsx` and `Household.tsx`, and that is a change to the back office and both
+phones rather than to this route. **No guardian authority is proven** and none is built: a roster carries no
+relationship, and `docs/PRIVACY-AND-SECURITY.md`'s "Family care" row is unchanged.
+
 ## Next UI increments
 
 Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only
@@ -1131,7 +1159,10 @@ statically, and the patient's first load measured 316.61 kB against 319.97 the s
 pathway went second, on 15 September with Wave 4's press and next of kin: `features/Sos` and
 `features/NextOfKin` are dynamic imports from `App.tsx`, and while the pathway downloads its fallback is
 the emergency numbers themselves, read by name from `sos.json`, so the numbers never wait for the
-download. The passport and the household record are still in it.
+download. The household record went third, on 16 September with Wave 6's roster: `features/Household` and
+`features/Sponsor` are dynamic imports from `App.tsx`, a boundary check fails if either is imported statically,
+and the patient's first load measured 281.39 kB against 295.49 the same way — 14 kB off a screen opened from
+inside a dialog. The passport is still in it.
 
 **Two quarantined copies are left of nine, and both retire themselves.** Moving three bodies of
 prose into the catalogue could not finish in one pass, because adopting a contract means editing the

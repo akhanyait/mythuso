@@ -1,0 +1,24 @@
+/* Splitting one visit's cost. The screen is behind a dynamic import, so this arrives with it and never with
+   the patient's first load.
+
+   Two rules and no more. The shares are the only rows on the screen and a record row already draws them, so
+   what is styled here is the list of what a payer never sees — the same shape the group screens give theirs,
+   because it is the same kind of sentence and a second look for it would read as a different promise. The
+   tokens are the patient surface's own, not the group screens': that file reaches for two custom properties
+   nothing declares, and copying them would have made this list inherit its size from whatever contains it. */
+
+.split-never { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-8); }
+.split-never li {
+ display: flex;
+ gap: var(--space-8);
+ align-items: flex-start;
+ font-size: 13px;
+ line-height: 1.5;
+ color: var(--faint);
+}
+.split-never svg { flex: none; margin-top: 2px; }
+
+/* The share's own button sits at the end of its row rather than under it: a row a person acts on reads as
+   one decision, and a button on its own line reads as a second. */
+.split-share { align-items: center; }
+.split-share button { margin-left: auto; }

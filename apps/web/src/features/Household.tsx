@@ -6,6 +6,7 @@ import contract from '../../../../packages/catalog/records.json';
 import { can, daysUntil, formatDate, formatEventTime, inDays, inMonths, roleById, type CheckRecord, type CheckState, type VettingSubject } from '../lib/vetting';
 import { subjectById } from '../lib/vetting-fixtures';
 import { protectedCategories } from '../lib/records';
+import { addToRoster, householdWords, nameOf, neverHolds, previewHousehold, refOfMember, rosterFor } from '../lib/household';
 
 /* A household is the one screen whose whole purpose is showing several people's health at once,
    which makes it the easiest place in the product to undo everything the guardian flow promises.
@@ -283,6 +284,8 @@ export function HouseholdRecord({ household = mokoena, viewers = householdViewer
    </section>
   </div>
 
+  <Roster viewer={viewer}/>
+
   <section className="panel">
    <h3>Book a home visit</h3>
    <p className="muted">Arranging care is not reading a record, so this stays open to the household while the record above stays shut.</p>
@@ -291,6 +294,51 @@ export function HouseholdRecord({ household = mokoena, viewers = householdViewer
    <p className="helper">{viewer.memberId ? 'You can arrange a visit for anyone in the household. The visit summary goes to them.' : 'Only a member of the household can arrange visits for it.'}</p>
   </section>
  </div>;
+}
+
+/* ---- The roster ------------------------------------------------------------------------------
+   The household above is the record: who may see what of whom, and why. This is the arrangement
+   underneath it — a list of account references and who put them there — and the point of drawing
+   the two on one screen is that adding a line to the second changes nothing about the first.
+
+   Everything here is answered by packages/engines/src/access/domain/household.ts, the module the
+   routes POST /v1/access/household-memberships@1 and GET /v1/access/households@1 are built on, so
+   the refusal a person reads is the one the route would have sent. Nothing is stored or sent: the
+   roster lives in this component's state while the page is open.
+
+   The checkbox is the part worth defending. It offers exactly what the contract refuses — a record
+   opened along with the roster line — and it is not disabled, because a disabled control says the
+   thing is possible for somebody. Ticking it sends the field, and the route answers in words. */
+function Roster({ viewer }: { viewer: Viewer }) {
+ const [household, setHousehold] = useState(() => previewHousehold());
+ const [reference, setReference] = useState('');
+ const [withAccess, setWithAccess] = useState(false);
+ const [status, setStatus] = useState('');
+ const mine = viewer.memberId ? refOfMember(viewer.memberId) : null;
+ const seen = rosterFor(household, mine ?? '');
+ const add = () => {
+  const answer = addToRoster(household, { memberSubjectRef: reference.trim(), addedBySubjectRef: mine ?? '', attachment: withAccess ? 'grantedScope' : undefined });
+  if (answer.refused) { setStatus(answer.statement); return; }
+  setHousehold(answer.household); setReference(''); setWithAccess(false);
+  setStatus(householdWords.added);
+ };
+ return <section className="panel">
+  <h3>{householdWords.heading}</h3>
+  <p className="muted">{householdWords.intro}</p>
+  {seen.refused
+   ? <p className="muted">{seen.statement}</p>
+   : <>{seen.members.map(m => <div className="review-line" key={m.memberSubjectRef}>
+       <span>{nameOf(m.memberSubjectRef)}</span>
+       <strong>{householdWords.addedBy.replace('{who}', nameOf(m.addedBySubjectRef))} · {formatDate(m.addedOnDay)}</strong>
+      </div>)}
+      <label>{householdWords.addLabel}<input value={reference} onChange={e => setReference(e.target.value.slice(0, 40))} placeholder="subj-preview-…"/></label>
+      <label className="checkbox"><input type="checkbox" checked={withAccess} onChange={e => setWithAccess(e.target.checked)}/><span>Also open their record to me</span></label>
+      <div className="button-row"><button className="secondary" disabled={!reference.trim()} onClick={add}><Users size={16}/>{householdWords.add}</button></div>
+     </>}
+  <p className="helper" role="status" aria-live="polite">{status || householdWords.preview}</p>
+  <div className="privacy-note"><LockKeyhole size={19}/><span><strong>{householdWords.neverHeading}.</strong> {householdWords.grantsNothing}</span></div>
+  <dl className="stated">{neverHolds.map(n => <div key={n.field}><dt>{n.field}</dt><dd>{n.why}</dd></div>)}</dl>
+ </section>;
 }
 
 /* ---- The health summary ---------------------------------------------------------------------

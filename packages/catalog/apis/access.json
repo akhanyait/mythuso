@@ -2,7 +2,7 @@
  "engine": "access",
  "_note": "Access is how a person reaches MyThuso: the identity service's sign-in, account, consent and operator routes (built, in development), and Gilbert's bookings, conversations, handover, allow-listed tools and household arrangements (proposed). Wave 2 contract; Wave 3 build.",
  "version": 1,
- "resources": ["sign-ins", "sessions", "sign-outs", "account-names", "second-factors", "second-factor-confirmations", "second-factor-removals", "account-data", "erasure-requests", "erasure-cancellations", "account-exports", "correction-requests", "consent-contract", "consents", "access-log", "subject-requests", "health", "audit-chain", "witness-statements", "access-log-integrity", "verification-status", "rate-limits", "doors", "bookings", "conversations", "tools", "households", "sponsors", "bill-splits", "visit-threads", "settings", "setting-changes", "setting-reviews"],
+ "resources": ["sign-ins", "sessions", "sign-outs", "account-names", "second-factors", "second-factor-confirmations", "second-factor-removals", "account-data", "erasure-requests", "erasure-cancellations", "account-exports", "correction-requests", "consent-contract", "consents", "access-log", "subject-requests", "health", "audit-chain", "witness-statements", "access-log-integrity", "verification-status", "rate-limits", "doors", "bookings", "conversations", "tools", "households", "household-memberships", "sponsors", "bill-splits", "visit-threads", "settings", "setting-changes", "setting-reviews"],
  "doors": ["message-delivery", "ussd-session"],
  "doorsToAdd": [
   {"id": "whatsapp-inbound", "why": "Inbound WhatsApp from the provider is a supplier callback, so it is a door to add to packages/catalog/feeds.json, not a route.", "capabilityNamed": {"section": "FS-E1", "what": "phone and WhatsApp booking"}},
@@ -1030,14 +1030,78 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/access/engine.ts", "handler": "'POST /v1/access/households@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/households",
+   "version": 1,
+   "summary": "Read the households you are in: who is on each roster, who put them there and when — and nothing else about any of them.",
+   "callers": ["patient", "caregiver"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "householdRef", "type": "string", "required": false, "why": "One household, when you want one. Left out, the answer is every household the caller is on the roster of."}
+   ],
+   "response": [
+    {"field": "households", "type": "list", "required": true, "object": true, "why": "The households the caller is a member of. A roster is who is in it and nothing more; there is no field here for a scope, a grant or anything clinical, so there is nothing for a screen to hide.", "fields": [
+     {"field": "householdRef", "type": "string", "required": true, "why": "The household."},
+     {"field": "members", "type": "list", "required": true, "object": true, "why": "The roster, as references.", "fields": [
+      {"field": "memberSubjectRef", "type": "string", "required": true, "why": "Who is on it. An opaque reference, never a name, a number or an address."},
+      {"field": "addedBySubjectRef", "type": "string", "required": true, "why": "Who put them on it. A roster with no author is a roster nobody can question."},
+      {"field": "addedOnDay", "type": "iso-date", "required": true, "why": "The day they were added, in Johannesburg."}
+     ]}
+    ]}
+   ],
+   "refusals": [
+    {"id": "not-in-this-household", "status": 403, "statement": "A household is listed only to the people in it.", "why": "Who lives with whom is a fact about all of them. A refusal that answered with an empty list instead would tell a stranger the household exists, and telling them it does not would be a lie the next request could catch out."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading a roster changes nothing and tells no engine anything.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/access/engine.ts", "handler": "'GET /v1/access/households@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/household-memberships",
+   "version": 1,
+   "summary": "Put one more person on a household's roster. It grants them nothing, and grants the person adding them nothing either.",
+   "callers": ["patient", "caregiver"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same roster line once."},
+    {"field": "householdRef", "type": "string", "required": true, "why": "The household whose roster is being added to. The caller has to be on it already."},
+    {"field": "memberSubjectRef", "type": "string", "required": true, "why": "Who is being added, as an opaque reference to an account."}
+   ],
+   "response": [
+    {"field": "householdRef", "type": "string", "required": true, "why": "The household."},
+    {"field": "memberSubjectRef", "type": "string", "required": true, "why": "Who was added."},
+    {"field": "addedOnDay", "type": "iso-date", "required": true, "why": "The day, in Johannesburg. A roster line with no date cannot be read as history."}
+   ],
+   "refusals": [
+    {"id": "membership-is-not-consent", "status": 422, "statement": "Joining a household shares nobody's record.", "why": "Each member's record stays their own; a grant is a separate act. A request that adds somebody and carries a scope, a grant or an expiry beside them is asking for the roster to be a permission, and is refused in these words rather than having the field quietly dropped."},
+    {"id": "not-in-this-household", "status": 403, "statement": "A household is listed only to the people in it.", "why": "Adding somebody to a roster you are not on is writing a list about other people. The same sentence refuses reading one, because they are the same fact about the same household."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A roster line grants nothing and owes nothing, so no engine acts on one; the event contract refuses an event nobody subscribes to.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/access/engine.ts", "handler": "'POST /v1/access/household-memberships@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
    "path": "/v1/access/sponsors",
    "version": 1,
    "summary": "Name somebody who pays for a person's care.",
-   "callers": ["patient", "sponsor"],
+   "callers": [],
    "purpose": ["billing"],
    "request": [
     {"field": "sponsoredSubjectRef", "type": "string", "required": true, "why": "Whose care is paid for."}
@@ -1053,14 +1117,117 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {
+    "on": "2026-09-16",
+    "supersededBy": "POST /v1/access/sponsors@2",
+    "why": "It named a person and nothing else, so a sponsorship could be opened against any reference a caller typed, with no household behind it and nothing to check the name against — which is the second name in the contract that packages/catalog/programmes.json's statement already suffers from. It had no field for the household the person belongs to, no state, and so nowhere for the recipient's agreement to live: packages/catalog/programmes.json says a sponsorship starts when the person being paid for says yes, and version one started when somebody offered. It was never built. Version two names a household and a member of it, starts offered, and is agreed to or stopped by the recipient through POST /v1/access/sponsors/{sponsorshipRef}/answer@1. Its callers are version two's."
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/sponsors",
+   "version": 2,
+   "summary": "Offer to pay for the care of somebody on a household's roster. It is offered, never started: the person being paid for agrees in her own account.",
+   "callers": ["patient", "sponsor"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same offer once, so a retry on a bad connection does not leave a family with two sponsorships to answer."},
+    {"field": "householdRef", "type": "string", "required": true, "why": "The household the person being paid for is on the roster of. A sponsorship is bound to a membership, so there is nowhere to type a name."},
+    {"field": "sponsoredSubjectRef", "type": "string", "required": true, "why": "Whose care is paid for: a member of that household, as an opaque reference."}
+   ],
+   "response": [
+    {"field": "sponsorshipRef", "type": "string", "required": true, "why": "The sponsorship."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "offered until the person being paid for agrees, from packages/catalog/household.json's sponsorship states."},
+    {"field": "lineDetailId", "type": "string", "required": true, "why": "Which of packages/catalog/programmes.json's two line details is in force. It starts at the default — an amount and a date — because naming the service is the recipient's switch and she has not been asked yet."}
+   ],
+   "refusals": [
+    {"id": "sponsor-reads-nothing", "status": 403, "statement": "A sponsor pays, and reads nothing about the care.", "why": "Paying for a visit is not a grant. A request that arrives carrying a field named for the service, the reason or a finding is asking to be told what the care was, and is refused in these words rather than answered with a shape that happens to leave it out."},
+    {"id": "not-a-household-member", "status": 422, "statement": "A sponsorship names somebody on that household's roster.", "why": "A reference typed into a request is a name by another route. The person being paid for has to be on the roster the sponsorship names, so the link is to a membership somebody made rather than to a string."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Money learns of a sponsor when it bills, from its own route. Nothing is owed or paid by offering one, and the event contract refuses an event nobody subscribes to.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/access/engine.ts", "handler": "'POST /v1/access/sponsors@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/sponsors/{sponsorshipRef}/answer",
+   "version": 1,
+   "summary": "The person being paid for agrees to a sponsorship, or stops one. Hers, from her own account, and nobody else's.",
+   "callers": ["patient"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same answer once."},
+    {"field": "sponsorshipRef", "type": "string", "required": true, "why": "The sponsorship being answered."},
+    {"field": "answerCode", "type": "string", "required": true, "why": "agree or stop, and nothing else. Stopping needs no reason and none is asked for."}
+   ],
+   "response": [
+    {"field": "sponsorshipRef", "type": "string", "required": true, "why": "The sponsorship."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "agreed or stopped, from packages/catalog/household.json's sponsorship states."}
+   ],
+   "refusals": [
+    {"id": "only-the-recipient-answers", "status": 403, "statement": "Only the person being paid for agrees to a sponsorship, or stops one.", "why": "packages/catalog/programmes.json: a sponsorship starts when the person being paid for says yes, from her own account. A sponsor who could agree on her behalf would be buying the agreement along with the care."},
+    {"id": "answer-not-offered", "status": 422, "statement": "A sponsorship is agreed to, or stopped. There is no third answer.", "why": "A free-text answer to a consent question is an answer nobody can act on, and a code nobody declared is a state this engine would have to invent."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Nothing is owed or paid by agreeing to a sponsorship; Money learns of a sponsor when it bills.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/access/engine.ts", "handler": "'POST /v1/access/sponsors/{sponsorshipRef}/answer@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/sponsors",
+   "version": 1,
+   "summary": "What a sponsorship has paid for: a day and an amount each, and the service only where the person being paid for has switched that on.",
+   "callers": ["patient", "sponsor"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "sponsorshipRef", "type": "string", "required": false, "why": "One sponsorship, when you want one. Left out, the answer is every sponsorship the caller pays or is paid for."}
+   ],
+   "response": [
+    {"field": "sponsorships", "type": "list", "required": true, "object": true, "why": "The sponsorships the caller is on one side of. Every field in it is a reference, a state or an amount: there is no field for a reason, a finding or anything a visit produced, so a sponsor reads nothing about the care because there is nothing here to read.", "fields": [
+     {"field": "sponsorshipRef", "type": "string", "required": true, "why": "The sponsorship."},
+     {"field": "householdRef", "type": "string", "required": true, "why": "The household the person being paid for is on the roster of."},
+     {"field": "sponsoredSubjectRef", "type": "string", "required": true, "why": "Whose care is paid for, as an opaque reference."},
+     {"field": "payerSubjectRef", "type": "string", "required": true, "why": "Who pays, as an opaque reference."},
+     {"field": "stateCode", "type": "string", "required": true, "why": "offered, agreed or stopped."},
+     {"field": "lineDetailId", "type": "string", "required": true, "why": "Which of packages/catalog/programmes.json's line details the recipient has in force for this sponsor."},
+     {"field": "paidCents", "type": "integer", "required": true, "why": "What has been paid under this sponsorship altogether, in cents: the sum of the lines below and never a figure of its own."},
+     {"field": "lines", "type": "list", "required": true, "object": true, "why": "One line per payment. A day and an amount, and the service only where the line detail in force is service-named.", "fields": [
+      {"field": "paidOnDay", "type": "iso-date", "required": true, "why": "The day it was paid, in Johannesburg."},
+      {"field": "amountCents", "type": "integer", "required": true, "why": "What it cost, in cents, as Money's payment said."},
+      {"field": "serviceId", "type": "string", "required": false, "why": "From packages/catalog/services.json, and present only where the recipient's line detail is service-named and this engine was told which service it was. Absent is the default, and absent says nothing about whether there was a service."}
+     ]}
+    ]}
+   ],
+   "refusals": [
+    {"id": "sponsor-reads-nothing", "status": 403, "statement": "A sponsor pays, and reads nothing about the care.", "why": "A request that asks for the service, the reason or the finding is refused rather than served a shape that leaves the field out, because a field quietly dropped is a field somebody asks for again."},
+    {"id": "sponsorship-not-yours", "status": 403, "statement": "A statement is read by the person who pays it and the person it is for.", "why": "A sponsorship is between two people, and a third naming its reference is not one of them."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading a statement changes nothing and tells no engine anything.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/access/engine.ts", "handler": "'GET /v1/access/sponsors@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
    "path": "/v1/access/bill-splits",
    "version": 1,
    "summary": "Split a plan's cost between family members.",
-   "callers": ["patient", "caregiver", "sponsor"],
+   "callers": [],
    "purpose": ["billing"],
    "request": [
     {"field": "planRef", "type": "string", "required": true, "why": "The plan split."},
@@ -1077,7 +1244,84 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {
+    "on": "2026-09-16",
+    "supersededBy": "POST /v1/access/bill-splits@2",
+    "why": "It split a plan rather than a payable, so there was no amount to add the shares up against — the refusal it declares could not fire, because nothing in the request said what the whole was. What a share held was described in prose and never declared, so two adult children could be sent shares of different shapes and no lock would see it. And it had no acceptance: it divided somebody else's money and answered payable, when a share is owed only by the person who accepted it. It was never built. Version two names Money's payable and its amount in cents, declares what a share holds, and every share is accepted by the person who owes it through POST /v1/access/bill-splits/{splitRef}/accept@1. Its callers are version two's."
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/bill-splits",
+   "version": 2,
+   "summary": "Propose a split of one payable's amount across named payers, each of whom accepts their own share before it is owed.",
+   "callers": ["patient", "caregiver", "sponsor"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same split once, so a retry does not ask a family to accept the same shares twice."},
+    {"field": "payableRef", "type": "string", "required": true, "why": "What is being split, Money's own payable. Nothing here prices anything."},
+    {"field": "amountCents", "type": "integer", "required": true, "why": "What the payable owes in full, in cents, as Money told the caller. The shares are added up and measured against this and nothing else."},
+    {"field": "shares", "type": "list", "required": true, "object": true, "why": "Who pays what.", "fields": [
+     {"field": "payerSubjectRef", "type": "string", "required": true, "why": "Who owes this share, as an opaque reference."},
+     {"field": "amountCents", "type": "integer", "required": true, "why": "What they owe, in cents."}
+    ]}
+   ],
+   "response": [
+    {"field": "splitRef", "type": "string", "required": true, "why": "The split."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "proposed until every payer has accepted their own share, from packages/catalog/household.json's split states."},
+    {"field": "shares", "type": "list", "required": true, "object": true, "why": "Each share and where it stands. No field here names a service, a subject or anything a visit produced, so no payer learns anything about the care from a split.", "fields": [
+     {"field": "payerSubjectRef", "type": "string", "required": true, "why": "Who owes it."},
+     {"field": "amountCents", "type": "integer", "required": true, "why": "What they owe, in cents."},
+     {"field": "stateCode", "type": "string", "required": true, "why": "waiting until they accept it themselves, accepted afterwards."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "shares-must-total", "status": 422, "statement": "The shares must add up to the whole.", "why": "A split that does not add up leaves somebody owing an amount nobody agreed. It is compared in cents against the payable's own amount, so there is no rounding to argue about afterwards."},
+    {"id": "one-share-each", "status": 422, "statement": "Each person owes one share of a split, and every share is an amount.", "why": "A payer named twice owes two amounts nobody added up, and a share of nothing is a name on a list pretending to be a payer."},
+    {"id": "split-shows-no-care", "status": 403, "statement": "A payer sees what they owe, and nothing about the care.", "why": "A request carrying a field named for the service, the reason or a finding is asking what the visit was for. Two adult children splitting a parent's bill are payers, not readers of her record."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Money bills each share through its own routes. Proposing a split owes nobody anything until they accept.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/access/engine.ts", "handler": "'POST /v1/access/bill-splits@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/bill-splits/{splitRef}/accept",
+   "version": 1,
+   "summary": "Accept your own share of a split. Nobody else's, and nothing is payable until everybody has.",
+   "callers": ["patient", "caregiver", "sponsor"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same acceptance once."},
+    {"field": "splitRef", "type": "string", "required": true, "why": "The split."},
+    {"field": "amountCents", "type": "integer", "required": true, "why": "The share being accepted, in cents. Sent back so that a person accepts the amount they were shown rather than whatever the split says now."}
+   ],
+   "response": [
+    {"field": "splitRef", "type": "string", "required": true, "why": "The split."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "The split's state: proposed while any share is still waiting, payable once none is."},
+    {"field": "shareStateCode", "type": "string", "required": true, "why": "The caller's own share: accepted."},
+    {"field": "acceptedCount", "type": "integer", "required": true, "why": "How many shares have been accepted."},
+    {"field": "shareCount", "type": "integer", "required": true, "why": "How many there are altogether, so a screen can say what is still outstanding without naming who."}
+   ],
+   "refusals": [
+    {"id": "not-your-share", "status": 403, "statement": "Only the person who owes a share accepts it.", "why": "A share accepted by a relative is an amount somebody else agreed to on your behalf, which is the thing a split is supposed to make impossible."},
+    {"id": "share-amount-differs", "status": 409, "statement": "That is not the share you were asked to accept.", "why": "A split that changed between being shown and being accepted is a different arrangement. Accepting the amount on the screen rather than the amount in the store is what makes the acceptance mean anything."},
+    {"id": "split-shows-no-care", "status": 403, "statement": "A payer sees what they owe, and nothing about the care.", "why": "Accepting a share is agreeing to an amount. A request that asks what the amount was for is refused here for the reason it is refused when the split is proposed."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Money charges an accepted share through its own payment route; accepting one moves no money and tells no engine anything.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/access/engine.ts", "handler": "'POST /v1/access/bill-splits/{splitRef}/accept@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",

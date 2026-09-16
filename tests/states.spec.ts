@@ -252,9 +252,14 @@ const SHARED_BY_BOTH_AUDIENCES = ['DemoLogin', 'Kit', 'KitCapture', 'LiveMap', '
 /* Thuso SOS left this list in Wave 4, for the same reason: the pathway gained the Safety engine's rules for a press and
    next of kin, and it now arrives on a dynamic import from App.tsx when somebody opens it, with the emergency numbers as
    the fallback so they never wait for the download. */
+/* The household record and the sponsor's statement left this list in Wave 6, for the same reason again:
+   between them they carry the records contract, packages/catalog/household.json, the programmes contract
+   and the Access domain behind the roster, and both are opened from a dialog or a row rather than drawn on
+   a patient's first view. They arrive on dynamic imports from App.tsx now, a boundary check fails if either
+   is imported statically, and the patient's first load fell 14 kB. A clinician never opens either. */
 const CARRIED_BY_THE_ONE_ENTRY = [
-  'Access', 'Arrival', 'Consent', 'Dashboard', 'Guardian', 'Help', 'Household',
-  'Interpreting', 'Onboarding', 'Pages', 'Passport', 'PatientShell', 'Sponsor', 'VisitSummary',
+  'Access', 'Arrival', 'Consent', 'Dashboard', 'Guardian', 'Help',
+  'Interpreting', 'Onboarding', 'Pages', 'Passport', 'PatientShell', 'VisitSummary',
   /* Live well, added the same night as the one entry. It is a patient feature and the patient is
      the default surface, so it loads with the rest of the patient app rather than behind a role —
      which is the cost this list exists to keep visible, not a leak. The ratchet did its job: it

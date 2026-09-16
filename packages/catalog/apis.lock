@@ -322,3 +322,10 @@ POST /v1/money/claims/{claimRef}/consent@1 2e4ec1841f3ea133
 POST /v1/money/claims/{claimRef}/submit@1 e9af1935fe76dd6e
 GET /v1/money/claims@1 32870c61fb81428c
 GET /v1/money/held-cash-payments@1 6d9b16181d99b813
+GET /v1/access/households@1 6424d73b5e6dc6e3
+POST /v1/access/household-memberships@1 8caefe2359f54ff9
+POST /v1/access/sponsors@2 a79f6841d7211b80
+POST /v1/access/sponsors/{sponsorshipRef}/answer@1 d2e8e95b9e9e2005
+GET /v1/access/sponsors@1 1d25e8d48a818aa5
+POST /v1/access/bill-splits@2 f5471f266879d748
+POST /v1/access/bill-splits/{splitRef}/accept@1 d3eab6996fdce986

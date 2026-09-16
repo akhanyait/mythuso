@@ -440,3 +440,10 @@ GET /v1/money/claims@1 0fcabc0e4435fff5
 GET /v1/money/held-cash-payments@1 b6a80a6dcc50419d
 shared apis/money.json#refusals gift-expired 4a1166ddcfebbeb6
 shared apis/money.json#refusals gift-already-booked 5e24139a918d86b5
+GET /v1/access/households@1 c5bb61621794312f
+POST /v1/access/household-memberships@1 d09adde927f4e32f
+POST /v1/access/sponsors@2 1abf3648181c40da
+POST /v1/access/sponsors/{sponsorshipRef}/answer@1 ca009149942ba88f
+GET /v1/access/sponsors@1 3d3cd780470c9d5f
+POST /v1/access/bill-splits@2 41fbaba9c9724063
+POST /v1/access/bill-splits/{splitRef}/accept@1 e11cceef7e4f855d
