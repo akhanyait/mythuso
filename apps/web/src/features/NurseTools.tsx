@@ -3,6 +3,7 @@ import { SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { modules, money, services } from '../lib/catalog';
 import { capabilityById, roleById } from '../lib/vetting';
+import careApi from '../../../../packages/catalog/apis/care.json' with { type: 'json' };
 
 /* The two tools on a nurse's own home screen with nothing behind them.
  *
@@ -19,6 +20,15 @@ import { capabilityById, roleById } from '../lib/vetting';
  * workflow and neither screen pretends to be one. */
 
 const moduleRow = (name: string) => modules.find(([moduleName]) => moduleName === name)!;
+/* GET /v1/care/locum-shifts@1, closed in Wave 6: the read exists now, and this is what it answers.
+   Nothing in the catalog yet models a hospital or a care home shift — see
+   packages/engines/src/care/domain/reads.ts for why the list stays honestly empty rather than
+   invented — so what this route still does is refuse a locum whose Trust Score is not current, on
+   the same standing an offer is withheld by. The sentence is the contract's own, not a paraphrase. */
+const locumShiftsRefusal = careApi.routes
+ .find(r => r.method === 'GET' && r.path === '/v1/care/locum-shifts' && r.version === 1)
+ ?.refusals.find(r => r.id === 'unverified-locum')?.statement;
+if (!locumShiftsRefusal) throw new Error("packages/catalog/apis/care.json's GET /v1/care/locum-shifts@1 declares no refusal \"unverified-locum\".");
 
 export function LocumShifts({ onClose }: { onClose: () => void }) {
  const [, description, phase] = moduleRow('Thuso Locum');
@@ -29,6 +39,8 @@ export function LocumShifts({ onClose }: { onClose: () => void }) {
  return <div className="form-stack">
   <NotConnected of="dispatch"/>
   <p className="muted">Thuso Locum · {phase}. {description}. It is not drawn as a workflow and no shift can be picked up here.</p>
+
+  <div className="privacy-note alert"><ShieldX size={19}/>The read behind this screen answers now, and it refuses before it lists anything: {locumShiftsRefusal} Once her Trust Score is current, the list it answers with is empty — nothing here invents a hospital or a care home shift that does not exist yet.</div>
 
   <SectionTitle title="What it would be"/>
   <div className="panel"><dl className="stated">
