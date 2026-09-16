@@ -56,6 +56,12 @@ import { ThusoKit } from './features/Kit';
 import { emergency as sosEmergency } from '../../../packages/catalog/sos.json';
 const ThusoSos = lazy(() => import('./features/Sos').then(m => ({ default: m.ThusoSos })));
 const NextOfKinSettings = lazy(() => import('./features/NextOfKin').then(m => ({ default: m.NextOfKinSettings })));
+/* Group payers and claims, on dynamic imports for the reason everything else here is: between them they carry two
+   contracts, Money's ledger and every engine's settings through lib/settings, and a patient reading her visits on
+   metered data opens none of them. */
+const GroupAdminPage = lazy(() => import('./features/Groups').then(m => ({ default: m.GroupAdmin })));
+const GroupMembershipPage = lazy(() => import('./features/Groups').then(m => ({ default: m.GroupMembership })));
+const ClaimsPage = lazy(() => import('./features/Claims').then(m => ({ default: m.ClaimsOnRecord })));
 function EmergencyWhileSosLoads() {
  return <div className="sos"><div className="sos-emergency">
   <div className="sos-emergency-head"><div><strong>{sosEmergency.headline}</strong><p>{sosEmergency.lead}</p></div></div>
@@ -216,7 +222,11 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
        : page === 'Care you sponsor' ? <SponsoredCare person={people[1]} relation={relationOf(people[1], people)} navigate={navigate} open={setModal}/>
        : page === 'My family' ? <Family members={members} invitations={invitations} onRevoke={id => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i))} open={setModal} navigate={navigate}/>
         : page === 'Care plans' ? <Plans open={setModal} family={{ sponsor: people[0]!, parents: people.filter(p => relationOf(p, people) === 'Mother') }}/>
-         : page === 'Thuso Wallet' ? <WalletPage open={setModal}/>
+         /* Group payers and claims: three screens on their own dynamic imports, opened from the wallet and the passport. */
+         : page === 'Groups that pay for you' ? <Suspense fallback={<p className="helper" role="status">Opening your groups.</p>}><GroupMembershipPage/></Suspense>
+         : page === 'A group you pay for' ? <Suspense fallback={<p className="helper" role="status">Opening your group.</p>}><GroupAdminPage/></Suspense>
+         : page === 'Claims to your medical scheme' ? <Suspense fallback={<p className="helper" role="status">Opening your claims.</p>}><ClaimsPage/></Suspense>
+         : page === 'Thuso Wallet' ? <WalletPage open={setModal} navigate={navigate}/>
           : page === 'Privacy & settings' ? <Privacy open={setModal}/>
            : page === 'Language & access' ? <Access/>
             : page === 'Explore MyThuso' ? <Explore open={setModal} onOnboarding={() => setOnboarding('first-run')} navigate={navigate}/>

@@ -44,6 +44,14 @@ import {
  agreesForSomebody, asksForPriority, essential, includesCollection, includesVisit, lineDetails, started, viewOf,
  type LineDetail, type Subscription, type SubscriptionView
 } from './subscriptions.ts';
+import {
+ GROUP_ADMIN_ROLES, agreesForMember, groupKindOf, groupPays, groupViewOf, holdsMoney, lineDetailIds, monthOf,
+ type Group, type GroupCharge, type GroupLineDetail, type GroupView, type Membership, type MembershipState
+} from './groups.ts';
+import {
+ addDays, carriesAGrant, carriesClinicalContent, claimViewOf, codeSetAdopted, typesACode,
+ type Claim, type ClaimView, type HeardReview
+} from './claims.ts';
 
 export { carriesACard };
 
@@ -114,8 +122,17 @@ export type MoneyTables = {
  subscriptions: Table<Subscription>;
  /** The idempotency keys of a voucher, a redemption and a plan's acts, each with what it answered — never a code. */
  acts: Table<{ print: string; answer: unknown }>;
+ /** A group: a reference, a kind and who opened it. Nothing in it holds an amount (./groups.ts). */
+ groups: Table<Group>;
+ memberships: Table<Membership>;
+ /** Each charge to a group's own account for one member's payable, beside the payment that carries its state. */
+ groupCharges: Table<GroupCharge>;
+ /** Each review Money heard signed on review.billable@1: who signed it, about whom and the day. */
+ reviews: Table<HeardReview>;
+ /** The billing half of each claim. No code and no diagnosis (./claims.ts). */
+ claims: Table<Claim>;
 };
-export const TABLE_NAMES = ['payables', 'payments', 'cashCodes', 'cashAudit', 'attempts', 'keys', 'billable', 'earned', 'cases', 'payouts', 'suspensions', 'vouchers', 'redemptions', 'subscriptions', 'acts'] as const;
+export const TABLE_NAMES = ['payables', 'payments', 'cashCodes', 'cashAudit', 'attempts', 'keys', 'billable', 'earned', 'cases', 'payouts', 'suspensions', 'vouchers', 'redemptions', 'subscriptions', 'acts', 'groups', 'memberships', 'groupCharges', 'reviews', 'claims'] as const;
 
 /** Tables in memory, written as JSON so they behave as a store does: a row is what was last put. */
 export function memoryTables(): MoneyTables {
@@ -142,6 +159,17 @@ export type MoneyOptions = {
  /* How many years a voucher issued now lasts: Money's setting voucher-expiry-years in force, handed in by whoever holds
     the settings history for the same reason the doctor's fee is. Without one, no voucher is issued. */
  voucherExpiryYears?: () => number;
+ /* Money's settings for groups and claims, handed in the same way and read once when the thing they govern starts:
+    the most a group is charged for one member in a month, how many a group may invite, and how many days an agreement
+    to send a claim lasts. Without one, the act it governs is not done. */
+ groupMemberMonthlyLimitCents?: () => number;
+ groupMemberCap?: () => number;
+ claimConsentDays?: () => number;
+ /* For a test only: whether a switching partner stands behind the claim-response door, so the gate after it can be
+    shown to refuse on its own. Nothing that runs — the engine, the web — hands this in, and the build holds both to
+    that; without it, the door's own switch-on conditions answer, and none is met. Even open, no claim is sent: there
+    is no adapter, and nothing past the last gate is written. */
+ claimSwitchConnected?: () => boolean;
  tables?: MoneyTables;
  /** Where an event goes. The engine hands in the bus; without it, events wait in outbox(). */
  publish?: (key: Published, payload: Record<string, unknown>, subjectRef: string) => void;
@@ -479,6 +507,10 @@ export function createMoney(options: MoneyOptions = {}) {
       keeps the fee the first delivery recorded. */
    if (!row.cases.some(c => c.reviewRef === p['reviewRef'])) row.cases.push({ reviewRef: String(p['reviewRef']), feeCode, on, fee: feeNow() });
    t.cases.put(doctorRef, row);
+   /* The same signing, kept for a claim: who signed, about whom and the day. The subject is the envelope's, never a
+      field, and nothing the review found is here because Money is never told it. A redelivery keeps the first. */
+   const reviewRef = String(p['reviewRef']);
+   if (!t.reviews.get(reviewRef)) t.reviews.put(reviewRef, { reviewRef, doctorRef, subjectRef: envelope.subjectRef ?? '', on });
   } else if (envelope.type === 'booking.confirmed') {
    /* A confirmed booking names its service, and its price is the catalogue's for that service. It opens no payable
       of its own: the payable is the visit Care holds, opened and priced by appointment.booked@2, and no event Money
@@ -823,9 +855,294 @@ export function createMoney(options: MoneyOptions = {}) {
   return t.payments.all().filter(p => { const x = t.payables.get(p.payableRef)!; return x.subjectRef === actor.subjectRef || x.payers.includes(actor.subjectRef); });
  }
 
+ /* ---- Group payers -------------------------------------------------------------------------------- */
+
+ /* A setting a group or a claim is governed by, read once when the act starts. An act with no setting handed in is not
+    done, rather than done under a number nobody set. */
+ const inForce = (name: string, read: (() => number) | undefined): number => {
+  if (!read) throw new Error(`No ${name} is in force, so it is not done. Hand the ledger Money's setting.`);
+  return read();
+ };
+ const GROUP_MEMBER_CALLERS = ['patient', ...GROUP_ADMIN_ROLES];
+
+ /**
+  * A group, opened by the role its kind names. It is a reference, a kind and who opened it, and nothing that can hold
+  * an amount; a request carrying a balance, a pool or a contribution, or a kind that is one, is refused before anything
+  * is keyed, because MyThuso never holds a group's money (packages/catalog/groups.json noPooledMoney).
+  */
+ function openGroup(actor: Actor, request: Record<string, unknown>, sent: readonly string[] = []): { groupRef: string; groupKind: string; replayed: boolean } | Refusal {
+  if (!GROUP_ADMIN_ROLES.includes(actor.role) || !actor.subjectRef) return refusal('caller-not-allowed');
+  const groupKind = String(request['groupKind'] ?? '');
+  if (holdsMoney([...sent, groupKind])) return refusal('group-holds-money');
+  const key = keyOf(request);
+  if (!key) return refusal('idempotency-key-required');
+  const kind = groupKindOf(groupKind);
+  if (!kind) return refusal('group-kind-not-offered');
+  if (kind.openedBy !== actor.role) return refusal('group-kind-not-yours');
+  const print = JSON.stringify({ groupKind });
+  const prior = t.acts.get(actKey(actor, 'group', key));
+  if (prior) return prior.print === print ? { ...(prior.answer as { groupRef: string; groupKind: string }), replayed: true } : refusal('idempotency-key-reused');
+  const group: Group = { groupRef: `GRP-${randomSalt(5).toUpperCase()}`, groupKind: kind.id, adminRef: actor.subjectRef, adminRole: actor.role, openedOn: today() };
+  t.groups.put(group.groupRef, group);
+  const answer = { groupRef: group.groupRef, groupKind: group.groupKind };
+  t.acts.put(actKey(actor, 'group', key), { print, answer });
+  return { ...answer, replayed: false };
+ }
+
+ /**
+  * An invitation, and nothing more. A request that carries an agreement for the person invited is refused rather than
+  * recorded: she agrees in her own account, or the group pays for nothing of hers.
+  */
+ function inviteMember(actor: Actor, request: Record<string, unknown>, sent: readonly string[] = []): { membershipRef: string; stateCode: MembershipState; replayed: boolean } | Refusal {
+  if (!GROUP_ADMIN_ROLES.includes(actor.role) || !actor.subjectRef) return refusal('caller-not-allowed');
+  if (agreesForMember(sent)) return refusal('member-added-without-agreement');
+  if (holdsMoney(sent)) return refusal('group-holds-money');
+  const key = keyOf(request);
+  if (!key) return refusal('idempotency-key-required');
+  const { groupRef, subjectRef } = request;
+  if (typeof groupRef !== 'string' || typeof subjectRef !== 'string' || !subjectRef) return refusal('required-field-missing');
+  const group = t.groups.get(groupRef);
+  if (!group || group.adminRef !== actor.subjectRef) return refusal('group-not-found');
+  const print = JSON.stringify({ groupRef, subjectRef });
+  const prior = t.acts.get(actKey(actor, 'invite', key));
+  if (prior) return prior.print === print ? { ...(prior.answer as { membershipRef: string; stateCode: MembershipState }), replayed: true } : refusal('idempotency-key-reused');
+  const open = t.memberships.all().filter(m => m.groupRef === groupRef && m.stateCode !== 'left');
+  if (open.some(m => m.subjectRef === subjectRef)) return refusal('already-invited');
+  if (open.length >= inForce('group member cap', options.groupMemberCap)) return refusal('group-full');
+  const membership: Membership = { membershipRef: `GMB-${randomSalt(5).toUpperCase()}`, groupRef, subjectRef, stateCode: 'invited', lineDetail: null, invitedOn: today(), agreedOn: null, leftOn: null };
+  t.memberships.put(membership.membershipRef, membership);
+  const answer = { membershipRef: membership.membershipRef, stateCode: membership.stateCode };
+  t.acts.put(actKey(actor, 'invite', key), { print, answer });
+  return { ...answer, replayed: false };
+ }
+
+ /**
+  * She agrees, as herself, and chooses how the group's screen reads what it paid for her, from what her group's kind
+  * offers. The person who invited her is refused in words, and an employee is never offered the day a visit was paid.
+  */
+ function acceptMembership(actor: Actor, request: Record<string, unknown>): { stateCode: MembershipState; lineDetail: GroupLineDetail; replayed: boolean } | Refusal {
+  if (!GROUP_MEMBER_CALLERS.includes(actor.role) || !actor.subjectRef) return refusal('caller-not-allowed');
+  const membership = t.memberships.get(String(request['membershipRef'] ?? ''));
+  const group = membership ? t.groups.get(membership.groupRef) : undefined;
+  if (!membership || !group || (membership.subjectRef !== actor.subjectRef && group.adminRef !== actor.subjectRef)) return refusal('membership-not-found');
+  if (actor.role !== 'patient' || membership.subjectRef !== actor.subjectRef) return refusal('only-the-member-agrees');
+  const key = keyOf(request);
+  if (!key) return refusal('idempotency-key-required');
+  const lineDetail = String(request['lineDetail'] ?? '') as GroupLineDetail;
+  const kind = groupKindOf(group.groupKind)!;
+  /* A way of reading the contract knows, that this kind does not offer. For an employer that is the day and the amount,
+     which is her health, and it is refused as exactly that rather than as a choice not on the list. */
+  if (group.groupKind === 'employer' && lineDetailIds.includes(lineDetail) && !kind.lineDetails.includes(lineDetail)) return refusal('employer-sees-health');
+  if (!kind.lineDetails.includes(lineDetail)) return refusal('group-line-detail-not-offered');
+  const print = JSON.stringify({ membershipRef: membership.membershipRef, lineDetail });
+  const prior = t.acts.get(actKey(actor, 'join', key));
+  if (prior) return prior.print === print ? { ...(prior.answer as { stateCode: MembershipState; lineDetail: GroupLineDetail }), replayed: true } : refusal('idempotency-key-reused');
+  /* An invitation she left is closed. The group invites her afresh, and she is asked again. */
+  if (membership.stateCode === 'left') return refusal('membership-not-found');
+  const next: Membership = { ...membership, stateCode: 'member', lineDetail, agreedOn: membership.agreedOn ?? today() };
+  t.memberships.put(next.membershipRef, next);
+  const answer = { stateCode: next.stateCode, lineDetail };
+  t.acts.put(actKey(actor, 'join', key), { print, answer });
+  return { ...answer, replayed: false };
+ }
+
+ /** She leaves, as herself. The group pays for nothing she asks after, and nothing it already paid is reversed. */
+ function leaveGroup(actor: Actor, request: Record<string, unknown>): { stateCode: MembershipState; replayed: boolean } | Refusal {
+  if (actor.role !== 'patient' || !actor.subjectRef) return refusal('caller-not-allowed');
+  const membership = t.memberships.get(String(request['membershipRef'] ?? ''));
+  if (!membership || membership.subjectRef !== actor.subjectRef) return refusal('membership-not-found');
+  const key = keyOf(request);
+  if (!key) return refusal('idempotency-key-required');
+  const print = JSON.stringify({ membershipRef: membership.membershipRef });
+  const prior = t.acts.get(actKey(actor, 'leave', key));
+  if (prior) return prior.print === print ? { ...(prior.answer as { stateCode: MembershipState }), replayed: true } : refusal('idempotency-key-reused');
+  if (membership.stateCode !== 'member') return refusal('not-a-group-member');
+  t.memberships.put(membership.membershipRef, { ...membership, stateCode: 'left', leftOn: today() });
+  const answer = { stateCode: 'left' as MembershipState };
+  t.acts.put(actKey(actor, 'leave', key), { print, answer });
+  return { ...answer, replayed: false };
+ }
+
+ /* What a group paid, or is waiting on the provider to pay, for one member in one calendar month. A declined or
+    refunded charge is money the group was never out of pocket for, so it counts for nothing. */
+ const chargedFor = (membershipRef: string, month: string, states: readonly PaymentStateId[]) => t.groupCharges.all()
+  .filter(c => c.membershipRef === membershipRef && monthOf(c.on) === month && states.includes(t.payments.get(c.paymentRef)?.stateCode ?? 'failed'))
+  .reduce((sum, c) => sum + c.amountCents, 0);
+
+ /**
+  * A member asks her group to pay for a visit she owes. The group's own account is charged through the provider, for
+  * exactly what the payable owes, up to the limit in force; the charge and the payment are recorded, and nothing is
+  * held. The payment Money publishes names the payable and the amount, and never the group or the member's group.
+  */
+ function payFromGroup(actor: Actor, request: Record<string, unknown>, sent: readonly string[] = []): { paymentRef: string; stateCode: PaymentStateId; replayed: boolean } | Refusal {
+  if (carriesACard(request)) return refusal('card-number-sent');
+  if (actor.role !== 'patient' || !actor.subjectRef) return refusal('caller-not-allowed');
+  if (holdsMoney(sent)) return refusal('group-holds-money');
+  const key = keyOf(request);
+  if (!key) return refusal('idempotency-key-required');
+  const { groupRef, payableRef, method, amountCents } = request;
+  if (typeof groupRef !== 'string' || typeof payableRef !== 'string' || typeof method !== 'string' || typeof amountCents !== 'number') return refusal('required-field-missing');
+  const print = JSON.stringify({ groupRef, payableRef, method, amountCents });
+  const prior = t.acts.get(actKey(actor, 'group-pay', key));
+  if (prior) return prior.print === print ? { ...(prior.answer as { paymentRef: string; stateCode: PaymentStateId }), replayed: true } : refusal('idempotency-key-reused');
+  /* A member is somebody who agreed and has not left. Invited, left and never invited are one refusal. */
+  const membership = t.memberships.all().find(m => m.groupRef === groupRef && m.subjectRef === actor.subjectRef && m.stateCode === 'member');
+  if (!t.groups.get(groupRef) || !membership) return refusal('group-pays-only-members');
+  const payable = t.payables.get(payableRef);
+  /* A payable with no catalogue price has nothing Money can read as owed, so there is nothing to charge a group for. */
+  if (!payable || payable.cancelled || payable.amountCents === null) return refusal('payable-not-found');
+  if (payable.subjectRef !== actor.subjectRef) return refusal('someone-elses-payable');
+  if (!groupPays.payableKinds.includes(payable.kind) || !groupPays.methods.includes(method)) return refusal('method-not-offered');
+  const due = owedOf(payable);
+  const onThisPayable = t.payments.all().filter(p => p.payableRef === payableRef);
+  if (due <= 0 || onThisPayable.some(p => p.stateCode === 'succeeded' || (p.method === 'cash-otp' && p.stateCode === 'pending'))) return refusal('already-paid');
+  if (!Number.isInteger(amountCents) || amountCents !== due) return refusal('amount-mismatch');
+  if (chargedFor(membership.membershipRef, monthOf(today()), ['succeeded', 'pending']) + due > inForce('group member monthly limit', options.groupMemberMonthlyLimitCents)) return refusal('group-limit-reached');
+  const n = (t.attempts.get(payableRef)?.n ?? 0) + 1;
+  t.attempts.put(payableRef, { n });
+  const paymentRef = `PAY-${payableRef}-${n}`;
+  t.payments.put(paymentRef, { paymentRef, payableRef, method: methodById(method)!.id, amountCents, stateCode: 'pending', settled: false, attempt: n, paidByRef: groupRef });
+  t.groupCharges.put(paymentRef, { paymentRef, groupRef, membershipRef: membership.membershipRef, payableRef, amountCents, on: today() });
+  /* The provider answers through the payment-result door as it does for any payment; nothing here sets a state. */
+  if (simulation) acceptPaymentResult(attempt(payableRef, n, paymentRef, amountCents, clock()), 'simulated-provider');
+  const answer = { paymentRef, stateCode: t.payments.get(paymentRef)!.stateCode };
+  t.acts.put(actKey(actor, 'group-pay', key), { print, answer });
+  return { ...answer, replayed: false };
+ }
+
+ /**
+  * A group as the person who opened it may see it, worked out by ./groups.ts: amounts and days only where a member chose
+  * that, and for an employer no member rows at all. An employer asking for anything more is refused in words.
+  */
+ function groupFor(actor: Actor, groupRef: string, sent: readonly string[] = []): GroupView | Refusal {
+  if (!GROUP_ADMIN_ROLES.includes(actor.role) || !actor.subjectRef) return refusal('caller-not-allowed');
+  const group = t.groups.get(groupRef);
+  if (!group || group.adminRef !== actor.subjectRef) return refusal('group-not-found');
+  if (group.groupKind === 'employer' && sent.length) return refusal('employer-sees-health');
+  const paid = t.groupCharges.all().filter(c => c.groupRef === groupRef && t.payments.get(c.paymentRef)?.stateCode === 'succeeded');
+  return groupViewOf(group, t.memberships.all(), paid, monthOf(today()));
+ }
+
+ /** Her own invitations and memberships, with what each group paid for her this month against the limit in force. */
+ function membershipsFor(actor: Actor, sent: readonly string[] = []): { membershipRef: string; groupKind: string; stateCode: MembershipState; lineDetail: GroupLineDetail | null; paidThisMonthCents: number; limitCents: number }[] | Refusal {
+  if (actor.role !== 'patient' || !actor.subjectRef) return refusal('caller-not-allowed');
+  if (sent.length) return refusal('group-memberships-are-your-own');
+  const month = monthOf(today());
+  const limitCents = inForce('group member monthly limit', options.groupMemberMonthlyLimitCents);
+  return t.memberships.all().filter(m => m.subjectRef === actor.subjectRef).map(m => ({
+   membershipRef: m.membershipRef, groupKind: t.groups.get(m.groupRef)!.groupKind, stateCode: m.stateCode, lineDetail: m.lineDetail,
+   paidThisMonthCents: chargedFor(m.membershipRef, month, ['succeeded']), limitCents
+  }));
+ }
+
+ /* ---- Claims -------------------------------------------------------------------------------------- */
+
+ const CLAIM_SENDERS = ['doctor', 'admin'];
+
+ /**
+  * The doctor who signed a visit's review drafts its claim. The visit is one Care said was billable; the review is one
+  * Money heard signed by her, about the same person, on or after the visit's day; and the claim carries the payable's
+  * catalogue amount and no code. A request naming a diagnosis, or a code, is refused before anything is keyed.
+  */
+ function draftClaim(actor: Actor, request: Record<string, unknown>, sent: readonly string[] = []): { claimRef: string; stateCode: Claim['stateCode']; codeSetAdopted: boolean; replayed: boolean } | Refusal {
+  if (actor.role !== 'doctor' || !actor.subjectRef) return refusal('caller-not-allowed');
+  if (carriesClinicalContent(sent)) return refusal('diagnosis-sent-to-money');
+  if (typesACode(sent)) return refusal('claim-code-typed');
+  const key = keyOf(request);
+  if (!key) return refusal('idempotency-key-required');
+  const payableRef = request['payableRef'];
+  if (typeof payableRef !== 'string') return refusal('required-field-missing');
+  const print = JSON.stringify({ payableRef });
+  const prior = t.acts.get(actKey(actor, 'claim', key));
+  if (prior) return prior.print === print ? { ...(prior.answer as { claimRef: string; stateCode: Claim['stateCode']; codeSetAdopted: boolean }), replayed: true } : refusal('idempotency-key-reused');
+  const payable = t.payables.get(payableRef);
+  if (!payable || payable.amountCents === null) return refusal('payable-not-found');
+  /* Care that happened: a visit Money heard was billable, not cancelled, owed at its own price. */
+  const visit = payable.appointmentRef ? t.billable.get(payable.appointmentRef) : undefined;
+  if (payable.cancelled || payable.kind !== 'visit' || !visit) return refusal('claim-visit-not-finished');
+  const signed = t.reviews.all().filter(r => r.subjectRef === payable.subjectRef && r.on >= visit.on);
+  if (!signed.length) return refusal('claim-review-not-signed');
+  const review = signed.filter(r => r.doctorRef === actor.subjectRef).sort((a, b) => b.on.localeCompare(a.on))[0];
+  if (!review) return refusal('claim-review-not-yours');
+  if (t.claims.all().some(c => c.payableRef === payableRef)) return refusal('claim-already-drafted');
+  const claim: Claim = {
+   claimRef: `CLM-${randomSalt(5).toUpperCase()}`, payableRef, reviewRef: review.reviewRef, doctorRef: actor.subjectRef, subjectRef: payable.subjectRef,
+   amountCents: payable.amountCents, draftedOn: today(), stateCode: 'drafted', consentedOn: null, consentDays: null, consentExpiresOn: null
+  };
+  t.claims.put(claim.claimRef, claim);
+  const answer = { claimRef: claim.claimRef, stateCode: claim.stateCode, codeSetAdopted: codeSetAdopted() };
+  t.acts.put(actKey(actor, 'claim', key), { print, answer });
+  return { ...answer, replayed: false };
+ }
+
+ /**
+  * The patient agrees, as herself, to send a drafted claim. The agreement keeps the days in force today, so a later
+  * change to the setting never moves the day it runs out. A request carrying anything about her grants is refused.
+  */
+ function consentToClaim(actor: Actor, request: Record<string, unknown>, sent: readonly string[] = []): { stateCode: Claim['stateCode']; consentExpiresOn: string; replayed: boolean } | Refusal {
+  if (actor.role !== 'patient' || !actor.subjectRef) return refusal('caller-not-allowed');
+  if (carriesAGrant(sent)) return refusal('scheme-told-about-a-grant');
+  const claim = t.claims.get(String(request['claimRef'] ?? ''));
+  if (!claim || claim.subjectRef !== actor.subjectRef) return refusal('claim-not-found');
+  const key = keyOf(request);
+  if (!key) return refusal('idempotency-key-required');
+  const print = JSON.stringify({ claimRef: claim.claimRef });
+  const prior = t.acts.get(actKey(actor, 'claim-consent', key));
+  if (prior) return prior.print === print ? { ...(prior.answer as { stateCode: Claim['stateCode']; consentExpiresOn: string }), replayed: true } : refusal('idempotency-key-reused');
+  if (claim.stateCode !== 'drafted') return refusal('claim-consented-already');
+  const days = inForce('claim consent days', options.claimConsentDays);
+  const on = today();
+  const next: Claim = { ...claim, stateCode: 'consented', consentedOn: on, consentDays: days, consentExpiresOn: addDays(on, days) };
+  t.claims.put(next.claimRef, next);
+  const answer = { stateCode: next.stateCode, consentExpiresOn: next.consentExpiresOn! };
+  t.acts.put(actKey(actor, 'claim-consent', key), { print, answer });
+  return { ...answer, replayed: false };
+ }
+
+ /**
+  * Asking for a claim to be sent. Every gate in packages/catalog/claims.json is asked in its order, and in this build the
+  * answer is always a refusal: a claim without her agreement, or with one that ran out, is refused for that; one with it
+  * stops at the switching partner. Nothing is written by asking, and nothing past the last gate is either, because no
+  * adapter to a switching partner exists — so this function has no way to mark a claim sent.
+  */
+ function submitClaim(actor: Actor, request: Record<string, unknown>): Refusal {
+  if (!CLAIM_SENDERS.includes(actor.role) || !actor.subjectRef) return refusal('caller-not-allowed');
+  const claim = t.claims.get(String(request['claimRef'] ?? ''));
+  if (!claim || (actor.role === 'doctor' && claim.doctorRef !== actor.subjectRef)) return refusal('claim-not-found');
+  if (!keyOf(request)) return refusal('idempotency-key-required');
+  if (claim.stateCode !== 'consented' || !claim.consentExpiresOn) return refusal('claim-without-consent');
+  if (today() > claim.consentExpiresOn) return refusal('claim-consent-expired');
+  const switchConnected = options.claimSwitchConnected ? options.claimSwitchConnected() : !doorIsLocked('claim-response');
+  if (!switchConnected) return refusal('claim-not-submitted');
+  if (!codeSetAdopted()) return refusal('claim-without-an-adopted-code');
+  return refusal('claim-not-submitted');
+ }
+
+ /** The patient's own claims, or the ones a doctor drafted, each with why it has not been sent. */
+ function claimsFor(actor: Actor, sent: readonly string[] = []): ClaimView[] | Refusal {
+  if (!['patient', 'doctor'].includes(actor.role) || !actor.subjectRef) return refusal('caller-not-allowed');
+  if (sent.length) return refusal('claims-are-your-own');
+  return t.claims.all().filter(c => actor.role === 'patient' ? c.subjectRef === actor.subjectRef : c.doctorRef === actor.subjectRef).map(claimViewOf);
+ }
+
+ /* ---- The desk's list of held cash payments ------------------------------------------------------- */
+
+ /** Every cash payment held now: the payment, its wrong codes and when it was held. Never the patient or a code. */
+ function heldCashList(actor: Actor, sent: readonly string[] = []): { paymentRef: string; wrongAttempts: number; heldAt: string }[] | Refusal {
+  if (!CASH_DESK_ROLES.includes(actor.role) || !actor.subjectRef) return refusal('caller-not-allowed');
+  if (sent.length) return refusal('held-cash-list-names-nobody');
+  return t.payments.all().filter(p => p.method === 'cash-otp' && t.cashCodes.get(p.paymentRef)?.held === true).map(p => ({
+   paymentRef: p.paymentRef,
+   wrongAttempts: t.cashCodes.get(p.paymentRef)!.wrongAttempts,
+   heldAt: t.cashAudit.all().filter(r => r.paymentRef === p.paymentRef && r.outcome === 'held').map(r => r.at).sort().at(-1)!
+  }));
+ }
+
  return {
   openVisitPayable, openPlanPayable, pay, acceptPaymentResult, enterCashCode, releaseCashCode, hear,
   issueVoucher, redeemVoucher, subscribe, acceptSubscription, subscriptionFor,
+  openGroup, inviteMember, acceptMembership, leaveGroup, payFromGroup, groupFor, membershipsFor,
+  draftClaim, consentToClaim, submitClaim, claimsFor, heldCashList,
   /* What a payable still owes, for a screen that asks how much to pay after a voucher. */
   owed: (payableRef: string) => { const payable = t.payables.get(payableRef); return payable ? owedOf(payable) : undefined; },
   /* What is left on the voucher a typed code opens, for the person holding the code, so a checkout offers no more than it

@@ -360,6 +360,9 @@ import za.co.mythuso.model.mokoenaHousehold
         /* MyThuso for Mom by the contract's own name, so renaming the plan cannot strand its screen. */
         title == za.co.mythuso.model.momPlan.name -> MomPlanScreen()
         title == "Thuso Wallet" -> WalletScreen(open)
+        /* A group that pays for its members, from the member's side: she is invited and agrees here, as herself.
+           Routed by the contract's own heading, so renaming the screen cannot strand its door. */
+        title == za.co.mythuso.model.GroupsData.Words.heading -> GroupOptInScreen()
         title == "Language" -> LanguageScreen(store)
         title == "Interpreters" -> InterpretingScreen()
         title == "System states" -> SystemStatesScreen()
@@ -493,7 +496,7 @@ private val planBlurb = mapOf(
     "senior" to "Weekly care and family support", "recover" to "Personalised recovery support"
 )
 @Composable fun PlansScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Routine", "A healthier rhythm.", "Proposal prices · Phase 2–3 preview"); NotConnected("payments"); za.co.mythuso.model.planSubscriptions.filter { it.phase <= 3 }.sortedBy { !it.tiered }.forEach { plan -> CareCard { Icon(Icons.Outlined.FavoriteBorder, null, tint = Charcoal); Text(plan.name, style = MaterialTheme.typography.titleLarge); Text(if (plan.tiered) za.co.mythuso.model.momPlan.payerHeadline else planBlurb[plan.id] ?: plan.includes); Text(planMonthly(plan), style = MaterialTheme.typography.headlineSmall, color = Indigo); OutlinedButton(onClick = { open(plan.name) }, shape = ThusoButtonShape) { Text("Explore plan") } } } } }
-@Composable fun WalletScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Wallet", "A little care, set aside.", "Support your own care or someone you love."); CareCard { Text("Demo balance"); Text("R500.00", style = MaterialTheme.typography.displaySmall, color = Charcoal); ToolRow("Top up wallet") { open("Top up wallet") }; ToolRow("Sponsor care") { open("Sponsor care") }; ToolRow("Care you pay for") { open("Care you pay for") } }; CareCard { Text("Sample activity", style = MaterialTheme.typography.titleMedium); Text("Family care credit   + R500"); Text("Vitals visit   − R249") } } }
+@Composable fun WalletScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Wallet", "A little care, set aside.", "Support your own care or someone you love."); CareCard { Text("Demo balance"); Text("R500.00", style = MaterialTheme.typography.displaySmall, color = Charcoal); ToolRow("Top up wallet") { open("Top up wallet") }; ToolRow("Sponsor care") { open("Sponsor care") }; ToolRow("Care you pay for") { open("Care you pay for") }; ToolRow(za.co.mythuso.model.GroupsData.Words.heading) { open(za.co.mythuso.model.GroupsData.Words.heading) } }; CareCard { Text("Sample activity", style = MaterialTheme.typography.titleMedium); Text("Family care credit   + R500"); Text("Vitals visit   − R249") } } }
 /* A clinical workspace navigates as itself.
  *
  * Every role used to open one long screen under the patient's own bottom bar, so a nurse on a

@@ -1,0 +1,105 @@
+{
+ "_note": "Group payers: a stokvel, a church or an employer paying for the care of members who each agreed to it. Money's contract for it, beside packages/catalog/money.json, which holds the settings, and packages/catalog/apis/money.json, which holds every route and refusal with its status. Read by packages/engines/src/money/domain/groups.ts and the web; the member's half is generated into Swift and Kotlin by scripts/emit-groups.mjs. Nothing here is a real service: no group exists, nobody is invited, no account is charged and no money moves.",
+ "_honestyNote": "The valuable half of this file is what a group is never given. A group is a payer of record: it pays one payable for one member at a time, from its own account, through the payment provider, and only for somebody who agreed in her own account. It never holds a balance at MyThuso, never learns what a member's care was for, and an employer never learns anything about an employee's health at all. None of these is a screen's good manners; each is a refusal on a route and a check on the build.",
+
+ "noPooledMoney": {
+  "statement": "MyThuso never holds a group's money. A group pays for its members' care from its own account, one payment at a time, and nothing is pooled, deposited or kept here.",
+  "why": "Holding money for other people is taking deposits. Accepting deposits from the public is the business of a bank under the Banks Act 94 of 1990, and MyThuso is not a bank and holds no licence that would let it keep a float for anybody. A stokvel may pool its own members' money under the exemption that covers it; MyThuso holding that pool for the stokvel would be MyThuso taking the deposit instead. So there is no group balance, no group wallet, no contribution account and no top-up: a group is charged through the payment provider for one member's payable, when the member asks, and the money goes from the group's account to the provider and never rests here.",
+  "needsCounsel": "Whether a group paying through the provider, one payable at a time, is outside the Banks Act and the National Payment System Act as this reads it has not been put to counsel. Until it is, nothing is built that holds, pools or delays a group's money, which is the reading that cannot be wrong in the direction that harms somebody.",
+  "fieldWords": ["balance", "deposit", "pool", "pooled", "wallet", "float", "contribution", "contributions", "topup", "top", "escrow", "savings", "fund", "funds", "prefund", "prepaid"]
+ },
+
+ "wallet": {
+  "route": "POST /v1/money/wallets@1",
+  "stays": "proposed",
+  "statement": "A Thuso Wallet stays proposed and is not built. A prepaid balance MyThuso keeps for a person is money held for somebody else, the same question a group's pool is, and it waits on counsel and a licensed partner rather than on code.",
+  "why": "wallets@1 was declared in Wave 2 and never built. It is left proposed rather than withdrawn because withdrawing a route names the version that corrects it, and no version of a wallet MyThuso could hold is correct until somebody licensed holds the money. packages/catalog/money.json keeps the wallet method not offered for the same reason."
+ },
+
+ "kinds": [
+  {"id": "stokvel", "name": "Stokvel", "openedBy": "sponsor", "lineDetails": ["amount-and-day", "month-total-only"], "why": "A savings or burial society whose treasurer pays for members' visits. Opened by a person on the vetting register as a sponsor, because paying for somebody else's care is what that role is vetted for."},
+  {"id": "church", "name": "Church or congregation", "openedBy": "sponsor", "lineDetails": ["amount-and-day", "month-total-only"], "why": "A congregation's care fund, paid by whoever keeps its account. Opened by a sponsor for the same reason as a stokvel."},
+  {"id": "employer", "name": "Employer", "openedBy": "employer", "lineDetails": ["month-total-only"], "why": "A company paying for its staff's care. Opened by the employer role, whose vetting already refuses it sight of who used care (packages/catalog/vetting.json sponsor-care). An employee is offered only the month total, because the day a visit was paid for is the day she was seen, and that is her health."}
+ ],
+ "kindsNote": "Which role opens which kind, and which ways a line may read that each kind offers. A member chooses among her group's offered ways when she agrees, and never one her group's kind does not offer.",
+
+ "lineDetails": [
+  {"id": "amount-and-day", "name": "What was paid, and the day", "detail": "Your group sees what it paid for you and the day it paid. It never sees what the visit was, why it was booked or anything a nurse found."},
+  {"id": "month-total-only", "name": "Only the month's total for everybody", "detail": "Your group sees only what it paid for all its members together in a month. Nothing on its screen says whether any of it was for you."}
+ ],
+
+ "states": [
+  {"id": "invited", "name": "Invited", "memberWords": "{group} has invited you to let it pay for your visits. Nothing changes unless you agree.", "adminWords": "Invited. Nothing is paid for her unless she agrees in her own account."},
+  {"id": "member", "name": "Agreed", "memberWords": "{group} may pay for your visits, up to its limit each month. You chose how its screen reads what it paid.", "adminWords": "Agreed."},
+  {"id": "left", "name": "Left", "memberWords": "You left {group}. It pays for nothing new, and what it already paid stays paid.", "adminWords": "Left the group. What was paid before stays paid."}
+ ],
+
+ "employer": {
+  "statement": "An employer sees nothing about an employee's health: not who used care, not when and not what for.",
+  "floorFrom": "packages/catalog/programmes.json#floor.minimumCohort",
+  "floorWords": "Fewer members have agreed than a total can be shown for without pointing at somebody, so no total is shown.",
+  "why": "A payment names the day a person was seen. An employer that can see which employee a payment was for, or the day, or a total for a group small enough to guess from, has been told who was ill and when. So an employer's view has no member rows at all, and the month's total and the number who agreed are shown only when at least as many members agreed as packages/catalog/programmes.json's suppression floor, the judgement the employer programmes already work to."
+ },
+
+ "pays": {
+  "payableKinds": ["visit"],
+  "methods": ["card", "eft"],
+  "why": "A group pays for a visit a member booked, by card or EFT from its own account, through the provider's own page. Not cash, which is the patient's at her door, not a debit order, which is a mandate for a plan, and not a wallet, which nothing holds. The amount is what the payable owes, which is the catalogue's price for the service (packages/catalog/services.json), and a group is charged for no more of a member's month than Money's setting group-member-monthly-limit-cents in force allows."
+ },
+
+ "settings": {
+  "monthlyLimit": "group-member-monthly-limit-cents",
+  "memberCap": "group-member-cap"
+ },
+ "settingsNote": "Both settings are Money's, in packages/catalog/money.json, in the shared shape. A group is charged against the limit in force when the member asks it to pay, and a change reaches payments asked for after it and never one already made. The cap is asked when a member is invited.",
+
+ "memberFieldWords": ["agree", "agreed", "agreement", "consent", "consented", "accept", "accepted", "signature", "signed", "optin", "opted"],
+ "memberFieldWordsWhy": "A request inviting somebody that carries an agreement, a consent or an acceptance on her behalf is refused rather than recorded. A member agrees in her own account, and an invitation is all a group can send.",
+
+ "screen": {
+  "admin": {
+   "heading": "A group that pays for its members",
+   "intro": "Who agreed to let this group pay for their visits, and what it paid. Never what anybody's care was.",
+   "kindLabel": "Kind of group",
+   "membersHeading": "Members",
+   "agreed": "{count} agreed",
+   "waiting": "{count} invited and not yet agreed",
+   "monthTotal": "Paid this month for everybody",
+   "memberTotalOnly": "Chose to show only the month's total",
+   "noLines": "Nothing paid for this member yet.",
+   "invite": "Invite a member",
+   "invited": "Invited. She is asked in her own account, and nothing is paid for her unless she agrees.",
+   "neverHeading": "What this screen never shows",
+   "never": ["Which visit a payment was for, or why it was booked", "Anything a nurse or a doctor found", "A payment for anybody who did not agree", "A balance: this group keeps no money at MyThuso"],
+   "employerPreview": "See it as an employer"
+  },
+  "member": {
+   "heading": "Groups that pay for you",
+   "intro": "A stokvel, a church or your employer may pay for your visits, but only if you agree, and only in the way you choose.",
+   "choose": "How the group's screen reads what it paid for you",
+   "agree": "Agree to let {group} pay for my visits",
+   "leave": "Leave {group}",
+   "limit": "{group} pays up to {limit} of your visits each month.",
+   "payWith": "Pay for this visit through {group}",
+   "paid": "{group} paid for this visit from its own account.",
+   "employerOnly": "An employer is shown only the month's total for everybody, whatever you choose."
+  },
+  "preview": "This is a preview. No group exists, nobody is invited and no account is charged."
+ },
+
+ "preview": {
+  "groupKind": "stokvel",
+  "groupName": "Masakhane Stokvel",
+  "adminRef": "subj-preview-treasurer",
+  "members": [
+   {"subjectRef": "subj-preview-patient", "name": "Lerato", "agrees": false, "lineDetail": null, "visitServiceId": "vitals"},
+   {"subjectRef": "subj-preview-member-thandi", "name": "Thandi", "agrees": true, "lineDetail": "amount-and-day", "visitServiceId": "wound"},
+   {"subjectRef": "subj-preview-member-sipho", "name": "Sipho", "agrees": true, "lineDetail": "month-total-only", "visitServiceId": "senior"}
+  ],
+  "employerPreview": {
+   "employees": 3,
+   "why": "An employer's group in the preview has fewer agreed members than packages/catalog/programmes.json's floor, so its screen shows what an employer is shown below it: no member rows, no count and no total."
+  },
+  "why": "A fictional stokvel the web preview's ledger opens, invites into and charges, so the admin screen shows what the ledger answers rather than rows somebody typed. Lerato, the preview's patient, is invited and has not agreed: she is asked on her own screen. The names are first names a treasurer already knows, because she invited them; no amount is here, because each visit is priced from packages/catalog/services.json."
+ }
+}

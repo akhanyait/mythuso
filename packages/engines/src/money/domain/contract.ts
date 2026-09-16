@@ -149,14 +149,16 @@ for (const key of PUBLISHES) {
 /* ---- The two doors -------------------------------------------------------------------------- */
 
 type RawFeed = { id: string; accepts: { field: string; required: boolean }[]; neverAccepts: { field: string; refusal: string; also: string[] }[]; beforeSwitchOn: { met: boolean }[] };
-export const doorOf = (id: 'payment-result' | 'payout-advice'): RawFeed => {
+/* The claim-response door is the switching partner's: a claim is sent only when it is open, and it is not. */
+export type MoneyDoor = 'payment-result' | 'payout-advice' | 'claim-response';
+export const doorOf = (id: MoneyDoor): RawFeed => {
  const found = (feeds.feeds as RawFeed[]).find(f => f.id === id);
  if (!found) throw new Error(`packages/catalog/feeds.json has no door "${id}".`);
  return found;
 };
 
 /** A door opens only when every one of its switch-on conditions is met with evidence. None is. */
-export const doorIsLocked = (id: 'payment-result' | 'payout-advice') => doorOf(id).beforeSwitchOn.some(c => !c.met);
+export const doorIsLocked = (id: MoneyDoor) => doorOf(id).beforeSwitchOn.some(c => !c.met);
 
 const canonical = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
 

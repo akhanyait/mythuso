@@ -25,6 +25,8 @@ import contract from '../../../../catalog/money.json' with { type: 'json' };
 import momPlans from '../../../../catalog/mom-plans.json' with { type: 'json' };
 import api from '../../../../catalog/apis/money.json' with { type: 'json' };
 import vouchers from '../../../../catalog/vouchers.json' with { type: 'json' };
+import groups from '../../../../catalog/groups.json' with { type: 'json' };
+import claims from '../../../../catalog/claims.json' with { type: 'json' };
 import { snapshotOf, type Check, type Refusal, type SettingValue, type SettingsBlock, type SettingsEngine, type Snapshot } from '../../settings/shape.ts';
 import type { FeeInForce } from './fees.ts';
 
@@ -84,6 +86,23 @@ if (!moneyBlock.items.some(s => s.key === VOUCHER_EXPIRY)) throw new Error(`pack
 
 /** How many years a voucher issued now lasts. */
 export const voucherExpiryYearsOf = (snapshot: Snapshot): number => valueOf(snapshot.values, VOUCHER_EXPIRY) as number;
+
+/* ---- Groups and claims --------------------------------------------------------------------------- */
+
+/* The settings packages/catalog/groups.json and claims.json name, each read once when the thing it governs starts: a
+   group payment when a member asks, an invitation when it is sent, an agreement to send a claim when it is given. The
+   agreement keeps the days it was given, so a change reaches agreements after it and never one already given. */
+const GROUP_LIMIT = groups.settings.monthlyLimit;
+const GROUP_CAP = groups.settings.memberCap;
+const CLAIM_CONSENT = claims.consent.setting;
+for (const key of [GROUP_LIMIT, GROUP_CAP, CLAIM_CONSENT]) if (!moneyBlock.items.some(s => s.key === key)) throw new Error(`packages/catalog/groups.json or claims.json names the setting "${key}", which packages/catalog/money.json does not declare.`);
+
+/** The most a group's account is charged for one member in a calendar month, in cents. */
+export const groupMemberMonthlyLimitCentsOf = (snapshot: Snapshot): number => valueOf(snapshot.values, GROUP_LIMIT) as number;
+/** How many people a group may have invited or agreed at once. */
+export const groupMemberCapOf = (snapshot: Snapshot): number => valueOf(snapshot.values, GROUP_CAP) as number;
+/** How many days an agreement to send a claim given now lasts. */
+export const claimConsentDaysOf = (snapshot: Snapshot): number => valueOf(snapshot.values, CLAIM_CONSENT) as number;
 
 /* ---- A nurse's share ----------------------------------------------------------------------------- */
 

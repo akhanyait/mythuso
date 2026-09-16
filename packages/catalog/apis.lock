@@ -310,3 +310,15 @@ POST /v1/movement/admissions/{admissionRef}/arrival@2 ad668accb5279286
 POST /v1/movement/admissions/{admissionRef}/handover@2 a3850a12428f4303
 GET /v1/movement/settings@1 866e207ea18e825e
 POST /v1/movement/setting-changes@1 98676f0daefe9fcc
+POST /v1/money/groups@2 1d34a1160ee84ef6
+POST /v1/money/group-memberships@1 9d01f8eaff914a81
+POST /v1/money/group-memberships/{membershipRef}/accept@1 4eb2c4c9813c5a1a
+POST /v1/money/group-memberships/{membershipRef}/leave@1 97549c9a86dcd8d8
+POST /v1/money/group-payments@1 098d2862795565e9
+GET /v1/money/groups/{groupRef}@1 649daf69d7795dd9
+GET /v1/money/group-memberships@1 1b4ebecae3e67e69
+POST /v1/money/claims@3 d783a088cca3ea2a
+POST /v1/money/claims/{claimRef}/consent@1 2e4ec1841f3ea133
+POST /v1/money/claims/{claimRef}/submit@1 e9af1935fe76dd6e
+GET /v1/money/claims@1 32870c61fb81428c
+GET /v1/money/held-cash-payments@1 6d9b16181d99b813

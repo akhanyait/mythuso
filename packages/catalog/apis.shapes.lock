@@ -119,3 +119,7 @@ GET /v1/safety/settings@4 bfdaa6492a37f8d5
 GET /v1/movement/facilities@2 a511aa21026b3ac0
 GET /v1/movement/settings@1 fd4619e1b023abae
 POST /v1/movement/setting-changes@1 4b26b10cc14f50f7
+GET /v1/money/groups/{groupRef}@1 50a8fab86561c8e8
+GET /v1/money/group-memberships@1 f4e834d761ac4767
+GET /v1/money/claims@1 228aec32d7db00ce
+GET /v1/money/held-cash-payments@1 7c88f33a33e38dbb
