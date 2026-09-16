@@ -349,7 +349,9 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "parts[0] === 'encounters' && parts.length === 3 && parts[2] === 'status'"},
+   "enforcedBy": {"mechanism": "passport-engine-caller"}
   },
   {
    "method": "POST",

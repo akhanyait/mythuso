@@ -153,4 +153,37 @@ describe('the Passport over HTTP', () => {
   assert.equal(ended.status, 401);
   assert.equal(ended.body.message, sentence('session-ended'));
  });
+
+ /* Wave 6: GET /v1/record/encounter-statuses/{encounterRef}@1, mounted here as /encounters/{ref}/status.
+    writeEncounter has no HTTP route yet, so the fixture is filed straight through the gateway, exactly as
+    the HL7 bridge already files an Encounter without going through /fhir. */
+ test('encounter status over HTTP: written, then unknown and a different kind answer identically', async () => {
+  const created = await call('/dev/subjects', { body: {}, auth: developer() });
+  const { subject, patientSession } = created.body as { subject: string; patientSession: string };
+  const grant = await call('/consent/grant', {
+   auth: `Patient ${patientSession}`,
+   body: { subject, recipientRole: 'nurse-assigned', scope: ['admission'], purpose: 'treatment', expiresAt: new Date(Date.now() + 3_600_000).toISOString() }
+  });
+  const written = passport.gateway.writeEncounter({ kind: 'grant', artefact: grant.body.artefact as string, purpose: 'treatment' }, {
+   subject, resource: { code: { text: 'Synthetic admission over HTTP' } }, provenance: { activity: 'nurse-visit', sourceSystem: 'synthetic-http-test' }
+  });
+  assert.ok(written.ok);
+
+  const status = await call(`/encounters/${written.id}/status`);
+  assert.equal(status.status, 200, JSON.stringify(status.body));
+  assert.equal(status.body.stateCode, 'written');
+  assert.equal('signedAt' in status.body, false);
+
+  const unknown = await call('/encounters/res_does-not-exist/status');
+  assert.equal(unknown.status, 404);
+  assert.equal(unknown.body.message, sentence('no-such-encounter'));
+
+  const otherResource = await call('/fhir/AllergyIntolerance', {
+   auth: `Patient ${patientSession}`,
+   body: { subject, category: 'allergy', resource: { code: { text: 'Synthetic allergen D' } }, provenance: { activity: 'self-reported', sourceSystem: 'synthetic-http-test' } }
+  });
+  const differentKind = await call(`/encounters/${otherResource.body.id}/status`);
+  assert.deepEqual(unknown.body, differentKind.body, 'an unknown reference and one of a different kind answer identically');
+  assert.equal(differentKind.status, 404);
+ });
 });

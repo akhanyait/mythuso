@@ -220,8 +220,8 @@
   "revisions": "A discharge revises the Encounter its admission wrote, as version two, and the first version is kept sealed beside it. Nothing is overwritten and lost.",
   "encounterStatuses": {
    "route": "GET /v1/record/encounter-statuses/{encounterRef}@1",
-   "decision": "left-proposed",
-   "why": "The route says whether an encounter is written, signed or superseded, for Care deciding whether a nurse's visit may be handed over or completed. The Passport now stores an Encounter, but it is a hospital's admission, written by a partner's message and signed by nobody; the Passport still stores no signature and no supersede. Built on what an Encounter now holds, the route could only ever answer written, and Care would wait for a signature that cannot arrive — or, worse, read a hospital admission as the encounter a nurse completes a visit against. It stays proposed until the record holds a signed encounter."
+   "decision": "built",
+   "why": "Wave 6 gave the Passport what this route needed and did not have: apps/passport/src/store.ts's encounter_states table carries a state (written, signed or superseded) for every Encounter, whichever door filed it — a partner's admission message included, given a state the moment it is written — with when and by whom it was signed and, once superseded, the reference of the entry that replaced it. The route answers from that state alone: no clinical content either way, so it emits no passport.access.read and is logged in the Passport's own access log instead. An unknown reference and one for a resource of another kind answer identically, and a reference that names an Encounter this Passport has not given a state is refused rather than guessed at."
   }
  },
 

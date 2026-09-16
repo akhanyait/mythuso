@@ -42,6 +42,23 @@
  * all: who sent it, what kind, why it was refused and when its record is deleted. Its rows, and the
  * replay rows of messages that reached nobody, are the only DELETEs in this service, and they are the
  * retention period carrying itself out.
+ *
+ * ── Encounter signature and supersede (Wave 6) ───────────────────────────────────────────────
+ *
+ * The line above says P0 has no supersede because a resource is written once per version. That is
+ * still true of resources in general; what changes here is narrower than it sounds. An Encounter
+ * specifically now carries a lifecycle beside its row — written, signed or superseded — in its own
+ * table rather than a new column on every resource, because no other resource type needs one:
+ * signing and superseding are what Care and Clinical ask about a nurse's entry before a visit is
+ * handed over or completed, and nothing else in the record is asked about that way.
+ *
+ * `encounter_states` is one row per Encounter, keyed by the resource id, holding the state, when and
+ * by whom it was signed, and the reference of whatever superseded it. The row is inserted once, when
+ * the Encounter is filed, and moves exactly once more: to signed or to superseded, never both and
+ * never back. That single, one-way UPDATE is audited by the gateway like any other write. It does not
+ * touch the `resources` row itself or the `version` column the HL7 discharge revision already uses —
+ * a supersede is a new resource with its own id, not a new version of the old one, so the Encounter a
+ * nurse handed over stays exactly as it was signed or superseded, byte for byte.
  */
 import { DatabaseSync } from 'node:sqlite';
 
@@ -171,6 +188,16 @@ CREATE TABLE IF NOT EXISTS hl7_handoffs (
  sealed_body BLOB NOT NULL,
  created_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS encounter_states (
+ resource_id TEXT PRIMARY KEY,
+ subject TEXT NOT NULL,
+ state_code TEXT NOT NULL,
+ supersedes TEXT,
+ superseded_by_ref TEXT,
+ signed_at INTEGER,
+ signed_by_ref TEXT,
+ written_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS audit_events (
  seq INTEGER PRIMARY KEY,
  at INTEGER NOT NULL,
@@ -215,6 +242,15 @@ export type LinkRow = {
 
 /** A message the Passport could not file, as the quarantine keeps it: nothing the message said. */
 export type QuarantineRow = { ref: string; facility: string | null; message_type: string | null; refusal: string; received_at: number; purge_after: number; settings_version: number };
+
+/** An Encounter's lifecycle: written by whoever filed it, signed once by a clinician, or superseded once by a later entry. */
+export const ENCOUNTER_WRITTEN = 'written';
+export const ENCOUNTER_SIGNED = 'signed';
+export const ENCOUNTER_SUPERSEDED = 'superseded';
+export type EncounterStateRow = {
+ resource_id: string; subject: string; state_code: string; supersedes: string | null; superseded_by_ref: string | null;
+ signed_at: number | null; signed_by_ref: string | null; written_at: number;
+};
 
 const rows = <T>(value: unknown): T[] => value as T[];
 const row = <T>(value: unknown): T | null => (value as T | undefined) ?? null;
@@ -385,6 +421,31 @@ export class PassportStore {
  }
  handOffs(): { resource_id: string; subject: string; sealed_body: Uint8Array }[] {
   return rows(this.#db.prepare('SELECT resource_id, subject, sealed_body FROM hl7_handoffs ORDER BY created_at, resource_id').all());
+ }
+
+ /* ---- Encounter signature and supersede (Wave 6) ----------------------------------------------
+    One row per Encounter, inserted once at written and moved at most once more. The two UPDATEs below
+    each carry a WHERE on the state they may fire from, so a second sign or a supersede of something
+    already signed changes nothing and the gateway reads that as the refusal it is. */
+ putEncounterState(state: EncounterStateRow): void {
+  this.#db.prepare('INSERT INTO encounter_states (resource_id, subject, state_code, supersedes, superseded_by_ref, signed_at, signed_by_ref, written_at) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?)')
+   .run(state.resource_id, state.subject, state.state_code, state.supersedes, state.superseded_by_ref, state.written_at);
+ }
+ encounterState(resourceId: string): EncounterStateRow | null {
+  return row<EncounterStateRow>(this.#db.prepare('SELECT * FROM encounter_states WHERE resource_id = ?').get(resourceId));
+ }
+ /* Only from written, and only once: a second sign — of the same encounter or, by the same statement,
+    of one this call finds already superseded — matches no row, and the gateway that asked already
+    holds the state it read to know which refusal that is. */
+ signEncounterState(resourceId: string, signedAt: number, signedByRef: string): boolean {
+  return this.#db.prepare("UPDATE encounter_states SET state_code = 'signed', signed_at = ?, signed_by_ref = ? WHERE resource_id = ? AND state_code = 'written'")
+   .run(signedAt, signedByRef, resourceId).changes === 1;
+ }
+ /* Only from written. A signed encounter is corrected by a new entry, never superseded — packages/catalog/thusoiq.json's
+    signed-is-immutable is Clinical's version of the same rule, for the review rather than the entry. */
+ supersedeEncounterState(resourceId: string, supersededByRef: string): boolean {
+  return this.#db.prepare("UPDATE encounter_states SET state_code = 'superseded', superseded_by_ref = ? WHERE resource_id = ? AND state_code = 'written'")
+   .run(supersededByRef, resourceId).changes === 1;
  }
 
  close(): void { this.#db.close(); }

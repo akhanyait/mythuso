@@ -87,7 +87,10 @@
   "hl7Received": "Sent by a registered development partner as an HL7 v2 message, and matched to this record by a hospital number the patient linked.",
   "hl7Replayed": "A registered development partner sent a message the Passport already had. The first acknowledgement was sent again, and nothing was written twice.",
   "identifierLinked": "Linked by the patient in their own session. A message carrying this number may now be matched to this record, and to no other.",
-  "quarantineRead": "Read by a developer: which messages the Passport could not file and why, with nothing any of them said."
+  "quarantineRead": "Read by a developer: which messages the Passport could not file and why, with nothing any of them said.",
+  "encounterSigned": "Signed by the assigned doctor's own grant. Signed encounters do not change.",
+  "encounterSuperseded": "Superseded by a later entry, named in the record. The superseded entry is kept.",
+  "encounterStatusRead": "Read by the Care engine: an encounter's state, and nothing it contains."
  },
 
  "refusals": [
@@ -159,6 +162,12 @@
   { "id": "identifier-authority-not-registered", "sentence": "Refused: that is not an assigning authority a registered development partner uses.", "why": "A number under an authority no partner uses would match no message, and a link that can never match anything is a number kept for no reason." },
   { "id": "identifier-not-for-this-authority", "sentence": "Refused: that number is not shaped like a number this authority issues.", "why": "The shape is packages/catalog/hl7v2-inbound.json's. A number typed into the wrong field is refused rather than linked, because a link is what a message is matched on." },
   { "id": "identifier-is-an-identity-number", "sentence": "Refused: that looks like a South African identity number. The Passport never finds a record by one.", "why": "The SA identity number is never a database key (§19). It encodes a date of birth and a sex, and it joins every system that has ever stored it." },
-  { "id": "identifier-already-linked", "sentence": "Refused: that number is already linked to a record. A hospital number belongs to one person, so ask the hospital which number is yours.", "why": "Two people claiming one number is a mistake or an attempt to receive somebody else's results. The patient it is linked to sees in their own log that somebody tried." }
+  { "id": "identifier-already-linked", "sentence": "Refused: that number is already linked to a record. A hospital number belongs to one person, so ask the hospital which number is yours.", "why": "Two people claiming one number is a mistake or an attempt to receive somebody else's results. The patient it is linked to sees in their own log that somebody tried." },
+
+  { "id": "no-such-encounter", "sentence": "There is no encounter by that reference here.", "why": "packages/catalog/apis/record.json's own words for GET /v1/record/encounter-statuses/{encounterRef}@1: an unknown reference and one for an entry of another kind answer alike, so a status request cannot be used to find out what else a patient's record holds." },
+  { "id": "status-before-written", "sentence": "That encounter has not been written yet, so it has no status to give.", "why": "Every Encounter this Passport files is given a state in the same write. A reference that names an Encounter with no state was filed before this Passport tracked one, and its status is refused rather than guessed at." },
+  { "id": "encounter-already-signed", "sentence": "Refused: this encounter is signed. A signed encounter does not change; a correction is a new entry.", "why": "A signature is a statement about what was handed over at the moment a doctor signed it. Signing it again, or superseding it, would make the signature a statement about something else — packages/catalog/thusoiq.json's signed-is-immutable is Clinical's own version of the same rule, for the review rather than the entry it points at." },
+  { "id": "encounter-already-superseded", "sentence": "Refused: this encounter has been superseded. It stays in the record, and neither signs nor supersedes again.", "why": "An entry a later one has already replaced is not the account Care or Clinical act on. Signing it, or superseding it a second time, would leave two entries each claiming to be the current one." },
+  { "id": "sign-requires-a-doctor", "sentence": "Refused: only the assigned doctor's own grant may sign an encounter.", "why": "A nurse hands over what was found; a doctor's review turns it into a decision. Extending that to any clinician grant would let the nurse who wrote an entry sign it herself, which is not a second opinion." }
  ]
 }

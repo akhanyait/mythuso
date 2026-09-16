@@ -168,6 +168,10 @@ export function createPassport(env: NodeJS.ProcessEnv, now?: () => number) {
   if (method === 'POST' && url.pathname === '/hl7v2/inbound') return answerHl7(res, gateway.receiveHl7(tokenFor(req, 'Developer'), body as never));
   if (method === 'GET' && url.pathname === '/hl7v2/quarantine') return answer(res, gateway.hl7Quarantine(tokenFor(req, 'Developer')));
   if (method === 'POST' && url.pathname === '/identifiers/link') return answer(res, gateway.linkIdentifier(tokenFor(req, 'Patient'), body as never), 201);
+  /* GET /v1/record/encounter-statuses/{encounterRef}@1 (Wave 6): whether an Encounter is written, signed
+     or superseded, for the Care engine. No clinical content crosses it, so no requester scheme is asked
+     for — see the reasoning above gateway.ts's encounterStatus(). */
+  if (method === 'GET' && parts[0] === 'encounters' && parts.length === 3 && parts[2] === 'status') return answer(res, gateway.encounterStatus(parts[1]!));
   if (method === 'POST' && url.pathname === '/breakglass') {
    return answer(res, gateway.breakGlass({
     credential: tokenFor(req, 'Operator'), subject: String(body.subject ?? ''),

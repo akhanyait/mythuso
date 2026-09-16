@@ -70,7 +70,7 @@ import { GATEWAY, LINK_POLICY, expiryCeilingDays, grantScopeRefusal, isProtected
 import { PassportKeys, openBytes, readToken, sealBytes, signToken } from './keys.ts';
 import { developerOf, operatorOf } from './operator.ts';
 import { identityShaped } from './screen.ts';
-import { OPEN, PRIVATE, SEALED, type PassportStore, type ResourceRow } from './store.ts';
+import { ENCOUNTER_SIGNED, ENCOUNTER_SUPERSEDED, ENCOUNTER_WRITTEN, OPEN, PRIVATE, SEALED, type PassportStore, type ResourceRow } from './store.ts';
 
 export type Refused = { ok: false; status: number; reason: string };
 export type Answer<T> = ({ ok: true } & T) | Refused;
@@ -509,6 +509,110 @@ export class PassportGateway {
   return { ok: true, entries: this.#audit.forSubject(session.subject), chain: this.#audit.verify() };
  }
 
+ /* ---- An Encounter's signature and supersede (Wave 6) ------------------------------------------
+
+    GET /v1/record/encounter-statuses/{encounterRef}@1 answers from state alone, so the state has to
+    exist before the route can. writeEncounter and signEncounter are that state's only writers: a
+    nurse's or a doctor's own grant files an Encounter, optionally superseding one it replaces, and the
+    assigned doctor's own grant — nobody else's — signs one later. Neither has a route of its own yet:
+    no engine reaches the Passport over HTTP today (packages/engines/src/record/engine.ts's own header
+    names the gap), so a nurse's write and a doctor's sign are exercised directly, exactly as write()
+    already is in every test here, until Care's handover and Clinical's sign have somewhere to call. */
+
+ /** A nurse's or a doctor's grant files an Encounter. `supersedes` names the entry it replaces, if any —
+     refused if that entry is not a written Encounter of this subject's, because a signed or an already
+     superseded entry does not take a new one in its place: a correction of either is a fresh entry with
+     no supersedes at all, which is packages/catalog/thusoiq.json's signed-is-immutable said about the
+     entry underneath the review rather than the review itself. */
+ writeEncounter(requester: Requester, input: { subject: string; resource: Record<string, unknown>; provenance?: { activity?: unknown; sourceSystem?: unknown }; supersedes?: string }): Answer<{ id: string; supersededRef?: string }> {
+  const at = this.#now();
+  const who: Who = { subject: null, requesterRole: UNAUTHENTICATED, requesterRef: null, action: 'encounter.write', resourceType: 'Encounter', purpose: requester.kind === 'grant' ? requester.purpose : null };
+  /* A patient's own session never writes an Encounter: it is what a nurse found, not what the patient
+     reported, and write-not-permitted already carries that sentence for a grant with no write of its own. */
+  if (requester.kind === 'patient') return this.#refuse(403, 'write-not-permitted', who);
+  const held = this.#hold(requester.artefact, requester.purpose);
+  if (!held.ok) return this.#refuseHold(held, who);
+  Object.assign(who, { subject: held.held.subject, requesterRole: held.held.role.id, requesterRef: held.held.grant.id });
+  if (held.held.role.reads === 'emergency-summary') return this.#refuse(403, 'emergency-only', who);
+  if (!held.held.role.writes) return this.#refuse(403, 'write-not-permitted', who);
+  if (!held.held.grant.scope.includes(HL7.encounters.category)) return this.#refuse(403, 'out-of-scope', who);
+  const subject = held.held.subject;
+  if (input.subject !== subject) { this.#probe(input.subject, who); return this.#refuse(403, 'wrong-subject', who); }
+
+  const activity = input.provenance?.activity;
+  const sourceSystem = input.provenance?.sourceSystem;
+  if (typeof activity !== 'string' || !activity.trim() || typeof sourceSystem !== 'string' || !sourceSystem.trim()) return this.#refuse(400, 'no-provenance', who);
+  const body = input.resource && typeof input.resource === 'object' && !Array.isArray(input.resource) ? input.resource : {};
+  if (identityShaped(body) || identityShaped(activity) || identityShaped(sourceSystem)) return this.#refuse(400, 'identity-in-resource', who);
+
+  let prior: ResourceRow | null = null;
+  if (input.supersedes !== undefined) {
+   const candidate = this.#store.resource(String(input.supersedes));
+   if (!candidate || candidate.resource_type !== 'Encounter' || candidate.subject !== subject) return this.#refuse(404, 'no-such-encounter', who);
+   const priorState = this.#store.encounterState(candidate.id);
+   if (!priorState) return this.#refuse(409, 'status-before-written', who);
+   if (priorState.state_code === ENCOUNTER_SIGNED) return this.#refuse(409, 'encounter-already-signed', who);
+   if (priorState.state_code === ENCOUNTER_SUPERSEDED) return this.#refuse(409, 'encounter-already-superseded', who);
+   prior = candidate;
+  }
+
+  const id = this.#file(subject, 'Encounter', HL7.encounters.category, body, { authorRole: held.held.role.id, authorRef: held.held.grant.id, activity: activity.trim(), sourceSystem: sourceSystem.trim() }, at);
+  this.#store.putEncounterState({ resource_id: id, subject, state_code: ENCOUNTER_WRITTEN, supersedes: prior ? prior.id : null, superseded_by_ref: null, signed_at: null, signed_by_ref: null, written_at: at });
+  this.#log({ ...who, outcome: 'granted', reason: statement('written') });
+  if (prior) {
+   if (!this.#store.supersedeEncounterState(prior.id, id)) throw new Error(`The Encounter ${prior.id} moved on while it was being superseded.`);
+   this.#log({ subject, requesterRole: who.requesterRole, requesterRef: who.requesterRef, action: 'encounter.supersede', resourceType: 'Encounter', purpose: who.purpose, outcome: 'granted', reason: statement('encounterSuperseded') });
+  }
+  return { ok: true, id, ...(prior ? { supersededRef: prior.id } : {}) };
+ }
+
+ /** The assigned doctor's own grant marks a written Encounter signed. Nobody else's grant may — not the
+     nurse who wrote it, and not the patient's own session, since a signature is the doctor's decision
+     and not the record's. */
+ signEncounter(requester: Requester, ref: string): Answer<{ signedAt: string }> {
+  const at = this.#now();
+  const who: Who = { subject: null, requesterRole: UNAUTHENTICATED, requesterRef: null, action: 'encounter.sign', resourceType: 'Encounter', purpose: requester.kind === 'grant' ? requester.purpose : null };
+  if (requester.kind === 'patient') return this.#refuse(403, 'write-not-permitted', who);
+  const held = this.#hold(requester.artefact, requester.purpose);
+  if (!held.ok) return this.#refuseHold(held, who);
+  Object.assign(who, { subject: held.held.subject, requesterRole: held.held.role.id, requesterRef: held.held.grant.id });
+  if (held.held.role.id !== 'doctor-assigned') return this.#refuse(403, 'sign-requires-a-doctor', who);
+  if (!held.held.grant.scope.includes(HL7.encounters.category)) return this.#refuse(403, 'out-of-scope', who);
+  const row = this.#store.resource(String(ref ?? ''));
+  const found = row && row.resource_type === 'Encounter' && row.subject === held.held.subject ? row : null;
+  if (!found) { if (row) this.#probe(row.subject, who); return this.#refuse(404, 'no-such-encounter', who); }
+  const state = this.#store.encounterState(found.id);
+  if (!state) return this.#refuse(409, 'status-before-written', who);
+  if (state.state_code === ENCOUNTER_SIGNED) return this.#refuse(409, 'encounter-already-signed', who);
+  if (state.state_code === ENCOUNTER_SUPERSEDED) return this.#refuse(409, 'encounter-already-superseded', who);
+  if (!this.#store.signEncounterState(found.id, at, held.held.grant.id)) throw new Error(`The Encounter ${found.id} moved on while it was being signed.`);
+  this.#log({ ...who, outcome: 'granted', reason: statement('encounterSigned') });
+  return { ok: true, signedAt: new Date(at).toISOString() };
+ }
+
+ /** GET /v1/record/encounter-statuses/{encounterRef}@1: whether an Encounter is written, signed or
+     superseded, for the Care engine deciding whether a nurse's visit may be handed over or completed.
+     No clinical content crosses this route either way, so there is no caller credential to check beyond
+     the loopback every route already answers on: the contract gives this route no such refusal, and
+     there is no OIDC or mutual TLS between services yet (§22) to check one against. An unknown reference
+     and one for a resource of a different kind take the same branch below and answer with the same
+     body — `found` is null either way, and nothing before that line has touched `who.subject` — so a
+     status probe cannot be used to learn what else a patient's record holds. */
+ encounterStatus(encounterRef: string): Answer<{ stateCode: string; signedAt?: string; supersededByRef?: string }> {
+  const who: Who = { subject: null, requesterRole: 'engine:care', requesterRef: null, action: 'encounter.status', resourceType: 'Encounter', purpose: 'treatment' };
+  const row = this.#store.resource(String(encounterRef ?? ''));
+  const found = row && row.resource_type === 'Encounter' ? row : null;
+  if (!found) return this.#refuse(404, 'no-such-encounter', who);
+  const state = this.#store.encounterState(found.id);
+  if (!state) return this.#refuse(409, 'status-before-written', { ...who, subject: found.subject });
+  this.#log({ ...who, subject: found.subject, outcome: 'granted', reason: statement('encounterStatusRead') });
+  return {
+   ok: true, stateCode: state.state_code,
+   ...(state.signed_at !== null ? { signedAt: new Date(state.signed_at).toISOString() } : {}),
+   ...(state.superseded_by_ref !== null ? { supersededByRef: state.superseded_by_ref } : {})
+  };
+ }
+
  /* ---- Share links (Passport P1) ---------------------------------------------------------------
 
     A share link is a grant the patient made, made narrower. packages/engines/src/record/domain/links.ts
@@ -751,6 +855,10 @@ export class PassportGateway {
    const resource = encounterFrom(visit, type, facility);
    if (identityShaped(resource)) return this.#hl7Refuse('hl7-identity-in-message', who, message, { ...keep, quarantine: false });
    const id = this.#file(subject, 'Encounter', HL7.encounters.category, resource, provenance, at);
+   /* Given a state from birth like any other Encounter (Wave 6), so a hospital's admission answers
+      GET /v1/record/encounter-statuses/{encounterRef}@1 as written rather than as one filed before
+      this Passport tracked a state at all. */
+   this.#store.putEncounterState({ resource_id: id, subject, state_code: ENCOUNTER_WRITTEN, supersedes: null, superseded_by_ref: null, signed_at: null, signed_by_ref: null, written_at: at });
    this.#store.putHl7Encounter(visitTag, subject, id, facility.id, at);
   } else if (type.encounterStatus === 'finished') {
    const resource = encounterFrom(visit, type, facility, this.#open(row));
