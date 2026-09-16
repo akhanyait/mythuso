@@ -39,6 +39,7 @@ import { emitVerifyInService } from './emit-verify-in-service.mjs';
 import { emitPassportSharing } from './emit-passport-sharing.mjs';
 import { emitDevices } from './emit-devices.mjs';
 import { emitGroups } from './emit-groups.mjs';
+import { emitHousehold } from './emit-household.mjs';
 import { emitMomEssential } from './emit-mom-essential.mjs';
 import { emitClinical } from './emit-clinical.mjs';
 import { emitSentinel } from './emit-sentinel.mjs';
@@ -1190,6 +1191,10 @@ const generated = [
  { source: 'packages/catalog/groups.json', command: 'npm run groups', files: emitGroups() },
  { source: 'packages/catalog/apis/money.json', command: 'npm run groups', files: emitGroups() },
  { source: 'packages/catalog/money.json', command: 'npm run groups', files: emitGroups() },
+ /* Wave 6: HouseholdData carries household.json's roster, sponsorship and split words and the six refusals a
+    person meets, read from the routes in apis/access.json by id — so a reworded refusal regenerates it. */
+ { source: 'packages/catalog/household.json', command: 'npm run household', files: emitHousehold() },
+ { source: 'packages/catalog/apis/access.json', command: 'npm run household', files: emitHousehold() },
  /* The clinical review pack reads every contract a clinician has to review, so a change to any of them
     without regenerating is a failed build rather than a pack somebody signs against values no longer in force. */
  ...['settings.json', 'care.json', 'booking.json', 'field-safety.json', 'closed-loop.json', 'money.json', 'protocols.json',

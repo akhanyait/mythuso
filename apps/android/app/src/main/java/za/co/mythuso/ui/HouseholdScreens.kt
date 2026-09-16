@@ -101,6 +101,16 @@ private val householdRecordType = recordTypeById("household")
             Text(householdRecordType?.summary.orEmpty(), style = MaterialTheme.typography.bodyMedium)
         }
 
+        /* What a roster is and what it never carries, in the words of the route that refuses it — generated
+           into HouseholdData from packages/catalog/apis/access.json rather than written again here. The
+           roster below is the household record's; the routes behind it do not run on a phone. */
+        CareCard {
+            Text(HouseholdData.membershipIsNotConsent, style = MaterialTheme.typography.titleSmall, color = IndigoDeep)
+            Note(HouseholdData.Roster.grantsNothing)
+            Text(HouseholdData.Roster.neverHeading, style = MaterialTheme.typography.titleSmall, color = Charcoal)
+            HouseholdData.Roster.neverHolds.forEach { never -> StackedLine(never.field, never.why) }
+        }
+
         StatePicker("Preview how this household behaves when the record service is unavailable", state) { state = it }
         StateBlock(state, "This household record", "clinical record access", { state = LoadState.READY }) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
