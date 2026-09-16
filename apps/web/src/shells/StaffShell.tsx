@@ -1,7 +1,7 @@
 import { ClinicalWorkbench } from '../features/ClinicalWorkbench';
 import framing from '../../../../packages/catalog/framing.json' with { type: 'json' };
 import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
-import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bluetooth, BookOpen, CalendarDays, ClipboardPlus, CreditCard, FileText, FlaskConical, LogOut, Package, Radar, Repeat, ShieldAlert, ShieldCheck, Siren, Truck, Video } from 'lucide-react';
+import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bluetooth, BookOpen, CalendarDays, CalendarRange, ClipboardPlus, CreditCard, FileText, FlaskConical, LogOut, Package, Radar, Repeat, ShieldAlert, ShieldCheck, Siren, Truck, Video } from 'lucide-react';
 import { Modal, SectionTitle } from '../components/UI';
 import { Metric, Metrics, NavRow } from '../surface/Surface';
 import '../surface/clinical.css';
@@ -45,6 +45,7 @@ import { SosDesk } from '../features/SosDesk';
    held payment is a phone call that can wait below it. */
 import { HeldCashPayments } from '../features/CashCode';
 import { ConcernBoard } from '../features/ConcernBoard';
+import { AuditExportDesk } from '../features/AuditExports';
 /* Thuso Kit's registry arrives when a nurse opens her kit or the Control Tower opens its incidents, and not
    before: it carries the Devices contract and every engine's settings through lib/settings. */
 const KitHealth = lazy(() => import('../features/Devices').then(m => ({ default: m.KitHealth })));
@@ -124,7 +125,9 @@ const workspaces = {
   /* Employer programmes is not a fifth entry: features/Pages.tsx already lists it among this
      role's More tools, and two doors into one screen is how a navigation starts disagreeing with
      itself about what the sections are. */
-  { id: 'Quality', short: 'Quality', icon: BarChart3 }
+  { id: 'Quality', short: 'Quality', icon: BarChart3 },
+  /* GET /v1/core/audit-exports@1's own caller (Wave 6): the operator, and nobody else. */
+  { id: 'Audit exports', short: 'Audit', icon: CalendarRange }
  ] }
 } as const satisfies Record<string, WorkspaceDef>;
 
@@ -276,6 +279,7 @@ function renderSection(role: StaffRole, section: string, open: (m: string) => vo
  if (role === 'Control Tower') {
   if (section === 'Vetting queue') return <VettingQueue open={open}/>;
   if (section === 'Quality') return <QualityBoard open={open}/>;
+  if (section === 'Audit exports') return <AuditExportDesk/>;
  }
  return <StaffSection role={role} section={section} open={open}/>;
 }

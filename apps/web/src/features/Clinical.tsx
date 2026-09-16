@@ -18,6 +18,8 @@ import { subjectById, subjectsByRole } from '../lib/vetting-fixtures';
 import { ConsultationComposer, assessmentFields } from './Consultation';
 import { documentById, refusedDocuments } from '../lib/teleconsult';
 import { ClinicalDeck, type DeckFigure } from './ClinicalDeck';
+import protocolsContract from '../../../../packages/catalog/protocols.json' with { type: 'json' };
+import coreApi from '../../../../packages/catalog/apis/core.json' with { type: 'json' };
 import './clinical-records.css';
 /* Indicative adult reference ranges, used only to flag a value for the nurse's attention.
    This is not a validated triage or early-warning score and it never decides anything.
@@ -531,6 +533,39 @@ const supportLines = [
  ['May issue a prescription', 'A doctor whose prescribing is separately verified', true],
  ['May diagnose from a nurse assessment', 'Nobody. An assessment is not a diagnosis', false]
 ] as const;
+/* ---- The protocol registry (Wave 6) ----------------------------------------------------------------
+ *
+ * GET /v1/core/protocols/{protocolVersionId}@1's own read, mirrored here rather than called: the
+ * registry is packages/catalog/protocols.json, a public catalogue read by everybody and stored by
+ * nobody, so a preview reads it directly exactly as the route does — one row, by id@version, never a
+ * placeholder for a threshold or a dose nobody ratified. Every protocol today is a draft with no
+ * content, because nobody on packages/catalog/vetting.json holds medical-director yet, and the
+ * honest answer is "draft, no content" rather than a screen that looks ready before a board exists. */
+const protocolReadRoute = coreApi.routes.find(r => r.method === 'GET' && r.path === '/v1/core/protocols/{protocolVersionId}' && !(r as { withdrawn?: unknown }).withdrawn)!;
+const protocolReadRefusal = (id: string) => protocolReadRoute.refusals.find(r => r.id === id)?.statement ?? id;
+const protocolVersionRead = (protocolVersionId: string) => {
+ const sep = protocolVersionId.lastIndexOf('@');
+ const id = sep > 0 ? protocolVersionId.slice(0, sep) : '';
+ const version = sep > 0 ? Number(protocolVersionId.slice(sep + 1)) : NaN;
+ return protocolsContract.protocols.find(p => p.id === id && p.version === version) ?? null;
+};
+function ProtocolRegistryLookup() {
+ const first = protocolsContract.protocols[0]!;
+ const [selected, setSelected] = useState(`${first.id}@${first.version}`);
+ const found = protocolVersionRead(selected);
+ return <div className="cr-panel pr-panel">
+  <SectionTitle title="The protocol registry"/>
+  <p className="helper">packages/catalog/protocols.json: twelve names and version numbers, ratified by a named role and a date once a board exists to give one. Ratifying a version is for the Medical Director alone, and nobody on the vetting register holds that role yet, so every version below reads back exactly what the registry holds and nothing else.</p>
+  <label className="pr-select-label" htmlFor="pr-protocol-select">Protocol version</label>
+  <select id="pr-protocol-select" value={selected} onChange={e => setSelected(e.target.value)}>
+   {protocolsContract.protocols.map(p => <option key={`${p.id}@${p.version}`} value={`${p.id}@${p.version}`}>{p.name} · v{p.version}</option>)}
+  </select>
+  {found
+   ? <p className="pr-result" role="status">{found.name} — {found.status}, no content.</p>
+   : <p className="pr-result pr-refusal" role="alert">{protocolReadRefusal('unknown-version')}</p>}
+ </div>;
+}
+
 export function ClinicalProtocols() {
  /* The rows where the answer is nobody — the two the list below draws with a struck mark rather than a
     tick. The ring is those five rows, lit where the answer is nobody, so it counts nothing the list
@@ -553,6 +588,7 @@ export function ClinicalProtocols() {
    <p className="c-deck-aside">The reference a case is read against, and the line at which decision support stops and a registered doctor starts.</p>
   </ClinicalDeck>
   <div className="c-sheet cr cr-protocols">
+  <ProtocolRegistryLookup/>
   <div className="cr-panel">
    <table className="cr-ranges">
     <caption>Indicative adult ranges only. They flag a value for a clinician’s attention. They are not a validated triage or early-warning score, they are not adjusted for age, pregnancy or comorbidity, and nothing in MyThuso decides anything from them.</caption>

@@ -983,3 +983,20 @@
 .clinical .cl-close-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); }
 .clinical .cl-refusal { margin: 0; font-size: 14px; font-weight: 500; color: var(--charcoal); overflow-wrap: anywhere; }
 .clinical .cl-closed { margin: 0; font-size: 14px; color: var(--charcoal); overflow-wrap: anywhere; }
+
+/* ---- The protocol registry (Wave 6) --------------------------------------------------------------
+   A panel like the ranges table beside it, never a placeholder screen: a select of the registry's
+   twelve versions and the one row read back, "draft, no content" for every one of them today. */
+.clinical .pr-panel { display: grid; gap: var(--space-8); }
+.clinical .pr-select-label { font-size: 13px; font-weight: 500; color: var(--faint); }
+.clinical .pr-result { margin: 0; font-size: 14px; font-weight: 500; color: var(--charcoal); overflow-wrap: anywhere; }
+.clinical .pr-refusal { color: var(--danger); }
+
+/* ---- Audit exports (Wave 6) -----------------------------------------------------------------------
+   The Control Tower's own screen for GET /v1/core/audit-exports@1: a range in, the setting's own
+   refusal or a plain within-range answer out, and nothing this preview did not actually check. */
+.clinical .ae-desk { display: grid; gap: var(--space-12); max-width: 640px; }
+.clinical .ae-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-12); }
+.clinical .ae-field { display: grid; gap: var(--space-4); font-size: 13px; font-weight: 500; color: var(--faint); }
+.clinical .ae-result { display: flex; align-items: flex-start; gap: var(--space-8); margin: 0; font-size: 14px; font-weight: 500; color: var(--charcoal); overflow-wrap: anywhere; }
+.clinical .ae-refusal { color: var(--danger); }
