@@ -170,7 +170,25 @@ export function createRuntime(options: RuntimeOptions): Runtime {
     if (route.engine === engine) throw new BindingRefused(runtimeRefusal('calls-its-own-route'), `${engine} called ${key}.`);
     return dispatch(route, { role: `engine:${engine}`, ref: null }, callPurpose, fields, false);
    },
-   ...(engine === 'core' ? { trail: { entries: trail.entries, verify: trail.verify } } : {}),
+   ...(engine === 'core' ? {
+    trail: { entries: trail.entries, verify: trail.verify },
+    /* POST /v1/core/events@1's front door. validatePublish asks nothing about which engine is bound to
+       this handler; it asks whether the named publisher owns the event, so handing it publisherEngine in
+       place of the closure's own "engine" (always "core" here) is the whole difference from publish()
+       above. The caller is already the publishing engine — the binder admitted "engine:<publisherEngine>"
+       as this route's caller before the handler ran — so the actor and the default purpose are the same
+       "system"-or-context defaults publish() itself falls back to. */
+    publishFor(publisherEngine, key, payload, publishOptions) {
+     try {
+      const event = validatePublish(contract, publisherEngine, key, payload, { ...publishOptions, actorRole: publishOptions.actorRole ?? actor, purposeOfUse: publishOptions.purposeOfUse ?? purpose }, clock);
+      outbox.push(event);
+      return { eventId: event.eventId, type: event.type, version: event.version };
+     } catch (error) {
+      if (error instanceof BusRefused) trail.append('refused', { eventKey: key, engine: publisherEngine, body: { refusal: error.refusal, fields: error.fields } });
+      throw error;
+     }
+    }
+   } : {}),
   };
  }
 
