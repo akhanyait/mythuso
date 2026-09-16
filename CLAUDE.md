@@ -23,7 +23,12 @@ Three native apps and one service:
   **295.49 kB** — every script, module preload and stylesheet `apps/web/dist/index.html` references,
   each gzipped at level 9 after `npm run build -w @mythuso/web`. It is below the 319.97 kB measured on
   14 September at `c62961c` because every workspace and every engine's screens added since sit behind a
-  dynamic import, so eleven engines of product across two waves cost the patient's first view nothing. Compare a new figure
+  dynamic import, so eleven engines of product across two waves cost the patient's first view nothing.
+  Measured again on 16 September at `8bf3e48`, the Wave 6 tree — Care's reads, Core's structural routes,
+  Record's Encounter status, Money's gifts and market orders, Access's households: **282.16 kB** across
+  13 files, the same way. Lower still, because Access moved the household record, the health summary
+  and the sponsor's statement behind dynamic imports in the same change that added its three screens;
+  Money's three wallet shortcuts cost 0.47 kB, the only thing added. Compare a new figure
   only against one taken the same way; a screen that is not on the patient's first view belongs behind a
   dynamic import.
 
