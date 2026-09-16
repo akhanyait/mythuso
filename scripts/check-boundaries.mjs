@@ -10954,3 +10954,133 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
 
  console.log(`Movement: ${ambulanceSentences} sentences beside the word ambulance each say Thuso Ride is not one; a P1 is refused before it is read and routed nowhere; a P2 is refused from ${['a dispatcher', 'a responder', 'an uncleared nurse', 'another name', 'no reason'].length} directions and taken only from an offer; ${mv.admissions.states.filter(s => s.pending).length} pending admission states confirm no destination and say no word of a booking; a position is refused at its window and dropped by the tick; the packet rides on ${mv.packet.grantRole} for at most ${packetBoundDays} day${packetBoundDays === 1 ? '' : 's'}, derived; ${mvEvents.length} Movement events and ${mvPublishes.length} publishes carry no position, clinical content or secret; ${mvColumns.length} store columns hold none; ${mvScreens.length} screens and models type no interval or window.`);
 }
+
+/* ==== Access · households, sponsorships and bill splits (Wave 6) ======================================
+
+   Three arrangements a family makes around one person's care, and the one thing none of them is. The
+   sentences are in packages/catalog/apis/access.json and packages/catalog/programmes.json; what is checked
+   here is that nothing anywhere makes one of them false.
+
+   The first four are about shape, because a roster that cannot hold a scope cannot grant one, and a
+   statement that has no field for a finding cannot leak one. The last three run the domain's own arithmetic
+   rather than reading it: a split whose shares do not add up is refused by calling it, a service is removed
+   from a statement by calling it, and an unaccepted share is offered to nobody by calling it. A rule proven
+   by grepping for the word that enforces it is a rule that survives the word being renamed. */
+{
+ const familyApi = 'packages/catalog/apis/access.json';
+ const familyContractFile = 'packages/catalog/household.json';
+ const family = JSON.parse(read(familyContractFile));
+ const familyRoutes = JSON.parse(read(familyApi)).routes.filter(r => !r.withdrawn
+  && ['/v1/access/households', '/v1/access/household-memberships', '/v1/access/sponsors', '/v1/access/bill-splits'].some(p => r.path === p || r.path.startsWith(`${p}/`)));
+ if (familyRoutes.length !== 8) throw new Error(`${familyApi} declares ${familyRoutes.length} live household, sponsorship and bill-split routes, and this check was written for the eight that were built. Read it before adding a ninth.`);
+ const familyWords = name => String(name).replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+ const familyFields = (list, at = '') => (list ?? []).flatMap(f => [{ name: f.field, at: at ? `${at}.${f.field}` : f.field }, ...familyFields(f.fields, at ? `${at}.${f.field}` : f.field)]);
+ const allFamilyFields = familyRoutes.flatMap(r => [...familyFields(r.request), ...familyFields(r.response)].map(f => ({ ...f, route: `${r.method} ${r.path}@${r.version}` })));
+
+ /* 1. A membership never implies a grant. No field of any of the eight routes, at any depth, is named for a
+       scope, a grant, a permission or an expiry — so there is nowhere for one to arrive or be answered, and
+       the refusal fires on the words rather than on a field being quietly dropped. */
+ const grantPromise = 'A household is a roster. It grants nothing, so no route in the family carries a field named for a scope, a grant, a permission or an expiry.';
+ const grantWords = family.membership.grantFieldWords;
+ if (!Array.isArray(grantWords) || !['scope', 'grant', 'permission', 'consent'].every(w => grantWords.includes(w))) throw new Error(`${familyContractFile} no longer lists scope, grant, permission and consent among the words a roster refuses. ${grantPromise}`);
+ /* shares and share are the bill split's own word for an amount somebody owes, and neither is a permission.
+    Exempt by name here rather than by being dropped from the list a request is refused against. */
+ const notAGrant = new Set(['shares', 'share']);
+ for (const f of allFamilyFields) {
+  const hit = familyWords(f.name).find(w => grantWords.includes(w) && !notAGrant.has(w));
+  if (hit) throw new Error(`${f.route} carries "${f.at}" ("${hit}"). ${grantPromise}`);
+ }
+ const familyDomain = 'packages/engines/src/access/domain';
+ for (const f of ['household.ts', 'sponsorship.ts', 'bill-split.ts']) {
+  const source = read(`${familyDomain}/${f}`);
+  const imported = source.match(/from '[^']*catalog\/(consent|records|protocols|clinical|passport-gateway)\.json'/);
+  if (imported) throw new Error(`${familyDomain}/${f} imports packages/catalog/${imported[1]}.json, which describes a grant or a record. ${grantPromise}`);
+ }
+ const familyEngineFile = 'packages/engines/src/access/engine.ts';
+ const familyEngineSource = read(familyEngineFile);
+ const familyColumns = [...familyEngineSource.matchAll(/CREATE TABLE IF NOT EXISTS (households|sponsorships|sponsored_payments|bill_splits) \(([^)]*)\)/g)]
+  .flatMap(([, table, body]) => body.split(',').map(column => ({ table, column: column.trim().split(/\s+/)[0] })));
+ if (familyColumns.length < 9) throw new Error(`${familyEngineFile} no longer declares the four family tables in the shape this check reads, so no column could be checked. ${grantPromise}`);
+ const notOnARoster = /^(scope|grant|granted\w*|permission|consent|expires\w*|until|relationship|name|full_name|id_number|address|category)$/;
+ for (const { table, column } of familyColumns) if (notOnARoster.test(column)) throw new Error(`${familyEngineFile} gives ${table} the column "${column}". ${grantPromise}`);
+
+ /* 2. The roster is listed only to the people on it, on both the read and the add — the same fact about the
+       same household, so the same sentence. */
+ for (const key of ['GET /v1/access/households@1', 'POST /v1/access/household-memberships@1']) {
+  const r = familyRoutes.find(x => `${x.method} ${x.path}@${x.version}` === key);
+  if (!r.refusals.some(x => x.id === 'not-in-this-household')) throw new Error(`${key} no longer refuses not-in-this-household. Who lives with whom is a fact about all of them, and a roster is read and written only by the people on it.`);
+ }
+
+ /* 3. household.json restates no refusal sentence. Every one of them lives on its route, and the contract
+       names the id rather than keeping a copy that can drift out of step with the words a person is shown. */
+ const familyContractText = read(familyContractFile);
+ for (const r of familyRoutes) for (const x of r.refusals) {
+  if (familyContractText.includes(x.statement)) throw new Error(`${familyContractFile} restates "${x.id}": "${x.statement}". A refusal's words live on its route in ${familyApi}, and this contract names the id.`);
+ }
+
+ /* 4. A sponsor or a payer is never answered with clinical detail. Not by manners: there is no field for it
+       in either shape, checked against the words a request is refused for asking about. serviceId is the one
+       concession, and it is the recipient's own switch, so it is exempt by name and checked below by arithmetic. */
+ const familyClinicalPromise = 'A sponsor pays and reads nothing about the care; a payer sees what they owe. Neither shape has a field for a reason, a finding or anything a visit produced.';
+ const careWords = family.sponsorship.careFieldWords.filter(w => !['service', 'visit', 'visits'].includes(w));
+ for (const f of allFamilyFields) {
+  if (f.name === 'serviceId') continue;
+  const hit = familyWords(f.name).find(w => careWords.includes(w));
+  if (hit) throw new Error(`${f.route} carries "${f.at}" ("${hit}"). ${familyClinicalPromise}`);
+ }
+ const serviceNamed = allFamilyFields.filter(f => f.name === 'serviceId');
+ if (serviceNamed.length !== 1 || serviceNamed[0].route !== 'GET /v1/access/sponsors@1' || serviceNamed[0].at !== 'sponsorships.lines.serviceId') throw new Error(`The service is named in ${serviceNamed.map(f => `${f.route} ${f.at}`).join(', ') || 'no family route'}. It belongs on a statement line and nowhere else, because naming it is the recipient's switch. ${familyClinicalPromise}`);
+
+ /* 5. A sponsor never sees a service name unless the recipient's own switch allows it — proven by running
+       the arithmetic both ways rather than by reading the code that does it. */
+ const { DEFAULT_LINE_DETAIL, SERVICE_NAMED, statementFor } = await import('../packages/engines/src/access/domain/sponsorship.ts');
+ const programmesForFamily = JSON.parse(read('packages/catalog/programmes.json'));
+ if (DEFAULT_LINE_DETAIL === SERVICE_NAMED || !programmesForFamily.sponsor.lineDetail.some(d => d.id === DEFAULT_LINE_DETAIL && d.isDefault)) throw new Error('packages/catalog/programmes.json\'s default sponsor line detail is no longer the one that leaves the service out. A statement that names the service by default names it for somebody who never switched it on.');
+ const sponsorshipAt = lineDetailId => ({ sponsorshipRef: 'SIM-SP-CHECK', householdRef: 'SIM-HH-CHECK', sponsoredSubjectRef: 'subj-check', payerSubjectRef: 'subj-payer', stateCode: 'agreed', lineDetailId, offeredOnDay: '2026-09-01', answeredOnDay: '2026-09-01' });
+ const oneLine = [{ paidOnDay: '2026-09-10', amountCents: 85_000, serviceId: 'senior' }];
+ const byDefault = statementFor(sponsorshipAt(DEFAULT_LINE_DETAIL), oneLine);
+ const switchedOn = statementFor(sponsorshipAt(SERVICE_NAMED), oneLine);
+ if (byDefault.some(line => 'serviceId' in line)) throw new Error(`statementFor names the service under the line detail "${DEFAULT_LINE_DETAIL}". A line reading "sexual health screening" discloses more than most diagnoses do, and naming the service is the recipient's switch to flip.`);
+ if (!switchedOn.every(line => line.serviceId === 'senior')) throw new Error(`statementFor drops the service under "${SERVICE_NAMED}", which is the setting the recipient turns on to see it. The other branch has to stay live, or her switch does nothing.`);
+ if (byDefault.some(line => Object.keys(line).sort().join() !== 'amountCents,paidOnDay')) throw new Error('A statement line is a day and an amount. statementFor returned something else.');
+
+ /* 6. Shares that do not total the payable are refused, and a payer named twice is refused — by calling the
+       domain, so a rewrite that forgets the comparison fails here rather than in a screenshot. */
+ const { payableShares, proposeSplit, sharesFromParts, splitState } = await import('../packages/engines/src/access/domain/bill-split.ts');
+ const splitPromise = 'The shares of a bill split add up to the payable, in cents, or the split is refused.';
+ const whole = 85_000;
+ const evenly = sharesFromParts(whole, [{ payerSubjectRef: 'a', parts: 1 }, { payerSubjectRef: 'b', parts: 1 }]);
+ if (evenly.reduce((total, s) => total + s.amountCents, 0) !== whole) throw new Error(`sharesFromParts split ${whole} cents into shares that do not add up to it. ${splitPromise}`);
+ const splitNow = new Date('2026-09-16T09:00:00+02:00');
+ const proposeAt = shares => proposeSplit({ splits: [] }, { idempotencyKey: 'check', payableRef: 'SIM-PAYABLE-CHECK', amountCents: whole, shares, proposedBySubjectRef: 'a', sent: [], now: splitNow });
+ for (const [what, shares, refusal] of [
+  ['a share short', evenly.map((s, i) => (i === 0 ? { ...s, amountCents: s.amountCents - 1 } : s)), 'shares-must-total'],
+  ['a share over', evenly.map((s, i) => (i === 0 ? { ...s, amountCents: s.amountCents + 1 } : s)), 'shares-must-total'],
+  ['one payer named twice', [{ payerSubjectRef: 'a', amountCents: whole - 100 }, { payerSubjectRef: 'a', amountCents: 100 }], 'one-share-each'],
+  ['a share of nothing', [{ payerSubjectRef: 'a', amountCents: whole }, { payerSubjectRef: 'b', amountCents: 0 }], 'one-share-each']
+ ]) {
+  const outcome = proposeAt(shares);
+  if (!outcome.refused || outcome.id !== refusal) throw new Error(`A split with ${what} answered ${outcome.refused ? outcome.id : 'a split'} rather than ${refusal}. ${splitPromise}`);
+ }
+ const agreedSplit = proposeAt(evenly);
+ if (agreedSplit.refused) throw new Error(`A split whose shares add up was refused with ${agreedSplit.id}. ${splitPromise}`);
+
+ /* 7. An unaccepted share is offered to nobody, and a split is payable only when none is waiting. */
+ const acceptancePromise = 'A share is owed only by the person who accepted it, so a split offers for payment the accepted shares and nothing else.';
+ const proposedSplit = agreedSplit.value.split;
+ if (payableShares(proposedSplit).length || splitState(proposedSplit) !== 'proposed') throw new Error(`A split nobody has accepted offers ${payableShares(proposedSplit).length} share(s) for payment and stands at "${splitState(proposedSplit)}". ${acceptancePromise}`);
+ const halfAccepted = { ...proposedSplit, shares: proposedSplit.shares.map((s, i) => (i === 0 ? { ...s, stateCode: 'accepted', acceptedOnDay: '2026-09-16' } : s)) };
+ if (payableShares(halfAccepted).length !== 1 || splitState(halfAccepted) !== 'proposed') throw new Error(`A split one of two payers has accepted offers ${payableShares(halfAccepted).length} share(s) and stands at "${splitState(halfAccepted)}". ${acceptancePromise}`);
+ const allAccepted = { ...proposedSplit, shares: proposedSplit.shares.map(s => ({ ...s, stateCode: 'accepted', acceptedOnDay: '2026-09-16' })) };
+ if (payableShares(allAccepted).length !== allAccepted.shares.length || splitState(allAccepted) !== 'payable') throw new Error(`A split every payer has accepted stands at "${splitState(allAccepted)}". ${acceptancePromise}`);
+
+ /* The screens are off the patient's first load: between them they carry this contract, the programmes
+    contract and the Access domain, and a patient reading her visits on metered data opens none of them. */
+ for (const f of ['apps/web/src/main.tsx', 'apps/web/src/App.tsx', 'apps/web/src/shells/PatientShell.tsx']) {
+  if (existsSync(f) && /^import (?!type\b)[^;]*from '[^']*(features\/(Household|Sponsor|BillSplit)|lib\/(household|sponsorship))'/m.test(read(f))) {
+   throw new Error(`${f} imports the household, sponsor or bill-split screens statically. They carry packages/catalog/household.json, the programmes contract and the Access domain, and a patient on metered data must not download them on the first load.`);
+  }
+ }
+
+ console.log(`Access · the family arrangements: ${familyRoutes.length} routes over a roster, a sponsorship and a split carry no field named for a scope, a grant, a permission or an expiry, and ${familyColumns.length} store columns hold none; ${familyRoutes.flatMap(r => r.refusals).length} refusal sentences are on their routes and none is restated in ${familyContractFile}; the service appears on one field of one route and is removed unless the recipient's own line detail names it; a split short, over, named twice or of nothing is refused by four calls to the domain; and a share nobody accepted is offered to nobody.`);
+}

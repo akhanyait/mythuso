@@ -78,12 +78,15 @@ export const householdsOf = (ledger: HouseholdLedger, subjectRef: string): reado
  */
 export function openHousehold(
  ledger: HouseholdLedger,
- input: { readonly idempotencyKey: string; readonly openedBySubjectRef: string; readonly memberSubjectRefs: readonly string[]; readonly sent: readonly string[]; readonly now: Date }
+ input: { readonly openedBySubjectRef: string; readonly memberSubjectRefs: readonly string[]; readonly sent: readonly string[]; readonly now: Date }
 ): Outcome<{ readonly household: Household }> {
  if (namesAGrant(input.sent)) return routeRefusal(HOUSEHOLD_ROUTES.open, 'membership-is-not-consent');
  const named = input.memberSubjectRefs.filter(ref => typeof ref === 'string' && ref.trim());
  if (!named.length || !input.openedBySubjectRef) return routeRefusal(HOUSEHOLD_ROUTES.open, 'required-field-missing');
- const householdRef = simulatedRef('HH', input.idempotencyKey);
+ /* The route carries no idempotency key, because opening a household owes nobody anything and dispatches
+    nobody. So the reference is the roster itself: the same person opening a household of the same people
+    twice gets the one household back rather than a second list about the same family. */
+ const householdRef = simulatedRef('HH', [input.openedBySubjectRef, ...[...new Set(named)].sort()].join('|'));
  if (householdByRef(ledger, householdRef)) return accept({ household: householdByRef(ledger, householdRef)! });
  const addedOnDay = isoIn(input.now);
  const refs = [...new Set([input.openedBySubjectRef, ...named])];

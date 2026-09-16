@@ -32,7 +32,12 @@ import {
  Services, SponsorCare, TopUpWallet, VisitDetail, Visits, WalletPage, rowFor, sampleVisitRows,
  type VisitAction, type VisitRow
 } from './features/Pages';
-import { HouseholdRecord, HealthSummary } from './features/Household';
+/* The household record, the health summary and the sponsor's statement, on dynamic imports since Wave 6:
+   between them they carry the records contract, packages/catalog/household.json, the programmes contract and
+   the Access domain behind the roster. Each is opened from a dialog or a page and none of them is on a
+   patient's first view, so a patient reading her visits on metered data downloads none of it. */
+const HouseholdRecordPage = lazy(() => import('./features/Household').then(m => ({ default: m.HouseholdRecord })));
+const HealthSummaryPage = lazy(() => import('./features/Household').then(m => ({ default: m.HealthSummary })));
 import {
  CareTeam, CareTimeline, DevicePermission, HealthTrends, MedicalCertificate, PrescriptionJourney,
  ReadingsExplained, type Integration
@@ -41,7 +46,7 @@ import { PastVisit } from './features/VisitSummary';
 import { Arrival } from './features/Arrival';
 import { LiveWell } from './features/Wellbeing';
 import { GettingHelp } from './features/Help';
-import { SponsoredCare } from './features/Sponsor';
+const SponsoredCarePage = lazy(() => import('./features/Sponsor').then(m => ({ default: m.SponsoredCare })));
 import { stateOf } from './lib/cancelling';
 import { dateOf } from './lib/passport';
 import { Onboarding, SignIn } from './features/Onboarding';
@@ -219,7 +224,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
        : page === 'Door check' ? <Suspense fallback={<p className="helper" role="status">Opening the door check.</p>}><DoorCheckPage row={rows.find(row => row.id === tracking) ?? rows.find(row => row.group === 'upcoming')} back={() => navigate('Arrival')}/></Suspense>
        : page.startsWith('Complaint · ') ? <Suspense fallback={<p className="helper" role="status">Opening the complaint.</p>}><ComplaintPage row={rows.find(row => row.id === page.slice('Complaint · '.length))} back={() => navigate('My visits')}/></Suspense>
        : page === 'Help & support' ? <GettingHelp navigate={navigate} open={setModal}/>
-       : page === 'Care you sponsor' ? <SponsoredCare person={people[1]} relation={relationOf(people[1], people)} navigate={navigate} open={setModal}/>
+       : page === 'Care you sponsor' ? <Suspense fallback={<p className="helper" role="status">Opening the care you pay for.</p>}><SponsoredCarePage person={people[1]} relation={relationOf(people[1], people)} navigate={navigate} open={setModal}/></Suspense>
        : page === 'My family' ? <Family members={members} invitations={invitations} onRevoke={id => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i))} open={setModal} navigate={navigate}/>
         : page === 'Care plans' ? <Plans open={setModal} family={{ sponsor: people[0]!, parents: people.filter(p => relationOf(p, people) === 'Mother') }}/>
          /* Group payers and claims: three screens on their own dynamic imports, opened from the wallet and the passport. */
@@ -339,8 +344,8 @@ function modalBody(p: BodyProps) {
      dayOffset={past.dayOffset} rebook={() => p.bookFor(past.visit.person)} navigate={p.navigate}/>
   : <p className="muted">There is no completed visit on this account yet. A visit summary is written after a nurse has been, so this document appears once one has.</p>; }
  if (modal === 'Medical certificate') return <MedicalCertificate navigate={p.navigate}/>;
- if (modal === 'Thuso Family') return <HouseholdRecord/>;
- if (modal === 'Thuso Pass') return <HealthSummary/>;
+ if (modal === 'Thuso Family') return <Suspense fallback={<p className="helper" role="status">Opening the household record.</p>}><HouseholdRecordPage/></Suspense>;
+ if (modal === 'Thuso Pass') return <Suspense fallback={<p className="helper" role="status">Opening your health summary.</p>}><HealthSummaryPage/></Suspense>;
  if (modal === 'Your consents') return <ConsentCentre/>;
  /* Replaces the two-line sample that used to live in Detail: a real access log, refusals included. */
  if (modal === 'Access history') return <AccessHistory/>;

@@ -334,7 +334,7 @@ export const engine = defineEngine({
   'POST /v1/access/households@1': (request: HandlerRequest, ctx: EngineContext) => {
    const f = request.fields as { memberSubjectRefs: readonly string[] };
    const outcome = openHousehold(householdLedger(ctx),
-    { idempotencyKey: ctx.idempotencyKey ?? '', openedBySubjectRef: ctx.caller.ref ?? '', memberSubjectRefs: f.memberSubjectRefs, sent: request.undeclared, now: ctx.clock.now() });
+    { openedBySubjectRef: ctx.caller.ref ?? '', memberSubjectRefs: f.memberSubjectRefs, sent: request.undeclared, now: ctx.clock.now() });
    if (!outcome.refused) saveHousehold(ctx, outcome.value.household);
    return settle(outcome, v => ({ householdRef: v.household.householdRef }));
   },

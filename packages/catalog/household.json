@@ -21,7 +21,7 @@
   ],
   "grantFieldWords": ["scope", "scopes", "grant", "grants", "granted", "consent", "consents", "permission", "permissions", "access", "allow", "allowed", "share", "shares", "shared", "sharing", "record", "records", "category", "categories", "read", "reads", "view", "clinical", "diagnosis", "expires", "expiry", "until"],
   "grantFieldWordsWhy": "A request that adds somebody to a household and carries a scope, a grant or an expiry beside them is asking for the roster to be a permission. It is refused by the words of its name, before anything is keyed, rather than having the field quietly dropped — because a dropped field is a field somebody believes worked. The route declares no such field, so an attempt arrives undeclared and is answered with membership-is-not-consent.",
-  "rosterIsInformation": "A household is listed only to the people in it. Who lives with whom is a fact about all of them, so a roster is never read by somebody outside it, and a refusal says so rather than answering with an empty list."
+  "rosterIsInformation": { "refusal": "not-in-this-household", "on": ["GET /v1/access/households@1", "POST /v1/access/household-memberships@1"], "why": "Who lives with whom is a fact about all of them, so a roster is neither read nor added to by somebody outside it, and both are refused in the same sentence because they are the same fact about the same household. The sentence is the routes', in packages/catalog/apis/access.json." }
  },
 
  "sponsorship": {
