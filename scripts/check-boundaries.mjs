@@ -1857,6 +1857,9 @@ for(const {source,command,files} of generated) {
    case 'development-token': return ['developer'];
    /* Record P1: a share link is opened as the recipient of the grant it rides on, and no link is made for a role that reads aggregates. */
    case 'passport-share-link': return grantRolesForApis.filter(role => role.gateway.reads !== 'aggregate' && role.identifiable !== false).map(role => role.id);
+   /* Wave 6: a route with no requester scheme at all admits exactly the engine callers it declares — there is
+      nothing else in the handler for the check to narrow that list from. */
+   case 'passport-engine-caller': return r.callers.filter(c => c.startsWith('engine:'));
    /* The engine runtime's binder reads a route's callers from this contract and admits them before the
       handler runs, except the callers it cannot tell apart from anybody — which the contract lists. */
    case 'engines-runtime:callers': return r.callers.filter(c => c.startsWith('engine:') ? engineIds.includes(c.slice('engine:'.length)) : apiCallers.has(c) && !apiContract.engineRuntime.binderCannotAdmit.includes(c));
@@ -1973,6 +1976,10 @@ for(const {source,command,files} of generated) {
   if (!statement) return null;
   const token = (statement.text.match(/tokenFor\(req, '(\w+)'\)/) ?? [])[1];
   if (token) return ({ Developer: { mechanism: 'development-token' }, Patient: { mechanism: 'passport-patient-session' }, Operator: { mechanism: 'operator-credential' }, Link: { mechanism: 'passport-share-link' } })[token] ?? null;
+  /* Wave 6: a statement that calls neither tokenFor nor requesterOf asks for no credential at all. That is
+     only ever passport-engine-caller, and only when every caller the route declares is an engine:* name —
+     the one shape this loopback-only service has for a machine caller until it has something to check. */
+  if (!statement.withRequester && r.callers.length && r.callers.every(c => c.startsWith('engine:'))) return { mechanism: 'passport-engine-caller', callers: [...r.callers] };
   const method = (statement.text.match(/gateway\.(\w+)\(requester\b/) ?? [])[1];
   if (!method || !statement.withRequester) return null;
   const body = classBody(gatewaySource, method);
@@ -10953,4 +10960,126 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  }
 
  console.log(`Movement: ${ambulanceSentences} sentences beside the word ambulance each say Thuso Ride is not one; a P1 is refused before it is read and routed nowhere; a P2 is refused from ${['a dispatcher', 'a responder', 'an uncleared nurse', 'another name', 'no reason'].length} directions and taken only from an offer; ${mv.admissions.states.filter(s => s.pending).length} pending admission states confirm no destination and say no word of a booking; a position is refused at its window and dropped by the tick; the packet rides on ${mv.packet.grantRole} for at most ${packetBoundDays} day${packetBoundDays === 1 ? '' : 's'}, derived; ${mvEvents.length} Movement events and ${mvPublishes.length} publishes carry no position, clinical content or secret; ${mvColumns.length} store columns hold none; ${mvScreens.length} screens and models type no interval or window.`);
+}
+
+/* ==== Record · an Encounter's signature and supersede, and its status route (Wave 6) ==============
+
+   Added by the Record lead. Closes GET /v1/record/encounter-statuses/{encounterRef}@1, left proposed at
+   Wave 5 because the Passport stored no signature and no supersede (packages/catalog/hl7v2-inbound.json,
+   encounters.encounterStatuses). apps/passport/src/store.ts's encounter_states table gives every Encounter
+   a state — written, signed or superseded — whichever door filed it, and apps/passport/src/gateway.ts's
+   writeEncounter and signEncounter are its only writers; the route answers from that state alone. Three
+   promises, each proven by exercising the store and the gateway directly rather than trusted:
+     1. A superseded Encounter's own resource row never changes: superseding files a new resource and marks
+        the old one, and its status never reads back as anything but superseded.
+     2. Every write, sign and supersede is itself an audited access — not merely called, but appended to the
+        chain — and a break in any one of the three is caught here rather than only by a test that happens
+        to read the chain afterwards.
+     3. An unknown reference and a reference of a different kind answer the status route with the same body,
+        byte for byte, so a status probe learns nothing about what else a record holds.
+   And beside them: the route's own two refusals are the gateway's words, exactly; the HL7 admission path
+   gives an Encounter a state on the write it always made, so a hospital's admission answers the route too;
+   and a built route's enforcement — the generic check earlier in this file — already reads this route's
+   passport-engine-caller mechanism off its handler, so it is not repeated here. */
+{
+ const recordApiForEncounters = JSON.parse(read('packages/catalog/apis/record.json'));
+ const gatewayContractForEncounters = JSON.parse(read('packages/catalog/passport-gateway.json'));
+ const hl7ContractForEncounters = JSON.parse(read('packages/catalog/hl7v2-inbound.json'));
+ const encounterStoreFile = 'apps/passport/src/store.ts';
+ const encounterGatewayFile = 'apps/passport/src/gateway.ts';
+ const encounterStoreSource = read(encounterStoreFile);
+ const encounterGatewaySource = read(encounterGatewayFile);
+ const statusRoute = recordApiForEncounters.routes.find(r => r.method === 'GET' && r.path === '/v1/record/encounter-statuses/{encounterRef}' && r.version === 1 && !r.withdrawn);
+ const encounterPromise = 'GET /v1/record/encounter-statuses/{encounterRef}@1 answers from a state the Passport stores, or says why it still cannot.';
+ if (!statusRoute) throw new Error(`${encounterPromise} packages/catalog/apis/record.json has lost the route.`);
+
+ /* The encounter_states table gives tablesIn's own /sign|supersed/ test something to find (the check at Wave
+    5's HL7 block reads this too), and its two one-way UPDATEs each carry a WHERE on the state they leave
+    from, so a second sign or a supersede of something already signed changes nothing. */
+ const encounterTable = tablesIn(encounterStoreSource).find(t => t.name === 'encounter_states');
+ if (!encounterTable) throw new Error(`${encounterPromise} ${encounterStoreFile} has no encounter_states table.`);
+ for (const column of ['resource_id', 'subject', 'state_code', 'supersedes', 'superseded_by_ref', 'signed_at', 'signed_by_ref']) if (!encounterTable.columns.includes(column)) throw new Error(`${encounterStoreFile}'s encounter_states table has lost the column "${column}".`);
+ for (const method of ['signEncounterState', 'supersedeEncounterState']) {
+  const body = encounterStoreSource.slice(encounterStoreSource.indexOf(` ${method}(`));
+  if (!/WHERE resource_id = \? AND state_code = 'written'/.test(body.slice(0, body.indexOf(';') + 1))) throw new Error(`${encounterStoreFile}'s ${method}() no longer moves an Encounter only from written, so a second sign or a supersede of something already signed or superseded could succeed silently.`);
+ }
+ if (statusRoute.status !== 'built' || !hl7ContractForEncounters.encounters.encounterStatuses || hl7ContractForEncounters.encounters.encounterStatuses.decision !== 'built') throw new Error(`${encounterPromise} The route is "${statusRoute.status}" and packages/catalog/hl7v2-inbound.json's encounterStatuses.decision is "${hl7ContractForEncounters.encounters?.encounterStatuses?.decision}"; they must agree once the Passport stores a signature and a supersede.`);
+ for (const r of statusRoute.refusals) {
+  const said = gatewayContractForEncounters.refusals.find(g => g.id === r.id)?.sentence;
+  if (said !== r.statement) throw new Error(`${statusRoute.method} ${statusRoute.path}@${statusRoute.version} declares "${r.id}" in words the Passport does not answer with: ${JSON.stringify(said)} in packages/catalog/passport-gateway.json against ${JSON.stringify(r.statement)} here.`);
+ }
+ /* The HL7 admission path gives a new Encounter a state on the same write it always made (Wave 6 hooked in
+    beside the existing #file call), so a hospital's admission answers the route as written rather than
+    status-before-written. */
+ const hl7EncounterBody = encounterGatewaySource.slice(encounterGatewaySource.indexOf('\n #hl7Encounter('), encounterGatewaySource.indexOf('\n #hl7Result('));
+ if (!/putEncounterState\(\{ resource_id: id, subject, state_code: ENCOUNTER_WRITTEN/.test(hl7EncounterBody)) throw new Error(`${encounterGatewayFile} #hl7Encounter() no longer gives a hospital's admission a state when it files it, so the status route would refuse status-before-written for every Encounter HL7 writes.`);
+
+ /* A minimal Passport, built exactly the way the process builds one — the development flag and a key of its
+    own — so these three promises are proven against the same door a real caller answers, not a shortcut. */
+ const { loadPassportConfig } = await import('../apps/passport/src/config.ts');
+ const { PassportStore } = await import('../apps/passport/src/store.ts');
+ const { PassportGateway } = await import('../apps/passport/src/gateway.ts');
+ const { mintDeveloperCredential } = await import('../apps/passport/src/operator.ts');
+ let encounterClock = Date.UTC(2026, 8, 16, 9, 0, 0);
+ const encounterCfg = loadPassportConfig({ MYTHUSO_PASSPORT_DEVELOPMENT: 'synthetic-data-only', MYTHUSO_PASSPORT_MASTER_KEY: createHash('sha256').update('wave6-encounter-proof-key').digest('hex') });
+ const encounterStore = new PassportStore(':memory:');
+ const encounterGateway = new PassportGateway({ config: encounterCfg, store: encounterStore, now: () => encounterClock });
+ const proofFail = detail => { throw new Error(`${encounterPromise} ${detail}`); };
+ const created = encounterGateway.createSubject(mintDeveloperCredential(encounterCfg, encounterClock));
+ if (!created.ok) proofFail(`createSubject refused: ${created.reason}`);
+ const { subject: subjectForProof, patientSession } = created;
+ const encounterCategory = hl7ContractForEncounters.encounters.category;
+ const grantOf = role => {
+  const made = encounterGateway.grant(patientSession, { subject: subjectForProof, recipientRole: role, scope: [encounterCategory], purpose: 'treatment', expiresAt: new Date(encounterClock + 86_400_000).toISOString() });
+  if (!made.ok) proofFail(`a ${role} grant refused: ${made.reason}`);
+  return { kind: 'grant', artefact: made.artefact, purpose: 'treatment' };
+ };
+ const nurse = grantOf('nurse-assigned');
+ const doctor = grantOf('doctor-assigned');
+ const provenance = { activity: 'proof', sourceSystem: 'scripts/check-boundaries.mjs' };
+ const write = (extra = {}) => encounterGateway.writeEncounter(nurse, { subject: subjectForProof, resource: {}, provenance, ...extra });
+ const seqBefore = () => encounterStore.database.prepare('SELECT COALESCE(MAX(seq), 0) AS seq FROM audit_events').get().seq;
+ const actionsSince = seq => encounterStore.database.prepare('SELECT action FROM audit_events WHERE seq > ? ORDER BY seq').all(seq).map(r => r.action);
+
+ /* 1 & 2. Write, sign and supersede, each proven through the gateway a real caller answers, and every
+    move checked into the patient's own chain rather than assumed from a successful return alone. */
+ const before = seqBefore();
+ const v1 = write();
+ if (!v1.ok) proofFail(`writeEncounter refused a first Encounter: ${v1.reason}`);
+ const v1Before = encounterStore.resource(v1.id);
+ const v2 = write({ supersedes: v1.id });
+ if (!v2.ok || v2.supersededRef !== v1.id) proofFail(`writeEncounter did not supersede v1 with v2: ${v2.ok ? JSON.stringify(v2) : v2.reason}`);
+ const v1After = encounterStore.resource(v1.id);
+ if (v1Before.version !== v1After.version || !Buffer.from(v1Before.sealed_body).equals(Buffer.from(v1After.sealed_body))) proofFail(`${encounterStoreFile} changed a superseded Encounter's own resource row. A supersede is a new resource replacing the old one by reference, and the old one is kept exactly as it was.`);
+ if (encounterStore.encounterState(v1.id).superseded_by_ref !== v2.id) proofFail('A superseded Encounter must read back pointing at what replaced it.');
+ if (encounterGateway.encounterStatus(v1.id).stateCode !== 'superseded') proofFail('GET /v1/record/encounter-statuses/{encounterRef}@1 read a superseded Encounter back as something else. A superseded Encounter is never shown as current.');
+ const signed = encounterGateway.signEncounter(doctor, v2.id);
+ if (!signed.ok) proofFail(`signEncounter refused a written Encounter: ${signed.reason}`);
+ const actions = actionsSince(before);
+ for (const action of ['encounter.write', 'encounter.supersede', 'encounter.sign']) if (!actions.includes(action)) proofFail(`"${action}" did not reach the patient's own chain: saw ${JSON.stringify(actions)}.`);
+ if (encounterGateway.audit.verify().intact !== true) proofFail('the chain no longer verifies after a write, a supersede and a sign.');
+ const signAgainSuperseded = encounterGateway.signEncounter(doctor, v1.id);
+ if (signAgainSuperseded.ok || signAgainSuperseded.reason !== gatewayContractForEncounters.refusals.find(g => g.id === 'encounter-already-superseded').sentence) proofFail('signEncounter must refuse a superseded Encounter as encounter-already-superseded.');
+ const supersedeAgainSigned = write({ supersedes: v2.id });
+ if (supersedeAgainSigned.ok || supersedeAgainSigned.reason !== gatewayContractForEncounters.refusals.find(g => g.id === 'encounter-already-signed').sentence) proofFail('writeEncounter must refuse superseding a signed Encounter as encounter-already-signed: a signed Encounter is corrected by a new entry, never superseded.');
+ const signAgainSigned = encounterGateway.signEncounter(doctor, v2.id);
+ if (signAgainSigned.ok || signAgainSigned.reason !== gatewayContractForEncounters.refusals.find(g => g.id === 'encounter-already-signed').sentence) proofFail('signEncounter must refuse signing an already-signed Encounter as encounter-already-signed.');
+
+ /* 3. An unknown reference and a reference of a different kind answer identically. */
+ const unknownAnswer = encounterGateway.encounterStatus('res_wave6-not-a-real-encounter');
+ const otherKindId = 'res_wave6proof-other-kind';
+ encounterStore.putResource({ id: otherKindId, subject: subjectForProof, resource_type: 'Observation', category_tag: 'proof', key_scope: 'general', sealed: 0, version: 1, sealed_body: Buffer.from('proof'), written_at: encounterClock });
+ const differentKindAnswer = encounterGateway.encounterStatus(otherKindId);
+ if (JSON.stringify(unknownAnswer) !== JSON.stringify(differentKindAnswer)) proofFail(`An unknown reference answered ${JSON.stringify(unknownAnswer)} and a reference of a different kind answered ${JSON.stringify(differentKindAnswer)}; they must be the same body, so a status probe learns nothing about what else the record holds.`);
+ if (unknownAnswer.ok !== false || unknownAnswer.status !== 404 || unknownAnswer.reason !== gatewayContractForEncounters.refusals.find(g => g.id === 'no-such-encounter').sentence) proofFail('An unknown reference no longer refuses as no-such-encounter.');
+
+ /* status-before-written: an Encounter resource with no state beside it, the one shape the check above and
+    the HL7 hook both close off for every future write, proven directly against the gap they close. */
+ const untrackedId = 'res_wave6proof-untracked';
+ encounterStore.putResource({ id: untrackedId, subject: subjectForProof, resource_type: 'Encounter', category_tag: 'proof', key_scope: 'general', sealed: 0, version: 1, sealed_body: Buffer.from('proof'), written_at: encounterClock });
+ const untrackedAnswer = encounterGateway.encounterStatus(untrackedId);
+ if (untrackedAnswer.ok !== false || untrackedAnswer.status !== 409 || untrackedAnswer.reason !== gatewayContractForEncounters.refusals.find(g => g.id === 'status-before-written').sentence) throw new Error(`${encounterPromise} An Encounter resource with no state beside it must refuse status-before-written, not a guess.`);
+
+ encounterStore.close();
+ console.log(`Record · Encounter signature and supersede: ${encounterTable.columns.length} columns track written, signed and superseded; a superseded Encounter's own resource row is unchanged and never reads back as current; write, sign and supersede each log into the patient's own chain; sign after superseded, supersede after signed, and either again are all refused; an unknown reference and a reference of a different kind answer byte-for-byte the same; and the HL7 admission path gives every Encounter it files a state on the write it always made.`);
 }
