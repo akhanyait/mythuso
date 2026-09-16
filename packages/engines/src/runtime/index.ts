@@ -3,4 +3,5 @@ export { createRuntime, RuntimeRefusedToStart, BindingRefused, BusRefused, type 
 export { createClock, instant } from './clock.ts';
 export { MEMORY } from './store.ts';
 export { StoreRefused } from './facade.ts';
+export { capabilitiesOf, roleServesPurpose, scopeMatrixRoles } from './permission-matrix.ts';
 export * from './types.ts';

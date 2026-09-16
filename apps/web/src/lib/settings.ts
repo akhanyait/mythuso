@@ -7,7 +7,7 @@ import { settingsEngines } from '../../../../packages/engines/src/settings/regis
 import { inForce, panicWindowOf, sentinelSettingsOf, sosSettingsOf, type PanicWindow, type SentinelSettings, type SettingsInForce, type SosSettings } from '../../../../packages/engines/src/safety/domain/settings.ts';
 import { careInForceOf, type CareInForce } from '../../../../packages/engines/src/care/domain/settings.ts';
 import { claimConsentDaysOf, doctorFeeOf, groupMemberCapOf, groupMemberMonthlyLimitCentsOf, nurseShareSentenceOf, planTermsOf, voucherExpiryYearsOf, type DoctorFeeInForce, type PlanTerms } from '../../../../packages/engines/src/money/domain/settings.ts';
-import { rotaOf } from '../../../../packages/engines/src/core/domain/settings.ts';
+import { auditExportMaxDaysOf, rotaOf } from '../../../../packages/engines/src/core/domain/settings.ts';
 import type { KeptRota } from '../../../../packages/engines/src/core/domain/loops.ts';
 import { accessInForce, accessInForceAt, type AccessSettingsInForce } from '../../../../packages/engines/src/access/domain/settings.ts';
 import { resultRungOf, termsOf } from '../../../../packages/engines/src/medicines/domain/settings.ts';
@@ -107,6 +107,9 @@ export const claimConsentDaysNow = (): number => claimConsentDaysOf(snapshotNow(
 /* The escalation rota and its minutes in force, for the Control Tower's concerns: asked once when a concern
    is opened, and kept by the concern. */
 export const escalationRotaNow = (): KeptRota => rotaOf(snapshotNow('core'));
+/* The longest period, in days, an audit export may cover: asked once, when the Audit exports desk
+   checks a range, from the same setting GET /v1/core/audit-exports@1 refuses range-too-wide against. */
+export const auditExportMaxDaysNow = (): number => auditExportMaxDaysOf(snapshotNow('core'));
 /* Access's six, read the same way: the booking flow asks accessSettingsNow() once when it opens, the thread
    composer when a message is written, and Gilbert when a handover is asked for. A completed visit's thread
    asks accessSettingsAt() the moment it was completed, so a change afterwards never moves when it closes. */

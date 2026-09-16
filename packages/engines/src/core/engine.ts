@@ -4,10 +4,10 @@
  *
  * ── What is bound ────────────────────────────────────────────────────────────────────────────────────
  *
- * Eight routes: opening a concern, acknowledging, escalating and closing it, raising an alert at version
- * two, the Control Tower's list of open concerns, and Core's settings read and change. The bus route, the
- * protocol registry, the permission check and the audit export stay proposed and are answered by the
- * contract mock. Alerts at version one stay withdrawn: they carry no fallback. The list is at version two:
+ * Thirteen routes: opening a concern, acknowledging, escalating and closing it, raising an alert at version
+ * two, the Control Tower's list of open concerns, Core's settings read and change, and — Wave 6 — the bus's
+ * front door, the protocol registry's read, its ratify route (which never ratifies, see below), a role ×
+ * scope × purpose check and an audit export. Alerts at version one stay withdrawn: they carry no fallback. The list is at version two:
  * version one could not say where a concern is on the rota. The acknowledgement and the escalation are at
  * version three and the close at version two, and every earlier version of each is withdrawn: the first
  * acknowledgement did not admit the operator who holds the desk's post, the first escalation refused in a
@@ -73,13 +73,15 @@
  * Nothing here is a real service: no alert reaches a person, nobody is paged and nobody is on call.
  */
 import { randomUUID } from 'node:crypto';
-import { BusRefused, defineEngine, instant, ok, refuse, type BusEvent, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
+import { BusRefused, capabilitiesOf, defineEngine, instant, ok, refuse, roleServesPurpose, scopeMatrixRoles, type BusEvent, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
 import { SETTINGS_SCHEMA, settingsIn, settingsRoutes } from '../settings/routes.ts';
+import { DAY_MS } from '../settings/shape.ts';
 import { EXHAUSTED, PANIC, PANIC_RESOLVED, RESULT_ACKNOWLEDGED, resultAlertsFrom, resultClosesAs, engineIds, highestSeverity, outcomes, ownerRoles, panicOutcomes, panicSpanMs, reasons, spanForRung, SOS, SOS_STOOD_DOWN, sosFallbackRole, sosOutcomes, sosOwnerRole, sosSpanMs } from './domain/contract.ts';
 import { DISCHARGE, dischargeFallbackRole, dischargeOwnerRole, dischargeSpanMs } from './domain/contract.ts';
 import { SAFEGUARDING, SENTINEL, safeguardingFallbackRole, safeguardingOwnerRole, safeguardingSpanMs, sentinelFallbackRole, sentinelOpensAtRung, sentinelOwnerRole } from './domain/contract.ts';
+import { nobodyHoldsMedicalDirector, protocolVersions } from './domain/structural.ts';
 import { closeRefusal, everyPostOnDuty, holdersOf, movedTo, nextHolder, postOf, settle, stateCodeOf, towerOrder, type KeptRota, type Loop, type Skip } from './domain/loops.ts';
-import { coreSettings, rotaOf } from './domain/settings.ts';
+import { auditExportMaxDaysOf, coreSettings, rotaOf } from './domain/settings.ts';
 
 const schema = `
 CREATE TABLE IF NOT EXISTS loops (ref TEXT PRIMARY KEY, doc TEXT NOT NULL);
@@ -493,6 +495,118 @@ function tower(request: HandlerRequest, ctx: EngineContext) {
  });
 }
 
+/* ── The bus's front door (Wave 6) ────────────────────────────────────────────────────────────────────
+ *
+ * Every engine already publishes its own events straight onto the bus, inside its own route handlers,
+ * through the same publish() this file calls throughout (see announceEscalated, heardSos and the rest):
+ * that is how an event reaches a subscriber today, and this route changes none of it. What POST
+ * /v1/core/events@1 adds is a literal, callable front door onto the identical mechanism, for a caller
+ * who is not the engine bound to a handler — asked for by the frozen contract, and honest to say is
+ * largely redundant with how the runtime already carries events between engines. No engine calls it in
+ * this codebase today; engine.test.ts calls it directly to prove the five refusals and a successful
+ * publish fire exactly as packages/catalog/apis/core.json declares.
+ *
+ * The request carries one object field, "event" — "the envelope and payload, in the frozen shape" — so
+ * a caller sends both together: subjectRef (and, optionally, actorRole, purposeOfUse, causationId and
+ * protocolVersion) are the envelope publish() itself takes as options, and everything else in the
+ * object is the event's own declared payload. Splitting them here is Core's own reading of a route
+ * still on packages/catalog/apis.json's prose-only list (its inside was never declared as fields), not
+ * a shape anybody has frozen a second way. */
+const ENVELOPE_KEYS = new Set(['subjectRef', 'actorRole', 'purposeOfUse', 'causationId', 'protocolVersion']);
+function publishEvent(request: HandlerRequest, ctx: EngineContext) {
+ const publisherEngine = callerEngine(ctx);
+ if (!publisherEngine) return refuse('not-the-owner');
+ if (!ctx.publishFor) throw new Error('Core is bound without publishFor, which the runtime always gives it.');
+ const key = `${text(request.fields['eventType'])}@${request.fields['eventVersion']}` as EventKey;
+ const envelope = (request.fields['event'] as Record<string, unknown> | undefined) ?? {};
+ const payload: Record<string, unknown> = {};
+ for (const [field, value] of Object.entries(envelope)) if (!ENVELOPE_KEYS.has(field)) payload[field] = value;
+ try {
+  const published = ctx.publishFor(publisherEngine, key, payload, {
+   subjectRef: envelope['subjectRef'] as string, actorRole: envelope['actorRole'] as string | undefined,
+   purposeOfUse: envelope['purposeOfUse'] as string | undefined, causationId: envelope['causationId'] as string | undefined,
+   protocolVersion: envelope['protocolVersion'] as string | undefined
+  });
+  return ok({ eventId: published.eventId, accepted: true });
+ } catch (error) {
+  if (error instanceof BusRefused) return refuse(error.refusal);
+  throw error;
+ }
+}
+
+/* ── The protocol registry (Wave 6) ───────────────────────────────────────────────────────────────────
+ *
+ * One row of packages/catalog/protocols.json, read by its id@version. Every protocol in the file is a
+ * draft with no content, so every honest read today answers exactly that — never a placeholder value
+ * standing in for a threshold or a dose nobody ratified. */
+function readProtocol(request: HandlerRequest) {
+ const versionId = text(request.fields['protocolVersionId']);
+ const sep = versionId.lastIndexOf('@');
+ const version = sep > 0 ? Number(versionId.slice(sep + 1)) : NaN;
+ const id = sep > 0 ? versionId.slice(0, sep) : '';
+ const found = protocolVersions.find(p => p.id === id && p.version === version);
+ if (!found) return refuse('unknown-version');
+ return ok({ protocolVersionId: `${found.id}@${found.version}`, name: found.name, statusCode: found.status });
+}
+
+/* ── Ratifying a protocol (Wave 6) ────────────────────────────────────────────────────────────────────
+ *
+ * This route's only caller is medical-director, and domain/structural.ts's nobodyHoldsMedicalDirector
+ * asserts, at import time, that packages/catalog/vetting.json clears nobody into it: no governance
+ * board, no Medical Director, no protocol with content to ratify. A ratification borrows a named
+ * role's authority, so with nobody holding it there is nobody whose authority a ratification here
+ * could honestly be, and every attempt is refused with the registry's own sentence for that —
+ * unsigned-ratification — rather than a stub that throws or a role invented to let one through. If
+ * the assertion above ever fails, this module fails to load before this line could run. */
+function ratifyProtocol() {
+ void nobodyHoldsMedicalDirector;
+ return refuse('unsigned-ratification');
+}
+
+/* ── A role × scope × purpose check (Wave 6) ─────────────────────────────────────────────────────────
+ *
+ * Answered from two things already declared, never a third table: whether roleId may act for
+ * purposeOfUse at all is asked of every route on every engine (runtime/permission-matrix.ts's
+ * roleServesPurpose, over packages/catalog/apis/*.json); whether it holds every capability scope names is asked of
+ * packages/catalog/vetting.json's own grants. The only refusal this route declares is unknown-role, so
+ * roleId is checked against every role apis.json's scope matrix could ever admit; a false answer for
+ * scope or purpose is not a refusal of the call, it is what the call is for, and the shared refusal id
+ * it would have been is named back for the caller's own branching without inventing a new one. */
+function permissionCheck(request: HandlerRequest) {
+ const roleId = text(request.fields['roleId']);
+ if (!scopeMatrixRoles.has(roleId)) return refuse('unknown-role');
+ const scope = (request.fields['scope'] as readonly string[] | undefined) ?? [];
+ const purposeOfUse = text(request.fields['purposeOfUse']);
+ if (!roleServesPurpose(roleId, purposeOfUse)) return ok({ allowed: false, refusalId: 'purpose-not-allowed' });
+ const held = capabilitiesOf(roleId);
+ if (!scope.every(capability => held.has(capability))) return ok({ allowed: false, refusalId: 'caller-not-allowed' });
+ return ok({ allowed: true });
+}
+
+/* ── An audit export (Wave 6) ────────────────────────────────────────────────────────────────────────
+ *
+ * The bound a range is refused against is a setting (domain/settings.ts's auditExportMaxDaysOf), never
+ * a number typed into the route, following the founder's instruction that an open question like "how
+ * wide is too wide" becomes an admin setting with a proposed default. What is exported is the runtime's
+ * own hash-chained bus trail (../runtime/trail.ts) — Core's ctx.trail, read-only, the same append-only
+ * log apps/api/src/protection/audit.ts's chain is for the identity service — never a second copy of it
+ * kept here. DAY_MS is the settings code's own unit, imported rather than typed a second time; nothing
+ * under packages/engines/src/core may type a number bigger than one that is not 60_000. */
+function auditExports(request: HandlerRequest, ctx: EngineContext) {
+ if (!ctx.trail) throw new Error('Core is bound without a trail, which the runtime always gives it.');
+ const from = text(request.fields['from']);
+ const to = text(request.fields['to']);
+ /* Each iso-date parses as that day's UTC midnight; the day's own last moment is the next day's less one
+    millisecond, so the range is inclusive of "to" without a clock-face string typed into this file. */
+ const fromMs = new Date(from).getTime();
+ const toEndMs = new Date(to).getTime() + DAY_MS - 1;
+ const spanDays = Math.floor((toEndMs - fromMs) / DAY_MS) + 1;
+ const bound = auditExportMaxDaysOf(settingsIn(coreSettings, ctx.store));
+ if (!(spanDays >= 1) || spanDays > bound) return refuse('range-too-wide');
+ const entries = ctx.trail.entries(instant(new Date(fromMs)), instant(new Date(toEndMs)));
+ return ok({ auditExportRef: `audit-export-${randomUUID()}`, entryCount: entries.length, chainIntact: ctx.trail.verify() });
+}
+
 export const engine = defineEngine({
  id: 'core',
  store: { schema },
@@ -503,6 +617,11 @@ export const engine = defineEngine({
   'POST /v1/core/loops/{loopRef}/escalate@3': escalate,
   'POST /v1/core/loops/{loopRef}/close@2': close,
   'POST /v1/core/alerts@2': raiseAlert,
+  'POST /v1/core/events@1': publishEvent,
+  'GET /v1/core/protocols/{protocolVersionId}@1': readProtocol,
+  'POST /v1/core/protocols/{protocolId}/ratify@1': ratifyProtocol,
+  'POST /v1/core/permission-checks@1': permissionCheck,
+  'GET /v1/core/audit-exports@1': auditExports,
   ...settingsRoutes(coreSettings, { read: 'GET /v1/core/settings@1', change: 'POST /v1/core/setting-changes@1' })
  },
  subscriptions: { [PANIC]: heardPanic, [PANIC_RESOLVED]: heardPanicResolved, [RESULT_ACKNOWLEDGED]: heardResultAcknowledged, [SOS]: heardSos, [SOS_STOOD_DOWN]: heardSosStoodDown, [DISCHARGE]: heardDischarge, [SENTINEL]: heardSentinelRung, [SAFEGUARDING]: heardSafeguarding },

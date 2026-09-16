@@ -1651,6 +1651,7 @@ Added to a contract after this pack's generator was last taught about them. A re
 | `safety:sos-area-window` | How long after somebody presses SOS the desk may read the area they chose from the list, before nothing keeps where they were. |
 | `safety:next-of-kin-alert-window` | How long after somebody presses SOS the desk may still try their next of kin. |
 | `safety:next-of-kin-alert-retries` | After the attempt recorded when somebody presses SOS, how many more times the desk may try their next of kin about that SOS. |
+| `core:audit-export-max-days` | The longest period, in days, GET /v1/core/audit-exports@1 may export in one call. |
 | `access:ussd-session-timeout-seconds` | How many seconds a USSD booking session waits for the next reply before it ends with nothing booked. |
 | `movement:heartbeat-interval-seconds` | How often does a responder's phone send its position while a trip is under way? |
 | `movement:offline-after-missed-beats` | How many heartbeats may a responder's phone miss before the responder counts as offline and is offered nothing? |

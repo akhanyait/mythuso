@@ -39,3 +39,13 @@ export const rotaOf = (snapshot: Snapshot): KeptRota => Object.freeze({
  windows: snapshot.values[ROTA.key] as readonly Window[],
  stepsMs: (snapshot.values[MINUTES.key] as readonly number[]).map(minutes => minutes * MINUTE_MS)
 });
+
+/* GET /v1/core/audit-exports@1 (Wave 6) refuses a range wider than a bound, and the bound is a setting
+   rather than a number typed into the route: "auditExportMaxDaysNow" was an open question — how wide is
+   too wide — and the founder's instruction of 15 September 2026 turns exactly that kind of question into
+   an admin setting with a proposed default, never one this file decides for itself. */
+const AUDIT_EXPORT_MAX_DAYS = settingNamed(closedLoop.auditExport.maxDaysSetting);
+if (AUDIT_EXPORT_MAX_DAYS.type !== 'count') throw new Error('packages/catalog/closed-loop.json has lost the audit export bound as a count of days.');
+
+/** How many days wide an export asked for now may be, from the setting in force. */
+export const auditExportMaxDaysOf = (snapshot: Snapshot): number => snapshot.values[AUDIT_EXPORT_MAX_DAYS.key] as number;

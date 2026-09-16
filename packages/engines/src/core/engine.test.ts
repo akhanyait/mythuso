@@ -15,19 +15,22 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import coreApi from '../../../catalog/apis/core.json' with { type: 'json' };
 import settingsContract from '../../../catalog/settings.json' with { type: 'json' };
+import vetting from '../../../catalog/vetting.json' with { type: 'json' };
 import { loadRuntimeContract, type RuntimeContract } from '../runtime/contract.ts';
-import { MEMORY, createClock, createRuntime, instant, type RouteKey } from '../runtime/index.ts';
+import { MEMORY, capabilitiesOf, createClock, createRuntime, instant, roleServesPurpose, type RouteKey } from '../runtime/index.ts';
 import { snapshotOf } from '../settings/shape.ts';
 import { engine } from './engine.ts';
 import { EXHAUSTED, contract, highestSeverity, spanForRung } from './domain/contract.ts';
+import { protocolVersions } from './domain/structural.ts';
 import { MINUTE_MS } from './domain/loops.ts';
-import { coreBlock, rotaOf } from './domain/settings.ts';
+import { auditExportMaxDaysOf, coreBlock, rotaOf } from './domain/settings.ts';
 
 const FLAG = { MYTHUSO_ENGINES: 'synthetic-data-only' };
 /* A Tuesday morning, when every post a role holds is on duty; and the small hours, when the desk is not. */
 const START = '2026-09-15T09:00:00+02:00';
 const NIGHT = '2026-09-15T01:20:00+02:00';
 const DAY = 86_400_000;
+const addDaysIso = (iso: string, days: number): string => new Date(new Date(iso).getTime() + days * DAY).toISOString().slice(0, 10);
 /* The deadline a caller chose for its own concern. It is Safety's to work out, not Core's. */
 const SPAN = 20 * 60_000;
 
@@ -39,6 +42,7 @@ const SETTINGS = 'GET /v1/core/settings@1';
 const CHANGE = 'POST /v1/core/setting-changes@1';
 
 const ROTA = rotaOf(snapshotOf(coreBlock, []));
+const AUDIT_EXPORT_MAX_DAYS = auditExportMaxDaysOf(snapshotOf(coreBlock, []));
 /* The posts a role holds, in order, and the time each holds a concern: its minutes, or the concern's own
    span for the last post, which has nobody after it. */
 const HELD = ROTA.posts.filter(post => post.role !== null);
@@ -388,6 +392,138 @@ test('the Control Tower operator closes a concern only with one of the outcomes 
  assert.deepEqual(payloads('loop.closed@1'), [{ loopRef, outcomeRef: loopRef, closedByRole: 'operator' }], 'with no reference given, the concern itself is where its outcome is recorded');
  assert.deepEqual(tower().body, { loops: [], exhaustedCount: 0 });
  assert.equal(operator(CLOSE, { loopRef, outcomeCode: outcome }).body['error'], 'loop-closed');
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+/* ── Wave 6: the bus's front door, the protocol registry, ratify, a permission check and an audit export ─ */
+
+const PUBLISH = 'POST /v1/core/events@1';
+const PROTOCOL_READ = 'GET /v1/core/protocols/{protocolVersionId}@1';
+const RATIFY = 'POST /v1/core/protocols/{protocolId}/ratify@1';
+const PERMISSION_CHECK = 'POST /v1/core/permission-checks@1';
+const AUDIT_EXPORTS = 'GET /v1/core/audit-exports@1';
+
+test('POST /v1/core/events@1 refuses a caller publishing an event it does not own, a withdrawn version, an undeclared type and version, a field the event never carries and one its frozen shape does not declare, and delivers a valid publish to Core\'s own subscription exactly as any other engine\'s own publish() would', () => {
+ const { runtime } = world();
+ const asSafety = (fields: Record<string, unknown>) => runtime.call(PUBLISH, { role: 'engine:safety', ref: null, purpose: 'audit', fields });
+ const sos = (extra: Record<string, unknown> = {}) => ({ eventType: 'sos.raised', eventVersion: 2, event: { subjectRef: 'sos-synthetic-1', purposeOfUse: 'emergency', sosRef: 'sos-synthetic-1', channel: 'app', routedTo: 'urgent-visit', ...extra } });
+
+ /* Not the owner: safety.raised is safety's own, but booking.requested@2 is access's. */
+ assert.equal(asSafety({ eventType: 'booking.requested', eventVersion: 2, event: { subjectRef: 'booking-synthetic-1', purposeOfUse: 'dispatch' } }).body['error'], 'not-the-owner');
+
+ /* Withdrawn version: sos.raised@1 was superseded by sos.raised@2. */
+ assert.equal(asSafety(sos()).status, 200, 'sanity: version two is live');
+ const withdrawn = runtime.call(PUBLISH, { role: 'engine:safety', ref: null, purpose: 'audit', fields: { eventType: 'sos.raised', eventVersion: 1, event: { subjectRef: 'sos-synthetic-2', purposeOfUse: 'emergency', sosRef: 'sos-synthetic-2', channel: 'app' } } });
+ assert.equal(withdrawn.body['error'], 'withdrawn-version');
+
+ /* Undeclared type and version: nobody declared sos.raised@99. */
+ assert.equal(asSafety({ eventType: 'sos.raised', eventVersion: 99, event: { subjectRef: 'sos-synthetic-3', purposeOfUse: 'emergency' } }).body['error'], 'undeclared-event');
+
+ /* A field the event's never-list refuses: sos.raised@2's neverCarries includes "position". */
+ assert.equal(asSafety(sos({ position: '-26.2,28.0' })).body['error'], 'refused-field');
+
+ /* A field the frozen shape does not declare at all, and a required field left out — both answered as
+    not-the-frozen-shape, the runtime's own sentence for a shape a subscriber was not built against. */
+ assert.equal(asSafety(sos({ notAFieldAnybodyDeclared: true })).body['error'], 'not-the-frozen-shape');
+ assert.equal(asSafety({ eventType: 'sos.raised', eventVersion: 2, event: { subjectRef: 'sos-synthetic-4', purposeOfUse: 'emergency', sosRef: 'sos-synthetic-4' } }).body['error'], 'not-the-frozen-shape', 'channel and routedTo are required');
+
+ /* A valid publish through the front door is delivered exactly as engine:safety's own publish() would
+    deliver it: Core hears sos.raised@2 (heardSos) and opens one concern for it. */
+ const before = runtime.call(TOWER, { role: 'operator', ref: 'O-801', purpose: 'emergency', fields: {} }).body['loops'] as unknown[];
+ const accepted = asSafety(sos({ subjectRef: 'sos-synthetic-5', sosRef: 'sos-synthetic-5' }));
+ assert.equal(accepted.status, 200, JSON.stringify(accepted.body));
+ assert.equal(accepted.body['accepted'], true);
+ assert.equal(typeof accepted.body['eventId'], 'string');
+ const after = runtime.call(TOWER, { role: 'operator', ref: 'O-801', purpose: 'emergency', fields: {} }).body['loops'] as unknown[];
+ assert.equal(after.length, before.length + 1, 'the publish reached Core\'s own subscription, which opened a concern for the SOS, exactly as it would have if safety had published it directly');
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('GET /v1/core/protocols/{protocolVersionId}@1 reads one row of the registry: every protocol today answers draft with no content, and a version the registry does not hold is refused', () => {
+ const { runtime } = world();
+ const asDoctor = (protocolVersionId: string) => runtime.call(PROTOCOL_READ, { role: 'doctor', ref: 'D-401', purpose: 'treatment', fields: { protocolVersionId } });
+ assert.ok(protocolVersions.length > 0 && protocolVersions.every(p => p.status === 'draft' && p.contentRef === null), 'sanity: the registry is twelve drafts with no content, as protocols.json says it is');
+ const first = protocolVersions[0]!;
+ const read = asDoctor(`${first.id}@${first.version}`);
+ assert.equal(read.status, 200, JSON.stringify(read.body));
+ assert.deepEqual(read.body, { protocolVersionId: `${first.id}@${first.version}`, name: first.name, statusCode: 'draft' });
+ assert.equal(read.body['statusCode'], 'draft', 'every protocol in the register is a draft: the honest answer is "draft", never a placeholder value standing in for a threshold or a dose nobody ratified');
+
+ assert.equal(asDoctor(`${first.id}@9999`).body['error'], 'unknown-version');
+ assert.equal(asDoctor('no-such-protocol@1').body['error'], 'unknown-version');
+ assert.equal(asDoctor('malformed-with-no-version').body['error'], 'unknown-version');
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('POST /v1/core/protocols/{protocolId}/ratify@1 refuses every call, because nobody on packages/catalog/vetting.json holds medical-director, whatever protocol, version and date it is asked to ratify', () => {
+ const { runtime } = world();
+ const ratifyRoute = coreApi.routes.find(r => r.method === 'POST' && r.path === '/v1/core/protocols/{protocolId}/ratify' && !(r as { withdrawn?: unknown }).withdrawn)!;
+ assert.deepEqual(ratifyRoute.callers, ['medical-director'], 'sanity: this route\'s one caller is medical-director');
+ assert.ok(!(vetting.roles as { id: string }[]).some(role => role.id === 'medical-director'), 'sanity: the vetting register clears nobody into medical-director');
+
+ const asMedicalDirector = (fields: Record<string, unknown>) => runtime.call(RATIFY, { role: 'medical-director', ref: 'medical-director-synthetic-1', purpose: 'audit', fields });
+ const first = protocolVersions[0]!;
+ for (const attempt of [
+  { protocolId: first.id, protocolVersion: first.version, ratifiedOn: '2026-09-16' },
+  { protocolId: 'wound-care', protocolVersion: 1, ratifiedOn: '2026-01-01' },
+  { protocolId: 'no-such-protocol', protocolVersion: 1, ratifiedOn: '2026-09-16' }
+ ]) {
+  const attempted = asMedicalDirector(attempt);
+  assert.deepEqual(attempted.body, { error: 'unsigned-ratification', message: sentence('unsigned-ratification') }, `never ratifies, whatever it is asked: ${JSON.stringify(attempt)}`);
+ }
+
+ /* Nobody holds medical-director, so the binder never even reaches the handler for anybody else: the
+    shared caller gate refuses first, in its own words. */
+ const asNurse = runtime.call(RATIFY, { role: 'nurse', ref: 'N-205', purpose: 'audit', fields: { protocolId: first.id, protocolVersion: first.version, ratifiedOn: '2026-09-16' } });
+ assert.equal(asNurse.body['error'], 'caller-not-allowed');
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('POST /v1/core/permission-checks@1 answers role x scope x purpose from vetting.json\'s grants and apis.json\'s own scope matrix, and refuses an unknown role plainly', () => {
+ const { runtime } = world();
+ const asCare = (fields: Record<string, unknown>) => runtime.call(PERMISSION_CHECK, { role: 'engine:care', ref: null, purpose: 'audit', fields });
+
+ assert.deepEqual(asCare({ roleId: 'not-a-real-role', scope: [], purposeOfUse: 'audit' }).body, { error: 'unknown-role', message: sentence('unknown-role') });
+
+ assert.ok(roleServesPurpose('nurse', 'treatment'), 'sanity: a nurse serves treatment somewhere in the contract');
+ assert.deepEqual(asCare({ roleId: 'nurse', scope: [], purposeOfUse: 'treatment' }).body, { allowed: true });
+
+ const held = capabilitiesOf('nurse');
+ const heldCapability = [...held][0];
+ if (heldCapability) assert.deepEqual(asCare({ roleId: 'nurse', scope: [heldCapability], purposeOfUse: 'treatment' }).body, { allowed: true }, `nurse holds ${heldCapability}`);
+ const notHeld = (vetting.capabilities as { id: string }[]).map(c => c.id).find(id => !held.has(id));
+ assert.ok(notHeld, 'sanity: there is a capability nurse does not hold, to prove a scope refusal');
+ assert.deepEqual(asCare({ roleId: 'nurse', scope: [notHeld], purposeOfUse: 'treatment' }).body, { allowed: false, refusalId: 'caller-not-allowed' });
+
+ const purposes = ['treatment', 'dispensing', 'diagnostics', 'dispatch', 'vetting', 'billing', 'subject-access', 'audit', 'emergency'];
+ const notServed = purposes.find(p => !roleServesPurpose('nurse', p));
+ assert.ok(notServed, 'sanity: there is a purpose nurse serves nowhere, to prove a purpose refusal');
+ assert.deepEqual(asCare({ roleId: 'nurse', scope: [], purposeOfUse: notServed }).body, { allowed: false, refusalId: 'purpose-not-allowed' });
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('GET /v1/core/audit-exports@1 exports the bus trail for a bounded period and refuses a range wider than the audit-export-max-days setting', () => {
+ const { runtime, open } = world();
+ /* Something for the trail to hold, so entryCount is not trivially nought and chainIntact means something. */
+ open();
+ const asOperator = (from: string, to: string) => runtime.call(AUDIT_EXPORTS, { role: 'operator', ref: 'O-801', purpose: 'audit', fields: { from, to } });
+
+ const today = START.slice(0, 10);
+ const within = asOperator(today, addDaysIso(today, AUDIT_EXPORT_MAX_DAYS - 1));
+ assert.equal(within.status, 200, JSON.stringify(within.body));
+ assert.equal(typeof within.body['auditExportRef'], 'string');
+ assert.equal(within.body['entryCount'], 1, 'the loop just opened, and nothing else, is on the trail within this window');
+ assert.equal(within.body['chainIntact'], true);
+
+ const tooWide = asOperator(today, addDaysIso(today, AUDIT_EXPORT_MAX_DAYS));
+ assert.deepEqual(tooWide.body, { error: 'range-too-wide', message: sentence('range-too-wide') }, `${AUDIT_EXPORT_MAX_DAYS + 1} days is one more than the setting allows`);
+
+ assert.equal(runtime.call(AUDIT_EXPORTS, { role: 'admin', ref: 'A-901', purpose: 'audit', fields: { from: today, to: today } }).body['error'], 'caller-not-allowed', 'only the operator calls this route');
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
 });

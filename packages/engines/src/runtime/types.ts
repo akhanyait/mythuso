@@ -116,6 +116,17 @@ export type EngineContext = {
  recordRefusal(sql: string, ...params: (string | number | bigint | null | Uint8Array)[]): void;
  /** Core only: the bus's trail, read-only. Undefined for every other engine. */
  readonly trail?: TrailReader;
+ /**
+  * Core only, for POST /v1/core/events@1 alone: publish an event as the engine that owns it, rather
+  * than as Core. Every engine already publishes its own events straight onto the bus through publish()
+  * above — that is how an event reaches a subscriber today, and this route changes none of it. What
+  * this front door adds is a caller who is not the engine bound to this handler: an event published
+  * through it is validated by validatePublish() exactly as publish() validates one, with the publishing
+  * engine named by the caller rather than assumed to be Core, so the same five refusals apply and a
+  * successful call is delivered by the same outbox. Undefined for every other engine, so a route
+  * cannot reach for it by accident and publish something on another engine's behalf unreviewed.
+  */
+ publishFor?(publisherEngine: string, event: EventKey, payload: Record<string, unknown>, options: PublishOptions): Published;
 };
 
 export type RouteHandler = (request: HandlerRequest, context: EngineContext) => Answer;
