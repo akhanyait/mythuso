@@ -241,8 +241,16 @@
  padding: var(--space-12) var(--space-12) var(--space-12) var(--space-20);
  border-bottom: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
 }
-.as-bar { justify-self: stretch; display: flex; align-items: center; gap: var(--space-8); }
-.as-head .orb { --orb: min(172px, 44vw); margin-top: calc(-1 * var(--space-8)); }
+/* The controls sit level with the name, not centred against it. The descriptor is a sentence the
+   contract will not let us shorten, it wraps to two or three lines in the column left beside a
+   written Pause motion label and a 44px close button, and two controls floating at the middle of
+   that block read as though they had come loose from the title. */
+.as-bar { justify-self: stretch; display: flex; align-items: flex-start; gap: var(--space-8); }
+/* The sphere used to be pulled up by 8px against a 4px row gap, which was fine while the bar was one
+   line tall and put the sphere's box 4px INSIDE the bar the moment the descriptor wrapped — its
+   bleed is 108% of that box, so the glow landed on the last line of "not a person, and not a
+   doctor". It is pushed down instead: 12px of clear air under the words at every width. */
+.as-head .orb { --orb: min(172px, 44vw); margin-top: var(--space-8); }
 /* Once a conversation has begun, the conversation is what the panel is for. The sphere steps down to
    a size that still shows its state and hands the height to the answers; on a 640px desktop panel the
    full sphere left room for little more than the notice. */
@@ -355,6 +363,15 @@
 }
 .as-rule { padding-top: var(--space-20); border-top: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink)); }
 .as-rule p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--brand-mint); }
+/* Hidden, and held inside the bubble it belongs to. Without the containing block on .as-said this
+   span's nearest positioned ancestor is the <dialog> itself, so as the log scrolled its static
+   position slid past the panel's own height and gave the panel scrollable overflow. The dialog is
+   overflow:hidden, which stops a person scrolling it but not scrollIntoView: bringing a new answer
+   into view then scrolled the panel as well as the log, and the title, Pause motion, the close
+   button and the top of the sphere were lifted out of the panel's clipped top edge while the
+   composer went off the bottom. Nothing absolutely positioned in here may resolve against the
+   dialog. */
+.as-said { position: relative; }
 .as-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 /* ---- Gilbert: the state in words, the composer, the answers that are not situations ---------- */
