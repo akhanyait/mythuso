@@ -551,7 +551,7 @@ function readProtocol(request: HandlerRequest) {
 
 /* ── Ratifying a protocol (Wave 6) ────────────────────────────────────────────────────────────────────
  *
- * This route's only caller is medical-director, and domain/contract.ts's nobodyHoldsMedicalDirector
+ * This route's only caller is medical-director, and domain/structural.ts's nobodyHoldsMedicalDirector
  * asserts, at import time, that packages/catalog/vetting.json clears nobody into it: no governance
  * board, no Medical Director, no protocol with content to ratify. A ratification borrows a named
  * role's authority, so with nobody holding it there is nobody whose authority a ratification here
@@ -566,8 +566,8 @@ function ratifyProtocol() {
 /* ── A role × scope × purpose check (Wave 6) ─────────────────────────────────────────────────────────
  *
  * Answered from two things already declared, never a third table: whether roleId may act for
- * purposeOfUse at all is asked of every route on every engine (domain/contract.ts's roleServesPurpose,
- * over packages/catalog/apis/*.json); whether it holds every capability scope names is asked of
+ * purposeOfUse at all is asked of every route on every engine (runtime/permission-matrix.ts's
+ * roleServesPurpose, over packages/catalog/apis/*.json); whether it holds every capability scope names is asked of
  * packages/catalog/vetting.json's own grants. The only refusal this route declares is unknown-role, so
  * roleId is checked against every role apis.json's scope matrix could ever admit; a false answer for
  * scope or purpose is not a refusal of the call, it is what the call is for, and the shared refusal id
