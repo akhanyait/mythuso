@@ -1023,6 +1023,36 @@ refunded; `gifts@1` and `market-orders@1` stay proposed; the Banks Act reading b
 group's charge is under the National Payment System Act have not been put to counsel; and the employer suppression
 floor is the programmes' judgement, which no Information Officer has agreed to.
 
+## Delivered — an Encounter's signature and supersede, and the status route Care was waiting on, 16 September 2026 (Wave 6, Record)
+
+`GET /v1/record/encounter-statuses/{encounterRef}@1` stayed proposed at Wave 5 because the Passport stored no
+signature and no supersede (`packages/catalog/hl7v2-inbound.json` `encounters.encounterStatuses`, and the "What
+stays open" note in the HL7 bridge section above). This wave built the storage the route needed, then the route
+on top of it — nothing else. **The route now answers `built`**, and `encounters.encounterStatuses.decision` in
+`hl7v2-inbound.json` says so.
+
+| What landed | The refusals it adds | Where |
+|---|---|---|
+| **`encounter_states`, a lifecycle table for one resource type.** Every other resource is written once per version, unchanged; an Encounter specifically now carries a state — written, signed or superseded — in a row of its own keyed by the resource id, inserted once and moved at most once more: `signEncounterState` and `supersedeEncounterState` each fire only from `written`, so a second sign or a supersede of something already signed or superseded changes nothing. Superseding never touches the old resource's own row — a supersede is a new resource replacing the old one by reference, and the old one is kept exactly as it was signed or read | none of its own; a break in either one-way move is caught by the boundary check below rather than by a test that happens to look afterwards | `apps/passport/src/store.ts` |
+| **`writeEncounter` and `signEncounter`, gateway methods with no HTTP route of their own yet.** A nurse's or a doctor's own grant files an Encounter (never the patient's own session — an Encounter is what a clinician found, not what the patient reported); `supersedes` names the entry it replaces. Only the assigned doctor's own grant signs one, never the nurse who wrote it. Neither is routed over HTTP: no engine reaches the Passport that way today (`packages/engines/src/record/engine.ts`'s own header names the gap), so both are exercised directly, exactly as `write()` already is in every other Passport test | `write-not-permitted` (the patient, or a grant that does not write); `out-of-scope` (a grant outside the admission category); `sign-requires-a-doctor`; `encounter-already-signed` (signing a signed one again, or superseding a signed one — signed is corrected by a new entry, never replaced, echoing Clinical's own `signed-is-immutable` for the review rather than the entry beneath it); `encounter-already-superseded` (signing or superseding one already superseded); `no-such-encounter` (a `supersedes` reference that is not a written Encounter of this subject's) | `apps/passport/src/gateway.ts` |
+| **`GET /v1/record/encounter-statuses/{encounterRef}@1`, built.** Mounted as `/encounters/{ref}/status`. Answers `stateCode`, and `signedAt` or `supersededByRef` only when they apply — nothing the encounter contains, so it emits nothing and is logged in the Passport's own access log instead. Its caller is `engine:care`, and its handler asks for no credential at all: a new enforcement mechanism, `passport-engine-caller`, for the one shape a machine caller has here until OIDC or mutual TLS between services exists (§22) | `no-such-encounter` (an unknown reference and one of a different resource kind answer with the same body, byte for byte, so a status probe learns nothing about what else a record holds); `status-before-written` (an Encounter resource with no state beside it — filed by a path that predates this Passport tracking one, which every writer this wave adds closes off going forward) | `apps/passport/src/server.ts`, `packages/catalog/apis/record.json`, `packages/catalog/apis.json#enforcementMechanisms` |
+| **The HL7 admission path gains a state on the write it already made.** `#hl7Encounter`'s branch that files a new Encounter now also calls `putEncounterState`, so a hospital's synthetic admission answers the status route as `written` rather than `status-before-written` | none of its own | `apps/passport/src/gateway.ts #hl7Encounter` |
+| **Tests and the boundary check.** Passport `node:test`: written; written then signed; v1 superseded by v2, pointing forward; signing a superseded version; superseding a signed version; double-sign and double-supersede; an unknown reference against a reference of a different kind, compared byte for byte; a resource with no state beside it; who may write and sign; every transition in the patient's own `/audit/mine`. A boundary check exercises the same gateway — not a shortcut — for the one-way moves, the unchanged resource row, the identical refusal body and the HL7 hook, each proven to fire by breaking its source and restored | `apps/passport/test/encounter-status.test.ts`, `apps/passport/test/server.test.ts`, the Record · Encounter signature and supersede block at the end of `scripts/check-boundaries.mjs` |
+
+No screen was built. Nothing on any platform reads this route today: Care's own engine has no call path to the
+Passport (the same gap `packages/engines/src/record/engine.ts` already names for the HL7 bridge's hand-off), and
+the web's Clinical workspace already shows a doctor's signature on *the review* — `ClinicalWorkbench.tsx`'s
+`consultation.signedAt`, from Clinical's own `review.signed@1` — which is a different signature about a different
+thing. `review.signed@1`'s payload (`reviewRef`, `encounterRef`, `signedByRef`) and its `neverCarries` list
+(assessment, diagnosis, clinical notes, red flags, patient identity — all Clinical's own consultation, staying in
+Clinical's own store) say it signs Clinical's review of an encounter, never the Passport's Encounter resource
+itself; Money's claim already reads the same distinction the other way, finding a signed review through
+`review.billable@1` and never through a `reviewRef` on a route (the group payers and claims section above). So
+signing here is Passport-local, on the doctor's own grant, and stays that way until a route calls it: wiring
+Clinical's signature to also sign the Passport's Encounter would conflate two different signatures — a clinician's
+decision about their review, and a record-keeping state about the entry underneath it — and would need the
+engine-to-Passport call path to exist first, which is a larger piece than one route.
+
 ## Next UI increments
 
 Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only
