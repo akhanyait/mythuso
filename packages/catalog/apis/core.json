@@ -1,6 +1,6 @@
 {
  "engine": "core",
- "_note": "ThusoIQ Core's routes are called by engines and by the desk: the bus, the closed loop, the alert router, the Control Tower's read of open concerns, the protocol registry, the permission check and the audit export. Wave 2 contract. Wave 3 builds the closed loop, the alert router and the Control Tower's read on packages/engines, with the numbers and codes in packages/catalog/closed-loop.json; the bus route, the registry, the permission check and the export stay proposed. Nothing here is a running service: no alert reaches a person and nobody is on call.",
+ "_note": "ThusoIQ Core's routes are called by engines and by the desk: the bus, the closed loop, the alert router, the Control Tower's read of open concerns, the protocol registry, the permission check and the audit export. Wave 2 contract. Wave 3 builds the closed loop, the alert router and the Control Tower's read on packages/engines, with the numbers and codes in packages/catalog/closed-loop.json. Wave 6 builds the remaining four structural routes: the bus's front door (POST /v1/core/events@1), the protocol registry's read, its ratify route — which refuses every call, because nobody on packages/catalog/vetting.json holds medical-director — the permission check and the audit export, the last two bounded and answered from packages/catalog/vetting.json, apis.json's own scope matrix and, for the export, a Core setting rather than a number typed into the route. Nothing here is a running service: no alert reaches a person and nobody is on call.",
  "version": 1,
  "resources": ["events", "loops", "alerts", "protocols", "permission-checks", "audit-exports", "settings", "setting-changes"],
  "doors": [],
@@ -46,7 +46,9 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-2", "what": "Event bus with versioned JSON event contracts"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/events@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
@@ -461,7 +463,9 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-2", "what": "Protocol registry with versioning and board sign-off"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'GET /v1/core/protocols/{protocolVersionId}@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
@@ -486,7 +490,9 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/protocols/{protocolId}/ratify@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
@@ -514,7 +520,9 @@
    "reads": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-2", "what": "Role and scope matrix enforced on every API"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'POST /v1/core/permission-checks@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "GET",
@@ -540,7 +548,9 @@
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-2", "what": "log is append-only and exportable"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/core/engine.ts", "handler": "'GET /v1/core/audit-exports@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   }
  ]
 }

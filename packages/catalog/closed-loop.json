@@ -31,6 +31,11 @@
   "why": "A fallback is given the time the owner was given. A second number for the fallback would be a second answer to how urgent the same concern is."
  },
 
+ "auditExport": {
+  "maxDaysSetting": "audit-export-max-days",
+  "why": "GET /v1/core/audit-exports@1 refuses a range wider than a bound (range-too-wide), so an export is never a copy of the whole trail taken in one call. How wide is too wide is exactly the kind of open question the founder's instruction of 15 September 2026 turns into a setting rather than a number typed into the route, so it is here, beside the escalation settings, as the third thing Core's admin block holds."
+ },
+
  "escalation": {
   "rotaSetting": "escalation-rota",
   "minutesSetting": "escalation-minutes",
@@ -267,10 +272,31 @@
     },
     "changedBy": "admin",
     "appliesTo": "A change applies to concerns opened after it. A concern already open keeps the minutes it was opened under, whichever rung it has reached."
+   },
+   {
+    "key": "audit-export-max-days",
+    "label": "Longest audit export",
+    "help": "The longest period, in days, GET /v1/core/audit-exports@1 may export in one call.",
+    "owner": "core",
+    "type": "count",
+    "unit": "days",
+    "positive": true,
+    "default": {
+     "value": 31,
+     "decidedBy": null,
+     "proposedBy": "Core lead (Wave 6)",
+     "proposedBecause": "A month is enough for a routine review and short of ever reading as a copy of the whole trail taken in one call, which is exactly what range-too-wide exists to refuse."
+    },
+    "bounds": {
+     "lowest": {"value": 1, "decidedBy": null, "proposedBy": "Core lead (Wave 6)", "proposedBecause": "A day is the narrowest period an export can honestly cover; a bound of nought would refuse every export ever asked for."},
+     "highest": {"value": 90, "decidedBy": null, "proposedBy": "Core lead (Wave 6)", "proposedBecause": "Three months covers a quarterly review without an admin ever widening the bound into a copy of the whole trail."}
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to an export requested after it. An export already returned keeps the entries it read."
    }
   ],
   "defaults": {
-   "version": 2,
+   "version": 3,
    "changelog": [
     {
      "version": 1,
@@ -303,6 +329,15 @@
       ]}
      ],
      "why": "The Head of Operations post was held by no role, so it had no hours and every concern that reached it was skipped. The Head of Operations joined the vetting register on 15 September 2026 and holds the post now, so the post is given weekday office hours, proposed with nobody's decision beside them. The minutes are unchanged: the rota still has three posts, and the last is given the concern's own span."
+    },
+    {
+     "version": 3,
+     "on": "2026-09-16",
+     "by": "Core lead (Wave 6)",
+     "changed": [
+      {"setting": "audit-export-max-days", "from": null, "to": 31}
+     ],
+     "why": "GET /v1/core/audit-exports@1 was declared with a refusal for a range that is too wide and no bound to refuse against. The founder's instruction of 15 September 2026 turns an open question like this one into a setting rather than a number typed into the route; this is that setting, proposed with nobody's decision beside it yet."
     }
    ]
   }
