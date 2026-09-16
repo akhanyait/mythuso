@@ -55,7 +55,9 @@ export const onDuty = (rota: { readonly windows: readonly Window[] }, post: stri
  return rota.windows.some(w => w.post === post && w.days.includes(day) && w.from <= time && time < w.to);
 };
 
-const DAY_MS = 86_400_000;
+/** A unit, not a policy: exported so a caller counting whole days — GET /v1/core/audit-exports@1's range
+    among them — divides by this rather than typing 86_400_000 a second time. */
+export const DAY_MS = 86_400_000;
 
 /* Whether any post of a rota is on duty at a moment, and when the next window starts if none is: later the
    same local day, or the first window of the next day that has one, looking a week ahead. A rota with no
