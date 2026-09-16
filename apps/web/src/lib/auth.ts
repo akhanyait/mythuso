@@ -20,11 +20,25 @@ const messages: Record<string, string> = {
   'unknown-challenge': 'That code is no longer valid. Ask for a new one.'
 };
 const say = (error: string) => messages[error] ?? 'Something went wrong. Try again.';
-/** Is a real identity service answering? Asked once, so the app can say which mode it is in. */
+/**
+ * Is a real identity service answering? Asked once, so the app can say which mode it is in.
+ *
+ * `response.ok` alone is not enough. Production reverse-proxies an unmatched path to the single-page
+ * app's own fallback, which answers every GET with the landing page and a 200 — so before nginx
+ * carries `/api/`, this probe saw that 200 and reported a service that was not there. The screen then
+ * showed the real sign-in branch, which itself is answered by the same fallback, and a POST to it is a
+ * 405 with an HTML body: `startSignIn` failed parsing that body as JSON and told a real person
+ * "Could not reach MyThuso" on a page whose whole simulated flow exists for exactly this case. So this
+ * checks the shape the identity service's own `GET /health` promises (`apps/api/src/server.ts`), not
+ * only the status: a page standing in for an absent API can return 200 all day and never look like this.
+ */
 export async function probe(): Promise<boolean> {
   try {
     const response = await fetch('/api/health', { signal: AbortSignal.timeout(1200) });
-    return response.ok;
+    if (!response.ok) return false;
+    const body: unknown = await response.json();
+    return !!body && typeof body === 'object' && (body as { ok?: unknown }).ok === true
+      && typeof (body as { holds?: unknown }).holds === 'string';
   } catch { return false; }
 }
 export async function currentPerson(): Promise<Person | null> {
