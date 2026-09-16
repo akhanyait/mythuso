@@ -3,11 +3,10 @@
  *
  * ── What is bound, and what is left to the mock ──────────────────────────────────────────────
  *
- * Wave 3 builds payments, payouts and doctors' fees. Five routes are answered here: taking a payment
- * at versions one and two, reading your payouts, the nurse's cash-code entry and the desk's release of a
- * held cash payment. Wallets, vouchers, gifts, groups, claims and Market orders stay proposed and are
- * answered by packages/mock-api. Every rule lives in ./domain — this file only opens the ledger over the
- * engine's own store, hands it the bus and the simulated clock, and turns its answers into ok and refuse.
+ * Wave 3 builds payments, payouts and doctors' fees. Wave 5 builds vouchers, groups and claims. Wave 6 builds
+ * gifts and Thuso Market orders. Wallets stay proposed and are answered by packages/mock-api. Every rule lives
+ * in ./domain — this file only opens the ledger over the engine's own store, hands it the bus and the simulated
+ * clock, and turns its answers into ok and refuse.
  *
  * ── The cash code, on the runtime ────────────────────────────────────────────────────────────
  *
@@ -68,7 +67,8 @@ const SQL_NAME: Record<typeof TABLE_NAMES[number], string> = {
  payables: 'payables', payments: 'payments', cashCodes: 'cash_codes', cashAudit: 'cash_audit', attempts: 'payment_attempts', keys: 'payment_keys',
  billable: 'billable_visits', earned: 'earned_lines', cases: 'signed_cases', payouts: 'payouts', suspensions: 'partner_suspensions',
  vouchers: 'vouchers', redemptions: 'voucher_redemptions', subscriptions: 'plan_subscriptions', acts: 'act_keys',
- groups: 'payer_groups', memberships: 'group_memberships', groupCharges: 'group_charges', reviews: 'heard_reviews', claims: 'claims'
+ groups: 'payer_groups', memberships: 'group_memberships', groupCharges: 'group_charges', reviews: 'heard_reviews', claims: 'claims',
+ gifts: 'gifts', marketOrders: 'market_orders'
 };
 
 /* Every table is a reference and a document. Money's rows are billing facts — a payable, an attempt,
@@ -174,6 +174,21 @@ export const engine = defineEngine({
    const answer = ledgerFor(ctx).redeemVoucher(actorOf(ctx), { ...request.fields }, request.undeclared);
    if (isRefusal(answer)) return refuse(answer.id);
    return ok({ redemptionRef: answer.redemptionRef, redeemedCents: answer.redeemedCents, remainingCents: answer.remainingCents, owedCents: answer.owedCents, expiresOn: answer.expiresOn });
+  },
+
+  /* Gifts. Made out to one named beneficiary from the moment they are given, never a bearer code, so there is no
+     redemption route: the names of undeclared fields go to the ledger, which refuses an appointment, a booking or
+     her agreement sent in the same breath as the gift, rather than dropping them. */
+  'POST /v1/money/gifts@1': (request, ctx) => {
+   const answer = ledgerFor(ctx).giftAVisit(actorOf(ctx), { ...request.fields }, request.undeclared);
+   return isRefusal(answer) ? refuse(answer.id) : ok({ giftRef: answer.giftRef });
+  },
+
+  /* Thuso Market orders. Refused as medicine-in-shop on a scheduled or a listed product before anything is keyed;
+     paid for through the existing payments route, against the payable this opens. */
+  'POST /v1/money/market-orders@1': (request, ctx) => {
+   const answer = ledgerFor(ctx).placeMarketOrder(actorOf(ctx), { ...request.fields });
+   return isRefusal(answer) ? refuse(answer.id) : ok({ marketOrderRef: answer.marketOrderRef, totalCents: answer.totalCents });
   },
 
   /* MyThuso for Mom Essential. Asked for, agreed to by the person it is for, read by her and by whoever asked. */
