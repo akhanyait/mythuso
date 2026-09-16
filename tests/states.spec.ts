@@ -38,8 +38,13 @@ const entry = (actorLabel: string, outcome: 'granted' | 'refused') => ({
 });
 
 const serviceIsUp = async (page: Page, log = true) => {
+  /* The body is the shape apps/api's own GET /health answers, not a bare 200: since 787d397 probe()
+     checks for it, because nginx's single-page fallback answers any GET with a 200 and a page. A stub
+     that says only {"ok":true} is, to the app, that fallback — and the log then reads "not connected"
+     where this file needs "the service is up and the log itself failed". */
   await page.route('**/api/health', route =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }));
+    route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ ok: true, environment: 'test', holds: 'identity and workforce vetting, no health information' }) }));
   await page.route('**/api/auth/session', route =>
     route.fulfill({ status: 200, contentType: 'application/json',
       body: JSON.stringify({ person: { id: 'p-1', phone: '+27821234567', name: 'Lerato Molefe' } }) }));
