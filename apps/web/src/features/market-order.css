@@ -1,0 +1,35 @@
+/* A real Thuso Market order. Behind its own dynamic import, so this arrives with it and never with the
+   patient's first load. */
+
+.market-order-products { list-style: none; margin: 0 0 var(--space-14); padding: 0; display: flex; flex-direction: column; gap: var(--space-8); }
+.market-order-products label {
+ display: flex;
+ gap: var(--space-10);
+ align-items: center;
+ padding: var(--space-10) var(--space-12);
+ border-radius: var(--radius-14);
+ border: 1px solid var(--hairline);
+}
+.market-order-products label span { display: flex; flex-direction: column; gap: 2px; }
+.market-order-products small { color: var(--ink-muted); font-size: var(--text-12); }
+
+.market-order-zone { display: flex; flex-direction: column; gap: var(--space-6); margin: 0 0 var(--space-14); font-size: var(--text-13); }
+.market-order-zone span { color: var(--ink-muted); font-size: var(--text-12); }
+.market-order-zone input {
+ padding: var(--space-10) var(--space-12);
+ border-radius: var(--radius-14);
+ border: 1px solid var(--hairline);
+ background: var(--surface-card);
+ font-size: var(--text-14);
+}
+
+.market-order-said {
+ display: flex;
+ gap: var(--space-8);
+ align-items: flex-start;
+ margin: 0 0 var(--space-12);
+ font-size: var(--text-13);
+ line-height: 1.5;
+ color: var(--ink-muted);
+}
+.market-order-said svg { flex: none; margin-top: 1px; }

@@ -1,0 +1,76 @@
+/* Gift a visit. Both screens are behind dynamic imports, so this arrives with them and never with the patient's
+   first load. Every sentence is packages/catalog/gifts.json's. */
+
+.gift-field { display: flex; flex-direction: column; gap: var(--space-6); margin: 0 0 var(--space-12); font-size: var(--text-13); }
+.gift-field span { color: var(--ink-muted); font-size: var(--text-12); }
+.gift-field select {
+ padding: var(--space-10) var(--space-12);
+ border-radius: var(--radius-14);
+ border: 1px solid var(--hairline);
+ background: var(--surface-card);
+ font-size: var(--text-14);
+}
+
+.gift-said {
+ display: flex;
+ gap: var(--space-8);
+ align-items: flex-start;
+ margin: var(--space-12) 0 0;
+ padding: var(--space-12) var(--space-14);
+ border-radius: var(--radius-14);
+ background: var(--surface-sunken);
+ color: var(--ink-muted);
+ font-size: var(--text-13);
+ line-height: 1.5;
+}
+.gift-said svg { flex: none; margin-top: 1px; }
+
+.gift-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-10); }
+.gift-row {
+ display: flex;
+ flex-wrap: wrap;
+ gap: var(--space-10);
+ align-items: center;
+ justify-content: space-between;
+ padding: var(--space-14);
+ border-radius: var(--radius-14);
+ background: var(--surface-card);
+ border: 1px solid var(--hairline);
+}
+.gift-row > span:nth-child(2) { display: flex; flex-direction: column; gap: 2px; }
+.gift-row small { color: var(--ink-muted); font-size: var(--text-12); line-height: 1.5; }
+.gift-booked-chip {
+ padding: var(--space-6) var(--space-10);
+ border-radius: var(--radius-pill);
+ background: var(--surface-sunken);
+ color: var(--ink-muted);
+ font-size: var(--text-12);
+ font-weight: 600;
+}
+
+.gift-never, .gift-never-list {
+ list-style: none;
+ margin: 0;
+ padding: 0;
+ display: flex;
+ flex-direction: column;
+ gap: var(--space-8);
+}
+.gift-never {
+ display: flex;
+ gap: var(--space-8);
+ align-items: flex-start;
+ margin: var(--space-16) 0 0;
+ font-size: var(--text-13);
+ color: var(--ink-muted);
+ line-height: 1.5;
+}
+.gift-never-list li {
+ display: flex;
+ gap: var(--space-8);
+ align-items: flex-start;
+ font-size: var(--text-13);
+ line-height: 1.5;
+ color: var(--ink-muted);
+}
+.gift-never svg, .gift-never-list svg { flex: none; margin-top: 2px; }

@@ -551,6 +551,19 @@ export function WalletPage({open,navigate}:{open:(s:string)=>void;navigate:(s:st
   <button className="shortcut-row" onClick={()=>navigate('Groups that pay for you')}><span className="service-icon"><Users size={20}/></span><span className="shortcut-text"><strong>Groups that pay for you</strong><small>A stokvel, a church or your employer, if you agree.</small></span><ChevronRight size={17}/></button>
   <button className="shortcut-row" onClick={()=>navigate('A group you pay for')}><span className="service-icon"><Wallet size={20}/></span><span className="shortcut-text"><strong>A group you pay for</strong><small>What it paid, and what it never sees.</small></span><ChevronRight size={17}/></button>
  </div>
+ {/* Gift a visit, both sides, behind their own dynamic import. A gift pays for one visit for one named person; it
+     never books it — she does, in her own account. */}
+ <SectionTitle title="Gifts"/>
+ <div className="shortcut-list">
+  <button className="shortcut-row" onClick={()=>navigate('Gift a visit')}><span className="service-icon"><HandCoins size={20}/></span><span className="shortcut-text"><strong>Gift a visit</strong><small>Pay for one visit for somebody. She decides when it happens.</small></span><ChevronRight size={17}/></button>
+  <button className="shortcut-row" onClick={()=>navigate('Gifts sent to you')}><span className="service-icon"><HandCoins size={20}/></span><span className="shortcut-text"><strong>Gifts sent to you</strong><small>Visits somebody has paid for. Booking one is yours to decide.</small></span><ChevronRight size={17}/></button>
+ </div>
+ {/* Thuso Market's shop (/shop) only ever quotes; this places a real order through Money's own route, behind
+     its own dynamic import, so the shop's separate entry never carries Money's ledger. */}
+ <SectionTitle title="Thuso Market"/>
+ <div className="shortcut-list">
+  <button className="shortcut-row" onClick={()=>navigate('Place a real market order')}><span className="service-icon"><CreditCard size={20}/></span><span className="shortcut-text"><strong>Place a real market order</strong><small>Prices the shop's catalogue and refuses a medicine, unlike the shop's own quote.</small></span><ChevronRight size={17}/></button>
+ </div>
  <SectionTitle title="Recent activity"/>
  <StateBlock state={state} subject="Your wallet activity" permission="your payment provider">
   {walletActivity.length?<div className="panel">{walletActivity.map(line=><div className="record-row static" key={line.name}><span className="service-icon"><Wallet size={20}/></span><span><strong>{line.name}</strong><small>{line.date}</small></span><strong className="ledger">{line.delta>0?'+ ':'− '}{money(Math.abs(line.delta))}</strong></div>)}</div>

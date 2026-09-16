@@ -62,6 +62,14 @@ const NextOfKinSettings = lazy(() => import('./features/NextOfKin').then(m => ({
 const GroupAdminPage = lazy(() => import('./features/Groups').then(m => ({ default: m.GroupAdmin })));
 const GroupMembershipPage = lazy(() => import('./features/Groups').then(m => ({ default: m.GroupMembership })));
 const ClaimsPage = lazy(() => import('./features/Claims').then(m => ({ default: m.ClaimsOnRecord })));
+/* Gift a visit, on its own dynamic import for the same reason: a giver's screen and a beneficiary's, both driven
+   by Money's ledger, and neither is anything a patient reading her visits needs on her first load. */
+const GiftAVisitPage = lazy(() => import('./features/Gift').then(m => ({ default: m.GiftAVisit })));
+const GiftInboxPage = lazy(() => import('./features/Gift').then(m => ({ default: m.GiftInbox })));
+/* A real Thuso Market order, on its own dynamic import for the same reason and one more: it carries Money's
+   ledger, which the shop's own separate entry (shop.html) deliberately does not, so this stays in the app
+   rather than the shop for anybody who wants to place one for real rather than only quote one. */
+const MarketOrderPage = lazy(() => import('./features/MarketOrder').then(m => ({ default: m.MarketOrderPreview })));
 function EmergencyWhileSosLoads() {
  return <div className="sos"><div className="sos-emergency">
   <div className="sos-emergency-head"><div><strong>{sosEmergency.headline}</strong><p>{sosEmergency.lead}</p></div></div>
@@ -226,6 +234,10 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
          : page === 'Groups that pay for you' ? <Suspense fallback={<p className="helper" role="status">Opening your groups.</p>}><GroupMembershipPage/></Suspense>
          : page === 'A group you pay for' ? <Suspense fallback={<p className="helper" role="status">Opening your group.</p>}><GroupAdminPage/></Suspense>
          : page === 'Claims to your medical scheme' ? <Suspense fallback={<p className="helper" role="status">Opening your claims.</p>}><ClaimsPage/></Suspense>
+         /* Gift a visit: the giver's screen and the beneficiary's, each its own dynamic import, opened from the wallet. */
+         : page === 'Gift a visit' ? <Suspense fallback={<p className="helper" role="status">Opening gift a visit.</p>}><GiftAVisitPage/></Suspense>
+         : page === 'Gifts sent to you' ? <Suspense fallback={<p className="helper" role="status">Opening your gifts.</p>}><GiftInboxPage/></Suspense>
+         : page === 'Place a real market order' ? <Suspense fallback={<p className="helper" role="status">Opening the order.</p>}><MarketOrderPage/></Suspense>
          : page === 'Thuso Wallet' ? <WalletPage open={setModal} navigate={navigate}/>
           : page === 'Privacy & settings' ? <Privacy open={setModal}/>
            : page === 'Language & access' ? <Access/>
