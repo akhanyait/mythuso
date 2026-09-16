@@ -11082,6 +11082,7 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
 
  encounterStore.close();
  console.log(`Record · Encounter signature and supersede: ${encounterTable.columns.length} columns track written, signed and superseded; a superseded Encounter's own resource row is unchanged and never reads back as current; write, sign and supersede each log into the patient's own chain; sign after superseded, supersede after signed, and either again are all refused; an unknown reference and a reference of a different kind answer byte-for-byte the same; and the HL7 admission path gives every Encounter it files a state on the write it always made.`);
+}
 
 /* ==== Wave 6: Care and Safety reads ================================================================
 
