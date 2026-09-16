@@ -23,7 +23,7 @@ Three native apps and one service:
   **295.49 kB** — every script, module preload and stylesheet `apps/web/dist/index.html` references,
   each gzipped at level 9 after `npm run build -w @mythuso/web`. It is below the 319.97 kB measured on
   14 September at `c62961c` because every workspace and every engine's screens added since sit behind a
-  dynamic import, so eleven waves of product cost the patient's first view nothing. Compare a new figure
+  dynamic import, so eleven engines of product across two waves cost the patient's first view nothing. Compare a new figure
   only against one taken the same way; a screen that is not on the patient's first view belongs behind a
   dynamic import.
 
