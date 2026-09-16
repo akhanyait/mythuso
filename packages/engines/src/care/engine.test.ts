@@ -18,6 +18,8 @@ import { openDatabase } from '../runtime/store.ts';
 import care from '../../../catalog/care.json' with { type: 'json' };
 import roster from '../../../catalog/roster.json' with { type: 'json' };
 import geography from '../../../catalog/geography.json' with { type: 'json' };
+import scheduling from '../../../catalog/scheduling.json' with { type: 'json' };
+import services from '../../../catalog/services.json' with { type: 'json' };
 import settingsContract from '../../../catalog/settings.json' with { type: 'json' };
 import careApi from '../../../catalog/apis/care.json' with { type: 'json' };
 import { MEMORY, createClock, createRuntime, defineEngine, ok, type EngineContext, type RouteKey, type Runtime } from '../runtime/index.ts';
@@ -488,4 +490,79 @@ test('switched off, an Encounter entry does not count as signed: a visit started
  assert.equal(before.visit('POST /v1/care/visits/{appointmentRef}/complete@2', { visitCode: P.visitCode, encounterRef: P.encounterRef }).status, 200);
  assert.deepEqual(before.runtime.faults(), []);
  before.runtime.close();
+});
+
+/* Wave 6: the four reads Wave 2 declared and nothing answered — packages/engines/src/care/domain/reads.ts's
+   arithmetic, thinly bound in engine.ts. Each with its refusal, read straight from the contract rather than
+   retyped, so a reworded sentence moves this test rather than silently stops proving anything. */
+const careRefusal = (path: string, version: number, id: string) => {
+ const route = careApi.routes.find(r => r.method === 'GET' && r.path === path && r.version === version);
+ const found = route?.refusals.find(r => r.id === id);
+ if (!found) throw new Error(`packages/catalog/apis/care.json's GET ${path}@${version} declares no refusal "${id}".`);
+ return found;
+};
+const asRole = (runtime: Runtime, role: string, ref: string | null, route: RouteKey, fields: Record<string, unknown> = {}) =>
+ runtime.call(route, { role, ref, purpose: 'dispatch', fields });
+
+test('GET /v1/care/shifts@1: a dispatcher reads every nurse\'s day, a nurse reads only her own, and a nurse with no identified reference is refused rather than shown everybody\'s', () => {
+ const { runtime } = setup([]);
+ const expectedRows = roster.nurses.length * scheduling.offer.days;
+ const dispatcherShifts = asRole(runtime, 'dispatcher', DISPATCHER, 'GET /v1/care/shifts@1');
+ assert.equal(dispatcherShifts.status, 200);
+ assert.equal((dispatcherShifts.body.shifts as unknown[]).length, expectedRows);
+
+ const nurseRef = roster.nurses[0]!.id;
+ const nurseShifts = asRole(runtime, 'nurse', nurseRef, 'GET /v1/care/shifts@1');
+ assert.equal(nurseShifts.status, 200);
+ const rows = nurseShifts.body.shifts as { clinicianRef: string }[];
+ assert.equal(rows.length, scheduling.offer.days);
+ assert.ok(rows.every(r => r.clinicianRef === nurseRef), 'a nurse never reads a row that is not her own');
+
+ const refusal = careRefusal('/v1/care/shifts', 1, 'someone-elses-shifts');
+ const noRef = asRole(runtime, 'nurse', null, 'GET /v1/care/shifts@1');
+ assert.deepEqual([noRef.status, noRef.body.error, noRef.body.message], [refusal.status, 'someone-elses-shifts', refusal.statement]);
+ runtime.close();
+});
+
+test('GET /v1/care/services@1: phase one\'s services, offered or refused by whether Care knows the zone', () => {
+ const { runtime } = setup([]);
+ const offeredCount = services.filter(s => s.phase <= care.seedPhase).length;
+ const all = asRole(runtime, 'patient', 'subject-synthetic-2', 'GET /v1/care/services@1');
+ assert.equal(all.status, 200);
+ assert.equal((all.body.services as unknown[]).length, offeredCount);
+
+ const covered = asRole(runtime, 'patient', 'subject-synthetic-2', 'GET /v1/care/services@1', { zone: geography.zones[0]!.id });
+ assert.equal(covered.status, 200);
+
+ const uncoveredNurse = roster.nurses.find(n => !geography.zones.some(z => z.id === n.zone.toLowerCase() || z.name === n.zone));
+ assert.ok(uncoveredNurse, 'the roster needs a nurse outside phase one\'s coverage for this test to mean anything');
+ const refusal = careRefusal('/v1/care/services', 1, 'zone-not-covered');
+ const notCovered = asRole(runtime, 'patient', 'subject-synthetic-2', 'GET /v1/care/services@1', { zone: uncoveredNurse!.zone });
+ assert.deepEqual([notCovered.status, notCovered.body.error, notCovered.body.message], [refusal.status, 'zone-not-covered', refusal.statement]);
+ runtime.close();
+});
+
+test('GET /v1/care/locum-shifts@1: refused without a current Trust Score, answered — honestly empty — with one', () => {
+ const { runtime, as } = setup([]);
+ const refusal = careRefusal('/v1/care/locum-shifts', 1, 'unverified-locum');
+ const unverified = asRole(runtime, 'locum', 'locum-synthetic-1', 'GET /v1/care/locum-shifts@1');
+ assert.deepEqual([unverified.status, unverified.body.error, unverified.body.message], [refusal.status, 'unverified-locum', refusal.statement]);
+
+ as('trust', ctx => ctx.publish('person.trust_updated@2', { badgeTier: 'verified', hardGatesPassed: true }, { subjectRef: 'locum-synthetic-1', purposeOfUse: 'dispatch' }));
+ const verified = asRole(runtime, 'locum', 'locum-synthetic-1', 'GET /v1/care/locum-shifts@1');
+ assert.equal(verified.status, 200);
+ assert.deepEqual(verified.body.shifts, [], 'nothing in the catalog yet models a hospital or a care home shift — see domain/reads.ts');
+ runtime.close();
+});
+
+test('GET /v1/care/circuits@1: refused whole while every circuit packages/catalog/care.json names is draft', () => {
+ const { runtime } = setup([]);
+ assert.ok(care.circuits?.length, 'packages/catalog/care.json should still name the Wave 6 circuits');
+ assert.ok(care.circuits.every((c: { published: boolean }) => !c.published), 'this test proves the refusal that fires while nothing is published');
+ const refusal = careRefusal('/v1/care/circuits', 1, 'circuit-not-published');
+ for (const [role, ref] of [['nurse', roster.nurses[0]!.id], ['dispatcher', DISPATCHER]] as const) {
+  const answer = asRole(runtime, role, ref, 'GET /v1/care/circuits@1');
+  assert.deepEqual([answer.status, answer.body.error, answer.body.message], [refusal.status, 'circuit-not-published', refusal.statement], role);
+ }
+ runtime.close();
 });

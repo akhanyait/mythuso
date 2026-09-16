@@ -10954,3 +10954,128 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
 
  console.log(`Movement: ${ambulanceSentences} sentences beside the word ambulance each say Thuso Ride is not one; a P1 is refused before it is read and routed nowhere; a P2 is refused from ${['a dispatcher', 'a responder', 'an uncleared nurse', 'another name', 'no reason'].length} directions and taken only from an offer; ${mv.admissions.states.filter(s => s.pending).length} pending admission states confirm no destination and say no word of a booking; a position is refused at its window and dropped by the tick; the packet rides on ${mv.packet.grantRole} for at most ${packetBoundDays} day${packetBoundDays === 1 ? '' : 's'}, derived; ${mvEvents.length} Movement events and ${mvPublishes.length} publishes carry no position, clinical content or secret; ${mvColumns.length} store columns hold none; ${mvScreens.length} screens and models type no interval or window.`);
 }
+
+/* ==== Wave 6: Care and Safety reads ================================================================
+
+   Added by the Care and Safety lead, closing four Care GET routes and one Safety POST version that
+   Wave 2 declared and nothing answered until now. Self-contained and appended at the end of the file
+   on purpose: four other Wave 6 leads are editing this file's earlier sections at the same time. */
+{
+ const w6Roster = JSON.parse(read('packages/catalog/roster.json'));
+ const w6Scheduling = JSON.parse(read('packages/catalog/scheduling.json'));
+ const w6Services = JSON.parse(read('packages/catalog/services.json'));
+ const w6Care = JSON.parse(read('packages/catalog/care.json'));
+ const w6CareApi = JSON.parse(read('packages/catalog/apis/care.json'));
+ const w6SafetyApi = JSON.parse(read('packages/catalog/apis/safety.json'));
+ const w6Geography = JSON.parse(read('packages/catalog/geography.json'));
+ const w6CareRoute = (path, version) => w6CareApi.routes.find(r => r.method === 'GET' && r.path === path && r.version === version);
+ const w6CareRefusal = (path, version, id) => {
+  const found = w6CareRoute(path, version)?.refusals.find(r => r.id === id);
+  if (!found) throw new Error(`packages/catalog/apis/care.json's GET ${path}@${version} declares no refusal "${id}", so scripts/check-boundaries.mjs cannot hold the runtime to it.`);
+  return found;
+ };
+ const w6ZoneCovered = zone => w6Geography.zones.some(z => z.id === zone || z.name === zone);
+
+ /* 1. Safety's incident register: the withdrawn version answers as no route on the runtime, whatever
+    caller asks it, and the live version is the only one packages/engines/src/trust/engine.ts names —
+    that engine's own test (packages/engines/src/trust/engine.test.ts) proves the door-mismatch report
+    actually reaches it and rolls back when it is refused; this proves the version it reaches is the
+    one still standing. */
+ const w6IncidentsTwo = w6SafetyApi.routes.find(r => r.method === 'POST' && r.path === '/v1/safety/incidents' && r.version === 2);
+ const w6IncidentsThree = w6SafetyApi.routes.find(r => r.method === 'POST' && r.path === '/v1/safety/incidents' && r.version === 3);
+ if (!w6IncidentsTwo?.withdrawn || w6IncidentsTwo.callers.length) throw new Error('packages/catalog/apis/safety.json\'s POST /v1/safety/incidents@2 is not withdrawn with its callers emptied by a narrowing.');
+ if (w6IncidentsThree?.withdrawn || !w6IncidentsThree?.callers.includes('engine:trust')) throw new Error('packages/catalog/apis/safety.json\'s POST /v1/safety/incidents@3 is withdrawn, or no longer names engine:trust among its callers.');
+ const w6TrustEngineSource = read('packages/engines/src/trust/engine.ts');
+ if (!/const INCIDENTS = 'POST \/v1\/safety\/incidents@3';/.test(w6TrustEngineSource)) throw new Error('packages/engines/src/trust/engine.ts no longer names the live version of the incident register as INCIDENTS.');
+ if (w6TrustEngineSource.includes("'POST /v1/safety/incidents@2'")) throw new Error('packages/engines/src/trust/engine.ts still names the withdrawn POST /v1/safety/incidents@2.');
+ {
+  const { MEMORY: w6Memory, createClock: w6Clock, createRuntime: w6Runtime } = await import('../packages/engines/src/runtime/index.ts');
+  const bare = w6Runtime({ env: { MYTHUSO_ENGINES: 'synthetic-data-only' }, engines: [], dataDirectory: w6Memory, clock: w6Clock('2026-09-16T09:00:00+02:00') });
+  try {
+   const dead = bare.call('POST /v1/safety/incidents@2', { role: 'engine:trust', ref: null, purpose: 'audit', fields: {} });
+   if (dead.status !== 404 || dead.body.error !== 'no-route') throw new Error(`The withdrawn POST /v1/safety/incidents@2 answered ${JSON.stringify(dead.body)} on the runtime rather than refusing as no-route.`);
+  } finally {
+   bare.close();
+  }
+ }
+
+ /* 2, 3, 4 and 5. Care's four reads, on a runtime carrying only the Care engine — the four routes
+    packages/engines/src/care/domain/reads.ts and engine.ts answer. */
+ {
+  const { MEMORY: w6Memory, createClock: w6Clock, createRuntime: w6Runtime, defineEngine: w6DefineEngine } = await import('../packages/engines/src/runtime/index.ts');
+  const { engine: w6CareEngine } = await import('../packages/engines/src/care/engine.ts');
+  let w6BadgePublished = false;
+  const w6TrustStandIn = w6DefineEngine({
+   id: 'trust', routes: {}, subscriptions: {}, store: { schema: '' },
+   tick: ctx => {
+    if (w6BadgePublished) return;
+    w6BadgePublished = true;
+    ctx.publish('person.trust_updated@2', { badgeTier: 'verified', hardGatesPassed: true }, { subjectRef: 'party-proof-locum', purposeOfUse: 'dispatch' });
+   }
+  });
+  const runtime = w6Runtime({ env: { MYTHUSO_ENGINES: 'synthetic-data-only' }, engines: [w6CareEngine, w6TrustStandIn], dataDirectory: w6Memory, clock: w6Clock('2026-09-16T09:00:00+02:00') });
+  const w6Call = (route, role, ref, fields = {}) => runtime.call(route, { role, ref, purpose: 'dispatch', fields });
+  try {
+   /* 2. Shifts: a dispatcher reads every nurse's day; a nurse reads only her own; a caller the runtime
+      cannot tell apart from anybody is refused rather than shown everybody's, which the arithmetic in
+      engine.ts decides on ctx.caller.ref rather than on the role alone. */
+   const expectedRows = w6Roster.nurses.length * w6Scheduling.offer.days;
+   const dispatcherShifts = w6Call('GET /v1/care/shifts@1', 'dispatcher', 'party-proof-dispatcher');
+   if (dispatcherShifts.status !== 200 || dispatcherShifts.body.shifts?.length !== expectedRows) throw new Error(`GET /v1/care/shifts@1 answered a dispatcher ${JSON.stringify(dispatcherShifts.body)} rather than ${expectedRows} rows, one per nurse per scheduled day.`);
+   const nurseRef = w6Roster.nurses[0].id;
+   const nurseShifts = w6Call('GET /v1/care/shifts@1', 'nurse', nurseRef);
+   if (nurseShifts.status !== 200 || nurseShifts.body.shifts?.length !== w6Scheduling.offer.days || nurseShifts.body.shifts.some(s => s.clinicianRef !== nurseRef)) {
+    throw new Error(`GET /v1/care/shifts@1 answered ${nurseRef} ${JSON.stringify(nurseShifts.body)} rather than her own ${w6Scheduling.offer.days} shifts and nobody else's.`);
+   }
+   const shiftsRefusal = w6CareRefusal('/v1/care/shifts', 1, 'someone-elses-shifts');
+   const noRefShifts = w6Call('GET /v1/care/shifts@1', 'nurse', null);
+   if (noRefShifts.status !== shiftsRefusal.status || noRefShifts.body.error !== 'someone-elses-shifts' || noRefShifts.body.message !== shiftsRefusal.statement) {
+    throw new Error(`GET /v1/care/shifts@1 answered a nurse with no identified reference ${JSON.stringify(noRefShifts.body)} rather than refusing "someone-elses-shifts": a filter that fell back to "all" on a missing reference would show her somebody else's shifts under that name.`);
+   }
+
+   /* 3. Services: phase one's own count, a covered zone answered, and an uncovered one refused before
+      anything is listed — the same coverage an offer is refused by (packages/engines/src/care/domain/matching.ts). */
+   const offeredCount = w6Services.filter(s => s.phase <= w6Care.seedPhase).length;
+   const allServices = w6Call('GET /v1/care/services@1', 'patient', 'party-proof-patient');
+   if (allServices.status !== 200 || allServices.body.services?.length !== offeredCount) throw new Error(`GET /v1/care/services@1 answered ${JSON.stringify(allServices.body)} rather than the ${offeredCount} services phase one actually offers.`);
+   const coveredZone = w6Geography.zones[0].id;
+   if (w6Call('GET /v1/care/services@1', 'patient', 'party-proof-patient', { zone: coveredZone }).status !== 200) throw new Error(`GET /v1/care/services@1 refused the covered zone "${coveredZone}".`);
+   const uncoveredNurse = w6Roster.nurses.find(n => !w6ZoneCovered(n.zone));
+   if (!uncoveredNurse) throw new Error('packages/catalog/roster.json no longer places a nurse outside phase one\'s coverage, so this check has no uncovered zone to prove GET /v1/care/services@1 refuses.');
+   const zoneRefusal = w6CareRefusal('/v1/care/services', 1, 'zone-not-covered');
+   const notCovered = w6Call('GET /v1/care/services@1', 'patient', 'party-proof-patient', { zone: uncoveredNurse.zone });
+   if (notCovered.status !== zoneRefusal.status || notCovered.body.error !== 'zone-not-covered' || notCovered.body.message !== zoneRefusal.statement) {
+    throw new Error(`GET /v1/care/services@1 answered the uncovered zone "${uncoveredNurse.zone}" with ${JSON.stringify(notCovered.body)} rather than refusing "zone-not-covered".`);
+   }
+
+   /* 4. Locum shifts: refused to a locum with no current Trust Score, on the same standing an offer is
+      withheld by, and answered — honestly empty, see packages/engines/src/care/domain/reads.ts — once
+      she has one. */
+   const locumRefusal = w6CareRefusal('/v1/care/locum-shifts', 1, 'unverified-locum');
+   const unverified = w6Call('GET /v1/care/locum-shifts@1', 'locum', 'party-proof-locum');
+   if (unverified.status !== locumRefusal.status || unverified.body.error !== 'unverified-locum' || unverified.body.message !== locumRefusal.statement) {
+    throw new Error(`GET /v1/care/locum-shifts@1 answered an unverified locum ${JSON.stringify(unverified.body)} rather than refusing "unverified-locum".`);
+   }
+   runtime.advance(1);
+   const verified = w6Call('GET /v1/care/locum-shifts@1', 'locum', 'party-proof-locum');
+   if (verified.status !== 200 || !Array.isArray(verified.body.shifts)) throw new Error(`GET /v1/care/locum-shifts@1 answered a verified locum ${JSON.stringify(verified.body)} rather than a list of shifts.`);
+
+   /* 5. Circuits: every one packages/catalog/care.json names is draft, so the read is refused whole —
+      and if one is ever published, this is the check that has to be told, because it would otherwise
+      pass by accident rather than by the switch this file holds. */
+   if (w6Care.circuits.some(c => c.published)) throw new Error('packages/catalog/care.json now publishes a circuit. GET /v1/care/circuits@1 should answer it rather than refuse the read whole; update this check to prove both — that a published circuit is served and an unpublished one is not — before relying on it again.');
+   const circuitRefusal = w6CareRefusal('/v1/care/circuits', 1, 'circuit-not-published');
+   for (const [role, ref] of [['nurse', nurseRef], ['dispatcher', 'party-proof-dispatcher']]) {
+    const answer = w6Call('GET /v1/care/circuits@1', role, ref);
+    if (answer.status !== circuitRefusal.status || answer.body.error !== 'circuit-not-published' || answer.body.message !== circuitRefusal.statement) {
+     throw new Error(`GET /v1/care/circuits@1 answered a ${role} ${JSON.stringify(answer.body)} rather than refusing "circuit-not-published", while every circuit packages/catalog/care.json names is draft.`);
+    }
+   }
+   if (runtime.faults().length) throw new Error(`The Wave 6 Care reads proof runtime faulted: ${JSON.stringify(runtime.faults().map(f => f.where))}`);
+  } finally {
+   runtime.close();
+  }
+ }
+
+ console.log(`Care and Safety reads: GET /v1/care/shifts@1 answers a dispatcher every one of ${w6Roster.nurses.length * w6Scheduling.offer.days} shifts and a nurse only her own ${w6Scheduling.offer.days}, refusing a caller the runtime cannot identify rather than showing her everybody's; GET /v1/care/services@1 lists the ${w6Services.filter(s => s.phase <= w6Care.seedPhase).length} services phase one offers and refuses a zone geography.json does not cover; GET /v1/care/locum-shifts@1 refuses a locum with no current Trust Score and answers an honestly empty list once she has one; and GET /v1/care/circuits@1 refuses the read whole while both circuits packages/catalog/care.json names are draft. POST /v1/safety/incidents@3 is the only version packages/engines/src/trust/engine.ts names, and its withdrawn predecessor answers no-route on the runtime whoever asks it.`);
+}

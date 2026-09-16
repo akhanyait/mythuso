@@ -46,7 +46,11 @@
  *             service-not-offered, because the catalogue places sos in a later phase than the seed. sos.stood_down@1
  *             withdraws any offer for it still open. See ./domain/sos.ts.
  *
- * WHAT IS NOT BOUND. The four reads (shifts, services, locum shifts, circuits) are answered by the contract mock. */
+ *   Reads      Wave 6 closes the four GET routes Wave 2 declared and nothing answered: shifts and circuits
+ *              come from ./domain/reads.ts's own arithmetic over roster.json and scheduling.json, services
+ *              from services.json filtered to phase one and the scope settings in force, and locum shifts
+ *              are always empty because nothing in the catalog models a hospital or a care home yet — see
+ *              that file's header for why each is honest rather than invented. */
 import { randomInt } from 'node:crypto';
 import roster from '../../../catalog/roster.json' with { type: 'json' };
 import geography from '../../../catalog/geography.json' with { type: 'json' };
@@ -55,7 +59,7 @@ import records from '../../../catalog/records.json' with { type: 'json' };
 import { defineEngine, ok, refuse, type Answer, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
 import { SETTINGS_SCHEMA, confirmersFromClinical, settingsIn, settingsRoutes } from '../settings/routes.ts';
 import {
- careContract, careInForceOf, careSettings, instantAt, OfferDesk, SyncIntake, TrustCache, VisitDesk,
+ careContract, careInForceOf, careSettings, circuitsFor, instantAt, isZoneCovered, openLocumShifts, OfferDesk, servicesFor, shiftsFor, SyncIntake, TrustCache, VisitDesk,
  type AppointmentToFill, type Candidate, type CareEvent, type NamedFallback, type NamedWait, type Offer, type QueuedCapture, type Received, type Visit
 } from './domain/index.ts';
 import { opensAnUrgentVisit, urgentVisitFor, withdrawnOnStandDown } from './domain/sos.ts';
@@ -294,6 +298,45 @@ export const engine = defineEngine({
     ...(r.notMerged ? { notMerged: r.notMerged } : {})
    });
   }),
+
+  /* Her own day, or, for a dispatcher, everybody's. The refusal is arithmetic on the caller reference
+     rather than on the role alone: a nurse or a locum with no identified reference cannot be shown "her
+     own" anything, because there is nobody here to tell that apart from everybody else's, and a filter
+     that fell back to "all" on a missing reference would show her someone else's shifts under that name. */
+  'GET /v1/care/shifts@1': (_request, ctx) => {
+   const ref = ctx.caller.ref ?? '';
+   if (ctx.caller.role !== 'dispatcher' && !ref) return refuse('someone-elses-shifts');
+   const rows = shiftsFor(ctx.clock.now());
+   const shifts = ctx.caller.role === 'dispatcher' ? rows : rows.filter(s => s.clinicianRef === ref);
+   return ok({ shifts });
+  },
+
+  /* Phase one's services, and who they may be offered to as the scope settings stand now. A zone nobody
+     has asked Care to cover yet is refused before anything is listed, exactly as an offer is (matching.ts). */
+  'GET /v1/care/services@1': (request, ctx) => {
+   const zone = typeof request.fields.zone === 'string' ? request.fields.zone : null;
+   if (zone !== null && !isZoneCovered(zone)) return refuse('zone-not-covered');
+   const inForce = careInForceOf(settingsIn(careSettings, ctx.store));
+   return ok({ services: servicesFor(careContract, inForce.roles) });
+  },
+
+  /* Always empty on this runtime — see ./domain/reads.ts. The one thing the route still does is refuse a
+     locum whose Trust Score is not current, on the same standing an offer is withheld by (./domain/matching.ts). */
+  'GET /v1/care/locum-shifts@1': (_request, ctx) => {
+   const ref = ctx.caller.ref ?? '';
+   const desks = load(ctx);
+   if (!ref || !desks.trust.standing(ref).current) return refuse('unverified-locum');
+   return ok({ shifts: openLocumShifts() });
+  },
+
+  /* Every circuit packages/catalog/care.json names is draft today, so the read is refused whole rather
+     than answered with a list that would read as "there are none" instead of "not yet". */
+  'GET /v1/care/circuits@1': (_request, _ctx) => {
+   /* Both callers read the same list: a circuit is never narrowed by role, only by whether it is published. */
+   const published = circuitsFor().filter(c => c.published);
+   if (!published.length) return refuse('circuit-not-published');
+   return ok({ circuits: published.map(({ circuitId, name, zone, published: isPublished }) => ({ circuitId, name, zone, published: isPublished })) });
+  },
 
   /* Who confirms a clinical review is Clinical's review-confirmer setting in force, asked of Clinical (Wave 5). */
   ...settingsRoutes(careSettings, { read: 'GET /v1/care/settings@2', change: 'POST /v1/care/setting-changes@1', review: 'POST /v1/care/setting-reviews@2' }, { confirmers: confirmersFromClinical })

@@ -398,3 +398,4 @@ POST /v1/money/claims/{claimRef}/consent@1 callers=patient purpose=billing becau
 POST /v1/money/claims/{claimRef}/submit@1 callers=admin,doctor purpose=billing because=-
 GET /v1/money/claims@1 callers=doctor,patient purpose=billing because=-
 GET /v1/money/held-cash-payments@1 callers=ops-desk purpose=billing because=-
+POST /v1/safety/incidents@2 callers=- purpose=audit because=-

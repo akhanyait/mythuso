@@ -783,7 +783,7 @@
    "path": "/v1/safety/incidents",
    "version": 2,
    "summary": "Report a security incident, from any role on the vetting register as it stands.",
-   "callers": ["nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin", "employer", "sponsor", "guardian", "corner", "carer", "head-of-operations"],
+   "callers": [],
    "purpose": ["audit"],
    "request": [
     {"field": "kind", "type": "string", "required": true, "why": "The kind."},
@@ -806,7 +806,8 @@
    "capabilityNamed": null,
    "status": "built",
    "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /incidents'"},
-   "enforcedBy": {"mechanism": "vetting-register"}
+   "enforcedBy": {"mechanism": "vetting-register"},
+   "withdrawn": {"on": "2026-09-16", "supersededBy": "POST /v1/safety/incidents@3", "why": "Verify (Wave 4) raises a safety incident when a patient cannot confirm who is at her door, and a report she never typed a word of has to come from the engine that saw the mismatch, not from a person the identity service can ask asParty of. This version's callers are worked out from the vetting register alone, which no engine is on, so engine:trust could only be added by a new version. Version three is the same report, answered by the same handler, with engine:trust added on trust.door.mismatched@1's justification; a human party reports exactly as before."}
   },
   {
    "method": "POST",
@@ -836,7 +837,7 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "proposed",
-   "_versionNote": "Added by the Trust lead (Wave 4). A door the patient cannot confirm raises a safety incident through this register, and version two's callers are the register's roles as the identity service's handler works them out, which no engine is. Adding engine:trust widens who calls the route, so it is a new version rather than an edit. It stays proposed: the identity service's handler admits register roles only, and until an engine door exists in front of it the engine runtime's call is answered by the contract mock. Version two stays live and built for the register's own roles."
+   "_versionNote": "Added by the Trust lead (Wave 4). A door the patient cannot confirm raises a safety incident through this register, and version two's callers are the register's roles as the identity service's handler works them out, which no engine is. Adding engine:trust widens who calls the route, so it is a new version rather than an edit. It stays proposed: scripts/check-boundaries.mjs works out a built route's callers from what its handler actually enforces rather than from what this file claims, and apps/api/src/server.ts's POST /incidents calls asParty(req, res), which the check reads as the vetting-register mechanism and which can only ever admit a role on packages/catalog/vetting.json's register — never an engine, because an engine is not a vetted party and asParty does not ask whether one is calling. Confirmed in Wave 6: packages/engines/src/trust/engine.ts already calls this exact version by name and refuses the door mismatch itself, unkept, if the call does not answer 200, so the wiring on the calling side is complete; the engine runtime answers that call, and a person's report equally, through packages/mock-api, which does enforce every caller above, engine:trust included. What is still missing is the door in front of apps/api itself — some way for a real HTTP request from Verify to identify itself as engine:trust that asParty, or a new check beside it, can verify — and building that is a production authentication decision this wave does not take. Version two stays live and built for the register's own roles."
   },
   {
    "method": "POST",

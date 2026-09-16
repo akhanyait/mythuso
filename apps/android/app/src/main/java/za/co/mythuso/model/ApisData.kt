@@ -88,10 +88,10 @@ object ApisData {
     val POST_CARE_VISITS_BY_APPOINTMENT_REF_HANDOVER_V2 = Route("postCareVisitsByAppointmentRefHandoverV2", "POST", "/v1/care/visits/{appointmentRef}/handover", "/v1/care/visits/{appointmentRef}/handover", 2, "care", listOf("nurse", "locum"), listOf("treatment"), false, "built")
     val POST_CARE_VISITS_BY_APPOINTMENT_REF_COMPLETE_V2 = Route("postCareVisitsByAppointmentRefCompleteV2", "POST", "/v1/care/visits/{appointmentRef}/complete", "/v1/care/visits/{appointmentRef}/complete", 2, "care", listOf("nurse", "locum"), listOf("treatment"), false, "built")
     val POST_CARE_SYNC_BATCHES_V2 = Route("postCareSyncBatchesV2", "POST", "/v1/care/sync-batches", "/v1/care/sync-batches", 2, "care", listOf("nurse", "locum"), listOf("treatment"), true, "built")
-    val GET_CARE_SHIFTS = Route("getCareShifts", "GET", "/v1/care/shifts", "/v1/care/shifts", 1, "care", listOf("nurse", "locum", "dispatcher"), listOf("dispatch"), false, "proposed")
-    val GET_CARE_SERVICES = Route("getCareServices", "GET", "/v1/care/services", "/v1/care/services", 1, "care", listOf("patient", "caregiver", "nurse", "dispatcher", "thuso-line-agent"), listOf("dispatch"), false, "proposed")
-    val GET_CARE_LOCUM_SHIFTS = Route("getCareLocumShifts", "GET", "/v1/care/locum-shifts", "/v1/care/locum-shifts", 1, "care", listOf("locum"), listOf("dispatch"), false, "proposed")
-    val GET_CARE_CIRCUITS = Route("getCareCircuits", "GET", "/v1/care/circuits", "/v1/care/circuits", 1, "care", listOf("nurse", "dispatcher"), listOf("dispatch"), false, "proposed")
+    val GET_CARE_SHIFTS = Route("getCareShifts", "GET", "/v1/care/shifts", "/v1/care/shifts", 1, "care", listOf("nurse", "locum", "dispatcher"), listOf("dispatch"), false, "built")
+    val GET_CARE_SERVICES = Route("getCareServices", "GET", "/v1/care/services", "/v1/care/services", 1, "care", listOf("patient", "caregiver", "nurse", "dispatcher", "thuso-line-agent"), listOf("dispatch"), false, "built")
+    val GET_CARE_LOCUM_SHIFTS = Route("getCareLocumShifts", "GET", "/v1/care/locum-shifts", "/v1/care/locum-shifts", 1, "care", listOf("locum"), listOf("dispatch"), false, "built")
+    val GET_CARE_CIRCUITS = Route("getCareCircuits", "GET", "/v1/care/circuits", "/v1/care/circuits", 1, "care", listOf("nurse", "dispatcher"), listOf("dispatch"), false, "built")
     val POST_CARE_SETTING_CHANGES = Route("postCareSettingChanges", "POST", "/v1/care/setting-changes", "/v1/care/setting-changes", 1, "care", listOf("admin"), listOf("audit"), true, "built")
     val GET_CARE_SETTINGS_V2 = Route("getCareSettingsV2", "GET", "/v1/care/settings", "/v1/care/settings", 2, "care", listOf("admin", "doctor", "nurse"), listOf("audit"), false, "built")
     val POST_CARE_SETTING_REVIEWS_V2 = Route("postCareSettingReviewsV2", "POST", "/v1/care/setting-reviews", "/v1/care/setting-reviews", 2, "care", listOf("doctor", "nurse"), listOf("audit"), true, "built")
@@ -119,7 +119,6 @@ object ApisData {
     val GET_SAFETY_DESK_QUEUE = Route("getSafetyDeskQueue", "GET", "/v1/safety/desk-queue", "/v1/safety/desk-queue", 1, "safety", listOf("operator"), listOf("emergency", "dispatch"), false, "built")
     val POST_SAFETY_SETTING_CHANGES_V2 = Route("postSafetySettingChangesV2", "POST", "/v1/safety/setting-changes", "/v1/safety/setting-changes", 2, "safety", listOf("admin", "operator"), listOf("audit"), true, "built")
     val GET_SAFETY_INCIDENT_KINDS = Route("getSafetyIncidentKinds", "GET", "/v1/safety/incident-kinds", "/v1/safety/incident-kinds", 1, "safety", listOf("anonymous"), listOf("audit"), false, "built")
-    val POST_SAFETY_INCIDENTS_V2 = Route("postSafetyIncidentsV2", "POST", "/v1/safety/incidents", "/v1/safety/incidents", 2, "safety", listOf("nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin", "employer", "sponsor", "guardian", "corner", "carer", "head-of-operations"), listOf("audit"), false, "built")
     val POST_SAFETY_INCIDENTS_V3 = Route("postSafetyIncidentsV3", "POST", "/v1/safety/incidents", "/v1/safety/incidents", 3, "safety", listOf("nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin", "employer", "sponsor", "guardian", "corner", "carer", "head-of-operations", "engine:trust"), listOf("audit"), false, "proposed")
     val POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_CONTAIN = Route("postSafetyIncidentsByIncidentIdContain", "POST", "/v1/safety/incidents/{incidentId}/contain", "/v1/safety/incidents/{incidentId}/contain", 1, "safety", listOf("admin", "incident-reporter"), listOf("audit"), false, "built")
     val POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_NOTIFIED = Route("postSafetyIncidentsByIncidentIdNotified", "POST", "/v1/safety/incidents/{incidentId}/notified", "/v1/safety/incidents/{incidentId}/notified", 1, "safety", listOf("admin"), listOf("audit"), false, "built")
@@ -354,7 +353,6 @@ object ApisData {
         GET_SAFETY_DESK_QUEUE,
         POST_SAFETY_SETTING_CHANGES_V2,
         GET_SAFETY_INCIDENT_KINDS,
-        POST_SAFETY_INCIDENTS_V2,
         POST_SAFETY_INCIDENTS_V3,
         POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_CONTAIN,
         POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_NOTIFIED,
@@ -1284,17 +1282,6 @@ object ApisData {
     data class GetSafetyIncidentKindsResponse(
         val kinds: List<Map<String, Any?>>,
         val notificationRule: String
-    )
-    data class PostSafetyIncidentsV2Request(
-        val kind: String,
-        val whatHappened: String,
-        val informationReached: Boolean,
-        val peopleAffected: Int? = null,
-        val discoveredAt: Int? = null
-    )
-    data class PostSafetyIncidentsV2Response(
-        val incidentId: String,
-        val notificationOwed: Boolean
     )
     data class PostSafetyIncidentsV3Request(
         val kind: String,
