@@ -25,10 +25,12 @@ const said = (key: string, id: string) => {
 const shareWords = (id: string) => household.split.shareStates.find(s => s.id === id)!.words;
 const priceOf = (id: string) => services.find(s => s.id === id)!.price;
 
+/* Scoped to the family list rather than to the page: the sidebar carries the signed-in person's own name
+   at 1440px, so a bare button-by-name reached the account row and never opened a profile at all. */
 const toHousehold = async (page: Page) => {
   await page.goto('/app/');
   await goSection(page, 'My family');
-  await page.getByRole('button', { name: /Lerato Molefe/ }).first().click();
+  await page.locator('.family-member').filter({ hasText: 'Lerato Molefe' }).first().click();
   await page.getByRole('button', { name: /Open the household record/ }).click();
 };
 
@@ -77,14 +79,15 @@ test('a sponsor is shown a household reference, a state and billing lines, and n
   await expect(link.getByText(household.preview.members[0]!.subjectRef, { exact: true })).toBeVisible();
   await expect(link.getByText(household.screen.sponsor.stateLabel)).toBeVisible();
 
-  /* Every statement line is a day and an amount; the service is there only because the recipient has
-     switched it on, and the sentence saying so is packages/catalog/programmes.json's. */
+  /* Every statement line is a day and an amount, and the service only because the recipient has switched
+     it on. Three columns, and the third is the amount: a fourth would be something a sponsor is not owed. */
   const statement = page.locator('table.sponsor-statement');
+  await expect(statement.locator('thead th')).toHaveCount(3);
   await expect(statement.locator('tbody tr')).toHaveCount(3);
-  /* And nothing on the page is a reason, a finding or a follow-up: the words the contract refuses. */
-  for (const refused of ['diagnosis', 'what was found', 'follow-up needed']) {
-    await expect(page.getByText(new RegExp(`^${refused}$`, 'i'))).toHaveCount(0);
-  }
+  /* The sponsorship panel carries references, a state and a line detail, and nothing else. Asserted on the
+     rows themselves rather than on the absence of words, because "what was found" is on this screen —
+     in the list of what a sponsor never sees, which is where it belongs. */
+  await expect(link.locator('.review-line')).toHaveCount(3);
 });
 
 test('a split has to add up, and each payer accepts their own share before any of it is payable', async ({ page }) => {
@@ -95,8 +98,10 @@ test('a split has to add up, and each payer accepts their own share before any o
   /* The whole is the catalogue's price for the preview's visit, and there is nowhere to type one. */
   await expect(page.getByText(new RegExp(`R\\s?${priceOf(household.preview.split.serviceId)}\\b`)).first()).toBeVisible();
 
-  await page.getByRole('button', { name: /R50 short/ }).click();
-  await expect(page.getByRole('status')).toHaveText(said('POST /v1/access/bill-splits@2', 'shares-must-total'));
+  const lead = page.locator('.sponsor-lead, .lead').first();
+  const told = lead.getByRole('status');
+  await page.getByRole('button', { name: /does not add up/ }).click();
+  await expect(told).toHaveText(said('POST /v1/access/bill-splits@2', 'shares-must-total'));
 
   await page.getByRole('button', { name: household.screen.split.propose }).click();
   const rows = page.locator('.record-row');
@@ -104,9 +109,9 @@ test('a split has to add up, and each payer accepts their own share before any o
   await expect(rows.first()).toContainText(shareWords('waiting'));
 
   await rows.first().getByRole('button').click();
-  await expect(page.getByRole('status')).toHaveText(household.screen.split.accepted);
+  await expect(told).toHaveText(household.screen.split.accepted);
   await rows.last().getByRole('button').click();
-  await expect(page.getByRole('status')).toHaveText(household.screen.split.allAccepted);
+  await expect(told).toHaveText(household.screen.split.allAccepted);
   /* And what a payer never sees is on the screen, in the contract's words. */
   for (const never of household.screen.split.never) await expect(page.getByText(never, { exact: true })).toBeVisible();
 });

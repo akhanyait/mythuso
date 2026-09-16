@@ -14,10 +14,10 @@
    { "field": "addedOnDay", "why": "The day it was added, in Johannesburg. A roster line with no date cannot be read as history." }
   ],
   "neverHolds": [
-   { "field": "a name, a number or an address", "why": "A roster that carried them would be a directory of a family, and a directory is worth stealing. A reference is not." },
+   { "field": "a name, a number or an address", "why": "A roster that carried them would be a directory of a family, and a directory is worth stealing. A list of references is not." },
    { "field": "a relationship", "why": "Mother, son, guardian: each of those reads as authority, and no authority is proven here." },
-   { "field": "a scope, a grant, a purpose or an expiry", "why": "Those are the parts of a consent grant, which packages/catalog/consent.json owns and the person themselves makes. A membership that could carry one would be a grant under another name." },
-   { "field": "anything clinical", "why": "A household is an arrangement of accounts. Health information reaches nobody through it." }
+   { "field": "a scope, a grant, a purpose or an expiry", "why": "Those are the parts of letting somebody into your record, which is a separate decision and yours to make. A roster line that could carry one would be that decision under another name." },
+   { "field": "anything clinical", "why": "A household is an arrangement of accounts. Nothing about anybody's health reaches anybody through it." }
   ],
   "grantFieldWords": ["scope", "scopes", "grant", "grants", "granted", "consent", "consents", "permission", "permissions", "access", "allow", "allowed", "share", "shares", "shared", "sharing", "record", "records", "category", "categories", "read", "reads", "view", "clinical", "diagnosis", "expires", "expiry", "until"],
   "grantFieldWordsWhy": "A request that adds somebody to a household and carries a scope, a grant or an expiry beside them is asking for the roster to be a permission. It is refused by the words of its name, before anything is keyed, rather than having the field quietly dropped — because a dropped field is a field somebody believes worked. The route declares no such field, so an attempt arrives undeclared and is answered with membership-is-not-consent.",
@@ -101,15 +101,15 @@
    "addedBy": "Added by {who}",
    "grantsNothing": "This roster grants nothing. Every clinical line on this page is still asked for twice — once of the vetting register, once of the record itself — and a household is neither.",
    "neverHeading": "What a roster never carries",
-   "preview": "Nothing typed here is stored or sent. The roster below is a preview held in this page while it is open."
+   "preview": "Nothing typed here is stored or sent. This roster is a preview held in this page while it is open."
   },
   "sponsor": {
    "heading": "The sponsorship, by reference",
-   "intro": "This sponsorship names a member of a household rather than a person somebody typed. What it pays for, and what it never shows, is the contract's and not this screen's.",
+   "intro": "This sponsorship names somebody on a household's roster rather than a person typed into a form. What it shows you, and what it never shows you, is settled before this screen draws anything.",
    "linkedTo": "A member of household {household}",
    "stateLabel": "Where it stands",
    "detailLabel": "How each line reads",
-   "detailIsHers": "{who} decides this, in her own account. It is not a setting on this screen and there is no way to ask for it."
+   "detailIsHers": "The line detail belongs to {who} and travels with the sponsorship. This screen reads it; nothing here can move it."
   },
   "split": {
    "heading": "Split this between you",

@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Ban, Check, HandCoins, LockKeyhole, Users } from 'lucide-react';
-import { Pill, SectionTitle } from '../components/UI';
+import { SectionTitle } from '../components/UI';
+import { Metric, Metrics } from '../surface/Surface';
 import { NotConnected } from '../components/NotConnected';
+import './bill-split.css';
 import { money } from '../lib/catalog';
 import {
  acceptPreviewShare, nameOf, previewPayableCents, previewShares, previewSplitFor, proposePreviewSplit,
- shareStates, splitState, splitWords, type Share, type Split
+ shareStates, splitState, splitStates, splitWords, type Share, type Split
 } from '../lib/household';
 
 /* One visit's cost, split between two adult children, and the three things a split is not.
@@ -27,6 +29,11 @@ import {
 
 const waiting = shareStates.find(s => s.id === 'waiting')!;
 const accepted = shareStates.find(s => s.id === 'accepted')!;
+const standingOf = (id: string) => splitStates.find(s => s.id === id)!;
+/* The figure without its symbol, so a metric can set the R small and leading the way the design language
+   asks. Derived from money() rather than formatted again — the grouping and the rounding stay the
+   catalogue's, exactly as the sponsor's statement does it. */
+const figure = (n: number) => money(n).replace(/^R\s*/, '');
 
 export function BillSplit() {
  const whole = previewPayableCents();
@@ -36,7 +43,9 @@ export function BillSplit() {
  /* The even split the contract's parts describe, and a deliberately short one beside it. The refusal is
     the point of this screen, so it is something a person can press rather than a sentence about it. */
  const even = previewShares();
- const short = even.map((s, i) => (i === 0 ? { ...s, amountCents: s.amountCents - 5_000 } : s));
+ /* One cent short, deliberately. A split that misses by a cent is refused exactly as one that misses by a
+    thousand rand, because the comparison is against the payable and not against a tolerance somebody chose. */
+ const short = even.map((s, i) => (i === 0 ? { ...s, amountCents: s.amountCents - 1 } : s));
 
  const propose = (shares: readonly { payerSubjectRef: string; amountCents: number }[], what: string) => {
   const answer = proposePreviewSplit(shares);
@@ -57,16 +66,21 @@ export function BillSplit() {
    <p>{splitWords.intro}</p></div>
   <NotConnected of="payments"/>
 
+  {/* The figure first and large, the way every other amount in this product is set, because what is owed
+      is the one thing a person opening this screen already knows they are looking for. */}
   <section className="panel glass lead rise-2">
-   <div className="lead-head">
-    <div><strong>{splitWords.wholeLabel}</strong><small>For {nameOf(previewSplitFor)}, on one visit</small></div>
-    <Pill tone="teal">{money(whole / 100)}</Pill>
-   </div>
-   <div className="button-row">
-    <button className="primary" onClick={() => propose(even, `Split evenly between ${even.length} people. Each share is still theirs to accept.`)}><Users size={17}/>{splitWords.propose}</button>
-    <button className="secondary" onClick={() => propose(short, '')}><Ban size={17}/>Try a split that is R50 short</button>
-   </div>
-   <p className="helper" role="status" aria-live="polite">{refusal || status || splitWords.preview}</p>
+   <Metrics>
+    <Metric prefix="R" value={figure(whole / 100)} label={splitWords.wholeLabel} chip={`One visit for ${nameOf(previewSplitFor)}`}/>
+   </Metrics>
+   {/* Full width and stacked rather than side by side: at 390px two buttons in a row broke both labels over
+       three lines each, and a control whose words wrap is a control somebody reads twice. */}
+   <button className="primary full" onClick={() => propose(even, `Split evenly between ${even.length} people. Each share is still theirs to accept.`)}><Users size={17}/>{splitWords.propose}</button>
+   <button className="secondary full" onClick={() => propose(short, '')}><Ban size={17}/>Try a split that does not add up</button>
+   {/* A refusal is not a hint. It is set as an alert when it fires and as quiet helper text otherwise, so
+       the sentence a person most needs to read is not the smallest thing on the screen. */}
+   {refusal
+    ? <div className="privacy-note alert" role="status" aria-live="polite"><Ban size={19}/>{refusal}</div>
+    : <p className="helper" role="status" aria-live="polite">{status || splitWords.preview}</p>}
   </section>
 
   {split && <>
@@ -74,21 +88,22 @@ export function BillSplit() {
    <div className="panel">
     {split.shares.map(share => {
      const done = share.stateCode === 'accepted';
-     return <div className="record-row static" key={share.payerSubjectRef}>
+     return <div className="record-row static split-share" key={share.payerSubjectRef}>
       <span className="service-icon">{done ? <Check size={20}/> : <HandCoins size={20}/>}</span>
       <span><strong>{splitWords.shareLabel.replace('{who}', nameOf(share.payerSubjectRef))} · {money(share.amountCents / 100)}</strong>
        <small>{done ? accepted.words : waiting.words}</small></span>
       <button className="secondary" disabled={done} onClick={() => accept(share)}>{done ? accepted.name : splitWords.accept}</button>
      </div>;
     })}
-    <div className="review-line"><span>Where the split stands</span><strong>{splitState(split) === 'payable' ? accepted.name : waiting.name}</strong></div>
+    {/* The split's own state, in its own words. A share is waiting or accepted; a split is proposed or
+        payable, and the two vocabularies are kept apart because they are two different facts. */}
+    <div className="review-line"><span>Where the split stands</span><strong>{standingOf(splitState(split)).name}</strong></div>
+    <p className="helper">{standingOf(splitState(split)).words}</p>
    </div>
   </>}
 
   <SectionTitle title={splitWords.neverHeading}/>
-  <div className="panel">
-   <dl className="stated">{splitWords.never.map(line => <div key={line}><dt>{line}</dt></div>)}</dl>
-   <div className="privacy-note"><LockKeyhole size={19}/>A payer is paying, not reading. There is no field in what this screen is answered with for the visit, the reason for it or anything a nurse found — so there is nothing here to hide and nothing to ask for.</div>
-  </div>
+  <ul className="split-never">{splitWords.never.map(line => <li key={line}><Ban size={15} aria-hidden="true"/>{line}</li>)}</ul>
+  <div className="privacy-note"><LockKeyhole size={19}/>A payer is paying, not reading. There is no field in what this screen is answered with for the visit, the reason for it or anything a nurse found — so there is nothing here to hide and nothing to ask for.</div>
  </>;
 }

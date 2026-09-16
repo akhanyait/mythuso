@@ -14,14 +14,14 @@ object HouseholdData {
         const val intro = "A roster, and only a roster. Adding somebody here puts their name on a list you both can see, and opens nothing of theirs to you and nothing of yours to them."
         const val grantsNothing = "This roster grants nothing. Every clinical line on this page is still asked for twice — once of the vetting register, once of the record itself — and a household is neither."
         const val neverHeading = "What a roster never carries"
-        const val preview = "Nothing typed here is stored or sent. The roster below is a preview held in this page while it is open."
+        const val preview = "Nothing typed here is stored or sent. This roster is a preview held in this page while it is open."
 
         /** What a roster line never holds, and why — packages/catalog/household.json's own words. */
         val neverHolds = listOf(
-            HouseholdNever("a name, a number or an address", "A roster that carried them would be a directory of a family, and a directory is worth stealing. A reference is not."),
+            HouseholdNever("a name, a number or an address", "A roster that carried them would be a directory of a family, and a directory is worth stealing. A list of references is not."),
             HouseholdNever("a relationship", "Mother, son, guardian: each of those reads as authority, and no authority is proven here."),
-            HouseholdNever("a scope, a grant, a purpose or an expiry", "Those are the parts of a consent grant, which packages/catalog/consent.json owns and the person themselves makes. A membership that could carry one would be a grant under another name."),
-            HouseholdNever("anything clinical", "A household is an arrangement of accounts. Health information reaches nobody through it.")
+            HouseholdNever("a scope, a grant, a purpose or an expiry", "Those are the parts of letting somebody into your record, which is a separate decision and yours to make. A roster line that could carry one would be that decision under another name."),
+            HouseholdNever("anything clinical", "A household is an arrangement of accounts. Nothing about anybody's health reaches anybody through it.")
         )
     }
 

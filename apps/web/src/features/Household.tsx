@@ -337,7 +337,7 @@ function Roster({ viewer }: { viewer: Viewer }) {
      </>}
   <p className="helper" role="status" aria-live="polite">{status || householdWords.preview}</p>
   <div className="privacy-note"><LockKeyhole size={19}/><span><strong>{householdWords.neverHeading}.</strong> {householdWords.grantsNothing}</span></div>
-  {neverHolds.map(n => <div className="review-line" key={n.field}><span>{n.field}</span><strong>{n.why}</strong></div>)}
+  <dl className="stated">{neverHolds.map(n => <div key={n.field}><dt>{n.field}</dt><dd>{n.why}</dd></div>)}</dl>
  </section>;
 }
 
