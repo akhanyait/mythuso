@@ -438,3 +438,5 @@ POST /v1/money/claims/{claimRef}/consent@1 77f2bf6a16e49d07
 POST /v1/money/claims/{claimRef}/submit@1 50db92f12d69f493
 GET /v1/money/claims@1 0fcabc0e4435fff5
 GET /v1/money/held-cash-payments@1 b6a80a6dcc50419d
+shared apis/money.json#refusals gift-expired 4a1166ddcfebbeb6
+shared apis/money.json#refusals gift-already-booked 5e24139a918d86b5

@@ -5,8 +5,8 @@
  "currency": "ZAR",
 
  "methods": [
-  {"id": "card", "name": "Card", "detail": "On the provider's own page. MyThuso never sees the number.", "for": ["visit", "plan"], "offered": true, "settledBy": "payment-result"},
-  {"id": "eft", "name": "EFT", "detail": "From your bank to the provider, with the visit reference.", "for": ["visit", "plan"], "offered": true, "settledBy": "payment-result"},
+  {"id": "card", "name": "Card", "detail": "On the provider's own page. MyThuso never sees the number.", "for": ["visit", "plan", "order"], "offered": true, "settledBy": "payment-result"},
+  {"id": "eft", "name": "EFT", "detail": "From your bank to the provider, with the visit reference.", "for": ["visit", "plan", "order"], "offered": true, "settledBy": "payment-result"},
   {"id": "debit-order", "name": "Debit order", "detail": "Taken each month for a plan, under a mandate you give your bank.", "for": ["plan"], "offered": true, "settledBy": "payment-result"},
   {"id": "cash-otp", "name": "Cash, with a code", "detail": "You pay the nurse at the door and give her the code this screen shows you.", "for": ["visit"], "offered": true, "settledBy": "cash-code"},
   {"id": "wallet", "name": "Thuso Wallet", "detail": "A prepaid balance.", "for": ["visit", "plan"], "offered": false, "notOfferedBecause": "A wallet is built in a later wave. A balance that nothing holds cannot pay for a visit, so it is not offered as a way to."}
