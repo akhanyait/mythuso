@@ -1,6 +1,6 @@
 {
  "engine": "money",
- "_note": "Money is Thuso Money: payments, payouts, wallets, vouchers, gifts, group wallets, claims and Market orders. Every write is idempotent with a key. MyThuso never holds a card number. Wave 2 contract; Waves 3 and 5 build.",
+ "_note": "Money is Thuso Money: payments, payouts, wallets, vouchers, gifts, group wallets, claims and Market orders. Every write is idempotent with a key. MyThuso never holds a card number. Wave 2 contract; Waves 3, 5 and 6 build.",
  "version": 1,
  "resources": ["payments", "payouts", "wallets", "vouchers", "gifts", "groups", "claims", "market-orders", "settings", "setting-changes", "voucher-redemptions", "plan-subscriptions", "group-memberships", "group-payments", "held-cash-payments"],
  "doors": ["payment-result", "payout-advice", "claim-response"],
@@ -18,7 +18,9 @@
   {"id": "cash-code-held", "status": 423, "statement": "This cash payment has had too many wrong codes and is held for the operations desk.", "why": "packages/catalog/money.json's attemptLimit. A six-digit code that can be tried without limit is a code that can be walked; after the limit even the right code is refused until the desk releases the payment."},
   {"id": "cash-before-the-visit-finished", "status": 409, "statement": "Cash is recorded against a finished visit, and this one has not finished.", "why": "A cash code entered before Care says the visit was billable would record money for a visit that may still not happen."},
   {"id": "payable-not-priced", "status": 409, "statement": "This visit has no price Money can read yet, so nothing is charged.", "why": "appointment.booked@2 names the service, so the payable it opens is priced from packages/catalog/services.json as it opens. A payable can still have no price: one a store opened under appointment.booked@1, which named no service and is withdrawn, stays unpriced until visit.billable@1 names one. A charge against a payable with no catalogue price is an amount that came from the caller.", "answeredBy": ["POST /v1/money/payments@1", "POST /v1/money/payments@2"]},
-  {"id": "deduction-without-a-reason", "status": 422, "statement": "A payout does not go down without a line naming the visit and the reason.", "why": "packages/catalog/earnings.json's every-deduction-is-named rule, enforced on the ledger rather than only drawn on the screen."}
+  {"id": "deduction-without-a-reason", "status": 422, "statement": "A payout does not go down without a line naming the visit and the reason.", "why": "packages/catalog/earnings.json's every-deduction-is-named rule, enforced on the ledger rather than only drawn on the screen."},
+  {"id": "gift-expired", "status": 409, "statement": "This gift has expired. What was on it is not paid out.", "why": "packages/catalog/gifts.json's expiry, read from the same setting a voucher's is. Booking a visit is Care's act and carries no route here (packages/engines/src/money/domain/gifts.ts), so this answers whoever stands in for that act directly rather than through a frozen route."},
+  {"id": "gift-already-booked", "status": 409, "statement": "This gift has already been booked. Nothing was booked again.", "why": "A gift is spent once, the moment the beneficiary's visit is booked. The same rule already-paid answers on a payment answers it here, in a gift's own words, because a gift is not a payment and a caller reading its answer should not be told it was one."}
  ],
  "ownIds": [],
  "routes": [
@@ -304,7 +306,9 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E10", "what": "Gift-a-visit"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/gifts@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "POST",
@@ -411,7 +415,9 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "§36", "what": "Market orders, payments, fulfilment"},
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/market-orders@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "GET",

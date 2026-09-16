@@ -52,6 +52,8 @@ import {
  addDays, carriesAGrant, carriesClinicalContent, claimViewOf, codeSetAdopted, typesACode,
  type Claim, type ClaimView, type HeardReview
 } from './claims.ts';
+import { booksForThem, giftCentsFor, giftExpiryOn, type Gift, type GiftStateId } from './gifts.ts';
+import { deliveryCentsFor, medicineReasonFor, quantitiesOf, shopProductOrThrow } from './market-orders.ts';
 
 export { carriesACard };
 
@@ -89,6 +91,14 @@ export type PayoutState = 'closed' | 'in-transit' | 'paid' | 'failed';
 export type Payout = {
  payoutRef: string; partyRef: string; periodEnd: string; lines: PayoutLine[]; totalCents: number; state: PayoutState;
  failureReason?: string; ranOn?: string;
+};
+
+/** A Thuso Market order: what it references and what it came to, never anything clinical. Priced from
+    packages/catalog/shop.json, exactly as a visit's payable is priced from services.json. */
+export type MarketOrder = {
+ marketOrderRef: string; payableRef: string; subjectRef: string;
+ lines: { productId: string; quantity: number }[];
+ deliveryZone: string; goodsCents: number; deliveryCents: number; totalCents: number; placedOn: string;
 };
 
 export type EarnedLine = { line: PayoutLine; on: string; payoutRef?: string };
@@ -131,8 +141,12 @@ export type MoneyTables = {
  reviews: Table<HeardReview>;
  /** The billing half of each claim. No code and no diagnosis (./claims.ts). */
  claims: Table<Claim>;
+ /** A gift, made out to one named beneficiary (./gifts.ts). No code, because there is nothing to bear. */
+ gifts: Table<Gift>;
+ /** A Thuso Market order: what it referenced and what it came to, never a medicine. */
+ marketOrders: Table<MarketOrder>;
 };
-export const TABLE_NAMES = ['payables', 'payments', 'cashCodes', 'cashAudit', 'attempts', 'keys', 'billable', 'earned', 'cases', 'payouts', 'suspensions', 'vouchers', 'redemptions', 'subscriptions', 'acts', 'groups', 'memberships', 'groupCharges', 'reviews', 'claims'] as const;
+export const TABLE_NAMES = ['payables', 'payments', 'cashCodes', 'cashAudit', 'attempts', 'keys', 'billable', 'earned', 'cases', 'payouts', 'suspensions', 'vouchers', 'redemptions', 'subscriptions', 'acts', 'groups', 'memberships', 'groupCharges', 'reviews', 'claims', 'gifts', 'marketOrders'] as const;
 
 /** Tables in memory, written as JSON so they behave as a store does: a row is what was last put. */
 export function memoryTables(): MoneyTables {
@@ -186,6 +200,14 @@ const CASH_DESK_ROLES = ['ops-desk'];
 /* Who issues a voucher: a corner shop over the counter, whose cash is its own to reconcile, and the back office. The
    callers of POST /v1/money/vouchers@2. */
 const VOUCHER_ISSUERS = ['corner', 'admin'];
+/* The callers of POST /v1/money/gifts@1: a caregiver or a sponsor, paying for somebody who is not deciding for
+   herself when she is visited. The beneficiary is never one of them — she receives a gift, she does not give one. */
+const GIFT_GIVERS = ['caregiver', 'sponsor'];
+/* Booking a gifted visit is the beneficiary's own act, in her own account. The same roles a payment is made from
+   are not it: a caregiver may give a gift, and only the patient it names may ever book it. */
+const GIFT_BOOKER_ROLE = 'patient';
+/* The callers of POST /v1/money/market-orders@1: the household that spends, never a scheme or an employer. */
+const MARKET_ORDER_CALLERS = ['patient', 'caregiver'];
 /* Who asks for a plan and reads it: the son or daughter who pays, and the person it is for. A guardian is not here,
    because no authority to act for another adult is proven (docs/governance/INFORMATION-OFFICER.md D-10). */
 const PLAN_READERS = ['sponsor', 'patient'];
@@ -226,6 +248,17 @@ export function createMoney(options: MoneyOptions = {}) {
    subjectRef: input.subjectRef, payers: input.payers ?? [], serviceId: input.serviceId,
    appointmentRef: input.appointmentRef, bookingRef: input.bookingRef, cancelled: false
   };
+  t.payables.put(payable.payableRef, payable);
+  return payable;
+ }
+
+ /** A Thuso Market order's payable, at its own total rather than a catalogue lookup: the total is
+     packages/catalog/shop.json's arithmetic over the order's lines and delivery, worked out once, by
+     placeMarketOrder, and never restated here. */
+ function openOrderPayable(input: { payableRef: string; subjectRef: string; amountCents: number }): Payable {
+  const existing = t.payables.get(input.payableRef);
+  if (existing) return existing;
+  const payable: Payable = { payableRef: input.payableRef, kind: 'order', amountCents: input.amountCents, subjectRef: input.subjectRef, payers: [], cancelled: false };
   t.payables.put(payable.payableRef, payable);
   return payable;
  }
@@ -769,6 +802,109 @@ export function createMoney(options: MoneyOptions = {}) {
   }
  }
 
+ /* ---- Gifts --------------------------------------------------------------------------------- */
+
+ /**
+  * A visit, gifted to one named person, at the catalogue's price on the day it is given. Not a voucher: there is no
+  * code, because nobody but the beneficiary may ever spend it. A request that carries an appointment, a booking, or
+  * her agreement in the same breath as the gift is refused as gift-books-for-them before anything is keyed — the
+  * giver names who and what, and only she books it, in her own account.
+  */
+ function giftAVisit(actor: Actor, request: Record<string, unknown>, sent: readonly string[] = []): { giftRef: string; replayed: boolean } | Refusal {
+  if (!GIFT_GIVERS.includes(actor.role) || !actor.subjectRef) return refusal('caller-not-allowed');
+  if (booksForThem(sent)) return refusal('gift-books-for-them');
+  const key = keyOf(request);
+  if (!key) return refusal('idempotency-key-required');
+  const { beneficiarySubjectRef, serviceId } = request;
+  if (typeof beneficiarySubjectRef !== 'string' || !beneficiarySubjectRef || typeof serviceId !== 'string') return refusal('required-field-missing');
+  const print = JSON.stringify({ beneficiarySubjectRef, serviceId });
+  const prior = t.acts.get(actKey(actor, 'gift', key));
+  if (prior) return prior.print === print ? { ...(prior.answer as { giftRef: string }), replayed: true } : refusal('idempotency-key-reused');
+  /* The same lookup a voucher towards a visit uses, so the two can never be issued at different amounts for the
+     same service. A serviceId that does not resolve is a picker's bug, not a caller's: the screen offers only
+     what the catalogue sells as a phase-one visit. */
+  const cents = giftCentsFor(serviceId);
+  if (cents === null) throw new Error(`No service "${serviceId}" can be gifted: packages/catalog/services.json does not sell it as a phase-one visit.`);
+  const years = options.voucherExpiryYears?.();
+  if (years === undefined) throw new Error('No voucher expiry is in force, so no gift is issued. Hand the ledger Money\'s setting voucher-expiry-years.');
+  const issuedOn = today();
+  const gift: Gift = {
+   giftRef: `GFT-${randomSalt(5).toUpperCase()}`, beneficiarySubjectRef, serviceId,
+   issuedCents: cents, issuedOn, expiresOn: giftExpiryOn(issuedOn, years), expiryYears: years,
+   givenByRole: actor.role, givenByRef: actor.subjectRef, stateCode: 'given', payableRef: null
+  };
+  t.gifts.put(gift.giftRef, gift);
+  const answer = { giftRef: gift.giftRef };
+  t.acts.put(actKey(actor, 'gift', key), { print, answer });
+  return { ...answer, replayed: false };
+ }
+
+ /**
+  * The beneficiary books her gifted visit, in her own account. Money's contract carries no route for this: booking
+  * is Care's act, and in the full build the gift is spent the moment appointment.booked@2 names her and the
+  * gifted service, the same way a plan's included visit is priced at nought. This preview has no Care engine to
+  * hear that from, so this stands in for it exactly as openVisitPayable already stands in for a booking nobody
+  * made — it opens the payable Care would have opened, and settles it in full from the gift.
+  */
+ function bookGiftedVisit(actor: Actor, request: Record<string, unknown>): { stateCode: GiftStateId; payableRef: string; replayed: boolean } | Refusal {
+  const gift = t.gifts.get(String(request['giftRef'] ?? ''));
+  /* A gift's own reference is only ever handed out by giftAVisit's answer or read off her own list, so a gift
+     nobody can find is a caller who has sent something else, not a caller who guessed. */
+  if (!gift) throw new Error(`No gift "${request['giftRef']}".`);
+  if (actor.role !== GIFT_BOOKER_ROLE || actor.subjectRef !== gift.beneficiarySubjectRef) return refusal('gift-books-for-them');
+  const key = keyOf(request);
+  if (!key) return refusal('idempotency-key-required');
+  const print = JSON.stringify({ giftRef: gift.giftRef });
+  const prior = t.acts.get(actKey(actor, 'book-gift', key));
+  if (prior) return prior.print === print ? { ...(prior.answer as { stateCode: GiftStateId; payableRef: string }), replayed: true } : refusal('idempotency-key-reused');
+  if (gift.stateCode === 'booked') return refusal('gift-already-booked');
+  if (today() > gift.expiresOn) return refusal('gift-expired');
+  const payable = openVisitPayable({ payableRef: `PB-${gift.giftRef}`, serviceId: gift.serviceId, subjectRef: gift.beneficiarySubjectRef });
+  t.payables.put(payable.payableRef, { ...payable, creditedCents: (payable.creditedCents ?? 0) + gift.issuedCents });
+  const next: Gift = { ...gift, stateCode: 'booked', payableRef: payable.payableRef };
+  t.gifts.put(next.giftRef, next);
+  const answer = { stateCode: next.stateCode, payableRef: payable.payableRef };
+  t.acts.put(actKey(actor, 'book-gift', key), { print, answer });
+  return { ...answer, replayed: false };
+ }
+
+ /* ---- Thuso Market orders --------------------------------------------------------------------- */
+
+ /**
+  * A Thuso Market order: the shop's products, priced at the catalogue's amount plus delivery, and never a
+  * medicine — scheduled or not, by its schedule or by its name. Refused as medicine-in-shop on either before
+  * anything is keyed. The order opens a payable at its total; it is paid through the existing payments route,
+  * exactly as a visit is.
+  */
+ function placeMarketOrder(actor: Actor, request: Record<string, unknown>): { marketOrderRef: string; totalCents: number; replayed: boolean } | Refusal {
+  if (!MARKET_ORDER_CALLERS.includes(actor.role) || !actor.subjectRef) return refusal('caller-not-allowed');
+  const key = keyOf(request);
+  if (!key) return refusal('idempotency-key-required');
+  const { productIds, deliveryZone } = request;
+  if (!Array.isArray(productIds) || !productIds.length || !productIds.every(id => typeof id === 'string') || typeof deliveryZone !== 'string' || !deliveryZone) {
+   return refusal('required-field-missing');
+  }
+  for (const id of productIds) if (medicineReasonFor(id)) return refusal('medicine-in-shop');
+  const print = JSON.stringify({ productIds, deliveryZone });
+  const prior = t.acts.get(actKey(actor, 'market-order', key));
+  if (prior) return prior.print === print ? { ...(prior.answer as { marketOrderRef: string; totalCents: number }), replayed: true } : refusal('idempotency-key-reused');
+  const lines = quantitiesOf(productIds as string[]);
+  /* Loud on a product the shop does not sell and is not a medicine either: the picker never sends one. */
+  const goodsCents = lines.reduce((sum, l) => sum + shopProductOrThrow(l.productId).price * 100 * l.quantity, 0);
+  const deliveryCents = deliveryCentsFor(goodsCents);
+  const totalCents = goodsCents + deliveryCents;
+  const marketOrderRef = `MO-${randomSalt(5).toUpperCase()}`;
+  const payable = openOrderPayable({ payableRef: `PB-${marketOrderRef}`, subjectRef: actor.subjectRef, amountCents: totalCents });
+  const order: MarketOrder = { marketOrderRef, payableRef: payable.payableRef, subjectRef: actor.subjectRef, lines, deliveryZone, goodsCents, deliveryCents, totalCents, placedOn: today() };
+  t.marketOrders.put(order.marketOrderRef, order);
+  /* Never productIds: what somebody bought can say what they live with, and the bus is told only that an order
+     exists, at what total and how many lines (packages/catalog/events.json market.order.placed neverCarries). */
+  emit('market.order.placed@1', { orderRef: order.marketOrderRef, itemCount: productIds.length, totalCents }, actor.subjectRef);
+  const answer = { marketOrderRef: order.marketOrderRef, totalCents };
+  t.acts.put(actKey(actor, 'market-order', key), { print, answer });
+  return { ...answer, replayed: false };
+ }
+
  /* ---- MyThuso for Mom Essential -------------------------------------------------------------- */
 
  const activePlanFor = (subjectRef: string) => t.subscriptions.all().find(s => s.subjectRef === subjectRef && s.stateCode === 'active');
@@ -1139,10 +1275,16 @@ export function createMoney(options: MoneyOptions = {}) {
  }
 
  return {
-  openVisitPayable, openPlanPayable, pay, acceptPaymentResult, enterCashCode, releaseCashCode, hear,
+  openVisitPayable, openPlanPayable, openOrderPayable, pay, acceptPaymentResult, enterCashCode, releaseCashCode, hear,
   issueVoucher, redeemVoucher, subscribe, acceptSubscription, subscriptionFor,
   openGroup, inviteMember, acceptMembership, leaveGroup, payFromGroup, groupFor, membershipsFor,
   draftClaim, consentToClaim, submitClaim, claimsFor, heldCashList,
+  giftAVisit, bookGiftedVisit, placeMarketOrder,
+  /* A gift as the giver or the beneficiary may read it. Never a code, because a gift has none. */
+  giftsFor: (subjectRef: string) => t.gifts.all().filter(g => g.beneficiarySubjectRef === subjectRef || g.givenByRef === subjectRef),
+  gift: (giftRef: string) => t.gifts.get(giftRef),
+  marketOrder: (marketOrderRef: string) => t.marketOrders.get(marketOrderRef),
+  marketOrdersFor: (subjectRef: string) => t.marketOrders.all().filter(o => o.subjectRef === subjectRef),
   /* What a payable still owes, for a screen that asks how much to pay after a voucher. */
   owed: (payableRef: string) => { const payable = t.payables.get(payableRef); return payable ? owedOf(payable) : undefined; },
   /* What is left on the voucher a typed code opens, for the person holding the code, so a checkout offers no more than it

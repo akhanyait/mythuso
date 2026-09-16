@@ -9,7 +9,9 @@
 import moneyContract from '../../../../catalog/money.json' with { type: 'json' };
 
 export type MethodId = 'card' | 'eft' | 'debit-order' | 'cash-otp' | 'wallet';
-export type PayableKind = 'visit' | 'plan';
+/** 'order' is a Thuso Market order: priced from packages/catalog/shop.json rather than services.json, and paid
+    for exactly as a visit is, through this same list of ways to pay. */
+export type PayableKind = 'visit' | 'plan' | 'order';
 export type PaymentStateId = 'pending' | 'succeeded' | 'failed' | 'refunded';
 export type Method = { id: MethodId; name: string; detail: string; for: PayableKind[]; offered: boolean; settledBy?: string; notOfferedBecause?: string };
 

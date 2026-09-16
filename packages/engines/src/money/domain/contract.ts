@@ -138,7 +138,7 @@ const REFERENCE_SHAPE = /(Ref|Refs|Id|Ids)$/;
 export const isRecordReference = (field: string) => REFERENCE_SHAPE.test(field) && !mayReference.has(field);
 
 /** The events Money publishes, each checked live and owned by Money when this module loads. */
-export const PUBLISHES = ['payment.succeeded@1', 'payment.failed@1', 'payment.refunded@1', 'payout.scheduled@1', 'payout.paid@1'] as const;
+export const PUBLISHES = ['payment.succeeded@1', 'payment.failed@1', 'payment.refunded@1', 'payout.scheduled@1', 'payout.paid@1', 'market.order.placed@1'] as const;
 export type Published = typeof PUBLISHES[number];
 for (const key of PUBLISHES) {
  const [type, version] = key.split('@');

@@ -11208,3 +11208,75 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
 
  console.log(`Care and Safety reads: GET /v1/care/shifts@1 answers a dispatcher every one of ${w6Roster.nurses.length * w6Scheduling.offer.days} shifts and a nurse only her own ${w6Scheduling.offer.days}, refusing a caller the runtime cannot identify rather than showing her everybody's; GET /v1/care/services@1 lists the ${w6Services.filter(s => s.phase <= w6Care.seedPhase).length} services phase one offers and refuses a zone geography.json does not cover; GET /v1/care/locum-shifts@1 refuses a locum with no current Trust Score and answers an honestly empty list once she has one; and GET /v1/care/circuits@1 refuses the read whole while both circuits packages/catalog/care.json names are draft. POST /v1/safety/incidents@3 is the only version packages/engines/src/trust/engine.ts names, and its withdrawn predecessor answers no-route on the runtime whoever asks it.`);
 }
+
+/* ==== Gifts and Thuso Market orders (Wave 6, Money) =======================================================
+
+   Two routes left declared-but-unbuilt since Wave 2, closed here. Four things this wave promises, each asked
+   of the code rather than of a screen's good intentions, proved to fire by breaking its source deliberately
+   and restoring it:
+
+     1. Both routes are built, in the engine, and nowhere else.
+     2. A gift never books a visit by itself: giving one refuses an appointment, a booking or the beneficiary's
+        agreement sent with it, and booking one refuses anybody but the beneficiary.
+     3. A market order refuses a scheduled medicine and a listed one, by two different readings of the catalogue.
+     4. Every write here carries a required idempotency key, and asks for it before it writes anything. */
+{
+ const w6 = {
+  gifts: JSON.parse(read('packages/catalog/gifts.json')),
+  shop: JSON.parse(read('packages/catalog/shop.json')),
+  medicines: JSON.parse(read('packages/catalog/medicines.json')),
+  moneyApi: JSON.parse(read('packages/catalog/apis/money.json'))
+ };
+ const w6Route = key => w6.moneyApi.routes.find(r => `${r.method} ${r.path}@${r.version}` === key && !r.withdrawn);
+ const GIFT_ROUTE = 'POST /v1/money/gifts@1';
+ const ORDER_ROUTE = 'POST /v1/money/market-orders@1';
+ const ledgerSrc = read('packages/engines/src/money/domain/ledger.ts');
+ const moneyEngineSrc = read('packages/engines/src/money/engine.ts');
+ const w6Block = (source, from, to = '\n }') => { const at = source.indexOf(from); return at < 0 ? '' : source.slice(at, source.indexOf(to, at) + to.length); };
+ const escaped = key => key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+ /* 1. Built, in the engine, and nowhere else. */
+ for (const key of [GIFT_ROUTE, ORDER_ROUTE]) {
+  const route = w6Route(key);
+  if (!route || route.status !== 'built' || route.evidence?.file !== 'packages/engines/src/money/engine.ts' || route.enforcedBy?.mechanism !== 'engines-runtime:callers') {
+   throw new Error(`packages/catalog/apis/money.json no longer declares ${key} as built in packages/engines/src/money/engine.ts.`);
+  }
+  if (!new RegExp(`'${escaped(key)}':`).test(moneyEngineSrc)) throw new Error(`packages/engines/src/money/engine.ts no longer binds ${key}.`);
+ }
+
+ /* 2. A gift never books a visit by itself. */
+ const giftBlock = w6Block(ledgerSrc, ' function giftAVisit(');
+ if (!giftBlock || !/booksForThem\(sent\)/.test(giftBlock)) throw new Error('packages/engines/src/money/domain/ledger.ts giftAVisit no longer refuses a request that books, or asks agreement, for the beneficiary.');
+ const bookBlock = w6Block(ledgerSrc, ' function bookGiftedVisit(');
+ if (!bookBlock || !/actor\.role !== GIFT_BOOKER_ROLE \|\| actor\.subjectRef !== gift\.beneficiarySubjectRef/.test(bookBlock)) {
+  throw new Error('packages/engines/src/money/domain/ledger.ts bookGiftedVisit no longer refuses anybody but the beneficiary.');
+ }
+ if (!w6Route(GIFT_ROUTE).refusals.some(r => r.id === 'gift-books-for-them')) throw new Error(`${GIFT_ROUTE} no longer declares gift-books-for-them.`);
+ for (const word of w6.gifts.bookingFieldWords) if (typeof word !== 'string' || !word.trim()) throw new Error('packages/catalog/gifts.json bookingFieldWords holds an empty entry.');
+ if (!w6.gifts.bookingFieldWords.includes('appointment') || !w6.gifts.bookingFieldWords.includes('agree')) throw new Error('packages/catalog/gifts.json bookingFieldWords no longer names an appointment or an agreement.');
+
+ /* 3. A market order refuses a scheduled medicine and a listed one, by two different readings. */
+ const scheduledEntry = w6.medicines.formulary.entries.find(e => e.scheduleCode !== 'S0');
+ if (!scheduledEntry) throw new Error('packages/catalog/medicines.json formulary no longer has a scheduled entry to prove a market order refuses one.');
+ const orderBlock = w6Block(ledgerSrc, ' function placeMarketOrder(');
+ if (!orderBlock || !/medicineReasonFor\(id\)/.test(orderBlock)) throw new Error('packages/engines/src/money/domain/ledger.ts placeMarketOrder no longer checks every product id against medicineReasonFor before it keys anything.');
+ if (!w6Route(ORDER_ROUTE).refusals.some(r => r.id === 'medicine-in-shop')) throw new Error(`${ORDER_ROUTE} no longer declares medicine-in-shop.`);
+ for (const shopId of w6.shop.products.map(p => p.id)) {
+  if (w6.medicines.formulary.entries.some(e => e.entryCode === shopId)) throw new Error(`Shop product "${shopId}" is also a formulary entry code. A market order could no longer tell the two apart by schedule alone.`);
+ }
+
+ /* 4. Every write here is keyed, and asks before it writes. */
+ for (const key of [GIFT_ROUTE, ORDER_ROUTE]) {
+  const route = w6Route(key);
+  if (route.idempotent !== true || !route.request.some(f => f.field === 'idempotencyKey' && f.type === 'string' && f.required === true)) throw new Error(`${key} is a money write without a required idempotencyKey.`);
+ }
+ for (const name of ['giftAVisit', 'bookGiftedVisit', 'placeMarketOrder']) {
+  const block = w6Block(ledgerSrc, ` function ${name}(`);
+  const asks = block.indexOf('keyOf(request)');
+  const writes = block.search(/t\.\w+\.put\(/);
+  if (!block || asks < 0 || (writes >= 0 && writes < asks)) throw new Error(`packages/engines/src/money/domain/ledger.ts ${name} writes before it asks for the idempotency key, or asks for none.`);
+ }
+
+ console.log(`Gifts and Thuso Market orders: 2 routes built in packages/engines/src/money/engine.ts; a gift refuses booking for the beneficiary on issue and refuses anybody but her on booking; a market order is checked against a formulary schedule entry (${scheduledEntry.entryCode}, ${scheduledEntry.scheduleCode}) and the shop's own neverSold words before it keys anything; 2 writes are keyed before they write.`);
+}
+/* ==== end of gifts and Thuso Market orders (Wave 6, Money) ================================================ */

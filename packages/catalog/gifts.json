@@ -1,0 +1,57 @@
+{
+ "_note": "Gift a visit: a caregiver or a sponsor names one visit, for one named person, and pays nothing towards anybody else's. Money's contract for it, beside packages/catalog/apis/money.json, which holds the route and its refusal, and packages/catalog/vouchers.json, whose expiry and redemption arithmetic this reuses by import rather than by a second copy. packages/engines/src/money/domain/gifts.ts reads this file. Nothing here is a real service: no gift exists, nobody is named and no visit is booked.",
+ "_whyNotAVoucher": "A voucher is a bearer code: whoever holds it spends it, on a visit or a plan they choose. A gift is not a bearer instrument at all — it is made out to one person by her own subject reference from the moment it is given, for one named visit, and it is never a code anybody could read out at a till. So it is its own kind here rather than a voucher with a name taped to it, and it reuses only what genuinely carries over: the catalogue price a visit is issued at, and how many years an unused one lasts, both packages/catalog/vouchers.json's own numbers, read from there rather than restated.",
+ "_whyNoNativeEmitter": "Neither native app gives or books a gift in this wave — a giver and a beneficiary both act from the web preview, the same as a voucher's checkout. A generated Swift and Kotlin copy of this file would be a copy nobody renders, and a copy nobody renders is the one that drifts. The day a phone gives or books a gift, scripts/emit-gifts.mjs is written with the screen that reads it.",
+
+ "beneficiary": {
+  "statement": "A gift is made out to one person, by the account she already holds. Nobody else may spend it, and she may not hand it to somebody else.",
+  "why": "Paying is not deciding when somebody is visited, and it is not deciding who is. A gift that anybody holding it could spend is a voucher, and this is not one."
+ },
+
+ "bookingFieldWords": ["appointment", "appointments", "booking", "bookings", "agree", "agreed", "agreement", "consent", "consented", "accept", "accepted", "confirm", "confirmed", "schedule", "scheduled", "slot", "slots"],
+ "bookingFieldWordsWhy": "A request that names an appointment, a booking, or an agreement made on the beneficiary's behalf is refused as gift-books-for-them before anything is keyed. The giver names who and what; only the person receiving it books it, in her own account, and nothing here can carry a booking or her agreement in the same breath as the gift.",
+
+ "expiry": {
+  "settingIn": "packages/catalog/money.json",
+  "setting": "voucher-expiry-years",
+  "sharedWith": "packages/catalog/vouchers.json",
+  "why": "A gift and a voucher are both a prepaid amount towards a visit, held for somebody rather than spent at once, so Consumer Protection Act section 63 reaches both the same way. There is no second setting: a gift issued today lasts as long as a voucher issued today, read from the one place that number is decided."
+ },
+
+ "states": [
+  {"id": "given", "name": "Given", "giverWords": "Waiting for {beneficiary} to book it, in her own account.", "beneficiaryWords": "{giver} gave you a {service} visit. Book it whenever you are ready — nobody has booked anything for you."},
+  {"id": "booked", "name": "Booked", "giverWords": "{beneficiary} booked her {service} visit with it.", "beneficiaryWords": "You booked your {service} visit with this gift. Nothing more is owed on it."}
+ ],
+
+ "screen": {
+  "giver": {
+   "heading": "Gift a visit",
+   "intro": "Choose a visit and the person it is for. She decides when it happens — a gift pays for a visit, and it does not book one.",
+   "beneficiaryLabel": "Who this is for",
+   "serviceLabel": "Which visit",
+   "give": "Give this visit",
+   "given": "Given. {beneficiary} can book it in her own account, whenever she is ready.",
+   "waiting": "Waiting for her to book it.",
+   "expiresWords": "Unused, it lasts until {expires}."
+  },
+  "beneficiary": {
+   "heading": "Gifts to you",
+   "intro": "Visits somebody has paid for on your behalf. Booking one is yours to decide — nobody has booked anything for you.",
+   "empty": "Nobody has gifted you a visit yet.",
+   "book": "Book this visit",
+   "booked": "Booked. Nothing more is owed on it.",
+   "never": ["A gift never books a visit by itself", "A gift is never spent by anybody but you", "A gift is never paid out, and never tied to a medicine"]
+  },
+  "preview": "This is a preview. No gift exists, nobody is named and no visit is booked."
+ },
+
+ "preview": {
+  "giverRole": "sponsor",
+  "giverRef": "subj-preview-sponsor-uncle",
+  "giverName": "Uncle Sipho",
+  "beneficiarySubjectRef": "subj-preview-patient",
+  "beneficiaryName": "Lerato",
+  "serviceId": "vitals",
+  "why": "A fictional gift the web preview's ledger issues on the giver's screen so the beneficiary's screen, in the same tab, shows what the ledger answered rather than a row somebody typed. Lerato is the preview's patient throughout the app; Uncle Sipho is a sponsor role who has never appeared before this screen, because a gift needs a giver who is not already the treasurer of the preview's stokvel."
+ }
+}
