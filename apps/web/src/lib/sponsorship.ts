@@ -1,4 +1,5 @@
 import { formatDay, refusalById, remaining, ruleById, spent, sponsor, statement } from './programmes';
+import { previewSponsorship, sponsorshipStates, statementFor, type Sponsorship, type StatementLine } from './household';
 
 /* Somebody paying for somebody else's care, from the payer's side.
  *
@@ -43,12 +44,27 @@ export const day = formatDay;
 export const payingIsNotPermission = ruleById('paying-is-not-permission');
 export const cannotRequireDetail = refusalById('require-the-detail');
 
-/** Whether this recipient has let this sponsor see which visit each line was. The statement's own
-    note says she has — "which visit it was appears only because the recipient has switched that on
-    for this sponsor, and she can switch it off again without saying why" — so it is her fact, read
-    from the contract rather than defaulted to the friendlier answer. Typed as a boolean so the
-    other branch stays live code: the day the contract carries the switch itself, this reads it. */
-export const serviceIsNamed: boolean = true;
+/** Whether this recipient has let this sponsor see which visit each line was. Worked out from the
+    statement rather than written down: every line of it names a service, which is what her having
+    switched service-named on looks like, and the statement's own note says so in her words —
+    "which visit it was appears only because the recipient has switched that on for this sponsor,
+    and she can switch it off again without saying why". Both branches stay live, because the
+    sponsorship the domain builds from this carries whichever line detail it lands on. */
+export const serviceIsNamed: boolean = statement.lines.length > 0 && statement.lines.every(line => !!line.serviceId);
+
+/** The sponsorship as a link rather than a name: a household reference, the member being paid for and
+    the payer, with the recipient's line detail in force. The statement's figures are still
+    programmes.json's; what this adds is that nothing on the sponsor's screen is a person somebody
+    typed into a contract twice. The naming join is not closed — see the note above. */
+export const sponsorshipLink = (householdRef: string) => previewSponsorship(serviceIsNamed, householdRef);
+
+/** The lines a sponsor may read, with the service removed unless her line detail names it. The same
+    function the route answers with, so the screen is never handed a field it is meant to hide. */
+export const readableLines = (link: Sponsorship): readonly StatementLine[] =>
+ statementFor(link, statement.lines.map(line => ({ paidOnDay: line.on, amountCents: Math.round(line.amount * 100), serviceId: line.serviceId })));
+/** What a line reads as on the screen: the catalogue's name for the service the domain let through. */
+export const serviceNameOf = (serviceId: string | undefined) => statement.lines.find(line => line.serviceId === serviceId)?.service ?? null;
+export const sponsorshipStateOf = (id: string) => sponsorshipStates.find(s => s.id === id)!;
 
 /** Which of the two line-detail settings the recipient has switched on. It is read here and is
     never a control on this screen: the sponsor is not the person whose switch it is, so offering

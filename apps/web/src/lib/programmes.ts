@@ -120,7 +120,10 @@ export function suppress(programme: Programme): Report {
    Whether the service is named at all is the recipient's switch, not the sponsor's. The default is
    an amount and a date, because a line reading "sexual health screening" discloses more than most
    diagnoses do. */
-export type StatementLine = { on: string; amount: number; service: string };
+/* The service is carried twice on purpose and neither is typed: `service` is what a person reads and
+   `serviceId` is what the Access domain is handed, so the arithmetic that decides whether a sponsor may
+   see it at all works on the catalogue's id rather than on a label. */
+export type StatementLine = { on: string; amount: number; service: string; serviceId: string };
 const priceOf = (id: string) => {
  const service = services.find(s => s.id === id);
  if (!service) throw new Error(`A sponsor statement line names a service that is not in the catalogue: ${id}`);
@@ -130,7 +133,7 @@ export const statement = {
  ...contract.statement,
  lines: contract.statement.lines.map(line => {
   const service = priceOf(line.service);
-  return { on: inDays(line.onDays), amount: service.price, service: service.name } as StatementLine;
+  return { on: inDays(line.onDays), amount: service.price, service: service.name, serviceId: service.id } as StatementLine;
  })
 };
 export const spent = statement.lines.reduce((total, line) => total + line.amount, 0);

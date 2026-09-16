@@ -47,6 +47,7 @@ import { Arrival } from './features/Arrival';
 import { LiveWell } from './features/Wellbeing';
 import { GettingHelp } from './features/Help';
 const SponsoredCarePage = lazy(() => import('./features/Sponsor').then(m => ({ default: m.SponsoredCare })));
+const BillSplitPage = lazy(() => import('./features/BillSplit').then(m => ({ default: m.BillSplit })));
 import { stateOf } from './lib/cancelling';
 import { dateOf } from './lib/passport';
 import { Onboarding, SignIn } from './features/Onboarding';
@@ -231,6 +232,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
          : page === 'Groups that pay for you' ? <Suspense fallback={<p className="helper" role="status">Opening your groups.</p>}><GroupMembershipPage/></Suspense>
          : page === 'A group you pay for' ? <Suspense fallback={<p className="helper" role="status">Opening your group.</p>}><GroupAdminPage/></Suspense>
          : page === 'Claims to your medical scheme' ? <Suspense fallback={<p className="helper" role="status">Opening your claims.</p>}><ClaimsPage/></Suspense>
+         : page === 'Split a visit between you' ? <Suspense fallback={<p className="helper" role="status">Opening the split.</p>}><BillSplitPage/></Suspense>
          : page === 'Thuso Wallet' ? <WalletPage open={setModal} navigate={navigate}/>
           : page === 'Privacy & settings' ? <Privacy open={setModal}/>
            : page === 'Language & access' ? <Access/>
