@@ -1019,9 +1019,32 @@ Still open: no group pays for a plan or a medicine collection, only a visit; a g
 provider's page and no mandate is modelled; a treasurer sees her members by the names she invited them under, which the
 preview holds and no route carries; the pre-authorisation frame is a frame only — Movement owns
 `admission.preauth.submitted@1`, so Money builds no route for one; a claim is never re-drafted after a visit is
-refunded; `gifts@1` and `market-orders@1` stay proposed; the Banks Act reading behind "no pooled money" and what a
-group's charge is under the National Payment System Act have not been put to counsel; and the employer suppression
-floor is the programmes' judgement, which no Information Officer has agreed to.
+refunded; the Banks Act reading behind "no pooled money" and what a group's charge is under the National Payment
+System Act have not been put to counsel; and the employer suppression floor is the programmes' judgement, which no
+Information Officer has agreed to. (`gifts@1` and `market-orders@1` were built in Wave 6, below.)
+
+## Delivered — gifts and Thuso Market orders, 16 September 2026 (seed plan, Wave 6, Money)
+
+Two routes left declared-but-unbuilt since Wave 2. A caregiver or a sponsor gifts one visit to one named person,
+who must still book it herself; a patient or a caregiver places a Thuso Market order, which the shop may never
+use to sell a scheduled or a prescription medicine.
+
+| What landed | The refusals it adds | Where |
+|---|---|---|
+| **Gift a visit** (`POST /v1/money/gifts@1`): made out to one named beneficiary from the moment it is given, at the catalogue's price, lasting the years `voucher-expiry-years` gives a voucher issued the same day. Not a voucher with a name taped to it — there is no code, because nobody but the beneficiary may ever spend it, so it is its own thin module, `money/domain/gifts.ts`, reusing only `vouchers.ts`'s price lookup and expiry arithmetic by import | `gift-books-for-them` — refused if the giver's request carries an appointment, a booking or the beneficiary's agreement in the same breath as the gift | `gifts.json`, `money/domain/gifts.ts`, `money/domain/ledger.ts` `giftAVisit` |
+| **The beneficiary books it, in her own account.** Money's contract carries no second route for this — booking is Care's act, and in the full build the gift is spent the moment `appointment.booked@2` names her and the gifted service, the way a plan's included visit is priced at nought. This preview has no Care engine to hear that from, so `bookGiftedVisit` stands in for it exactly as `openVisitPayable` already stands in for a booking nobody made: nobody but the beneficiary may call it, an expired gift pays nothing and an already-booked one is not booked again | `gift-books-for-them` (anybody but the beneficiary), `gift-expired`, `gift-already-booked` — two refusals added to `apis/money.json`'s engine-wide list, answered by no route because nothing routes to this | `money/domain/ledger.ts` `bookGiftedVisit` |
+| **Thuso Market orders** (`POST /v1/money/market-orders@1`): prices `shop.json`'s catalogue plus delivery, opens a payable at the total and is paid through the existing `POST /v1/money/payments@2` — no new payment logic, `card` and `eft` widened to pay for an `order` payable beside a `visit` and a `plan`. Emits `market.order.placed@1` (`orderRef`, `itemCount`, `totalCents` — never the products, per the event's own `neverCarries`) | `medicine-in-shop` | `money/domain/market-orders.ts`, `money/domain/ledger.ts` `placeMarketOrder`, `money/domain/methods.ts` |
+| **The medicine refusal fires on two different readings of the catalogue**, because a product id carries no word a scanner would catch: a schedule lookup against `medicines.json`'s synthetic formulary (Schedule 1 or above, by its code alone — "SYN-0001" reads as nothing), and the same never-sold word scan `packages/commerce`'s `isMedicine` runs, read independently rather than trusted from there | `medicine-in-shop` | `market-orders.ts` `medicineReasonFor` |
+| **Screens**: a giver's screen and a beneficiary's, each behind their own dynamic import from the wallet, driven by the same ledger functions the engine binds — a gift given on one screen is what the other reads, never two rules that could disagree. A real market order is a third screen in the same place, also behind its own dynamic import, rather than a second action on `Shop.tsx`: `shop.html` is its own entry precisely so a person pricing a monitor never downloads Money's ledger, and `Shop.tsx` calling into `ledger.ts` directly made Rollup share a chunk between the two entries that the *app*'s own `index.html` then had to preload, regressing the patient's first load though no new code ever reached it. `Shop.tsx` is unchanged; `MarketOrderPreview` lives in the app instead, where Money's ledger is already a shared lazy dependency of Groups, Claims and MyThuso for Mom Essential | Every refusal word for word from the route that declares it | `Gift.tsx`, `lib/gifts.ts`, `MarketOrder.tsx`, `lib/market-orders.ts` |
+| **No native screen.** Neither app gives, books or orders in this wave — both act from the web preview, the same as a voucher's checkout — so no `scripts/emit-gifts.mjs` or `emit-market-orders.mjs` exists yet; `gifts.json` says so in `_whyNoNativeEmitter` | — | `gifts.json` |
+| **The build** holds this wave to four things: both routes built in the engine and nowhere else; a gift never books a visit by itself, on issue or on booking; a market order refuses a scheduled medicine and a listed one, by two different readings; every write here keyed before it writes | Each proved by breaking its source | `scripts/check-boundaries.mjs` |
+
+Still open: no route lists a beneficiary's gifts or an account's orders — both are read directly off the ledger by
+the screens that show them, as `owed` and `voucherHeld` already are; a market order's delivery zone is carried but
+never checked against `geography.json`'s coverage the way the shop's own quote flow checks it, because no refusal
+is declared for that on this route; a gift is a single visit at a single price and cannot be topped up, extended or
+gifted again once booked; and Thuso Market orders `paid`, `shipped`, `delivered` and `returned` are declared events
+with no publisher — this wave only ever reaches `placed`.
 
 ## Next UI increments
 
