@@ -186,6 +186,17 @@ test('a door code expires without costing a try, and its last wrong try tells th
  runtime.close();
 });
 
+test('the incident register Verify calls is the live version; the one Wave 6 withdrew answers as no route at all', () => {
+ const { safety } = incidentDesk();
+ const runtime = runtimeWith([safety]);
+ /* trust/engine.ts's INCIDENTS constant names @3, the version Wave 6 widened to admit engine:trust; the
+    withdrawn @2 it replaced is not a route this or any runtime can still be asked for. */
+ const dead = runtime.call('POST /v1/safety/incidents@2', as('engine:trust', null, 'audit'));
+ assert.equal(dead.status, 404);
+ assert.equal(dead.body.error, 'no-route');
+ runtime.close();
+});
+
 test('a door mismatch the incident register does not record is rolled back rather than told to the patient as reported', () => {
  const failing = defineEngine({ id: 'safety', store: { schema: '' }, subscriptions: {}, routes: { 'POST /v1/safety/incidents@3': () => ({ refuse: 'incident-refused' }) } });
  const runtime = runtimeWith([failing]);

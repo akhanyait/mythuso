@@ -88,10 +88,10 @@ enum ApisData {
     static let postCareVisitsByAppointmentRefHandoverV2 = Route(id: "postCareVisitsByAppointmentRefHandoverV2", method: "POST", path: "/v1/care/visits/{appointmentRef}/handover", mountedPath: "/v1/care/visits/{appointmentRef}/handover", version: 2, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postCareVisitsByAppointmentRefCompleteV2 = Route(id: "postCareVisitsByAppointmentRefCompleteV2", method: "POST", path: "/v1/care/visits/{appointmentRef}/complete", mountedPath: "/v1/care/visits/{appointmentRef}/complete", version: 2, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postCareSyncBatchesV2 = Route(id: "postCareSyncBatchesV2", method: "POST", path: "/v1/care/sync-batches", mountedPath: "/v1/care/sync-batches", version: 2, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: true, status: "built")
-    static let getCareShifts = Route(id: "getCareShifts", method: "GET", path: "/v1/care/shifts", mountedPath: "/v1/care/shifts", version: 1, engine: "care", callers: ["nurse", "locum", "dispatcher"], purpose: ["dispatch"], idempotent: false, status: "proposed")
-    static let getCareServices = Route(id: "getCareServices", method: "GET", path: "/v1/care/services", mountedPath: "/v1/care/services", version: 1, engine: "care", callers: ["patient", "caregiver", "nurse", "dispatcher", "thuso-line-agent"], purpose: ["dispatch"], idempotent: false, status: "proposed")
-    static let getCareLocumShifts = Route(id: "getCareLocumShifts", method: "GET", path: "/v1/care/locum-shifts", mountedPath: "/v1/care/locum-shifts", version: 1, engine: "care", callers: ["locum"], purpose: ["dispatch"], idempotent: false, status: "proposed")
-    static let getCareCircuits = Route(id: "getCareCircuits", method: "GET", path: "/v1/care/circuits", mountedPath: "/v1/care/circuits", version: 1, engine: "care", callers: ["nurse", "dispatcher"], purpose: ["dispatch"], idempotent: false, status: "proposed")
+    static let getCareShifts = Route(id: "getCareShifts", method: "GET", path: "/v1/care/shifts", mountedPath: "/v1/care/shifts", version: 1, engine: "care", callers: ["nurse", "locum", "dispatcher"], purpose: ["dispatch"], idempotent: false, status: "built")
+    static let getCareServices = Route(id: "getCareServices", method: "GET", path: "/v1/care/services", mountedPath: "/v1/care/services", version: 1, engine: "care", callers: ["patient", "caregiver", "nurse", "dispatcher", "thuso-line-agent"], purpose: ["dispatch"], idempotent: false, status: "built")
+    static let getCareLocumShifts = Route(id: "getCareLocumShifts", method: "GET", path: "/v1/care/locum-shifts", mountedPath: "/v1/care/locum-shifts", version: 1, engine: "care", callers: ["locum"], purpose: ["dispatch"], idempotent: false, status: "built")
+    static let getCareCircuits = Route(id: "getCareCircuits", method: "GET", path: "/v1/care/circuits", mountedPath: "/v1/care/circuits", version: 1, engine: "care", callers: ["nurse", "dispatcher"], purpose: ["dispatch"], idempotent: false, status: "built")
     static let postCareSettingChanges = Route(id: "postCareSettingChanges", method: "POST", path: "/v1/care/setting-changes", mountedPath: "/v1/care/setting-changes", version: 1, engine: "care", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
     static let getCareSettingsV2 = Route(id: "getCareSettingsV2", method: "GET", path: "/v1/care/settings", mountedPath: "/v1/care/settings", version: 2, engine: "care", callers: ["admin", "doctor", "nurse"], purpose: ["audit"], idempotent: false, status: "built")
     static let postCareSettingReviewsV2 = Route(id: "postCareSettingReviewsV2", method: "POST", path: "/v1/care/setting-reviews", mountedPath: "/v1/care/setting-reviews", version: 2, engine: "care", callers: ["doctor", "nurse"], purpose: ["audit"], idempotent: true, status: "built")
@@ -119,7 +119,6 @@ enum ApisData {
     static let getSafetyDeskQueue = Route(id: "getSafetyDeskQueue", method: "GET", path: "/v1/safety/desk-queue", mountedPath: "/v1/safety/desk-queue", version: 1, engine: "safety", callers: ["operator"], purpose: ["emergency", "dispatch"], idempotent: false, status: "built")
     static let postSafetySettingChangesV2 = Route(id: "postSafetySettingChangesV2", method: "POST", path: "/v1/safety/setting-changes", mountedPath: "/v1/safety/setting-changes", version: 2, engine: "safety", callers: ["admin", "operator"], purpose: ["audit"], idempotent: true, status: "built")
     static let getSafetyIncidentKinds = Route(id: "getSafetyIncidentKinds", method: "GET", path: "/v1/safety/incident-kinds", mountedPath: "/v1/safety/incident-kinds", version: 1, engine: "safety", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built")
-    static let postSafetyIncidentsV2 = Route(id: "postSafetyIncidentsV2", method: "POST", path: "/v1/safety/incidents", mountedPath: "/v1/safety/incidents", version: 2, engine: "safety", callers: ["nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin", "employer", "sponsor", "guardian", "corner", "carer", "head-of-operations"], purpose: ["audit"], idempotent: false, status: "built")
     static let postSafetyIncidentsV3 = Route(id: "postSafetyIncidentsV3", method: "POST", path: "/v1/safety/incidents", mountedPath: "/v1/safety/incidents", version: 3, engine: "safety", callers: ["nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin", "employer", "sponsor", "guardian", "corner", "carer", "head-of-operations", "engine:trust"], purpose: ["audit"], idempotent: false, status: "proposed")
     static let postSafetyIncidentsByIncidentIdContain = Route(id: "postSafetyIncidentsByIncidentIdContain", method: "POST", path: "/v1/safety/incidents/{incidentId}/contain", mountedPath: "/v1/safety/incidents/{incidentId}/contain", version: 1, engine: "safety", callers: ["admin", "incident-reporter"], purpose: ["audit"], idempotent: false, status: "built")
     static let postSafetyIncidentsByIncidentIdNotified = Route(id: "postSafetyIncidentsByIncidentIdNotified", method: "POST", path: "/v1/safety/incidents/{incidentId}/notified", mountedPath: "/v1/safety/incidents/{incidentId}/notified", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built")
@@ -354,7 +353,6 @@ enum ApisData {
         getSafetyDeskQueue,
         postSafetySettingChangesV2,
         getSafetyIncidentKinds,
-        postSafetyIncidentsV2,
         postSafetyIncidentsV3,
         postSafetyIncidentsByIncidentIdContain,
         postSafetyIncidentsByIncidentIdNotified,
@@ -1284,17 +1282,6 @@ enum ApisData {
     struct GetSafetyIncidentKindsResponse {
         let kinds: [[String: Any]]
         let notificationRule: String
-    }
-    struct PostSafetyIncidentsV2Request {
-        let kind: String
-        let whatHappened: String
-        let informationReached: Bool
-        let peopleAffected: Int?
-        let discoveredAt: Int?
-    }
-    struct PostSafetyIncidentsV2Response {
-        let incidentId: String
-        let notificationOwed: Bool
     }
     struct PostSafetyIncidentsV3Request {
         let kind: String

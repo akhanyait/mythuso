@@ -6,11 +6,14 @@ import { NotConnected } from '../components/NotConnected';
 import { VettingApplication } from './Vetting';
 import { can, type VettingSubject } from '../lib/vetting';
 import { seededSubjects } from '../lib/vetting-fixtures';
-import { placeOf, rosterNurses } from '../lib/roster';
+import { nurseById, placeOf, rosterNurses } from '../lib/roster';
 import { etaFromRoute, noEta, provinceFor, routeUnavailable, straightLineEta,
  type Eta, type LatLng, type RouteResult } from '../../../../packages/geo/index.ts';
 import { LiveMap, type MapMarker } from '../map/LiveMap';
 import { coverage, mapWindow, marks, suburbPin, zones } from '../lib/geography';
+import careApi from '../../../../packages/catalog/apis/care.json' with { type: 'json' };
+import scheduling from '../../../../packages/catalog/scheduling.json' with { type: 'json' };
+import { circuitsFor, shiftsFor } from '../../../../packages/engines/src/care/domain/reads.ts';
 type Job = { id: string; service: string; area: string; window: string; at: LatLng; priority: 'Routine' | 'Same day' | 'Urgent' };
 /* A nurse who is not sharing a position has none. That is a real state — a phone in a bag, location
    turned off between visits — and the board has to be able to say so rather than hold a number that
@@ -241,6 +244,41 @@ export function DispatchBoard({ subjects = seededSubjects, heading = true }: { s
   </section>}
  </>;
 }
+/* GET /v1/care/shifts@1 and GET /v1/care/circuits@1, closed in Wave 6: drawn thinly from the same
+ * arithmetic the engine runs (packages/engines/src/care/domain/reads.ts), never a second copy of a
+ * shift or a circuit typed on this screen. A dispatcher reads every nurse's day here — the arithmetic
+ * in engine.ts is what refuses a nurse or a locum everybody else's; this board is the dispatcher's own
+ * view and has nothing to refuse. The circuit list answers the contract's own sentence, word for word,
+ * because every circuit packages/catalog/care.json names is still draft: nobody has agreed to run one. */
+const careRouteRefusal = (path: string, version: number, id: string): string => {
+ const route = careApi.routes.find(r => r.method === 'GET' && r.path === path && r.version === version);
+ const found = route?.refusals.find(r => r.id === id);
+ if (!found) throw new Error(`packages/catalog/apis/care.json's GET ${path}@${version} declares no refusal "${id}".`);
+ return found.statement;
+};
+const clockOf = (iso: string) => new Date(iso).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', timeZone: scheduling.timezone });
+
+export function ShiftBoard() {
+ const shifts = shiftsFor(new Date());
+ const firstDay = shifts[0]?.date;
+ const today = shifts.filter(s => s.date === firstDay);
+ const published = circuitsFor().filter(c => c.published);
+ return <>
+  <div className="section-title board-title"><h2>Shifts · {firstDay}</h2><p>{today.length} nurses rostered, from the hours the product actually offers rather than two times typed here.</p></div>
+  {/* A distinct row class rather than the dispatch list's own `.record-row.static`: the "Nearest
+      available nurses" list above already carries every one of these names, and a shared selector
+      would resolve to two rows for the same nurse rather than one. */}
+  <div className="panel shift-board-panel">{today.map(s => <div className="record-row shift-row" key={s.shiftRef}>
+   <span><strong>{nurseById(s.clinicianRef)?.name ?? s.clinicianRef}</strong><small>{s.zone}</small></span>
+   <small>{clockOf(s.startsAt)} – {clockOf(s.endsAt)}</small>
+  </div>)}</div>
+  <div className="section-title board-title"><h2>Rural circuits</h2></div>
+  {published.length
+   ? <div className="panel circuit-board-panel">{published.map(c => <div className="record-row shift-row" key={c.circuitId}><span><strong>{c.name}</strong><small>{c.zone}</small></span></div>)}</div>
+   : <p className="helper" role="status">{careRouteRefusal('/v1/care/circuits', 1, 'circuit-not-published')}</p>}
+ </>;
+}
+
 const incidents = [
  { id: 'INC-014', title: 'Nurse could not gain access at the address', severity: 'Medium', area: 'Soweto', opened: '09:52', status: 'Triage' },
  { id: 'INC-015', title: 'Patient reported chest pain during a routine visit', severity: 'Critical', area: 'Parktown', opened: '10:31', status: 'Escalated' },

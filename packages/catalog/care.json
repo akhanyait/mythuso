@@ -272,6 +272,12 @@
   "whyOnlyCapture": "A reading taken with no signal is the one piece of a visit that has to be allowed to arrive late. A start, a handover and a completion each ask something of somebody at the time — the code from the patient, a complete encounter from the record — and replaying one from a queue an hour later would be answering that question on the patient's behalf."
  },
 
+ "circuits": [
+  { "id": "tembisa-circuit", "name": "Tembisa circuit", "zone": "Tembisa", "published": false },
+  { "id": "alexandra-circuit", "name": "Alexandra circuit", "zone": "Alexandra", "published": false }
+ ],
+ "_circuitsNote": "Added in Wave 6, closing GET /v1/care/circuits@1, which had been declared since Wave 2 with nothing behind it: no rural round, no draft state, nothing to be published. A circuit is a nurse's grouped visits for a shift, run where a single-visit dispatch does not fit — packages/catalog/roster.json already places two of its nine nurses outside phase one's coverage, Brother Lwazi Mahlangu in Tembisa and Sister Zanele Mkhize in Alexandra, and refuses to offer either of them a visit rather than quietly extending the coverage claim. A rural round through the same two suburbs is the honest next step for them, and it is exactly as far as this wave takes it: named and given a place to be published from, published: false on both, because nobody has agreed to run one yet. The route answers circuit-not-published while every circuit here is draft, which is every circuit here today, and the moment one is set to published: true the same handler answers it — the switch this file holds is the whole of what makes it live.",
+
  "preview": {
   "appointmentRef": "TH-3107",
   "subjectRef": "sub-preview-3107",

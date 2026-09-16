@@ -19,7 +19,7 @@ import type { Part } from '../lib/visit-queue';
 import { cycle, weeks } from '../lib/earnings';
 import { ClinicalDeck, DeckTitleLevel, type DeckFigure, type DeckHeadline } from '../features/ClinicalDeck';
 import { earningsSummary, rand } from '../features/Earnings';
-import { DispatchBoard, IncidentBoard, QualityBoard, controlTowerCounts } from '../features/Dispatch';
+import { DispatchBoard, IncidentBoard, QualityBoard, ShiftBoard, controlTowerCounts } from '../features/Dispatch';
 import { FulfilmentQueue, partnerCounts } from '../features/Fulfilment';
 import { ClinicalProtocols, ReferralLetter, ReferralPathway, VisitAssessment, DoctorReview } from '../features/Clinical';
 import { CareVisit } from '../features/CareVisit';
@@ -503,7 +503,7 @@ function StaffSection({ role, section, open }: { role: StaffRole; section: strin
 function sectionBody(section: string, open: (m: string) => void) {
  return section === 'Schedule' ? <NurseSchedule open={open}/>
   : section === 'Review queue' ? <><ReviewQueue open={open}/><ReviewInbox/><SettingReviews/></>
-   : section === 'Dispatch' ? <><DispatchBoard/>{ride('desk')}</>
+   : section === 'Dispatch' ? <><DispatchBoard/><ShiftBoard/>{ride('desk')}</>
     : section === 'Incidents' ? <><SafetyDesk/><SosDesk/><Suspense fallback={null}><SafeguardingDesk/><SafeguardingReport workspace="control-tower"/></Suspense><ConcernBoard/><IncidentBoard open={open} notice={false}/><HeldCashPayments/><Suspense fallback={null}><DeviceRegistryDesk/></Suspense></>
      : section === 'Orders' || section === 'Collections' || section === 'Results' ? <FulfilmentQueue section={section} open={open}/>
       /* The last fallback. Protocols and Quality used to land here — a card whose only control

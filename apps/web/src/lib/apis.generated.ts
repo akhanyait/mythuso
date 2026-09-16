@@ -911,18 +911,6 @@ export interface GetSafetyIncidentKindsResponse {
  readonly notificationRule: string;
 }
 
-export interface PostSafetyIncidentsV2Request {
- readonly kind: string;
- readonly whatHappened: string;
- readonly informationReached: boolean;
- readonly peopleAffected?: number;
- readonly discoveredAt?: number;
-}
-export interface PostSafetyIncidentsV2Response {
- readonly incidentId: string;
- readonly notificationOwed: boolean;
-}
-
 export interface PostSafetyIncidentsV3Request {
  readonly kind: string;
  readonly whatHappened: string;
@@ -2366,10 +2354,10 @@ export const apiRoutes = {
  postCareVisitsByAppointmentRefHandoverV2: { name: "postCareVisitsByAppointmentRefHandoverV2", method: "POST", path: "/v1/care/visits/{appointmentRef}/handover", mountedPath: "/v1/care/visits/{appointmentRef}/handover", version: 2, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "built" },
  postCareVisitsByAppointmentRefCompleteV2: { name: "postCareVisitsByAppointmentRefCompleteV2", method: "POST", path: "/v1/care/visits/{appointmentRef}/complete", mountedPath: "/v1/care/visits/{appointmentRef}/complete", version: 2, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "built" },
  postCareSyncBatchesV2: { name: "postCareSyncBatchesV2", method: "POST", path: "/v1/care/sync-batches", mountedPath: "/v1/care/sync-batches", version: 2, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: true, status: "built" },
- getCareShifts: { name: "getCareShifts", method: "GET", path: "/v1/care/shifts", mountedPath: "/v1/care/shifts", version: 1, engine: "care", callers: ["nurse","locum","dispatcher"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
- getCareServices: { name: "getCareServices", method: "GET", path: "/v1/care/services", mountedPath: "/v1/care/services", version: 1, engine: "care", callers: ["patient","caregiver","nurse","dispatcher","thuso-line-agent"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
- getCareLocumShifts: { name: "getCareLocumShifts", method: "GET", path: "/v1/care/locum-shifts", mountedPath: "/v1/care/locum-shifts", version: 1, engine: "care", callers: ["locum"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
- getCareCircuits: { name: "getCareCircuits", method: "GET", path: "/v1/care/circuits", mountedPath: "/v1/care/circuits", version: 1, engine: "care", callers: ["nurse","dispatcher"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
+ getCareShifts: { name: "getCareShifts", method: "GET", path: "/v1/care/shifts", mountedPath: "/v1/care/shifts", version: 1, engine: "care", callers: ["nurse","locum","dispatcher"], purpose: ["dispatch"], idempotent: false, status: "built" },
+ getCareServices: { name: "getCareServices", method: "GET", path: "/v1/care/services", mountedPath: "/v1/care/services", version: 1, engine: "care", callers: ["patient","caregiver","nurse","dispatcher","thuso-line-agent"], purpose: ["dispatch"], idempotent: false, status: "built" },
+ getCareLocumShifts: { name: "getCareLocumShifts", method: "GET", path: "/v1/care/locum-shifts", mountedPath: "/v1/care/locum-shifts", version: 1, engine: "care", callers: ["locum"], purpose: ["dispatch"], idempotent: false, status: "built" },
+ getCareCircuits: { name: "getCareCircuits", method: "GET", path: "/v1/care/circuits", mountedPath: "/v1/care/circuits", version: 1, engine: "care", callers: ["nurse","dispatcher"], purpose: ["dispatch"], idempotent: false, status: "built" },
  postCareSettingChanges: { name: "postCareSettingChanges", method: "POST", path: "/v1/care/setting-changes", mountedPath: "/v1/care/setting-changes", version: 1, engine: "care", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
  getCareSettingsV2: { name: "getCareSettingsV2", method: "GET", path: "/v1/care/settings", mountedPath: "/v1/care/settings", version: 2, engine: "care", callers: ["admin","doctor","nurse"], purpose: ["audit"], idempotent: false, status: "built" },
  postCareSettingReviewsV2: { name: "postCareSettingReviewsV2", method: "POST", path: "/v1/care/setting-reviews", mountedPath: "/v1/care/setting-reviews", version: 2, engine: "care", callers: ["doctor","nurse"], purpose: ["audit"], idempotent: true, status: "built" },
@@ -2397,7 +2385,6 @@ export const apiRoutes = {
  getSafetyDeskQueue: { name: "getSafetyDeskQueue", method: "GET", path: "/v1/safety/desk-queue", mountedPath: "/v1/safety/desk-queue", version: 1, engine: "safety", callers: ["operator"], purpose: ["emergency","dispatch"], idempotent: false, status: "built" },
  postSafetySettingChangesV2: { name: "postSafetySettingChangesV2", method: "POST", path: "/v1/safety/setting-changes", mountedPath: "/v1/safety/setting-changes", version: 2, engine: "safety", callers: ["admin","operator"], purpose: ["audit"], idempotent: true, status: "built" },
  getSafetyIncidentKinds: { name: "getSafetyIncidentKinds", method: "GET", path: "/v1/safety/incident-kinds", mountedPath: "/v1/safety/incident-kinds", version: 1, engine: "safety", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built" },
- postSafetyIncidentsV2: { name: "postSafetyIncidentsV2", method: "POST", path: "/v1/safety/incidents", mountedPath: "/v1/safety/incidents", version: 2, engine: "safety", callers: ["nurse","locum","doctor","pharmacy","laboratory","courier","interpreter","operator","admin","employer","sponsor","guardian","corner","carer","head-of-operations"], purpose: ["audit"], idempotent: false, status: "built" },
  postSafetyIncidentsV3: { name: "postSafetyIncidentsV3", method: "POST", path: "/v1/safety/incidents", mountedPath: "/v1/safety/incidents", version: 3, engine: "safety", callers: ["nurse","locum","doctor","pharmacy","laboratory","courier","interpreter","operator","admin","employer","sponsor","guardian","corner","carer","head-of-operations","engine:trust"], purpose: ["audit"], idempotent: false, status: "proposed" },
  postSafetyIncidentsByIncidentIdContain: { name: "postSafetyIncidentsByIncidentIdContain", method: "POST", path: "/v1/safety/incidents/{incidentId}/contain", mountedPath: "/v1/safety/incidents/{incidentId}/contain", version: 1, engine: "safety", callers: ["admin","incident-reporter"], purpose: ["audit"], idempotent: false, status: "built" },
  postSafetyIncidentsByIncidentIdNotified: { name: "postSafetyIncidentsByIncidentIdNotified", method: "POST", path: "/v1/safety/incidents/{incidentId}/notified", mountedPath: "/v1/safety/incidents/{incidentId}/notified", version: 1, engine: "safety", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
