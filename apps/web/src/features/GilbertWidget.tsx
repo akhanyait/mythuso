@@ -1,7 +1,7 @@
 import { Component, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { CircleSlash, Minus, RotateCcw, Send, Square, Trash2, X } from 'lucide-react';
 import { NotConnected } from '../components/NotConnected';
-import { SPOKEN_ANSWERS, TRANSCRIPT_REVIEW } from '../lib/gilbertone';
+import { TRANSCRIPT_REVIEW } from '../lib/gilbertone';
 import { GilbertAvatar, GilbertStill, type Rig } from './GilbertAvatar';
 
 /* GilbertOne's widget shell — §08's GilbertWidget.tsx, and nothing behind it.
@@ -14,11 +14,12 @@ import { GilbertAvatar, GilbertStill, type Rig } from './GilbertAvatar';
  * notice saying nothing is connected, which is exactly §02's unavailable rule — "do not invent an
  * answer or show Connected".
  *
- * NO MICROPHONE, AND NOT AS A DISABLED CONTROL EITHER. §02's conversation row asks for the microphone
- * state to stay visible. On MyThuso's web the honest value of that state is that there is none, and
- * packages/catalog/capabilities.json says so in words the whole product renders word for word — so
- * the widget renders those words through <NotConnected of="voice"/> rather than drawing a control
- * that could be mistaken for one, which the same contract forbids in every state a control has.
+ * THE MICROPHONE STATE IS VISIBLE, AND IT IS NOT A CONTROL IN HERE. §02's conversation row asks for
+ * the microphone state to stay visible. The control that opens one lives on the demonstrator page
+ * around this widget — one control, one place, so there is never a second thing on the screen that
+ * might or might not be open — and what the widget carries is the capability's own words, through
+ * <NotConnected of="voice"/>, rendered word for word as every other screen renders them. This shell
+ * is mounted from GilbertOneDemo.tsx and from nowhere else, which is what keeps that true.
  *
  * WHAT A PERSON READS AND WHAT A SCREEN READER READS ARE THE SAME THING. The character is aria-hidden
  * throughout; the state is a sentence in a live region; every control has a written label and a
@@ -44,12 +45,20 @@ export type WidgetProps = {
  readonly onTyping: (typing: boolean) => void;
  /** AT12: make the rig throw, and watch the surface around it carry on. */
  readonly failRig: boolean;
- /** The words A10's mouth shapes are running against, shown as a caption because there is no audio. */
+ /** The words A10's mouth is shaping, shown as a caption because §07 asks for one whenever audio is
+     used — and audio is used now. */
  readonly caption: readonly string[] | null;
- /** §07's "final transcript shown for review", opened from the demonstrator. Nothing was captured;
-     the example words say so, and the shape of the correction is what is being reviewed. */
+ /** Whether the mouth is running on the voice's own word timings or on the caption's, said in words
+     because a reviewer judging articulation needs to know which of the two they are looking at. */
+ readonly captionLabel: string;
+ /** §07's "final transcript shown for review". The words are the browser recogniser's when a capture
+     opened it, and a fixed example when the demonstrator's own control did. */
  readonly review: boolean;
  readonly setReview: (review: boolean) => void;
+ readonly reviewSeed: string;
+ readonly reviewFromMicrophone: boolean;
+ /** §04: a stop cancels current speech as well as stale cues, and the voice is not part of the rig. */
+ readonly onStop: () => void;
 };
 
 /* AT12 asks that a failed avatar does not break the surface around it. A boundary is the only way to
@@ -72,18 +81,17 @@ class RigBoundary extends Component<{ size: number; children: ReactNode }, { fai
  }
 }
 
-export function GilbertWidget({ rig, open, setOpen, unavailable, onTyping, failRig, caption, review, setReview }: WidgetProps) {
+export function GilbertWidget({ rig, open, setOpen, unavailable, onTyping, failRig, caption, captionLabel, review, setReview, reviewSeed, reviewFromMicrophone, onStop }: WidgetProps) {
  const [mode, setMode] = useState<WidgetMode>('welcome');
  const [turns, setTurns] = useState<Turn[]>([]);
  const [draft, setDraft] = useState('');
  const launcher = useRef<HTMLButtonElement>(null);
  const heading = useId();
  const next = useRef(0);
- /* The transcript that would have come back from a recogniser, if this page had one. It is a fixed
-    sentence saying it is not a transcript of anything, and it is reset every time the panel opens:
-    a review step that remembers last time's correction is a review step that has started keeping
-    what it was corrected from. */
- const [transcript, setTranscript] = useState<string>(TRANSCRIPT_REVIEW.example);
+ /* What came back from the browser's recogniser, or the fixed example when nobody spoke. It is reset
+    from the seed every time the panel opens: a review step that remembers last time's correction is a
+    review step that has started keeping what it was corrected from. */
+ const [transcript, setTranscript] = useState<string>(reviewSeed);
  const field = useRef<HTMLTextAreaElement>(null);
 
  /* Opening the widget is A01's trigger, word for word from §03. It greets once and once only: a
@@ -110,9 +118,9 @@ export function GilbertWidget({ rig, open, setOpen, unavailable, onTyping, failR
     §07 asks a person to do — check it and correct it — rather than leaving them to find it. */
  useEffect(() => {
   if (!review) return;
-  setTranscript(TRANSCRIPT_REVIEW.example);
+  setTranscript(reviewSeed);
   field.current?.focus();
- }, [review]);
+ }, [review, reviewSeed]);
 
  const say = (text: string) => setTurns(list => [...list, { id: ++next.current, who: 'shell', text }]);
 
@@ -133,9 +141,8 @@ export function GilbertWidget({ rig, open, setOpen, unavailable, onTyping, failR
  };
 
  /* §07's review step, both halves of it. Sending puts the corrected words in the transcript and
-    nowhere else; Discard keeps nothing. Neither is a stand-in for a recogniser — there is none — and
-    what is being reviewed is the shape: a person reads what a machine thinks they said, fixes it,
-    and then decides whether it goes anywhere at all. */
+    nowhere else; Discard keeps nothing. A person reads what a machine thought they said, fixes it,
+    and then decides whether it goes anywhere at all — and here the only anywhere is this widget. */
  const sendTranscript = (event: FormEvent) => {
   event.preventDefault();
   const text = transcript.trim();
@@ -149,7 +156,7 @@ export function GilbertWidget({ rig, open, setOpen, unavailable, onTyping, failR
 
  const discardTranscript = () => {
   setReview(false);
-  setTranscript(TRANSCRIPT_REVIEW.example);
+  setTranscript(reviewSeed);
   say(TRANSCRIPT_REVIEW.discarded);
  };
 
@@ -176,7 +183,7 @@ export function GilbertWidget({ rig, open, setOpen, unavailable, onTyping, failR
        cannot share 316 pixels with a head. */}
    <header className="go-panel-head">
     <div className="go-panel-controls">
-     <button type="button" className="go-icon" aria-label="Stop GilbertOne moving" onClick={rig.stop}><Square size={16}/></button>
+     <button type="button" className="go-icon" aria-label="Stop GilbertOne speaking and moving" onClick={onStop}><Square size={16}/></button>
      <button type="button" className="go-icon" aria-label={mode === 'conversation' ? 'Minimise to the welcome card' : 'Open the transcript'} onClick={() => setMode(mode === 'conversation' ? 'welcome' : 'conversation')}><Minus size={16}/></button>
      <button type="button" className="go-icon" aria-label="Close GilbertOne" onClick={() => { setOpen(false); launcher.current?.focus(); }}><X size={16}/></button>
     </div>
@@ -238,20 +245,26 @@ export function GilbertWidget({ rig, open, setOpen, unavailable, onTyping, failR
          <button type="submit" className="secondary"><Send size={16}/>{TRANSCRIPT_REVIEW.sendLabel}</button>
          <button type="button" className="secondary" onClick={discardTranscript}><Trash2 size={16}/>{TRANSCRIPT_REVIEW.discardLabel}</button>
         </div>
-        <p className="helper">Nothing was captured. The field, the correction and Discard work the same whether words
-         arrive from a microphone or are put there by this page, which is how the shape of the step can be reviewed without
-         one behind it.</p>
+        <p className="helper">{reviewFromMicrophone
+         ? TRANSCRIPT_REVIEW.fromMicrophone
+         : 'Nothing was captured — these words were put here by the demonstrator so the shape of the step can be inspected without speaking. The field, the correction and Discard work the same either way.'}</p>
        </form>}
 
-       {/* §07: show captions whenever audio is used. None ever is, so the caption is the whole of
-           the output, and the indicator above it is the restrained speaking indicator §07 asks for
-           when synchronisation cannot be trusted — here, because there is nothing to synchronise
-           with. The dot is never the only difference: the words beside it say the same thing. */}
-       {caption && <p className="go-caption" role="status">
-        <span className="go-caption-label"><span className="go-speaking-dot" aria-hidden="true"/>{SPOKEN_ANSWERS.whileRunning}</span>
-        <span>{caption.join(' ')}</span>
-       </p>}
       </div>}
+
+   {/* §07: show captions whenever audio is used, and audio is used now.
+       IT SITS OUTSIDE THE SCROLLING BODY, and that is the whole reason this is not three lines up
+       with the transcript it belongs to. The body scrolls; a caption at the foot of it is off the
+       screen whenever anything above it is long — the review step open is enough — and a caption
+       nobody can see while a voice is talking is not a caption. It is here only while something is
+       actually being spoken, so it squeezes nothing the rest of the time.
+       The label says which clock the mouth is on: the voice's own word boundaries where the browser
+       reports them, the caption's own timing where it does not, which is the restrained fallback
+       §07 asks for. The dot is never the only difference — the words beside it say the same. */}
+   {caption && <p className="go-caption" role="status">
+    <span className="go-caption-label"><span className="go-speaking-dot" aria-hidden="true"/>{captionLabel}</span>
+    <span>{caption.join(' ')}</span>
+   </p>}
 
    <form className="go-composer" onSubmit={send}>
     <label className="visually-hidden" htmlFor={`${heading}-field`}>Type a message to GilbertOne. Nothing is sent anywhere.</label>

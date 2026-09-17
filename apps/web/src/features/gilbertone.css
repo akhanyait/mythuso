@@ -204,3 +204,21 @@
 /* The speaking indicator: a mark and the words that say the same thing, because colour and a dot are
    never on their own what tells somebody the mouth is moving against a caption. It does not pulse. */
 .go-speaking-dot { width: 8px; height: 8px; border-radius: var(--r-pill); background: var(--mango-ink); display: inline-block; margin-inline-end: var(--space-8); vertical-align: middle; }
+
+/* §07's push-to-talk control, and the reason it looks like the one control it is. The state is
+   carried by the words under it, always; the colour is the second thing that says the same, never
+   the first, and the open state is the only one that inverts — because it is the only one where
+   something is actually happening to the person reading it. Nothing here pulses: a shape that
+   breathes while a microphone is open is the animated microphone §07 asks nobody to draw. */
+.go-mic { display: grid; gap: var(--space-8); margin: var(--space-12) 0 var(--space-20); }
+.go-mic-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-8); justify-self: start;
+ min-height: 44px; padding: 0 var(--space-20); border: 1px solid var(--indigo); border-radius: var(--r-control);
+ background: var(--surface); color: var(--indigo-deep); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.go-mic-button[data-state="open"] { background: var(--indigo-deep); border-color: var(--indigo-deep); color: #fff; }
+.go-mic-button[data-state="error"] { border-color: var(--mango-ink); }
+.go-mic-button[disabled] { border-color: var(--line); color: var(--slate); cursor: not-allowed; }
+.go-mic-state { margin: 0; font-size: 14px; line-height: 1.6; color: var(--ink); }
+.go-mic-state strong { color: var(--indigo-deep); }
+.go-mic-words { margin: 0; padding: var(--space-8) var(--space-12); border: 1px solid var(--line); border-radius: var(--r-control);
+ background: var(--canvas); color: var(--ink); font-size: 15px; line-height: 1.55; overflow-wrap: anywhere; }
+.go-mic-words-label { display: block; font-size: 13px; font-weight: 600; color: var(--slate); }

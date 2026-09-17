@@ -6464,14 +6464,71 @@ for(const [needed, why] of [
 const androidElsewhere = androidVoice.match(/createSpeechRecognizer\(|startActivity|FileOutputStream|openFileOutput|\bFile\(|getExternal\w*|SharedPreferences|DataStore/);
 if(androidElsewhere) throw new Error(`${ANDROID_VOICE} reaches for ${androidElsewhere[0]}. Speech goes to the on-device recogniser and the words to the screen, and nothing else: no server recogniser, no recognition activity and nothing written down.`);
 
-/* ---- The web: no way of hearing at all, and the orb's name is the contract's ---------------- */
-const WEB_HEARING = /\b(getUserMedia|mediaDevices|webkitSpeechRecognition|SpeechRecognition|MediaRecorder|AudioContext|webkitAudioContext|AudioWorklet\w*|createMediaStreamSource)\b/;
-for(const file of files('apps/web/src').filter(f => /\.(ts|tsx)$/.test(f))) {
+/* ---- The web: one file may hear, one page may say so, and nothing may record -----------------
+ *
+ * Narrowed on 17 September 2026, and the shape of the narrowing is the shape of the 14 September one
+ * above it: a blanket refusal is replaced by narrower refusals that hold exactly the decision made
+ * and nothing wider.
+ *
+ * Until that day this refused every speech API in every file under apps/web/src, and every word
+ * offering to listen with them. It was right: the founder had decided the web is typed to, because a
+ * browser's recognition may hand what somebody said to the company that makes the browser. That
+ * decision still stands for the product — assistant.json's `voice.web` is still false and the live
+ * assistant is still held to it by the checks below. What the founder added on 17 September is
+ * `voice.webPoc`: §07's push-to-talk and §07's browser speech, built for real on the one page
+ * labelled a demonstrator, so the states and the mouth can be reviewed rather than imagined.
+ *
+ * So there are three refusals here instead of one, and each is narrower than the sentence it
+ * replaced:
+ *   - Recording is refused everywhere, the adapter included. Nothing on the web keeps audio, and the
+ *     way to be sure of that is for the APIs that could to be absent from every file.
+ *   - Recognition and synthesis live in ONE file, the way the microphone lives in one file on each
+ *     phone. Anybody asking when this app can hear gets an answer by opening a module.
+ *   - That file may be imported by the demonstrator and by nothing else, which is what keeps the
+ *     decision scoped to the page it was made for rather than to the web build. */
+const WEB_RECORDING = /\b(getUserMedia|mediaDevices|MediaRecorder|AudioContext|webkitAudioContext|AudioWorklet\w*|createMediaStreamSource)\b/;
+const WEB_SPEECH = /\b(webkitSpeechRecognition|SpeechRecognition|SpeechSynthesisUtterance|speechSynthesis)\b/;
+const WEB_VOICE_ADAPTER = 'apps/web/src/lib/voice.ts';
+/* The demonstrator, and the widget it mounts. These four files are the only ones that may say the
+   word for an open microphone, because on these four it is true. Everywhere else the old refusal is
+   untouched: no other screen on the web listens, so no other screen may say or imply that it does. */
+const WEB_DEMONSTRATOR = [WEB_VOICE_ADAPTER, 'apps/web/src/lib/gilbertone.ts', 'apps/web/src/features/GilbertOneDemo.tsx', 'apps/web/src/features/GilbertWidget.tsx'];
+const webSources = files('apps/web/src').filter(f => /\.(ts|tsx)$/.test(f));
+for(const file of webSources) {
  const code = gilbertCode(read(file));
- const hearing = code.match(WEB_HEARING);
- if(hearing) throw new Error(`${file} reaches for ${hearing[0]}. The web has no microphone in this release: a browser's speech recognition sends a voice to the browser's maker, and the founder decided GilbertOne on the web is typed to. ${voice.neverSoften}`);
- if(/['"`]listening['"`]|\bListening\b|\b(tap|hold|press) to (talk|speak)\b/i.test(code)) throw new Error(`${file} says Listening, or offers to. Nothing on the web listens, so no word on it may say or imply that it does.`);
+ const recording = code.match(WEB_RECORDING);
+ if(recording) throw new Error(`${file} reaches for ${recording[0]}. Nothing on the web records: the GilbertOne demonstrator may open the browser's recogniser, and it may not capture, buffer or keep a single sample of audio while it does. ${voice.neverSoften}`);
+ const speech = code.match(WEB_SPEECH);
+ if(speech && file !== WEB_VOICE_ADAPTER) throw new Error(`${file} reaches for ${speech[0]}. Speech on the web lives in ${WEB_VOICE_ADAPTER} and nowhere else — one file to read to know when this app can hear — and only the GilbertOne demonstrator may import it. The live assistant on the web is still typed to: a browser's recognition may send a voice to the browser's maker. ${voice.neverSoften}`);
+ if(/['"`]listening['"`]|\bListening\b|\b(tap|hold|press) to (talk|speak)\b/i.test(code) && !WEB_DEMONSTRATOR.includes(file)) throw new Error(`${file} says Listening, or offers to. Only the GilbertOne demonstrator listens on the web, so no other file may say or imply that anything does.`);
+ /* The import graph, which is what actually holds the scope. A screen that imported the adapter
+    would have a real microphone in it whatever its own words said. */
+ if(!WEB_DEMONSTRATOR.includes(file) && /from\s+'(\.{1,2}\/)+lib\/voice'|from\s+'\.\/voice'/.test(code)) throw new Error(`${file} imports ${WEB_VOICE_ADAPTER}. The founder's decision of 17 September 2026 is scoped to the GilbertOne demonstrator — ${WEB_DEMONSTRATOR.filter(f => f !== WEB_VOICE_ADAPTER).join(', ')} — and an import anywhere else puts a microphone on a screen nobody decided to put one on.`);
 }
+/* The decision itself, in both contracts, and the adapter held to it rather than to a number
+   somebody typed. A cap written twice is a cap that will disagree with itself. */
+const webPoc = gilbertContract.voice.webPoc;
+if(!webPoc?.enabled || webPoc.mode !== 'push-to-talk' || !webPoc.on || !webPoc.why || !webPoc.scope) throw new Error('packages/catalog/assistant.json has lost voice.webPoc, or the sentence saying who decided it, when and why. A microphone on the web exists because of one dated decision, and a page that opens one without it on file is a page nobody authorised.');
+if(webPoc.maxListeningSeconds !== gilbertContract.voice.maxListeningSeconds) throw new Error(`voice.webPoc.maxListeningSeconds is ${webPoc.maxListeningSeconds} and the listening cap is ${gilbertContract.voice.maxListeningSeconds}. There is one cap, it is the founder's, and the web does not get a longer one.`);
+for(const key of ['beforePermission', 'unavailable', 'refused', 'failed', 'interrupted']) {
+ if(!webPoc.sentences?.[key]) throw new Error(`voice.webPoc.sentences has no "${key}". Every state the browser's microphone can end in needs a sentence, or a reader meets a raw error code on a health product.`);
+}
+/* `voice.web` itself is held to false by the founder-decision block further up this section, which
+   already refuses any widening of it as an edit. It is not re-checked here: webPoc was added beside
+   it rather than in place of it, precisely so that the live matcher on the web stays typed to, and
+   two checks on the same field is one of them going stale unnoticed. */
+if(!voice.webPoc?.what || !voice.webPoc?.whyNotTheLiveProduct) throw new Error('The voice capability has lost its webPoc block, or the sentence saying why the demonstrator is not the live product. The capability contract is where the difference between the two is written down for all three platforms.');
+if(!/listening affordance may be drawn unless the microphone is actually open/.test(voice.neverSoften) || !/demonstrator/.test(voice.neverSoften)) throw new Error('The voice capability\'s neverSoften no longer forbids an affordance where nothing is open, or no longer names the one page where a microphone may open. Both halves are the rule.');
+const webVoiceAdapter = gilbertCode(read(WEB_VOICE_ADAPTER));
+if(!/webPoc\.maxListeningSeconds/.test(webVoiceAdapter) || /\b30\b/.test(webVoiceAdapter)) throw new Error(`${WEB_VOICE_ADAPTER} does not read the listening cap from the contract, or types a number of its own. The cap is the founder's decision and is read, never restated.`);
+for(const [written, why] of [
+ [/localStorage|sessionStorage|indexedDB|FileReader|\bBlob\b/, 'nothing it hears may be written down or turned into a file'],
+ [/fetch\(|XMLHttpRequest|WebSocket|navigator\.sendBeacon/, 'nothing it hears may leave the page']
+]) if(written.test(webVoiceAdapter)) throw new Error(`${WEB_VOICE_ADAPTER} reaches for ${written.source}: ${why}. The transcript lives in React state for as long as the page is open and goes nowhere.`);
+/* The disclosure comes before the first tap, not after it. §07 and the capability's own note both
+   ask for the route to be disclosed before capture, and a page that opens a microphone and then
+   explains has already taken the voice it was explaining about. */
+if(!/BEFORE_PERMISSION/.test(read('apps/web/src/features/GilbertOneDemo.tsx'))) throw new Error('apps/web/src/features/GilbertOneDemo.tsx no longer shows the disclosure sentence before the microphone control. The browser\'s recognition may send a voice to the browser\'s maker, and that is said before the first tap or the tap was not informed.');
 const launcherLabel = (read('apps/web/src/components/AssistantLauncher.tsx').match(/className="as-launcher" aria-label="([^"]+)"/) ?? [])[1];
 if(launcherLabel !== gilbertContract.identity.callToAction) throw new Error(`The floating orb on the web is called "${launcherLabel}", and the contract's call to action is "${gilbertContract.identity.callToAction}". It is typed there only to keep the contract out of the patient's first load, and it is held to the contract here instead.`);
 if(!/\{silenceIsNotSafety\}/.test(read('apps/web/src/features/Assistant.tsx')) || !/<NotConnected of="voice"\/>/.test(read('apps/web/src/features/Assistant.tsx'))) throw new Error('apps/web/src/features/Assistant.tsx no longer renders the voice notice and silenceIsNotSafety beside the conversation.');

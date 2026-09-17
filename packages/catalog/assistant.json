@@ -586,6 +586,22 @@
   "modelImprovementOffered": false,
   "web": false,
   "decidedBy": "The founder, 14 September 2026.",
+  "webPoc": {
+   "enabled": true,
+   "scope": "The GilbertOne character demonstrator at /app/?preview=gilbertone, and nothing else on the web. The live assistant is still governed by voice.web above: it does not listen, does not speak, and nothing in this object reaches it.",
+   "mode": "push-to-talk",
+   "maxListeningSeconds": 30,
+   "decidedBy": "Founder",
+   "on": "2026-09-17",
+   "why": "§07 of the GilbertOne scope document asks for browser push-to-talk and browser speech in the proof of concept, and a demonstrator that describes both in words cannot be reviewed for either. The founder asked on 17 September 2026 for the real thing on that one page, so that the microphone states, the transcript review and the mouth against real playback can be judged rather than imagined. The reason the live assistant is still typed to is unchanged: a browser's recognition may leave the machine, and a patient asking about her own health is not a reviewer who chose to open a demonstrator.",
+   "sentences": {
+    "beforePermission": "Your browser is about to ask whether this page may use the microphone. It opens only after you tap, for {seconds} seconds at most, and this page keeps no recording. Your browser's speech recognition may send what you say to the company that makes the browser to turn it into text — that is the browser's route, not MyThuso's, and it is why the rest of MyThuso on the web is typed to.",
+    "unavailable": "This browser has no speech recognition, so this demonstration cannot hear you. Nothing was asked for and nothing was opened. You can type instead, and everything else on the page works as it did.",
+    "refused": "The microphone is switched off for this page, so the demonstration cannot hear you. Nothing was kept. You can type instead, and you can change this in your browser's settings for this site.",
+    "failed": "The demonstration did not catch that. Nothing was kept. Tap to talk again, or type instead.",
+    "interrupted": "The microphone closed before you tapped Stop — the browser took it back, or the time limit ran out. Whatever was caught up to that point is in the field below to check or discard. Nothing was kept beyond it."
+   }
+  },
   "sentences": {
    "howItWorks": "Tap the sphere and speak in English. GilbertOne listens until you tap Stop, or for {seconds} seconds at most, turns what you say into text on this phone, and shows it to you to correct before anything is sent.",
    "beforePermission": "Your phone is about to ask whether MyThuso may use the microphone and speech recognition. GilbertOne uses them only after you tap the sphere, in English, on this phone. No recording is made and nothing you say leaves the phone.",

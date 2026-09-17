@@ -180,15 +180,16 @@ extension Capabilities {
         Capability(id: "voice", name: "Talking to GilbertOne", connected: false,
                    evidence: nil,
                    blockedBy: [
-                       "No contracted South African speech provider: so English only, only on phones that recognise it offline, and nothing heard on the web.",
+                       "No contracted South African speech provider: so English only, and only on phones that recognise it offline.",
                        "No language model. GilbertOne answers only from its approved sentences, and says so when it cannot assess something.",
-                       "No decision about a recording beyond keeping none, so nothing is recorded and no transcript leaves the phone."
+                       "No decision about a recording beyond keeping none, so nothing is recorded and no transcript leaves the phone.",
+                       "On the web, only the labelled GilbertOne demonstrator can hear you, and it answers nothing: the browser's own recognition may send what you say to the browser's maker, so the live assistant on the web is still typed to."
                    ],
-                   notice: "GilbertOne listens only after you tap the sphere on a phone, hears English only, turns speech into text on the phone and keeps no recording. On the web you type. Nothing you say or type is sent anywhere.",
+                   notice: "GilbertOne listens only after you tap the sphere on a phone, hears English only, turns speech into text on the phone and keeps no recording. On the web you type, except on the labelled GilbertOne demonstrator, where a real microphone opens only when you tap it and the browser's own recognition is used. Nothing you say or type is sent to MyThuso.",
                    state: "on-device",
                    simulation: nil,
                    surfaces: ["assistant", "voice", "home"],
-                   neverSoften: "No listening affordance may be drawn unless the microphone is actually open, and none at all on the web — not an enabled one, not a disabled one, not a decorative one. A control that looks like it is listening and is not is worse than no control, and on a health product it is the kind of worse that gets believed.",
+                   neverSoften: "No listening affordance may be drawn unless the microphone is actually open — not an enabled one, not a disabled one, not a decorative one. On the web a microphone may open on the labelled GilbertOne demonstrator and nowhere else, only after an explicit tap, and only with the disclosure about the browser's own recognition shown before the first one; every other web surface offers nothing in any state. A control that looks like it is listening and is not is worse than no control, and on a health product it is the kind of worse that gets believed.",
                    requiresPermissions: ["NSMicrophoneUsageDescription", "NSSpeechRecognitionUsageDescription", "android.permission.RECORD_AUDIO"]),
         Capability(id: "devices", name: "The connected kit", connected: false,
                    evidence: nil,

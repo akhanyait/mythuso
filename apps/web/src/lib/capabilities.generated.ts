@@ -198,11 +198,12 @@ export const capabilities: readonly FirstViewCapability[] = [
   "name": "Talking to GilbertOne",
   "connected": false,
   "state": "on-device",
-  "notice": "GilbertOne listens only after you tap the sphere on a phone, hears English only, turns speech into text on the phone and keeps no recording. On the web you type. Nothing you say or type is sent anywhere.",
+  "notice": "GilbertOne listens only after you tap the sphere on a phone, hears English only, turns speech into text on the phone and keeps no recording. On the web you type, except on the labelled GilbertOne demonstrator, where a real microphone opens only when you tap it and the browser's own recognition is used. Nothing you say or type is sent to MyThuso.",
   "blockedBy": [
-   "No contracted South African speech provider: so English only, only on phones that recognise it offline, and nothing heard on the web.",
+   "No contracted South African speech provider: so English only, and only on phones that recognise it offline.",
    "No language model. GilbertOne answers only from its approved sentences, and says so when it cannot assess something.",
-   "No decision about a recording beyond keeping none, so nothing is recorded and no transcript leaves the phone."
+   "No decision about a recording beyond keeping none, so nothing is recorded and no transcript leaves the phone.",
+   "On the web, only the labelled GilbertOne demonstrator can hear you, and it answers nothing: the browser's own recognition may send what you say to the browser's maker, so the live assistant on the web is still typed to."
   ],
   "simulation": null
  },

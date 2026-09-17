@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Captions, Contrast, Pause, Play, Repeat, ShieldX, Sparkles, SquarePen, TriangleAlert } from 'lucide-react';
+import { Captions, Contrast, Mic, MicOff, Pause, Play, Repeat, ShieldX, Sparkles, SquarePen, TriangleAlert } from 'lucide-react';
 import { GilbertAvatar, useGilbertRig } from './GilbertAvatar';
 import { GilbertWidget } from './GilbertWidget';
 import { NotConnected } from '../components/NotConnected';
@@ -8,8 +8,10 @@ import { useReducedMotion } from '../lib/motion';
 import { t } from '../lib/i18n';
 import {
  CUES, REFUSED, SPOKEN_ANSWERS, TRACK_WORDS, TRANSCRIPT_REVIEW, VOICE_NEVER_SOFTEN, VOICE_SENTENCES, VOICE_STATES,
- VOICE_TABLE, YAWN_COOLDOWN_MS, YAWN_IDLE_MS, YAWN_SUPPRESSORS, durationOf, mayYawn, type Cue
+ VOICE_TABLE, VOICE_WEB_POC_SCOPE, YAWN_COOLDOWN_MS, YAWN_IDLE_MS, YAWN_SUPPRESSORS, durationOf, mayYawn, type Cue
 } from '../lib/gilbertone';
+import { BEFORE_PERMISSION, FAILURE_SENTENCES, useVoiceAdapter } from '../lib/voice';
+import { voice as voicePolicy } from '../../../../packages/catalog/assistant.json';
 import './gilbertone.css';
 
 /* GilbertOne, phase 1: the character demonstrator.
@@ -25,20 +27,24 @@ import './gilbertone.css';
  * written account of what each control did — because the whole value of a motion review is being
  * able to fire two things in the wrong order and see which one the face obeyed.
  *
- * WHAT IT IS NOT. There is no conversation controller, no knowledge adapter, no model, no server and
- * no voice adapter: §08's other six modules are phases 2 to 4, and each of those phases is gated on a
- * decision — a pinned model checkpoint, a speech provider, a clinical review of care content — that
- * MyThuso has not made. Nothing here reaches the network at all. Two cues from the document's own
- * tables and both halves of §07's voice are refused rather than drawn, and the reasons are on the
- * page under "What this phase will not do", where a reviewer looking for the missing states will
- * find them. What §07 asks for that needs neither a microphone nor a loudspeaker — the capability
- * table, the four input states in words, the transcript shown for review and corrected before it is
- * sent, the caption and its replay — is built, because that is the part of it anybody can actually
- * review today.
+ * WHAT IT IS NOT. There is no conversation controller, no knowledge adapter, no model and no server:
+ * §08's other modules are phases 2 to 4, and each of those phases is gated on a decision — a pinned
+ * model checkpoint, hosting, a clinical review of care content — that MyThuso has not made. Nothing
+ * here reaches the network at all. What is still refused is on the page under "What this phase will
+ * not do", where a reviewer looking for a missing thing will find the reason instead of a gap.
+ *
+ * §07'S VOICE IS REAL HERE, AND ONLY HERE, from 17 September 2026. The founder asked for the
+ * browser's own recogniser behind a push-to-talk control and the browser's own voice reading the
+ * demonstration answer out, so that the four microphone states, the transcript review and a mouth
+ * running against real playback could be judged rather than described. The decision is on file as
+ * `voice.webPoc` in packages/catalog/assistant.json; the machinery is lib/voice.ts and nothing else;
+ * and every other screen on the web is still typed to, because a browser's recognition may hand what
+ * somebody said to the company that makes the browser and a patient asking about her own health has
+ * not chosen that the way a reviewer opening a demonstrator has.
  *
  * IT IS ON THE DEPLOYED SITE from 17 September 2026, having been development-only until then, and
- * that is the reason the refusals above matter more here than they would behind a dev server: a
- * reviewer with the address can open it, and so can anybody else who is given one.
+ * that is the reason the disclosure before the first tap matters more here than it would behind a
+ * dev server: a reviewer with the address can open it, and so can anybody else who is given one.
  *
  * THIS IS THE PREVIEW, NOT THE LIVE ASSISTANT. The shipped GilbertOne is
  * packages/catalog/assistant.json's matcher, its descriptor line and its founder-decided voice
@@ -56,9 +62,9 @@ const GROUNDS = [
 ] as const;
 type Ground = typeof GROUNDS[number]['id'];
 
-/* The words A10's mouth runs against. They are the caption, they are shown while the mouth moves, and
-   they say what they are: there is no audio here to follow, and none is implied. */
-const CAPTION = 'This is a demonstration caption. The mouth follows these written words, because no audio is played and no voice is synthesised.'.split(' ');
+/* The words A10 speaks, and the caption shown while it speaks them — one list, so the two cannot
+   disagree. They say what they are: a fixed sentence, not an answer to anything. */
+const CAPTION = 'This is a demonstration answer. Your browser is reading these words out, and nothing on this page understood the question.'.split(' ');
 
 /* The stage size. One number, because a rig that changes size when a setting changes is a layout
    jump dressed as a preference. */
@@ -85,8 +91,16 @@ export default function GilbertOneDemo() {
     caption is not a subtitle of something else — it is the output. */
  const [spoken, setSpoken] = useState(true);
  const [review, setReview] = useState(false);
+ /* What the review field opens on, and where those words came from. A capture fills it; the control
+    in the voice panel opens the step on the fixed example instead, so the shape can be inspected
+    without speaking. */
+ const [reviewSeed, setReviewSeed] = useState<string>(TRANSCRIPT_REVIEW.example);
+ const [reviewFromMicrophone, setReviewFromMicrophone] = useState(false);
  const [lastYawn, setLastYawn] = useState(0);
  const [now, setNow] = useState(() => Date.now());
+
+ const voice = useVoiceAdapter();
+ const capturing = voice.state === 'starting' || voice.state === 'open';
 
  /* One second's tick, and only while a cooldown is actually running. A countdown that keeps
     counting after it has reached zero is a timer nobody switched off. */
@@ -101,8 +115,26 @@ export default function GilbertOneDemo() {
  useEffect(() => () => { for (const timer of timers.current) window.clearTimeout(timer); }, []);
  const later = (ms: number, run: () => void) => { timers.current.push(window.setTimeout(run, ms)); };
 
- const yawn = useMemo(() => mayYawn({ playful, running: rig.running, typing, sinceCooldown: lastYawn ? now - lastYawn : YAWN_COOLDOWN_MS, reduced }),
-  [playful, rig.running, typing, lastYawn, now, reduced]);
+ const yawn = useMemo(() => mayYawn({ playful, running: rig.running, typing, sinceCooldown: lastYawn ? now - lastYawn : YAWN_COOLDOWN_MS, reduced, capturing }),
+  [playful, rig.running, typing, lastYawn, now, reduced, capturing]);
+
+ /* The captured words go to §07's review step, and they go there when the microphone closes rather
+    than while it is open: a field that rewrites itself under somebody's eyes while they are still
+    speaking is not a thing anybody can check. The ref is what makes this happen once per capture —
+    the transcript is still in state afterwards, and an effect watching it alone would reopen the
+    panel every time anything else on the page changed. */
+ const wasCapturing = useRef(false);
+ useEffect(() => {
+  if (capturing) { wasCapturing.current = true; return; }
+  if (!wasCapturing.current) return;
+  wasCapturing.current = false;
+  const words = voice.transcript.trim();
+  if (!words) return;
+  setReviewSeed(words);
+  setReviewFromMicrophone(true);
+  setOpen(true);
+  setReview(true);
+ }, [capturing, voice.transcript]);
 
  /* One control, one cue — except for the three the manifest treats differently. A02 is ambient and
     the control returns to it rather than playing it; A03 is an articulation rather than a cue; A14
@@ -120,18 +152,48 @@ export default function GilbertOneDemo() {
    if (!spoken) return;
    return speak();
   }
+  /* §04: a stop event cancels current speech as well as stale cues, and a safety override stops
+     everything decorative and surfaces the action immediately. The voice is not part of the rig, so
+     both of those have to reach it separately — a face that has gone still while a cheerful sentence
+     carries on being read out is the failure §04's ordering exists to prevent. */
+  if (cue.id === 'A15' || cue.id === 'A16') voice.cancel();
   rig.play(cue.id);
  };
 
- /* A10, and §07's replay in the same function: the same written words are shaped again, and nothing
-    is re-run, re-asked or resubmitted to produce them — which is the whole of what §07 asks replay to
-    be, and easy to promise here because there was never anything behind them. */
+ /* A10, and §07's replay in the same function: the same fixed words are spoken again, and nothing is
+    re-run, re-asked or resubmitted to produce them — which is the whole of what §07 asks replay to
+    be, and easy to promise here because there was never anything behind them.
+    The mouth follows real playback. Where the browser reports word boundaries, each word is shaped as
+    it is spoken; where it does not, the timed caption track starts at the utterance's own start event
+    and carries on, which is §07's restrained fallback and is said in words beside the caption. The
+    caption goes up before the voice does and comes down when it stops, so there is never a caption on
+    the screen for words nobody is saying, and never a word said without one. */
  const speak = () => {
   setCaption(CAPTION);
-  rig.play('A10', { caption: CAPTION });
-  /* The caption leaves when the mouth closes, so there is never a caption on the screen for words
-     that are not being shaped. */
-  later(CAPTION.length * 240 + 400, () => setCaption(null));
+  const sentence = CAPTION.join(' ');
+  if (!voice.canSpeak) {
+   /* No synthesiser in this browser at all. The cue still runs against the written words, and the
+      caption's own label says the timing is the caption's rather than a voice's. */
+   rig.play('A10', { caption: CAPTION });
+   later(CAPTION.length * 240 + 400, () => setCaption(null));
+   return;
+  }
+  voice.speak(sentence, {
+   onStart: () => rig.play('A10', { caption: CAPTION }),
+   onWord: word => rig.play('A10', { caption: [word] }),
+   /* An empty caption track is one step that closes the mouth — which is what §07 asks for on end,
+      on cancel and on failure alike, and this fires for all three. */
+   onEnd: () => { rig.play('A10', { caption: [] }); setCaption(null); }
+  });
+ };
+
+ /* The push-to-talk control, and the whole of what it does. One tap opens, the next closes, and
+    nothing else on the page can open it — which is the gesture the contract already chose for the
+    phones, for the reason it gives: a hold shuts out VoiceOver, TalkBack and anybody with a tremor. */
+ const talk = () => {
+  if (voice.state === 'open' || voice.state === 'starting') return voice.stop();
+  voice.clearFailure();
+  voice.start();
  };
 
  /* The caption lives in the widget, so the control that plays it from the voice panel opens the
@@ -170,13 +232,14 @@ export default function GilbertOneDemo() {
    <p className="eyebrow">GilbertOne · Phase 1 of 4</p>
    <h1>Character demonstrator</h1>
    <p className="go-lede">
-    A rig, a widget shell and a control for every cue in the scope document's animation tables. There is no model
-    behind it, no server, no speech and no conversation: this page exists so the motion can be reviewed before any of
-    those decisions are made. Nothing here is a MyThuso service, nothing is sent anywhere, and nothing is kept.
+    A rig, a widget shell and a control for every cue in the scope document's animation tables, with §07's voice built
+    for real on this page alone: your browser's microphone behind one push-to-talk control, and your browser's voice
+    reading a fixed demonstration answer out. There is no model behind it, no server and no conversation — nothing here
+    understands a word you say. Nothing on this page is a MyThuso service, nothing is sent to MyThuso, and nothing is kept.
    </p>
    <p className="helper"><ShieldX size={15} aria-hidden="true"/><span>
-    This is a preview of GilbertOne's presentation, not GilbertOne itself. It previews look and animation only: the
-    live GilbertOne's matcher, voice and handover are unchanged, and this page is wired to none of them.
+    This is a preview of GilbertOne's presentation, not GilbertOne itself. The live GilbertOne's matcher and handover are
+    unchanged and this page is wired to neither. {VOICE_WEB_POC_SCOPE}
    </span></p>
   </header>
 
@@ -248,8 +311,8 @@ export default function GilbertOneDemo() {
       track or a lower one, and never a higher one — which is why no smile, greeting or yawn can land while the urgent pose holds.</p>
      <div className="go-access-row">
       <button type="button" className="secondary" onClick={staleTurn}>Deliver a late trigger from an earlier turn</button>
-      <button type="button" className="secondary" onClick={() => { rig.play('A16'); later(250, () => rig.play('A13')); }}>Try to smile during the urgent pose</button>
-      <button type="button" className="secondary" onClick={rig.stop}>Stop</button>
+      <button type="button" className="secondary" onClick={() => { voice.cancel(); rig.play('A16'); later(250, () => rig.play('A13')); }}>Try to smile during the urgent pose</button>
+      <button type="button" className="secondary" onClick={() => { voice.cancel(); rig.stop(); }}>Stop</button>
       <button type="button" className="secondary" onClick={rig.rest}>Release any held pose</button>
      </div>
      <p className="helper">The first two fire two triggers in a row and leave the reason the second one did or did not land in the
@@ -274,22 +337,47 @@ export default function GilbertOneDemo() {
     </div>
    </section>
 
-   {/* §07, and the reason it is a panel of words with three controls rather than a mocked-up
-       microphone: everything in that section which does not need a microphone or a loudspeaker is
-       built and pressable, and the two halves that do need one are named, refused and explained
-       below. A demonstrator that drew the control anyway would be the first place anybody saw
-       MyThuso appear to hear them, and this page is on the deployed site. */}
+   {/* §07, built. The control below opens a real microphone, and the two things that make that
+       defensible are both in this panel rather than in a document: the disclosure sits above the
+       control and is read before the first tap, and the state is a sentence that only ever says the
+       microphone is open when the browser has said so. This page is on the deployed site. */}
    <section className="go-voice panel" aria-labelledby="go-voice-title">
-    <h2 id="go-voice-title">Voice · §07, and what can be reviewed without one</h2>
+    <h2 id="go-voice-title">Voice · §07, built on this page only</h2>
     <p className="helper">§07 asks for push-to-talk input with four clear states and a transcript shown for review, the
      browser's speech for the output, mouth movement driven by playback, timing that closes the mouth the moment anything
-     stops, and a position on retained audio. This page cannot hear and makes no sound, so what is built is everything in
-     that list that needs neither — and what is not built is named rather than mocked up. Every control here is a
-     demonstration control: nothing is captured, nothing is produced and nothing leaves this browser.</p>
+     stops, and a position on retained audio. All of it is built here. None of it is built anywhere else in MyThuso on
+     the web, and nothing behind it answers: what your browser catches is shown back to you to correct, and what is
+     spoken is a fixed sentence this page already had.</p>
+
+    {/* The disclosure, above the control, always — not once, not behind a link, and not after the
+        first tap. §07 asks that the route be disclosed and permission obtained before capture, and a
+        page that opens a microphone and then explains has already taken the voice it was explaining
+        about. */}
+    <p className="go-voice-note" role="note" id="go-mic-disclosure">{BEFORE_PERMISSION}</p>
+
+    <div className="go-mic">
+     <button type="button" className="go-mic-button" data-state={voice.state} disabled={!voice.supported}
+             aria-describedby="go-mic-disclosure go-mic-state" onClick={talk}>
+      {capturing ? <Mic size={18} aria-hidden="true"/> : <MicOff size={18} aria-hidden="true"/>}
+      {voice.state === 'open' || voice.state === 'starting' ? voicePolicy.sentences.stopLabel : voicePolicy.sentences.talkLabel}
+     </button>
+     {/* The state in words, every time, and never by the icon or the colour alone. "Listening" is
+         written only in the one state the recogniser has told us the microphone is open in. */}
+     <p className="go-mic-state" id="go-mic-state" role="status" aria-live="polite">
+      <strong>{voice.supported ? VOICE_STATES.find(state => state.id === voice.state)?.name : 'Not available in this browser'}.</strong>{' '}
+      {!voice.supported
+       ? FAILURE_SENTENCES.unavailable
+       : voice.state === 'off' ? 'The microphone is shut. It opens when you tap, and at no other moment.'
+       : voice.state === 'starting' ? 'Asked for, and not open yet. Your browser may be deciding, or asking you.'
+       : voice.state === 'open' ? `The microphone is open. It closes when you tap Stop, or after ${voice.maxListeningSeconds} seconds, whichever comes first.`
+       : voice.failureSentence}
+     </p>
+     {voice.transcript && <p className="go-mic-words"><span className="go-mic-words-label">What your browser has sent back so far</span>{voice.transcript}</p>}
+    </div>
 
     <div className="go-voice-grid">
      <div>
-      <h3>The capability table, and what this phase does with each row</h3>
+      <h3>The capability table, and what is built against each row</h3>
       <dl className="go-voice-table">
        {VOICE_TABLE.map(row => <div key={row.id} className="go-voice-row">
         <dt>{row.capability}</dt>
@@ -309,14 +397,29 @@ export default function GilbertOneDemo() {
         <p className="helper"><strong>Here.</strong> {state.onTheWeb}</p>
        </li>)}
       </ul>
-      <p className="go-voice-note" role="note">Not one of the four is drawn as a control, in any state. The reason is
-       under V01 below, in the voice capability's own words.</p>
+      <p className="go-voice-note" role="note">All four belong to the one control above, and the control is in exactly
+       one of them at a time. The rule that binds them is the voice capability's own, quoted under V04 below: the state
+       where the microphone is open is shown only while it is, and the microphone is never opened without it.</p>
      </div>
     </div>
 
-    <h3>What you can press</h3>
+    {/* The contract's own sentences, on the page that renders them. They are read from
+        packages/catalog/assistant.json rather than typed here, so what a reviewer reads is what the
+        phones and the live assistant render, down to the word — including the sentence saying the
+        rest of the web is still typed to. */}
+    <div className="go-voice-sentences">
+     <p className="go-voice-sentences-lead">What MyThuso says about this, word for word from its own contract:</p>
+     <dl>
+      {VOICE_SENTENCES.map(sentence => <div key={sentence.id}>
+       <dt>{sentence.when}</dt>
+       <dd>{sentence.text}</dd>
+      </div>)}
+     </dl>
+    </div>
+
+    <h3>What else you can press</h3>
     <div className="go-access-row">
-     <button type="button" className="secondary" onClick={() => { setOpen(true); setReview(true); }}>
+     <button type="button" className="secondary" onClick={() => { setReviewSeed(TRANSCRIPT_REVIEW.example); setReviewFromMicrophone(false); setOpen(true); setReview(true); }}>
       <SquarePen size={16}/>Show the transcript review
      </button>
      <button type="button" className="secondary go-toggle" aria-pressed={spoken} aria-describedby="go-spoken-note"
@@ -325,42 +428,30 @@ export default function GilbertOneDemo() {
       <Captions size={16}/>Spoken answers: {spoken ? 'on' : 'off'}
      </button>
      <button type="button" className="secondary" disabled={!spoken} onClick={speakInWidget}>
-      <Repeat size={16}/>Replay the caption
+      <Repeat size={16}/>Replay the spoken answer
      </button>
     </div>
     <p className="helper" id="go-spoken-note">{SPOKEN_ANSWERS.label}. Switching spoken answers off is §07's explicit
-     playback choice, and with it off A10 does not run at all: the mouth never moves without the words beside it. There
-     is no switch for the caption, because there is no audio for it to be a caption of — the caption is the output, and
-     it is on the screen for as long as the mouth is moving and no longer.</p>
-    <p className="helper">The review opens the widget on §07's step. The words in the field are fixed — “{TRANSCRIPT_REVIEW.example}”
-     — and the two labels beside them are the phone's own, so what is reviewed is the step a person actually meets rather
-     than a sketch of it. Replay shapes the same written words again and re-runs, re-asks and resubmits nothing, which is
-     what §07 asks replay to be.</p>
+     playback choice, and with it off A10 does not run at all: nothing is spoken and the mouth does not move. There is no
+     switch for the caption, because §07 asks for captions whenever audio is used and audio is used here — the caption is
+     on the screen for as long as the voice is speaking and no longer.</p>
+    <p className="helper">Tapping to talk opens the review step on the words your browser sent back. The control above opens
+     the same step on a fixed example — “{TRANSCRIPT_REVIEW.example}” — so the shape of it can be inspected without
+     speaking, and the two labels beside the field are the phone's own. Replay speaks the same fixed sentence again and
+     re-runs, re-asks and resubmits nothing, which is what §07 asks replay to be.</p>
    </section>
 
    <section className="go-refusals panel" aria-labelledby="go-refusals-title">
     <h2 id="go-refusals-title">What this phase will not do</h2>
-    <p className="helper">Two cues in the document's animation tables and both halves of §07's voice are declared here and
-     not drawn. They are listed rather than quietly left out, so a reviewer looking for the states about hearing and
-     speaking finds the reason instead of a gap.</p>
+    <p className="helper">Three things this page does not do, listed rather than quietly left out, so a reviewer looking
+     for one of them finds the reason instead of a gap. A07, A10's audio half and §07's two voice rows were on this list
+     until 17 September 2026; they are built now, so they are gone from it.</p>
     <ul className="go-refusal-list">
      {REFUSED.map(refusal => <li key={refusal.id}>
       <p className="go-refusal-head"><Pill tone="plain">{refusal.id}</Pill><strong>{refusal.name}</strong></p>
       <p className="go-refusal-statement"><TriangleAlert size={16} aria-hidden="true"/><span>{refusal.statement}</span></p>
       <p className="helper">{refusal.why}</p>
-      {/* The product's own sentences, beside the cue they explain. They are read from
-          packages/catalog/assistant.json rather than typed here, so what a reviewer reads on this
-          page is what the phones and the live assistant render, down to the word. */}
-      {refusal.id === 'A07' && <div className="go-voice-sentences">
-       <p className="go-voice-sentences-lead">What MyThuso says about this, word for word from its own contract:</p>
-       <dl>
-        {VOICE_SENTENCES.map(sentence => <div key={sentence.id}>
-         <dt>{sentence.when}</dt>
-         <dd>{sentence.text}</dd>
-        </div>)}
-       </dl>
-      </div>}
-      {refusal.id === 'V01' && <blockquote className="go-refusal-quote">
+      {refusal.id === 'V04' && <blockquote className="go-refusal-quote">
        <p>{VOICE_NEVER_SOFTEN}</p>
        <footer>The voice capability's note, in packages/catalog/capabilities.json</footer>
       </blockquote>}
@@ -373,11 +464,15 @@ export default function GilbertOneDemo() {
      The control above obeys all of that, including when a reviewer is the one pressing it.</p>
     <h3>Not in this phase at all</h3>
     <ul className="go-plain-list">
-     <li>No language model, no knowledge retrieval and no server. Nothing on this page makes a network request of any kind.</li>
-     <li>No conversation memory, no task state and no recipient context. What you type is held in this browser for as long as the
-      page is open, is written to no storage of any kind, and goes nowhere.</li>
-     <li>No voice, in either direction: nothing is captured, nothing is synthesised and no permission is requested. No camera is
-      requested either, in any state.</li>
+     <li>No language model, no knowledge retrieval and no server. Nothing on this page makes a network request of any kind —
+      including with what the microphone caught, which goes to the field above it and nowhere else.</li>
+     <li>No conversation memory, no task state and no recipient context. What you type and what your browser sent back are held
+      in this browser for as long as the page is open, are written to no storage of any kind, and go nowhere.</li>
+     <li>No recording, in either direction. This page reads no audio level, draws no waveform, keeps no sample and creates no
+      file: your browser hears you and hands back words, and nothing written here touches the sound. No camera is requested
+      either, in any state.</li>
+     <li>No voice anywhere else in MyThuso on the web. This page is the only one with a microphone on it, and the live
+      assistant is still typed to for the reason it always was.</li>
      <li>No patient data, no fictional patient record and no clinical content. The transcript holds your own words and the shell's
       replies about itself.</li>
     </ul>
@@ -385,7 +480,9 @@ export default function GilbertOneDemo() {
   </main>
 
   <GilbertWidget rig={rig} open={open} setOpen={setOpen} unavailable={unavailable} onTyping={setTyping} failRig={failRig}
-                 caption={caption} review={review} setReview={setReview}/>
+                 caption={caption} captionLabel={voice.boundariesSeen ? SPOKEN_ANSWERS.whileRunning : SPOKEN_ANSWERS.timedFallback}
+                 review={review} setReview={setReview} reviewSeed={reviewSeed} reviewFromMicrophone={reviewFromMicrophone}
+                 onStop={() => { voice.cancel(); rig.stop(); }}/>
  </div>;
 }
 
