@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Contrast, Pause, Play, ShieldX, Sparkles, TriangleAlert } from 'lucide-react';
+import { Captions, Contrast, Pause, Play, Repeat, ShieldX, Sparkles, SquarePen, TriangleAlert } from 'lucide-react';
 import { GilbertAvatar, useGilbertRig } from './GilbertAvatar';
 import { GilbertWidget } from './GilbertWidget';
 import { NotConnected } from '../components/NotConnected';
@@ -7,7 +7,8 @@ import { Pill } from '../components/UI';
 import { useReducedMotion } from '../lib/motion';
 import { t } from '../lib/i18n';
 import {
- CUES, REFUSED, TRACK_WORDS, YAWN_COOLDOWN_MS, YAWN_IDLE_MS, YAWN_SUPPRESSORS, durationOf, mayYawn, type Cue
+ CUES, REFUSED, SPOKEN_ANSWERS, TRACK_WORDS, TRANSCRIPT_REVIEW, VOICE_NEVER_SOFTEN, VOICE_SENTENCES, VOICE_STATES,
+ VOICE_TABLE, YAWN_COOLDOWN_MS, YAWN_IDLE_MS, YAWN_SUPPRESSORS, durationOf, mayYawn, type Cue
 } from '../lib/gilbertone';
 import './gilbertone.css';
 
@@ -28,8 +29,16 @@ import './gilbertone.css';
  * no voice adapter: §08's other six modules are phases 2 to 4, and each of those phases is gated on a
  * decision — a pinned model checkpoint, a speech provider, a clinical review of care content — that
  * MyThuso has not made. Nothing here reaches the network at all. Two cues from the document's own
- * tables are refused rather than drawn, and the reasons are on the page under "What this phase will
- * not do", where a reviewer looking for the missing states will find them.
+ * tables and both halves of §07's voice are refused rather than drawn, and the reasons are on the
+ * page under "What this phase will not do", where a reviewer looking for the missing states will
+ * find them. What §07 asks for that needs neither a microphone nor a loudspeaker — the capability
+ * table, the four input states in words, the transcript shown for review and corrected before it is
+ * sent, the caption and its replay — is built, because that is the part of it anybody can actually
+ * review today.
+ *
+ * IT IS ON THE DEPLOYED SITE from 17 September 2026, having been development-only until then, and
+ * that is the reason the refusals above matter more here than they would behind a dev server: a
+ * reviewer with the address can open it, and so can anybody else who is given one.
  *
  * THIS IS THE PREVIEW, NOT THE LIVE ASSISTANT. The shipped GilbertOne is
  * packages/catalog/assistant.json's matcher, its descriptor line and its founder-decided voice
@@ -71,6 +80,11 @@ export default function GilbertOneDemo() {
  const [unavailable, setUnavailable] = useState(false);
  const [failRig, setFailRig] = useState(false);
  const [caption, setCaption] = useState<readonly string[] | null>(null);
+ /* §07's "explicit playback choice", and the only choice there is to make here: whether the
+    demonstration answer is given at all. There is no switch for the caption itself, because the
+    caption is not a subtitle of something else — it is the output. */
+ const [spoken, setSpoken] = useState(true);
+ const [review, setReview] = useState(false);
  const [lastYawn, setLastYawn] = useState(0);
  const [now, setNow] = useState(() => Date.now());
 
@@ -103,13 +117,40 @@ export default function GilbertOneDemo() {
    return rig.play('A14');
   }
   if (cue.id === 'A10') {
-   setCaption(CAPTION);
-   rig.play('A10', { caption: CAPTION });
-   /* The caption leaves when the mouth closes, so there is never a caption on the screen for words
-      that are not being shaped. */
-   return later(CAPTION.length * 240 + 400, () => setCaption(null));
+   if (!spoken) return;
+   return speak();
   }
   rig.play(cue.id);
+ };
+
+ /* A10, and §07's replay in the same function: the same written words are shaped again, and nothing
+    is re-run, re-asked or resubmitted to produce them — which is the whole of what §07 asks replay to
+    be, and easy to promise here because there was never anything behind them. */
+ const speak = () => {
+  setCaption(CAPTION);
+  rig.play('A10', { caption: CAPTION });
+  /* The caption leaves when the mouth closes, so there is never a caption on the screen for words
+     that are not being shaped. */
+  later(CAPTION.length * 240 + 400, () => setCaption(null));
+ };
+
+ /* The caption lives in the widget, so the control that plays it from the voice panel opens the
+    widget first and lets the greeting land before the words start. A01's trigger is the widget being
+    opened; firing both in the same breath puts the caption on the face first and leaves the greeting
+    refused by priority, which is correct and reads as a fault. */
+ const speakInWidget = () => {
+  if (open) return speak();
+  setOpen(true);
+  later(120, speak);
+ };
+
+ /* Why a control is refused, in the one place that knows all the reasons. A refused control says so
+    in words in its own row rather than going quietly grey: colour is never the only difference
+    between a control that will run and one that will not. */
+ const blockedFor = (cue: Cue) => {
+  if (cue.id === 'A14' && !yawn.allowed) return yawn.because;
+  if (cue.id === 'A10' && !spoken) return SPOKEN_ANSWERS.offReason;
+  return null;
  };
 
  /* AT05, made pressable. A turn is minted, a newer trigger takes the face, and then the older one is
@@ -197,9 +238,9 @@ export default function GilbertOneDemo() {
     </div>
 
     <CueList title="Attention" lead="The scope document's table A01 to A09. Every timing is inside the range it gives, and A02 is the one that puts the face back: it returns GilbertOne to rest and releases any pose still being held."
-             cues={CUES.filter(attention)} fire={fire} reduced={reduced} yawn={yawn}/>
+             cues={CUES.filter(attention)} fire={fire} reduced={reduced} blockedFor={blockedFor}/>
     <CueList title="Expression" lead="Table A10 to A17. Mouth movement, response style and the two events that may not wait."
-             cues={CUES.filter(cue => !attention(cue))} fire={fire} reduced={reduced} yawn={yawn}/>
+             cues={CUES.filter(cue => !attention(cue))} fire={fire} reduced={reduced} blockedFor={blockedFor}/>
 
     <div className="panel">
      <h3>Ownership and cancellation</h3>
@@ -233,15 +274,96 @@ export default function GilbertOneDemo() {
     </div>
    </section>
 
+   {/* §07, and the reason it is a panel of words with three controls rather than a mocked-up
+       microphone: everything in that section which does not need a microphone or a loudspeaker is
+       built and pressable, and the two halves that do need one are named, refused and explained
+       below. A demonstrator that drew the control anyway would be the first place anybody saw
+       MyThuso appear to hear them, and this page is on the deployed site. */}
+   <section className="go-voice panel" aria-labelledby="go-voice-title">
+    <h2 id="go-voice-title">Voice · §07, and what can be reviewed without one</h2>
+    <p className="helper">§07 asks for push-to-talk input with four clear states and a transcript shown for review, the
+     browser's speech for the output, mouth movement driven by playback, timing that closes the mouth the moment anything
+     stops, and a position on retained audio. This page cannot hear and makes no sound, so what is built is everything in
+     that list that needs neither — and what is not built is named rather than mocked up. Every control here is a
+     demonstration control: nothing is captured, nothing is produced and nothing leaves this browser.</p>
+
+    <div className="go-voice-grid">
+     <div>
+      <h3>The capability table, and what this phase does with each row</h3>
+      <dl className="go-voice-table">
+       {VOICE_TABLE.map(row => <div key={row.id} className="go-voice-row">
+        <dt>{row.capability}</dt>
+        <dd>
+         <p className="go-voice-poc">{row.poc}</p>
+         <p className="helper">{row.here}</p>
+        </dd>
+       </div>)}
+      </dl>
+     </div>
+     <div>
+      <h3>The four input states, on a phone and on this page</h3>
+      <ul className="go-voice-states">
+       {VOICE_STATES.map(state => <li key={state.id}>
+        <p className="go-voice-state"><Pill tone="plain">{state.name}</Pill></p>
+        <p className="helper"><strong>On a phone.</strong> {state.onThePhone}</p>
+        <p className="helper"><strong>Here.</strong> {state.onTheWeb}</p>
+       </li>)}
+      </ul>
+      <p className="go-voice-note" role="note">Not one of the four is drawn as a control, in any state. The reason is
+       under V01 below, in the voice capability's own words.</p>
+     </div>
+    </div>
+
+    <h3>What you can press</h3>
+    <div className="go-access-row">
+     <button type="button" className="secondary" onClick={() => { setOpen(true); setReview(true); }}>
+      <SquarePen size={16}/>Show the transcript review
+     </button>
+     <button type="button" className="secondary go-toggle" aria-pressed={spoken} aria-describedby="go-spoken-note"
+             aria-label={`Spoken answers: ${spoken ? 'on' : 'off'} — ${SPOKEN_ANSWERS.label}`}
+             onClick={() => setSpoken(!spoken)}>
+      <Captions size={16}/>Spoken answers: {spoken ? 'on' : 'off'}
+     </button>
+     <button type="button" className="secondary" disabled={!spoken} onClick={speakInWidget}>
+      <Repeat size={16}/>Replay the caption
+     </button>
+    </div>
+    <p className="helper" id="go-spoken-note">{SPOKEN_ANSWERS.label}. Switching spoken answers off is §07's explicit
+     playback choice, and with it off A10 does not run at all: the mouth never moves without the words beside it. There
+     is no switch for the caption, because there is no audio for it to be a caption of — the caption is the output, and
+     it is on the screen for as long as the mouth is moving and no longer.</p>
+    <p className="helper">The review opens the widget on §07's step. The words in the field are fixed — “{TRANSCRIPT_REVIEW.example}”
+     — and the two labels beside them are the phone's own, so what is reviewed is the step a person actually meets rather
+     than a sketch of it. Replay shapes the same written words again and re-runs, re-asks and resubmits nothing, which is
+     what §07 asks replay to be.</p>
+   </section>
+
    <section className="go-refusals panel" aria-labelledby="go-refusals-title">
     <h2 id="go-refusals-title">What this phase will not do</h2>
-    <p className="helper">Two cues in the document's tables are declared here and not drawn. They are listed rather than quietly
-     left out, so a reviewer looking for the two states about hearing and speaking finds the reason instead of a gap.</p>
+    <p className="helper">Two cues in the document's animation tables and both halves of §07's voice are declared here and
+     not drawn. They are listed rather than quietly left out, so a reviewer looking for the states about hearing and
+     speaking finds the reason instead of a gap.</p>
     <ul className="go-refusal-list">
      {REFUSED.map(refusal => <li key={refusal.id}>
       <p className="go-refusal-head"><Pill tone="plain">{refusal.id}</Pill><strong>{refusal.name}</strong></p>
       <p className="go-refusal-statement"><TriangleAlert size={16} aria-hidden="true"/><span>{refusal.statement}</span></p>
       <p className="helper">{refusal.why}</p>
+      {/* The product's own sentences, beside the cue they explain. They are read from
+          packages/catalog/assistant.json rather than typed here, so what a reviewer reads on this
+          page is what the phones and the live assistant render, down to the word. */}
+      {refusal.id === 'A07' && <div className="go-voice-sentences">
+       <p className="go-voice-sentences-lead">What MyThuso says about this, word for word from its own contract:</p>
+       <dl>
+        {VOICE_SENTENCES.map(sentence => <div key={sentence.id}>
+         <dt>{sentence.when}</dt>
+         <dd>{sentence.text}</dd>
+        </div>)}
+       </dl>
+      </div>}
+      {refusal.id === 'V01' && <blockquote className="go-refusal-quote">
+       <p>{VOICE_NEVER_SOFTEN}</p>
+       <footer>The voice capability's note, in packages/catalog/capabilities.json</footer>
+      </blockquote>}
      </li>)}
     </ul>
     <NotConnected of="voice"/>
@@ -262,7 +384,8 @@ export default function GilbertOneDemo() {
    </section>
   </main>
 
-  <GilbertWidget rig={rig} open={open} setOpen={setOpen} unavailable={unavailable} onTyping={setTyping} failRig={failRig} caption={caption}/>
+  <GilbertWidget rig={rig} open={open} setOpen={setOpen} unavailable={unavailable} onTyping={setTyping} failRig={failRig}
+                 caption={caption} review={review} setReview={setReview}/>
  </div>;
 }
 
@@ -270,20 +393,19 @@ export default function GilbertOneDemo() {
    each control. A reviewer pressing a button should be able to read what the specification asked for
    without leaving the page, because "is this what we asked for" is the only question a motion review
    is actually trying to answer. */
-function CueList({ title, lead, cues, fire, reduced, yawn }: {
+function CueList({ title, lead, cues, fire, reduced, blockedFor }: {
  title: string; lead: string; cues: readonly Cue[]; fire: (cue: Cue) => void; reduced: boolean;
- yawn: { allowed: boolean; because: string };
+ blockedFor: (cue: Cue) => string | null;
 }) {
  return <div className="panel go-cues">
   <h3>{title}</h3>
   <p className="helper">{lead}</p>
   <ul className="go-cue-list">
    {cues.map(cue => {
-    const isYawn = cue.id === 'A14';
-    const blocked = isYawn && !yawn.allowed;
+    const blocked = blockedFor(cue);
     const stillOnly = reduced && !cue.still;
     return <li key={cue.id} className="go-cue">
-     <button type="button" className="secondary go-cue-button" disabled={blocked} onClick={() => fire(cue)}>
+     <button type="button" className="secondary go-cue-button" disabled={blocked !== null} onClick={() => fire(cue)}>
       <span className="go-cue-id">{cue.id}</span>
       <span className="go-cue-name">{cue.name}</span>
      </button>
@@ -291,7 +413,7 @@ function CueList({ title, lead, cues, fire, reduced, yawn }: {
       <p className="go-cue-meta">{TRACK_WORDS[cue.track]} · {durationOf(cue)} ms</p>
       <p className="helper"><strong>Trigger.</strong> {cue.trigger}</p>
       <p className="helper">{cue.motion}</p>
-      {blocked && <p className="go-cue-blocked" role="note">{yawn.because}</p>}
+      {blocked && <p className="go-cue-blocked" role="note">{blocked}</p>}
       {stillOnly && !blocked && <p className="go-cue-blocked" role="note">Under reduced motion this cue is movement with nothing still behind it, so it does not play. The status line says what it would have done.</p>}
      </div>
     </li>;

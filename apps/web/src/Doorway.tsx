@@ -19,18 +19,19 @@ const BackOffice = lazy(() => import('./shells/AdminShell'));
    the orb opens on every patient page; this door reaches look and motion only, and neither the
    matcher nor the voice policy is wired to it.
 
-   Development only, and both halves of that matter. It is not a way of using MyThuso, so it is not a
-   role; and it is a review surface rather than a screen anybody should arrive at, so it belongs with
-   the Passport P0 and the contract mock among the things this repository builds and does not ship.
-   Written against import.meta.env.DEV, which the production build folds to false — so the constant
-   below becomes null, the dynamic import is dropped, the chunk is never emitted and the patient
-   entry's first load is unchanged to the byte. That was measured rather than assumed: with the door
-   open in production it cost 0.15 kB gzipped, and this file is the one place in the application where
-   a patient pays for something no patient will ever open.
+   Open on the deployed site since 17 September 2026, and it was development-only until that day.
+   The page is unchanged by the move: it still carries the preview badge, every refusal notice and the
+   voice capability's own words, it is still linked from no navigation anywhere in the product, and it
+   still reaches no network, no microphone and no browser media API of any kind. What changed is who
+   can be shown it — a reviewer with the address, on the deployed preview, rather than somebody with
+   the repository and a dev server.
 
-   To put it on the deployed preview instead, drop the `import.meta.env.DEV &&` and accept that
-   0.15 kB. It is a founder's decision, not an edit. */
-const GilbertOnePreview = import.meta.env.DEV ? lazy(() => import('./features/GilbertOneDemo')) : null;
+   The patient pays 0.15 kB gzipped for that: the door itself, on the first view. Everything behind it
+   — the demonstrator, the rig, the widget, the manifest and the two contracts it quotes — is a
+   dynamic import and arrives only when the address is opened, which is why the rest of a page nobody
+   will navigate to costs the people this is built for nothing at all. Measured on 17 September:
+   275.57 kB before and 275.72 kB after, across the same 13 files. */
+const GilbertOnePreview = lazy(() => import('./features/GilbertOneDemo'));
 
 export default function Doorway() {
  const [role, setRoleState] = useState<RoleId>(() => roleFromSearch(window.location.search));
@@ -49,7 +50,7 @@ export default function Doorway() {
   setRoleState(next);
  }, [role]);
  const { surface, workspace } = roleOf(role);
- if (GilbertOnePreview && new URLSearchParams(window.location.search).get('preview') === 'gilbertone') {
+ if (new URLSearchParams(window.location.search).get('preview') === 'gilbertone') {
   /* Its own waiting card rather than the role one: `Opening` names a role and its opening line, and
      neither is true of a design review. */
   return <Suspense fallback={<div className="opening"><div className="opening-card" role="status"><h1>GilbertOne</h1><p className="helper">Getting the preview ready.</p></div></div>}>

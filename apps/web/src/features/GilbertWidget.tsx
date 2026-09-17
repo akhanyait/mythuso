@@ -1,6 +1,7 @@
 import { Component, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { CircleSlash, Minus, RotateCcw, Send, Square, X } from 'lucide-react';
+import { CircleSlash, Minus, RotateCcw, Send, Square, Trash2, X } from 'lucide-react';
 import { NotConnected } from '../components/NotConnected';
+import { SPOKEN_ANSWERS, TRANSCRIPT_REVIEW } from '../lib/gilbertone';
 import { GilbertAvatar, GilbertStill, type Rig } from './GilbertAvatar';
 
 /* GilbertOne's widget shell — §08's GilbertWidget.tsx, and nothing behind it.
@@ -45,6 +46,10 @@ export type WidgetProps = {
  readonly failRig: boolean;
  /** The words A10's mouth shapes are running against, shown as a caption because there is no audio. */
  readonly caption: readonly string[] | null;
+ /** §07's "final transcript shown for review", opened from the demonstrator. Nothing was captured;
+     the example words say so, and the shape of the correction is what is being reviewed. */
+ readonly review: boolean;
+ readonly setReview: (review: boolean) => void;
 };
 
 /* AT12 asks that a failed avatar does not break the surface around it. A boundary is the only way to
@@ -67,13 +72,19 @@ class RigBoundary extends Component<{ size: number; children: ReactNode }, { fai
  }
 }
 
-export function GilbertWidget({ rig, open, setOpen, unavailable, onTyping, failRig, caption }: WidgetProps) {
+export function GilbertWidget({ rig, open, setOpen, unavailable, onTyping, failRig, caption, review, setReview }: WidgetProps) {
  const [mode, setMode] = useState<WidgetMode>('welcome');
  const [turns, setTurns] = useState<Turn[]>([]);
  const [draft, setDraft] = useState('');
  const launcher = useRef<HTMLButtonElement>(null);
  const heading = useId();
  const next = useRef(0);
+ /* The transcript that would have come back from a recogniser, if this page had one. It is a fixed
+    sentence saying it is not a transcript of anything, and it is reset every time the panel opens:
+    a review step that remembers last time's correction is a review step that has started keeping
+    what it was corrected from. */
+ const [transcript, setTranscript] = useState<string>(TRANSCRIPT_REVIEW.example);
+ const field = useRef<HTMLTextAreaElement>(null);
 
  /* Opening the widget is A01's trigger, word for word from §03. It greets once and once only: a
     widget re-opened onto a conversation already in progress reads its last message instead, because
@@ -95,6 +106,14 @@ export function GilbertWidget({ rig, open, setOpen, unavailable, onTyping, failR
   return () => window.removeEventListener('keydown', onKey);
  }, [open, setOpen]);
 
+ /* The review panel opens on the example words and on the field, every time. Focus goes to the thing
+    §07 asks a person to do — check it and correct it — rather than leaving them to find it. */
+ useEffect(() => {
+  if (!review) return;
+  setTranscript(TRANSCRIPT_REVIEW.example);
+  field.current?.focus();
+ }, [review]);
+
  const say = (text: string) => setTurns(list => [...list, { id: ++next.current, who: 'shell', text }]);
 
  const send = (event: FormEvent) => {
@@ -111,6 +130,27 @@ export function GilbertWidget({ rig, open, setOpen, unavailable, onTyping, failR
   say(unavailable
    ? 'GilbertOne is unavailable. Nothing was sent, because there is nowhere for it to go in this phase.'
    : 'No answering engine is connected. This is the widget shell on its own: your words stayed in this browser, went nowhere, and are gone when you close the page.');
+ };
+
+ /* §07's review step, both halves of it. Sending puts the corrected words in the transcript and
+    nowhere else; Discard keeps nothing. Neither is a stand-in for a recogniser — there is none — and
+    what is being reviewed is the shape: a person reads what a machine thinks they said, fixes it,
+    and then decides whether it goes anywhere at all. */
+ const sendTranscript = (event: FormEvent) => {
+  event.preventDefault();
+  const text = transcript.trim();
+  if (!text) return;
+  setTurns(list => [...list, { id: ++next.current, who: 'person', text }]);
+  setReview(false);
+  setMode('conversation');
+  rig.play('A05');
+  say(TRANSCRIPT_REVIEW.sent);
+ };
+
+ const discardTranscript = () => {
+  setReview(false);
+  setTranscript(TRANSCRIPT_REVIEW.example);
+  say(TRANSCRIPT_REVIEW.discarded);
  };
 
  const chip = (label: string) => {
@@ -181,8 +221,34 @@ export function GilbertWidget({ rig, open, setOpen, unavailable, onTyping, failR
         </li>)}
        </ol>}
 
+       {/* §07's review step, at the bottom of the transcript and directly above the composer, which
+           is where the thing about to be sent belongs. It scrolls with the conversation rather than
+           sitting between it and the field: a panel pinned above the composer squeezes the transcript
+           to a sliver on a short screen, and a widget that hides what was said to make room for what
+           is about to be sent has its priorities the wrong way round. */}
+       {review && <form className="go-review" onSubmit={sendTranscript} aria-labelledby={`${heading}-review`}>
+        <p className="go-review-title" id={`${heading}-review`}>Final transcript, shown for review</p>
+        <label htmlFor={`${heading}-review-field`}>{TRANSCRIPT_REVIEW.correctLabel}</label>
+        {/* Spell-check, autocorrect and autocomplete are off for the same reason the live assistant's
+            field has them off: each of them is a way for what somebody typed to reach a service. */}
+        <textarea ref={field} id={`${heading}-review-field`} rows={3} value={transcript}
+                  spellCheck={false} autoCorrect="off" autoComplete="off"
+                  onChange={event => setTranscript(event.target.value)}/>
+        <div className="go-review-actions">
+         <button type="submit" className="secondary"><Send size={16}/>{TRANSCRIPT_REVIEW.sendLabel}</button>
+         <button type="button" className="secondary" onClick={discardTranscript}><Trash2 size={16}/>{TRANSCRIPT_REVIEW.discardLabel}</button>
+        </div>
+        <p className="helper">Nothing was captured. The field, the correction and Discard work the same whether words
+         arrive from a microphone or are put there by this page, which is how the shape of the step can be reviewed without
+         one behind it.</p>
+       </form>}
+
+       {/* §07: show captions whenever audio is used. None ever is, so the caption is the whole of
+           the output, and the indicator above it is the restrained speaking indicator §07 asks for
+           when synchronisation cannot be trusted — here, because there is nothing to synchronise
+           with. The dot is never the only difference: the words beside it say the same thing. */}
        {caption && <p className="go-caption" role="status">
-        <span className="go-caption-label">Demonstration caption · no audio is played</span>
+        <span className="go-caption-label"><span className="go-speaking-dot" aria-hidden="true"/>{SPOKEN_ANSWERS.whileRunning}</span>
         <span>{caption.join(' ')}</span>
        </p>}
       </div>}

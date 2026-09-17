@@ -1142,7 +1142,7 @@ preview family across `programmes.json`, `App.tsx` and `Household.tsx`, and that
 phones rather than to this route. **No guardian authority is proven** and none is built: a roster carries no
 relationship, and `docs/PRIVACY-AND-SECURITY.md`'s "Family care" row is unchanged.
 
-## Delivered — GilbertOne phase 1: the character demonstrator, 17 September 2026 (web only, development only)
+## Delivered — GilbertOne phase 1: the character demonstrator, 17 September 2026 (web only)
 
 A rig, a widget shell and a control for every cue in `docs/GilbertOne_Developer_Scope_v1.md`'s animation tables, so the
 motion in that scope can be reviewed before any of the decisions behind it are made. **This is a preview of GilbertOne's
@@ -1151,11 +1151,14 @@ matcher, its descriptor line and the voice policy the founder set on 14 Septembe
 to none of it. This is phase 1 of the scope's four, and the other three are gated on decisions this repository has not
 made: a pinned model checkpoint, a speech provider and a clinical review of care content.
 
-It is reached at `/app/?preview=gilbertone` **in development only**. `src/Doorway.tsx` writes the door against
-`import.meta.env.DEV`, so the production build folds the branch away, never emits the chunk, and the patient's first
-load is **282.16 kB before and 282.16 kB after, across the same 13 files, byte for byte**. With the door open in
-production it measured 282.31 kB; that 0.15 kB is the price of putting a design review on the deployed preview, and it
-is the founder's to pay rather than an engineer's to spend.
+It is reached at `/app/?preview=gilbertone`, and from nowhere else: no navigation, menu or link in the product points
+at it. **Open on the deployed site since 17 September**, having been development-only until that day — `src/Doorway.tsx`
+wrote the door against `import.meta.env.DEV` and no longer does. The page did not change when the door did: the preview
+badge, every refusal notice and the voice capability's own words are the same, and it still reaches no network, no
+microphone and no browser media API of any kind. The patient pays **0.15 kB gzipped** for the door itself — 275.57 kB
+before and 275.72 kB after, across the same 13 files, measured the way this file measures everything. Everything behind
+it is a dynamic import: the demonstrator, the rig, the widget, the manifest and the two contracts it quotes are
+**15.42 kB of JavaScript and 2.61 kB of CSS, gzipped**, and none of it is fetched until the address is opened.
 
 | What landed | The refusals it adds | Where |
 |---|---|---|
@@ -1166,13 +1169,18 @@ is the founder's to pay rather than an engineer's to spend.
 | **The widget shell**: §02's collapsed launcher, welcome card, conversation state, mobile sheet and unavailable state, with no conversation controller, model, server or voice adapter behind any of them. A message you send is read by the rig and answered by a notice saying nothing is connected | Never "Connected" in any state; the chips are labels on a demonstrator and open, book and look up nothing; retry says what it tried and that there was nothing to reach | `GilbertWidget.tsx` |
 | **The microphone state is the contract's own words.** §02 asks that it stay visible in a conversation; on MyThuso's web the true value of it is that there is none, so the widget renders `<NotConnected of="voice"/>` rather than drawing a control | `capabilities.json`'s voice `neverSoften` — no affordance in any state, enabled, disabled or decorative | `GilbertWidget.tsx` |
 | **Two cues declared and refused rather than drawn.** A07's trigger is actual microphone capture and AT03 allows the state only after capture starts, so it is not built and the page says why where a reviewer looks for it. A10 keeps its mouth shapes and loses its audio: the shapes run against a written caption shown at the same moment, which says the audio is absent | `REFUSED`, rendered on the page under "What this phase will not do" | `lib/gilbertone.ts` `REFUSED`, `GilbertOneDemo.tsx` |
+| **§07's voice prompts, built as everything that does not need a microphone or a loudspeaker.** The capability table's five rows with the document's own wording beside what this phase does about each; the four input states named, with what is true of each on a phone and on this page; §07's transcript review in the widget — a fixed example transcript saying nothing was captured, an editable field, Send and Discard, with the phone's own two labels; §07's replay, which shapes the same written words again and re-runs, re-asks and resubmits nothing; and the caption, which cannot be switched off because there is no audio for it to be a caption of | The push-to-talk control is **not drawn in any state — V01** — and neither is a pulse, a pose or a waveform for it. §07 allows a waveform only from captured audio levels and asks that nothing animate a microphone while nobody is being recorded; a pulse driven by a reviewer's button is that invented signal, and the voice capability's `neverSoften` refuses the affordance enabled, disabled or decorative. The browser's own speech is refused too — **V02** — so the page makes no sound at all | `lib/gilbertone.ts` `VOICE_TABLE`, `VOICE_STATES`, `TRANSCRIPT_REVIEW`, the voice panel, `GilbertWidget.tsx` |
+| **The product's own sentences, beside the cue they explain.** `assistant.json`'s `voice.sentences` — the web's, the permission explanation, the unavailable, refused and failed sentences — the keyboard note about whose dictation key it is, the `listening-is-the-microphone` and `no-audio-kept` refusals, and `capabilities.json`'s voice `neverSoften` quoted with its source. Every one is read from the contract at runtime, not typed | A fourth copy of a sentence that exists once cannot drift softer than the three the platforms render; reword the contract and this page changes with it, and the spec fails if it does not | `VOICE_SENTENCES`, `VOICE_NEVER_SOFTEN`, `lib/capability-rules.ts` `neverSoftenOf` |
 | **The yawn on §04's own leash**, including against the reviewer pressing the button: off by default in a care conversation, playful mode opt-in, a five-minute cooldown with a live countdown, and suppressed while any of eight situations is running | "Suppressed while Urgent support is running", "Playful mode is off", "Cooling down… 298 seconds of it are left" — each in the row, in words, never by colour alone | `mayYawn`, the A14 row |
 | **A failed character does not break the widget.** A boundary catches a rig that throws, falls back to the still head and keeps the transcript, the field and every control working — and the demonstrator can make it throw on purpose | AT12, pressable | `RigBoundary` |
-| **Nine journeys on both viewports** — AT01, AT02 twice, AT03, AT05, AT07, AT12, the naming, and no horizontal overflow at 320 px inside scrolling regions as well as at the page level. AT03 is asserted by sitting in front of `getUserMedia` and `permissions.query` before the page loads and failing if anything reaches for one | 18 assertions that the page asks for no camera, no microphone, writes nothing to storage of any kind and never says "Connected" | `tests/gilbertone.spec.ts` |
+| **Twelve journeys on both viewports** — AT01, AT02 twice, AT03, AT05, AT07, AT12, §07's prompts, §07's review step, §07's caption and replay, the naming, and no horizontal overflow at 320 px inside scrolling regions as well as at the page level. AT03 is asserted by sitting in front of `getUserMedia`, `getDisplayMedia`, `permissions.query`, `SpeechRecognition`, `webkitSpeechRecognition`, `MediaRecorder`, `AudioContext`, `SpeechSynthesisUtterance` and every method of `speechSynthesis` before the page loads, and failing if anything reaches for one | Assertions that the page asks for no camera and no microphone, produces no audio, offers no control whose name mentions a microphone or talking, writes nothing to storage of any kind and never says "Connected" | `tests/gilbertone.spec.ts` |
 
 **What this deliberately is not.** No model, no knowledge retrieval, no server and no network request of any kind. No
 conversation memory, no task state and no recipient context — what somebody types is held in React state for as long as
-the page is open and written to no storage of any kind. No voice in either direction. No patient data, no fictional
+the page is open and written to no storage of any kind. No voice in either direction: nothing is captured, nothing is
+synthesised, no permission is asked for, and no browser media API is named anywhere in the demonstrator's source — what
+§07 asks for is built as words, a review step and a caption, and the two halves that need a microphone or a loudspeaker
+are refused in the contract's own sentences. No patient data, no fictional
 patient record and no clinical content: the transcript holds the reviewer's own words and the shell's replies about
 itself. Web only — the scope's own module table for phase 1 is React, and nothing was emitted to iOS or Android, so this
 feature has no contract in `packages/catalog` and no generator, which is the one place it departs from the eight-step

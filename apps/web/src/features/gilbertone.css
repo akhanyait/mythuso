@@ -25,7 +25,7 @@
 @media (min-width: 1000px) {
  .go-demo-grid { grid-template-columns: minmax(0, 400px) minmax(0, 1fr); }
  .go-stage-panel { position: sticky; top: var(--space-24); }
- .go-refusals { grid-column: 1 / -1; }
+ .go-refusals, .go-voice { grid-column: 1 / -1; }
 }
 /* One card, not eight. The character is what this page is for, so the stage keeps the raised
    surface and everything else steps back to a flat bordered panel — seven identical white boxes with
@@ -33,7 +33,7 @@
    review about the chrome. The refusals keep an edge of their own, because what a build will not do
    is not a subheading of what it does. */
 .go-stage-panel { box-shadow: var(--shadow-raised); }
-.go-controls .panel, .go-refusals { box-shadow: none; background: var(--surface); }
+.go-controls .panel, .go-refusals, .go-voice { box-shadow: none; background: var(--surface); }
 .go-refusals { border-inline-start: 4px solid var(--mango); }
 .go-demo h2 { margin: 0 0 var(--space-12); font-size: 20px; }
 .go-demo h3 { margin: 0 0 var(--space-8); font-size: 16px; }
@@ -80,7 +80,7 @@
 .go-cue-words p { margin: 0 0 var(--space-4); }
 .go-cue-meta { font-size: 13px; font-weight: 600; color: var(--slate); }
 /* A refused control says why in words and carries an edge, never a colour on its own. */
-.go-cue-blocked { font-size: 13px; line-height: 1.6; color: var(--ink); border-inline-start: 4px solid var(--mango); padding-inline-start: var(--space-8); }
+.go-cue-blocked, .go-voice-note { font-size: 13px; line-height: 1.6; color: var(--ink); border-inline-start: 4px solid var(--mango); padding-inline-start: var(--space-8); }
 
 .go-refusal-list { list-style: none; margin: 0 0 var(--space-16); padding: 0; display: grid; gap: var(--space-16); }
 .go-refusal-head { display: flex; align-items: center; gap: var(--space-8); margin: 0 0 var(--space-4); }
@@ -151,3 +151,56 @@
     field all fit above the keyboard rather than the head taking a third of the sheet. */
  .go-body .go-head-art svg { width: 88px; height: 88px; }
 }
+
+/* ---- §07, the voice section ------------------------------------------------------------------
+   Words and three controls. The specification on the left and the four states on the right, because
+   a reviewer with the document open is comparing two lists and a single column makes them scroll
+   between the rows they are comparing. Nothing here is coloured to mean anything: a state that is
+   refused says so in a sentence, and the sentence is what carries it. */
+.go-voice-grid { display: grid; gap: var(--space-24); grid-template-columns: minmax(0, 1fr); margin-bottom: var(--space-20); }
+@media (min-width: 820px) { .go-voice-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.go-voice-grid > div { min-width: 0; }
+
+.go-voice-table { margin: 0; display: grid; gap: var(--space-12); }
+/* A real column for the capability name, so Input, Output, Mouth movement, Timing and Privacy line
+   up down the left edge and the rows can be read as a table rather than as five paragraphs. */
+.go-voice-row { display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: var(--space-12); align-items: start; }
+@media (max-width: 520px) { .go-voice-row { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); } }
+.go-voice-row dt { font-size: 14px; font-weight: 600; color: var(--indigo-deep); }
+.go-voice-row dd { margin: 0; min-width: 0; }
+.go-voice-poc { margin: 0 0 var(--space-4); font-size: 14px; line-height: 1.6; color: var(--ink); }
+
+.go-voice-states { list-style: none; margin: 0 0 var(--space-12); padding: 0; display: grid; gap: var(--space-12); }
+.go-voice-states li { padding-top: var(--space-12); border-top: 1px solid var(--line); }
+.go-voice-states li:first-child { padding-top: 0; border-top: 0; }
+.go-voice-state { margin: 0 0 var(--space-4); }
+.go-voice .go-access-row { margin-top: var(--space-12); }
+.go-voice .go-access-row .secondary { min-height: 44px; }
+
+/* The product's own sentences, inside the refusal they explain. A bordered block rather than another
+   card: it is evidence for the paragraph above it, not a section of its own. */
+.go-voice-sentences { margin-top: var(--space-12); padding: var(--space-12); border: 1px solid var(--line); border-radius: var(--r-control); background: var(--canvas); }
+.go-voice-sentences-lead { margin: 0 0 var(--space-8); font-size: 13px; font-weight: 600; color: var(--slate); }
+.go-voice-sentences dl { margin: 0; display: grid; gap: var(--space-8); }
+.go-voice-sentences dt { font-size: 13px; font-weight: 600; color: var(--indigo-deep); }
+.go-voice-sentences dd { margin: 0; font-size: 14px; line-height: 1.6; color: var(--ink); }
+
+.go-refusal-quote { margin: var(--space-12) 0 0; padding: var(--space-12); border-inline-start: 3px solid var(--indigo); background: var(--indigo-wash); border-radius: 0 var(--r-control) var(--r-control) 0; }
+.go-refusal-quote p { margin: 0 0 var(--space-4); font-size: 15px; line-height: 1.6; color: var(--ink); }
+.go-refusal-quote footer { font-size: 13px; color: var(--slate); }
+
+/* ---- §07's review step, in the widget ---------------------------------------------------------
+   Above the composer and below everything else, because it is the thing being decided: a person
+   reads what a machine thinks they said, corrects it, and chooses whether it goes anywhere. It is
+   the loudest thing in the panel while it is open, and gone the moment either control is pressed. */
+.go-review { display: grid; gap: var(--space-8); padding: var(--space-12); border: 1px solid var(--indigo-soft); border-inline-start: 3px solid var(--indigo); border-radius: var(--r-control); background: var(--canvas); }
+.go-review-title { margin: 0; font-size: 14px; font-weight: 600; color: var(--ink); }
+.go-review label { font-size: 13px; line-height: 1.5; color: var(--body); }
+.go-review textarea { width: 100%; min-height: 64px; padding: var(--space-8) var(--space-12); border: 1px solid var(--line); border-radius: var(--r-control); background: var(--surface); color: var(--ink); font: inherit; font-size: 15px; line-height: 1.5; resize: vertical; }
+.go-review-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.go-review-actions .secondary { min-height: 44px; }
+.go-review .helper { margin: 0; }
+
+/* The speaking indicator: a mark and the words that say the same thing, because colour and a dot are
+   never on their own what tells somebody the mouth is moving against a caption. It does not pulse. */
+.go-speaking-dot { width: 8px; height: 8px; border-radius: var(--r-pill); background: var(--mango-ink); display: inline-block; margin-inline-end: var(--space-8); vertical-align: middle; }

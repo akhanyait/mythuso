@@ -19,3 +19,14 @@ export const rule = (id: string) => {
  if (!found) throw new Error(`No rule "${id}" in packages/catalog/capabilities.json`);
  return found;
 };
+
+/* The note a capability carries about what may never be softened — voice and emergency carry one,
+   and no other capability does. It lives here rather than in lib/capabilities.ts for the same reason
+   the rules do: it is the contract's reasoning rather than a sentence a screen shows a patient, and
+   the first view does not read it. The GilbertOne demonstrator renders the voice one word for word
+   beside the control it refuses to draw, because a refusal quoted from the contract can be checked
+   against the contract and a refusal in an engineer's own words cannot. */
+export const neverSoftenOf = (id: string): string | null => {
+ const found = contract.capabilities.find(c => c.id === id);
+ return (found && 'neverSoften' in found ? found.neverSoften : null) ?? null;
+};

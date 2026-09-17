@@ -1,15 +1,26 @@
+import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 
 /* GilbertOne, phase 1: the acceptance tests the scope document's §12 asks of a character
    demonstrator, as far as this phase reaches — AT01, AT02, AT03 in part, AT05, AT07 in part and
    AT12 in part. The rest of §12 is about a conversation, a model, a voice and an app action, none of
    which exist here, so there is nothing to test and nothing is asserted about them.
-   The page is development-only (see src/Doorway.tsx) and these run against the dev server, which is
-   what the whole suite runs against. */
+   §07's voice prompts are here too, and the assertions about them are mostly assertions that
+   something is absent: the sentences are on the page, the control is not, and nothing reached for a
+   way of hearing or speaking while any of it was pressed.
+   The page is reachable in the production build as well as in development since 17 September (see
+   src/Doorway.tsx); these run against the dev server, which is what the whole suite runs against. */
 
 const DEMO = '/app/?preview=gilbertone';
 const status = (page: Page) => page.locator('.go-status-note');
 const press = (page: Page, name: string) => page.getByRole('button', { name, exact: true }).click();
+
+/* The contracts, read here rather than retyped, so a reworded sentence fails this spec instead of
+   quietly leaving the page saying something the product no longer says. */
+const json = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
+const gilbert = json('../packages/catalog/assistant.json');
+const voiceCapability = json('../packages/catalog/capabilities.json').capabilities.find((c: { id: string }) => c.id === 'voice');
+const gilbertRefusal = (id: string) => gilbert.refusals.find((r: { id: string }) => r.id === id).statement;
 
 /* AT03 in full for the half that applies: nothing here may ask for a camera or a microphone. The
    only way to assert "never asked" is to sit in front of the APIs before the page loads and fail if
@@ -27,6 +38,19 @@ test.beforeEach(async ({ page }) => {
   }
   const ask = navigator.permissions?.query?.bind(navigator.permissions);
   if (ask) navigator.permissions.query = (descriptor: PermissionDescriptor) => { reached.push(`permission:${descriptor.name}`); return ask(descriptor); };
+  /* And the rest of the ways a page could hear or speak, not only the two that ask permission. §07's
+     prompts are built as words and controls that produce nothing, so a reach for any of these is the
+     failure this spec exists to catch — including a reach for the speech synthesiser, which asks
+     nobody for anything and would make a health preview talk. */
+  for (const name of ['SpeechRecognition', 'webkitSpeechRecognition', 'MediaRecorder', 'AudioContext', 'webkitAudioContext', 'SpeechSynthesisUtterance']) {
+   Object.defineProperty(window, name, {
+    configurable: true, value: function () { reached.push(name); throw new Error('refused by the test'); }
+   });
+  }
+  const synthesiser = (window as unknown as { speechSynthesis?: Record<string, unknown> }).speechSynthesis;
+  if (synthesiser) for (const name of ['speak', 'getVoices', 'cancel', 'pause', 'resume']) {
+   Object.defineProperty(synthesiser, name, { configurable: true, value: () => { reached.push(`speechSynthesis.${name}`); } });
+  }
  });
  await page.goto(DEMO);
  await expect(page.getByRole('heading', { name: 'Character demonstrator' })).toBeVisible();
@@ -162,6 +186,96 @@ test('AT12 · the page is keyboard operable, the speech demo is captioned, and a
  await page.getByRole('textbox').fill('The text still works.');
  await page.getByRole('button', { name: /^Send this message/ }).click();
  await expect(page.locator('.go-person-turn').last()).toContainText('The text still works.');
+});
+
+test('§07 · the voice prompts are the product\'s own sentences, and the control they describe is refused rather than drawn', async ({ page }) => {
+ const voice = page.locator('.go-voice');
+ await expect(voice.getByRole('heading', { name: /Voice · §07/ })).toBeVisible();
+ /* §07's five capability rows, each with what this phase does about it. */
+ for (const row of ['Input', 'Output', 'Mouth movement', 'Timing', 'Privacy']) {
+  await expect(voice.locator('.go-voice-row dt', { hasText: row })).toBeVisible();
+ }
+ /* The four input states are named in words. None of them is a control: nothing on this page offers
+    a microphone, a recording or a way to talk to it, in any state. */
+ for (const state of ['Microphone off', 'Starting', 'Microphone open', 'Error']) {
+  await expect(voice.locator('.go-voice-state', { hasText: state })).toBeVisible();
+ }
+ await expect(voice).toContainText('Not one of the four is drawn as a control, in any state');
+ for (const offer of [/microphone/i, /tap to talk/i, /record/i, /speak now/i]) {
+  await expect(page.getByRole('button', { name: offer })).toHaveCount(0);
+ }
+
+ /* The refusals, and the contract sentences beside them, word for word. */
+ const refusals = page.locator('.go-refusals');
+ await expect(refusals).toContainText('Not drawn, in any state');
+ await expect(refusals).toContainText('Not built and not reached for. This page makes no sound at all');
+ await expect(refusals).toContainText(voiceCapability.neverSoften);
+ for (const sentence of [
+  gilbert.voice.sentences.web,
+  gilbert.voice.sentences.beforePermission,
+  gilbert.voice.sentences.unavailable,
+  gilbert.voice.sentences.refused,
+  gilbert.voice.sentences.failed,
+  gilbert.conversation.webKeyboardNote,
+  gilbertRefusal('no-audio-kept')
+ ]) await expect(refusals.locator('.go-voice-sentences')).toContainText(sentence);
+ /* And the capability's own notice, rendered by the component every other screen uses. */
+ await expect(refusals.locator('.not-connected')).toContainText(voiceCapability.notice);
+ expect(await page.evaluate(() => (window as unknown as { reachedForMedia: string[] }).reachedForMedia)).toEqual([]);
+});
+
+test('§07 · the transcript is shown for review, corrected before it is sent, and discarded without keeping anything', async ({ page }) => {
+ const review = page.getByRole('button', { name: 'Show the transcript review' });
+ await review.click();
+ const field = page.getByLabel(gilbert.voice.sentences.correctLabel);
+ await expect(field).toBeVisible();
+ await expect(field).toHaveValue('Demonstration transcript — nothing was captured');
+ /* The panel opens on the field, because checking and correcting is what §07 asks the person to do. */
+ await expect(field).toBeFocused();
+
+ /* Discard keeps nothing, and says so. */
+ await page.getByRole('button', { name: gilbert.voice.sentences.discardLabel, exact: true }).click();
+ await expect(field).toHaveCount(0);
+ await expect(page.locator('.go-shell-turn').last()).toContainText('Discarded. Nothing was kept');
+
+ /* Reopened, the words are the example again rather than the last correction, and a correction that
+    is sent goes into this transcript and nowhere else. */
+ await review.click();
+ await expect(field).toHaveValue('Demonstration transcript — nothing was captured');
+ await field.fill('Demonstration transcript, corrected by hand — still nothing was captured');
+ await page.getByRole('button', { name: /^Send the corrected words/ }).click();
+ await expect(page.locator('.go-person-turn').last()).toContainText('corrected by hand');
+ await expect(page.locator('.go-shell-turn').last()).toContainText('nothing was captured, and nothing was sent');
+ await expect(field).toHaveCount(0);
+ expect(await page.evaluate(() => (window as unknown as { reachedForMedia: string[] }).reachedForMedia)).toEqual([]);
+});
+
+test('§07 · the demonstration answer is a caption, it can be replayed, and switching it off stops the mouth', async ({ page }) => {
+ await page.getByRole('button', { name: /^Replay the caption/ }).click();
+ const caption = page.locator('.go-caption');
+ await expect(caption).toContainText('Shaping these words · no audio is played');
+ await expect(caption).toContainText('no voice is synthesised');
+ await expect(status(page)).toContainText('No audio is played');
+
+ /* §07's explicit playback choice. With it off the cue does not run at all, and the row says why —
+    the mouth never moves without the words it is shaping on the screen beside it. */
+ const spoken = page.getByRole('button', { name: /^Spoken answers/ });
+ await expect(spoken).toHaveAttribute('aria-pressed', 'true');
+ await expect(spoken).toHaveAccessibleName(/no audio is ever produced by this page/);
+ await spoken.click();
+ await expect(spoken).toHaveAttribute('aria-pressed', 'false');
+ await expect(page.getByRole('button', { name: /^Replay the caption/ })).toBeDisabled();
+ const speak = page.getByRole('button', { name: 'A10 Speak', exact: true });
+ await expect(speak).toBeDisabled();
+ /* Scoped to its own row: the yawn's row is refused as well, by default, and a page with two refused
+    controls on it should not make either assertion depend on which one comes first. */
+ await expect(page.locator('.go-cue-blocked', { hasText: 'The mouth never moves without the caption beside it' })).toBeVisible();
+
+ await spoken.click();
+ await expect(speak).toBeEnabled();
+ /* Nothing was played, asked for or synthesised at any point in that. */
+ await expect(page.locator('audio, video')).toHaveCount(0);
+ expect(await page.evaluate(() => (window as unknown as { reachedForMedia: string[] }).reachedForMedia)).toEqual([]);
 });
 
 test('the demonstrator never claims to be the live assistant, a service, or connected to anything', async ({ page }) => {

@@ -1,3 +1,5 @@
+import { voice as voicePolicy, refusals as gilbertRefusals, conversation as gilbertConversation } from '../../../../packages/catalog/assistant.json';
+import { neverSoftenOf } from './capability-rules';
 /* GilbertOne's motion manifest and the reducer that owns the face.
  *
  * THIS IS A PREVIEW, NOT THE LIVE ASSISTANT. GilbertOne is the assistant this product ships — a
@@ -20,7 +22,9 @@
  * playback — those are phases 2 to 4, gated on decisions (a pinned checkpoint, a speech provider, a
  * clinical review) this repository has not made. Two cues in the document's tables are therefore
  * declared here and refused rather than drawn: A07, whose trigger is "Actual microphone capture
- * begins", and A10's audio half. See REFUSED.
+ * begins", and A10's audio half. §07's push-to-talk control and its browser voice are refused beside
+ * them, and what §07 asks for that can be shown without either is built. See REFUSED, and the voice
+ * section under it.
  *
  * PRIORITY AND CANCELLATION are the two rules that make the rest safe. A cue's track decides what it
  * may displace; a turn id decides which trigger owns the face. A late trigger from an earlier turn
@@ -361,11 +365,11 @@ export const cueById = (id: string): Cue => {
  return found;
 };
 
-/* ---- The two cues this phase refuses ---------------------------------------------------------
+/* ---- What this phase refuses: two cues, and the two halves of §07's voice --------------------
  *
- * Both are in the document's tables and neither may be drawn here, so they are declared with the
- * reason rather than quietly left out — a demonstrator that silently drops the two states about
- * capture and playback is a demonstrator whose reviewer never notices they are missing.
+ * None of the four may be drawn here, so each is declared with its reason rather than quietly left
+ * out — a demonstrator that silently drops the states about capture and playback is a demonstrator
+ * whose reviewer never notices they are missing.
  *
  * A07's trigger is "Actual microphone capture begins", and AT03 says the state may appear only
  * after capture starts. Nothing in apps/web captures anything: the founder's decision of
@@ -375,7 +379,10 @@ export const cueById = (id: string): Cue => {
  *
  * A10's audio half is refused for the same shape of reason: there is no speech provider, so there is
  * no playback for a mouth to follow. The mouth shapes that remain run against a written caption and
- * the widget says which. */
+ * the widget says which.
+ *
+ * V01 and V02 are §07's, and they are declared here rather than in the voice section below because a
+ * reviewer reads one list to find out what is missing, not two. */
 export type Refusal = { readonly id: string; readonly name: string; readonly statement: string; readonly why: string };
 export const REFUSED: readonly Refusal[] = [
  {
@@ -387,8 +394,155 @@ export const REFUSED: readonly Refusal[] = [
   id: 'A10', name: 'Speech-aligned mouth shapes against audio',
   statement: 'Half built. The mouth shapes are here; the audio is not, and none is synthesised, played or implied.',
   why: 'The cue\'s trigger is audio playback actually starting, and no speech provider is chosen — that is a phase 3 decision. So the shapes run against the written caption shown at the same moment, which is what is being said, and the caption says the audio is absent rather than letting a moving mouth imply it.'
+ },
+ /* The two below are §07's rather than §03's and §04's, and they are the reason the panel is called
+    what this phase will not do rather than which cues are missing. §07 asks for a push-to-talk
+    control and for the browser's own voice to read the answer out. Neither may be drawn or reached
+    for on the web, and the reasons are not the same reason: the first is the founder's decision and
+    the capability contract's note, the second is that there is no provider and no page here may make
+    a sound. Both are declared so that a reviewer who has the document open finds the answer where
+    the missing thing should have been. */
+ {
+  id: 'V01', name: '§07\'s push-to-talk control, and its four states, on the web',
+  statement: 'Not drawn, in any state. The four states are written out in words on this page, and not one of them is given a control, a pose or a pulse.',
+  why: '§07 asks for push-to-talk with clear microphone-off, starting, open-microphone and error states, and on a phone all four are real: the founder gave GilbertOne push-to-talk on 14 September, recognised by the phone itself, with nothing kept. On the web there is no microphone to be in any of those states, and the voice capability\'s note refuses the affordance in every state a control has. The document agrees with it twice over: A07 allows a waveform only from captured audio levels and never an invented live signal, and §07 asks that nothing animate a microphone while nobody is being recorded. A pulse driven by a reviewer\'s button is that invented signal, and this page is on the deployed site.'
+ },
+ {
+  id: 'V02', name: '§07\'s "browser speech where supported", for reading the answer out',
+  statement: 'Not built and not reached for. This page makes no sound at all: no browser voice is asked for, listed, chosen or spoken, and the answer is a caption.',
+  why: 'A browser\'s voice belongs to the browser\'s maker, which is the same route the founder refused in the other direction, and no speech provider is chosen — that is a phase 3 decision. §07 also warns that a browser\'s word-boundary events are not a portable viseme stream and must not be sold as production lip-sync. So the caption is the output rather than a stand-in for one: the mouth shapes run against written words that are on the screen while they run, and no control on this page can produce audio.'
  }
 ];
+
+/* ---- §07's voice prompts, as words rather than as controls ------------------------------------
+ *
+ * §07 asks for five things: push-to-talk input with four clear states and a final transcript shown
+ * for review; the browser's speech for the output; mouth movement driven by playback; timing that
+ * closes the mouth the moment anything stops; and a position on retained audio. Four of the five can
+ * be reviewed honestly on a page that cannot hear and cannot speak, and they are, below and in the
+ * widget. The fifth — the control itself — is refused above, and what stands where it would have
+ * been is this: the four states named, with what is true of each one on a phone and on the web.
+ *
+ * WHY THE SENTENCES ARE READ AND NOT TYPED. VOICE_SENTENCES is the live GilbertOne's own copy,
+ * decided by the founder on 14 September and rendered word for word by all three platforms. A
+ * demonstrator that retyped it would put a fourth version of a sentence that is supposed to exist
+ * once in front of the one person whose job is to check it, and the copy somebody types at eleven at
+ * night is always the softer one.
+ *
+ * ONE WORD IS SUBSTITUTED, in the Input row's quotation and nowhere else, for the same reason A08's
+ * motion wording carries a substitution: no file under apps/web/src may carry the document's word
+ * for the state about hearing, because scripts/check-boundaries.mjs fails the build on it so that a
+ * screen cannot drift back towards it a sentence at a time. The rule the row states is kept whole;
+ * "open-microphone" stands where the document's own word for that state would be. */
+
+const fillSeconds = (text: string) => text.replace('{seconds}', String(voicePolicy.maxListeningSeconds));
+const gilbertRefusal = (id: string) => {
+ const found = gilbertRefusals.find(refusal => refusal.id === id);
+ if (!found) throw new Error(`No GilbertOne refusal "${id}" in packages/catalog/assistant.json.`);
+ return found;
+};
+
+/** §07's own capability table, and what this phase does with each row. */
+export type VoiceRow = { readonly id: string; readonly capability: string; readonly poc: string; readonly here: string };
+export const VOICE_TABLE: readonly VoiceRow[] = [
+ {
+  id: 'input', capability: 'Input',
+  poc: 'Push-to-talk; final transcript shown for review; clear microphone-off, starting, open-microphone and error states.',
+  here: 'The review half is built and pressable: an example transcript, an editable field, Send and Discard, at the foot of the widget\'s transcript and above its composer. The control and its four states are refused — V01.'
+ },
+ {
+  id: 'output', capability: 'Output',
+  poc: 'Browser speech where supported; explicit playback choice and voice selection. Do not guarantee a South African voice is installed.',
+  here: 'No audio, no voice list and no browser voice. The explicit choice is built as a caption switch, and the caption is the whole of the output — V02.'
+ },
+ {
+  id: 'mouth', capability: 'Mouth movement',
+  poc: 'Use playback start/end and supported word-boundary events for approximate articulation. Fallback to a restrained speaking indicator when synchronisation is unreliable.',
+  here: 'The shapes run against the caption\'s own words, one word at a time, with the mouth shut between them. The indicator beside the caption is that restrained fallback, and here it is the only thing there is.'
+ },
+ {
+  id: 'timing', capability: 'Timing',
+  poc: 'Close the mouth immediately on pause, cancel, error or end. Never move it simply because a response is being generated.',
+  here: 'Stop, the pause control, reduced motion and a hidden tab each close the mouth. A08 moves the eyes and never the mouth, because waiting for something is not saying anything.'
+ },
+ {
+  id: 'privacy', capability: 'Privacy',
+  poc: 'No retained raw audio by the widget by default. Provider processing and retention must be stated separately.',
+  here: 'Nothing is captured, so there is nothing to retain, and no provider, so there is nothing to state. The phone\'s position — that no recording is made at all — is the contract sentence beside A07.'
+ }
+];
+
+/** The four input states §07 asks for: named, and true in both columns. Neither column is a control. */
+export type VoiceState = { readonly id: string; readonly name: string; readonly onThePhone: string; readonly onTheWeb: string };
+export const VOICE_STATES: readonly VoiceState[] = [
+ {
+  id: 'off', name: 'Microphone off',
+  onThePhone: 'The resting state, and the only one the phone is in until somebody taps. The tap is the whole of the model: nothing opens on its own, and nothing opens without the button.',
+  onTheWeb: 'There is no microphone to be off. The web has a text field, and what is typed into this one stays in this browser.'
+ },
+ {
+  id: 'starting', name: 'Starting',
+  onThePhone: fillSeconds('Between the tap and the first sound. The phone may ask for the microphone and the recogniser here, after MyThuso has explained in its own words why, and a refusal is answered rather than asked again.'),
+  onTheWeb: 'Nothing starts. No permission of any kind is asked for by this page, and the journeys sit in front of the browser\'s media and permission APIs before the page loads to prove that nothing reached for one.'
+ },
+ {
+  id: 'open', name: 'Microphone open',
+  onThePhone: fillSeconds('The one state the phone announces, for exactly as long as the microphone is open — until Stop, or {seconds} seconds, whichever comes first. The capability\'s own note under V01 is what binds the two together, in both directions.'),
+  onTheWeb: 'Never. Not enabled, not disabled, not decorative.'
+ },
+ {
+  id: 'error', name: 'Error',
+  onThePhone: 'Four failures and four sentences, none of them an apology and none of them a retry loop: the phone has no English recogniser of its own, permission is off, nothing was caught, or the phone took its microphone back.',
+  onTheWeb: 'A17 draws the face and the widget\'s unavailable state says the words. Nothing here can fail in this way, because nothing is attempted.'
+ }
+];
+
+/* ONE CONTRACT REFUSAL IS POINTED AT RATHER THAN QUOTED HERE. GilbertOne's refusal that the state is
+   shown only while the microphone is open, and the microphone never opened without it, is the rule
+   this whole section rests on — and its id in assistant.json is that state's name, which no file
+   under apps/web/src may carry. Assembling the id out of pieces to get past the check would be worse
+   than either writing it or not needing it, and it is not needed: the voice capability's own note,
+   rendered under V01 from packages/catalog/capabilities.json, states the same rule in the same
+   breath as the refusal to draw the control, which is where a reviewer is looking for it. */
+
+/** The product's own sentences about why the web has no microphone, read from the contract. */
+export type VoiceSentence = { readonly id: string; readonly when: string; readonly text: string };
+export const VOICE_SENTENCES: readonly VoiceSentence[] = [
+ { id: 'web', when: 'On the web, in every state', text: voicePolicy.sentences.web },
+ { id: 'keyboard', when: 'About the dictation key on your own keyboard', text: gilbertConversation.webKeyboardNote },
+ { id: 'before', when: 'On a phone, before it asks for the microphone', text: voicePolicy.sentences.beforePermission },
+ { id: 'unavailable', when: 'On a phone with no English recogniser of its own', text: voicePolicy.sentences.unavailable },
+ { id: 'refused', when: 'On a phone where permission is switched off', text: voicePolicy.sentences.refused },
+ { id: 'failed', when: 'On a phone, when nothing was caught', text: voicePolicy.sentences.failed },
+ { id: 'no-audio-kept', when: 'The refusal about what is kept', text: gilbertRefusal('no-audio-kept').statement }
+];
+
+/** The capability contract's own note, rendered beside the control this page will not draw. */
+export const VOICE_NEVER_SOFTEN = neverSoftenOf('voice') ?? '';
+
+/* §07: "final transcript shown for review", and §06: a review step before anything is committed. The
+   interaction shape is reviewable without a recogniser behind it — the field, the correction and the
+   discard are the same whether the words arrived by microphone or were put there by this constant —
+   so it is built, with the words saying plainly that nothing was captured. The two labels are the
+   contract's, because they are what a person actually reads on the phone. */
+export const TRANSCRIPT_REVIEW = {
+ example: 'Demonstration transcript — nothing was captured',
+ correctLabel: voicePolicy.sentences.correctLabel,
+ discardLabel: voicePolicy.sentences.discardLabel,
+ sendLabel: 'Send the corrected words',
+ discarded: 'Discarded. Nothing was kept, and nothing was captured in the first place.',
+ sent: 'On a phone this is where the corrected words would go to GilbertOne. Here they went into this transcript and nowhere else: nothing was captured, and nothing was sent.'
+} as const;
+
+/* §07 again: "Show captions whenever audio is used". No audio is ever used here, and the caption is
+   the whole of the output — so there is no control that turns it off, and the switch below chooses
+   whether the demonstration answer is given at all rather than whether it is captioned. With it off
+   the mouth does not move: the mouth only ever moves against words that are on the screen. */
+export const SPOKEN_ANSWERS = {
+ label: 'Demo caption only — no audio is ever produced by this page',
+ whileRunning: 'Shaping these words · no audio is played',
+ offReason: 'Spoken answers are switched off, so A10 does not run. The mouth never moves without the caption beside it, because the caption is what is being said — and there is no audio for it to follow.'
+} as const;
 
 /* ---- Yawn: on a leash, by the document's own numbers ------------------------------------------
  *
