@@ -19,7 +19,7 @@ sign section 12. The Information Officer's own decisions are in `INFORMATION-OFF
 
 A patient books a home visit; a SANC-registered nurse visits; a registered doctor reviews what the
 nurse found. Around that sit a patient-owned Health Passport, field safety for nurses, payments,
-an assistant called Gilbert, devices, rewards and family care (`CLAUDE.md`; `docs/FEATURE-MAP.md`).
+an assistant called GilbertOne, devices, rewards and family care (`CLAUDE.md`; `docs/FEATURE-MAP.md`).
 
 ### What is live today
 
@@ -73,8 +73,8 @@ it is marked **Question**.
 | I-11 | **Nurse position before a visit** | Shown to the patient on the day of the visit only; no history drawn | No | Not built | `packages/catalog/geography.json` `privacy.rules` |
 | I-12 | **Payments** | Payment state and amounts; card numbers refused wherever they appear; a cash code kept only as a salt and a digest | No | Engines runtime (development) | `packages/catalog/money.json` `cardFieldNames`; `packages/catalog/apis.json` `neverCrossesAnApi`; `packages/engines/src/money/domain/secrets.ts` |
 | I-13 | **Payouts** | Nurses' bank details, once a payout provider exists | No | Not built | `packages/catalog/feeds.json` (the payouts feed) |
-| I-14 | **Gilbert conversations** | Speech recognised on the phone; no audio recorded or kept; the transcript lives for the conversation; no model improvement; events never carry audio or a transcript | **Yes, while it exists**, because a person may describe symptoms | The phone's memory during the conversation | `packages/catalog/assistant.json` `voice` (`recognition`, `audioStored`, `transcriptLifetime`, `modelImprovementOffered`) and `refusals` (`no-audio-kept`), `events[].neverCarries` |
-| I-15 | **Handover from Gilbert to a nurse** | A reference to a summary entry and an urgency code; never the transcript or symptoms | **Yes** (the summary entry) | Record | `packages/catalog/events.json` `conversation.handover@1` |
+| I-14 | **GilbertOne conversations** | Speech recognised on the phone; no audio recorded or kept; the transcript lives for the conversation; no model improvement; events never carry audio or a transcript | **Yes, while it exists**, because a person may describe symptoms | The phone's memory during the conversation | `packages/catalog/assistant.json` `voice` (`recognition`, `audioStored`, `transcriptLifetime`, `modelImprovementOffered`) and `refusals` (`no-audio-kept`), `events[].neverCarries` |
+| I-15 | **Handover from GilbertOne to a nurse** | A reference to a summary entry and an urgency code; never the transcript or symptoms | **Yes** (the summary entry) | Record | `packages/catalog/events.json` `conversation.handover@1` |
 | I-16 | **Visit thread** | Words between patient and nurse, kept with the visit; photos switched off pending clinical review | **Yes**, likely | Not delivered anywhere | `packages/catalog/booking.json` `thread`, setting `visit-thread-photos` |
 | I-17 | **Devices** | Readings from Apple Health, Health Connect or a Thuso Kit, none connected; offline capture ledger holding a device id, the device's claimed time and a digest, never a reading | **Yes** (readings) | Not connected; ledger in `apps/api` | `packages/catalog/passport.json` `devices`; `packages/catalog/capabilities.json` (`devices`); `apps/api/src/capture/`; `packages/catalog/consent.json` (`wearable-readings`) |
 | I-18 | **Rewards** | Points for looking after oneself; may disclose that a follow-up was kept and its date; never the reason for a visit; a minor cannot earn | No, but close to the line | Not built | `packages/catalog/rewards.json` `_popiaNote`, `earnReasons`, `refusals` |
@@ -139,8 +139,8 @@ both (`scripts/check-boundaries.mjs`).
 | A reading deviates | Safety → Core, Care, Clinical | reading values, deviation detail | `events.json` `sentinel.rung_raised@1` |
 | A nurse presses panic | Safety → Core, Care, Movement | live location | `events.json` `panic.raised@1` |
 | A nurse is overdue | Safety → Core, Care | last known location | `events.json` `checkin.overdue@1` |
-| Gilbert hands over | Access → Care, Core | transcript, symptoms | `events.json` `conversation.handover@1` |
-| Gilbert escalates | Pulse → Safety, Care, Core | transcript, audio, emergency groups | `assistant.json` `pulse.escalation.started@2` |
+| GilbertOne hands over | Access → Care, Core | transcript, symptoms | `events.json` `conversation.handover@1` |
+| GilbertOne escalates | Pulse → Safety, Care, Core | transcript, audio, emergency groups | `assistant.json` `pulse.escalation.started@2` |
 | An order ships | Money → Core | delivery address | `events.json` `market.order.shipped@1` |
 | The desk's field-safety queue | Safety desk screen | service, patient, address | `field-safety.json` `desk.neverCarries` |
 
@@ -195,7 +195,7 @@ require prior authorisation under section 57(1)(d)? Answers: ______
 | Record access log | Period stated as MyThuso's own setting; **nothing carries it out** | `packages/catalog/consent.json` `accessLog.retention`; `docs/PRIVACY-AND-SECURITY.md` |
 | Proof of consent, proof a request was handled, vetting evidence, capture receipts | Periods stated as MyThuso's own setting | `apps/api/src/personalData.ts` |
 | Backups | Archives are kept for a stated period, so an erased person remains in the oldest archive until it expires | `deploy/README.md` "The backups, and what they are not" |
-| Gilbert | No audio kept; transcript for the conversation only | `packages/catalog/assistant.json` `voice` |
+| GilbertOne | No audio kept; transcript for the conversation only | `packages/catalog/assistant.json` `voice` |
 | Nurse position during a panic | Gone when sharing stops | `packages/catalog/field-safety.json` refusal `location-retained` |
 | Visit thread | Kept with the visit; open for a set time after it | `packages/catalog/booking.json` `thread`, setting `visit-thread-open-hours-after-visit` |
 | Passport P0 | No retention or disposal is built | `apps/passport/src/store.ts` |
@@ -283,7 +283,7 @@ Likelihood and impact are for the assessor. The evidence column says why each ri
 | R-8 | A nurse's position shown during a panic becomes a tracking record | `packages/catalog/field-safety.json` (`panic`, `location-retained`); `packages/catalog/geography.json` | | | |
 | R-9 | A patient's address and the service booked together reveal an illness at a household | `packages/catalog/geography.json` rule `address-is-not-a-pin`; `packages/catalog/events.json` `neverInEnvelope` | | | |
 | R-10 | Health information in visit thread messages, or photos if switched on, sits on a personal phone with no way to take it back | `packages/catalog/booking.json` `thread`, setting `visit-thread-photos` | | | |
-| R-11 | Something a person says to Gilbert about their health is kept or sent somewhere | `packages/catalog/assistant.json` `voice`, `events[].neverCarries` | | | |
+| R-11 | Something a person says to GilbertOne about their health is kept or sent somewhere | `packages/catalog/assistant.json` `voice`, `events[].neverCarries` | | | |
 | R-12 | An event carrying a service id beside a zone or a time lets a subscriber infer health information | `packages/catalog/events.json` (`booking.requested@2`, `appointment.completed@2`); `packages/catalog/field-safety.json` `desk.neverCarries` | | | |
 | R-13 | Police clearance or face-match information is handled as ordinary personal information when it may be special | Section 2, rows I-2 and I-3 | | | |
 | R-14 | Information is kept longer than needed: the access log is never disposed of; erased people stay in backups | `packages/catalog/consent.json` `accessLog.retention`; `deploy/README.md` | | | |

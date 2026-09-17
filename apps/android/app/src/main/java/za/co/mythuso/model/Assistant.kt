@@ -2,7 +2,7 @@ package za.co.mythuso.model
 
 import java.text.Normalizer
 
-/* Gilbert's reasoning, without a screen attached to it.
+/* GilbertOne's reasoning, without a screen attached to it.
  *
  * The sentences, trigger phrases, emergency words, the matcher's data and the shared fixtures are
  * generated into AssistantData.kt from packages/catalog/assistant.json. This is the arithmetic beside
@@ -98,7 +98,7 @@ sealed interface GilbertReply {
     data class Handover(val rows: List<SummaryRow>, val urgency: String) : GilbertReply
 }
 
-/** [unread] is true when the answer came with words Gilbert could not read; the unread answer follows it. */
+/** [unread] is true when the answer came with words GilbertOne could not read; the unread answer follows it. */
 data class GilbertTurn(
     val id: Int, val asked: String?, val channel: GilbertChannel?, val reply: GilbertReply,
     val matched: GilbertQuestion?, val groups: List<GilbertEmergencyGroup>, val unread: Boolean = false
@@ -106,7 +106,7 @@ data class GilbertTurn(
 
 object Gilbert {
     /* The visit is the one the home card shows — the store's first upcoming visit, written by the same
-       shortWhenText — so Gilbert and the home cannot name two days for one visit. With nothing booked, or
+       shortWhenText — so GilbertOne and the home cannot name two days for one visit. With nothing booked, or
        a nurse still being found, it says scheduling.json's own words for that. */
     fun situations(visit: BookedVisit? = null): List<GilbertSituation> {
         val values = mutableMapOf(
@@ -192,7 +192,7 @@ object Gilbert {
         return best
     }
 
-    /** A word that is neither one of the question's own trigger words nor filler is a word Gilbert did not read. */
+    /** A word that is neither one of the question's own trigger words nor filler is a word GilbertOne did not read. */
     fun leavesUnread(text: String, question: GilbertQuestion): Boolean {
         val covered = GilbertData.filler.map(::stem).toSet() + question.triggers.flatMap(::stems)
         return stems(text).any { it !in covered }
@@ -239,7 +239,7 @@ object Gilbert {
         val question = question(words)
             ?: return append(turns) { GilbertTurn(it, words, channel, GilbertReply.Unmatched, null, emptyList()) }
         val unread = question.answer != "emergency" && leavesUnread(words, question)
-        /* A claim about everything is not made to a message Gilbert did not read all of. */
+        /* A claim about everything is not made to a message GilbertOne did not read all of. */
         if (unread && question.id in GilbertData.neverWithUnread) {
             return append(turns) { GilbertTurn(it, words, channel, GilbertReply.Unmatched, null, emptyList()) }
         }
@@ -261,7 +261,7 @@ object Gilbert {
 
     /* Two codes and neither is calm. An emergency answer anywhere in the conversation is `emergency`;
        everything else is `not-assessed`, because no emergency word is not a finding that something is
-       not urgent. A later handover may raise it and nothing Gilbert says afterwards lowers it. */
+       not urgent. A later handover may raise it and nothing GilbertOne says afterwards lowers it. */
     fun urgency(turns: List<GilbertTurn>, raised: Boolean = false): String {
         val codes = GilbertData.handover.urgency.map { it.id }
         val emergency = codes.firstOrNull { it == "emergency" } ?: codes.first()

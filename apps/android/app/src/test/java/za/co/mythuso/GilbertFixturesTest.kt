@@ -6,7 +6,7 @@ import za.co.mythuso.model.Gilbert
 import za.co.mythuso.model.GilbertChannel
 import za.co.mythuso.model.GilbertData
 
-/* Gilbert's matcher on Android, held to the same fixtures the web runs in Playwright and iOS runs in its
+/* GilbertOne's matcher on Android, held to the same fixtures the web runs in Playwright and iOS runs in its
  * debug self-test. The fixtures are in packages/catalog/assistant.json and generated into AssistantData.kt,
  * so a disagreement here is this platform's arithmetic, not a copy of the list that drifted.
  *
@@ -35,6 +35,6 @@ class GilbertFixturesTest {
        packages/catalog/gilbert-emergency-terms.json. Tuning one out is a change to that file alone. */
     @Test fun falsePositivesAreReportedNotBlocking() {
         val raised = GilbertData.falsePositiveFixtures.filter { Gilbert.emergencyGroups(it).isNotEmpty() }
-        println("Gilbert emergency terms v${GilbertData.emergencyTermsVersion} still raise ${raised.size} of ${GilbertData.falsePositiveFixtures.size} false-positive fixtures: $raised")
+        println("GilbertOne emergency terms v${GilbertData.emergencyTermsVersion} still raise ${raised.size} of ${GilbertData.falsePositiveFixtures.size} false-positive fixtures: $raised")
     }
 }

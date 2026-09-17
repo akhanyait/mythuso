@@ -77,7 +77,7 @@ class PreviewStore(book: CaptureBook = MemoryBook(), visitBook: CaptureBook = Me
        words about getting to a door, not part of anybody's record, and booking.json says nothing in a
        thread travels anywhere. */
     val visitThreadMessages = mutableStateListOf<VisitThreadMessage>()
-    /* The simulated nurse queue Gilbert hands a summary to: one entry per conversation, holding the
+    /* The simulated nurse queue GilbertOne hands a summary to: one entry per conversation, holding the
        highest urgency it was handed with. It reaches no nurse. */
     val handovers = mutableStateListOf<HandoverSent>()
     /* What somebody typed on the home screen, so the catalogue it hands off to can apply it. */

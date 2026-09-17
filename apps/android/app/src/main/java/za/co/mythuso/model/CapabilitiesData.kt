@@ -10,7 +10,7 @@
 //
 // The keys beginning with an underscore in the contract are commentary and are not written out.
 // `requiresPermissions` names the only permissions either app may declare — today three, all for
-// Gilbert's push-to-talk — and scripts/check-boundaries.mjs refuses any permission no capability
+// GilbertOne's push-to-talk — and scripts/check-boundaries.mjs refuses any permission no capability
 // has asked for.
 
 package za.co.mythuso.model
@@ -161,7 +161,7 @@ val capabilities = listOf(
     Capability("teleconsultation", "The consultation call", false,
         null,
         listOf(
-            "No media stack. Neither app declares a camera permission, and the consultation asks for no microphone — the only microphone either app asks for is Gilbert's push-to-talk, named under the voice capability.",
+            "No media stack. Neither app declares a camera permission, and the consultation asks for no microphone — the only microphone either app asks for is GilbertOne's push-to-talk, named under the voice capability.",
             "A doctor panel with a real rota."
         ),
         "The consultation has never asked this device for the camera or the microphone, and no connection is opened. What follows is the design of a consultation, drawn at full size.",
@@ -189,14 +189,14 @@ val capabilities = listOf(
         listOf("capture", "screening-result", "review-queue"),
         null,
         emptyList()),
-    Capability("voice", "Talking to Gilbert", false,
+    Capability("voice", "Talking to GilbertOne", false,
         null,
         listOf(
             "No contracted South African speech provider: so English only, only on phones that recognise it offline, and nothing heard on the web.",
-            "No language model. Gilbert answers only from its approved sentences, and says so when it cannot assess something.",
+            "No language model. GilbertOne answers only from its approved sentences, and says so when it cannot assess something.",
             "No decision about a recording beyond keeping none, so nothing is recorded and no transcript leaves the phone."
         ),
-        "Gilbert listens only after you tap the sphere on a phone, hears English only, turns speech into text on the phone and keeps no recording. On the web you type. Nothing you say or type is sent anywhere.",
+        "GilbertOne listens only after you tap the sphere on a phone, hears English only, turns speech into text on the phone and keeps no recording. On the web you type. Nothing you say or type is sent anywhere.",
         "on-device",
         null,
         listOf("assistant", "voice", "home"),
@@ -410,6 +410,6 @@ val capabilityRules = listOf(
         "No simulator may be reached over HTTP. The eleven feed routes go on refusing every payload, and a simulated event enters in process through a function of its own.",
         "apps/api/src/feeds/index.ts argues that a route which could accept under some condition is a route somebody finds the condition for, usually late at night with a vendor on the phone. A simulation flag on those routes would be exactly that condition. So `decide` still has no acceptance to construct, and the simulators sit beside the boundary rather than inside it."),
     CapabilityRule("voice-is-on-device",
-        "`voice` alone is on-device: the phone recognises speech, Gilbert answers from a contract, and nothing is connected.",
+        "`voice` alone is on-device: the phone recognises speech, GilbertOne answers from a contract, and nothing is connected.",
         "English push-to-talk on the phone, decided on 14 September 2026, is neither a stand-in answering (simulated) nor a supplier (connected). The state says exactly what is true, and the notice stays.")
 )

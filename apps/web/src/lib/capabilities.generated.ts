@@ -161,7 +161,7 @@ export const capabilities: readonly FirstViewCapability[] = [
   "state": "simulated",
   "notice": "The consultation has never asked this device for the camera or the microphone, and no connection is opened. What follows is the design of a consultation, drawn at full size.",
   "blockedBy": [
-   "No media stack. Neither app declares a camera permission, and the consultation asks for no microphone — the only microphone either app asks for is Gilbert's push-to-talk, named under the voice capability.",
+   "No media stack. Neither app declares a camera permission, and the consultation asks for no microphone — the only microphone either app asks for is GilbertOne's push-to-talk, named under the voice capability.",
    "A doctor panel with a real rota."
   ],
   "simulation": {
@@ -195,13 +195,13 @@ export const capabilities: readonly FirstViewCapability[] = [
  },
  {
   "id": "voice",
-  "name": "Talking to Gilbert",
+  "name": "Talking to GilbertOne",
   "connected": false,
   "state": "on-device",
-  "notice": "Gilbert listens only after you tap the sphere on a phone, hears English only, turns speech into text on the phone and keeps no recording. On the web you type. Nothing you say or type is sent anywhere.",
+  "notice": "GilbertOne listens only after you tap the sphere on a phone, hears English only, turns speech into text on the phone and keeps no recording. On the web you type. Nothing you say or type is sent anywhere.",
   "blockedBy": [
    "No contracted South African speech provider: so English only, only on phones that recognise it offline, and nothing heard on the web.",
-   "No language model. Gilbert answers only from its approved sentences, and says so when it cannot assess something.",
+   "No language model. GilbertOne answers only from its approved sentences, and says so when it cannot assess something.",
    "No decision about a recording beyond keeping none, so nothing is recorded and no transcript leaves the phone."
   ],
   "simulation": null

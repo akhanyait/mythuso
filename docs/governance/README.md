@@ -49,7 +49,7 @@ their job is to read, decide and sign, not to search the repository.
 | An SMS provider, DNS, TLS and keys | The identity service stays switched off, and refuses to start in production without an SMS provider | `deploy/README.md`; `apps/api/src/config.ts` |
 | A clinical review of each setting that needs one | The setting is in force and shown as "not clinically reviewed" wherever it matters | `packages/catalog/settings.json`; `apps/web/src/features/SettingReviews.tsx`; `scripts/settings-defaults.mjs` |
 | Ratification by the clinical governance board | A protocol stays a draft with no content, and nothing may claim to follow it | `packages/catalog/protocols.json` `refusals` |
-| A clinical reviewer for Gilbert's emergency terms | The list is a proposed starting configuration and says so | `packages/catalog/gilbert-emergency-terms.json` `clinicalReview` |
+| A clinical reviewer for GilbertOne's emergency terms | The list is a proposed starting configuration and says so | `packages/catalog/gilbert-emergency-terms.json` `clinicalReview` |
 | A clinician who reads the language | Clinical wording stays in English in every locale | `packages/catalog/locales.json` `clinicalRule` |
 | A clinical review of visit-thread photos, and somewhere proper to keep one | The thread carries words only | `packages/catalog/booking.json` setting `visit-thread-photos` |
 | An operator agreement and a section 72 determination per supplier | Every supplier feed refuses every payload | `packages/catalog/feeds.json`; `apps/api/src/feeds/` |

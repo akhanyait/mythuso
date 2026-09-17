@@ -1,10 +1,10 @@
 import SwiftUI
 
-/* Gilbert Pulse: the sphere Gilbert is drawn as, and the reason it is a sphere.
+/* GilbertOne Pulse: the sphere GilbertOne is drawn as, and the reason it is a sphere.
 
-   Section 15E of the ThusoIQ master document chose a non-human sphere so that Gilbert is never drawn
+   Section 15E of the ThusoIQ master document chose a non-human sphere so that GilbertOne is never drawn
    as a clinician: it has no face, no mouth and no aperture, and it is lit rather than listening. That
-   is still the rule. What changed on 14 September 2026 is that Gilbert may now listen on a phone —
+   is still the rule. What changed on 14 September 2026 is that GilbertOne may now listen on a phone —
    push-to-talk, English, on-device — and the founder asked for the sphere to react to a voice the way
    Siri's wave does. So the sphere takes two inputs it did not have, and neither of them is ever the
    only thing that says what is happening: the screen says the state in words beside it.

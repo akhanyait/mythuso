@@ -1,0 +1,153 @@
+/* GilbertOne's widget shell and the phase 1 demonstrator around it. Loaded with
+   features/GilbertOneDemo.tsx, which is reached only by ?preview=gilbertone and arrives on a dynamic
+   import, so none of this is on a patient's first load.
+
+   Every value is a token. The character's own palette lives in gilbert-avatar.css; this sheet draws
+   the surfaces around it, and deliberately draws them quietly — a review page whose chrome competes
+   with the thing being reviewed is a review page nobody can judge a 6-degree head turn on. */
+
+.go-demo { min-height: 100vh; background: var(--canvas); color: var(--ink); }
+
+.go-demo-head { max-width: 1180px; margin: 0 auto; padding: var(--space-32) var(--space-20) var(--space-24); }
+.go-demo-head h1 { margin: 0 0 var(--space-12); font-size: 36px; line-height: 1.12; letter-spacing: -.5px; }
+.go-demo-head .demo-pill { margin-bottom: var(--space-20); }
+.go-lede { margin: 0 0 var(--space-12); max-width: 68ch; font-size: 16px; line-height: 1.6; color: var(--body); }
+.go-demo-head .helper { align-items: flex-start; max-width: 68ch; }
+.go-demo-head .helper svg { flex: none; margin-top: 3px; color: var(--indigo-deep); }
+@media (max-width: 640px) { .go-demo-head h1 { font-size: 28px; } }
+
+/* The stage on the left and the controls on the right, because the whole job of this page is
+   pressing a control and watching the face — and a layout that puts them one above the other on a
+   wide screen makes a reviewer choose between the two. On a phone they stack, and the stage goes
+   first for the same reason. */
+.go-demo-grid { max-width: 1180px; margin: 0 auto; padding: 0 var(--space-20) 160px; display: grid; gap: var(--space-24); grid-template-columns: minmax(0, 1fr); align-items: start; }
+.go-demo-grid > section { min-width: 0; }
+@media (min-width: 1000px) {
+ .go-demo-grid { grid-template-columns: minmax(0, 400px) minmax(0, 1fr); }
+ .go-stage-panel { position: sticky; top: var(--space-24); }
+ .go-refusals { grid-column: 1 / -1; }
+}
+/* One card, not eight. The character is what this page is for, so the stage keeps the raised
+   surface and everything else steps back to a flat bordered panel — seven identical white boxes with
+   the same shadow is a page with no hierarchy at all, and it is the fastest way to make a design
+   review about the chrome. The refusals keep an edge of their own, because what a build will not do
+   is not a subheading of what it does. */
+.go-stage-panel { box-shadow: var(--shadow-raised); }
+.go-controls .panel, .go-refusals { box-shadow: none; background: var(--surface); }
+.go-refusals { border-inline-start: 4px solid var(--mango); }
+.go-demo h2 { margin: 0 0 var(--space-12); font-size: 20px; }
+.go-demo h3 { margin: 0 0 var(--space-8); font-size: 16px; }
+.go-demo .panel + .panel { margin-top: var(--space-16); }
+.go-demo .helper { align-items: flex-start; }
+
+/* The alpha canvas. Three grounds, and the character is identical on all three: that is the whole
+   of AT01, and a reviewer can only check it by changing what is behind it. */
+.go-stage { display: grid; place-items: center; padding: var(--space-20); border-radius: var(--r-card); border: 1px dashed var(--line); margin-bottom: var(--space-16); }
+.go-stage svg { max-width: 100%; height: auto; }
+.go-stage[data-ground='light'] { background: var(--surface); }
+.go-stage[data-ground='dark'] { background: var(--brand-ink); border-color: var(--brand-ink); }
+.go-stage[data-ground='checked'] {
+ background-color: var(--surface);
+ background-image: linear-gradient(45deg, var(--canvas) 25%, transparent 25%, transparent 75%, var(--canvas) 75%),
+                   linear-gradient(45deg, var(--canvas) 25%, transparent 25%, transparent 75%, var(--canvas) 75%);
+ background-size: 24px 24px;
+ background-position: 0 0, 12px 12px;
+}
+.go-grounds { margin-bottom: var(--space-12); }
+.go-grounds legend { display: flex; align-items: center; gap: var(--space-4); }
+/* 44 square, not the shared chip's 42: this page adds no new undersized target. */
+.go-grounds .chip, .go-chips .chip { min-height: 44px; }
+.go-grounds .chip.is-on { border-color: var(--indigo); background: var(--indigo-soft); color: var(--indigo-deep); font-weight: 600; }
+
+.go-status { margin-top: var(--space-16); padding: var(--space-12); border-radius: var(--r-control); background: var(--indigo-wash); border: 1px solid var(--line); }
+.go-status-note { margin: 0 0 var(--space-4); font-size: 15px; line-height: 1.5; color: var(--ink); }
+.go-status .helper { margin: 0; }
+
+.go-access-row { display: flex; flex-wrap: wrap; gap: var(--space-8); margin-bottom: var(--space-12); }
+.go-access-row .secondary { min-height: 44px; }
+.go-toggle[aria-pressed='true'] { border-color: var(--indigo); background: var(--indigo-soft); color: var(--indigo-deep); }
+
+/* One row per cue: the control, then the words the scope document uses for it. The button is fixed
+   width so seventeen of them make a column a reviewer can run down, and the id sits in it because
+   "A12" is how the specification is discussed. */
+.go-cue-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-12); }
+.go-cue { display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: var(--space-12); align-items: start; }
+@media (max-width: 520px) { .go-cue { grid-template-columns: minmax(0, 1fr); } }
+.go-cue-button { min-height: 52px; width: 100%; flex-direction: column; gap: 2px; padding: var(--space-8); }
+.go-cue-id { font-size: 13px; letter-spacing: 1px; font-weight: 700; color: var(--indigo); }
+.go-cue-name { font-size: 14px; font-weight: 600; color: var(--slate); }
+.go-cue-button:disabled .go-cue-id, .go-cue-button:disabled .go-cue-name { color: var(--body); }
+.go-cue-words p { margin: 0 0 var(--space-4); }
+.go-cue-meta { font-size: 13px; font-weight: 600; color: var(--slate); }
+/* A refused control says why in words and carries an edge, never a colour on its own. */
+.go-cue-blocked { font-size: 13px; line-height: 1.6; color: var(--ink); border-inline-start: 4px solid var(--mango); padding-inline-start: var(--space-8); }
+
+.go-refusal-list { list-style: none; margin: 0 0 var(--space-16); padding: 0; display: grid; gap: var(--space-16); }
+.go-refusal-head { display: flex; align-items: center; gap: var(--space-8); margin: 0 0 var(--space-4); }
+.go-refusal-statement { display: flex; gap: var(--space-8); align-items: flex-start; margin: 0 0 var(--space-4); color: var(--ink); font-size: 15px; line-height: 1.55; }
+.go-refusal-statement svg { flex: none; margin-top: 2px; color: var(--mango-ink); }
+.go-plain-list { margin: 0; padding-inline-start: var(--space-20); display: grid; gap: var(--space-8); color: var(--body); font-size: 14px; line-height: 1.6; max-width: 72ch; }
+
+/* ---- The widget ------------------------------------------------------------------------------
+   §02's five modes. Lower-right on a desktop, a bottom sheet on a phone, and never a modal: the page
+   behind stays live, keeps its focus order and is never made inert, because a widget that takes the
+   whole screen hostage is a widget that can cover something somebody needs. */
+.go-widget { position: fixed; right: var(--space-20); bottom: var(--space-20); z-index: 40; }
+.go-launcher { width: 60px; height: 60px; border-radius: var(--r-pill); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-raised); display: grid; place-items: center; }
+.go-launcher:hover { border-color: var(--brand-mint); }
+
+.go-panel { width: 340px; max-width: calc(100vw - var(--space-32)); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); box-shadow: var(--shadow-raised); overflow: hidden; display: flex; flex-direction: column; max-height: min(700px, calc(100vh - var(--space-40))); }
+.go-panel-head { display: grid; gap: var(--space-8); padding: var(--space-8) var(--space-12) var(--space-12); border-bottom: 1px solid var(--line); }
+.go-identity { display: flex; align-items: center; gap: var(--space-12); min-width: 0; }
+.go-head-art { display: grid; place-items: center; }
+.go-titles { min-width: 0; }
+.go-titles strong { display: block; font-size: 16px; color: var(--ink); }
+.go-titles small { display: block; font-size: 13px; color: var(--body); }
+.go-state { margin: var(--space-4) 0 0; font-size: 13px; line-height: 1.5; color: var(--slate); }
+.go-panel-controls { display: flex; gap: var(--space-4); justify-content: flex-end; }
+.go-icon { width: 44px; height: 44px; border-radius: var(--r-control); display: grid; place-items: center; color: var(--slate); border: 1px solid transparent; }
+.go-icon:hover { border-color: var(--line); background: var(--canvas); }
+
+.go-body { padding: var(--space-12); overflow-y: auto; display: grid; gap: var(--space-12); }
+.go-body .go-head-art { padding-top: var(--space-4); }
+.go-greeting { margin: 0; font-size: 15px; line-height: 1.55; color: var(--ink); }
+.go-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-8); }
+
+.go-transcript { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-8); }
+.go-turn { display: grid; gap: 2px; padding: var(--space-8) var(--space-12); border-radius: var(--r-control); font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
+.go-who { font-size: 13px; font-weight: 600; letter-spacing: .3px; }
+.go-person-turn { background: var(--indigo-soft); color: var(--ink); justify-items: start; }
+.go-person-turn .go-who { color: var(--indigo-deep); }
+/* The shell's own replies are a notice rather than a character speaking. It is the difference
+   between a widget that answered you and a widget explaining that it cannot. */
+.go-shell-turn { background: var(--canvas); color: var(--body); border-inline-start: 4px solid var(--line); }
+.go-shell-turn .go-who { color: var(--slate); }
+
+.go-caption { display: grid; gap: 2px; margin: 0; padding: var(--space-8) var(--space-12); border-radius: var(--r-control); background: var(--mango-soft); color: var(--ink); font-size: 14px; line-height: 1.55; }
+.go-caption-label { font-size: 13px; font-weight: 600; color: var(--mango-ink); }
+
+.go-unavailable { align-content: start; }
+.go-plain { display: flex; gap: var(--space-8); align-items: flex-start; margin: 0; font-size: 15px; line-height: 1.55; color: var(--ink); }
+.go-plain svg { flex: none; margin-top: 2px; color: var(--slate); }
+.go-unavailable .secondary { min-height: 44px; justify-self: start; }
+
+.go-composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-8); padding: var(--space-12); border-top: 1px solid var(--line); }
+.go-composer input { min-height: 44px; width: 100%; padding: 0 var(--space-12); border: 1px solid var(--line); border-radius: var(--r-control); background: var(--surface); color: var(--ink); font-size: 15px; }
+.go-send { width: 44px; height: 44px; border-radius: var(--r-control); background: var(--indigo); color: var(--surface); display: grid; place-items: center; }
+.go-send:hover { background: var(--indigo-deep); }
+.go-widget .not-connected { margin: 0; padding: var(--space-8) var(--space-12) var(--space-12); }
+
+.go-rig-failed { display: grid; justify-items: center; gap: var(--space-4); }
+.go-rig-failed .helper { max-width: 30ch; text-align: center; }
+
+/* A phone gets a sheet from the bottom edge, keyboard-aware and inside the safe area. The launcher
+   moves with it so a thumb finds the same corner. */
+@media (max-width: 640px) {
+ .go-widget { right: var(--space-12); bottom: var(--space-12); left: var(--space-12); pointer-events: none; }
+ .go-widget > * { pointer-events: auto; }
+ .go-collapsed { display: flex; justify-content: flex-end; }
+ .go-panel { width: 100%; max-width: none; max-height: min(70vh, calc(100vh - 80px)); padding-bottom: env(safe-area-inset-bottom); }
+ /* The welcome head at the bottom of §02's 100–140 range, so the greeting, the three chips and the
+    field all fit above the keyboard rather than the head taking a third of the sheet. */
+ .go-body .go-head-art svg { width: 88px; height: 88px; }
+}

@@ -1,6 +1,6 @@
 {
  "engine": "access",
- "_note": "Access is how a person reaches MyThuso: the identity service's sign-in, account, consent and operator routes (built, in development), and Gilbert's bookings, conversations, handover, allow-listed tools and household arrangements (proposed). Wave 2 contract; Wave 3 build.",
+ "_note": "Access is how a person reaches MyThuso: the identity service's sign-in, account, consent and operator routes (built, in development), and GilbertOne's bookings, conversations, handover, allow-listed tools and household arrangements (proposed). Wave 2 contract; Wave 3 build.",
  "version": 1,
  "resources": ["sign-ins", "sessions", "sign-outs", "account-names", "second-factors", "second-factor-confirmations", "second-factor-removals", "account-data", "erasure-requests", "erasure-cancellations", "account-exports", "correction-requests", "consent-contract", "consents", "access-log", "subject-requests", "health", "audit-chain", "witness-statements", "access-log-integrity", "verification-status", "rate-limits", "doors", "bookings", "conversations", "tools", "households", "household-memberships", "sponsors", "bill-splits", "visit-threads", "settings", "setting-changes", "setting-reviews"],
  "doors": ["message-delivery", "ussd-session"],
@@ -898,7 +898,7 @@
    "method": "POST",
    "path": "/v1/access/conversations/{conversationRef}/messages",
    "version": 1,
-   "summary": "Send Gilbert a message in an episode.",
+   "summary": "Send GilbertOne a message in an episode.",
    "callers": ["patient", "caregiver"],
    "purpose": ["treatment"],
    "request": [
@@ -907,14 +907,14 @@
    ],
    "response": [
     {"field": "answerId", "type": "string", "required": false, "why": "The approved answer given, if one was."},
-    {"field": "interactionStateCode", "type": "string", "required": true, "why": "The Gilbert Pulse state: idle, listening, thinking, guiding, escalate or handover."},
+    {"field": "interactionStateCode", "type": "string", "required": true, "why": "The GilbertOne Pulse state: idle, listening, thinking, guiding, escalate or handover."},
     {"field": "escalated", "type": "boolean", "required": true, "why": "Whether the emergency numbers were shown, decided by the terms in packages/catalog/gilbert-emergency-terms.json and the matching rules in packages/catalog/assistant.json — never restated here."}
    ],
    "refusals": [
-    {"id": "not-an-answer-gilbert-gives", "status": 422, "statement": "Gilbert does not answer that. It can put you through to a nurse.", "why": "Gilbert gives approved answers only, and never lowers an emergency; which words escalate is packages/catalog/gilbert-emergency-terms.json's to say."}
+    {"id": "not-an-answer-gilbert-gives", "status": 422, "statement": "Gilbert does not answer that. It can put you through to a nurse.", "why": "GilbertOne gives approved answers only, and never lowers an emergency; which words escalate is packages/catalog/gilbert-emergency-terms.json's to say."}
    ],
    "emits": [],
-   "emitsNoneBecause": "Gilbert's own events are Pulse's, declared in packages/catalog/assistant.json; this route emits none of Access's.",
+   "emitsNoneBecause": "GilbertOne's own events are Pulse's, declared in packages/catalog/assistant.json; this route emits none of Access's.",
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": null,
@@ -924,7 +924,7 @@
    "method": "POST",
    "path": "/v1/access/conversations/{conversationRef}/handover",
    "version": 1,
-   "summary": "Hand a Gilbert episode to a nurse, with a structured summary.",
+   "summary": "Hand a GilbertOne episode to a nurse, with a structured summary.",
    "callers": [],
    "purpose": ["treatment"],
    "request": [
@@ -952,7 +952,7 @@
    "method": "POST",
    "path": "/v1/access/conversations/{conversationRef}/handover",
    "version": 2,
-   "summary": "Hand a Gilbert episode to the nurse queue with a structured summary and the urgency the rules set, and answer who is on the desk — or, out of hours, that nobody is, the emergency numbers, and when a nurse would call back.",
+   "summary": "Hand a GilbertOne episode to the nurse queue with a structured summary and the urgency the rules set, and answer who is on the desk — or, out of hours, that nobody is, the emergency numbers, and when a nurse would call back.",
    "callers": ["patient", "caregiver"],
    "purpose": ["treatment"],
    "request": [
@@ -972,7 +972,7 @@
    ],
    "refusals": [
     {"id": "no-summary", "status": 422, "statement": "A handover goes with a structured summary, or it does not go.", "why": "A nurse should not have to read a conversation to know why she is calling."},
-    {"id": "urgency-not-listed", "status": 422, "statement": "That is not an urgency Gilbert hands a nurse. The codes are the assistant contract's, and none of them is calm.", "why": "An urgency nobody can rank is one nobody can keep from being lowered, and a word like routine sent here would be the calm code Gilbert, which grades nothing, may never give."}
+    {"id": "urgency-not-listed", "status": 422, "statement": "That is not an urgency Gilbert hands a nurse. The codes are the assistant contract's, and none of them is calm.", "why": "An urgency nobody can rank is one nobody can keep from being lowered, and a word like routine sent here would be the calm code GilbertOne, which grades nothing, may never give."}
    ],
    "emits": ["conversation.handover@1"],
    "idempotent": false,
@@ -986,7 +986,7 @@
    "method": "POST",
    "path": "/v1/access/tools/{tool}",
    "version": 1,
-   "summary": "Gilbert's allow-listed tool call: appointment, admission, ride, dispensary, market, passport, messaging, clinician queue.",
+   "summary": "GilbertOne's allow-listed tool call: appointment, admission, ride, dispensary, market, passport, messaging, clinician queue.",
    "callers": ["patient", "caregiver"],
    "purpose": ["treatment", "dispatch", "dispensing", "subject-access"],
    "request": [
@@ -1414,7 +1414,7 @@
    "method": "GET",
    "path": "/v1/access/settings",
    "version": 1,
-   "summary": "Read Access's settings in force — what happens when a nurse asked for by name cannot take a visit, how a visit thread works, and who answers a Gilbert handover and when — each with its default and who proposed it, what an admin may set, its clinical review, and every change made to them.",
+   "summary": "Read Access's settings in force — what happens when a nurse asked for by name cannot take a visit, how a visit thread works, and who answers a GilbertOne handover and when — each with its default and who proposed it, what an admin may set, its clinical review, and every change made to them.",
    "callers": [],
    "purpose": ["audit"],
    "request": [],
@@ -1503,7 +1503,7 @@
     {"id": "setting-schedule-leaves-a-gap", "status": 422, "statement": "That rota leaves hours uncovered that must always have somebody on them.", "why": "A rota with a gap is an alert with nobody to go to, and nobody finds out until one arrives."},
     {"id": "setting-out-of-range", "status": 422, "statement": "That is outside what an admin may set for this setting.", "why": "The bounds, the allowed values and the allowed roles sit beside the default in the engine's contract. Moving a setting past them is a change to that contract, not a setting."},
     {"id": "setting-unchanged", "status": 409, "statement": "That is already the value in force, so there is nothing to change.", "why": "A change that changes nothing is a row in the history saying something happened when nothing did."},
-    {"id": "handover-hours-never-open", "status": 422, "statement": "The handover desk keeps at least one window. A desk that never opens offers a call back that never comes.", "why": "Out of hours Gilbert says nobody is there, gives the emergency numbers and offers a call back when the desk opens. With no window at all there is no opening to offer, and a patient told a nurse would ring is waiting for nobody."}
+    {"id": "handover-hours-never-open", "status": 422, "statement": "The handover desk keeps at least one window. A desk that never opens offers a call back that never comes.", "why": "Out of hours GilbertOne says nobody is there, gives the emergency numbers and offers a call back when the desk opens. With no window at all there is no opening to offer, and a patient told a nurse would ring is waiting for nobody."}
    ],
    "emits": [],
    "emitsNoneBecause": "No engine acts on a settings change. The engine that owns a setting reads the value in force when it starts something, and the event contract refuses an event nobody subscribes to. A change is the row it appends to the engine's own history, which the read route returns.",
@@ -1554,7 +1554,7 @@
    "method": "GET",
    "path": "/v1/access/settings",
    "version": 2,
-   "summary": "Read Access's settings in force — what happens when a nurse asked for by name cannot take a visit, how a visit thread works, and who answers a Gilbert handover and when — each with its default and who proposed it, what an admin may set, its clinical review, and every change made to them. Read by the admin who changes them and by the clinical roles Clinical's review-confirmer setting names in force.",
+   "summary": "Read Access's settings in force — what happens when a nurse asked for by name cannot take a visit, how a visit thread works, and who answers a GilbertOne handover and when — each with its default and who proposed it, what an admin may set, its clinical review, and every change made to them. Read by the admin who changes them and by the clinical roles Clinical's review-confirmer setting names in force.",
    "callers": ["admin", "doctor", "nurse"],
    "purpose": ["audit"],
    "request": [],

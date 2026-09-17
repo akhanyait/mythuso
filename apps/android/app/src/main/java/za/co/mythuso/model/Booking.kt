@@ -4,7 +4,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 
-/* Booking a visit, the thread about it, and handing a Gilbert conversation to the nurse queue.
+/* Booking a visit, the thread about it, and handing a GilbertOne conversation to the nurse queue.
  *
  * The words are generated into BookingData.kt from packages/catalog/booking.json; this is the arithmetic
  * beside them, and it is the same arithmetic as packages/engines/src/access/domain/booking.ts, thread.ts
@@ -19,7 +19,7 @@ import java.time.LocalTime
  *    nurse — the first person free and one person in particular are two different requests;
  *  - move a booking backwards, confirm one that was cancelled, or confirm one that has no hour to hold;
  *  - carry anything but words in a visit thread, or keep a thread open once the visit is over or called off;
- *  - lower an urgency Gilbert has already handed over.
+ *  - lower an urgency GilbertOne has already handed over.
  *
  * Nothing here books, sends or dispatches anything. The roster, the thread and the queue are simulated,
  * in memory, and every screen that reads this says so from the capabilities contract. */
@@ -260,7 +260,7 @@ object Handovers {
        for a rota, onDuty and rotaAt in packages/engines/src/settings/shape.ts, which the web and the Access
        engine import and a phone cannot,
        so it is mirrored here: a window covers the local day and a time from its start until before its end. It
-       returns no words, so it has no way to leave out what Gilbert says first out of hours: nobody is there,
+       returns no words, so it has no way to leave out what GilbertOne says first out of hours: nobody is there,
        and the numbers. */
     data class Desk(val open: Boolean, val opensDaysAhead: Int?, val opensOn: LocalDate?, val opensFrom: String?)
 

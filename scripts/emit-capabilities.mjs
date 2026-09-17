@@ -67,7 +67,7 @@ const banner = count => [
  '',
  'The keys beginning with an underscore in the contract are commentary and are not written out.',
  '`requiresPermissions` names the only permissions either app may declare — today three, all for',
- 'Gilbert\'s push-to-talk — and scripts/check-boundaries.mjs refuses any permission no capability',
+ 'GilbertOne\'s push-to-talk — and scripts/check-boundaries.mjs refuses any permission no capability',
  'has asked for.'
 ].map(line => (line ? `// ${line}` : '//')).join('\n');
 

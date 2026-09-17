@@ -1,6 +1,6 @@
 /* Triage: the rule engine's frame and the gates around it, with no rule in it.
  *
- * THE FRAME, IN ORDER. Gilbert's emergency terms are asked before triage, by Access, and nothing here reads,
+ * THE FRAME, IN ORDER. GilbertOne's emergency terms are asked before triage, by Access, and nothing here reads,
  * changes or outranks them. Then the protocol: a version the register holds as ratified, of a protocol the board
  * has named a triage protocol, or nothing is triaged. Then the protocol's own rules, loaded by its version: this
  * build loads none, because no protocol's content is in it, so a ratified protocol whose rules cannot be read is

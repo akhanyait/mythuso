@@ -7,7 +7,7 @@ import { editorLabel, fill, openChangeForm, openConfiguration, say, timingItem }
 
    The founder instructed on 15 September 2026 that open questions become admin settings. These journeys
    check that an Access setting an admin changes is the one a patient's screen reads, in the same tab and
-   without a reload: the thread composer counts and refuses at the longest message in force, and Gilbert,
+   without a reload: the thread composer counts and refuses at the longest message in force, and GilbertOne,
    asked for a nurse when the handover desk's hours in force say nobody is there, says so first, gives the
    emergency numbers from sos.json and offers a call back when the desk opens. What they check is what makes
    that safe: the numbers are said whatever the hours are, and nothing typed here is a limit or an hour the
@@ -69,7 +69,7 @@ test('an admin shortens the longest thread message, and the patient’s composer
   await expect(visit.locator('.thread-photos')).toHaveText(booking.thread.wordsOnly);
 });
 
-test('with the handover desk’s hours moved so nobody is there now, Gilbert says so, gives the emergency numbers and offers a call back when it opens', async ({ page }) => {
+test('with the handover desk’s hours moved so nobody is there now, GilbertOne says so, gives the emergency numbers and offers a call back when it opens', async ({ page }) => {
   await page.clock.install({ time: START });
   const launcher = page.getByRole('button', { name: gilbert.identity.callToAction, exact: true });
   const panel = page.getByRole('dialog', { name: gilbert.identity.name });

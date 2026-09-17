@@ -10,7 +10,7 @@
    phone renders the route's own words, and a refusal booking.json names that the route does not
    declare stops the build instead of compiling an empty string. The badge a nurse must hold is the
    verified tier's name and sentence in packages/catalog/trust.json. The emergency numbers in the
-   thread's "nobody watches" sentence and in what Gilbert says out of hours are packages/catalog/sos.json's.
+   thread's "nobody watches" sentence and in what GilbertOne says out of hours are packages/catalog/sos.json's.
    The names of the roles who answer a handover are packages/catalog/vetting.json's. None is typed twice.
 
    ACCESS'S SETTINGS. Neither phone has an admin surface, so each uses the default of each Access setting
@@ -193,7 +193,7 @@ ${thread.closedBecause.map(c => `            .init(id: ${swift(c.id)}, sentence:
         ]
     }
 
-    /// Who answers a Gilbert handover and when. The emergency numbers are sos.json's and are not a setting.
+    /// Who answers a GilbertOne handover and when. The emergency numbers are sos.json's and are not a setting.
     enum Handover {
         /// Access's setting handover-answered-by, as vetting.json names the roles. ${settings.answeredBy.note}
         static let answeredBy: [String] = [${settings.answeredBy.value.map(id => swift(roleName(id))).join(', ')}]
@@ -310,7 +310,7 @@ ${thread.closedBecause.map(c => `            BookingThreadClosed(${kotlin(c.id)}
         )
     }
 
-    /** Who answers a Gilbert handover and when. The emergency numbers are sos.json's and are not a setting. */
+    /** Who answers a GilbertOne handover and when. The emergency numbers are sos.json's and are not a setting. */
     object Handover {
         /** Access's setting handover-answered-by, as vetting.json names the roles. ${settings.answeredBy.note} */
         val answeredBy = listOf(${settings.answeredBy.value.map(id => kotlin(roleName(id))).join(', ')})

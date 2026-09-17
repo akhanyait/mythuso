@@ -126,7 +126,7 @@ object BookingData {
         )
     }
 
-    /** Who answers a Gilbert handover and when. The emergency numbers are sos.json's and are not a setting. */
+    /** Who answers a GilbertOne handover and when. The emergency numbers are sos.json's and are not a setting. */
     object Handover {
         /** Access's setting handover-answered-by, as vetting.json names the roles. A proposal nobody has decided. A default an admin may change on the web; this app has no admin surface and uses it as written here. */
         val answeredBy = listOf("Registered nurse")

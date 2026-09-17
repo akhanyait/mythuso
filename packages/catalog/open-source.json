@@ -26,8 +26,8 @@
   {"id": "PILOT COMPONENTS", "kinds": ["open-source-module"], "mayServeProduction": false, "meaning": "§15D: accelerators for a supervised pilot, subject to licensing, security and clinical workflow validation."},
   {"id": "PROTOTYPE ONLY", "kinds": ["open-source-module"], "mayServeProduction": false, "meaning": "§15D: for prototypes and test harnesses. Never the diagnostic or triage engine."},
   {"id": "REFERENCE CATALOGUE", "kinds": ["reference-catalogue", "open-source-module", "standard"], "mayServeProduction": false, "meaning": "§15D: Awesome Health is a directory for discovery and comparison, and the components shortlisted from it are candidates rather than decisions."},
-  {"id": "MODEL GATEWAY — REPLACEABLE", "kinds": ["commercial-provider"], "mayServeProduction": true, "meaning": "§15D: at least two models evaluated, routed by risk, cost and latency behind a model gateway, versioned, with a fallback. No single model becomes Gilbert."},
-  {"id": "PRIMARY PRODUCTION EVALUATION", "kinds": ["commercial-provider"], "mayServeProduction": true, "meaning": "§15D: the first South African speech candidate to evaluate for a Gilbert voice pilot, before any contract."},
+  {"id": "MODEL GATEWAY — REPLACEABLE", "kinds": ["commercial-provider"], "mayServeProduction": true, "meaning": "§15D: at least two models evaluated, routed by risk, cost and latency behind a model gateway, versioned, with a fallback. No single model becomes GilbertOne."},
+  {"id": "PRIMARY PRODUCTION EVALUATION", "kinds": ["commercial-provider"], "mayServeProduction": true, "meaning": "§15D: the first South African speech candidate to evaluate for a GilbertOne voice pilot, before any contract."},
   {"id": "PARALLEL EVALUATION", "kinds": ["commercial-provider"], "mayServeProduction": true, "meaning": "§15D: benchmarked against the primary candidate on the same clinical speech corpus."},
   {"id": "FALLBACK / BENCHMARK", "kinds": ["commercial-provider"], "mayServeProduction": true, "meaning": "§15D: one global voice stack kept as an engineering benchmark and a fallback, never the architecture."},
   {"id": "ADAPTED", "kinds": ["open-weights-model"], "mayServeProduction": true, "meaning": "§45: the idea is right and the source was wrong, so open-weights speech models are fine-tuned locally in place of a licensed foreign cloud model."},
@@ -38,13 +38,13 @@
  "owned": [
   {
    "id": "gilbert-orchestration",
-   "name": "Gilbert orchestration service",
+   "name": "GilbertOne orchestration service",
    "owner": "Akhanya / MyThuso",
    "specDecision": "OWN",
    "specSection": "§15D",
    "what": "Conversation state, tool permissions, patient context assembly, care workflow orchestration, escalation, audit and product experience.",
    "replaceable": false,
-   "refusal": {"statement": "No module, framework or model replaces Gilbert's orchestration.", "why": "§15D calls it the core IP. A module under it can be swapped; the thing that decides which tool a model may call cannot be somebody else's."}
+   "refusal": {"statement": "No module, framework or model replaces GilbertOne's orchestration.", "why": "§15D calls it the core IP. A module under it can be swapped; the thing that decides which tool a model may call cannot be somebody else's."}
   },
   {
    "id": "clinical-policy-and-triage",
@@ -71,7 +71,7 @@
  "procurementRules": [
   {"id": "no-unrestricted-passport-access", "statement": "No external component gets direct, unrestricted access to the Health Passport; all access flows through ThusoIQ identity, consent, purpose-of-use and audit controls.", "why": "§16: a breach of the record cannot be undone, and every engine already reads it through one gateway. A module is not an exception to that because somebody else wrote it."},
   {"id": "open-source-is-not-production-approved", "statement": "Open source does not mean production-approved; licence, security, maintenance, dependency, vulnerability, data-flow and clinical-use reviews come before adoption.", "why": "A public repository says who can read the code, not who has checked it. Three of the six Momentum repositories have had no commit for more than a year, and one has no licence file at all."},
-  {"id": "provider-abstraction-from-day-one", "statement": "Model and provider abstraction is kept from day one: standard request and response schemas, a model registry, feature flags, shadow evaluation and rollback.", "why": "§15D: no single model becomes Gilbert. A provider wired straight into a screen is a provider that cannot be withdrawn the day it fails."},
+  {"id": "provider-abstraction-from-day-one", "statement": "Model and provider abstraction is kept from day one: standard request and response schemas, a model registry, feature flags, shadow evaluation and rollback.", "why": "§15D: no single model becomes GilbertOne. A provider wired straight into a screen is a provider that cannot be withdrawn the day it fails."},
   {"id": "audio-and-transcripts-are-health-information", "statement": "Patient audio and transcripts are health information when they reveal symptoms or conditions, and get the Passport's data-minimisation, retention, encryption and consent discipline.", "why": "A voice describing chest pain is special personal information under POPIA section 26 whichever vendor transcribed it."},
   {"id": "no-search-answer-is-clinical-advice", "statement": "No internet-search answer becomes clinical advice at runtime; clinical answers are grounded in versioned, governance-approved protocols, Formulary data and patient-specific facts.", "why": "§15D: web research is a content-development activity, not the care pathway."},
   {"id": "local-language-measured-with-real-speakers", "statement": "Local-language performance is measured with real South African speakers across age, gender, accent, code-switching, noise, low-bandwidth calls, medicine names and emergency phrases before launch.", "why": "§15D's launch language gate: marketing support is not the same as clinical readiness."}
@@ -81,7 +81,7 @@
   {"id": "open-source-is-not-production-approved", "statement": "Nothing in this register is adopted until its licence, security, maintenance, data-flow and clinical-use reviews are each recorded.", "why": "§15D: open source does not mean production-approved. A module named in a specification is a candidate, and somebody reading its name beside MyThuso's should not come away believing it runs here."},
   {"id": "verify-do-not-invent", "statement": "A licence, a URL or a date of last activity is recorded as it was read from the primary source on a stated day, or it is null with the reason it could not be read.", "why": "A guessed licence is how copyleft code ends up inside a product that cannot publish its source, and a guessed URL is how a typo-squatted package gets installed."},
   {"id": "the-passport-only-through-its-gateway", "statement": "No module reaches the record engine except through the Passport's consent gateway.", "why": "§15D's first procurement rule, and §16's design test: if a module were compromised, it must not hold the records."},
-  {"id": "no-generic-record-tool-for-a-model", "statement": "A module driven by a model reads the record only through Gilbert's allow-listed tools, and never writes to it.", "why": "§15D: never expose a generic FHIR CRUD tool directly to the patient-facing model. A write tool in front of a model is a record anybody can edit by typing."},
+  {"id": "no-generic-record-tool-for-a-model", "statement": "A module driven by a model reads the record only through GilbertOne's allow-listed tools, and never writes to it.", "why": "§15D: never expose a generic FHIR CRUD tool directly to the patient-facing model. A write tool in front of a model is a record anybody can edit by typing."},
   {"id": "no-prototype-reaches-triage", "statement": "Nothing registered as a prototype, a pilot or a reference links the triage route.", "why": "§15D: Diagnostipy is for prototypes and test harnesses, and clinical policy and triage are owned. A weighted score that reaches the triage route is a diagnosis nobody governs."},
   {"id": "a-declined-vendor-links-nothing", "statement": "A vendor the specification declined is linked to no engine, route or door, and is never adopted.", "why": "§45 records why each was declined so the decision is auditable. A link would be the first step of reversing it without anybody deciding to."},
   {"id": "registering-is-not-depending", "statement": "No package manifest in this repository declares a registered component.", "why": "Adoption starts with the five reviews. A dependency added to try something is adoption that skipped them, and it is found by the build rather than by an audit."},
@@ -103,7 +103,7 @@
    "id": "model-gateway",
    "why": "§15D's sixth runtime layer — primary and fallback models, a prompt and model registry, output-schema validation — is declared by no contract in this repository.",
    "beforeSwitchOn": [
-    {"must": "At least two models are evaluated and a fallback is named for every task routed to one.", "why": "§15D: no single model becomes Gilbert."},
+    {"must": "At least two models are evaluated and a fallback is named for every task routed to one.", "why": "§15D: no single model becomes GilbertOne."},
     {"must": "Every call records the model, prompt and protocol version it ran on.", "why": "§15D's audit layer: without the version, a harmful answer cannot be traced or reproduced."},
     {"must": "A hosted model processes in South Africa, or a section 72 determination names where, under a data processing agreement.", "why": "A prompt carrying a patient's symptoms is special personal information in transit."},
     {"must": "The clinical safety layer runs before any model output reaches a person, and nothing a model returns lowers an urgency.", "why": "§15D: allowed actions and minimum urgency are set by rules; the model cannot override downward."}
@@ -172,7 +172,7 @@
    },
    "dependencyMarkers": {},
    "links": [
-    {"engine": "record", "apiRoutes": ["GET /fhir/{resourceType}/{id}", "GET /fhir/{resourceType}"], "doors": [], "capabilities": ["clinical-records"], "through": ["tool-gateway", "passport-gateway"], "how": "Gilbert would reach it only as named tools on the allow-list behind POST /v1/access/tools/{tool}, and it would read the Passport's FHIR routes through the consent gateway under the patient's grant; it writes nothing."}
+    {"engine": "record", "apiRoutes": ["GET /fhir/{resourceType}/{id}", "GET /fhir/{resourceType}"], "doors": [], "capabilities": ["clinical-records"], "through": ["tool-gateway", "passport-gateway"], "how": "GilbertOne would reach it only as named tools on the allow-list behind POST /v1/access/tools/{tool}, and it would read the Passport's FHIR routes through the consent gateway under the patient's grant; it writes nothing."}
    ],
    "adoption": {
     "status": "not-adopted",
@@ -181,12 +181,12 @@
      "None of the five reviews has been done.",
      "As shipped, document search requires a Pinecone API key and terminology lookup may call the LOINC API, so it would send data to services outside South Africa.",
      "One release, on 23 October 2025, and no commit since 13 October 2025.",
-     "Gilbert's tool gateway is proposed, not built, and its allow-list names no FHIR tool."
+     "GilbertOne's tool gateway is proposed, not built, and its allow-list names no FHIR tool."
     ]
    },
    "refusals": [
-    {"id": "never-a-generic-record-tool", "statement": "The FHIR MCP Server is never offered to Gilbert as a general-purpose record tool; it is reached as named, read-only tools.", "why": "§15D: never expose a generic FHIR CRUD tool directly to the patient-facing model.", "enforcedBy": "packages/catalog/apis/access.json#generic-record-tool"},
-    {"id": "only-allow-listed-tools", "statement": "A tool it offers that is not on Gilbert's allow-list is refused.", "why": "§15D: a restricted, consent-aware tool gateway with an allow-list.", "enforcedBy": "packages/catalog/apis/access.json#tool-not-allowed"},
+    {"id": "never-a-generic-record-tool", "statement": "The FHIR MCP Server is never offered to GilbertOne as a general-purpose record tool; it is reached as named, read-only tools.", "why": "§15D: never expose a generic FHIR CRUD tool directly to the patient-facing model.", "enforcedBy": "packages/catalog/apis/access.json#generic-record-tool"},
+    {"id": "only-allow-listed-tools", "statement": "A tool it offers that is not on GilbertOne's allow-list is refused.", "why": "§15D: a restricted, consent-aware tool gateway with an allow-list.", "enforcedBy": "packages/catalog/apis/access.json#tool-not-allowed"},
     {"id": "no-external-index-of-a-record", "statement": "No part of a patient's record is indexed in an external vector store or sent to an external terminology service.", "why": "Its README requires Pinecone for document search and calls the LOINC API; either would move special personal information across a border without a section 72 basis."}
    ]
   },
@@ -568,7 +568,7 @@
    "kind": "commercial-provider",
    "specDecision": "MODEL GATEWAY — REPLACEABLE",
    "specSection": "§15D",
-   "provides": "Draft explanations, summaries, questions and low-risk guidance for Gilbert, behind a model gateway.",
+   "provides": "Draft explanations, summaries, questions and low-risk guidance for GilbertOne, behind a model gateway.",
    "source": {
     "url": null,
     "repository": null,
@@ -581,20 +581,20 @@
    },
    "dependencyMarkers": {},
    "links": [
-    {"engine": "access", "apiRoutes": ["POST /v1/access/conversations/{conversationRef}/messages"], "doors": ["proposed:model-gateway"], "capabilities": ["voice"], "through": ["tool-gateway"], "how": "A model would draft Gilbert's words behind a model gateway with a registry of models and prompts, output-schema validation and a fallback, and would reach another engine only as an allow-listed tool."}
+    {"engine": "access", "apiRoutes": ["POST /v1/access/conversations/{conversationRef}/messages"], "doors": ["proposed:model-gateway"], "capabilities": ["voice"], "through": ["tool-gateway"], "how": "A model would draft GilbertOne's words behind a model gateway with a registry of models and prompts, output-schema validation and a fallback, and would reach another engine only as an allow-listed tool."}
    ],
    "adoption": {
     "status": "not-adopted",
     "review": {"licence": null, "security": null, "maintenance": null, "dataFlow": null, "clinicalUse": null},
     "blockedBy": [
      "No model is shortlisted and the model-gateway door does not exist.",
-     "Gilbert gives approved answers only today, and no clinical governance has approved generated ones."
+     "GilbertOne gives approved answers only today, and no clinical governance has approved generated ones."
     ]
    },
    "refusals": [
     {"id": "no-model-lowers-a-priority", "statement": "Nothing a model returns lowers a priority the rules set.", "why": "§15D: generative AI may explain; it may not lower a rule-engine priority.", "enforcedBy": "packages/catalog/apis/clinical.json#priority-lowered"},
     {"id": "never-a-generic-record-tool", "statement": "A model is never given a general-purpose record tool.", "why": "§15D: never expose a generic FHIR CRUD tool directly to the patient-facing model.", "enforcedBy": "packages/catalog/apis/access.json#generic-record-tool"},
-    {"id": "no-single-model-is-gilbert", "statement": "No single model or provider becomes Gilbert.", "why": "§15D: evaluate at least two, version every model and prompt, and keep a fallback."}
+    {"id": "no-single-model-is-gilbert", "statement": "No single model or provider becomes GilbertOne.", "why": "§15D: evaluate at least two, version every model and prompt, and keep a fallback."}
    ]
   },
   {
@@ -614,7 +614,7 @@
    },
    "dependencyMarkers": {},
    "links": [
-    {"engine": "pulse", "apiRoutes": [], "doors": ["speech-transcript"], "capabilities": ["voice"], "how": "A transcript of one push-to-talk turn would arrive on the speech-transcript door, for the person to correct before it is sent to Gilbert."}
+    {"engine": "pulse", "apiRoutes": [], "doors": ["speech-transcript"], "capabilities": ["voice"], "how": "A transcript of one push-to-talk turn would arrive on the speech-transcript door, for the person to correct before it is sent to GilbertOne."}
    ],
    "adoption": {
     "status": "not-adopted",
@@ -689,7 +689,7 @@
     "blockedBy": ["No vendor is chosen, and every condition on the speech-transcript door is unmet."]
    },
    "refusals": [
-    {"id": "no-consumer-assistant-is-gilberts-voice", "statement": "No consumer assistant — Google Assistant, Siri or Bixby — becomes Gilbert's voice architecture.", "why": "§15D's recommendation: do not make any consumer assistant or single model the architecture."}
+    {"id": "no-consumer-assistant-is-gilberts-voice", "statement": "No consumer assistant — Google Assistant, Siri or Bixby — becomes GilbertOne's voice architecture.", "why": "§15D's recommendation: do not make any consumer assistant or single model the architecture."}
    ]
   },
   {
@@ -710,7 +710,7 @@
    },
    "dependencyMarkers": {"pypi": ["openai-whisper"]},
    "links": [
-    {"engine": "pulse", "apiRoutes": [], "doors": ["speech-transcript"], "capabilities": ["voice"], "how": "Fine-tuned locally and run on the phone or in a South African cluster, its transcript of a turn would reach Gilbert the way a provider's does, on the speech-transcript door or heard on the device."}
+    {"engine": "pulse", "apiRoutes": [], "doors": ["speech-transcript"], "capabilities": ["voice"], "how": "Fine-tuned locally and run on the phone or in a South African cluster, its transcript of a turn would reach GilbertOne the way a provider's does, on the speech-transcript door or heard on the device."}
    ],
    "adoption": {
     "status": "not-adopted",
@@ -743,7 +743,7 @@
    },
    "dependencyMarkers": {},
    "links": [
-    {"engine": "pulse", "apiRoutes": [], "doors": ["speech-transcript"], "capabilities": ["voice"], "how": "Its transcript of a turn would reach Gilbert on the speech-transcript door, as any speech model's would."}
+    {"engine": "pulse", "apiRoutes": [], "doors": ["speech-transcript"], "capabilities": ["voice"], "how": "Its transcript of a turn would reach GilbertOne on the speech-transcript door, as any speech model's would."}
    ],
    "adoption": {
     "status": "not-adopted",
@@ -776,7 +776,7 @@
    },
    "dependencyMarkers": {},
    "links": [
-    {"engine": "pulse", "apiRoutes": [], "doors": ["speech-transcript"], "capabilities": ["voice"], "how": "Its transcript or translation of a turn would reach Gilbert on the speech-transcript door, as any speech model's would."}
+    {"engine": "pulse", "apiRoutes": [], "doors": ["speech-transcript"], "capabilities": ["voice"], "how": "Its transcript or translation of a turn would reach GilbertOne on the speech-transcript door, as any speech model's would."}
    ],
    "adoption": {
     "status": "not-adopted",
@@ -809,7 +809,7 @@
    },
    "dependencyMarkers": {},
    "links": [
-    {"engine": "pulse", "apiRoutes": [], "doors": ["speech-transcript"], "capabilities": ["voice"], "how": "Anything trained from it would reach Gilbert on the speech-transcript door, as any speech model's would."}
+    {"engine": "pulse", "apiRoutes": [], "doors": ["speech-transcript"], "capabilities": ["voice"], "how": "Anything trained from it would reach GilbertOne on the speech-transcript door, as any speech model's would."}
    ],
    "adoption": {
     "status": "not-adopted",

@@ -1,7 +1,7 @@
 /* The clinical review pack, written for the clinician who has to sign it rather than for a platform.
 
    Everything in MyThuso that waits on a clinician is already in a contract: settings that carry
-   reviewRequired, protocols nobody has ratified, Gilbert's emergency terms with no reviewer, the scopes
+   reviewRequired, protocols nobody has ratified, GilbertOne's emergency terms with no reviewer, the scopes
    the vetting register sends people out under, and proposals with decidedBy: null whose effect is on a
    patient or on a nurse at a door. This writes all of it into docs/governance/CLINICAL-REVIEW-PACK.md,
    each item with the question it asks and blank sign-off fields.
@@ -52,7 +52,7 @@ const CLINICAL_SETTINGS = {
  'safety:panic-window': 'It decides how long the desk sees a nurse\'s position after she presses panic. The Full Scope makes the field safety policy the Clinical Governance Lead\'s to sign (Engine 4).',
  'safety:extension-steps': 'A visit that runs long is usually a patient who needs more than was booked. The steps decide how a nurse asks for that time at the door.',
  'safety:extension-ceiling': 'It decides how long a visit may run past its booked time on the nurse\'s own word before the desk speaks to her.',
- 'access:handover-answered-by': 'It decides which registered role answers when a patient\'s conversation with Gilbert is handed over, and a handover exists because the patient said something about their health.',
+ 'access:handover-answered-by': 'It decides which registered role answers when a patient\'s conversation with GilbertOne is handed over, and a handover exists because the patient said something about their health.',
  'access:handover-hours': 'It decides the hours in which a handed-over conversation reaches that role, and so the hours in which it reaches nobody.',
  'money:priority-sos-wording': 'It tells a family what a paid plan changes about how an emergency is answered. Whether the words keep urgency ahead of payment is a triage question, not only a commercial one.',
  'trust:complaint-review-hours': 'A complaint may be about the care a patient was given, and this decides how long it waits before anybody reads it. The Full Scope\'s Verify engine names the window (Engine 6).',
@@ -318,7 +318,7 @@ export function emitClinicalReviewPack(root = '') {
  line(`- **Settings (sections A and E).** An admin puts a value in force on the Configuration tab (${[...new Set(settingSources.map(s => changeRoute(s.engine)).filter(Boolean))].map(tick).join(', ')}). For a setting that waits on a clinical review, somebody holding ${tick('sign-clinical-review')} (${capabilityName('sign-clinical-review')}) then confirms that exact value, with a reason, in the doctor workspace's "Settings waiting for clinical review" panel (\`apps/web/src/features/SettingReviews.tsx\`, ${[...new Set(waiting.map(w => reviewRoute(w.engine)).filter(Boolean))].map(tick).join(', ')}). "${refusal('setting-review-own-change')}" A default can instead be changed in the contract itself, naming the reviewer and the day (\`packages/catalog/settings.json\` \`provenance.reviewed\`) with a changelog entry, as \`settings.json\` \`howToChange\` describes.`);
  line(`- **Who can confirm through the panel today:** ${reviewers.map(r => `${r.name} (${tick(r.id)})`).join(', ') || 'no role on the register'}, because Clinical's ${tick(confirmerKey)} setting names ${reviewers.length === 1 ? 'that role' : 'those roles'} by default (\`packages/catalog/clinical.json\`), and every engine's review route confirms for the roles that setting names in force and for nobody else. An admin may name any of ${mayBeNamed.map(r => `${r.name} (${tick(r.id)})`).join(', ')} on the Configuration tab, and that change waits on a clinical review of its own.${reviewers.some(r => r.id === 'nurse') ? '' : ' A Clinical Governance Lead who is a registered nurse could confirm through the panel once the setting names her role.'}`);
  line(`- **Protocols (section B).** "${protocols.refusals.find(r => r.id === 'no-ratification-without-a-signature')?.statement}" "${protocols.refusals.find(r => r.id === 'a-new-version-is-a-new-row')?.statement}" The row in \`packages/catalog/protocols.json\` changes status, ratifiedBy and ratifiedOn, and gains a contentRef once the text exists.${ratifiedEvent ? ` Core announces a ratification as ${tick(`${ratifiedEvent.type}@${ratifiedEvent.version}`)}.` : ''}`);
- line('- **Gilbert\'s emergency terms (section C).** Only in `packages/catalog/gilbert-emergency-terms.json`: raise `version`, add a changelog entry (day, role, terms added and removed, why, the new `termsHash`), keep the shared fixtures passing on all three platforms, and record `clinicalReview.reviewedBy` and `reviewedOn`. `CLAUDE.md` holds the rule; `npm run check` replays the changelog.');
+ line('- **GilbertOne\'s emergency terms (section C).** Only in `packages/catalog/gilbert-emergency-terms.json`: raise `version`, add a changelog entry (day, role, terms added and removed, why, the new `termsHash`), keep the shared fixtures passing on all three platforms, and record `clinicalReview.reviewedBy` and `reviewedOn`. `CLAUDE.md` holds the rule; `npm run check` replays the changelog.');
  line('- **The vetting register (section D).** A scope or a check changes in `packages/catalog/vetting.json` and is regenerated with `npm run vetting`. A proposed role is decided in `packages/catalog/vetting-proposals.json` by naming who decided it.');
  line('- **Proposals outside settings (section E) and clinical content (section F).** Changed in their own contract, the way that file says it is changed. `closed-loop.json` explains why its codes are not admin settings.');
  line();
@@ -330,7 +330,7 @@ export function emitClinicalReviewPack(root = '') {
  line('|---|---|---|');
  line(`| A | Settings that carry \`reviewRequired\` and name no reviewer | ${counts.A} |`);
  line(`| B | Protocols in the registry that are not ratified | ${counts.B} |`);
- line(`| C | Gilbert's emergency terms | ${counts.C} |`);
+ line(`| C | GilbertOne's emergency terms | ${counts.C} |`);
  line(`| D | Clinical scopes and proposed clinical roles on the vetting register | ${counts.D} |`);
  line(`| E | Other clinical proposals and safety numbers nobody clinical has decided | ${counts.E} |`);
  line(`| F | Clinical content with no clinical sign-off recorded | ${counts.F} |`);
@@ -393,7 +393,7 @@ export function emitClinicalReviewPack(root = '') {
  });
 
  /* ---- Section C ---------------------------------------------------------------------------------- */
- line('## C. Gilbert\'s emergency terms');
+ line('## C. GilbertOne\'s emergency terms');
  line();
  const lastChange = terms.changelog[terms.changelog.length - 1];
  line(`#### C1. The emergency terms list, version ${terms.version}`);
@@ -639,7 +639,7 @@ export function emitClinicalReviewPack(root = '') {
   ['What every triage answers today', `${cf.triage.notTriaged.label}. ${cf.triage.notTriaged.human} ${cf.triage.notTriaged.emergencyFirst}`]
  ]));
  line();
- line('**Question for the reviewer:** which protocol should become the triage protocol, who writes its red flags, priority scale, reason codes and care settings, and is the order of the stages above safe, with Gilbert\'s emergency terms always first?');
+ line('**Question for the reviewer:** which protocol should become the triage protocol, who writes its red flags, priority scale, reason codes and care settings, and is the order of the stages above safe, with GilbertOne\'s emergency terms always first?');
  line();
  line(signOff());
  line();

@@ -6,7 +6,7 @@
  "routesFrom": "packages/catalog/apis/access.json",
 
  "publishes": ["booking.requested@2", "booking.confirmed@2", "booking.cancelled@1", "conversation.handover@1"],
- "publishesWhy": "Access tells the bus a visit was asked for, accepted and called off, and that a Gilbert conversation went to the nurse queue. It does not turn a booking into an offer, a nurse or a route to a door: that is Care's engine, which hears booking.requested and answers with appointment events of its own. booking.requested says which suburb the visit is in by its zone id and never the address, and booking.confirmed says which service was booked so Money prices it from the catalogue.",
+ "publishesWhy": "Access tells the bus a visit was asked for, accepted and called off, and that a GilbertOne conversation went to the nurse queue. It does not turn a booking into an offer, a nurse or a route to a door: that is Care's engine, which hears booking.requested and answers with appointment events of its own. booking.requested says which suburb the visit is in by its zone id and never the address, and booking.confirmed says which service was booked so Money prices it from the catalogue.",
  "hears": ["appointment.completed@2", "payment.refunded@1", "payment.succeeded@1"],
  "hearsWhy": "Money refunds a cancelled booking; Access marks it refunded by the bookingRef payment.refunded@1 carries, once. Care completes a visit; Access closes its thread. A completed visit's thread stays open for the hours Access's setting visit-thread-open-hours-after-visit held at the moment of completion, worked out by the engine from its own settings history rather than only by the screens. appointment.completed@2 carries the bookingRef Care heard on booking.requested, so Access finds the thread by its own booking's reference and knows nothing about how Care names an appointment. Until 15 September Access found it through a naming rule written here, careAppointmentRef, which version one of the event forced and which is retired with it. A completion that carries no bookingRef, or one no booking of Access's holds, such as the preview visit, closes nothing. Since Wave 6 Access also hears payment.succeeded@1, which becomes one line of a sponsor's statement — a day and an amount — and only for somebody who has agreed to a sponsorship; the event names the payment, the payable, the amount and the method and nothing about the care, so there is nothing else a statement could carry, and because it names no payer either, a person with two agreed sponsorships has a line attributed to neither.",
 
@@ -160,7 +160,7 @@
  },
 
  "handover": {
-  "_note": "Who answers a Gilbert handover and when, as a patient is told it. Who answers is Access's setting handover-answered-by and the hours are handover-hours, both below. The emergency numbers are packages/catalog/sos.json's, filled into {ambulance} and {mobile}, and they are not a setting: no rota, no role list and no hours an admin sets can take them out of what Gilbert says out of hours, and the build fails if a setting ever holds this wording.",
+  "_note": "Who answers a GilbertOne handover and when, as a patient is told it. Who answers is Access's setting handover-answered-by and the hours are handover-hours, both below. The emergency numbers are packages/catalog/sos.json's, filled into {ambulance} and {mobile}, and they are not a setting: no rota, no role list and no hours an admin sets can take them out of what GilbertOne says out of hours, and the build fails if a setting ever holds this wording.",
   "answeredByLabel": "Who answers",
   "outOfHours": "Nobody is on the nurse handover desk now.",
   "outOfHoursNumbers": "If this cannot wait, do not wait for a nurse. Call {ambulance}, or {mobile} from a mobile.",
@@ -168,13 +168,13 @@
   "opensToday": "today at {time}",
   "opensTomorrow": "tomorrow at {time}",
   "opensOn": "on {day} at {time}",
-  "why": "Out of hours the first thing said is that nobody is there, and the second is the numbers, before any offer of a call back: a person told a nurse will ring in the morning stops looking for anybody else, and some of them should not. The call back is offered for the next window the rota opens, worked out in Johannesburg from the hours in force when Gilbert is asked, and the preview says nobody will make it."
+  "why": "Out of hours the first thing said is that nobody is there, and the second is the numbers, before any offer of a call back: a person told a nurse will ring in the morning stops looking for anybody else, and some of them should not. The call back is offered for the next window the rota opens, worked out in Johannesburg from the hours in force when GilbertOne is asked, and the preview says nobody will make it."
  },
 
  "settings": {
-  "_note": "Access's settings, in the shape packages/catalog/settings.json gives every setting. The founder instructed on 15 September 2026 that open questions become admin settings, and six Access questions became these: what happens when a nurse asked for by name cannot take the visit, how long a thread message may be, whether a photo may one day travel in a thread, how long a thread stays open after the visit, who answers a Gilbert handover, and when. Every default, bound and allowed value is the integrator's proposal and nobody has decided it. packages/engines/src/access reads the values in force from its own history: the booking route when it offers a slot, the thread route when a message is written. GET /v1/access/settings@1, POST /v1/access/setting-changes@1 and POST /v1/access/setting-reviews@1 answer through packages/engines/src/settings; the review route is built because visit-thread-photos waits on a doctor's clinical review. The web reads them through apps/web/src/lib/settings.ts, and neither phone has an admin surface, so each uses the defaults scripts/emit-booking.mjs generates.",
+  "_note": "Access's settings, in the shape packages/catalog/settings.json gives every setting. The founder instructed on 15 September 2026 that open questions become admin settings, and six Access questions became these: what happens when a nurse asked for by name cannot take the visit, how long a thread message may be, whether a photo may one day travel in a thread, how long a thread stays open after the visit, who answers a GilbertOne handover, and when. Every default, bound and allowed value is the integrator's proposal and nobody has decided it. packages/engines/src/access reads the values in force from its own history: the booking route when it offers a slot, the thread route when a message is written. GET /v1/access/settings@1, POST /v1/access/setting-changes@1 and POST /v1/access/setting-reviews@1 answer through packages/engines/src/settings; the review route is built because visit-thread-photos waits on a doctor's clinical review. The web reads them through apps/web/src/lib/settings.ts, and neither phone has an admin surface, so each uses the defaults scripts/emit-booking.mjs generates.",
   "heading": "Access settings",
-  "intro": "How a booking treats a nurse asked for by name, how a visit thread works, and who answers a Gilbert handover and when.",
+  "intro": "How a booking treats a nurse asked for by name, how a visit thread works, and who answers a GilbertOne handover and when.",
   "items": [
    {
     "key": "named-nurse-fallback",
@@ -278,8 +278,8 @@
    },
    {
     "key": "handover-answered-by",
-    "label": "Who answers a Gilbert handover",
-    "help": "Which roles on the vetting register read a handover from Gilbert and call the patient back.",
+    "label": "Who answers a GilbertOne handover",
+    "help": "Which roles on the vetting register read a handover from GilbertOne and call the patient back.",
     "owner": "access",
     "type": "roleList",
     "unit": null,
@@ -293,7 +293,7 @@
      "roles": ["nurse", "doctor"],
      "decidedBy": null,
      "proposedBy": "Integrator (Wave 3)",
-     "proposedBecause": "A handover carries how somebody asked, what Gilbert matched and whether an emergency was raised: health content about a named person. The register's clinical roles that may read a patient summary are the registered nurse and the doctor. The Control Tower operator and the pharmacy also hold view-patient-summary and are left out, because answering a handover is a clinical conversation rather than dispatch or dispensing; the locum holds no summary capability at all."
+     "proposedBecause": "A handover carries how somebody asked, what GilbertOne matched and whether an emergency was raised: health content about a named person. The register's clinical roles that may read a patient summary are the registered nurse and the doctor. The Control Tower operator and the pharmacy also hold view-patient-summary and are left out, because answering a handover is a clinical conversation rather than dispatch or dispensing; the locum holds no summary capability at all."
     },
     "items": {
      "lowest": { "value": 1, "decidedBy": null, "proposedBy": "Integrator (Wave 3)", "proposedBecause": "A handover that goes to no role goes to nobody, and the patient has been told a nurse would read it." },
@@ -309,7 +309,7 @@
    {
     "key": "handover-hours",
     "label": "When the handover desk answers",
-    "help": "The hours a handover from Gilbert is answered, in Johannesburg time. Outside them Gilbert says nobody is there and gives the emergency numbers.",
+    "help": "The hours a handover from GilbertOne is answered, in Johannesburg time. Outside them GilbertOne says nobody is there and gives the emergency numbers.",
     "owner": "access",
     "type": "schedule",
     "unit": null,
@@ -319,12 +319,12 @@
      "value": [{ "post": "handover-desk", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "06:00", "to": "22:00" }],
      "decidedBy": null,
      "proposedBy": "Integrator (Wave 3)",
-     "proposedBecause": "Six in the morning to ten at night, every day, is when the rest of the preview says a nurse is working — the hours Thuso SOS's urgent-visit rota keeps — so a handover is answered when there is somebody who could act on it. Outside them there is nobody, and Gilbert says so first."
+     "proposedBecause": "Six in the morning to ten at night, every day, is when the rest of the preview says a nurse is working — the hours Thuso SOS's urgent-visit rota keeps — so a handover is answered when there is somebody who could act on it. Outside them there is nobody, and GilbertOne says so first."
     },
     "changedBy": "admin",
     "appliesTo": "A change applies to handovers asked for after it. Somebody already told when the desk opens is not told again.",
     "guardrail": {
-     "statement": "Out of hours Gilbert always says nobody is on the desk and gives the emergency numbers, whatever the hours are. A rota names a post and never a person, and a window ends after it starts.",
+     "statement": "Out of hours GilbertOne always says nobody is on the desk and gives the emergency numbers, whatever the hours are. A rota names a post and never a person, and a window ends after it starts.",
      "forbids": [
       [{ "post": "handover-desk", "days": ["mon"], "from": "22:00", "to": "06:00" }],
       [{ "post": "handover-desk", "days": ["mon"], "from": "06:00", "to": "22:00", "name": "Sister Dlamini" }],

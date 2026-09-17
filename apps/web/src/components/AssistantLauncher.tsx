@@ -3,7 +3,7 @@ import { OPEN_PARAM } from '../lib/roles';
 import type { PanelProps } from '../features/Assistant';
 import type { Visit } from '../lib/scheduling';
 
-/* The floating way into Gilbert, bottom right, on every patient page.
+/* The floating way into GilbertOne, bottom right, on every patient page.
 
    This file is in the patient entry, so it is a button, a CSS orb and a lazy import, and nothing
    more. The panel, the sphere's canvas, the conversation, the contract behind it and their
@@ -14,7 +14,7 @@ import type { Visit } from '../lib/scheduling';
 
    The name is typed here rather than imported, and that is the one exception to reading
    packages/catalog/assistant.json: importing the contract into the entry would put every sentence
-   Gilbert can say into the first load of every patient. scripts/check-boundaries.mjs holds this
+   GilbertOne can say into the first load of every patient. scripts/check-boundaries.mjs holds this
    label to the contract's callToAction instead.
 
    What the Siri comparison is and is not, on the web. It is presence and placement: a small lit
@@ -37,7 +37,7 @@ export function AssistantLauncher({ openModal, visit }: { openModal: (modal: str
  const Panel = useMemo(() => lazy<ComponentType<PanelProps>>(() => prefetch().catch(() => {
   pending = null;
   return { default: ({ open: showing }: PanelProps) => showing
-   ? <p className="al-note" role="alert">Gilbert could not be downloaded. <button type="button" onClick={() => setAttempt(n => n + 1)}>Try again</button></p>
+   ? <p className="al-note" role="alert">GilbertOne could not be downloaded. <button type="button" onClick={() => setAttempt(n => n + 1)}>Try again</button></p>
    : null };
  })), [attempt]);
 
@@ -47,13 +47,13 @@ export function AssistantLauncher({ openModal, visit }: { openModal: (modal: str
  }, [open]);
 
  return <div className="al-dock">
-  <button ref={button} type="button" className="as-launcher" aria-label="Ask Gilbert" aria-haspopup="dialog"
+  <button ref={button} type="button" className="as-launcher" aria-label="Ask GilbertOne" aria-haspopup="dialog"
    aria-expanded={open} aria-controls={opened ? 'assistant-panel' : undefined}
    onPointerEnter={() => void prefetch()} onFocus={() => void prefetch()}
    onClick={() => { setOpened(true); setOpen(!open); }}>
    <span className="al-glow"/><span className="al-orb"/><span className="al-ring"/><span className="al-spark"><i/></span>
   </button>
-  {opened && <Suspense fallback={open ? <p className="al-note" role="status">Opening Gilbert.</p> : null}>
+  {opened && <Suspense fallback={open ? <p className="al-note" role="status">Opening GilbertOne.</p> : null}>
    <Panel open={open} dismiss={() => setOpen(false)} openModal={modal => { setOpen(false); openModal(modal); }} visit={visit}/>
   </Suspense>}
  </div>;

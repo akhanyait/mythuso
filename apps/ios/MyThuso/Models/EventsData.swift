@@ -29,8 +29,8 @@ enum EventsData {
 
     static let engines: [Engine] = [
         Engine(id: "core", name: "ThusoIQ Core", productName: "ThusoIQ"),
-        Engine(id: "access", name: "Access", productName: "Gilbert"),
-        Engine(id: "pulse", name: "Gilbert Pulse Interaction Engine", productName: "Gilbert Pulse"),
+        Engine(id: "access", name: "Access", productName: "GilbertOne"),
+        Engine(id: "pulse", name: "GilbertOne Pulse Interaction Engine", productName: "GilbertOne Pulse"),
         Engine(id: "care", name: "Care", productName: "Thuso Nurse"),
         Engine(id: "clinical", name: "Clinical Intelligence", productName: "Thuso AI"),
         Engine(id: "safety", name: "Safety", productName: "Sentinel"),

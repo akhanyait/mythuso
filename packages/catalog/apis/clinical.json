@@ -349,7 +349,7 @@
    "method": "POST",
    "path": "/v1/clinical/triage",
    "version": 3,
-   "summary": "Triage on the rule engine under a ratified triage protocol: Gilbert's emergency terms first and untouched, the hard red-flag gate, then a priority with the reason codes that set it, written to the record. No triage protocol is ratified, so every call is answered not triaged, and a nurse or a doctor decides.",
+   "summary": "Triage on the rule engine under a ratified triage protocol: GilbertOne's emergency terms first and untouched, the hard red-flag gate, then a priority with the reason codes that set it, written to the record. No triage protocol is ratified, so every call is answered not triaged, and a nurse or a doctor decides.",
    "callers": ["nurse", "doctor"],
    "purpose": ["treatment"],
    "request": [

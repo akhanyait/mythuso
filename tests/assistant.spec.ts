@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { noticeFor } from './notices';
 import { confirmBooking, goSection } from './nav';
-/* Gilbert on the web.
+/* GilbertOne on the web.
 
    What is held here, in the order a person meets it.
 
@@ -15,7 +15,7 @@ import { confirmBooking, goSection } from './nav';
    or the backdrop, keeps focus inside and gives it back to the orb, and the conversation survives
    closing.
 
-   It says the contract's words. The voice notice verbatim; the sentence that Gilbert not recognising
+   It says the contract's words. The voice notice verbatim; the sentence that GilbertOne not recognising
    an emergency does not mean there is not one, beside the conversation before anything is asked; and
    answers built from assistant.json, records.json and sos.json.
 
@@ -39,7 +39,7 @@ const number = (id: string) => sos.emergency.numbers.find((n: { id: string }) =>
 const say = (text: string) => text.replace('{ambulance}', number('ambulance')).replace('{mobile}', number('mobile')).replace('{seconds}', String(gilbert.voice.maxListeningSeconds));
 const cue = (id: string) => gilbert.states.find((s: { id: string }) => s.id === id).cue;
 const condition = (id: string) => sos.redFlags.conditions.find((c: { id: string }) => c.id === id).name;
-/* With nothing booked, Gilbert says what the home card says about nothing booked, in scheduling.json's words. */
+/* With nothing booked, GilbertOne says what the home card says about nothing booked, in scheduling.json's words. */
 const schedulingLabels = json('../packages/catalog/scheduling.json').labels;
 const nothingBooked = { name: gilbert.visitStates.none.name.replace('{noUpcoming}', schedulingLabels.noUpcoming), sentence: gilbert.visitStates.none.sentence.replace('{noUpcomingDetail}', schedulingLabels.noUpcomingDetail) };
 
@@ -78,7 +78,7 @@ const runningIn = (described: string[]) => described.filter(d => d.startsWith('r
 type Box = { x: number; y: number; width: number; height: number };
 const overlaps = (a: Box, b: Box) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
-test('the orb floats on every patient page, and Gilbert is fetched only when it is opened', async ({ page }) => {
+test('the orb floats on every patient page, and GilbertOne is fetched only when it is opened', async ({ page }) => {
  const fetched: string[] = [];
  page.on('request', request => { if (/features\/Assistant|features\/assistant\.css|lib\/assistant|catalog\/assistant\.json/.test(request.url())) fetched.push(request.url()); });
  await page.goto('/app/');
@@ -87,7 +87,7 @@ test('the orb floats on every patient page, and Gilbert is fetched only when it 
  await expect(launcher(page)).toHaveAttribute('aria-expanded', 'false');
  await goSection(page, 'My visits');
  await expect(launcher(page)).toBeVisible();
- expect(fetched, 'a patient page fetched Gilbert before anybody reached for it').toEqual([]);
+ expect(fetched, 'a patient page fetched GilbertOne before anybody reached for it').toEqual([]);
  await launcher(page).click();
  await expect(panel(page)).toBeVisible();
  expect(fetched.length).toBeGreaterThan(0);
@@ -144,7 +144,7 @@ test('the panel opens and closes like a dialog, keeps focus inside, and gives it
  await page.goto('/app/');
  await launcher(page).click();
  await expect(panel(page)).toBeVisible();
- await expect(panel(page).getByRole('button', { name: 'Close Gilbert' })).toBeFocused();
+ await expect(panel(page).getByRole('button', { name: 'Close GilbertOne' })).toBeFocused();
  for (let step = 0; step < 30; step++) {
   await page.keyboard.press('Tab');
   expect(await page.evaluate(() => !!document.getElementById('assistant-panel')?.contains(document.activeElement)), `focus left the panel after ${step + 1} tabs`).toBe(true);
@@ -158,7 +158,7 @@ test('the panel opens and closes like a dialog, keeps focus inside, and gives it
  await page.keyboard.press('Enter');
  await expect(panel(page)).toBeVisible();
  await panel(page).getByRole('button', { name: 'When is my nurse coming?' }).click();
- await panel(page).getByRole('button', { name: 'Close Gilbert' }).click();
+ await panel(page).getByRole('button', { name: 'Close GilbertOne' }).click();
  await expect(panel(page)).toBeHidden();
  await expect(launcher(page)).toBeFocused();
  await launcher(page).click();
@@ -210,7 +210,7 @@ test('a typed question in a person’s own words gets the same contract answer',
  await expect(log(page).locator('.as-said')).toHaveCount(1);
 });
 
-test('anything Gilbert cannot match is told so, with the ambulance, Thuso SOS and a nurse — and the handover goes to a simulated queue without their words', async ({ page }) => {
+test('anything GilbertOne cannot match is told so, with the ambulance, Thuso SOS and a nurse — and the handover goes to a simulated queue without their words', async ({ page }) => {
  await page.goto('/app/?open=assistant');
  const words = 'My knee has been sore since Tuesday';
  await ask(page, words);
@@ -256,7 +256,7 @@ test('anything Gilbert cannot match is told so, with the ambulance, Thuso SOS an
 
 test('an emergency word raises the answer, whatever else the message asked', async ({ page }) => {
  await page.goto('/app/?open=assistant');
- // a question Gilbert can answer, and a chest pain in the same breath: the chest pain wins
+ // a question GilbertOne can answer, and a chest pain in the same breath: the chest pain wins
  await ask(page, 'When is my nurse coming? My chest hurts and I feel sick');
  const answer = log(page).locator('.as-reply').last();
  await expect(answer).not.toContainText('A nurse is expected on');
@@ -268,7 +268,7 @@ test('an emergency word raises the answer, whatever else the message asked', asy
  await expect(panel(page).locator('.as-state')).toHaveText(cue('escalate'));
  await expect(panel(page).locator('.as-figure')).toHaveText('10177');
 
- // a crisis is never left to Gilbert: no sos condition, still the numbers
+ // a crisis is never left to GilbertOne: no sos condition, still the numbers
  await ask(page, 'i dont want to be here, i want to die');
  await expect(log(page).locator('.as-reply').last().locator('.as-numbers li').first()).toContainText('10177');
  await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'escalate');
@@ -301,7 +301,7 @@ test('starting again clears the conversation back to its opening', async ({ page
  await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'idle');
 });
 
-test('nothing about Gilbert on the web offers to listen or reaches for a way to hear', async ({ page }) => {
+test('nothing about GilbertOne on the web offers to listen or reaches for a way to hear', async ({ page }) => {
  await watchForListening(page);
  await page.goto('/app/');
  await launcher(page).click();
@@ -434,7 +434,7 @@ test('every sentence the review found answered calmly now raises the emergency a
  }
 });
 
-test('a question with words Gilbert could not read answers, and then says what it did not read', async ({ page }) => {
+test('a question with words GilbertOne could not read answers, and then says what it did not read', async ({ page }) => {
  await page.goto('/app/?open=assistant');
  await ask(page, 'when is my nurse coming, my knee is sore');
  const reply = log(page).locator('.as-reply').last();
@@ -448,7 +448,7 @@ test('a question with words Gilbert could not read answers, and then says what i
  await expect(unread.getByRole('button', { name: gilbert.answers.unread.sosLabel })).toBeVisible();
  await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'guiding');
 
- // "Nothing needs you" is never said to a message Gilbert did not read all of
+ // "Nothing needs you" is never said to a message GilbertOne did not read all of
  await ask(page, 'any updates? my knee aches');
  const settled = log(page).locator('.as-reply').last();
  await expect(settled).toHaveAttribute('data-outcome', 'unmatched');
@@ -486,10 +486,10 @@ test('the web matcher agrees with the contract’s shared fixtures', async ({ pa
  expect(disagreements).toEqual([]);
 });
 
-/* One visit, one day. Gilbert named the first day the calendar offers while the home card showed the visit
+/* One visit, one day. GilbertOne named the first day the calendar offers while the home card showed the visit
    actually booked. A visit is booked here the way the booking journey books one, the home card's date is
-   read off the screen, and Gilbert's answer must name the same day and time. */
-test('Gilbert names the visit the home card shows, not a day of its own', async ({ page }) => {
+   read off the screen, and GilbertOne's answer must name the same day and time. */
+test('GilbertOne names the visit the home card shows, not a day of its own', async ({ page }) => {
  test.setTimeout(90_000);
  await page.goto('/app/');
  await expect(page.getByText(nothingBooked.name).first()).toBeVisible();
@@ -526,5 +526,5 @@ test('false positives in the emergency terms are reported, not blocking', async 
  });
  const total = json('../packages/catalog/gilbert-emergency-terms.json').falsePositives.messages.length;
  test.info().annotations.push({ type: 'gilbert-false-positives', description: `${raised.length} of ${total} still raise: ${raised.join(' | ') || 'none'}` });
- console.log(`Gilbert emergency terms: ${raised.length} of ${total} false-positive fixtures still raise`);
+ console.log(`GilbertOne emergency terms: ${raised.length} of ${total} false-positive fixtures still raise`);
 });

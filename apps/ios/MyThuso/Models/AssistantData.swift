@@ -2,7 +2,7 @@
 // Do not edit by hand — run `npm run assistant`. The build fails if this file and its sources
 // disagree, so an edit here is lost rather than merely wrong.
 //
-// Everything Gilbert says, the six Pulse states, the questions and their trigger phrases, the
+// Everything GilbertOne says, the six Pulse states, the questions and their trigger phrases, the
 // emergency words (drafted, not yet reviewed by a clinician, and used only to raise), the voice
 // policy and the refusals. The emergency numbers are resolved from sos.json when this file is
 // written. The situation tokens are left in on purpose: they are dates, and are filled at runtime.
@@ -12,22 +12,22 @@ import Foundation
 extension Gilbert {
     static let contractVersion = 1
 
-    static let name = "Gilbert"
+    static let name = "GilbertOne"
     static let disclosure = "not a person, and not a doctor"
     static let descriptorLine = "Your Thuso AI Doctor · not a person, and not a doctor"
-    static let pulseName = "Gilbert Pulse"
-    static let callToAction = "Ask Gilbert"
+    static let pulseName = "GilbertOne Pulse"
+    static let callToAction = "Ask GilbertOne"
     static let poweredBy = "Powered by ThusoIQ"
-    static let whatItIs = "Gilbert is a short list of approved answers with a name. It matches what you type, or say on a phone, against that list and replies in sentences people at MyThuso wrote down in advance."
-    static let whatItIsNot = "Gilbert is not a doctor, not a nurse and not a person. “Your Thuso AI Doctor” is the product's name, not a qualification: Gilbert cannot examine you, cannot tell you what you have and cannot prescribe anything, and no language model is behind it."
-    static let poweredByMeans = "ThusoIQ is the name of MyThuso's clinical rules platform. In this build Gilbert uses two things from it and nothing else: the approved sentences in this file and the emergency red flags Thuso SOS already asks about."
+    static let whatItIs = "GilbertOne is a short list of approved answers with a name. It matches what you type, or say on a phone, against that list and replies in sentences people at MyThuso wrote down in advance."
+    static let whatItIsNot = "GilbertOne is not a doctor, not a nurse and not a person. “Your Thuso AI Doctor” is the product's name, not a qualification: GilbertOne cannot examine you, cannot tell you what you have and cannot prescribe anything, and no language model is behind it."
+    static let poweredByMeans = "ThusoIQ is the name of MyThuso's clinical rules platform. In this build GilbertOne uses two things from it and nothing else: the approved sentences in this file and the emergency red flags Thuso SOS already asks about."
 
     static let states: [GilbertState] = [
         GilbertState(id: "idle", name: "Idle",
                      visual: "A soft glow with slow particles inside it.",
-                     meaning: "Gilbert is available.",
+                     meaning: "GilbertOne is available.",
                      cue: "Ready",
-                     announcement: "Gilbert is ready.",
+                     announcement: "GilbertOne is ready.",
                      shownWhen: "Nothing is happening: no microphone is open, no work is under way and no answer has been asked for yet.",
                      platforms: ["web", "ios", "android"]),
         GilbertState(id: "listening", name: "Listening",
@@ -42,13 +42,13 @@ extension Gilbert {
                      meaning: "Your phone is finishing turning what you said into text.",
                      cue: "Working",
                      announcement: "Turning what you said into text.",
-                     shownWhen: "Only while real work is under way — the phone's own recogniser finishing a transcript after the microphone has closed. Gilbert's matcher answers in the same moment it is asked, so it never shows this state, and nothing adds a pause to make an answer look considered.",
+                     shownWhen: "Only while real work is under way — the phone's own recogniser finishing a transcript after the microphone has closed. GilbertOne's matcher answers in the same moment it is asked, so it never shows this state, and nothing adds a pause to make an answer look considered.",
                      platforms: ["ios", "android"]),
         GilbertState(id: "guiding", name: "Guiding",
                      visual: "A steady glow.",
-                     meaning: "Gilbert is showing an approved answer.",
+                     meaning: "GilbertOne is showing an approved answer.",
                      cue: "Answer",
-                     announcement: "Gilbert answered.",
+                     announcement: "GilbertOne answered.",
                      shownWhen: "The latest answer is one of the approved answers and is not the emergency answer.",
                      platforms: ["web", "ios", "android"]),
         GilbertState(id: "escalate", name: "Escalate",
@@ -60,7 +60,7 @@ extension Gilbert {
                      platforms: ["web", "ios", "android"]),
         GilbertState(id: "handover", name: "Handover",
                      visual: "The sphere dims and holds still behind the summary.",
-                     meaning: "Gilbert has put together the summary a nurse queue would receive.",
+                     meaning: "GilbertOne has put together the summary a nurse queue would receive.",
                      cue: "For a nurse",
                      announcement: "Here is what the nurse queue would receive. Nothing has gone yet.",
                      shownWhen: "You asked to talk to a nurse. The summary is shown to you first, and goes to a simulated nurse queue only when you press the button. It never reaches a nurse in this preview.",
@@ -87,7 +87,7 @@ extension Gilbert {
 
     static let questionGroups: [GilbertQuestionGroup] = [
         GilbertQuestionGroup(id: "situations", heading: "What the drawing can say", lead: "Four situations, and the shape each one takes. Nothing on this screen is watching for them yet — you are choosing which to look at."),
-        GilbertQuestionGroup(id: "always", heading: "What Gilbert will always answer", lead: nil)
+        GilbertQuestionGroup(id: "always", heading: "What GilbertOne will always answer", lead: nil)
     ]
 
     static let questions: [GilbertQuestion] = [
@@ -100,7 +100,7 @@ extension Gilbert {
         GilbertQuestion(id: "credential", asks: "Is everyone on my team registered?", group: "situations", answer: "situation",
                         triggers: ["everyone on my team registered", "team registered", "is my nurse registered", "registration", "credentials", "registered"]),
         GilbertQuestion(id: "identity", asks: "What are you?", group: "always", answer: "identity",
-                        triggers: ["what are you", "who are you", "are you a doctor", "are you human", "are you a person", "are you real", "who is gilbert", "what is gilbert"]),
+                        triggers: ["what are you", "who are you", "are you a doctor", "are you human", "are you a person", "are you real", "who is gilbert", "what is gilbert", "who is gilbertone", "what is gilbertone"]),
         GilbertQuestion(id: "voice", asks: "What happens to what I say?", group: "always", answer: "voice",
                         triggers: ["what happens to what i say", "can you hear me", "can you listen", "are you listening", "recording", "record me", "microphone", "my voice"]),
         GilbertQuestion(id: "nurse", asks: "Can I talk to a nurse?", group: "always", answer: "handover",
@@ -143,7 +143,7 @@ extension Gilbert {
     static let apostrophes: [String] = ["'", "’", "‘", "`", "ʼ"]
     static let irregular: [String: String] = ["bled": "bleed", "dying": "die", "died": "die", "dies": "die", "lying": "lie", "fell": "fall", "fallen": "fall", "broke": "break", "broken": "break", "felt": "feel", "took": "take", "taken": "take", "swallowed": "swallow", "ate": "eat", "threw": "throw", "thrown": "throw", "lost": "lose", "shaking": "shake"]
     static let maxGap = 2
-    static let filler: [String] = ["hi", "hello", "hey", "please", "thanks", "thank", "you", "ok", "okay", "so", "and", "but", "or", "also", "just", "i", "im", "me", "my", "mine", "we", "our", "us", "is", "are", "am", "was", "were", "be", "been", "the", "a", "an", "to", "of", "for", "on", "in", "at", "it", "its", "this", "that", "there", "here", "what", "whats", "when", "whens", "where", "wheres", "who", "whos", "how", "hows", "why", "can", "could", "would", "will", "do", "does", "did", "have", "has", "had", "gilbert", "tell", "know", "let", "still", "yet", "already", "now", "today", "soon", "again", "yes", "sure", "any", "anything", "about"]
+    static let filler: [String] = ["hi", "hello", "hey", "please", "thanks", "thank", "you", "ok", "okay", "so", "and", "but", "or", "also", "just", "i", "im", "me", "my", "mine", "we", "our", "us", "is", "are", "am", "was", "were", "be", "been", "the", "a", "an", "to", "of", "for", "on", "in", "at", "it", "its", "this", "that", "there", "here", "what", "whats", "when", "whens", "where", "wheres", "who", "whos", "how", "hows", "why", "can", "could", "would", "will", "do", "does", "did", "have", "has", "had", "gilbert", "gilbertone", "tell", "know", "let", "still", "yet", "already", "now", "today", "soon", "again", "yes", "sure", "any", "anything", "about"]
     static let neverWithUnread: [String] = ["settled"]
 
     static let unread = GilbertUnmatched(
@@ -179,23 +179,23 @@ extension Gilbert {
     static let handover = GilbertHandover(
         state: "handover",
         title: "What the nurse queue would receive",
-        lead: "This is the structured summary Gilbert hands over. A nurse reads it to know why she is calling, and it carries none of your words.",
+        lead: "This is the structured summary GilbertOne hands over. A nurse reads it to know why she is calling, and it carries none of your words.",
         notSent: "Nothing has gone yet. Press the button and this summary goes to a simulated nurse queue, not to a nurse.",
         fields: [GilbertHandoverField(id: "channel", label: "How you asked"),
-                 GilbertHandoverField(id: "matched", label: "What Gilbert matched"),
+                 GilbertHandoverField(id: "matched", label: "What GilbertOne matched"),
                  GilbertHandoverField(id: "urgency", label: "Urgency")],
         channelTyped: "Typed",
         channelSpoken: "Spoken, turned into text on this phone, and checked by you before sending",
-        channelChosen: "Chosen from Gilbert's suggested questions",
-        nothingAsked: "Nothing yet. You have not asked Gilbert anything in this conversation.",
-        nothingMatched: "Nothing. Gilbert could not assess it.",
-        matchedEmergency: "Emergency words, so Gilbert showed the ambulance numbers instead of answering.",
-        urgency: [GilbertUrgency(id: "emergency", name: "An emergency was raised, and the ambulance numbers were shown.", why: "Set by the emergency words anywhere in the conversation. Gilbert may explain an urgency; nothing it says afterwards lowers one."),
-                  GilbertUrgency(id: "not-assessed", name: "Not assessed. Gilbert cannot judge how urgent this is.", why: "Gilbert grades nothing. No emergency word is not a finding that something is not urgent, so there is no calmer code than this one to hand a nurse.")],
+        channelChosen: "Chosen from GilbertOne's suggested questions",
+        nothingAsked: "Nothing yet. You have not asked GilbertOne anything in this conversation.",
+        nothingMatched: "Nothing. GilbertOne could not assess it.",
+        matchedEmergency: "Emergency words, so GilbertOne showed the ambulance numbers instead of answering.",
+        urgency: [GilbertUrgency(id: "emergency", name: "An emergency was raised, and the ambulance numbers were shown.", why: "Set by the emergency words anywhere in the conversation. GilbertOne may explain an urgency; nothing it says afterwards lowers one."),
+                  GilbertUrgency(id: "not-assessed", name: "Not assessed. GilbertOne cannot judge how urgent this is.", why: "GilbertOne grades nothing. No emergency word is not a finding that something is not urgent, so there is no calmer code than this one to hand a nurse.")],
         neverLowered: "An emergency anywhere in this conversation stays an emergency in the handover. A calmer message afterwards does not lower it.",
         notCarriedHeading: "What does not go",
-        notCarried: [GilbertNotCarried(id: "words", sentence: "Your words. They stay in this conversation, and are gone when you close Gilbert."),
-                     GilbertNotCarried(id: "emergency-words", sentence: "Which emergency words Gilbert noticed. The urgency says that an emergency was raised, never which.")],
+        notCarried: [GilbertNotCarried(id: "words", sentence: "Your words. They stay in this conversation, and are gone when you close GilbertOne."),
+                     GilbertNotCarried(id: "emergency-words", sentence: "Which emergency words GilbertOne noticed. The urgency says that an emergency was raised, never which.")],
         sendLabel: "Hand this to the nurse queue",
         sentTitle: "Handed to a simulated nurse queue",
         sent: "Your summary went to a simulated nurse queue. No nurse is on the other end: nobody will read it, call you or come to you because of it.",
@@ -204,18 +204,18 @@ extension Gilbert {
         stillUrgent: "If this cannot wait, do not wait for a nurse. Call one of these now:",
         lines: [GilbertLine(number: "10177", name: "Ambulance"), GilbertLine(number: "112", name: "Emergency, from a mobile")])
 
-    static let silenceIsNotSafety = "Gilbert not recognising an emergency does not mean there is not one. If you think it is an emergency, call 10177, or 112 from a mobile."
+    static let silenceIsNotSafety = "GilbertOne not recognising an emergency does not mean there is not one. If you think it is an emergency, call 10177, or 112 from a mobile."
 
     static let conversation = GilbertConversation(
-        inputLabel: "Ask Gilbert a question",
+        inputLabel: "Ask GilbertOne a question",
         inputHint: "Type in your own words",
         sendLabel: "Send",
         startAgainLabel: "Start again",
         youAsked: "You asked",
         youSaid: "You said",
-        logLabel: "Conversation with Gilbert",
-        refusalsHeading: "What Gilbert will not do",
-        keyboardNote: "The microphone on your keyboard belongs to the keyboard, not to Gilbert: whoever made the keyboard — Apple, Google or another company — may send what you say through it to their servers. Gilbert's own Tap to talk button is the one that keeps your voice on this phone.",
+        logLabel: "Conversation with GilbertOne",
+        refusalsHeading: "What GilbertOne will not do",
+        keyboardNote: "The microphone on your keyboard belongs to the keyboard, not to GilbertOne: whoever made the keyboard — Apple, Google or another company — may send what you say through it to their servers. GilbertOne's own Tap to talk button is the one that keeps your voice on this phone.",
         turnLimit: 24)
 
     static let voice = GilbertVoicePolicy(
@@ -228,18 +228,18 @@ extension Gilbert {
         transcriptLifetime: "conversation",
         correctionBeforeSend: true,
         wakeWord: false,
-        howItWorks: "Tap the sphere and speak in English. Gilbert listens until you tap Stop, or for 30 seconds at most, turns what you say into text on this phone, and shows it to you to correct before anything is sent.",
-        beforePermission: "Your phone is about to ask whether MyThuso may use the microphone and speech recognition. Gilbert uses them only after you tap the sphere, in English, on this phone. No recording is made and nothing you say leaves the phone.",
+        howItWorks: "Tap the sphere and speak in English. GilbertOne listens until you tap Stop, or for 30 seconds at most, turns what you say into text on this phone, and shows it to you to correct before anything is sent.",
+        beforePermission: "Your phone is about to ask whether MyThuso may use the microphone and speech recognition. GilbertOne uses them only after you tap the sphere, in English, on this phone. No recording is made and nothing you say leaves the phone.",
         askPermissionLabel: "Continue",
         notNowLabel: "Not now",
-        unavailable: "Speaking to Gilbert is not available on this phone. It needs English speech recognition that runs on the phone itself, and this phone does not offer it, so what you said could not be kept on the phone. You can still type.",
-        refused: "The microphone or speech recognition is switched off for MyThuso, so Gilbert cannot hear you. You can still type, and you can change this in your phone's Settings.",
-        failed: "Gilbert did not catch that. Nothing was kept. Try again, or type instead.",
-        interrupted: "Gilbert stopped listening because the phone needed its microphone for something else, or the microphone changed. Nothing was kept. Tap to talk again, or type.",
-        talkLabel: "Tap to talk to Gilbert",
+        unavailable: "Speaking to GilbertOne is not available on this phone. It needs English speech recognition that runs on the phone itself, and this phone does not offer it, so what you said could not be kept on the phone. You can still type.",
+        refused: "The microphone or speech recognition is switched off for MyThuso, so GilbertOne cannot hear you. You can still type, and you can change this in your phone's Settings.",
+        failed: "GilbertOne did not catch that. Nothing was kept. Try again, or type instead.",
+        interrupted: "GilbertOne stopped listening because the phone needed its microphone for something else, or the microphone changed. Nothing was kept. Tap to talk again, or type.",
+        talkLabel: "Tap to talk to GilbertOne",
         stopLabel: "Stop",
-        captionsLabel: "What Gilbert has heard so far",
-        correctLabel: "Check what Gilbert heard, and correct it before you send it",
+        captionsLabel: "What GilbertOne has heard so far",
+        correctLabel: "Check what GilbertOne heard, and correct it before you send it",
         discardLabel: "Discard")
 
     /* The shared fixtures every platform runs its own matcher against. */
@@ -282,31 +282,31 @@ extension Gilbert {
 
     static let refusals: [GilbertRefusal] = [
         GilbertRefusal(id: "no-diagnosis",
-                       statement: "Gilbert never tells you what you have.",
+                       statement: "GilbertOne never tells you what you have.",
                        why: "No sentence in this file names a condition as yours, and the matcher can only choose among sentences in this file. A conversational impression turned into a diagnosis is the failure section 15A of the master document names first."),
         GilbertRefusal(id: "no-prescription",
-                       statement: "Gilbert never suggests a medicine, a dose, or a change to either.",
-                       why: "Only an authorised prescriber may. Gilbert has no Formulary, no record of what you take and no one to sign for it."),
+                       statement: "GilbertOne never suggests a medicine, a dose, or a change to either.",
+                       why: "Only an authorised prescriber may. GilbertOne has no Formulary, no record of what you take and no one to sign for it."),
         GilbertRefusal(id: "never-lowers-an-emergency",
-                       statement: "Gilbert never makes an emergency sound less urgent. An emergency word always wins, whatever else was said in the same message.",
+                       statement: "GilbertOne never makes an emergency sound less urgent. An emergency word always wins, whatever else was said in the same message.",
                        why: "The emergency words are checked before anything else, and a match cannot be overruled by a question found in the same sentence. A rule engine's priority may be explained by an assistant; it may not be lowered by one."),
         GilbertRefusal(id: "no-invented-slot",
-                       statement: "Gilbert never offers an appointment, a nurse or a hospital bed that nobody has confirmed.",
-                       why: "The only visit Gilbert mentions is the first day the scheduling contract offers, and it is labelled as a situation the drawing can show. Availability comes from a provider, and no provider is connected."),
+                       statement: "GilbertOne never offers an appointment, a nurse or a hospital bed that nobody has confirmed.",
+                       why: "The only visit GilbertOne mentions is the first day the scheduling contract offers, and it is labelled as a situation the drawing can show. Availability comes from a provider, and no provider is connected."),
         GilbertRefusal(id: "no-audio-kept",
                        statement: "No recording of your voice is made or kept — not on the phone, not anywhere else.",
                        why: "The microphone's sound is read once for its loudness and handed to the phone's own recogniser, and nothing writes it to a file. The build refuses the recording and audio-file APIs in both apps."),
         GilbertRefusal(id: "listening-is-the-microphone",
-                       statement: "Gilbert shows Listening only while the microphone is open, and the microphone is never open without it.",
+                       statement: "GilbertOne shows Listening only while the microphone is open, and the microphone is never open without it.",
                        why: "A listening indicator that runs ahead of the microphone teaches people to talk to nothing; a microphone that runs without one is a recording nobody agreed to. Both are driven from the same open and close, and nothing on the web offers to listen at all."),
         GilbertRefusal(id: "not-a-person",
-                       statement: "Gilbert is not a person and not a doctor.",
+                       statement: "GilbertOne is not a person and not a doctor.",
                        why: "The name, the descriptor and the sphere are a brand. A person who believes they are talking to a clinician will tell it things, and wait for it, in ways they would not wait for a list of sentences."),
         GilbertRefusal(id: "crisis-is-never-left-to-gilbert",
-                       statement: "A crisis is never left to Gilbert alone. Words about harming yourself, or somebody in danger, get the emergency numbers rather than a conversation.",
-                       why: "There is no clinician behind Gilbert and no line it can put anybody through to. The honest thing it can do in a crisis is get out of the way of the people who can help."),
+                       statement: "A crisis is never left to GilbertOne alone. Words about harming yourself, or somebody in danger, get the emergency numbers rather than a conversation.",
+                       why: "There is no clinician behind GilbertOne and no line it can put anybody through to. The honest thing it can do in a crisis is get out of the way of the people who can help."),
         GilbertRefusal(id: "silence-is-not-safety",
-                       statement: "Gilbert not recognising an emergency does not mean there is not one.",
+                       statement: "GilbertOne not recognising an emergency does not mean there is not one.",
                        why: "The emergency words are a draft, they have not been reviewed by a clinician, and no list of words catches every way a person describes something frightening. So the sentence stays beside the conversation on every platform instead of appearing only after a match.")
     ]
 }

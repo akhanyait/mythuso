@@ -97,9 +97,9 @@
  },
 
  "triage": {
-  "_note": "Triage is a rule engine run under a ratified triage protocol: Gilbert's emergency terms first and untouched, then the protocol's hard red-flag gate, then a priority from the protocol's own scale with the reason codes that set it, and the care setting. Every part of that content is the board's. No protocol in packages/catalog/protocols.json is a triage protocol and none is ratified, so every triage is answered not triaged, in the refusal's own sentence, and handed to a nurse or a doctor. Software never guesses a priority.",
+  "_note": "Triage is a rule engine run under a ratified triage protocol: GilbertOne's emergency terms first and untouched, then the protocol's hard red-flag gate, then a priority from the protocol's own scale with the reason codes that set it, and the care setting. Every part of that content is the board's. No protocol in packages/catalog/protocols.json is a triage protocol and none is ratified, so every triage is answered not triaged, in the refusal's own sentence, and handed to a nurse or a doctor. Software never guesses a priority.",
   "stages": [
-   { "code": "emergency-terms", "label": "Gilbert's emergency terms", "rule": "Asked before triage and never by it. A patient who said something packages/catalog/gilbert-emergency-terms.json lists has already been given the emergency answer, and nothing triage says changes it." },
+   { "code": "emergency-terms", "label": "GilbertOne's emergency terms", "rule": "Asked before triage and never by it. A patient who said something packages/catalog/gilbert-emergency-terms.json lists has already been given the emergency answer, and nothing triage says changes it." },
    { "code": "red-flag-gate", "label": "Red-flag gate", "rule": "The ratified protocol's red flags, asked before anything else it says. A red flag that fires sets the protocol's most urgent priority, and nothing after it may lower it." },
    { "code": "priority", "label": "Priority", "rule": "A priority from the ratified protocol's own scale, with the reason codes that set it. A priority without its reason codes is refused." },
    { "code": "care-setting", "label": "Where the patient is seen", "rule": "The disposition the protocol gives that priority. The reason codes are written to the record; only the priority and the care setting travel on the bus." },
@@ -114,7 +114,7 @@
    "label": "Not triaged",
    "routesTo": ["nurse", "doctor"],
    "human": "A nurse or a doctor decides what happens next. Software sets no priority for them and guesses none.",
-   "emergencyFirst": "If the patient said something Gilbert's emergency terms list, the emergency answer was given first and still stands."
+   "emergencyFirst": "If the patient said something GilbertOne's emergency terms list, the emergency answer was given first and still stands."
   },
   "screen": {
    "heading": "Triage",

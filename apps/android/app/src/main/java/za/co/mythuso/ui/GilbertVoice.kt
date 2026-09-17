@@ -18,7 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import za.co.mythuso.model.GilbertData
 
-/* Gilbert's ears on Android, and the only file in this app allowed to have any.
+/* GilbertOne's ears on Android, and the only file in this app allowed to have any.
  *
  * The founder decided on 14 September 2026 what listening may be in Release 1: push-to-talk, English,
  * recognised on the phone itself, nothing kept. The build refuses SpeechRecognizer, RecognitionListener

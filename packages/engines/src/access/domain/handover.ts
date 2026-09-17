@@ -1,8 +1,8 @@
-/* Handing a Gilbert conversation to the nurse queue.
+/* Handing a GilbertOne conversation to the nurse queue.
 
    ── What goes, and what never does ───────────────────────────────────────────────────────────────
 
-   A structured summary: how the person asked, which of Gilbert's approved questions it matched, and
+   A structured summary: how the person asked, which of GilbertOne's approved questions it matched, and
    an urgency code. Not the words. conversation.handover@1 refuses the transcript and the symptoms, and
    so does the summary behind it: what a patient typed stays in the conversation, for the conversation,
    and a nurse needs to know why she is calling rather than to read somebody's messages. Not which
@@ -12,7 +12,7 @@
 
    ── Why the urgency only ever rises ──────────────────────────────────────────────────────────────
 
-   Gilbert assesses nothing, so there are two codes and neither is calm. An emergency word anywhere in
+   GilbertOne assesses nothing, so there are two codes and neither is calm. An emergency word anywhere in
    the conversation is `emergency`; everything else is `not-assessed`, because no emergency word is not
    a finding that something is not urgent. A later handover in the same conversation may raise the
    urgency and never lowers it: an emergency at the first message and a calm "can I talk to a nurse" at

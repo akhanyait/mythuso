@@ -10,8 +10,8 @@
 
  "engines": [
   { "id": "core", "name": "ThusoIQ Core", "productName": "ThusoIQ", "owns": "The bus, the closed loop, the alert router, the protocol registry and the audit trail. The spine every other engine is replaceable around." },
-  { "id": "access", "name": "Access", "productName": "Gilbert", "owns": "The patient's way in: intake, guidance and routing to a person. It routes; it never decides a clinical question." },
-  { "id": "pulse", "name": "Gilbert Pulse Interaction Engine", "productName": "Gilbert Pulse", "owns": "The visible and audible layer of Gilbert: voice, session and the sphere's states. It makes no clinical decision." },
+  { "id": "access", "name": "Access", "productName": "GilbertOne", "owns": "The patient's way in: intake, guidance and routing to a person. It routes; it never decides a clinical question." },
+  { "id": "pulse", "name": "GilbertOne Pulse Interaction Engine", "productName": "GilbertOne Pulse", "owns": "The visible and audible layer of GilbertOne: voice, session and the sphere's states. It makes no clinical decision." },
   { "id": "care", "name": "Care", "productName": "Thuso Nurse", "owns": "Appointments, dispatch of nurses to a door, and the visit itself." },
   { "id": "clinical", "name": "Clinical Intelligence", "productName": "Thuso AI", "owns": "Decision support under a ratified protocol, always with a doctor's sign-off." },
   { "id": "safety", "name": "Safety", "productName": "Sentinel", "owns": "Deterioration detection and the five-tier escalation ladder." },
@@ -49,7 +49,7 @@
   { "field": "reading", "why": "The same refusal under the other word people use for it." },
   { "field": "diagnosis", "why": "A diagnosis is special personal information and a reserved clinical act. It lives in the record under the doctor who made it, not in a message every engine receives." },
   { "field": "note", "why": "Free text is where health information goes when there is no field for it. An event has no free text so that nothing can be written into one by accident." },
-  { "field": "transcript", "why": "What a patient says to Gilbert is health information the moment it describes a symptom. A transcript is held by the engine that took it, under the record's rules, and never broadcast." },
+  { "field": "transcript", "why": "What a patient says to GilbertOne is health information the moment it describes a symptom. A transcript is held by the engine that took it, under the record's rules, and never broadcast." },
   { "field": "image", "why": "A wound photograph is a clinical record, and a photograph of a door is an address." },
   { "field": "cardNumber", "why": "No payment is taken in this repository, and when one is, a card number never leaves the payment provider." },
   { "field": "bankAccount", "why": "A nurse's payout account is her financial information. Money holds it; nothing else needs it." }
@@ -875,11 +875,11 @@
   },
   {
    "type": "conversation.handover", "version": 1, "owner": "access",
-   "summary": "Gilbert handed a conversation to a nurse, with a structured summary written to the record.",
+   "summary": "GilbertOne handed a conversation to a nurse, with a structured summary written to the record.",
    "payload": [
-    { "field": "conversationRef", "type": "string", "required": true, "why": "The Gilbert episode handed over." },
+    { "field": "conversationRef", "type": "string", "required": true, "why": "The GilbertOne episode handed over." },
     { "field": "summaryEntryRef", "type": "string", "required": true, "why": "The record entry holding the structured summary, which the nurse opens through the gateway." },
-    { "field": "urgencyCode", "type": "string", "required": true, "why": "The urgency the rules set. Gilbert may explain it; it may not lower it." }
+    { "field": "urgencyCode", "type": "string", "required": true, "why": "The urgency the rules set. GilbertOne may explain it; it may not lower it." }
    ],
    "neverCarries": [
     { "field": "transcript", "why": "What the patient said stays in the conversation, for the conversation. The nurse gets the summary." },
@@ -1053,7 +1053,7 @@
     { "field": "position", "why": "A point where the patient is. The area chosen from the list is enough to offer a nurse, and a point on the bus would stay in every subscriber's log long after the incident window a position is never kept past." },
     { "field": "conditionTicked", "why": "Whether one of the eight conditions was ticked is kept by Safety as a yes or a no, for the record, and never sent. The door says all any engine needs." },
     { "field": "clinicalDetail", "why": "What is wrong is not a routing question. Nothing about the patient's health reaches the bus from an SOS." },
-    { "field": "emergencyTermsMatched", "why": "Gilbert's emergency terms are the assistant's configuration, and which of them a person said is what they said. An SOS carries a press, never words." },
+    { "field": "emergencyTermsMatched", "why": "GilbertOne's emergency terms are the assistant's configuration, and which of them a person said is what they said. An SOS carries a press, never words." },
     { "field": "plan", "why": "No plan changes how an SOS is routed, offered or ordered, so no engine is told which plan the person holds." }
    ],
    "subscribers": ["core", "care"],

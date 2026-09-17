@@ -2,7 +2,7 @@ import Foundation
 import Speech
 import AVFAudio
 
-/* Gilbert's ears, and the only file in this app allowed to have any.
+/* GilbertOne's ears, and the only file in this app allowed to have any.
 
    The founder decided on 14 September 2026 what listening may be in Release 1, and this file is that
    decision as code: push-to-talk, English, recognised on the phone itself, nothing kept. The build

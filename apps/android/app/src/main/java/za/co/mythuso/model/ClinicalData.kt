@@ -61,7 +61,7 @@ object ClinicalData {
         const val routedTo = "Handed to: {roles}"
         const val notTriaged = "Not triaged"
         const val human = "A nurse or a doctor decides what happens next. Software sets no priority for them and guesses none."
-        const val emergencyFirst = "If the patient said something Gilbert's emergency terms list, the emergency answer was given first and still stands."
+        const val emergencyFirst = "If the patient said something GilbertOne's emergency terms list, the emergency answer was given first and still stands."
     }
     val triageRoutesTo = listOf("nurse", "doctor")
     /** The protocols the board has named triage protocols. Empty until it names one. */

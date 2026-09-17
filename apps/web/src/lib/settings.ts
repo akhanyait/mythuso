@@ -111,7 +111,7 @@ export const escalationRotaNow = (): KeptRota => rotaOf(snapshotNow('core'));
    checks a range, from the same setting GET /v1/core/audit-exports@1 refuses range-too-wide against. */
 export const auditExportMaxDaysNow = (): number => auditExportMaxDaysOf(snapshotNow('core'));
 /* Access's six, read the same way: the booking flow asks accessSettingsNow() once when it opens, the thread
-   composer when a message is written, and Gilbert when a handover is asked for. A completed visit's thread
+   composer when a message is written, and GilbertOne when a handover is asked for. A completed visit's thread
    asks accessSettingsAt() the moment it was completed, so a change afterwards never moves when it closes. */
 export const accessSettingsNow = (): AccessSettingsInForce => accessInForce(historyOf('access'));
 export const accessSettingsAt = (at: number): AccessSettingsInForce => accessInForceAt(historyOf('access'), at);

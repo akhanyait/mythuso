@@ -107,7 +107,7 @@
     "id": "emergency",
     "textFrom": "packages/catalog/booking.json#handover.outOfHoursNumbers",
     "choices": [ { "key": "0", "label": "Back", "next": "welcome" } ],
-    "why": "The sentence Gilbert says out of hours, with the numbers from packages/catalog/sos.json filled in. It is read from there rather than written twice."
+    "why": "The sentence GilbertOne says out of hours, with the numbers from packages/catalog/sos.json filled in. It is read from there rather than written twice."
    },
    {
     "id": "never",

@@ -72,21 +72,21 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 
-/* Gilbert on Android.
+/* GilbertOne on Android.
  *
  * Android had no assistant until 14 September 2026. It has the same one as the web and iOS now: every
  * sentence from packages/catalog/assistant.json through the generated AssistantData.kt, the matcher in
  * model/Assistant.kt, and the microphone in GilbertVoice.kt and nowhere else.
  *
  * WHERE IT LIVES. A floating orb, bottom right on every patient page of the shell (MainActivity), opens
- * Gilbert in a bottom sheet over whatever the person was reading, as the orb does on the web. It is
- * also a route of its own, "Gilbert", in the detail `when` in AccountScreens.kt. Neither asks the phone
+ * GilbertOne in a bottom sheet over whatever the person was reading, as the orb does on the web. It is
+ * also a route of its own, "GilbertOne", in the detail `when` in AccountScreens.kt. Neither asks the phone
  * for anything: RECORD_AUDIO is requested from this screen, after the contract's explanation, the
  * first time somebody taps to talk.
  *
  * WHAT A PERSON OPENED IT FOR decides the order: the sphere and its state in words, the way to speak,
  * the voice notice, the conversation, the suggested questions and the refusals. The composer is pinned
- * to the bottom with the sentence that must not scroll away — Gilbert not recognising an emergency does
+ * to the bottom with the sentence that must not scroll away — GilbertOne not recognising an emergency does
  * not mean there is not one. At the largest font scales that sentence moves to the head of the
  * conversation instead, because pinned it would take the screen.
  *
@@ -111,7 +111,7 @@ import kotlin.math.sin
     }
 }
 
-/** The route in AccountScreens.kt, for a link or a More row that opens Gilbert full screen. */
+/** The route in AccountScreens.kt, for a link or a More row that opens GilbertOne full screen. */
 @Composable fun GilbertScreen(store: PreviewStore, open: (String) -> Unit) {
     Box(Modifier.fillMaxSize().background(BrandInk)) { GilbertContent(store, open = open, close = null) }
 }
@@ -132,7 +132,7 @@ import kotlin.math.sin
     }
 }
 
-/* `store` is the one the home reads its next visit from, so Gilbert names the same visit. */
+/* `store` is the one the home reads its next visit from, so GilbertOne names the same visit. */
 @Composable private fun GilbertContent(store: PreviewStore, open: (String) -> Unit, close: (() -> Unit)?) {
     val context = LocalContext.current
     val listener = remember { GilbertListener(context) }
@@ -161,7 +161,7 @@ import kotlin.math.sin
     LaunchedEffect(listener.phase) { if (listener.phase == GilbertListener.Phase.HEARD) correction = listener.heard }
     /* After Send the sheet used to scroll to its foot — the refusals and the field — and leave the question
        and its answer far above. Now the top of the new exchange is brought into view, measured once it
-       has been laid out, and TalkBack is told what Gilbert said. */
+       has been laid out, and TalkBack is told what GilbertOne said. */
     var latestTop by remember { mutableIntStateOf(0) }
     val view = LocalView.current
     LaunchedEffect(turns.lastOrNull()?.id) {
@@ -395,14 +395,14 @@ import kotlin.math.sin
                     }
                 }
             }
-            /* Words Gilbert did not read are said to be unread, with the numbers beside them, rather than
+            /* Words GilbertOne did not read are said to be unread, with the numbers beside them, rather than
                answered around. See readEverything in the contract. */
             if (turn.unread) Unread(open, onHandOver)
         }
     }
 }
 
-/* The unread answer. Guiding, never a calm Idle: the words Gilbert could not read may be the ones that mattered. */
+/* The unread answer. Guiding, never a calm Idle: the words GilbertOne could not read may be the ones that mattered. */
 @Composable private fun Unread(open: (String) -> Unit, onHandOver: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
         Box(Modifier.fillMaxWidth().height(2.dp).background(BrandOrange).clearAndSetSemantics {})
@@ -564,7 +564,7 @@ private fun spoken(turn: GilbertTurn): String {
     }
 }
 
-/* ---- Gilbert Pulse, drawn ----------------------------------------------------------------------
+/* ---- GilbertOne Pulse, drawn ----------------------------------------------------------------------
  *
  * The same sphere as AssistantSphere.swift and AssistantSphere.tsx, simplified to what one Canvas draws
  * well: an edgeless bleed, three halo rings, two tilted orbits whose light travels round them, a body lit

@@ -1,4 +1,4 @@
-/* The Access engine on the development runtime: bookings, the visit thread, Gilbert's handover and Access's
+/* The Access engine on the development runtime: bookings, the visit thread, GilbertOne's handover and Access's
    settings.
 
    The binder has already done the contract's part before any handler here runs — the caller's role,
@@ -9,7 +9,7 @@
 
    ── What is bound ────────────────────────────────────────────────────────────────────────────────
 
-   Nine routes: book, read a booking, cancel one, read a visit thread and write in it, hand a Gilbert
+   Nine routes: book, read a booking, cancel one, read a visit thread and write in it, hand a GilbertOne
    conversation to the nurse queue, and Access's settings — read them, change one, confirm the clinical
    review of one. Eight more since Wave 6, the family arrangements below. And three subscriptions:
    appointment.completed@2, from Care; payment.refunded@1, from Money, which marks a booking refunded by the
@@ -45,7 +45,7 @@
    ── The handover ─────────────────────────────────────────────────────────────────────────────────
 
    POST /v1/access/conversations/{conversationRef}/handover@2 carries the urgency the rules set on the
-   device, where Gilbert's matcher and the conversation are; this engine holds no conversation and grades
+   device, where GilbertOne's matcher and the conversation are; this engine holds no conversation and grades
    nothing, so it takes the code, refuses one the assistant contract does not list, and keeps the highest
    sent for a conversation — a calmer one sends nothing. Who answers and whether anybody is on the desk are
    Access's settings handover-answered-by and handover-hours in force when the handover is asked for, and

@@ -23,7 +23,7 @@ import scheduling from '../../../../catalog/scheduling.json' with { type: 'json'
 
 /* ---- Time, in the one timezone the product names ------------------------------------------------
    Here rather than in booking.ts so that the thread and the handover can stamp a time without pulling
-   the roster and the booking contract into whatever imports them — Gilbert's panel, on a phone on
+   the roster and the booking contract into whatever imports them — GilbertOne's panel, on a phone on
    metered data, among others. */
 
 /** The ISO date of a moment in Johannesburg, not in whatever zone the device is set to. */

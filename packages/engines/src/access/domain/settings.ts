@@ -4,7 +4,7 @@
  * and they are the settings block of packages/catalog/booking.json, in the shape
  * packages/catalog/settings.json gives every setting: what happens when a nurse asked for by name cannot
  * take the visit, the longest thread message, whether a photo may one day travel in a thread, how long a
- * thread stays open after its visit, who answers a Gilbert handover, and when. Every rule a change obeys
+ * thread stays open after its visit, who answers a GilbertOne handover, and when. Every rule a change obeys
  * is packages/engines/src/settings/shape.ts's. This file adds what only Access knows: which setting is
  * which field of what a booking, a thread and a handover are handed, and one rule of its own.
  *

@@ -13,6 +13,24 @@ import { roleFromSearch, roleOf, searchForRole, type RoleId } from './lib/roles'
    Named imports would defeat the split, so these are the whole modules. */
 const ClinicalWorkspace = lazy(() => import('./shells/StaffShell'));
 const BackOffice = lazy(() => import('./shells/AdminShell'));
+/* And one more door, which is not a role at all: ?preview=gilbertone opens the character
+   demonstrator — a preview of GilbertOne's presentation, and a design review of an animation scope,
+   with no model, no server, no voice and no patient data behind it. The live GilbertOne is the panel
+   the orb opens on every patient page; this door reaches look and motion only, and neither the
+   matcher nor the voice policy is wired to it.
+
+   Development only, and both halves of that matter. It is not a way of using MyThuso, so it is not a
+   role; and it is a review surface rather than a screen anybody should arrive at, so it belongs with
+   the Passport P0 and the contract mock among the things this repository builds and does not ship.
+   Written against import.meta.env.DEV, which the production build folds to false — so the constant
+   below becomes null, the dynamic import is dropped, the chunk is never emitted and the patient
+   entry's first load is unchanged to the byte. That was measured rather than assumed: with the door
+   open in production it cost 0.15 kB gzipped, and this file is the one place in the application where
+   a patient pays for something no patient will ever open.
+
+   To put it on the deployed preview instead, drop the `import.meta.env.DEV &&` and accept that
+   0.15 kB. It is a founder's decision, not an edit. */
+const GilbertOnePreview = import.meta.env.DEV ? lazy(() => import('./features/GilbertOneDemo')) : null;
 
 export default function Doorway() {
  const [role, setRoleState] = useState<RoleId>(() => roleFromSearch(window.location.search));
@@ -31,6 +49,13 @@ export default function Doorway() {
   setRoleState(next);
  }, [role]);
  const { surface, workspace } = roleOf(role);
+ if (GilbertOnePreview && new URLSearchParams(window.location.search).get('preview') === 'gilbertone') {
+  /* Its own waiting card rather than the role one: `Opening` names a role and its opening line, and
+     neither is true of a design review. */
+  return <Suspense fallback={<div className="opening"><div className="opening-card" role="status"><h1>GilbertOne</h1><p className="helper">Getting the preview ready.</p></div></div>}>
+   <GilbertOnePreview/>
+  </Suspense>;
+ }
  return <RoleContext.Provider value={{ role, setRole }}>
   {surface === 'patient' ? <App/>
    : <Suspense fallback={<Opening role={role}/>}>

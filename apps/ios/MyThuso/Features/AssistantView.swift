@@ -1,6 +1,6 @@
 import SwiftUI
 
-/* Gilbert, on iOS.
+/* GilbertOne, on iOS.
 
    Everything on this screen that a person reads comes from packages/catalog/assistant.json, through
    the generated AssistantData.swift and the reasoning in Models/Assistant.swift. The microphone is
@@ -10,7 +10,7 @@ import SwiftUI
    the way to speak. Then the voice notice, rendered by CapabilityNotice from capabilities.json rather
    than typed. Then the conversation, then the suggested questions and the refusals. The composer is
    pinned to the bottom edge, where a thumb is, and carries the sentence that must not scroll away:
-   Gilbert not recognising an emergency does not mean there is not one. At accessibility text sizes a
+   GilbertOne not recognising an emergency does not mean there is not one. At accessibility text sizes a
    pinned sentence that long would take the screen, so it moves to the head of the conversation there
    instead — still beside it, and still before anything is asked.
 
@@ -38,7 +38,7 @@ import SwiftUI
 
 struct AssistantView: View {
     @StateObject private var listener = GilbertListener()
-    /// The store the home reads its next visit from, so Gilbert names the same one.
+    /// The store the home reads its next visit from, so GilbertOne names the same one.
     @EnvironmentObject private var store: PreviewStore
     @State private var turns = Gilbert.opening()
     @State private var draft = ""
@@ -362,7 +362,7 @@ struct AssistantView: View {
                             .foregroundStyle(ThusoTheme.brandMint)
                             .accessibilityHidden(true)
                         replyBody(turn)
-                        /* Words Gilbert did not read are said to be unread, with the numbers beside them,
+                        /* Words GilbertOne did not read are said to be unread, with the numbers beside them,
                            rather than answered around. See readEverything in the contract. */
                         if turn.unread { unreadBlock }
                     }
@@ -496,7 +496,7 @@ struct AssistantView: View {
         handedOver[turn.id] = HandoverOutcome(record: result.record, sentNow: result.sentNow)
     }
 
-    /* The first turn that got the emergency answer, and a fresh conversation when Gilbert starts again. */
+    /* The first turn that got the emergency answer, and a fresh conversation when GilbertOne starts again. */
     private func track(_ now: [Gilbert.Turn]) {
         if now.count <= 1 {
             firstEmergency = nil
@@ -507,7 +507,7 @@ struct AssistantView: View {
         }
     }
 
-    /// The unread answer. Guiding, never a calm Idle: the words Gilbert could not read may be the ones that mattered.
+    /// The unread answer. Guiding, never a calm Idle: the words GilbertOne could not read may be the ones that mattered.
     private var unreadBlock: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             Rectangle().fill(ThusoTheme.brandOrange).frame(height: 2).accessibilityHidden(true)
@@ -543,7 +543,7 @@ struct AssistantView: View {
         }
     }
 
-    // MARK: - What to ask, and what Gilbert will not do
+    // MARK: - What to ask, and what GilbertOne will not do
 
     private var suggestions: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space20) {

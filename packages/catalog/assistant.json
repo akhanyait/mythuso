@@ -1,10 +1,10 @@
 {
- "_note": "Gilbert, as data. Everything a person reads from the assistant on the web, on iOS and on Android lives here: what Gilbert is called and what it is not, the six Pulse states and when each may be shown, the four situations and the questions it answers, the matcher that decides which answer a sentence gets, the voice policy the founder set on 14 September 2026, the refusals, and the Pulse events other engines may one day subscribe to. The web reads this file. iOS and Android cannot, so scripts/emit-assistant.mjs writes it into AssistantData.swift and AssistantData.kt, and scripts/check-boundaries.mjs compares both with this file on every build. Until this file existed the four situation sentences were typed in apps/ios/MyThuso/Features/AssistantView.swift and copied word for word into apps/web/src/lib/assistant.ts, with nothing comparing them.",
- "_whatGilbertIsInThisBuild": "A deterministic matcher over approved sentences. No language model, no speech provider and no network call sits behind any answer. A sentence is normalised, checked against the emergency words first, then against the trigger phrases of the suggested questions, and anything that matches neither gets one honest answer. That is the whole of it, and it is the reason every answer below can be read in advance by the people accountable for it.",
- "_tokens": "Sentences may carry {ambulance} and {mobile}, filled from packages/catalog/sos.json by number id, and {seconds}, which is voice.maxListeningSeconds. The situation sentences carry {laboratory} and {expiryWarningDays} from records.json and vetting.json, and {visitWhen}, which is the patient's next booked visit written by the same function the home card writes it with — on 14 September Gilbert said the first day scheduling.json offers while the home card showed the visit actually booked, two dates for one visit. {noUpcoming}, {noUpcomingDetail} and {asapPending} are scheduling.json's own labels. No emergency number, no date and no count of days is typed anywhere in this file; the build fails if one is.",
+ "_note": "GilbertOne, as data. Everything a person reads from the assistant on the web, on iOS and on Android lives here: what GilbertOne is called and what it is not, the six Pulse states and when each may be shown, the four situations and the questions it answers, the matcher that decides which answer a sentence gets, the voice policy the founder set on 14 September 2026, the refusals, and the Pulse events other engines may one day subscribe to. The web reads this file. iOS and Android cannot, so scripts/emit-assistant.mjs writes it into AssistantData.swift and AssistantData.kt, and scripts/check-boundaries.mjs compares both with this file on every build. Until this file existed the four situation sentences were typed in apps/ios/MyThuso/Features/AssistantView.swift and copied word for word into apps/web/src/lib/assistant.ts, with nothing comparing them.",
+ "_whatGilbertOneIsInThisBuild": "A deterministic matcher over approved sentences. No language model, no speech provider and no network call sits behind any answer. A sentence is normalised, checked against the emergency words first, then against the trigger phrases of the suggested questions, and anything that matches neither gets one honest answer. That is the whole of it, and it is the reason every answer below can be read in advance by the people accountable for it.",
+ "_tokens": "Sentences may carry {ambulance} and {mobile}, filled from packages/catalog/sos.json by number id, and {seconds}, which is voice.maxListeningSeconds. The situation sentences carry {laboratory} and {expiryWarningDays} from records.json and vetting.json, and {visitWhen}, which is the patient's next booked visit written by the same function the home card writes it with — on 14 September GilbertOne said the first day scheduling.json offers while the home card showed the visit actually booked, two dates for one visit. {noUpcoming}, {noUpcomingDetail} and {asapPending} are scheduling.json's own labels. No emergency number, no date and no count of days is typed anywhere in this file; the build fails if one is.",
  "version": 1,
  "identity": {
-  "name": "Gilbert",
+  "name": "GilbertOne",
   "descriptor": "Your Thuso AI Doctor",
   "disclosure": "not a person, and not a doctor",
   "descriptorLine": "Your Thuso AI Doctor · not a person, and not a doctor",
@@ -15,21 +15,21 @@
    "on": "2026-09-14",
    "why": "Confirmed: \"Your Thuso AI Doctor\" stays, and it is always said together with \"not a person, and not a doctor\". Changing either half is the founder's decision, not an edit."
   },
-  "pulseName": "Gilbert Pulse",
-  "callToAction": "Ask Gilbert",
+  "pulseName": "GilbertOne Pulse",
+  "callToAction": "Ask GilbertOne",
   "poweredBy": "Powered by ThusoIQ",
-  "whatItIs": "Gilbert is a short list of approved answers with a name. It matches what you type, or say on a phone, against that list and replies in sentences people at MyThuso wrote down in advance.",
-  "whatItIsNot": "Gilbert is not a doctor, not a nurse and not a person. “Your Thuso AI Doctor” is the product's name, not a qualification: Gilbert cannot examine you, cannot tell you what you have and cannot prescribe anything, and no language model is behind it.",
-  "poweredByMeans": "ThusoIQ is the name of MyThuso's clinical rules platform. In this build Gilbert uses two things from it and nothing else: the approved sentences in this file and the emergency red flags Thuso SOS already asks about."
+  "whatItIs": "GilbertOne is a short list of approved answers with a name. It matches what you type, or say on a phone, against that list and replies in sentences people at MyThuso wrote down in advance.",
+  "whatItIsNot": "GilbertOne is not a doctor, not a nurse and not a person. “Your Thuso AI Doctor” is the product's name, not a qualification: GilbertOne cannot examine you, cannot tell you what you have and cannot prescribe anything, and no language model is behind it.",
+  "poweredByMeans": "ThusoIQ is the name of MyThuso's clinical rules platform. In this build GilbertOne uses two things from it and nothing else: the approved sentences in this file and the emergency red flags Thuso SOS already asks about."
  },
  "states": [
   {
    "id": "idle",
    "name": "Idle",
    "visual": "A soft glow with slow particles inside it.",
-   "meaning": "Gilbert is available.",
+   "meaning": "GilbertOne is available.",
    "cue": "Ready",
-   "announcement": "Gilbert is ready.",
+   "announcement": "GilbertOne is ready.",
    "shownWhen": "Nothing is happening: no microphone is open, no work is under way and no answer has been asked for yet.",
    "platforms": [
     "web",
@@ -57,7 +57,7 @@
    "meaning": "Your phone is finishing turning what you said into text.",
    "cue": "Working",
    "announcement": "Turning what you said into text.",
-   "shownWhen": "Only while real work is under way — the phone's own recogniser finishing a transcript after the microphone has closed. Gilbert's matcher answers in the same moment it is asked, so it never shows this state, and nothing adds a pause to make an answer look considered.",
+   "shownWhen": "Only while real work is under way — the phone's own recogniser finishing a transcript after the microphone has closed. GilbertOne's matcher answers in the same moment it is asked, so it never shows this state, and nothing adds a pause to make an answer look considered.",
    "platforms": [
     "ios",
     "android"
@@ -67,9 +67,9 @@
    "id": "guiding",
    "name": "Guiding",
    "visual": "A steady glow.",
-   "meaning": "Gilbert is showing an approved answer.",
+   "meaning": "GilbertOne is showing an approved answer.",
    "cue": "Answer",
-   "announcement": "Gilbert answered.",
+   "announcement": "GilbertOne answered.",
    "shownWhen": "The latest answer is one of the approved answers and is not the emergency answer.",
    "platforms": [
     "web",
@@ -95,7 +95,7 @@
    "id": "handover",
    "name": "Handover",
    "visual": "The sphere dims and holds still behind the summary.",
-   "meaning": "Gilbert has put together the summary a nurse queue would receive.",
+   "meaning": "GilbertOne has put together the summary a nurse queue would receive.",
    "cue": "For a nurse",
    "announcement": "Here is what the nurse queue would receive. Nothing has gone yet.",
    "shownWhen": "You asked to talk to a nurse. The summary is shown to you first, and goes to a simulated nurse queue only when you press the button. It never reaches a nurse in this preview.",
@@ -106,7 +106,7 @@
    ]
   }
  ],
- "statesWhy": "Six states from section 15E.3 of the ThusoIQ master document, and each one is a promise about what is actually happening rather than a mood. Listening and Thinking are native only: the web has no microphone in this release, so it has nothing to listen with and nothing to finish transcribing. An unmatched question is Guiding, not Escalate — amber on every sentence Gilbert did not understand would teach people to ignore amber, and the unmatched answer carries the emergency numbers anyway.",
+ "statesWhy": "Six states from section 15E.3 of the ThusoIQ master document, and each one is a promise about what is actually happening rather than a mood. Listening and Thinking are native only: the web has no microphone in this release, so it has nothing to listen with and nothing to finish transcribing. An unmatched question is Guiding, not Escalate — amber on every sentence GilbertOne did not understand would teach people to ignore amber, and the unmatched answer carries the emergency numbers anyway.",
  "situations": [
   {
    "id": "settled",
@@ -153,7 +153,7 @@
    "name": "{asapPending}",
    "sentence": "Your visit is booked and a nurse is being found for it. You will be told who is coming before they leave."
   },
-  "why": "Gilbert answers \"When is my nurse coming?\" from the visit the home card shows — the store's first upcoming visit, formatted by the same shortWhenText — so the two can never name different days. With nothing booked it says what the home says about nothing booked, in scheduling.json's words."
+  "why": "GilbertOne answers \"When is my nurse coming?\" from the visit the home card shows — the store's first upcoming visit, formatted by the same shortWhenText — so the two can never name different days. With nothing booked it says what the home says about nothing booked, in scheduling.json's words."
  },
  "questions": [
   {
@@ -226,7 +226,9 @@
     "are you a person",
     "are you real",
     "who is gilbert",
-    "what is gilbert"
+    "what is gilbert",
+    "who is gilbertone",
+    "what is gilbertone"
    ]
   },
   {
@@ -279,7 +281,7 @@
   },
   {
    "id": "always",
-   "heading": "What Gilbert will always answer",
+   "heading": "What GilbertOne will always answer",
    "lead": null
   }
  ],
@@ -346,7 +348,7 @@
   "maxGap": 2,
   "readEverything": {
    "statement": "A question may answer on its own only when every word of the message is one of that question's trigger words or an ordinary filler word. If anything else is left, the reply is the question's answer and then the unread answer: I can't assess the rest of what you said, with the ambulance numbers and Thuso SOS. A question in `neverWithUnread` does not answer at all when words are left unread; the reply is the unmatched answer instead.",
-   "why": "A list of emergency words will always miss a way of saying something frightening. The defect the review found was not only the missing words — it was that the ordinary question in the same message then answered calmly, so the miss was presented as reassurance. Reading everything turns every miss into a sentence that says Gilbert did not read it, with the numbers beside it. \"Nothing needs you\" is in neverWithUnread because it is a claim about everything, and it may never be said to a message Gilbert did not read all of.",
+   "why": "A list of emergency words will always miss a way of saying something frightening. The defect the review found was not only the missing words — it was that the ordinary question in the same message then answered calmly, so the miss was presented as reassurance. Reading everything turns every miss into a sentence that says GilbertOne did not read it, with the numbers beside it. \"Nothing needs you\" is in neverWithUnread because it is a claim about everything, and it may never be said to a message GilbertOne did not read all of.",
    "neverWithUnread": [
     "settled"
    ],
@@ -418,6 +420,7 @@
     "has",
     "had",
     "gilbert",
+    "gilbertone",
     "tell",
     "know",
     "let",
@@ -479,7 +482,7 @@
   "handover": {
    "state": "handover",
    "title": "What the nurse queue would receive",
-   "lead": "This is the structured summary Gilbert hands over. A nurse reads it to know why she is calling, and it carries none of your words.",
+   "lead": "This is the structured summary GilbertOne hands over. A nurse reads it to know why she is calling, and it carries none of your words.",
    "notSent": "Nothing has gone yet. Press the button and this summary goes to a simulated nurse queue, not to a nurse.",
    "fields": [
     {
@@ -488,7 +491,7 @@
     },
     {
      "id": "matched",
-     "label": "What Gilbert matched"
+     "label": "What GilbertOne matched"
     },
     {
      "id": "urgency",
@@ -497,20 +500,20 @@
    ],
    "channelTyped": "Typed",
    "channelSpoken": "Spoken, turned into text on this phone, and checked by you before sending",
-   "channelChosen": "Chosen from Gilbert's suggested questions",
-   "nothingAsked": "Nothing yet. You have not asked Gilbert anything in this conversation.",
-   "nothingMatched": "Nothing. Gilbert could not assess it.",
-   "matchedEmergency": "Emergency words, so Gilbert showed the ambulance numbers instead of answering.",
+   "channelChosen": "Chosen from GilbertOne's suggested questions",
+   "nothingAsked": "Nothing yet. You have not asked GilbertOne anything in this conversation.",
+   "nothingMatched": "Nothing. GilbertOne could not assess it.",
+   "matchedEmergency": "Emergency words, so GilbertOne showed the ambulance numbers instead of answering.",
    "urgency": [
     {
      "id": "emergency",
      "name": "An emergency was raised, and the ambulance numbers were shown.",
-     "why": "Set by the emergency words anywhere in the conversation. Gilbert may explain an urgency; nothing it says afterwards lowers one."
+     "why": "Set by the emergency words anywhere in the conversation. GilbertOne may explain an urgency; nothing it says afterwards lowers one."
     },
     {
      "id": "not-assessed",
-     "name": "Not assessed. Gilbert cannot judge how urgent this is.",
-     "why": "Gilbert grades nothing. No emergency word is not a finding that something is not urgent, so there is no calmer code than this one to hand a nurse."
+     "name": "Not assessed. GilbertOne cannot judge how urgent this is.",
+     "why": "GilbertOne grades nothing. No emergency word is not a finding that something is not urgent, so there is no calmer code than this one to hand a nurse."
     }
    ],
    "neverLowered": "An emergency anywhere in this conversation stays an emergency in the handover. A calmer message afterwards does not lower it.",
@@ -518,11 +521,11 @@
    "notCarried": [
     {
      "id": "words",
-     "sentence": "Your words. They stay in this conversation, and are gone when you close Gilbert."
+     "sentence": "Your words. They stay in this conversation, and are gone when you close GilbertOne."
     },
     {
      "id": "emergency-words",
-     "sentence": "Which emergency words Gilbert noticed. The urgency says that an emergency was raised, never which."
+     "sentence": "Which emergency words GilbertOne noticed. The urgency says that an emergency was raised, never which."
     }
    ],
    "sendLabel": "Hand this to the nurse queue",
@@ -537,19 +540,19 @@
    ]
   }
  },
- "silenceIsNotSafety": "Gilbert not recognising an emergency does not mean there is not one. If you think it is an emergency, call {ambulance}, or {mobile} from a mobile.",
+ "silenceIsNotSafety": "GilbertOne not recognising an emergency does not mean there is not one. If you think it is an emergency, call {ambulance}, or {mobile} from a mobile.",
  "conversation": {
-  "inputLabel": "Ask Gilbert a question",
+  "inputLabel": "Ask GilbertOne a question",
   "inputHint": "Type in your own words",
   "sendLabel": "Send",
   "startAgainLabel": "Start again",
   "youAsked": "You asked",
   "youSaid": "You said",
-  "logLabel": "Conversation with Gilbert",
-  "refusalsHeading": "What Gilbert will not do",
+  "logLabel": "Conversation with GilbertOne",
+  "refusalsHeading": "What GilbertOne will not do",
   "turnLimit": 24,
-  "keyboardNote": "The microphone on your keyboard belongs to the keyboard, not to Gilbert: whoever made the keyboard — Apple, Google or another company — may send what you say through it to their servers. Gilbert's own Tap to talk button is the one that keeps your voice on this phone.",
-  "webKeyboardNote": "Your browser or keyboard may offer dictation of its own. That belongs to them, not to Gilbert, and may send your voice to their servers. Gilbert on the web reads only what you type.",
+  "keyboardNote": "The microphone on your keyboard belongs to the keyboard, not to GilbertOne: whoever made the keyboard — Apple, Google or another company — may send what you say through it to their servers. GilbertOne's own Tap to talk button is the one that keeps your voice on this phone.",
+  "webKeyboardNote": "Your browser or keyboard may offer dictation of its own. That belongs to them, not to GilbertOne, and may send your voice to their servers. GilbertOne on the web reads only what you type.",
   "keyboardWhy": "Neither phone lets an app remove the dictation key from the system keyboard, and a browser's is its own. The honest thing is to switch off what the app does control — autocorrection, suggestions and spell-checking that send text to a service — and to say plainly, beside the field, whose microphone the keyboard's is."
  },
  "voice": {
@@ -584,47 +587,47 @@
   "web": false,
   "decidedBy": "The founder, 14 September 2026.",
   "sentences": {
-   "howItWorks": "Tap the sphere and speak in English. Gilbert listens until you tap Stop, or for {seconds} seconds at most, turns what you say into text on this phone, and shows it to you to correct before anything is sent.",
-   "beforePermission": "Your phone is about to ask whether MyThuso may use the microphone and speech recognition. Gilbert uses them only after you tap the sphere, in English, on this phone. No recording is made and nothing you say leaves the phone.",
+   "howItWorks": "Tap the sphere and speak in English. GilbertOne listens until you tap Stop, or for {seconds} seconds at most, turns what you say into text on this phone, and shows it to you to correct before anything is sent.",
+   "beforePermission": "Your phone is about to ask whether MyThuso may use the microphone and speech recognition. GilbertOne uses them only after you tap the sphere, in English, on this phone. No recording is made and nothing you say leaves the phone.",
    "askPermissionLabel": "Continue",
    "notNowLabel": "Not now",
-   "unavailable": "Speaking to Gilbert is not available on this phone. It needs English speech recognition that runs on the phone itself, and this phone does not offer it, so what you said could not be kept on the phone. You can still type.",
-   "refused": "The microphone or speech recognition is switched off for MyThuso, so Gilbert cannot hear you. You can still type, and you can change this in your phone's Settings.",
-   "failed": "Gilbert did not catch that. Nothing was kept. Try again, or type instead.",
-   "web": "Gilbert cannot hear you on the web. A browser's speech recognition sends your voice to the company that makes the browser, so on the web you type.",
-   "talkLabel": "Tap to talk to Gilbert",
+   "unavailable": "Speaking to GilbertOne is not available on this phone. It needs English speech recognition that runs on the phone itself, and this phone does not offer it, so what you said could not be kept on the phone. You can still type.",
+   "refused": "The microphone or speech recognition is switched off for MyThuso, so GilbertOne cannot hear you. You can still type, and you can change this in your phone's Settings.",
+   "failed": "GilbertOne did not catch that. Nothing was kept. Try again, or type instead.",
+   "web": "GilbertOne cannot hear you on the web. A browser's speech recognition sends your voice to the company that makes the browser, so on the web you type.",
+   "talkLabel": "Tap to talk to GilbertOne",
    "stopLabel": "Stop",
-   "captionsLabel": "What Gilbert has heard so far",
-   "correctLabel": "Check what Gilbert heard, and correct it before you send it",
+   "captionsLabel": "What GilbertOne has heard so far",
+   "correctLabel": "Check what GilbertOne heard, and correct it before you send it",
    "discardLabel": "Discard",
-   "interrupted": "Gilbert stopped listening because the phone needed its microphone for something else, or the microphone changed. Nothing was kept. Tap to talk again, or type."
+   "interrupted": "GilbertOne stopped listening because the phone needed its microphone for something else, or the microphone changed. Nothing was kept. Tap to talk again, or type."
   },
   "usageDescriptions": {
-   "NSMicrophoneUsageDescription": "Gilbert uses the microphone only after you tap the sphere, to hear a question in English. No recording is made.",
-   "NSSpeechRecognitionUsageDescription": "Gilbert turns what you say into text on this phone, so you can check it before it is sent. Nothing you say leaves the phone."
+   "NSMicrophoneUsageDescription": "GilbertOne uses the microphone only after you tap the sphere, to hear a question in English. No recording is made.",
+   "NSSpeechRecognitionUsageDescription": "GilbertOne turns what you say into text on this phone, so you can check it before it is sent. Nothing you say leaves the phone."
   },
   "androidPermission": "android.permission.RECORD_AUDIO"
  },
  "refusals": [
   {
    "id": "no-diagnosis",
-   "statement": "Gilbert never tells you what you have.",
+   "statement": "GilbertOne never tells you what you have.",
    "why": "No sentence in this file names a condition as yours, and the matcher can only choose among sentences in this file. A conversational impression turned into a diagnosis is the failure section 15A of the master document names first."
   },
   {
    "id": "no-prescription",
-   "statement": "Gilbert never suggests a medicine, a dose, or a change to either.",
-   "why": "Only an authorised prescriber may. Gilbert has no Formulary, no record of what you take and no one to sign for it."
+   "statement": "GilbertOne never suggests a medicine, a dose, or a change to either.",
+   "why": "Only an authorised prescriber may. GilbertOne has no Formulary, no record of what you take and no one to sign for it."
   },
   {
    "id": "never-lowers-an-emergency",
-   "statement": "Gilbert never makes an emergency sound less urgent. An emergency word always wins, whatever else was said in the same message.",
+   "statement": "GilbertOne never makes an emergency sound less urgent. An emergency word always wins, whatever else was said in the same message.",
    "why": "The emergency words are checked before anything else, and a match cannot be overruled by a question found in the same sentence. A rule engine's priority may be explained by an assistant; it may not be lowered by one."
   },
   {
    "id": "no-invented-slot",
-   "statement": "Gilbert never offers an appointment, a nurse or a hospital bed that nobody has confirmed.",
-   "why": "The only visit Gilbert mentions is the first day the scheduling contract offers, and it is labelled as a situation the drawing can show. Availability comes from a provider, and no provider is connected."
+   "statement": "GilbertOne never offers an appointment, a nurse or a hospital bed that nobody has confirmed.",
+   "why": "The only visit GilbertOne mentions is the first day the scheduling contract offers, and it is labelled as a situation the drawing can show. Availability comes from a provider, and no provider is connected."
   },
   {
    "id": "no-audio-kept",
@@ -633,22 +636,22 @@
   },
   {
    "id": "listening-is-the-microphone",
-   "statement": "Gilbert shows Listening only while the microphone is open, and the microphone is never open without it.",
+   "statement": "GilbertOne shows Listening only while the microphone is open, and the microphone is never open without it.",
    "why": "A listening indicator that runs ahead of the microphone teaches people to talk to nothing; a microphone that runs without one is a recording nobody agreed to. Both are driven from the same open and close, and nothing on the web offers to listen at all."
   },
   {
    "id": "not-a-person",
-   "statement": "Gilbert is not a person and not a doctor.",
+   "statement": "GilbertOne is not a person and not a doctor.",
    "why": "The name, the descriptor and the sphere are a brand. A person who believes they are talking to a clinician will tell it things, and wait for it, in ways they would not wait for a list of sentences."
   },
   {
    "id": "crisis-is-never-left-to-gilbert",
-   "statement": "A crisis is never left to Gilbert alone. Words about harming yourself, or somebody in danger, get the emergency numbers rather than a conversation.",
-   "why": "There is no clinician behind Gilbert and no line it can put anybody through to. The honest thing it can do in a crisis is get out of the way of the people who can help."
+   "statement": "A crisis is never left to GilbertOne alone. Words about harming yourself, or somebody in danger, get the emergency numbers rather than a conversation.",
+   "why": "There is no clinician behind GilbertOne and no line it can put anybody through to. The honest thing it can do in a crisis is get out of the way of the people who can help."
   },
   {
    "id": "silence-is-not-safety",
-   "statement": "Gilbert not recognising an emergency does not mean there is not one.",
+   "statement": "GilbertOne not recognising an emergency does not mean there is not one.",
    "why": "The emergency words are a draft, they have not been reviewed by a clinician, and no list of words catches every way a person describes something frightening. So the sentence stays beside the conversation on every platform instead of appearing only after a match."
   }
  ],
@@ -657,13 +660,13 @@
    "type": "pulse.session.started",
    "version": 1,
    "owner": "pulse",
-   "summary": "Somebody opened Gilbert.",
+   "summary": "Somebody opened GilbertOne.",
    "payload": [
     {
      "field": "sessionId",
      "type": "string",
      "required": true,
-     "why": "Which conversation. Minted on the device when Gilbert opens and forgotten when it closes; it identifies a conversation and never a person."
+     "why": "Which conversation. Minted on the device when GilbertOne opens and forgotten when it closes; it identifies a conversation and never a person."
     },
     {
      "field": "platform",
@@ -699,7 +702,7 @@
     },
     {
      "field": "location",
-     "why": "Gilbert has no reason to know where anybody is, and no location permission exists."
+     "why": "GilbertOne has no reason to know where anybody is, and no location permission exists."
     }
    ],
    "subscribers": [
@@ -753,7 +756,7 @@
     },
     {
      "field": "voiceprint",
-     "why": "Gilbert does not identify speakers and never will by voice."
+     "why": "GilbertOne does not identify speakers and never will by voice."
     }
    ],
    "subscribers": [
@@ -891,7 +894,7 @@
      "field": "partlyUnread",
      "type": "boolean",
      "required": true,
-     "why": "Whether Gilbert answered with part of the message left unread — the other measure of what it cannot yet read. Whether, never what."
+     "why": "Whether GilbertOne answered with part of the message left unread — the other measure of what it cannot yet read. Whether, never what."
     },
     {
      "field": "escalated",
@@ -974,7 +977,7 @@
    "type": "pulse.device.highlight",
    "version": 1,
    "owner": "pulse",
-   "summary": "Gilbert pointed at a reading from a connected device. Declared for the Devices engine and not emitted in this release: no device is connected, so there is nothing true to point at.",
+   "summary": "GilbertOne pointed at a reading from a connected device. Declared for the Devices engine and not emitted in this release: no device is connected, so there is nothing true to point at.",
    "payload": [
     {
      "field": "sessionId",
@@ -1122,7 +1125,7 @@
     },
     {
      "field": "triagePriority",
-     "why": "Gilbert does not assign one. Only the Triage engine may, and Gilbert may never lower it."
+     "why": "GilbertOne does not assign one. Only the Triage engine may, and GilbertOne may never lower it."
     }
    ],
    "subscribers": []
@@ -1143,7 +1146,7 @@
      "field": "reason",
      "type": "string",
      "required": true,
-     "why": "emergency-word or emergency-question: whether the person asked, or Gilbert raised it. Never which words."
+     "why": "emergency-word or emergency-question: whether the person asked, or GilbertOne raised it. Never which words."
     },
     {
      "field": "at",
@@ -1167,7 +1170,7 @@
     },
     {
      "field": "triagePriority",
-     "why": "Gilbert does not assign one. Only the Triage engine may, and Gilbert may never lower it."
+     "why": "GilbertOne does not assign one. Only the Triage engine may, and GilbertOne may never lower it."
     }
    ],
    "subscribers": [

@@ -1,6 +1,6 @@
 {
- "_note": "The words that make Gilbert show the ambulance numbers instead of answering. Read by apps/web/src/lib/assistant.ts, generated into Swift and Kotlin by scripts/emit-assistant.mjs, and checked by scripts/check-boundaries.mjs. The matching rules — stems, gaps, folded diacritics, reading everything — are in packages/catalog/assistant.json; this file is only the list, and the record of every change to it.",
- "_whyItsOwnFile": "The founder decided on 14 September 2026 that the list is to be proposed and then configured as MyThuso goes. A list that changes on that rhythm, and that a clinician will one day review line by line, reads better in a file that holds nothing else: a change to a term is a change to this file, with its own version and changelog entry, and never a change to Gilbert's contract. The rules that decide how a term is matched stay with Gilbert, because changing those is a change to how Gilbert reads, not to what it listens for.",
+ "_note": "The words that make GilbertOne show the ambulance numbers instead of answering. Read by apps/web/src/lib/assistant.ts, generated into Swift and Kotlin by scripts/emit-assistant.mjs, and checked by scripts/check-boundaries.mjs. The matching rules — stems, gaps, folded diacritics, reading everything — are in packages/catalog/assistant.json; this file is only the list, and the record of every change to it.",
+ "_whyItsOwnFile": "The founder decided on 14 September 2026 that the list is to be proposed and then configured as MyThuso goes. A list that changes on that rhythm, and that a clinician will one day review line by line, reads better in a file that holds nothing else: a change to a term is a change to this file, with its own version and changelog entry, and never a change to GilbertOne's contract. The rules that decide how a term is matched stay with GilbertOne, because changing those is a change to how GilbertOne reads, not to what it listens for.",
  "version": 1,
  "status": "proposed-starting-configuration",
  "acceptedBy": {
@@ -13,7 +13,7 @@
   "reviewedOn": null,
   "why": "required before real patients"
  },
- "use": "These words only ever raise. A match turns the answer into the emergency answer; the absence of a match lowers nothing, decides nothing and is never shown as reassurance. False positives are acceptable — somebody asking about a stroke they had years ago is shown the ambulance numbers — and a miss is not made safe by Gilbert being silent about it, which is why the sentence under silenceIsNotSafety stays on the screen beside every conversation.",
+ "use": "These words only ever raise. A match turns the answer into the emergency answer; the absence of a match lowers nothing, decides nothing and is never shown as reassurance. False positives are acceptable — somebody asking about a stroke they had years ago is shown the ambulance numbers — and a miss is not made safe by GilbertOne being silent about it, which is why the sentence under silenceIsNotSafety stays on the screen beside every conversation.",
  "groups": [
   {
    "id": "chest-pain",

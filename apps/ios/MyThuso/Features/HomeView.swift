@@ -12,9 +12,9 @@ struct HomeView: View {
     var body: some View {
         content
             .thusoGround()
-            /* Gilbert floats bottom right on the patient's home, as it does on every patient page on the
-               web: presence and placement, a lit thing in reach of a thumb. Pressing it opens Gilbert in a
-               sheet and asks the phone for nothing — the microphone is asked for on Gilbert's own screen,
+            /* GilbertOne floats bottom right on the patient's home, as it does on every patient page on the
+               web: presence and placement, a lit thing in reach of a thumb. Pressing it opens GilbertOne in a
+               sheet and asks the phone for nothing — the microphone is asked for on GilbertOne's own screen,
                the first time somebody taps to talk. The sphere is a still frame under Reduce Motion. */
             .overlay(alignment: .bottomTrailing) {
                 Button { askingGilbert = true } label: {

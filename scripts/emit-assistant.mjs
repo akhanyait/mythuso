@@ -1,4 +1,4 @@
-/* Gilbert, written out for two native apps, by a machine.
+/* GilbertOne, written out for two native apps, by a machine.
 
    packages/catalog/assistant.json holds everything the assistant says and the rules it says it by.
    The web reads that file. iOS and Android cannot, so it is written into AssistantData.swift and
@@ -28,7 +28,7 @@
      - The matcher's data — foldings, irregular forms, filler words, the gap, the unread answer — and
        the shared fixtures are emitted, so each platform's own tests run against the same list.
      - The descriptor is not emitted on its own, only descriptorLine with its disclosure, so no native
-       screen can say "Your Thuso AI Doctor" without saying what Gilbert is not.
+       screen can say "Your Thuso AI Doctor" without saying what GilbertOne is not.
      - The Pulse events are not emitted. They are a contract between engines, no phone emits one in
        this release, and a Kotlin copy of an event schema nobody publishes would be a second place for
        it to drift.
@@ -64,7 +64,7 @@ const banner = () => [
  'Do not edit by hand — run `npm run assistant`. The build fails if this file and its sources',
  'disagree, so an edit here is lost rather than merely wrong.',
  '',
- 'Everything Gilbert says, the six Pulse states, the questions and their trigger phrases, the',
+ 'Everything GilbertOne says, the six Pulse states, the questions and their trigger phrases, the',
  'emergency words (drafted, not yet reviewed by a clinician, and used only to raise), the voice',
  'policy and the refusals. The emergency numbers are resolved from sos.json when this file is',
  'written. The situation tokens are left in on purpose: they are dates, and are filled at runtime.'
@@ -99,7 +99,7 @@ export function emitAssistant(root = '') {
    if (typeof object?.[field] !== 'string' || !object[field]) throw new Error(`${what} has no ${field}. ${SOURCE} is not complete enough to write two native apps from.`);
   }
  };
- need(contract.identity, ['name', 'descriptor', 'disclosure', 'descriptorLine', 'pulseName', 'callToAction', 'poweredBy', 'whatItIs', 'whatItIsNot', 'poweredByMeans'], 'Gilbert\'s identity');
+ need(contract.identity, ['name', 'descriptor', 'disclosure', 'descriptorLine', 'pulseName', 'callToAction', 'poweredBy', 'whatItIs', 'whatItIsNot', 'poweredByMeans'], 'GilbertOne\'s identity');
  for (const state of contract.states) need(state, ['id', 'name', 'visual', 'meaning', 'cue', 'announcement', 'shownWhen'], `Pulse state "${state.id}"`);
  for (const refusal of contract.refusals) need(refusal, ['id', 'statement', 'why'], `Refusal "${refusal.id}"`);
  const conditionName = group => {

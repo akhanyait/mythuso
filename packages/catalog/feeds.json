@@ -1296,7 +1296,7 @@
    "capabilities": [
     "teleconsultation"
    ],
-   "supplier": "A media stack. Neither app declares a camera permission, and the microphone permission Gilbert's push-to-talk declares is not the consultation's to use. A doctor panel with a real rota does not exist.",
+   "supplier": "A media stack. Neither app declares a camera permission, and the microphone permission GilbertOne's push-to-talk declares is not the consultation's to use. A doctor panel with a real rota does not exist.",
    "route": "POST /feeds/media-session",
    "arrives": "One lifecycle event from one consultation: somebody joined, the line dropped, it ended.",
    "derivedFrom": [
@@ -1352,7 +1352,7 @@
     {
      "id": "the-permission-is-declared-against-this-capability-before-it-is-asked-for",
      "must": "A camera or microphone permission appears under requiresPermissions on the teleconsultation capability before either app declares one.",
-     "why": "Neither app asks the device for a camera today, and the only microphone either one asks for is Gilbert's, named under the voice capability. A permission declared for one feature is not a permission for another. The boundary check already refuses an undeclared permission on either platform. Declaring one is not a build step; it is a decision about pointing a camera at somebody in their own home, and it belongs in the file that also holds what is blocking the feature.",
+     "why": "Neither app asks the device for a camera today, and the only microphone either one asks for is GilbertOne's, named under the voice capability. A permission declared for one feature is not a permission for another. The boundary check already refuses an undeclared permission on either platform. Declaring one is not a build step; it is a decision about pointing a camera at somebody in their own home, and it belongs in the file that also holds what is blocking the feature.",
      "met": false,
      "evidence": null
     },
@@ -1575,7 +1575,7 @@
     "sample": [
      "packages/catalog/assistant.json"
     ],
-    "unchanged": "Phones that recognise English offline hear it on the phone; everywhere else Gilbert is typed to. Neither needs this door."
+    "unchanged": "Phones that recognise English offline hear it on the phone; everywhere else GilbertOne is typed to. Neither needs this door."
    },
    "accepts": [
     {
@@ -1685,7 +1685,7 @@
     {
      "field": "voiceprint",
      "refusal": "A transcript event may not carry a voiceprint.",
-     "why": "Gilbert identifies nobody by their body.",
+     "why": "GilbertOne identifies nobody by their body.",
      "also": [
       "voiceId",
       "speakerId",

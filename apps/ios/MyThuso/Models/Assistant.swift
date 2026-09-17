@@ -1,12 +1,12 @@
 import Foundation
 
-/* Gilbert's reasoning, without a screen attached to it.
+/* GilbertOne's reasoning, without a screen attached to it.
 
    The sentences, trigger phrases, emergency words, the matcher's data and the shared fixtures are
    generated into AssistantData.swift from packages/catalog/assistant.json. This file is the arithmetic
    beside that data, and it is the same arithmetic as apps/web/src/lib/assistant.ts and
    model/Assistant.kt: fold a message to plain letters, reduce it to stems, look for an emergency term
-   with small gaps, then for the longest trigger, and give every word Gilbert did not read an honest
+   with small gaps, then for the longest trigger, and give every word GilbertOne did not read an honest
    sentence with the ambulance numbers beside it.
 
    The order is the safety property. Emergency words are checked before any question, and a match
@@ -229,7 +229,7 @@ enum Gilbert {
         let reply: Reply
         let matched: GilbertQuestion?
         let groups: [GilbertEmergencyGroup]
-        /// True when the answer came with words Gilbert could not read; the unread answer follows it.
+        /// True when the answer came with words GilbertOne could not read; the unread answer follows it.
         let unread: Bool
     }
 
@@ -240,7 +240,7 @@ enum Gilbert {
     // MARK: - Situations, dated today
 
     /* The visit is the one the home card shows — the store's first upcoming visit, written by the same
-       shortWhenText — so Gilbert and the home cannot name two days for one visit. With nothing booked, or a
+       shortWhenText — so GilbertOne and the home cannot name two days for one visit. With nothing booked, or a
        nurse still being found, it says scheduling.json's own words for that. */
     static func situations(visit: BookedVisit? = nil) -> [GilbertSituation] {
         var values: [String: String] = [
@@ -350,7 +350,7 @@ enum Gilbert {
         return best
     }
 
-    /// A word that is neither one of the question's own trigger words nor filler is a word Gilbert did not read.
+    /// A word that is neither one of the question's own trigger words nor filler is a word GilbertOne did not read.
     static func leavesUnread(_ text: String, _ question: GilbertQuestion) -> Bool {
         let covered = Set(filler.map(stem)).union(question.triggers.flatMap(stems))
         return stems(text).contains { !covered.contains($0) }
@@ -413,7 +413,7 @@ enum Gilbert {
             return appending({ Turn(id: $0, asked: words, channel: channel, reply: .unmatched, matched: nil, groups: [], unread: false) }, to: turns)
         }
         let unread = question.answer != "emergency" && leavesUnread(words, question)
-        /* A claim about everything is not made to a message Gilbert did not read all of. */
+        /* A claim about everything is not made to a message GilbertOne did not read all of. */
         if unread && neverWithUnread.contains(question.id) {
             return appending({ Turn(id: $0, asked: words, channel: channel, reply: .unmatched, matched: nil, groups: [], unread: false) }, to: turns)
         }

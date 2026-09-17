@@ -26,7 +26,7 @@ Writing in this pack changes nothing. A decision takes effect only through the c
 - **Settings (sections A and E).** An admin puts a value in force on the Configuration tab (`POST /v1/safety/setting-changes@2`, `POST /v1/care/setting-changes@1`, `POST /v1/money/setting-changes@1`, `POST /v1/core/setting-changes@1`, `POST /v1/access/setting-changes@1`, `POST /v1/medicines/setting-changes@1`, `POST /v1/trust/setting-changes@2`, `POST /v1/record/setting-changes@1`, `POST /v1/devices/setting-changes@2`, `POST /v1/clinical/setting-changes@1`, `POST /v1/movement/setting-changes@1`). For a setting that waits on a clinical review, somebody holding `sign-clinical-review` (Sign a clinical decision) then confirms that exact value, with a reason, in the doctor workspace's "Settings waiting for clinical review" panel (`apps/web/src/features/SettingReviews.tsx`, `POST /v1/safety/setting-reviews@2`, `POST /v1/care/setting-reviews@2`, `POST /v1/access/setting-reviews@2`, `POST /v1/medicines/setting-reviews@2`, `POST /v1/clinical/setting-reviews@2`). "Nobody confirms the clinical review of a change they made themselves." A default can instead be changed in the contract itself, naming the reviewer and the day (`packages/catalog/settings.json` `provenance.reviewed`) with a changelog entry, as `settings.json` `howToChange` describes.
 - **Who can confirm through the panel today:** Doctor (`doctor`), because Clinical's `review-confirmer` setting names that role by default (`packages/catalog/clinical.json`), and every engine's review route confirms for the roles that setting names in force and for nobody else. An admin may name any of Doctor (`doctor`), Registered nurse (`nurse`) on the Configuration tab, and that change waits on a clinical review of its own. A Clinical Governance Lead who is a registered nurse could confirm through the panel once the setting names her role.
 - **Protocols (section B).** "A protocol is not ratified until the register names the role and the person who signed it off, and the day they did." "Changing a ratified protocol means adding a new version that names the one it supersedes. The ratified row is never edited." The row in `packages/catalog/protocols.json` changes status, ratifiedBy and ratifiedOn, and gains a contentRef once the text exists. Core announces a ratification as `protocol.ratified@1`.
-- **Gilbert's emergency terms (section C).** Only in `packages/catalog/gilbert-emergency-terms.json`: raise `version`, add a changelog entry (day, role, terms added and removed, why, the new `termsHash`), keep the shared fixtures passing on all three platforms, and record `clinicalReview.reviewedBy` and `reviewedOn`. `CLAUDE.md` holds the rule; `npm run check` replays the changelog.
+- **GilbertOne's emergency terms (section C).** Only in `packages/catalog/gilbert-emergency-terms.json`: raise `version`, add a changelog entry (day, role, terms added and removed, why, the new `termsHash`), keep the shared fixtures passing on all three platforms, and record `clinicalReview.reviewedBy` and `reviewedOn`. `CLAUDE.md` holds the rule; `npm run check` replays the changelog.
 - **The vetting register (section D).** A scope or a check changes in `packages/catalog/vetting.json` and is regenerated with `npm run vetting`. A proposed role is decided in `packages/catalog/vetting-proposals.json` by naming who decided it.
 - **Proposals outside settings (section E) and clinical content (section F).** Changed in their own contract, the way that file says it is changed. `closed-loop.json` explains why its codes are not admin settings.
 
@@ -38,7 +38,7 @@ Until a decision is recorded, the app shows "Not clinically reviewed" beside eve
 |---|---|---|
 | A | Settings that carry `reviewRequired` and name no reviewer | 10 |
 | B | Protocols in the registry that are not ratified | 12 |
-| C | Gilbert's emergency terms | 1 |
+| C | GilbertOne's emergency terms | 1 |
 | D | Clinical scopes and proposed clinical roles on the vetting register | 8 |
 | E | Other clinical proposals and safety numbers nobody clinical has decided | 31 |
 | F | Clinical content with no clinical sign-off recorded | 3 |
@@ -544,7 +544,7 @@ From `packages/catalog/protocols.json`. Named and numbered. Not ratified, not in
 | HPCSA/SANC number | |
 | Date | |
 
-## C. Gilbert's emergency terms
+## C. GilbertOne's emergency terms
 
 #### C1. The emergency terms list, version 1
 
@@ -556,7 +556,7 @@ From `packages/catalog/protocols.json`. Named and numbered. Not ratified, not in
 | termsHash | `4ad44d7666d291c7` |
 | Accepted by | Founder on 2026-09-14: "Propose it; we can configure as we go." |
 | Clinical review | No clinical reviewer yet — required before real patients. |
-| What a match does | These words only ever raise. A match turns the answer into the emergency answer; the absence of a match lowers nothing, decides nothing and is never shown as reassurance. False positives are acceptable — somebody asking about a stroke they had years ago is shown the ambulance numbers — and a miss is not made safe by Gilbert being silent about it, which is why the sentence under silenceIsNotSafety stays on the screen beside every conversation. |
+| What a match does | These words only ever raise. A match turns the answer into the emergency answer; the absence of a match lowers nothing, decides nothing and is never shown as reassurance. False positives are acceptable — somebody asking about a stroke they had years ago is shown the ambulance numbers — and a miss is not made safe by GilbertOne being silent about it, which is why the sentence under silenceIsNotSafety stays on the screen beside every conversation. |
 | Known false positives reported by the tests | 4 (non-blocking) |
 | Not for this review | The listening cap and the words "Your Thuso AI Doctor" are founder decisions (`packages/catalog/assistant.json` `voice.listeningDecision`, decided by the Founder on 2026-09-14), not edits. How a term is matched is `assistant.json` `matcher`. |
 
@@ -917,13 +917,13 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
-#### E8. Who answers a Gilbert handover
+#### E8. Who answers a GilbertOne handover
 
 | | |
 |---|---|
 | Setting | `access:handover-answered-by` in `packages/catalog/booking.json` |
-| Why it is clinical | It decides which registered role answers when a patient's conversation with Gilbert is handed over, and a handover exists because the patient said something about their health. |
-| What it decides | Which roles on the vetting register read a handover from Gilbert and call the patient back. |
+| Why it is clinical | It decides which registered role answers when a patient's conversation with GilbertOne is handed over, and a handover exists because the patient said something about their health. |
+| What it decides | Which roles on the vetting register read a handover from GilbertOne and call the patient back. |
 | In force by default | Registered nurse (`nurse`) |
 | What an admin may set | Roles an admin may name: Registered nurse (`nurse`), Doctor (`doctor`). Roles named: from 1 to 2. These limits are proposals nobody has decided. |
 | Guardrail | A handover always goes to somebody clinical: never to nobody, and never to a role that is not a registered nurse or a doctor. |
@@ -946,11 +946,11 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 |---|---|
 | Setting | `access:handover-hours` in `packages/catalog/booking.json` |
 | Why it is clinical | It decides the hours in which a handed-over conversation reaches that role, and so the hours in which it reaches nobody. |
-| What it decides | The hours a handover from Gilbert is answered, in Johannesburg time. Outside them Gilbert says nobody is there and gives the emergency numbers. |
+| What it decides | The hours a handover from GilbertOne is answered, in Johannesburg time. Outside them GilbertOne says nobody is there and gives the emergency numbers. |
 | In force by default | Handover desk: mon, tue, wed, thu, fri, sat, sun, 06:00–22:00 |
 | What an admin may set | Posts: Handover desk (Registered nurse (`nurse`)). These limits were decided. |
-| Guardrail | Out of hours Gilbert always says nobody is on the desk and gives the emergency numbers, whatever the hours are. A rota names a post and never a person, and a window ends after it starts. |
-| Why this default | A proposal nobody has decided. Proposed by the Integrator (Wave 3): Six in the morning to ten at night, every day, is when the rest of the preview says a nurse is working — the hours Thuso SOS's urgent-visit rota keeps — so a handover is answered when there is somebody who could act on it. Outside them there is nobody, and Gilbert says so first. |
+| Guardrail | Out of hours GilbertOne always says nobody is on the desk and gives the emergency numbers, whatever the hours are. A rota names a post and never a person, and a window ends after it starts. |
+| Why this default | A proposal nobody has decided. Proposed by the Integrator (Wave 3): Six in the morning to ten at night, every day, is when the rest of the preview says a nurse is working — the hours Thuso SOS's urgent-visit rota keeps — so a handover is answered when there is somebody who could act on it. Outside them there is nobody, and GilbertOne says so first. |
 | Who may change it | Internal admin staff (`admin`) |
 
 **Question for the reviewer:** is Handover desk: mon, tue, wed, thu, fri, sat, sun, 06:00–22:00 safe, are the limits safe, and should this setting wait on a clinical review before a change takes effect?
@@ -1520,7 +1520,7 @@ A review's record is complete when a consultation for its encounter was signed o
 
 | Stage | What it does |
 |---|---|
-| Gilbert's emergency terms | Asked before triage and never by it. A patient who said something packages/catalog/gilbert-emergency-terms.json lists has already been given the emergency answer, and nothing triage says changes it. |
+| GilbertOne's emergency terms | Asked before triage and never by it. A patient who said something packages/catalog/gilbert-emergency-terms.json lists has already been given the emergency answer, and nothing triage says changes it. |
 | Red-flag gate | The ratified protocol's red flags, asked before anything else it says. A red flag that fires sets the protocol's most urgent priority, and nothing after it may lower it. |
 | Priority | A priority from the ratified protocol's own scale, with the reason codes that set it. A priority without its reason codes is refused. |
 | Where the patient is seen | The disposition the protocol gives that priority. The reason codes are written to the record; only the priority and the care setting travel on the bus. |
@@ -1530,9 +1530,9 @@ A review's record is complete when a consultation for its encounter was signed o
 |---|---|
 | Triage protocols the board has named | None |
 | Why none | Which protocols in the registry are triage protocols is the board's to say when it writes one. None of the twelve registered today is, so nothing can be triaged under anything, and no registry entry can be borrowed for triage by naming it. |
-| What every triage answers today | Not triaged. A nurse or a doctor decides what happens next. Software sets no priority for them and guesses none. If the patient said something Gilbert's emergency terms list, the emergency answer was given first and still stands. |
+| What every triage answers today | Not triaged. A nurse or a doctor decides what happens next. Software sets no priority for them and guesses none. If the patient said something GilbertOne's emergency terms list, the emergency answer was given first and still stands. |
 
-**Question for the reviewer:** which protocol should become the triage protocol, who writes its red flags, priority scale, reason codes and care settings, and is the order of the stages above safe, with Gilbert's emergency terms always first?
+**Question for the reviewer:** which protocol should become the triage protocol, who writes its red flags, priority scale, reason codes and care settings, and is the order of the stages above safe, with GilbertOne's emergency terms always first?
 
 | Sign-off | |
 |---|---|

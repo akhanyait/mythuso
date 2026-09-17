@@ -262,8 +262,8 @@ object EventsData {
 
     val engines = listOf(
         Engine("core", "ThusoIQ Core", "ThusoIQ"),
-        Engine("access", "Access", "Gilbert"),
-        Engine("pulse", "Gilbert Pulse Interaction Engine", "Gilbert Pulse"),
+        Engine("access", "Access", "GilbertOne"),
+        Engine("pulse", "GilbertOne Pulse Interaction Engine", "GilbertOne Pulse"),
         Engine("care", "Care", "Thuso Nurse"),
         Engine("clinical", "Clinical Intelligence", "Thuso AI"),
         Engine("safety", "Safety", "Sentinel"),

@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
-    <!-- Gilbert's push-to-talk, named under the voice capability in packages/catalog/capabilities.json. Asked for on first use, never at launch. -->
+    <!-- GilbertOne's push-to-talk, named under the voice capability in packages/catalog/capabilities.json. Asked for on first use, never at launch. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application android:label="MyThuso Preview" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:allowBackup="false" android:dataExtractionRules="@xml/data_extraction_rules" android:fullBackupContent="@xml/backup_rules" android:enableOnBackInvokedCallback="true" tools:targetApi="33" android:supportsRtl="true" android:usesCleartextTraffic="false">
         <activity android:name=".MainActivity" android:exported="true">

@@ -61,7 +61,7 @@ enum ClinicalData {
         static let routedTo = "Handed to: {roles}"
         static let notTriaged = "Not triaged"
         static let human = "A nurse or a doctor decides what happens next. Software sets no priority for them and guesses none."
-        static let emergencyFirst = "If the patient said something Gilbert's emergency terms list, the emergency answer was given first and still stands."
+        static let emergencyFirst = "If the patient said something GilbertOne's emergency terms list, the emergency answer was given first and still stands."
     }
     static let triageRoutesTo = ["nurse", "doctor"]
     /// The protocols the board has named triage protocols. Empty until it names one.

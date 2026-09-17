@@ -92,7 +92,7 @@ export const dayLabel = (isoDate: string) => {
 };
 
 /* The sentence a textFrom names, filled with the numbers in packages/catalog/sos.json. Only booking.json is read from,
-   because the one sentence borrowed is the emergency numbers Gilbert gives out of hours. */
+   because the one sentence borrowed is the emergency numbers GilbertOne gives out of hours. */
 function borrowed(pointer: string): string {
  const [file, path] = pointer.split('#');
  if (file !== 'packages/catalog/booking.json' || !path) throw new Error(`packages/catalog/ussd.json borrows "${pointer}", which the USSD walk does not read.`);

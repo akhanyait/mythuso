@@ -1,6 +1,6 @@
 {
  "engine": "pulse",
- "_note": "Gilbert Pulse has no HTTP routes of its own. Its events live in packages/catalog/assistant.json, and a person reaches Gilbert through Access's conversation and tool routes. This file exists so the twelve engines are all accounted for, and so the speech-transcript door is linked to the engine it serves.",
+ "_note": "GilbertOne Pulse has no HTTP routes of its own. Its events live in packages/catalog/assistant.json, and a person reaches GilbertOne through Access's conversation and tool routes. This file exists so the twelve engines are all accounted for, and so the speech-transcript door is linked to the engine it serves.",
  "version": 1,
  "resources": [],
  "doors": ["speech-transcript"],

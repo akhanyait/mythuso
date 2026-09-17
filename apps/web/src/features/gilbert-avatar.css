@@ -1,0 +1,52 @@
+/* GilbertOne's rig. Loaded with features/GilbertAvatar.tsx, which is only ever reached through a
+   dynamic import, so none of this is on a patient's first load.
+
+   The palette is §02's and every value is a token: a white shell on the surface colour, the brand
+   ink for the visor, the soft teal mint for the eyes, one small orange accent on the forehead and a
+   single lime dot. Nothing here paints a background. The character sits on whatever it is put on,
+   because §02 asks for a genuine alpha canvas — no panel, no haze, no orbit ring, no glow cloud —
+   and the only mark beneath it is a contact shadow.
+
+   Everything that moves is a transform or an opacity, so the compositor does the work and a
+   mid-range Android phone is not asked to reflow a head sixty times a second. The blend comes from
+   --go-blend, which the controller sets per step: 150–300 ms for an ordinary transition and 0 for a
+   stop or a safety event, which §04 says may not wait. */
+
+.go-rig { display: block; overflow: visible; --go-blend: var(--t-settle); }
+.go-rig g, .go-rig path, .go-rig ellipse, .go-rig rect {
+ transform-box: view-box;
+ transition: transform var(--go-blend) var(--ease-soft), opacity var(--go-blend) var(--ease-soft);
+}
+
+/* Each group turns about the part of the head it belongs to: the neck for a tilt, the eye's own top
+   edge for a lid, the mouth's centre for a jaw. An origin left at the default is how a small nod
+   becomes a swing. */
+.go-head { transform-origin: 100px 150px; }
+.go-face, .go-brows, .go-eyes { transform-origin: 100px 90px; }
+.go-lid { transform-origin: 80px 76px; }
+.go-lid-right { transform-origin: 120px 76px; }
+.go-mouth-open { transform-origin: 100px 130px; }
+
+.go-shadow { fill: color-mix(in srgb, var(--ink) 16%, transparent); }
+.go-shell { fill: var(--surface); stroke: var(--stone); stroke-width: 1.2; }
+.go-ear { fill: var(--stone); }
+.go-neck rect { fill: var(--cloud); }
+.go-collar { fill: var(--stone); }
+.go-visor, .go-lid, .go-mouth-open { fill: var(--brand-ink); }
+.go-eye { fill: var(--brand-mint); }
+.go-brow, .go-mouth-line { fill: none; stroke: var(--brand-ink); stroke-linecap: round; }
+.go-brow { stroke-width: 3.4; }
+.go-mouth-line { stroke-width: 4; }
+.go-accent { fill: var(--brand-orange); }
+.go-lime { fill: var(--brand-lime); }
+
+/* A blink is faster than a blend and must not be slowed by one: 75 ms shut, 75 ms open, which is the
+   150 ms §03 A03 asks for. */
+.go-lid { transition: transform 75ms linear; }
+
+/* The second line of defence, after the controller's own. A reader who has asked for less motion
+   gets a still character even if a timer somewhere survives — and the character is still a
+   character, with an expression, rather than a blank. */
+@media (prefers-reduced-motion: reduce) {
+ .go-rig g, .go-rig path, .go-rig ellipse, .go-rig rect { transition: none; }
+}

@@ -224,7 +224,7 @@
 
  "gateways": [
   { "id": "passport-gateway", "engine": "record", "why": "The one synchronous door to clinical data: consent, purpose and scope checked and logged on every call." },
-  { "id": "tool-gateway", "engine": "access", "path": "/v1/access/tools/{tool}", "why": "Gilbert's allow-listed tool calls (§15D). A tool reaches another engine's action only by name from the allow-list, never a generic call." }
+  { "id": "tool-gateway", "engine": "access", "path": "/v1/access/tools/{tool}", "why": "GilbertOne's allow-listed tool calls (§15D). A tool reaches another engine's action only by name from the allow-list, never a generic call." }
  ],
 
  "documentSections": [
@@ -309,7 +309,7 @@
   { "id": "every-route-names-its-scope", "statement": "Every route names the roles that may call it and the purposes it serves.", "why": "The Full Scope's Core acceptance test is a role and scope matrix enforced on every API. A route that names neither has no matrix to enforce." },
   { "id": "every-route-refuses-something", "statement": "Every route declares at least one refusal of its own, with a status, a sentence and the reason.", "why": "The valuable part of a route is what it will not do. A route that only says yes is a route whose no is invented at three in the morning by whoever is on call." },
   { "id": "every-route-says-what-it-emits", "statement": "Every route names the events it emits, each live and owned by its own engine, or says why it emits none.", "why": "Cross-engine work travels as events. A route that changes something and tells nobody is a direct call waiting to be written." },
-  { "id": "no-engine-reads-another-engines-store", "statement": "No route names another engine's resource in its path or its fields, except through the Passport gateway or Gilbert's tool gateway.", "why": "An engine that reads another's store is two engines that must be deployed, secured and changed together. The two synchronous doors are the only exceptions, and each checks who is asking and why." },
+  { "id": "no-engine-reads-another-engines-store", "statement": "No route names another engine's resource in its path or its fields, except through the Passport gateway or GilbertOne's tool gateway.", "why": "An engine that reads another's store is two engines that must be deployed, secured and changed together. The two synchronous doors are the only exceptions, and each checks who is asking and why." },
   { "id": "clinical-content-only-through-the-record", "statement": "Clinical content crosses an API only through the Passport gateway. Everywhere else a route carries a reference to the entry.", "why": "No engine holds a copy of a record. A reading in a devices payload that is not going through the gateway is a second copy with none of the record's protections." },
   { "id": "money-and-dispatch-writes-are-idempotent", "statement": "Every money write and every dispatch write is idempotent and requires an idempotency key.", "why": "A retry on a dropped connection must not charge twice or send two nurses." },
   { "id": "suppliers-arrive-through-doors", "statement": "A supplier never calls a route. It calls a door in packages/catalog/feeds.json, which answers no until its switch-on conditions are evidenced.", "why": "A supplier callback added as a route skips every condition a door holds: the contract, the credential, the named operator and the refused fields." },

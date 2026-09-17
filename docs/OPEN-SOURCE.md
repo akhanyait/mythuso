@@ -12,7 +12,7 @@ Every open-source module, standard, open-weights model and speech provider that 
 
 | Component | Owner | What it is | Why it is not a module |
 |---|---|---|---|
-| **Gilbert orchestration service** | Akhanya / MyThuso | Conversation state, tool permissions, patient context assembly, care workflow orchestration, escalation, audit and product experience. | No module, framework or model replaces Gilbert's orchestration. §15D calls it the core IP. A module under it can be swapped; the thing that decides which tool a model may call cannot be somebody else's. |
+| **GilbertOne orchestration service** | Akhanya / MyThuso | Conversation state, tool permissions, patient context assembly, care workflow orchestration, escalation, audit and product experience. | No module, framework or model replaces GilbertOne's orchestration. §15D calls it the core IP. A module under it can be swapped; the thing that decides which tool a model may call cannot be somebody else's. |
 | **Clinical policy & triage** | ThusoIQ | SATS-aligned triage, red-flag rules, Formulary checks, the protocol registry, Sentinel thresholds and human sign-off policy. | No module sets a triage priority, a red-flag rule or a Sentinel threshold. §15D: generative AI may explain; it may not lower a rule-engine priority. The governed SATS and condition protocols remain authoritative. |
 | **Sentinel's patient-baseline alerting** | ThusoIQ | Patient-baseline deviation models under MyThuso's clinical protocols, consuming device data through vendor APIs. | No vendor's anomaly-detection framework replaces Sentinel. §45: the alerting logic is the moat MyThuso must own, and the frameworks proposed for it are not licensed to third parties. |
 
@@ -20,7 +20,7 @@ Every open-source module, standard, open-weights model and speech provider that 
 
 - **No external component gets direct, unrestricted access to the Health Passport; all access flows through ThusoIQ identity, consent, purpose-of-use and audit controls.** §16: a breach of the record cannot be undone, and every engine already reads it through one gateway. A module is not an exception to that because somebody else wrote it.
 - **Open source does not mean production-approved; licence, security, maintenance, dependency, vulnerability, data-flow and clinical-use reviews come before adoption.** A public repository says who can read the code, not who has checked it. Three of the six Momentum repositories have had no commit for more than a year, and one has no licence file at all.
-- **Model and provider abstraction is kept from day one: standard request and response schemas, a model registry, feature flags, shadow evaluation and rollback.** §15D: no single model becomes Gilbert. A provider wired straight into a screen is a provider that cannot be withdrawn the day it fails.
+- **Model and provider abstraction is kept from day one: standard request and response schemas, a model registry, feature flags, shadow evaluation and rollback.** §15D: no single model becomes GilbertOne. A provider wired straight into a screen is a provider that cannot be withdrawn the day it fails.
 - **Patient audio and transcripts are health information when they reveal symptoms or conditions, and get the Passport's data-minimisation, retention, encryption and consent discipline.** A voice describing chest pain is special personal information under POPIA section 26 whichever vendor transcribed it.
 - **No internet-search answer becomes clinical advice at runtime; clinical answers are grounded in versioned, governance-approved protocols, Formulary data and patient-specific facts.** §15D: web research is a content-development activity, not the care pathway.
 - **Local-language performance is measured with real South African speakers across age, gender, accent, code-switching, noise, low-bandwidth calls, medicine names and emergency phrases before launch.** §15D's launch language gate: marketing support is not the same as clinical readiness.
@@ -39,7 +39,7 @@ Every open-source module, standard, open-weights model and speech provider that 
 
 | Name | Kind | Licence | Source | Last activity seen | Links to | Adoption and what blocks it |
 |---|---|---|---|---|---|---|
-| **Momentum FHIR MCP Server**<br>An MCP server that lets language-model agents read and write a FHIR server, with terminology lookup and document search. | open-source-module | [MIT](https://github.com/the-momentum/fhir-mcp-server/blob/main/LICENSE) | [github.com/the-momentum/fhir-mcp-server](https://github.com/the-momentum/fhir-mcp-server) | [2025-10-23](https://github.com/the-momentum/fhir-mcp-server/releases/tag/0.1.0) | **record** · `GET /fhir/{resourceType}/{id}`, `GET /fhir/{resourceType}` · through `tool-gateway`, `passport-gateway` | Not adopted<br>— None of the five reviews has been done.<br>— As shipped, document search requires a Pinecone API key and terminology lookup may call the LOINC API, so it would send data to services outside South Africa.<br>— One release, on 23 October 2025, and no commit since 13 October 2025.<br>— Gilbert's tool gateway is proposed, not built, and its allow-list names no FHIR tool. |
+| **Momentum FHIR MCP Server**<br>An MCP server that lets language-model agents read and write a FHIR server, with terminology lookup and document search. | open-source-module | [MIT](https://github.com/the-momentum/fhir-mcp-server/blob/main/LICENSE) | [github.com/the-momentum/fhir-mcp-server](https://github.com/the-momentum/fhir-mcp-server) | [2025-10-23](https://github.com/the-momentum/fhir-mcp-server/releases/tag/0.1.0) | **record** · `GET /fhir/{resourceType}/{id}`, `GET /fhir/{resourceType}` · through `tool-gateway`, `passport-gateway` | Not adopted<br>— None of the five reviews has been done.<br>— As shipped, document search requires a Pinecone API key and terminology lookup may call the LOINC API, so it would send data to services outside South Africa.<br>— One release, on 23 October 2025, and no commit since 13 October 2025.<br>— GilbertOne's tool gateway is proposed, not built, and its allow-list names no FHIR tool. |
 
 ## REFERENCE / ADAPT
 
@@ -83,15 +83,15 @@ Every open-source module, standard, open-weights model and speech provider that 
 
 ## MODEL GATEWAY — REPLACEABLE
 
-§15D: at least two models evaluated, routed by risk, cost and latency behind a model gateway, versioned, with a fallback. No single model becomes Gilbert.
+§15D: at least two models evaluated, routed by risk, cost and latency behind a model gateway, versioned, with a fallback. No single model becomes GilbertOne.
 
 | Name | Kind | Licence | Source | Last activity seen | Links to | Adoption and what blocks it |
 |---|---|---|---|---|---|---|
-| **Reasoning and multimodal language models**<br>Draft explanations, summaries, questions and low-risk guidance for Gilbert, behind a model gateway. | commercial-provider | commercial — contract and DPA required | — | Not verified | **access** · `POST /v1/access/conversations/{conversationRef}/messages` · doors `proposed:model-gateway` · through `tool-gateway` | Not adopted<br>— No model is shortlisted and the model-gateway door does not exist.<br>— Gilbert gives approved answers only today, and no clinical governance has approved generated ones. |
+| **Reasoning and multimodal language models**<br>Draft explanations, summaries, questions and low-risk guidance for GilbertOne, behind a model gateway. | commercial-provider | commercial — contract and DPA required | — | Not verified | **access** · `POST /v1/access/conversations/{conversationRef}/messages` · doors `proposed:model-gateway` · through `tool-gateway` | Not adopted<br>— No model is shortlisted and the model-gateway door does not exist.<br>— GilbertOne gives approved answers only today, and no clinical governance has approved generated ones. |
 
 ## PRIMARY PRODUCTION EVALUATION
 
-§15D: the first South African speech candidate to evaluate for a Gilbert voice pilot, before any contract.
+§15D: the first South African speech candidate to evaluate for a GilbertOne voice pilot, before any contract.
 
 | Name | Kind | Licence | Source | Last activity seen | Links to | Adoption and what blocks it |
 |---|---|---|---|---|---|---|
@@ -166,7 +166,7 @@ A door a link needs and packages/catalog/feeds.json does not have is written as 
 
 §15D's sixth runtime layer — primary and fallback models, a prompt and model registry, output-schema validation — is declared by no contract in this repository. Needed by: Momentum Notetaker, Reasoning and multimodal language models.
 
-- **At least two models are evaluated and a fallback is named for every task routed to one.** §15D: no single model becomes Gilbert.
+- **At least two models are evaluated and a fallback is named for every task routed to one.** §15D: no single model becomes GilbertOne.
 - **Every call records the model, prompt and protocol version it ran on.** §15D's audit layer: without the version, a harmful answer cannot be traced or reproduced.
 - **A hosted model processes in South Africa, or a section 72 determination names where, under a data processing agreement.** A prompt carrying a patient's symptoms is special personal information in transit.
 - **The clinical safety layer runs before any model output reaches a person, and nothing a model returns lowers an urgency.** §15D: allowed actions and minimum urgency are set by rules; the model cannot override downward.
@@ -185,8 +185,8 @@ A door a link needs and packages/catalog/feeds.json does not have is written as 
   - A reading that came through Open Wearables carries no clinical weight and triggers no dispatch. *Full Scope Engine 9, which the devices contract already refuses on.*
   - Open Wearables does not stand in for the direct adapters for BP cuffs, CGM, SpO₂ or the Thuso Pod. *§15D: keep direct adapters where Open Wearables does not cover the device or the clinical-grade data path.*
 - **Momentum FHIR MCP Server**
-  - The FHIR MCP Server is never offered to Gilbert as a general-purpose record tool; it is reached as named, read-only tools. *§15D: never expose a generic FHIR CRUD tool directly to the patient-facing model.*
-  - A tool it offers that is not on Gilbert's allow-list is refused. *§15D: a restricted, consent-aware tool gateway with an allow-list.*
+  - The FHIR MCP Server is never offered to GilbertOne as a general-purpose record tool; it is reached as named, read-only tools. *§15D: never expose a generic FHIR CRUD tool directly to the patient-facing model.*
+  - A tool it offers that is not on GilbertOne's allow-list is refused. *§15D: a restricted, consent-aware tool gateway with an allow-list.*
   - No part of a patient's record is indexed in an external vector store or sent to an external terminology service. *Its README requires Pinecone for document search and calls the LOINC API; either would move special personal information across a border without a section 72 basis.*
 - **Momentum HealthStack**
   - A HIPAA-oriented reference stack is not taken as meeting POPIA, South African data residency, key management, disaster recovery or audit requirements. *§15D: do not assume a HIPAA-oriented reference stack is automatically sufficient for South Africa.*
@@ -218,13 +218,13 @@ A door a link needs and packages/catalog/feeds.json does not have is written as 
 - **Reasoning and multimodal language models**
   - Nothing a model returns lowers a priority the rules set. *§15D: generative AI may explain; it may not lower a rule-engine priority.*
   - A model is never given a general-purpose record tool. *§15D: never expose a generic FHIR CRUD tool directly to the patient-facing model.*
-  - No single model or provider becomes Gilbert. *§15D: evaluate at least two, version every model and prompt, and keep a fallback.*
+  - No single model or provider becomes GilbertOne. *§15D: evaluate at least two, version every model and prompt, and keep a fallback.*
 - **Botlhale AI speech APIs**
   - No patient audio is sent to Botlhale AI before a contract and a data processing agreement exist. *§15D: patient audio and transcripts are health information when they reveal symptoms or conditions.*
 - **Lelapa AI Vulavula**
   - No patient audio is sent to Lelapa AI before a contract and a data processing agreement exist. *§15D: patient audio and transcripts are health information when they reveal symptoms or conditions.*
 - **Global speech and voice stack**
-  - No consumer assistant — Google Assistant, Siri or Bixby — becomes Gilbert's voice architecture. *§15D's recommendation: do not make any consumer assistant or single model the architecture.*
+  - No consumer assistant — Google Assistant, Siri or Bixby — becomes GilbertOne's voice architecture. *§15D's recommendation: do not make any consumer assistant or single model the architecture.*
 - **OpenAI Whisper**
   - The open weights run where MyThuso controls them; a hosted transcription API is not what §45 adopted. *§45: patient voice is special personal information, and open weights give the head start without routing it through somebody else's cloud.*
 - **Meta MMS (Massively Multilingual Speech)**
@@ -273,7 +273,7 @@ A door a link needs and packages/catalog/feeds.json does not have is written as 
 - **Nothing in this register is adopted until its licence, security, maintenance, data-flow and clinical-use reviews are each recorded.** §15D: open source does not mean production-approved. A module named in a specification is a candidate, and somebody reading its name beside MyThuso's should not come away believing it runs here.
 - **A licence, a URL or a date of last activity is recorded as it was read from the primary source on a stated day, or it is null with the reason it could not be read.** A guessed licence is how copyleft code ends up inside a product that cannot publish its source, and a guessed URL is how a typo-squatted package gets installed.
 - **No module reaches the record engine except through the Passport's consent gateway.** §15D's first procurement rule, and §16's design test: if a module were compromised, it must not hold the records.
-- **A module driven by a model reads the record only through Gilbert's allow-listed tools, and never writes to it.** §15D: never expose a generic FHIR CRUD tool directly to the patient-facing model. A write tool in front of a model is a record anybody can edit by typing.
+- **A module driven by a model reads the record only through GilbertOne's allow-listed tools, and never writes to it.** §15D: never expose a generic FHIR CRUD tool directly to the patient-facing model. A write tool in front of a model is a record anybody can edit by typing.
 - **Nothing registered as a prototype, a pilot or a reference links the triage route.** §15D: Diagnostipy is for prototypes and test harnesses, and clinical policy and triage are owned. A weighted score that reaches the triage route is a diagnosis nobody governs.
 - **A vendor the specification declined is linked to no engine, route or door, and is never adopted.** §45 records why each was declined so the decision is auditable. A link would be the first step of reversing it without anybody deciding to.
 - **No package manifest in this repository declares a registered component.** Adoption starts with the five reviews. A dependency added to try something is adoption that skipped them, and it is found by the build rather than by an audit.

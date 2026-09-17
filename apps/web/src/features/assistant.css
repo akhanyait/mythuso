@@ -374,7 +374,7 @@
 .as-said { position: relative; }
 .as-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-/* ---- Gilbert: the state in words, the composer, the answers that are not situations ---------- */
+/* ---- GilbertOne: the state in words, the composer, the answers that are not situations ---------- */
 .as-titles { flex: 1; min-width: 0; display: grid; gap: 0; }
 .as-titles h2 { margin: 0; font-size: 18px; font-weight: 600; color: var(--surface); }
 .as-descriptor { margin: 0; font-size: 13px; color: var(--brand-mint); }
@@ -431,7 +431,7 @@
 }
 .as-send:hover { background: color-mix(in srgb, var(--brand-mint) 30%, var(--surface)); }
 .as-silence, .as-keyboard { margin: 0; font-size: 13px; line-height: 1.45; color: var(--brand-mint); }
-/* The unread answer sits inside the reply it follows, set apart by an orange rule: the words Gilbert
+/* The unread answer sits inside the reply it follows, set apart by an orange rule: the words GilbertOne
    could not read are the part of the message most worth a second look. */
 .as-unread { display: grid; gap: var(--space-12); margin-top: var(--space-16); padding: var(--space-12) 0 0 var(--space-12); border-left: 2px solid var(--brand-orange); border-top: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink)); }
 .as-unread p { margin: 0; }

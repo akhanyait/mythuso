@@ -13,7 +13,7 @@ import { useReducedMotion } from '../lib/motion';
 import type { Visit } from '../lib/scheduling';
 import './assistant.css';
 
-/* Gilbert's panel on the web.
+/* GilbertOne's panel on the web.
 
    It opens from the floating orb (components/AssistantLauncher.tsx) and arrives on a dynamic import.
    Nothing in the patient entry may import this file statically, nor AssistantSphere.tsx,
@@ -26,7 +26,7 @@ import './assistant.css';
 
    WHAT A PERSON OPENED IT FOR decides the order. The sphere and the state it is in, in words. Then
    the conversation. Then the composer, pinned to the foot of the panel where a thumb is, carrying
-   the one sentence that must never scroll away: Gilbert not recognising an emergency does not mean
+   the one sentence that must never scroll away: GilbertOne not recognising an emergency does not mean
    there is not one. The suggested questions and the refusals sit under the conversation, because
    they are what somebody reads before they ask and not while they wait.
 
@@ -37,7 +37,7 @@ import './assistant.css';
    APIs anywhere in apps/web/src. The answer arrives at once; nothing adds a pause to look considered.
 
    THE HANDOVER (Wave 3). Asking for a nurse shows the structured summary first — how the person asked,
-   what Gilbert matched, and an urgency — and what does not go with it: their words and which emergency
+   what GilbertOne matched, and an urgency — and what does not go with it: their words and which emergency
    words fired. Nothing goes until they press the button, and then it goes to a simulated nurse queue
    through packages/engines/src/access/domain/handover.ts, the same function the Access engine would run.
    The confirmation says it reached no nurse and puts the ambulance numbers after it, because a handover
@@ -51,7 +51,7 @@ import './assistant.css';
    into ink) measure 4.14:1, over the 3:1 a boundary needs. Orange marks the emergency question and
    the escalated sphere as a fill and an edge only — never as text. */
 
-/* `visit` is the patient's next booked visit — the one the home card shows — so Gilbert's answer to
+/* `visit` is the patient's next booked visit — the one the home card shows — so GilbertOne's answer to
    "When is my nurse coming?" is the same day the home names. */
 export type PanelProps = { open: boolean; dismiss: () => void; openModal: (modal: string) => void; visit: Visit | null };
 
@@ -145,7 +145,7 @@ export default function Assistant({ open, dismiss, openModal, visit }: PanelProp
       <p className="as-descriptor">{identity.descriptorLine}</p>
      </div>
      <MotionPause className="as-pause"/>
-     <button ref={close} type="button" className="as-close" aria-label="Close Gilbert" onClick={dismiss}><X size={20} aria-hidden="true"/></button>
+     <button ref={close} type="button" className="as-close" aria-label="Close GilbertOne" onClick={dismiss}><X size={20} aria-hidden="true"/></button>
     </div>
     <AssistantSphere depth={depthOf(reply)} pulse={pulse} gatheredAt={gatheredAt}/>
     {/* What the drawing is showing, in words. The colour and the shape are never the only
@@ -166,7 +166,7 @@ export default function Assistant({ open, dismiss, openModal, visit }: PanelProp
        <div className={`as-reply as-reply-${turn.reply.kind}`} data-outcome={outcomeOf(turn)} data-question={turn.matched?.id} data-groups={turn.groups.map(g => g.id).join(' ') || undefined}>
         <span className="as-who">{identity.name}</span>
         <ReplyBody reply={turn.reply} sos={sos} handOver={nurse} sent={sent[turn.id]} onSend={() => handTo(turn)}/>
-        {/* Words Gilbert did not read are said to be unread, with the numbers beside them, rather than
+        {/* Words GilbertOne did not read are said to be unread, with the numbers beside them, rather than
             answered around. See readEverything in the contract. */}
         {turn.unread && <Unread sos={sos} handOver={nurse}/>}
        </div>
@@ -214,13 +214,13 @@ export default function Assistant({ open, dismiss, openModal, visit }: PanelProp
 function stageOf(reply: Reply, asked: boolean): { name: string; figure: string | null; figureLabel: string | null } {
  if (reply.kind === 'situation') return reply.situation;
  if (reply.kind === 'emergency') { const [ambulance] = lines(emergencyAnswer.numbers); return { name: ambulance.name, figure: ambulance.number, figureLabel: null }; }
- /* Anything else is named by the state pill above it; a second label saying "Gilbert Pulse" under
+ /* Anything else is named by the state pill above it; a second label saying "GilbertOne Pulse" under
     every answer was a word with nothing to say. */
  return { name: asked ? '' : identity.callToAction, figure: null, figureLabel: null };
 }
 
 /* The unread answer, after an answer that left words unread. Guiding, never a calm Idle: the words
-   Gilbert could not read may be the ones that mattered. */
+   GilbertOne could not read may be the ones that mattered. */
 function Unread({ sos, handOver }: { sos: () => void; handOver: () => void }) {
  return <div className="as-unread">
   <p className="as-headline">{answers.unread.sentence}</p>

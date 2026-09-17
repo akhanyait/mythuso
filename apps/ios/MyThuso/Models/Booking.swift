@@ -1,7 +1,7 @@
 import Foundation
 
 /* Booking a visit, choosing who comes, where a booking stands, the thread between a patient and the
-   nurse on one visit, and handing a Gilbert conversation to the nurse queue.
+   nurse on one visit, and handing a GilbertOne conversation to the nurse queue.
 
    Every sentence is packages/catalog/booking.json’s (or assistant.json’s, for the handover), generated
    into BookingData.swift and AssistantData.swift. This file is the arithmetic beside that data, and it
@@ -386,7 +386,7 @@ struct VisitThreadMessage: Identifiable, Hashable {
     let at: Date
 }
 
-// MARK: - The nurse queue a Gilbert conversation is handed to
+// MARK: - The nurse queue a GilbertOne conversation is handed to
 
 struct GilbertHandoverRecord: Hashable {
     let reference: String
@@ -399,7 +399,7 @@ enum HandoverQueue {
        for a rota, onDuty and rotaAt in packages/engines/src/settings/shape.ts, which the web and the Access
        engine import and a phone cannot,
        so it is mirrored here: a window covers the local day and a time from its start until before its end. It
-       returns no words, so it has no way to leave out what Gilbert says first out of hours: nobody is there,
+       returns no words, so it has no way to leave out what GilbertOne says first out of hours: nobody is there,
        and the numbers. */
     struct Desk {
         let open: Bool

@@ -10,9 +10,9 @@ import booking from '../../../../packages/catalog/booking.json';
 import vetting from '../../../../packages/catalog/vetting.json';
 import { accessSettingsNow, rotaAt } from './settings';
 
-/* Gilbert's reasoning, without a screen attached to it.
+/* GilbertOne's reasoning, without a screen attached to it.
 
-   Everything Gilbert says is in packages/catalog/assistant.json, and this module is the arithmetic
+   Everything GilbertOne says is in packages/catalog/assistant.json, and this module is the arithmetic
    beside it — the same arithmetic as apps/ios/MyThuso/Models/Assistant.swift and
    apps/android/.../model/Assistant.kt, run against the same shared fixtures in the contract, so a
    sentence gets the same answer on every platform. There is no model behind it and nothing it sends.
@@ -24,10 +24,10 @@ import { accessSettingsNow, rotaAt } from './settings';
    words or ordinary filler. Anything left over is said to be unread, with the ambulance numbers
    beside it, because a list of words will always miss a way of saying something frightening, and the
    defect the Wave 1 review found was the calm answer that followed the miss. "Nothing needs you" is
-   never said to a message Gilbert did not read all of.
+   never said to a message GilbertOne did not read all of.
 
    A TEXT BOX, AND WHY IT IS HONEST. The emergency words read it, the unread rule reads the rest, and
-   the unmatched answer says plainly that Gilbert could not assess it and puts the ambulance first. The
+   the unmatched answer says plainly that GilbertOne could not assess it and puts the ambulance first. The
    emergency words are a draft nobody clinical has reviewed, which is why the contract's
    silenceIsNotSafety sentence stays beside the conversation.
 
@@ -65,7 +65,7 @@ export const lines = (ids: string[]) => ids.map(id => { const n = numberById(id)
 export type Situation = { id: string; name: string; sentence: string; figure: string | null; figureLabel: string | null; depth: Depth };
 
 /* The visit is the one the home card shows — the first upcoming visit the person booked, written by the
-   same shortWhenText — so Gilbert and the home cannot name two days for one visit. With nothing booked,
+   same shortWhenText — so GilbertOne and the home cannot name two days for one visit. With nothing booked,
    or a nurse still being found, it says scheduling.json's own words for that. */
 const scheduled = (text: string) => text.replace(/\{(noUpcoming|noUpcomingDetail|asapPending)\}/g, (token, key: keyof typeof schedulingLabels) => schedulingLabels[key] ?? token);
 
@@ -167,7 +167,7 @@ export function questionFor(text: string): Question | null {
 }
 
 /* Reading everything: a word that is neither one of the question's own trigger words nor filler is a
-   word Gilbert did not read, and it is said so. */
+   word GilbertOne did not read, and it is said so. */
 const fillerStems = new Set(contract.matcher.readEverything.filler.map(stem));
 export function leavesUnread(text: string, question: Question): boolean {
  const covered = new Set([...fillerStems, ...question.triggers.flatMap(stems)]);
@@ -184,7 +184,7 @@ export type Reply =
  | { kind: 'unmatched' }
  | { kind: 'handover'; rows: SummaryRow[]; summary: HandoverSummary; desk: DeskWords };
 
-/** `unread` is true when the answer came with words Gilbert could not read; the unread answer follows it. */
+/** `unread` is true when the answer came with words GilbertOne could not read; the unread answer follows it. */
 export type Turn = { id: number; asked: string | null; channel: Channel | null; reply: Reply; matched: Question | null; groups: EmergencyGroup[]; unread: boolean };
 
 export function replyTo(question: Question, visit: Visit | null = null): Reply {
@@ -297,7 +297,7 @@ export function send(turns: Turn[], text: string, visit: Visit | null = null, ra
  const question = questionFor(words);
  if (!question) return append(turns, id => ({ id, asked: words, channel: 'typed', reply: { kind: 'unmatched' }, matched: null, groups: [], unread: false }));
  const unread = question.answer !== 'emergency' && leavesUnread(words, question);
- /* A claim about everything is not made to a message Gilbert did not read all of. */
+ /* A claim about everything is not made to a message GilbertOne did not read all of. */
  if (unread && contract.matcher.readEverything.neverWithUnread.includes(question.id)) {
   return append(turns, id => ({ id, asked: words, channel: 'typed', reply: { kind: 'unmatched' }, matched: null, groups: [], unread: false }));
  }
