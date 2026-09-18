@@ -6,9 +6,10 @@ import { AssistantVoiceButton } from '../components/AssistantVoiceButton';
 import { AssistantSphere } from './AssistantSphere';
 import {
   answers, choose, conversation, depthOf, emergencyAnswer, emergencyIn, handOver, identity, lines, opening, outcomeOf, pulseOf, questionGroups,
-  questions, refusals, say, send, silenceIsNotSafety, stateSpec, voice, type Question, type Reply, type Turn
+  questions, refusals, say, silenceIsNotSafety, stateSpec, voice, type Question, type Reply, type Turn
 } from '../lib/assistant';
 import { handoverDeskWords as bookingHandover, refusal } from '../lib/assistant';
+import { sendWithGilbertEngine } from '../lib/gilbertone-bridge';
 import { emptyQueue, handOver as handToQueue, type Handover, type Queue } from '../../../../packages/engines/src/access/domain/handover.ts';
 import { useReducedMotion } from '../lib/motion';
 import type { Visit } from '../lib/scheduling';
@@ -76,7 +77,7 @@ export default function Assistant({ open, dismiss, openModal, visit }: PanelProp
   const submit = (event: FormEvent) => {
    event.preventDefault();
    if (!draft.trim()) { field.current?.focus(); return; }
-   moved(send(turns, draft, visit, everRaised));
+   moved(sendWithGilbertEngine(turns, draft, visit, everRaised));
    setDraft('');
   };
   const again = () => { moved(opening()); setRaised(false); setSent({}); conversationRef.current = crypto.randomUUID(); };
