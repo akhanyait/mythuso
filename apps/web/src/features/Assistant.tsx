@@ -106,8 +106,10 @@ export default function Assistant({ open, dismiss, openModal, visit }: PanelProp
        <h2 id="as-title">{identity.name}</h2>
        <p className="as-descriptor">{identity.descriptorLine}</p>
       </div>
-      <MotionPause className="as-pause"/>
-      <button ref={close} type="button" className="as-close" aria-label="Close GilbertOne" onClick={dismiss}><X size={20} aria-hidden="true"/></button>
+      <div className="as-controls">
+       <MotionPause className="as-pause"/>
+       <button ref={close} type="button" className="as-close" aria-label="Close GilbertOne" onClick={dismiss}><X size={20} aria-hidden="true"/></button>
+      </div>
      </div>
      <AssistantSphere depth={depthOf(reply)} pulse={pulse} gatheredAt={gatheredAt}/>
      <div className="as-caption" data-pulse={pulse}>

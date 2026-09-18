@@ -15,6 +15,12 @@ import { confirmBooking, goSection } from './nav';
    or the backdrop, keeps focus inside and gives it back to the orb, and the conversation survives
    closing.
 
+   And it has room to be read, which is measured rather than eyeballed. The head and the composer are
+   both fixed, so what they may spend is held: the name never prints into the controls, the composer
+   stays inside the sheet, and the scroll keeps enough of it to show the contract notice that opens
+   the conversation. On a phone that was the difference between a notice cut mid-sentence at the
+   composer's top edge and a notice a person can read.
+
    It says the contract's words. The voice notice verbatim; the sentence that GilbertOne not recognising
    an emergency does not mean there is not one, beside the conversation before anything is asked; and
    answers built from assistant.json, records.json and sos.json.
@@ -123,6 +129,75 @@ test('on a phone the orb sits above the tab bar, clear of every tab', async ({ p
  const compose = (await panel(page).locator('.as-compose').boundingBox())!;
  expect(Math.round(compose.y + compose.height)).toBeLessThanOrEqual(page.viewportSize()!.height);
  expect(compose.y).toBeGreaterThan(page.viewportSize()!.height / 2);
+});
+
+test('the name never prints into the controls, and the conversation keeps room to be read', async ({ page }) => {
+ test.setTimeout(90_000);
+ /* The head and the composer are both fixed, and between them they can spend a whole sheet. Measured
+    on 390x844 they were 350px and 259px of 776px, so the notice under the state — the first thing in
+    the scroll — was cut mid-sentence at the composer's top edge and read as though the composer were
+    lying on top of it; at 320x720 the same notice was down to a line and a half and the composer was
+    14px off the bottom of the screen, where it cannot be reached at all. The bar did not fit a 320px
+    sheet either: the name is one word, the box around it was allowed to shrink past it, and GilbertOne
+    printed 9px into the Pause motion pill in the state where somebody has just described chest pain.
+
+    Held as three things, because these are the three a fixed layout breaks quietly: the name and the
+    controls do not overlap, the composer is inside the sheet with the silence sentence readable, and
+    the scroll is left enough of the sheet to show the contract notice that opens it.
+
+    Every box below comes out of ONE evaluate, and the sheet is given its entrance to finish first.
+    Two boundingBox calls are two layout snapshots: a phone opening mid-animation — the panel slides up
+    from translateY(100%) — can hand back a name from one frame and controls from another, and two
+    frames compared as though they were one is how this test reported an overlap that was not there. */
+ const layout = (page: Page) => page.evaluate(() => {
+  const box = (selector: string) => {
+   const el = document.querySelector(selector);
+   if (!el) throw new Error(`${selector} is not on the panel`);
+   const r = el.getBoundingClientRect();
+   return { x: r.left, y: r.top, width: r.width, height: r.height, bottom: r.bottom, right: r.right };
+  };
+  const h2 = document.querySelector('.as-titles h2') as HTMLElement;
+  const scroll = document.querySelector('.as-scroll') as HTMLElement;
+  return {
+   name: box('.as-titles h2'), controls: box('.as-controls'), sheet: box('#assistant-panel'),
+   compose: box('.as-compose'), silence: box('.as-silence'),
+   /* The defect itself, in one number: the box around the name was narrower than the name, so the name
+      printed past it and into whatever was beside it. */
+   nameOverflow: h2.scrollWidth - h2.clientWidth,
+   scrollClient: scroll.clientHeight, scrollHeight: scroll.scrollHeight
+  };
+ });
+ for (const [width, height] of [[390, 844], [320, 720]] as const) {
+  for (const asked of [false, true]) {
+   const where = `${width}x${height}${asked ? ', a question asked' : ', nothing asked'}`;
+   await page.setViewportSize({ width, height });
+   await page.goto('/app/?open=assistant');
+   await expect(panel(page)).toBeVisible();
+   /* The panel slides up from the sheet edge; measure it once it has arrived, not while it is on its
+      way, as the wide-screen layout test above measures its own. */
+   await page.waitForTimeout(500);
+   if (asked) await ask(page, 'my shoulder aches');
+
+   const { name, controls, sheet, compose, silence, nameOverflow, scrollClient, scrollHeight } = await layout(page);
+   expect(overlaps(name, controls), `at ${where} the name prints into the controls`).toBe(false);
+   expect(nameOverflow, `at ${where} the name is wider than the box holding it`).toBeLessThanOrEqual(1);
+   expect(name.right, `at ${where} the name runs out of the sheet`).toBeLessThanOrEqual(width);
+   expect(controls.right, `at ${where} the controls run out of the sheet`).toBeLessThanOrEqual(width);
+
+   expect(Math.round(compose.bottom), `at ${where} the composer is off the bottom of the sheet`).toBeLessThanOrEqual(Math.round(sheet.bottom));
+   expect(compose.y, `at ${where} the composer has climbed the sheet`).toBeGreaterThan(sheet.y + sheet.height / 2);
+   /* A contract sentence, and one of the two reasons the composer is as tall as it is. Readable means
+      on the screen, not scrolled to: it is a footnote to the field, not part of the conversation. */
+   expect(silence.bottom, `at ${where} the silence sentence is below the fold`).toBeLessThanOrEqual(height);
+   expect(silence.y, `at ${where} the silence sentence is behind the conversation`).toBeGreaterThan(compose.y);
+
+   expect(scrollHeight, `at ${where} the scroll has nothing to scroll`).toBeGreaterThan(scrollClient);
+   /* Floors rather than the measurements: 246px at 390 and 85px at 320 with nothing asked, 341 and 155
+      with a question asked. What they must not go back to is 168 and 40, which is where the notice that
+      opens the conversation was cut in half. */
+   expect(scrollClient, `at ${where} the fixed chrome left the conversation ${scrollClient}px`).toBeGreaterThanOrEqual(width === 390 ? 220 : 70);
+  }
+ }
 });
 
 test('on a wide screen the orb leaves the footer alone and the panel is anchored bottom right', async ({ page, isMobile }) => {

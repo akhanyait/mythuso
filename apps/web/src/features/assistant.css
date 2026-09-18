@@ -215,7 +215,13 @@
  inset: auto 0 0 0;
  width: 100%;
  max-width: none;
- height: min(92dvh, calc(100dvh - var(--space-24)));
+ /* 92dvh left 68px of a 844px phone showing the dimmed topbar behind it and handed the sheet 776px,
+    and 776 was not enough: the head and the composer are both fixed, so the page behind was paid for
+    out of the conversation. At 390x844 the notice under the state had 168px to live in and was sliced
+    mid-sentence; at 320x720 it had 40px and the composer was pushed 14px off the bottom of the screen,
+    which is content a person cannot reach at all. 96dvh keeps a 34px lip of the page behind — still a
+    sheet, still dismissible by the backdrop — and gives every pixel of it to the scroll. */
+ height: min(96dvh, calc(100dvh - var(--space-12)));
  max-height: none;
  margin: 0;
  padding: 0;
@@ -244,8 +250,18 @@
 /* The controls sit level with the name, not centred against it. The descriptor is a sentence the
    contract will not let us shorten, it wraps to two or three lines in the column left beside a
    written Pause motion label and a 44px close button, and two controls floating at the middle of
-   that block read as though they had come loose from the title. */
-.as-bar { justify-self: stretch; display: flex; align-items: flex-start; gap: var(--space-8); }
+   that block read as though they had come loose from the title.
+
+   AND THEY WRAP RATHER THAN OVERLAP, from 320px. The bar is one row only while the row fits: the name
+   is a single word — GilbertOne is 91px at 18px — and the pair beside it is 206px of written Pause
+   motion and a 44px close, so a 320px sheet has 288px for the three and cannot hold them. It used to
+   be squeezed instead: `.as-titles` carried min-width: 0, so the box shrank to 74px around a 91px
+   word and the name printed 9px into the Pause motion pill, in the state where somebody has just
+   described chest pain. `min-content` on the titles is the honest floor — the name does not shrink
+   below the name — and `.as-controls` keeps the pair together so a wrapped row is the two controls
+   and not a lone close button. Above about 330px the row fits and nothing moves. */
+.as-bar { justify-self: stretch; display: flex; align-items: flex-start; gap: var(--space-8); flex-wrap: wrap; }
+.as-controls { display: flex; align-items: flex-start; gap: var(--space-8); }
 /* The sphere used to be pulled up by 8px against a 4px row gap, which was fine while the bar was one
    line tall and put the sphere's box 4px INSIDE the bar the moment the descriptor wrapped — its
    bleed is 108% of that box, so the glow landed on the last line of "not a person, and not a
@@ -409,7 +425,11 @@
 .as-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 /* ---- GilbertOne: the state in words, the composer, the answers that are not situations ---------- */
-.as-titles { flex: 1; min-width: 0; display: grid; gap: 0; }
+/* min-content, not 0: the name is one word and a flex item allowed to shrink past it prints over the
+   controls beside it. The descriptor still wraps inside whatever column is left, which is the point
+   of the min-width in the first place — see the bar, above, for the 9px the name spent inside the
+   Pause motion pill at 320px. */
+.as-titles { flex: 1; min-width: min-content; display: grid; gap: 0; }
 .as-titles h2 { margin: 0; font-size: 18px; font-weight: 600; color: var(--surface); }
 .as-descriptor { margin: 0; font-size: 13px; color: var(--brand-mint); }
 /* The state, said. A pill with a hairline rather than a coloured fill, so its colour is never the only
@@ -446,6 +466,13 @@
  color: var(--brand-ink);
  font: inherit;
  font-size: 16px;
+ /* The field shares its row with a 44px microphone and a written Send, and at 320px that leaves it
+    142px: the contract's own placeholder — "Type in your own words" — needs about 175px at 16px and
+    was cut to "Type in your ow" behind the microphone, which reads as a broken field rather than a
+    narrow one. The hint is not shortened and the 16px stays (anything under it zooms the page on an
+    iPhone), so the cut is marked as a cut: an ellipsis says the words continue, and nothing says
+    they stop. Typed text gets the same treatment. */
+ text-overflow: ellipsis;
 }
 .as-field input::placeholder { color: color-mix(in srgb, var(--brand-ink) 62%, var(--surface)); }
 .as-send {
@@ -502,6 +529,36 @@
 .as-said { overflow-wrap: anywhere; }
 .as-rule ul { margin: 0 0 var(--space-12); padding-left: var(--space-20); display: grid; gap: var(--space-8); font-size: 14px; line-height: 1.55; color: var(--surface); }
 .as-powered { font-size: 13px !important; }
+
+/* ---- A phone -----------------------------------------------------------------------------------
+   The panel is a sheet on a phone, and on a phone the two fixed blocks — the head and the composer —
+   together took 609px of a 776px sheet, 78% of it, and the conversation got the 168px that was left.
+   That is what made the notice under the state look as though the composer were lying on top of it:
+   its rounded box was cut mid-sentence at the scroll boundary, and the same box at 320x720 was cut
+   down to a single line and a half. Nothing here changes a word or a control; it takes the height
+   back from the places that were spending it on air, and it is measured at 390x844 and 320x720 in
+   both the idle and the asked state. */
+@media (max-width: 560px) {
+ /* The sphere is the identity on open, but 172px of a 390px sheet is a portrait at the price of the
+    answer. 38vw is 148px at 390 and 122px at 320, and the body is 63% of the box — 93px and 77px,
+    both well above the 60px the still state has to keep so a reduced-motion frame is a whole sphere
+    rather than a dot. The asked state's own 100px rule still wins: it is one more class than this.
+    The 12px of clear air under the descriptor stays: the bleed is 108% of the box, so a smaller sphere
+    has a smaller glow, and the rule it exists for — the glow never lands on the words — is unchanged. */
+ .as-head .orb { --orb: min(148px, 38vw); }
+ /* The head's own padding: 4px off the top and 4px off the bottom, which is all it was spending on air. */
+ .as-head { padding-top: var(--space-8); padding-bottom: var(--space-8); }
+ /* The two contract sentences under the box are the composer's real cost — 88px for the keyboard note
+    and 57px for the silence note at 390 — and they cannot be shortened, so they are set tighter
+    instead: one line-height step and one padding step, which is 16px at 390 and 20px at 320 without
+    moving a word off the screen. Both stay in the composer, where they are visible without scrolling. */
+ .as-compose { padding-top: var(--space-8); gap: var(--space-8); }
+ .as-silence, .as-keyboard { line-height: 1.4; }
+ .as-keyboard { padding-top: var(--space-8); }
+ /* The notice that opens the scroll keeps a full 20px at its sides, and a little less above it: the
+    top of the sheet is a hard edge the eye needs a hairline of ink against, not 16px of it. */
+ .as-scroll { padding-top: var(--space-12); }
+}
 
 @media (min-width: 1000px) {
  .as-panel {
