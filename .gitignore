@@ -35,5 +35,8 @@ test-results/
 # Agent worktrees live here.
 .claude/worktrees/
 
+# Azure App Onboard sessions may contain deployment metadata and generated secrets.
+.copilot-azure/
+
 # The engines' development stores and bus trail. Synthetic data, and never committed.
 packages/engines/.data/
