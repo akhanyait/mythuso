@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyMessage, evaluateMessage, normalizeText } from './engine.js';
+import { classifyMessage, evaluateMessage, normalizeText } from './engine.ts';
 
 test('normalizes basic input', () => {
   assert.equal(normalizeText("I can't breathe!"), 'i cant breathe');
