@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.ts",
-    "check": "tsc -b"
+    "check": "tsc",
+    "test": "node --test \"src/**/*.test.ts\""
   },
-  "dependencies": {}
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "~5.9.3"
+  }
 }

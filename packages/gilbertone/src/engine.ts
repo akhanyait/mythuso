@@ -119,7 +119,7 @@ export function classifyMessage(input: string): MessageClassification {
   if (containsAny(text, identityTerms)) return 'identity';
   if (containsAny(text, voiceTerms)) return 'voice';
   if (containsAny(text, careTerms)) return 'care';
-  if (/\b(i dont understand|confused|unclear|what does this mean|help me understand)\b/.test(text)) return 'clarify';
+  if (/\b(i do ?not understand|i dont understand|confused|unclear|what does this mean|help me understand)\b/.test(text)) return 'clarify';
   return 'unknown';
 }
 
