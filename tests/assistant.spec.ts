@@ -292,6 +292,34 @@ test('an emergency word raises the answer, whatever else the message asked', asy
  await expect(again.locator('.as-sent .as-headline')).toHaveText(h.alreadySent);
 });
 
+/* The GilbertOne English engine (packages/gilbertone) makes the first emergency/handover
+   decision and hands the web renderer a fixed trigger phrase to force its presentation — see
+   apps/web/src/lib/gilbertone-bridge.ts. That phrase must never be what the person reads back
+   as their own words, and an emergency it forces must still say which condition it noticed
+   when the real, richer matcher agrees on one. */
+test('the GilbertOne engine bridge echoes what was actually typed, not its own trigger phrase', async ({ page }) => {
+ await page.goto('/app/?open=assistant');
+ await ask(page, 'I have chest pain');
+ const emergencyTurn = log(page).locator('.as-turn').last();
+ await expect(emergencyTurn.locator('.as-said')).toContainText('I have chest pain');
+ await expect(emergencyTurn.locator('.as-said')).not.toContainText('What if it cannot wait');
+ await expect(emergencyTurn.locator('.as-reply')).toHaveAttribute('data-outcome', 'emergency');
+ await expect(emergencyTurn.locator('.as-noticed li')).toHaveText([condition('chest-pain')]);
+ await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'escalate');
+
+ // an emergency word beside a handover request is still an emergency, not a handover
+ await ask(page, 'I have chest pain, please get me a nurse');
+ const both = log(page).locator('.as-turn').last();
+ await expect(both.locator('.as-said')).toContainText('I have chest pain, please get me a nurse');
+ await expect(both.locator('.as-reply')).toHaveAttribute('data-outcome', 'emergency');
+
+ await ask(page, 'I want to talk to a nurse');
+ const handoverTurn = log(page).locator('.as-turn').last();
+ await expect(handoverTurn.locator('.as-said')).toContainText('I want to talk to a nurse');
+ await expect(handoverTurn.locator('.as-said')).not.toContainText('Can I talk to a nurse');
+ await expect(handoverTurn.locator('.as-reply')).toHaveClass(/as-reply-handover/);
+});
+
 test('starting again clears the conversation back to its opening', async ({ page }) => {
  await page.goto('/app/?open=assistant');
  await panel(page).getByRole('button', { name: 'When is my nurse coming?' }).click();
