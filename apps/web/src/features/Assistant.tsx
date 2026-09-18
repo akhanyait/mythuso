@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { Component, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { Ambulance, ArrowRight, RotateCcw, Send, UserRound, X } from 'lucide-react';
 import { NotConnected } from '../components/NotConnected';
 import { MotionPause } from '../components/MotionPause';
 import { AssistantVoiceButton } from '../components/AssistantVoiceButton';
-import { AssistantSphere } from './AssistantSphere';
+import { GilbertAvatar, GilbertStill, useGilbertRig } from './GilbertAvatar';
 import {
-  answers, choose, conversation, depthOf, emergencyAnswer, emergencyIn, handOver, identity, lines, opening, outcomeOf, pulseOf, questionGroups,
-  questions, refusals, say, silenceIsNotSafety, stateSpec, voice, type Question, type Reply, type Turn
+  answers, choose, conversation, emergencyAnswer, emergencyIn, handOver, identity, lines, opening, outcomeOf, pulseOf, questionGroups,
+  questions, refusals, say, silenceIsNotSafety, stateSpec, voice, type PulseId, type Question, type Reply, type Turn
 } from '../lib/assistant';
 import { handoverDeskWords as bookingHandover, refusal } from '../lib/assistant';
 import { sendWithGilbertEngine } from '../lib/gilbertone-bridge';
@@ -18,7 +18,7 @@ import './assistant.css';
 /* GilbertOne's panel on the web.
 
    It opens from the floating orb (components/AssistantLauncher.tsx) and arrives on a dynamic import.
-   Nothing in the patient entry may import this file statically, nor AssistantSphere.tsx,
+   Nothing in the patient entry may import this file statically, nor GilbertAvatar.tsx,
    lib/assistant.ts or the contract behind it.
 
     ...
@@ -28,6 +28,19 @@ export type PanelProps = { open: boolean; dismiss: () => void; openModal: (modal
 const SESSION_SUBJECT = 'subject-this-session';
 type Sent = { handover: Handover; sentNow: boolean };
 
+/* A cue for each pulse the panel can be in, so the head shown here is never doing something the
+   words beside it are not. `idle` rests rather than plays a cue: A02 is the reducer's own resting
+   state, and asking for it explicitly would only re-trigger the idle drift's own timer. */
+const CUE_OF_PULSE: Record<Exclude<PulseId, 'idle'>, string> = { guiding: 'A08', escalate: 'A16', handover: 'A11' };
+
+/* AT12's boundary, kept beside the panel that uses it rather than exported from the demonstrator's
+   widget shell: a rig failure here must never take the conversation with it. */
+class RigBoundary extends Component<{ size: number; children: ReactNode }, { failed: boolean }> {
+ state = { failed: false };
+ static getDerivedStateFromError() { return { failed: true }; }
+ render() { return this.state.failed ? <GilbertStill size={this.props.size}/> : this.props.children; }
+}
+
 export default function Assistant({ open, dismiss, openModal, visit }: PanelProps) {
   const dialog = useRef<HTMLDialogElement>(null);
   const close = useRef<HTMLButtonElement>(null);
@@ -35,23 +48,26 @@ export default function Assistant({ open, dismiss, openModal, visit }: PanelProp
   const field = useRef<HTMLInputElement>(null);
   const [turns, setTurns] = useState<Turn[]>(() => opening());
   const [draft, setDraft] = useState('');
-  const [gatheredAt, setGatheredAt] = useState<number | null>(null);
   const [raised, setRaised] = useState(false);
   const [queue, setQueue] = useState<Queue>(emptyQueue);
   const [sent, setSent] = useState<Record<number, Sent>>({});
   const conversationRef = useRef(crypto.randomUUID());
   const reduced = useReducedMotion();
+  const rig = useGilbertRig({ reduced, paused: false });
   const reply = turns[turns.length - 1].reply;
   const asked = turns.length > 1;
   const pulse = asked ? pulseOf(reply) : 'idle';
   const stage = useMemo(() => stageOf(reply, asked), [reply, asked]);
+  // The head shrinks once a conversation has begun, matching the sphere it replaced: full size
+  // before anything is asked, small enough to sit beside the state once there is one to read.
+  const rigSize = asked ? 72 : 140;
   const everRaised = raised || emergencyIn(turns);
   useEffect(() => { if (emergencyIn(turns)) setRaised(true); }, [turns]);
 
   useEffect(() => {
    const element = dialog.current;
    if (!element) return;
-   if (open && !element.open) { element.showModal(); close.current?.focus(); setGatheredAt(performance.now()); }
+   if (open && !element.open) { element.showModal(); close.current?.focus(); }
    if (!open && element.open) element.close();
   }, [open]);
   useEffect(() => { const element = dialog.current; return () => element?.close(); }, []);
@@ -59,6 +75,13 @@ export default function Assistant({ open, dismiss, openModal, visit }: PanelProp
    if (!asked) return;
    latest.current?.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' });
   }, [turns, asked, reduced]);
+
+  /* The head follows the pulse a person is already reading in the caption beneath it, rather than
+     the reply's own shape: two things saying the same news are a reader checking they agree, and one
+     thing saying it is a reader trusting it. `idle` rests instead of playing a cue, matching what the
+     panel opened to before anything was asked. */
+  const play = rig.play, rest = rig.rest;
+  useEffect(() => { if (pulse === 'idle') rest(); else play(CUE_OF_PULSE[pulse]); }, [pulse, play, rest]);
 
   const keepFocus = (event: KeyboardEvent<HTMLDialogElement>) => {
    if (event.key !== 'Tab' || !dialog.current) return;
@@ -68,7 +91,7 @@ export default function Assistant({ open, dismiss, openModal, visit }: PanelProp
    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
   };
 
-  const moved = (next: Turn[]) => { setTurns(next); setGatheredAt(performance.now()); };
+  const moved = (next: Turn[]) => setTurns(next);
   const put = (question: Question) => moved(choose(turns, question, visit, everRaised));
   const onVoiceTranscript = (text: string) => {
     setDraft(current => (current ? `${current} ${text}`.trim() : text));
@@ -109,7 +132,7 @@ export default function Assistant({ open, dismiss, openModal, visit }: PanelProp
       <MotionPause className="as-pause"/>
       <button ref={close} type="button" className="as-close" aria-label="Close GilbertOne" onClick={dismiss}><X size={20} aria-hidden="true"/></button>
      </div>
-     <AssistantSphere depth={depthOf(reply)} pulse={pulse} gatheredAt={gatheredAt}/>
+     <RigBoundary size={rigSize}><GilbertAvatar pose={rig.pose} size={rigSize} blend={rig.blend}/></RigBoundary>
      <div className="as-caption" data-pulse={pulse}>
       <p className="as-state" data-pulse={pulse}>{stateSpec(pulse).cue}</p>
       {stage.name && <p className="as-name">{stage.name}</p>}

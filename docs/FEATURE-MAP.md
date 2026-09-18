@@ -1234,6 +1234,25 @@ The character demonstrator at `/app/?preview=gilbertone` stays exactly what it w
 matcher, no model, no server and no voice. What changed is the sentence it leads with: it used to distinguish itself
 from the shipped assistant by name, which stopped being true the moment the shipped assistant took the same one.
 
+## Delivered — the live assistant draws the same robot as the demonstrator, 18 September 2026 (web only)
+
+The panel opened from `AssistantLauncher` used to draw its own CSS sphere (`AssistantSphere.tsx`); the demonstrator at
+`/app/?preview=gilbertone` already drew the animated rig from `GilbertAvatar.tsx`. Two drawings of one character was the
+gap this closes: `features/Assistant.tsx` now renders `GilbertAvatar` through the same `useGilbertRig` hook the
+demonstrator uses, driven by the panel's own Pulse state (`guiding`→A08, `escalate`→A16, `handover`→A11, `idle` rests)
+rather than a separate cue sequence, and `AssistantSphere.tsx` is deleted along with the ~200 lines of `.orb` CSS it
+was the only consumer of. A `RigBoundary` error boundary (the same pattern as the demonstrator's) falls back to
+`GilbertStill` if the rig throws, so a rendering fault in the animation cannot take the conversation down with it.
+
+| What changed | What deliberately did not | Where |
+|---|---|---|
+| The panel's head is the drawn rig, sized 140px before a question is asked and 72px beside the state once one has been, matching the sphere's own two sizes | `AssistantLauncher.tsx`'s **collapsed** button, which stays a CSS-only orb (`al-orb`, `al-glow`, `al-ring`, `al-spark`) — it sits in the patient entry bundle, and importing the rig there would put the animation's weight on every patient's first load rather than only on somebody who opens the panel | `apps/web/src/features/Assistant.tsx`, `apps/web/src/features/assistant.css` |
+| The panel imports `GilbertAvatar.tsx` and `lib/gilbertone.ts` — safe because `Assistant.tsx` is already behind a dynamic import from `App.tsx`, so nothing here reaches the patient entry chunk | The contract wording that still says "sphere" — `packages/catalog/assistant.json`'s `not-a-person` refusal and the voice section's native-only "tap the sphere" instructions — both describe iOS and Android, which still show a sphere and are untouched by this pass | `packages/catalog/assistant.json` |
+| The demonstrator itself, `GilbertOneDemo.tsx`, `GilbertWidget.tsx` | Native parity: iOS and Android keep their own sphere for now — a robot rig on those platforms is a separate, larger follow-up | — |
+
+Confirmed by `npm run build -w @mythuso/web`: `Assistant.tsx` and `GilbertAvatar.tsx` still compile into their own
+chunks, absent from the files `dist/index.html` references, so the patient's first view still costs nothing for this.
+
 ## Next UI increments
 
 Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only
