@@ -546,7 +546,10 @@
     The 12px of clear air under the descriptor stays: the bleed is 108% of the box, so a smaller sphere
     has a smaller glow, and the rule it exists for — the glow never lands on the words — is unchanged. */
  .as-head .orb { --orb: min(148px, 38vw); }
- /* The head's own padding: 4px off the top and 4px off the bottom, which is all it was spending on air. */
+ /* The head's own padding: 4px off the top and 4px off the bottom, which is all it was spending on air.
+    It moves out of the phone block: the 400px card on a laptop has the same head, and it was the head
+    and the composer together that left that card 167px for a 192px notice — so the same two pixels
+    are taken back there too, under the desktop rule where they are measured. */
  .as-head { padding-top: var(--space-8); padding-bottom: var(--space-8); }
  /* The two contract sentences under the box are the composer's real cost — 88px for the keyboard note
     and 57px for the silence note at 390 — and they cannot be shortened, so they are set tighter
@@ -566,12 +569,25 @@
   width: 400px;
   /* 640px was chosen while the panel was a greeting and a few chips. A conversation with an emergency
      answer in it needs the height, and a desktop that has 1100px of it was handing back 460 of them:
-     the head and the composer are fixed, so every pixel refused here came out of the answer. */
-  height: min(760px, calc(100dvh - 2 * var(--space-24)));
+     the head and the composer are fixed, so every pixel refused here came out of the answer. 760 was
+     the second such number and the notice was still cut — 800 is where a 1100px screen gives the
+     notice its 192px back, and a 768px laptop is the case the calc beside it is for. */
+  height: min(800px, calc(100dvh - 2 * var(--space-24)));
   border-radius: var(--r-card);
   transform-origin: 100% 100%;
  }
  .as-panel::backdrop { background: color-mix(in srgb, var(--brand-ink) 14%, transparent); }
  .as-panel[open] { animation-name: as-panel-in; }
- .as-head .orb { --orb: 156px; }
+ /* The card on a laptop had the same sickness as the sheet on a phone, and the same fix, for the same
+    reason: the head and the composer are both fixed, and at 400x760 they were 334 and 259 — so the
+    contract notice that opens the conversation had 167px and was cut mid-sentence at the composer's
+    top edge, exactly as it was on a phone. The cap rises to 800, which costs a 1100px screen nothing
+    and a 768px screen is where it pays for itself; the sphere comes down to 120px beside the
+    descriptor, and the head sheds the 8px of padding that was air. 167 -> 239px, and the notice is
+    whole with 47px to spare. */
+ .as-head .orb { --orb: 120px; }
+ .as-head { padding-top: var(--space-8); padding-bottom: var(--space-8); }
+ .as-compose { padding-top: var(--space-8); gap: var(--space-8); }
+ .as-silence, .as-keyboard { line-height: 1.4; }
+ .as-keyboard { padding-top: var(--space-8); }
 }

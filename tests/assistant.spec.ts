@@ -143,7 +143,9 @@ test('the name never prints into the controls, and the conversation keeps room t
 
     Held as three things, because these are the three a fixed layout breaks quietly: the name and the
     controls do not overlap, the composer is inside the sheet with the silence sentence readable, and
-    the scroll is left enough of the sheet to show the contract notice that opens it.
+    the scroll is left enough of the sheet to show the contract notice that opens it. The laptop card
+    is in the loop with the phones: at 1440x1100 the same fixed chrome left it 167px for the same
+    192px notice, which is the same cut in a different shell.
 
     Every box below comes out of ONE evaluate, and the sheet is given its entrance to finish first.
     Two boundingBox calls are two layout snapshots: a phone opening mid-animation — the panel slides up
@@ -167,7 +169,7 @@ test('the name never prints into the controls, and the conversation keeps room t
    scrollClient: scroll.clientHeight, scrollHeight: scroll.scrollHeight
   };
  });
- for (const [width, height] of [[390, 844], [320, 720]] as const) {
+ for (const [width, height] of [[390, 844], [320, 720], [1440, 1100], [1366, 768]] as const) {
   for (const asked of [false, true]) {
    const where = `${width}x${height}${asked ? ', a question asked' : ', nothing asked'}`;
    await page.setViewportSize({ width, height });
@@ -192,10 +194,11 @@ test('the name never prints into the controls, and the conversation keeps room t
    expect(silence.y, `at ${where} the silence sentence is behind the conversation`).toBeGreaterThan(compose.y);
 
    expect(scrollHeight, `at ${where} the scroll has nothing to scroll`).toBeGreaterThan(scrollClient);
-   /* Floors rather than the measurements: 246px at 390 and 85px at 320 with nothing asked, 341 and 155
-      with a question asked. What they must not go back to is 168 and 40, which is where the notice that
-      opens the conversation was cut in half. */
-   expect(scrollClient, `at ${where} the fixed chrome left the conversation ${scrollClient}px`).toBeGreaterThanOrEqual(width === 390 ? 220 : 70);
+   /* Floors rather than the measurements: 246px at 390, 85px at 320, 263px at 1440 and 183px at 1366,
+      all with nothing asked. What they must not go back to is 168, 40, 167 and 127 — the rooms the
+      fixed chrome left when the notice that opens the conversation was cut in half. */
+   const floor = width >= 1000 ? (height >= 900 ? 240 : 160) : (width === 390 ? 220 : 70);
+   expect(scrollClient, `at ${where} the fixed chrome left the conversation ${scrollClient}px`).toBeGreaterThanOrEqual(floor);
   }
  }
 });
