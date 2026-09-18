@@ -2,11 +2,18 @@ import express from 'express';
 import { handleTurn } from './routes/turn';
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '16kb' }));
 
 app.post('/assistant/turn', async (req, res) => {
-  const result = await handleTurn(req.body);
-  res.json(result);
+  try {
+    const result = await handleTurn(req.body);
+    res.status(200).json(result);
+  } catch {
+    res.status(400).json({
+      error: 'invalid_request',
+      message: 'The request could not be processed safely.',
+    });
+  }
 });
 
 app.get('/assistant/health', (_req, res) => {
