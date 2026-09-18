@@ -110,7 +110,7 @@ export default function Assistant({ open, dismiss, openModal, visit }: PanelProp
       <button ref={close} type="button" className="as-close" aria-label="Close GilbertOne" onClick={dismiss}><X size={20} aria-hidden="true"/></button>
      </div>
      <AssistantSphere depth={depthOf(reply)} pulse={pulse} gatheredAt={gatheredAt}/>
-     <div className="as-caption">
+     <div className="as-caption" data-pulse={pulse}>
       <p className="as-state" data-pulse={pulse}>{stateSpec(pulse).cue}</p>
       {stage.name && <p className="as-name">{stage.name}</p>}
       {stage.figure && <p className="as-figure">{stage.figure}{stage.figureLabel && <span>{stage.figureLabel}</span>}</p>}

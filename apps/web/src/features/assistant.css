@@ -251,11 +251,35 @@
    bleed is 108% of that box, so the glow landed on the last line of "not a person, and not a
    doctor". It is pushed down instead: 12px of clear air under the words at every width. */
 .as-head .orb { --orb: min(172px, 44vw); margin-top: var(--space-8); }
-/* Once a conversation has begun, the conversation is what the panel is for. The sphere steps down to
-   a size that still shows its state and hands the height to the answers; on a 640px desktop panel the
-   full sphere left room for little more than the notice. */
-.as-head[data-asked] .orb { --orb: min(112px, 30vw); }
+/* Once a conversation has begun, the conversation is what the panel is for — so the sphere does not
+   merely shrink, it moves. Centred above the state it made an identity portrait 303px tall on a 640px
+   panel, and with a 242px composer under it the answer was left 95px: somebody who had just typed
+   "I have chest pain" could see their own words and the top edge of the reply, and the sentence telling
+   them to call an ambulance was cut off mid-line by the text box. Beside the state instead, the same
+   words cost about 195px and read as a status line — sphere, state, what it is about, the number — in a
+   column that starts at one edge rather than three things centred on each other. */
+.as-head[data-asked] {
+ grid-template-columns: auto minmax(0, 1fr);
+ align-items: center;
+ column-gap: var(--space-16);
+ row-gap: var(--space-12);
+ padding-bottom: var(--space-16);
+}
+.as-head[data-asked] .as-bar { grid-column: 1 / -1; }
+/* One size at every width, because beside the caption the row is as tall as the caption anyway and a
+   sphere narrower than this stops being a drawing: the body is 63% of the box, and the reduced-motion
+   spec holds it above 60px so that what is still is a complete frame rather than a dot. */
+.as-head[data-asked] .orb { grid-column: 1; margin-top: 0; --orb: 100px; }
+.as-head[data-asked] .as-caption { grid-column: 2; justify-self: stretch; justify-items: start; text-align: left; }
+.as-head[data-asked] .as-state { justify-self: start; }
+/* A figure's label is a whole clause — "days before it stops carrying anything" — and beside the sphere
+   it has half the width it had centred, so it is allowed to fall under its number rather than push it. */
+.as-head[data-asked] .as-figure { flex-wrap: wrap; }
 .as-caption { display: grid; gap: var(--space-4); justify-items: center; text-align: center; }
+/* The emergency disclosure held as one block rather than three loose lines, wearing the same orange left
+   rule as every escalated block inside the conversation: the state, what the number is, and the number.
+   Orange is the edge, never the text. */
+.as-caption[data-pulse='escalate'] { padding-left: var(--space-12); border-left: 2px solid var(--brand-orange); }
 .as-caption p { margin: 0; }
 .as-name { font-size: 13px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: var(--brand-mint); }
 .as-figure { display: flex; align-items: baseline; gap: var(--space-8); font-size: 32px; font-weight: 200; line-height: 1.1; color: var(--surface); font-variant-numeric: tabular-nums; }
@@ -270,6 +294,10 @@
  align-content: start;
  gap: var(--space-24);
  padding: var(--space-16) var(--space-20) var(--space-24);
+ /* The platform's own bar is a light slab down the side of an ink panel, and it was the loudest edge in
+    the escalate state. Thin, and the brand's mint at the weight a rule is drawn in here. */
+ scrollbar-width: thin;
+ scrollbar-color: color-mix(in srgb, var(--brand-mint) 36%, var(--brand-ink)) transparent;
 }
 .as-scroll .not-connected { margin: 0; border-left-color: var(--brand-mint); }
 
@@ -328,6 +356,9 @@
 .as-who { display: block; font-size: 13px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--brand-mint); }
 .as-reasons { margin: 0; padding-left: var(--space-20); display: grid; gap: var(--space-8); font-size: 14px; }
 .as-headline { font-size: 18px; font-weight: 600; line-height: 1.35; }
+/* The sentence that tells somebody to call an ambulance is the largest thing in the bubble, and at the
+   paragraph gap it sat against the list of what was noticed as though it were the next bullet. */
+.as-reply > * + .as-headline { margin-top: var(--space-16); }
 /* A real column: one grid for every row, so the numbers share the widest number's width and the names
    beside them start at one edge. A fixed em column did not fit 10177 at 24px and pushed its name out
    of line with 112's. */
@@ -351,8 +382,11 @@
 .as-asks h3, .as-rule h3 { margin: 0 0 var(--space-8); font-size: 15px; font-weight: 600; color: var(--surface); }
 .as-asks p { margin: 0 0 var(--space-12); font-size: 14px; line-height: 1.55; color: var(--brand-mint); }
 .as-chips { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+/* Starting over is not another suggested question, and at the grid's own 20px it sat against the last
+   chip as though it were one. It gets its own air. */
 .as-again {
  justify-self: start;
+ margin-top: var(--space-8);
  padding: var(--space-8) var(--space-4);
  border: 0;
  background: none;
@@ -430,7 +464,13 @@
  cursor: pointer;
 }
 .as-send:hover { background: color-mix(in srgb, var(--brand-mint) 30%, var(--surface)); }
+/* The two disclosures under the box: what a browser's own dictation does with a voice, and that GilbertOne
+   not recognising an emergency does not mean there is not one. Both are required on screen and neither may
+   be shortened, so they are separated instead — a hairline turns them from a wall of text the composer is
+   sitting on into a footnote zone, and the mint on ink they already carry keeps them quieter than the
+   conversation without dropping the contrast they were measured at. */
 .as-silence, .as-keyboard { margin: 0; font-size: 13px; line-height: 1.45; color: var(--brand-mint); }
+.as-keyboard { margin-top: var(--space-4); padding-top: var(--space-12); border-top: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink)); }
 /* The unread answer sits inside the reply it follows, set apart by an orange rule: the words GilbertOne
    could not read are the part of the message most worth a second look. */
 .as-unread { display: grid; gap: var(--space-12); margin-top: var(--space-16); padding: var(--space-12) 0 0 var(--space-12); border-left: 2px solid var(--brand-orange); border-top: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink)); }
@@ -467,12 +507,14 @@
  .as-panel {
   inset: auto var(--space-24) var(--space-24) auto;
   width: 400px;
-  height: min(640px, calc(100dvh - 2 * var(--space-24)));
+  /* 640px was chosen while the panel was a greeting and a few chips. A conversation with an emergency
+     answer in it needs the height, and a desktop that has 1100px of it was handing back 460 of them:
+     the head and the composer are fixed, so every pixel refused here came out of the answer. */
+  height: min(760px, calc(100dvh - 2 * var(--space-24)));
   border-radius: var(--r-card);
   transform-origin: 100% 100%;
  }
  .as-panel::backdrop { background: color-mix(in srgb, var(--brand-ink) 14%, transparent); }
  .as-panel[open] { animation-name: as-panel-in; }
  .as-head .orb { --orb: 156px; }
- .as-head[data-asked] .orb { --orb: 104px; }
 }
