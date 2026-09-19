@@ -49,3 +49,26 @@ export const dayOf = (at: number): string => DAY_OF.format(new Date(at));
 /** Verified, in date and not stopped, on the day given as yyyy-mm-dd. */
 export const clearedOn = (standing: Standing | undefined, today: string): boolean =>
  !!standing && !standing.stopped && !standing.ended && standing.verifiedUntil !== null && standing.verifiedUntil >= today;
+
+/* Credential standing: the HPCSA registration a clinical role's authority rests on, beside what Trust
+ * last said. An HPCSA verification is made on a day and is current for twelve months from it; the
+ * practice number and speciality travel with it. Nothing here decides anything on its own — a lapsed
+ * verification is a fact for whoever asks, and who may act on it is the confirmer setting's business.
+ */
+export type CredentialStanding = Standing & {
+ readonly hpcsaVerifiedAt?: string;
+ readonly practiceNumber?: string;
+ readonly speciality?: string;
+};
+
+/** An HPCSA verification is current for this many months from the day it was made. */
+const CREDENTIAL_VALIDITY_MONTHS = 12;
+
+/** Whether the clinician's HPCSA verification is within its validity window on the day given. */
+export function isCredentialCurrent(standing: CredentialStanding, asOf: string): boolean {
+ if (!standing.hpcsaVerifiedAt) return false;
+ const verified = new Date(standing.hpcsaVerifiedAt);
+ const cutoff = new Date(asOf);
+ cutoff.setMonth(cutoff.getMonth() - CREDENTIAL_VALIDITY_MONTHS);
+ return verified >= cutoff;
+}

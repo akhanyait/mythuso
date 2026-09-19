@@ -1,6 +1,9 @@
 /* Clinical Intelligence on the runtime: a review signed by a clinician's own action and every refusal on the way,
  * the consultation's completeness gate, triage and Home Guidance refused without ratification, outcome questions
- * scheduled from the settings in force, and who confirms a review read from a setting.
+ * scheduled from the settings in force, and who confirms a review read from a setting. The Phase B hardening adds
+ * the same shape to what comes before the clinical work: whether a protocol is ready for the board's ratification,
+ * whether a minor's guardian consent stands, and whether a clinician's HPCSA verification is current — each answered
+ * from the contracts (protocols.json's governance, consent.json's guardianConsent) and each refusing by default.
  *
  * Care, Trust and the Record are stand-ins that publish what the real ones would, on the next tick, so a handover,
  * a verification and a record's author reach Clinical the way the contract says they do: on the bus. Every sentence
@@ -8,15 +11,19 @@
  * nothing here is clinical content: the only rules and scripts are synthetic stand-ins handed to the domain's gates
  * to prove the gates, and none of them is in the registry.
  */
-import { test } from 'node:test';
+import { describe, it, test } from 'node:test';
 import assert from 'node:assert/strict';
 import clinical from '../../../catalog/clinical.json' with { type: 'json' };
+import consent from '../../../catalog/consent.json' with { type: 'json' };
+import protocols from '../../../catalog/protocols.json' with { type: 'json' };
 import { MEMORY, createClock, createRuntime, defineEngine, type EventKey, type RouteKey } from '../runtime/index.ts';
 import { engine } from './engine.ts';
 import { DAY, OUTSIDE_PROTOCOL, UNDER_PROTOCOL, frame, guidanceOutcomes, refusal, register, requiredHeadings, versionIdOf } from './domain/contract.ts';
 import { clinicalByDefault, clinicalSettings } from './domain/settings.ts';
-import { gate, triageOn, type RuleSet } from './domain/triage.ts';
+import { gate, triageOn, validateProtocolReadiness, type RuleSet } from './domain/triage.ts';
 import { deliver } from './domain/guidance.ts';
+import { ageAt, evaluateGuardianConsent, isMinor } from './domain/guardian.ts';
+import { isCredentialCurrent, type CredentialStanding } from './domain/standing.ts';
 import { refusalOf } from '../settings/shape.ts';
 
 const START = '2026-09-15T09:00:00+02:00';
@@ -242,4 +249,109 @@ test('who confirms a clinical review is a setting of clinical roles only, and th
  refused(signAs('doctor', DOCTOR, reviewRef, encounterRef), 'not-a-confirmer');
  refused(signAs('nurse', NURSE, reviewRef, encounterRef), 'own-record');
  accepted(signAs('nurse', OTHER_NURSE, reviewRef, encounterRef));
+});
+
+/* ---- Phase B: protocol governance, guardian consent and credential standing -------------------------- */
+
+describe('protocol governance validation', () => {
+ it('missing board returns specific refusal', () => {
+  /* No board is formed and no Medical Director is appointed, so nothing in the register may move past draft. */
+  assert.equal(protocols.governance.board.status, 'not-formed');
+  assert.equal(protocols.governance.medicalDirector.status, 'not-appointed');
+  assert.equal(protocols.governance.ratificationProcess.currentStep, 'draft');
+
+  const unsigned = validateProtocolReadiness({ protocolId: 'wound-care', version: 1, ratifiedBy: null, ratifiedAt: '2026-09-01', safetyCase: 'Synthetic safety case.' });
+  assert.equal(unsigned.ready, false);
+  assert.deepEqual(unsigned.missingSteps, ['medical-director-sign']);
+  assert.equal(unsigned.refusalDetail, 'Triage protocol wound-care cannot be used: missing medical-director-sign.');
+
+  /* Every protocol in the register is a draft, so every one names all three missing steps. */
+  for (const p of protocols.protocols) {
+   const readiness = validateProtocolReadiness({ protocolId: p.id, version: p.version, ratifiedBy: p.ratifiedBy, ratifiedAt: p.ratifiedOn, safetyCase: p.safetyCase });
+   assert.equal(readiness.ready, false, `${p.id} is a draft, so it cannot be ready`);
+   assert.deepEqual(readiness.missingSteps, ['medical-director-sign', 'ratification-date', 'safety-case']);
+   assert.equal(readiness.refusalDetail, `Triage protocol ${p.id} cannot be used: missing medical-director-sign, ratification-date, safety-case.`);
+  }
+ });
+
+ it('missing safety case returns specific refusal', () => {
+  const readiness = validateProtocolReadiness({ protocolId: 'wound-care', version: 1, ratifiedBy: 'Dr Synthetic', ratifiedAt: '2026-09-01', safetyCase: null });
+  assert.equal(readiness.ready, false);
+  assert.deepEqual(readiness.missingSteps, ['safety-case']);
+  assert.equal(readiness.refusalDetail, 'Triage protocol wound-care cannot be used: missing safety-case.');
+ });
+
+ it('fully ratified protocol passes readiness', () => {
+  const readiness = validateProtocolReadiness({ protocolId: 'wound-care', version: 1, ratifiedBy: 'Dr Synthetic', ratifiedAt: '2026-09-01', safetyCase: 'Synthetic safety case.' });
+  assert.equal(readiness.ready, true);
+  assert.deepEqual(readiness.missingSteps, []);
+  assert.equal(readiness.refusalDetail, '');
+ });
+});
+
+describe('guardian consent framework', () => {
+ const declared = (id: string): { id: string; statement: string; status: number } => {
+  const found = consent.guardianConsent.refusals.find(r => r.id === id);
+  assert.ok(found, `packages/catalog/consent.json declares no guardian refusal "${id}", so there is no sentence to refuse with`);
+  return found;
+ };
+
+ it('adult does not need guardian consent', () => {
+  assert.equal(consent.guardianConsent.ageThreshold, 18, 'the threshold the domain reads is the contract\'s');
+  assert.deepEqual(evaluateGuardianConsent(consent.guardianConsent.ageThreshold, null), { allowed: true });
+  assert.deepEqual(evaluateGuardianConsent(65, null), { allowed: true });
+ });
+
+ it('minor without guardian is refused', () => {
+  const evaluation = evaluateGuardianConsent(12, null);
+  assert.equal(evaluation.allowed, false);
+  assert.equal(evaluation.refusalId, 'minor-without-guardian');
+  assert.equal(declared('minor-without-guardian').status, 403);
+ });
+
+ it('minor with unverified proof is refused', () => {
+  const evaluation = evaluateGuardianConsent(12, { minorRef: PATIENT, guardianRef: 'party-synthetic-guardian', proofType: 'birth-certificate', proofVerifiedAt: null, expiresAt: null });
+  assert.equal(evaluation.allowed, false);
+  assert.equal(evaluation.refusalId, 'no-proof-of-authority');
+  assert.equal(declared('no-proof-of-authority').status, 422);
+ });
+
+ it('minor with expired authority is refused', () => {
+  const evaluation = evaluateGuardianConsent(12, { minorRef: PATIENT, guardianRef: 'party-synthetic-guardian', proofType: 'court-order', proofVerifiedAt: '2024-01-01', expiresAt: '2025-01-01' }, START);
+  assert.equal(evaluation.allowed, false);
+  assert.equal(evaluation.refusalId, 'expired-authority-document');
+  assert.equal(declared('expired-authority-document').status, 403);
+ });
+
+ it('minor with valid guardian consent is allowed', () => {
+  const evaluation = evaluateGuardianConsent(12, { minorRef: PATIENT, guardianRef: 'party-synthetic-guardian', proofType: 'legal-guardianship', proofVerifiedAt: '2026-06-01', expiresAt: '2027-06-01' }, START);
+  assert.deepEqual(evaluation, { allowed: true });
+ });
+
+ it('age calculation handles birthday edge case', () => {
+  assert.equal(isMinor('2008-09-15', '2026-09-15'), false, 'on the eighteenth birthday itself the person is not a minor');
+  assert.equal(isMinor('2008-09-16', '2026-09-15'), true, 'the day before the eighteenth birthday the person still is one');
+  assert.equal(ageAt('2008-09-15', '2026-09-15'), 18);
+  assert.equal(ageAt('2008-09-16', '2026-09-15'), 17);
+ });
+});
+
+describe('credential standing', () => {
+ const credentialed = (hpcsaVerifiedAt?: string): CredentialStanding => ({
+  subjectRef: DOCTOR, role: 'doctor', verifiedUntil: UNTIL, stopped: false, ended: false, heardAt: START, hpcsaVerifiedAt
+ });
+
+ it('missing HPCSA verification is not current', () => {
+  assert.equal(isCredentialCurrent(credentialed(), '2026-09-15'), false, 'a clinician never verified with the HPCSA is not current');
+ });
+
+ it('expired HPCSA verification is not current', () => {
+  assert.equal(isCredentialCurrent(credentialed('2024-09-14'), '2026-09-15'), false);
+  assert.equal(isCredentialCurrent(credentialed('2025-09-14'), '2026-09-15'), false, 'the day before the twelve-month window opens is not current');
+ });
+
+ it('recent HPCSA verification is current', () => {
+  assert.equal(isCredentialCurrent(credentialed('2026-03-15'), '2026-09-15'), true);
+  assert.equal(isCredentialCurrent(credentialed('2025-09-15'), '2026-09-15'), true, 'exactly twelve months is still current');
+ });
 });

@@ -809,5 +809,26 @@
    "careTeam"
   ],
   "withheld": "Protected categories never appear. The card says a category is withheld rather than omitting it silently, so a clinician knows to ask rather than assuming there is nothing to know."
+ },
+
+ "resourceTypes": {
+  "DiagnosticReport": {
+   "status": "proposed",
+   "ratificationRequired": true,
+   "fields": ["status", "category", "code", "subject", "effectiveDateTime", "issued", "performer", "result"],
+   "note": "Blocked until a laboratory partner is contracted and HL7 result mapping is validated."
+  },
+  "Condition": {
+   "status": "proposed",
+   "ratificationRequired": true,
+   "fields": ["clinicalStatus", "verificationStatus", "category", "code", "subject", "onsetDateTime", "recorder"],
+   "note": "Blocked until the clinical governance board ratifies a condition-recording policy."
+  },
+  "Procedure": {
+   "status": "proposed",
+   "ratificationRequired": true,
+   "fields": ["status", "code", "subject", "performedDateTime", "performer", "location"],
+   "note": "Blocked until the facility admission integration is built."
+  }
  }
 }

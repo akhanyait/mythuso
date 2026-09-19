@@ -12,7 +12,8 @@
   {"id": "tool-not-on-allow-list", "status": 403, "statement": "Gilbert reaches only the tools on its allow-list.", "why": "§15D: never a generic tool in front of a patient-facing model."},
   {"id": "booking-invents-a-slot", "status": 409, "statement": "A booking is made only against a slot that was offered.", "why": "An invented slot is a nurse who is not coming."},
   {"id": "answer-lowers-an-emergency", "status": 422, "statement": "No answer lowers an emergency.", "why": "Generative output may explain a priority; it may not lower one."},
-  {"id": "scheme-or-employer-as-caller", "status": 403, "statement": "No Access route takes a call from a scheme or an employer.", "why": "Neither has any business in a person's way into care."}
+  {"id": "scheme-or-employer-as-caller", "status": 403, "statement": "No Access route takes a call from a scheme or an employer.", "why": "Neither has any business in a person's way into care."},
+  {"id": "tool-grant-required", "status": 403, "statement": "No caller reaches a tool without carrying its grants.", "why": "Every tool on the allow-list still stands behind the caller's own grants, read from the vetting register; a tool reached without them is a tool reached past them."}
  ],
  "ownIds": [
   {"field": "challengeId", "why": "A sign-in challenge the identity service issues and holds."},

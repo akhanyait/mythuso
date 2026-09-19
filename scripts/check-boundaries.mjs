@@ -70,6 +70,8 @@ import { emitMomEssential } from "./emit-mom-essential.mjs";
 import { emitClinical } from "./emit-clinical.mjs";
 import { emitSentinel } from "./emit-sentinel.mjs";
 import { emitMovement } from "./emit-movement.mjs";
+import { emitContractTests } from "./emit-contract-tests.mjs";
+import { emitEventPrivacyTests } from "./emit-event-privacy-tests.mjs";
 function files(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
     e.isDirectory() ? files(join(dir, e.name)) : [join(dir, e.name)],
@@ -2961,6 +2963,20 @@ const generated = [
     command: "npm run review-pack",
     files: emitClinicalReviewPack(),
   })),
+  /* Engine Intelligence: the contract-compliance suite is written from the API contract and the
+     engine modules it binds — probing the runtime as it generates — and the event-privacy suite
+     from the event contract and the engine sources its scanner reads. A contract or an engine
+     that moves without regenerating fails here rather than passing as itself. */
+  {
+    source: "packages/catalog/apis.json",
+    command: "npm run contract-tests",
+    files: emitContractTests(),
+  },
+  {
+    source: "packages/catalog/events.json",
+    command: "npm run event-privacy",
+    files: emitEventPrivacyTests(),
+  },
 ];
 for (const { source, command, files } of generated) {
   for (const file of files) {
@@ -4264,7 +4280,17 @@ for (const { source, command, files } of generated) {
       "packages/catalog/protocols.json has statuses other than draft, ratified and retired.",
     );
   const PROTOCOL_KEYS =
-    "contentRef,engine,id,name,ratifiedBy,ratifiedOn,status,supersedes,version";
+    "applicableConditions,clinicalEvidence,contentRef,contraindications,engine,id,name,ratifiedBy,ratifiedOn,reviewHistory,safetyCase,status,supersedes,version";
+  /* Phase B governance scaffolding: the five fields the clinical governance board will fill when it
+     ratifies. For a draft they hold nothing at all — the frame is not the content, and the registry
+     still carries no threshold, no dose and no condition until a board has signed one. */
+  const GOVERNANCE_KEYS = [
+    "reviewHistory",
+    "safetyCase",
+    "clinicalEvidence",
+    "applicableConditions",
+    "contraindications",
+  ];
   const registered = new Set();
   for (const p of protocolContract.protocols) {
     const where = `The protocol ${p.id}@${p.version} in packages/catalog/protocols.json`;
@@ -4307,6 +4333,13 @@ for (const { source, command, files } of generated) {
         throw new Error(
           `${where} is a draft with content. ${protocolRefusal("a-draft-carries-nothing").why}`,
         );
+      for (const key of GOVERNANCE_KEYS) {
+        const value = p[key];
+        if (!(value === null || (Array.isArray(value) && value.length === 0)))
+          throw new Error(
+            `${where} is a draft carrying ${key}. ${protocolRefusal("a-draft-carries-nothing").statement} The governance fields are the frame the board fills on ratification; until then they hold nothing.`,
+          );
+      }
       for (const [key, value] of Object.entries(p)) {
         if (["version", "supersedes"].includes(key)) continue;
         if (typeof value === "number" || /\d/.test(JSON.stringify(value)))
@@ -16078,8 +16111,11 @@ console.log(
    handlers to the frozen API contract and carries their events on a bus held to the event contract.
    What this block holds it to: the runtime refuses to start without its flag in the factory, serves
    loopback only and checks the Host header, and nothing in deploy/ names it; one engine's code never
-   reaches another engine's directory or opens a database of its own; and a route marked built on the
-   runtime names a handler file in its own engine's directory that registers exactly that route. */
+   reaches another engine's directory or opens a database of its own; a route marked built on the
+   runtime names a handler file in its own engine's directory that registers exactly that route; and
+   every engine module under packages/engines/src binds on a runtime of its own — every event it is
+   wired to hear is declared and lists it, every emission its sources make is declared with the engine
+   as its owner, and no table its store creates holds a clinical value. */
 {
   const runtimeSettings = JSON.parse(
     read("packages/catalog/apis.json"),
@@ -16928,6 +16964,106 @@ console.log(
     throw new Error(
       `${closedLoop.exhaustion.event} is declared, and not as Core's alert carrying a severityCode, which is how packages/engines/src/core announces an exhausted concern.`,
     );
+
+  /* 6. The event contract's side of the engines on this branch. An engine's subscription keys are read
+        by binding, not by pattern: Core reads its panic key from closed-loop.json and Money builds its
+        list from an array, so a regular expression would read neither honestly. The same discovery the
+        dev server walks — a directory named for a declared engine, holding an engine.ts — is walked
+        here, and every module found is bound on a runtime of its own so the runtime's refusal names the
+        engine: createRuntime() reads each subscription key through the bus's declaration as the module
+        binds, and a key nothing declares, a withdrawn version, the engine's own event, or a declaration
+        that does not list the engine refuses the whole runtime before anything opens. Emissions are read
+        by packages/engines/src/event-privacy-scan.ts, the scanner the generated event-privacy suite
+        runs: every emission it can read must name a declared event, and the engine itself must be its
+        owner. And no store schema may hold a clinical value: scripts/clinical-tables.mjs reads every
+        CREATE TABLE under packages/engines/src, and these engines hold synthetic development data — a
+        schema that can keep a clinical value is the first half of keeping one. */
+  const { createRuntime, createClock, MEMORY } = await import(
+    "../packages/engines/src/runtime/index.ts"
+  );
+  const { loadRuntimeContract } = await import(
+    "../packages/engines/src/runtime/contract.ts"
+  );
+  const { scanEmissions } = await import(
+    "../packages/engines/src/event-privacy-scan.ts"
+  );
+  const engineContract = loadRuntimeContract();
+  /* The two lists the runtime's own refusalFrom reads, in its order: the bus refusals, then the
+     engineRuntime's. */
+  const eventRefusalOf = (id) =>
+    engineContract.busRefusals.find((r) => r.id === id) ??
+    runtimeSettings.refusals.find((r) => r.id === id);
+  for (const id of ["undeclared-event", "not-the-owner"])
+    if (!eventRefusalOf(id)?.statement?.trim() || !eventRefusalOf(id)?.why?.trim())
+      throw new Error(
+        `The catalog has lost the bus refusal "${id}", or its statement or its reasoning, so nothing here could say what the bus does with an emission it refuses.`,
+      );
+  const declaredEngineDirs = new Set(engineIdsForRuntime);
+  const engineModules = [];
+  for (const entry of readdirSync("packages/engines/src", { withFileTypes: true })
+    .filter((e) => e.isDirectory() && declaredEngineDirs.has(e.name))
+    .sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    const file = `packages/engines/src/${entry.name}/engine.ts`;
+    if (!existsSync(file)) continue;
+    const module = await import(`../${file}`);
+    if (!module.engine)
+      throw new Error(
+        `${file} no longer exports the engine the dev server discovers it by, so this check would bind a different set of engines than the server does.`,
+      );
+    engineModules.push({ id: entry.name, engine: module.engine });
+  }
+  if (!engineModules.length)
+    throw new Error(
+      "No engine module was found under packages/engines/src, so nothing here proves a subscription, an emission or a store schema.",
+    );
+  for (const { id, engine } of engineModules)
+    try {
+      createRuntime({
+        env: { [runtimeSettings.flag]: runtimeSettings.flagValue },
+        engines: [engine],
+        dataDirectory: MEMORY,
+        clock: createClock("2026-09-15T08:00:00+02:00"),
+      }).close();
+    } catch (error) {
+      const refusal = eventRefusalOf(error?.refusal);
+      throw new Error(
+        `${id} no longer binds on a runtime of its own: ${error.message}${refusal?.why ? ` ${refusal.why}` : ""}`,
+      );
+    }
+  let emissionSites = 0;
+  for (const file of [...engineSources].sort()) {
+    const [top] = posix.relative("packages/engines/src", file).split("/");
+    if (!declaredEngineDirs.has(top) || file.endsWith(".test.ts")) continue;
+    for (const site of scanEmissions(read(file))) {
+      emissionSites++;
+      const event = engineContract.events.get(site.key);
+      if (!event)
+        throw new Error(
+          `${file}:${site.line} builds an emission of ${site.key}, which no event declaration carries. ${eventRefusalOf("undeclared-event").statement} ${eventRefusalOf("undeclared-event").why}`,
+        );
+      if (event.owner !== top)
+        throw new Error(
+          `${file}:${site.line} builds an emission of ${site.key} from ${top}'s sources, and the declaration makes it ${event.owner}'s. ${eventRefusalOf("not-the-owner").statement} ${eventRefusalOf("not-the-owner").why}`,
+        );
+    }
+  }
+  let storeTablesRead = 0;
+  for (const file of [...engineSources].sort().filter((f) => !f.endsWith(".test.ts"))) {
+    const source = read(file);
+    storeTablesRead += tablesIn(source).length;
+    for (const found of clinicalIdentifiers(source))
+      throw new Error(
+        `packages/engines has grown a clinical ${found.kind} in ${file}: ${found.kind === "table" ? found.identifier : `${found.table}.${found.identifier}`}. The engines hold synthetic development data, and a store schema that can keep a clinical value is the first half of keeping one.`,
+      );
+  }
+  if (!storeTablesRead)
+    throw new Error(
+      "No CREATE TABLE could be read under packages/engines/src, so the check that no engine store schema holds a clinical value proves nothing.",
+    );
+  const modulelessEngines = [...declaredEngineDirs]
+    .sort()
+    .filter((id) => !engineModules.some((m) => m.id === id));
+
   const coreBuilt = coreApi.routes.filter((r) => r.status === "built").length;
 
   console.log(
@@ -16935,6 +17071,9 @@ console.log(
   );
   console.log(
     `Core builds ${coreBuilt} of its ${coreApi.routes.length} routes on the runtime. Its ladder has ${rungNumbers.length} rungs whose minutes nobody has decided, escalation goes to a concern's fallback and then up the ${rotaItem.posts.length} posts of the rota it was opened under (${heldPosts.length} held by a role, ${rotaItem.posts.length - heldPosts.length} waiting on one) with ${rungTimes} times between them and no hour of the week an admin can leave without a post, a panic alerts every post on duty at once by a rule no setting reaches, an exhausted concern is announced at "${closedLoop.severities.ids.at(-1)}" through ${closedLoop.exhaustion.event}, which is ${exhaustedEvent ? "declared" : "not yet declared in packages/catalog/events.json and refused by the bus until it is"}, and Core's ${coreCode.length} source files type no policy number and read no Safety timing.`,
+  );
+  console.log(
+    `Of the ${declaredEngineDirs.size} engines the event contract declares, ${engineModules.length} have a module under packages/engines/src, and each binds on a runtime of its own: every event it is wired to hear is declared and lists it. Their sources make ${emissionSites} emissions this scan can read, every one a declared event of the engine's own, and the ${storeTablesRead} tables read under packages/engines/src create no clinical table or column.${modulelessEngines.length ? ` ${modulelessEngines.join(", ")} ${modulelessEngines.length === 1 ? "has" : "have"} no module on this branch yet.` : ""}`,
   );
 }
 /* ==== end of Engine Runtime & Core (Wave 3) ========================================================= */

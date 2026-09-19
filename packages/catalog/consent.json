@@ -523,5 +523,46 @@
     "why": "Master section 21 gives both roles no clinical content at all. A grant role for them would be a superuser read path with a consent form in front of it."
    }
   ]
+ },
+
+ "guardianConsent": {
+  "status": "not-built",
+  "note": "Guardian consent for minors requires proof-of-authority verification against Home Affairs, which is not integrated.",
+  "ageThreshold": 18,
+  "purposes": [
+   {
+    "id": "care-of-minor",
+    "description": "Consent for healthcare services for a minor under the guardian's care.",
+    "required": true
+   },
+   {
+    "id": "emergency-treatment-of-minor",
+    "description": "Emergency medical treatment when guardian cannot be reached.",
+    "required": false,
+    "note": "Common law permits emergency treatment without consent, but recording the decision is required."
+   }
+  ],
+  "proofOfAuthority": [
+   { "type": "birth-certificate", "description": "Unabridged birth certificate naming the guardian as parent." },
+   { "type": "court-order", "description": "Court order granting legal guardianship." },
+   { "type": "legal-guardianship", "description": "Formal legal guardianship document." }
+  ],
+  "refusals": [
+   {
+    "id": "no-proof-of-authority",
+    "statement": "Guardian consent cannot be recorded without verified proof of authority over the minor.",
+    "status": 422
+   },
+   {
+    "id": "minor-without-guardian",
+    "statement": "A person under 18 may not consent to their own care without a verified guardian.",
+    "status": 403
+   },
+   {
+    "id": "expired-authority-document",
+    "statement": "The proof of authority has expired or been revoked and must be re-verified.",
+    "status": 403
+   }
+  ]
  }
 }

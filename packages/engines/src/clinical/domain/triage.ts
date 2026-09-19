@@ -62,3 +62,35 @@ export function gate(rules: RuleSet, outcome: RuleOutcome, explanation: unknown,
   key: 'triage.completed@2', payload: { triageRef, priorityCode, careSetting: outcome.careSetting }, protocolVersion: protocolVersionId
  }]);
 }
+
+/* Protocol readiness: what a triage protocol must carry before a single intake is triaged under it.
+ *
+ * The register names who ratified a protocol and when; governance adds the safety case a ratified protocol
+ * must rest on. None of the twelve carries any of the three yet, so every one of them is answered not
+ * ready, with the steps that are missing named rather than a bare refusal — a board that asks "why not?"
+ * is told, and the answer is the register's, not a screen's. This adds detail to the refusal; the refusal
+ * itself, triage-without-ratified-protocol, stands exactly as it was.
+ */
+export type TriageProtocolRequirement = {
+ readonly protocolId: string;
+ readonly version: number;
+ readonly ratifiedBy: string | null;
+ readonly ratifiedAt: string | null;
+ readonly safetyCase: string | null;
+};
+export type ProtocolReadiness = {
+ readonly ready: boolean;
+ readonly missingSteps: readonly string[];
+ readonly refusalDetail: string;
+};
+
+/** Whether a triage protocol carries everything a ratified one must, and if it does not, exactly which steps are missing. */
+export function validateProtocolReadiness(protocol: TriageProtocolRequirement): ProtocolReadiness {
+ const missingSteps: string[] = [];
+ if (protocol.ratifiedBy === null) missingSteps.push('medical-director-sign');
+ if (protocol.ratifiedAt === null) missingSteps.push('ratification-date');
+ if (protocol.safetyCase === null) missingSteps.push('safety-case');
+ return missingSteps.length === 0
+  ? { ready: true, missingSteps: [], refusalDetail: '' }
+  : { ready: false, missingSteps, refusalDetail: `Triage protocol ${protocol.protocolId} cannot be used: missing ${missingSteps.join(', ')}.` };
+}

@@ -1,3 +1,5 @@
+import type { ConversationContext } from './conversation.ts';
+
 export type MessageClassification =
   | 'emergency'
   | 'handover'
@@ -18,6 +20,17 @@ export type EngineResponse = {
   style: ResponseStyle;
   requiresConfirmation: boolean;
   suggestedActions: string[];
+  /* How sure the classifier is of the classification beside it, from 0 (nothing matched) to 1
+     (one thing matched, or a match the conversation has been about). Existing callers that read
+     only the fields above see exactly what they saw before this field existed. */
+  confidence: number;
+};
+
+/* What classifyWithConfidence answers: the classification the engine has always returned, plus
+   the weight behind it. */
+export type ClassificationResult = {
+  classification: MessageClassification;
+  confidence: number;
 };
 
 /* Who a message is from, as the demo login chose it — the same six ids as the RoleIds in
@@ -108,6 +121,28 @@ const careTerms = [
   'registered'
 ];
 
+/* The categories the classifier asks, in the order it has always asked them. Emergency first,
+   whatever else the message said; then a patient's own words — the nurse queue a handover offers
+   belongs to a patient's conversation, and the care terms ask about the patient's own visit, so
+   behind a staff preview those two fall through and the caller's matcher answers in that
+   audience's own words. The emergency terms sit above the scoping on purpose: an emergency word
+   does not stop being one because a nurse or an operator is saying it. */
+type CategoryMatch = {
+  classification: MessageClassification;
+  terms?: readonly string[];
+  pattern?: RegExp;
+  patientOnly?: boolean;
+};
+
+const categories: readonly CategoryMatch[] = [
+  { classification: 'emergency', terms: emergencyTerms },
+  { classification: 'handover', terms: handoverTerms, patientOnly: true },
+  { classification: 'identity', terms: identityTerms },
+  { classification: 'voice', terms: voiceTerms },
+  { classification: 'care', terms: careTerms, patientOnly: true },
+  { classification: 'clarify', pattern: /\b(i do ?not understand|i dont understand|confused|unclear|what does this mean|help me understand)\b/ }
+];
+
 export function normalizeText(value: string): string {
   return value
     .toLowerCase()
@@ -123,27 +158,48 @@ function containsAny(text: string, terms: readonly string[]): boolean {
   return terms.some(term => text.includes(term));
 }
 
-export function classifyMessage(input: string, audience: Audience = 'patient'): MessageClassification {
+const matchesCategory = (text: string, category: CategoryMatch, audience: Audience): boolean => {
+  if (category.patientOnly && audience !== 'patient') return false;
+  if (category.terms) return containsAny(text, category.terms);
+  return category.pattern ? category.pattern.test(text) : false;
+};
+
+/* The classifier, with its confidence. A message that matched exactly one category is fully that
+   category — 1.0. A message that is several things at once is divided among them, and the
+   strongest (the first in the list above) wins, so "who are you, can you hear me" answers as
+   identity at half confidence rather than picking whichever was checked last. Nothing matched is
+   'unknown' at 0. Context lifts a match the last two turns already were — a conversation about
+   visits that asks another visit question is more certain about it — by 0.15, never past 1. */
+export function classifyWithConfidence(
+  input: string,
+  audience: Audience = 'patient',
+  context?: ConversationContext
+): ClassificationResult {
   const text = normalizeText(input);
-  if (!text) return 'unknown';
-  if (containsAny(text, emergencyTerms)) return 'emergency';
-  /* The handover route and the care terms are a patient's words: the nurse queue a handover
-     offers belongs to a patient's conversation, and the care terms ask about the patient's own
-     visit. Behind a staff preview the same words are not that request, so they fall through to
-     unknown and the caller's matcher answers in that audience's own words. The emergency terms
-     sit above the scoping on purpose: an emergency word does not stop being one because a nurse
-     or an operator is saying it. */
-  if (audience === 'patient' && containsAny(text, handoverTerms)) return 'handover';
-  if (containsAny(text, identityTerms)) return 'identity';
-  if (containsAny(text, voiceTerms)) return 'voice';
-  if (audience === 'patient' && containsAny(text, careTerms)) return 'care';
-  if (/\b(i do ?not understand|i dont understand|confused|unclear|what does this mean|help me understand)\b/.test(text)) return 'clarify';
-  return 'unknown';
+  if (!text) return { classification: 'unknown', confidence: 0 };
+  const matched = categories.filter((category) => matchesCategory(text, category, audience));
+  if (!matched.length) return { classification: 'unknown', confidence: 0 };
+  const classification = matched[0].classification;
+  const base = matched.length === 1 ? 1 : 1 / matched.length;
+  const lastTwo = (context?.recentClassifications ?? []).slice(-2);
+  const agreed = lastTwo.length === 2 && lastTwo.every((prior) => prior === classification);
+  return { classification, confidence: Math.min(1, base + (agreed ? 0.15 : 0)) };
+}
+
+/* The classification alone, exactly as every caller before the confidence field received it. */
+export function classifyMessage(input: string, audience: Audience = 'patient'): MessageClassification {
+  return classifyWithConfidence(input, audience).classification;
 }
 
 export function buildResponse(input: string, audience: Audience = 'patient'): EngineResponse {
-  const classification = classifyMessage(input, audience);
+  const { classification, confidence } = classifyWithConfidence(input, audience);
+  return { ...responseFor(classification, audience), confidence };
+}
 
+/* The reply for a classification, byte for byte the replies this engine has always given. The
+   confidence never travels in here: the words are the contract's, and only the weight beside
+   them is the classifier's. */
+function responseFor(classification: MessageClassification, audience: Audience): Omit<EngineResponse, 'confidence'> {
   switch (classification) {
     case 'emergency':
       return {

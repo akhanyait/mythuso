@@ -1,4 +1,7 @@
-import { evaluateMessage, type Audience } from '../../../../packages/gilbertone/src/index.ts';
+/* engine.ts alone, not the package barrel: index.ts also re-exports the Phase A modules
+   (conversation, phi, refusals, tools) with their catalog imports, and the patient entry must
+   not carry any of that — the bridge reads only a route name from the engine. */
+import { evaluateMessage, type Audience } from '../../../../packages/gilbertone/src/engine.ts';
 import { emergencyGroupsIn, send, type Turn } from './assistant.ts';
 import type { Visit } from './scheduling.ts';
 

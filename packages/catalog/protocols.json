@@ -10,18 +10,18 @@
  ],
 
  "protocols": [
-  { "id": "injection-administration", "name": "Injection administration", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
-  { "id": "wound-care", "name": "Wound care", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
-  { "id": "vitals-and-chronic-check", "name": "Vitals and chronic check", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
-  { "id": "phlebotomy", "name": "Phlebotomy", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
-  { "id": "post-operative-assessment", "name": "Post-operative assessment", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
-  { "id": "mother-and-baby-check", "name": "Mother-and-baby check", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
-  { "id": "elderly-assessment", "name": "Elderly assessment", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
-  { "id": "medical-certificate-criteria", "name": "Medical certificate criteria", "engine": "clinical", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
-  { "id": "infection-control-and-sharps", "name": "Infection control and sharps", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
-  { "id": "emergency-escalation-and-referral", "name": "Emergency escalation and referral", "engine": "safety", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
-  { "id": "device-use-and-ai-result-handling", "name": "Device use and AI result handling", "engine": "devices", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
-  { "id": "safeguarding-and-mandatory-reporting", "name": "Safeguarding and mandatory reporting", "engine": "safety", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null }
+  { "id": "injection-administration", "name": "Injection administration", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null, "reviewHistory": [], "safetyCase": null, "clinicalEvidence": [], "applicableConditions": [], "contraindications": [] },
+  { "id": "wound-care", "name": "Wound care", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null, "reviewHistory": [], "safetyCase": null, "clinicalEvidence": [], "applicableConditions": [], "contraindications": [] },
+  { "id": "vitals-and-chronic-check", "name": "Vitals and chronic check", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null, "reviewHistory": [], "safetyCase": null, "clinicalEvidence": [], "applicableConditions": [], "contraindications": [] },
+  { "id": "phlebotomy", "name": "Phlebotomy", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null, "reviewHistory": [], "safetyCase": null, "clinicalEvidence": [], "applicableConditions": [], "contraindications": [] },
+  { "id": "post-operative-assessment", "name": "Post-operative assessment", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null, "reviewHistory": [], "safetyCase": null, "clinicalEvidence": [], "applicableConditions": [], "contraindications": [] },
+  { "id": "mother-and-baby-check", "name": "Mother-and-baby check", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null, "reviewHistory": [], "safetyCase": null, "clinicalEvidence": [], "applicableConditions": [], "contraindications": [] },
+  { "id": "elderly-assessment", "name": "Elderly assessment", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null, "reviewHistory": [], "safetyCase": null, "clinicalEvidence": [], "applicableConditions": [], "contraindications": [] },
+  { "id": "medical-certificate-criteria", "name": "Medical certificate criteria", "engine": "clinical", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null, "reviewHistory": [], "safetyCase": null, "clinicalEvidence": [], "applicableConditions": [], "contraindications": [] },
+  { "id": "infection-control-and-sharps", "name": "Infection control and sharps", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null, "reviewHistory": [], "safetyCase": null, "clinicalEvidence": [], "applicableConditions": [], "contraindications": [] },
+  { "id": "emergency-escalation-and-referral", "name": "Emergency escalation and referral", "engine": "safety", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null, "reviewHistory": [], "safetyCase": null, "clinicalEvidence": [], "applicableConditions": [], "contraindications": [] },
+  { "id": "device-use-and-ai-result-handling", "name": "Device use and AI result handling", "engine": "devices", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null, "reviewHistory": [], "safetyCase": null, "clinicalEvidence": [], "applicableConditions": [], "contraindications": [] },
+  { "id": "safeguarding-and-mandatory-reporting", "name": "Safeguarding and mandatory reporting", "engine": "safety", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null, "reviewHistory": [], "safetyCase": null, "clinicalEvidence": [], "applicableConditions": [], "contraindications": [] }
  ],
 
  "refusals": [
@@ -45,5 +45,26 @@
    "statement": "Changing a ratified protocol means adding a new version that names the one it supersedes. The ratified row is never edited.",
    "why": "Recommendations already made under version one were made under version one's words. Editing the row in place would silently re-attribute every one of them to wording that did not exist when they were made."
   }
- ]
+ ],
+
+ "governance": {
+  "board": {
+   "name": null,
+   "chairRef": null,
+   "quorum": null,
+   "meetingCadence": null,
+   "status": "not-formed"
+  },
+  "medicalDirector": {
+   "name": null,
+   "hpcsaRef": null,
+   "signedOn": null,
+   "status": "not-appointed"
+  },
+  "ratificationProcess": {
+   "steps": ["draft", "clinical-review", "board-vote", "medical-director-sign", "ratified"],
+   "currentStep": "draft",
+   "note": "No protocol may advance beyond draft until the governance board is formed and a Medical Director is appointed."
+  }
+ }
 }

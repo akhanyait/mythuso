@@ -1,5 +1,5 @@
 {
-  "_note": "GilbertOne, as data. Everything a person reads from the assistant on the web, on iOS and on Android lives here: what GilbertOne is called and what it is not, the six Pulse states and when each may be shown, the four situations and the questions it answers, the matcher that decides which answer a sentence gets, the audiences of 19 September 2026 — which questions each may ask, which refusal each reads and the label that says a session is simulated — the voice policy the founder set on 14 September 2026, the refusals, and the Pulse events other engines may one day subscribe to. The web reads this file. iOS and Android cannot, so scripts/emit-assistant.mjs writes it into AssistantData.swift and AssistantData.kt, and scripts/check-boundaries.mjs compares both with this file on every build. Until this file existed the four situation sentences were typed in apps/ios/MyThuso/Features/AssistantView.swift and copied word for word into apps/web/src/lib/assistant.ts, with nothing comparing them.",
+  "_note": "GilbertOne, as data. Everything a person reads from the assistant on the web, on iOS and on Android lives here: what GilbertOne is called and what it is not, the six Pulse states and when each may be shown, the four situations and the questions it answers, the matcher that decides which answer a sentence gets, the audiences of 19 September 2026 — which questions each may ask, which refusal each reads and the label that says a session is simulated — the voice policy the founder set on 14 September 2026, the refusals, the four refusal policies the engine asks before it classifies anything — consent, a clinical referral, a role spoken out loud, and a message carrying sensitive details — and the Pulse events other engines may one day subscribe to. The web reads this file. iOS and Android cannot, so scripts/emit-assistant.mjs writes it into AssistantData.swift and AssistantData.kt, and scripts/check-boundaries.mjs compares both with this file on every build. Until this file existed the four situation sentences were typed in apps/ios/MyThuso/Features/AssistantView.swift and copied word for word into apps/web/src/lib/assistant.ts, with nothing comparing them.",
   "_whatGilbertOneIsInThisBuild": "A deterministic matcher over approved sentences. No language model, no speech provider and no network call sits behind any answer. A sentence is normalised, checked against the emergency words first, then against the trigger phrases of the suggested questions, and anything that matches neither gets one honest answer. That is the whole of it, and it is the reason every answer below can be read in advance by the people accountable for it.",
   "_tokens": "Sentences may carry {ambulance} and {mobile}, filled from packages/catalog/sos.json by number id, and {seconds}, which is voice.maxListeningSeconds. The situation sentences carry {laboratory} and {expiryWarningDays} from records.json and vetting.json, and {visitWhen}, which is the patient's next booked visit written by the same function the home card writes it with — on 14 September GilbertOne said the first day scheduling.json offers while the home card showed the visit actually booked, two dates for one visit. {noUpcoming}, {noUpcomingDetail} and {asapPending} are scheduling.json's own labels. No emergency number, no date and no count of days is typed anywhere in this file; the build fails if one is.",
   "version": 1,
@@ -879,6 +879,35 @@
       "why": "The emergency words are a draft, they have not been reviewed by a clinician, and no list of words catches every way a person describes something frightening. So the sentence stays beside the conversation on every platform instead of appearing only after a match."
     }
   ],
+  "refusalPolicies": {
+    "why": "Four rules the engine asks, in this order, before it classifies anything — added with the Phase A upgrade of 19 September 2026. They are sentences like every other sentence here: written down, readable in advance, and never improvised. The engine refuses before it matches, with one exception the contract already promised: a message carrying an emergency word is never refused, because no policy here may lower an emergency. The ids and the severity are what the engine reads; the statements are what a person reads.",
+    "policies": [
+      {
+        "id": "consent-required",
+        "severity": "hard",
+        "statement": "I cannot read or keep what you send until you confirm that I may. Nothing has been read yet. Press confirm to continue.",
+        "why": "Consent is a person's own switch, and until it is on there is nothing this assistant may look at — not even to decide a message is harmless."
+      },
+      {
+        "id": "clinical-referral",
+        "severity": "hard",
+        "statement": "I cannot tell you what you have or what to take. I am not a clinician, and I do not diagnose or prescribe. That decision belongs to a registered nurse or doctor, and MyThuso can arrange one.",
+        "why": "The refusal no-diagnosis and the refusal no-prescription already promise the same thing on every platform in the third person; this is what those promises sound like when the question is put to the engine itself."
+      },
+      {
+        "id": "role-spoofing",
+        "severity": "hard",
+        "statement": "I cannot act as if you were staff, and I cannot open a record on anybody's word. A role here is declared and never authenticated. I answer what I am, what happens to what is said, and emergencies.",
+        "why": "The audience is declared by the caller and never authenticated — the demo login follows the same rule. Words that claim a role are asking for a scope the words cannot carry."
+      },
+      {
+        "id": "phi-detected",
+        "severity": "soft",
+        "statement": "Please do not send identity numbers, phone numbers, email addresses or medical aid details. I have not kept them, and I do not need them to help. Say what you need in your own words without them.",
+        "why": "A message carrying a South African identity number, a phone number, an email address or a medical aid number is refused before it is classified, softly — the person is asked for their own words instead — and the audit line the API keeps carries the redacted text rather than the original."
+      }
+    ]
+  },
   "events": [
     {
       "type": "pulse.session.started",
