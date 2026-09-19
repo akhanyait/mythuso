@@ -207,6 +207,130 @@ running. The capability contract is already exactly this data.
 
 ---
 
+## Founder-requested — one GilbertOne, decided 19 September 2026
+
+The founder asked for the sphere to be replaced by the robot rig as **one assistant across the
+product**, behaving differently for a patient, a nurse and a doctor according to their scopes, and
+answering general MyThuso questions when nobody is signed in. He asked for it to be expressive and
+interactive.
+
+Three decisions were taken the same day, and they are what makes this buildable inside the contract
+rather than around it:
+
+- **Affect is deterministic, derived from the answer kind.** No model, no network. This keeps the
+  work inside the refusal about anything AI-facing below, rather than needing that refusal lifted.
+- **Roles are demo-scoped and labelled simulated**, because the `?role=` parameter authenticates
+  nobody — `capabilities.json`'s `accounts` entry says so verbatim — and the identity service is off
+  in production.
+- **Speech is built behind a contract flag, off**, so the decision to let GilbertOne speak to a
+  patient is taken after hearing it rather than in hope.
+
+### Phase 1 — the rig on the live assistant
+
+Supersedes draft PR #5, which is conflicting and touches four files that commit `425fa45` also
+touched. PR #5 deletes `AssistantSphere.tsx` and about 200 lines of `.orb` CSS but does not update
+`tests/assistant.spec.ts`, which carries 28 assertions on the orb across 18 `locator('.orb')` calls.
+Those have to be re-expressed against the rig's DOM, not deleted to make the suite pass.
+
+Built and merely unwired: `GilbertAvatar.tsx` (254 lines) with a ten-channel pose
+(`lib/gilbertone.ts:53-72`), nine mouth shapes, 220ms blending, reduced-motion that applies a cue's
+still frame and refuses blink and yawn outright (`gilbertone.ts:666-668`), and `RigBoundary`
+(`GilbertWidget.tsx:67-82`) which renders `GilbertStill` rather than a blank circle when the rig
+throws. Priority and cancellation are real: safety outranks error, interrupt, activity, gesture and
+idle in that order (`gilbertone.ts:95`), and a stale turn id is refused before anything draws (`:655`).
+
+The work is the seam, not the character. The live assistant speaks `depth` and `pulse`
+(`AssistantSphere.tsx:121`, `PulseId` at `lib/assistant.ts:44`); the rig speaks cues. `depth` is only
+a rim-light gradient (`assistant.css:26-28`) and can go; `gatheredAt` maps to A09's nod. The rig
+needs a readable state surface — a `data-affect` or `data-cue` attribute — so tests assert what the
+face means instead of measuring pixels.
+
+The risk item is the phone layout. The identity sphere came down to 100px specifically to pay for the
+pre-tap voice disclosure, and the conversation floors in `tests/assistant.spec.ts` are 220, 50, 210
+and 130px. The rig's head is a different height, so those numbers are unknown until it is on the
+screen. They may pass with room or fail outright, and the disclosure must not be what gets cut.
+
+Two registers stay separate: `voice.webSentences` for a patient and `voice.webPoc.sentences` for the
+demonstrator. One character is not one script, because a page that says this is a demonstration to a
+patient is describing the wrong thing.
+
+### Phase 2 — affect
+
+There is no affect channel today. `Pose` and `RigState` carry no emotion, mood or affect field, and
+`gilbertone.ts:22` states the reason: no model, no network, no conversation state. The warm and flat
+mouth shapes exist only inside whole cues, and channels cannot be set independently because the
+reducer is the sole writer (`:17-19`).
+
+Seventeen cues exist, A01 to A17, and A07 was never built. The widget consumes six of them
+(`GilbertWidget.tsx:104,137,153,165,209,273`). A02, A03, A06 and A08 to A14 and A16 are reachable
+only from the demonstrator's control panel (`GilbertOneDemo.tsx:147-163`), which makes them demo
+furniture rather than product behaviour. A16 is urgent support and nothing derives it from an actual
+emergency.
+
+So: a dated affect section in `packages/catalog/assistant.json` mapping each answer kind to a cue and
+a posture — emergency to A16, refusal to flat, routine to warm, unmatched to concerned — and the
+dormant cues wired to conversation state.
+
+The invariant that outranks the rest, and belongs in `scripts/check-boundaries.mjs`: **affect may
+never soften a refusal or an emergency.** A warm mouth on a chest-pain answer is precisely the
+failure `capabilities.json`'s `neverSoften` was written to prevent, and on a health product it is the
+kind of wrong that gets believed. The cue priority already refuses to let a gesture displace a safety
+track; it simply has nothing to order yet.
+
+### Phase 3 — audience
+
+Nothing is role-aware anywhere. `evaluateMessage(input: string)` takes one string
+(`packages/gilbertone/src/engine.ts:203`); `PanelProps` is `{ open, dismiss, openModal, visit }` with
+no role (`Assistant.tsx:26`); the subject is the literal `subject-this-session` (`:28`) and the
+handover hardcodes `actorRole: 'patient'` (`:87`); `assistant.json` has zero role, audience or
+recipient keys and its nine refusals are audience-blind; the gate's GilbertOne block
+(`check-boundaries.mjs:6237-6402`) has zero role checks. The assistant mounts in the patient shell
+only, and `App.tsx:210-213` withholds it from the clinical workspaces until the assistant's scope
+says what a nurse or a doctor could ask it.
+
+`RoleId` already has six values including doctor (`lib/roles.ts:37,68-69`), so the vocabulary exists.
+What is needed is an audience parameter through the engine and `lib/assistant.ts`'s `send()`,
+audience-tagged questions and per-audience refusals in the contract — a nurse asking for a dose and a
+patient asking for one are different refusals — the launcher mounted in `StaffShell.tsx` and
+`AdminShell.tsx`, and the simulated label rendered from the contract rather than typed onto a layout.
+
+The hidden cost is parity: the three-platform matcher lists at `check-boundaries.mjs:6367-6369` and
+`:6386-6393` must carry the audience dimension, or iOS and Android diverge silently. That is the same
+shape of drift that let a microphone reach a patient page ahead of its paperwork.
+
+Blocked externally, and no code fixes it: a truthful signed-in role. `auth.ts:44` returns id, phone
+and name and no role even when the identity service runs, the `/api/` block is commented out at
+`deploy/nginx/mythuso.conf:118`, and the service will not start without an SMS provider.
+
+### Phase 4 — general queries for a signed-out visitor
+
+`assistant.json` holds 8 questions in 2 groups and 4 situations; everything else returns
+`answers.unmatched`. `features/Landing.tsx` has no assistant reference at all, so there is nowhere to
+mount one. This phase is cheap in code and expensive in authoring, because the sentences have to be
+written and approved by somebody accountable for them. The signed-out audience is the widest and the
+least trusted, so it gets the narrowest answers: no price, no clinical claim, no capability the
+contract says is not connected. It points at `/status` rather than restating fifteen capability states
+in a second place for them to drift.
+
+### Phase 5 — speech, off
+
+`speechSynthesis` has exactly one call site in the whole web app, `GilbertOneDemo.tsx:184`;
+`AssistantVoiceButton.tsx` uses start, stop and transcript only. Lip-sync already works two ways —
+browser word-boundary events, falling back to the timed caption track at `gilbertone.ts:597-608`,
+with `boundariesSeen` reporting which clock ran. What is missing is a dated flag defaulting to false,
+captions that are mandatory and not switchable per §07, a mouth that closes on Stop, on cancel, on
+failure, under reduced motion and on a hidden tab, and §07's V03 refusal standing: no voice selection
+and no promise of a South African voice, because the contract says not to guarantee one is installed.
+
+### What proper still lacks
+
+The rig is an engineer's SVG of primitives — rect, circle, ellipse, path — and
+`GilbertAvatar.tsx:10-16` says a designer's artwork replaces those paths and nothing else. §09 asked
+for a character designer's rig with named groups and a static fallback. The control layer is ready for
+real artwork; the artwork is not drawn.
+
+---
+
 ## What I would not build yet
 
 - **Anything AI-facing.** `screening` and `voice` are both blocked on a model, a vendor and a
