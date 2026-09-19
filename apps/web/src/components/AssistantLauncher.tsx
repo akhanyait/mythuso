@@ -19,8 +19,9 @@ import type { Visit } from '../lib/scheduling';
 
    What the Siri comparison is and is not, on the web. It is presence and placement: a small lit
    thing always in reach. It is not listening. There is no hold-to-talk gesture and no long-press,
-   and the orb never reacts to sound — the web has no microphone in this release. A press opens a
-   panel with a text box, and that is all a press does. */
+   and this orb never reacts to sound — it has no microphone to react with, and the one on the panel
+   is a button inside it that opens only when she taps it. A press opens a panel with a text box,
+   and that is all a press does. */
 
 const load = () => import('../features/Assistant');
 let pending: ReturnType<typeof load> | null = null;

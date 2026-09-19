@@ -454,9 +454,20 @@
  background: var(--brand-ink);
 }
 .as-compose label { font-size: 14px; font-weight: 600; color: var(--surface); }
-.as-field { display: flex; gap: var(--space-8); min-width: 0; }
+/* One row of three — the field, the microphone, the written Send — with the microphone's words on a
+   line of their own underneath all three. A grid rather than a flex row because the control and its
+   words are one component returning two siblings, and the words have to leave the row without taking
+   Send's place: placed by hand on the second row, they stay out of the auto-placement the three
+   controls fill along the first. */
+.as-field {
+ display: grid;
+ grid-template-columns: minmax(0, 1fr) auto auto;
+ gap: var(--space-8);
+ align-items: center;
+ min-width: 0;
+}
+.as-voice-lines { grid-column: 1 / -1; grid-row: 2; display: grid; gap: var(--space-8); }
 .as-field input {
- flex: 1;
  min-width: 0;
  min-height: 44px;
  padding: 0 var(--space-12);
@@ -498,6 +509,35 @@
    conversation without dropping the contrast they were measured at. */
 .as-silence, .as-keyboard { margin: 0; font-size: 13px; line-height: 1.45; color: var(--brand-mint); }
 .as-keyboard { margin-top: var(--space-4); padding-top: var(--space-12); border-top: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink)); }
+/* The push-to-talk control and the words under it. It is a real microphone that opens on a tap, so it
+   is named — as the contract's own accessible name, and as the line under the row that says which of
+   the four states it is actually in, because the icon is never allowed to be the whole answer. It is a
+   square rather than a labelled pill because it shares the field's row, and the row that must not be
+   squeezed is the one a person types in. The disclosure sits in the footnote line until the first tap,
+   because a page that opens a microphone and then explains has already taken the voice it was about to
+   explain. */
+.as-voice {
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ width: 44px;
+ min-height: 44px;
+ padding: 0;
+ border: 1px solid color-mix(in srgb, var(--brand-mint) 62%, var(--brand-ink));
+ border-radius: var(--r-control);
+ background: var(--surface);
+ color: var(--brand-ink);
+ font: inherit;
+ font-size: 15px;
+ font-weight: 600;
+ cursor: pointer;
+}
+.as-voice:hover { background: color-mix(in srgb, var(--brand-mint) 30%, var(--surface)); }
+.as-voice-state, .as-voice-heard { margin: 0; font-size: 13px; line-height: 1.45; color: var(--brand-mint); }
+/* The words as the browser catches them, under their contract label. The colour is the one the two
+   lines around it already use, so a patient reading what she sounds like is not looking at a new
+   pair nobody measured; only the label is heavier, and only so the words stay the easier read. */
+.as-voice-heard span { font-weight: 600; }
 /* The unread answer sits inside the reply it follows, set apart by an orange rule: the words GilbertOne
    could not read are the part of the message most worth a second look. */
 .as-unread { display: grid; gap: var(--space-12); margin-top: var(--space-16); padding: var(--space-12) 0 0 var(--space-12); border-left: 2px solid var(--brand-orange); border-top: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink)); }
@@ -539,28 +579,47 @@
    back from the places that were spending it on air, and it is measured at 390x844 and 320x720 in
    both the idle and the asked state. */
 @media (max-width: 560px) {
- /* The sphere is the identity on open, but 172px of a 390px sheet is a portrait at the price of the
-    answer. 38vw is 148px at 390 and 122px at 320, and the body is 63% of the box — 93px and 77px,
-    both well above the 60px the still state has to keep so a reduced-motion frame is a whole sphere
-    rather than a dot. The asked state's own 100px rule still wins: it is one more class than this.
-    The 12px of clear air under the descriptor stays: the bleed is 108% of the box, so a smaller sphere
-    has a smaller glow, and the rule it exists for — the glow never lands on the words — is unchanged. */
- .as-head .orb { --orb: min(148px, 38vw); }
+ /* The sphere is the identity on open, and it is what the composer's new fixed line is paid from: the
+    voice disclosure the founder's decision of 18 September puts under the input is 134px at 390, the
+    head is the only block on the sheet with that much to give, and 100px is the size the asked state
+    already used — so on a phone the sphere is one size before the first question and after it. The body
+    is 63% of the box, 63px, above the 60px the still state has to keep so a reduced-motion frame is a
+    whole sphere rather than a dot. The 12px of clear air under the descriptor stays: the bleed is 108%
+    of the box, so a smaller sphere has a smaller glow, and the rule it exists for — the glow never
+    lands on the words — is unchanged. */
+ .as-head .orb { --orb: 100px; }
  /* The head's own padding: 4px off the top and 4px off the bottom, which is all it was spending on air.
     It moves out of the phone block: the 400px card on a laptop has the same head, and it was the head
     and the composer together that left that card 167px for a 192px notice — so the same two pixels
     are taken back there too, under the desktop rule where they are measured. */
  .as-head { padding-top: var(--space-8); padding-bottom: var(--space-8); }
- /* The two contract sentences under the box are the composer's real cost — 88px for the keyboard note
-    and 57px for the silence note at 390 — and they cannot be shortened, so they are set tighter
-    instead: one line-height step and one padding step, which is 16px at 390 and 20px at 320 without
-    moving a word off the screen. Both stay in the composer, where they are visible without scrolling. */
+ /* The contract sentences under the box are the composer's real cost — 88px for the keyboard note and
+    57px for the silence note at 390 — and the voice disclosure that joined them on 18 September is
+    longer than both: 134px at 390, 168px at 320, set in place of the typing note until the first tap.
+    None of them may be shortened, so they are set tighter instead: one line-height step, one padding
+    step and one type step from 13px to 12px. The last of the three is a real cost, not a saving nobody
+    notices — smaller than the rest of the panel's text, and paid so the sentences stay whole on the
+    screen rather than pushing the conversation off the bottom. Only the size moves: the mint on ink
+    they were measured at is the rule they keep. */
  .as-compose { padding-top: var(--space-8); gap: var(--space-8); }
- .as-silence, .as-keyboard { line-height: 1.4; }
+ .as-silence, .as-keyboard, .as-voice-state, .as-voice-heard { font-size: 12px; line-height: 1.4; }
  .as-keyboard { padding-top: var(--space-8); }
  /* The notice that opens the scroll keeps a full 20px at its sides, and a little less above it: the
     top of the sheet is a hard edge the eye needs a hairline of ink against, not 16px of it. */
  .as-scroll { padding-top: var(--space-12); }
+}
+
+/* ---- A narrow phone ----------------------------------------------------------------------------
+   Under 360px the sheet is not a narrower 390, it is a different paragraph. The voice disclosure is 460
+   characters of contract text that may not be shortened; at 12px on a 320px sheet it still takes ten
+   lines, the composer it sits in is 329px and the head above it 302px, of a 691px sheet. So the margins
+   and the gaps give here — 8px off each side of the scroll and the composer, 4px between the composer's
+   rows — because at this width every one of them is a line of the answer the fixed chrome is not
+   spending, and not one word moves out of the sentence a person is being asked to agree to. */
+@media (max-width: 359px) {
+ .as-scroll, .as-compose { padding-inline: var(--space-12); }
+ .as-compose { gap: var(--space-4); }
+ .as-voice-lines { gap: var(--space-4); }
 }
 
 @media (min-width: 1000px) {
@@ -582,12 +641,14 @@
     reason: the head and the composer are both fixed, and at 400x760 they were 334 and 259 — so the
     contract notice that opens the conversation had 167px and was cut mid-sentence at the composer's
     top edge, exactly as it was on a phone. The cap rises to 800, which costs a 1100px screen nothing
-    and a 768px screen is where it pays for itself; the sphere comes down to 120px beside the
-    descriptor, and the head sheds the 8px of padding that was air. 167 -> 239px, and the notice is
-    whole with 47px to spare. */
- .as-head .orb { --orb: 120px; }
+    and a 768px screen is where it pays for itself; the sphere comes down beside the descriptor, and
+    the head sheds the 8px of padding that was air. 167 -> 239px, and the notice is whole with 47px to
+    spare. The voice disclosure the founder's decision of 18 September fixed under the input takes about
+    that much again, so the card pays from the same two places the sheet does: the sphere to 100px,
+    which is now one size on every shell, and one type step on the sentences under the box. */
+ .as-head .orb { --orb: 100px; }
  .as-head { padding-top: var(--space-8); padding-bottom: var(--space-8); }
  .as-compose { padding-top: var(--space-8); gap: var(--space-8); }
- .as-silence, .as-keyboard { line-height: 1.4; }
+ .as-silence, .as-keyboard, .as-voice-state, .as-voice-heard { font-size: 12px; line-height: 1.4; }
  .as-keyboard { padding-top: var(--space-8); }
 }

@@ -31,9 +31,12 @@ import { accessSettingsNow, rotaAt } from './settings';
    emergency words are a draft nobody clinical has reviewed, which is why the contract's
    silenceIsNotSafety sentence stays beside the conversation.
 
-   NO MICROPHONE. The web does not listen in this release, because a browser's speech recognition
-   sends a voice to the browser's maker. Nothing here reaches for audio, and the build refuses it in
-   the whole of apps/web/src. Listening and Thinking are native states; the web moves between Idle,
+   A MICROPHONE IN THE BOX, AND NO LISTENING SPHERE. Since the founder's decision of 18 September 2026
+   the composer carries a push-to-talk button, and the words are the browser's own recognition of them —
+   the reason the disclosure is on the screen before the first tap rather than after it. What it catches is
+   a draft in the text box: nothing sends it, stores it or answers it until she presses Send, and no audio
+   is taken or kept on any path, which the build still refuses across the whole of apps/web/src. The sphere
+   is not driven by any of it. Listening and Thinking are native states; the web moves between Idle,
    Guiding, Escalate and Handover only, and never adds a pause to look considered. */
 
 export type Depth = 0 | 1 | 2 | 3;

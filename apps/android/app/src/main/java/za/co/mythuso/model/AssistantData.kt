@@ -366,7 +366,7 @@ object GilbertData {
         GilbertRefusal(
             "listening-is-the-microphone",
             "GilbertOne shows Listening only while the microphone is open, and the microphone is never open without it.",
-            "A listening indicator that runs ahead of the microphone teaches people to talk to nothing; a microphone that runs without one is a recording nobody agreed to. Both are driven from the same open and close, and nothing on the web offers to listen at all."
+            "A listening indicator that runs ahead of the microphone teaches people to talk to nothing; a microphone that runs without one is a recording nobody agreed to. Both are driven from the same open and close, and on the web that single control exists only on the two surfaces the founder put it on. Nowhere else on the site offers to listen, in any state."
         ),
         GilbertRefusal(
             "not-a-person",

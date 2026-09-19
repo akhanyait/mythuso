@@ -584,22 +584,44 @@
   "correctionBeforeSend": true,
   "wakeWord": false,
   "modelImprovementOffered": false,
-  "web": false,
-  "decidedBy": "The founder, 14 September 2026.",
+  "web": true,
+  "webRecognition": "browser",
+  "decidedBy": "The founder, 14 September 2026, for the phone; voice.webDecision below for the web.",
+  "webDecision": {
+   "web": true,
+   "webRecognition": "browser",
+   "decidedBy": "Founder",
+   "on": "2026-09-18",
+   "why": "Reverses voice.web's false, on the founder's decision of 18 September 2026, so that a patient who cannot type or does not want to can speak to GilbertOne where she already is. The reason the 14 September refusal was made has not gone away, so it is said out loud rather than worked around: a browser's recognition may send what is said to the company that makes the browser. That is why recognition above stays on-device for the phone and webRecognition says browser for this one route, why webSentences carries the disclosure before the first tap rather than after it, and why the field stays typed-to by default and typing always works. Nothing else widened — the cap, the gesture, the correction before anything is sent, English only, no audio kept and no model behind any answer are the 14 September decision unchanged. Changing any of them is a founder decision recorded here, not an edit.",
+   "reverses": "voice.web = false, decided 14 September 2026"
+  },
   "webPoc": {
    "enabled": true,
-   "scope": "The GilbertOne character demonstrator at /app/?preview=gilbertone, and nothing else on the web. The live assistant is still governed by voice.web above: it does not listen, does not speak, and nothing in this object reaches it.",
+   "scope": "The GilbertOne character demonstrator at /app/?preview=gilbertone. These sentences are written for a reviewer on a page labelled a demonstrator. The live patient assistant has its own set, voice.webSentences, and the two are kept apart on purpose: a page that says “this demonstration” to a patient is a page describing the wrong thing, and the demonstrator's refusals are worded for somebody who chose to open it.",
    "mode": "push-to-talk",
    "maxListeningSeconds": 30,
    "decidedBy": "Founder",
    "on": "2026-09-17",
-   "why": "§07 of the GilbertOne scope document asks for browser push-to-talk and browser speech in the proof of concept, and a demonstrator that describes both in words cannot be reviewed for either. The founder asked on 17 September 2026 for the real thing on that one page, so that the microphone states, the transcript review and the mouth against real playback can be judged rather than imagined. The reason the live assistant is still typed to is unchanged: a browser's recognition may leave the machine, and a patient asking about her own health is not a reviewer who chose to open a demonstrator.",
+   "why": "§07 of the GilbertOne scope document asks for browser push-to-talk and browser speech in the proof of concept, and a demonstrator that describes both in words cannot be reviewed for either. The founder asked on 17 September 2026 for the real thing on that one page, so that the microphone states, the transcript review and the mouth against real playback can be judged rather than imagined. As decided that day this was the only page on the web that listened; the same browser route was widened to the live assistant on 18 September 2026, and voice.webDecision holds that later decision and the disclosure it requires.",
    "sentences": {
     "beforePermission": "Your browser is about to ask whether this page may use the microphone. It opens only after you tap, for {seconds} seconds at most, and this page keeps no recording. Your browser's speech recognition may send what you say to the company that makes the browser to turn it into text — that is the browser's route, not MyThuso's, and it is why the rest of MyThuso on the web is typed to.",
     "unavailable": "This browser has no speech recognition, so this demonstration cannot hear you. Nothing was asked for and nothing was opened. You can type instead, and everything else on the page works as it did.",
     "refused": "The microphone is switched off for this page, so the demonstration cannot hear you. Nothing was kept. You can type instead, and you can change this in your browser's settings for this site.",
     "failed": "The demonstration did not catch that. Nothing was kept. Tap to talk again, or type instead.",
     "interrupted": "The microphone closed before you tapped Stop — the browser took it back, or the time limit ran out. Whatever was caught up to that point is in the field below to check or discard. Nothing was kept beyond it."
+   }
+  },
+  "webSentences": {
+   "beforePermission": "Your browser is about to ask whether this page may use the microphone. It opens only because you tapped it, for {seconds} seconds at most, and MyThuso keeps no recording of what you say. Your browser's own speech recognition may send what you say to the company that makes the browser to turn it into text — that is the browser's route, and not MyThuso's. Nothing at all goes to GilbertOne until you press Send, and you can type instead at any time.",
+   "unavailable": "This browser has no speech recognition, so GilbertOne cannot hear you here. Nothing was asked for and nothing was opened. Type your question instead, and everything else on this page works as it did.",
+   "refused": "The microphone is switched off for this page, so GilbertOne cannot hear you. Nothing was kept. Type instead, or change this in your browser's settings for this site.",
+   "failed": "GilbertOne did not catch that. Nothing was kept. Tap to talk again, or type it instead.",
+   "interrupted": "The microphone closed before you tapped Stop — the browser took it back, or the {seconds} seconds ran out. Whatever was caught is in the field below for you to check or discard. Nothing was kept beyond it.",
+   "states": {
+    "off": "The microphone is closed. GilbertOne cannot hear you until you tap.",
+    "starting": "Your browser is being asked for the microphone. Nothing is being heard yet.",
+    "open": "The microphone is open. Speak, then tap Stop. It closes on its own after {seconds} seconds.",
+    "error": "The microphone is not open, and nothing was kept. You can try again, or type."
    }
   },
   "sentences": {
@@ -610,7 +632,7 @@
    "unavailable": "Speaking to GilbertOne is not available on this phone. It needs English speech recognition that runs on the phone itself, and this phone does not offer it, so what you said could not be kept on the phone. You can still type.",
    "refused": "The microphone or speech recognition is switched off for MyThuso, so GilbertOne cannot hear you. You can still type, and you can change this in your phone's Settings.",
    "failed": "GilbertOne did not catch that. Nothing was kept. Try again, or type instead.",
-   "web": "GilbertOne cannot hear you on the web. A browser's speech recognition sends your voice to the company that makes the browser, so on the web you type.",
+   "web": "Yes, here, once you tap the microphone beside the box. Your browser turns what you say into text, and its recognition may send it to the company that makes the browser; MyThuso keeps no recording. GilbertOne shows you the words to check before anything is sent, and it hears nothing until you tap. You can type instead, always.",
    "talkLabel": "Tap to talk to GilbertOne",
    "stopLabel": "Stop",
    "captionsLabel": "What GilbertOne has heard so far",
@@ -653,7 +675,7 @@
   {
    "id": "listening-is-the-microphone",
    "statement": "GilbertOne shows Listening only while the microphone is open, and the microphone is never open without it.",
-   "why": "A listening indicator that runs ahead of the microphone teaches people to talk to nothing; a microphone that runs without one is a recording nobody agreed to. Both are driven from the same open and close, and nothing on the web offers to listen at all."
+   "why": "A listening indicator that runs ahead of the microphone teaches people to talk to nothing; a microphone that runs without one is a recording nobody agreed to. Both are driven from the same open and close, and on the web that single control exists only on the two surfaces the founder put it on. Nowhere else on the site offers to listen, in any state."
   },
   {
    "id": "not-a-person",

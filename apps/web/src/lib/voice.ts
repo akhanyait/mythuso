@@ -1,27 +1,33 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { voice as voicePolicy } from '../../../../packages/catalog/assistant.json';
 
-/* The browser's own microphone and the browser's own voice — for the GilbertOne demonstrator alone.
+/* The browser's own microphone and the browser's own voice, for the two web surfaces allowed one.
  *
  * WHY THIS FILE EXISTS AT ALL, AND WHY IT IS THE ONLY ONE OF ITS KIND. Until 17 September 2026 no
  * file under apps/web/src was allowed to name a speech API: the founder's decision of 14 September
  * was that MyThuso on the web is typed to, because a browser's recognition may hand what somebody
- * said to the company that makes the browser. That reason has not changed and the live assistant is
- * still typed to — `voice.web` in packages/catalog/assistant.json is still false and still governs
- * it. What changed is that the founder asked, on 17 September, for §07 of the GilbertOne scope
- * document to be built for real on the one page that is labelled a demonstrator, so that the
- * microphone states, the transcript review and a mouth against real playback can be judged instead
- * of imagined. That decision is written down as `voice.webPoc`, and everything below reads it.
+ * said to the company that makes the browser. That reason has not been overturned, only answered
+ * with a disclosure: on 17 September the founder asked for §07 of the GilbertOne scope document to
+ * be built for real on the page labelled a demonstrator, and on 18 September widened the same browser
+ * route to the live assistant so a patient who cannot type can speak. Both decisions are on file —
+ * `voice.webPoc` and `voice.webDecision` in packages/catalog/assistant.json — and this file reads
+ * both rather than holding a sentence of its own.
  *
  * SO THE BOUNDARY IS THIS FILE. scripts/check-boundaries.mjs allows the speech APIs here and refuses
  * them in every other file under apps/web/src, the same way the microphone lives in exactly one file
  * on each phone. One file to read is the whole point: anybody asking "when can this app hear me" gets
  * an answer by opening one module rather than by trusting a sentence.
  *
- * WHAT IT WILL NOT DO. It opens nothing on its own — `start` is only ever called from a tap. It keeps
- * nothing: there is no recorder here, no audio buffer, no storage of any kind, and the transcript is
- * React state that dies with the page. It answers nothing: there is no model behind the words it
- * catches, and the only thing it can say out loud is a string its caller hands it.
+ * TWO READERS, TWO SETS OF WORDS. The demonstrator's sentences say "this demonstration"; the live
+ * assistant's say what a patient is agreeing to. Which set a caller gets is chosen out loud, at the
+ * call site, and defaults to the demonstrator's so that adding the assistant could never silently
+ * reword the page that was here first.
+ *
+ * WHAT IT WILL NOT DO. It opens nothing on its own — `start` is only ever called from a tap, and the
+ * disclosure is the caller's to show before that tap. It keeps nothing: there is no recorder here, no
+ * audio buffer, no storage of any kind, and the transcript is React state that dies with the page. It
+ * answers nothing: there is no model behind the words it catches, and the only thing it can say out
+ * loud is a string its caller hands it.
  *
  * ON LIP SYNC, HONESTLY. §07 warns that `onboundary` is not a portable viseme stream and must not be
  * sold as production lip-sync. It is not sold as one. Boundary events are forwarded when the browser
@@ -32,21 +38,44 @@ import { voice as voicePolicy } from '../../../../packages/catalog/assistant.jso
 export type VoiceStateId = 'off' | 'starting' | 'open' | 'error';
 
 /** Which of the contract's four failure sentences a reader is shown. The ids are the sentence keys
- *  in `voice.webPoc.sentences`, so the words a person reads cannot drift from the decision. */
+ *  in both web sets, so the words a person reads cannot drift from the decision. */
 export type VoiceFailureId = 'unavailable' | 'refused' | 'failed' | 'interrupted';
+
+/** Which surface is asking, and so whose words a person reads. `demonstrator` is the default so that
+ *  wiring the live assistant could not silently reword the page that was here first. */
+export type VoiceSurface = 'demonstrator' | 'assistant';
 
 export const MAX_LISTENING_SECONDS = voicePolicy.webPoc.maxListeningSeconds;
 
-const SENTENCES = voicePolicy.webPoc.sentences;
-/** The disclosure that is shown before the first tap, with the cap written into it from the contract
- *  rather than typed beside it. */
-export const BEFORE_PERMISSION = SENTENCES.beforePermission.replace('{seconds}', String(MAX_LISTENING_SECONDS));
+/** The two web sentence sets, both read from the contract. A cap or a sentence written here instead
+ *  would be a second copy able to disagree with the decision it comes from. */
+const SENTENCES: Record<VoiceSurface, Record<VoiceFailureId | 'beforePermission', string>> = {
+ demonstrator: voicePolicy.webPoc.sentences,
+ assistant: voicePolicy.webSentences
+};
 
-export const FAILURE_SENTENCES: Record<VoiceFailureId, string> = {
- unavailable: SENTENCES.unavailable,
- refused: SENTENCES.refused,
- failed: SENTENCES.failed,
- interrupted: SENTENCES.interrupted
+const withSeconds = (sentence: string) => sentence.replace('{seconds}', String(MAX_LISTENING_SECONDS));
+
+/** The disclosure shown before the first tap, for whichever surface is asking. */
+export const disclosureFor = (surface: VoiceSurface) => withSeconds(SENTENCES[surface].beforePermission);
+
+/** The disclosure that is shown before the first tap, with the cap written into it from the contract
+ *  rather than typed beside it. The demonstrator's own, which is the page that reads it in words. */
+export const BEFORE_PERMISSION = disclosureFor('demonstrator');
+
+const FAILURE_SENTENCES: Record<VoiceSurface, Record<VoiceFailureId, string>> = {
+ demonstrator: {
+  unavailable: SENTENCES.demonstrator.unavailable,
+  refused: SENTENCES.demonstrator.refused,
+  failed: SENTENCES.demonstrator.failed,
+  interrupted: SENTENCES.demonstrator.interrupted
+ },
+ assistant: {
+  unavailable: SENTENCES.assistant.unavailable,
+  refused: SENTENCES.assistant.refused,
+  failed: SENTENCES.assistant.failed,
+  interrupted: SENTENCES.assistant.interrupted
+ }
 };
 
 /* The recogniser's own error codes, and which sentence each one earns. A code nobody has written a
@@ -118,7 +147,7 @@ export type SpeakOptions = {
  readonly onEnd?: () => void;
 };
 
-export function useVoiceAdapter() {
+export function useVoiceAdapter(surface: VoiceSurface = 'demonstrator') {
  const [state, setState] = useState<VoiceStateId>('off');
  const [transcript, setTranscript] = useState('');
  const [failure, setFailure] = useState<VoiceFailureId | null>(null);
@@ -291,11 +320,13 @@ export function useVoiceAdapter() {
 
  const clearFailure = useCallback(() => setFailure(null), []);
 
- /* Only what the demonstrator reads. An exported member nothing calls is a promise about behaviour
+ /* Only what the two web surfaces read. An exported member nothing calls is a promise about behaviour
     that no journey exercises, and on this module that is the wrong kind of unused. */
  return {
   supported, canSpeak, state, transcript, boundariesSeen,
-  failureSentence: failure ? FAILURE_SENTENCES[failure] : null,
+  failureSentence: failure ? FAILURE_SENTENCES[surface][failure] : null,
+  unavailable: SENTENCES[surface].unavailable,
+  disclosure: disclosureFor(surface),
   maxListeningSeconds: MAX_LISTENING_SECONDS,
   start, stop, speak, cancel, clearFailure
  } as const;

@@ -30,9 +30,13 @@ import { confirmBooking, goSection } from './nav';
    answer for gets "I can't assess that", the ambulance numbers, Thuso SOS and a way to a nurse — and
    the nurse handover shows what would be sent and says it was not.
 
-   It never offers to listen. No microphone glyph, no listening word on any control, and no call to
-   getUserMedia, SpeechRecognition, MediaRecorder or AudioContext. The web has a text box and nothing
-   that hears.
+   Listening, since the founder's decision of 18 September 2026. The composer is still a text box that
+   works on its own, and exactly one control on this screen offers to hear — the button carrying the
+   contract's own label, with the disclosure about the browser's recognition on the page before the
+   first tap. Nothing reaches for a recogniser until that tap, and no way of recording or speaking is
+   reached for at all. What the browser caught is a draft the patient reads, edits and sends herself,
+   and it is an emergency when she sends it in the same words that would have made it one typed. A
+   browser with no speech recognition is told so and given no control that cannot hear.
 
    Motion stops rather than slows. */
 
@@ -58,14 +62,69 @@ const ask = async (page: Page, words: string) => {
  await panel(page).getByRole('button', { name: gilbert.conversation.sendLabel, exact: true }).click();
 };
 
-/* Before the app's own code runs, so a reach for any way of hearing from anywhere on the page counts. */
-const watchForListening = (page: Page) => page.addInitScript(() => {
+/* Before the app's own code runs, so a reach for any way of keeping a sample, or of answering in a
+   voice, from anywhere on this screen counts. The browser's recogniser is NOT in this list: since the
+   founder's decision of 18 September 2026 the assistant's microphone may open it, and a refusal here
+   would only defeat the tests below that drive it on purpose. */
+const watchForRecording = (page: Page) => page.addInitScript(() => {
  const tally = window as unknown as { __heard: string[] } & Record<string, unknown>;
  tally.__heard = [];
  const count = (name: string) => function () { tally.__heard.push(name); throw new Error('Refused by the assistant spec'); };
  if (navigator.mediaDevices) navigator.mediaDevices.getUserMedia = () => { tally.__heard.push('getUserMedia'); return Promise.reject(new Error('Refused by the assistant spec')); };
- for (const name of ['SpeechRecognition', 'webkitSpeechRecognition', 'MediaRecorder', 'AudioContext', 'webkitAudioContext']) {
+ for (const name of ['MediaRecorder', 'AudioContext', 'webkitAudioContext', 'SpeechSynthesisUtterance', 'speechSynthesis']) {
   Object.defineProperty(window, name, { configurable: true, value: count(name) });
+ }
+});
+
+/* The microphone stand-in, and the four things a test can do to it. */
+type MicControl = {
+  calls: string[];
+  instance: Record<string, ((event?: unknown) => void) | null> | null;
+};
+const giveVoice = (page: Page) => page.addInitScript(() => {
+ const scope = window as unknown as { SpeechRecognition: unknown; webkitSpeechRecognition: unknown; __mic: MicControl };
+ const mic: MicControl = { calls: [], instance: null };
+ class StandInRecogniser {
+  lang = '';
+  continuous = false;
+  interimResults = false;
+  maxAlternatives = 1;
+  onstart: (() => void) | null = null;
+  onend: (() => void) | null = null;
+  onerror: ((event: { error: string }) => void) | null = null;
+  onresult: ((event: unknown) => void) | null = null;
+  constructor() { mic.calls.push('new'); }
+  start() {
+   mic.calls.push('start');
+   /* A real recogniser is open a moment after it is asked for, never in the same tick. That gap is
+      the whole of the "starting" state, so the stand-in keeps one. */
+   setTimeout(() => { mic.instance = this as unknown as MicControl['instance']; this.onstart?.(); }, 20);
+  }
+  stop() { mic.calls.push('stop'); setTimeout(() => mic.instance?.onend?.(), 5); }
+  abort() { mic.calls.push('abort'); mic.instance = null; }
+ }
+ scope.SpeechRecognition = StandInRecogniser;
+ scope.webkitSpeechRecognition = StandInRecogniser;
+ scope.__mic = mic;
+});
+const micCalls = (page: Page) => page.evaluate(() => (window as unknown as { __mic: MicControl }).__mic.calls);
+/* Words the way a real recogniser reports them: a result list whose first alternative of the first
+   result carries the transcript, which is what the app reads its review line off. */
+const dictate = (page: Page, words: string) => page.evaluate(words => {
+ const mic = (window as unknown as { __mic: MicControl }).__mic;
+ mic.instance?.onresult?.({ resultIndex: 0, results: [{ length: 1, 0: { transcript: words } }] });
+}, words);
+/* The ending nobody asked for, which is how a browser taking the microphone back looks. */
+const takeBack = (page: Page) => page.evaluate(() => (window as unknown as { __mic: MicControl }).__mic.instance?.onend?.());
+const refuseVoice = (page: Page, code: string) => page.evaluate(code => {
+ const mic = (window as unknown as { __mic: MicControl }).__mic;
+ mic.instance?.onerror?.({ error: code });
+}, code);
+/* Chromium exposes `webkitSpeechRecognition` even where there is no speech backend behind it, so a
+   browser that cannot hear at all has to be simulated rather than assumed from the test browser. */
+const withoutVoice = (page: Page) => page.addInitScript(() => {
+ for (const name of ['SpeechRecognition', 'webkitSpeechRecognition']) {
+  Object.defineProperty(window, name, { configurable: true, value: undefined });
  }
 });
 
@@ -105,7 +164,11 @@ test('the orb floats on every patient page, and GilbertOne is fetched only when 
  await expect(panel(page).locator('.not-connected')).toHaveText(noticeFor('voice'));
  await expect(panel(page).locator('.as-silence')).toHaveText(say(gilbert.silenceIsNotSafety));
  await expect(panel(page).locator('.as-silence')).toBeInViewport();
- await expect(panel(page).locator('.as-keyboard')).toHaveText(gilbert.conversation.webKeyboardNote);
+ /* One footnote slot, and before the first tap the voice disclosure is what stands in it — the
+    typing note it borrows the line from comes back once the microphone has been explained. Two
+    footnotes would be one the phone has no line for. */
+ await expect(panel(page).locator('.as-keyboard')).toHaveCount(1);
+ await expect(panel(page).locator('.as-keyboard')).toHaveText(say(gilbert.voice.webSentences.beforePermission));
  await expect(panel(page).locator('.orb')).toHaveAttribute('aria-hidden', 'true');
  await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'idle');
  await expect(panel(page).locator('.as-state')).toHaveText(cue('idle'));
@@ -162,7 +225,8 @@ test('the name never prints into the controls, and the conversation keeps room t
   const scroll = document.querySelector('.as-scroll') as HTMLElement;
   return {
    name: box('.as-titles h2'), controls: box('.as-controls'), sheet: box('#assistant-panel'),
-   compose: box('.as-compose'), silence: box('.as-silence'),
+   compose: box('.as-compose'), silence: box('.as-silence'), footnote: box('.as-keyboard'),
+   input: box('.as-field input'),
    /* The defect itself, in one number: the box around the name was narrower than the name, so the name
       printed past it and into whatever was beside it. */
    nameOverflow: h2.scrollWidth - h2.clientWidth,
@@ -180,7 +244,7 @@ test('the name never prints into the controls, and the conversation keeps room t
    await page.waitForTimeout(500);
    if (asked) await ask(page, 'my shoulder aches');
 
-   const { name, controls, sheet, compose, silence, nameOverflow, scrollClient, scrollHeight } = await layout(page);
+   const { name, controls, sheet, compose, silence, footnote, input, nameOverflow, scrollClient, scrollHeight } = await layout(page);
    expect(overlaps(name, controls), `at ${where} the name prints into the controls`).toBe(false);
    expect(nameOverflow, `at ${where} the name is wider than the box holding it`).toBeLessThanOrEqual(1);
    expect(name.right, `at ${where} the name runs out of the sheet`).toBeLessThanOrEqual(width);
@@ -192,12 +256,25 @@ test('the name never prints into the controls, and the conversation keeps room t
       on the screen, not scrolled to: it is a footnote to the field, not part of the conversation. */
    expect(silence.bottom, `at ${where} the silence sentence is below the fold`).toBeLessThanOrEqual(height);
    expect(silence.y, `at ${where} the silence sentence is behind the conversation`).toBeGreaterThan(compose.y);
+   /* The other half of the trade, in the same direction: the disclosure is fixed chrome under the input
+      precisely so that it is read before the first tap rather than scrolled to, so the whole footnote
+      line is held above the fold, not its first line. */
+   expect(Math.round(footnote.bottom), `at ${where} the voice disclosure is below the fold`).toBeLessThanOrEqual(height);
+   /* And the control that bought the footnote did not buy it out of the box a person types in: it is a
+      44px square in the field's row, and the row keeps the field wide enough that its contract
+      placeholder reads as cut short rather than as a broken box. */
+   expect(Math.round(input.width), `at ${where} the row leaves the text field ${Math.round(input.width)}px`).toBeGreaterThanOrEqual(100);
 
    expect(scrollHeight, `at ${where} the scroll has nothing to scroll`).toBeGreaterThan(scrollClient);
-   /* Floors rather than the measurements: 246px at 390, 85px at 320, 263px at 1440 and 183px at 1366,
-      all with nothing asked. What they must not go back to is 168, 40, 167 and 127 — the rooms the
-      fixed chrome left when the notice that opens the conversation was cut in half. */
-   const floor = width >= 1000 ? (height >= 900 ? 240 : 160) : (width === 390 ? 220 : 70);
+   /* Floors, not measurements: 236px at 390, 60px at 320, 226px at 1440 and 146px at 1366, all with
+      nothing asked. They came down by about a sentence's worth when the founder's decision of 18
+      September fixed the voice disclosure under the input — 134px of it at 390, 168px at 320, over the
+      88px typing note it displaces until the first tap — and were paid back from the sphere (148px to
+      100px on a phone, 120px to 100px on the card), one type step on the sentences under the box, and
+      below 360px the scroll's and the composer's side margins. Every one of them still sits above the
+      number this file records as the failure — 168, 40, 167 and 127 — which is the room the fixed chrome
+      left when the notice that opens the conversation was cut in half. */
+   const floor = width >= 1000 ? (height >= 900 ? 210 : 130) : (width === 390 ? 220 : 50);
    expect(scrollClient, `at ${where} the fixed chrome left the conversation ${scrollClient}px`).toBeGreaterThanOrEqual(floor);
   }
  }
@@ -407,16 +484,30 @@ test('starting again clears the conversation back to its opening', async ({ page
  await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'idle');
 });
 
-test('nothing about GilbertOne on the web offers to listen or reaches for a way to hear', async ({ page }) => {
- await watchForListening(page);
- await page.goto('/app/');
- await launcher(page).click();
- for (const question of ['Does anything need me?', 'What happens to what I say?', 'What if it cannot wait?']) {
-  await panel(page).getByRole('button', { name: question }).click();
- }
+test('the composer is a text box, and nothing hears before the patient taps the one control that offers it', async ({ page }) => {
+ await watchForRecording(page);
+ await giveVoice(page);
+ await page.goto('/app/?open=assistant');
+ const mic = panel(page).getByRole('button', { name: gilbert.voice.sentences.talkLabel, exact: true });
+ await expect(mic).toBeVisible();
+ await expect(mic).toHaveAttribute('aria-pressed', 'false');
+ /* The disclosure is on the page before the first tap, in the contract's own words, with the cap read
+    into the sentence rather than typed beside it. It sits in the composer's one footnote slot, which
+    is also what the field is described by. A page that opens a microphone and then explains has
+    already taken the voice it was about to explain about. */
+ const note = panel(page).locator('#as-keyboard');
+ await expect(note).toHaveText(say(gilbert.voice.webSentences.beforePermission));
+ await expect(note).toContainText(`${gilbert.voice.maxListeningSeconds} seconds`);
+ await expect(field(page)).toHaveAttribute('aria-describedby', 'as-keyboard');
+ // and the state line is not there to say the same thing twice on a phone that has no line to spare
+ await expect(panel(page).locator('.as-voice-state')).toHaveCount(0);
+ // the icon carries no meaning of its own; the control's name is the contract's label
+ await expect(mic.locator('svg[aria-hidden="true"]')).toHaveCount(1);
+ // asking the page whether it can hear now gets an answer that is true
  await ask(page, 'can you hear me');
- await ask(page, 'my shoulder aches');
- await expect(page.locator('[class*="lucide-mic"], [class*="lucide-audio"], [class*="waveform"], audio')).toHaveCount(0);
+ await expect(log(page).locator('.as-reply').last()).toContainText(/tap/i);
+ // and nothing was heard to answer it with
+ expect(await micCalls(page), voice.neverSoften).toEqual([]);
  // one text box, and it is a text box that hands nothing to the browser's own services
  await expect(panel(page).locator('input, textarea, [contenteditable="true"]')).toHaveCount(1);
  await expect(field(page)).toHaveAttribute('type', 'text');
@@ -425,12 +516,115 @@ test('nothing about GilbertOne on the web offers to listen or reaches for a way 
  await expect(field(page)).toHaveAttribute('autocomplete', 'off');
  await expect(field(page)).toHaveAttribute('autocapitalize', 'off');
  await expect(field(page)).toHaveAttribute('aria-describedby', 'as-keyboard');
- await expect(page.locator('input[capture], input[accept*="audio"], input[accept*="video"]')).toHaveCount(0);
- const controls = [panel(page).getByRole('button'), launcher(page)];
- const names = (await Promise.all(controls.map(c => c.evaluateAll(buttons => buttons.map(b => `${b.getAttribute('aria-label') ?? ''} ${b.textContent ?? ''}`.trim()))))).flat();
+ await expect(page.locator('input[capture], input[accept*="audio"], input[accept*="video"], audio')).toHaveCount(0);
+ // exactly one control offers to hear, and what it offers is the contract's own words for it
+ const names = await panel(page).getByRole('button').evaluateAll(buttons =>
+  buttons.map(b => `${b.getAttribute('aria-label') ?? ''} ${b.textContent ?? ''}`.trim()));
  const offers = names.filter(name => /microphone|\bmic\b|voice input|dictat|speak now|(tap|hold|press) to (speak|talk)|start listening|listening|record/i.test(name));
- expect(offers, voice.neverSoften).toEqual([]);
+ expect(offers, voice.neverSoften).toHaveLength(1);
+ expect(offers[0]).toContain(gilbert.voice.sentences.talkLabel);
+ // the orb is not the microphone, and never says that it is
  await expect(panel(page).locator('.orb')).not.toHaveAttribute('data-pulse', /listening|thinking/);
+ expect(await page.evaluate(() => (window as unknown as { __heard: string[] }).__heard)).toEqual([]);
+});
+
+test('what the browser caught is a draft the patient sends herself, and an emergency when she does', async ({ page }) => {
+ await watchForRecording(page);
+ await giveVoice(page);
+ await page.goto('/app/?open=assistant');
+ const mic = panel(page).getByRole('button', { name: gilbert.voice.sentences.talkLabel, exact: true });
+ await mic.click();
+ // one recogniser, constructed at the tap and at no other moment
+ expect(await micCalls(page)).toEqual(['new', 'start']);
+ const stop = panel(page).getByRole('button', { name: gilbert.voice.sentences.stopLabel, exact: true });
+ await expect(stop).toHaveCount(1);
+ await expect(panel(page).locator('.as-voice-state')).toHaveText(say(gilbert.voice.webSentences.states.open));
+ /* Even now the orb says nothing of the kind: the microphone is the button, and the button is the
+    only thing on this screen allowed to claim it. */
+ await expect(panel(page).locator('.orb')).not.toHaveAttribute('data-pulse', /listening|thinking/);
+ await dictate(page, 'I have chest');
+ await expect(panel(page).locator('.as-voice-heard')).toContainText('I have chest');
+ // reviewed while it is still hearing, and nothing has been sent or kept
+ await expect(log(page).locator('.as-said')).toHaveCount(0);
+ await stop.click();
+ await expect(field(page)).toHaveValue('I have chest');
+ await expect(panel(page).locator('.as-voice-heard')).toHaveCount(0);
+ await expect(panel(page).locator('.as-voice-state')).toHaveText(say(gilbert.voice.webSentences.states.off));
+ // she finishes the sentence, and sending it is her own act
+ await field(page).fill('I have chest pain');
+ await panel(page).getByRole('button', { name: gilbert.conversation.sendLabel, exact: true }).click();
+ const turn = log(page).locator('.as-turn').last();
+ await expect(turn.locator('.as-said')).toContainText('I have chest pain');
+ await expect(turn.locator('.as-reply')).toHaveAttribute('data-outcome', 'emergency');
+ await expect(turn.locator('.as-noticed li')).toHaveText([condition('chest-pain')]);
+ await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'escalate');
+ expect(await page.evaluate(() => (window as unknown as { __heard: string[] }).__heard)).toEqual([]);
+ /* The refused, failed and interrupted sentences each say nothing was kept, and the keeping this app could
+    do by itself is the keeping a person cannot see: a draft written to either storage outlives the tab,
+    which the browser's own route does not promise to. So both stores are read back empty after a capture
+    that was dictated, edited and sent. */
+ expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+});
+
+test('a microphone the browser took back says so, and leaves its words where its own sentence promised', async ({ page }) => {
+ await watchForRecording(page);
+ await giveVoice(page);
+ await page.goto('/app/?open=assistant');
+ await panel(page).getByRole('button', { name: gilbert.voice.sentences.talkLabel, exact: true }).click();
+ await dictate(page, 'my arm is bleeding');
+ await takeBack(page);
+ /* The contract's `interrupted` tells the patient that whatever was caught is in the field below. It
+    lands in error, not off, so this is the one ending a hand-over written only for `off` would break. */
+ await expect(panel(page).locator('.as-voice-state')).toHaveText(say(gilbert.voice.webSentences.interrupted));
+ await expect(field(page)).toHaveValue('my arm is bleeding');
+ await expect(log(page).locator('.as-said')).toHaveCount(0);
+ // the app never stopped it and never kept it: the browser closed, and that is all that happened
+ expect(await micCalls(page)).toEqual(['new', 'start']);
+ expect(await page.evaluate(() => (window as unknown as { __heard: string[] }).__heard)).toEqual([]);
+});
+
+test('a microphone the patient refused is said in the contract\'s words and leaves a control that taps again', async ({ page }) => {
+ await watchForRecording(page);
+ await giveVoice(page);
+ await page.goto('/app/?open=assistant');
+ const mic = panel(page).getByRole('button', { name: gilbert.voice.sentences.talkLabel, exact: true });
+ await mic.click();
+ await refuseVoice(page, 'not-allowed');
+ await expect(panel(page).locator('.as-voice-state')).toHaveText(gilbert.voice.webSentences.refused);
+ /* The disclosure had its say before the first tap and is gone from the slot now, because the state
+    line above is saying what the microphone is doing and a phone has no spare line for both. The
+    typing note, which the disclosure borrowed the slot from, is back. */
+ await expect(panel(page).locator('#as-keyboard')).toHaveText(gilbert.conversation.webKeyboardNote);
+ await expect(panel(page).locator('#as-keyboard')).not.toContainText(say(gilbert.voice.webSentences.beforePermission));
+ /* A refusal is not a microphone left open. The control goes back to being a tap that starts one,
+    rather than a Stop for something that already stopped, which would be a button needing two
+    presses and saying nothing about why. */
+ await expect(mic).toHaveCount(1);
+ expect(await micCalls(page)).toEqual(['new', 'start']);
+ await mic.click();
+ expect(await micCalls(page)).toEqual(['new', 'start', 'new', 'start']);
+ // and typing was never taken away
+ await ask(page, 'my shoulder aches');
+ await expect(log(page).locator('.as-said')).toHaveCount(1);
+ expect(await page.evaluate(() => (window as unknown as { __heard: string[] }).__heard)).toEqual([]);
+});
+
+test('a browser with no speech recognition is told so, and is handed no control that cannot hear', async ({ page }) => {
+ await watchForRecording(page);
+ await withoutVoice(page);
+ await page.goto('/app/?open=assistant');
+ await expect(panel(page).getByRole('button', { name: /mic|voice|listen|record|speak|talk/i })).toHaveCount(0);
+ await expect(panel(page).locator('.as-voice-state')).toHaveText(gilbert.voice.webSentences.unavailable);
+ // told what is true rather than shown an icon that cannot do the thing
+ await expect(panel(page).locator('svg[class*="mic"], [class*="waveform"], audio, video')).toHaveCount(0);
+ /* Nothing here is a microphone waiting to be explained, so the pre-permission disclosure never
+    appears: a page that warns about a permission no control can ask for is teaching a patient to
+    fear a button that does nothing. The slot carries the typing note, which is the one thing here
+    that is true. */
+ await expect(panel(page)).not.toContainText(say(gilbert.voice.webSentences.beforePermission));
+ await expect(panel(page).locator('#as-keyboard')).toHaveText(gilbert.conversation.webKeyboardNote);
+ await ask(page, 'my shoulder aches');
+ await expect(log(page).locator('.as-said')).toHaveCount(1);
  expect(await page.evaluate(() => (window as unknown as { __heard: string[] }).__heard)).toEqual([]);
 });
 

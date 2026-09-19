@@ -156,10 +156,9 @@ export default function Assistant({ open, dismiss, openModal, visit }: PanelProp
       <input ref={field} id="as-input" type="text" value={draft} onChange={event => setDraft(event.target.value)}
        placeholder={conversation.inputHint} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
        enterKeyHint="send" maxLength={500} aria-describedby="as-keyboard"/>
-      <AssistantVoiceButton onTranscript={onVoiceTranscript} />
+      <AssistantVoiceButton onTranscript={onVoiceTranscript} typingNote={conversation.webKeyboardNote} />
       <button type="submit" className="as-send"><Send size={17} aria-hidden="true"/>{conversation.sendLabel}</button>
      </div>
-     <p id="as-keyboard" className="as-keyboard">{conversation.webKeyboardNote}</p>
      <p className="as-silence">{silenceIsNotSafety}</p>
     </form>
    </div>

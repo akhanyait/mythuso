@@ -26,12 +26,15 @@ import { neverSoftenOf } from './capability-rules';
  * browser's own recogniser behind a push-to-talk control, and the browser's own voice reading the
  * demonstration answer out. The founder asked for it so that the four microphone states, the
  * transcript review and a mouth running against real playback could be judged rather than described,
- * and the decision is on file as `voice.webPoc` in packages/catalog/assistant.json. It reaches this
- * page and nothing else: the live assistant on the web is still typed to, for the reason it always
- * was — a browser's recognition may hand what somebody said to the company that makes the browser,
- * and a patient asking about her own health has not chosen that route the way a reviewer opening a
- * demonstrator has. apps/web/src/lib/voice.ts is the whole of the machinery, and
- * scripts/check-boundaries.mjs allows it there and refuses it in every other file on the web.
+ * and the decision is on file as `voice.webPoc` in packages/catalog/assistant.json. These particular
+ * sentences belong to this page and to nothing else: since the founder's decision of 18 September
+ * 2026 the live web assistant has a microphone of its own, worded from `voice.webSentences`, and the
+ * two sets are kept apart because a page that says "this demonstration" to a patient is describing
+ * the wrong thing — the reason a browser's recognition may hand what somebody said to the company
+ * that makes the browser is disclosed to each surface in its own words, to a reviewer here and to a
+ * patient there before her first tap. apps/web/src/lib/voice.ts is the whole of the machinery, and
+ * scripts/check-boundaries.mjs allows it there and on the assistant's button and refuses it in every
+ * other file on the web.
  *
  * A10's mouth is therefore driven by playback now, and approximately. The browser's word-boundary
  * events are what drive it where they fire; where they do not, the timed caption track below still
@@ -509,7 +512,7 @@ export const VOICE_SENTENCES: readonly VoiceSentence[] = [
  { id: 'web-poc-refused', when: 'In a browser where permission is switched off for this site', text: voicePolicy.webPoc.sentences.refused },
  { id: 'web-poc-failed', when: 'On this page, when nothing was caught', text: voicePolicy.webPoc.sentences.failed },
  { id: 'web-poc-interrupted', when: 'On this page, when the microphone closed before you asked', text: voicePolicy.webPoc.sentences.interrupted },
- { id: 'web', when: 'Everywhere else on the web, where GilbertOne still does not listen', text: voicePolicy.sentences.web },
+ { id: 'web', when: 'On the live patient assistant, when she asks whether GilbertOne can hear her', text: voicePolicy.sentences.web },
  { id: 'keyboard', when: 'About the dictation key on your own keyboard', text: gilbertConversation.webKeyboardNote },
  { id: 'before', when: 'On a phone, before it asks for the microphone', text: voicePolicy.sentences.beforePermission },
  { id: 'unavailable', when: 'On a phone with no English recogniser of its own', text: voicePolicy.sentences.unavailable },
@@ -518,7 +521,7 @@ export const VOICE_SENTENCES: readonly VoiceSentence[] = [
  { id: 'no-audio-kept', when: 'The refusal about what is kept', text: gilbertRefusal('no-audio-kept').statement }
 ];
 
-/** Why the rest of the web is still typed to, in the contract's own words. */
+/** Which surface `voice.webPoc`'s sentences are written for, in the contract's own words. */
 export const VOICE_WEB_POC_SCOPE = voicePolicy.webPoc.scope;
 
 /** The capability contract's own note about when an affordance may be drawn at all. */

@@ -198,12 +198,13 @@ export const capabilities: readonly FirstViewCapability[] = [
   "name": "Talking to GilbertOne",
   "connected": false,
   "state": "on-device",
-  "notice": "GilbertOne listens only after you tap the sphere on a phone, hears English only, turns speech into text on the phone and keeps no recording. On the web you type, except on the labelled GilbertOne demonstrator, where a real microphone opens only when you tap it and the browser's own recognition is used. Nothing you say or type is sent to MyThuso.",
+  "notice": "GilbertOne listens only after you tap, hears English only, and keeps no recording. On a phone the words are turned into text on the phone itself. On the web — in the assistant, and on the labelled GilbertOne demonstrator — the browser's own recognition does the work, and it may send what you say to the company that makes the browser; MyThuso is not that company and keeps nothing. Either way the words are shown to you to check before you send them, and typing always works. No answer comes from a model, and nothing you say or type is sent to MyThuso by GilbertOne's own doing.",
   "blockedBy": [
    "No contracted South African speech provider: so English only, and only on phones that recognise it offline.",
    "No language model. GilbertOne answers only from its approved sentences, and says so when it cannot assess something.",
-   "No decision about a recording beyond keeping none, so nothing is recorded and no transcript leaves the phone.",
-   "On the web, only the labelled GilbertOne demonstrator can hear you, and it answers nothing: the browser's own recognition may send what you say to the browser's maker, so the live assistant on the web is still typed to."
+   "No decision about a recording beyond keeping none, so nothing is recorded on any platform, and on a phone no transcript leaves it.",
+   "On the web the microphone is real and the browser's own recognition does the work, which may carry what is said to the company that makes the browser. That route is disclosed before the first tap rather than removed, and no speech provider of MyThuso's is contracted to replace it.",
+   "No clinical or privacy review of patients speaking into a browser, so the web microphone is offered on the founder's decision of 18 September 2026 and not on a reviewer's."
   ],
   "simulation": null
  },

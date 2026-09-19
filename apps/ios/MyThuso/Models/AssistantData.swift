@@ -298,7 +298,7 @@ extension Gilbert {
                        why: "The microphone's sound is read once for its loudness and handed to the phone's own recogniser, and nothing writes it to a file. The build refuses the recording and audio-file APIs in both apps."),
         GilbertRefusal(id: "listening-is-the-microphone",
                        statement: "GilbertOne shows Listening only while the microphone is open, and the microphone is never open without it.",
-                       why: "A listening indicator that runs ahead of the microphone teaches people to talk to nothing; a microphone that runs without one is a recording nobody agreed to. Both are driven from the same open and close, and nothing on the web offers to listen at all."),
+                       why: "A listening indicator that runs ahead of the microphone teaches people to talk to nothing; a microphone that runs without one is a recording nobody agreed to. Both are driven from the same open and close, and on the web that single control exists only on the two surfaces the founder put it on. Nowhere else on the site offers to listen, in any state."),
         GilbertRefusal(id: "not-a-person",
                        statement: "GilbertOne is not a person and not a doctor.",
                        why: "The name, the descriptor and the sphere are a brand. A person who believes they are talking to a clinician will tell it things, and wait for it, in ways they would not wait for a list of sentences."),

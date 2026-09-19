@@ -10,7 +10,7 @@ import {
  CUES, REFUSED, SPOKEN_ANSWERS, TRACK_WORDS, TRANSCRIPT_REVIEW, VOICE_NEVER_SOFTEN, VOICE_SENTENCES, VOICE_STATES,
  VOICE_TABLE, VOICE_WEB_POC_SCOPE, YAWN_COOLDOWN_MS, YAWN_IDLE_MS, YAWN_SUPPRESSORS, durationOf, mayYawn, type Cue
 } from '../lib/gilbertone';
-import { BEFORE_PERMISSION, FAILURE_SENTENCES, useVoiceAdapter } from '../lib/voice';
+import { BEFORE_PERMISSION, useVoiceAdapter } from '../lib/voice';
 import { voice as voicePolicy } from '../../../../packages/catalog/assistant.json';
 import './gilbertone.css';
 
@@ -37,10 +37,13 @@ import './gilbertone.css';
  * browser's own recogniser behind a push-to-talk control and the browser's own voice reading the
  * demonstration answer out, so that the four microphone states, the transcript review and a mouth
  * running against real playback could be judged rather than described. The decision is on file as
- * `voice.webPoc` in packages/catalog/assistant.json; the machinery is lib/voice.ts and nothing else;
- * and every other screen on the web is still typed to, because a browser's recognition may hand what
- * somebody said to the company that makes the browser and a patient asking about her own health has
- * not chosen that the way a reviewer opening a demonstrator has.
+ * `voice.webPoc` in packages/catalog/assistant.json; the machinery is lib/voice.ts and nothing else.
+ * What is still only here is the voice speaking an answer out loud, and §07's review step around the
+ * words the browser sent back: the live patient assistant has had a microphone of its own since the
+ * founder's decision of 18 September 2026, worded from `voice.webSentences` rather than these, and it
+ * shows no sound at all. A browser's recognition may hand what somebody said to the company that
+ * makes the browser, so both surfaces say that in their own words before anything is opened — here to
+ * a reviewer who chose to open a demonstrator, there to a patient before her first tap.
  *
  * IT IS ON THE DEPLOYED SITE from 17 September 2026, having been development-only until then, and
  * that is the reason the disclosure before the first tap matters more here than it would behind a
@@ -366,7 +369,7 @@ export default function GilbertOneDemo() {
      <p className="go-mic-state" id="go-mic-state" role="status" aria-live="polite">
       <strong>{voice.supported ? VOICE_STATES.find(state => state.id === voice.state)?.name : 'Not available in this browser'}.</strong>{' '}
       {!voice.supported
-       ? FAILURE_SENTENCES.unavailable
+       ? voice.unavailable
        : voice.state === 'off' ? 'The microphone is shut. It opens when you tap, and at no other moment.'
        : voice.state === 'starting' ? 'Asked for, and not open yet. Your browser may be deciding, or asking you.'
        : voice.state === 'open' ? `The microphone is open. It closes when you tap Stop, or after ${voice.maxListeningSeconds} seconds, whichever comes first.`
@@ -405,8 +408,8 @@ export default function GilbertOneDemo() {
 
     {/* The contract's own sentences, on the page that renders them. They are read from
         packages/catalog/assistant.json rather than typed here, so what a reviewer reads is what the
-        phones and the live assistant render, down to the word — including the sentence saying the
-        rest of the web is still typed to. */}
+        phones and the live assistant render, down to the word — including the answer the live
+        assistant gives a patient who asks whether it can hear her. */}
     <div className="go-voice-sentences">
      <p className="go-voice-sentences-lead">What MyThuso says about this, word for word from its own contract:</p>
      <dl>
@@ -471,8 +474,10 @@ export default function GilbertOneDemo() {
      <li>No recording, in either direction. This page reads no audio level, draws no waveform, keeps no sample and creates no
       file: your browser hears you and hands back words, and nothing written here touches the sound. No camera is requested
       either, in any state.</li>
-     <li>No voice anywhere else in MyThuso on the web. This page is the only one with a microphone on it, and the live
-      assistant is still typed to for the reason it always was.</li>
+     <li>No voice anywhere else in MyThuso on the web works like this. This is the only page that speaks an answer out loud
+      and the only one whose microphone is wired to no matcher, no model and no server: what your browser sends back lands
+      in §07's review field above and is answered by nothing. The live patient assistant has a microphone too, since the
+      founder's decision of 18 September 2026, and what it catches goes into the same conversation box you type in there.</li>
      <li>No patient data, no fictional patient record and no clinical content. The transcript holds your own words and the shell's
       replies about itself.</li>
     </ul>

@@ -33,8 +33,9 @@ import type { Depth, PulseId } from '../lib/assistant';
    in form as well as tone: Escalate brings in the roof's orange as a controlled accent, Handover
    dims the body and holds it behind the summary. The words beside the sphere say which state it is.
    There is no loudness input on the web. The phones drive their spheres from a live microphone
-   while Listening; the web has no microphone in this release, so a reactive drawing here would be a
-   listening affordance with nothing listening, and the code that drew one has been taken out.
+   while Listening; on this surface the composer's microphone is wired to the text box and to nothing
+   here, and Listening is not a state the web may be in, so a reactive drawing would be a listening
+   affordance with nothing listening — and the code that drew one has been taken out.
 
    IT STOPS RATHER THAN SLOWING. Under prefers-reduced-motion no animation runs, level is ignored,
    the canvas draws once at a fixed moment, and every layer is still there: a whole sphere, never a
