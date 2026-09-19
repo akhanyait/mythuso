@@ -1263,6 +1263,35 @@ and was restored on 18 September.
 screen touches a microphone. `voice.mode` is still push-to-talk, `audioStored` still false, `wakeWord` still false, and
 nothing on the web speaks a reply out loud — the demonstrator's speech synthesis stays on the demonstrator.
 
+## Delivered — the character on the live assistant panel, decided 19 September 2026 (web only, phase 1 of one GilbertOne)
+
+The founder's "one GilbertOne" decision of 19 September begins with its first phase: the robot rig the demonstrator
+proved replaces the sphere on the panel a patient actually meets, and the sphere is deleted rather than left standing
+as a second character. The work is the seam, not the character — the panel already spoke `pulse` and the rig already
+spoke cues, and the translation between them is one effect: an escalation holds A16's steady urgent face, a handover
+holds A11's attentive one, and every completed turn otherwise buys A09's single nod, which is what `gatheredAt`
+crossed the seam to buy. Opening still greets with A01 once, and a re-open onto a conversation in progress reads its
+last message (A05) — the widget's own rule, now honest under React's double-invoked development mount, whose second
+run used to play the re-open cue on a first open and, on the activity track, refuse the first reply's nod for a full
+second.
+
+| What landed | What it refuses, and what did not move | Where |
+|---|---|---|
+| **A readable state surface on the rig itself**: `.as-rig` carries `data-pulse`, `data-cue` and `data-motion`, so a test asserts what the face *means* — A09 acknowledged, A11 holds the handover, A16 holds the escalation — rather than measuring pixels or a rim-light gradient. `depth` retired with the sphere: it was only a gradient | **Affect never softens a refusal or an emergency.** The arbitration stayed in the engine's reducer, where it was designed: once A16 holds, a later nod or supportive pose is refused by track priority, and only Start again — the patient's own reset — rests the face. The panel asks; it never overrules | `Assistant.tsx`, `lib/gilbertone.ts` (unchanged) |
+| **The rig, contained**: a `RigBoundary` stands between the character and the words, with the still character and one sentence in the same box if drawing ever throws, recovering when the children change | **The words are the product.** A rig that throws must not take the conversation with it | `Assistant.tsx`, `GilbertAvatar.tsx` |
+| **`AssistantSphere.tsx` deleted, with its `.orb` CSS and `depthOf`** | The floating launcher is still an orb — the patient-facing word never changed. The character rides the same lazy import the sphere did, so the entry pays nothing for it: the patient entry measured 276.00 kB against its 282.16 kB budget the same way, and the entry's asset list does not mention the character at all | `Assistant.tsx`, `assistant.css`, `lib/assistant.ts` |
+| **The twenty-eight assertions on the orb, re-expressed rather than deleted**: motion is polled rather than assumed always-on, because the rig moves by transitions rather than loops; Pause motion stops the launcher and the character together; and under reduced motion the frames are asserted complete — shell, visor, eyes and mouth drawn at full size — with A16 still holding its urgent face, because a still face can still be an urgent one | **The layout floors did not move**: the conversation keeps 220/50/210/130px on a phone with the fixed composer, and the disclosure stays wholly above the fold. Under reduced motion `data-motion` is `still` and the pause control is not offered at all | `tests/assistant.spec.ts` |
+| **The microphone stand-in kept honest**: under load, a take-back or a refusal could land inside the double's own 20ms starting gap and vanish as a no-op, failing the app for the double's race — and the double could then announce itself open after the refusal, which no real recogniser does | The double reaches the recogniser from the moment it is asked for, as the app itself does, and fires nothing once it has ended, errored or been aborted. The app's own state machine did not change | `tests/assistant.spec.ts` |
+
+**What did not move.** The demonstrator's widget keeps its own rig and its own greeting idiom — the same
+development-only double-fire exists there and is unfixed, because that surface has its own tests and its own
+reviewer. The cue manifest, its timings and its priority order are unchanged; nothing in `lib/gilbertone.ts`
+moved. The two voice registers stay separate, `voice.webSentences` for a patient and `voice.webPoc.sentences`
+for the demonstrator, and the microphone delivery above stands as written. iOS and Android still render the
+assistant as the 17 September renaming left it; the character is web-only until the founder asks for it on
+the phones. Draft PR #5 is superseded by this pass — it deleted the sphere without re-expressing the tests,
+and deleting assertions to make a suite pass is the opposite of what the assertions are for.
+
 ## Next UI increments
 
 Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only

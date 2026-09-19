@@ -1,251 +1,112 @@
-/* The assistant's panel and its sphere. Loaded with features/Assistant.tsx behind a dynamic import,
-   so none of this reaches a patient who never opens the assistant. The floating orb that opens it
-   is in surface/care-journey.css, because it is on every page.
+/* The assistant's panel and its character. Loaded with features/Assistant.tsx behind a dynamic
+   import, so none of this reaches a patient who never opens the assistant. The floating orb that
+   opens it is in surface/care-journey.css, because it is on every page.
 
    Colours are the logo's and nothing else: --brand-ink, --brand-green, --brand-mint, --brand-lime
    and --brand-orange, plus white (--surface). Translucency is color-mix() of those, so nothing here
-   can drift off the brand. Every endless animation changes transform or opacity only; see
-   AssistantSphere.tsx for why, and for why reduced motion removes them rather than trusting
-   core.css to. */
+   can drift off the brand. The character's own motion is transform and opacity only — see
+   gilbert-avatar.css for why, and for why reduced motion removes its transitions rather than
+   trusting core.css to. */
 
-/* ---- The sphere ------------------------------------------------------------------------------ */
-.orb {
- --orb: min(248px, 70vw);
- --rim-start: 70%;
- --spread: 108%;
- position: relative;
- width: var(--orb);
- max-width: 100%;
- aspect-ratio: 1;
- margin-inline: auto;
- isolation: isolate;
- pointer-events: none;
+/* ---- The character ------------------------------------------------------------------------------- */
+/* GilbertAvatar.tsx's rig, in the box the sphere's budget already paid for. The wrapper carries the
+   readable state surface: data-pulse is the reply's state, data-cue the cue that owns the face —
+   absent when none does, because a nod is a gesture rather than a state — and data-motion whether
+   the face may move at all. What the character means is an attribute, so it can be asserted rather
+   than measured. It is aria-hidden, and everything it means is said in words beside it. The
+   character itself is drawn and animated in GilbertAvatar.tsx and gilbert-avatar.css; what lives
+   here is the box it occupies and the panel around it. */
+.as-rig {
+  --rig: 172px;
+  position: relative;
+  margin-inline: auto;
+  max-width: 100%;
+  pointer-events: none;
 }
-/* Depth is carried as form as well as tone: a settled sphere wears a thick soft rim and blooms
-   wide; a sphere with something in it draws its rim thin and its glow in. */
-.orb[data-depth='1'] { --rim-start: 75.5%; --spread: 101%; }
-.orb[data-depth='2'] { --rim-start: 81%; --spread: 94%; }
-.orb[data-depth='3'] { --rim-start: 86.5%; --spread: 87%; }
-
-.orb-g { position: absolute; inset: 0; }
-.orb-g > *, .orb-g-halo i { position: absolute; left: 50%; top: 50%; translate: -50% -50%; aspect-ratio: 1; }
-
-.orb-bleed {
- width: var(--spread);
- border-radius: 50%;
- background: radial-gradient(closest-side,
-  color-mix(in srgb, var(--brand-green) 58%, transparent) 0 46%,
-  color-mix(in srgb, var(--brand-green) 24%, transparent) 64%,
-  color-mix(in srgb, var(--brand-mint) 7%, transparent) 84%,
-  transparent);
+.as-rig svg {
+  display: block;
+  width: var(--rig);
+  height: var(--rig);
 }
-.orb-g-bleed { opacity: .84; }
-
-.orb-g-halo { opacity: .72; }
-.orb-g-halo i { border-radius: 50%; border: 1px solid color-mix(in srgb, var(--brand-mint) 16%, transparent); }
-.orb-g-halo i:nth-child(1) { width: 74%; }
-.orb-g-halo i:nth-child(2) { width: 86%; border-color: color-mix(in srgb, var(--brand-mint) 9%, transparent); }
-.orb-g-halo i:nth-child(3) { width: 98%; border-color: color-mix(in srgb, var(--brand-mint) 5%, transparent); }
-
-/* An orbit is a circle, squashed and tilted. Its brightness is a conic gradient on an inner disc
-   that turns, masked to a thin ring, so the light travels round the ellipse while the ellipse holds
-   still. */
-.orb-orbit { transform: rotate(var(--tilt)) scaleY(var(--flat)); }
-.orb-orbit-a { width: 100%; --tilt: -21deg; --sway: 2.5deg; --flat: .34; --a0: 200deg; }
-.orb-orbit-b { width: 84%; --tilt: 27deg; --sway: -3deg; --flat: .23; --a0: 40deg; }
-.orb-arc {
- position: absolute;
- inset: 0;
- border-radius: 50%;
- transform: rotate(var(--a0));
- -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 4px), black calc(100% - 3.5px), black calc(100% - 1px), transparent);
- mask: radial-gradient(closest-side, transparent calc(100% - 4px), black calc(100% - 3.5px), black calc(100% - 1px), transparent);
+/* A rig that stops drawing must not take the panel with it: the boundary in Assistant.tsx stands
+   the still character and one sentence into the same box. Mint on ink, the panel's own quiet
+   register. */
+.as-rig-failed {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  max-width: var(--rig);
 }
-.orb-orbit-a .orb-arc {
- background: conic-gradient(transparent 0,
-  color-mix(in srgb, var(--brand-mint) 95%, transparent) 15%,
-  color-mix(in srgb, var(--brand-green) 60%, transparent) 32%,
-  transparent 58%);
+.as-rig-failed p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--brand-mint);
+  text-align: center;
 }
-/* The one warm trace in the drawing: the roof's orange, faint, in the tail of the inner orbit. */
-.orb-orbit-b .orb-arc {
- background: conic-gradient(transparent 0,
-  color-mix(in srgb, var(--brand-mint) 80%, transparent) 15%,
-  color-mix(in srgb, var(--brand-orange) 22%, transparent) 34%,
-  transparent 58%);
-}
-
-.orb-breath { width: 63%; }
-.orb-body {
- position: absolute;
- inset: 0;
- border-radius: 50%;
- overflow: hidden;
- background: var(--brand-ink);
-}
-.orb-drift-x, .orb-drift-y { position: absolute; inset: 0; }
-/* The key light: a green pool lit from the upper left that falls to ink at the lower-right limb.
-   The pool is larger than the body so it can drift without its own edge ever showing. */
-.orb-pool {
- position: absolute;
- inset: -30%;
- background: radial-gradient(ellipse 44% 44% at 40% 36%,
-  color-mix(in srgb, var(--brand-mint) 55%, var(--brand-green)) 0%,
-  var(--brand-green) 26%,
-  color-mix(in srgb, var(--brand-green) 38%, var(--brand-ink)) 52%,
-  var(--brand-ink) 76%);
-}
-/* The light inside the body, and the thing that makes it read as luminous rather than lit: a green
-   glow held just below the centre, as if the sphere carries its own source. It breathes by opacity,
-   which the compositor does for free. */
-.orb-core {
- position: absolute;
- inset: 0;
- background: radial-gradient(circle at 56% 60%,
-  color-mix(in srgb, var(--brand-lime) 18%, var(--brand-green)) 0,
-  color-mix(in srgb, var(--brand-green) 55%, transparent) 20%,
-  transparent 54%);
-}
-/* A little of the body's own light returning into the shadow side, which keeps it reading as shadow
-   rather than as a hole. */
-.orb-bounce {
- position: absolute;
- inset: 0;
- background: radial-gradient(circle at 74% 78%, color-mix(in srgb, var(--brand-green) 34%, transparent), transparent 46%);
-}
-.orb-rim {
- position: absolute;
- inset: 0;
- border-radius: 50%;
- background: radial-gradient(closest-side,
-  transparent var(--rim-start),
-  color-mix(in srgb, var(--brand-mint) 26%, transparent) calc(var(--rim-start) + (100% - var(--rim-start)) * .7),
-  color-mix(in srgb, var(--brand-mint) 62%, transparent) 100%);
-}
-/* The sheen is a soft patch of light carried round the inside of the limb, not a conic wedge: a
-   conic gradient meets itself at the centre and draws a line there, which on iOS read as a
-   thumbprint and did here too. */
-.orb-sheen { position: absolute; inset: 0; }
-.orb-sheen i {
- position: absolute;
- left: 50%; top: 9%; width: 56%; height: 20%;
- translate: -50% -50%;
- border-radius: 50%;
- background: radial-gradient(closest-side, color-mix(in srgb, var(--surface) 20%, transparent), transparent);
-}
-.orb-specular { position: absolute; inset: 0; transform-origin: 33% 29%; }
-.orb-specular i, .orb-specular b { position: absolute; translate: -50% -50%; border-radius: 50%; }
-.orb-specular i {
- left: 34%; top: 30%; width: 32%; height: 25%;
- background: radial-gradient(closest-side, color-mix(in srgb, var(--surface) 50%, transparent), transparent);
-}
-/* The glint, and it is the logo's lime dot: white at its heart, a breath of lime at its edge. */
-.orb-specular b {
- left: 32%; top: 27%; width: 5%; aspect-ratio: 1;
- background: radial-gradient(closest-side, var(--surface) 0 26%, color-mix(in srgb, var(--brand-lime) 55%, transparent) 55%, transparent);
-}
-/* One rim light, dying away on the shadow side. A rim all the way round is a drawn outline. */
-.orb-edge {
- position: absolute;
- inset: 0;
- border-radius: 50%;
- background: linear-gradient(135deg,
-  color-mix(in srgb, var(--surface) 95%, transparent),
-  color-mix(in srgb, var(--brand-mint) 45%, transparent) 42%,
-  color-mix(in srgb, var(--brand-green) 12%, transparent) 78%,
-  transparent);
- -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 2px), black calc(100% - 1.5px), black calc(100% - .5px), transparent);
- mask: radial-gradient(closest-side, transparent calc(100% - 2px), black calc(100% - 1.5px), black calc(100% - .5px), transparent);
-}
-.orb-particles { position: absolute; inset: 0; width: 100%; height: 100%; }
-
-/* Pulse states, in form as well as tone. Escalate brings the roof's orange into the bleed and the
-   inner orbit as a controlled accent — a fill, never text — and the words beside the sphere say
-   "Get help now". Handover dims the body and holds it behind the summary. Static: nothing here
-   animates, so a state change never starts a loop. */
-.orb[data-pulse='escalate'] .orb-bleed {
- background: radial-gradient(closest-side,
-  color-mix(in srgb, var(--brand-orange) 46%, transparent) 0 42%,
-  color-mix(in srgb, var(--brand-orange) 18%, transparent) 64%,
-  color-mix(in srgb, var(--brand-green) 6%, transparent) 84%,
-  transparent);
-}
-.orb[data-pulse='escalate'] .orb-orbit-b .orb-arc {
- background: conic-gradient(transparent 0, color-mix(in srgb, var(--brand-orange) 90%, transparent) 15%, color-mix(in srgb, var(--brand-orange) 30%, transparent) 34%, transparent 58%);
-}
-.orb[data-pulse='handover'] .orb-g-body { opacity: .72; }
-.orb[data-pulse='handover'] .orb-g-orbits { opacity: .5; }
-
-/* Time. One breath of 6.5 seconds (3.25 each way); the orbits sway against it; the light drifts on
-   periods that do not share a factor with it, so the drawing never visibly repeats. */
-@keyframes orb-breathe { from { transform: scale(var(--lo)); } to { transform: scale(var(--hi)); } }
-@keyframes orb-sway { from { transform: rotate(calc(var(--tilt) - var(--sway))) scaleY(var(--flat)); } to { transform: rotate(calc(var(--tilt) + var(--sway))) scaleY(var(--flat)); } }
-@keyframes orb-spin { to { transform: rotate(calc(var(--a0) + 360deg)); } }
-@keyframes orb-turn { to { transform: rotate(360deg); } }
-@keyframes orb-glow { from { opacity: .72; } to { opacity: 1; } }
-@keyframes orb-drift-x { from { transform: translateX(-3.5%); } to { transform: translateX(3.5%); } }
-@keyframes orb-drift-y { from { transform: translateY(3%); } to { transform: translateY(-3%); } }
-@keyframes orb-bounce { from { transform: translate(-3%, 2.8%); } to { transform: translate(3%, -2.8%); } }
-
-.orb-bleed { --lo: .95; --hi: 1.05; animation: orb-breathe 3.25s ease-in-out infinite alternate; }
-.orb-breath { --lo: .982; --hi: 1.018; animation: orb-breathe 3.25s ease-in-out infinite alternate; }
-.orb-specular { --lo: .95; --hi: 1.05; animation: orb-breathe 3.25s ease-in-out infinite alternate; }
-.orb-orbit { animation: orb-sway 3.25s ease-in-out infinite alternate; }
-.orb-orbit-a .orb-arc { animation: orb-spin 22.5s linear infinite; }
-.orb-orbit-b .orb-arc { animation: orb-spin 32.7s linear infinite reverse; }
-.orb-sheen { animation: orb-turn 40s linear infinite; }
-.orb-core { animation: orb-glow 3.25s ease-in-out infinite alternate; }
-.orb-drift-x { animation: orb-drift-x 13.7s ease-in-out infinite alternate; }
-.orb-drift-y { animation: orb-drift-y 16.5s ease-in-out infinite alternate; }
-.orb-bounce { animation: orb-bounce 17.5s ease-in-out infinite alternate; }
-
-.orb[data-motion='paused'] * { animation-play-state: paused; }
-/* Transitions too. core.css answers reduced motion with a 0.01ms duration on everything, and a
-   transition's property defaults to all, so a change of depth that resizes the bleed still starts
-   a transition. It is one frame long, but it is motion, and the spec caught it running. */
-.orb[data-motion='still'] * { animation: none !important; transition: none !important; }
-@media (prefers-reduced-motion: reduce) { .orb * { animation: none !important; transition: none !important; } }
 
 /* ---- The panel -------------------------------------------------------------------------------- */
 /* A sheet from the bottom edge on a phone; a panel anchored bottom right on a wide screen, grown
    out of the orb that opened it. The dialog carries no padding, so a click whose target is the
    dialog itself can only have landed on the backdrop, and that closes it. */
 .as-panel {
- position: fixed;
- inset: auto 0 0 0;
- width: 100%;
- max-width: none;
- /* 92dvh left 68px of a 844px phone showing the dimmed topbar behind it and handed the sheet 776px,
+  position: fixed;
+  inset: auto 0 0 0;
+  width: 100%;
+  max-width: none;
+  /* 92dvh left 68px of a 844px phone showing the dimmed topbar behind it and handed the sheet 776px,
     and 776 was not enough: the head and the composer are both fixed, so the page behind was paid for
     out of the conversation. At 390x844 the notice under the state had 168px to live in and was sliced
     mid-sentence; at 320x720 it had 40px and the composer was pushed 14px off the bottom of the screen,
     which is content a person cannot reach at all. 96dvh keeps a 34px lip of the page behind — still a
     sheet, still dismissible by the backdrop — and gives every pixel of it to the scroll. */
- height: min(96dvh, calc(100dvh - var(--space-12)));
- max-height: none;
- margin: 0;
- padding: 0;
- border: 0;
- border-radius: var(--r-card) var(--r-card) 0 0;
- overflow: hidden;
- background: var(--brand-ink);
- color: var(--surface);
- box-shadow: var(--shadow-raised);
+  height: min(96dvh, calc(100dvh - var(--space-12)));
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-card) var(--r-card) 0 0;
+  overflow: hidden;
+  background: var(--brand-ink);
+  color: var(--surface);
+  box-shadow: var(--shadow-raised);
 }
-.as-panel::backdrop { background: color-mix(in srgb, var(--brand-ink) 40%, transparent); }
-.as-panel[open] { animation: as-sheet-in var(--t-enter) var(--ease-soft); }
-@keyframes as-sheet-in { from { transform: translateY(100%); } }
-@keyframes as-panel-in { from { opacity: 0; transform: scale(.15); } }
-@media (prefers-reduced-motion: reduce) { .as-panel[open] { animation: none; } }
+.as-panel::backdrop {
+  background: color-mix(in srgb, var(--brand-ink) 40%, transparent);
+}
+.as-panel[open] {
+  animation: as-sheet-in var(--t-enter) var(--ease-soft);
+}
+@keyframes as-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes as-panel-in {
+  from {
+    opacity: 0;
+    transform: scale(0.15);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .as-panel[open] {
+    animation: none;
+  }
+}
 
-.as-frame { display: flex; flex-direction: column; height: 100%; }
+.as-frame {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
 .as-head {
- flex: 0 0 auto;
- display: grid;
- justify-items: center;
- gap: var(--space-4);
- padding: var(--space-12) var(--space-12) var(--space-12) var(--space-20);
- border-bottom: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
+  flex: 0 0 auto;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  padding: var(--space-12) var(--space-12) var(--space-12) var(--space-20);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
 }
 /* The controls sit level with the name, not centred against it. The descriptor is a sentence the
    contract will not let us shorten, it wraps to two or three lines in the column left beside a
@@ -260,159 +121,322 @@
    described chest pain. `min-content` on the titles is the honest floor — the name does not shrink
    below the name — and `.as-controls` keeps the pair together so a wrapped row is the two controls
    and not a lone close button. Above about 330px the row fits and nothing moves. */
-.as-bar { justify-self: stretch; display: flex; align-items: flex-start; gap: var(--space-8); flex-wrap: wrap; }
-.as-controls { display: flex; align-items: flex-start; gap: var(--space-8); }
-/* The sphere used to be pulled up by 8px against a 4px row gap, which was fine while the bar was one
-   line tall and put the sphere's box 4px INSIDE the bar the moment the descriptor wrapped — its
-   bleed is 108% of that box, so the glow landed on the last line of "not a person, and not a
-   doctor". It is pushed down instead: 12px of clear air under the words at every width. */
-.as-head .orb { --orb: min(172px, 44vw); margin-top: var(--space-8); }
-/* Once a conversation has begun, the conversation is what the panel is for — so the sphere does not
-   merely shrink, it moves. Centred above the state it made an identity portrait 303px tall on a 640px
-   panel, and with a 242px composer under it the answer was left 95px: somebody who had just typed
-   "I have chest pain" could see their own words and the top edge of the reply, and the sentence telling
-   them to call an ambulance was cut off mid-line by the text box. Beside the state instead, the same
-   words cost about 195px and read as a status line — sphere, state, what it is about, the number — in a
-   column that starts at one edge rather than three things centred on each other. */
-.as-head[data-asked] {
- grid-template-columns: auto minmax(0, 1fr);
- align-items: center;
- column-gap: var(--space-16);
- row-gap: var(--space-12);
- padding-bottom: var(--space-16);
+.as-bar {
+  justify-self: stretch;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+  flex-wrap: wrap;
 }
-.as-head[data-asked] .as-bar { grid-column: 1 / -1; }
-/* One size at every width, because beside the caption the row is as tall as the caption anyway and a
-   sphere narrower than this stops being a drawing: the body is 63% of the box, and the reduced-motion
-   spec holds it above 60px so that what is still is a complete frame rather than a dot. */
-.as-head[data-asked] .orb { grid-column: 1; margin-top: 0; --orb: 100px; }
-.as-head[data-asked] .as-caption { grid-column: 2; justify-self: stretch; justify-items: start; text-align: left; }
-.as-head[data-asked] .as-state { justify-self: start; }
+.as-controls {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+}
+/* The character sits below the bar's words with air between them, so the head is a separate thing
+   from the name and the controls rather than the next line of them — the same 12px the sphere's
+   box kept. */
+.as-head .as-rig {
+  margin-top: var(--space-8);
+}
+/* Once a conversation has begun, the conversation is what the panel is for — so the character does
+   not merely shrink, it moves. Centred above the state it made an identity portrait 303px tall on a
+   640px panel, and with a 242px composer under it the answer was left 95px: somebody who had just
+   typed "I have chest pain" could see their own words and the top edge of the reply, and the
+   sentence telling them to call an ambulance was cut off mid-line by the text box. Beside the state
+   instead, the same words cost about 195px and read as a status line — character, state, what it is
+   about, the number — in a column that starts at one edge rather than three things centred on each
+   other. */
+.as-head[data-asked] {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-16);
+  row-gap: var(--space-12);
+  padding-bottom: var(--space-16);
+}
+.as-head[data-asked] .as-bar {
+  grid-column: 1 / -1;
+}
+/* One size at every width once a conversation has begun, because beside the caption the row is as
+   tall as the caption anyway — and 100px is the size the sphere's budget already paid the voice
+   disclosure with, so the character keeps it: the head stays a legible drawing rather than a dot. */
+.as-head[data-asked] .as-rig {
+  grid-column: 1;
+  margin-top: 0;
+  --rig: 100px;
+}
+.as-head[data-asked] .as-caption {
+  grid-column: 2;
+  justify-self: stretch;
+  justify-items: start;
+  text-align: left;
+}
+.as-head[data-asked] .as-state {
+  justify-self: start;
+}
 /* A figure's label is a whole clause — "days before it stops carrying anything" — and beside the sphere
    it has half the width it had centred, so it is allowed to fall under its number rather than push it. */
-.as-head[data-asked] .as-figure { flex-wrap: wrap; }
-.as-caption { display: grid; gap: var(--space-4); justify-items: center; text-align: center; }
+.as-head[data-asked] .as-figure {
+  flex-wrap: wrap;
+}
+.as-caption {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: center;
+  text-align: center;
+}
 /* The emergency disclosure held as one block rather than three loose lines, wearing the same orange left
    rule as every escalated block inside the conversation: the state, what the number is, and the number.
    Orange is the edge, never the text. */
-.as-caption[data-pulse='escalate'] { padding-left: var(--space-12); border-left: 2px solid var(--brand-orange); }
-.as-caption p { margin: 0; }
-.as-name { font-size: 13px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: var(--brand-mint); }
-.as-figure { display: flex; align-items: baseline; gap: var(--space-8); font-size: 32px; font-weight: 200; line-height: 1.1; color: var(--surface); font-variant-numeric: tabular-nums; }
-.as-figure span { font-size: 14px; font-weight: 400; color: var(--brand-mint); }
+.as-caption[data-pulse="escalate"] {
+  padding-left: var(--space-12);
+  border-left: 2px solid var(--brand-orange);
+}
+.as-caption p {
+  margin: 0;
+}
+.as-name {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--brand-mint);
+}
+.as-figure {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-8);
+  font-size: 32px;
+  font-weight: 200;
+  line-height: 1.1;
+  color: var(--surface);
+  font-variant-numeric: tabular-nums;
+}
+.as-figure span {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--brand-mint);
+}
 
 .as-scroll {
- flex: 1;
- min-height: 0;
- overflow-y: auto;
- overscroll-behavior: contain;
- display: grid;
- align-content: start;
- gap: var(--space-24);
- padding: var(--space-16) var(--space-20) var(--space-24);
- /* The platform's own bar is a light slab down the side of an ink panel, and it was the loudest edge in
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  align-content: start;
+  gap: var(--space-24);
+  padding: var(--space-16) var(--space-20) var(--space-24);
+  /* The platform's own bar is a light slab down the side of an ink panel, and it was the loudest edge in
     the escalate state. Thin, and the brand's mint at the weight a rule is drawn in here. */
- scrollbar-width: thin;
- scrollbar-color: color-mix(in srgb, var(--brand-mint) 36%, var(--brand-ink)) transparent;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--brand-mint) 36%, var(--brand-ink))
+    transparent;
 }
-.as-scroll .not-connected { margin: 0; border-left-color: var(--brand-mint); }
+.as-scroll .not-connected {
+  margin: 0;
+  border-left-color: var(--brand-mint);
+}
 
-.as-pause, .as-ask, .as-again, .as-go, .as-close {
- display: inline-flex;
- align-items: center;
- gap: var(--space-8);
- min-height: 44px;
- font: inherit;
- font-size: 15px;
- cursor: pointer;
- transition: background-color var(--t-quick) var(--ease-soft);
+.as-pause,
+.as-ask,
+.as-again,
+.as-go,
+.as-close {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: 44px;
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background-color var(--t-quick) var(--ease-soft);
 }
-.as-pause, .as-ask, .as-close {
- padding: var(--space-8) var(--space-16);
- border-radius: var(--r-pill);
- border: 1px solid color-mix(in srgb, var(--brand-mint) 62%, var(--brand-ink));
- background: color-mix(in srgb, var(--surface) 6%, var(--brand-ink));
- color: var(--surface);
- font-weight: 500;
- text-align: left;
+.as-pause,
+.as-ask,
+.as-close {
+  padding: var(--space-8) var(--space-16);
+  border-radius: var(--r-pill);
+  border: 1px solid color-mix(in srgb, var(--brand-mint) 62%, var(--brand-ink));
+  background: color-mix(in srgb, var(--surface) 6%, var(--brand-ink));
+  color: var(--surface);
+  font-weight: 500;
+  text-align: left;
 }
-.as-close { width: 44px; justify-content: center; padding: 0; }
-.as-pause:hover, .as-ask:hover, .as-close:hover { background: color-mix(in srgb, var(--surface) 14%, var(--brand-ink)); }
-.as-ask.urgent { border-color: var(--brand-orange); }
-.as-ask.urgent svg { color: var(--brand-orange); flex-shrink: 0; }
+.as-close {
+  width: 44px;
+  justify-content: center;
+  padding: 0;
+}
+.as-pause:hover,
+.as-ask:hover,
+.as-close:hover {
+  background: color-mix(in srgb, var(--surface) 14%, var(--brand-ink));
+}
+.as-ask.urgent {
+  border-color: var(--brand-orange);
+}
+.as-ask.urgent svg {
+  color: var(--brand-orange);
+  flex-shrink: 0;
+}
 
 /* ---- The conversation ------------------------------------------------------------------------- */
-.as-log ol { list-style: none; display: grid; gap: var(--space-20); margin: 0; padding: 0; }
-.as-turn { display: grid; gap: var(--space-8); scroll-margin-block: var(--space-16); }
+.as-log ol {
+  list-style: none;
+  display: grid;
+  gap: var(--space-20);
+  margin: 0;
+  padding: 0;
+}
+.as-turn {
+  display: grid;
+  gap: var(--space-8);
+  scroll-margin-block: var(--space-16);
+}
 .as-said {
- justify-self: end;
- max-width: 85%;
- margin: 0;
- padding: var(--space-8) var(--space-16);
- border-radius: var(--r-control);
- border-end-end-radius: var(--space-4);
- background: var(--surface);
- color: var(--brand-ink);
- font-size: 15px;
- font-weight: 600;
+  justify-self: end;
+  max-width: 85%;
+  margin: 0;
+  padding: var(--space-8) var(--space-16);
+  border-radius: var(--r-control);
+  border-end-end-radius: var(--space-4);
+  background: var(--surface);
+  color: var(--brand-ink);
+  font-size: 15px;
+  font-weight: 600;
 }
 .as-reply {
- justify-self: start;
- max-width: 100%;
- padding: var(--space-16);
- border-radius: var(--r-control);
- border-end-start-radius: var(--space-4);
- border: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
- background: color-mix(in srgb, var(--surface) 7%, var(--brand-ink));
- font-size: 15px;
- line-height: 1.55;
+  justify-self: start;
+  max-width: 100%;
+  padding: var(--space-16);
+  border-radius: var(--r-control);
+  border-end-start-radius: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
+  background: color-mix(in srgb, var(--surface) 7%, var(--brand-ink));
+  font-size: 15px;
+  line-height: 1.55;
 }
-.as-reply p { margin: 0; }
-.as-reply > * + * { margin-top: var(--space-12); }
-.as-who { display: block; font-size: 13px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--brand-mint); }
-.as-reasons { margin: 0; padding-left: var(--space-20); display: grid; gap: var(--space-8); font-size: 14px; }
-.as-headline { font-size: 18px; font-weight: 600; line-height: 1.35; }
+.as-reply p {
+  margin: 0;
+}
+.as-reply > * + * {
+  margin-top: var(--space-12);
+}
+.as-who {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--brand-mint);
+}
+.as-reasons {
+  margin: 0;
+  padding-left: var(--space-20);
+  display: grid;
+  gap: var(--space-8);
+  font-size: 14px;
+}
+.as-headline {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+}
 /* The sentence that tells somebody to call an ambulance is the largest thing in the bubble, and at the
    paragraph gap it sat against the list of what was noticed as though it were the next bullet. */
-.as-reply > * + .as-headline { margin-top: var(--space-16); }
+.as-reply > * + .as-headline {
+  margin-top: var(--space-16);
+}
 /* A real column: one grid for every row, so the numbers share the widest number's width and the names
    beside them start at one edge. A fixed em column did not fit 10177 at 24px and pushed its name out
    of line with 112's. */
-.as-numbers { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: var(--space-12); row-gap: var(--space-4); align-items: baseline; }
-.as-numbers li { display: contents; }
+.as-numbers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: var(--space-12);
+  row-gap: var(--space-4);
+  align-items: baseline;
+}
+.as-numbers li {
+  display: contents;
+}
 /* White rather than lime: lime is the drawing's spark and the staff deck's one badge, and a number a
    frightened person has to read is the last place for an accent. */
-.as-numbers strong { font-size: 24px; font-weight: 600; color: var(--surface); font-variant-numeric: tabular-nums; }
-.as-quiet { font-size: 14px; color: var(--brand-mint); }
-.as-go {
- padding: var(--space-8) var(--space-20);
- border: 0;
- border-radius: var(--r-pill);
- background: var(--surface);
- color: var(--brand-ink);
- font-weight: 600;
+.as-numbers strong {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--surface);
+  font-variant-numeric: tabular-nums;
 }
-.as-go:hover { background: color-mix(in srgb, var(--brand-mint) 30%, var(--surface)); }
+.as-quiet {
+  font-size: 14px;
+  color: var(--brand-mint);
+}
+.as-go {
+  padding: var(--space-8) var(--space-20);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--brand-ink);
+  font-weight: 600;
+}
+.as-go:hover {
+  background: color-mix(in srgb, var(--brand-mint) 30%, var(--surface));
+}
 
-.as-asks { display: grid; gap: var(--space-20); padding-top: var(--space-20); border-top: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink)); }
-.as-asks h3, .as-rule h3 { margin: 0 0 var(--space-8); font-size: 15px; font-weight: 600; color: var(--surface); }
-.as-asks p { margin: 0 0 var(--space-12); font-size: 14px; line-height: 1.55; color: var(--brand-mint); }
-.as-chips { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.as-asks {
+  display: grid;
+  gap: var(--space-20);
+  padding-top: var(--space-20);
+  border-top: 1px solid
+    color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
+}
+.as-asks h3,
+.as-rule h3 {
+  margin: 0 0 var(--space-8);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--surface);
+}
+.as-asks p {
+  margin: 0 0 var(--space-12);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--brand-mint);
+}
+.as-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
 /* Starting over is not another suggested question, and at the grid's own 20px it sat against the last
    chip as though it were one. It gets its own air. */
 .as-again {
- justify-self: start;
- margin-top: var(--space-8);
- padding: var(--space-8) var(--space-4);
- border: 0;
- background: none;
- color: var(--surface);
- font-weight: 500;
- text-decoration: underline;
- text-underline-offset: 3px;
+  justify-self: start;
+  margin-top: var(--space-8);
+  padding: var(--space-8) var(--space-4);
+  border: 0;
+  background: none;
+  color: var(--surface);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
-.as-rule { padding-top: var(--space-20); border-top: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink)); }
-.as-rule p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--brand-mint); }
+.as-rule {
+  padding-top: var(--space-20);
+  border-top: 1px solid
+    color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
+}
+.as-rule p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--brand-mint);
+}
 /* Hidden, and held inside the bubble it belongs to. Without the containing block on .as-said this
    span's nearest positioned ancestor is the <dialog> itself, so as the log scrolled its static
    position slid past the panel's own height and gave the panel scrollable overflow. The dialog is
@@ -421,94 +445,146 @@
    button and the top of the sphere were lifted out of the panel's clipped top edge while the
    composer went off the bottom. Nothing absolutely positioned in here may resolve against the
    dialog. */
-.as-said { position: relative; }
-.as-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.as-said {
+  position: relative;
+}
+.as-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
 /* ---- GilbertOne: the state in words, the composer, the answers that are not situations ---------- */
 /* min-content, not 0: the name is one word and a flex item allowed to shrink past it prints over the
    controls beside it. The descriptor still wraps inside whatever column is left, which is the point
    of the min-width in the first place — see the bar, above, for the 9px the name spent inside the
    Pause motion pill at 320px. */
-.as-titles { flex: 1; min-width: min-content; display: grid; gap: 0; }
-.as-titles h2 { margin: 0; font-size: 18px; font-weight: 600; color: var(--surface); }
-.as-descriptor { margin: 0; font-size: 13px; color: var(--brand-mint); }
+.as-titles {
+  flex: 1;
+  min-width: min-content;
+  display: grid;
+  gap: 0;
+}
+.as-titles h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--surface);
+}
+.as-descriptor {
+  margin: 0;
+  font-size: 13px;
+  color: var(--brand-mint);
+}
 /* The state, said. A pill with a hairline rather than a coloured fill, so its colour is never the only
    thing that changed: the word is. Orange is the edge on Escalate, white text on ink throughout. */
 .as-state {
- justify-self: center;
- padding: 2px var(--space-12);
- border-radius: var(--r-pill);
- border: 1px solid color-mix(in srgb, var(--brand-mint) 62%, var(--brand-ink));
- font-size: 13px;
- font-weight: 600;
- color: var(--surface);
+  justify-self: center;
+  padding: 2px var(--space-12);
+  border-radius: var(--r-pill);
+  border: 1px solid color-mix(in srgb, var(--brand-mint) 62%, var(--brand-ink));
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--surface);
 }
-.as-state[data-pulse='escalate'] { border-color: var(--brand-orange); border-width: 2px; }
+.as-state[data-pulse="escalate"] {
+  border-color: var(--brand-orange);
+  border-width: 2px;
+}
 
 .as-compose {
- flex: 0 0 auto;
- display: grid;
- gap: var(--space-8);
- padding: var(--space-12) var(--space-20) calc(var(--space-12) + env(safe-area-inset-bottom));
- border-top: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
- background: var(--brand-ink);
+  flex: 0 0 auto;
+  display: grid;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--space-20)
+    calc(var(--space-12) + env(safe-area-inset-bottom));
+  border-top: 1px solid
+    color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
+  background: var(--brand-ink);
 }
-.as-compose label { font-size: 14px; font-weight: 600; color: var(--surface); }
+.as-compose label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--surface);
+}
 /* One row of three — the field, the microphone, the written Send — with the microphone's words on a
    line of their own underneath all three. A grid rather than a flex row because the control and its
    words are one component returning two siblings, and the words have to leave the row without taking
    Send's place: placed by hand on the second row, they stay out of the auto-placement the three
    controls fill along the first. */
 .as-field {
- display: grid;
- grid-template-columns: minmax(0, 1fr) auto auto;
- gap: var(--space-8);
- align-items: center;
- min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--space-8);
+  align-items: center;
+  min-width: 0;
 }
-.as-voice-lines { grid-column: 1 / -1; grid-row: 2; display: grid; gap: var(--space-8); }
+.as-voice-lines {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: grid;
+  gap: var(--space-8);
+}
 .as-field input {
- min-width: 0;
- min-height: 44px;
- padding: 0 var(--space-12);
- border-radius: var(--r-control);
- border: 1px solid color-mix(in srgb, var(--brand-mint) 62%, var(--brand-ink));
- background: var(--surface);
- color: var(--brand-ink);
- font: inherit;
- font-size: 16px;
- /* The field shares its row with a 44px microphone and a written Send, and at 320px that leaves it
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 var(--space-12);
+  border-radius: var(--r-control);
+  border: 1px solid color-mix(in srgb, var(--brand-mint) 62%, var(--brand-ink));
+  background: var(--surface);
+  color: var(--brand-ink);
+  font: inherit;
+  font-size: 16px;
+  /* The field shares its row with a 44px microphone and a written Send, and at 320px that leaves it
     142px: the contract's own placeholder — "Type in your own words" — needs about 175px at 16px and
     was cut to "Type in your ow" behind the microphone, which reads as a broken field rather than a
     narrow one. The hint is not shortened and the 16px stays (anything under it zooms the page on an
     iPhone), so the cut is marked as a cut: an ellipsis says the words continue, and nothing says
     they stop. Typed text gets the same treatment. */
- text-overflow: ellipsis;
+  text-overflow: ellipsis;
 }
-.as-field input::placeholder { color: color-mix(in srgb, var(--brand-ink) 62%, var(--surface)); }
+.as-field input::placeholder {
+  color: color-mix(in srgb, var(--brand-ink) 62%, var(--surface));
+}
 .as-send {
- display: inline-flex;
- align-items: center;
- gap: var(--space-8);
- min-height: 44px;
- padding: 0 var(--space-16);
- border: 0;
- border-radius: var(--r-control);
- background: var(--surface);
- color: var(--brand-ink);
- font: inherit;
- font-size: 15px;
- font-weight: 600;
- cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: 44px;
+  padding: 0 var(--space-16);
+  border: 0;
+  border-radius: var(--r-control);
+  background: var(--surface);
+  color: var(--brand-ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
 }
-.as-send:hover { background: color-mix(in srgb, var(--brand-mint) 30%, var(--surface)); }
+.as-send:hover {
+  background: color-mix(in srgb, var(--brand-mint) 30%, var(--surface));
+}
 /* The two disclosures under the box: what a browser's own dictation does with a voice, and that GilbertOne
    not recognising an emergency does not mean there is not one. Both are required on screen and neither may
    be shortened, so they are separated instead — a hairline turns them from a wall of text the composer is
    sitting on into a footnote zone, and the mint on ink they already carry keeps them quieter than the
    conversation without dropping the contrast they were measured at. */
-.as-silence, .as-keyboard { margin: 0; font-size: 13px; line-height: 1.45; color: var(--brand-mint); }
-.as-keyboard { margin-top: var(--space-4); padding-top: var(--space-12); border-top: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink)); }
+.as-silence,
+.as-keyboard {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--brand-mint);
+}
+.as-keyboard {
+  margin-top: var(--space-4);
+  padding-top: var(--space-12);
+  border-top: 1px solid
+    color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
+}
 /* The push-to-talk control and the words under it. It is a real microphone that opens on a tap, so it
    is named — as the contract's own accessible name, and as the line under the row that says which of
    the four states it is actually in, because the icon is never allowed to be the whole answer. It is a
@@ -517,58 +593,164 @@
    because a page that opens a microphone and then explains has already taken the voice it was about to
    explain. */
 .as-voice {
- display: inline-flex;
- align-items: center;
- justify-content: center;
- width: 44px;
- min-height: 44px;
- padding: 0;
- border: 1px solid color-mix(in srgb, var(--brand-mint) 62%, var(--brand-ink));
- border-radius: var(--r-control);
- background: var(--surface);
- color: var(--brand-ink);
- font: inherit;
- font-size: 15px;
- font-weight: 600;
- cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--brand-mint) 62%, var(--brand-ink));
+  border-radius: var(--r-control);
+  background: var(--surface);
+  color: var(--brand-ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
 }
-.as-voice:hover { background: color-mix(in srgb, var(--brand-mint) 30%, var(--surface)); }
-.as-voice-state, .as-voice-heard { margin: 0; font-size: 13px; line-height: 1.45; color: var(--brand-mint); }
+.as-voice:hover {
+  background: color-mix(in srgb, var(--brand-mint) 30%, var(--surface));
+}
+.as-voice-state,
+.as-voice-heard {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--brand-mint);
+}
 /* The words as the browser catches them, under their contract label. The colour is the one the two
    lines around it already use, so a patient reading what she sounds like is not looking at a new
    pair nobody measured; only the label is heavier, and only so the words stay the easier read. */
-.as-voice-heard span { font-weight: 600; }
+.as-voice-heard span {
+  font-weight: 600;
+}
 /* The unread answer sits inside the reply it follows, set apart by an orange rule: the words GilbertOne
    could not read are the part of the message most worth a second look. */
-.as-unread { display: grid; gap: var(--space-12); margin-top: var(--space-16); padding: var(--space-12) 0 0 var(--space-12); border-left: 2px solid var(--brand-orange); border-top: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink)); }
-.as-unread p { margin: 0; }
+.as-unread {
+  display: grid;
+  gap: var(--space-12);
+  margin-top: var(--space-16);
+  padding: var(--space-12) 0 0 var(--space-12);
+  border-left: 2px solid var(--brand-orange);
+  border-top: 1px solid
+    color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
+}
+.as-unread p {
+  margin: 0;
+}
 
-.as-noticed { padding-left: var(--space-12); border-left: 2px solid var(--brand-orange); }
-.as-noticed p { margin: 0; }
-.as-noticed ul { margin: var(--space-4) 0 0; padding-left: var(--space-20); font-weight: 600; }
-.as-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); }
-.as-summary { display: grid; gap: var(--space-8); margin: 0; }
-.as-summary div { display: grid; gap: 2px; padding-bottom: var(--space-8); border-bottom: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink)); }
-.as-summary dt { font-size: 13px; font-weight: 600; color: var(--brand-mint); }
-.as-summary dd { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
-.as-notsent { font-weight: 600; }
+.as-noticed {
+  padding-left: var(--space-12);
+  border-left: 2px solid var(--brand-orange);
+}
+.as-noticed p {
+  margin: 0;
+}
+.as-noticed ul {
+  margin: var(--space-4) 0 0;
+  padding-left: var(--space-20);
+  font-weight: 600;
+}
+.as-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+.as-summary {
+  display: grid;
+  gap: var(--space-8);
+  margin: 0;
+}
+.as-summary div {
+  display: grid;
+  gap: 2px;
+  padding-bottom: var(--space-8);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
+}
+.as-summary dt {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-mint);
+}
+.as-summary dd {
+  margin: 0;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.as-notsent {
+  font-weight: 600;
+}
 /* The handover to the simulated nurse queue: what does not go, the never-lowered sentence, and the
    confirmation with its reference. Mint on ink and white on ink, the declared pairs above. */
-.as-notcarried { display: grid; gap: var(--space-4); }
-.as-notcarried .as-subhead { margin: 0; font-size: 13px; font-weight: 600; color: var(--brand-mint); }
-.as-notcarried ul { margin: 0; padding-left: var(--space-20); display: grid; gap: var(--space-4); font-size: 14px; line-height: 1.5; }
-.as-lowered { margin: 0; font-weight: 600; padding-left: var(--space-12); border-left: 2px solid var(--brand-orange); }
-.as-sent { display: grid; gap: var(--space-8); padding-top: var(--space-12); border-top: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink)); }
-.as-sent p { margin: 0; }
+.as-notcarried {
+  display: grid;
+  gap: var(--space-4);
+}
+.as-notcarried .as-subhead {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-mint);
+}
+.as-notcarried ul {
+  margin: 0;
+  padding-left: var(--space-20);
+  display: grid;
+  gap: var(--space-4);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.as-lowered {
+  margin: 0;
+  font-weight: 600;
+  padding-left: var(--space-12);
+  border-left: 2px solid var(--brand-orange);
+}
+.as-sent {
+  display: grid;
+  gap: var(--space-8);
+  padding-top: var(--space-12);
+  border-top: 1px solid
+    color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
+}
+.as-sent p {
+  margin: 0;
+}
 /* Out of hours (Wave 3, Access settings): nobody is on the desk, then the numbers, then the call back. Orange
    as an edge only, never as text, as the emergency answer does. */
-.as-desk { display: grid; gap: var(--space-8); padding-left: var(--space-12); border-left: 2px solid var(--brand-orange); }
-.as-desk p { margin: 0; }
-.as-desk-numbers { font-weight: 600; }
-.as-ref { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; font-weight: 600; }
-.as-said { overflow-wrap: anywhere; }
-.as-rule ul { margin: 0 0 var(--space-12); padding-left: var(--space-20); display: grid; gap: var(--space-8); font-size: 14px; line-height: 1.55; color: var(--surface); }
-.as-powered { font-size: 13px !important; }
+.as-desk {
+  display: grid;
+  gap: var(--space-8);
+  padding-left: var(--space-12);
+  border-left: 2px solid var(--brand-orange);
+}
+.as-desk p {
+  margin: 0;
+}
+.as-desk-numbers {
+  font-weight: 600;
+}
+.as-ref {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+}
+.as-said {
+  overflow-wrap: anywhere;
+}
+.as-rule ul {
+  margin: 0 0 var(--space-12);
+  padding-left: var(--space-20);
+  display: grid;
+  gap: var(--space-8);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--surface);
+}
+.as-powered {
+  font-size: 13px !important;
+}
 
 /* ---- A phone -----------------------------------------------------------------------------------
    The panel is a sheet on a phone, and on a phone the two fixed blocks — the head and the composer —
@@ -579,21 +761,23 @@
    back from the places that were spending it on air, and it is measured at 390x844 and 320x720 in
    both the idle and the asked state. */
 @media (max-width: 560px) {
- /* The sphere is the identity on open, and it is what the composer's new fixed line is paid from: the
-    voice disclosure the founder's decision of 18 September puts under the input is 134px at 390, the
-    head is the only block on the sheet with that much to give, and 100px is the size the asked state
-    already used — so on a phone the sphere is one size before the first question and after it. The body
-    is 63% of the box, 63px, above the 60px the still state has to keep so a reduced-motion frame is a
-    whole sphere rather than a dot. The 12px of clear air under the descriptor stays: the bleed is 108%
-    of the box, so a smaller sphere has a smaller glow, and the rule it exists for — the glow never
-    lands on the words — is unchanged. */
- .as-head .orb { --orb: 100px; }
- /* The head's own padding: 4px off the top and 4px off the bottom, which is all it was spending on air.
+  /* The character is the identity on open, and it is what the composer's new fixed line is paid from:
+    the voice disclosure the founder's decision of 18 September puts under the input is 134px at 390,
+    the head is the only block on the sheet with that much to give, and 100px is the size the asked
+    state already used — so on a phone the character is one size before the first question and after
+    it, and the head it draws stays a whole character rather than a dot. */
+  .as-head .as-rig {
+    --rig: 100px;
+  }
+  /* The head's own padding: 4px off the top and 4px off the bottom, which is all it was spending on air.
     It moves out of the phone block: the 400px card on a laptop has the same head, and it was the head
     and the composer together that left that card 167px for a 192px notice — so the same two pixels
     are taken back there too, under the desktop rule where they are measured. */
- .as-head { padding-top: var(--space-8); padding-bottom: var(--space-8); }
- /* The contract sentences under the box are the composer's real cost — 88px for the keyboard note and
+  .as-head {
+    padding-top: var(--space-8);
+    padding-bottom: var(--space-8);
+  }
+  /* The contract sentences under the box are the composer's real cost — 88px for the keyboard note and
     57px for the silence note at 390 — and the voice disclosure that joined them on 18 September is
     longer than both: 134px at 390, 168px at 320, set in place of the typing note until the first tap.
     None of them may be shortened, so they are set tighter instead: one line-height step, one padding
@@ -601,12 +785,25 @@
     notices — smaller than the rest of the panel's text, and paid so the sentences stay whole on the
     screen rather than pushing the conversation off the bottom. Only the size moves: the mint on ink
     they were measured at is the rule they keep. */
- .as-compose { padding-top: var(--space-8); gap: var(--space-8); }
- .as-silence, .as-keyboard, .as-voice-state, .as-voice-heard { font-size: 12px; line-height: 1.4; }
- .as-keyboard { padding-top: var(--space-8); }
- /* The notice that opens the scroll keeps a full 20px at its sides, and a little less above it: the
+  .as-compose {
+    padding-top: var(--space-8);
+    gap: var(--space-8);
+  }
+  .as-silence,
+  .as-keyboard,
+  .as-voice-state,
+  .as-voice-heard {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .as-keyboard {
+    padding-top: var(--space-8);
+  }
+  /* The notice that opens the scroll keeps a full 20px at its sides, and a little less above it: the
     top of the sheet is a hard edge the eye needs a hairline of ink against, not 16px of it. */
- .as-scroll { padding-top: var(--space-12); }
+  .as-scroll {
+    padding-top: var(--space-12);
+  }
 }
 
 /* ---- A narrow phone ----------------------------------------------------------------------------
@@ -617,38 +814,66 @@
    rows — because at this width every one of them is a line of the answer the fixed chrome is not
    spending, and not one word moves out of the sentence a person is being asked to agree to. */
 @media (max-width: 359px) {
- .as-scroll, .as-compose { padding-inline: var(--space-12); }
- .as-compose { gap: var(--space-4); }
- .as-voice-lines { gap: var(--space-4); }
+  .as-scroll,
+  .as-compose {
+    padding-inline: var(--space-12);
+  }
+  .as-compose {
+    gap: var(--space-4);
+  }
+  .as-voice-lines {
+    gap: var(--space-4);
+  }
 }
 
 @media (min-width: 1000px) {
- .as-panel {
-  inset: auto var(--space-24) var(--space-24) auto;
-  width: 400px;
-  /* 640px was chosen while the panel was a greeting and a few chips. A conversation with an emergency
+  .as-panel {
+    inset: auto var(--space-24) var(--space-24) auto;
+    width: 400px;
+    /* 640px was chosen while the panel was a greeting and a few chips. A conversation with an emergency
      answer in it needs the height, and a desktop that has 1100px of it was handing back 460 of them:
      the head and the composer are fixed, so every pixel refused here came out of the answer. 760 was
      the second such number and the notice was still cut — 800 is where a 1100px screen gives the
      notice its 192px back, and a 768px laptop is the case the calc beside it is for. */
-  height: min(800px, calc(100dvh - 2 * var(--space-24)));
-  border-radius: var(--r-card);
-  transform-origin: 100% 100%;
- }
- .as-panel::backdrop { background: color-mix(in srgb, var(--brand-ink) 14%, transparent); }
- .as-panel[open] { animation-name: as-panel-in; }
- /* The card on a laptop had the same sickness as the sheet on a phone, and the same fix, for the same
+    height: min(800px, calc(100dvh - 2 * var(--space-24)));
+    border-radius: var(--r-card);
+    transform-origin: 100% 100%;
+  }
+  .as-panel::backdrop {
+    background: color-mix(in srgb, var(--brand-ink) 14%, transparent);
+  }
+  .as-panel[open] {
+    animation-name: as-panel-in;
+  }
+  /* The card on a laptop had the same sickness as the sheet on a phone, and the same fix, for the same
     reason: the head and the composer are both fixed, and at 400x760 they were 334 and 259 — so the
     contract notice that opens the conversation had 167px and was cut mid-sentence at the composer's
     top edge, exactly as it was on a phone. The cap rises to 800, which costs a 1100px screen nothing
-    and a 768px screen is where it pays for itself; the sphere comes down beside the descriptor, and
-    the head sheds the 8px of padding that was air. 167 -> 239px, and the notice is whole with 47px to
-    spare. The voice disclosure the founder's decision of 18 September fixed under the input takes about
-    that much again, so the card pays from the same two places the sheet does: the sphere to 100px,
-    which is now one size on every shell, and one type step on the sentences under the box. */
- .as-head .orb { --orb: 100px; }
- .as-head { padding-top: var(--space-8); padding-bottom: var(--space-8); }
- .as-compose { padding-top: var(--space-8); gap: var(--space-8); }
- .as-silence, .as-keyboard, .as-voice-state, .as-voice-heard { font-size: 12px; line-height: 1.4; }
- .as-keyboard { padding-top: var(--space-8); }
+    and a 768px screen is where it pays for itself; the character comes down beside the descriptor,
+    and the head sheds the 8px of padding that was air. 167 -> 239px, and the notice is whole with
+    47px to spare. The voice disclosure the founder's decision of 18 September fixed under the input
+    takes about that much again, so the card pays from the same two places the sheet does: the
+    character to 100px, which is now one size on every shell, and one type step on the sentences
+    under the box. */
+  .as-head .as-rig {
+    --rig: 100px;
+  }
+  .as-head {
+    padding-top: var(--space-8);
+    padding-bottom: var(--space-8);
+  }
+  .as-compose {
+    padding-top: var(--space-8);
+    gap: var(--space-8);
+  }
+  .as-silence,
+  .as-keyboard,
+  .as-voice-state,
+  .as-voice-heard {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .as-keyboard {
+    padding-top: var(--space-8);
+  }
 }
