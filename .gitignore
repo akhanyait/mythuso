@@ -38,5 +38,8 @@ test-results/
 # Azure App Onboard sessions may contain deployment metadata and generated secrets.
 .copilot-azure/
 
+# Copilot's own agent tooling reference material, not part of MyThuso.
+.github/agents/
+
 # The engines' development stores and bus trail. Synthetic data, and never committed.
 packages/engines/.data/
