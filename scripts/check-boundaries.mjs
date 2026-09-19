@@ -13592,6 +13592,332 @@ for (const id of GILBERT_REFUSALS) {
     );
 }
 
+/* ---- Affect: one face per answer kind, and never a softer one on a refusal --------------------
+ *
+ * The founder's decision of 19 September 2026 (docs/ROADMAP.md, "one GilbertOne"): affect is
+ * deterministic and derived from the answer kind alone — no model, no mood, no network — so every
+ * face a patient can meet is written in packages/catalog/assistant.json where somebody accountable
+ * can read it, and the same answer wears the same face every time. This section holds that part of
+ * the contract to the founder's own four words for the mapping — emergency to the safety cue,
+ * refusal to flat, routine to warm, unmatched to concerned — holds each posture honest about the
+ * cue it names, accounts for every cue in the rig exactly once, and then proves the invariant that
+ * outranks the rest the only way it can be proved: by running the reducer the patient's face
+ * actually runs, imported the way the Clinical section imports the triage domain, and asking
+ * whether anything at all can put a warm face over a refusal or an emergency. Each check below was
+ * proven to fire by breaking the source it guards.
+ *
+ * The proof rests on the cue engine's own priority order, which until the affect section existed
+ * had nothing to order: safety outranks every track, and the emergency answer's cue holds, so a
+ * later smile, nod, look-aside, error face, interruption or yawn is refused rather than allowed to
+ * relax an urgent face — on the motion path and the reduced-motion path, from a later turn and
+ * from a stale one. A warm mouth on a chest-pain answer is precisely the failure the capability
+ * contract's neverSoften was written to prevent, and it is prevented here against the code rather
+ * than against the comments. */
+{
+  const affect = gilbertContract.affect;
+  if (!affect?.decidedBy || !affect?.on || !affect?.why || !affect?.neverSoften)
+    throw new Error(
+      "packages/catalog/assistant.json has lost the affect section, or the record saying who decided it, when and why. A face a patient meets is a decision on file or it is a mood the code is having, and the founder decided on 19 September 2026 that it is the former.",
+    );
+  if (!/founder/i.test(String(affect.decidedBy)))
+    throw new Error(
+      `The affect section was decided by "${affect.decidedBy}". Which face an answer wears is the founder's call — it is what a patient sees beside the hardest words on the screen — and a face somebody else chose is a face nobody agreed to.`,
+    );
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(affect.on)))
+    throw new Error(
+      `The affect section is dated "${affect.on}", which is not a date. "Recently" cannot be checked against a refusal, and every other decision in this contract carries the day it was made.`,
+    );
+  if (
+    !/never soften/i.test(String(affect.neverSoften)) ||
+    !/refusal or an emergency/i.test(String(affect.neverSoften))
+  )
+    throw new Error(
+      "The affect section's neverSoften no longer carries the founder's own words: that affect may never soften a refusal or an emergency. That sentence is the whole rule in one line, read by this gate and by anybody opening the contract, and a rule that loses its clause loses the behaviour it was written about.",
+    );
+
+  /* The rig the patient's face actually runs, imported rather than paraphrased, so the proof below
+     asks the real reducer and a change to the cue engine is checked against the contract on every
+     build rather than discovered on a patient's screen. */
+  const rig = await import("../apps/web/src/lib/gilbertone.ts");
+  const rigCue = (id) => rig.CUES.find((cue) => cue.id === id);
+
+  /* Every kind the matcher can answer with has a face: the kinds the suggested questions answer
+     in, and the kinds the answers section itself carries — unmatched and unread are produced by the
+     matcher rather than asked for. The required set is read from the contract rather than typed
+     here, so a kind added without a face is caught the day it is added. */
+  const faces = affect.answers ?? {};
+  for (const question of gilbertContract.questions)
+    if (!faces[question.answer])
+      throw new Error(
+        `GilbertOne's question "${question.id}" answers with "${question.answer}", and the affect section gives that kind no face. An answer kind with no cue is a cue the panel will invent at run time — the exact decision the affect section exists to take away from it.`,
+      );
+  for (const kind of Object.keys(gilbertContract.answers))
+    if (!faces[kind])
+      throw new Error(
+        `The answers section carries "${kind}", and the affect section gives it no face. ${kind === "unread" ? "A turn with unread words is the one place the face must not smile, because the unread block in it is itself a refusal" : "The matcher produces this kind, so the panel needs a cue for it whether the contract names one or not"}.`,
+      );
+  for (const kind of Object.keys(faces))
+    if (
+      !gilbertContract.answers[kind] &&
+      !gilbertContract.questions.some((q) => q.answer === kind)
+    )
+      throw new Error(
+        `The affect section gives "${kind}" a face, but no question answers with it and the answers section does not carry it. A mapping nobody renders is a decision that looks made and is not.`,
+      );
+
+  /* Each face names a cue the manifest carries, a posture from the section's own vocabulary, and
+     the sentence saying why — the why is the part a clinical reviewer reads. */
+  const POSTURES = ["warm", "flat", "concerned", "attentive"];
+  for (const [kind, face] of Object.entries(faces)) {
+    if (!rigCue(face.cue))
+      throw new Error(
+        `The affect section maps the ${kind} answer to the cue "${face.cue}", which the rig's manifest does not carry. A face that does not exist is a panel that falls over — or worse, one that silently shows nothing beside the hardest answer it has.`,
+      );
+    if (!POSTURES.includes(face.posture))
+      throw new Error(
+        `The affect section gives the ${kind} answer the posture "${face.posture}", which is not one of its own four (${POSTURES.join(", ")}). The vocabulary is small on purpose: a posture a reviewer has not read is a mood.`,
+      );
+    if (!face.why)
+      throw new Error(
+        `The affect section gives the ${kind} answer no sentence saying why. Every face is a decision somebody can be asked about, and this is where the answer is written down.`,
+      );
+  }
+
+  /* The founder's four words, pinned. The general checks below hold the invariant for any kind
+     ever added; these four hold the decision itself, made on 19 September 2026. */
+  if (faces.situation?.posture !== "warm")
+    throw new Error(
+      'The situation answers no longer wear a warm face. The founder\'s words were "routine to warm": the four situations are status sentences, and their face is the one warm thing on the panel. A change here is a founder decision, not an edit.',
+    );
+  for (const kind of ["identity", "voice"])
+    if (faces[kind]?.posture !== "flat")
+      throw new Error(
+        `The ${kind} answer no longer wears a flat face. The founder's words were "refusal to flat": this answer states what GilbertOne is not and what it keeps, and a warmer face on it is precisely the softening the neverSoften sentence forbids.`,
+      );
+  if (faces.unmatched?.posture !== "concerned")
+    throw new Error(
+      'The unmatched answer no longer wears the concerned face. The founder\'s words were "unmatched to concerned": neither warmth nor alarm — amber on every sentence GilbertOne did not understand would teach people to ignore amber.',
+    );
+  const holdCue = rigCue(faces.emergency?.cue);
+  if (
+    faces.emergency?.posture !== "flat" ||
+    holdCue?.track !== "safety" ||
+    !holdCue?.holds
+  )
+    throw new Error(
+      "The emergency answer no longer maps to the safety cue that holds, with a flat face. The founder's words were \"emergency to A16\": a steady face that holds until the patient's own Start again, because a face that relaxes on a timer says the urgency has passed when nothing has happened.",
+    );
+
+  /* A posture word must describe the cue it names, or the contract can say "flat" while the mouth
+     smiles. Each check is against the cue's own steps and still expression — the two things a
+     patient can actually see. */
+  const mouthsOf = (cue) => [
+    ...cue.steps.map((step) => step.pose.mouth).filter(Boolean),
+    ...(cue.still?.mouth ? [cue.still.mouth] : []),
+  ];
+  for (const [kind, face] of Object.entries(faces)) {
+    const cue = rigCue(face.cue);
+    if (
+      face.posture === "warm" &&
+      !mouthsOf(cue).some((mouth) => mouth === "warm" || mouth === "smile")
+    )
+      throw new Error(
+        `The ${kind} answer's posture is "warm" over a cue whose mouth never warms or smiles. A posture is a promise about the face on the screen, and this one names a face the cue does not draw.`,
+      );
+    if (face.posture === "flat" && !mouthsOf(cue).includes("flat"))
+      throw new Error(
+        `The ${kind} answer's posture is "flat" over a cue whose mouth is never flat. The refusal's face is the flat one, and a cue that cannot draw it cannot keep the promise the posture makes.`,
+      );
+    if (
+      face.posture === "concerned" &&
+      !cue.steps.some((step) => (step.pose.brow ?? 0) > 0) &&
+      !((cue.still?.brow ?? 0) > 0)
+    )
+      throw new Error(
+        `The ${kind} answer's posture is "concerned" over a cue that never lifts a brow. Concern is a specific face — the lifted brow, the small tilt — and a cue without it is a word with nothing behind it.`,
+      );
+    if (
+      face.posture === "attentive" &&
+      !cue.steps.some((step) => (step.pose.tilt ?? 0) > 0) &&
+      !((cue.still?.tilt ?? 0) > 0)
+    )
+      throw new Error(
+        `The ${kind} answer's posture is "attentive" over a cue that never tilts towards the patient. Attentiveness is drawn, not declared, and this cue draws none of it.`,
+      );
+  }
+
+  /* The invariant over the kinds that refuse: the two that say what GilbertOne is not and what it
+     keeps, the two that say they cannot assess, and the emergency. Neither the posture nor the
+     cue's own mouth may warm or smile — a smile can arrive by either door. */
+  for (const kind of [
+    "identity",
+    "voice",
+    "unmatched",
+    "unread",
+    "emergency",
+  ]) {
+    const face = faces[kind];
+    const cue = rigCue(face.cue);
+    if (
+      face.posture === "warm" ||
+      mouthsOf(cue).some((mouth) => mouth === "warm" || mouth === "smile")
+    )
+      throw new Error(
+        `The ${kind} answer wears ${face.cue}, which smiles. ${kind === "unread" ? "The unread block in a turn is itself a refusal — the rest was not read — and the half of a turn that refused is not decorated with the half that answered" : "This answer refuses something to the person reading it"}, and a smile beside a refusal is precisely the softening the neverSoften sentence exists to prevent.`,
+      );
+  }
+
+  /* Every cue in the manifest is accounted for exactly once — wired to an answer kind, wired to
+     conversation state, or refused with a reason. The eighteenth cue somebody adds without saying
+     which of the three it is, is a face nobody has decided on. */
+  for (const key of ["openFirst", "openAgain", "idle", "blink"])
+    if (!rigCue(affect.conversation?.[key]))
+      throw new Error(
+        `affect.conversation.${key} names no cue in the rig's manifest. The open is conversation state, and which cue it buys is a decision on file rather than a string in a component.`,
+      );
+  for (const entry of affect.notWired ?? [])
+    if (!rigCue(entry.cue) || !entry.why)
+      throw new Error(
+        `The affect section refuses the cue "${entry.cue}" with no reason, or names a cue the manifest does not carry. A cue left out is a decision; one left out silently is an omission wearing the same shape.`,
+      );
+  const wiredCues = new Set(Object.values(faces).map((face) => face.cue));
+  const conversationalCues = new Set(
+    ["openFirst", "openAgain", "idle", "blink"].map(
+      (key) => affect.conversation[key],
+    ),
+  );
+  const refusedCues = new Set(
+    (affect.notWired ?? []).map((entry) => entry.cue),
+  );
+  for (const id of wiredCues)
+    if (refusedCues.has(id))
+      throw new Error(
+        `The cue "${id}" is both an answer's face and on the notWired list. It cannot be both, and a list that lies about what is wired is worse than no list.`,
+      );
+  for (const cue of rig.CUES)
+    if (
+      !wiredCues.has(cue.id) &&
+      !conversationalCues.has(cue.id) &&
+      !refusedCues.has(cue.id)
+    )
+      throw new Error(
+        `The rig carries the cue "${cue.id}" (${cue.name}) and the affect section says nothing about it. Every face is a decision: wire it to an answer kind or a conversation moment, or refuse it with a reason.`,
+      );
+
+  /* The invariant, proved against the reducer itself. The safety cue takes the face, and then every
+     other cue in the manifest is thrown at it — every smile, nod, look-aside, the error face, the
+     interruption, the yawn — from a later turn and from a stale one, on the motion path and the
+     reduced-motion path. Nothing may move the mouth off flat or take the cue off the face; the walk
+     finishing and the pause control are not releases either, because a cue that holds, holds. And
+     the other direction: an emergency arriving on a face that is holding something warm takes it,
+     because a chest-pain sentence must never be answered with the smile still on the face. */
+  const { reduce, START, CUES } = rig;
+  for (const reduced of [false, true]) {
+    const where = reduced ? " under reduced motion" : "";
+    let held = reduce(START, { kind: "play", cue: holdCue, turn: 1, reduced });
+    if (held.cue?.id !== holdCue.id || held.pose.mouth !== "flat")
+      throw new Error(
+        `The emergency answer's cue does not take the face and hold it flat${where}. Everything below this check is meaningless if the one cue that must hold, does not.`,
+      );
+    for (const cue of CUES) {
+      if (cue.id === holdCue.id) continue;
+      const later = reduce(held, { kind: "play", cue, turn: 2, reduced });
+      if (
+        !later.refused ||
+        later.cue?.id !== holdCue.id ||
+        later.pose.mouth !== "flat"
+      )
+        throw new Error(
+          `The cue "${cue.id}" (${cue.name}) can follow the emergency answer onto the face${where}. A warmer or busier face after an emergency is a calmer face, and a calmer face lowers one: affect may never soften a refusal or an emergency, and the reducer is the only place that is either true or not.`,
+        );
+      const stale = reduce(held, { kind: "play", cue, turn: 1, reduced });
+      if (!stale.refused || stale.pose.mouth !== "flat")
+        throw new Error(
+          `A trigger from before the emergency ("${cue.id}") can still change the face. The turn rule exists so that a late answer from an earlier turn never restarts the mouth or changes the face, and an emergency is the one moment it must hold absolutely.`,
+        );
+    }
+    let walked = held;
+    for (let step = 0; step <= holdCue.steps.length; step++)
+      walked = reduce(walked, { kind: "advance", turn: walked.turn });
+    if (walked.cue?.id !== holdCue.id || walked.pose.mouth !== "flat")
+      throw new Error(
+        `The safety cue's own steps finishing releases the hold${where}. A face that relaxes out of an urgent state on a timer says the urgency has passed when nothing has happened.`,
+      );
+    const settled = reduce(held, { kind: "settle" });
+    if (settled.cue?.id !== holdCue.id || settled.pose.mouth !== "flat")
+      throw new Error(
+        `A pause settles the safety cue off the face. The pause control may still the page; it may not still an emergency.`,
+      );
+    const warmBefore = reduce(START, {
+      kind: "play",
+      cue: rigCue(faces.handover.cue),
+      turn: 1,
+      reduced,
+    });
+    const raisedOverWarm = reduce(warmBefore, {
+      kind: "play",
+      cue: holdCue,
+      turn: 2,
+      reduced,
+    });
+    if (
+      raisedOverWarm.cue?.id !== holdCue.id ||
+      raisedOverWarm.pose.mouth !== "flat"
+    )
+      throw new Error(
+        `An emergency arriving on a held supportive face does not take it${where}. The handover's cue holds its track, and the safety cue outranks it — a nurse handover that carries an emergency urgency shows the ambulance numbers, and the face they arrive on must not still be smiling.`,
+      );
+  }
+  const rested = reduce(
+    reduce(START, { kind: "play", cue: holdCue, turn: 1 }),
+    { kind: "rest" },
+  );
+  if (rested.cue !== null)
+    throw new Error(
+      "`rest` no longer releases the held cue. Start again is the patient saying the conversation is over; if it cannot rest the face, nothing can, and an emergency holds for ever.",
+    );
+
+  /* The seam. The panel must ask the contract which cue a reply buys — cueOf, carrying the turn's
+     own unread flag — and may not type a cue id anywhere, because a typed cue is a face nobody
+     decided on. The greeting is conversation state and comes from the contract too; the readable
+     surface reports the posture of the cue the rig is actually holding rather than the one the
+     reply asked for; and the panel never dispatches the interrupt, because a stop releases the
+     hold and the next answer would smile over an emergency that has not been dealt with. */
+  const panelCode = gilbertCode(read("apps/web/src/features/Assistant.tsx"));
+  const assistantLibCode = gilbertCode(read("apps/web/src/lib/assistant.ts"));
+  if (!/cueOf\(\s*reply\s*,/.test(panelCode))
+    throw new Error(
+      "apps/web/src/features/Assistant.tsx no longer plays the reply's cue through cueOf(reply, …unread). The cue is the contract's, derived from the answer kind, and a turn with unread words must wear the refusal's face whatever it matched — drop the unread flag and a half-read emergency answer wears the smile of its answered half.",
+    );
+  if (
+    /["'`]A\d{2}R?["'`]/.test(panelCode) ||
+    /["'`]A\d{2}R?["'`]/.test(assistantLibCode)
+  )
+    throw new Error(
+      "A cue id is typed in apps/web/src/features/Assistant.tsx or apps/web/src/lib/assistant.ts. Cue ids are the web rig's own vocabulary and live in the affect section of the contract; a typed one is a face on a patient's screen that nobody decided on and no reviewer has read.",
+    );
+  if (!/affect\.conversation\.(openFirst|openAgain)/.test(panelCode))
+    throw new Error(
+      "apps/web/src/features/Assistant.tsx no longer reads its greeting cues from affect.conversation. The open is conversation state, and which cue it buys is on file in the contract or it is nowhere.",
+    );
+  if (!/data-affect=\{postureOf\(rig\.running/.test(panelCode))
+    throw new Error(
+      'The rig\'s readable surface no longer reports the posture of the cue it is holding. data-affect must be reversed from the running cue — postureOf(rig.running?.id) — so the attribute can never say "warm" while a held safety cue keeps the face flat.',
+    );
+  if (
+    !/unread\s*\?\s*affect\.answers\.unread\s*:\s*affect\.answers\[/.test(
+      assistantLibCode,
+    )
+  )
+    throw new Error(
+      "apps/web/src/lib/assistant.ts no longer overrides the matched kind with the unread face. The unread block in a turn is itself a refusal, and the override is the invariant applied inside a single turn.",
+    );
+  if (/\brig\.stop\b/.test(panelCode))
+    throw new Error(
+      "apps/web/src/features/Assistant.tsx dispatches the interrupt on the patient's panel. A stop releases the hold, and the next answer would smile over an emergency that has not been dealt with; the one release is Start again, which rests the face. The interrupt cue belongs to the demonstrator's control panel, where the person asking for it is a reviewer.",
+    );
+}
+
 /* ---- The matcher: emergency words only raise, and nothing typed can differ by platform ---------- */
 /* The terms have been their own versioned configuration since the founder's decision of 14 September 2026. */
 const gilbertWords = JSON.parse(

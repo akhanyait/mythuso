@@ -1,5 +1,11 @@
-import { voice as voicePolicy, refusals as gilbertRefusals, conversation as gilbertConversation } from '../../../../packages/catalog/assistant.json';
-import { neverSoftenOf } from './capability-rules';
+import assistantContract from '../../../../packages/catalog/assistant.json' with { type: 'json' };
+import { neverSoftenOf } from './capability-rules.ts';
+/* The contract is imported whole and destructured rather than imported by name, and the two imports
+   carry their extensions and attributes, because scripts/check-boundaries.mjs runs this module under
+   plain Node to prove the cue engine's rules against the manifest itself — and Node's JSON modules
+   offer a default export only. The bundler is indifferent to all three; the destructure is what lets
+   one file serve the browser and the gate. */
+const { voice: voicePolicy, refusals: gilbertRefusals, conversation: gilbertConversation } = assistantContract;
 /* GilbertOne's motion manifest and the reducer that owns the face.
  *
  * THIS IS A PREVIEW, NOT THE LIVE ASSISTANT. GilbertOne is the assistant this product ships — a

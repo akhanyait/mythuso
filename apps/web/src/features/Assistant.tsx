@@ -21,9 +21,11 @@ import { MotionPause } from "../components/MotionPause";
 import { AssistantVoiceButton } from "../components/AssistantVoiceButton";
 import { GilbertAvatar, GilbertStill, useGilbertRig } from "./GilbertAvatar";
 import {
+  affect,
   answers,
   choose,
   conversation,
+  cueOf,
   emergencyAnswer,
   emergencyIn,
   handOver,
@@ -31,6 +33,7 @@ import {
   lines,
   opening,
   outcomeOf,
+  postureOf,
   pulseOf,
   questionGroups,
   questions,
@@ -169,19 +172,24 @@ export default function Assistant({
     }
     if (greetedThisOpen.current) return;
     greetedThisOpen.current = true;
-    play(greeted.current ? "A05" : "A01");
+    /* The greeting cues are the contract's too, since the affect section of 19 September 2026 —
+       the open is conversation state, and which cue it buys is a decision on file rather than a
+       string in this component. */
+    play(greeted.current ? affect.conversation.openAgain : affect.conversation.openFirst);
     greeted.current = true;
   }, [open, play]);
   /* The seam itself: the panel speaks pulse, the rig speaks cues, and this is the whole translation.
-     A completed turn answers with the face its reply's own state calls for — an escalation holds
-     A16's steady face, a handover holds A11's attentive one, and everything else gets A09's single
-     nod, which is what gatheredAt crossed the seam to buy. The reducer arbitrates from here, not
-     this file: once A16 holds, a later nod or supportive pose is refused rather than allowed to
-     relax an urgent face, and only Start again — the patient's own reset — rests it. */
+     Since the affect section of 19 September 2026 the cue is the contract's: each answer kind's face
+     is written in assistant.json — deterministic from the kind, no model, the founder's decision —
+     and `cueOf` reads it the way `pulseOf` reads the state. A turn with unread words wears the
+     refusal's face whatever it matched, because the unread block in the same turn refused. The
+     reducer arbitrates from here, not this file: once A16 holds, a later nod, smile or supportive
+     pose is refused rather than allowed to relax an urgent face, and only Start again — the
+     patient's own reset — rests it. */
   useEffect(() => {
     if (gatheredAt === null || !asked) return;
-    play(pulse === "escalate" ? "A16" : pulse === "handover" ? "A11" : "A09");
-  }, [gatheredAt, asked, pulse, play]);
+    play(cueOf(reply, turns[turns.length - 1].unread));
+  }, [gatheredAt, asked, reply, turns, play]);
   useEffect(() => {
     if (!asked) return;
     latest.current?.scrollIntoView({
@@ -310,13 +318,16 @@ export default function Assistant({
             </div>
           </div>
           {/* The character, and the readable state surface the tests key on: data-pulse is the reply's
-         state, data-cue the cue that owns the face — absent when none does, because a nod is a
-         gesture rather than a state — and data-motion whether it may move at all. The svg's size
-         prop is nominal; assistant.css sizes the drawing at every width, as it sized the sphere. */}
+         state, data-cue the cue that owns the face — absent when none does, because a cue that
+         finishes holds nothing — data-affect what that face means, reversed from the contract's
+         affect mapping so the attribute can never say warm while a held safety cue keeps the face
+         flat, and data-motion whether it may move at all. The svg's size prop is nominal;
+         assistant.css sizes the drawing at every width, as it sized the sphere. */}
           <div
             className="as-rig"
             data-pulse={pulse}
             data-cue={rig.running?.id}
+            data-affect={postureOf(rig.running?.id)}
             data-motion={
               reduced ? "still" : decor.playing ? "running" : "paused"
             }

@@ -555,6 +555,90 @@
   "webKeyboardNote": "Your browser or keyboard may offer dictation of its own. That belongs to them, not to GilbertOne, and may send your voice to their servers. GilbertOne on the web reads only what you type.",
   "keyboardWhy": "Neither phone lets an app remove the dictation key from the system keyboard, and a browser's is its own. The honest thing is to switch off what the app does control — autocorrection, suggestions and spell-checking that send text to a service — and to say plainly, beside the field, whose microphone the keyboard's is."
  },
+ "affect": {
+  "decidedBy": "Founder",
+  "on": "2026-09-19",
+  "why": "The founder asked for one GilbertOne across the product, expressive and interactive, and took the decision that makes that buildable inside the contract: affect is deterministic and derived from the answer kind alone — no model, no network, no mood — so every face a patient can meet is written here where somebody accountable can read it, and the same answer wears the same face every time. This is the web rig's map. The phones carry the six states and no cues, so nothing in this section is emitted to them and no platform renders it but the one that draws the face.",
+  "neverSoften": "Affect may never soften a refusal or an emergency. The emergency answer holds the flat, steady face of the one safety cue until the patient's own Start again rests it, and no later answer's warmth displaces it — the same rule the handover carries as neverLowered: an emergency anywhere in a conversation stays an emergency, and a calmer message afterwards lowers neither the urgency nor the face. The answers that refuse — the two that say they cannot assess, and the two that carry this contract's own refusals about what GilbertOne is not and what it keeps — wear flat or concerned faces and never warm ones, because a smile beside a refusal is precisely the softening this sentence exists to prevent.",
+  "answers": {
+   "situation": {
+    "cue": "A13",
+    "posture": "warm",
+    "why": "The four situations are status sentences — nothing needs you, a nurse is expected, results released for a doctor to read, a registration inside its last weeks — and A13 is a brief warm smile with a nod that settles inside a second, not a held celebration. Its own rule is not to celebrate a serious medical result or a failed transaction, and nothing here celebrates either: the result situation announces a release and defers to the doctor in the same breath, and no answer interprets anything. If a clinical reviewer judges the credential situation too serious for warmth, the change is a line here and nowhere else."
+   },
+   "identity": {
+    "cue": "A17",
+    "posture": "flat",
+    "why": "The identity answer carries whatItIsNot — not a doctor, not a person — and that is a refusal being given to the person asking. A17's brief flat face settling to neutral is the manifest's only flat mouth that does not hold the face hostage, and the greeting's smile may not survive it: a warm face on what GilbertOne is not is the softening neverSoften forbids. The error track's rank puts a disclosure above every routine gesture while it runs."
+   },
+   "voice": {
+    "cue": "A17",
+    "posture": "flat",
+    "why": "The voice answer's second paragraph is this contract's own refusal about what is kept — no audio — and the same reasoning as identity applies: the face goes flat while the limits are stated, and returns to warmth only when the conversation does."
+   },
+   "emergency": {
+    "cue": "A16",
+    "posture": "flat",
+    "why": "A16 is the one cue on the safety track: a steady, neutral-attentive face that stops yawns, smiles and decorative motion, surfaces the action immediately, and holds until Start again — the patient's own reset. Nothing displaces it but itself; the ambulance numbers are the first thing in the answer and the face does nothing that competes with them."
+   },
+   "unmatched": {
+    "cue": "A12",
+    "posture": "concerned",
+    "why": "\"I can't assess that\" is neither warmth nor alarm — amber on every sentence GilbertOne did not understand would teach people to ignore amber, as statesWhy says. A12's lifted brow and small tilt settle while the answer asks one specific thing, which is what the unmatched answer itself does: these numbers now, or a nurse."
+   },
+   "unread": {
+    "cue": "A12",
+    "posture": "concerned",
+    "why": "A turn with words GilbertOne could not read wears the concerned face whatever it matched, because the unread block in that same turn is a refusal — the rest was not read — and the part of an answer that refused is not decorated with the part that answered. The kind's own cue is overridden; the half of the turn the face reflects is the half that could not be read."
+   },
+   "handover": {
+    "cue": "A11",
+    "posture": "attentive",
+    "why": "Phase 1's cue, on file now. A11's smaller smile, soft eyes and slight tilt hold while the summary is read, and its own rule is the whole of it: no fake tears, no alarmed face, no exaggerated pity. When the handover carries an emergency urgency the face stays on A16 — A11 is refused while the safety cue holds, which is neverLowered made visible."
+   }
+  },
+  "conversation": {
+   "openFirst": "A01",
+   "openAgain": "A05",
+   "idle": "A02",
+   "blink": "A03",
+   "note": "Opening greets once per open: A01 on the first, and A05 reading the last message on a re-open. Idle drift and the blink are the rig's additive channels rather than cues — they never own the face and never displace an answer."
+  },
+  "notWired": [
+   {
+    "cue": "A04",
+    "why": "A held look at the input field would refuse every reply's cue — activity outranks gesture in the track order — and the field is where the patient is looking, not the face."
+   },
+   {
+    "cue": "A06",
+    "why": "The look-aside gestures belong to action cards; on the live assistant the answer's own cue is the point of each turn."
+   },
+   {
+    "cue": "A06R",
+    "why": "The same, to the other side."
+   },
+   {
+    "cue": "A08",
+    "why": "The matcher answers in the moment it is asked, and nothing may add a pause to make an answer look considered — a busy face over an instant answer is the thing A08's own note forbids."
+   },
+   {
+    "cue": "A09",
+    "why": "Phase 1's single default for every answered turn. Phase 2 gave each answer kind its own face, and a nod that can read as agreement is not any answer's face — A09's own words are 'not to imply that an unsafe or false statement is correct'."
+   },
+   {
+    "cue": "A10",
+    "why": "Speech is built behind a contract flag and off — the founder's decision of 19 September 2026 — so the mouth never moves without the words it is shaping on the screen beside it."
+   },
+   {
+    "cue": "A14",
+    "why": "Playful-only, and off by default in care conversations by the document's own rule; no patient surface switches it on."
+   },
+   {
+    "cue": "A15",
+    "why": "The interrupt cue. The live panel's one stop is the patient's own Start again, which rests the face rather than interrupting it."
+   }
+  ]
+ },
  "voice": {
   "mode": "push-to-talk",
   "gesture": "tap-to-start-tap-to-stop",

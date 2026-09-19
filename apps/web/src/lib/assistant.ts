@@ -314,6 +314,29 @@ export function pulseOf(reply: Reply): PulseId {
   }
 }
 
+/* ---- The face an answer wears ------------------------------------------------------------------
+ * The founder's decision of 19 September 2026: affect is deterministic, derived from the answer kind
+ * alone — no model, no network — and written in the contract's affect section, where each kind's cue,
+ * the posture that cue means and the reason it is that one are on file beside the dated decision.
+ * `cueOf` is the affect seam's read half, the way `pulseOf` is the state's: the panel asks what face
+ * a reply wears and the answer comes from the contract, not from a ternary in the component.
+ *
+ * A turn with unread words wears the refusal's face whatever it matched, because the unread block in
+ * that same turn is itself a refusal — the rest was not read — and affect may never soften a refusal. */
+export const affect = contract.affect;
+export function cueOf(reply: Reply, unread = false): string {
+  const mapped = unread ? affect.answers.unread : affect.answers[reply.kind];
+  return mapped.cue;
+}
+/* What the cue that owns the face means, for the readable surface the tests key on. Reversed from
+   the affect mapping: the greeting cues are conversation rather than answers, so a face they own has
+   no posture on record — which is honest, a greeting is not an answer. */
+export function postureOf(cue: string | null | undefined): string | undefined {
+  if (!cue) return undefined;
+  return Object.values(affect.answers).find((entry) => entry.cue === cue)
+    ?.posture;
+}
+
 /* The conversation, held in memory and nowhere else, and capped. No browser storage of any kind: a
    transcript of health questions is the last thing that should survive a closed tab on a shared
    phone, and the build refuses those APIs in apps/web/src. */

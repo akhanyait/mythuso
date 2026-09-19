@@ -30,6 +30,16 @@ import { confirmBooking, goSection } from "./nav";
    answer for gets "I can't assess that", the ambulance numbers, Thuso SOS and a way to a nurse — and
    the nurse handover shows what would be sent and says it was not.
 
+   The face, since the founder's affect decision of 19 September 2026. Each answer kind's cue and
+   posture are the contract's own (assistant.json's affect section), played through cueOf at the
+   seam, and the assertions below read them from the same file rather than typing a second copy:
+   this file holds the panel to the contract, and scripts/check-boundaries.mjs holds the contract to
+   the founder's four words — emergency to the safety cue, refusal to flat, routine to warm,
+   unmatched to concerned. A turn with unread words wears the unread face whatever it matched, a
+   handover during an emergency cannot lift the safety cue off the face, and Start again is the one
+   thing that releases it. These run in both projects, because the face is not a desktop-only
+   courtesy.
+
    Listening, since the founder's decision of 18 September 2026. The composer is still a text box that
    works on its own, and exactly one control on this screen offers to hear — the button carrying the
    contract's own label, with the disclosure about the browser's recognition on the page before the
@@ -59,6 +69,9 @@ const say = (text: string) =>
     .replace("{seconds}", String(gilbert.voice.maxListeningSeconds));
 const cue = (id: string) =>
   gilbert.states.find((s: { id: string }) => s.id === id).cue;
+/* The affect section's face for an answer kind — its cue and its posture, read from the contract the
+   panel reads, so a test that disagrees with the panel disagrees with the contract too. */
+const faceOf = (kind: string) => gilbert.affect.answers[kind];
 const condition = (id: string) =>
   sos.redFlags.conditions.find((c: { id: string }) => c.id === id).name;
 /* With nothing booked, GilbertOne says what the home card says about nothing booked, in scheduling.json's words. */
@@ -536,6 +549,14 @@ test("the panel opens and closes like a dialog, keeps focus inside, and gives it
   await page.goto("/app/");
   await launcher(page).click();
   await expect(panel(page)).toBeVisible();
+  /* The open is conversation state: the first open buys the contract's greeting cue, and a greeting
+     is not an answer, so it carries no posture on the readable surface. */
+  const rigFace = panel(page).locator(".as-rig");
+  await expect(rigFace).toHaveAttribute(
+    "data-cue",
+    gilbert.affect.conversation.openFirst,
+  );
+  await expect(rigFace).not.toHaveAttribute("data-affect");
   await expect(
     panel(page).getByRole("button", { name: "Close GilbertOne" }),
   ).toBeFocused();
@@ -566,6 +587,12 @@ test("the panel opens and closes like a dialog, keeps focus inside, and gives it
   await expect(panel(page)).toBeHidden();
   await expect(launcher(page)).toBeFocused();
   await launcher(page).click();
+  /* A re-open onto a conversation already in progress reads its last message instead of greeting
+     again — the widget's own rule, and the contract's openAgain cue. */
+  await expect(rigFace).toHaveAttribute(
+    "data-cue",
+    gilbert.affect.conversation.openAgain,
+  );
   await expect(log(page).locator(".as-said")).toHaveText([
     `${gilbert.conversation.youAsked}: When is my nurse coming?`,
   ]);
@@ -584,11 +611,16 @@ test("a suggested question gets the contract’s answer, and the emergency answe
   );
   await expect(panel(page).locator(".as-name")).toHaveText("Result ready");
   /* Depth retired with the sphere — it was only a rim-light gradient. What the face means is asserted
-    instead: the reply is guiding, and the turn bought A09's nod (a gesture, brief by design, so the
-    assertion is made at once). */
+    instead: the reply is guiding, and since the founder's affect decision of 19 September 2026 the
+    turn wears the contract's warm face — A13's brief smile, a gesture, so the assertion is made at
+    once before it settles and lets go of the face. */
   await expect(panel(page).locator(".as-rig")).toHaveAttribute(
     "data-cue",
-    "A09",
+    faceOf("situation").cue,
+  );
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-affect",
+    faceOf("situation").posture,
   );
   await expect(panel(page).locator(".as-rig")).toHaveAttribute(
     "data-pulse",
@@ -604,12 +636,32 @@ test("a suggested question gets the contract’s answer, and the emergency answe
   await expect(log(page).locator(".as-reply").last()).toContainText(
     gilbert.identity.whatItIsNot,
   );
+  /* The identity answer is a refusal being given to the person asking — not a doctor, not a person —
+    so its face is the contract's flat one, never a warm one. */
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-cue",
+    faceOf("identity").cue,
+  );
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-affect",
+    faceOf("identity").posture,
+  );
 
   await panel(page)
     .getByRole("button", { name: "What happens to what I say?" })
     .click();
   await expect(log(page).locator(".as-reply").last()).toContainText(
     gilbert.voice.sentences.web,
+  );
+  /* And the voice answer's own second paragraph is the no-audio-kept refusal, so it wears the same
+    flat face while the limits are stated. */
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-cue",
+    faceOf("voice").cue,
+  );
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-affect",
+    faceOf("voice").posture,
   );
 
   await panel(page)
@@ -623,10 +675,14 @@ test("a suggested question gets the contract’s answer, and the emergency answe
     "data-pulse",
     "escalate",
   );
-  // and the face holds urgent support: A16 does not relax on a timer
+  // and the face holds urgent support: the safety cue does not relax on a timer, and its posture stays flat
   await expect(panel(page).locator(".as-rig")).toHaveAttribute(
     "data-cue",
-    "A16",
+    faceOf("emergency").cue,
+  );
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-affect",
+    faceOf("emergency").posture,
   );
   await answer.getByRole("button", { name: /Open Thuso SOS/ }).click();
   await expect(panel(page)).toBeHidden();
@@ -683,7 +739,15 @@ test("anything GilbertOne cannot match is told so, with the ambulance, Thuso SOS
     "data-pulse",
     "guiding",
   );
-
+  // and its face is the contract's concerned one — neither warmth nor alarm, like the state itself
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-cue",
+    faceOf("unmatched").cue,
+  );
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-affect",
+    faceOf("unmatched").posture,
+  );
   await answer
     .getByRole("button", { name: gilbert.answers.unmatched.handoverLabel })
     .click();
@@ -707,10 +771,14 @@ test("anything GilbertOne cannot match is told so, with the ambulance, Thuso SOS
     "data-pulse",
     "handover",
   );
-  // the handover holds A11's attentive pose while the summary is read
+  // the handover holds its attentive pose while the summary is read, and the posture says so
   await expect(panel(page).locator(".as-rig")).toHaveAttribute(
     "data-cue",
-    "A11",
+    faceOf("handover").cue,
+  );
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-affect",
+    faceOf("handover").posture,
   );
   await expect(panel(page).locator(".as-state")).toHaveText(cue("handover"));
 
@@ -750,7 +818,7 @@ test("an emergency word raises the answer, whatever else the message asked", asy
   );
   await expect(panel(page).locator(".as-rig")).toHaveAttribute(
     "data-cue",
-    "A16",
+    faceOf("emergency").cue,
   );
   await expect(panel(page).locator(".as-state")).toHaveText(cue("escalate"));
   await expect(panel(page).locator(".as-figure")).toHaveText("10177");
@@ -779,11 +847,16 @@ test("an emergency word raises the answer, whatever else the message asked", asy
   await expect(handover.locator(".as-summary")).not.toContainText(
     condition("chest-pain"),
   );
-  /* And the face does not soften either: the handover's supportive pose is refused while A16 holds,
-    so the character keeps the steady face the words keep. */
+  /* And the face does not soften either: the handover's supportive pose is refused while the safety
+    cue holds, so the character keeps the steady face the words keep — and the readable surface
+    cannot say "warm" over it either, because the posture is read off the cue that owns the face. */
   await expect(panel(page).locator(".as-rig")).toHaveAttribute(
     "data-cue",
-    "A16",
+    faceOf("emergency").cue,
+  );
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-affect",
+    faceOf("emergency").posture,
   );
   await handover.getByRole("button", { name: h.sendLabel }).click();
   await expect(handover.locator(".as-sent .as-headline")).toHaveText(
@@ -797,6 +870,20 @@ test("an emergency word raises the answer, whatever else the message asked", asy
   await again.getByRole("button", { name: h.sendLabel }).click();
   await expect(again.locator(".as-sent .as-headline")).toHaveText(
     h.alreadySent,
+  );
+
+  /* Start again is the patient's own reset, and the only release the held safety cue has: the
+    conversation opens again, the face is nobody's, and the posture leaves with the cue. */
+  await panel(page)
+    .getByRole("button", { name: gilbert.conversation.startAgainLabel })
+    .click();
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-pulse",
+    "idle",
+  );
+  await expect(panel(page).locator(".as-rig")).not.toHaveAttribute("data-cue");
+  await expect(panel(page).locator(".as-rig")).not.toHaveAttribute(
+    "data-affect",
   );
 });
 
@@ -871,6 +958,9 @@ test("starting again clears the conversation back to its opening", async ({
   );
   // and the face is released with the conversation: no cue owns it, so the idle drift is all that moves
   await expect(panel(page).locator(".as-rig")).not.toHaveAttribute("data-cue");
+  await expect(panel(page).locator(".as-rig")).not.toHaveAttribute(
+    "data-affect",
+  );
 });
 
 test("the composer is a text box, and nothing hears before the patient taps the one control that offers it", async ({
@@ -1206,9 +1296,10 @@ test("under reduced motion the orb and the character are still, complete frames,
   await expect(panel(page).locator(".as-name")).toHaveText("Result ready");
   await ask(page, "someone has collapsed");
   await expect(rig).toHaveAttribute("data-pulse", "escalate");
-  /* A16 holds even here, because its reduced-motion form is an expression rather than a movement:
-     a still face can still be an urgent one, which is the safety invariant carried whole. */
-  await expect(rig).toHaveAttribute("data-cue", "A16");
+  /* The safety cue holds even here, because its reduced-motion form is an expression rather than a
+     movement: a still face can still be an urgent one, which is the safety invariant carried whole. */
+  await expect(rig).toHaveAttribute("data-cue", faceOf("emergency").cue);
+  await expect(rig).toHaveAttribute("data-affect", faceOf("emergency").posture);
   // a cue is its still pose set at once, and a state change — even the escalation — starts nothing
   expect(await animationsIn(page, ".as-rig")).toEqual([]);
   const box = await panel(page).locator(".as-rig svg").boundingBox();
@@ -1327,6 +1418,17 @@ test("a question with words GilbertOne could not read answers, and then says wha
   await expect(panel(page).locator(".as-rig")).toHaveAttribute(
     "data-pulse",
     "guiding",
+  );
+  /* The unread half of the turn owns the face: the words matched a situation, but the unread block
+     in the same turn is itself a refusal — the rest was not read — so the face is the contract's
+     unread one rather than the answer's warm one. The invariant, applied inside a single turn. */
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-cue",
+    faceOf("unread").cue,
+  );
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-affect",
+    faceOf("unread").posture,
   );
 
   // "Nothing needs you" is never said to a message GilbertOne did not read all of
