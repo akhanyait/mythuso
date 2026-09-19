@@ -3,7 +3,11 @@ import { OPEN_PARAM } from '../lib/roles';
 import type { PanelProps } from '../features/Assistant';
 import type { Visit } from '../lib/scheduling';
 
-/* The floating way into GilbertOne, bottom right, on every patient page.
+/* The floating way into GilbertOne, bottom right, on every patient page — and, since the
+   audience decision of 19 September 2026, in the clinical and back-office workspaces too, with
+   the audience the door chose. The orb is the same and the panel behind it is the same lazy
+   chunk; what differs is the audience it is handed, and the panel reads the rest from the
+   contract.
 
    This file is in the patient entry, so it is a button, a CSS orb and a lazy import, and nothing
    more. The panel, the sphere's canvas, the conversation, the contract behind it and their
@@ -27,7 +31,7 @@ const load = () => import('../features/Assistant');
 let pending: ReturnType<typeof load> | null = null;
 const prefetch = () => (pending ??= load());
 
-export function AssistantLauncher({ openModal, visit }: { openModal: (modal: string) => void; visit: Visit | null }) {
+export function AssistantLauncher({ openModal, visit, audience }: { openModal?: (modal: string) => void; visit: Visit | null; audience?: PanelProps['audience'] }) {
  /* `/app/?open=assistant` opens the panel over the home. Read once, like every `open=` link. */
  const [open, setOpen] = useState(() => new URLSearchParams(window.location.search).get(OPEN_PARAM) === 'assistant');
  const [opened, setOpened] = useState(open);
@@ -55,7 +59,7 @@ export function AssistantLauncher({ openModal, visit }: { openModal: (modal: str
    <span className="al-glow"/><span className="al-orb"/><span className="al-ring"/><span className="al-spark"><i/></span>
   </button>
   {opened && <Suspense fallback={open ? <p className="al-note" role="status">Opening GilbertOne.</p> : null}>
-   <Panel open={open} dismiss={() => setOpen(false)} openModal={modal => { setOpen(false); openModal(modal); }} visit={visit}/>
+   <Panel open={open} dismiss={() => setOpen(false)} openModal={openModal ? modal => { setOpen(false); openModal(modal); } : undefined} visit={visit} audience={audience}/>
   </Suspense>}
  </div>;
 }

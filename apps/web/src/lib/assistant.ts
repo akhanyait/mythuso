@@ -141,6 +141,64 @@ export function situations(visit: Visit | null = null): Situation[] {
 
 export type Question = (typeof contract.questions)[number];
 export const questions: Question[] = contract.questions;
+
+/* ---- The audience a conversation serves ---------------------------------------------------
+ * The founder's decision of 19 September 2026: one GilbertOne across the product, with what
+ * differs between audiences written in the contract's audiences section rather than in any
+ * component. The ids are the RoleIds in lib/roles.ts and the engine's Audience, and the gate
+ * holds the three lists together. A question carries the audiences it is offered to as a tag,
+ * so the scope is authored where the question is. */
+export type AudienceId =
+  | "patient"
+  | "nurse"
+  | "doctor"
+  | "partner"
+  | "control-tower"
+  | "back-office";
+export type AudienceEntry = (typeof contract.audiences.list)[number];
+
+/* Loud rather than blank: a panel asked to serve an audience the contract does not carry would
+   otherwise draw a session with no questions, no label and no buttons, and nothing would say so. */
+export function audienceOf(id: AudienceId): AudienceEntry {
+  const found = contract.audiences.list.find((a) => a.id === id);
+  if (!found)
+    throw new Error(
+      `packages/catalog/assistant.json has no audience "${id}". Every audience a panel can serve is in its audiences list.`,
+    );
+  return found;
+}
+
+/** The questions an audience is offered — the tags on each question, read one way. */
+export const questionsFor = (audience: AudienceId): Question[] =>
+  questions.filter((q) => q.audiences.includes(audience));
+
+/* A refusal's own words for the audience asking. Most refusals are one truth for everybody; the
+   two that differ — what GilbertOne will not name, and whose doses it will not carry — carry an
+   `audiences` map in the contract, and a nurse asking for a dose and a patient asking for one
+   are different refusals in exactly that map. */
+export type RefusalWords = { statement: string; why: string };
+export function refusalFor(
+  entry: (typeof contract.refusals)[number],
+  audience: AudienceId,
+): RefusalWords {
+  const variant = (entry as { audiences?: Record<string, RefusalWords> })
+    .audiences?.[audience];
+  return variant ?? { statement: entry.statement, why: entry.why };
+}
+
+/* The unmatched answer's own words for an audience. The patient's are the section's own; each
+   staff audience's names the three questions its session answers and what is not GilbertOne's
+   to read — which is the refusal half of the answer, because "I can't assess that" to a nurse
+   is a scope, not a shrug. */
+export function unmatchedDetail(audience: AudienceId): string {
+  const variants = (
+    contract.answers.unmatched as {
+      audiences?: Record<string, { detail: string }>;
+    }
+  ).audiences;
+  return variants?.[audience]?.detail ?? contract.answers.unmatched.detail;
+}
+
 export type EmergencyGroup = { id: string; name: string };
 
 /* The group's name is the SOS screen's word for the condition it raises, or the contract's own for
@@ -225,12 +283,18 @@ export function emergencyGroupsIn(text: string): EmergencyGroup[] {
     .map((g) => ({ id: g.id, name: groupName(g) }));
 }
 
-/** The longest trigger (in words, adjacent) wins; a tie goes to the question listed first. */
-export function questionFor(text: string): Question | null {
+/** The longest trigger (in words, adjacent) wins; a tie goes to the question listed first.
+ *  Only the questions the audience is offered are in the running, because the tags are the
+ *  assistant's scope — and the emergency words are matched before any of this, in send(), so
+ *  scoping a question out can never scope an emergency out. */
+export function questionFor(
+  text: string,
+  audience: AudienceId = "patient",
+): Question | null {
   const said = stems(text);
   let best: Question | null = null;
   let length = 0;
-  for (const question of questions)
+  for (const question of questionsFor(audience))
     for (const trigger of question.triggers) {
       const term = stems(trigger);
       if (term.length > length && hasSequence(said, term, 0)) {
@@ -340,12 +404,19 @@ export function postureOf(cue: string | null | undefined): string | undefined {
 /* The conversation, held in memory and nowhere else, and capped. No browser storage of any kind: a
    transcript of health questions is the last thing that should survive a closed tab on a shared
    phone, and the build refuses those APIs in apps/web/src. */
-export const opening = (): Turn[] => [
+/* What the panel opens with is the audience's own decision on file: the patient's first message
+   is her current situation, and a staff preview opens with what GilbertOne is, because a nurse's
+   first question is not "does anything need me" and the answer to it here would be about somebody
+   else's chart. */
+export const opening = (audience: AudienceId = "patient"): Turn[] => [
   {
     id: 0,
     asked: null,
     channel: null,
-    reply: { kind: "situation", situation: situations()[0] },
+    reply:
+      audienceOf(audience).opensWith === "identity"
+        ? { kind: "identity" }
+        : { kind: "situation", situation: situations()[0] },
     matched: null,
     groups: [],
     unread: false,
@@ -469,12 +540,13 @@ export function handoverReply(turns: Turn[], raised = false): Reply {
   };
 }
 
-/** A message in a person's own words. */
+/** A message in a person's own words, for the audience the conversation serves. */
 export function send(
   turns: Turn[],
   text: string,
   visit: Visit | null = null,
   raised = false,
+  audience: AudienceId = "patient",
 ): Turn[] {
   const words = text.trim();
   if (!words) return turns;
@@ -490,7 +562,7 @@ export function send(
       groups,
       unread: false,
     }));
-  const question = questionFor(words);
+  const question = questionFor(words, audience);
   if (!question)
     return append(turns, (id) => ({
       id,

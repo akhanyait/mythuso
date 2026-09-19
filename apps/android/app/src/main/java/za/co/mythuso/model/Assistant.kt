@@ -8,7 +8,10 @@ import java.text.Normalizer
  * generated into AssistantData.kt from packages/catalog/assistant.json. This is the arithmetic beside
  * them, and it is the same arithmetic as apps/web/src/lib/assistant.ts and
  * apps/ios/MyThuso/Models/Assistant.swift: fold to plain letters, reduce to stems, look for an emergency
- * term with small gaps, then for the longest trigger, and say so when words are left unread.
+ * term with small gaps, then for the longest trigger, and say so when words are left unread. Since the
+ * founder's audience decision of 19 September 2026 each question carries the audiences it is offered
+ * to, and the matcher keeps to the audience it is handed — the emergency terms are matched before any
+ * of that, so scoping a question out can never scope an emergency out.
  *
  * The order is the safety property. Emergency words are checked before any question, and a match ends
  * the matching. A question may answer on its own only if every word is its own trigger or filler: the
@@ -31,7 +34,7 @@ data class GilbertSituation(
     val id: String, val name: String, val sentence: String, val figure: String?, val figureLabel: String?, val depth: Int
 )
 data class GilbertQuestionGroup(val id: String, val heading: String, val lead: String?)
-data class GilbertQuestion(val id: String, val asks: String, val group: String, val answer: String, val triggers: List<String>)
+data class GilbertQuestion(val id: String, val asks: String, val group: String, val answer: String, val triggers: List<String>, val audiences: List<String>)
 /** [condition] is the sos.json condition this group raises, or null; [name] is resolved at generation. */
 data class GilbertEmergencyGroup(val id: String, val condition: String?, val name: String, val words: List<String>)
 data class GilbertLine(val number: String, val name: String)
@@ -73,7 +76,7 @@ data class GilbertVoicePolicy(
 )
 data class GilbertRefusal(val id: String, val statement: String, val why: String)
 data class GilbertStemFixture(val says: String, val stems: List<String>)
-data class GilbertMessageFixture(val says: String, val expect: String, val question: String?, val groups: List<String>)
+data class GilbertMessageFixture(val says: String, val expect: String, val question: String?, val groups: List<String>, val audience: String?)
 
 /** The six Pulse states, by the contract's ids. */
 enum class Pulse(val id: String) {
@@ -180,14 +183,19 @@ object Gilbert {
         return GilbertData.emergencyGroups.filter { group -> group.words.any { hasSequence(said, stems(it), GilbertData.maxGap) } }
     }
 
-    /** The longest trigger (in words, adjacent) wins; a tie goes to the question listed first. */
-    fun question(text: String): GilbertQuestion? {
+    /** The longest trigger (in words, adjacent) wins; a tie goes to the question listed first.
+     *  Only the questions the audience is offered are in the running, and the emergency words are matched
+     *  before any of this in send(), so scoping a question out can never scope an emergency out. */
+    fun question(text: String, audience: String = "patient"): GilbertQuestion? {
         val said = stems(text)
         var best: GilbertQuestion? = null
         var length = 0
-        for (question in GilbertData.questions) for (trigger in question.triggers) {
-            val term = stems(trigger)
-            if (term.size > length && hasSequence(said, term, 0)) { best = question; length = term.size }
+        for (question in GilbertData.questions) {
+            if (question.audiences.none { it == audience }) continue
+            for (trigger in question.triggers) {
+                val term = stems(trigger)
+                if (term.size > length && hasSequence(said, term, 0)) { best = question; length = term.size }
+            }
         }
         return best
     }
@@ -229,14 +237,14 @@ object Gilbert {
     private fun append(turns: List<GilbertTurn>, make: (Int) -> GilbertTurn): List<GilbertTurn> =
         (turns + make((turns.lastOrNull()?.id ?: 0) + 1)).takeLast(GilbertData.conversation.turnLimit)
 
-    /** A message in a person's own words, typed or spoken and checked. */
-    fun send(text: String, channel: GilbertChannel, turns: List<GilbertTurn>, visit: BookedVisit?): List<GilbertTurn> {
+    /** A message in a person's own words, typed or spoken and checked, for the audience the conversation serves. */
+    fun send(text: String, channel: GilbertChannel, turns: List<GilbertTurn>, visit: BookedVisit?, audience: String = "patient"): List<GilbertTurn> {
         val words = text.trim()
         if (words.isEmpty()) return turns
         val groups = emergencyGroups(words)
         /* The emergency words first, and a match ends it. */
         if (groups.isNotEmpty()) return append(turns) { GilbertTurn(it, words, channel, GilbertReply.Emergency(groups), null, groups) }
-        val question = question(words)
+        val question = question(words, audience)
             ?: return append(turns) { GilbertTurn(it, words, channel, GilbertReply.Unmatched, null, emptyList()) }
         val unread = question.answer != "emergency" && leavesUnread(words, question)
         /* A claim about everything is not made to a message GilbertOne did not read all of. */

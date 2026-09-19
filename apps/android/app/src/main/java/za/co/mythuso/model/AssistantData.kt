@@ -2,10 +2,11 @@
 // Do not edit by hand — run `npm run assistant`. The build fails if this file and its sources
 // disagree, so an edit here is lost rather than merely wrong.
 //
-// Everything GilbertOne says, the six Pulse states, the questions and their trigger phrases, the
-// emergency words (drafted, not yet reviewed by a clinician, and used only to raise), the voice
-// policy and the refusals. The emergency numbers are resolved from sos.json when this file is
-// written. The situation tokens are left in on purpose: they are dates, and are filled at runtime.
+// Everything GilbertOne says, the six Pulse states, the questions with their trigger phrases and
+// the audiences each is offered to, the emergency words (drafted, not yet reviewed by a clinician,
+// and used only to raise), the voice policy and the refusals. The emergency numbers are resolved
+// from sos.json when this file is written. The situation tokens are left in on purpose: they are
+// dates, and are filled at runtime. Each shared fixture carries the audience it is spoken to.
 
 package za.co.mythuso.model
 
@@ -113,35 +114,43 @@ object GilbertData {
     val questions = listOf(
         GilbertQuestion(
             id = "settled", asks = "Does anything need me?", group = "situations", answer = "situation",
-            triggers = listOf("does anything need me", "anything need me", "what needs me", "anything waiting", "anything for me", "any updates", "whats new")
+            triggers = listOf("does anything need me", "anything need me", "what needs me", "anything waiting", "anything for me", "any updates", "whats new"),
+            audiences = listOf("patient")
         ),
         GilbertQuestion(
             id = "visit", asks = "When is my nurse coming?", group = "situations", answer = "situation",
-            triggers = listOf("when is my nurse", "nurse coming", "my visit", "next visit", "when does my nurse", "when will the nurse")
+            triggers = listOf("when is my nurse", "nurse coming", "my visit", "next visit", "when does my nurse", "when will the nurse"),
+            audiences = listOf("patient")
         ),
         GilbertQuestion(
             id = "result", asks = "Are my results back?", group = "situations", answer = "situation",
-            triggers = listOf("are my results back", "my results", "results back", "test results", "lab results", "blood results")
+            triggers = listOf("are my results back", "my results", "results back", "test results", "lab results", "blood results"),
+            audiences = listOf("patient")
         ),
         GilbertQuestion(
             id = "credential", asks = "Is everyone on my team registered?", group = "situations", answer = "situation",
-            triggers = listOf("everyone on my team registered", "team registered", "is my nurse registered", "registration", "credentials", "registered")
+            triggers = listOf("everyone on my team registered", "team registered", "is my nurse registered", "registration", "credentials", "registered"),
+            audiences = listOf("patient")
         ),
         GilbertQuestion(
             id = "identity", asks = "What are you?", group = "always", answer = "identity",
-            triggers = listOf("what are you", "who are you", "are you a doctor", "are you human", "are you a person", "are you real", "who is gilbert", "what is gilbert", "who is gilbertone", "what is gilbertone")
+            triggers = listOf("what are you", "who are you", "are you a doctor", "are you human", "are you a person", "are you real", "who is gilbert", "what is gilbert", "who is gilbertone", "what is gilbertone"),
+            audiences = listOf("patient", "nurse", "doctor", "partner", "control-tower", "back-office")
         ),
         GilbertQuestion(
             id = "voice", asks = "What happens to what I say?", group = "always", answer = "voice",
-            triggers = listOf("what happens to what i say", "can you hear me", "can you listen", "are you listening", "recording", "record me", "microphone", "my voice")
+            triggers = listOf("what happens to what i say", "can you hear me", "can you listen", "are you listening", "recording", "record me", "microphone", "my voice"),
+            audiences = listOf("patient", "nurse", "doctor", "partner", "control-tower", "back-office")
         ),
         GilbertQuestion(
             id = "nurse", asks = "Can I talk to a nurse?", group = "always", answer = "handover",
-            triggers = listOf("talk to a nurse", "speak to a nurse", "can i talk to a nurse", "real person", "a human", "call a nurse")
+            triggers = listOf("talk to a nurse", "speak to a nurse", "can i talk to a nurse", "real person", "a human", "call a nurse"),
+            audiences = listOf("patient")
         ),
         GilbertQuestion(
             id = "emergency", asks = "What if it cannot wait?", group = "always", answer = "emergency",
-            triggers = listOf("what if it cannot wait", "cannot wait", "cant wait")
+            triggers = listOf("what if it cannot wait", "cannot wait", "cant wait"),
+            audiences = listOf("patient", "nurse", "doctor", "partner", "control-tower", "back-office")
         )
     )
 
@@ -313,28 +322,32 @@ object GilbertData {
     /** Ordinary sentences the terms raise today: reported by the JVM test, never blocking. */
     val falsePositiveFixtures = listOf("I feel fit and well today", "I had a stroke of luck with the parking", "I am dying to know when my nurse is coming", "the plumber is fitting a new geyser")
     val messageFixtures = listOf(
-        GilbertMessageFixture("When is my nurse coming? I have chest pains", "emergency", null, listOf("chest-pain")),
-        GilbertMessageFixture("my visit today, my chest feels tight", "emergency", null, listOf("chest-pain")),
-        GilbertMessageFixture("are my results back, I had seizures last night", "emergency", null, listOf("seizure")),
-        GilbertMessageFixture("nurse coming, my baby is having convulsions", "emergency", null, listOf("seizure")),
-        GilbertMessageFixture("any updates, my dad stopped breathing", "emergency", null, listOf("breathing")),
-        GilbertMessageFixture("my visit — she bled a lot", "emergency", null, listOf("bleeding")),
-        GilbertMessageFixture("he keeps passing out", "emergency", null, listOf("unresponsive")),
-        GilbertMessageFixture("she blacked out", "emergency", null, listOf("unresponsive")),
-        GilbertMessageFixture("difficulty breathing", "emergency", null, listOf("breathing")),
-        GilbertMessageFixture("trouble breathing since this morning", "emergency", null, listOf("breathing")),
-        GilbertMessageFixture("the contractions have started", "emergency", null, listOf("obstetric")),
-        GilbertMessageFixture("I think he is overdosing", "emergency", null, listOf("crisis")),
-        GilbertMessageFixture("she has fits", "emergency", null, listOf("seizure")),
-        GilbertMessageFixture("hæmorrhage after the birth", "emergency", null, listOf("bleeding")),
-        GilbertMessageFixture("my visit, call an ambulans", "emergency", null, listOf("general")),
-        GilbertMessageFixture("when is my nurse coming", "answer", "visit", emptyList()),
-        GilbertMessageFixture("hi, when’s my nurse coming??", "answer", "visit", emptyList()),
-        GilbertMessageFixture("are my results back", "answer", "result", emptyList()),
-        GilbertMessageFixture("when is my nurse coming, my knee is sore", "answer-and-unread", "visit", emptyList()),
-        GilbertMessageFixture("any updates? my knee aches", "unmatched", null, emptyList()),
-        GilbertMessageFixture("does anything need me", "answer", "settled", emptyList()),
-        GilbertMessageFixture("my knee has been sore since tuesday", "unmatched", null, emptyList())
+        GilbertMessageFixture("When is my nurse coming? I have chest pains", "emergency", null, listOf("chest-pain"), null),
+        GilbertMessageFixture("my visit today, my chest feels tight", "emergency", null, listOf("chest-pain"), null),
+        GilbertMessageFixture("are my results back, I had seizures last night", "emergency", null, listOf("seizure"), null),
+        GilbertMessageFixture("nurse coming, my baby is having convulsions", "emergency", null, listOf("seizure"), null),
+        GilbertMessageFixture("any updates, my dad stopped breathing", "emergency", null, listOf("breathing"), null),
+        GilbertMessageFixture("my visit — she bled a lot", "emergency", null, listOf("bleeding"), null),
+        GilbertMessageFixture("he keeps passing out", "emergency", null, listOf("unresponsive"), null),
+        GilbertMessageFixture("she blacked out", "emergency", null, listOf("unresponsive"), null),
+        GilbertMessageFixture("difficulty breathing", "emergency", null, listOf("breathing"), null),
+        GilbertMessageFixture("trouble breathing since this morning", "emergency", null, listOf("breathing"), null),
+        GilbertMessageFixture("the contractions have started", "emergency", null, listOf("obstetric"), null),
+        GilbertMessageFixture("I think he is overdosing", "emergency", null, listOf("crisis"), null),
+        GilbertMessageFixture("she has fits", "emergency", null, listOf("seizure"), null),
+        GilbertMessageFixture("hæmorrhage after the birth", "emergency", null, listOf("bleeding"), null),
+        GilbertMessageFixture("my visit, call an ambulans", "emergency", null, listOf("general"), null),
+        GilbertMessageFixture("when is my nurse coming", "answer", "visit", emptyList(), null),
+        GilbertMessageFixture("hi, when’s my nurse coming??", "answer", "visit", emptyList(), null),
+        GilbertMessageFixture("are my results back", "answer", "result", emptyList(), null),
+        GilbertMessageFixture("when is my nurse coming, my knee is sore", "answer-and-unread", "visit", emptyList(), null),
+        GilbertMessageFixture("any updates? my knee aches", "unmatched", null, emptyList(), null),
+        GilbertMessageFixture("does anything need me", "answer", "settled", emptyList(), null),
+        GilbertMessageFixture("my knee has been sore since tuesday", "unmatched", null, emptyList(), null),
+        GilbertMessageFixture("what are you", "answer", "identity", emptyList(), "nurse"),
+        GilbertMessageFixture("when is my nurse coming", "unmatched", null, emptyList(), "nurse"),
+        GilbertMessageFixture("what if it cannot wait", "emergency", null, emptyList(), "back-office"),
+        GilbertMessageFixture("I have chest pains", "emergency", null, listOf("chest-pain"), "doctor")
     )
 
     val refusals = listOf(

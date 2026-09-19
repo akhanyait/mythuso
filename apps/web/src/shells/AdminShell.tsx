@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Activity, ArrowRight, BarChart3, BookOpen, Landmark, LayoutGrid, LogOut, Radar, ShieldAlert, ShieldCheck, SlidersHorizontal, TrendingUp } from 'lucide-react';
 import { Modal } from '../components/UI';
+import { AssistantLauncher } from '../components/AssistantLauncher';
 import { AdminConsole, adminTabs, type AdminTab } from '../features/Admin';
 import { DemoBar, useRole } from '../features/DemoLogin';
 import { DoctorReview } from '../features/Clinical';
@@ -8,7 +9,7 @@ import { NurseVetting } from '../features/Dispatch';
 import { VettingApplication } from '../features/Vetting';
 import { t } from '../lib/i18n';
 import { endSession } from '../lib/auth';
-import { whoIs } from '../lib/roles';
+import { whoIs, type RoleId } from '../lib/roles';
 import { NavRow } from '../surface/Surface';
 import '../surface/clinical.css';
 import '../surface/clinical-screens.css';
@@ -41,7 +42,7 @@ const tabIcons: Record<AdminTab, typeof Radar> = {
  Catalogue: BookOpen, Growth: TrendingUp, Finance: Landmark, Compliance: BarChart3, Configuration: SlidersHorizontal
 };
 
-export default function AdminWorkspace() {
+export default function AdminWorkspace({ audience }: { audience: RoleId }) {
  const [modal, setModal] = useState<string | null>(null);
  const [tab, setTab] = useState<AdminTab>('Overview');
  const { subject, roleName, state, credential, initials, stopped } = whoIs(ADMIN_SUBJECT, 'Console access is withdrawn until this is put right.');
@@ -86,6 +87,12 @@ export default function AdminWorkspace() {
    <DemoBar note={t('shell.previewBadge', 'en-ZA')}/>
    <main id="main" tabIndex={-1}><AdminConsole open={setModal} tab={tab} setTab={setTab}/></main>
    <footer className="app-footer"><span>© 2026 MyThuso · Back office</span><span>{t('shell.tagline', 'en-ZA')}</span></footer>
+   {/* The assistant in the back office, for the audience the door chose — the same orb, the same
+       lazy panel, this audience's own questions and simulated label. Drawn at the foot of the
+       column, the patient shell's own placement on a wide screen, because this shell has no tab
+       bar for it to clear: the console keeps its own tab strip and no second navigation stands
+       beside it. */}
+   <AssistantLauncher visit={null} audience={audience}/>
   </div>
   {modal && <Modal title={adminModalTitle(modal)} onClose={() => setModal(null)}>{adminModalBody(modal, () => setModal(null), setModal)}</Modal>}
  </div>;

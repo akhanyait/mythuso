@@ -23,6 +23,7 @@ import { GilbertAvatar, GilbertStill, useGilbertRig } from "./GilbertAvatar";
 import {
   affect,
   answers,
+  audienceOf,
   choose,
   conversation,
   cueOf,
@@ -36,12 +37,15 @@ import {
   postureOf,
   pulseOf,
   questionGroups,
-  questions,
+  questionsFor,
+  refusalFor,
   refusals,
   say,
   silenceIsNotSafety,
   stateSpec,
+  unmatchedDetail,
   voice,
+  type AudienceId,
   type Question,
   type Reply,
   type Turn,
@@ -72,8 +76,13 @@ import "./assistant.css";
 export type PanelProps = {
   open: boolean;
   dismiss: () => void;
-  openModal: (modal: string) => void;
+  /* The patient entry always provides this; a staff workspace has no Emergency & urgent care
+     modal to open, and its audience's entry scopes the button that would have opened it away. */
+  openModal?: (modal: string) => void;
   visit: Visit | null;
+  /* Who this panel serves, since the audience decision of 19 September 2026. The patient entry
+     omits it and the patient is what it gets; the shells pass the audience the door chose. */
+  audience?: AudienceId;
 };
 
 const SESSION_SUBJECT = "subject-this-session";
@@ -114,12 +123,16 @@ export default function Assistant({
   dismiss,
   openModal,
   visit,
+  audience: audienceId = "patient",
 }: PanelProps) {
   const dialog = useRef<HTMLDialogElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const latest = useRef<HTMLLIElement>(null);
   const field = useRef<HTMLInputElement>(null);
-  const [turns, setTurns] = useState<Turn[]>(() => opening());
+  /* The audience's own entry: its simulated label, its voice flag, its two action buttons and
+     what it opens with are the contract's, never this component's defaults. */
+  const audience = audienceOf(audienceId);
+  const [turns, setTurns] = useState<Turn[]>(() => opening(audienceId));
   const [draft, setDraft] = useState("");
   const [gatheredAt, setGatheredAt] = useState<number | null>(null);
   const [raised, setRaised] = useState(false);
@@ -175,7 +188,11 @@ export default function Assistant({
     /* The greeting cues are the contract's too, since the affect section of 19 September 2026 —
        the open is conversation state, and which cue it buys is a decision on file rather than a
        string in this component. */
-    play(greeted.current ? affect.conversation.openAgain : affect.conversation.openFirst);
+    play(
+      greeted.current
+        ? affect.conversation.openAgain
+        : affect.conversation.openFirst,
+    );
     greeted.current = true;
   }, [open, play]);
   /* The seam itself: the panel speaks pulse, the rig speaks cues, and this is the whole translation.
@@ -232,13 +249,13 @@ export default function Assistant({
       field.current?.focus();
       return;
     }
-    moved(sendWithGilbertEngine(turns, draft, visit, everRaised));
+    moved(sendWithGilbertEngine(turns, draft, visit, everRaised, audienceId));
     setDraft("");
   };
   /* Start again is the one action that rests the face: it is the patient saying the conversation is
      over, and it is the only thing that releases a cue A16 is holding. */
   const again = () => {
-    moved(opening());
+    moved(opening(audienceId));
     setRaised(false);
     setSent({});
     conversationRef.current = crypto.randomUUID();
@@ -250,7 +267,7 @@ export default function Assistant({
     const result = handToQueue(queue, {
       conversationRef: conversationRef.current,
       summary: turn.reply.summary,
-      actorRole: "patient",
+      actorRole: audienceId,
       subjectRef: SESSION_SUBJECT,
       now: new Date(),
     });
@@ -277,7 +294,7 @@ export default function Assistant({
       {question.asks}
     </button>
   );
-  const sos = () => openModal("Emergency & urgent care");
+  const sos = () => openModal?.("Emergency & urgent care");
 
   return (
     <dialog
@@ -285,6 +302,7 @@ export default function Assistant({
       id="assistant-panel"
       className="as-panel patient-surface"
       aria-labelledby="as-title"
+      data-audience={audienceId}
       onCancel={(event) => {
         event.preventDefault();
         dismiss();
@@ -303,6 +321,12 @@ export default function Assistant({
             <div className="as-titles">
               <h2 id="as-title">{identity.name}</h2>
               <p className="as-descriptor">{identity.descriptorLine}</p>
+              {/* The simulated label is the contract's sentence for this audience, not a string
+                  typed onto the layout: what it says and whether it is here at all are decisions
+                  in the audiences section. */}
+              {audience.simulated && (
+                <p className="as-simulated">{audience.simulated}</p>
+              )}
             </div>
             <div className="as-controls">
               <MotionPause className="as-pause" />
@@ -378,12 +402,19 @@ export default function Assistant({
                     <span className="as-who">{identity.name}</span>
                     <ReplyBody
                       reply={turn.reply}
+                      audience={audienceId}
                       sos={sos}
                       handOver={nurse}
                       sent={sent[turn.id]}
                       onSend={() => handTo(turn)}
                     />
-                    {turn.unread && <Unread sos={sos} handOver={nurse} />}
+                    {turn.unread && (
+                      <Unread
+                        sos={sos}
+                        handOver={nurse}
+                        audience={audienceId}
+                      />
+                    )}
                   </div>
                 </li>
               ))}
@@ -391,15 +422,21 @@ export default function Assistant({
           </div>
 
           <div className="as-asks">
-            {questionGroups.map((group) => (
-              <section key={group.id} aria-labelledby={`as-${group.id}`}>
-                <h3 id={`as-${group.id}`}>{group.heading}</h3>
-                {group.lead && <p>{group.lead}</p>}
-                <div className="as-chips">
-                  {questions.filter((q) => q.group === group.id).map(chip)}
-                </div>
-              </section>
-            ))}
+            {questionGroups.map((group) => {
+              const offered = questionsFor(audienceId).filter(
+                (q) => q.group === group.id,
+              );
+              /* A group with nothing to offer this audience is not drawn at all: an empty
+                 heading over no chips says the assistant has a section it refuses to show. */
+              if (!offered.length) return null;
+              return (
+                <section key={group.id} aria-labelledby={`as-${group.id}`}>
+                  <h3 id={`as-${group.id}`}>{group.heading}</h3>
+                  {group.lead && <p>{group.lead}</p>}
+                  <div className="as-chips">{offered.map(chip)}</div>
+                </section>
+              );
+            })}
             {asked && (
               <button type="button" className="as-again" onClick={again}>
                 <RotateCcw size={16} aria-hidden="true" />
@@ -412,7 +449,7 @@ export default function Assistant({
             <h3 id="as-refusals">{conversation.refusalsHeading}</h3>
             <ul>
               {refusals.map((r) => (
-                <li key={r.id}>{r.statement}</li>
+                <li key={r.id}>{refusalFor(r, audienceId).statement}</li>
               ))}
             </ul>
             <p className="as-powered">
@@ -439,10 +476,14 @@ export default function Assistant({
               maxLength={500}
               aria-describedby="as-keyboard"
             />
-            <AssistantVoiceButton
-              onTranscript={onVoiceTranscript}
-              typingNote={conversation.webKeyboardNote}
-            />
+            {/* The voice control exists only where the founder put it — the live patient
+                assistant — and an audience's entry says whether that is this one. */}
+            {audience.voice && (
+              <AssistantVoiceButton
+                onTranscript={onVoiceTranscript}
+                typingNote={conversation.webKeyboardNote}
+              />
+            )}
             <button type="submit" className="as-send">
               <Send size={17} aria-hidden="true" />
               {conversation.sendLabel}
@@ -475,23 +516,41 @@ function stageOf(
   };
 }
 
-function Unread({ sos, handOver }: { sos: () => void; handOver: () => void }) {
+function Unread({
+  sos,
+  handOver,
+  audience,
+}: {
+  sos: () => void;
+  handOver: () => void;
+  audience: AudienceId;
+}) {
+  /* The two buttons are the patient's doors out of a conversation, and an audience's entry says
+     whether they exist here: the numbers always stay, the buttons only where they open something. */
+  const { sos: allowSos, handover: allowHandover } =
+    audienceOf(audience).actions;
   return (
     <div className="as-unread">
       <p className="as-headline">{answers.unread.sentence}</p>
       <p>{answers.unread.detail}</p>
       <p>{say(answers.unread.ifUrgent)}</p>
       <Lines ids={answers.unread.numbers} />
-      <div className="as-actions">
-        <button type="button" className="as-go" onClick={handOver}>
-          <UserRound size={17} aria-hidden="true" />
-          {answers.unread.handoverLabel}
-        </button>
-        <button type="button" className="as-ask urgent" onClick={sos}>
-          <Ambulance size={17} aria-hidden="true" />
-          {answers.unread.sosLabel}
-        </button>
-      </div>
+      {(allowHandover || allowSos) && (
+        <div className="as-actions">
+          {allowHandover && (
+            <button type="button" className="as-go" onClick={handOver}>
+              <UserRound size={17} aria-hidden="true" />
+              {answers.unread.handoverLabel}
+            </button>
+          )}
+          {allowSos && (
+            <button type="button" className="as-ask urgent" onClick={sos}>
+              <Ambulance size={17} aria-hidden="true" />
+              {answers.unread.sosLabel}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -511,13 +570,23 @@ function Lines({ ids }: { ids: string[] }) {
 
 type ReplyProps = {
   reply: Reply;
+  audience: AudienceId;
   sos: () => void;
   handOver: () => void;
   sent?: Sent;
   onSend: () => void;
 };
 
-function ReplyBody({ reply, sos, handOver, sent, onSend }: ReplyProps) {
+function ReplyBody({
+  reply,
+  audience,
+  sos,
+  handOver,
+  sent,
+  onSend,
+}: ReplyProps) {
+  const { sos: allowSos, handover: allowHandover } =
+    audienceOf(audience).actions;
   switch (reply.kind) {
     case "situation":
       return <p>{reply.situation.sentence}</p>;
@@ -552,30 +621,38 @@ function ReplyBody({ reply, sos, handOver, sent, onSend }: ReplyProps) {
           <p>{emergencyAnswer.lead}</p>
           <Lines ids={emergencyAnswer.numbers} />
           <p className="as-quiet">{emergencyAnswer.notAnAmbulance}</p>
-          <button type="button" className="as-go" onClick={sos}>
-            <Ambulance size={17} aria-hidden="true" />
-            {emergencyAnswer.sosLabel}
-            <ArrowRight size={16} aria-hidden="true" />
-          </button>
+          {allowSos && (
+            <button type="button" className="as-go" onClick={sos}>
+              <Ambulance size={17} aria-hidden="true" />
+              {emergencyAnswer.sosLabel}
+              <ArrowRight size={16} aria-hidden="true" />
+            </button>
+          )}
         </>
       );
     case "unmatched":
       return (
         <>
           <p className="as-headline">{answers.unmatched.sentence}</p>
-          <p>{answers.unmatched.detail}</p>
+          <p>{unmatchedDetail(audience)}</p>
           <p>{say(answers.unmatched.ifUrgent)}</p>
           <Lines ids={answers.unmatched.numbers} />
-          <div className="as-actions">
-            <button type="button" className="as-go" onClick={handOver}>
-              <UserRound size={17} aria-hidden="true" />
-              {answers.unmatched.handoverLabel}
-            </button>
-            <button type="button" className="as-ask urgent" onClick={sos}>
-              <Ambulance size={17} aria-hidden="true" />
-              {answers.unmatched.sosLabel}
-            </button>
-          </div>
+          {(allowHandover || allowSos) && (
+            <div className="as-actions">
+              {allowHandover && (
+                <button type="button" className="as-go" onClick={handOver}>
+                  <UserRound size={17} aria-hidden="true" />
+                  {answers.unmatched.handoverLabel}
+                </button>
+              )}
+              {allowSos && (
+                <button type="button" className="as-ask urgent" onClick={sos}>
+                  <Ambulance size={17} aria-hidden="true" />
+                  {answers.unmatched.sosLabel}
+                </button>
+              )}
+            </div>
+          )}
         </>
       );
     case "handover": {

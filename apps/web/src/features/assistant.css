@@ -479,6 +479,14 @@
   font-size: 13px;
   color: var(--brand-mint);
 }
+/* The audience's simulated label, one quiet line under the descriptor. What it says is the
+   contract's sentence for that audience, and whether it is here at all is the contract's
+   decision — the patient's entry has none (audiences section, 19 September 2026). */
+.as-simulated {
+  margin: 0;
+  font-size: 12px;
+  color: var(--brand-mint);
+}
 /* The state, said. A pill with a hairline rather than a coloured fill, so its colour is never the only
    thing that changed: the word is. Orange is the edge on Escalate, white text on ink throughout. */
 .as-state {

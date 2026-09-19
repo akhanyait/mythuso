@@ -3,6 +3,7 @@ import framing from '../../../../packages/catalog/framing.json' with { type: 'js
 import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
 import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bluetooth, BookOpen, CalendarDays, CalendarRange, ClipboardPlus, CreditCard, FileText, FlaskConical, LogOut, Package, Radar, Repeat, ShieldAlert, ShieldCheck, Siren, Truck, Video } from 'lucide-react';
 import { Modal, SectionTitle } from '../components/UI';
+import { AssistantLauncher } from '../components/AssistantLauncher';
 import { Metric, Metrics, NavRow } from '../surface/Surface';
 import '../surface/clinical.css';
 /* The clinical feature screens' own sheet. It used to be imported by the staff and admin entries,
@@ -141,7 +142,7 @@ export const staffRoles = Object.keys(workspaces) as StaffRole[];
    same reason wearing different clothes: the back office imported it from here, so opening a finance
    console downloaded a dispatch board. */
 import { initialsOf } from '../lib/names';
-import { openingLine, whoIs, type ClinicalWorkspaceId } from '../lib/roles';
+import { openingLine, whoIs, type ClinicalWorkspaceId, type RoleId } from '../lib/roles';
 import { DemoBar, useRole } from '../features/DemoLogin';
 /* The door in lib/roles.ts names these four as well, and cannot import this file to check — doing so
    would pull the clinical bundle into the entry that exists to defer it. So the agreement is checked
@@ -165,7 +166,7 @@ const signedInAs = (role: StaffRole) => whoIs(workspaces[role].subjectId, 'Dispa
  * above it, and this file's whole job is to draw one. */
 
 /* ---- The workspace ----------------------------------------------------------------------------- */
-export default function StaffWorkspace({ role }: { role: StaffRole }) {
+export default function StaffWorkspace({ role, audience }: { role: StaffRole; audience: RoleId }) {
  const { sections } = workspaces[role];
  const [section, setSection] = useState<string>(sections[0].id);
  const [modal, setModal] = useState<string | null>(null);
@@ -229,6 +230,13 @@ export default function StaffWorkspace({ role }: { role: StaffRole }) {
     {renderSection(role, section, setModal, home)}
    </main>
    <footer className="app-footer"><span>© 2026 MyThuso · {role} workspace</span><span>{t('shell.tagline', 'en-ZA')}</span></footer>
+   {/* The assistant, in this workspace for the audience the door chose: the same orb and the same
+       lazy panel as the patient entry, carrying this audience's questions, refusals and simulated
+       label from the contract. Drawn where the patient shell draws it — between the footer and the
+       tab bar, a zero-height row the orb rises from — so it clears the bar on a phone at whatever
+       height the bar has grown to. No visit and no patient modals: the situations it answers are a
+       patient's, and this workspace's boards are not sentences the matcher holds. */}
+   <AssistantLauncher visit={null} audience={audience}/>
    {/* The visible label is the short one and the accessible name is the whole section. Both point
        at the same thing and the short one is a prefix of the long one, so WCAG 2.5.3 is satisfied
        while a screen-reader user hears "Earnings and payouts" rather than "Earnings". */}

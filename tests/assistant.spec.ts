@@ -2,6 +2,11 @@ import { test, expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { noticeFor } from "./notices";
 import { confirmBooking, goSection } from "./nav";
+import type { AudienceId } from "../apps/web/src/lib/assistant";
+
+/* The panel's module as the dev server serves it: imported inside the page by URL, and typed from the
+   source, which is the same file — the URL is not a path the compiler can resolve. */
+type AssistantLib = typeof import("../apps/web/src/lib/assistant");
 /* GilbertOne on the web.
 
    What is held here, in the order a person meets it.
@@ -104,6 +109,36 @@ const ask = async (page: Page, words: string) => {
     .getByRole("button", { name: gilbert.conversation.sendLabel, exact: true })
     .click();
 };
+
+/* The audience decision of 19 September 2026, read the way the panel reads it: from the contract,
+   never retyped here. A disagreement between these tests and the panel is a disagreement with the
+   contract, which is where the founder put the decision. */
+const audienceEntry = (id: string) =>
+  (gilbert.audiences.list as { id: string; simulated: string }[]).find(
+    (a) => a.id === id,
+  )!;
+const questionsOfferedTo = (audience: string) =>
+  (
+    gilbert.questions as { id: string; asks: string; audiences: string[] }[]
+  ).filter((q) => q.audiences.includes(audience));
+const questionsRefusedTo = (audience: string) =>
+  (
+    gilbert.questions as { id: string; asks: string; audiences: string[] }[]
+  ).filter((q) => !q.audiences.includes(audience));
+const refusalFor = (id: string, audience: string) => {
+  const refusal = gilbert.refusals.find((r: { id: string }) => r.id === id) as {
+    statement: string;
+    audiences?: Record<string, { statement: string }>;
+  };
+  return refusal.audiences?.[audience]?.statement ?? refusal.statement;
+};
+const unmatchedDetail = (audience: string) =>
+  (
+    gilbert.answers.unmatched as {
+      detail: string;
+      audiences?: Record<string, { detail: string }>;
+    }
+  ).audiences?.[audience]?.detail ?? gilbert.answers.unmatched.detail;
 
 /* Before the app's own code runs, so a reach for any way of keeping a sample, or of answering in a
    voice, from anywhere on this screen counts. The browser's recogniser is NOT in this list: since the
@@ -1460,7 +1495,9 @@ test("the web matcher agrees with the contract’s shared fixtures", async ({
   await page.goto("/app/");
   const disagreements = await page.evaluate(
     async ({ stemsFixtures, messageFixtures }) => {
-      const lib = await import("/src/lib/assistant.ts");
+      const lib = (await import(
+        "/src/lib/assistant.ts" as string
+      )) as AssistantLib;
       const found: string[] = [];
       for (const f of stemsFixtures) {
         const got = lib.stems(f.says);
@@ -1468,7 +1505,16 @@ test("the web matcher agrees with the contract’s shared fixtures", async ({
           found.push(`stems of "${f.says}" were ${JSON.stringify(got)}`);
       }
       for (const f of messageFixtures) {
-        const turn = lib.send(lib.opening(), f.says, null).at(-1);
+        /* A fixture carries the audience it is spoken to since the audience decision of 19 September
+           2026 — the same words are a different question for a nurse than for a patient. */
+        const audience = (f as { audience?: AudienceId }).audience ?? "patient";
+        const turn = lib
+          .send(lib.opening(audience), f.says, null, false, audience)
+          .at(-1);
+        if (!turn) {
+          found.push(`"${f.says}" produced no turn`);
+          continue;
+        }
         const kind = lib.outcomeOf(turn);
         const question = kind.startsWith("answer")
           ? (turn.matched?.id ?? null)
@@ -1491,6 +1537,113 @@ test("the web matcher agrees with the contract’s shared fixtures", async ({
     },
   );
   expect(disagreements).toEqual([]);
+});
+
+/* The audience decision of 19 September 2026, on the surfaces that carry it. The role in the URL is
+   what the demo login chose and authenticates nobody, so the panel says the preview is simulated in
+   its own words, offers only the questions the contract tags for that audience, reads that audience's
+   own refusal where the refusal itself differs, and keeps none of the patient's doors — no voice
+   control, no SOS, no nurse queue — while the emergency question and the emergency words stay exactly
+   as reachable as the patient's, because an emergency word does not stop being one because a nurse or
+   an operator is saying it. */
+test("a nurse’s preview serves the nurse’s scope, and says it is simulated", async ({
+  page,
+}) => {
+  await page.goto("/app/?role=nurse");
+  await launcher(page).click();
+  const sheet = panel(page);
+  await expect(sheet).toBeVisible();
+  await expect(sheet).toHaveAttribute("data-audience", "nurse");
+
+  // the preview says so itself, and opens with what GilbertOne is — not somebody else's situation
+  await expect(sheet).toContainText(audienceEntry("nurse").simulated);
+  await expect(log(page).locator(".as-reply").first()).toContainText(
+    gilbert.identity.whatItIs,
+  );
+
+  // the questions offered are the tags on each question, read one way: the three universal ones only
+  for (const question of questionsOfferedTo("nurse"))
+    await expect(
+      sheet.getByRole("button", { name: question.asks, exact: true }),
+    ).toBeVisible();
+  for (const question of questionsRefusedTo("nurse"))
+    await expect(
+      sheet.getByRole("button", { name: question.asks, exact: true }),
+    ).toHaveCount(0);
+  // and the empty group is not drawn at all: no heading over chips that are not there
+  await expect(
+    sheet.getByRole("heading", { name: gilbert.questionGroups[0].heading }),
+  ).toHaveCount(0);
+
+  // the voice control belongs to the patient's entry; the nurse's has none
+  await expect(
+    sheet.getByRole("button", { name: gilbert.voice.sentences.talkLabel }),
+  ).toHaveCount(0);
+
+  // a nurse asking about a rash and a patient asking about one are different refusals, on file
+  await expect(sheet).toContainText(refusalFor("no-diagnosis", "nurse"));
+  await expect(sheet).not.toContainText(
+    (
+      gilbert.refusals.find((r: { id: string }) => r.id === "no-diagnosis") as {
+        statement: string;
+      }
+    ).statement,
+  );
+
+  // the patient's own question, asked in the nurse's preview, is not offered to her
+  await ask(page, "when is my nurse coming");
+  const refused = log(page).locator(".as-reply").last();
+  await expect(refused).toHaveAttribute("data-outcome", "unmatched");
+  await expect(refused).toContainText(unmatchedDetail("nurse"));
+  await expect(
+    refused.getByRole("button", {
+      name: gilbert.answers.unmatched.handoverLabel,
+    }),
+  ).toHaveCount(0);
+  await expect(
+    refused.getByRole("button", { name: gilbert.answers.unmatched.sosLabel }),
+  ).toHaveCount(0);
+
+  // and an emergency word raises for her exactly as it would for the patient, numbers first
+  await ask(page, "I have chest pains");
+  const emergency = log(page).locator(".as-reply").last();
+  await expect(emergency).toHaveAttribute("data-outcome", "emergency");
+  await expect(emergency).toContainText(sos.emergency.headline);
+  await expect(emergency.locator(".as-numbers li").first()).toContainText(
+    "10177",
+  );
+  // the numbers stay; the SOS door is the patient's and does not
+  await expect(
+    emergency.getByRole("button", { name: gilbert.answers.emergency.sosLabel }),
+  ).toHaveCount(0);
+});
+
+test("the back office’s preview is the same panel with the back office’s scope", async ({
+  page,
+}) => {
+  await page.goto("/app/?role=back-office");
+  await launcher(page).click();
+  const sheet = panel(page);
+  await expect(sheet).toHaveAttribute("data-audience", "back-office");
+  await expect(sheet).toContainText(audienceEntry("back-office").simulated);
+
+  // what is not the back office's to read is named, in the unmatched answer's own words
+  await ask(page, "how many claims are outstanding");
+  const reply = log(page).locator(".as-reply").last();
+  await expect(reply).toHaveAttribute("data-outcome", "unmatched");
+  await expect(reply).toContainText(unmatchedDetail("back-office"));
+
+  // and the one question that reaches every audience is offered here too
+  const universal = questionsOfferedTo("back-office");
+  expect(universal.map((q) => q.id)).toEqual([
+    "identity",
+    "voice",
+    "emergency",
+  ]);
+  for (const question of universal)
+    await expect(
+      sheet.getByRole("button", { name: question.asks, exact: true }),
+    ).toBeVisible();
 });
 
 /* One visit, one day. GilbertOne named the first day the calendar offers while the home card showed the visit
@@ -1543,7 +1696,9 @@ test("false positives in the emergency terms are reported, not blocking", async 
   test.skip(isMobile, "Arithmetic, not layout: once is enough.");
   await page.goto("/app/");
   const raised = await page.evaluate(async () => {
-    const lib = await import("/src/lib/assistant.ts");
+    const lib = (await import(
+      "/src/lib/assistant.ts" as string
+    )) as AssistantLib;
     return lib.falsePositives.messages
       .filter((m: { says: string }) => lib.emergencyGroupsIn(m.says).length > 0)
       .map((m: { says: string }) => m.says);

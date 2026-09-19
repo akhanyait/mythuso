@@ -21,7 +21,7 @@ class GilbertFixturesTest {
 
     @Test fun everyMessageGetsTheContractsOutcome() {
         val disagreements = GilbertData.messageFixtures.mapNotNull { fixture ->
-            val turn = Gilbert.send(fixture.says, GilbertChannel.TYPED, Gilbert.opening(), null).last()
+            val turn = Gilbert.send(fixture.says, GilbertChannel.TYPED, Gilbert.opening(), null, fixture.audience ?: "patient").last()
             val kind = Gilbert.outcome(turn)
             val question = if (kind.startsWith("answer")) turn.matched?.id else null
             val groups = turn.groups.map { it.id }

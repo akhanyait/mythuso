@@ -41,3 +41,26 @@ test('returns an unknown route for other inputs', () => {
   assert.equal(classifyMessage('I am trying to remember my appointment details'), 'unknown');
   assert.equal(result.route, 'unknown');
 });
+
+test('the audience scopes the patient-voiced routes', () => {
+  /* The nurse queue a handover offers belongs to a patient's conversation, and the care terms ask
+     about the patient's own visit: behind a staff preview the same words are not that request. */
+  assert.equal(classifyMessage('Can I talk to a nurse?', 'nurse'), 'unknown');
+  assert.equal(classifyMessage('When is my nurse coming?', 'doctor'), 'unknown');
+  /* and the patient keeps both. */
+  assert.equal(classifyMessage('Can I talk to a nurse?'), 'handover');
+  assert.equal(classifyMessage('When is my nurse coming?'), 'care');
+});
+
+test('an emergency is an emergency for every audience', () => {
+  const result = evaluateMessage('I have chest pains', 'control-tower');
+  assert.equal(result.classification, 'emergency');
+  assert.equal(result.route, 'emergency');
+});
+
+test("a staff audience is told the scope, not offered the patient's doors", () => {
+  const result = evaluateMessage('can you check the stock levels', 'partner');
+  assert.equal(result.classification, 'unknown');
+  assert.equal(result.route, 'unknown');
+  assert.deepEqual(result.suggestedActions, ['identity', 'voice', 'emergency']);
+});

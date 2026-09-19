@@ -2,10 +2,11 @@
 // Do not edit by hand — run `npm run assistant`. The build fails if this file and its sources
 // disagree, so an edit here is lost rather than merely wrong.
 //
-// Everything GilbertOne says, the six Pulse states, the questions and their trigger phrases, the
-// emergency words (drafted, not yet reviewed by a clinician, and used only to raise), the voice
-// policy and the refusals. The emergency numbers are resolved from sos.json when this file is
-// written. The situation tokens are left in on purpose: they are dates, and are filled at runtime.
+// Everything GilbertOne says, the six Pulse states, the questions with their trigger phrases and
+// the audiences each is offered to, the emergency words (drafted, not yet reviewed by a clinician,
+// and used only to raise), the voice policy and the refusals. The emergency numbers are resolved
+// from sos.json when this file is written. The situation tokens are left in on purpose: they are
+// dates, and are filled at runtime. Each shared fixture carries the audience it is spoken to.
 
 import Foundation
 
@@ -92,21 +93,21 @@ extension Gilbert {
 
     static let questions: [GilbertQuestion] = [
         GilbertQuestion(id: "settled", asks: "Does anything need me?", group: "situations", answer: "situation",
-                        triggers: ["does anything need me", "anything need me", "what needs me", "anything waiting", "anything for me", "any updates", "whats new"]),
+                        triggers: ["does anything need me", "anything need me", "what needs me", "anything waiting", "anything for me", "any updates", "whats new"], audiences: ["patient"]),
         GilbertQuestion(id: "visit", asks: "When is my nurse coming?", group: "situations", answer: "situation",
-                        triggers: ["when is my nurse", "nurse coming", "my visit", "next visit", "when does my nurse", "when will the nurse"]),
+                        triggers: ["when is my nurse", "nurse coming", "my visit", "next visit", "when does my nurse", "when will the nurse"], audiences: ["patient"]),
         GilbertQuestion(id: "result", asks: "Are my results back?", group: "situations", answer: "situation",
-                        triggers: ["are my results back", "my results", "results back", "test results", "lab results", "blood results"]),
+                        triggers: ["are my results back", "my results", "results back", "test results", "lab results", "blood results"], audiences: ["patient"]),
         GilbertQuestion(id: "credential", asks: "Is everyone on my team registered?", group: "situations", answer: "situation",
-                        triggers: ["everyone on my team registered", "team registered", "is my nurse registered", "registration", "credentials", "registered"]),
+                        triggers: ["everyone on my team registered", "team registered", "is my nurse registered", "registration", "credentials", "registered"], audiences: ["patient"]),
         GilbertQuestion(id: "identity", asks: "What are you?", group: "always", answer: "identity",
-                        triggers: ["what are you", "who are you", "are you a doctor", "are you human", "are you a person", "are you real", "who is gilbert", "what is gilbert", "who is gilbertone", "what is gilbertone"]),
+                        triggers: ["what are you", "who are you", "are you a doctor", "are you human", "are you a person", "are you real", "who is gilbert", "what is gilbert", "who is gilbertone", "what is gilbertone"], audiences: ["patient", "nurse", "doctor", "partner", "control-tower", "back-office"]),
         GilbertQuestion(id: "voice", asks: "What happens to what I say?", group: "always", answer: "voice",
-                        triggers: ["what happens to what i say", "can you hear me", "can you listen", "are you listening", "recording", "record me", "microphone", "my voice"]),
+                        triggers: ["what happens to what i say", "can you hear me", "can you listen", "are you listening", "recording", "record me", "microphone", "my voice"], audiences: ["patient", "nurse", "doctor", "partner", "control-tower", "back-office"]),
         GilbertQuestion(id: "nurse", asks: "Can I talk to a nurse?", group: "always", answer: "handover",
-                        triggers: ["talk to a nurse", "speak to a nurse", "can i talk to a nurse", "real person", "a human", "call a nurse"]),
+                        triggers: ["talk to a nurse", "speak to a nurse", "can i talk to a nurse", "real person", "a human", "call a nurse"], audiences: ["patient"]),
         GilbertQuestion(id: "emergency", asks: "What if it cannot wait?", group: "always", answer: "emergency",
-                        triggers: ["what if it cannot wait", "cannot wait", "cant wait"])
+                        triggers: ["what if it cannot wait", "cannot wait", "cant wait"], audiences: ["patient", "nurse", "doctor", "partner", "control-tower", "back-office"])
     ]
 
     /// Nil until a clinician has read the list below. It is shown as nil rather than hidden.
@@ -256,28 +257,32 @@ extension Gilbert {
     /// Ordinary sentences the terms raise today: reported by the self-test, never blocking.
     static let falsePositiveFixtures: [String] = ["I feel fit and well today", "I had a stroke of luck with the parking", "I am dying to know when my nurse is coming", "the plumber is fitting a new geyser"]
     static let messageFixtures: [GilbertMessageFixture] = [
-        GilbertMessageFixture(says: "When is my nurse coming? I have chest pains", expect: "emergency", question: nil, groups: ["chest-pain"]),
-        GilbertMessageFixture(says: "my visit today, my chest feels tight", expect: "emergency", question: nil, groups: ["chest-pain"]),
-        GilbertMessageFixture(says: "are my results back, I had seizures last night", expect: "emergency", question: nil, groups: ["seizure"]),
-        GilbertMessageFixture(says: "nurse coming, my baby is having convulsions", expect: "emergency", question: nil, groups: ["seizure"]),
-        GilbertMessageFixture(says: "any updates, my dad stopped breathing", expect: "emergency", question: nil, groups: ["breathing"]),
-        GilbertMessageFixture(says: "my visit — she bled a lot", expect: "emergency", question: nil, groups: ["bleeding"]),
-        GilbertMessageFixture(says: "he keeps passing out", expect: "emergency", question: nil, groups: ["unresponsive"]),
-        GilbertMessageFixture(says: "she blacked out", expect: "emergency", question: nil, groups: ["unresponsive"]),
-        GilbertMessageFixture(says: "difficulty breathing", expect: "emergency", question: nil, groups: ["breathing"]),
-        GilbertMessageFixture(says: "trouble breathing since this morning", expect: "emergency", question: nil, groups: ["breathing"]),
-        GilbertMessageFixture(says: "the contractions have started", expect: "emergency", question: nil, groups: ["obstetric"]),
-        GilbertMessageFixture(says: "I think he is overdosing", expect: "emergency", question: nil, groups: ["crisis"]),
-        GilbertMessageFixture(says: "she has fits", expect: "emergency", question: nil, groups: ["seizure"]),
-        GilbertMessageFixture(says: "hæmorrhage after the birth", expect: "emergency", question: nil, groups: ["bleeding"]),
-        GilbertMessageFixture(says: "my visit, call an ambulans", expect: "emergency", question: nil, groups: ["general"]),
-        GilbertMessageFixture(says: "when is my nurse coming", expect: "answer", question: "visit", groups: []),
-        GilbertMessageFixture(says: "hi, when’s my nurse coming??", expect: "answer", question: "visit", groups: []),
-        GilbertMessageFixture(says: "are my results back", expect: "answer", question: "result", groups: []),
-        GilbertMessageFixture(says: "when is my nurse coming, my knee is sore", expect: "answer-and-unread", question: "visit", groups: []),
-        GilbertMessageFixture(says: "any updates? my knee aches", expect: "unmatched", question: nil, groups: []),
-        GilbertMessageFixture(says: "does anything need me", expect: "answer", question: "settled", groups: []),
-        GilbertMessageFixture(says: "my knee has been sore since tuesday", expect: "unmatched", question: nil, groups: [])
+        GilbertMessageFixture(says: "When is my nurse coming? I have chest pains", expect: "emergency", question: nil, groups: ["chest-pain"], audience: nil),
+        GilbertMessageFixture(says: "my visit today, my chest feels tight", expect: "emergency", question: nil, groups: ["chest-pain"], audience: nil),
+        GilbertMessageFixture(says: "are my results back, I had seizures last night", expect: "emergency", question: nil, groups: ["seizure"], audience: nil),
+        GilbertMessageFixture(says: "nurse coming, my baby is having convulsions", expect: "emergency", question: nil, groups: ["seizure"], audience: nil),
+        GilbertMessageFixture(says: "any updates, my dad stopped breathing", expect: "emergency", question: nil, groups: ["breathing"], audience: nil),
+        GilbertMessageFixture(says: "my visit — she bled a lot", expect: "emergency", question: nil, groups: ["bleeding"], audience: nil),
+        GilbertMessageFixture(says: "he keeps passing out", expect: "emergency", question: nil, groups: ["unresponsive"], audience: nil),
+        GilbertMessageFixture(says: "she blacked out", expect: "emergency", question: nil, groups: ["unresponsive"], audience: nil),
+        GilbertMessageFixture(says: "difficulty breathing", expect: "emergency", question: nil, groups: ["breathing"], audience: nil),
+        GilbertMessageFixture(says: "trouble breathing since this morning", expect: "emergency", question: nil, groups: ["breathing"], audience: nil),
+        GilbertMessageFixture(says: "the contractions have started", expect: "emergency", question: nil, groups: ["obstetric"], audience: nil),
+        GilbertMessageFixture(says: "I think he is overdosing", expect: "emergency", question: nil, groups: ["crisis"], audience: nil),
+        GilbertMessageFixture(says: "she has fits", expect: "emergency", question: nil, groups: ["seizure"], audience: nil),
+        GilbertMessageFixture(says: "hæmorrhage after the birth", expect: "emergency", question: nil, groups: ["bleeding"], audience: nil),
+        GilbertMessageFixture(says: "my visit, call an ambulans", expect: "emergency", question: nil, groups: ["general"], audience: nil),
+        GilbertMessageFixture(says: "when is my nurse coming", expect: "answer", question: "visit", groups: [], audience: nil),
+        GilbertMessageFixture(says: "hi, when’s my nurse coming??", expect: "answer", question: "visit", groups: [], audience: nil),
+        GilbertMessageFixture(says: "are my results back", expect: "answer", question: "result", groups: [], audience: nil),
+        GilbertMessageFixture(says: "when is my nurse coming, my knee is sore", expect: "answer-and-unread", question: "visit", groups: [], audience: nil),
+        GilbertMessageFixture(says: "any updates? my knee aches", expect: "unmatched", question: nil, groups: [], audience: nil),
+        GilbertMessageFixture(says: "does anything need me", expect: "answer", question: "settled", groups: [], audience: nil),
+        GilbertMessageFixture(says: "my knee has been sore since tuesday", expect: "unmatched", question: nil, groups: [], audience: nil),
+        GilbertMessageFixture(says: "what are you", expect: "answer", question: "identity", groups: [], audience: "nurse"),
+        GilbertMessageFixture(says: "when is my nurse coming", expect: "unmatched", question: nil, groups: [], audience: "nurse"),
+        GilbertMessageFixture(says: "what if it cannot wait", expect: "emergency", question: nil, groups: [], audience: "back-office"),
+        GilbertMessageFixture(says: "I have chest pains", expect: "emergency", question: nil, groups: ["chest-pain"], audience: "doctor")
     ]
 
     static let refusals: [GilbertRefusal] = [

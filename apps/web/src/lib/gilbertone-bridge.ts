@@ -1,4 +1,4 @@
-import { evaluateMessage } from '../../../../packages/gilbertone/src/index.ts';
+import { evaluateMessage, type Audience } from '../../../../packages/gilbertone/src/index.ts';
 import { emergencyGroupsIn, send, type Turn } from './assistant.ts';
 import type { Visit } from './scheduling.ts';
 
@@ -7,6 +7,10 @@ import type { Visit } from './scheduling.ts';
  * while the existing assistant renderer remains the source of approved copy and
  * emergency/handover presentation. No model, network request, or browser storage
  * is introduced here.
+ *
+ * The audience travels with the message since the founder's audience decision of 19 September
+ * 2026: the engine scopes its patient-voiced routes with it, and send() answers in that
+ * audience's own words — the same tags on every platform.
  *
  * WHY EMERGENCY GOES THROUGH A SYNTHETIC PHRASE, AND WHAT THAT COSTS. `send()`'s own,
  * richer emergency detector (stems, small gaps, the founder's versioned term list) may not
@@ -33,12 +37,13 @@ export function sendWithGilbertEngine(
   turns: Turn[],
   text: string,
   visit: Visit | null = null,
-  raised = false
+  raised = false,
+  audience: Audience = 'patient',
 ): Turn[] {
-  const result = evaluateMessage(text);
+  const result = evaluateMessage(text, audience);
 
   if (result.route === 'emergency') {
-    const withEmergency = send(turns, 'What if it cannot wait?', visit, raised);
+    const withEmergency = send(turns, 'What if it cannot wait?', visit, raised, audience);
     const last = withEmergency[withEmergency.length - 1];
     if (last.reply.kind !== 'emergency') return withEmergency;
     /* The real detector, on the real words, for display only. An empty result here is honest —
@@ -54,12 +59,12 @@ export function sendWithGilbertEngine(
        actually typed the same way the unmodified emergency branch did (see above), so it is
        routed through send() with the "nurse" question's own trigger phrase and corrected the
        same way, for the same reason. */
-    const withHandover = send(turns, 'Can I talk to a nurse?', visit, raised);
+    const withHandover = send(turns, 'Can I talk to a nurse?', visit, raised, audience);
     const last = withHandover[withHandover.length - 1];
     if (last.reply.kind !== 'handover') return withHandover;
     const corrected: Turn = { ...last, asked: text };
     return [...withHandover.slice(0, -1), corrected];
   }
 
-  return send(turns, text, visit, raised);
+  return send(turns, text, visit, raised, audience);
 }

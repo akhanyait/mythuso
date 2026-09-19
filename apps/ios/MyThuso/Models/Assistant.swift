@@ -7,7 +7,10 @@ import Foundation
    beside that data, and it is the same arithmetic as apps/web/src/lib/assistant.ts and
    model/Assistant.kt: fold a message to plain letters, reduce it to stems, look for an emergency term
    with small gaps, then for the longest trigger, and give every word GilbertOne did not read an honest
-   sentence with the ambulance numbers beside it.
+   sentence with the ambulance numbers beside it. Since the founder's audience decision of 19 September
+   2026 each question carries the audiences it is offered to, and the matcher keeps to the audience it
+   is handed — the emergency terms are matched before any of that, so scoping a question out can never
+   scope an emergency out.
 
    The order is the safety property. Emergency words are checked before any question, and a match
    ends the matching: "when is my nurse coming, I have chest pains" is an emergency, not a visit date.
@@ -64,6 +67,8 @@ struct GilbertQuestion: Identifiable, Hashable {
     let group: String
     let answer: String
     let triggers: [String]
+    /// The audiences this question is offered to, from the contract's audiences section.
+    let audiences: [String]
 }
 
 struct GilbertEmergencyGroup: Identifiable, Hashable {
@@ -198,6 +203,8 @@ struct GilbertMessageFixture {
     let expect: String
     let question: String?
     let groups: [String]
+    /// The audience the fixture is spoken to, or nil for the patient.
+    let audience: String?
 }
 
 enum Gilbert {
@@ -337,11 +344,13 @@ enum Gilbert {
     }
 
     /// The longest trigger (in words, adjacent) wins; a tie goes to the question listed first.
-    static func question(for text: String) -> GilbertQuestion? {
+    /// Only the questions the audience is offered are in the running, and the emergency words are matched
+    /// before any of this in send(), so scoping a question out can never scope an emergency out.
+    static func question(for text: String, audience: String = "patient") -> GilbertQuestion? {
         let said = stems(text)
         var best: GilbertQuestion?
         var length = 0
-        for question in questions {
+        for question in questions where question.audiences.contains(audience) {
             for trigger in question.triggers {
                 let term = stems(trigger)
                 if term.count > length && hasSequence(said, term, gap: 0) { best = question; length = term.count }
@@ -400,8 +409,8 @@ enum Gilbert {
         return Array((turns + [turn(next)]).suffix(conversation.turnLimit))
     }
 
-    /// A message in a person's own words, typed or spoken and checked.
-    static func send(_ text: String, channel: Channel, to turns: [Turn], visit: BookedVisit?) -> [Turn] {
+    /// A message in a person's own words, typed or spoken and checked, for the audience the conversation serves.
+    static func send(_ text: String, channel: Channel, to turns: [Turn], visit: BookedVisit?, audience: String = "patient") -> [Turn] {
         let words = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !words.isEmpty else { return turns }
         let groups = emergencyGroups(in: words)
@@ -409,7 +418,7 @@ enum Gilbert {
         if !groups.isEmpty {
             return appending({ Turn(id: $0, asked: words, channel: channel, reply: .emergency(groups), matched: nil, groups: groups, unread: false) }, to: turns)
         }
-        guard let question = question(for: words) else {
+        guard let question = question(for: words, audience: audience) else {
             return appending({ Turn(id: $0, asked: words, channel: channel, reply: .unmatched, matched: nil, groups: [], unread: false) }, to: turns)
         }
         let unread = question.answer != "emergency" && leavesUnread(words, question)
@@ -485,7 +494,7 @@ enum Gilbert {
             disagreements.append("stems of \"\(fixture.says)\" were \(stems(fixture.says))")
         }
         for fixture in messageFixtures {
-            guard let turn = send(fixture.says, channel: .typed, to: opening(), visit: nil).last else { continue }
+            guard let turn = send(fixture.says, channel: .typed, to: opening(), visit: nil, audience: fixture.audience ?? "patient").last else { continue }
             let kind = outcome(of: turn)
             let question = kind.hasPrefix("answer") ? turn.matched?.id : nil
             let groups = turn.groups.map(\.id)

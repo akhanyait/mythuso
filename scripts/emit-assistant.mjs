@@ -27,6 +27,15 @@
        fill them at runtime.
      - The matcher's data — foldings, irregular forms, filler words, the gap, the unread answer — and
        the shared fixtures are emitted, so each platform's own tests run against the same list.
+     - The audience dimension of the founder's decision of 19 September 2026 is emitted, and only where
+       the matcher needs it: each question carries the audiences it is offered to, and each shared
+       fixture the audience it is spoken to, because the matcher's arithmetic is triplicated and a
+       scope one platform ignores is a question it answers to an audience the contract never offered.
+       The audiences section itself — the simulated label, the voice control, the patient's two action
+       buttons, what a session opens with — is not: the phones' assistant is the patient's, every one
+       of those is a preview panel's concern, and a Swift copy of a label no phone renders would be a
+       second place for the founder's decision to drift. scripts/check-boundaries.mjs holds the
+       vocabulary to the RoleIds and the engine's Audience type instead.
      - The descriptor is not emitted on its own, only descriptorLine with its disclosure, so no native
        screen can say "Your Thuso AI Doctor" without saying what GilbertOne is not.
      - The Pulse events are not emitted. They are a contract between engines, no phone emits one in
@@ -74,10 +83,11 @@ const banner = () =>
     "Do not edit by hand — run `npm run assistant`. The build fails if this file and its sources",
     "disagree, so an edit here is lost rather than merely wrong.",
     "",
-    "Everything GilbertOne says, the six Pulse states, the questions and their trigger phrases, the",
-    "emergency words (drafted, not yet reviewed by a clinician, and used only to raise), the voice",
-    "policy and the refusals. The emergency numbers are resolved from sos.json when this file is",
-    "written. The situation tokens are left in on purpose: they are dates, and are filled at runtime.",
+    "Everything GilbertOne says, the six Pulse states, the questions with their trigger phrases and",
+    "the audiences each is offered to, the emergency words (drafted, not yet reviewed by a clinician,",
+    "and used only to raise), the voice policy and the refusals. The emergency numbers are resolved",
+    "from sos.json when this file is written. The situation tokens are left in on purpose: they are",
+    "dates, and are filled at runtime. Each shared fixture carries the audience it is spoken to.",
   ]
     .map((line) => (line ? `// ${line}` : "//"))
     .join("\n");
@@ -185,6 +195,36 @@ export function emitAssistant(root = "") {
         `${SOURCE} has no ${what}, so the matcher cannot be written out without deciding what reading everything means. It is refused here rather than defaulted.`,
       );
   }
+  /* The audience dimension of the founder's decision of 19 September 2026. The vocabulary is the
+     contract's audiences list, and scripts/check-boundaries.mjs holds it to the RoleIds and the
+     engine's Audience type. What is refused here rather than defaulted is the scope itself: a question
+     with no audiences is a question nobody can ask, and an empty list would be a scope every platform
+     silently matches everything through. */
+  const audienceIds = (contract.audiences?.list ?? []).map((a) => a.id);
+  if (!audienceIds.length)
+    throw new Error(
+      `${SOURCE} has no audiences list. Since the founder's audience decision there is no GilbertOne without one: every question is offered to named audiences and every shared fixture spoken to one.`,
+    );
+  for (const question of contract.questions) {
+    if (
+      !Array.isArray(question.audiences) ||
+      !question.audiences.length ||
+      question.audiences.some((a) => !audienceIds.includes(a))
+    )
+      throw new Error(
+        `GilbertOne's question "${question.id}" is offered to [${(
+          question.audiences ?? []
+        ).join(
+          ", ",
+        )}], which is empty or names an audience the audiences list does not carry. A question no audience is offered is a question nobody can ask.`,
+      );
+  }
+  for (const fixture of contract.fixtures.messages) {
+    if (fixture.audience != null && !audienceIds.includes(fixture.audience))
+      throw new Error(
+        `The shared fixture "${fixture.says}" is spoken to "${fixture.audience}", which the audiences list does not carry. All three platforms run the shared fixtures, and an audience one of them has never heard of cannot be scoped.`,
+      );
+  }
   const { identity, answers, voice, conversation, matcher, fixtures } =
     contract;
   /* The descriptor is not written out on its own. A native screen that wants to say "Your Thuso AI
@@ -261,7 +301,7 @@ ${contract.questions
     (
       q,
     ) => `        GilbertQuestion(id: ${swift(q.id)}, asks: ${swift(q.asks)}, group: ${swift(q.group)}, answer: ${swift(q.answer)},
-                        triggers: ${listSwift(q.triggers)})`,
+                        triggers: ${listSwift(q.triggers)}, audiences: ${listSwift(q.audiences)})`,
   )
   .join(",\n")}
     ]
@@ -414,7 +454,7 @@ ${fixtures.stems.map((f) => `        GilbertStemFixture(says: ${swift(f.says)}, 
     /// Ordinary sentences the terms raise today: reported by the self-test, never blocking.
     static let falsePositiveFixtures: [String] = ${listSwift(terms.falsePositives.messages.map((m) => m.says))}
     static let messageFixtures: [GilbertMessageFixture] = [
-${fixtures.messages.map((f) => `        GilbertMessageFixture(says: ${swift(f.says)}, expect: ${swift(f.expect)}, question: ${optSwift(f.question ?? null)}, groups: ${listSwift(f.groups ?? [])})`).join(",\n")}
+${fixtures.messages.map((f) => `        GilbertMessageFixture(says: ${swift(f.says)}, expect: ${swift(f.expect)}, question: ${optSwift(f.question ?? null)}, groups: ${listSwift(f.groups ?? [])}, audience: ${optSwift(f.audience ?? null)})`).join(",\n")}
     ]
 
     static let refusals: [GilbertRefusal] = [
@@ -486,7 +526,8 @@ ${contract.questions
   .map(
     (q) => `        GilbertQuestion(
             id = ${kotlin(q.id)}, asks = ${kotlin(q.asks)}, group = ${kotlin(q.group)}, answer = ${kotlin(q.answer)},
-            triggers = ${listKotlin(q.triggers)}
+            triggers = ${listKotlin(q.triggers)},
+            audiences = ${listKotlin(q.audiences)}
         )`,
   )
   .join(",\n")}
@@ -621,7 +662,7 @@ ${fixtures.stems.map((f) => `        GilbertStemFixture(${kotlin(f.says)}, ${lis
     /** Ordinary sentences the terms raise today: reported by the JVM test, never blocking. */
     val falsePositiveFixtures = ${listKotlin(terms.falsePositives.messages.map((m) => m.says))}
     val messageFixtures = listOf(
-${fixtures.messages.map((f) => `        GilbertMessageFixture(${kotlin(f.says)}, ${kotlin(f.expect)}, ${optKotlin(f.question ?? null)}, ${listKotlin(f.groups ?? [])})`).join(",\n")}
+${fixtures.messages.map((f) => `        GilbertMessageFixture(${kotlin(f.says)}, ${kotlin(f.expect)}, ${optKotlin(f.question ?? null)}, ${listKotlin(f.groups ?? [])}, ${optKotlin(f.audience ?? null)})`).join(",\n")}
     )
 
     val refusals = listOf(

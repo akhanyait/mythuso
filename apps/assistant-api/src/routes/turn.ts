@@ -1,4 +1,4 @@
-import { evaluateMessage, type EngineResponse } from '../../../../packages/gilbertone/src/engine.ts';
+import { audiences, evaluateMessage, type Audience, type EngineResponse } from '../../../../packages/gilbertone/src/engine.ts';
 import type { AssistantTurnRequest, AssistantTurnResponse } from '../lib/schema.ts';
 
 const response = (turn: EngineResponse): AssistantTurnResponse => ({
@@ -40,5 +40,11 @@ export async function handleTurn(req: AssistantTurnRequest): Promise<AssistantTu
     };
   }
 
-  return response(evaluateMessage(req.text));
+  /* The audience is declared by the caller, never authenticated — the same rule the demo login's
+     role parameter follows — and a value the engine does not carry means the patient's, because
+     that is what a request without one means. */
+  const asked = req.audience;
+  const audience: Audience =
+    typeof asked === 'string' && (audiences as readonly string[]).includes(asked) ? asked : 'patient';
+  return response(evaluateMessage(req.text, audience));
 }

@@ -60,7 +60,9 @@ export default function Doorway() {
  return <RoleContext.Provider value={{ role, setRole }}>
   {surface === 'patient' ? <App/>
    : <Suspense fallback={<Opening role={role}/>}>
-      {workspace ? <ClinicalWorkspace key={role} role={workspace}/> : <BackOffice/>}
+      {/* The role is also the audience the assistant serves in that workspace, passed on so the
+         shells never hold a second copy of the door's one vocabulary. */}
+      {workspace ? <ClinicalWorkspace key={role} role={workspace} audience={role}/> : <BackOffice audience={role}/>}
      </Suspense>}
  </RoleContext.Provider>;
 }

@@ -20,6 +20,18 @@ export type EngineResponse = {
   suggestedActions: string[];
 };
 
+/* Who a message is from, as the demo login chose it — the same six ids as the RoleIds in
+   apps/web/src/lib/roles.ts and the audiences section of packages/catalog/assistant.json, and
+   scripts/check-boundaries.mjs fails the build if the three lists disagree. The audience is
+   declared, never authenticated, so the engine draws only one line with it: the patient, and a
+   staff preview. The per-audience wording a person reads is the contract's business; the route
+   is this engine's. */
+export type Audience = 'patient' | 'nurse' | 'doctor' | 'partner' | 'control-tower' | 'back-office';
+
+export const audiences: readonly Audience[] = ['patient', 'nurse', 'doctor', 'partner', 'control-tower', 'back-office'];
+
+const isStaff = (audience: Audience) => audience !== 'patient';
+
 const emergencyTerms = [
   'hurt myself',
   'hurt myself',
@@ -111,20 +123,26 @@ function containsAny(text: string, terms: readonly string[]): boolean {
   return terms.some(term => text.includes(term));
 }
 
-export function classifyMessage(input: string): MessageClassification {
+export function classifyMessage(input: string, audience: Audience = 'patient'): MessageClassification {
   const text = normalizeText(input);
   if (!text) return 'unknown';
   if (containsAny(text, emergencyTerms)) return 'emergency';
-  if (containsAny(text, handoverTerms)) return 'handover';
+  /* The handover route and the care terms are a patient's words: the nurse queue a handover
+     offers belongs to a patient's conversation, and the care terms ask about the patient's own
+     visit. Behind a staff preview the same words are not that request, so they fall through to
+     unknown and the caller's matcher answers in that audience's own words. The emergency terms
+     sit above the scoping on purpose: an emergency word does not stop being one because a nurse
+     or an operator is saying it. */
+  if (audience === 'patient' && containsAny(text, handoverTerms)) return 'handover';
   if (containsAny(text, identityTerms)) return 'identity';
   if (containsAny(text, voiceTerms)) return 'voice';
-  if (containsAny(text, careTerms)) return 'care';
+  if (audience === 'patient' && containsAny(text, careTerms)) return 'care';
   if (/\b(i do ?not understand|i dont understand|confused|unclear|what does this mean|help me understand)\b/.test(text)) return 'clarify';
   return 'unknown';
 }
 
-export function buildResponse(input: string): EngineResponse {
-  const classification = classifyMessage(input);
+export function buildResponse(input: string, audience: Audience = 'patient'): EngineResponse {
+  const classification = classifyMessage(input, audience);
 
   switch (classification) {
     case 'emergency':
@@ -178,28 +196,51 @@ export function buildResponse(input: string): EngineResponse {
       };
 
     case 'clarify':
-      return {
-        classification,
-        route: 'clarify',
-        style: 'clarifying',
-        reply: 'I can help, but I need one clear next step. Are you trying to arrange care, understand information you received, or speak to a nurse?',
-        requiresConfirmation: false,
-        suggestedActions: ['arrange_care', 'understand_information', 'speak_to_nurse']
-      };
+      /* A staff preview is offered the three universal questions and nothing else, so the one
+         clear next step it is asked for is one of those. */
+      return isStaff(audience)
+        ? {
+            classification,
+            route: 'clarify',
+            style: 'clarifying',
+            reply: 'I need one clear next step. In this simulated session I answer what I am, what happens to what is said, and emergencies.',
+            requiresConfirmation: false,
+            suggestedActions: ['identity', 'voice', 'emergency']
+          }
+        : {
+            classification,
+            route: 'clarify',
+            style: 'clarifying',
+            reply: 'I can help, but I need one clear next step. Are you trying to arrange care, understand information you received, or speak to a nurse?',
+            requiresConfirmation: false,
+            suggestedActions: ['arrange_care', 'understand_information', 'speak_to_nurse']
+          };
 
     case 'unknown':
     default:
-      return {
-        classification: 'unknown',
-        route: 'unknown',
-        style: 'neutral',
-        reply: 'I can help with care navigation, approved general information, and next steps. Please tell me whether you need help arranging care, understanding information, or speaking to a nurse.',
-        requiresConfirmation: false,
-        suggestedActions: ['arrange_care', 'understand_information', 'speak_to_nurse']
-      };
+      /* A staff preview is outside its scope, and the reply says the scope rather than offering the
+         patient's doors: the stock levels a partner asks about are real work in a real workspace, and
+         "arrange care or speak to a nurse" would be a patient's answer pasted onto somebody else's. */
+      return isStaff(audience)
+        ? {
+            classification: 'unknown',
+            route: 'unknown',
+            style: 'neutral',
+            reply: 'I can help with what I am, what happens to what is said, and emergencies. This is a simulated session, and what your workspace holds is not mine to read.',
+            requiresConfirmation: false,
+            suggestedActions: ['identity', 'voice', 'emergency']
+          }
+        : {
+            classification: 'unknown',
+            route: 'unknown',
+            style: 'neutral',
+            reply: 'I can help with care navigation, approved general information, and next steps. Please tell me whether you need help arranging care, understanding information, or speaking to a nurse.',
+            requiresConfirmation: false,
+            suggestedActions: ['arrange_care', 'understand_information', 'speak_to_nurse']
+          };
   }
 }
 
-export function evaluateMessage(input: string): EngineResponse {
-  return buildResponse(input);
+export function evaluateMessage(input: string, audience: Audience = 'patient'): EngineResponse {
+  return buildResponse(input, audience);
 }

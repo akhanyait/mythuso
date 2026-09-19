@@ -14036,21 +14036,21 @@ const GILBERT_MATCHERS = [
     "apps/web/src/lib/assistant.ts",
     /export function send\(/,
     /emergencyGroupsIn\(words\)/,
-    /questionFor\(words\)/,
+    /questionFor\(words, audience\)/,
   ],
   [
     "iOS",
     "apps/ios/MyThuso/Models/Assistant.swift",
     /static func send\(/,
     /emergencyGroups\(in: words\)/,
-    /question\(for: words\)/,
+    /question\(for: words, audience: audience\)/,
   ],
   [
     "Android",
     "apps/android/app/src/main/java/za/co/mythuso/model/Assistant.kt",
     /fun send\(/,
     /emergencyGroups\(words\)/,
-    /question\(words\)/,
+    /question\(words, audience\)/,
   ],
 ];
 for (const [
@@ -14074,6 +14074,182 @@ for (const [
       `${file} looks for a question before it looks for an emergency word. On ${platform} a message that asks something ordinary and mentions a chest pain would be answered as the ordinary question.`,
     );
 }
+
+/* ---- The audience dimension: one vocabulary, held by the build in three places ------------------ */
+/* The founder's audience decision of 19 September 2026. The audiences a question is offered to are a
+   matcher list like the triggers and the emergency words: authored in the contract, carried by all
+   three platforms, and wrong the moment one platform ignores them. This block holds the vocabulary to
+   the RoleIds the demo door switches on and the engine's Audience type, and enforces the rule the
+   contract states for itself — the emergency question reaches every audience always, the handover
+   question the patient only — so a scope that drifts fails the build rather than a person quietly. */
+{
+  if (!gilbertContract.audiences?.list?.length)
+    throw new Error(
+      "packages/catalog/assistant.json has no audiences list. Since the founder's audience decision of 19 September 2026 there is no GilbertOne without one: what differs between audiences is written there, as data.",
+    );
+  const audienceIds = gilbertContract.audiences.list.map((a) => a.id);
+  if (new Set(audienceIds).size !== audienceIds.length)
+    throw new Error(
+      `packages/catalog/assistant.json's audiences list repeats an id: [${audienceIds.join(
+        ", ",
+      )}]. Each audience is listed once.`,
+    );
+  const audienceListIn = (file, pattern, what) => {
+    const found = read(file).match(pattern)?.[1];
+    if (!found)
+      throw new Error(
+        `${file} no longer carries ${what} where the audience checks read it. The audience vocabulary is held in three places — the contract's audiences list, the engine's Audience, the door's RoleIds — and this check reads all three.`,
+      );
+    /* Both quote styles and both layouts of a union read here. A formatter that rewraps the list or
+       re-quotes it changes nothing the build holds true, and this check is about the ids only. */
+    return [...found.matchAll(/['"]([^'"]+)['"]/g)].map((m) => m[1]);
+  };
+  for (const [file, list, what] of [
+    [
+      "packages/gilbertone/src/engine.ts",
+      audienceListIn(
+        "packages/gilbertone/src/engine.ts",
+        /export const audiences[^=]*=\s*\[([\s\S]*?)\]/,
+        "its audiences array",
+      ),
+      "packages/gilbertone/src/engine.ts's audiences array",
+    ],
+    [
+      "apps/web/src/lib/roles.ts",
+      audienceListIn(
+        "apps/web/src/lib/roles.ts",
+        /export type RoleId\s*=\s*([^;]+);/,
+        "the RoleId union",
+      ),
+      "apps/web/src/lib/roles.ts's RoleId union",
+    ],
+  ]) {
+    const missing = audienceIds.filter((a) => !list.includes(a));
+    const extra = list.filter((a) => !audienceIds.includes(a));
+    if (missing.length || extra.length)
+      throw new Error(
+        `${what} is [${list.join(
+          ", ",
+        )}] and the contract's audiences list is [${audienceIds.join(", ")}].${
+          missing.length ? ` Nothing carries ${missing.join(", ")}.` : ""
+        }${
+          extra.length
+            ? ` ${extra.join(", ")} is not an audience the contract carries.`
+            : ""
+        } The audience is what the demo login chose and what the engine routes by; a role that exists in one list and not the others is an audience one surface serves and the matcher refuses.`,
+      );
+  }
+  for (const question of gilbertContract.questions) {
+    const audiences = question.audiences ?? [];
+    if (
+      !audiences.length ||
+      audiences.some((a) => !audienceIds.includes(a)) ||
+      new Set(audiences).size !== audiences.length
+    )
+      throw new Error(
+        `GilbertOne's question "${question.id}" is offered to [${audiences.join(
+          ", ",
+        )}], which is empty, repeats itself, or names an audience the audiences list does not carry. A question no audience is offered is a question nobody can ask, and an audience nobody listed is a typo.`,
+      );
+  }
+  const emergencyQuestion = gilbertContract.questions.find(
+    (q) => q.answer === "emergency",
+  );
+  const handoverQuestion = gilbertContract.questions.find(
+    (q) => q.answer === "handover",
+  );
+  if (audienceIds.some((a) => !emergencyQuestion.audiences.includes(a)))
+    throw new Error(
+      `The emergency question is offered to [${emergencyQuestion.audiences.join(
+        ", ",
+      )}]. The contract's own rule is the founder's: the emergency question reaches every audience, always, because an emergency word does not stop being one because a nurse or an operator is saying it.`,
+    );
+  if (
+    handoverQuestion.audiences.length !== 1 ||
+    handoverQuestion.audiences[0] !== "patient"
+  )
+    throw new Error(
+      `The handover question is offered to [${handoverQuestion.audiences.join(
+        ", ",
+      )}]. The nurse queue it offers is the patient's, and no staff conversation has one behind it, so it reaches the patient only.`,
+    );
+  for (const entry of gilbertContract.audiences.list) {
+    if (!["situation", "identity"].includes(entry.opensWith))
+      throw new Error(
+        `The ${entry.id} audience opens with "${entry.opensWith}", which no panel knows how to say.`,
+      );
+    if (typeof entry.simulated !== "string" && entry.simulated !== null)
+      throw new Error(
+        `The ${entry.id} audience's simulated label is neither a sentence nor null.`,
+      );
+    if (
+      typeof entry.voice !== "boolean" ||
+      typeof entry.actions?.sos !== "boolean" ||
+      typeof entry.actions?.handover !== "boolean"
+    )
+      throw new Error(
+        `The ${entry.id} audience's entry does not say, as booleans, whether the voice control and the patient's two action buttons exist.`,
+      );
+  }
+  const patient = gilbertContract.audiences.list.find(
+    (a) => a.id === "patient",
+  );
+  if (
+    patient.simulated !== null ||
+    patient.voice !== true ||
+    patient.actions.sos !== true ||
+    patient.actions.handover !== true
+  )
+    throw new Error(
+      "The patient's audience entry no longer keeps everything the patient entry already had: no simulated label, the voice control, and both action buttons. The audience decision wrote the patient's defaults down as data; taking one away is a founder's decision, not a refactor.",
+    );
+  for (const id of audienceIds) {
+    if (id === "patient") continue;
+    for (const kind of ["identity", "voice"]) {
+      const universal = gilbertContract.questions.find(
+        (q) => q.answer === kind,
+      );
+      if (!universal.audiences.includes(id))
+        throw new Error(
+          `The ${kind} question is not offered to the ${id} audience. What a staff audience may ask is the three universal questions — what GilbertOne is, what happens to what is said, and the emergency question — and an audience offered nothing but the emergency is a preview with nothing to preview.`,
+        );
+    }
+  }
+  /* The per-audience words are the web's: the phones' assistant is the patient's and reads the refusal's
+     own statement, so a "patient" key in a variant map is a second copy of the patient's words that only
+     the web would ever show. Refused here, because the divergence would be silent. */
+  for (const refusal of gilbertContract.refusals) {
+    for (const key of Object.keys(refusal.audiences ?? {})) {
+      if (key === "patient")
+        throw new Error(
+          `Refusal "${refusal.id}" carries audience words for the patient. The patient's refusal is the refusal itself, and iOS and Android read the refusal itself.`,
+        );
+      if (!audienceIds.includes(key))
+        throw new Error(
+          `Refusal "${refusal.id}" carries audience words for "${key}", which the audiences list does not carry.`,
+        );
+    }
+  }
+  for (const key of Object.keys(
+    gilbertContract.answers.unmatched.audiences ?? {},
+  )) {
+    if (key === "patient")
+      throw new Error(
+        "The unmatched answer carries audience words for the patient. The patient's unmatched answer is the section's own, and iOS and Android read the section's own.",
+      );
+    if (!audienceIds.includes(key))
+      throw new Error(
+        `The unmatched answer carries words for "${key}", which the audiences list does not carry.`,
+      );
+  }
+  for (const fixture of gilbertContract.fixtures.messages) {
+    if (fixture.audience != null && !audienceIds.includes(fixture.audience))
+      throw new Error(
+        `The shared fixture "${fixture.says}" is spoken to "${fixture.audience}", which the audiences list does not carry. All three platforms run the shared fixtures, and an audience one of them has never heard of cannot be scoped.`,
+      );
+  }
+}
+
 /* No platform types a trigger or an emergency word. They are generated or read, and a typed one is a
    phrase one platform matches and the others do not. */
 /* An id is not a phrase. "emergency" is an answer kind and a state as well as an emergency word, and a
@@ -14699,7 +14875,7 @@ if (voiceButtonMounts.join() !== "apps/web/src/features/Assistant.tsx")
   );
 const launcherLabel = (read(
   "apps/web/src/components/AssistantLauncher.tsx",
-).match(/className="as-launcher" aria-label="([^"]+)"/) ?? [])[1];
+).match(/className="as-launcher"\s+aria-label="([^"]+)"/) ?? [])[1];
 if (launcherLabel !== gilbertContract.identity.callToAction)
   throw new Error(
     `The floating orb on the web is called "${launcherLabel}", and the contract's call to action is "${gilbertContract.identity.callToAction}". It is typed there only to keep the contract out of the patient's first load, and it is held to the contract here instead.`,
