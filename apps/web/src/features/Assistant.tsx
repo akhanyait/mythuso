@@ -42,6 +42,7 @@ import {
   refusals,
   say,
   silenceIsNotSafety,
+  spokenOf,
   stateSpec,
   unmatchedDetail,
   voice,
@@ -63,6 +64,7 @@ import {
 } from "../../../../packages/engines/src/access/domain/handover.ts";
 import { useDecor, useReducedMotion } from "../lib/motion";
 import type { Visit } from "../lib/scheduling";
+import { useVoiceAdapter } from "../lib/voice";
 import "./assistant.css";
 
 /* GilbertOne's panel on the web.
@@ -145,6 +147,14 @@ export default function Assistant({
      too — and a cue that holds keeps its face through the pause, which is the reducer's settle. */
   const decor = useDecor();
   const rig = useGilbertRig({ reduced, paused: !decor.playing });
+  /* The panel's one voice adapter, since the speech decision of 19 September 2026. The
+     composer's microphone and the reply's reading are the two halves of one conversation, and
+     one adapter means one microphone rule, one everSpoke and one close-on-unmount rather than
+     two controls each holding half of it. The reply half is behind voice.webSpeech and the flag
+     is off — lib/voice.ts reads the flag before anything is reached for, so the wiring below is
+     built and inert until the founder switches it on — and the microphone half is the
+     18 September decision, unchanged. */
+  const voiceAdapter = useVoiceAdapter("assistant");
   const reply = turns[turns.length - 1].reply;
   const asked = turns.length > 1;
   const pulse = asked ? pulseOf(reply) : "idle";
@@ -195,6 +205,14 @@ export default function Assistant({
     );
     greeted.current = true;
   }, [open, play]);
+  /* Closed is closed for the voice too. Every path that shuts this panel — the X, the backdrop,
+     Escape — funnels through `open` going false, so the reply's reading stops with the panel
+     rather than outliving it behind a dialog nobody can see. With the flag off the adapter has
+     never spoken and this cancels nothing at all, which is the point of writing it here rather
+     than at the close button: the one that gets missed is never the one somebody wired. */
+  useEffect(() => {
+    if (!open) voiceAdapter.cancel();
+  }, [open, voiceAdapter.cancel]);
   /* The seam itself: the panel speaks pulse, the rig speaks cues, and this is the whole translation.
      Since the affect section of 19 September 2026 the cue is the contract's: each answer kind's face
      is written in assistant.json — deterministic from the kind, no model, the founder's decision —
@@ -206,7 +224,24 @@ export default function Assistant({
   useEffect(() => {
     if (gatheredAt === null || !asked) return;
     play(cueOf(reply, turns[turns.length - 1].unread));
-  }, [gatheredAt, asked, reply, turns, play]);
+    /* And the reply's own words to the adapter, which reads the flag first: while
+       voice.webSpeech is false this refuses before anything is reached for, and when the founder
+       switches it on the words are already written on the screen beside the voice — the caption
+       is the reply itself. Only the audience the founder gave a microphone is read aloud, the
+       same entry that scopes the composer's button: the voice decisions have been about the
+       patient's assistant, and a staff preview's words are on its screen already. */
+    if (audience.voice)
+      voiceAdapter.speak(spokenOf(turns[turns.length - 1], audienceId));
+  }, [
+    gatheredAt,
+    asked,
+    reply,
+    turns,
+    play,
+    audience.voice,
+    audienceId,
+    voiceAdapter.speak,
+  ]);
   useEffect(() => {
     if (!asked) return;
     latest.current?.scrollIntoView({
@@ -259,7 +294,10 @@ export default function Assistant({
     setRaised(false);
     setSent({});
     conversationRef.current = crypto.randomUUID();
+    /* The face rests and the voice stops: Start again is the patient saying the conversation is
+       over, and neither half of it may keep going after she has said so. */
     rig.rest();
+    voiceAdapter.cancel();
   };
   const nurse = () => moved(handOver(turns, everRaised));
   const handTo = (turn: Turn) => {
@@ -480,6 +518,7 @@ export default function Assistant({
                 assistant — and an audience's entry says whether that is this one. */}
             {audience.voice && (
               <AssistantVoiceButton
+                voice={voiceAdapter}
                 onTranscript={onVoiceTranscript}
                 typingNote={conversation.webKeyboardNote}
               />

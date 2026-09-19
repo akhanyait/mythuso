@@ -13492,6 +13492,70 @@ for (const key of ["web", "webRecognition"]) {
       `voice.${key} is ${JSON.stringify(gilbertVoice[key])} while voice.webDecision records ${JSON.stringify(webDecision[key])}. The field and the decision that justifies it may not disagree — change them together, in one sitting, or neither.`,
     );
 }
+/* The reply's half of the same conversation, decided the day after the microphone's widening.
+   Speech out loud on the live assistant is built — lib/voice.ts reads this flag before it reaches
+   for anything, and the panel hands every reply's own words to the adapter as the reply lands —
+   and the flag is off, so the decision to let GilbertOne speak to a patient is taken after
+   hearing the character demonstrator rather than in hope. The check is the microphone's shape
+   rather than a boolean's: a dated record that has to agree with itself, held to the founder's
+   day, with `enabled` pinned to false because switching it on is the founder's decision recorded
+   in the contract, not an edit. The why is held to the two rules that make switching it on safe
+   rather than merely possible — the caption rule, which keeps the written words on the screen in
+   full and unswitchable while the voice speaks, and §07's V03 refusal, which selects no voice and
+   promises none, because the moment a speech flag turns on is the moment somebody reaches for a
+   voice list. */
+const webSpeech = gilbertVoice.webSpeech;
+if (!webSpeech)
+  throw new Error(
+    "voice.webSpeech is missing from packages/catalog/assistant.json. Whether the live assistant may speak is a decision with a day on it — 19 September 2026, off — and a flag that is not in the contract is a mood the code is having.",
+  );
+for (const [key, what] of [
+  ["enabled", "whether it is on"],
+  ["decidedBy", "who decided it"],
+  ["on", "the day it was decided"],
+  ["why", "the reason"],
+]) {
+  if (webSpeech[key] === undefined)
+    throw new Error(
+      `voice.webSpeech has no "${key}", which is ${what}. A speech decision that loses its provenance is a widening waiting to be mistaken for a default.`,
+    );
+}
+if (webSpeech.enabled !== false)
+  throw new Error(
+    `voice.webSpeech.enabled is ${JSON.stringify(webSpeech.enabled)}. GilbertOne speaking to a patient is the founder's decision to switch on — recorded in the contract with the rules that hold from the first utterance, not an edit to this field.`,
+  );
+if (!/founder/i.test(String(webSpeech.decidedBy)))
+  throw new Error(
+    `voice.webSpeech was decided by "${webSpeech.decidedBy}". A voice reading health answers aloud to a patient is the founder's call, the way the microphone's opening and the affect mapping were.`,
+  );
+if (!/^\d{4}-\d{2}-\d{2}$/.test(String(webSpeech.on)))
+  throw new Error(
+    `voice.webSpeech.on is "${webSpeech.on}", which is not a date. The demonstrator's speech decision has a day on it, and this one — which waits on hearing it — deserves the same precision.`,
+  );
+if (
+  !/caption/i.test(String(webSpeech.why)) ||
+  !/(mandatory|not switchable|written on the screen)/i.test(
+    String(webSpeech.why),
+  )
+)
+  throw new Error(
+    "voice.webSpeech.why does not state the caption rule. The day the flag is switched on, the reply's own words must already be written on the screen in full and for as long as the voice speaks — mandatory, and with no setting anywhere that turns them off — and a decision that can be cited without that rule is how the rule is lost on the day it matters.",
+  );
+if (!/no voice is selected/i.test(String(webSpeech.why)))
+  throw new Error(
+    "voice.webSpeech.why does not carry §07's V03 refusal. No voice is selected and no South African voice is promised, because the contract says not to guarantee one is installed — and the moment a speech flag turns on is the moment somebody reaches for a voice list.",
+  );
+/* And the one file allowed to name a synthesiser reads the flag for the assistant surface. The
+   SPEAKS map is the whole wire between the contract's decision and the browser's voice; a map that
+   stopped reading voice.webSpeech would be a flag that governs nothing. */
+if (
+  !/assistant:\s*voicePolicy\.webSpeech\.enabled/.test(
+    read("apps/web/src/lib/voice.ts"),
+  )
+)
+  throw new Error(
+    "apps/web/src/lib/voice.ts no longer reads voice.webSpeech.enabled for the assistant surface of its SPEAKS map. The flag is the founder's decision of 19 September 2026 and this map is the whole wire between it and the browser's voice; a surface that stops reading it has taken the decision into code, where no date and no reason travel with it.",
+  );
 if (
   gilbertVoice.languages.length !== 1 ||
   gilbertVoice.languages[0].id !== "en" ||
@@ -13780,6 +13844,25 @@ for (const id of GILBERT_REFUSALS) {
       throw new Error(
         `The affect section refuses the cue "${entry.cue}" with no reason, or names a cue the manifest does not carry. A cue left out is a decision; one left out silently is an omission wearing the same shape.`,
       );
+  /* A10 is the mouth against speech, and while voice.webSpeech is false the mouth never moves:
+     the adapter refuses before anything is reached for, so nothing drives the cue and the panel
+     wires no caption to it. The contract has to keep saying so — the entry stays in notWired with
+     the flag off — because a contract that wired the mouth while the flag kept it dark would be
+     describing an assistant that does not exist. This runs before the accounting below so that a
+     mouth taken out of notWired is reported as the speech decision it is, rather than as a cue
+     nobody accounted for; the day the founder switches the flag on is the day this entry comes
+     out, in the same sitting as the wiring that replaces it. */
+  if (webSpeech.enabled === false) {
+    const a10 = (affect.notWired ?? []).find((n) => n.cue === "A10");
+    if (!a10)
+      throw new Error(
+        "affect.notWired no longer carries A10 while voice.webSpeech is still false. The mouth-against-speech cue is behind the flag and the flag is off, so the contract must keep saying the mouth never moves today. Switching the flag on, wiring the mouth and retiring this entry belong to one sitting recorded in the contract.",
+      );
+    if (!/webSpeech/.test(String(a10.why)))
+      throw new Error(
+        "affect.notWired's A10 entry no longer names voice.webSpeech. The reason the mouth never moves is the flag, and a reason that will not name it can be read as a decision against mouths rather than a decision awaiting a day.",
+      );
+  }
   const wiredCues = new Set(Object.values(faces).map((face) => face.cue));
   const conversationalCues = new Set(
     ["openFirst", "openAgain", "idle", "blink"].map(
@@ -13888,6 +13971,10 @@ for (const id of GILBERT_REFUSALS) {
   if (!/cueOf\(\s*reply\s*,/.test(panelCode))
     throw new Error(
       "apps/web/src/features/Assistant.tsx no longer plays the reply's cue through cueOf(reply, …unread). The cue is the contract's, derived from the answer kind, and a turn with unread words must wear the refusal's face whatever it matched — drop the unread flag and a half-read emergency answer wears the smile of its answered half.",
+    );
+  if (!/voiceAdapter\.speak\(\s*spokenOf\(/.test(panelCode))
+    throw new Error(
+      "apps/web/src/features/Assistant.tsx no longer hands the reply's own words to the voice adapter as the reply lands. Speech on the live assistant is built behind voice.webSpeech — the words are handed over and the adapter's flag decides, read before anything is reached for — so a panel that stops handing them over has silently taken the flag's question into code, where no date and no reason travel with it.",
     );
   if (
     /["'`]A\d{2}R?["'`]/.test(panelCode) ||

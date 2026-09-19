@@ -53,6 +53,12 @@ type AssistantLib = typeof import("../apps/web/src/lib/assistant");
    and it is an emergency when she sends it in the same words that would have made it one typed. A
    browser with no speech recognition is told so and given no control that cannot hear.
 
+   The reply's own words, since the founder's speech decision of 19 September 2026. Speech on the
+   live assistant is built behind voice.webSpeech and the flag is off, so no reply is spoken: the
+   words are written on the screen in full, and nothing on this screen reaches for the browser's
+   voice — not when the emergency numbers land, and not when Start again or a closing panel would
+   have to stop one.
+
    Motion stops rather than slows. */
 
 const json = (path: string) =>
@@ -1260,6 +1266,51 @@ test("a browser with no speech recognition is told so, and is handed no control 
     await page.evaluate(
       () => (window as unknown as { __heard: string[] }).__heard,
     ),
+  ).toEqual([]);
+});
+
+/* The founder's speech decision of 19 September 2026: the reply's own words handed to the adapter
+   as the reply lands, and the adapter's flag — read before anything is reached for — saying no.
+   The journey walks the answers that would tempt a voice most and the two resets that would have
+   to stop one, and holds both halves of the decision: the words are written on the screen, and
+   nothing on this screen reaches for the browser's voice. */
+test("while the speech flag is off, the reply's words are written on the screen and nothing reaches for a voice", async ({
+  page,
+}) => {
+  await watchForRecording(page);
+  await page.goto("/app/?open=assistant");
+  /* The premise is the contract's own flag, read the way the panel reads it rather than retyped
+     here: the day the founder switches it on, this journey is the first thing that must be
+     rewritten — and the caption rule it asserts, the words on the screen, is the half that
+     survives the switch. */
+  expect(gilbert.voice.webSpeech.enabled).toBe(false);
+  // the answer that is about voice: its own refusal is written words, read and not spoken
+  await ask(page, "can you hear me");
+  await expect(log(page).locator(".as-reply").last()).toContainText(/tap/i);
+  /* The answer that would tempt a voice most: the emergency numbers are the reason a spoken
+     reading exists at all — a person who cannot read must still reach 10177 — and they land as
+     written words, number first, the way they would be read aloud. */
+  await ask(page, "I have chest pain");
+  const emergency = log(page).locator(".as-reply").last();
+  await expect(emergency).toHaveAttribute("data-outcome", "emergency");
+  await expect(emergency.locator(".as-numbers li").first()).toContainText(
+    "10177",
+  );
+  /* Start again is the one reset that would have to stop a voice mid-sentence, and closing the
+     panel is the other; both are pressed, and both must reach for nothing to stop. */
+  await panel(page)
+    .getByRole("button", { name: gilbert.conversation.startAgainLabel })
+    .click();
+  await expect(log(page).locator(".as-said")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(panel(page)).toBeHidden();
+  /* And nothing on this screen ever reached for a way to speak — no utterance constructed, no
+     synthesis asked, no way of keeping a sample — across answers landing, resets and closings. */
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { __heard: string[] }).__heard,
+    ),
+    voice.neverSoften,
   ).toEqual([]);
 });
 

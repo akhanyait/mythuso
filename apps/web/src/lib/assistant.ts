@@ -655,3 +655,89 @@ export const emergencyAnswer = {
   lead: sosEmergency.lead,
   notAnAmbulance: sosEmergency.notAnAmbulance,
 };
+
+/* ---- What a reply says out loud ------------------------------------------------------------------
+ * The speech seam's read half, the way `cueOf` is the affect seam's. The founder's decision of
+ * 19 September 2026 (`voice.webSpeech`, off) is that the live assistant does not yet speak, and
+ * the panel hands every reply's own words to the adapter anyway — so the day the flag is
+ * switched on there is nothing left to decide, no sentence to find and no number to fetch.
+ *
+ * The words are the reply's own, exactly as ReplyBody writes them on the panel: every paragraph
+ * and list the reply carries, in the order the screen shows them, and nothing it does not carry
+ * — no invented summary and no shortened form, because the caption rule the decision writes is
+ * that the voice is another reading of the words and never a replacement for them, and a reading
+ * that skipped the ambulance numbers or the refusals would be a different answer. Two things
+ * beside those words are deliberately not said: a button label is a thing to press rather than a
+ * sentence, and the handover's send state is true the moment the reply lands and false the moment
+ * she presses Send, so speech that said "not sent" would be stale before it finished. The unread
+ * block is part of the turn's answer on the screen, so it is read in its place — and it is a
+ * refusal, which is the last thing a spoken reading may be softened by leaving out. */
+export function spokenOf(turn: Turn, audience: AudienceId): string {
+  const words: string[] = [];
+  const add = (...items: string[]) => {
+    for (const item of items) if (item) words.push(item);
+  };
+  /* The numbers are read as they are written, number first: a person hearing "10177, Ambulance"
+     hears the same order she would read, and the numbers are why this function exists at all. */
+  const numbers = (ids: string[]) => {
+    for (const n of lines(ids)) words.push(`${n.number}, ${n.name}.`);
+  };
+  switch (turn.reply.kind) {
+    case "situation":
+      add(turn.reply.situation.sentence);
+      break;
+    case "identity":
+      add(identity.whatItIs, identity.whatItIsNot);
+      break;
+    case "voice":
+      add(voice.sentences.web, refusal("no-audio-kept").statement);
+      break;
+    case "emergency":
+      if (turn.reply.groups.length)
+        add(
+          emergencyAnswer.noticed,
+          ...turn.reply.groups.map((g) => `${g.name}.`),
+        );
+      add(emergencyAnswer.headline, emergencyAnswer.lead);
+      numbers(emergencyAnswer.numbers);
+      add(emergencyAnswer.notAnAmbulance);
+      break;
+    case "unmatched":
+      add(
+        answers.unmatched.sentence,
+        unmatchedDetail(audience),
+        answers.unmatched.ifUrgent,
+      );
+      numbers(answers.unmatched.numbers);
+      break;
+    case "handover": {
+      const h = answers.handover;
+      const out = turn.reply.desk.outOfHours;
+      add(h.title);
+      if (out) {
+        add(out.nobody, out.numbers);
+        if (out.callback) add(out.callback);
+      }
+      add(h.lead);
+      for (const row of turn.reply.rows)
+        words.push(`${row.label}: ${row.value}.`);
+      add(
+        `${handoverDeskWords.answeredByLabel} ${turn.reply.desk.answeredBy}.`,
+      );
+      if (turn.reply.summary.urgencyCode === "emergency") add(h.neverLowered);
+      add(h.notCarriedHeading, ...h.notCarried.map((item) => item.sentence));
+      break;
+    }
+  }
+  if (turn.unread) {
+    add(
+      answers.unread.sentence,
+      answers.unread.detail,
+      answers.unread.ifUrgent,
+    );
+    numbers(answers.unread.numbers);
+  }
+  /* The tokens are filled once, at the end, with the same values the written words are filled
+     with — so a number somebody hears cannot drift from the number she reads beside it. */
+  return say(words.join(" "));
+}
