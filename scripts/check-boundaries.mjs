@@ -15228,9 +15228,16 @@ for (const phrase of [descriptor]) {
   }
 }
 
-/* The keyboard's microphone is the keyboard's. What the app controls is off, and the rest is said. */
+/* The keyboard's microphone is the keyboard's. What the app controls is off, and the rest is said.
+
+   The scan holds the panel's fields to the three attributes — what a keyboard's microphone,
+   autocorrect or autocomplete may carry away from something typed. Checkboxes, drawn from the
+   consent gate of 20 September 2026, are not fields a keyboard dictates into, and requiring the
+   attributes of a box would be noise standing where a real text field should stand out; a typed
+   input, including one whose type is left to the platform, is still held to all three. */
 const webPanel = read("apps/web/src/features/Assistant.tsx");
 for (const input of webPanel.match(/<input\b[\s\S]*?\/>/g) ?? []) {
+  if (/\btype="(?:checkbox|radio)"/.test(input)) continue;
   for (const [attribute, why] of [
     [
       /spellCheck=\{false\}/,

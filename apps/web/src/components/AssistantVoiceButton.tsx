@@ -15,6 +15,10 @@ type Props = {
    *  the patient has tapped; before that the slot carries the disclosure, which says the same thing
    *  about typing and more about the microphone. */
   typingNote: string;
+  /** The mockup's second line, from the consent section: where speech goes before it is sent. It
+   *  rides inside the button under the written action — the words are about the control they sit
+   *  on — and never joins the accessible name, which stays the action's own label. */
+  speechNote: string;
 };
 
 /* GilbertOne's push-to-talk on the live assistant.
@@ -42,6 +46,7 @@ export function AssistantVoiceButton({
   voice,
   onTranscript,
   typingNote,
+  speechNote,
 }: Props) {
   const [tapped, setTapped] = useState(false);
   /* Whether a capture has just finished. The recogniser reports the same way whether it was asked to
@@ -115,9 +120,16 @@ export function AssistantVoiceButton({
         ) : (
           <Mic size={20} aria-hidden="true" />
         )}
-        <span>{capturing ? label : ui.talkLabel}</span>
+        {/* The written action. The mockup's sentence that was its second line stands below the bar
+            as the first line of the control's own footnote zone — inside this button it wrapped to
+            four cramped lines at 320px, which the composer could not pay for, and here it reads on
+            one line at every width. */}
+        <span className="as-voice-words">{capturing ? label : ui.talkLabel}</span>
       </button>
       <div className="as-voice-lines">
+        {/* The mockup's second line, where speech goes before it is sent. Still drawn rather than
+            spoken: the button's name is the action's label alone. */}
+        <p className="as-voice-note">{speechNote}</p>
         {/* Before the first tap the disclosure below already says the microphone stays shut until she
             taps, and a phone has no line to spare saying it twice. */}
         {tapped ? (

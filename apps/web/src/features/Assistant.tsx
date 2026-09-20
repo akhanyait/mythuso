@@ -12,8 +12,12 @@ import {
 import {
   Ambulance,
   ArrowRight,
+  Ban,
+  Cog,
+  Lock,
   RotateCcw,
   Send,
+  TriangleAlert,
   UserRound,
   X,
 } from "lucide-react";
@@ -26,6 +30,7 @@ import {
   answers,
   audienceOf,
   choose,
+  consent,
   conversation,
   cueOf,
   emergencyAnswer,
@@ -144,6 +149,17 @@ export default function Assistant({
   const [raised, setRaised] = useState(false);
   const [queue, setQueue] = useState<Queue>(emptyQueue);
   const [sent, setSent] = useState<Record<number, Sent>>({});
+  /* The consent gate, since 20 September 2026. The patient meets it before her first interaction;
+     a staff preview opens straight onto its own conversation, because its scope is the contract's
+     audiences section rather than a welcome. The answer lives in this component's own state and
+     nowhere else — apps/web/src may not reach for browser storage, the build refuses those APIs
+     here — and the panel stays mounted once opened, so consenting survives closing and re-opening
+     within a page's life and resets on reload. That is the honest equivalent of the per-session
+     browser storage the mockup asked for, and the deviation is reported rather than hidden. The
+     two boxes are separate state so that Accept's disabled state is a truth about what was ticked. */
+  const [consented, setConsented] = useState(audienceId !== "patient");
+  const [doctorBox, setDoctorBox] = useState(false);
+  const [emergencyBox, setEmergencyBox] = useState(false);
   const conversationRef = useRef(crypto.randomUUID());
   /* Guards the panel's one asynchronous refinement: a counter, bumped on every submit, so a
      service answer that arrives after the conversation has moved on — a second message, a chosen
@@ -277,9 +293,14 @@ export default function Assistant({
 
   const keepFocus = (event: KeyboardEvent<HTMLDialogElement>) => {
     if (event.key !== "Tab" || !dialog.current) return;
+    /* The stops are what a Tab can actually reach: a disabled control is not a stop, and a list
+       that counts one puts its last entry somewhere focus can never stand — the wrap below then
+       never fires and Tab walks out of the modal into the browser's own chrome. The consent gate's
+       Accept is disabled until both boxes are ticked, and on 20 September 2026 that was exactly
+       the escape: focus left the panel on the fifth Tab. */
     const stops = [
       ...dialog.current.querySelectorAll<HTMLElement>(
-        'button, [href], input, [tabindex]:not([tabindex="-1"])',
+        'button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
       ),
     ];
     const first = stops[0],
@@ -394,10 +415,33 @@ export default function Assistant({
       }}
     >
       <div className="as-frame">
-        <header className="as-head" data-asked={asked || undefined}>
+        <header
+          className="as-head"
+          data-asked={asked || undefined}
+          data-gate={!consented || undefined}
+        >
           <div className="as-bar">
             <div className="as-titles">
-              <h2 id="as-title">{identity.name}</h2>
+              {/* The lockup over the gate, where the promise is being made, and nowhere in the
+                  conversation: the mockup's conversation header is the name card, the head above a
+                  conversation is fixed chrome the conversation pays for, and 20px of brand the
+                  mockup itself does not draw there is 20px of reading taken from the answers. The
+                  full-colour lockup comes back at the end of the reading, in the footer. */}
+              {!consented && (
+                <img
+                  className="as-logo"
+                  src="/brand/mythuso-logo-reversed.svg"
+                  alt="MyThuso"
+                />
+              )}
+              {/* The dialog's own name. Before consent it is the sr-only heading — the gate's visible
+                  heading is "Before you continue", and the panel still announces itself as GilbertOne
+                  wherever it is looked up by name — and once consent is given the name returns to the
+                  top of the panel, in the contract's own word, with the mockup's subtitle under it. */}
+              <h2 id="as-title" className={consented ? undefined : "as-sr"}>
+                {identity.name}
+              </h2>
+              {consented && <p className="as-subtitle">{consent.subtitle}</p>}
               <p className="as-descriptor">{identity.descriptorLine}</p>
               {/* The simulated label is the contract's sentence for this audience, not a string
                   typed onto the layout: what it says and whether it is here at all are decisions
@@ -444,149 +488,300 @@ export default function Assistant({
               />
             </RigBoundary>
           </div>
-          <div className="as-caption" data-pulse={pulse}>
-            <p className="as-state" data-pulse={pulse}>
-              {stateSpec(pulse).cue}
-            </p>
-            {asked && stage.name && <p className="as-name">{stage.name}</p>}
-            {stage.figure && (
-              <p className="as-figure">
-                {stage.figure}
-                {stage.figureLabel && <span>{stage.figureLabel}</span>}
+          {/* The state caption belongs to a conversation. Over the gate it is left out: there is
+              nothing yet for "Ready" to be about, and the gate's own words are the consent section's. */}
+          {consented && (
+            <div className="as-caption" data-pulse={pulse}>
+              <p className="as-state" data-pulse={pulse}>
+                {stateSpec(pulse).cue}
               </p>
-            )}
-          </div>
+              {asked && stage.name && <p className="as-name">{stage.name}</p>}
+              {stage.figure && (
+                <p className="as-figure">
+                  {stage.figure}
+                  {stage.figureLabel && <span>{stage.figureLabel}</span>}
+                </p>
+              )}
+            </div>
+          )}
         </header>
 
-        <div className="as-scroll">
-          <div className="as-log" role="log" aria-label={conversation.logLabel}>
-            <ol>
-              {turns.map((turn, index) => (
-                <li
-                  key={turn.id}
-                  className="as-turn"
-                  ref={index === turns.length - 1 ? latest : undefined}
-                >
-                  {turn.asked && (
-                    <p className="as-said">
-                      <span className="as-sr">{conversation.youAsked}: </span>
-                      {turn.asked}
-                    </p>
-                  )}
-                  <div
-                    className={`as-reply as-reply-${turn.reply.kind}`}
-                    data-outcome={outcomeOf(turn)}
-                    data-question={turn.matched?.id}
-                    data-groups={
-                      turn.groups.map((g) => g.id).join(" ") || undefined
-                    }
+        {consented ? (
+          <div className="as-scroll">
+            <div className="as-log" role="log" aria-label={conversation.logLabel}>
+              <ol>
+                {turns.map((turn, index) => (
+                  <li
+                    key={turn.id}
+                    className="as-turn"
+                    ref={index === turns.length - 1 ? latest : undefined}
                   >
-                    <span className="as-who">{identity.name}</span>
-                    {!asked && audienceId === "patient" ? (
-                      <p>{ui.welcome}</p>
-                    ) : (
-                      <ReplyBody
-                        reply={turn.reply}
-                        audience={audienceId}
-                        sos={sos}
-                        handOver={nurse}
-                        sent={sent[turn.id]}
-                        onSend={() => handTo(turn)}
-                      />
+                    {turn.asked && (
+                      <p className="as-said">
+                        <span className="as-sr">{conversation.youAsked}: </span>
+                        {turn.asked}
+                      </p>
                     )}
-                    {turn.unread && (
-                      <Unread
-                        sos={sos}
-                        handOver={nurse}
-                        audience={audienceId}
-                      />
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
+                    <div
+                      className={`as-reply as-reply-${turn.reply.kind}`}
+                      data-outcome={outcomeOf(turn)}
+                      data-question={turn.matched?.id}
+                      data-groups={
+                        turn.groups.map((g) => g.id).join(" ") || undefined
+                      }
+                    >
+                      <span className="as-who">{identity.name}</span>
+                      {!asked && audienceId === "patient" ? (
+                        <p>{ui.welcome}</p>
+                      ) : (
+                        <ReplyBody
+                          reply={turn.reply}
+                          audience={audienceId}
+                          sos={sos}
+                          handOver={nurse}
+                          sent={sent[turn.id]}
+                          onSend={() => handTo(turn)}
+                        />
+                      )}
+                      {turn.unread && (
+                        <Unread
+                          sos={sos}
+                          handOver={nurse}
+                          audience={audienceId}
+                        />
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
 
-          <div className="as-asks">
+            <div className="as-asks">
+              {questionGroups.map((group) => {
+                const offered = questionsFor(audienceId).filter(
+                  (q) => q.group === group.id,
+                );
+                /* A group with nothing to offer this audience is not drawn at all: an empty
+                   heading over no chips says the assistant has a section it refuses to show. */
+                if (!offered.length) return null;
+                return (
+                  <section key={group.id} aria-labelledby={`as-${group.id}`}>
+                    <h3 id={`as-${group.id}`}>
+                      {group.id === "situations"
+                        ? ui.topicsHeading
+                        : group.heading}
+                    </h3>
+                    {group.lead && (
+                      <p>
+                        {group.id === "situations" ? ui.topicsLead : group.lead}
+                      </p>
+                    )}
+                    <div className="as-chips">{offered.map(chip)}</div>
+                  </section>
+                );
+              })}
+              {asked && (
+                <button type="button" className="as-again" onClick={again}>
+                  <RotateCcw size={16} aria-hidden="true" />
+                  {conversation.startAgainLabel}
+                </button>
+              )}
+            </div>
+
+            <NotConnected of="voice" />
+            <section className="as-rule" aria-labelledby="as-refusals">
+              <h3 id="as-refusals">{conversation.refusalsHeading}</h3>
+              <ul>
+                {refusals.map((r) => (
+                  <li key={r.id}>{refusalFor(r, audienceId).statement}</li>
+                ))}
+              </ul>
+              {/* The founder's sentence in full, since 20 September 2026: the mockup moved its
+                  second half into the composer's strip and its first half stands in the gate's
+                  prohibitions, and the whole sentence — both numbers resolved — keeps its own
+                  line beside the conversation, where the build holds this screen to rendering it. */}
+              <p className="as-safety">{silenceIsNotSafety}</p>
+              <p className="as-powered">
+                {identity.poweredBy}. {identity.poweredByMeans}
+              </p>
+            </section>
+
+            {/* The footer, as the mockup draws it: the lockup, what powers the sentences, and the
+                product's own line. It sits at the end of the scroll rather than in fixed chrome —
+                every pixel of fixed chrome is paid for by the conversation above it, and this is
+                the last thing anybody reads. */}
+            <footer className="as-foot">
+              <img
+                className="as-logo"
+                src="/brand/mythuso-logo.svg"
+                alt="MyThuso"
+              />
+              <p className="as-foot-powered">
+                <Cog size={14} aria-hidden="true" />
+                {identity.poweredBy}
+              </p>
+              <p className="as-foot-note">{consent.footer}</p>
+            </footer>
+          </div>
+        ) : (
+          <div className="as-scroll as-gate">
+            <div className="as-gate-intro">
+              <h3>{consent.heading}</h3>
+              <p>{consent.intro}</p>
+            </div>
             {questionGroups.map((group) => {
               const offered = questionsFor(audienceId).filter(
                 (q) => q.group === group.id,
               );
-              /* A group with nothing to offer this audience is not drawn at all: an empty
-                 heading over no chips says the assistant has a section it refuses to show. */
+              /* The gate is a reading screen: its questions promise what the conversation
+                 answers, so they are drawn as the same pills and are not controls. Pressing one
+                 before consent is not a thing that can mean anything. */
               if (!offered.length) return null;
               return (
-                <section key={group.id} aria-labelledby={`as-${group.id}`}>
-                  <h3 id={`as-${group.id}`}>
-                    {group.id === "situations"
-                      ? ui.topicsHeading
-                      : group.heading}
-                  </h3>
-                  {group.lead && (
-                    <p>
-                      {group.id === "situations" ? ui.topicsLead : group.lead}
-                    </p>
-                  )}
-                  <div className="as-chips">{offered.map(chip)}</div>
+                <section key={group.id} className="as-gate-card">
+                  <div className="as-gate-card-head">
+                    <h3>
+                      {group.id === "situations"
+                        ? consent.tryAQuestion
+                        : consent.alwaysAnswer}
+                    </h3>
+                    {/* The mockup's two links, drawn where it draws them. Styled affordances
+                        rather than anchors: this build has nowhere behind them to go, and a link
+                        that opens nothing would be worse than a word that promises nothing. When
+                        a destination exists, this element becomes the anchor. */}
+                    <span className="as-gate-link">
+                      {group.id === "situations"
+                        ? consent.exploreCommon
+                        : consent.learnMore}
+                    </span>
+                  </div>
+                  <div className="as-chips">
+                    {offered.map((question) => (
+                      <span key={question.id} className="as-ask">
+                        {question.asks}
+                      </span>
+                    ))}
+                  </div>
                 </section>
               );
             })}
-            {asked && (
-              <button type="button" className="as-again" onClick={again}>
-                <RotateCcw size={16} aria-hidden="true" />
-                {conversation.startAgainLabel}
-              </button>
-            )}
+            <section className="as-gate-card">
+              <div className="as-gate-card-head">
+                <span className="as-gate-icon">
+                  <Lock size={18} aria-hidden="true" />
+                </span>
+                <h3>{consent.privacyHeading}</h3>
+              </div>
+              <p>{consent.privacyBody}</p>
+            </section>
+            <section className="as-gate-card">
+              <div className="as-gate-card-head">
+                <span className="as-gate-icon">
+                  <Ban size={18} aria-hidden="true" />
+                </span>
+                <h3>{consent.willNotDoHeading}</h3>
+              </div>
+              <ul className="as-gate-list">
+                {consent.willNotDo.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </section>
+            <section className="as-gate-card">
+              <div className="as-gate-card-head">
+                <span className="as-gate-icon">
+                  <Cog size={18} aria-hidden="true" />
+                </span>
+                <h3>{consent.poweredByHeading}</h3>
+              </div>
+              <p>{consent.poweredByBody}</p>
+            </section>
           </div>
+        )}
 
-          <NotConnected of="voice" />
-          <section className="as-rule" aria-labelledby="as-refusals">
-            <h3 id="as-refusals">{conversation.refusalsHeading}</h3>
-            <ul>
-              {refusals.map((r) => (
-                <li key={r.id}>{refusalFor(r, audienceId).statement}</li>
-              ))}
-            </ul>
-            <p className="as-powered">
-              {identity.poweredBy}. {identity.poweredByMeans}
-            </p>
-          </section>
-        </div>
-
-        <form className="as-compose" onSubmit={submit}>
-          <label htmlFor="as-input">{conversation.inputLabel}</label>
-          <div className="as-field">
-            <input
-              ref={field}
-              id="as-input"
-              type="text"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              placeholder={conversation.inputHint}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              enterKeyHint="send"
-              maxLength={500}
-              aria-describedby="as-keyboard"
-            />
-            {/* The voice control exists only where the founder put it — the live patient
-                assistant — and an audience's entry says whether that is this one. */}
-            {audience.voice && (
-              <AssistantVoiceButton
-                voice={voiceAdapter}
-                onTranscript={onVoiceTranscript}
-                typingNote={conversation.webKeyboardNote}
+        {consented ? (
+          <form className="as-compose" onSubmit={submit}>
+            <label htmlFor="as-input">{conversation.inputLabel}</label>
+            <div className="as-field">
+              <input
+                ref={field}
+                id="as-input"
+                type="text"
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                placeholder={conversation.inputHint}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                enterKeyHint="send"
+                maxLength={500}
+                aria-describedby="as-keyboard"
               />
-            )}
-            <button type="submit" className="as-send">
-              <Send size={17} aria-hidden="true" />
-              {conversation.sendLabel}
-            </button>
+              {/* The voice control exists only where the founder put it — the live patient
+                  assistant — and an audience's entry says whether that is this one. Its second
+                  line, "Speech becomes text before sending.", rides inside the control under
+                  the written action: the sentence is about the button it sits on. */}
+              {audience.voice && (
+                <AssistantVoiceButton
+                  voice={voiceAdapter}
+                  onTranscript={onVoiceTranscript}
+                  typingNote={conversation.webKeyboardNote}
+                  speechNote={consent.voiceNote}
+                />
+              )}
+              <button type="submit" className="as-send">
+                <Send size={17} aria-hidden="true" />
+                {conversation.sendLabel}
+              </button>
+            </div>
+            {/* The mockup's warning strip, in the contract's own words. It carries what the
+                loose silence line carried — nobody is safe because nobody answered — in the
+                shape the mockup gives it, and both numbers still arrive through the same
+                token resolver every other sentence uses. */}
+            <p className="as-silence">
+              <TriangleAlert size={15} aria-hidden="true" />
+              {say(consent.emergencyNotice)}
+            </p>
+          </form>
+        ) : (
+          <div className="as-gate-foot">
+            <div className="as-gate-boxes">
+              <label className="as-gate-check">
+                <input
+                  type="checkbox"
+                  checked={doctorBox}
+                  onChange={(event) => setDoctorBox(event.target.checked)}
+                />
+                <span>{consent.checkboxDoctor}</span>
+              </label>
+              <label className="as-gate-check">
+                <input
+                  type="checkbox"
+                  checked={emergencyBox}
+                  onChange={(event) => setEmergencyBox(event.target.checked)}
+                />
+                <span>{consent.checkboxEmergency}</span>
+              </label>
+            </div>
+            {/* Accept opens only when both boxes are ticked, and Cancel is the same dismiss the
+                cross, the backdrop and Escape use — the gate has no fourth way out. */}
+            <div className="as-gate-actions">
+              <button type="button" className="as-gate-cancel" onClick={dismiss}>
+                {consent.cancel}
+              </button>
+              <button
+                type="button"
+                className="as-gate-accept"
+                disabled={!doctorBox || !emergencyBox}
+                onClick={() => setConsented(true)}
+              >
+                {consent.accept}
+                <ArrowRight size={16} aria-hidden="true" />
+              </button>
+            </div>
           </div>
-          <p className="as-silence">{silenceIsNotSafety}</p>
-        </form>
+        )}
       </div>
     </dialog>
   );
@@ -686,6 +881,10 @@ function ReplyBody({
   switch (reply.kind) {
     case "situation":
       return <p>{reply.situation.sentence}</p>;
+    /* A hello is an answer now rather than a shrug: the classifier in the engine names it, the
+       bridge answers it, and this is the contract's sentence it wears. */
+    case "greeting":
+      return <p>{answers.greeting.sentence}</p>;
     case "identity":
       return (
         <>

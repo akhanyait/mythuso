@@ -30,6 +30,16 @@ const roleName = (id: string) => vetting.roles.find((r: { id: string }) => r.id 
 const START = new Date('2026-09-15T08:00:00+02:00');
 const accessPanel = (page: Page) => page.getByRole('region', { name: booking.settings.heading });
 
+/* The consent gate stands between opening the assistant and the conversation, since 20 September 2026.
+   These journeys are about what the handover desk says, so each one consents the way a patient does
+   before it asks anything, and reads the gate's words from the same contract the panel reads. */
+const consent = async (page: Page) => {
+  const panel = page.getByRole('dialog', { name: gilbert.identity.name });
+  await panel.getByRole('checkbox', { name: gilbert.consent.checkboxDoctor }).check();
+  await panel.getByRole('checkbox', { name: gilbert.consent.checkboxEmergency }).check();
+  await panel.getByRole('button', { name: gilbert.consent.accept }).click();
+};
+
 async function confirmChange(page: Page, row: Row, edit: (form: ReturnType<Page['locator']>) => Promise<void>, reason: string) {
   const form = await openChangeForm(accessPanel(page), row);
   await edit(form);
@@ -84,6 +94,7 @@ test('with the handover desk’s hours moved so nobody is there now, GilbertOne 
 
   /* Inside the hours in force: nobody is said to be absent, and who answers is the setting's role. */
   await page.goto('/app/?open=assistant');
+  await consent(page);
   const inHours = await handOver();
   await expect(inHours.locator('.as-headline').first()).toHaveText(gilbert.answers.handover.title);
   await expect(inHours.locator('.as-desk')).toHaveCount(0);
@@ -99,6 +110,8 @@ test('with the handover desk’s hours moved so nobody is there now, GilbertOne 
 
   await chooseRole(page, 'Patient');
   await launcher.click();
+  /* The role switch mounts a fresh patient app, so the gate stands again. */
+  await consent(page);
   const shut = await handOver();
   const desk = shut.locator('.as-desk');
   await expect(desk.locator('.as-desk-nobody')).toHaveText(booking.handover.outOfHours);
@@ -118,6 +131,7 @@ test('after the desk’s hours in force have closed for the night, an emergency 
   const nightHour = String((Number(window.to.slice(0, 2)) + 1) % 24).padStart(2, '0');
   await page.clock.install({ time: new Date(`2026-09-15T${nightHour}:${window.to.slice(3)}:00+02:00`) });
   await page.goto('/app/?open=assistant');
+  await consent(page);
   const panel = page.getByRole('dialog', { name: gilbert.identity.name });
   const log = panel.getByRole('log', { name: gilbert.conversation.logLabel });
   const ask = async (words: string) => {

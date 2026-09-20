@@ -57,6 +57,11 @@ export const states = contract.states;
 export const questionGroups = contract.questionGroups;
 export const refusals = contract.refusals;
 export const conversation = contract.conversation;
+/* The consent gate's own words, since 20 September 2026: the screen a patient meets before her
+   first interaction. Everything the gate shows is read from here — the intro, the two chip
+   groups, the privacy and refusal notes, the two boxes and the two buttons — so a sentence on
+   that screen can be reworded where every other approved sentence is, and never in the panel. */
+export const consent = contract.consent;
 export const voice = contract.voice;
 export const answers = contract.answers;
 export const fixtures = contract.fixtures;
@@ -306,9 +311,15 @@ export function questionFor(
 }
 
 /* Reading everything: a word that is neither one of the question's own trigger words nor filler is a
-   word GilbertOne did not read, and it is said so. */
+   word GilbertOne did not read, and it is said so. Since the greeting fix of 20 September 2026 the
+   caller may hand in any trigger set rather than a question — the bridge passes the engine's own
+   greeting terms for a hello — so "nothing beside the match is a claim about everything" holds on
+   that path too. */
 const fillerStems = new Set(contract.matcher.readEverything.filler.map(stem));
-export function leavesUnread(text: string, question: Question): boolean {
+export function leavesUnread(
+  text: string,
+  question: { triggers: readonly string[] },
+): boolean {
   const covered = new Set([
     ...fillerStems,
     ...question.triggers.flatMap(stems),
@@ -322,6 +333,11 @@ export type Reply =
   | { kind: "situation"; situation: Situation }
   | { kind: "identity" }
   | { kind: "voice" }
+  /* The greeting, since the greeting fix of 20 September 2026: "hello" on its own is not a question
+     the matcher has a trigger for, and it used to answer "I can't assess that" — the one reply that
+     reads as a refusal to somebody who only said hello. Its sentence, its state and its face are the
+     contract's (answers.greeting, affect.answers.greeting), read like every other reply kind's. */
+  | { kind: "greeting" }
   | { kind: "emergency"; groups: EmergencyGroup[] }
   | { kind: "unmatched" }
   /* The second-tier answer, since 20 September 2026: words a language model wrote, shown under the
@@ -374,6 +390,8 @@ export function pulseOf(reply: Reply): PulseId {
       return answers.identity.state as PulseId;
     case "voice":
       return answers.voice.state as PulseId;
+    case "greeting":
+      return answers.greeting.state as PulseId;
     case "emergency":
       return answers.emergency.state as PulseId;
     case "unmatched":
@@ -646,6 +664,28 @@ export const handOver = (turns: Turn[], raised = false): Turn[] =>
     unread: false,
   }));
 
+/** A message that was only a greeting, since the greeting fix of 20 September 2026. The engine
+ *  classifies "hello" as a greeting, and the matcher has no trigger for one — so without this the
+ *  bridge's own fallback answered "I can't assess that" to somebody who had only said hello. The
+ *  words are kept exactly as asked, the way every other turn keeps them; the reply is the
+ *  contract's own sentence, worn with the greeting's state and face. `unread` is the caller's
+ *  answer, because the trigger set the unread rule measures against is the engine's greeting
+ *  terms, which live beside the engine; a greeting claims nothing, so unread words here add the
+ *  unread block beside the hello rather than taking the sentence away. */
+export function greet(turns: Turn[], text: string, unread = false): Turn[] {
+  const words = text.trim();
+  if (!words) return turns;
+  return append(turns, (id) => ({
+    id,
+    asked: words,
+    channel: "typed",
+    reply: { kind: "greeting" },
+    matched: null,
+    groups: [],
+    unread,
+  }));
+}
+
 /** How a turn came out, in the words the shared fixtures use. */
 export const outcomeOf = (turn: Turn): string =>
   turn.reply.kind === "emergency"
@@ -698,6 +738,9 @@ export function spokenOf(turn: Turn, audience: AudienceId): string {
       break;
     case "voice":
       add(voice.sentences.web, refusal("no-audio-kept").statement);
+      break;
+    case "greeting":
+      add(answers.greeting.sentence);
       break;
     case "emergency":
       if (turn.reply.groups.length)

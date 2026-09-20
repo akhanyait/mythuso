@@ -508,12 +508,18 @@
   border-width: 2px;
 }
 
+/* The composer's air, since 20 September 2026, decided here once: 4px between its rows and 8px at
+   its foot. The composer is fixed chrome and it is paid for twice — by the reading the scroll
+   keeps for it, and by the midpoint law the layout tests hold on every shell: the composer may
+   never climb past the middle of its sheet, which is 360px on a 768px laptop and 345 on a 320px
+   phone. The mockup's sentences that live in it may not shorten, so the air around them gives
+   instead, at every width. */
 .as-compose {
   flex: 0 0 auto;
   display: grid;
-  gap: var(--space-8);
+  gap: var(--space-4);
   padding: var(--space-12) var(--space-20)
-    calc(var(--space-12) + env(safe-area-inset-bottom));
+    calc(var(--space-8) + env(safe-area-inset-bottom));
   border-top: 1px solid
     color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
   background: var(--brand-ink);
@@ -535,11 +541,14 @@
   align-items: center;
   min-width: 0;
 }
+/* The footnote zone under the voice bar: the mockup's second line, then whichever state or
+   disclosure is showing. 4px between them — the composer's air of 20 September 2026 — because the
+   quiet lines under a control have no claim to more room than the control's own rows kept. */
 .as-voice-lines {
   grid-column: 1 / -1;
   grid-row: 2;
   display: grid;
-  gap: var(--space-8);
+  gap: var(--space-4);
 }
 .as-field input {
   min-width: 0;
@@ -626,7 +635,8 @@
 }
 .as-voice-state,
 .as-voice-heard,
-.as-voice-browser {
+.as-voice-browser,
+.as-voice-note {
   margin: 0;
   font-size: 13px;
   line-height: 1.45;
@@ -801,13 +811,14 @@
     they were measured at is the rule they keep. */
   .as-compose {
     padding-top: var(--space-8);
-    gap: var(--space-8);
+    gap: var(--space-4);
   }
   .as-silence,
   .as-keyboard,
   .as-voice-state,
   .as-voice-heard,
-  .as-voice-browser {
+  .as-voice-browser,
+  .as-voice-note {
     font-size: 12px;
     line-height: 1.4;
   }
@@ -825,8 +836,9 @@
    Under 360px the sheet is not a narrower 390, it is a different paragraph. The voice disclosure is 460
    characters of contract text that may not be shortened; at 12px on a 320px sheet it still takes ten
    lines, the composer it sits in is 329px and the head above it 302px, of a 691px sheet. So the margins
-   and the gaps give here — 8px off each side of the scroll and the composer, 4px between the composer's
-   rows — because at this width every one of them is a line of the answer the fixed chrome is not
+   give here — 8px off each side of the scroll and the composer — and the composer's air comes down one
+   last step, the 4px above its label: the rows' gaps and the strip's block were already given at every
+   width, and at this width every pixel of what is left is a line of the answer the fixed chrome is not
    spending, and not one word moves out of the sentence a person is being asked to agree to. */
 @media (max-width: 359px) {
   .as-scroll,
@@ -834,10 +846,7 @@
     padding-inline: var(--space-12);
   }
   .as-compose {
-    gap: var(--space-4);
-  }
-  .as-voice-lines {
-    gap: var(--space-4);
+    padding-top: var(--space-4);
   }
 }
 
@@ -879,13 +888,14 @@
   }
   .as-compose {
     padding-top: var(--space-8);
-    gap: var(--space-8);
+    gap: var(--space-4);
   }
   .as-silence,
   .as-keyboard,
   .as-voice-state,
   .as-voice-heard,
-  .as-voice-browser {
+  .as-voice-browser,
+  .as-voice-note {
     font-size: 12px;
     line-height: 1.4;
   }
@@ -989,12 +999,15 @@
 .as-silence,
 .as-voice-state,
 .as-voice-heard,
-.as-voice-browser {
+.as-voice-browser,
+.as-voice-note {
   color: var(--brand-ink);
 }
+/* The field's rows keep 4px between them — the composer's air of 20 September 2026: what sits on
+   the second and third rows is footnotes to the input, not another column of a form. */
 .as-field {
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+  gap: 4px;
 }
 .as-field input {
   grid-column: 1;
@@ -1031,6 +1044,11 @@
 .as-keyboard {
   border-color: var(--stone);
 }
+/* 72px, the size this shell shipped with, restored on 20 September 2026. The mockup's conversation
+   head was drawn larger — 96px — and the fixed head is paid for by the conversation below it:
+   24px of the answer at the floors' own viewports. The mockup's conversation header is the name
+   card, not a portrait, and the character that greets is the gate's, at 132px; the head above
+   every conversation is fixed chrome, and fixed chrome spends the reading. */
 .as-head .as-rig {
   --rig: 72px;
 }
@@ -1088,5 +1106,316 @@
   }
   .as-keyboard {
     padding-top: 4px;
+  }
+}
+
+/* ---- The consent gate, since 20 September 2026 -------------------------------------------------
+   The mockup's two screens, in the light theme the "conversation first" block above already began:
+   the head stays the ink band it is everywhere (the character's shell is drawn white and has no
+   stroke, so a light head would erase it), and everything below is the surface, stone and ink the
+   conversation already reads in. The gate is a reading screen — its questions are pills that
+   promise what the conversation answers, not controls — so they keep the chip's look and drop the
+   chip's behaviour. Nothing here introduces a colour the brand does not own: the warning strip is
+   the declared mango pair, the accept button is ink filled like Send, and every rule below is a
+   var() or a color-mix() of one. */
+
+/* The lockup, reversed because the head is the brand ink band. It stands over the gate — where the
+   mockup draws it — and full-colour at the end of the conversation's reading; the conversation's
+   own head does not draw it: there is no lockup in the mockup's header card, and fixed chrome is
+   paid for by the conversation below it. */
+.as-logo {
+  display: block;
+  justify-self: start;
+  height: 20px;
+  width: auto;
+}
+.as-subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: var(--brand-mint);
+}
+
+/* The state pill's dot, as the mockup draws it beside "Ready": a small filled circle that says the
+   same word the text says, never instead of it. Idle is the brand's green because Ready is; the
+   emergency keeps the orange edge the pill already carries. */
+.as-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.as-state::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--brand-mint);
+  flex: 0 0 auto;
+}
+.as-state[data-pulse="idle"]::before {
+  background: var(--brand-green);
+}
+.as-state[data-pulse="escalate"]::before {
+  background: var(--brand-orange);
+}
+
+/* The mockup draws its suggested questions as a two-column grid on both screens, so the chips are
+   one here too: minmax(0, 1fr) columns let a long question wrap inside its cell rather than widen
+   the panel, which is what a flex row let it do at 320px. */
+.as-chips {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-8);
+  align-items: start;
+}
+
+/* The gate's own rig: the drawing greets before the first answer, and the head it draws at is the
+   one the mockup gives it — larger than the conversation's 96px, because nothing below it is
+   competing for the screen yet. */
+.as-head[data-gate] .as-rig {
+  --rig: 132px;
+}
+
+/* The gate's questions are the same pills as the conversation's, drawn where the mockup draws them
+   and meaning nothing until consent: pressing one before the gate opens is not a thing that can
+   do anything, so they neither invite a click nor answer one. */
+.as-gate .as-ask {
+  cursor: default;
+}
+.as-gate .as-ask:hover {
+  background: var(--surface);
+}
+
+.as-gate-intro h3 {
+  margin: 0 0 var(--space-8);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--brand-ink);
+}
+.as-gate-intro p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--brand-ink);
+}
+
+.as-gate-card {
+  display: grid;
+  gap: var(--space-12);
+  padding: var(--space-16);
+  border: 1px solid var(--stone);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.as-gate-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+.as-gate-card-head h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--brand-ink);
+}
+.as-gate-card p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--brand-ink);
+}
+/* The mockup's two links, drawn where it draws them. Styled affordances rather than anchors: this
+   build has nowhere behind them to go, and the element becomes the anchor when a destination
+   exists. Ink and underlined, the same register as Start again — the brand's green is an edge and
+   a fill here, never body text. */
+.as-gate-link {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+.as-gate-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--brand-mint) 35%, var(--surface));
+  color: var(--brand-ink);
+  flex: 0 0 auto;
+}
+.as-gate-list {
+  margin: 0;
+  padding-left: var(--space-20);
+  display: grid;
+  gap: var(--space-8);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--brand-ink);
+}
+
+/* The gate's foot: the two understandings, then Cancel and the one filled button on the screen.
+   It is the composer's block, not a second one — same surface, same stone hairline, same padding
+   and safe area — because it is what a thumb reaches for at the bottom of the same sheet. */
+.as-gate-foot {
+  flex: 0 0 auto;
+  display: grid;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-20)
+    calc(var(--space-12) + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--stone);
+  background: var(--surface);
+}
+.as-gate-boxes {
+  display: grid;
+  gap: var(--space-8);
+}
+.as-gate-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: 44px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--brand-ink);
+  cursor: pointer;
+}
+.as-gate-check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--brand-green);
+  flex: 0 0 auto;
+}
+.as-gate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+.as-gate-cancel,
+.as-gate-accept {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  min-height: 48px;
+  padding: 0 var(--space-20);
+  border-radius: var(--r-pill);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--t-quick) var(--ease-soft);
+}
+.as-gate-cancel {
+  border: 1px solid var(--brand-ink);
+  background: var(--surface);
+  color: var(--brand-ink);
+}
+.as-gate-cancel:hover {
+  background: color-mix(in srgb, var(--brand-mint) 25%, var(--surface));
+}
+.as-gate-accept {
+  flex: 1 1 12rem;
+  border: 0;
+  background: var(--brand-ink);
+  color: var(--surface);
+}
+.as-gate-accept:hover:not(:disabled) {
+  background: var(--brand-green);
+}
+/* Disabled is a truth about what was ticked, so it is drawn as one: the same button, out of
+   reach, rather than a warning that arrives after the press. */
+.as-gate-accept:disabled {
+  background: color-mix(in srgb, var(--brand-ink) 28%, var(--surface));
+  color: color-mix(in srgb, var(--surface) 75%, var(--brand-ink));
+  cursor: not-allowed;
+}
+
+/* The conversation's footer, as the mockup draws it: the lockup, what writes the sentences, and
+   the product's own line. At the end of the scroll rather than in fixed chrome, because every
+   pixel of fixed chrome is paid for by the conversation above it. */
+.as-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-8) var(--space-16);
+  padding-top: var(--space-16);
+  border-top: 1px solid var(--stone);
+}
+.as-foot .as-logo {
+  height: 18px;
+}
+.as-foot-powered {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-ink);
+}
+.as-foot-powered svg {
+  flex: 0 0 auto;
+}
+.as-foot-note {
+  margin: 0 0 0 auto;
+  font-size: 12px;
+  color: var(--brand-ink);
+}
+
+/* The voice control's words. The written action on the bar; the mockup's sentence about where
+   speech goes on the lines under it, as the first of the control's own footnote zone. Under the
+   bar rather than inside it since 20 September 2026: inside the button at 320px that sentence
+   wrapped to four cramped lines, and every one of them was paid for by the conversation. The
+   note never joins the accessible name — the aria-label names the action, as before. */
+.as-voice-words {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+/* The mockup's emergency strip, in the contract's own sentence. The mango pair is the token set's
+   declared 4.5:1 text pair, and the icon carries the same colour as the words it stands beside.
+   4px of block padding rather than 8, since the composer's air was decided on 20 September 2026:
+   the strip is two lines of the contract's sentence either way, and the air around them is what
+   the input above it pays for. */
+.as-silence {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+  padding: var(--space-4) var(--space-12);
+  border-radius: 12px;
+  background: var(--mango-soft);
+  color: var(--mango-ink);
+}
+.as-silence svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--mango-ink);
+}
+
+/* The same sentence in full, inside the rule section: the strip above carries the mockup's half,
+   and the founder's sentence — with both numbers resolved — is rendered whole beside the
+   conversation, where the build holds this screen to it. */
+.as-rule .as-safety {
+  margin: var(--space-12) 0 0;
+  color: var(--mango-ink);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* The gate's foot on a narrow phone: the same margins the composer gives there, and the two
+   buttons may stack rather than print over each other at 320px. */
+@media (max-width: 359px) {
+  .as-gate-foot {
+    padding-inline: var(--space-12);
+  }
+  .as-gate-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
   }
 }

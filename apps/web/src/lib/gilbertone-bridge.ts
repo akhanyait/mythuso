@@ -1,8 +1,18 @@
 /* engine.ts alone, not the package barrel: index.ts also re-exports the Phase A modules
    (conversation, phi, refusals, tools) with their catalog imports, and the patient entry must
    not carry any of that — the bridge reads only a route name from the engine. */
-import { evaluateMessage, type Audience } from '../../../../packages/gilbertone/src/engine.ts';
-import { emergencyGroupsIn, send, type Turn } from './assistant.ts';
+import {
+  evaluateMessage,
+  greetingTerms,
+  type Audience,
+} from '../../../../packages/gilbertone/src/engine.ts';
+import {
+  emergencyGroupsIn,
+  greet,
+  leavesUnread,
+  send,
+  type Turn,
+} from './assistant.ts';
 import type { Visit } from './scheduling.ts';
 
 /**
@@ -71,6 +81,18 @@ export function sendWithGilbertEngine(
     if (last.reply.kind !== 'handover') return withHandover;
     const corrected: Turn = { ...last, asked: text };
     return [...withHandover.slice(0, -1), corrected];
+  }
+
+  /* The greeting, since the fix of 20 September 2026. The engine has classified "hello" as a
+     greeting since the greeting sentence arrived, but this bridge intercepted only the emergency
+     and handover routes — a greeting travels route 'standard' — so a hello fell through to send(),
+     where the matcher has no trigger for one, and answered "I can't assess that". That is the one
+     reply that reads as a refusal to somebody who only said hello, and it was the defect this
+     branch exists to fix. The engine's own terms are the unread rule's trigger set — never a
+     second copy of the list — so "hello, my knee aches" answers with the hello and the unread
+     block beside it rather than claiming more than it read. */
+  if (result.classification === 'greeting') {
+    return greet(turns, text, leavesUnread(text, { triggers: greetingTerms }));
   }
 
   return send(turns, text, visit, raised, audience);

@@ -568,6 +568,38 @@
     "webKeyboardNote": "Your browser or keyboard may offer dictation of its own. That belongs to them, not to GilbertOne, and may send your voice to their servers. GilbertOne on the web reads only what you type.",
     "keyboardWhy": "Neither phone lets an app remove the dictation key from the system keyboard, and a browser's is its own. The honest thing is to switch off what the app does control — autocorrection, suggestions and spell-checking that send text to a service — and to say plainly, beside the field, whose microphone the keyboard's is."
   },
+  "consent": {
+    "heading": "Before you continue",
+    "intro": "Hello, I'm GilbertOne. Type a question or choose a topic below. You can also tap the microphone to turn your words into a draft before sending.",
+    "tryAQuestion": "Try a question",
+    "exploreCommon": "Explore common questions",
+    "alwaysAnswer": "What GilbertOne will always answer",
+    "learnMore": "Learn more",
+    "privacyHeading": "Privacy and voice",
+    "privacyBody": "GilbertOne listens only after you tap, hears English only, keeps no recording, and your browser or phone may turn your speech into text before sending. You can always type instead. GilbertOne does not send what you say to MyThuso.",
+    "willNotDoHeading": "What GilbertOne will not do",
+    "willNotDo": [
+      "Never tells you what you have.",
+      "Never suggests a medicine, dose, or change.",
+      "Never makes an emergency sound less urgent.",
+      "Never offers an appointment, a nurse, or a hospital bed that nobody has confirmed.",
+      "No recording of your voice is made or kept.",
+      "The microphone only listens while open.",
+      "GilbertOne is not a person and not a doctor.",
+      "A crisis is never left to GilbertOne alone.",
+      "Not recognising an emergency does not mean there is not one."
+    ],
+    "poweredByHeading": "Powered by ThusoIQ",
+    "poweredByBody": "ThusoIQ is MyThuso's clinical rules platform. GilbertOne uses only approved sentences and the emergency red flags Thuso SOS already asks about.",
+    "checkboxDoctor": "I understand GilbertOne is not a doctor.",
+    "checkboxEmergency": "I know what to do in an emergency.",
+    "cancel": "Cancel",
+    "accept": "I Accept and Continue",
+    "subtitle": "Your Thuso Assistant",
+    "voiceNote": "Speech becomes text before sending.",
+    "emergencyNotice": "If you think it is an emergency, call {ambulance}, or {mobile} from a mobile.",
+    "footer": "People. Rules. Safer care."
+  },
   "affect": {
     "decidedBy": "Founder",
     "on": "2026-09-19",

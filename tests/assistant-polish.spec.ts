@@ -4,8 +4,8 @@ test('transparent robot blinks, offers one dismissible greeting, and stops with 
  await page.goto('/app/');
  const launcher = page.getByRole('button', { name: 'Ask GilbertOne', exact: true });
  await expect(launcher).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
- await expect(launcher).toHaveCSS('width', '88px');
- await expect(launcher.locator('.al-orb')).toHaveCSS('background-image', /gilbert-robot\.webp/);
+ await expect(launcher).toHaveCSS('width', '104px');
+ await expect(launcher.locator('.al-orb')).toHaveCSS('background-image', /gilbert-robot-v2\.webp/);
  await expect.poll(() => launcher.locator('.al-orb').evaluate(el => getComputedStyle(el, '::before').animationName)).toBe('al-blink');
  const greeting = page.locator('.assistant-greeting');
  await expect(greeting).toBeVisible({ timeout: 7000 });
@@ -22,6 +22,10 @@ test('the patient conversation leads with a greeting and has a labelled micropho
  await page.goto('/app/?open=assistant');
  const panel = page.locator('#assistant-panel');
  await expect(panel).toBeVisible();
+ /* The conversation is behind the consent gate, since 20 September 2026. */
+ await panel.getByRole('checkbox', { name: 'I understand GilbertOne is not a doctor.' }).check();
+ await panel.getByRole('checkbox', { name: 'I know what to do in an emergency.' }).check();
+ await panel.getByRole('button', { name: 'I Accept and Continue' }).click();
  const first = panel.locator('.as-scroll > *').first();
  await expect(first).toHaveClass('as-log');
  const mic = panel.locator('.as-voice');
@@ -50,6 +54,10 @@ test('the reference robot keeps neutral eyes on refusals and emergencies', async
  await page.goto('/app/?open=assistant');
  const panel = page.locator('#assistant-panel');
  await expect(panel.locator('.go-eye-arc')).toHaveCount(2);
+ /* The conversation is behind the consent gate, since 20 September 2026. */
+ await panel.getByRole('checkbox', { name: 'I understand GilbertOne is not a doctor.' }).check();
+ await panel.getByRole('checkbox', { name: 'I know what to do in an emergency.' }).check();
+ await panel.getByRole('button', { name: 'I Accept and Continue' }).click();
  for (const words of ['write a football poem', 'I have chest pain']) {
   await panel.locator('#as-input').fill(words);
   await panel.getByRole('button', { name: 'Send', exact: true }).click();
