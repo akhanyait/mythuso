@@ -14,6 +14,7 @@ import sos from '../../../../packages/catalog/sos.json' with { type: 'json' };
 const ENV_KEYS = [
  'AZURE_OPENAI_ENDPOINT',
  'AZURE_OPENAI_KEY',
+ 'AZURE_OPENAI_API_KEY',
  'AZURE_OPENAI_MODEL',
  'OLLAMA_URL',
  'OLLAMA_MODEL',
@@ -79,6 +80,28 @@ test('the system prompt carries the contract’s safety rules and sos.json’s n
    `${entry.id} (${entry.number}) should be in the prompt`,
   );
  assert.equal(/\{[a-zA-Z]+\}/.test(prompt), false, 'no token may survive unfilled');
+});
+
+test('the key is accepted under either name an operator may have reached for', async () => {
+ /* The portal's screen calls it an "API key", so the variable named after the screen must configure
+    the tier exactly as the first spelling does — and an endpoint with no key of either name must
+    not. Constructing the provider is enough: availability is a fact about configuration, and this
+    test touches no network at all. */
+ await withEnv({ AZURE_OPENAI_ENDPOINT: 'https://example.openai.azure.com' }, async () => {
+  assert.equal(new AzureOpenAIProvider().available, false, 'an endpoint alone is not credentials');
+ });
+ await withEnv(
+  { AZURE_OPENAI_ENDPOINT: 'https://example.openai.azure.com', AZURE_OPENAI_API_KEY: 'a-key' },
+  async () => {
+   assert.equal(new AzureOpenAIProvider().available, true, 'the portal’s wording configures it');
+  },
+ );
+ await withEnv(
+  { AZURE_OPENAI_ENDPOINT: 'https://example.openai.azure.com', AZURE_OPENAI_KEY: 'a-key' },
+  async () => {
+   assert.equal(new AzureOpenAIProvider().available, true, 'and so does the first spelling');
+  },
+ );
 });
 
 test('a provider that never answers fails inside its own timeout, and the caller gets a null', async () => {

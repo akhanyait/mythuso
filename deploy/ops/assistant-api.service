@@ -7,8 +7,8 @@
 # Neither state is an outage, which is why nothing here alerts on failure. With no provider set, the
 # service answers exactly what the contract does; with the service down or unreachable, the panel
 # falls back to the contract on the patient's own device and looks identical. The provider
-# configuration — AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, AZURE_OPENAI_MODEL, OLLAMA_URL,
-# OLLAMA_MODEL — is read from /etc/mythuso/assistant.env, which the '-' below makes optional: a
+# configuration — AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY or AZURE_OPENAI_API_KEY,
+# AZURE_OPENAI_MODEL, OLLAMA_URL, OLLAMA_MODEL — is read from /etc/mythuso/assistant.env, which the
 # unit that refuses to start over a missing file it does not need is a unit nobody can install.
 #
 # Before this may be enabled, the API's source must exist under the working directory below,

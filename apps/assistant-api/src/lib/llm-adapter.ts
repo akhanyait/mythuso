@@ -33,8 +33,11 @@ export const LLM_TIMEOUT_MS = 10 * 1000;
 /* How long the default-URL probe may take. Ollama answering on localhost answers at once; this
    ceiling exists so a filtered port cannot turn every unmatched turn into a two-minute wait. */
 const DEFAULT_PROBE_TIMEOUT_MS = 800;
-const AZURE_API_VERSION = '2024-10-21';
-const AZURE_DEFAULT_MODEL = 'gpt-4o-mini';
+/* Pinned, as it has always been, rather than a moving 'latest' — but moved: the classic GA surface
+   2024-10-21 predates the gpt-4.1 family, and a gpt-4.1 deployment answers only from
+   2025-01-01-preview onward, which is the earliest dated version that serves it. */
+const AZURE_API_VERSION = '2025-01-01-preview';
+const AZURE_DEFAULT_MODEL = 'gpt-4.1-mini';
 const OLLAMA_DEFAULT_URL = 'http://localhost:11434';
 const OLLAMA_DEFAULT_MODEL = 'med42-v2';
 /* The adapter's own word for a reply a model wrote — not one of the engine's classifications.
@@ -107,7 +110,9 @@ const answerOf = (text: string): LLMResponse => {
 };
 
 /* Azure OpenAI, when the operator has set both the endpoint and the key. The deployment name is
-   the model, as Azure names them; the API version is pinned rather than a moving 'latest'. */
+   the model, as Azure names them; the API version is pinned rather than a moving 'latest'. The key
+   is read as AZURE_OPENAI_KEY or AZURE_OPENAI_API_KEY — the portal's own screen says "API key", and
+   an operator who named the variable after what the screen called it has still configured it. */
 export class AzureOpenAIProvider implements LLMProvider {
   name = 'azure-openai';
   available: boolean;
@@ -120,7 +125,7 @@ export class AzureOpenAIProvider implements LLMProvider {
   constructor(timeoutMs: number = LLM_TIMEOUT_MS) {
     const env = process.env;
     this.#endpoint = (env.AZURE_OPENAI_ENDPOINT ?? '').trim().replace(/\/+$/, '');
-    this.#key = (env.AZURE_OPENAI_KEY ?? '').trim();
+    this.#key = (env.AZURE_OPENAI_KEY ?? env.AZURE_OPENAI_API_KEY ?? '').trim();
     this.#model = (env.AZURE_OPENAI_MODEL ?? '').trim() || AZURE_DEFAULT_MODEL;
     this.#timeoutMs = timeoutMs;
     this.available = Boolean(this.#endpoint && this.#key);
