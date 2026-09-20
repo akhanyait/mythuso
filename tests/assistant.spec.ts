@@ -48,16 +48,18 @@ type AssistantLib = typeof import("../apps/web/src/lib/assistant");
    Listening, since the founder's decision of 18 September 2026. The composer is still a text box that
    works on its own, and exactly one control on this screen offers to hear — the button carrying the
    contract's own label, with the disclosure about the browser's recognition on the page before the
-   first tap. Nothing reaches for a recogniser until that tap, and no way of recording or speaking is
-   reached for at all. What the browser caught is a draft the patient reads, edits and sends herself,
-   and it is an emergency when she sends it in the same words that would have made it one typed. A
-   browser with no speech recognition is told so and given no control that cannot hear.
+   first tap. Nothing reaches for a recogniser until that tap, and no way of recording is reached for
+   at all. What the browser caught is a draft the patient reads, edits and sends herself, and it is an
+   emergency when she sends it in the same words that would have made it one typed. A browser with no
+   speech recognition is told so, is given no control that cannot hear, and is handed the contract's
+   own notice of the browsers that work.
 
-   The reply's own words, since the founder's speech decision of 19 September 2026. Speech on the
-   live assistant is built behind voice.webSpeech and the flag is off, so no reply is spoken: the
-   words are written on the screen in full, and nothing on this screen reaches for the browser's
-   voice — not when the emergency numbers land, and not when Start again or a closing panel would
-   have to stop one.
+   The reply's own words, since the founder's speech decision of 19 September 2026, switched on the
+   next day. Every reply is handed to the browser's voice with the reply's own words, and the mouth's
+   cue — A10, the speaking moment in the contract's affect section — is fired from the utterance's own
+   events rather than from a timer, so the face moves when a word is spoken. The stand-in below stays
+   quiet until a journey drives it on purpose, Start again and a closing panel stop the voice rather
+   than outliving it, and a held safety face refuses the mouth outright.
 
    Motion stops rather than slows. */
 
@@ -146,10 +148,12 @@ const unmatchedDetail = (audience: string) =>
     }
   ).audiences?.[audience]?.detail ?? gilbert.answers.unmatched.detail;
 
-/* Before the app's own code runs, so a reach for any way of keeping a sample, or of answering in a
-   voice, from anywhere on this screen counts. The browser's recogniser is NOT in this list: since the
-   founder's decision of 18 September 2026 the assistant's microphone may open it, and a refusal here
-   would only defeat the tests below that drive it on purpose. */
+/* Before the app's own code runs, so a reach for any way of keeping a sample, from anywhere on this
+   screen counts. Neither the browser's recogniser nor the browser's voice is in this list: since the
+   founder's decisions of 18 September and 20 September 2026 the assistant's microphone may open the
+   one and its replies may hand words to the other, and a refusal here would only defeat the journeys
+   below that drive them on purpose. The voice those journeys hand words to is the stand-in declared
+   further down, and it records and stays quiet until a test reaches for it. */
 const watchForRecording = (page: Page) =>
   page.addInitScript(() => {
     const tally = window as unknown as { __heard: string[] } & Record<
@@ -167,13 +171,7 @@ const watchForRecording = (page: Page) =>
         tally.__heard.push("getUserMedia");
         return Promise.reject(new Error("Refused by the assistant spec"));
       };
-    for (const name of [
-      "MediaRecorder",
-      "AudioContext",
-      "webkitAudioContext",
-      "SpeechSynthesisUtterance",
-      "speechSynthesis",
-    ]) {
+    for (const name of ["MediaRecorder", "AudioContext", "webkitAudioContext"]) {
       Object.defineProperty(window, name, {
         configurable: true,
         value: count(name),
@@ -283,6 +281,115 @@ const withoutVoice = (page: Page) =>
     }
   });
 
+/* The browser's voice, replaced by one a journey drives by hand. Chromium's synthesiser answers
+   nobody in a test browser — no start, no boundary, no end — and this stand-in keeps the same silence
+   after recording the utterance it was handed, so every reply on every other page is handed to a
+   voice that says nothing and the journeys that are not about speech stay exactly as they were. Its
+   `begin`, `word` and `finish` are a test's own hand on the utterance's events, which is why the
+   mouth they prove is the one fired from those events rather than from a timer. `cancel` records
+   without firing `end`: the adapter cancels before it constructs each utterance, and an `end` fired
+   there would be this stand-in inventing a mouth-closing play for a journey that never asked. */
+type SpeechControl = {
+  calls: string[];
+  spoken: string[];
+  begin(): void;
+  word(index: number): void;
+  finish(): void;
+};
+const giveSpeech = (page: Page) =>
+  page.addInitScript(() => {
+    class StandInUtterance {
+      lang = "";
+      text: string;
+      onstart: (() => void) | null = null;
+      onend: (() => void) | null = null;
+      onerror: ((event: unknown) => void) | null = null;
+      onboundary:
+        | ((event: { name: string; charIndex: number; charLength: number }) => void)
+        | null = null;
+      constructor(text: string) {
+        this.text = text;
+      }
+    }
+    let last: StandInUtterance | null = null;
+    const speech: SpeechControl = {
+      calls: [],
+      spoken: [],
+      begin() {
+        speech.calls.push("fire:start");
+        last?.onstart?.();
+      },
+      word(index: number) {
+        speech.calls.push("fire:word");
+        if (!last) return;
+        const words = last.text.split(" ");
+        const at = words
+          .slice(0, index)
+          .reduce((count, word) => count + word.length + 1, 0);
+        last.onboundary?.({
+          name: "word",
+          charIndex: at,
+          charLength: (words[index] ?? "").length,
+        });
+      },
+      finish() {
+        speech.calls.push("fire:end");
+        last?.onend?.();
+      },
+    };
+    Object.defineProperty(window, "speechSynthesis", {
+      configurable: true,
+      value: {
+        speak(utterance: StandInUtterance) {
+          speech.calls.push("speak");
+          speech.spoken.push(utterance.text);
+          last = utterance;
+        },
+        cancel() {
+          speech.calls.push("cancel");
+        },
+        getVoices() {
+          return [];
+        },
+        pause() {},
+        resume() {},
+      },
+    });
+    Object.defineProperty(window, "SpeechSynthesisUtterance", {
+      configurable: true,
+      value: StandInUtterance,
+    });
+    (window as unknown as { __speech: SpeechControl }).__speech = speech;
+  });
+const speechCalls = (page: Page) =>
+  page.evaluate(
+    () => (window as unknown as { __speech: SpeechControl }).__speech.calls,
+  );
+const spoken = (page: Page) =>
+  page.evaluate(
+    () => (window as unknown as { __speech: SpeechControl }).__speech.spoken,
+  );
+const beginSpeech = (page: Page) =>
+  page.evaluate(() =>
+    (window as unknown as { __speech: SpeechControl }).__speech.begin(),
+  );
+const speakWord = (page: Page, index: number) =>
+  page.evaluate(
+    (index) =>
+      (window as unknown as { __speech: SpeechControl }).__speech.word(index),
+    index,
+  );
+const endSpeech = (page: Page) =>
+  page.evaluate(() =>
+    (window as unknown as { __speech: SpeechControl }).__speech.finish(),
+  );
+/* Every journey gets the same quiet voice before the app's own code runs, so no reply anywhere
+   depends on what a test browser's synthesiser happens to do on its own — and the one journey about
+   speech is the only one that drives it. */
+test.beforeEach(async ({ page }) => {
+  await giveSpeech(page);
+});
+
 /* Each animation inside an element, described well enough that a failure names what moved. */
 const animationsIn = (page: Page, selector: string) =>
   page.evaluate(
@@ -370,7 +477,9 @@ test("the orb floats on every patient page, and GilbertOne is fetched only when 
     "idle",
   );
   await expect(panel(page).locator(".as-state")).toHaveText(cue("idle"));
-  await expect(log(page)).toContainText("Nothing needs you.");
+  await expect(log(page)).toContainText(
+    "Type a question or choose a topic below.",
+  );
   for (const refusal of gilbert.refusals)
     await expect(panel(page).locator(".as-rule")).toContainText(
       refusal.statement,
@@ -1100,8 +1209,14 @@ test("what the browser caught is a draft the patient sends herself, and an emerg
   await expect(panel(page).locator(".as-voice-state")).toHaveText(
     say(gilbert.voice.webSentences.states.open),
   );
-  /* Even now the character says nothing of the kind: the microphone is the button, and the button is
-    the only thing on this screen allowed to claim it. */
+  /* And the face attends to the microphone through the contract's own capture moment, dispatched
+     from the adapter's open state rather than from the tap. */
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-cue",
+    gilbert.affect.voiceMoments.capture.cue,
+  );
+  /* The character attends through its own cue — asserted above — while the pulse claims no state
+    word at all: capture is a face, and the microphone remains the button's claim alone. */
   await expect(panel(page).locator(".as-rig")).not.toHaveAttribute(
     "data-pulse",
     /listening|thinking/,
@@ -1117,6 +1232,12 @@ test("what the browser caught is a draft the patient sends herself, and an emerg
   await expect(panel(page).locator(".as-voice-heard")).toHaveCount(0);
   await expect(panel(page).locator(".as-voice-state")).toHaveText(
     say(gilbert.voice.webSentences.states.off),
+  );
+  /* The capture face lets go on its own walk — nothing here stops it, a stop being the one release
+     this rig may never call while a safety face could be held. */
+  await expect(panel(page).locator(".as-rig")).not.toHaveAttribute(
+    "data-cue",
+    gilbert.affect.voiceMoments.capture.cue,
   );
   // she finishes the sentence, and sending it is her own act
   await field(page).fill("I have chest pain");
@@ -1234,6 +1355,11 @@ test("a browser with no speech recognition is told so, and is handed no control 
   await expect(panel(page).locator(".as-voice-state")).toHaveText(
     gilbert.voice.webSentences.unavailable,
   );
+  /* The state line says what this browser lacks; the notice beside it names the browsers that would
+     work — the contract's sentence rather than a component's guess. */
+  await expect(panel(page).locator(".as-voice-browser")).toHaveText(
+    gilbert.voice.browserNotice,
+  );
   await expect(
     panel(page).getByRole("button", {
       name: gilbert.voice.sentences.talkLabel,
@@ -1269,43 +1395,82 @@ test("a browser with no speech recognition is told so, and is handed no control 
   ).toEqual([]);
 });
 
-/* The founder's speech decision of 19 September 2026: the reply's own words handed to the adapter
-   as the reply lands, and the adapter's flag — read before anything is reached for — saying no.
-   The journey walks the answers that would tempt a voice most and the two resets that would have
-   to stop one, and holds both halves of the decision: the words are written on the screen, and
-   nothing on this screen reaches for the browser's voice. */
-test("while the speech flag is off, the reply's words are written on the screen and nothing reaches for a voice", async ({
+/* The founder's speech decision of 19 September 2026, switched on the next day: the reply's own words
+   are handed to the browser's voice as the reply lands, and the mouth — A10, the speaking moment in
+   the contract's affect section — is fired from the utterance's own events, its start, each word
+   boundary and its end, so the face moves when a word is spoken rather than when it is written. The
+   stand-in is quiet until this journey drives it, a cue refused by rank may not move a face, and the
+   two resets stop the voice rather than outliving it. */
+test("every reply is handed to the browser's voice, and the resets stop it", async ({
   page,
 }) => {
   await watchForRecording(page);
   await page.goto("/app/?open=assistant");
   /* The premise is the contract's own flag, read the way the panel reads it rather than retyped
-     here: the day the founder switches it on, this journey is the first thing that must be
-     rewritten — and the caption rule it asserts, the words on the screen, is the half that
-     survives the switch. */
-  expect(gilbert.voice.webSpeech.enabled).toBe(false);
-  // the answer that is about voice: its own refusal is written words, read and not spoken
+     here: while the founder's decision stands, the reading below is what the panel does with it. */
+  expect(gilbert.voice.webSpeech.enabled).toBe(true);
+  const rig = panel(page).locator(".as-rig");
+  // the answer that is about voice: its own words are handed to the voice that reads them, in full
   await ask(page, "can you hear me");
   await expect(log(page).locator(".as-reply").last()).toContainText(/tap/i);
-  /* The answer that would tempt a voice most: the emergency numbers are the reason a spoken
-     reading exists at all — a person who cannot read must still reach 10177 — and they land as
-     written words, number first, the way they would be read aloud. */
+  await expect.poll(async () => (await spoken(page)).length).toBe(1);
+  expect((await spoken(page))[0].startsWith(gilbert.voice.sentences.web)).toBe(
+    true,
+  );
+  /* The voice answer wears A17 while it lands — an error-track face, so it refuses the mouth by
+     rank for as long as it walks — and this waits for the flat face's own walk to release it:
+     nothing here stops it. Then the utterance's own start event is what the panel answers with A10,
+     and a word boundary replays the same cue against the word being spoken. */
+  await expect(rig).not.toHaveAttribute("data-cue", faceOf("voice").cue);
+  await beginSpeech(page);
+  await expect(rig).toHaveAttribute(
+    "data-cue",
+    gilbert.affect.voiceMoments.speaking.cue,
+  );
+  await speakWord(page, 1);
+  await expect(rig).toHaveAttribute(
+    "data-cue",
+    gilbert.affect.voiceMoments.speaking.cue,
+  );
+  /* And the utterance's own end closes the mouth: the cue it fired is released without anybody
+     pressing anything. */
+  await endSpeech(page);
+  await expect(rig).not.toHaveAttribute(
+    "data-cue",
+    gilbert.affect.voiceMoments.speaking.cue,
+  );
+  /* The answer that would tempt a voice most: the emergency numbers, number first, the way they
+     would be read aloud — and the reading may not move the face a patient in danger is looking at.
+     A10 is activity and A16 is safety, so the held urgent face refuses the mouth outright. */
   await ask(page, "I have chest pain");
   const emergency = log(page).locator(".as-reply").last();
   await expect(emergency).toHaveAttribute("data-outcome", "emergency");
   await expect(emergency.locator(".as-numbers li").first()).toContainText(
-    "10177",
+    number("ambulance"),
   );
-  /* Start again is the one reset that would have to stop a voice mid-sentence, and closing the
-     panel is the other; both are pressed, and both must reach for nothing to stop. */
+  await expect.poll(async () => (await spoken(page)).length).toBe(2);
+  expect((await spoken(page))[1]).toContain(number("ambulance"));
+  await beginSpeech(page);
+  await expect(rig).toHaveAttribute("data-cue", faceOf("emergency").cue);
+  await endSpeech(page);
+  await expect(rig).toHaveAttribute("data-cue", faceOf("emergency").cue);
+  /* Start again is the one reset that must stop a voice mid-sentence, and closing the panel is the
+     other; both reach for the browser to stop it, and neither hides that a reading was once asked. */
+  const cancels = async () =>
+    (await speechCalls(page)).filter((call) => call === "cancel").length;
+  const before = await cancels();
   await panel(page)
     .getByRole("button", { name: gilbert.conversation.startAgainLabel })
     .click();
   await expect(log(page).locator(".as-said")).toHaveCount(0);
+  await expect.poll(cancels).toBeGreaterThan(before);
+  const afterStartAgain = await cancels();
   await page.keyboard.press("Escape");
   await expect(panel(page)).toBeHidden();
-  /* And nothing on this screen ever reached for a way to speak — no utterance constructed, no
-     synthesis asked, no way of keeping a sample — across answers landing, resets and closings. */
+  await expect.poll(cancels).toBeGreaterThan(afterStartAgain);
+  /* Two replies landed and two utterances were handed over — none of the resets added a reading —
+     and nothing on this screen ever reached for a way to keep a sample. */
+  expect(await spoken(page)).toHaveLength(2);
   expect(
     await page.evaluate(
       () => (window as unknown as { __heard: string[] }).__heard,
@@ -1818,7 +1983,9 @@ test.describe("adversarial safety", () => {
       gilbert.answers.unread.sentence,
     );
     await expect(unread).toContainText(gilbert.answers.unread.detail);
-    await expect(unread.locator(".as-numbers li").nth(0)).toContainText("10177");
+    await expect(unread.locator(".as-numbers li").nth(0)).toContainText(
+      "10177",
+    );
     await expect(reply).not.toContainText(sos.emergency.headline);
     // and the face is the unread one, because the unread block is a refusal
     await expect(panel(page).locator(".as-rig")).toHaveAttribute(
@@ -1845,7 +2012,9 @@ test.describe("adversarial safety", () => {
       gilbert.answers.unmatched.sentence,
     );
     await expect(reply).toContainText(gilbert.answers.unmatched.detail);
-    await expect(reply.locator(".as-numbers li").first()).toContainText("10177");
+    await expect(reply.locator(".as-numbers li").first()).toContainText(
+      "10177",
+    );
     await expect(reply).not.toContainText(sos.emergency.headline);
   });
 
@@ -1864,7 +2033,9 @@ test.describe("adversarial safety", () => {
       gilbert.answers.unmatched.sentence,
     );
     await expect(reply).not.toContainText("8001015009087");
-    await expect(reply.locator(".as-numbers li").first()).toContainText("10177");
+    await expect(reply.locator(".as-numbers li").first()).toContainText(
+      "10177",
+    );
     await expect(panel(page).locator(".as-rig")).toHaveAttribute(
       "data-pulse",
       "guiding",

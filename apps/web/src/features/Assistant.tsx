@@ -1,3 +1,4 @@
+import ui from "../../../../packages/catalog/assistant-ui.json";
 import {
   Component,
   useEffect,
@@ -147,13 +148,12 @@ export default function Assistant({
      too — and a cue that holds keeps its face through the pause, which is the reducer's settle. */
   const decor = useDecor();
   const rig = useGilbertRig({ reduced, paused: !decor.playing });
-  /* The panel's one voice adapter, since the speech decision of 19 September 2026. The
-     composer's microphone and the reply's reading are the two halves of one conversation, and
-     one adapter means one microphone rule, one everSpoke and one close-on-unmount rather than
-     two controls each holding half of it. The reply half is behind voice.webSpeech and the flag
-     is off — lib/voice.ts reads the flag before anything is reached for, so the wiring below is
-     built and inert until the founder switches it on — and the microphone half is the
-     18 September decision, unchanged. */
+  /* The panel's one voice adapter, since the speech decision of 19 September 2026 and speaking for
+     real since the founder switched voice.webSpeech on the next day. The composer's microphone and
+     the reply's reading are the two halves of one conversation, and one adapter means one
+     microphone rule, one everSpoke and one close-on-unmount rather than two controls each holding
+     half of it. lib/voice.ts still reads the flag before anything is reached for, so switching it
+     off again leaves this wiring inert; the microphone half is the 18 September decision, unchanged. */
   const voiceAdapter = useVoiceAdapter("assistant");
   const reply = turns[turns.length - 1].reply;
   const asked = turns.length > 1;
@@ -207,12 +207,20 @@ export default function Assistant({
   }, [open, play]);
   /* Closed is closed for the voice too. Every path that shuts this panel — the X, the backdrop,
      Escape — funnels through `open` going false, so the reply's reading stops with the panel
-     rather than outliving it behind a dialog nobody can see. With the flag off the adapter has
-     never spoken and this cancels nothing at all, which is the point of writing it here rather
-     than at the close button: the one that gets missed is never the one somebody wired. */
+     rather than outliving it behind a dialog nobody can see. Spoken replies are live now, so this
+     is the guard that actually has something to cancel, and it is written here rather than at the
+     close button because the one that gets missed is never the one somebody wired. */
   useEffect(() => {
     if (!open) voiceAdapter.cancel();
   }, [open, voiceAdapter.cancel]);
+  /* The microphone half's pose, from the adapter's own state rather than from the button or the
+     recogniser callbacks, so the face attends to a microphone that is genuinely open and to no
+     other moment: A07's trigger is capture actually beginning. Nothing is dispatched on the way
+     back down — the cue is a one-shot that releases itself — and nothing here may call rest()
+     while a conversation is up, because a rest would drop a safety face the reducer is holding. */
+  useEffect(() => {
+    if (voiceAdapter.state === "open") play(affect.voiceMoments.capture.cue);
+  }, [voiceAdapter.state, play]);
   /* The seam itself: the panel speaks pulse, the rig speaks cues, and this is the whole translation.
      Since the affect section of 19 September 2026 the cue is the contract's: each answer kind's face
      is written in assistant.json — deterministic from the kind, no model, the founder's decision —
@@ -223,15 +231,25 @@ export default function Assistant({
      patient's own reset — rests it. */
   useEffect(() => {
     if (gatheredAt === null || !asked) return;
-    play(cueOf(reply, turns[turns.length - 1].unread));
-    /* And the reply's own words to the adapter, which reads the flag first: while
-       voice.webSpeech is false this refuses before anything is reached for, and when the founder
-       switches it on the words are already written on the screen beside the voice — the caption
-       is the reply itself. Only the audience the founder gave a microphone is read aloud, the
-       same entry that scopes the composer's button: the voice decisions have been about the
-       patient's assistant, and a staff preview's words are on its screen already. */
-    if (audience.voice)
-      voiceAdapter.speak(spokenOf(turns[turns.length - 1], audienceId));
+    const last = turns[turns.length - 1];
+    play(cueOf(reply, last.unread));
+    /* And the reply's own words to the adapter, which reads the flag before anything is reached
+       for. The words are already written on the screen beside the voice — the caption is the reply
+       itself — and the mouth is the contract's A10, fired from the utterance's own events rather
+       than from this call: its start event, each word boundary against that word, and its end
+       closing the mouth. A timer never moves it here, and a held safety face refuses it outright.
+       Only the audience the founder gave a microphone is read aloud, the same entry that scopes
+       the composer's button: the voice decisions have been about the patient's assistant, and a
+       staff preview's words are on its screen already. */
+    if (audience.voice) {
+      const caption = spokenOf(last, audienceId).split(" ");
+      voiceAdapter.speak(spokenOf(last, audienceId), {
+        onStart: () => play(affect.voiceMoments.speaking.cue, { caption }),
+        onWord: (word) =>
+          play(affect.voiceMoments.speaking.cue, { caption: [word] }),
+        onEnd: () => play(affect.voiceMoments.speaking.cue, { caption: [] }),
+      });
+    }
   }, [
     gatheredAt,
     asked,
@@ -396,14 +414,19 @@ export default function Assistant({
             aria-hidden="true"
           >
             <RigBoundary>
-              <GilbertAvatar pose={rig.pose} size={172} blend={rig.blend} />
+              <GilbertAvatar
+                pose={rig.pose}
+                size={172}
+                blend={rig.blend}
+                friendly={!asked}
+              />
             </RigBoundary>
           </div>
           <div className="as-caption" data-pulse={pulse}>
             <p className="as-state" data-pulse={pulse}>
               {stateSpec(pulse).cue}
             </p>
-            {stage.name && <p className="as-name">{stage.name}</p>}
+            {asked && stage.name && <p className="as-name">{stage.name}</p>}
             {stage.figure && (
               <p className="as-figure">
                 {stage.figure}
@@ -414,7 +437,6 @@ export default function Assistant({
         </header>
 
         <div className="as-scroll">
-          <NotConnected of="voice" />
           <div className="as-log" role="log" aria-label={conversation.logLabel}>
             <ol>
               {turns.map((turn, index) => (
@@ -438,14 +460,18 @@ export default function Assistant({
                     }
                   >
                     <span className="as-who">{identity.name}</span>
-                    <ReplyBody
-                      reply={turn.reply}
-                      audience={audienceId}
-                      sos={sos}
-                      handOver={nurse}
-                      sent={sent[turn.id]}
-                      onSend={() => handTo(turn)}
-                    />
+                    {!asked && audienceId === "patient" ? (
+                      <p>{ui.welcome}</p>
+                    ) : (
+                      <ReplyBody
+                        reply={turn.reply}
+                        audience={audienceId}
+                        sos={sos}
+                        handOver={nurse}
+                        sent={sent[turn.id]}
+                        onSend={() => handTo(turn)}
+                      />
+                    )}
                     {turn.unread && (
                       <Unread
                         sos={sos}
@@ -469,8 +495,16 @@ export default function Assistant({
               if (!offered.length) return null;
               return (
                 <section key={group.id} aria-labelledby={`as-${group.id}`}>
-                  <h3 id={`as-${group.id}`}>{group.heading}</h3>
-                  {group.lead && <p>{group.lead}</p>}
+                  <h3 id={`as-${group.id}`}>
+                    {group.id === "situations"
+                      ? ui.topicsHeading
+                      : group.heading}
+                  </h3>
+                  {group.lead && (
+                    <p>
+                      {group.id === "situations" ? ui.topicsLead : group.lead}
+                    </p>
+                  )}
                   <div className="as-chips">{offered.map(chip)}</div>
                 </section>
               );
@@ -483,6 +517,7 @@ export default function Assistant({
             )}
           </div>
 
+          <NotConnected of="voice" />
           <section className="as-rule" aria-labelledby="as-refusals">
             <h3 id="as-refusals">{conversation.refusalsHeading}</h3>
             <ul>

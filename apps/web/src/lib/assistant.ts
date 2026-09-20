@@ -658,9 +658,9 @@ export const emergencyAnswer = {
 
 /* ---- What a reply says out loud ------------------------------------------------------------------
  * The speech seam's read half, the way `cueOf` is the affect seam's. The founder's decision of
- * 19 September 2026 (`voice.webSpeech`, off) is that the live assistant does not yet speak, and
- * the panel hands every reply's own words to the adapter anyway — so the day the flag is
- * switched on there is nothing left to decide, no sentence to find and no number to fetch.
+ * 19 September 2026 (`voice.webSpeech`) was switched on the next day, and the panel hands every
+ * reply's own words to the adapter — so every sentence a patient hears is read from the reply
+ * itself, with nothing left to decide, no sentence to find and no number to fetch.
  *
  * The words are the reply's own, exactly as ReplyBody writes them on the panel: every paragraph
  * and list the reply carries, in the order the screen shows them, and nothing it does not carry

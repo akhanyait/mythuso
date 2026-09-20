@@ -620,7 +620,8 @@
   background: color-mix(in srgb, var(--brand-mint) 30%, var(--surface));
 }
 .as-voice-state,
-.as-voice-heard {
+.as-voice-heard,
+.as-voice-browser {
   margin: 0;
   font-size: 13px;
   line-height: 1.45;
@@ -800,7 +801,8 @@
   .as-silence,
   .as-keyboard,
   .as-voice-state,
-  .as-voice-heard {
+  .as-voice-heard,
+  .as-voice-browser {
     font-size: 12px;
     line-height: 1.4;
   }
@@ -877,11 +879,209 @@
   .as-silence,
   .as-keyboard,
   .as-voice-state,
-  .as-voice-heard {
+  .as-voice-heard,
+  .as-voice-browser {
     font-size: 12px;
     line-height: 1.4;
   }
   .as-keyboard {
     padding-top: var(--space-8);
+  }
+}
+
+/* Keep a usable conversation viewport even with large text or the phone keyboard open.
+   When the fixed content no longer fits, the whole frame can scroll as well. */
+.as-frame {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.as-scroll {
+  overflow-wrap: anywhere;
+}
+.as-head,
+.as-head[data-asked] {
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 12px;
+  padding-block: 8px;
+}
+.as-head .as-bar {
+  grid-column: 1 / -1;
+}
+.as-head .as-rig,
+.as-head[data-asked] .as-rig {
+  --rig: 64px;
+  grid-column: 1;
+  margin-top: 0;
+}
+.as-head .as-caption {
+  grid-column: 2;
+  justify-items: start;
+  text-align: left;
+}
+.as-head .as-state {
+  justify-self: start;
+}
+
+@media (max-height: 550px) {
+  .as-scroll {
+    flex: 1 0 50dvh;
+  }
+}
+
+/* Conversation first: a quiet reading surface, with controls separated from the transcript. */
+.as-panel {
+  background: var(--surface);
+  color: var(--brand-ink);
+}
+.as-head {
+  background: var(--brand-ink);
+}
+.as-scroll {
+  background: color-mix(in srgb, var(--brand-mint) 9%, var(--surface));
+}
+.as-reply {
+  width: 100%;
+  background: var(--surface);
+  border-color: var(--stone);
+  border-radius: 16px;
+  color: var(--brand-ink);
+}
+.as-who,
+.as-quiet,
+.as-asks h3,
+.as-asks p,
+.as-rule h3,
+.as-rule p,
+.as-rule ul,
+.as-again,
+.as-numbers strong,
+.as-numbers span {
+  color: var(--brand-ink);
+}
+.as-said {
+  background: var(--brand-ink);
+  color: var(--surface);
+  border-radius: 16px 16px 4px 16px;
+}
+.as-asks {
+  border-color: var(--stone);
+}
+.as-ask {
+  background: var(--surface);
+  border-color: var(--brand-green);
+  color: var(--brand-ink);
+}
+.as-go {
+  background: var(--brand-ink);
+  color: var(--surface);
+}
+.as-compose {
+  background: var(--surface);
+  border-color: var(--stone);
+}
+.as-compose label,
+.as-keyboard,
+.as-silence,
+.as-voice-state,
+.as-voice-heard,
+.as-voice-browser {
+  color: var(--brand-ink);
+}
+.as-field {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+.as-field input {
+  grid-column: 1;
+  grid-row: 1;
+  border-color: var(--brand-green);
+  border-radius: 14px;
+}
+.as-send {
+  grid-column: 2;
+  grid-row: 1;
+  background: var(--brand-ink);
+  color: var(--surface);
+  border-radius: 14px;
+}
+.as-voice {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: 100%;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--brand-mint) 25%, var(--surface));
+  border-color: var(--brand-green);
+  color: var(--brand-ink);
+}
+.as-voice[aria-pressed="true"] {
+  background: var(--brand-ink);
+  color: var(--surface);
+  border-color: var(--brand-orange);
+}
+.as-voice-lines {
+  grid-row: 3;
+}
+.as-keyboard {
+  border-color: var(--stone);
+}
+.as-head .as-rig {
+  --rig: 72px;
+}
+.as-head[data-asked] .as-rig {
+  --rig: 72px;
+}
+.as-head .as-caption {
+  color: var(--surface);
+}
+.as-send:hover,
+.as-go:hover {
+  background: var(--brand-green);
+  color: var(--surface);
+}
+.as-ask:hover {
+  background: var(--brand-mint);
+}
+/* On the smallest phones the voice button shares the label row, leaving the field intact. */
+@media (max-width: 359px) {
+  .as-compose {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0 8px;
+  }
+  .as-compose > label {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .as-field {
+    display: contents;
+  }
+  .as-field input {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .as-send {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .as-voice {
+    grid-column: 2;
+    grid-row: 1;
+    width: 124px;
+    padding-inline: 8px;
+  }
+  .as-voice-lines {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  .as-silence {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+  .as-keyboard {
+    padding-top: 4px;
   }
 }

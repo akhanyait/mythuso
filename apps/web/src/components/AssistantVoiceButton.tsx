@@ -1,3 +1,4 @@
+import ui from "../../../../packages/catalog/assistant-ui.json";
 import { useEffect, useRef, useState } from "react";
 import { Mic, MicOff } from "lucide-react";
 import { voice as voicePolicy } from "../../../../packages/catalog/assistant.json";
@@ -64,13 +65,16 @@ export function AssistantVoiceButton({
 
   /* A browser with no speech recognition gets no control. Drawing one that cannot hear is the
      decorative affordance the capability's own rule refuses, and the sentence says what is true
-     instead: nothing was asked for and nothing was opened. There is no disclosure to show before a
-     tap that cannot open anything, but the slot still carries the screen's note, because the field's
-     description points at it. */
+     instead: nothing was asked for and nothing was opened. Beside it sits the contract's own
+     browser notice — the state line says what this browser lacks, and the notice names the
+     browsers that would work, because a patient on a browser that cannot hear has no way to guess
+     which ones can. There is no disclosure to show before a tap that cannot open anything, but the
+     slot still carries the screen's note, because the field's description points at it. */
   if (!voice.supported) {
     return (
       <div className="as-voice-lines">
         <p className="as-voice-state">{voice.unavailable}</p>
+        <p className="as-voice-browser">{voicePolicy.browserNotice}</p>
         <p id="as-keyboard" className="as-keyboard">
           {typingNote}
         </p>
@@ -94,11 +98,7 @@ export function AssistantVoiceButton({
 
   return (
     <>
-      {/* The icon is never the whole answer. Its name is the contract's own label, worn as the
-          accessible name, and the words are on the screen under the row wherever the row is: the
-          disclosure before the first tap, the state line after it. Printed beside the icon they would
-          cost 200px of a field row that is a 400px card on a laptop and 350px on a phone, and the thing
-          that row must never be squeezed for is the text field a person types in. */}
+      {/* The written action accompanies the icon; the full accessible label still names GilbertOne. */}
       <button
         type="button"
         className="as-voice"
@@ -111,10 +111,11 @@ export function AssistantVoiceButton({
         }}
       >
         {capturing ? (
-          <MicOff size={16} aria-hidden="true" />
+          <MicOff size={20} aria-hidden="true" />
         ) : (
-          <Mic size={16} aria-hidden="true" />
+          <Mic size={20} aria-hidden="true" />
         )}
+        <span>{capturing ? label : ui.talkLabel}</span>
       </button>
       <div className="as-voice-lines">
         {/* Before the first tap the disclosure below already says the microphone stays shut until she

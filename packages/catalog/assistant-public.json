@@ -1,0 +1,47 @@
+{
+  "scope": "Public website only. This contract has no account, patient, clinical, booking or payment access. It is used only on the signed-out website; native patient assistants keep their existing contract.",
+  "label": "MyThuso website guide · no sign-in needed",
+  "welcome": "Hello, I’m GilbertOne. I can explain MyThuso and help you find information on this website. Choose a question below or type a MyThuso question.",
+  "privacy": "Please do not share personal or health information. This chat stays in this page’s memory and is cleared when you reload. Nothing you type here is sent to an AI service.",
+  "refusal": "I can only answer approved questions about MyThuso and mythuso.co.za. I cannot give medical advice, access accounts or records, make bookings or payments, or answer unrelated questions. Please choose a question below.",
+  "inputLabel": "Ask about MyThuso",
+  "inputHint": "For example: what is MyThuso?",
+  "questions": [
+    {
+      "id": "about", "question": "What is MyThuso?",
+      "aliases": ["what is mythuso", "tell me about mythuso", "how does mythuso work", "what does mythuso do", "what is this website", "who owns mythuso"],
+      "answer": "MyThuso is a planned nurse-led home healthcare service from Akhanya IT Innovations in Johannesburg. The design brings a registered nurse to your home, with doctor review where needed. This website currently shows a preview, not a live care service.",
+      "href": "/#how", "linkLabel": "Read how MyThuso is designed to work"
+    },
+    {
+      "id": "services", "question": "What services are planned?",
+      "aliases": ["what services are planned", "what services does mythuso offer", "mythuso services", "services", "what care is available"],
+      "answer": "The website describes planned home-care services such as routine nursing visits, chronic checks, wound care and sample collection. These are preview offerings; this chat cannot arrange care.",
+      "href": "/#services", "linkLabel": "Explore the service catalogue"
+    },
+    {
+      "id": "availability", "question": "Can I book or sign in yet?",
+      "aliases": ["can i book or sign in yet", "can i book", "can i book a visit", "is mythuso live", "is mythuso available", "can i sign in", "how do i sign in", "where is mythuso available", "does mythuso cover my area", "is this a demo"],
+      "answer": "The website is a preview. Real sign-in, bookings and payments are not connected. Choosing a role opens a simulated workspace, not an authenticated account. The status page explains what is connected and what still needs to be built.",
+      "href": "/status/", "linkLabel": "Check current service status"
+    },
+    {
+      "id": "plans", "question": "Where can I see prices and plans?",
+      "aliases": ["where can i see prices and plans", "how much does mythuso cost", "what does it cost", "mythuso prices", "prices", "care plans", "what plans does mythuso offer", "do i need medical aid"],
+      "answer": "The website shows catalogue prices and planned care plans. Read them on the website for the current figures; they are not a booking quote or a live payment offer. MyThuso is being designed so that medical aid is not required.",
+      "href": "/#plans", "linkLabel": "See the care plans"
+    },
+    {
+      "id": "nurses", "question": "Where can nurses learn more?",
+      "aliases": ["where can nurses learn more", "how can i join as a nurse", "i am a nurse", "nurse requirements", "who would come to my house", "are nurses verified"],
+      "answer": "The website describes the planned nurse pathway and required checks, including South African Nursing Council registration. A preview profile does not establish that a real nurse has been verified or assigned to you.",
+      "href": "/#nurses", "linkLabel": "Read the nurse pathway"
+    },
+    {
+      "id": "privacy", "question": "What about privacy and safety?",
+      "aliases": ["what about privacy and safety", "privacy", "is my data safe", "do you save this chat", "do you store my messages", "can you see my records", "what happens to my health information"],
+      "answer": "This website guide cannot access health records or accounts. It does not submit your messages to a server or save them after a reload. The website describes planned safety requirements; the status page explains which services are not connected.",
+      "href": "/#safety", "linkLabel": "Read the safety requirements"
+    }
+  ]
+}

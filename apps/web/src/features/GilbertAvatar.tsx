@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useId, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
  BLEND_INSTANT_MS, BLEND_MS, NEUTRAL, START, captionSteps, clampPose, cueById, reduce,
  type Cue, type MouthShape, type Pose, type RigState
@@ -194,41 +194,48 @@ export type AvatarProps = {
  readonly blend?: number;
  /** Demonstrates AT12: the rig throws and the widget's boundary keeps the surface usable. */
  readonly fail?: boolean;
+ /** A welcome may smile; neutral reply poses must never acquire a smile from the artwork. */
+ readonly friendly?: boolean;
 };
 
-export function GilbertAvatar({ pose, size, blend = BLEND_MS, fail = false }: AvatarProps) {
+export function GilbertAvatar({ pose, size, blend = BLEND_MS, fail = false, friendly = false }: AvatarProps) {
  /* AT12 asks what happens when the avatar fails. The honest way to test it is to be able to make it
     fail on purpose, so the demonstrator can, and the boundary in GilbertWidget.tsx catches it. */
  if (fail) throw new Error('GilbertOne rig: a deliberate failure, fired from the demonstrator to show that the surface around it keeps working.');
+ const shellId = useId();
+ const [artworkFailed, setArtworkFailed] = useState(false);
  const { lookX, lookY, yaw, pitch, tilt, lift, lid, brow, mouth, jaw } = pose;
  const open = isOpen(mouth);
  const [scaleX, scaleY] = open ? OPEN[mouth] : [1, 1];
  return (
   <svg className="go-rig" viewBox="0 0 200 200" width={size} height={size} aria-hidden="true" focusable="false"
        style={{ '--go-blend': `${blend}ms` } as React.CSSProperties}>
+   <defs><radialGradient id={shellId} cx="40%" cy="36%" r="75%">
+    <stop offset="0%" stopColor="var(--brand-mint)"/>
+    <stop offset="30%" stopColor="var(--brand-green)"/>
+    <stop offset="100%" stopColor="var(--brand-ink)"/>
+   </radialGradient></defs>
    {/* The only thing beneath the character, and it is a shadow rather than a stage. */}
    <ellipse className="go-shadow" cx="100" cy="188" rx={42 - lift} ry="5.5"/>
-   <g className="go-neck" style={{ transform: `translate(${yaw * 0.3}px, ${-lift * 0.4}px)` }}>
-    <rect x="82" y="138" width="36" height="28" rx="12"/>
-    <rect className="go-collar" x="66" y="158" width="68" height="16" rx="8"/>
-   </g>
    <g className="go-head" style={{ transform: `translate(${yaw * 0.55}px, ${-lift + pitch * 0.35}px) rotate(${tilt}deg)` }}>
-    <rect className="go-ear" x="24" y="78" width="14" height="36" rx="7"/>
-    <rect className="go-ear" x="162" y="78" width="14" height="36" rx="7"/>
-    {/* The lime is one dot. §02 allows very limited highlights and this is the whole of the budget. */}
-    <circle className="go-lime" cx="31" cy="96" r="3.4"/>
-    <rect className="go-shell" x="34" y="24" width="132" height="126" rx="44"/>
-    {/* The forehead accent: small, orange, and never carrying text. */}
-    <rect className="go-accent" x="92" y="36" width="16" height="6" rx="3"/>
-    <g className="go-face" style={{ transform: `translate(${yaw * 0.9}px, ${pitch * 0.7}px)` }}>
+    <g className="go-shell">
+     {artworkFailed ? <rect x="34" y="24" width="132" height="126" rx="44" style={{ fill: `url(#${shellId})` }}/>
+      : <image href="/brand/gilbert-robot.webp" x="0" y="-10" width="200" height="200" onError={() => setArtworkFailed(true)}/>}
+    </g>
+    <g className="go-face go-visor" style={{ transform: `translate(${yaw * 0.9}px, ${pitch * 0.7}px)` }}>
      <g className="go-brows" style={{ transform: `translate(0px, ${-brow * 4}px)` }}>
-      <path className="go-brow" d="M 67 57 Q 78 52 89 54"/>
-      <path className="go-brow" d="M 111 54 Q 122 52 133 57"/>
+      <path className="go-brow" d="M 67 73 Q 78 68 89 70"/>
+      <path className="go-brow" d="M 111 70 Q 122 68 133 73"/>
      </g>
-     <rect className="go-visor" x="50" y="64" width="100" height="48" rx="22"/>
+     {artworkFailed && <rect x="50" y="64" width="100" height="48" rx="22"/>}
      <g className="go-eyes" style={{ transform: `translate(${lookX * 7}px, ${lookY * 4}px)` }}>
-      <ellipse className="go-eye" cx="80" cy="88" rx="9" ry="10"/>
-      <ellipse className="go-eye" cx="120" cy="88" rx="9" ry="10"/>
+      {mouth === 'flat' || !(friendly || mouth === 'smile' || mouth === 'warm') ? <>
+       <ellipse className="go-eye" cx="80" cy="88" rx="7" ry="9"/>
+       <ellipse className="go-eye" cx="120" cy="88" rx="7" ry="9"/>
+      </> : <>
+       <path className="go-eye go-eye-arc" d="M 71 91 Q 80 75 89 91"/>
+       <path className="go-eye go-eye-arc" d="M 111 91 Q 120 75 129 91"/>
+      </>}
       {/* The lids are the visor's own colour, so a closed eye is the visor rather than a shutter. */}
       <rect className="go-lid" x="69" y="76" width="22" height="26" style={{ transform: `scaleY(${lid})` }}/>
       <rect className="go-lid go-lid-right" x="109" y="76" width="22" height="26" style={{ transform: `scaleY(${lid})` }}/>

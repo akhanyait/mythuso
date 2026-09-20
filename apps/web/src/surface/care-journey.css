@@ -64,7 +64,7 @@
 
 .journey-edit-links { display:flex;flex-wrap:wrap;gap:4px 16px; }
 
-/* The floating assistant: a small lit orb, bottom right, on every patient page. It opens the panel
+/* The floating assistant: a small lit robot head, bottom right, on every patient page. It opens the panel
    in features/Assistant.tsx, a lazy chunk; this is the only part in the entry, so it is kept to
    the fewest rules that still read as alive. The dock is a zero-height row the shell places just
    above the tab bar (or at the foot of the column on a wide screen), and the orb rises out of it,
@@ -74,16 +74,17 @@
    composed from two sine-like strokes a quarter-turn apart, so it stays round instead of being
    squashed with the ring. */
 .al-dock { position:relative; z-index:40; height:0; }
-.as-launcher { position:absolute; right:var(--space-16); bottom:var(--space-12); width:60px; height:60px; padding:0; border:0; border-radius:50%; background:var(--brand-ink); box-shadow:var(--shadow-raised); cursor:pointer; }
+.as-launcher { position:absolute; right:var(--space-16); bottom:var(--space-12); width:88px; height:88px; padding:0; border:0; border-radius:18px; background:transparent; box-shadow:none; cursor:pointer; }
 .as-launcher[aria-expanded=true] { opacity:0; }
-.as-launcher span { position:absolute; border-radius:50%; }
-.al-glow { inset:4px; opacity:.7; background:radial-gradient(closest-side, var(--brand-green), transparent); }
-.al-orb { inset:14px; background:radial-gradient(circle at 40% 36%, var(--brand-mint), var(--brand-green) 30%, var(--brand-ink) 86%); }
-.al-orb::after { content:''; position:absolute; left:24%; top:20%; width:5px; height:5px; border-radius:50%; background:var(--surface); box-shadow:0 0 4px var(--brand-lime); }
-.al-ring { inset:8px; border:1px solid color-mix(in srgb, var(--brand-mint) 35%, transparent); transform:rotate(-24deg) scaleY(.36); }
-.al-spark { left:50%; top:50%; transform:rotate(-24deg); }
-.al-spark i { position:absolute; transform:translateX(-16px); }
-.al-spark i::after { content:''; position:absolute; width:6px; height:6px; margin:-3px; border-radius:50%; background:var(--brand-lime); transform:translateY(6px); }
+.as-launcher span { position:absolute; }
+.al-glow { inset:0; background:none; }
+.as-launcher .al-orb { inset:0; background:url('/brand/gilbert-robot.webp') center / contain no-repeat; }
+.al-orb::before, .al-orb::after { box-sizing:border-box; content:''; position:absolute; top:49%; width:14%; height:11%; border:3px solid #62fff3; border-bottom:0; border-radius:50% 50% 0 0; box-shadow:0 -1px 3px #62fff3; }
+.al-orb::before { left:31%; }
+.al-orb::after { right:31%; }
+.al-ring, .al-spark { display:none; }
+@keyframes al-blink { 0%, 46%, 50%, 100% { transform:scaleY(1); } 48% { transform:scaleY(.08); } }
+:root[data-decor=on] .al-orb::before, :root[data-decor=on] .al-orb::after { animation:al-blink 5.5s linear infinite; }
 .al-note { position:absolute; right:var(--space-16); bottom:84px; width:260px; margin:0; padding:var(--space-12); border-radius:var(--r-control); background:var(--surface); box-shadow:var(--shadow-raised); font-size:14px; }
 @keyframes al-breathe { to { transform:scale(1.14); opacity:1; } }
 @keyframes al-x { from { transform:translateX(-22px); } to { transform:translateX(22px); } }

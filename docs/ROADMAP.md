@@ -304,6 +304,14 @@ and name and no role even when the identity service runs, the `/api/` block is c
 
 ### Phase 4 — general queries for a signed-out visitor
 
+**19 September 2026 update:** The founder reaffirmed a MyThuso-only signed-out assistant. Implemented a website-only surface with the shared robot rig and emergency detector, six approved FAQ topics and same-site source links. Unknown or mixed questions are refused, with no paid model call. Native patient scopes and simulated role workspaces are unchanged. Deploy remains a separate approval. Suggested follow-ups: approved FAQ aliases from user feedback, translated approved answers, and a verified contact route when available.
+
+Verification for this public-guide change: `npm run check`, `node scripts/check-boundaries.mjs`, `npm test`, all four public-assistant Playwright cases, the web production build, iOS simulator build, and Android assemble/lint passed. The browser checks cover scope refusals, mixed requests, emergency precedence, source links, memory-only conversation behaviour, no POST requests, and 320px layout.
+
+Release measurement: the combined chat-layout, robot-colour and public-guide tree builds to **283.07 kB across 14 files**, counting every script, module preload and stylesheet referenced by `apps/web/dist/index.html`, gzipped at level 9. This is **0.91 kB above the recorded 282.16 kB budget** and requires the founder’s decision before deployment.
+
+The following was the pre-implementation gap assessment:
+
 `assistant.json` holds 8 questions in 2 groups and 4 situations; everything else returns
 `answers.unmatched`. `features/Landing.tsx` has no assistant reference at all, so there is nowhere to
 mount one. This phase is cheap in code and expensive in authoring, because the sentences have to be
@@ -340,3 +348,27 @@ real artwork; the artwork is not drawn.
   assumption in the product is Johannesburg's.
 - **Wearables.** Three device integrations are already offered and none is connected. A fourth
   would be a fourth thing that does not work.
+
+### Founder-requested presentation polish — 19 September 2026
+
+Transparent robot launchers, blinking, a one-time dismissible hello, and simpler chat/voice controls implemented on both web surfaces. No model calls or new dependencies. The app launcher remains CSS-only to avoid eagerly loading the animated rig. Web-only presentation words and greeting timing live in `packages/catalog/assistant-ui.json`. Deployment is a separate run awaiting approval.
+
+Verification: typechecks, full boundary checks, package tests, iOS simulator build and Android assemble/lint passed. Twenty-two focused browser cases passed, followed by both conversation-layout cases after correcting the narrow-phone grid. Motion pause/reduced motion, microphone disclosure and draft-before-send behaviour remain covered.
+
+Production build passed. Patient entry: 284.08 kB across 15 files, gzip level 9 using the documented method; +1.01 kB versus the approved 283.07 kB deployment. This new increase and this deployment run await founder approval.
+
+### Reference robot update — 19 September 2026
+
+The founder supplied a white/chrome, black-visor, teal-lit robot reference. One transparent 256px WebP (12,516 bytes) is shared by both 88px launchers and the animated panel rig, with eyes animated in code and safety poses retaining neutral eyes. The one-time greeting is retained and raised above the larger launcher.
+
+Concurrent sessions changed clinical contracts and engine code while this artwork was being checked. The deployable web-only snapshot is `/tmp/mythuso-robot-release`, based on commit `4dbe04b0549f4a705cc40627236fa2e9eb73eb21` plus the previous approved web changes and this robot update; `RELEASE-SCOPE.txt` lists the overlays. Do not deploy the shared checkout for this visual request. Use Node 22 for the isolated snapshot. A specific deployment approval is still required.
+
+Robot release verification: 284.01 kB patient entry across 15 files (gzip level 9), plus a separately cached 12516-byte image. Isolated web build, boundary checks, 13 focused browser checks and two neutral-expression checks passed; one desktop-only inapplicable phone test skipped.
+
+### GilbertOne's speech switched on — 20 September 2026
+
+The founder switched `voice.webSpeech` on in `packages/catalog/assistant.json` — the flag built on 19 September — and the same sitting wired the two faces the contract now records under `affect.voiceMoments`: A07 attends a genuinely open microphone, dispatched from the adapter's own state and displaced by safety and error by rank, and A10 is the mouth against the reply's own words, fired from the utterance's own start, word-boundary and end events — never a timer — with a held safety face refusing it outright. `voice.browserNotice` names the browsers that work beside the state line a browser with no speech recognition already shows. The caption rule (the written words stay on the screen in full, unswitchable) and §07's V03 refusal are unchanged and still checked.
+
+Verification: `npm run check`, `node scripts/check-boundaries.mjs`, the full package test suite, and focused browser runs over the assistant, polish, public-assistant, GilbertOne, landing and motion specs — 136 passed, 4 skipped, both viewports — on the shared checkout. The assistant emitter writes no change: native data carries none of the web-only voice fields, and no native file changed.
+
+Release measurement: **284.00 kB patient entry across 15 files**, gzip level 9 the documented way — 0.01 kB below the 284.01 kB robot release deployed on the morning of 20 September, and above the 282.16 kB figure recorded on 16 September, which the founder's approvals of the 283.07 kB and 284.01 kB deployments already accepted. The speech increment costs the entry nothing: it lives in the assistant's lazy chunk. Deployment: founder-approved run on 20 September 2026.

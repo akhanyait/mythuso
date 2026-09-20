@@ -626,10 +626,6 @@
         "why": "Phase 1's single default for every answered turn. Phase 2 gave each answer kind its own face, and a nod that can read as agreement is not any answer's face — A09's own words are 'not to imply that an unsafe or false statement is correct'."
       },
       {
-        "cue": "A10",
-        "why": "Speech is wired behind voice.webSpeech and the flag is off — the founder's decision of 19 September 2026 — so the mouth never moves today. When the flag is on it will move only against the reply's own words, already written on the screen beside it, and it closes on Stop, on cancel, on failure, under reduced motion and on a hidden tab."
-      },
-      {
         "cue": "A14",
         "why": "Playful-only, and off by default in care conversations by the document's own rule; no patient surface switches it on."
       },
@@ -637,7 +633,17 @@
         "cue": "A15",
         "why": "The interrupt cue. The live panel's one stop is the patient's own Start again, which rests the face rather than interrupting it."
       }
-    ]
+    ],
+    "voiceMoments": {
+      "capture": {
+        "cue": "A07",
+        "why": "The microphone half of the conversation, wired on 20 September 2026 the way the reply half is: the panel dispatches it from the adapter's own open state, so the face attends to a microphone that is genuinely capturing and to no other moment, and never to the button. A07 is a one-shot rather than a hold — its walk settles and releases the face — because the panel's rig has no safe way back to rest while a conversation is up: a rest would drop a held safety face, and a hold with no release would refuse every reply face that follows it. Safety and error displace it by rank while it runs, like any activity."
+      },
+      "speaking": {
+        "cue": "A10",
+        "why": "The reply half, wired on 20 September 2026 when the founder switched voice.webSpeech on, and the entry that replaces this cue's notWired one. A10 runs only against the reply's own words: the panel fires it from the utterance's own start event, each word boundary re-plays it against that word, and the utterance's end closes the mouth — never a timer. The caption is the reply itself, already on the screen before the voice starts; the mouth closes on Stop, on cancel, on failure, under reduced motion and on a hidden tab, and a held safety face refuses it outright, which is neverSoften made visible."
+      }
+    }
   },
   "audiences": {
     "decidedBy": "Founder",
@@ -732,10 +738,11 @@
       "reverses": "voice.web = false, decided 14 September 2026"
     },
     "webSpeech": {
-      "enabled": false,
+      "enabled": true,
       "decidedBy": "Founder",
-      "on": "2026-09-19",
-      "why": "The third decision of 19 September 2026: GilbertOne speaking on the live assistant is built behind this flag, and the flag is off, so the decision to let it speak to a patient is taken after hearing the character demonstrator rather than in hope. What is built is the whole path — every reply's own words handed to the adapter as the reply lands, the utterance, the caption-driven mouth — and what is off is the one boolean in front of all of it, read in lib/voice.ts before anything is reached for, so that while it is false no utterance is constructed on the live assistant and nothing at all is asked of the browser's voice. The rules that hold the day the flag is switched on are written here so that switching it on is not also the moment they are decided: the caption is the reply itself, already written on the screen in full before the voice starts and for as long as it speaks, mandatory and not switchable — there is no setting anywhere that turns the written words off, because a spoken reply is another reading of the words and never a replacement for them; the mouth closes on Stop, on cancel, on failure, under reduced motion and on a hidden tab, the five the demonstrator's A10 already obeys; and §07's V03 refusal stands — no voice is selected, no voice is listed, and no South African voice is promised, implied or looked for, because the contract says not to guarantee one is installed. Switching this flag on is the founder's decision recorded here, not an edit."
+      "on": "2026-09-20",
+      "why": "Switched on by the founder on 20 September 2026, for the demonstrator: the whole path built on 19 September is now live on the live assistant, so every reply is read aloud in its own words while the same words stay written on the screen beside it. The switch changes nothing about the rules it was built under. The caption is the reply itself, already written on the screen in full before the voice starts and for as long as it speaks, mandatory and not switchable — there is no setting anywhere that turns the written words off, because a spoken reply is another reading of the words and never a replacement for them. The mouth closes on Stop, on cancel, on failure, under reduced motion and on a hidden tab — the five the demonstrator's A10 already obeys — and a held safety face refuses the cue outright. §07's V03 refusal stands unchanged: no voice is selected, no voice is listed, and no South African voice is promised, implied or looked for, because the contract says not to guarantee one is installed. Switching this flag off again is the founder's decision recorded here, not an edit.",
+      "reverses": "voice.webSpeech.enabled = false, decided 19 September 2026"
     },
     "webPoc": {
       "enabled": true,
@@ -766,6 +773,7 @@
         "error": "The microphone is not open, and nothing was kept. You can try again, or type."
       }
     },
+    "browserNotice": "Voice input works best in Chrome or Edge. Your browser may not support speech recognition.",
     "sentences": {
       "howItWorks": "Tap the sphere and speak in English. GilbertOne listens until you tap Stop, or for {seconds} seconds at most, turns what you say into text on this phone, and shows it to you to correct before anything is sent.",
       "beforePermission": "Your phone is about to ask whether MyThuso may use the microphone and speech recognition. GilbertOne uses them only after you tap the sphere, in English, on this phone. No recording is made and nothing you say leaves the phone.",

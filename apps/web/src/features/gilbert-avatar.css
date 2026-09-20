@@ -1,7 +1,7 @@
 /* GilbertOne's rig. Loaded with features/GilbertAvatar.tsx, which is only ever reached through a
    dynamic import, so none of this is on a patient's first load.
 
-   The palette is §02's and every value is a token: a white shell on the surface colour, the brand
+   The founder requested the sphere palette on 19 September: a mint/green/ink shell, the brand
    ink for the visor, the soft teal mint for the eyes, one small orange accent on the forehead and a
    single lime dot. Nothing here paints a background. The character sits on whatever it is put on,
    because §02 asks for a genuine alpha canvas — no panel, no haze, no orbit ring, no glow cloud —
@@ -29,12 +29,12 @@
 
 .go-shadow { fill: color-mix(in srgb, var(--ink) 16%, transparent); }
 .go-shell { fill: var(--surface); stroke: var(--stone); stroke-width: 1.2; }
-.go-ear { fill: var(--stone); }
-.go-neck rect { fill: var(--cloud); }
-.go-collar { fill: var(--stone); }
+.go-ear { fill: var(--brand-green); }
+.go-neck rect { fill: var(--brand-green); }
+.go-collar { fill: var(--brand-mint); }
 .go-visor, .go-lid, .go-mouth-open { fill: var(--brand-ink); }
 .go-eye { fill: var(--brand-mint); }
-.go-brow, .go-mouth-line { fill: none; stroke: var(--brand-ink); stroke-linecap: round; }
+.go-brow, .go-mouth-line { fill: none; stroke: var(--brand-mint); stroke-linecap: round; }
 .go-brow { stroke-width: 3.4; }
 .go-mouth-line { stroke-width: 4; }
 .go-accent { fill: var(--brand-orange); }
@@ -50,3 +50,10 @@
 @media (prefers-reduced-motion: reduce) {
  .go-rig g, .go-rig path, .go-rig ellipse, .go-rig rect { transition: none; }
 }
+
+/* The reference robot has a black visor; cyan articulation remains owned by the pose controller. */
+.go-shell { stroke: none; }
+.go-visor, .go-lid, .go-mouth-open { fill: #020b0e; }
+.go-eye { fill: #62fff3; }
+.go-eye-arc { fill: none; stroke: #62fff3; stroke-width: 4; stroke-linecap: round; }
+.go-brow, .go-mouth-line { stroke: #62fff3; }

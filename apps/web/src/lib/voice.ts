@@ -12,10 +12,10 @@ import { voice as voicePolicy } from "../../../../packages/catalog/assistant.jso
  * route to the live assistant so a patient who cannot type can speak. Both decisions are on file —
  * `voice.webPoc` and `voice.webDecision` in packages/catalog/assistant.json — and this file reads
  * both rather than holding a sentence of its own. On 19 September the founder took the third
- * decision this file carries: the live assistant speaking back is built behind `voice.webSpeech`
- * and the flag is off, so `speak` for the assistant surface refuses before anything is reached for,
- * and the decision to let GilbertOne speak to a patient is taken after hearing the demonstrator
- * rather than in hope.
+ * decision this file carries: the live assistant speaking back is built behind `voice.webSpeech`,
+ * switched on the next day for the demonstrator — so `speak` for the assistant surface reads the
+ * reply aloud, and the flag is still read here, before anything is reached for, so the day it is
+ * switched off again the refusal returns without a line of code being edited.
  *
  * SO THE BOUNDARY IS THIS FILE. scripts/check-boundaries.mjs allows the speech APIs here and refuses
  * them in every other file under apps/web/src, the same way the microphone lives in exactly one file
@@ -56,9 +56,10 @@ export type VoiceSurface = "demonstrator" | "assistant";
 export const MAX_LISTENING_SECONDS = voicePolicy.webPoc.maxListeningSeconds;
 
 /** Whether the contract lets a surface speak out loud. The demonstrator's §07 decision
- *  (`voice.webPoc`, 17 September 2026) says yes; the live assistant's speech decision (`voice.webSpeech`,
- *  19 September 2026) says not yet, and the flag is read here — in the one file that names a
- *  synthesiser — so that no caller can speak past it and no caller has to hold the rule itself. */
+ *  (`voice.webPoc`, 17 September 2026) says yes; the live assistant's speech decision
+ *  (`voice.webSpeech`, switched on 20 September 2026) says yes too, and the flag is read here —
+ *  in the one file that names a synthesiser — so that no caller can speak past it and no caller
+ *  has to hold the rule itself. */
 const SPEAKS: Record<VoiceSurface, boolean> = {
   demonstrator: voicePolicy.webPoc.enabled,
   assistant: voicePolicy.webSpeech.enabled,

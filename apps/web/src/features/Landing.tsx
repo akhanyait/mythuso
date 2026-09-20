@@ -21,6 +21,7 @@ const SLIDE_MS = 7000;
    preview workspace; real authentication remains the identity service's responsibility. */
 const appHref = '/?role=patient';
 const LoginPanel = lazy(() => import('./LoginPanel'));
+const PublicAssistant = lazy(() => import('./PublicAssistant'));
 const nurseHref = '/?role=nurse';
 const homeHref = '/';
 /* And the status page, in the directory form nginx serves. Linking to the bare .html would
@@ -477,6 +478,7 @@ export function Landing() {
    </div>
   </section>
 
+  <Suspense fallback={null}><PublicAssistant/></Suspense>
   <footer className="landing-footer">
    <div>
     <img src="/brand/mythuso-logo.svg" alt="MyThuso"/>

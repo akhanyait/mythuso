@@ -1,0 +1,11 @@
+{
+  "scope": "Web presentation only; no change to assistant, voice or audience permissions.",
+  "greeting": "Hello! I’m GilbertOne. Need a hand?",
+  "dismissGreeting": "Dismiss GilbertOne’s greeting",
+  "greetingDelayMs": 4500,
+  "greetingDurationMs": 12000,
+  "welcome": "Hello, I’m GilbertOne. Type a question or choose a topic below. You can also tap the microphone to turn your words into a draft before sending.",
+  "topicsHeading": "Try a question",
+  "topicsLead": "These examples use preview information. No real visit is being monitored or booked.",
+  "talkLabel": "Tap to talk"
+}

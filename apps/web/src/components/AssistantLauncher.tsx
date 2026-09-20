@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
+import { AssistantGreeting } from './AssistantGreeting';
 import { OPEN_PARAM } from '../lib/roles';
 import type { PanelProps } from '../features/Assistant';
 import type { Visit } from '../lib/scheduling';
@@ -52,6 +53,7 @@ export function AssistantLauncher({ openModal, visit, audience }: { openModal?: 
  }, [open]);
 
  return <div className="al-dock">
+  <AssistantGreeting open={open} onOpen={() => { setOpened(true); setOpen(true); }}/>
   <button ref={button} type="button" className="as-launcher" aria-label="Ask GilbertOne" aria-haspopup="dialog"
    aria-expanded={open} aria-controls={opened ? 'assistant-panel' : undefined}
    onPointerEnter={() => void prefetch()} onFocus={() => void prefetch()}
