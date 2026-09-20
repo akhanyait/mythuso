@@ -1,0 +1,33 @@
+# The assistant API: the service the web panel's bridge reaches, after an answer the matcher could
+# not place, when an operator has configured a language-model provider — see
+# apps/assistant-api/src/lib/llm-adapter.ts for what it may and may not do. It lives in deploy/ops/
+# so the deploy installs it with the other units, and it is deliberately not enabled by it: its
+# absence is the normal state of every deployment of this build.
+#
+# Neither state is an outage, which is why nothing here alerts on failure. With no provider set, the
+# service answers exactly what the contract does; with the service down or unreachable, the panel
+# falls back to the contract on the patient's own device and looks identical. The provider
+# configuration — AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, AZURE_OPENAI_MODEL, OLLAMA_URL,
+# OLLAMA_MODEL — is read from /etc/mythuso/assistant.env, which the '-' below makes optional: a
+# unit that refuses to start over a missing file it does not need is a unit nobody can install.
+#
+# Before this may be enabled, the API's source must exist under the working directory below,
+# because ExecStart runs it in place from the repository layout (the service has no build step —
+# Node runs the TypeScript directly). The deploy currently publishes only the built web entries to
+# /var/www/mythuso, so enabling this unit without the source alongside it would fail at startup
+# rather than hum quietly.
+[Unit]
+Description=MyThuso Assistant API (GilbertOne's second tier; dark until a model provider is configured)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/mythuso
+ExecStart=/usr/bin/node apps/assistant-api/src/server.ts
+Environment=NODE_ENV=production
+EnvironmentFile=-/etc/mythuso/assistant.env
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -376,6 +376,11 @@
   font-size: 14px;
   color: var(--brand-mint);
 }
+/* A model's sentence arrives with its own line breaks, and pre-wrap keeps them: this is the one
+   reply whose paragraphs the contract cannot know in advance. */
+.as-service {
+  white-space: pre-wrap;
+}
 .as-go {
   padding: var(--space-8) var(--space-20);
   border: 0;

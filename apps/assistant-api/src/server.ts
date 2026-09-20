@@ -7,8 +7,20 @@ import { handleTurn } from './routes/turn.ts';
 
 const MAX_BODY_BYTES = 16 * 1024;
 
+/* The panel and this service are different origins in development — the vite dev server on its
+   own port, this service on 3001 — so the browser asks before either request runs. This is the
+   development answer: any origin may call, the two methods the routes carry plus the preflight,
+   and nothing but a JSON content type is accepted. A deployment that fronts both under one
+   origin never exercises any of it. */
+const CORS_HEADERS = {
+ 'access-control-allow-origin': '*',
+ 'access-control-allow-methods': 'POST, GET, OPTIONS',
+ 'access-control-allow-headers': 'content-type'
+};
+
 function send(res: ServerResponse, status: number, body: unknown): void {
  res.writeHead(status, {
+  ...CORS_HEADERS,
   'content-type': 'application/json; charset=utf-8',
   'cache-control': 'no-store',
   'x-content-type-options': 'nosniff'
@@ -36,6 +48,13 @@ async function readJsonBody(req: IncomingMessage): Promise<{ ok: true; value: un
 }
 
 const server = createServer(async (req, res) => {
+ /* The preflight, answered before any route looks at the URL or the method: no body is read,
+    nothing is classified, and the browser gets the three headers it asked about. */
+ if (req.method === 'OPTIONS') {
+  res.writeHead(204, { ...CORS_HEADERS, 'cache-control': 'no-store' });
+  res.end();
+  return;
+ }
  if (req.method === 'GET' && req.url === '/assistant/health') {
   return send(res, 200, { ok: true, mode: 'phase-2-safe' });
  }

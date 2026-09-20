@@ -13536,8 +13536,10 @@ for (const key of ["web", "webRecognition"]) {
    founder's decision recorded in the contract, not an edit. The why is held to the two rules
    that make it safe rather than merely possible — the caption rule, which keeps the written
    words on the screen in full and unswitchable while the voice speaks, and §07's V03 refusal,
-   which selects no voice and promises none, because the moment a speech flag turns on is the
-   moment somebody reaches for a voice list. */
+   which since the same day stands over the chooser rather than the voice: no voice is listed
+   and no picker is drawn, while the browser is asked for the order voice.voicePreference
+   records and promised none — because the moment a speech flag turns on is the moment somebody
+   reaches for a voice list, and what stands between that reach and a promise is checked below. */
 const webSpeech = gilbertVoice.webSpeech;
 if (!webSpeech)
   throw new Error(
@@ -13575,9 +13577,12 @@ if (
   throw new Error(
     "voice.webSpeech.why does not state the caption rule. The day the flag is switched on, the reply's own words must already be written on the screen in full and for as long as the voice speaks — mandatory, and with no setting anywhere that turns them off — and a decision that can be cited without that rule is how the rule is lost on the day it matters.",
   );
-if (!/no voice is selected/i.test(String(webSpeech.why)))
+if (
+  !/no voice is (selected|listed)/i.test(String(webSpeech.why)) ||
+  !/no South African voice is promised/i.test(String(webSpeech.why))
+)
   throw new Error(
-    "voice.webSpeech.why does not carry §07's V03 refusal. No voice is selected and no South African voice is promised, because the contract says not to guarantee one is installed — and the moment a speech flag turns on is the moment somebody reaches for a voice list.",
+    "voice.webSpeech.why does not carry §07's V03 refusal in its current form. The refusal now stands over the chooser rather than the voice — no voice is listed and no picker is drawn, while the browser is asked for an order of preference — and it still says the one thing §07 will not stop saying: no South African voice is promised, because the contract says not to guarantee one is installed. The moment a speech flag turns on is the moment somebody reaches for a voice list.",
   );
 /* And the one file allowed to name a synthesiser reads the flag for the assistant surface. The
    SPEAKS map is the whole wire between the contract's decision and the browser's voice; a map that
@@ -13589,6 +13594,56 @@ if (
 )
   throw new Error(
     "apps/web/src/lib/voice.ts no longer reads voice.webSpeech.enabled for the assistant surface of its SPEAKS map. The flag is the founder's decision of 20 September 2026 and this map is the whole wire between it and the browser's voice; a surface that stops reading it has taken the decision into code, where no date and no reason travel with it.",
+  );
+/* The voice the founder asked the browser for, decided the day the speech switch went on and
+   recorded in the same contract. The order is the decision — South African English first, then
+   British, then Australian, then any English voice — and it is pinned here because an order
+   quietly rewritten is a preference that reads as a promise about which voice speaks, which
+   §07's V03 refuses. lib/voice.ts reads the order from the record rather than typing one of its
+   own; it is the only file allowed to reach for the browser's voice list at all, and this is
+   the wire between the founder's record and that reach. */
+const voicePreference = gilbertVoice.voicePreference;
+if (!voicePreference)
+  throw new Error(
+    "voice.voicePreference is missing from packages/catalog/assistant.json. The day voice.webSpeech was switched on, the founder recorded which voice the browser is asked for — South African English first, then British, then Australian, then any English voice — and a preference that is not in the contract is a locale setting this file's authors chose on their own.",
+  );
+for (const [key, what] of [
+  ["order", "the order of preference itself"],
+  ["decidedBy", "who decided it"],
+  ["on", "the day it was decided"],
+  ["why", "the reason"],
+]) {
+  if (voicePreference[key] === undefined)
+    throw new Error(
+      `voice.voicePreference has no "${key}", which is ${what}. A voice preference that loses its provenance is a promise about which voice speaks waiting to be mistaken for a default.`,
+    );
+}
+if (!/founder/i.test(String(voicePreference.decidedBy)))
+  throw new Error(
+    `voice.voicePreference was decided by "${voicePreference.decidedBy}". Which voice reads health answers to a patient is the founder's call, the way the microphone's opening and the speech switch itself were.`,
+  );
+if (!/^\d{4}-\d{2}-\d{2}$/.test(String(voicePreference.on)))
+  throw new Error(
+    `voice.voicePreference.on is "${voicePreference.on}", which is not a date. The preference was decided with the speech switch-on of 20 September 2026, and this record deserves the same precision as every other decision in this section.`,
+  );
+if (
+  JSON.stringify(voicePreference.order) !==
+  JSON.stringify(["en-ZA", "en-GB", "en-AU", "en"])
+)
+  throw new Error(
+    `voice.voicePreference.order is ${JSON.stringify(voicePreference.order)}. The founder's order is South African English first, then British, then Australian, then any English voice — recorded in the why beside it — and changing it is the founder's decision recorded there, not an edit.`,
+  );
+if (!/never a promise/i.test(String(voicePreference.why)))
+  throw new Error(
+    "voice.voicePreference.why no longer says the preference is never a promise. §07's own row says not to guarantee a South African voice is installed, so the order is applied quietly and a browser with none of the four keeps its own default — a preference that reads as a promise is the V03 refusal undone.",
+  );
+if (
+  !/voicePolicy\.voicePreference\.order/.test(
+    read("apps/web/src/lib/voice.ts"),
+  )
+)
+  throw new Error(
+    "apps/web/src/lib/voice.ts no longer reads voice.voicePreference.order. The order is the founder's decision of 20 September 2026 and that file is the only one allowed to reach for the browser's voice list; a list read against an order typed in code is the locale setting §07's V03 refuses.",
   );
 if (
   gilbertVoice.languages.length !== 1 ||

@@ -324,6 +324,11 @@ export type Reply =
   | { kind: "voice" }
   | { kind: "emergency"; groups: EmergencyGroup[] }
   | { kind: "unmatched" }
+  /* The second-tier answer, since 20 September 2026: words a language model wrote, shown under the
+     answers.service heading only when the assistant API answered with source 'model'. It lives here
+     so the panel treats it like every other reply — face, pulse, speech, outcome — without knowing
+     or caring where the sentence came from. */
+  | { kind: "service"; text: string }
   | {
       kind: "handover";
       rows: SummaryRow[];
@@ -373,6 +378,8 @@ export function pulseOf(reply: Reply): PulseId {
       return answers.emergency.state as PulseId;
     case "unmatched":
       return answers.unmatched.state as PulseId;
+    case "service":
+      return answers.service.state as PulseId;
     case "handover":
       return answers.handover.state as PulseId;
   }
@@ -709,6 +716,18 @@ export function spokenOf(turn: Turn, audience: AudienceId): string {
         answers.unmatched.ifUrgent,
       );
       numbers(answers.unmatched.numbers);
+      break;
+    case "service":
+      /* The heading first, because it is what the screen says first: these words were written by a
+         language model rather than read from an approved sentence, and the disclosure beside them
+         is read in full — the one spoken reading this contract may never soften by omission. */
+      add(
+        answers.service.heading,
+        turn.reply.text,
+        answers.service.disclosure,
+        answers.service.ifUrgent,
+      );
+      numbers(answers.service.numbers);
       break;
     case "handover": {
       const h = answers.handover;

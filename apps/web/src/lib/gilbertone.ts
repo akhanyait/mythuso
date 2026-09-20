@@ -575,10 +575,10 @@ export const REFUSED: readonly Refusal[] = [
   },
   {
     id: "V03",
-    name: "§07's voice selection, and any promise about which voice speaks",
+    name: "§07's voice chooser, and any promise about which voice speaks",
     statement:
-      "Not built. There is no voice list and no chooser: the browser speaks in whatever voice it would use for this page's language, and no South African voice is promised, implied or looked for.",
-    why: "§07 asks for explicit playback choice and voice selection, and says in the same row not to guarantee a South African voice is installed. The playback choice is built — the switch beside the replay control is it. The selection is not, because §07 also asks that a voice be chosen by review rather than by a locale setting, and no such review has happened. A picker offering whatever the machine happened to have installed would be the locale-setting promise wearing a control.",
+      "Not built as a chooser. There is no voice list and no chooser: the browser is asked for a South African English voice first, in the order voice.voicePreference records, and another English voice or its own default stands in when it has none — so no South African voice is promised or implied to the person listening.",
+    why: "§07 asks for explicit playback choice and voice selection, and says in the same row not to guarantee a South African voice is installed. The playback choice is built — the switch beside the replay control is it. The chooser is not, because §07 also asks that a voice be chosen by review rather than by a locale setting, and no such review has happened; nothing is drawn from the browser's voice list and no picker offers whatever the machine happened to have installed. What the voice half does is narrower and on file since 20 September 2026: voice.voicePreference records the founder's order — South African English first, then British, then Australian, then any English voice — applied quietly to each spoken sentence, and a browser with none of the four keeps its own default. A standing preference is not a control and not a promise; the moment a browser's own list is drawn for choosing, it becomes both.",
   },
   {
     id: "V04",
@@ -637,7 +637,7 @@ export const VOICE_TABLE: readonly VoiceRow[] = [
     id: "output",
     capability: "Output",
     poc: "Browser speech where supported; explicit playback choice and voice selection. Do not guarantee a South African voice is installed.",
-    here: "Built, except the selection — V03. The browser reads the demonstration answer out in whatever voice it has, the switch beside Replay is §07's explicit playback choice, and the caption is on the screen for as long as the voice is speaking.",
+    here: "Built, except the chooser — V03. The browser reads the demonstration answer out in a South African English voice when it has one and in another English voice or its own default when it has not — the contract's order, applied and never promised — the switch beside Replay is §07's explicit playback choice, and the caption is on the screen for as long as the voice is speaking.",
   },
   {
     id: "mouth",

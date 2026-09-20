@@ -15,7 +15,10 @@ import { voice as voicePolicy } from "../../../../packages/catalog/assistant.jso
  * decision this file carries: the live assistant speaking back is built behind `voice.webSpeech`,
  * switched on the next day for the demonstrator — so `speak` for the assistant surface reads the
  * reply aloud, and the flag is still read here, before anything is reached for, so the day it is
- * switched off again the refusal returns without a line of code being edited.
+ * switched off again the refusal returns without a line of code being edited. The same day's
+ * decision chose the voice it reads with: `voice.voicePreference` — South African English first,
+ * then British, then Australian, then any English voice, and the browser's own default when it has
+ * none of the four — asked for quietly and promised to nobody, which is §07's own rule.
  *
  * SO THE BOUNDARY IS THIS FILE. scripts/check-boundaries.mjs allows the speech APIs here and refuses
  * them in every other file under apps/web/src, the same way the microphone lives in exactly one file
@@ -171,6 +174,33 @@ function readTranscript(event: RecognitionEvent): string {
     if (result.length > 0) words += result[0].transcript;
   }
   return words.trim();
+}
+
+/** The order the contract asks the browser's voices in, lowercased once for comparison: South
+ *  African English first, then British, then Australian, then the bare "en" that stands for any
+ *  English voice. The order is the founder's decision of 20 September 2026, recorded as
+ *  voice.voicePreference, and it is read rather than typed here: a preference that lived in this
+ *  file would be one a reviewer had to read code to find, and this is the only module allowed to
+ *  reach for the browser's voice list at all. */
+const VOICE_ORDER: readonly string[] = voicePolicy.voicePreference.order.map((tag) =>
+  tag.toLowerCase(),
+);
+
+/** The first voice in the contract's order that this browser actually has, or null when it has none
+ *  of the four — in which case the utterance keeps its lang and the browser's own default speaks.
+ *  That fallback is the contract's rule rather than a shortcoming: no South African voice is
+ *  promised or implied to the person listening, and a preference is never a promise. */
+function preferredVoice(
+  voices: readonly SpeechSynthesisVoice[],
+): SpeechSynthesisVoice | null {
+  for (const tag of VOICE_ORDER) {
+    const found = voices.find((voice) => {
+      const lang = voice.lang.toLowerCase();
+      return lang === tag || lang.startsWith(`${tag}-`);
+    });
+    if (found) return found;
+  }
+  return null;
 }
 
 export type SpeakOptions = {
@@ -331,6 +361,14 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
     itself has still reached for the API before anybody asked it to, and the journeys assert that it
     has not. */
   const everSpoke = useRef(false);
+  /* The browser's voices, kept from the moment it first has any. Some browsers fill the list in only
+    after firing `voiceschanged`, so an empty reading is not "this browser has none": the listener is
+    armed on the first utterance, guarded because a stand-in synthesiser may have no listener at
+    all, and the next utterance prefers from whatever has settled by then. Every part of this
+    happens inside `speak` — a page that asked for the voice list while it drew itself would have
+    reached for the synthesiser before anybody pressed anything. */
+  const voices = useRef<readonly SpeechSynthesisVoice[]>([]);
+  const hearingVoices = useRef(false);
 
   const cancel = useCallback(() => {
     if (
@@ -358,10 +396,31 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
     everSpoke.current = true;
     /* One voice at a time. §04's stop event and §07's "close the mouth immediately on cancel" are the
      same rule read from two directions, and both start with the previous utterance ending. */
-    window.speechSynthesis.cancel();
+    const synthesis = window.speechSynthesis;
+    synthesis.cancel();
+
+    /* The voice list, read at the moment of speaking and never at load. A non-empty reading is kept
+     and re-read on every utterance, so a voice installed while the page is open is still seen; the
+     `voiceschanged` listen is armed once, for browsers that announce their voices only after an
+     event, and a browser with no listener at all — a stand-in synthesiser, or an old engine —
+     simply reads whatever `getVoices` answers with. */
+    const listing = synthesis.getVoices();
+    if (listing.length > 0) voices.current = listing;
+    if (!hearingVoices.current && typeof synthesis.addEventListener === "function") {
+      hearingVoices.current = true;
+      synthesis.addEventListener("voiceschanged", () => {
+        const settled = synthesis.getVoices();
+        if (settled.length > 0) voices.current = settled;
+      });
+    }
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = voicePolicy.languages[0].recognitionLocales[0];
+    /* The contract's order, then the browser's own default when it has none of the four. The
+     preference is applied quietly and promises nothing, which is why the words written on the
+     screen never depend on which voice takes them. */
+    const chosen = preferredVoice(voices.current);
+    utterance.lang = chosen?.lang ?? voicePolicy.languages[0].recognitionLocales[0];
+    if (chosen) utterance.voice = chosen;
     let spokenWords = 0;
 
     utterance.onstart = () => {
@@ -390,7 +449,7 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
       options.onEnd?.();
     };
 
-    window.speechSynthesis.speak(utterance);
+    synthesis.speak(utterance);
   }, []);
 
   /* Everything the page opened, closed on the way out. A recogniser left running by a component that

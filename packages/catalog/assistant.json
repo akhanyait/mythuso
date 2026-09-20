@@ -1,7 +1,7 @@
 {
-  "_note": "GilbertOne, as data. Everything a person reads from the assistant on the web, on iOS and on Android lives here: what GilbertOne is called and what it is not, the six Pulse states and when each may be shown, the four situations and the questions it answers, the matcher that decides which answer a sentence gets, the audiences of 19 September 2026 — which questions each may ask, which refusal each reads and the label that says a session is simulated — the voice policy the founder set on 14 September 2026, the refusals, the four refusal policies the engine asks before it classifies anything — consent, a clinical referral, a role spoken out loud, and a message carrying sensitive details — and the Pulse events other engines may one day subscribe to. The web reads this file. iOS and Android cannot, so scripts/emit-assistant.mjs writes it into AssistantData.swift and AssistantData.kt, and scripts/check-boundaries.mjs compares both with this file on every build. Until this file existed the four situation sentences were typed in apps/ios/MyThuso/Features/AssistantView.swift and copied word for word into apps/web/src/lib/assistant.ts, with nothing comparing them.",
-  "_whatGilbertOneIsInThisBuild": "A deterministic matcher over approved sentences. No language model, no speech provider and no network call sits behind any answer. A sentence is normalised, checked against the emergency words first, then against the trigger phrases of the suggested questions, and anything that matches neither gets one honest answer. That is the whole of it, and it is the reason every answer below can be read in advance by the people accountable for it.",
-  "_tokens": "Sentences may carry {ambulance} and {mobile}, filled from packages/catalog/sos.json by number id, and {seconds}, which is voice.maxListeningSeconds. The situation sentences carry {laboratory} and {expiryWarningDays} from records.json and vetting.json, and {visitWhen}, which is the patient's next booked visit written by the same function the home card writes it with — on 14 September GilbertOne said the first day scheduling.json offers while the home card showed the visit actually booked, two dates for one visit. {noUpcoming}, {noUpcomingDetail} and {asapPending} are scheduling.json's own labels. No emergency number, no date and no count of days is typed anywhere in this file; the build fails if one is.",
+  "_note": "GilbertOne, as data. Everything a person reads from the assistant on the web, on iOS and on Android lives here: what GilbertOne is called and what it is not, the six Pulse states and when each may be shown, the four situations and the questions it answers, the matcher that decides which answer a sentence gets, the audiences of 19 September 2026 — which questions each may ask, which refusal each reads and the label that says a session is simulated — the voice policy the founder set on 14 September 2026, the refusals, the four refusal policies the engine asks before it classifies anything — consent, a clinical referral, a role spoken out loud, and a message carrying sensitive details — the Pulse events other engines may one day subscribe to, and, added on 20 September 2026, the llm section: the language-model tier's own system prompt and the record of why the two-tier design exists and what keeps it dark by default. The web reads this file. iOS and Android cannot, so scripts/emit-assistant.mjs writes it into AssistantData.swift and AssistantData.kt, and scripts/check-boundaries.mjs compares both with this file on every build. Until this file existed the four situation sentences were typed in apps/ios/MyThuso/Features/AssistantView.swift and copied word for word into apps/web/src/lib/assistant.ts, with nothing comparing them.",
+  "_whatGilbertOneIsInThisBuild": "A deterministic matcher over approved sentences. No language model, no speech provider and no network call sits behind any answer. A sentence is normalised, checked against the emergency words first, then against the trigger phrases of the suggested questions, and anything that matches neither gets one honest answer. That is the whole of it, and it is the reason every answer below can be read in advance by the people accountable for it. Since 20 September 2026 there is one exception, and it is dark by default: when an operator configures a language-model provider for the assistant API — see the llm section — a sentence a patient reads may be written by that model, only where the matcher above found nothing it knows, never for an emergency, never for a message a refusal policy answered, and always under the answers.service heading that says in the same breath that a model wrote it and that it can be wrong. With no provider configured, as in every deployment of this build, every answer below is still the matcher's.",
+  "_tokens": "Sentences may carry {ambulance} and {mobile} — and the llm system prompt, which is instructions rather than a sentence a person reads, may also carry {police} — filled from packages/catalog/sos.json by number id, and {seconds}, which is voice.maxListeningSeconds. The situation sentences carry {laboratory} and {expiryWarningDays} from records.json and vetting.json, and {visitWhen}, which is the patient's next booked visit written by the same function the home card writes it with — on 14 September GilbertOne said the first day scheduling.json offers while the home card showed the visit actually booked, two dates for one visit. {noUpcoming}, {noUpcomingDetail} and {asapPending} are scheduling.json's own labels. No emergency number, no date and no count of days is typed anywhere in this file; the build fails if one is.",
   "version": 1,
   "identity": {
     "name": "GilbertOne",
@@ -482,6 +482,10 @@
     "voice": {
       "state": "guiding"
     },
+    "greeting": {
+      "state": "guiding",
+      "sentence": "Hello! I am GilbertOne, your health assistant. I can help you arrange care, understand information you received, or speak to a nurse. What would you like to do?"
+    },
     "handover": {
       "state": "handover",
       "title": "What the nurse queue would receive",
@@ -538,6 +542,15 @@
       "alreadySent": "This conversation was handed over already. Asking again sends nothing new unless the urgency has risen.",
       "stillUrgent": "If this cannot wait, do not wait for a nurse. Call one of these now:",
       "numbers": ["ambulance", "mobile"]
+    },
+    "service": {
+      "state": "guiding",
+      "heading": "An answer written by a language model",
+      "disclosure": "That part was written by a language model, not read from one of GilbertOne's approved sentences. It can be wrong, it is not a diagnosis and not a prescription, and it is never a substitute for a real nurse or doctor. If a clinician's answer matters to you, say so — GilbertOne can hand this conversation to the nurse queue.",
+      "ifUrgent": "If any of this might be an emergency, do not wait for an answer here. Call one of these now:",
+      "numbers": ["ambulance", "mobile"],
+      "sosLabel": "Open Thuso SOS",
+      "handoverLabel": "Talk to a nurse"
     }
   },
   "silenceIsNotSafety": "GilbertOne not recognising an emergency does not mean there is not one. If you think it is an emergency, call {ambulance}, or {mobile} from a mobile.",
@@ -565,6 +578,11 @@
         "cue": "A13",
         "posture": "warm",
         "why": "The four situations are status sentences — nothing needs you, a nurse is expected, results released for a doctor to read, a registration inside its last weeks — and A13 is a brief warm smile with a nod that settles inside a second, not a held celebration. Its own rule is not to celebrate a serious medical result or a failed transaction, and nothing here celebrates either: the result situation announces a release and defers to the doctor in the same breath, and no answer interprets anything. If a clinical reviewer judges the credential situation too serious for warmth, the change is a line here and nowhere else."
+      },
+      "greeting": {
+        "cue": "A13",
+        "posture": "warm",
+        "why": "The greeting arrived with its own sentence on 20 September 2026, and it wears the situation's cue for the situation's reason. A hello is the most routine sentence in the contract: nothing needs the patient, nothing is refused, nothing is celebrated, and A13 — the brief warm smile and nod that settles inside a second — is the rig's one warm gesture that celebrates nothing. It is deliberately not A01, the open's own cue: the open is conversation state rather than an answer, the panel's journeys assert the readable surface carries no posture until a reply lands, and a cue shared with the open would put a posture on a walk that must carry none. Reusing A13 is the honest choice rather than the convenient one — the rig has one warm gesture, and a second warm face invented for a hello is the decision this section exists to take away from a component. If a reviewer judges a hello too slight for warmth, the change is a line here and nowhere else."
       },
       "identity": {
         "cue": "A17",
@@ -595,6 +613,11 @@
         "cue": "A11",
         "posture": "attentive",
         "why": "Phase 1's cue, on file now. A11's smaller smile, soft eyes and slight tilt hold while the summary is read, and its own rule is the whole of it: no fake tears, no alarmed face, no exaggerated pity. When the handover carries an emergency urgency the face stays on A16 — A11 is refused while the safety cue holds, which is neverLowered made visible."
+      },
+      "service": {
+        "cue": "A11",
+        "posture": "attentive",
+        "why": "The one answer in this contract nobody approved in advance: a language model's sentence, shown only when the operator has configured a provider and only under the answers.service heading that says so. The face cannot celebrate a sentence nobody verified and must not frown at it either — the concern face belongs to \"I can't assess that\", and this answer did assess something. Attentive is the posture for attention without endorsement, and A11 is the cue that already draws it: a small smile, soft eyes and a slight tilt toward the person reading, holding while the words are read — the same face the handover wears, because both are answers that ask to be listened to rather than believed. The disclosure beside the words carries the honesty; the face carries only the attention. Reusing A11 is deliberate: the rig has one supportive cue, and inventing a face for unverified text is the decision this section exists to take away from a component."
       }
     },
     "conversation": {
@@ -720,6 +743,12 @@
         "recognitionLocales": ["en-ZA", "en-GB", "en-US"]
       }
     ],
+    "voicePreference": {
+      "order": ["en-ZA", "en-GB", "en-AU", "en"],
+      "decidedBy": "Founder",
+      "on": "2026-09-20",
+      "why": "Decided with the speech switch-on of 20 September 2026, for the browser's voice wherever it speaks on the web. Where the browser offers a choice, the voice asked for is South African English first, then British, then Australian, then any English voice, and nothing outside that order is ever chosen for it. The preference is applied quietly and is never a promise — the contract's own rule for §07 is that a South African voice is not guaranteed to be installed — so a browser that has none of the four keeps the browser's default, no voice list and no chooser are drawn, and the reply's words stay on the screen in full beside every voice, so nothing a person reads depends on which voice speaks them. Changing the order or the list is the founder's decision recorded here, not an edit."
+    },
     "recognition": "on-device",
     "audioStored": false,
     "transcriptLifetime": "conversation",
@@ -741,7 +770,7 @@
       "enabled": true,
       "decidedBy": "Founder",
       "on": "2026-09-20",
-      "why": "Switched on by the founder on 20 September 2026, for the demonstrator: the whole path built on 19 September is now live on the live assistant, so every reply is read aloud in its own words while the same words stay written on the screen beside it. The switch changes nothing about the rules it was built under. The caption is the reply itself, already written on the screen in full before the voice starts and for as long as it speaks, mandatory and not switchable — there is no setting anywhere that turns the written words off, because a spoken reply is another reading of the words and never a replacement for them. The mouth closes on Stop, on cancel, on failure, under reduced motion and on a hidden tab — the five the demonstrator's A10 already obeys — and a held safety face refuses the cue outright. §07's V03 refusal stands unchanged: no voice is selected, no voice is listed, and no South African voice is promised, implied or looked for, because the contract says not to guarantee one is installed. Switching this flag off again is the founder's decision recorded here, not an edit.",
+      "why": "Switched on by the founder on 20 September 2026, for the demonstrator: the whole path built on 19 September is now live on the live assistant, so every reply is read aloud in its own words while the same words stay written on the screen beside it. The switch changes nothing about the rules it was built under. The caption is the reply itself, already written on the screen in full before the voice starts and for as long as it speaks, mandatory and not switchable — there is no setting anywhere that turns the written words off, because a spoken reply is another reading of the words and never a replacement for them. The mouth closes on Stop, on cancel, on failure, under reduced motion and on a hidden tab — the five the demonstrator's A10 already obeys — and a held safety face refuses the cue outright. §07's V03 refusal now stands over the chooser, not the voice: no voice is listed and no picker is drawn, and no South African voice is promised or implied — the browser is asked for a South African English voice first, in the order voice.voicePreference records, and another English voice or the browser's own default stands in when it is absent, because the contract says not to guarantee one is installed. Switching this flag off again is the founder's decision recorded here, not an edit.",
       "reverses": "voice.webSpeech.enabled = false, decided 19 September 2026"
     },
     "webPoc": {
@@ -915,6 +944,10 @@
         "why": "A message carrying a South African identity number, a phone number, an email address or a medical aid number is refused before it is classified, softly — the person is asked for their own words instead — and the audit line the API keeps carries the redacted text rather than the original."
       }
     ]
+  },
+  "llm": {
+    "why": "The second tier, added on 20 September 2026. The keyword classifier stays the first decision in every direction: it routes, it raises emergencies, and it is never second-guessed — an emergency it classifies is answered with the classifier's own words and the language model is never asked at all. A refusal policy is asked before it, too, so a message about to be refused never reaches a model. Only where the classifier found nothing it knows — an unknown classification, or a match it is less than half sure of, for a patient audience, because a staff preview's session is scoped to the three universal questions — is a model consulted, and all it may write is the one sentence in the answers.service block: its own heading and disclosure sit around it, the reply is redacted before it is shown, and if the model is slow, refuses or fails, the classifier's unmatched answer — the one with the ambulance numbers in it — stands untouched. The default URL probe and the environment variables the adapter reads are in apps/assistant-api/src/lib/llm-adapter.ts; what is here is the only sentence a model is ever told.",
+    "systemPrompt": "You are GilbertOne, the health assistant for MyThuso, a South African home healthcare platform. You help patients navigate healthcare services: booking nurses, checking symptoms and medication guidance — always in general terms and always pointing at the humans who decide. You never diagnose a condition, you never prescribe a medication and you never give specific medical advice; when a message asks for any of those, you say plainly that the decision belongs to a registered nurse or doctor and that MyThuso can arrange one. You always recommend consulting a healthcare professional for a medical concern. You are warm, empathetic and speak in clear, simple English. When a message suggests an emergency — chest pain, difficulty breathing, severe bleeding, a person who cannot be woken, signs of a stroke, a seizure — you immediately direct the person to call {ambulance} for an ambulance, {police} for the police or {mobile} from a mobile phone, and you do not continue with anything else. You do not store or remember personal health information between conversations, and you never ask for an identity number, a phone number, an email address or medical aid details."
   },
   "events": [
     {

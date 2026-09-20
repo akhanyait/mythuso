@@ -9,11 +9,14 @@ import {
   addTurn,
   createConversation,
   getContext,
+  type ConversationContext,
   type ConversationState,
   type Turn,
 } from '../../../../packages/gilbertone/src/conversation.ts';
 import { evaluateRefusals } from '../../../../packages/gilbertone/src/refusals.ts';
 import { redactPHI } from '../../../../packages/gilbertone/src/phi.ts';
+import assistant from '../../../../packages/catalog/assistant.json' with { type: 'json' };
+import { askModel, llmSystemPrompt } from '../lib/llm-adapter.ts';
 import type { AssistantTurnRequest, AssistantTurnResponse } from '../lib/schema.ts';
 
 /* The session store, since the Phase A upgrade of 19 September 2026.
@@ -57,6 +60,11 @@ const refusalActions: Record<string, string[]> = {
   'phi-detected': ['continue'],
 };
 
+/* The face the service answer wears, read from the contract's affect section rather than typed
+   here — the same key the web panel's own map carries, so the two cannot disagree about a cue id
+   neither of them owns. */
+const serviceCue: string = assistant.affect.answers.service.cue;
+
 /* The audit line: one line per processed message, the message redacted first. This is the only
    place a turn's words leave the session, and no line ever carries an identity number, a phone
    number, an email address or a medical aid number — the redactor runs before the writer. */
@@ -64,10 +72,30 @@ const audit = (sessionId: string, route: string, text: string): void => {
   console.log(`[gilbertone] ${sessionId} ${route} | ${redactPHI(text)}`);
 };
 
+/* What the model is told about the conversation, when the second tier is asked: where this turn
+   sits, how the classifier has read the recent ones, and whether a task is still open — the
+   context view's own fields and nothing else. The person's earlier words are not here, and could
+   not be: the context view has never carried them. */
+const contextLines = (context: ConversationContext): string[] => {
+  const lines = [`This is turn ${context.turnCount + 1} of this conversation.`];
+  if (context.recentClassifications.length)
+    lines.push(
+      `The classifier's recent readings, oldest first: ${context.recentClassifications.join(', ')}.`,
+    );
+  if (context.activeTask)
+    lines.push(`An earlier turn opened the "${context.activeTask}" task and it is still open.`);
+  return lines;
+};
+
+/* One response, shaped by the classifier's own fields. `model` is present only when the second
+   tier wrote the reply, and then turn.reply is that model's text. The two extra fields stay
+   undefined for every classifier reply, and JSON.stringify drops undefined — so a caller that
+   ignores them sees exactly the response it saw before they existed. */
 const response = (
   turn: EngineResponse,
   sessionId: string,
   refusalId?: string,
+  model?: { cue: string },
 ): AssistantTurnResponse => ({
   turnId: crypto.randomUUID(),
   sessionId,
@@ -79,6 +107,8 @@ const response = (
   requiresConfirmation: turn.requiresConfirmation,
   suggestedActions: turn.suggestedActions,
   refusalId,
+  source: model ? 'model' : undefined,
+  cue: model?.cue,
 });
 
 export async function handleTurn(req: AssistantTurnRequest): Promise<AssistantTurnResponse> {
@@ -156,6 +186,39 @@ export async function handleTurn(req: AssistantTurnRequest): Promise<AssistantTu
   const { confidence } = classifyWithConfidence(req.text, audience, context);
   const answer: EngineResponse = { ...engine, confidence };
 
+  /* The second tier, since 20 September 2026: where the classifier found nothing it knows, a
+     model an operator configured may be asked for a sentence — and only then. The gates before
+     the call are the contract's, not a model's: the patient audience only, because the staff
+     previews are scoped to the three universal questions and the llm system prompt is written
+     patient-voiced; never an emergency, which the keyword classifier owns outright and which
+     nothing may second-guess; and never a message a refusal policy answered — that check ran
+     above and already returned. Anything that fails in here falls back to the classifier's own
+     answer, so a deployment with no provider returns exactly the replies this route returned
+     before the tier existed. */
+  const mayAskModel =
+    audience === 'patient' &&
+    answer.classification !== 'emergency' &&
+    (answer.classification === 'unknown' || answer.confidence < 0.5);
+  let reply = answer.reply;
+  let model: { cue: string } | undefined;
+  if (mayAskModel) {
+    const modelAnswer = await askModel(
+      redactPHI(req.text),
+      llmSystemPrompt(),
+      contextLines(context),
+    );
+    if (modelAnswer?.text) {
+      /* The model's words pass the same redactor the audit line does. The refusal policies are
+         deliberately not re-applied to the output: their patterns are question-shaped ("do I
+         have", "should I take"), and an answer that correctly says "this is not a diagnosis"
+         trips one — the input side already gated the model, and the answers.service heading the
+         panel draws around these words carries the disclosure on the output side. */
+      reply = redactPHI(modelAnswer.text);
+      model = { cue: serviceCue };
+      console.log(`[gilbertone:llm] ${sessionId} ${modelAnswer.provider} ${modelAnswer.ms}ms`);
+    }
+  }
+
   const previous = state.turns[state.turns.length - 1];
   const nextTurn: Turn = {
     turnId: crypto.randomUUID(),
@@ -173,5 +236,5 @@ export async function handleTurn(req: AssistantTurnRequest): Promise<AssistantTu
   sessions.set(sessionId, { state: addTurn(state, nextTurn), lastActive: now });
 
   audit(sessionId, answer.route, req.text);
-  return response(answer, sessionId);
+  return response({ ...answer, reply }, sessionId, undefined, model);
 }

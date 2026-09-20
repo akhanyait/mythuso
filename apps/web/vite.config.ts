@@ -38,6 +38,13 @@ export default defineConfig({
        growth outside index.html is what protects the 286.6 kB the patient entry is held to. */
     shop: resolve(import.meta.dirname, 'shop.html')
   } } },
+  /* What the panel's bridge reads as the service's base URL, replaced at build time — see
+     refineWithAssistantService in src/lib/gilbertone-bridge.ts. Empty by default, and the empty
+     default is deliberate: the request then goes to this page's own origin, which in development
+     is the /assistant proxy below and in a deployment is whatever fronts the service beside the
+     panel. A deployment that hosts the API on another origin sets ASSISTANT_API_URL when it
+     builds, and the service's CORS headers are what answer the browser there. */
+  define: { __ASSISTANT_API_URL__: JSON.stringify(process.env.ASSISTANT_API_URL ?? '') },
   /* The paths nginx serves, served here too — including `/`, which is the one that was not.
    *
    * `deploy/nginx/mythuso.conf` maps / to landing.html, /app/ to index.html and /status/ to its own
@@ -79,6 +86,14 @@ export default defineConfig({
   }],
   server: {
     host: '0.0.0.0',
-    proxy: { '/api': { target: process.env.MYTHUSO_API ?? 'http://127.0.0.1:8787', changeOrigin: true, rewrite: path => path.replace(/^\/api/, '') } }
+    proxy: {
+      '/api': { target: process.env.MYTHUSO_API ?? 'http://127.0.0.1:8787', changeOrigin: true, rewrite: path => path.replace(/^\/api/, '') },
+      /* The assistant API through this origin too, since the two-tier upgrade of 20 September
+         2026: the panel asks it same-origin — connect-src stays 'self' and there is no CORS to
+         get wrong in the browser — and this target is only what sits behind the path in
+         development. No rewrite: the service's own routes are /assistant/turn and
+         /assistant/health, and they are asked for by those names. */
+      '/assistant': { target: process.env.MYTHUSO_ASSISTANT ?? 'http://127.0.0.1:3001', changeOrigin: true }
+    }
   }
 });

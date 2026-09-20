@@ -56,7 +56,10 @@ import {
   handoverDeskWords as bookingHandover,
   refusal,
 } from "../lib/assistant";
-import { sendWithGilbertEngine } from "../lib/gilbertone-bridge";
+import {
+  refineWithAssistantService,
+  sendWithGilbertEngine,
+} from "../lib/gilbertone-bridge";
 import {
   emptyQueue,
   handOver as handToQueue,
@@ -142,6 +145,10 @@ export default function Assistant({
   const [queue, setQueue] = useState<Queue>(emptyQueue);
   const [sent, setSent] = useState<Record<number, Sent>>({});
   const conversationRef = useRef(crypto.randomUUID());
+  /* Guards the panel's one asynchronous refinement: a counter, bumped on every submit, so a
+     service answer that arrives after the conversation has moved on — a second message, a chosen
+     question, a Start again — is discarded rather than painted over the newer turn. */
+  const refine = useRef(0);
   const reduced = useReducedMotion();
   /* The panel's own Pause motion control (MotionPause, in the bar) and this hook read the same
      module-level store in lib/motion.ts, so the one press that stills the page stills the character
@@ -302,8 +309,23 @@ export default function Assistant({
       field.current?.focus();
       return;
     }
-    moved(sendWithGilbertEngine(turns, draft, visit, everRaised, audienceId));
+    /* The contract's answer goes up first and immediately — nothing adds a pause to make an
+       answer look considered — and only then does the panel ask the assistant API whether a
+       language model can say something more (refineWithAssistantService, and its comment, where
+       the userConsent it needs is explained). The answer that comes back replaces the unmatched
+       turn only if it is still the last thing that happened; anything else is dropped. With the
+       service not running, nothing changes: the contract's answer is already the answer. */
+    const local = sendWithGilbertEngine(turns, draft, visit, everRaised, audienceId);
+    moved(local);
     setDraft("");
+    const token = ++refine.current;
+    void refineWithAssistantService(local, draft, audienceId, conversationRef.current).then(
+      (refined) => {
+        if (!refined || refine.current !== token) return;
+        setTurns((current) => (current === local ? refined : current));
+        setGatheredAt(performance.now());
+      },
+    );
   };
   /* Start again is the one action that rests the face: it is the patient saying the conversation is
      over, and it is the only thing that releases a cue A16 is holding. */
@@ -723,6 +745,38 @@ function ReplyBody({
                 <button type="button" className="as-ask urgent" onClick={sos}>
                   <Ambulance size={17} aria-hidden="true" />
                   {answers.unmatched.sosLabel}
+                </button>
+              )}
+            </div>
+          )}
+        </>
+      );
+    case "service":
+      /* A sentence a language model wrote, drawn under the heading that says so — the same
+         order spokenOf reads aloud, so the voice and the screen cannot tell two stories. The
+         model's own words are painted pre-wrap (`.as-service`): a model writes paragraphs, and
+         this panel does not join them into one. The disclosure and the urgency line are read
+         from the contract like every other sentence here, and the two doors are the ones the
+         unmatched answer already offers, scoped by the audience's own entry. */
+      return (
+        <>
+          <p className="as-headline">{answers.service.heading}</p>
+          <p className="as-service">{reply.text}</p>
+          <p className="as-quiet">{answers.service.disclosure}</p>
+          <p>{say(answers.service.ifUrgent)}</p>
+          <Lines ids={answers.service.numbers} />
+          {(allowHandover || allowSos) && (
+            <div className="as-actions">
+              {allowHandover && (
+                <button type="button" className="as-go" onClick={handOver}>
+                  <UserRound size={17} aria-hidden="true" />
+                  {answers.service.handoverLabel}
+                </button>
+              )}
+              {allowSos && (
+                <button type="button" className="as-ask urgent" onClick={sos}>
+                  <Ambulance size={17} aria-hidden="true" />
+                  {answers.service.sosLabel}
                 </button>
               )}
             </div>
