@@ -9108,6 +9108,15 @@ if (
     throw new Error(
       `deploy/nginx/mythuso.conf proxies /assistant/ to somewhere other than 127.0.0.1:${port}, which is the port apps/assistant-api/src/server.ts listens on. One of the two is wrong, and the request is the thing that finds out.`,
     );
+  /* node:http's listen() binds every interface when no host is given — the fact that made
+     127.0.0.1:3001 collide with a co-tenant's already-running Umami on 21 September 2026, live,
+     silently, before this line existed. Umami's own bind is loopback-only; this service's must be
+     too, in code, because a firewall rule the deploy did not write is not this process's to rely
+     on. */
+  if (!new RegExp(`server\\.listen\\(${port},\\s*['"]127\\.0\\.0\\.1['"]`).test(serverSource))
+    throw new Error(
+      "apps/assistant-api/src/server.ts no longer binds explicitly to '127.0.0.1'. Without a host argument, node:http listens on every interface, which is exactly the gap that let this service silently collide with a co-tenant's port. This service has no route meant to be reached any way but through the nginx proxy in front of it.",
+    );
   /* The paid-endpoint throttle, and its blast radius — added 21 September 2026. /assistant/ is the
      only public path on this box that costs money per request, and its routes are open by design,
      so the limit is the one control a script cannot ignore. The zone is declared once at http

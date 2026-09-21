@@ -145,6 +145,12 @@ const ENV_KEYS = [
  'OLLAMA_MODEL',
  'QDRANT_URL',
  'QDRANT_COLLECTION',
+ /* modelTierAllowed() (../lib/activation.ts) reads these two as well — without them here, a shell
+    or CI runner that already exports NODE_ENV=production fails every test below that expects the
+    orchestrator to run, for a reason no assertion here names. Same gap, same fix, as
+    lib/orchestrator.test.ts's own ENV_KEYS. */
+ 'NODE_ENV',
+ 'MYTHUSO_ASSISTANT_PRODUCTION',
 ] as const;
 
 const withEnv = async <T>(

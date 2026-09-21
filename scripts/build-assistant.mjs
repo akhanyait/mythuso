@@ -55,7 +55,7 @@ const result = await build({
   banner: {
     js: "import { createRequire } from 'node:module';\nconst require = createRequire(import.meta.url);",
   },
-  /* The licenses of the bundled packages belong in the artifact: docs/OPEN-SOURCE.md is the honest
+  /* The licences of the bundled packages belong in the artifact: docs/OPEN-SOURCE.md is the honest
      list, and a bundle that silently dropped the notices would make it wrong. */
   legalComments: "eof",
   logLevel: "warning",
@@ -75,8 +75,14 @@ const bundle = readFileSync(OUTFILE, "utf8");
 
 /* A literal key in the bundle is the one fault this build must refuse to produce. The service reads
    its credentials from the environment, so the variable NAMES belong in the bundle and the VALUES
-   never can — this catches the accident where one is baked in by a change nobody reviewed. */
-const secretShape = /(?:AZURE_OPENAI_KEY|AZURE_OPENAI_API_KEY|OLLAMA_URL)["']?\s*[:=]\s*["'][A-Za-z0-9][A-Za-z0-9._:/-]{15,}["']/;
+   never can — this catches the accident where one is baked in by a change nobody reviewed.
+
+   The variable list and the 20-character floor are deploy/deploy.sh's own second scan, on the
+   published artifact, repeated rather than shared — a bash grep -E and a JS RegExp cannot be one
+   function — but a length or a name that drifted between the two would mean a leaked value short
+   or under a name only one of the two scans reads is caught here and waved through there, or the
+   other way around. Keep them equal on a change to either. */
+const secretShape = /(?:AZURE_OPENAI_ENDPOINT|AZURE_OPENAI_KEY|AZURE_OPENAI_API_KEY|OLLAMA_URL)["']?\s*[:=]\s*["'][A-Za-z0-9][A-Za-z0-9._:/-]{20,}["']/;
 if (secretShape.test(bundle))
   throw new Error(
     "The assistant bundle carries what looks like a provider credential's value. Nothing in this artifact may hold a secret — the service reads /etc/mythuso/assistant.env at runtime. Find what put it there before building again.",

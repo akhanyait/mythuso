@@ -155,11 +155,14 @@ async function resolveChatModel(): Promise<ResolvedModel | null> {
         azureOpenAIApiVersion: AZURE_API_VERSION,
         temperature: 0.2,
         maxRetries: 0,
-        /* The output ceiling, the same constant the native adapter sends: the answer is capped at
-           LLM_REPLY_LIMIT characters on the way out, and this stops a runaway generation at the
-           provider instead of paying for words that would be cut. In the pinned LangChain
-           version, maxTokens is the option that reaches the wire as max_tokens. */
-        maxTokens: LLM_MAX_OUTPUT_TOKENS,
+        /* The output ceiling, the same constant the native adapter sends — but not as maxTokens.
+           In the pinned LangChain version that option reaches the wire as max_tokens, and
+           llm-adapter.ts's own Azure branch carries the reason that field is wrong here: this API
+           version requires max_completion_tokens for the gpt-4.1 family, the same fact that made
+           the native adapter stop sending max_tokens. modelKwargs is spread last into the request
+           body, so it is where a field LangChain has no first-class option for gets said; leaving
+           maxTokens unset keeps max_tokens itself out of the body rather than sending both. */
+        modelKwargs: { max_completion_tokens: LLM_MAX_OUTPUT_TOKENS },
       }),
     };
   }

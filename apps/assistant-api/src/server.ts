@@ -12,17 +12,6 @@ import { handleTurn } from './routes/turn.ts';
 
 const MAX_BODY_BYTES = 16 * 1024;
 
-/* The production acknowledgement gate, enforced before the port is even bound: with NODE_ENV
-   production and a provider configured, a key alone does not start this service. The message names
-   the missing variable and never a value, because this process may be holding a credential in its
-   environment and a log is one of the few places it must never appear. See ./lib/activation.ts for
-   why the gate exists and what it is not. */
-const refusal = activationRefusal();
-if (refusal) {
- console.error(refusal);
- process.exit(1);
-}
-
 /* Browser origins are answered per ./lib/origin-policy.ts: the site's own two names in production,
    localhost shapes in development, a 403 for every other Origin before any route reads the URL. A
    request with no Origin — curl, a health check — is not a browser context and is answered as
@@ -146,12 +135,39 @@ export function createAssistantServer(turn: typeof handleTurn = handleTurn): Ser
 
 /* Binding is the entry's act, not the module's: imported by a test, this file exports the factory
    above and takes no port. Run directly — `npm start` in development, or the bundled server.mjs
-   the unit starts — the guard below is true and the port is bound, as it always was. The same
-   house idiom apps/api/src/server.ts carries. */
+   the unit starts — the guard below is true and the port is bound, as it always was.
+
+   LOOPBACK, EXPLICITLY. Unlike apps/api/src/server.ts — which binds every interface because some
+   of its routes are meant to be reached through nginx once the identity service is enabled, and
+   checks the caller's address per-route for the ones that are not — this service has no route
+   meant to be reached any way but through the nginx proxy in front of it. node:http's listen()
+   binds every interface when no host is given, so the difference between "reachable only through
+   nginx" and "reachable directly from the internet" was, until now, a firewall rule rather than a
+   fact this process could not help but be true. ufw already denies the port by default on the
+   deployed box, but a service that depends on a firewall it did not configure to be internal-only
+   is a service that stops being internal-only the day that firewall rule changes for an unrelated
+   reason. Umami, the co-tenant whose port this once collided with, binds the same way for the
+   same reason. */
 export function start(): void {
+ /* The production acknowledgement gate, enforced before the port is even bound: with NODE_ENV
+    production and a provider configured, a key alone does not start this service. The message
+    names the missing variable and never a value, because this process may be holding a credential
+    in its environment and a log is one of the few places it must never appear. See
+    ./lib/activation.ts for why the gate exists and what it is not.
+
+    IN start(), NOT AT MODULE TOP LEVEL. This file is imported, not run, by server.test.ts — a
+    process.exit(1) at import time would have killed that entire test run the day it ran under an
+    ambient NODE_ENV=production with credentials already exported and no acknowledgement, for a
+    reason no failing assertion would have named. Refusing here, at the one call that actually
+    binds a port, means importing this module is always safe and only starting it can refuse. */
+ const refusal = activationRefusal();
+ if (refusal) {
+  console.error(refusal);
+  process.exit(1);
+ }
  const server = createAssistantServer();
- server.listen(8791, () => {
-  console.log('Assistant API listening on 8791');
+ server.listen(8791, '127.0.0.1', () => {
+  console.log('Assistant API listening on 127.0.0.1:8791');
  });
 }
 

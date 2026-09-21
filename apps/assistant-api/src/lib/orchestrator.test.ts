@@ -27,6 +27,11 @@ const ENV_KEYS = [
  'OLLAMA_MODEL',
  'QDRANT_URL',
  'QDRANT_COLLECTION',
+ /* modelTierAllowed() (./activation.ts), added the same day as this file, reads these two as well
+    — without them here, a shell or CI runner that already exports NODE_ENV=production fails every
+    test in this file that expects the model tier to run, for a reason no assertion here names. */
+ 'NODE_ENV',
+ 'MYTHUSO_ASSISTANT_PRODUCTION',
 ] as const;
 
 const withEnv = async <T>(
@@ -242,8 +247,12 @@ test('a tool the agent invents gets the honest no-such-tool answer, and the loop
 
    Added with the CodeReview fixes of 21 September 2026: both LangChain clients this tier builds
    must carry the same output-token ceiling the native adapter sends — LLM_MAX_OUTPUT_TOKENS,
-   one constant for all four model calls this service can make. In the pinned LangChain version
-   the option is maxTokens, and the scripted provider's request body is where it must land. */
+   one constant for all four model calls this service can make. The field name differs by
+   provider, the same way it does in llm-adapter.ts: Ollama's OpenAI-compatible surface takes the
+   pinned LangChain version's own maxTokens option, which reaches the wire as max_tokens; Azure's
+   gpt-4.1 family on this API version does not, so the Azure branch carries the ceiling through
+   modelKwargs as max_completion_tokens instead. The scripted provider's request body is where
+   each must land, by its own name. */
 
 test('the Ollama LangChain client sends the output ceiling on the wire', async () => {
  const provider = await scriptedProvider([
@@ -267,7 +276,7 @@ test('the Ollama LangChain client sends the output ceiling on the wire', async (
  }
 });
 
-test('the Azure LangChain client sends the same ceiling on the wire', async () => {
+test('the Azure LangChain client sends the same ceiling on the wire, as max_completion_tokens', async () => {
  const provider = await scriptedProvider([
   assistantAnswer('Ask the clinic nurse to check the card.'),
  ]);
@@ -283,11 +292,19 @@ test('the Azure LangChain client sends the same ceiling on the wire', async () =
    },
   );
   assert.equal(provider.bodies.length, 1, 'one request, whose body is the evidence');
-  const parsed = JSON.parse(provider.bodies[0]) as { max_tokens?: number };
+  const parsed = JSON.parse(provider.bodies[0]) as {
+   max_tokens?: number;
+   max_completion_tokens?: number;
+  };
   assert.equal(
-   parsed.max_tokens,
+   parsed.max_completion_tokens,
    LLM_MAX_OUTPUT_TOKENS,
    'one constant for both tiers and both providers — the ceiling cannot drift between them',
+  );
+  assert.equal(
+   parsed.max_tokens,
+   undefined,
+   'max_tokens must not reach the wire here — this API version wants max_completion_tokens for the gpt-4.1 family, the same fact llm-adapter.ts already carries',
   );
  } finally {
   await provider.close();
