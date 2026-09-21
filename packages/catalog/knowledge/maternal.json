@@ -1,0 +1,333 @@
+[
+  {
+    "id": "mat-001",
+    "title": "Antenatal Care Visits",
+    "category": "antenatal",
+    "keyPoints": [
+      "Book the first antenatal visit as early as possible, ideally before 12 weeks of pregnancy",
+      "South African public clinics follow the Basic Antenatal Care approach with about eight visits: booking, and visits at roughly 20, 26, 30, 34, 36, 38 and 40 weeks",
+      "Every visit checks blood pressure, urine, the baby's growth and heartbeat, and how the mother is coping",
+      "Blood tests at booking include HIV, syphilis, haemoglobin (anaemia), blood group and rhesus, and screening for diabetes where indicated",
+      "All antenatal care in public clinics is free",
+      "Carry the antenatal card (maternity case record) to every visit and keep it safe — it is the record of the whole pregnancy"
+    ],
+    "whenToSeekCare": "Attend every scheduled visit; go earlier than planned for any danger sign (see mat-002), reduced baby movements after 28 weeks, or a fever",
+    "tags": ["antenatal", "visits", "BANC", "free-services"],
+    "source": "SA NDoH Guidelines for Maternity Care (BANC)"
+  },
+  {
+    "id": "mat-002",
+    "title": "Danger Signs in Pregnancy — Go Now",
+    "category": "antenatal",
+    "keyPoints": [
+      "Vaginal bleeding at any stage of pregnancy",
+      "Severe headache that will not settle, blurred vision, or flashing lights",
+      "Sudden swelling of the face and hands, with or without the above — these three point to pre-eclampsia, which can become eclampsia (fits)",
+      "Fluid leaking from the vagina before labour starts",
+      "Severe tummy pain, or a hard, tender womb",
+      "Fever, or burning and pain passing urine",
+      "The baby moving much less than usual after 28 weeks (count movements daily; ten or more within two hours once awake is typical) — report any big drop immediately",
+      "Repeated vomiting with no urine passed, extreme tiredness with breathlessness (severe anaemia)",
+      "A fit (convulsion) — call 10177 immediately, lay on the side, nothing in the mouth"
+    ],
+    "whenToSeekCare": "Go to the clinic or labour ward immediately — do not wait for the next appointment. Call 10177 for a fit, heavy bleeding, or when transport is a problem",
+    "tags": ["antenatal", "danger-signs", "pre-eclampsia", "urgent-care"],
+    "source": "SA NDoH Guidelines for Maternity Care / WHO"
+  },
+  {
+    "id": "mat-003",
+    "title": "Eating Well in Pregnancy",
+    "category": "antenatal",
+    "keyPoints": [
+      "Eat from all the food groups each day: starch (maize, bread, rice), vegetables and fruit, protein (beans, lentils, eggs, tinned fish, chicken, milk), and a little fat",
+      "Iron-rich foods help prevent anaemia: liver, red meat, beans, dark green leaves, and fortified maize meal — pair them with a vitamin C food (orange, tomato) to absorb the iron better",
+      "Calcium protects the mother's bones and blood pressure: milk, amasi, yoghurt, tinned fish with bones, dark greens",
+      "Folic acid 400-500 micrograms daily from before pregnancy through the first trimester prevents most neural tube defects",
+      "Drink water through the day; keep tea and coffee to about two cups a day",
+      "No alcohol at all — South Africa has among the highest rates of fetal alcohol spectrum disorder in the world, and there is no safe amount",
+      "Avoid unpasteurised milk and soft cheeses, raw or undercooked meat and eggs, and heat deli meats — listeria infection in pregnancy harms the baby"
+    ],
+    "whenToSeekCare": "Clinic review for weight loss, inability to keep food down, or worries about being able to afford enough food — clinics connect mothers to social support and food programmes",
+    "tags": ["antenatal", "nutrition", "folate", "FASD", "South-Africa"],
+    "source": "SA NDoH Maternity Care guidelines / WHO antenatal guidance"
+  },
+  {
+    "id": "mat-004",
+    "title": "HIV in Pregnancy — Protecting Mother and Baby",
+    "category": "antenatal",
+    "keyPoints": [
+      "Every pregnant woman is offered an HIV test at booking — testing is free and the result is confidential",
+      "Women living with HIV start (or continue) antiretroviral treatment (ART) immediately and take it every day for life, whatever the CD4 count",
+      "With ART taken consistently and viral load suppressed, the chance of passing HIV to the baby is close to zero, and breastfeeding becomes safe",
+      "Viral load is checked during pregnancy to confirm suppression; an unsuppressed result means extra protection for the baby at delivery",
+      "The newborn receives preventive medicine for the first weeks, and an HIV PCR test at around six weeks, with follow-up testing",
+      "Exclusive breastfeeding for the first six months is recommended for all babies in South Africa, including where the mother is on effective ART",
+      "Partners should test too; testing of other children in the home is arranged at the clinic"
+    ],
+    "whenToSeekCare": "Any difficulty taking ART, side effects, or missed doses — the clinic can help; do not stop. Urgent care for a fever, rash with blisters, or new severe illness in pregnancy",
+    "tags": ["antenatal", "HIV", "ART", "PMTCT", "South-Africa"],
+    "source": "SA NDoH PMTCT / ART guidelines"
+  },
+  {
+    "id": "mat-005",
+    "title": "Syphilis and Other Antenatal Tests",
+    "category": "antenatal",
+    "keyPoints": [
+      "Syphilis is tested at booking in every pregnancy; South Africa's antenatal surveys still find it in roughly one in thirty women",
+      "Untreated syphilis causes stillbirth, prematurity and serious illness in the newborn — treatment with penicillin injections in pregnancy prevents nearly all of it",
+      "The partner is treated at the same time to prevent reinfection",
+      "Other routine tests: haemoglobin for anaemia, blood group and rhesus (anti-D prevention where needed), HIV, hepatitis B and syphilis, urine checks, and glucose screening where indicated",
+      "A repeat syphilis test is done in the third trimester for women at higher risk and in some provinces for all",
+      "Ask for the results and what they mean — every woman has the right to know"
+    ],
+    "whenToSeekCare": "Attend the clinic for the booked treatment course if any test needs treatment; go earlier for a new genital sore, rash or discharge in pregnancy",
+    "tags": ["antenatal", "syphilis", "screening", "STI"],
+    "source": "SA NDoH Guidelines for Maternity Care"
+  },
+  {
+    "id": "mat-006",
+    "title": "Anaemia in Pregnancy",
+    "category": "antenatal",
+    "keyPoints": [
+      "Anaemia (too little blood) is very common in South African pregnancies — tiredness, breathlessness, dizziness, pale inner eyelids and palms are its signs",
+      "Daily iron and folic acid tablets are given routinely in antenatal care and should be taken even when feeling well",
+      "Taking iron with water or a vitamin C drink helps absorption; tea, coffee and milk within an hour block it",
+      "Black stools on iron tablets are normal; constipation can be eased with water, fibre and movement",
+      "Severe anaemia at delivery is dangerous — it is one reason the blood tests are repeated",
+      "Malaria, hookworm and heavy periods are common contributors; deworming and malaria prevention are part of care where relevant"
+    ],
+    "whenToSeekCare": "Same-day clinic visit for breathlessness at rest, a racing heart, fainting, or being too tired to do daily tasks — severe anaemia in pregnancy needs urgent treatment",
+    "tags": ["antenatal", "anaemia", "iron", "nutrition"],
+    "source": "SA NDoH Guidelines for Maternity Care / WHO"
+  },
+  {
+    "id": "mat-007",
+    "title": "High Blood Pressure and Pre-eclampsia",
+    "category": "antenatal",
+    "keyPoints": [
+      "Blood pressure is measured at every antenatal visit because high blood pressure in pregnancy often has no symptoms at all",
+      "Pre-eclampsia is high blood pressure after 20 weeks with signs of organ stress — it can escalate quickly to eclampsia (fits), stroke and placental abruption",
+      "Warning signs: severe headache, visual changes and flashing lights, pain under the right ribs, sudden swelling of face and hands",
+      "Treatment may include blood pressure tablets that are safe in pregnancy (methyldopa is a first choice), admission, and planned early delivery when the risk rises",
+      "A woman who had pre-eclampsia has a higher chance of high blood pressure and heart disease later in life — regular blood pressure checks afterwards matter"
+    ],
+    "whenToSeekCare": "Immediately — clinic or labour ward — for any warning sign above, or a severe headache that tablets do not settle. Call 10177 for a fit or confusion",
+    "tags": ["antenatal", "pre-eclampsia", "blood-pressure", "danger-signs"],
+    "source": "SA NDoH Guidelines for Maternity Care / WHO"
+  },
+  {
+    "id": "mat-008",
+    "title": "Signs of Labour — When to Go",
+    "category": "labour",
+    "keyPoints": [
+      "Regular, painful contractions that get stronger and closer together — for a first baby, roughly every five minutes for an hour; for later babies, every ten minutes",
+      "Waters breaking: a gush or steady trickle of fluid — go in even if there are no contractions, and note the colour (clear is normal; green, brown or foul-smelling means the baby needs attention now)",
+      "Any bleeding at term other than the mucus plug (a blood-stained sticky plug can come away days before labour)",
+      "Pack a bag from 36 weeks: antenatal card and ID, clothes for mother and baby, sanitary pads, maternity pads, soap, and something to drink",
+      "Plan the route and transport to the facility in advance, including at night; know which clinic or hospital is the right one to deliver at",
+      "Deliver at a health facility, not at home — skilled birth attendance is the single strongest protection for mother and baby"
+    ],
+    "whenToSeekCare": "Go to the labour ward with regular contractions, broken waters, or bleeding. Call 10177 if the baby is coming now, there is heavy bleeding, or the mother feels very unwell",
+    "tags": ["labour", "when-to-go", "planning", "facility-birth"],
+    "source": "SA NDoH Guidelines for Maternity Care / WHO"
+  },
+  {
+    "id": "mat-009",
+    "title": "True Labour vs False Labour (Braxton Hicks)",
+    "category": "labour",
+    "keyPoints": [
+      "False labour (Braxton Hicks): irregular tightenings, usually painless or mildly uncomfortable, stay the same strength, often stop with rest, a bath or a change of position, and are felt at the front",
+      "True labour: contractions become regular, stronger, longer and closer together, continue no matter what the mother does, and usually start in the back and swing to the front",
+      "A show (mucus plug) alone, without contractions, can mean labour is days away — no need to rush",
+      "Waters breaking means go, even without contractions",
+      "When unsure, phone the labour ward — they would rather assess early than see a baby born unattended on the way"
+    ],
+    "whenToSeekCare": "Go to the facility when contractions are regular and strengthening, at once if the waters break, and straight away for any bleeding or reduced baby movements",
+    "tags": ["labour", "Braxton-Hicks", "contractions"],
+    "source": "SA NDoH Guidelines for Maternity Care / WHO"
+  },
+  {
+    "id": "mat-010",
+    "title": "Care of the Newborn in the First Hours",
+    "category": "postnatal",
+    "keyPoints": [
+      "Skin-to-skin: the baby is placed on the mother's chest, dried and covered — this keeps the baby warm, steadies breathing and starts bonding",
+      "Breastfeeding starts within the first hour — the first milk (colostrum) is small in amount and exactly right, a vaccine in a feed",
+      "The umbilical cord is kept clean and dry with nothing applied to the stump; it dries and falls off in one to two weeks",
+      "Vitamin K is given by injection at birth to prevent bleeding, and the first immunisations are given (BCG and oral polio vaccine)",
+      "Keep the baby warm and dry with a hat in the first days; no bath before six hours and then quick, warm baths",
+      "Exclusive breastfeeding — no water, no other milk, no solids — for the first six months"
+    ],
+    "whenToSeekCare": "Same-day care if the baby feeds poorly or not at all, is cold to touch, breathes fast, has yellow palms and soles, or the cord area becomes red, smelly or weepy",
+    "tags": ["postnatal", "newborn", "breastfeeding", "immediate-care"],
+    "source": "SA NDoH Maternal and Neonatal Care guidelines / WHO"
+  },
+  {
+    "id": "mat-011",
+    "title": "Postnatal Care — Mother and Baby Visits",
+    "category": "postnatal",
+    "keyPoints": [
+      "A check within the first week after birth — ideally day three — for mother and baby: bleeding, breasts, blood pressure, baby feeding and weight",
+      "The six-week postnatal visit for both: mother's recovery, contraception, mood, anaemia and blood pressure; baby's growth, feeding and first big immunisation round at six weeks",
+      "Any newborn with fever (38°C or more), a cold body, fast breathing, poor feeding or drowsiness needs care immediately — young babies become seriously ill fast",
+      "The Road-to-Health Booklet records every visit, weight and vaccine — carry it to every clinic visit and keep it safe for school years"
+    ],
+    "whenToSeekCare": "Same-day care for heavy bleeding (a pad soaked within an hour, or fist-sized clots), fever, smelly discharge, severe headache or vision changes, a painful red breast, or a low mood with thoughts of self-harm",
+    "tags": ["postnatal", "visits", "Road-to-Health", "six-weeks"],
+    "source": "SA NDoH Guidelines for Maternity Care / WHO postnatal guidance"
+  },
+  {
+    "id": "mat-012",
+    "title": "Postnatal Danger Signs — Mother",
+    "category": "postnatal",
+    "keyPoints": [
+      "Heavy bleeding: soaking a pad within an hour, passing clots bigger than a fist, or bleeding that increases instead of settling",
+      "Fever above 38°C, with or without smelly vaginal discharge — possible womb infection",
+      "Severe headache, flashing lights or a fit — pre-eclampsia can appear up to six weeks after the birth",
+      "A painful, red, hard breast with fever (mastitis) — continue breastfeeding and get treatment the same day",
+      "A tender, swollen, painful calf with fever — a clot needs urgent care",
+      "Chest pain or breathlessness — emergency",
+      "Thoughts of harming self or the baby, or feeling hopeless and unable to cope — postnatal depression is treatable and asking for help is strength (SADAG 0800 567 567, Lifeline 0861 322 322)"
+    ],
+    "whenToSeekCare": "Immediately — clinic or hospital — for any of the above. Call 10177 for a fit, chest pain, severe breathlessness or heavy bleeding that will not slow",
+    "tags": ["postnatal", "danger-signs", "bleeding", "mastitis"],
+    "source": "SA NDoH Guidelines for Maternity Care / WHO"
+  },
+  {
+    "id": "mat-013",
+    "title": "Newborn Danger Signs — Baby",
+    "category": "postnatal",
+    "keyPoints": [
+      "Poor feeding or refusing feeds, or fewer than two feeds waking for them in a day",
+      "Fast breathing (more than 60 breaths per minute when calm), chest sucking in between the ribs, or grunting with each breath",
+      "Fever (38°C or more) or a cold body (below 35.5°C, or cold to touch on the tummy)",
+      "Yellow skin reaching the palms and soles, or yellow eyes in the first day of life (jaundice in the first 24 hours is always abnormal)",
+      "Convulsions, unusual floppiness or stiffness, constant high-pitched crying, or unusual drowsiness with difficulty waking",
+      "Redness, swelling, pus or a bad smell around the cord stump",
+      "Fewer than two wet nappies a day after the first days, or green-black vomit"
+    ],
+    "whenToSeekCare": "Go to a clinic or hospital immediately — a sick newborn is always an emergency at any hour",
+    "tags": ["postnatal", "newborn", "danger-signs", "urgent-care"],
+    "source": "SA NDoH Neonatal Care guidelines / WHO"
+  },
+  {
+    "id": "mat-014",
+    "title": "Breastfeeding",
+    "category": "postnatal",
+    "keyPoints": [
+      "Exclusive breastfeeding for the first six months — no water, no formula, no porridge; breastmilk is a complete food and drink",
+      "Continue breastfeeding to two years and beyond while family foods are introduced from six months",
+      "Good attachment prevents sore nipples and poor weight gain: mouth wide, chin touching the breast, more of the darker area visible above the mouth than below, no clicking",
+      "Feed on demand day and night — 8-12 feeds in 24 hours is normal in the early weeks; frequent feeding builds supply",
+      "Engorgement: feed frequently, apply warmth before a feed and express a little for comfort; a warm shower helps",
+      "Cracked nipples are usually an attachment problem — fix the latch, rub a little hindmilk on the nipple, and ask a clinic nurse or lactation adviser",
+      "Mastitis: a red, painful, hard area with fever — keep feeding on that side, and get same-day care",
+      "Breastfeeding while on effective ART protects the baby and is the recommendation in South Africa"
+    ],
+    "whenToSeekCare": "Same-day clinic help for persistent nipple pain, a baby who feeds fewer than 8 times in 24 hours, is not waking for feeds, or is not gaining weight after the first week; mastitis with fever; breastfeeding is often fixable with support, so ask before giving up",
+    "tags": ["postnatal", "breastfeeding", "exclusive-six-months", "support"],
+    "source": "SA NDoH infant feeding policy / WHO"
+  },
+  {
+    "id": "mat-015",
+    "title": "Formula Feeding Safely (When Breastfeeding Is Not Possible)",
+    "category": "postnatal",
+    "keyPoints": [
+      "Where a mother cannot or chooses not to breastfeed, safe formula feeding is the alternative — South African clinics support the mother's informed choice with teaching",
+      "Cup feeding is safer than a bottle: cups are easier to clean than teats in settings without reliable hot water",
+      "Wash hands, cup and measuring scoop with soap and clean water before every feed",
+      "Boil water and let it cool to no less than 70°C for mixing, and always follow the tin's exact water-to-powder proportions — over-diluted formula slowly starves a baby; over-concentrated formula strains the kidneys",
+      "Feed the baby within an hour of mixing, and discard leftovers — prepared formula grows bacteria quickly",
+      "Formula needs reliable safe water and a steady income; if either fails, tell the clinic early rather than stretching the tin",
+      "No other milks — cow, goat, condensed or skim — for babies under 12 months"
+    ],
+    "whenToSeekCare": "Clinic review for any feeding difficulty, poor weight gain, or where the cost of formula has become a crisis — clinics and social workers know the options",
+    "tags": ["postnatal", "formula", "safe-preparation", "cup-feeding"],
+    "source": "SA NDoH infant feeding policy / WHO safe formula preparation guidance"
+  },
+  {
+    "id": "mat-016",
+    "title": "MomConnect — Free Pregnancy Messages",
+    "category": "antenatal",
+    "keyPoints": [
+      "MomConnect is the national Department of Health's free SMS service for pregnant women",
+      "Register from any cellphone by dialling *134*550# and answering the questions — registration is free",
+      "Weekly messages match the stage of pregnancy: what to expect, clinic visit reminders, danger signs, breastfeeding, immunisations and baby care in the first year",
+      "Messages arrive in the language chosen at registration",
+      "The service also gives feedback numbers to rate clinic services, which the department uses to improve care"
+    ],
+    "whenToSeekCare": "MomConnect supports but never replaces clinic visits — go to the clinic for any concern raised by a message or noticed at home",
+    "tags": ["antenatal", "MomConnect", "SMS", "free", "South-Africa"],
+    "source": "SA NDoH MomConnect programme (*134*550#)"
+  },
+  {
+    "id": "mat-017",
+    "title": "Contraception After Birth",
+    "category": "postnatal",
+    "keyPoints": [
+      "Fertility can return before the first period — as early as three weeks after birth — so contraception is decided early",
+      "Waiting about two years before the next pregnancy is safest for mother and baby",
+      "Breastfeeding-compatible options include the progestogen-only pill, the implant, and the intrauterine device (IUD); the injection is widely available in SA clinics and chosen by many — discuss bone health with the nurse",
+      "The implant and IUD can be placed in the days after delivery or at the six-week visit",
+      "Condoms remain the only method that also protects against HIV and STIs — dual protection is the standard advice",
+      "Emergency contraception is available at clinics and pharmacies without prescription, up to five days after unprotected sex, and works best the sooner it is taken",
+      "All contraceptive methods are free at public clinics"
+    ],
+    "whenToSeekCare": "The six-week postnatal visit is the natural point to choose a method; earlier for heavy bleeding with a chosen method, severe headaches, or trouble accessing supplies",
+    "tags": ["postnatal", "contraception", "family-planning", "free-services"],
+    "source": "SA NDoH Contraception Policy / WHO"
+  },
+  {
+    "id": "mat-018",
+    "title": "Childhood Immunisation Schedule (SA EPI)",
+    "category": "postnatal",
+    "keyPoints": [
+      "At birth: BCG (right upper arm) and oral polio vaccine (OPV-0) by mouth",
+      "At 6 weeks: hexavalent vaccine (diphtheria, tetanus, whooping cough, polio, Hib, hepatitis B) dose 1, pneumococcal vaccine (PCV) dose 1, rotavirus vaccine (RV) dose 1",
+      "At 10 weeks: hexavalent dose 2",
+      "At 14 weeks: hexavalent dose 3, PCV dose 2, RV dose 2",
+      "At 6 months: first measles and rubella vaccine (MR)",
+      "At 9 months: PCV dose 3",
+      "At 12 months: MR dose 2",
+      "At 18 months: hexavalent booster",
+      "At 6 years: tetanus-diphtheria booster",
+      "Vitamin A is given every six months from 6 months to five years, and deworming medicine every six months from one to five years, through clinics and crèches",
+      "Every vaccine is recorded in the Road-to-Health Booklet and all are free at public clinics; missed doses are caught up — a late vaccine still works, it just needs to happen"
+    ],
+    "whenToSeekCare": "Take the baby for immunisation on schedule even with a mild snuffle; delay only for fever or serious illness, then go as soon as the baby is well. Clinic review for any reaction beyond a feverish, irritable day or a sore leg",
+    "tags": ["postnatal", "immunisation", "EPI", "Road-to-Health", "free-services", "South-Africa"],
+    "source": "SA NDoH Expanded Programme on Immunisation (EPI-SA) schedule"
+  },
+  {
+    "id": "mat-019",
+    "title": "Postnatal Depression",
+    "category": "postnatal",
+    "keyPoints": [
+      "Baby blues — weepiness, irritability and feeling overwhelmed — affect most mothers in the first week and settle by about two weeks without treatment",
+      "Postnatal depression lasts beyond two weeks: persistent low mood, inability to enjoy the baby, exhaustion beyond tiredness, guilt about being a bad mother, sleep broken even when the baby sleeps, appetite change, withdrawing from people",
+      "It affects about one in seven mothers and can start any time in the first year, not only the first weeks",
+      "It is an illness, not a character failing, and it is treatable — counselling and medicine (some safe while breastfeeding) both work",
+      "Any thoughts of harming self or the baby need help the same day: SADAG 0800 567 567, Lifeline 0861 322 322, or the nearest clinic",
+      "Partners and family: take over night feeds, let her sleep a stretch, and take her seriously when she says she is not coping"
+    ],
+    "whenToSeekCare": "Clinic visit for low mood lasting more than two weeks or affecting care of the baby; same-day help for any thoughts of self-harm or of harming the baby",
+    "tags": ["postnatal", "depression", "mental-health", "support"],
+    "source": "SA NDoH mental health guidelines / WHO; SADAG; Lifeline"
+  },
+  {
+    "id": "mat-020",
+    "title": "Preparing for a Safe Delivery — Transport, Money and Support",
+    "category": "labour",
+    "keyPoints": [
+      "Know the facility: which clinic or hospital will be the place of delivery, its labour ward number, and its visiting rules",
+      "Arrange transport for any hour of the night — the name of a taxi driver, a neighbour with a car, and the 10177 number saved on the phone",
+      "Save what is needed for the trip: a little money for taxi fares in an envelope, the packed bag, the antenatal card and ID",
+      "Identify who will look after the other children and who will be the birth companion — South African policy allows a companion of the mother's choice in the labour ward",
+      "Register the pregnancy on MomConnect (*134*550#) for free stage-by-stage guidance",
+      "Learn the danger signs (mat-002) and the labour signs (mat-008) and write them where the household can see them"
+    ],
+    "whenToSeekCare": "Go early rather than late — a mother who arrives in established labour with an unbooked pregnancy is the highest-risk delivery a ward sees",
+    "tags": ["labour", "planning", "transport", "birth-companion"],
+    "source": "SA NDoH Guidelines for Maternity Care / MomConnect"
+  }
+]

@@ -1,6 +1,6 @@
-import assistant from '../../../../packages/catalog/assistant.json' with { type: 'json' };
-import sos from '../../../../packages/catalog/sos.json' with { type: 'json' };
-import { redactPHI } from '../../../../packages/gilbertone/src/phi.ts';
+import assistant from "../../../../packages/catalog/assistant.json" with { type: "json" };
+import sos from "../../../../packages/catalog/sos.json" with { type: "json" };
+import { redactPHI } from "../../../../packages/gilbertone/src/phi.ts";
 
 /* The language-model tier, as one small module: two providers, a system prompt read from the
    contract, and the rules that keep a model out of every decision that matters.
@@ -35,14 +35,22 @@ export const LLM_TIMEOUT_MS = 10 * 1000;
 const DEFAULT_PROBE_TIMEOUT_MS = 800;
 /* Pinned, as it has always been, rather than a moving 'latest' — but moved: the classic GA surface
    2024-10-21 predates the gpt-4.1 family, and a gpt-4.1 deployment answers only from
-   2025-01-01-preview onward, which is the earliest dated version that serves it. */
-const AZURE_API_VERSION = '2025-01-01-preview';
-const AZURE_DEFAULT_MODEL = 'gpt-4.1-mini';
-const OLLAMA_DEFAULT_URL = 'http://localhost:11434';
-const OLLAMA_DEFAULT_MODEL = 'med42-v2';
+   2025-01-01-preview onward, which is the earliest dated version that serves it.
+
+   The two Azure facts and the two Ollama defaults are exported since the orchestrator tier of
+   21 September 2026, which builds its LangChain models from the same connection facts this adapter
+   reads — one set of constants, so the two tiers can never point at different defaults. Exporting
+   them changes no behaviour. */
+export const AZURE_API_VERSION = "2025-01-01-preview";
+export const AZURE_DEFAULT_MODEL = "gpt-4.1-mini";
+export const OLLAMA_DEFAULT_URL = "http://localhost:11434";
+/* llama3.1:8b, the tag this machine's Ollama actually carries — the bare name 'llama3.1' is not
+   resolvable there ('model not found'), and med42-v2 was never installed. An operator who has a
+   different model sets OLLAMA_MODEL and this default never runs. */
+export const OLLAMA_DEFAULT_MODEL = "llama3.1:8b";
 /* The adapter's own word for a reply a model wrote — not one of the engine's classifications.
    The engine's taxonomy stays the engine's: a model can never claim 'emergency'. */
-const MODEL_CLASSIFICATION = 'model';
+const MODEL_CLASSIFICATION = "model";
 /* A ceiling on what a model may put in one reply, so a runaway answer cannot bloat the session
    store or the panel. A normal answer is a few sentences; this is roughly two hundred words. */
 export const LLM_REPLY_LIMIT = 1200;
@@ -61,7 +69,11 @@ export interface LLMResponse {
 export interface LLMProvider {
   name: string;
   available: boolean;
-  complete(message: string, systemPrompt: string, context?: string[]): Promise<LLMResponse>;
+  complete(
+    message: string,
+    systemPrompt: string,
+    context?: string[],
+  ): Promise<LLMResponse>;
 }
 
 /* The instructions the model is given, read from packages/catalog/assistant.json's llm section
@@ -73,8 +85,11 @@ const sosNumbers: ReadonlyMap<string, string> = new Map(
   sos.emergency.numbers.map((entry) => [entry.id, entry.number] as const),
 );
 export function llmSystemPrompt(): string {
-  const prompt = String(assistant.llm?.systemPrompt ?? '');
-  return prompt.replace(/\{([a-zA-Z]+)\}/g, (token, id) => sosNumbers.get(id) ?? token);
+  const prompt = String(assistant.llm?.systemPrompt ?? "");
+  return prompt.replace(
+    /\{([a-zA-Z]+)\}/g,
+    (token, id) => sosNumbers.get(id) ?? token,
+  );
 }
 
 /* What is handed over about the conversation: classifications and counts, never the person's
@@ -86,18 +101,18 @@ const withContext = (systemPrompt: string, context?: string[]): string => {
   if (!lines.length) return systemPrompt;
   return `${systemPrompt}\n\nWhat is already known about this conversation, and nothing else:\n${lines
     .map((line) => `- ${line}`)
-    .join('\n')}`;
+    .join("\n")}`;
 };
 
-type ChatMessage = { role: 'system' | 'user'; content: string };
+type ChatMessage = { role: "system" | "user"; content: string };
 
 const messagesFor = (
   systemPrompt: string,
   context: string[] | undefined,
   message: string,
 ): ChatMessage[] => [
-  { role: 'system', content: withContext(systemPrompt, context) },
-  { role: 'user', content: redactPHI(message) },
+  { role: "system", content: withContext(systemPrompt, context) },
+  { role: "user", content: redactPHI(message) },
 ];
 
 const answerOf = (text: string): LLMResponse => {
@@ -114,7 +129,7 @@ const answerOf = (text: string): LLMResponse => {
    is read as AZURE_OPENAI_KEY or AZURE_OPENAI_API_KEY — the portal's own screen says "API key", and
    an operator who named the variable after what the screen called it has still configured it. */
 export class AzureOpenAIProvider implements LLMProvider {
-  name = 'azure-openai';
+  name = "azure-openai";
   available: boolean;
   readonly #endpoint: string;
   readonly #key: string;
@@ -124,25 +139,34 @@ export class AzureOpenAIProvider implements LLMProvider {
      types, and stripping cannot rewrite a parameter property into a field. */
   constructor(timeoutMs: number = LLM_TIMEOUT_MS) {
     const env = process.env;
-    this.#endpoint = (env.AZURE_OPENAI_ENDPOINT ?? '').trim().replace(/\/+$/, '');
-    this.#key = (env.AZURE_OPENAI_KEY ?? env.AZURE_OPENAI_API_KEY ?? '').trim();
-    this.#model = (env.AZURE_OPENAI_MODEL ?? '').trim() || AZURE_DEFAULT_MODEL;
+    this.#endpoint = (env.AZURE_OPENAI_ENDPOINT ?? "")
+      .trim()
+      .replace(/\/+$/, "");
+    this.#key = (env.AZURE_OPENAI_KEY ?? env.AZURE_OPENAI_API_KEY ?? "").trim();
+    this.#model = (env.AZURE_OPENAI_MODEL ?? "").trim() || AZURE_DEFAULT_MODEL;
     this.#timeoutMs = timeoutMs;
     this.available = Boolean(this.#endpoint && this.#key);
   }
-  async complete(message: string, systemPrompt: string, context?: string[]): Promise<LLMResponse> {
+  async complete(
+    message: string,
+    systemPrompt: string,
+    context?: string[],
+  ): Promise<LLMResponse> {
     const url = `${this.#endpoint}/openai/deployments/${this.#model}/chat/completions?api-version=${AZURE_API_VERSION}`;
     const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'api-key': this.#key },
-      body: JSON.stringify({ messages: messagesFor(systemPrompt, context, message) }),
+      method: "POST",
+      headers: { "content-type": "application/json", "api-key": this.#key },
+      body: JSON.stringify({
+        messages: messagesFor(systemPrompt, context, message),
+      }),
       signal: AbortSignal.timeout(this.#timeoutMs),
     });
-    if (!response.ok) throw new Error(`azure-openai answered ${response.status}`);
+    if (!response.ok)
+      throw new Error(`azure-openai answered ${response.status}`);
     const body = (await response.json()) as {
       choices?: { message?: { content?: string } }[];
     };
-    return answerOf(body.choices?.[0]?.message?.content ?? '');
+    return answerOf(body.choices?.[0]?.message?.content ?? "");
   }
 }
 
@@ -150,23 +174,27 @@ export class AzureOpenAIProvider implements LLMProvider {
    provider is available immediately; without one, askModel probes the default URL once — see
    probeOllama below for why a probe rather than a promise. */
 export class OllamaProvider implements LLMProvider {
-  name = 'ollama';
+  name = "ollama";
   available: boolean;
   readonly #url: string;
   readonly #model: string;
   readonly #timeoutMs: number;
   constructor(timeoutMs: number = LLM_TIMEOUT_MS) {
     const env = process.env;
-    const configured = (env.OLLAMA_URL ?? '').trim();
-    this.#url = (configured || OLLAMA_DEFAULT_URL).replace(/\/+$/, '');
-    this.#model = (env.OLLAMA_MODEL ?? '').trim() || OLLAMA_DEFAULT_MODEL;
+    const configured = (env.OLLAMA_URL ?? "").trim();
+    this.#url = (configured || OLLAMA_DEFAULT_URL).replace(/\/+$/, "");
+    this.#model = (env.OLLAMA_MODEL ?? "").trim() || OLLAMA_DEFAULT_MODEL;
     this.#timeoutMs = timeoutMs;
     this.available = Boolean(configured);
   }
-  async complete(message: string, systemPrompt: string, context?: string[]): Promise<LLMResponse> {
+  async complete(
+    message: string,
+    systemPrompt: string,
+    context?: string[],
+  ): Promise<LLMResponse> {
     const response = await fetch(`${this.#url}/api/chat`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      method: "POST",
+      headers: { "content-type": "application/json" },
       body: JSON.stringify({
         model: this.#model,
         messages: messagesFor(systemPrompt, context, message),
@@ -176,14 +204,15 @@ export class OllamaProvider implements LLMProvider {
     });
     if (!response.ok) throw new Error(`ollama answered ${response.status}`);
     const body = (await response.json()) as { message?: { content?: string } };
-    return answerOf(body.message?.content ?? '');
+    return answerOf(body.message?.content ?? "");
   }
 }
 
 /* Whether Ollama is answering on its default URL. The probe is a fact asked for and not a
    promise kept: a machine that starts Ollama after this process does is picked up on the next
-   turn, and a machine that never has it pays one fast connection refusal. */
-async function probeOllama(): Promise<boolean> {
+   turn, and a machine that never has it pays one fast connection refusal. Exported with the
+   orchestrator tier, which resolves its LangChain models through the same probe. */
+export async function probeOllama(): Promise<boolean> {
   try {
     const response = await fetch(`${OLLAMA_DEFAULT_URL}/api/version`, {
       signal: AbortSignal.timeout(DEFAULT_PROBE_TIMEOUT_MS),
@@ -220,7 +249,11 @@ export async function askModel(
     try {
       const answer = await provider.complete(message, systemPrompt, context);
       if (answer.text.length)
-        return { provider: provider.name, text: answer.text, ms: Date.now() - started };
+        return {
+          provider: provider.name,
+          text: answer.text,
+          ms: Date.now() - started,
+        };
     } catch {
       /* A provider that timed out, refused or answered nothing is simply not this turn's tier;
          the caller keeps the classifier's answer. The next provider in the list is still tried,

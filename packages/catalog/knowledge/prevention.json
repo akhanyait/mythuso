@@ -1,0 +1,317 @@
+[
+  {
+    "id": "prv-001",
+    "title": "Childhood Immunisation — SA EPI Schedule",
+    "category": "immunisation",
+    "who": "Every child in South Africa; vaccines are free at public clinics",
+    "keyPoints": [
+      "Birth: BCG (TB) and OPV-0 (polio, first dose)",
+      "6 weeks: hexavalent vaccine 1 (diphtheria, tetanus, whooping cough, polio, Hib, hepatitis B), rotavirus 1, PCV 1 (pneumonia and meningitis)",
+      "10 weeks: hexavalent 2",
+      "14 weeks: hexavalent 3, PCV 2, rotavirus 2",
+      "6 months: measles 1 (MR)",
+      "9 months: PCV 3",
+      "12 months: measles 2 (MR)",
+      "18 months: hexavalent booster",
+      "6 years: Tdap booster (at school or clinic)",
+      "12 years: Tdap booster; HPV vaccine for girls (two doses, school-based programme)",
+      "Vitamin A drops every 6 months from 6 months to 5 years, and deworming from 1 to 5 years, are given alongside",
+      "All doses are recorded in the Road-to-Health Booklet (clinic card) — keep it safe and bring it to every clinic visit; missed doses can be caught up, so never skip a visit because one was missed before"
+    ],
+    "tags": ["immunisation", "EPI", "children", "free", "Road-to-Health"],
+    "source": "SA NDoH Expanded Programme on Immunisation (EPI) / WHO"
+  },
+  {
+    "id": "prv-002",
+    "title": "Vaccines for Adults and Older People",
+    "category": "immunisation",
+    "who": "Adults, especially those with chronic conditions, pregnant women, and everyone 65 and older",
+    "keyPoints": [
+      "Influenza (flu) vaccine every year before winter: free at public clinics for pregnant women, people living with HIV, chronic heart, lung and kidney conditions, diabetes, and everyone 65 and older",
+      "COVID-19 vaccination is available through the public programme — check current availability at the clinic",
+      "Pneumococcal vaccination for people 65 and older and those with chronic illness, as clinic-advised",
+      "Tetanus booster: a booster every 10 years; after a dirty or deep wound, one may be needed if the last was more than 5 years ago",
+      "Hepatitis B vaccination is offered to adults at ongoing risk, including healthcare exposure"
+    ],
+    "tags": ["immunisation", "adults", "flu", "older-people", "chronic"],
+    "source": "SA NDoH / WHO"
+  },
+  {
+    "id": "prv-003",
+    "title": "HIV Testing",
+    "category": "screening",
+    "who": "Everyone who has ever had sex — at least once a year, and with every new partner or pregnancy",
+    "keyPoints": [
+      "HIV testing is free at all public clinics, and available from many pharmacies, NGOs and mobile services — with same-day results",
+      "HIV self-test kits are available free through public sector programmes — a reactive (positive) self-test is confirmed at the clinic",
+      "Testing during every pregnancy is standard, and testing the partner matters for both",
+      "Testing more often makes sense with a new partner, a known exposure, condom breakage, or symptoms of a sexually transmitted infection",
+      "Early diagnosis saves lives: treatment is one tablet a day, free, and keeps people healthy and un-infectious (undetectable equals untransmittable)",
+      "Index testing: when someone tests positive, the clinic helps their partners and children test too — with consent"
+    ],
+    "tags": ["HIV", "testing", "free", "annual", "self-testing"],
+    "source": "SA NDoH HIV testing services guidelines / WHO"
+  },
+  {
+    "id": "prv-004",
+    "title": "TB Screening and Prevention",
+    "category": "screening",
+    "who": "Everyone at every clinic visit; household contacts of TB patients; people living with HIV",
+    "keyPoints": [
+      "Clinics screen for TB at every visit: cough, fever, night sweats, weight loss — a cough lasting more than two weeks always needs a TB test",
+      "TB tests (sputum and X-ray where needed) are free; results are usually back within days",
+      "Household contacts of a TB patient — especially children and people living with HIV — are screened and offered TB preventive therapy (TPT), a short course of medicine that stops latent TB becoming active",
+      "TPT is also standard for people living with HIV when TB is ruled out",
+      "Cough etiquette and ventilation: open windows, cough into the elbow, and let sunlight into living spaces — TB spreads in closed, crowded rooms",
+      "Finishing full TB treatment (six months) protects the household and prevents drug resistance"
+    ],
+    "tags": ["TB", "screening", "TPT", "contacts", "prevention"],
+    "source": "SA NDoH TB guidelines / WHO"
+  },
+  {
+    "id": "prv-005",
+    "title": "Cervical Cancer Screening (Pap Smear)",
+    "category": "screening",
+    "who": "All women from age 30 (or earlier where clinically indicated); free in the public sector",
+    "keyPoints": [
+      "South Africa's public sector programme offers three free Pap smears in a lifetime, at least ten years apart, from the age of 30",
+      "The test takes minutes at the clinic: cells from the cervix are checked for changes that can become cancer years later",
+      "Earlier or more frequent screening applies for women living with HIV — annually for the first three years after diagnosis, then as clinic-advised",
+      "HPV vaccination of girls at 12 (prv-001) prevents most cervical cancer in the next generation",
+      "Report between smears for: bleeding after sex, bleeding between periods, bleeding after menopause, or an unusual discharge — do not wait for the next scheduled smear",
+      "An abnormal smear usually means treating pre-cancer, not having cancer — follow-up visits matter"
+    ],
+    "tags": ["cervical-cancer", "Pap-smear", "screening", "women", "free"],
+    "source": "SA NDoH cervical cancer screening policy / WHO"
+  },
+  {
+    "id": "prv-006",
+    "title": "Breast Health Awareness",
+    "category": "screening",
+    "who": "All women, from the teenage years onwards",
+    "keyPoints": [
+      "Know what is normal for the breasts: skin, nipple direction, texture, and any lumpy areas that come and go with the monthly cycle",
+      "Changes to report at the clinic: a new lump that stays, skin dimpling like orange peel, nipple turning inward, nipple discharge or blood, one breast growing or feeling heavy, a sore that does not heal, or a lump in the armpit",
+      "Breast cancer in South Africa is often found late — knowing the signs and acting on them early saves breasts and lives",
+      "Clinical breast examination: offered at family planning and chronic visits — ask the nurse",
+      "Women with a mother or sister who had breast cancer should tell the clinic — earlier screening applies"
+    ],
+    "tags": ["breast-cancer", "awareness", "early-detection", "women"],
+    "source": "SA NDoH cancer control guidelines / WHO"
+  },
+  {
+    "id": "prv-007",
+    "title": "Blood Pressure Checks",
+    "category": "screening",
+    "who": "All adults at every clinic visit; at least yearly from 18, and at every antenatal visit",
+    "keyPoints": [
+      "High blood pressure has no symptoms — the only way it is found is by measuring",
+      "One high reading is not a diagnosis: confirmation is several readings on different days, or home readings brought to the clinic",
+      "Public clinics check blood pressure for free at every visit — it is one of the checks that happens even when the visit is for something else",
+      "High blood pressure drives stroke, heart failure, kidney failure and blindness — it is the most important treatable silent condition in South Africa",
+      "People with diabetes, HIV, pregnancy, or a family history need more frequent checks"
+    ],
+    "tags": ["blood-pressure", "screening", "silent", "free", "adults"],
+    "source": "SA NDoH hypertension guidelines / WHO"
+  },
+  {
+    "id": "prv-008",
+    "title": "Blood Sugar (Diabetes) Screening",
+    "category": "screening",
+    "who": "All adults at least every 3 years from 45, earlier and more often with risk factors",
+    "keyPoints": [
+      "Risk factors that bring screening forward: overweight, family history of diabetes, high blood pressure, previous diabetes in pregnancy, a baby over 4kg, polycystic ovary syndrome, HIV on treatment (weight gain), and being over 35 with any of these",
+      "Screening is free at the clinic: a finger-prick sugar test, with a fasting or HbA1c test to confirm any abnormal result",
+      "Classic warning signs: passing urine often, unusual thirst, weight loss despite eating, tiredness, blurred vision, slow-healing sores",
+      "Early type 2 diabetes often has no symptoms at all for years — screening, not symptoms, finds it early",
+      "Diagnosing early protects eyes, kidneys, feet and heart before damage starts"
+    ],
+    "tags": ["diabetes", "screening", "glucose", "early-detection"],
+    "source": "SA NDoH diabetes guidelines / WHO"
+  },
+  {
+    "id": "prv-009",
+    "title": "Cholesterol and Heart Risk",
+    "category": "screening",
+    "who": "Adults with risk factors: smoking, high blood pressure, diabetes, family history of early heart disease or stroke, overweight",
+    "keyPoints": [
+      "Cholesterol testing is available at clinics for people with risk factors; the useful picture includes total cholesterol, LDL ('bad'), HDL ('good') and triglycerides",
+      "Heart and stroke risk builds silently from combinations: smoking, blood pressure, sugar, cholesterol, age and family history",
+      "Lifestyle changes move every one of these numbers: stopping smoking is the single biggest one, followed by daily movement, salt reduction, and losing even a little weight",
+      "People living with HIV on treatment also have heart-risk monitoring built into care over time"
+    ],
+    "tags": ["cholesterol", "heart-disease", "stroke", "risk-factors"],
+    "source": "SA NDoH / WHO cardiovascular risk guidance"
+  },
+  {
+    "id": "prv-010",
+    "title": "Prostate Awareness for Men",
+    "category": "screening",
+    "who": "Men from 50, or from 40-45 with a father or brother who had prostate cancer",
+    "keyPoints": [
+      "Prostate cancer is among the most common cancers in South African men — and often curable when found early",
+      "Discuss prostate checking with the clinic from 50 (or 40-45 with a family history)",
+      "Warning signs to report without delay: weak or slow urine stream, straining to pass urine, blood in urine or semen, difficulty starting, or bone pain in the lower back and hips",
+      "Screening involves a blood test (PSA) and sometimes a prostate examination — the clinic will explain and obtain consent before any examination"
+    ],
+    "tags": ["prostate", "men", "cancer", "early-detection"],
+    "source": "SA NDoH cancer control guidelines / urological societies"
+  },
+  {
+    "id": "prv-011",
+    "title": "PrEP — Medicine That Prevents HIV",
+    "category": "infectious-disease",
+    "who": "Anyone at ongoing risk of HIV — including people with HIV-positive partners, sex workers, young women in high-prevalence areas, men who have sex with men, and people who inject drugs",
+    "keyPoints": [
+      "PrEP (pre-exposure prophylaxis) is medicine HIV-negative people take to prevent HIV — free at public clinics in South Africa",
+      "The oral form is a daily tablet; an injection given every two months is being introduced through programmes",
+      "PrEP works when taken as prescribed — the tablet needs about a week of daily dosing before it protects, and must be continued while risk continues",
+      "PrEP does not prevent pregnancy or other sexually transmitted infections — condoms still matter",
+      "Starting PrEP includes an HIV test and kidney check, with follow-up visits every few months"
+    ],
+    "tags": ["PrEP", "HIV-prevention", "free", "high-impact"],
+    "source": "SA NDoH PrEP guidelines / WHO"
+  },
+  {
+    "id": "prv-012",
+    "title": "Condoms and Safer Sex",
+    "category": "infectious-disease",
+    "who": "Everyone who is sexually active",
+    "keyPoints": [
+      "Male and female condoms are free at clinics, and distributed by many NGOs, workplaces and pharmacies",
+      "Condoms prevent HIV, most sexually transmitted infections, and pregnancy — the only method that does all three",
+      "Use a new condom every time, from start to finish; check the expiry date, open the packet carefully (no teeth), pinch the tip to leave space, and use water-based lubricant only",
+      "Oil, petroleum jelly and body lotion destroy latex — never use them as lubricant",
+      "Symptoms of infection — discharge, sores, burning when passing urine — mean both partners need treatment; clinics treat STIs free and confidentially",
+      "Male and female condoms give the same protection; the female condom can be inserted up to 8 hours before sex"
+    ],
+    "tags": ["condoms", "STI", "HIV-prevention", "free", "safer-sex"],
+    "source": "SA NDoH HIV prevention guidelines / WHO"
+  },
+  {
+    "id": "prv-013",
+    "title": "Medical Male Circumcision (MMC)",
+    "category": "infectious-disease",
+    "who": "HIV-negative men and boys (from 15) choosing circumcision",
+    "keyPoints": [
+      "Medical male circumcision reduces a man's risk of acquiring HIV from a female partner by about 60 percent — one of the strongest tools in the combination prevention package",
+      "MMC is free at public facilities and trained private providers in South Africa; the procedure takes about 20-30 minutes under local anaesthetic",
+      "Healing takes about 6 weeks — no sex during healing; stitches absorb on their own",
+      "MMC reduces risk; it does not remove it — condoms remain essential",
+      "Circumcision also reduces urinary infections in baby boys, and lowers the risk of penile cancer and some HPV transmission",
+      "Choose medical circumcision over traditional-only where the full procedure may not be completed — the health benefit comes from complete removal of the foreskin"
+    ],
+    "tags": ["MMC", "circumcision", "HIV-prevention", "free", "men"],
+    "source": "SA NDoH MMC programme / WHO"
+  },
+  {
+    "id": "prv-014",
+    "title": "Handwashing",
+    "category": "hygiene",
+    "who": "Everyone, every day",
+    "keyPoints": [
+      "Wash hands with soap and water for at least 20 seconds: after the toilet, before preparing or eating food, after changing nappies, after coughing or sneezing, after touching animals, and whenever hands are visibly dirty",
+      "Soap and running water is best; alcohol hand-rub (60 percent or more alcohol) works when water is not available — but not when hands are visibly dirty",
+      "Handwashing prevents diarrhoea, pneumonia, skin and eye infections, and slows outbreaks from flu to cholera — it is the single cheapest health intervention there is",
+      "Teach children the technique: wet, soap, scrub all surfaces including between fingers and thumbs and nails, rinse, dry with a clean cloth or air",
+      "No soap? Ash from a clean fire works as a rubbing agent where nothing else is available"
+    ],
+    "tags": ["handwashing", "hygiene", "diarrhoea-prevention", "free"],
+    "source": "WHO hand hygiene guidance / SA NDoH"
+  },
+  {
+    "id": "prv-015",
+    "title": "Safe Water and Household Sanitation",
+    "category": "environmental",
+    "who": "Every household, especially where water comes from tanks, rivers, boreholes or standpipes",
+    "keyPoints": [
+      "Make water safe: boil it at a rolling boil for 1 minute (3 minutes at high altitude), or treat it with household bleach — add 1 teaspoon (5ml) of unscented household bleach (containing 5 percent chlorine) to 20-25 litres of water, mix, and wait at least 30 minutes before drinking",
+      "Store water in a clean, covered container with a tap or ladle used only for water — dipping hands and cups contaminates it",
+      "Wash the container and lid regularly with soap",
+      "Keep toilets and latrines clean and safe; never defecate in the open or near water sources",
+      "Wash hands with soap after the toilet and before food (prv-014) — safe water plus clean hands is the backbone of preventing diarrhoea, cholera, typhoid and hepatitis A",
+      "Paraffin, pesticides and bleach are stored away from water and food and never in drink bottles — accidental swallowing is a childhood emergency (Poisons Helpline 0861 555 777)"
+    ],
+    "tags": ["water-safety", "sanitation", "household", "diarrhoea", "cholera"],
+    "source": "WHO household water treatment guidance / SA NDoH environmental health"
+  },
+  {
+    "id": "prv-016",
+    "title": "Malaria Prevention",
+    "category": "infectious-disease",
+    "who": "Anyone living in or travelling to malaria areas of South Africa (mainly lowveld areas of Limpopo, Mpumalanga and KwaZulu-Natal) and neighbouring countries, especially September to May",
+    "keyPoints": [
+      "Prevent mosquito bites: sleep under an insecticide-treated net every night; cover arms and legs after dusk; use repellent (DEET-containing) on skin and clothes; use screens and close windows at night",
+      "Prophylaxis (preventive medicine) is available for travellers to high-risk areas, especially in the rainy season — start before travel, take it exactly as prescribed, and continue after returning",
+      "Season matters: risk is highest from September to May",
+      "Any fever within weeks of visiting a malaria area is malaria until proven otherwise — get tested the same day; untreated malaria can kill within 48 hours",
+      "Pregnant women and small children are at highest risk of severe malaria and need special protection and early care"
+    ],
+    "tags": ["malaria", "nets", "prophylaxis", "travel", "seasonal"],
+    "source": "SA NDoH malaria guidelines / WHO"
+  },
+  {
+    "id": "prv-017",
+    "title": "Healthy Eating and Salt Reduction",
+    "category": "lifestyle",
+    "who": "Everyone, at every age",
+    "keyPoints": [
+      "Build meals on the healthy plate: half vegetables, a quarter starch (maize, brown bread, rice, potato), a quarter protein (beans, lentils, eggs, tinned fish, chicken, milk) — water instead of sweet drinks",
+      "Salt: keep to less than one level teaspoon (5g) a day in total, including salt already in foods — South Africa's salt legislation already lowered the salt in bread and processed foods, but stock cubes, soup powders, processed meat, crisps and instant noodles still carry most of the load",
+      "Sugar: sweet drinks (including fruit juice and energy drinks) are the biggest weight and diabetes driver — water and unsweetened amasi or milk are the everyday drinks",
+      "Fried takeaways and processed meat are for rare occasions, not weekly routine",
+      "Breastfeed babies exclusively for six months; family food for toddlers follows the same healthy plate with no added salt",
+      "Grow and buy what is in season: spinach, cabbage, carrots, butternut, beans and lentils are the affordable backbone of healthy eating"
+    ],
+    "tags": ["nutrition", "salt", "healthy-plate", "lifestyle"],
+    "source": "SA food-based dietary guidelines / WHO / SA salt legislation"
+  },
+  {
+    "id": "prv-018",
+    "title": "Physical Activity",
+    "category": "lifestyle",
+    "who": "Everyone — children, adults, older people, and people living with chronic conditions",
+    "keyPoints": [
+      "Aim for 150 minutes of moderate activity a week — 30 minutes on 5 days — brisk walking counts fully",
+      "Plus muscle-strengthening twice a week: carrying water, digging in the garden, or bodyweight exercises at home",
+      "Children need at least 60 minutes of active play every day",
+      "Movement lowers blood pressure, controls sugar and weight, lifts mood, strengthens bones and prevents falls in older age — it is medicine without a prescription",
+      "Start where you are: ten-minute walks build to thirty; taking stairs, walking to the shop, and getting off a taxi rank early all count",
+      "Anyone with a heart condition, chest pain or long-standing diabetes should check in at the clinic before starting hard exercise — walking is safe for almost everyone"
+    ],
+    "tags": ["exercise", "activity", "lifestyle", "all-ages"],
+    "source": "WHO physical activity guidelines"
+  },
+  {
+    "id": "prv-019",
+    "title": "Stopping Smoking",
+    "category": "lifestyle",
+    "who": "Every person who smokes or uses snuff, hubbly or e-cigarettes",
+    "keyPoints": [
+      "Quitting is the single most powerful health change a smoker can make — heart and stroke risk starts falling within weeks, and lung cancer risk halves after ten smoke-free years",
+      "Smoking harms more than the smoker: children in smoking households get more pneumonia, asthma attacks and ear infections",
+      "Nicotine replacement (patches, gum, lozenges) roughly doubles quit success — ask at the clinic or pharmacy",
+      "Practical quitting: set a quit date, tell people, remove cigarettes, lighters and ashtrays, plan for the three hardest trigger moments of the day, and expect cravings to pass within five minutes",
+      "Hubbly (hookah) is not safe — one session can deliver the smoke of many cigarettes; e-cigarettes also carry dependence and harm",
+      "Free quit support is available — clinics, SADAG, the National Council Against Smoking and CANSA all offer programmes and advice lines"
+    ],
+    "tags": ["smoking", "cessation", "nicotine", "lifestyle"],
+    "source": "WHO / CANSA / National Council Against Smoking"
+  },
+  {
+    "id": "prv-020",
+    "title": "Alcohol — Cutting the Risk",
+    "category": "lifestyle",
+    "who": "Everyone who drinks alcohol",
+    "keyPoints": [
+      "No level of drinking improves health — the safest amount for health is none, and any reduction helps",
+      "Harmful patterns to change: drinking more than planned, drinking to cope, binge sessions (four or more drinks in one sitting for women, five for men), and drinking around children's needs or work",
+      "No alcohol at all during pregnancy or while breastfeeding — South Africa has among the highest rates of fetal alcohol spectrum disorder in the world, and there is no safe amount",
+      "Never drink and drive, ride a motorbike, or supervise water activities — alcohol is a factor in many road deaths and drownings",
+      "Alcohol interacts dangerously with many medicines: sleeping tablets, pain tablets, epilepsy and TB treatment — ask the clinic about the specific medicine",
+      "Worried about your own or someone else's drinking? Help is free — see the substance-use entry (mh-006) for SANCA and helpline options"
+    ],
+    "tags": ["alcohol", "harm-reduction", "pregnancy", "road-safety"],
+    "source": "WHO / SA NDoH / SANCA"
+  }
+]

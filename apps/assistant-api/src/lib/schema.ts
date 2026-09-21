@@ -39,11 +39,12 @@ export type AssistantTurnResponse = {
      policy in packages/catalog/assistant.json's refusalPolicies. */
   refusalId?: string;
   /* Which tier wrote the reply, since the two-tier upgrade of 20 September 2026: the keyword
-     classifier, or the language model consulted when the classifier found nothing it knows.
-     Absent means the classifier's — every reply that existed before this field did, the
-     refusals and the clarify ask included, so a caller that ignores the field sees exactly
-     what it saw before it existed. */
-  source?: 'classifier' | 'model';
+     classifier, the language model consulted when the classifier found nothing it knows, or —
+     since the orchestrator upgrade of 21 September 2026 — the LangChain agent tier with its
+     catalog tools, in the same seat. Absent means the classifier's — every reply that existed
+     before this field did, the refusals and the clarify ask included, so a caller that ignores
+     the field sees exactly what it saw before it existed. */
+  source?: 'classifier' | 'model' | 'orchestrator';
   /* With a model-written reply, the face the contract's affect section gives the service
      answer, read from packages/catalog/assistant.json — so a client can wear the same face
      the web panel does without typing a cue id of its own. */

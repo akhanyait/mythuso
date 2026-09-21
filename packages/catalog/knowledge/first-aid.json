@@ -1,0 +1,460 @@
+[
+  {
+    "id": "fa-001",
+    "title": "CPR — Adult",
+    "category": "emergency",
+    "steps": [
+      "Check the scene for danger (traffic, electricity, smoke) before touching anyone",
+      "Shake the shoulders and shout — check for a response",
+      "If no response: shout for help and call 10177 (or 112 from a cellphone) on speaker, or send someone else to call",
+      "Open the airway: tilt the head back and lift the chin",
+      "Check for normal breathing for no more than 10 seconds — look at the chest, listen and feel",
+      "If not breathing or only gasping: start chest compressions at once",
+      "Push hard and fast in the centre of the chest: 5-6cm deep, 100-120 compressions per minute",
+      "Let the chest rise fully between pushes; minimise interruptions",
+      "If trained and willing, give 2 rescue breaths after every 30 compressions; otherwise keep doing compressions",
+      "Continue until the person breathes normally, a defibrillator or ambulance arrives, or someone takes over",
+      "If an AED (automated external defibrillator) is available, switch it on and follow its voice prompts"
+    ],
+    "warnings": [
+      "Do not delay calling 10177 — do it while starting compressions, on speakerphone",
+      "Do not stop to feel for a pulse; untrained checking wastes minutes",
+      "Compressions on a breathing person can cause harm — check breathing first"
+    ],
+    "whenToCall": "Immediately when a person is unresponsive and not breathing normally",
+    "tags": ["emergency", "cardiac", "CPR", "life-support"],
+    "source": "SA Resuscitation Council / AHA guidelines"
+  },
+  {
+    "id": "fa-002",
+    "title": "CPR — Child (1 to 8 years)",
+    "category": "emergency",
+    "steps": [
+      "Check for danger, then check for a response: tap the shoulders and call the child's name",
+      "If unresponsive: shout for help, call 10177 on speaker or send someone",
+      "Open the airway with a gentle head tilt and chin lift",
+      "Check for normal breathing for no more than 10 seconds",
+      "If not breathing normally: give 5 rescue breaths first — seal the mouth over the child's mouth, pinch the nose, blow just enough to make the chest rise",
+      "Start chest compressions: push about 5cm deep with the heel of one hand (or two hands for a bigger child), 100-120 per minute",
+      "Give 2 breaths after every 30 compressions",
+      "Continue without stopping until help arrives or the child breathes normally"
+    ],
+    "warnings": [
+      "Breaths come first for children — most child arrests are caused by lack of air, not heart problems",
+      "Blow gently — a child's lungs are small; hard breaths push air into the stomach"
+    ],
+    "whenToCall": "Immediately when a child is unresponsive and not breathing normally",
+    "tags": ["emergency", "cardiac", "CPR", "children"],
+    "source": "SA Resuscitation Council / AHA guidelines"
+  },
+  {
+    "id": "fa-003",
+    "title": "CPR — Baby (under 1 year)",
+    "category": "emergency",
+    "steps": [
+      "Check for danger, then check for a response: tap the foot and call out",
+      "If unresponsive: shout for help, call 10177 on speaker or send someone",
+      "Open the airway: head in a neutral position, chin lifted gently — do not over-tilt",
+      "Check for normal breathing for no more than 10 seconds",
+      "If not breathing normally: give 5 rescue breaths — cover both the baby's mouth and nose with your mouth, puff your cheeks and breathe gently",
+      "Start compressions with two fingers or two thumbs on the centre of the chest: about 4cm deep, 100-120 per minute",
+      "Give 2 breaths after every 30 compressions",
+      "Continue until help arrives or the baby breathes normally"
+    ],
+    "warnings": [
+      "Never shake a baby to wake it",
+      "Breaths are tiny — just enough to make the chest rise"
+    ],
+    "whenToCall": "Immediately when a baby is unresponsive and not breathing normally",
+    "tags": ["emergency", "CPR", "infant", "life-support"],
+    "source": "SA Resuscitation Council / AHA guidelines"
+  },
+  {
+    "id": "fa-004",
+    "title": "Choking — Adult and Child over 1 year",
+    "category": "emergency",
+    "steps": [
+      "Ask: Are you choking? If the person can cough or speak, encourage strong coughing and stay with them — do not intervene yet",
+      "If there is no cough or sound, or breathing is failing: give 5 firm back blows between the shoulder blades with the heel of the hand, leaning the person forward",
+      "If that fails: give 5 abdominal thrusts — fist just above the navel, pull sharply inward and upward (Heimlich manoeuvre)",
+      "Alternate 5 back blows and 5 abdominal thrusts until the object comes out or the person collapses",
+      "If the person becomes unconscious: lower them carefully to the floor, call 10177, and start CPR"
+    ],
+    "warnings": [
+      "Abdominal thrusts are for adults and children over 1 year only — never on babies",
+      "Anyone who has had abdominal thrusts should be seen by a doctor afterwards, even when well"
+    ],
+    "whenToCall": "Call 10177 at once if coughing fails, the person cannot speak, or turns blue — and immediately if they collapse",
+    "tags": ["emergency", "choking", "airway"],
+    "source": "SA Resuscitation Council / AHA guidelines"
+  },
+  {
+    "id": "fa-005",
+    "title": "Choking — Baby (under 1 year)",
+    "category": "emergency",
+    "steps": [
+      "Check the mouth: if an object is visible and loose, remove it with a finger sweep — never blind sweeps",
+      "Lay the baby face down along the forearm, head lower than the body, supporting the jaw",
+      "Give 5 firm back blows between the shoulder blades with the heel of the hand",
+      "Turn the baby face up along the other arm, head still low, and give 5 chest thrusts with two fingers on the centre of the chest",
+      "Alternate 5 back blows and 5 chest thrusts until the object clears or the baby becomes unresponsive",
+      "If unconscious: call 10177 and start baby CPR"
+    ],
+    "warnings": [
+      "No abdominal thrusts on babies — the organs are not protected by the ribcage yet"
+    ],
+    "whenToCall": "Call 10177 at once if the cry or cough is silent, breathing fails, or the baby turns blue",
+    "tags": ["emergency", "choking", "infant", "airway"],
+    "source": "SA Resuscitation Council / AHA guidelines"
+  },
+  {
+    "id": "fa-006",
+    "title": "Severe Bleeding",
+    "category": "trauma",
+    "steps": [
+      "Check for danger to yourself first — traffic, glass, sharp objects, violence",
+      "Call 10177 or send someone to call",
+      "Expose the wound and press firmly on it with a clean cloth or pad, using the palm of the hand",
+      "Keep pressing without letting go for at least 10 minutes — peeking restarts the clock",
+      "If there is a foreign object embedded in the wound, do not remove it: press around it and pad it in place",
+      "Raise the injured limb above heart level if no broken bone is suspected",
+      "If blood soaks through, add more padding on top — do not remove the soaked layer",
+      "Keep the person lying down and still; keep them warm with a blanket or jacket",
+      "Watch for shock: pale, cold, sweaty skin, fast weak pulse, confusion — keep them flat and warm"
+    ],
+    "warnings": [
+      "Give nothing to eat or drink — surgery may be needed",
+      "Do not use a tourniquet except for a limb that is bleeding massively and cannot be controlled by pressure; note the time applied",
+      "Do not remove soaked dressings to replace them — add on top"
+    ],
+    "whenToCall": "10177 immediately for spurting or pooling blood, or any bleeding that does not stop with 10 minutes of firm pressure",
+    "tags": ["trauma", "bleeding", "emergency", "shock"],
+    "source": "SA first-aid guidance / SA Resuscitation Council"
+  },
+  {
+    "id": "fa-007",
+    "title": "Burns and Scalds",
+    "category": "trauma",
+    "steps": [
+      "Stop the burning: move the person away from the source, switch off electricity at the mains first if live",
+      "Remove jewellery, watches and tight clothing near the burn before swelling starts — but not clothing stuck to the burn",
+      "Cool the burn under cool running water for a full 20 minutes",
+      "Cover loosely with clean cling film laid lengthways, or a clean non-fluffy cloth",
+      "Give paracetamol for pain; keep the person warm — burned skin loses heat",
+      "For chemical burns: flush with running water for at least 20 minutes, remove contaminated clothing while flushing"
+    ],
+    "warnings": [
+      "Never use ice, butter, toothpaste, eggs or any folk remedy — they trap heat and infect the wound",
+      "Never burst blisters",
+      "Do not apply cotton wool or fluffy material to the burn",
+      "Paraffin stoves and candles are a leading cause of childhood burns in South African homes — keep them out of reach and never leave unattended"
+    ],
+    "whenToCall": "10177 for burns bigger than the person's hand, burns to the face, hands, feet, genitals or joints, any chemical or electrical burn, smoke inhalation, or burns in babies and young children",
+    "tags": ["trauma", "burns", "paraffin", "children", "South-Africa"],
+    "source": "SA burn care guidance / WHO"
+  },
+  {
+    "id": "fa-008",
+    "title": "Suspected Broken Bone (Fracture)",
+    "category": "trauma",
+    "steps": [
+      "Do not move the injured limb — steady and support it in the position found",
+      "Control any bleeding first with a clean pad and pressure around, not on, any protruding bone",
+      "Pad around the limb with soft material (clothes, towels) and splint it to the body or an unaffected limb in the position found",
+      "Apply a cold pack wrapped in cloth around, not on, the injury for 15-20 minutes to reduce swelling",
+      "Keep the person still, warm and nil by mouth — surgery may be needed and an empty stomach is safer",
+      "Support an injured arm in a sling; keep a leg injury lying down"
+    ],
+    "warnings": [
+      "Never straighten a deformed limb or try to push bone back under the skin",
+      "Give nothing to eat or drink",
+      "Numb, white or cold fingers or toes beyond the break mean circulation is threatened — emergency care now"
+    ],
+    "whenToCall": "10177 for head, neck or back injuries, bones showing through skin, deformed or unreachable limbs, or any fracture in a child, an older person, or after a serious fall or road crash",
+    "tags": ["trauma", "fracture", "splint", "injury"],
+    "source": "SA first-aid guidance / WHO trauma guidance"
+  },
+  {
+    "id": "fa-009",
+    "title": "Sprains and Strains",
+    "category": "trauma",
+    "steps": [
+      "Rest the injured part for the first 48-72 hours, avoiding sport and heavy use",
+      "Ice: apply a cold pack wrapped in a damp cloth for 15-20 minutes, 3-4 times a day, never ice directly on skin",
+      "Compression: wrap a firm elastic bandage from the far end toward the body, snug but not numbing",
+      "Elevation: keep the injured limb raised above heart level when sitting or lying",
+      "After 72 hours: gentle movement and stretching as pain allows; warm packs now help"
+    ],
+    "warnings": [
+      "Avoid HARM for 72 hours: Heat, Alcohol, Running (more activity), Massage — all worsen swelling",
+      "Loosen the bandage if there is numbness, tingling, or colour change in the toes or fingers"
+    ],
+    "whenToCall": "A clinic assessment is needed if the person cannot bear weight, the joint looks deformed, the limb is numb, or there is no improvement after a week",
+    "tags": ["trauma", "sprain", "RICE", "self-care"],
+    "source": "SA first-aid guidance / WHO injury guidance"
+  },
+  {
+    "id": "fa-010",
+    "title": "Snake Bite",
+    "category": "bites-and-stings",
+    "steps": [
+      "Move everyone well away from the snake; do not try to catch, kill or photograph it up close",
+      "Keep the person calm and completely still — movement pumps venom through the body",
+      "Lay them down and immobilise the bitten limb as for a fracture, at or slightly below heart level",
+      "Remove rings, bangles, boots and tight clothing from the limb before swelling starts",
+      "Call 10177, or the Poisons Information Helpline on 0861 555 777 for advice, and get the person to hospital as fast as safely possible",
+      "If safe, note the snake's appearance from a distance — but treatment no longer depends on identification"
+    ],
+    "warnings": [
+      "Never cut the bite, suck out venom, apply a tourniquet or ice, or give the person alcohol or traditional remedies",
+      "Never give anything to eat or drink",
+      "Symptoms can develop hours later even when the bite looks trivial — hospital observation is always needed"
+    ],
+    "whenToCall": "10177 for every snake bite, even without symptoms. Antivenom, where needed, is given in hospital",
+    "tags": ["bites-and-stings", "snake", "envenomation", "South-Africa"],
+    "source": "SA Poisons Information Helpline 0861 555 777 / SA medical toxicology guidance"
+  },
+  {
+    "id": "fa-011",
+    "title": "Spider and Scorpion Stings",
+    "category": "bites-and-stings",
+    "steps": [
+      "For scorpion stings: keep the person, especially a child, calm and still; immobilise the limb; get to hospital — antivenom exists for severe cases",
+      "Watch for serious scorpion signs: sweating, drooling, difficulty swallowing, abnormal eye movements, vomiting, restlessness",
+      "For button (black widow) spider bites: clean the site, apply a cold compress wrapped in cloth, and get medical care for severe muscle cramps and sweating",
+      "For violin spider bites: wash the site, cold compress, and see a doctor if an ulcer forms or spreads",
+      "Bee stings: scrape the sting out sideways with a card or fingernail — never squeeze the venom sac; cold compress; watch for allergy",
+      "For any sting: watch the whole person, not only the wound"
+    ],
+    "warnings": [
+      "In South Africa, scorpion stings in young children are a medical emergency — go straight to hospital",
+      "Do not apply a tourniquet or cut the wound",
+      "Widespread hives, swollen lips or tongue, or breathlessness after any sting is anaphylaxis — adrenaline and 10177"
+    ],
+    "whenToCall": "10177 for any scorpion sting in a child, any sting with breathing difficulty or swelling of lips and tongue, and severe pain or cramps after a spider bite",
+    "tags": ["bites-and-stings", "scorpion", "spider", "bee", "South-Africa"],
+    "source": "SA Poisons Information Helpline 0861 555 777 / SA medical toxicology guidance"
+  },
+  {
+    "id": "fa-012",
+    "title": "Dog and Animal Bites",
+    "category": "bites-and-stings",
+    "steps": [
+      "Wash the wound under running water with soap for a full 15 minutes — this is the single most effective step against rabies",
+      "Flush deep wounds generously; do not sew or close them unless a clinician decides to",
+      "Control bleeding with a clean pad and firm pressure",
+      "Go to a clinic or doctor the same day — every bite needs assessment, even minor-looking ones",
+      "Expect: a tetanus booster decision, antibiotics for deep or dirty wounds, and a rabies vaccination decision",
+      "If the animal is known, note whether it is vaccinated — but do not delay care while trying to find out"
+    ],
+    "warnings": [
+      "South Africa is a rabies-endemic country — a bite from an unvaccinated, stray or sick-acting animal needs urgent rabies prevention; rabies in humans is almost always fatal once symptoms start",
+      "Report stray animals that bite to local animal control or the SPCA",
+      "Watch the animal if possible: sickness, aggression or unusual behaviour matters to the clinic's decision"
+    ],
+    "whenToCall": "10177 for severe wounds, uncontrolled bleeding, bites to the face or hands, or any bite from a wild, stray or sick animal. Otherwise attend a clinic the same day",
+    "tags": ["bites-and-stings", "dog", "rabies", "South-Africa", "same-day"],
+    "source": "WHO rabies guidance / SA NDoH rabies guidelines"
+  },
+  {
+    "id": "fa-013",
+    "title": "Poisoning",
+    "category": "poisoning",
+    "steps": [
+      "Call the Poisons Information Helpline on 0861 555 777 (24 hours) — or 10177 if the person is unconscious or struggling to breathe",
+      "Keep the container, plant, bottle or label to show what was taken — take it to hospital",
+      "If unconscious but breathing: lay them on their side in the recovery position, keep the airway clear, and stay with them",
+      "If chemicals are on the skin: remove contaminated clothing and flush with running water for 15-20 minutes; eyes: flush with clean water for 15 minutes",
+      "For paraffin ingestion (a common household poisoning of children in South Africa): give nothing by mouth and do not make the child vomit — paraffin in the lungs is the danger; hospital now"
+    ],
+    "warnings": [
+      "Do not induce vomiting unless a health professional on the phone tells you to",
+      "Do not give milk, salt water or any antidote found in a household book",
+      "Never treat a poisoning by waiting to see what happens — advice changes by substance"
+    ],
+    "whenToCall": "Poisons Information Helpline 0861 555 777 for every poisoning question; 10177 for drowsiness, convulsions, breathing trouble or chemical burns",
+    "tags": ["poisoning", "paraffin", "children", "South-Africa", "helpline"],
+    "source": "SA Poisons Information Helpline 0861 555 777 / WHO"
+  },
+  {
+    "id": "fa-014",
+    "title": "Fainting",
+    "category": "environmental",
+    "steps": [
+      "Lay the person flat on their back and raise the legs about 30cm on a cushion or chair",
+      "Loosen tight clothing at the collar and waist; open windows or move to fresh air",
+      "Check that they are breathing and stay with them until fully alert",
+      "When they come round, keep them lying for a few minutes, then sit up slowly",
+      "Offer sips of water only once fully alert"
+    ],
+    "warnings": [
+      "If the person is not breathing, start CPR and call 10177",
+      "Fainting with chest pain, palpitations, breathlessness, or during exercise is not simple fainting — emergency care",
+      "Do not let them stand up quickly or walk it off"
+    ],
+    "whenToCall": "10177 if breathing stops, the person stays unconscious more than a minute, faints repeatedly, hurt their head, is pregnant, or has never fainted before over age 40",
+    "tags": ["environmental", "fainting", "recovery-position"],
+    "source": "SA first-aid guidance"
+  },
+  {
+    "id": "fa-015",
+    "title": "Seizure — Adult",
+    "category": "environmental",
+    "steps": [
+      "Note the time the seizure started",
+      "Protect the person: clear hard and sharp objects, cushion the head, keep bystanders back",
+      "Loosen anything tight at the neck",
+      "Do not restrain them and put nothing in the mouth — the old spoon story breaks teeth and blocks airways",
+      "Once jerking stops, roll them onto their side in the recovery position, check breathing, and stay with them while they recover",
+      "Speak calmly; confusion afterwards is normal and passes"
+    ],
+    "warnings": [
+      "A seizure in water, or lasting more than 5 minutes, or repeated seizures without waking between them (status epilepticus) is an emergency",
+      "Nothing by mouth until fully alert"
+    ],
+    "whenToCall": "10177 if the seizure lasts more than 5 minutes, repeats without recovery, is a first-ever seizure, happens in water, or the person is injured, pregnant or struggles to breathe afterwards",
+    "tags": ["environmental", "seizure", "epilepsy", "recovery-position"],
+    "source": "WHO epilepsy guidance / SA first-aid guidance"
+  },
+  {
+    "id": "fa-016",
+    "title": "Febrile Convulsion — Child",
+    "category": "environmental",
+    "steps": [
+      "Stay calm and note the time — most stop within two minutes",
+      "Lay the child on their side on a soft, protected surface",
+      "Remove excess clothing and keep the airway clear; cushion the head",
+      "Do not restrain the child, put nothing in the mouth, and do not use ice baths or cold water",
+      "Once it stops: the child will be sleepy — lay them on their side and let them rest",
+      "After any first convulsion, the child must be seen by a doctor the same day to find and treat the fever's cause"
+    ],
+    "warnings": [
+      "Call 10177 if it lasts more than 5 minutes, jerking is one-sided, the lips go blue, or the child does not wake properly",
+      "Febrile convulsions look frightening but most children outgrow them without brain damage"
+    ],
+    "whenToCall": "10177 during a convulsion lasting beyond 5 minutes or with breathing difficulty; otherwise same-day doctor for every first convulsion",
+    "tags": ["environmental", "seizure", "children", "fever"],
+    "source": "WHO / SA NDoH (PHC) child guidance"
+  },
+  {
+    "id": "fa-017",
+    "title": "Severe Allergic Reaction (Anaphylaxis)",
+    "category": "emergency",
+    "steps": [
+      "Recognise it: swollen lips, tongue or throat, difficulty breathing, a widespread itchy rash, faintness or collapse, often within minutes of a food, sting, or medicine",
+      "Call 10177 immediately and say anaphylaxis",
+      "If adrenaline is available (an auto-injector or a clinic ampoule), inject it into the outer thigh without delay — through clothing is fine",
+      "Lay the person flat with legs raised; if breathing is hard, let them sit up slowly",
+      "A second dose may be given after 5 minutes if there is no improvement",
+      "Stay with the person; be ready to start CPR",
+      "Hospital is needed even when the person recovers — symptoms can return hours later"
+    ],
+    "warnings": [
+      "Adrenaline is the treatment; antihistamine tablets are not a substitute for it",
+      "Never make the person stand or walk suddenly — it can be fatal in anaphylaxis",
+      "Known allergy: carry prescribed adrenaline at all times"
+    ],
+    "whenToCall": "10177 immediately for every suspected anaphylaxis, even if it seems to settle",
+    "tags": ["emergency", "anaphylaxis", "allergy", "adrenaline"],
+    "source": "SA Resuscitation Council / WHO anaphylaxis guidance"
+  },
+  {
+    "id": "fa-018",
+    "title": "Stroke — Recognise and Respond (FAST)",
+    "category": "emergency",
+    "steps": [
+      "Face: ask the person to smile — does one side droop?",
+      "Arms: ask them to raise both arms — does one drift down?",
+      "Speech: ask them to repeat a simple sentence — is it slurred or strange?",
+      "Time: if any sign is there, call 10177 immediately and say stroke",
+      "Note the exact time symptoms began — treatment windows are measured in minutes and this decides what hospital can offer",
+      "While waiting: sit or lay the person safely, keep them calm, give nothing to eat or drink"
+    ],
+    "warnings": [
+      "Do not wait to see if it passes, and do not drive them yourself unless there is no other way — ambulance crews start care and alert the hospital",
+      "A mini-stroke (TIA) with symptoms that fully resolve within an hour still needs same-day emergency assessment — a major stroke often follows"
+    ],
+    "whenToCall": "10177 immediately when any FAST sign appears",
+    "tags": ["emergency", "stroke", "FAST", "time-critical"],
+    "source": "WHO / SA NDoH stroke care guidance"
+  },
+  {
+    "id": "fa-019",
+    "title": "Heart Attack — Recognise and Respond",
+    "category": "emergency",
+    "steps": [
+      "Recognise it: pressure, squeezing or heavy pain in the centre of the chest lasting more than 15 minutes, often spreading to an arm, jaw, neck or back, with sweating, nausea or breathlessness",
+      "Call 10177 immediately and say possible heart attack",
+      "Sit the person down, half-leaning against support; loosen tight clothing; keep them calm and still",
+      "If they have prescribed medicine (GTN spray or tablets), help them use it as directed",
+      "If the emergency dispatcher advises it and the person is not allergic, chewing a plain aspirin can help — the dispatcher decides",
+      "If they collapse and stop breathing normally, start CPR"
+    ],
+    "warnings": [
+      "Women, older people and people with diabetes often have quieter signs — breathlessness, sudden tiredness, indigestion-like discomfort, fainting",
+      "Do not let the person drive or walk it off; do not delay to test whether it passes",
+      "GTN spray does not diagnose the pain — it helps angina, not a heart attack"
+    ],
+    "whenToCall": "10177 immediately for any chest pain lasting more than a few minutes, or chest discomfort with sweating, nausea or breathlessness",
+    "tags": ["emergency", "heart-attack", "chest-pain", "time-critical"],
+    "source": "WHO / SA NDoH cardiovascular care guidance"
+  },
+  {
+    "id": "fa-020",
+    "title": "Heat Stroke and Heat Exhaustion",
+    "category": "environmental",
+    "steps": [
+      "Heat exhaustion (sweating, weakness, cramps, faint, headache): move to shade or a cool room, lie down with legs raised, loosen clothing, cool with wet cloths and a fan, sip water if fully alert",
+      "Heat stroke (hot skin, confusion, aggression, seizures, unconsciousness — sweating may have stopped): this is a deadly emergency — call 10177",
+      "While waiting: move to shade, remove outer clothing, cool aggressively with water, wet cloths wrapped around the neck, armpits and groin, and fan continuously",
+      "Give nothing to drink if the person is confused or drowsy — airway first, lay them on their side"
+    ],
+    "warnings": [
+      "Never leave children or older people in a parked vehicle, even briefly, even with windows open",
+      "Outdoor workers, mine and farm labourers need water, shade breaks and salt replacement in high summer heat"
+    ],
+    "whenToCall": "10177 immediately for confusion, aggression, seizures, collapse or hot dry skin in the heat. Clinic care for heat cramps and fainting that do not settle",
+    "tags": ["environmental", "heat", "summer", "workers"],
+    "source": "WHO / SA first-aid guidance"
+  },
+  {
+    "id": "fa-021",
+    "title": "Low Blood Sugar (Hypoglycaemia) Emergency",
+    "category": "environmental",
+    "steps": [
+      "Recognise it in a person with diabetes: shaking, sweating, pale, fast heartbeat, irritability, slurred speech, confusion, unusual behaviour, drowsiness",
+      "If alert and able to swallow safely: give 15g of fast sugar now — 3 teaspoons of sugar in a small glass of water or juice, 4-5 glucose sweets, or a glucose gel",
+      "Recheck after 15 minutes; repeat the sugar if still low",
+      "Once improved, give a proper snack with starch — bread, maize porridge, fruit — to stop it dropping again",
+      "If NOT alert or cannot swallow safely: give nothing by mouth, lay them on their side, and call 10177",
+      "If glucagon is prescribed and available, a trained family member may inject it"
+    ],
+    "warnings": [
+      "Never pour fluids or food into a drowsy person's mouth — choking and aspiration are real dangers",
+      "Severe untreated hypoglycaemia causes convulsions, coma and brain injury",
+      "Missing meals after taking diabetes tablets or insulin is the commonest cause"
+    ],
+    "whenToCall": "10177 if the person is confused, cannot swallow, convulses, or does not recover after two rounds of sugar; same-day clinic for every severe episode to adjust treatment",
+    "tags": ["environmental", "diabetes", "hypoglycaemia", "emergency"],
+    "source": "SA diabetes guidelines / WHO"
+  },
+  {
+    "id": "fa-022",
+    "title": "Drowning",
+    "category": "environmental",
+    "steps": [
+      "Do not enter the water to rescue unless trained — reach with a pole or rope, or throw something that floats",
+      "Once out: check breathing for no more than 10 seconds",
+      "Not breathing normally: start CPR — for drowning, give 5 rescue breaths first, then 30 compressions to 2 breaths",
+      "Breathing: lay them on their side in the recovery position, keep warm, and stay with them",
+      "All drowning victims, even those who seem fine, must be assessed in hospital — lung complications can develop hours later"
+    ],
+    "warnings": [
+      "Do not press on the tummy to drain water — it delays CPR and causes vomiting",
+      "In South Africa, children drown in pools, dams, rivers and buckets at home — constant adult supervision and barriers around water are the real prevention"
+    ],
+    "whenToCall": "10177 for every drowning, even after apparent recovery",
+    "tags": ["environmental", "drowning", "children", "CPR", "water-safety"],
+    "source": "SA Resuscitation Council / WHO drowning guidance"
+  }
+]

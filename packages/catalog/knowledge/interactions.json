@@ -1,0 +1,302 @@
+[
+  {
+    "id": "int-001",
+    "drug1": "Warfarin",
+    "drug2": "Aspirin",
+    "severity": "high",
+    "effect": "Increased bleeding risk — aspirin adds an antiplatelet effect on top of warfarin's anticoagulation and irritates the stomach lining",
+    "recommendation": "Avoid the combination unless a clinician has specifically prescribed both. Watch for unusual bruising, nosebleeds, bleeding gums, blood in urine or stool, and report any of these immediately.",
+    "tags": ["anticoagulant", "antiplatelet", "bleeding"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-002",
+    "drug1": "Warfarin",
+    "drug2": "Ibuprofen",
+    "severity": "high",
+    "effect": "Increased bleeding risk and stomach ulcers — NSAIDs blunt the protective effect on the stomach lining and can raise the INR",
+    "recommendation": "Avoid ibuprofen and other NSAIDs while on warfarin. Paracetamol is the preferred pain option; if stronger relief is needed, ask the clinic or pharmacist for a warfarin-safe choice.",
+    "tags": ["anticoagulant", "NSAID", "bleeding", "ulcer"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-003",
+    "drug1": "Warfarin",
+    "drug2": "Paracetamol",
+    "severity": "moderate",
+    "effect": "Regular paracetamol use (2g or more daily for several days) can raise the INR and bleeding risk; occasional single doses are much lower risk",
+    "recommendation": "Occasional paracetamol at normal doses is the usual advice for pain on warfarin. If it is needed daily for more than a few days, tell the clinic so the INR can be checked.",
+    "tags": ["anticoagulant", "analgesic", "INR", "monitoring"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-004",
+    "drug1": "Warfarin",
+    "drug2": "Metronidazole",
+    "severity": "high",
+    "effect": "Metronidazole slows warfarin breakdown — INR rises sharply within days, with bleeding risk",
+    "recommendation": "The prescribing clinician adjusts the warfarin dose and arranges extra INR checks. Report bruising or bleeding at once, and never take leftover metronidazole while on warfarin.",
+    "tags": ["anticoagulant", "antibiotic", "INR", "bleeding"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-005",
+    "drug1": "Warfarin",
+    "drug2": "Cotrimoxazole",
+    "severity": "high",
+    "effect": "Cotrimoxazole potentiates warfarin — INR rises and bleeding can occur",
+    "recommendation": "Combination is sometimes necessary (for example in HIV care) but only with clinical oversight and closer INR monitoring. Tell every prescriber that warfarin is being taken before any antibiotic is started.",
+    "tags": ["anticoagulant", "antibiotic", "INR", "HIV"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-006",
+    "drug1": "Warfarin",
+    "drug2": "Fluconazole",
+    "severity": "high",
+    "effect": "Fluconazole raises warfarin levels — increased INR and bleeding risk",
+    "recommendation": "Even a single fluconazole dose can matter. The clinic will either choose a different thrush treatment or plan INR checks; mention warfarin at the pharmacy counter before buying fluconazole.",
+    "tags": ["anticoagulant", "antifungal", "INR", "bleeding"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-007",
+    "drug1": "Warfarin",
+    "drug2": "Rifampicin (TB treatment)",
+    "severity": "high",
+    "effect": "Rifampicin speeds up warfarin breakdown — warfarin loses effect and clots can form",
+    "recommendation": "Warfarin doses usually need major increases while on TB treatment, managed by the clinic or TB unit with frequent INR tests. Never change the dose alone in either direction.",
+    "tags": ["anticoagulant", "TB", "enzyme-induction", "clot-risk"],
+    "source": "SA NDoH TB guidelines / OpenFDA"
+  },
+  {
+    "id": "int-008",
+    "drug1": "Aspirin",
+    "drug2": "Ibuprofen",
+    "severity": "moderate",
+    "effect": "Ibuprofen blocks aspirin's heart-protective antiplatelet effect, and the combination doubles stomach bleeding risk",
+    "recommendation": "People taking daily low-dose aspirin for the heart should avoid ibuprofen. Paracetamol is the safer pain choice; if an NSAID is truly needed, take aspirin at least 2 hours before the NSAID and tell the clinic.",
+    "tags": ["antiplatelet", "NSAID", "heart-protection", "bleeding"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-009",
+    "drug1": "Enalapril",
+    "drug2": "Ibuprofen",
+    "severity": "high",
+    "effect": "NSAIDs counteract blood pressure control and strain the kidneys; with a diuretic added (the 'triple whammy'), acute kidney injury risk rises sharply",
+    "recommendation": "Avoid regular NSAIDs while on blood pressure medicines, especially with water tablets. Use paracetamol for pain; if an anti-inflammatory is unavoidable, keep it short and ask the clinic to check kidney function.",
+    "tags": ["ACE-inhibitor", "NSAID", "kidney", "triple-whammy"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-010",
+    "drug1": "Enalapril",
+    "drug2": "Potassium supplements / salt substitutes",
+    "severity": "high",
+    "effect": "Both raise potassium — high potassium can cause dangerous heart rhythm disturbances",
+    "recommendation": "Avoid potassium supplements and low-sodium salt substitutes (which use potassium chloride) unless the clinic has specifically approved them. Blood tests monitor potassium on ACE inhibitors — keep those appointments.",
+    "tags": ["ACE-inhibitor", "potassium", "heart-rhythm"],
+    "source": "OpenFDA / SA NDoH hypertension guidelines"
+  },
+  {
+    "id": "int-011",
+    "drug1": "Amlodipine",
+    "drug2": "Simvastatin",
+    "severity": "moderate",
+    "effect": "Amlodipine slows simvastatin breakdown — higher statin levels raise the risk of muscle aches and, rarely, serious muscle damage",
+    "recommendation": "The simvastatin dose is capped at 20mg daily when taken with amlodipine. Report new muscle pain, weakness or dark-coloured urine to the clinic promptly.",
+    "tags": ["statin", "calcium-channel-blocker", "muscle-toxicity"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-012",
+    "drug1": "Simvastatin",
+    "drug2": "Fluconazole",
+    "severity": "moderate",
+    "effect": "Fluconazole raises statin levels — muscle pain and rarely muscle breakdown",
+    "recommendation": "The clinician may pause the statin during fluconazole treatment or choose a different antifungal. Report severe muscle pain or dark urine urgently.",
+    "tags": ["statin", "antifungal", "muscle-toxicity"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-013",
+    "drug1": "Fluoxetine",
+    "drug2": "Tramadol",
+    "severity": "high",
+    "effect": "Serotonin syndrome risk — agitation, fever, tremor, fast heartbeat, confusion; tramadol's seizure risk also rises",
+    "recommendation": "Avoid the combination. For pain while on fluoxetine, paracetamol is the usual first option; any stronger pain medicine should be chosen with the prescriber knowing about the SSRI.",
+    "tags": ["SSRI", "opioid", "serotonin-syndrome", "seizure"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-014",
+    "drug1": "Fluoxetine",
+    "drug2": "Amitriptyline",
+    "severity": "high",
+    "effect": "Fluoxetine raises amitriptyline levels and both boost serotonin — toxicity (dry mouth, blurred vision, confusion, fast heart, fever) and serotonin syndrome become possible",
+    "recommendation": "The combination is sometimes used deliberately by specialists at adjusted doses, but never self-started or borrowed from a family member's supply. If both are prescribed, the clinic sets the doses and watches for side effects.",
+    "tags": ["SSRI", "tricyclic", "serotonin-syndrome", "toxicity"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-015",
+    "drug1": "Fluoxetine",
+    "drug2": "Ibuprofen",
+    "severity": "moderate",
+    "effect": "SSRIs plus NSAIDs raise stomach bleeding risk more than either alone",
+    "recommendation": "Prefer paracetamol for pain while on SSRIs. If an NSAIB is genuinely needed for a short period, mention the SSRI so the clinician can consider stomach protection.",
+    "tags": ["SSRI", "NSAID", "bleeding", "stomach"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-016",
+    "drug1": "Amitriptyline",
+    "drug2": "Tramadol",
+    "severity": "high",
+    "effect": "Both lower the seizure threshold and together raise serotonin — serotonin syndrome and seizures are possible",
+    "recommendation": "Avoid the combination; alternatives for nerve pain exist. If both are prescribed by different prescribers, make sure each one knows about the other.",
+    "tags": ["tricyclic", "opioid", "serotonin-syndrome", "seizure"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-017",
+    "drug1": "Carbamazepine",
+    "drug2": "Oral contraceptive pill",
+    "severity": "moderate",
+    "effect": "Carbamazepine speeds breakdown of contraceptive hormones — contraception can fail",
+    "recommendation": "Extra contraception is needed, usually condoms, and discussing a seizure medicine that does not interfere or a long-acting method with the clinic. This applies to most epilepsy medicines — plan contraception together with epilepsy care.",
+    "tags": ["antiepileptic", "contraception", "enzyme-induction", "unplanned-pregnancy"],
+    "source": "OpenFDA / SA NDoH family planning guidelines"
+  },
+  {
+    "id": "int-018",
+    "drug1": "Rifampicin (TB treatment)",
+    "drug2": "Oral contraceptive pill",
+    "severity": "high",
+    "effect": "Rifampicin powerfully speeds breakdown of contraceptive hormones — the pill, patch and implant all become unreliable during TB treatment",
+    "recommendation": "Use condoms as well throughout TB treatment and for a month after finishing. Ask the clinic about the best contraceptive strategy for the treatment period; pregnancy planning during TB treatment is a specialist conversation.",
+    "tags": ["TB", "contraception", "enzyme-induction", "unplanned-pregnancy"],
+    "source": "SA NDoH TB and family planning guidelines / WHO"
+  },
+  {
+    "id": "int-019",
+    "drug1": "Rifampicin (TB treatment)",
+    "drug2": "Dolutegravir (TLD ART)",
+    "severity": "high",
+    "effect": "Rifampicin lowers dolutegravir levels — HIV treatment can fail and resistance can develop",
+    "recommendation": "Standard SA practice is to increase the dolutegravir dose to twice daily while on rifampicin — this is decided by the clinic; never adjust ART alone. TB and HIV treatment are safely combined every day in South Africa when doses are managed together.",
+    "tags": ["TB", "ART", "dolutegravir", "treatment-failure"],
+    "source": "SA NDoH TB/HIV integration guidelines / WHO"
+  },
+  {
+    "id": "int-020",
+    "drug1": "Dolutegravir (TLD ART)",
+    "drug2": "Antacids, iron or calcium supplements",
+    "severity": "moderate",
+    "effect": "Iron, calcium and antacids bind dolutegravir in the stomach and block its absorption — HIV levels of the drug fall",
+    "recommendation": "Separate doses: take TLD at least 2 hours before, or 6 hours after, iron, calcium or antacid products. This includes multivitamins with iron and calcium — a very common hidden source in pregnancy and anaemia treatment.",
+    "tags": ["ART", "dolutegravir", "iron", "absorption", "pregnancy"],
+    "source": "SA NDoH ART guidelines / WHO"
+  },
+  {
+    "id": "int-021",
+    "drug1": "Tenofovir (TLD ART)",
+    "drug2": "Ibuprofen",
+    "severity": "moderate",
+    "effect": "Both stress the kidneys — long-term regular NSAID use alongside tenofovir raises kidney injury risk over time",
+    "recommendation": "Occasional short NSAID courses are usually fine; avoid daily ongoing NSAID use. Kidney function is monitored on ART — keep those blood test appointments and mention all pain medicine use.",
+    "tags": ["ART", "NSAID", "kidney", "monitoring"],
+    "source": "SA NDoH ART guidelines / OpenFDA"
+  },
+  {
+    "id": "int-022",
+    "drug1": "Isoniazid (TB treatment)",
+    "drug2": "Paracetamol",
+    "severity": "moderate",
+    "effect": "Additive liver stress — isoniazid already carries liver risk, and high or frequent paracetamol doses add to it",
+    "recommendation": "Occasional paracetamol at normal doses is acceptable; avoid repeated maximum daily doses while on TB treatment, and report yellow eyes, dark urine or severe nausea the same day.",
+    "tags": ["TB", "analgesic", "liver", "monitoring"],
+    "source": "SA NDoH TB guidelines / OpenFDA"
+  },
+  {
+    "id": "int-023",
+    "drug1": "Phenytoin",
+    "drug2": "Cotrimoxazole",
+    "severity": "high",
+    "effect": "Cotrimoxazole slows phenytoin breakdown — phenytoin builds up, causing unsteadiness, slurred speech, jerky eye movements and drowsiness",
+    "recommendation": "The clinician either chooses a different antibiotic or monitors phenytoin levels closely. On long-term cotrimoxazole (common in HIV care), doses are coordinated by the clinic. Report wobbliness or double vision promptly.",
+    "tags": ["antiepileptic", "antibiotic", "toxicity", "HIV"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-024",
+    "drug1": "Phenytoin",
+    "drug2": "Fluconazole",
+    "severity": "high",
+    "effect": "Fluconazole raises phenytoin levels — toxicity symptoms: unsteady gait, confusion, jerky eye movements",
+    "recommendation": "Tell the clinic or pharmacist about phenytoin before any antifungal; levels are monitored and doses adjusted. Anyone on phenytoin should keep a medicine list to show at every consultation.",
+    "tags": ["antiepileptic", "antifungal", "toxicity"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-025",
+    "drug1": "Metronidazole",
+    "drug2": "Alcohol",
+    "severity": "moderate",
+    "effect": "Disulfiram-like reaction — flushing, pounding headache, vomiting, palpitations and breathlessness, sometimes severe",
+    "recommendation": "No alcohol during metronidazole treatment and for 48 hours after the last dose. Hidden alcohol counts: cough syrups and some tonics contain it — check labels or ask the pharmacist.",
+    "tags": ["antibiotic", "alcohol", "reaction", "counselling"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-026",
+    "drug1": "Levothyroxine",
+    "drug2": "Ferrous sulphate (iron)",
+    "severity": "moderate",
+    "effect": "Iron binds levothyroxine in the gut — the thyroid dose is only partly absorbed, and hypothyroid symptoms return",
+    "recommendation": "Separate by at least 4 hours: levothyroxine in the early morning on an empty stomach, iron at midday or bedtime. This matters for the many people treating both anaemia and thyroid problems — tell the clinic both medicines are being taken.",
+    "tags": ["thyroid", "iron", "absorption", "anaemia"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-027",
+    "drug1": "Ciprofloxacin",
+    "drug2": "Antacids, iron or calcium",
+    "severity": "moderate",
+    "effect": "These bind ciprofloxacin and block its absorption — the antibiotic fails against the infection",
+    "recommendation": "Take ciprofloxacin at least 2 hours before, or 6 hours after, antacids, iron tablets, calcium or multivitamins with minerals. Dairy in large amounts with the dose has a similar effect — take the tablet with water.",
+    "tags": ["antibiotic", "absorption", "iron", "calcium"],
+    "source": "OpenFDA / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "int-028",
+    "drug1": "Insulin",
+    "drug2": "Atenolol",
+    "severity": "moderate",
+    "effect": "Beta-blockers blunt the warning signs of low sugar (fast heartbeat, trembling) — a hypo can arrive with less warning and look like anxiety",
+    "recommendation": "Anyone on insulin plus a beta-blocker should check sugar more often during illness or exercise and know their other low-sugar signs (sweating, confusion, hunger). The clinic weighs the heart benefit against this masking effect.",
+    "tags": ["insulin", "beta-blocker", "hypoglycaemia", "diabetes"],
+    "source": "OpenFDA / SA NDoH diabetes guidelines"
+  },
+  {
+    "id": "int-029",
+    "drug1": "Gliclazide",
+    "drug2": "Fluconazole",
+    "severity": "high",
+    "effect": "Fluconazole slows gliclazide breakdown — sugar can drop dangerously low (sweating, shaking, confusion, and loss of consciousness if untreated)",
+    "recommendation": "The prescriber adjusts doses or chooses another antifungal. Low-sugar episodes on this combination need same-day discussion with the clinic; always treat the low sugar first (fast sugar, then food), then report it.",
+    "tags": ["sulfonylurea", "antifungal", "hypoglycaemia", "diabetes"],
+    "source": "OpenFDA / SA NDoH diabetes guidelines"
+  },
+  {
+    "id": "int-030",
+    "drug1": "Artemether-lumefantrine",
+    "drug2": "Rifampicin (TB treatment)",
+    "severity": "high",
+    "effect": "Rifampicin strips artemether-lumefantrine out of the body — malaria treatment fails and severe malaria can follow",
+    "recommendation": "The combination should be avoided; the clinic prescribes a different antimalarial for TB patients. Anyone on TB treatment who develops fever in or after a malaria area must be tested and treated with this interaction in mind — say clearly that TB treatment is being taken.",
+    "tags": ["antimalarial", "TB", "treatment-failure", "enzyme-induction"],
+    "source": "SA NDoH malaria guidelines / WHO"
+  }
+]

@@ -1,0 +1,437 @@
+[
+  {
+    "id": "chr-001",
+    "title": "Type 1 Diabetes",
+    "category": "endocrine",
+    "about": "The body makes no insulin and daily insulin injections are needed for life, matched to food and activity.",
+    "managementGoals": [
+      "Take insulin exactly as prescribed — the type, dose and timing are matched to meals",
+      "Check blood glucose as taught, and keep a written record to bring to clinic",
+      "Count carbohydrates and eat regular, balanced meals — no skipped meals after insulin",
+      "Learn personal low-sugar warning signs and always carry fast sugar (glucose sweets, cold drink, sugar sachets)",
+      "Clinic reviews: HbA1c about every three to six months, plus eyes, feet, kidneys and blood pressure yearly",
+      "Sick-day plan: illness raises sugar — never stop insulin when sick, test more often, and know when to seek help"
+    ],
+    "adherenceTips": [
+      "Anchor insulin doses to a daily routine — breakfast, supper — so a dose is never silently missed",
+      "Keep one spare insulin pen or vial and needles at home; insulin in use can stay at room temperature for a month, spare insulin belongs in the fridge",
+      "Rotate injection sites to avoid lumps that make insulin absorb unpredictably",
+      "Tell school and work what to do for a low-sugar emergency, and where the fast sugar is kept"
+    ],
+    "whenToSeekUrgentCare": [
+      "Vomiting and unable to keep fluids down, with a high sugar reading",
+      "Deep fast breathing, fruity-smelling breath, drowsiness or confusion (diabetic ketoacidosis — emergency)",
+      "A low-sugar episode that does not recover after two rounds of fast sugar, or a convulsion",
+      "A foot wound, blister or sore that is not healing, however small"
+    ],
+    "tags": ["diabetes", "insulin", "chronic", "children"],
+    "source": "SA NDoH diabetes guidelines / ISPAD / WHO"
+  },
+  {
+    "id": "chr-002",
+    "title": "Type 2 Diabetes",
+    "category": "endocrine",
+    "about": "The most common form of diabetes in South Africa — insulin resistance treated with tablets, sometimes insulin, and always with food, movement and weight control.",
+    "managementGoals": [
+      "Take tablets every day at the same time, with food if metformin upsets the stomach",
+      "HbA1c (the three-month sugar average) usually aimed below 7% — individualised with the clinician",
+      "Blood pressure below 140/90 (often below 130/80 where kidneys are involved) — diabetes and blood pressure damage the same organs together",
+      "Feet: look at both feet every day, wash and dry between the toes, closed shoes that fit, never barefoot",
+      "Eyes: a retina check every year — diabetes blinds quietly",
+      "Healthy plate: half vegetables, a quarter starch, a quarter protein; water instead of sweet drinks; walk 30 minutes most days",
+      "Yearly clinic review of kidneys (urine and blood tests) and cholesterol"
+    ],
+    "adherenceTips": [
+      "Chronic medicine collection through the clinic's fast queue or CCMDD pick-up points so the tablets never run out",
+      "Link tablet-taking to a fixed daily event — brushing teeth, breakfast — and use a seven-day pill box",
+      "Collect the next supply in the final week of the current one, never the day it finishes",
+      "Keep clinic appointments even when feeling well — type 2 diabetes damages silently for years before it hurts"
+    ],
+    "whenToSeekUrgentCare": [
+      "Drowsiness, deep breathing, fruity breath, or sugar readings staying very high with vomiting",
+      "Any foot wound, corn or blister that is discoloured, weeping or not healing — same week, not same month",
+      "Chest pain, one-sided weakness or sudden speech trouble (diabetes raises heart and stroke risk sharply)",
+      "Low-sugar episodes (shaking, sweating, confusion) — treat with sugar and adjust treatment at the clinic afterwards"
+    ],
+    "tags": ["diabetes", "chronic", "lifestyle", "feet", "screening"],
+    "source": "SA NDoH diabetes guidelines / WHO"
+  },
+  {
+    "id": "chr-003",
+    "title": "Hypertension",
+    "category": "cardiovascular",
+    "about": "Blood pressure that stays at or above 140/90 — usually silent, and the leading driver of stroke, heart failure and kidney failure in South Africa.",
+    "managementGoals": [
+      "Blood pressure below 140/90 for most people, and often below 130/80 where diabetes or kidney disease is present",
+      "Medicine every single day — blood pressure tablets work only while they are in the body; feeling well means they are working, not that they can stop",
+      "Salt: less than one level teaspoon (5g) a day, including stock cubes, soup powders, processed meats and salty snacks",
+      "Weight, movement and alcohol: even 5kg of weight loss lowers pressure; 30 minutes of walking most days; alcohol in moderation or not at all",
+      "No smoking — each cigarette pushes the pressure up and hardens the arteries",
+      "Yearly checks: urine for protein, glucose, cholesterol and eyes"
+    ],
+    "adherenceTips": [
+      "Never stop tablets because the reading is normal — normal is the tablets",
+      "Do not stop when side effects appear — a persistent cough or ankle swelling has an alternative medicine; tell the clinic rather than enduring or quitting",
+      "Take water tablets in the morning so sleep is not broken",
+      "Home readings help: sit five minutes first, arm supported at heart level, two readings, same time daily — bring the written record to clinic"
+    ],
+    "whenToSeekUrgentCare": [
+      "Reading above 180/120 with headache, chest pain, vision change, breathlessness or weakness — hypertensive emergency",
+      "Sudden weakness, facial droop or speech trouble — call 10177 (stroke)",
+      "Chest pressure lasting more than a few minutes, with sweating or nausea",
+      "Breathlessness lying flat, or waking gasping with swollen ankles"
+    ],
+    "tags": ["blood-pressure", "chronic", "silent", "stroke-risk"],
+    "source": "SA NDoH hypertension guidelines / WHO"
+  },
+  {
+    "id": "chr-004",
+    "title": "HIV on Antiretroviral Treatment",
+    "category": "infectious",
+    "about": "HIV is a lifelong condition treated with one tablet a day (usually the TLD combination), which keeps the virus suppressed and lets a normal healthy life and lifespan be expected.",
+    "managementGoals": [
+      "One tablet, once a day, at the same time — viral suppression is the goal and it depends almost entirely on not missing doses",
+      "Viral load blood test about every six months: under 50 copies means undetectable — and undetectable means the virus cannot be passed on through sex",
+      "CD4 count and TB screening at intervals the clinic sets; TB is the most common serious illness alongside HIV in South Africa",
+      "Annual checks of kidney function (tenofovir), weight, blood pressure and, for women, cervical screening",
+      "Condoms and partner testing; treatment is for life even when the viral load is undetectable"
+    ],
+    "adherenceTips": [
+      "Tie the dose to something done daily without fail — a meal, a radio show, bedtime — and keep a week's supply in a place seen every day",
+      "A missed dose is taken when remembered, unless it is nearly time for the next dose — then skip the missed one; never take a double dose",
+      "Separate the tablet from antacids, iron and calcium supplements by at least two hours",
+      "Use CCMDD pick-up points for collection so queues never become a reason to run out",
+      "Adherence clubs and support groups help — ask the clinic what exists in the area",
+      "Tell the clinic before starting any traditional or herbal remedies — some reduce ART levels"
+    ],
+    "whenToSeekUrgentCare": [
+      "A new or worsening rash, especially with blisters, mouth ulcers or fever",
+      "Rapid weight loss, night sweats or a cough beyond two weeks (possible TB)",
+      "Yellow eyes, severe stomach pain with vomiting, or a fever with confusion",
+      "Trouble keeping tablets down for more than a day"
+    ],
+    "tags": ["HIV", "ART", "undetectable", "adherence", "South-Africa"],
+    "source": "SA NDoH ART guidelines / WHO"
+  },
+  {
+    "id": "chr-005",
+    "title": "Tuberculosis Treatment",
+    "category": "infectious",
+    "about": "Drug-sensitive TB is cured by six months of daily tablets — two months of four medicines (RHZE), then four months of two — taken exactly as prescribed.",
+    "managementGoals": [
+      "Finish all six months — feeling better after a few weeks is expected, and stopping then is what creates drug resistance",
+      "Take the tablets on an empty stomach with water, before breakfast, as the clinic teaches",
+      "Sputum tests at two months and at the end of treatment confirm the cure",
+      "Good food and rest support recovery; the clinic arranges nutrition support where needed",
+      "Household contacts, especially children and people living with HIV, are screened and offered preventive therapy"
+    ],
+    "adherenceTips": [
+      "Treatment is taken in front of a treatment supporter in the SA programme — agree on a supporter whose daily routine fits",
+      "Orange-red urine, sweat and tears are normal and expected on rifampicin",
+      "Vitamin B6 (pyridoxine) is usually given alongside to protect the nerves",
+      "Keep every clinic date — tracing teams follow up missed doses because unfinished treatment is how MDR-TB is born"
+    ],
+    "whenToSeekUrgentCare": [
+      "Yellow eyes, dark urine, severe nausea or upper tummy pain (liver reaction — same day)",
+      "Vision changes or difficulty distinguishing colours (ethambutol — same day)",
+      "Rash, itching that spreads, or fever with a rash",
+      "Coughing blood, worsening breathlessness, drenching night sweats returning"
+    ],
+    "tags": ["TB", "six-months", "curable", "adherence", "South-Africa"],
+    "source": "SA NDoH TB guidelines / WHO"
+  },
+  {
+    "id": "chr-006",
+    "title": "Drug-Resistant TB (MDR/RR-TB)",
+    "category": "infectious",
+    "about": "TB that the standard medicines cannot cure — treatment is longer, uses different medicines, and is coordinated by specialist TB units, but newer all-tablet regimens have made cure far more achievable than in the past.",
+    "managementGoals": [
+      "Complete the full course — modern regimens are typically about six months for suitable patients, longer where the doctors advise",
+      "Regular reviews and tests: sputum cultures, hearing and vision checks where the regimen requires, and blood tests",
+      "Household screening of all contacts, with children evaluated for preventive treatment",
+      "Treatment is free in the public sector, including transport support in many districts — ask the TB unit what is available"
+    ],
+    "adherenceTips": [
+      "Every single dose matters more than in ordinary TB — resistance deepens with each missed dose",
+      "Set phone alarms for each dosing time and use a diary; many regimens have tablets at different times of day",
+      "Tell the team about every other medicine, supplement and traditional remedy — interactions are common in these regimens",
+      "Depression and fatigue are common companions of long treatment — say so at the visit; it is treatable and it protects the course"
+    ],
+    "whenToSeekUrgentCare": [
+      "Rash, hearing change, ringing in the ears, or vision change — same day",
+      "Yellow eyes, severe tingling or burning feet, or low mood with thoughts of self-harm — same day",
+      "Coughing blood or worsening breathlessness",
+      "A fever that arrives while on treatment"
+    ],
+    "tags": ["MDR-TB", "resistance", "specialist", "long-course", "South-Africa"],
+    "source": "SA NDoH DR-TB guidelines / WHO consolidated DR-TB guidance"
+  },
+  {
+    "id": "chr-007",
+    "title": "Asthma",
+    "category": "respiratory",
+    "about": "Reversible airway inflammation — controlled by a daily preventer inhaler, with a reliever kept for attacks.",
+    "managementGoals": [
+      "Take the preventer inhaler every day, even when breathing is completely well — it prevents the attacks, it does not treat them",
+      "Use the reliever only when needed: needing it more than twice a week, or at night, means the preventer plan needs review",
+      "Know and avoid triggers: smoke (including indoor paraffin and wood smoke), pollens, dust, strong smells, colds",
+      "Have a written action plan from the clinic: what to do when symptoms rise, when to increase the preventer, when to get help",
+      "Annual flu vaccine, free at clinics for people with asthma",
+      "Check inhaler technique at every clinic visit — most inhalers are wasted by poor technique, and a spacer improves delivery for children and in attacks"
+    ],
+    "adherenceTips": [
+      "Keep the preventer beside the toothbrush — twice-daily doses attach to brushing teeth",
+      "Rinse and spit after every preventer dose to prevent thrush",
+      "Do not let the reliever run out: count doses remaining and refill before the last twenty puffs",
+      "Discard old inhalers that pass their date — an empty inhaler in a crisis is a recognised danger"
+    ],
+    "whenToSeekUrgentCare": [
+      "Reliever not helping, or wearing off within four hours",
+      "Cannot finish a sentence in one breath, sitting hunched forward, lips or tongue bluish",
+      "Attacks at night that wake the person, or a peak flow in the red zone of the action plan",
+      "Any child with asthma who cannot talk, play or feed — call 10177"
+    ],
+    "tags": ["asthma", "inhaler", "preventer", "action-plan"],
+    "source": "GINA / SA NDoH asthma guidelines"
+  },
+  {
+    "id": "chr-008",
+    "title": "Chronic Obstructive Pulmonary Disease (COPD)",
+    "category": "respiratory",
+    "about": "Permanent narrowing of the airways, usually from years of smoking or smoke exposure — breathlessness on effort that worsens over years, with flare-ups that can be life-threatening.",
+    "managementGoals": [
+      "Stop smoking — the single intervention that changes the disease's course; ask the clinic for support programmes",
+      "Inhalers exactly as prescribed, and technique checked at each visit",
+      "Pulmonary rehabilitation and regular walking within tolerance — fitness is oxygen economy",
+      "Annual flu vaccine and pneumococcal vaccination",
+      "Plan for flare-ups: know the personal warning signs (more breathless, more sputum, change in colour) and the action plan"
+    ],
+    "adherenceTips": [
+      "Inhalers only work with correct technique — take the inhaler to every clinic visit and show, do not describe",
+      "Never run out of the regular inhalers; keep a rescue course of tablets at home if the clinic has prescribed one",
+      "Avoid smoke-filled rooms, dust and strong chemicals; ventilate cooking fires where possible",
+      "Eat smaller frequent meals — a full stomach pushes on the lungs; keep weight healthy, neither losing nor gaining excessively"
+    ],
+    "whenToSeekUrgentCare": [
+      "Sudden worsening of breathlessness or confusion — emergency",
+      "Fever with more sputum that has turned green, yellow or rusty",
+      "Blue lips, swollen ankles with breathlessness, or drowsiness",
+      "Chest pain with breathlessness"
+    ],
+    "tags": ["COPD", "smoking", "inhaler", "flare-ups"],
+    "source": "GOLD strategy / SA NDoH chronic respiratory care"
+  },
+  {
+    "id": "chr-009",
+    "title": "Epilepsy",
+    "category": "neurological",
+    "about": "A tendency to recurrent seizures, controlled by daily anti-seizure medicine in most people.",
+    "managementGoals": [
+      "Medicine every day at consistent times — seizure control lives or dies on steady blood levels",
+      "Regular sleep — missed sleep is the commonest seizure trigger after missed doses",
+      "Limit alcohol; avoid swimming alone, working at heights and unguarded machinery",
+      "Driving: South African licensing requires a seizure-free period on treatment before driving — follow the licensing authority's requirement and the treating doctor's advice",
+      "Clinic reviews with drug-level or other blood tests where the doctor orders them, plus bone health checks on long-term enzyme-inducing medicines"
+    ],
+    "adherenceTips": [
+      "Never stop tablets abruptly — withdrawal seizures can be worse than the originals; changes are made by the clinician slowly",
+      "One missed dose: take it when remembered unless the next is nearly due — never double up",
+      "Wear or carry a medical identification card or band stating epilepsy and the medicines",
+      "Teach family the first-aid basics: side, cushion, nothing in the mouth, time the seizure, and when to call 10177"
+    ],
+    "whenToSeekUrgentCare": [
+      "Any seizure lasting beyond five minutes, or seizures repeating without full recovery between them — call 10177",
+      "A first seizure in someone not known to have epilepsy",
+      "Seizure with injury, in water, or during pregnancy",
+      "Rash while on anti-seizure medicine — same-day care, it can be serious"
+    ],
+    "tags": ["epilepsy", "seizure", "adherence", "safety"],
+    "source": "WHO epilepsy guidance / SA NDoH"
+  },
+  {
+    "id": "chr-010",
+    "title": "Chronic Kidney Disease",
+    "category": "urological",
+    "about": "Slow loss of kidney function, usually from hypertension, diabetes or HIV — often silent until late, and protected mainly by blood pressure and sugar control.",
+    "managementGoals": [
+      "Blood pressure control is kidney protection: the target is often below 130/80 with the clinic's guidance",
+      "Blood sugar control in diabetes protects the kidneys as much as the eyes",
+      "Avoid ibuprofen, naproxen and similar anti-inflammatory tablets — they reduce blood flow through the kidneys; paracetamol is the safer pain choice",
+      "Avoid unverified herbal and traditional remedies without telling the clinic — some are directly toxic to kidneys",
+      "Blood and urine tests on the clinic's schedule track the decline, and dietitian advice adjusts salt, protein and potassium",
+      "Where kidney disease is advanced, planning ahead for dialysis or transplant options happens at specialist clinics"
+    ],
+    "adherenceTips": [
+      "Take the protective medicines (blood pressure tablets, sometimes others) even though they treat nothing a person can feel",
+      "Bring every medicine and supplement to clinic visits — the clinic can only protect kidneys from what it knows about",
+      "Avoid dehydration in hot weather and during diarrhoea — kidneys suffer first",
+      "Treat urinary infections early; recurring infections speed the decline"
+    ],
+    "whenToSeekUrgentCare": [
+      "Passing much less urine than usual, or none over a day",
+      "Breathlessness, swollen legs or face that is new or worsening",
+      "Confusion or unusual drowsiness",
+      "Chest pain — kidney disease and heart disease travel together"
+    ],
+    "tags": ["kidney", "CKD", "blood-pressure", "diabetes", "NSAID-caution"],
+    "source": "WHO / SA NDoH renal care guidance"
+  },
+  {
+    "id": "chr-011",
+    "title": "Hypothyroidism",
+    "category": "endocrine",
+    "about": "An underactive thyroid treated with one daily levothyroxine tablet for life.",
+    "managementGoals": [
+      "Levothyroxine once daily, on an empty stomach, 30-60 minutes before food, with water only",
+      "Blood test (TSH) on the clinic's schedule — the dose is tuned to it",
+      "Keep the same tablet brand where possible, and report pregnancy early — the dose usually rises"
+    ],
+    "adherenceTips": [
+      "Keep iron tablets, calcium and antacids at least four hours away from the thyroid tablet — they block its absorption",
+      "Morning routine: thyroid tablet first, kettle on, breakfast a full hour later",
+      "A missed dose is taken later the same day; do not double the next day",
+      "Feeling changes — new tiredness, feeling cold, weight change, palpitations — may mean the dose needs retuning, not that the medicine has failed"
+    ],
+    "whenToSeekUrgentCare": [
+      "Extreme drowsiness with cold skin and slow breathing (rare, severe underactivity — emergency)",
+      "New fast or irregular heartbeat, sweating and weight loss after a dose increase — clinic the same week",
+      "Pregnancy or planning pregnancy — same-week clinic visit for dose adjustment"
+    ],
+    "tags": ["thyroid", "levothyroxine", "lifelong", "empty-stomach"],
+    "source": "WHO / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "chr-012",
+    "title": "Rheumatic Heart Disease",
+    "category": "cardiovascular",
+    "about": "Heart valve damage from untreated strep throat in childhood — South Africa carries a significant burden, and monthly penicillin injections prevent further damage.",
+    "managementGoals": [
+      "Monthly (every four weeks) benzathine penicillin injection, for years — the doctor sets the duration, commonly into adulthood",
+      "Every sore throat in a person with known heart valve disease is assessed and treated — a fresh strep infection is what damages the valves further",
+      "Regular heart reviews as the clinic schedules, and dental care with antibiotics before dental procedures when advised",
+      "Family screening: siblings and children of an affected person are checked",
+      "Planning pregnancy with the heart team — valve disease changes pregnancy risk"
+    ],
+    "adherenceTips": [
+      "The injection date belongs on the calendar and a reminder with it; the clinic keeps the schedule — keep every appointment",
+      "Never skip because the last injection was painful — ask for a different injection site or a slower technique, but never skip",
+      "Carry a card stating the diagnosis; it changes how new clinicians treat sore throats and dental care",
+      "Report breathlessness on effort, palpitations or swelling of ankles — valve damage announces change through these"
+    ],
+    "whenToSeekUrgentCare": [
+      "Breathlessness at rest, or waking at night gasping",
+      "A fever that lasts days with weight loss and night sweats (possible heart valve infection — emergency)",
+      "New irregular heartbeat or fainting",
+      "Chest pain"
+    ],
+    "tags": ["heart", "valve", "penicillin", "streptococcal", "South-Africa"],
+    "source": "SA NDoH rheumatic fever and RHD guidance / WHO"
+  },
+  {
+    "id": "chr-013",
+    "title": "Atrial Fibrillation and Anticoagulation",
+    "category": "cardiovascular",
+    "about": "An irregular heart rhythm treated with blood thinners (usually warfarin in the public sector) to prevent stroke.",
+    "managementGoals": [
+      "The blood-thinning tablet every single day, at the same time — its protection depends on steady levels",
+      "INR blood tests on the clinic's schedule (often monthly once stable): the result decides the dose — keep every appointment",
+      "Keep vitamin K intake steady: green vegetables are healthy and should not be avoided, just eaten consistently rather than in sudden binges",
+      "Heart rate control tablets exactly as prescribed, with the pulse checked as taught",
+      "Alcohol limits: binge drinking destabilises both the rhythm and the INR"
+    ],
+    "adherenceTips": [
+      "A fixed evening dose with a phone reminder; a seven-day pill box makes missed days visible",
+      "Tell every new clinician, dentist and pharmacist about the blood thinner before any procedure or new medicine",
+      "Carry a card or wear a band naming the medicine and its purpose",
+      "Keep a small written record of INR results and doses — it shortens every clinic visit"
+    ],
+    "whenToSeekUrgentCare": [
+      "Any fall or knock to the head, however minor — bleeding inside the skull can hide for hours",
+      "Bleeding that will not stop, blood in urine or stool, black tarry stools, coughing or vomiting blood, sudden severe bruising",
+      "New weakness, speech trouble or vision loss — call 10177 (stroke)",
+      "An irregular pulse that comes with chest pain, fainting or breathlessness"
+    ],
+    "tags": ["heart-rhythm", "warfarin", "INR", "stroke-prevention", "bleeding-risk"],
+    "source": "WHO / SA NDoH cardiovascular care guidance"
+  },
+  {
+    "id": "chr-014",
+    "title": "Gout — Long-Term Management",
+    "category": "musculoskeletal",
+    "about": "Recurring attacks of excruciating joint inflammation from urate crystals — long-term daily medicine dissolves the crystals and stops the attacks.",
+    "managementGoals": [
+      "Daily allopurinol, started low and raised slowly by the clinician — its goal is a blood urate level, not the absence of attacks this month",
+      "Once established on allopurinol, continue it through flares unless the doctor says otherwise — stopping and starting keeps the urate level swinging, and swings cause flares",
+      "Fluids: two litres or more of water daily, more in hot weather or hard work",
+      "Cut the drivers: beer and spirits, sugary cold drinks, organ meats, large meat portions; keep to a healthy weight without crash dieting"
+    ],
+    "adherenceTips": [
+      "Allopurinol is taken every day, not only when a joint hurts — the attacks and the medicine work on different clocks",
+      "Early months can bring more flares while crystal stores dissolve — the clinic can cover this period; it is not a reason to stop",
+      "Any rash on allopurinol is reported the same day — rare skin reactions are serious",
+      "Note flare triggers (a braai weekend, dehydration, a new diuretic) and tell the clinic — patterns change the plan"
+    ],
+    "whenToSeekUrgentCare": [
+      "A hot, red, swollen joint with fever — possible joint infection, which needs same-day care",
+      "A rash or mouth ulcers while on allopurinol",
+      "Flares that will not settle or that involve several joints at once",
+      "Very little urine passed, or kidney-area pain (urate can also form kidney stones)"
+    ],
+    "tags": ["gout", "urate", "allopurinol", "diet"],
+    "source": "WHO / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "chr-015",
+    "title": "Heart Failure",
+    "category": "cardiovascular",
+    "about": "A heart that cannot pump strongly enough — treated with daily medicines that take load off the heart, and daily watching of weight and breathlessness.",
+    "managementGoals": [
+      "Medicines every day exactly as prescribed — they work together, and each protects differently",
+      "Daily weight, same time, same clothes: a gain of more than 2kg over three days means fluid is building and the clinic needs to know",
+      "Salt under one teaspoon a day; fluid only as the clinic has advised",
+      "Daily activity within comfort — walking to tolerance maintains fitness; rest between",
+      "Flu and pneumococcal vaccination yearly where the clinic advises"
+    ],
+    "adherenceTips": [
+      "Water tablets in the morning; a second dose, if prescribed, no later than early afternoon so sleep is possible",
+      "A weight-and-symptom diary brought to every visit changes the quality of care",
+      "Never stop tablets because the ankles are down and breathing easy — the medicines are why",
+      "Arrange pill collection through the chronic medicine system so standing in a queue never becomes the reason for running out"
+    ],
+    "whenToSeekUrgentCare": [
+      "Breathlessness at rest, or needing three pillows and still waking gasping",
+      "Weight gain over 2kg in three days, or rapid swelling of legs and tummy",
+      "Chest pain, fainting, or a suddenly irregular fast pulse",
+      "Coughing pink, frothy sputum — call 10177"
+    ],
+    "tags": ["heart-failure", "fluid", "daily-weight", "medicines"],
+    "source": "WHO / SA NDoH heart failure guidance"
+  },
+  {
+    "id": "chr-016",
+    "title": "Chronic Hepatitis B",
+    "category": "gastrointestinal",
+    "about": "A lifelong liver infection, common in South Africa, that quietly inflames the liver over decades — monitored and, where active, treated with a daily tablet.",
+    "managementGoals": [
+      "Regular monitoring as the clinic schedules — blood tests and a liver ultrasound about every six months watch for liver damage and liver cancer, which is the point of the whole follow-up",
+      "Where treatment is started (usually tenofovir-based), the tablet is taken daily without interruption, as with HIV treatment",
+      "Zero alcohol — alcohol and hepatitis B damage the same organ and multiply each other's harm",
+      "Vaccination of household members and sexual partners, and testing of children",
+      "Co-infection checks: HIV and hepatitis B are often found together and are treated together"
+    ],
+    "adherenceTips": [
+      "Attendance at monitoring visits matters even without symptoms — liver cancer caught small is treatable, caught late is not",
+      "Tell every clinician about the diagnosis before new medicines — the liver processes most medicines",
+      "Never share razors, toothbrushes or needles; cover cuts; use condoms",
+      "Keep hepatitis B medicine separate from antacid and iron doses by two hours (where tenofovir-based combination treatment applies)"
+    ],
+    "whenToSeekUrgentCare": [
+      "Yellow eyes, dark urine or pale stools with new tiredness",
+      "Vomiting blood or black tarry stools",
+      "Swollen tummy with leg swelling, or confusion in a person known to have cirrhosis",
+      "New right-upper tummy pain or a lump"
+    ],
+    "tags": ["hepatitis-B", "liver", "monitoring", "no-alcohol"],
+    "source": "WHO hepatitis B guidance / SA NDoH"
+  }
+]

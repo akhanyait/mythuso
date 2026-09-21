@@ -1,0 +1,428 @@
+[
+  {
+    "id": "mh-001",
+    "title": "Depression",
+    "category": "mood",
+    "about": "Depression is more than a few days of sadness — it is a treatable illness where low mood, loss of interest and low energy persist for weeks and get in the way of daily life. It is common in South Africa and highly treatable.",
+    "signs": [
+      "Feeling down, hopeless or empty most of the day, nearly every day, for more than two weeks",
+      "Losing interest or pleasure in things usually enjoyed",
+      "Tiredness and low energy even after rest",
+      "Sleeping far more or far less than usual; waking in the early hours",
+      "Appetite and weight changes",
+      "Difficulty concentrating or making decisions",
+      "Feeling worthless or excessive guilt",
+      "Moving or speaking noticeably slower, or being restless and agitated",
+      "Thoughts that life is not worth living — these need urgent attention"
+    ],
+    "selfHelpStrategies": [
+      "Keep moving: 30 minutes of walking most days has real antidepressant effect",
+      "Keep connected: one small daily contact with a trusted person protects against isolation",
+      "Keep a routine: getting up, dressing and doing one small task each day rebuilds structure",
+      "Sunlight and outside time in the morning help reset sleep",
+      "Limit alcohol — it is a depressant and worsens mood and sleep",
+      "Break tasks into small steps and celebrate small wins; depression shrinks what feels possible"
+    ],
+    "whenToGetProfessionalHelp": "Seek help at the local clinic if low mood or loss of interest lasts more than two weeks, affects work, home or study, or brings any thought of self-harm. Depression is treated every day at primary healthcare level in South Africa — counselling, medication or both. Help urgently the same day if there are thoughts of suicide.",
+    "saResources": [
+      "SADAG (South African Depression and Anxiety Group) helpline: 0800 567 567 — free counselling and referrals",
+      "Lifeline South Africa: 0861 322 322 — 24-hour crisis counselling",
+      "Nearest public clinic: ask for a mental health consultation; treatment is free in the public sector",
+      "Emergency: 10177 (ambulance) or 112 from a cellphone"
+    ],
+    "tags": ["depression", "mood", "common", "treatable"],
+    "source": "WHO / SA NDoH Mental Health Policy Framework / SADAG"
+  },
+  {
+    "id": "mh-002",
+    "title": "Anxiety",
+    "category": "anxiety",
+    "about": "Anxiety becomes a problem when persistent worry, tension or physical symptoms like a racing heart last for months and interfere with work, relationships or sleep. It is among the most common mental health conditions and responds well to treatment.",
+    "signs": [
+      "Excessive worry most days for six months or more, difficult to control",
+      "Restlessness, feeling on edge or irritable",
+      "Muscle tension, headaches, jaw clenching",
+      "Tiredness and poor sleep, especially trouble falling asleep",
+      "Difficulty concentrating; mind going blank",
+      "Stomach upset, loose stools or nausea linked to stress",
+      "Avoiding places, tasks or people that trigger the worry"
+    ],
+    "selfHelpStrategies": [
+      "Slow breathing: in for 4 counts, out for 6 counts, for five minutes — calms the body's alarm system",
+      "Limit caffeine and energy drinks — they copy and amplify anxiety symptoms",
+      "Worry time: write worries down once a day at a set time rather than carrying them all day",
+      "Regular exercise reduces baseline anxiety over weeks",
+      "Reduce alcohol and nicotine — both worsen anxiety after the short relief wears off",
+      "Stay in the present: name five things that can be seen, four heard, three felt"
+    ],
+    "whenToGetProfessionalHelp": "Book a clinic visit if worry or physical symptoms last for months, cause avoidance of daily life, or come with panic attacks, low mood or drinking to cope. Counselling and, where needed, medication are available at public clinics; persistent anxiety is not a character flaw or something to simply push through.",
+    "saResources": [
+      "SADAG helpline: 0800 567 567",
+      "Lifeline South Africa: 0861 322 322",
+      "Nearest public clinic — ask about mental health services or a referral"
+    ],
+    "tags": ["anxiety", "worry", "common", "treatable"],
+    "source": "WHO / SA NDoH Mental Health Policy Framework / SADAG"
+  },
+  {
+    "id": "mh-003",
+    "title": "Panic Attacks",
+    "category": "anxiety",
+    "about": "A panic attack is a sudden rush of intense fear with strong physical symptoms — racing heart, breathlessness, dizziness — usually peaking within ten minutes. It feels dangerous but is not physically harmful, and panic disorder is treatable.",
+    "signs": [
+      "Sudden pounding heart, sweating, trembling",
+      "Breathlessness or a feeling of choking",
+      "Chest tightness, dizziness or feeling faint",
+      "Tingling hands or feet, numbness",
+      "Fear of losing control, going crazy or dying",
+      "Worry for weeks afterwards about having another attack, or avoiding places where one happened"
+    ],
+    "selfHelpStrategies": [
+      "Remember: panic peaks and passes in minutes — it cannot harm the body even though it feels overwhelming",
+      "Breathe slowly: in for 4, out for 6; longer out-breath switches off the alarm",
+      "Ground yourself: press both feet into the floor, name five things that can be seen",
+      "Do not flee the place if it is safe to stay — leaving teaches the brain the place was dangerous",
+      "Cut caffeine, energy drinks and nicotine, which trigger attacks in sensitive people"
+    ],
+    "whenToGetProfessionalHelp": "A first panic attack should be checked at a clinic to rule out physical causes such as heart, thyroid or breathing problems. Return promptly if attacks recur, if worry about attacks limits daily life, or if chest pain is severe, lasts long, or comes with sweating and nausea — treat that as a possible heart emergency (call 10177).",
+    "saResources": [
+      "SADAG helpline: 0800 567 567",
+      "Emergency: 10177 for suspected heart emergency",
+      "Nearest public clinic for assessment and counselling referral"
+    ],
+    "tags": ["panic", "anxiety", "breathing", "reassuring"],
+    "source": "WHO / SADAG"
+  },
+  {
+    "id": "mh-004",
+    "title": "Post-Traumatic Stress (PTSD)",
+    "category": "trauma",
+    "about": "After experiencing or witnessing violence, a crash, disaster or assault, some people develop post-traumatic stress: the event stays 'live' in the mind and body for months. In South Africa, where trauma exposure is high, effective treatment exists and asking for it is strength, not weakness.",
+    "signs": [
+      "Re-experiencing: unwanted memories, nightmares or flashbacks of the event",
+      "Avoidance of reminders — places, people, conversations, thoughts",
+      "Feeling constantly on guard: jumpiness, irritability, easily startled, trouble sleeping",
+      "Numbness: feeling cut off from others, flattened emotions",
+      "Strong guilt, shame or anger connected to the event",
+      "Symptoms lasting more than a month and disrupting work, home or relationships"
+    ],
+    "selfHelpStrategies": [
+      "Rhythm and routine: regular sleep, meals and gentle exercise steady the nervous system",
+      "Tell one trusted person what happened — silence feeds trauma",
+      "Limit alcohol — it numbs at first but deepens sleep problems, nightmares and anxiety",
+      "Learn grounding for flashbacks: stamp feet, hold something cold, name the current year and place",
+      "Return to meaningful activities step by step, at a pace that feels manageable"
+    ],
+    "whenToGetProfessionalHelp": "Seek trauma counselling if symptoms last beyond a month, worsen, or make home or work impossible. Psychological therapy for PTSD is effective and available through clinics, trauma centres and NGOs. Urgent help is needed if there are thoughts of suicide, dangerous drinking, or violence at home.",
+    "saResources": [
+      "SADAG helpline: 0800 567 567 — also offers PTSD support and referrals",
+      "Lifeline South Africa: 0861 322 322 — 24-hour crisis and trauma counselling",
+      "GBV Command Centre: 0800 428 428 (24 hours) or Please Call Me *120*7867# — for abuse and violence support",
+      "Rape Crisis and provincial Thuthuzela Care Centres — care, counselling and medico-legal support after sexual assault; police stations and hospitals can direct"
+    ],
+    "tags": ["PTSD", "trauma", "violence", "counselling"],
+    "source": "WHO / SA NDoH Mental Health Policy Framework / SADAG"
+  },
+  {
+    "id": "mh-005",
+    "title": "Grief and Loss",
+    "category": "trauma",
+    "about": "Grief is the natural response to losing a loved one, a job, a relationship or health. There is no correct timetable, but support helps people move through it rather than getting stuck in it.",
+    "signs": [
+      "Waves of sadness, crying, or numbness that come and go",
+      "Difficulty believing the loss is real",
+      "Sleep and appetite changes",
+      "Irritability, guilt or anger, including anger at the person who died",
+      "Withdrawal from usual activities and people",
+      "Physical tiredness and aches; feeling that meaning has drained out of daily life"
+    ],
+    "selfHelpStrategies": [
+      "Let grief come in waves — setbacks on hard days such as anniversaries are normal, not failure",
+      "Talk about the person who died with people who knew them; share stories rather than avoiding the name",
+      "Keep basics going: eat something at usual mealtimes, keep a sleep routine, walk daily",
+      "Accept practical help; grief is not carried better alone",
+      "Cultural, religious and traditional mourning practices give many people structure — use what is familiar and comforting"
+    ],
+    "whenToGetProfessionalHelp": "Consider clinic or counselling support if grief is still preventing eating, sleeping or working months later, if there is heavy drinking to cope, or if thoughts of joining the person who died appear — that is a warning sign needing urgent support. Counselling also helps when grief is complicated by a sudden, violent or stigmatised death.",
+    "saResources": [
+      "SADAG helpline: 0800 567 567",
+      "Lifeline South Africa: 0861 322 322",
+      "Faith and community leaders and traditional structures offer widely used mourning support",
+      "Hospice and palliative-care services in many districts offer bereavement counselling"
+    ],
+    "tags": ["grief", "bereavement", "loss", "support"],
+    "source": "WHO / SADAG"
+  },
+  {
+    "id": "mh-006",
+    "title": "Harmful Alcohol Use",
+    "category": "substance-use",
+    "about": "Alcohol harms health, safety and family life even before dependence develops — South Africa has among the highest risky drinking levels in the world. The good news: cutting down works, and treatment is free in the public sector.",
+    "signs": [
+      "Drinking more or longer than intended",
+      "Failed attempts to cut down",
+      "Craving alcohol; spending much of the day drinking or recovering from it",
+      "Work, study or family problems caused by drinking",
+      "Drinking in situations that are dangerous, such as before driving",
+      "Needing more alcohol for the same effect; shakes, sweating or anxiety when stopping — signs of physical dependence",
+      "Continuing to drink despite clear harm to health or relationships"
+    ],
+    "selfHelpStrategies": [
+      "Count the drinks for one week — most people underestimate",
+      "Set limits before drinking occasions and alternate every drink with water",
+      "Have at least three alcohol-free days each week",
+      "Avoid drinking to cope with stress, grief or insomnia — it worsens all three",
+      "Tell one trusted person the plan; accountability doubles success",
+      "Never drink and drive, and never drink during pregnancy — no amount is safe for the unborn baby"
+    ],
+    "whenToGetProfessionalHelp": "Seek help at the clinic if drinking is harming health, work or family, or if stopping causes shaking, sweating, seeing things or fits — stopping heavy long-term drinking suddenly can be dangerous and is best done with medical support. Treatment programmes, detoxification and SANCA (South African National Council on Alcoholism and Drug Dependence) services are available.",
+    "saResources": [
+      "SANCA (South African National Council on Alcoholism and Drug Dependence) — outpatient and inpatient programmes; the nearest centre can be found via clinics or sanca.org.za",
+      "SADAG helpline: 0800 567 567 — also runs substance-use support and referrals",
+      "Lifeline South Africa: 0861 322 322",
+      "Public clinics and district hospitals — detoxification and referral are free"
+    ],
+    "tags": ["alcohol", "substance-use", "dependence", "South-Africa"],
+    "source": "WHO / SA NDoH / SANCA"
+  },
+  {
+    "id": "mh-007",
+    "title": "Substance Use — tik, whoonga, cannabis and other drugs",
+    "category": "substance-use",
+    "about": "Stimulants like tik (crystal methamphetamine), opioids like whoonga (heroin-based), and cannabis cause serious health and social harm. Substance use disorder is a medical condition, not a moral failure — and treatment works.",
+    "signs": [
+      "Strong craving and loss of control over how much or how often the drug is used",
+      "Neglecting work, school, family or self-care",
+      "Money, belongings or household goods going missing; new debt",
+      "Sudden weight loss, poor sleep, decaying teeth (tik), or drowsiness and pinpoint pupils (opioids)",
+      "New social circle, secrecy, hostility when the drug is mentioned",
+      "Withdrawal when stopping: depression and crashes (tik), flu-like pain and craving (opioids), irritability (cannabis)",
+      "Continuing despite arrest, illness, overdose or family breakdown"
+    ],
+    "selfHelpStrategies": [
+      "Name one reason to stop that is personally bigger than the high — a child, a job, a dream — and write it where it is seen daily",
+      "Break ties with using situations and connections wherever possible; recovery is easier with distance",
+      "Replace, do not just remove: exercise, faith structures, work or study fill the hours the drug filled",
+      "Do not try to quit opioids alone — Medication-Assisted Treatment is available and reduces overdose and relapse",
+      "If someone overdoses on opioids: keep them awake, on their side, and call 10177 immediately"
+    ],
+    "whenToGetProfessionalHelp": "Seek treatment at the clinic, or via SANCA, if drug use is harming health or family, if quitting alone keeps failing, or if there is any overdose. Anyone injecting drugs can access needle services and HIV prevention; anyone using drugs can access HIV testing. Treatment programmes, social workers and support groups exist in all provinces.",
+    "saResources": [
+      "SANCA — the national network of substance-use treatment centres; the nearest centre can be found via clinics or sanca.org.za",
+      "SADAG helpline: 0800 567 567 — substance-use support and referrals",
+      "Public clinics: HIV testing, TB screening and referral are free and judgement-free",
+      "Overdose emergency: 10177"
+    ],
+    "tags": ["tik", "whoonga", "cannabis", "substance-use", "overdose"],
+    "source": "WHO / SA NDoH / SANCA"
+  },
+  {
+    "id": "mh-008",
+    "title": "Suicide Risk — Warning Signs and What to Do",
+    "category": "crisis",
+    "about": "Suicide is a leading cause of death in young South Africans, and most people who attempt it give warning signs. Knowing the signs and asking directly saves lives. Asking about suicide does not plant the idea — it opens the door to help.",
+    "signs": [
+      "Talking about death, dying, being a burden, or wanting to disappear",
+      "Saying goodbye, giving away treasured possessions, or putting affairs in order",
+      "Withdrawing from friends, family and activities",
+      "Sudden calm or apparent 'peace' after a period of despair",
+      "Hopelessness: saying nothing will ever change or get better",
+      "Increased drinking or drug use; recklessness",
+      "Previous suicide attempt — the strongest single warning sign",
+      "Recent major loss, humiliation, violence or crisis"
+    ],
+    "selfHelpStrategies": [
+      "Ask directly and calmly: 'Are you thinking about suicide?' — direct questions invite honest answers",
+      "Listen without argument, shock or lectures; do not promise secrecy about a life at risk",
+      "Remove or distance the means where possible — medicines, pesticides, firearms, rope",
+      "Do not leave the person alone; stay, or arrange for someone trusted to stay",
+      "Get professional help the same day: clinic, crisis line, hospital; go together if possible",
+      "For anyone having these thoughts: suicidal thoughts are a symptom that passes with the right help — reach out to one person today; the crisis lines below are free and staffed by trained counsellors"
+    ],
+    "whenToGetProfessionalHelp": "Treat any suicide plan, preparation or act as an emergency: go to the nearest clinic or hospital, or call 10177. After any attempt, hospital care is essential. Ongoing support afterwards — counselling, clinic follow-up, family involvement — saves lives.",
+    "saResources": [
+      "SADAG suicide crisis helpline: 0800 567 567 — free, and can talk through the situation step by step",
+      "Lifeline South Africa: 0861 322 322 — 24-hour crisis counselling",
+      "Emergency: 10177 (ambulance) or 112 from a cellphone",
+      "Nearest clinic or hospital emergency department — same-day assessment"
+    ],
+    "tags": ["suicide", "crisis", "warning-signs", "emergency", "life-saving"],
+    "source": "WHO / SADAG / SA NDoH"
+  },
+  {
+    "id": "mh-009",
+    "title": "Self-Harm",
+    "category": "crisis",
+    "about": "Self-harm — cutting, burning or otherwise injuring oneself — is usually a way of coping with overwhelming emotional pain, not attention-seeking. It needs a caring response and support to learn safer ways of coping.",
+    "signs": [
+      "Unexplained cuts, burns or bruises, often on arms or thighs, explained as 'accidents'",
+      "Wearing long sleeves or covering up regardless of heat",
+      "Blood-stained tissues or clothing, hidden sharp objects",
+      "Emotional swings, self-criticism, or deep shame after injuries",
+      "Withdrawal and isolation"
+    ],
+    "selfHelpStrategies": [
+      "Delay and substitute: when the urge comes, wait ten minutes and use intense sensation that is not damaging — an ice cube in the hand, a rubber band snap, hard exercise",
+      "Name and rate the feeling out of ten — self-harm often happens when feeling is unbearable and unspoken",
+      "Tell one trusted adult or friend; secrecy deepens the pattern",
+      "Care for wounds properly: clean water, clean dressing, clinic for any wound that will not stop bleeding, is deep, or becomes red and weeping"
+    ],
+    "whenToGetProfessionalHelp": "Book clinic support as soon as the pattern is recognised — self-harm is treatable, and therapy builds safer coping. Seek urgent care for deep wounds, burns, or overdose, and treat any mention of suicide with the seriousness in mh-008.",
+    "saResources": [
+      "SADAG helpline: 0800 567 567 — includes support for self-harm",
+      "Lifeline South Africa: 0861 322 322",
+      "Childline South Africa: 116 — free, 24-hour line for children and teens",
+      "Emergency: 10177"
+    ],
+    "tags": ["self-harm", "coping", "crisis", "young-people"],
+    "source": "WHO / SADAG / Childline SA"
+  },
+  {
+    "id": "mh-010",
+    "title": "Bipolar Disorder",
+    "category": "mood",
+    "about": "Bipolar disorder involves episodes of depression and episodes of mania — abnormally high energy, mood or irritability lasting days. It is a lifelong condition that, with treatment and routine, allows a full and stable life.",
+    "signs": [
+      "Depressive episodes as in mh-001",
+      "Manic episodes: days of high energy, little need for sleep, racing thoughts and rapid speech",
+      "Inflated confidence or grand plans; impulsive spending, risky behaviour or decisions",
+      "Irritability when challenged during a high period",
+      "Episodes severe enough to damage work, study, money or relationships",
+      "Sometimes psychosis during severe episodes"
+    ],
+    "selfHelpStrategies": [
+      "Learn personal early warning signs of both highs and lows, and share them with a trusted person",
+      "Protect sleep fiercely — losing sleep is the most common trigger for mania",
+      "Take mood-stabilising medicine exactly as prescribed; stopping during wellness is what usually causes relapse",
+      "Keep a simple daily mood log to spot drift early",
+      "Avoid alcohol and recreational drugs — they destabilise mood"
+    ],
+    "whenToGetProfessionalHelp": "Seek assessment at a clinic if mood swings are extreme or damaging. Urgent care is needed for mania with reckless spending or risky behaviour, refusal to eat or sleep, any psychosis, or thoughts of suicide — go to the hospital or call 10177. Long-term care usually involves referral to mental health services.",
+    "saResources": [
+      "SADAG helpline: 0800 567 567 — includes bipolar support groups",
+      "Lifeline South Africa: 0861 322 322",
+      "Public clinics and district hospitals — assessment, referral and free treatment",
+      "Emergency: 10177"
+    ],
+    "tags": ["bipolar", "mania", "mood-stabiliser", "long-term"],
+    "source": "WHO / SA NDoH Mental Health Policy Framework / SADAG"
+  },
+  {
+    "id": "mh-011",
+    "title": "Schizophrenia and Psychosis",
+    "category": "psychosis",
+    "about": "Psychosis means losing touch with shared reality — hearing voices or holding beliefs others do not share. Schizophrenia is the best-known psychotic illness. With treatment, many people with psychosis live and work in their communities; family understanding makes a big difference.",
+    "signs": [
+      "Hearing voices or seeing things others do not, often distressing",
+      "Strongly held beliefs that others find clearly false — of being followed, poisoned or specially chosen",
+      "Disorganised speech or behaviour; difficulty following conversation",
+      "Social withdrawal and loss of interest or function over months",
+      "Neglecting self-care, hygiene or safety",
+      "Family and cultural context matters: what matters is distress and loss of function"
+    ],
+    "selfHelpStrategies": [
+      "For families: stay calm, do not argue with the beliefs or mock them; short, clear sentences work best",
+      "Reduce stimulation during episodes — noise, crowds and confrontation worsen symptoms",
+      "Support medicine-taking quietly and consistently; relapse most often follows stopping treatment",
+      "Keep a record of early warning signs and who to call",
+      "Do not try to restrain someone who is frightened unless there is immediate danger — clear space and call for help"
+    ],
+    "whenToGetProfessionalHelp": "Arrange assessment at the clinic for any suspected psychosis — early treatment improves outcomes dramatically. Urgent help (clinic, hospital or 10177) is needed for danger to self or others, refusal of food or drink, or total self-neglect. Community mental health services follow up patients at home in many districts.",
+    "saResources": [
+      "Nearest clinic — mental health services and referral to district mental health teams",
+      "SADAG helpline: 0800 567 567 — guidance for families",
+      "Cape Mental Health, Comcare and other provincial NGOs support families (find via clinic or SADAG referrals)",
+      "Emergency: 10177"
+    ],
+    "tags": ["psychosis", "schizophrenia", "family-support", "treatable"],
+    "source": "WHO / SA NDoH Mental Health Policy Framework"
+  },
+  {
+    "id": "mh-012",
+    "title": "Stress and Burnout",
+    "category": "wellbeing",
+    "about": "Everyday stress becomes burnout when long-term pressure — work, unemployment, debt, caregiving — drains energy, hope and the ability to cope. Burnout is a signal to change the load, not a personal weakness.",
+    "signs": [
+      "Exhaustion not relieved by rest",
+      "Feeling cynical, detached or numb about work or responsibilities",
+      "Falling performance, forgetfulness and difficulty concentrating",
+      "Physical complaints: headaches, tense neck and shoulders, stomach upset, frequent colds",
+      "Short temper or tears close to the surface",
+      "Relying on alcohol, tobacco or other substances to get through"
+    ],
+    "selfHelpStrategies": [
+      "Protect sleep first — it is the foundation of stress tolerance",
+      "One true break a day, even twenty minutes of walking, music or quiet",
+      "Sort worries into 'can act on' and 'cannot control' lists; act on one small item from the first list",
+      "Say no to one non-essential commitment a week",
+      "Move the body daily — exercise is one of the most effective stress treatments available",
+      "Talk to someone trusted regularly — carrying stress alone multiplies it"
+    ],
+    "whenToGetProfessionalHelp": "Seek clinic support if stress is causing ongoing insomnia, depression or anxiety symptoms, heavy substance use, or constant physical illness — or if there are chest pains, which always need a medical check. Social workers at clinics can also assist with applications and support for money and family stressors.",
+    "saResources": [
+      "SADAG helpline: 0800 567 567",
+      "Lifeline South Africa: 0861 322 322",
+      "Clinic social worker services — free"
+    ],
+    "tags": ["stress", "burnout", "wellbeing", "daily-life"],
+    "source": "WHO / SADAG"
+  },
+  {
+    "id": "mh-013",
+    "title": "Mental Health in Teenagers",
+    "category": "child-adolescent",
+    "about": "Half of mental illness begins before age 18. Teenagers often show distress through behaviour — irritability, school decline, withdrawal — rather than saying they feel depressed. Adults who notice early and respond calmly change the course of a young life.",
+    "signs": [
+      "Two or more weeks of low mood, irritability or tearfulness",
+      "Falling marks or school refusal",
+      "Withdrawal from friends and activities once enjoyed",
+      "Sleeping far more or less; appetite changes",
+      "Self-harm marks or covered clothing (mh-009)",
+      "Talk of hopelessness, death or being a burden (mh-008)",
+      "New substance use or risky behaviour",
+      "Severe anxiety before tests or social situations"
+    ],
+    "selfHelpStrategies": [
+      "For adults: listen more than lecture — a teenager who feels judged stops talking",
+      "Ask directly about mood and even about suicide; asking protects, it does not plant ideas",
+      "Protect sleep routines and limit late-night screens together",
+      "Keep one trusted adult in the picture — a teacher, coach, aunt or uncle can be the bridge to help",
+      "Encourage exercise and keep meals regular; both stabilise mood"
+    ],
+    "whenToGetProfessionalHelp": "Arrange help when low mood, anxiety, behaviour change or self-harm lasts more than two weeks or affects school. Urgent help for any suicidal talk, plan or act, or any psychosis — same day, no exceptions. School-based support, clinics and NGOs all serve teenagers; consent of a parent or guardian is normally arranged, and teens can still talk to counsellors confidentially on the crisis lines.",
+    "saResources": [
+      "Childline South Africa: 116 — free, 24-hour counselling for children and teens",
+      "SADAG helpline: 0800 567 567 — includes teen support and referrals",
+      "Lifeline South Africa: 0861 322 322",
+      "School counsellors and life orientation teachers can start the referral",
+      "Emergency: 10177"
+    ],
+    "tags": ["teenagers", "adolescents", "school", "early-help"],
+    "source": "WHO adolescent mental health / SADAG / Childline SA"
+  },
+  {
+    "id": "mh-014",
+    "title": "South African Crisis and Support Lines Directory",
+    "category": "support",
+    "about": "Free crisis lines exist for exactly the moments when problems feel too heavy to carry alone. Calling is free from most networks, the lines are staffed by trained counsellors, and no problem is too small.",
+    "lines": [
+      "SADAG (South African Depression and Anxiety Group): 0800 567 567 — depression, anxiety, suicidal thoughts, mental health information and referrals",
+      "Lifeline South Africa: 0861 322 322 — 24-hour crisis counselling for any crisis, including trauma and abuse",
+      "Childline South Africa: 116 — free 24-hour line for children and teenagers",
+      "GBV Command Centre: 0800 428 428 (24 hours) — gender-based violence counselling, social workers and shelter referral; Please Call Me *120*7867#; SMS 'help' to 31531",
+      "Ambulance: 10177 — medical emergencies, including overdose and suicide attempts",
+      "Emergency from any cellphone: 112",
+      "Poisons Information Helpline: 0861 555 777 — what to do after swallowing medicines, chemicals or paraffin",
+      "Police emergency: 10111"
+    ],
+    "whenToGetProfessionalHelp": "Call immediately when there is any risk to life, when a crisis feels unbearable, or simply when support is needed and there is no one else to talk to. For ongoing care, the nearest public clinic provides free mental health assessment, treatment and referral.",
+    "saResources": [
+      "All lines above are free to call",
+      "Public clinics: free mental health services in every district",
+      "SANCA centres for substance-use treatment",
+      "SADAG website (sadag.org) lists additional support groups and resources"
+    ],
+    "tags": ["crisis-lines", "directory", "South-Africa", "free"],
+    "source": "SADAG / Lifeline SA / SA government (GBV Command Centre) / Childline SA"
+  }
+]

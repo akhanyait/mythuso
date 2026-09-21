@@ -1,0 +1,258 @@
+[
+  {
+    "id": "sahs-001",
+    "title": "Finding Your Nearest Clinic or Hospital",
+    "category": "navigation",
+    "keyPoints": [
+      "Public primary healthcare (PHC) clinics are the front door to care: free treatment, no appointment needed in most cases, open on weekdays",
+      "Ways to find the nearest facility: ask at any pharmacy or school; ask neighbours and community health workers (CHWs) who do household visits; provincial health departments publish facility lists on their websites; local ward councillors and municipalities keep facility information",
+      "Clinics are for most health needs; district hospitals handle emergencies, childbirth, and cases the clinic refers",
+      "Bring the ID book or card and, for children, the Road-to-Health Booklet (clinic card); any previous clinic card or file speeds things up",
+      "Mobile clinics serve farms and villages on scheduled days — the local clinic or CHW knows the timetable"
+    ],
+    "practicalTips": [
+      "Arrive early in the morning — files and queues are handled on a first-come basis at most clinics",
+      "Every visit, ask for the file to be kept safe; clinics store patient files, so simply return to the same clinic"
+    ],
+    "tags": ["clinic", "navigation", "PHC", "free"],
+    "source": "SA National Department of Health / provincial health departments"
+  },
+  {
+    "id": "sahs-002",
+    "title": "Levels of Care — From Clinic to Tertiary Hospital",
+    "category": "navigation",
+    "keyPoints": [
+      "Primary level: clinics, community health centres (CHCs) and mobile clinics — everyday illnesses, chronic care, antenatal care, immunisations, minor injuries",
+      "District hospital: 24-hour emergency care, maternity, X-rays, and management of conditions beyond the clinic, serving the local district",
+      "Regional hospital: specialist services (physicians, surgeons, paediatricians, gynaecologists) receiving referrals from several district hospitals",
+      "Tertiary and central hospitals: highly specialised services such as heart surgery, cancer treatment and neurosurgery, linked to medical schools",
+      "Each level exists so that complex problems get specialist eyes and simple problems stay close to home",
+      "Care should normally start at the clinic — arriving at a tertiary hospital with a minor problem usually means a long wait and a redirect"
+    ],
+    "practicalTips": [
+      "Emergencies go to the nearest facility that is open — call 10177 and the ambulance will take the patient to the right level of care",
+      "Specialist care in the public sector requires a referral letter, except in emergencies"
+    ],
+    "tags": ["levels-of-care", "referral", "hospitals", "structure"],
+    "source": "SA National Department of Health"
+  },
+  {
+    "id": "sahs-003",
+    "title": "The Referral Pathway — How It Works",
+    "category": "referral",
+    "keyPoints": [
+      "A referral is a letter from a health worker to a higher level of care explaining the problem, what has been done, and what is needed next",
+      "Typical path: clinic nurse or doctor assesses, refers to district hospital; if more specialised care is needed, onward referral to regional or tertiary services",
+      "The referral letter is important — keep a copy, bring it to the appointment, and keep it afterwards",
+      "Appointment letters state date, time and place; missing a specialist appointment can mean waiting months again — if it cannot be kept, phone or visit the clinic to rearrange",
+      "After specialist treatment, patients are usually 'down-referred' back to the local clinic for ongoing medicine and monitoring, which is the intended design, not a downgrade in care"
+    ],
+    "practicalTips": [
+      "Bring the ID, referral letter, medicines or a list of them, and any test results to every referral appointment",
+      "Patient transport is limited — provinces run patient transport for scheduled specialist visits; ask the clinic social worker what is available"
+    ],
+    "tags": ["referral", "appointments", "down-referral", "pathway"],
+    "source": "SA National Department of Health"
+  },
+  {
+    "id": "sahs-004",
+    "title": "What Is Free at Public Clinics",
+    "category": "financing",
+    "keyPoints": [
+      "Free primary healthcare services at public clinics include: consultations with nurses and doctors, medicines from the clinic formulary, HIV testing and treatment, TB testing and treatment, antenatal and postnatal care, immunisations, family planning, and treatment of ordinary illnesses",
+      "Free for everyone at PHC level: this has been national policy since 1996, regardless of income or documentation status",
+      "District hospitals charge income-related fees (Uniform Patient Fee System), but those referred by a clinic, pensioners, children, and social-grant recipients are largely exempt",
+      "Emergency treatment at any public facility may not be refused while awaiting payment ability"
+    ],
+    "practicalTips": [
+      "Take proof of income (payslip or affidavit of unemployment) and ID to hospital visits for correct fee assessment",
+      "If charged incorrectly after a clinic referral, ask the fees office about the referral exemption"
+    ],
+    "tags": ["free-services", "PHC", "fees", "rights"],
+    "source": "SA NDoH / Uniform Patient Fee System / National Health Act"
+  },
+  {
+    "id": "sahs-005",
+    "title": "Chronic Medication — CCMDD Pick-Up Points",
+    "category": "medicines",
+    "keyPoints": [
+      "CCMDD (Central Chronic Medicines Dispensing and Distribution), also called Dablapmpa, lets stable chronic patients collect repeat medicines without joining the clinic queue",
+      "How it works: the clinic registers a stable patient (on treatment for conditions like HIV, TB, diabetes, hypertension, epilepsy); medicines are packed and delivered to a chosen pick-up point — the clinic's chronic queue, a private pharmacy, a shop, a spaza, or community collection point",
+      "Collection is every one to three months, at a chosen date and time; an SMS reminder is usually sent",
+      "Adherence clubs — groups collecting together with a quick health check — are an option for stable ART patients",
+      "Eligibility is decided by the clinic based on stable condition and controlled readings; ask the nurse at the next visit how to register"
+    ],
+    "practicalTips": [
+      "Choose a pick-up point that is genuinely easy to reach; it can be changed",
+      "Collection is still a clinical visit in miniature — blood pressure or viral load checks happen at set intervals",
+      "If medicine runs out before the next collection date, go to the clinic: never just stop chronic medication"
+    ],
+    "tags": ["CCMDD", "Dablapmpa", "chronic-medication", "pick-up-point", "convenience"],
+    "source": "SA NDoH CCMDD programme"
+  },
+  {
+    "id": "sahs-006",
+    "title": "Getting Repeat Chronic Medication at the Clinic",
+    "category": "medicines",
+    "keyPoints": [
+      "Stable chronic patients receive medicines in 2-3 month supplies at clinic chronic-care visits",
+      "A follow-up date is given at each visit — the file, scripts and stock are prepared around that date",
+      "Blood tests (for example viral load, HbA1c, kidney tests) are scheduled at intervals; missing visits delays these checks",
+      "If treatment is started privately or in another province, bring the boxes or a letter — the clinic can continue the same regimen if it is on the formulary"
+    ],
+    "practicalTips": [
+      "Collect the next supply in the final week of the current one — never wait until the last tablet",
+      "Never share chronic medication with family or neighbours, even with the same condition — doses are individual",
+      "When travelling or moving, ask the clinic for a transfer letter to a new facility"
+    ],
+    "tags": ["chronic-medication", "repeat-scripts", "clinic-visits"],
+    "source": "SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "sahs-007",
+    "title": "National Health Insurance (NHI) — What It Means",
+    "category": "financing",
+    "keyPoints": [
+      "NHI is South Africa's plan for universal health coverage: a single fund that pays for healthcare for everyone, based on need rather than ability to pay",
+      "The NHI Act was signed into law in May 2024; implementation is phased over many years and pilot activities are underway",
+      "The goal is that services at clinics and hospitals are covered by the fund, ending out-of-pocket payments for care at registered providers",
+      "During the transition, public services continue exactly as they work today — free PHC services, clinic-first referrals, CCMDD — and medical aid continues to exist alongside",
+      "Practical meaning for households today: the public system's free and subsidised services are the baseline; NHI will formalise and expand this over time"
+    ],
+    "practicalTips": [
+      "For now, nothing changes about how the clinic is used — register at the local clinic as normal",
+      "Official information comes from the National Department of Health; be cautious of scams selling 'NHI registration' — there is no fee and no card to buy"
+    ],
+    "tags": ["NHI", "universal-coverage", "financing", "phased"],
+    "source": "SA NDoH / National Health Insurance Act 20 of 2023"
+  },
+  {
+    "id": "sahs-008",
+    "title": "Patient Rights and Responsibilities",
+    "category": "rights",
+    "keyPoints": [
+      "The Patient Rights Charter is national policy: every person has the right to access healthcare, including emergency care, reproductive health services, and confidentiality",
+      "Right to respect and dignity: care without discrimination on any grounds — race, gender, age, disability, sexual orientation, nationality or HIV status",
+      "Right to information: what is wrong, what treatment is proposed, what it involves, and the right to refuse treatment after being informed of the consequences",
+      "Right to privacy and confidentiality: health information stays confidential; HIV status cannot be disclosed to others without consent",
+      "Right to participate in decisions: including the right to a second opinion and to know the identity of the person providing care",
+      "Responsibilities: to give accurate information, to follow agreed treatment, to respect health workers and other patients, and to use health services responsibly (emergencies lines for emergencies)"
+    ],
+    "practicalTips": [
+      "A named point of complaint exists at every facility — ask for the person in charge or the quality assurance officer",
+      "Unresolved complaints can be lodged with the Office of Health Standards Compliance (see sahs-012)"
+    ],
+    "tags": ["patient-rights", "charter", "confidentiality", "dignity"],
+    "source": "SA NDoH Patient Rights Charter"
+  },
+  {
+    "id": "sahs-009",
+    "title": "Emergency Numbers and When to Use Them",
+    "category": "emergencies",
+    "keyPoints": [
+      "10177 — national ambulance / emergency medical services",
+      "112 — works from any cellphone, free, even with no airtime; connects to emergency services",
+      "10111 — police emergency; for violence, danger and crime scenes",
+      "0861 555 777 — Poisons Information Helpline for swallowed medicines, chemicals, paraffin and pesticides",
+      "Call the ambulance for: unresponsiveness, trouble breathing, chest pain, stroke signs (face droop, arm weakness, speech trouble), heavy bleeding, seizures, poisoning, serious injuries, and any maternity emergency",
+      "When calling: give the exact location (street, landmark), what happened, how many people are hurt, and a callback number; stay on the line until told to hang up"
+    ],
+    "practicalTips": [
+      "While waiting for an ambulance: unlock the gate and doors, put on outside lights at night, send someone to the road to direct the crew, and gather medicines and documents",
+      "If transport to hospital is faster than waiting for an ambulance in a life-threatening emergency, do not delay — get to the nearest facility"
+    ],
+    "tags": ["emergency", "10177", "112", "ambulance", "numbers"],
+    "source": "SA government emergency services directory"
+  },
+  {
+    "id": "sahs-010",
+    "title": "Making the Most of a Clinic Visit",
+    "category": "navigation",
+    "keyPoints": [
+      "Arrive early: most clinics open around 07:00 and queues for files and triage form quickly",
+      "Bring: ID or birth certificate, child's Road-to-Health Booklet, previous clinic card, a list of all medicines being taken, and cash or a card for transport home",
+      "Write down symptoms and questions before the visit — a short list means nothing important is forgotten in a busy consultation",
+      "Ask the nurse or doctor to explain the diagnosis, the medicine, and when to come back — it is a right to understand",
+      "Find out the clinic's chronic-illness day and antenatal day — separate queues for these move faster"
+    ],
+    "practicalTips": [
+      "Take a snack and water; clinic days can be long, especially for diabetics on medication",
+      "Ask a family member or friend to come along when the visit involves a lot of information or a new diagnosis",
+      "Community health workers attached to the clinic can follow up at home — ask how to reach them"
+    ],
+    "tags": ["clinic-visit", "preparation", "queues", "practical"],
+    "source": "SA NDoH / provincial health department guidance"
+  },
+  {
+    "id": "sahs-011",
+    "title": "Sick Notes and Medical Certificates",
+    "category": "navigation",
+    "keyPoints": [
+      "A medical certificate (sick note) is issued by a registered health professional authorised to diagnose — a doctor, or a nurse with prescribing and diagnisory authority within primary healthcare",
+      "Ask for the certificate during the visit itself; it should state that the person was examined and found unfit for work, and for how long",
+      "Under the Basic Conditions of Employment Act, an employer may require a certificate for absences of more than two consecutive days (or twice in eight weeks, depending on the agreement)",
+      "Backdating: certificates can state that the person was examined on that day and reports being ill since an earlier date; honest communication with the employer is best",
+      "Certificates are medical documents — forged or bought sick notes are fraud"
+    ],
+    "practicalTips": [
+      "Ask the clinic specifically: 'I need a sick note for my employer' before leaving",
+      "For chronic conditions requiring work adjustments (for example heavy lifting), ask the clinic to document it in a letter"
+    ],
+    "tags": ["sick-note", "medical-certificate", "work", "BCEA"],
+    "source": "Basic Conditions of Employment Act / HPCSA guidance"
+  },
+  {
+    "id": "sahs-012",
+    "title": "Complaints About Health Services",
+    "category": "rights",
+    "keyPoints": [
+      "First step: raise the problem with the facility manager or the person in charge of the clinic or ward — many problems are solved on the spot",
+      "Step two: provincial health departments have complaints lines and offices; the complaint is escalated with the facility name, date, and what happened",
+      "The Office of Health Standards Compliance (OHSC) is the national watchdog for both public and private facilities: it inspects facilities and can investigate unresolved complaints of poor quality care",
+      "OHSC complaints call centre: toll-free 080 911 6472; email complaints@ohsc.org.za; complaints can also be lodged via the OHSC website",
+      "Complaints about health professionals' conduct go to their professional councils; complaints about private healthcare costs go to the Council for Medical Schemes (for scheme members)"
+    ],
+    "practicalTips": [
+      "Write down dates, names, and what was said while it is fresh — specific complaints are acted on faster",
+      "Whistleblowers reporting in good faith are protected; the OHSC keeps complainants' details confidential where requested"
+    ],
+    "tags": ["complaints", "OHSC", "quality", "accountability"],
+    "source": "Office of Health Standards Compliance / National Health Amendment Act"
+  },
+  {
+    "id": "sahs-013",
+    "title": "Traditional Healers and the Health System",
+    "category": "navigation",
+    "keyPoints": [
+      "Traditional healers are an established part of health-seeking for many South African households, and the majority of the population consults them at some point",
+      "Some combinations are safe in parallel care, but interactions are real: certain herbal remedies reduce antiretroviral (ARV) levels, affect epilepsy medicines, or stress the liver alongside TB treatment",
+      "Tell the clinic nurse or doctor what traditional or herbal medicines are being used — this is confidential information used for safety, and good health workers will not judge or scold",
+      "Never stop prescribed chronic medication (ART, TB treatment, epilepsy or diabetes medicines) in favour of an alternative without discussing it with the clinic",
+      "Traditional health practitioners are being formally integrated into the national health system, including collaboration on notifiable conditions"
+    ],
+    "practicalTips": [
+      "If a healer advises stopping clinic medicine, ask the clinic for a joint plan before stopping anything",
+      "Bring the containers of all remedies being used to the clinic visit — names alone are often not enough"
+    ],
+    "tags": ["traditional-healers", "integration", "interactions", "safety"],
+    "source": "SA NDoH Traditional Health Practitioners framework / WHO"
+  },
+  {
+    "id": "sahs-014",
+    "title": "Medical Aid and Using Public Services",
+    "category": "financing",
+    "keyPoints": [
+      "Medical aid (health insurance) is private cover; public clinics and hospitals are separate and generally used by those without cover — public services do not require medical aid",
+      "Public hospital fees are income-related for those who can pay; medical aid members treated in public hospitals are billed accordingly",
+      "Prescribed Minimum Benefits (PMBs): medical schemes must cover a defined list of conditions — including HIV, TB and many chronic conditions — in full, regardless of the plan type",
+      "Chronic patients on medical aid should register their condition with the scheme for chronic medicine benefits"
+    ],
+    "practicalTips": [
+      "Keep the medical aid card and ID together for private visits",
+      "Even with medical aid, emergency public sector care is available when needed; inform the scheme afterwards",
+      "For scheme disputes or refused PMB claims, the Council for Medical Schemes (0861 123 267) assists"
+    ],
+    "tags": ["medical-aid", "PMB", "private", "public"],
+    "source": "Council for Medical Schemes / Medical Schemes Act"
+  }
+]

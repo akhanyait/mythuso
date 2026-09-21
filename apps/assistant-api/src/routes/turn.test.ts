@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
 import { handleTurn } from './turn.ts';
+import { buildResponse } from '../../../../packages/gilbertone/src/engine.ts';
 import assistant from '../../../../packages/catalog/assistant.json' with { type: 'json' };
 
 test('empty text asks for one rather than reporting unknown', async () => {
@@ -124,4 +126,165 @@ test('the audit line keeps the redacted message and never the raw number', async
  }
  assert.equal(lines.some((line) => line.includes('8001015009087')), false);
  assert.equal(lines.some((line) => line.includes('[ID REDACTED]')), true);
+});
+
+/* ---- The orchestrator tier, since 21 September 2026: where the classifier found nothing it
+   knows, a LangChain agent with the catalog's tools may be asked. The model behind these tests is
+   a scripted server speaking the OpenAI chat protocol on a local port — the same wire the real
+   providers speak. What is asserted is the route's own promises: the classifier's territory stays
+   untouched and instant, a working orchestrator's answer replaces the reply and names itself in
+   `source`, and a failed one leaves the classifier's own words standing, exactly as this route
+   answered before the tier existed. */
+
+const ENV_KEYS = [
+ 'AZURE_OPENAI_ENDPOINT',
+ 'AZURE_OPENAI_KEY',
+ 'AZURE_OPENAI_API_KEY',
+ 'AZURE_OPENAI_MODEL',
+ 'OLLAMA_URL',
+ 'OLLAMA_MODEL',
+ 'QDRANT_URL',
+ 'QDRANT_COLLECTION',
+] as const;
+
+const withEnv = async <T>(
+ values: Partial<Record<(typeof ENV_KEYS)[number], string>>,
+ body: () => Promise<T>,
+): Promise<T> => {
+ const saved = ENV_KEYS.map((key) => [key, process.env[key]] as const);
+ for (const key of ENV_KEYS) delete process.env[key];
+ for (const [key, value] of Object.entries(values)) if (value) process.env[key] = value;
+ try {
+  return await body();
+ } finally {
+  for (const [key, value] of saved) {
+   if (value === undefined) delete process.env[key];
+   else process.env[key] = value;
+  }
+ }
+};
+
+/* A provider that always answers the same sentence, counting the requests it is asked — the
+   count is how the tests prove a turn never reached a model at all. */
+const scriptedProvider = async (): Promise<{
+ url: string;
+ bodies: string[];
+ close: () => Promise<void>;
+}> => {
+ const bodies: string[] = [];
+ const server = createServer((req, res) => {
+  const chunks: Buffer[] = [];
+  req.on('data', (chunk: Buffer) => chunks.push(chunk));
+  req.on('end', () => {
+   bodies.push(Buffer.concat(chunks).toString('utf8'));
+   res.writeHead(200, { 'content-type': 'application/json' });
+   res.end(
+    JSON.stringify({
+     id: 'chatcmpl-stub',
+     object: 'chat.completion',
+     created: 1758000000,
+     model: 'stub-model',
+     choices: [
+      {
+       index: 0,
+       message: {
+        role: 'assistant',
+        content:
+         'The clinic nurse follows the SA immunisation schedule — bring the card at 6, 10 and 14 weeks, and at 9 months.',
+       },
+       finish_reason: 'stop',
+      },
+     ],
+     usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+    }),
+   );
+  });
+ });
+ await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+ const address = server.address();
+ assert.ok(address && typeof address === 'object');
+ return {
+  url: `http://127.0.0.1:${address.port}`,
+  bodies,
+  close: async () => {
+   server.closeAllConnections();
+   await new Promise<void>((resolve) => server.close(() => resolve()));
+  },
+ };
+};
+
+test('an unknown question is answered by the orchestrator, which names itself in the response', async () => {
+ const provider = await scriptedProvider();
+ try {
+  await withEnv({ OLLAMA_URL: provider.url }, async () => {
+   const result = await handleTurn({
+    text: 'what immunisation does my baby need',
+    userConsent: true,
+    sessionId: 'session-orchestrator',
+   });
+   assert.equal(result.source, 'orchestrator');
+   assert.equal(
+    result.reply,
+    'The clinic nurse follows the SA immunisation schedule — bring the card at 6, 10 and 14 weeks, and at 9 months.',
+   );
+   assert.equal(result.cue, assistant.affect.answers.service.cue);
+   /* The tier writes the reply; it never re-routes the turn. */
+   assert.equal(result.route, 'unknown');
+   assert.equal(result.classification, 'unknown');
+   assert.ok(provider.bodies.length >= 1, 'the scripted provider was consulted');
+  });
+ } finally {
+  await provider.close();
+ }
+});
+
+test('a failed orchestrator leaves the classifier’s own reply standing, unmarked', async () => {
+ /* A port nothing listens on: the provider is configured but refuses every connection, which is
+    the shape of a deployment whose model has gone away between two turns. */
+ await withEnv({ OLLAMA_URL: 'http://127.0.0.1:9' }, async () => {
+  const result = await handleTurn({
+   text: 'what immunisation does my baby need',
+   userConsent: true,
+   sessionId: 'session-orchestrator-failed',
+  });
+  assert.equal(result.source, undefined);
+  assert.equal(result.cue, undefined);
+  assert.equal(
+   result.reply,
+   buildResponse('what immunisation does my baby need', 'patient').reply,
+   'the classifier’s unknown reply, word for word',
+  );
+ });
+});
+
+test('the classifier’s own territory never reaches a model, however available one is', async () => {
+ const provider = await scriptedProvider();
+ try {
+  await withEnv({ OLLAMA_URL: provider.url }, async () => {
+   const emergency = await handleTurn({
+    text: 'chest pain, get me a nurse',
+    userConsent: true,
+    sessionId: 'session-instant-1',
+   });
+   assert.equal(emergency.classification, 'emergency');
+   const identity = await handleTurn({
+    text: 'who are you, can you hear me?',
+    userConsent: true,
+    sessionId: 'session-instant-2',
+   });
+   assert.equal(identity.classification, 'identity');
+   const care = await handleTurn({
+    text: 'When is my nurse coming?',
+    userConsent: true,
+    sessionId: 'session-instant-3',
+   });
+   assert.equal(care.classification, 'care');
+   assert.equal(emergency.source, undefined);
+   assert.equal(identity.source, undefined);
+   assert.equal(care.source, undefined);
+   assert.equal(provider.bodies.length, 0, 'not one request: all three were answered on the spot');
+  });
+ } finally {
+  await provider.close();
+ }
 });

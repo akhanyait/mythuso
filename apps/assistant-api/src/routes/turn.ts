@@ -4,7 +4,7 @@ import {
   classifyWithConfidence,
   type Audience,
   type EngineResponse,
-} from '../../../../packages/gilbertone/src/engine.ts';
+} from "../../../../packages/gilbertone/src/engine.ts";
 import {
   addTurn,
   createConversation,
@@ -12,12 +12,15 @@ import {
   type ConversationContext,
   type ConversationState,
   type Turn,
-} from '../../../../packages/gilbertone/src/conversation.ts';
-import { evaluateRefusals } from '../../../../packages/gilbertone/src/refusals.ts';
-import { redactPHI } from '../../../../packages/gilbertone/src/phi.ts';
-import assistant from '../../../../packages/catalog/assistant.json' with { type: 'json' };
-import { askModel, llmSystemPrompt } from '../lib/llm-adapter.ts';
-import type { AssistantTurnRequest, AssistantTurnResponse } from '../lib/schema.ts';
+} from "../../../../packages/gilbertone/src/conversation.ts";
+import { evaluateRefusals } from "../../../../packages/gilbertone/src/refusals.ts";
+import { redactPHI } from "../../../../packages/gilbertone/src/phi.ts";
+import assistant from "../../../../packages/catalog/assistant.json" with { type: "json" };
+import { orchestrate } from "../lib/orchestrator.ts";
+import type {
+  AssistantTurnRequest,
+  AssistantTurnResponse,
+} from "../lib/schema.ts";
 
 /* The session store, since the Phase A upgrade of 19 September 2026.
 
@@ -42,7 +45,9 @@ function pruneSessions(now: number): void {
   for (const [id, entry] of sessions)
     if (now - entry.lastActive > SESSION_IDLE_MS) sessions.delete(id);
   if (sessions.size < SESSION_LIMIT) return;
-  const oldestFirst = [...sessions.entries()].sort((a, b) => a[1].lastActive - b[1].lastActive);
+  const oldestFirst = [...sessions.entries()].sort(
+    (a, b) => a[1].lastActive - b[1].lastActive,
+  );
   for (const [id] of oldestFirst) {
     if (sessions.size < SESSION_LIMIT) return;
     sessions.delete(id);
@@ -54,10 +59,10 @@ function pruneSessions(now: number): void {
    role-spoofing refusal points back at what the assistant is; the sensitive-details refusal
    invites the message again in the person's own words. */
 const refusalActions: Record<string, string[]> = {
-  'consent-required': ['confirm_message'],
-  'clinical-referral': ['speak_to_nurse'],
-  'role-spoofing': ['identity'],
-  'phi-detected': ['continue'],
+  "consent-required": ["confirm_message"],
+  "clinical-referral": ["speak_to_nurse"],
+  "role-spoofing": ["identity"],
+  "phi-detected": ["continue"],
 };
 
 /* The face the service answer wears, read from the contract's affect section rather than typed
@@ -80,22 +85,25 @@ const contextLines = (context: ConversationContext): string[] => {
   const lines = [`This is turn ${context.turnCount + 1} of this conversation.`];
   if (context.recentClassifications.length)
     lines.push(
-      `The classifier's recent readings, oldest first: ${context.recentClassifications.join(', ')}.`,
+      `The classifier's recent readings, oldest first: ${context.recentClassifications.join(", ")}.`,
     );
   if (context.activeTask)
-    lines.push(`An earlier turn opened the "${context.activeTask}" task and it is still open.`);
+    lines.push(
+      `An earlier turn opened the "${context.activeTask}" task and it is still open.`,
+    );
   return lines;
 };
 
-/* One response, shaped by the classifier's own fields. `model` is present only when the second
-   tier wrote the reply, and then turn.reply is that model's text. The two extra fields stay
-   undefined for every classifier reply, and JSON.stringify drops undefined — so a caller that
-   ignores them sees exactly the response it saw before they existed. */
+/* One response, shaped by the classifier's own fields. `service` is present only when a model
+   tier wrote the reply — the plain tier or the orchestrator, each naming itself in `source` —
+   and then turn.reply is that tier's text. The two extra fields stay undefined for every
+   classifier reply, and JSON.stringify drops undefined — so a caller that ignores them sees
+   exactly the response it saw before they existed. */
 const response = (
   turn: EngineResponse,
   sessionId: string,
   refusalId?: string,
-  model?: { cue: string },
+  service?: { cue: string; source: "model" | "orchestrator" },
 ): AssistantTurnResponse => ({
   turnId: crypto.randomUUID(),
   sessionId,
@@ -107,13 +115,15 @@ const response = (
   requiresConfirmation: turn.requiresConfirmation,
   suggestedActions: turn.suggestedActions,
   refusalId,
-  source: model ? 'model' : undefined,
-  cue: model?.cue,
+  source: service?.source,
+  cue: service?.cue,
 });
 
-export async function handleTurn(req: AssistantTurnRequest): Promise<AssistantTurnResponse> {
+export async function handleTurn(
+  req: AssistantTurnRequest,
+): Promise<AssistantTurnResponse> {
   const sessionId =
-    typeof req?.sessionId === 'string' && req.sessionId.trim()
+    typeof req?.sessionId === "string" && req.sessionId.trim()
       ? req.sessionId
       : crypto.randomUUID();
 
@@ -121,19 +131,19 @@ export async function handleTurn(req: AssistantTurnRequest): Promise<AssistantTu
      with nothing to go on. At this boundary "nothing was said" is not the same fact as "the
      message could not be classified", and a caller who typed or spoke nothing deserves to be asked
      for one, not told the assistant is uncertain about a message it never received. */
-  if (!req || typeof req.text !== 'string' || !req.text.trim()) {
+  if (!req || typeof req.text !== "string" || !req.text.trim()) {
     return {
       turnId: crypto.randomUUID(),
       sessionId,
-      route: 'clarify',
-      classification: 'clarify',
-      reply: 'Please tell me what you need help with.',
-      style: 'clarifying',
+      route: "clarify",
+      classification: "clarify",
+      reply: "Please tell me what you need help with.",
+      style: "clarifying",
       /* The boundary's own decision, not the classifier's: there is nothing to weigh about a
          message that was never sent. */
       confidence: 1,
       requiresConfirmation: false,
-      suggestedActions: ['clarify_message'],
+      suggestedActions: ["clarify_message"],
     };
   }
 
@@ -142,7 +152,10 @@ export async function handleTurn(req: AssistantTurnRequest): Promise<AssistantTu
      that is what a request without one means. */
   const asked = req.audience;
   const audience: Audience =
-    typeof asked === 'string' && (audiences as readonly string[]).includes(asked) ? asked : 'patient';
+    typeof asked === "string" &&
+    (audiences as readonly string[]).includes(asked)
+      ? asked
+      : "patient";
 
   const now = Date.now();
   pruneSessions(now);
@@ -155,24 +168,31 @@ export async function handleTurn(req: AssistantTurnRequest): Promise<AssistantTu
      among them now — the sentence the withheld-consent caller reads is the catalog's
      consent-required policy, while the route, the confirmation flag and the one action it
      suggests stay exactly what they were. */
-  const refusal = evaluateRefusals(req.text, audience, req.userConsent === true, context);
+  const refusal = evaluateRefusals(
+    req.text,
+    audience,
+    req.userConsent === true,
+    context,
+  );
   if (refusal.refused) {
     /* refusals.ts either carries a sentence or throws; this guard keeps a missing one from
        becoming an empty reply through a type the interface cannot narrow. */
     if (!refusal.sentence)
       throw new Error(`refusal "${refusal.refusalId}" carries no sentence`);
     sessions.set(sessionId, { state, lastActive: now });
-    audit(sessionId, refusal.refusalId ?? 'refused', req.text);
+    audit(sessionId, refusal.refusalId ?? "refused", req.text);
     return response(
       {
-        classification: 'unknown',
-        route: 'unknown',
+        classification: "unknown",
+        route: "unknown",
         reply: refusal.sentence,
-        style: 'neutral',
+        style: "neutral",
         /* The refusal is a rule, not a guess, so its weight is total. */
         confidence: 1,
-        requiresConfirmation: refusal.refusalId === 'consent-required',
-        suggestedActions: refusal.refusalId ? refusalActions[refusal.refusalId] ?? [] : [],
+        requiresConfirmation: refusal.refusalId === "consent-required",
+        suggestedActions: refusal.refusalId
+          ? (refusalActions[refusal.refusalId] ?? [])
+          : [],
       },
       sessionId,
       refusal.refusalId,
@@ -186,36 +206,46 @@ export async function handleTurn(req: AssistantTurnRequest): Promise<AssistantTu
   const { confidence } = classifyWithConfidence(req.text, audience, context);
   const answer: EngineResponse = { ...engine, confidence };
 
-  /* The second tier, since 20 September 2026: where the classifier found nothing it knows, a
-     model an operator configured may be asked for a sentence — and only then. The gates before
-     the call are the contract's, not a model's: the patient audience only, because the staff
-     previews are scoped to the three universal questions and the llm system prompt is written
-     patient-voiced; never an emergency, which the keyword classifier owns outright and which
-     nothing may second-guess; and never a message a refusal policy answered — that check ran
-     above and already returned. Anything that fails in here falls back to the classifier's own
-     answer, so a deployment with no provider returns exactly the replies this route returned
-     before the tier existed. */
-  const mayAskModel =
-    audience === 'patient' &&
-    answer.classification !== 'emergency' &&
-    (answer.classification === 'unknown' || answer.confidence < 0.5);
+  /* The orchestrator tier, since 21 September 2026, in the seat the plain model tier held: where
+     the classifier found nothing it knows, a LangChain agent an operator configured may be asked
+     for a sentence — and only then. The gates before the call are the contract's, not a model's:
+     the patient audience only, because the staff previews are scoped to the three universal
+     questions and the system prompt is written patient-voiced; the keyword classifier's own
+     territory — emergency, handover, identity, voice — is answered instantly by its own words and
+     nothing may second-guess it; and never a message a refusal policy answered — that check ran
+     above and already returned. What the orchestrator adds over the plain tier is tools: before
+     it writes a word it can read the catalog's interaction record, medication entry, symptom
+     guidance, emergency numbers or knowledge base. Anything that fails in there — no provider, a
+     hung model, the 15-second budget — falls back to the classifier's own answer, so a
+     deployment with nothing configured returns exactly the replies this route returned before
+     the tier existed. */
+  const keywordOwned: readonly string[] = [
+    "emergency",
+    "handover",
+    "identity",
+    "voice",
+  ];
+  const mayConsultOrchestrator =
+    audience === "patient" &&
+    !keywordOwned.includes(answer.classification) &&
+    (answer.classification === "unknown" || answer.confidence < 0.5);
   let reply = answer.reply;
-  let model: { cue: string } | undefined;
-  if (mayAskModel) {
-    const modelAnswer = await askModel(
-      redactPHI(req.text),
-      llmSystemPrompt(),
-      contextLines(context),
-    );
-    if (modelAnswer?.text) {
+  let service: { cue: string; source: "model" | "orchestrator" } | undefined;
+  if (mayConsultOrchestrator) {
+    const orchestrated = await orchestrate(redactPHI(req.text), {
+      lines: contextLines(context),
+    });
+    if (!orchestrated.degraded && orchestrated.answer) {
       /* The model's words pass the same redactor the audit line does. The refusal policies are
          deliberately not re-applied to the output: their patterns are question-shaped ("do I
          have", "should I take"), and an answer that correctly says "this is not a diagnosis"
          trips one — the input side already gated the model, and the answers.service heading the
          panel draws around these words carries the disclosure on the output side. */
-      reply = redactPHI(modelAnswer.text);
-      model = { cue: serviceCue };
-      console.log(`[gilbertone:llm] ${sessionId} ${modelAnswer.provider} ${modelAnswer.ms}ms`);
+      reply = redactPHI(orchestrated.answer);
+      service = { cue: serviceCue, source: "orchestrator" };
+      console.log(
+        `[gilbertone:orchestrator] ${sessionId} ${orchestrated.provider} ${orchestrated.toolsUsed.join(",") || "-"} ${orchestrated.ms}ms`,
+      );
     }
   }
 
@@ -223,9 +253,9 @@ export async function handleTurn(req: AssistantTurnRequest): Promise<AssistantTu
   const nextTurn: Turn = {
     turnId: crypto.randomUUID(),
     parentTurnId:
-      typeof req.parentTurnId === 'string' && req.parentTurnId.length
+      typeof req.parentTurnId === "string" && req.parentTurnId.length
         ? req.parentTurnId
-        : previous?.turnId ?? null,
+        : (previous?.turnId ?? null),
     text: req.text,
     classification: answer.classification,
     route: answer.route,
@@ -236,5 +266,5 @@ export async function handleTurn(req: AssistantTurnRequest): Promise<AssistantTu
   sessions.set(sessionId, { state: addTurn(state, nextTurn), lastActive: now });
 
   audit(sessionId, answer.route, req.text);
-  return response({ ...answer, reply }, sessionId, undefined, model);
+  return response({ ...answer, reply }, sessionId, undefined, service);
 }

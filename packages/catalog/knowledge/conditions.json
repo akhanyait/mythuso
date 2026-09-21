@@ -1,0 +1,1011 @@
+[
+  {
+    "id": "cond-001",
+    "title": "Common Cold",
+    "category": "respiratory",
+    "symptoms": [
+      "runny or blocked nose",
+      "sore throat",
+      "sneezing",
+      "mild cough",
+      "mild fever",
+      "tiredness"
+    ],
+    "whenToSeeDoctor": "If symptoms last more than 10 days, fever stays above 38.5°C for more than three days, breathing becomes difficult, symptoms improve and then worsen, or chest pain develops.",
+    "homeCare": "Rest, plenty of fluids, paracetamol for pain or fever, saline nose drops or steam for congestion. Antibiotics do not treat a cold — it is viral.",
+    "tags": ["respiratory", "viral", "common", "self-limiting"],
+    "source": "WHO / SA NDoH Standard Treatment Guidelines (PHC)"
+  },
+  {
+    "id": "cond-002",
+    "title": "Influenza (Flu)",
+    "category": "respiratory",
+    "symptoms": [
+      "sudden fever",
+      "body aches",
+      "headache",
+      "dry cough",
+      "sore throat",
+      "severe tiredness"
+    ],
+    "whenToSeeDoctor": "If there is shortness of breath, chest pain, confusion, fever beyond three days, or if the person is pregnant, over 65, living with HIV, or has a chronic condition such as diabetes, heart disease or asthma.",
+    "homeCare": "Rest at home, fluids, paracetamol for fever and aches. Yearly flu vaccination before winter is recommended for pregnant women, older people and those with chronic illness.",
+    "tags": ["respiratory", "viral", "seasonal", "vaccine-preventable"],
+    "source": "WHO / SA NDoH influenza guidance"
+  },
+  {
+    "id": "cond-003",
+    "title": "COVID-19",
+    "category": "infectious",
+    "symptoms": [
+      "fever",
+      "cough",
+      "fatigue",
+      "loss of taste or smell",
+      "sore throat",
+      "shortness of breath"
+    ],
+    "whenToSeeDoctor": "Seek urgent care for struggling to breathe, chest pain, confusion, bluish lips or face, or inability to keep fluids down. People with diabetes, HIV, heart or lung disease are at higher risk of severe illness.",
+    "homeCare": "Most people recover at home: rest, fluids, paracetamol for fever, and staying away from others while infectious. Vaccination reduces severe disease.",
+    "tags": ["infectious", "viral", "respiratory", "vaccine-preventable"],
+    "source": "WHO / SA NDoH COVID-19 guidance"
+  },
+  {
+    "id": "cond-004",
+    "title": "Sinusitis",
+    "category": "respiratory",
+    "symptoms": [
+      "facial pain or pressure",
+      "thick nasal discharge",
+      "blocked nose",
+      "reduced smell",
+      "fever",
+      "cough worse at night"
+    ],
+    "whenToSeeDoctor": "If symptoms last more than 10 days, worsen after improving, fever is above 39°C, or there is swelling around the eye — swelling around the eye needs urgent care.",
+    "homeCare": "Steam inhalation, saline rinses, fluids, paracetamol or ibuprofen for pain. Most cases are viral and settle without antibiotics.",
+    "tags": ["respiratory", "ENT", "common"],
+    "source": "SA NDoH Standard Treatment Guidelines (PHC)"
+  },
+  {
+    "id": "cond-005",
+    "title": "Acute Bronchitis",
+    "category": "respiratory",
+    "symptoms": [
+      "cough lasting one to three weeks",
+      "mild fever",
+      "tiredness",
+      "chest discomfort",
+      "mucus production"
+    ],
+    "whenToSeeDoctor": "If the cough lasts more than three weeks (TB must be excluded in South Africa), there is blood in the sputum, breathlessness, or fever that will not settle.",
+    "homeCare": "Rest, fluids, warm drinks, paracetamol. Antibiotics are usually not needed — most cases are viral. Avoid smoke.",
+    "tags": ["respiratory", "viral", "cough"],
+    "source": "SA NDoH Standard Treatment Guidelines (PHC) / WHO"
+  },
+  {
+    "id": "cond-006",
+    "title": "Pneumonia",
+    "category": "respiratory",
+    "symptoms": [
+      "fever",
+      "cough",
+      "fast breathing",
+      "chest pain on breathing",
+      "shortness of breath",
+      "tiredness and confusion in older people"
+    ],
+    "whenToSeeDoctor": "Pneumonia always needs a clinical assessment — go to the clinic the same day. Call 10177 for an ambulance if there is severe breathlessness, blue lips, confusion, or the person cannot keep fluids down.",
+    "homeCare": "Pneumonia is treated with antibiotics prescribed by a clinician. Finish the full course even when feeling better. Rest, fluids and paracetamol support recovery.",
+    "tags": ["respiratory", "infection", "serious", "antibiotics"],
+    "source": "SA NDoH Standard Treatment Guidelines (PHC) / WHO"
+  },
+  {
+    "id": "cond-007",
+    "title": "Asthma",
+    "category": "respiratory",
+    "symptoms": [
+      "wheezing",
+      "chest tightness",
+      "cough at night or early morning",
+      "shortness of breath"
+    ],
+    "whenToSeeDoctor": "If a reliever inhaler is needed more than twice a week, night-time waking with symptoms occurs, or symptoms limit activity — the preventer treatment may need review. Call 10177 if the reliever is not helping, speech becomes difficult in full sentences, or lips turn blue.",
+    "homeCare": "Use the preventer inhaler every day even when well, keep the reliever close, avoid smoke and known triggers, and follow the written action plan from the clinic.",
+    "tags": ["respiratory", "chronic", "airway", "inhaler"],
+    "source": "GINA / SA NDoH asthma guidelines"
+  },
+  {
+    "id": "cond-008",
+    "title": "Hypertension (High Blood Pressure)",
+    "category": "cardiovascular",
+    "symptoms": [
+      "usually none",
+      "headaches with very high readings",
+      "dizziness",
+      "nosebleeds in some people"
+    ],
+    "whenToSeeDoctor": "Every adult should have a blood pressure check at least every two years, and yearly after 40. Urgent care is needed for a reading above 180/120 with severe headache, chest pain, vision changes or weakness on one side.",
+    "homeCare": "Cut salt to less than a teaspoon a day, keep to a healthy weight, exercise, limit alcohol, do not smoke, and take prescribed pills every day — blood pressure medicine works only while it is taken.",
+    "tags": ["cardiovascular", "chronic", "silent", "screening"],
+    "source": "SA NDoH hypertension guidelines / WHO"
+  },
+  {
+    "id": "cond-009",
+    "title": "Angina (Heart-Related Chest Pain)",
+    "category": "cardiovascular",
+    "symptoms": [
+      "chest pressure or tightness on exertion",
+      "pain spreading to arm, jaw or back",
+      "relieved by rest",
+      "shortness of breath"
+    ],
+    "whenToSeeDoctor": "Any new chest pain like this needs a clinic assessment soon. Call 10177 immediately if pain lasts more than 15 minutes at rest, comes with sweating, nausea or breathlessness — this may be a heart attack.",
+    "homeCare": "Stop the activity and rest when pain comes. Take prescribed medicine as directed. Do not smoke — smoking narrows the heart arteries further.",
+    "tags": ["cardiovascular", "heart", "urgent-care"],
+    "source": "WHO / SA NDoH cardiovascular care guidelines"
+  },
+  {
+    "id": "cond-010",
+    "title": "Heart Failure",
+    "category": "cardiovascular",
+    "symptoms": [
+      "swollen ankles",
+      "breathlessness lying flat",
+      "waking at night gasping",
+      "tiredness",
+      "weight gain from fluid"
+    ],
+    "whenToSeeDoctor": "Same-week clinic visit for new or worsening swelling and breathlessness. Urgent care for sudden severe breathlessness, coughing pink frothy sputum, or chest pain.",
+    "homeCare": "Take water tablets as prescribed, weigh daily (report a gain of more than 2 kg in three days), limit salt, keep active within ability, and never stop heart medicine without a clinician.",
+    "tags": ["cardiovascular", "chronic", "heart", "fluid"],
+    "source": "SA NDoH / WHO heart failure guidance"
+  },
+  {
+    "id": "cond-011",
+    "title": "Stroke",
+    "category": "neurological",
+    "symptoms": [
+      "face drooping on one side",
+      "arm weakness or numbness",
+      "slurred or difficult speech",
+      "vision loss",
+      "sudden severe imbalance"
+    ],
+    "whenToSeeDoctor": "This is an emergency. Call 10177 at the first sign — treatment within the first hours can prevent lasting damage. Note the exact time symptoms started and say so to the ambulance crew.",
+    "homeCare": "While waiting: keep the person calm and seated or lying safely, give nothing to eat or drink, and stay with them.",
+    "tags": ["neurological", "emergency", "time-critical", "FAST"],
+    "source": "WHO / SA NDoH stroke care guidance"
+  },
+  {
+    "id": "cond-012",
+    "title": "Deep Vein Thrombosis (Blood Clot in Leg)",
+    "category": "cardiovascular",
+    "symptoms": [
+      "one-sided calf pain",
+      "swelling of one leg",
+      "warmth and redness",
+      "worse on standing"
+    ],
+    "whenToSeeDoctor": "See a doctor the same day for a swollen, painful leg. Call 10177 if breathlessness or chest pain follows — a clot may have moved to the lungs.",
+    "homeCare": "Do not massage the leg. Treatment is blood-thinning medicine prescribed after assessment. On long journeys, stand and walk every two hours.",
+    "tags": ["cardiovascular", "blood-clot", "urgent-care"],
+    "source": "WHO / SA NDoH guidance"
+  },
+  {
+    "id": "cond-013",
+    "title": "Gastroenteritis (Stomach Bug)",
+    "category": "gastrointestinal",
+    "symptoms": [
+      "watery diarrhoea",
+      "vomiting",
+      "stomach cramps",
+      "fever",
+      "weakness"
+    ],
+    "whenToSeeDoctor": "Same-day care for infants, older people, blood in the stool, signs of dehydration (sunken eyes, dry mouth, passing little urine, drowsiness), or vomiting everything for more than a day. Diarrhoea lasting more than a few days needs assessment.",
+    "homeCare": "Sip oral rehydration solution continuously — a sachet from the pharmacy mixed in clean water. Children get zinc for 10-14 days. Keep eating small light meals. Hand washing stops it spreading.",
+    "tags": ["gastrointestinal", "infection", "dehydration", "ORS"],
+    "source": "WHO diarrhoea guidelines / SA NDoH (PHC)"
+  },
+  {
+    "id": "cond-014",
+    "title": "Constipation",
+    "category": "gastrointestinal",
+    "symptoms": [
+      "passing stools fewer than three times a week",
+      "hard or lumpy stools",
+      "straining",
+      "feeling of incomplete emptying"
+    ],
+    "whenToSeeDoctor": "If there is blood in the stool, a sudden change in bowel habit after age 45, weight loss, constant tummy pain, or no improvement after two weeks of home care.",
+    "homeCare": "Drink more water, add fibre gradually (fruit, vegetables, whole grains, beans), walk daily, respond to the urge to go, and set a regular toilet time.",
+    "tags": ["gastrointestinal", "diet", "common"],
+    "source": "SA NDoH Standard Treatment Guidelines (PHC)"
+  },
+  {
+    "id": "cond-015",
+    "title": "Haemorrhoids (Piles)",
+    "category": "gastrointestinal",
+    "symptoms": [
+      "bright red blood on the paper",
+      "itching around the anus",
+      "a tender lump",
+      "discomfort when sitting"
+    ],
+    "whenToSeeDoctor": "If bleeding keeps recurring, is dark or mixed into the stool, or comes with a change in bowel habit — these need examination to rule out bowel disease.",
+    "homeCare": "More fibre and water, warm sits baths for comfort, avoid straining and long phone-sitting on the toilet, and paracetamol for pain.",
+    "tags": ["gastrointestinal", "common", "bleeding"],
+    "source": "SA NDoH Standard Treatment Guidelines (PHC)"
+  },
+  {
+    "id": "cond-016",
+    "title": "Heartburn and Reflux (GERD)",
+    "category": "gastrointestinal",
+    "symptoms": [
+      "burning pain behind the breastbone after meals",
+      "acid taste in the mouth",
+      "worse lying down or bending",
+      "night-time cough"
+    ],
+    "whenToSeeDoctor": "If symptoms continue beyond two weeks despite home care, swallowing becomes difficult or painful, there is weight loss, or vomiting blood — vomiting blood or black stools are urgent.",
+    "homeCare": "Smaller meals, nothing for three hours before bed, raise the head of the bed, cut down spicy and fatty foods, coffee, alcohol and smoking. A short course of a pharmacy antacid or acid-blocker can help.",
+    "tags": ["gastrointestinal", "common", "diet"],
+    "source": "SA NDoH Standard Treatment Guidelines (PHC)"
+  },
+  {
+    "id": "cond-017",
+    "title": "Peptic Ulcer",
+    "category": "gastrointestinal",
+    "symptoms": [
+      "burning pain in the upper tummy",
+      "pain eased or worsened by food",
+      "night-time pain",
+      "bloating",
+      "nausea"
+    ],
+    "whenToSeeDoctor": "Black tarry stools, vomiting blood or coffee-ground material, or sudden severe tummy pain need emergency care. Ongoing tummy pain deserves a clinic visit — ulcers are often caused by H. pylori bacteria, which is treatable.",
+    "homeCare": "Avoid ibuprofen and similar anti-inflammatory tablets unless a clinician prescribes them, limit alcohol, stop smoking, eat regular meals. Acid-blocking medicine helps while the cause is treated.",
+    "tags": ["gastrointestinal", "H-pylori", "bleeding-risk"],
+    "source": "SA NDoH Standard Treatment Guidelines (PHC)"
+  },
+  {
+    "id": "cond-018",
+    "title": "Intestinal Worms",
+    "category": "gastrointestinal",
+    "symptoms": [
+      "tummy discomfort",
+      "itching around the anus at night (threadworms)",
+      "sometimes no symptoms",
+      "poor appetite or slow weight gain in children"
+    ],
+    "whenToSeeDoctor": "If a child loses weight, the tummy swells, or symptoms continue after treatment. In South Africa, children are dewormed routinely at clinics and schools.",
+    "homeCare": "Deworming medicine (mebendazole) treats most worms — treat the whole household for threadworms, wash hands and nails, wash bedding, and wash fruit and vegetables.",
+    "tags": ["gastrointestinal", "parasite", "children", "deworming"],
+    "source": "WHO / SA NDoH EPI deworming programme"
+  },
+  {
+    "id": "cond-019",
+    "title": "Low Back Pain",
+    "category": "musculoskeletal",
+    "symptoms": [
+      "aching in the lower back",
+      "stiffness after rest",
+      "pain worse with certain movements",
+      "sometimes pain into the leg"
+    ],
+    "whenToSeeDoctor": "Urgent care for loss of bladder or bowel control, numbness between the legs, or leg weakness. Clinic visit for back pain with fever, unexplained weight loss, night pain, after a fall, or if pain has not improved in six weeks.",
+    "homeCare": "Keep moving — bed rest slows recovery. Warmth, gentle stretching, paracetamol or ibuprofen, and a firm mattress help most people within four to six weeks.",
+    "tags": ["musculoskeletal", "common", "self-care"],
+    "source": "WHO / SA NDoH (PHC) guidance"
+  },
+  {
+    "id": "cond-020",
+    "title": "Ankle Sprain",
+    "category": "musculoskeletal",
+    "symptoms": [
+      "ankle pain after twisting",
+      "swelling",
+      "bruising",
+      "tenderness",
+      "limping"
+    ],
+    "whenToSeeDoctor": "If the ankle cannot take any weight, looks deformed, the skin is broken, or there is numbness. Also if there is no improvement after a week of proper care.",
+    "homeCare": "Rest the ankle, ice wrapped in a cloth 15-20 minutes at a time, a firm bandage, and keep the foot raised for the first two to three days. Gentle movement and balancing exercises as pain allows.",
+    "tags": ["musculoskeletal", "injury", "RICE"],
+    "source": "WHO / SA NDoH (PHC) injury guidance"
+  },
+  {
+    "id": "cond-021",
+    "title": "Osteoarthritis",
+    "category": "musculoskeletal",
+    "symptoms": [
+      "joint pain worse with use",
+      "morning stiffness under half an hour",
+      "knee, hip or hand joints most often",
+      "grating feeling in the joint"
+    ],
+    "whenToSeeDoctor": "When pain limits walking, work or sleep — a clinician can confirm the cause, arrange physiotherapy and adjust medicine. Sudden hot, swollen single joints need same-day assessment (possible gout or infection).",
+    "homeCare": "Keep moving within comfort — strong muscles protect joints. Weight loss takes real load off knees and hips. Paracetamol first, warm packs for stiffness.",
+    "tags": ["musculoskeletal", "chronic", "joints", "older-adults"],
+    "source": "WHO / SA NDoH (PHC) guidance"
+  },
+  {
+    "id": "cond-022",
+    "title": "Gout",
+    "category": "musculoskeletal",
+    "symptoms": [
+      "sudden severe pain in the big toe or another joint",
+      "hot, red, swollen joint",
+      "extreme tenderness — even a sheet hurts",
+      "settles over days to weeks"
+    ],
+    "whenToSeeDoctor": "Same-day care for a first attack or a severe one — treatment works best early. Repeated attacks need long-term medicine to protect joints and kidneys.",
+    "homeCare": "Rest and raise the joint, ice wrapped in a cloth, plenty of water. Cut back beer, sugary drinks, organ meats and large meat portions.",
+    "tags": ["musculoskeletal", "urate", "diet", "common"],
+    "source": "SA NDoH Standard Treatment Guidelines (PHC)"
+  },
+  {
+    "id": "cond-023",
+    "title": "Tendinitis (Tennis Elbow, Shoulder Tendinitis)",
+    "category": "musculoskeletal",
+    "symptoms": [
+      "pain at a specific tendon with movement",
+      "tenderness over the outer elbow or shoulder",
+      "weakness of grip",
+      "pain after repeated activity"
+    ],
+    "whenToSeeDoctor": "If pain persists beyond two to three weeks, the joint cannot be moved, or there was a sudden pop with weakness — that can be a tear.",
+    "homeCare": "Reduce the repetitive activity (not total rest), ice after activity, paracetamol or ibuprofen short-term, and gentle stretching once pain settles.",
+    "tags": ["musculoskeletal", "overuse", "work-related"],
+    "source": "SA NDoH (PHC) guidance"
+  },
+  {
+    "id": "cond-024",
+    "title": "Migraine",
+    "category": "neurological",
+    "symptoms": [
+      "throbbing headache often on one side",
+      "nausea or vomiting",
+      "light and noise sensitivity",
+      "sometimes visual aura before the headache"
+    ],
+    "whenToSeeDoctor": "Emergency care for a sudden worst-ever headache, headache with fever and stiff neck, confusion, weakness or a first severe headache after age 50. Clinic visit if attacks are frequent (more than four a month) or disrupt work.",
+    "homeCare": "Rest in a dark quiet room early in the attack, simple painkillers taken at the first sign work best, regular sleep and meals, and note personal triggers (missed meals, stress, certain foods).",
+    "tags": ["neurological", "headache", "common"],
+    "source": "WHO headache guidance / SA NDoH (PHC)"
+  },
+  {
+    "id": "cond-025",
+    "title": "Tension Headache",
+    "category": "neurological",
+    "symptoms": [
+      "band-like pressure on both sides",
+      "tight neck and shoulders",
+      "no nausea or visual changes",
+      "builds over the day"
+    ],
+    "whenToSeeDoctor": "If headaches occur more than 10 days a month (overuse of painkillers can worsen them), or any red-flag pattern appears — sudden onset, fever, weakness, or waking from sleep with pain.",
+    "homeCare": "Regular sleep, water, screen breaks, neck stretches, stress management, and limited painkillers — painkillers on more than 10 days a month can cause rebound headaches.",
+    "tags": ["neurological", "headache", "stress"],
+    "source": "WHO headache guidance / SA NDoH (PHC)"
+  },
+  {
+    "id": "cond-026",
+    "title": "Epilepsy",
+    "category": "neurological",
+    "symptoms": [
+      "recurrent seizures",
+      "brief loss of awareness",
+      "convulsions",
+      "confusion after a seizure"
+    ],
+    "whenToSeeDoctor": "Call 10177 for any seizure lasting more than five minutes, seizures repeating without recovery, a first-ever seizure, injury, or a seizure in water. Routine clinic care keeps medicine doses right.",
+    "homeCare": "Take anti-seizure medicine daily without gaps — stopping suddenly causes seizures. Keep regular sleep, limit alcohol, avoid swimming alone and heights, and tell close contacts what to do during a seizure.",
+    "tags": ["neurological", "chronic", "seizure", "adherence"],
+    "source": "WHO / SA NDoH epilepsy guidance"
+  },
+  {
+    "id": "cond-027",
+    "title": "Peripheral Neuropathy (Nerve Pain in Feet)",
+    "category": "neurological",
+    "symptoms": [
+      "burning or pins-and-needles in the feet",
+      "numbness",
+      "worse at night",
+      "unsteadiness"
+    ],
+    "whenToSeeDoctor": "Any new numbness or burning feet needs assessment — diabetes, HIV and TB medicines are common causes. Urgent care for a foot wound that is not felt or not healing.",
+    "homeCare": "Check feet daily by looking (use a mirror for soles), wash and dry between toes, wear closed shoes that fit, never walk barefoot, and keep the underlying condition controlled.",
+    "tags": ["neurological", "diabetes", "HIV", "foot-care"],
+    "source": "WHO / SA NDoH guidance"
+  },
+  {
+    "id": "cond-028",
+    "title": "Eczema (Atopic Dermatitis)",
+    "category": "dermatological",
+    "symptoms": [
+      "dry itchy patches",
+      "commonly in elbow and knee creases",
+      "flares then settles",
+      "skin thickening from scratching"
+    ],
+    "whenToSeeDoctor": "If the skin weeps, crusts or has pus (possible infection), flares are frequent, or sleep is broken by itch. Babies and children with widespread eczema need a clinic plan.",
+    "homeCare": "Moisturise generously and often, avoid harsh soap and very hot water, keep nails short, use a prescribed steroid cream short-term on flares, and known triggers (detergents, certain fabrics).",
+    "tags": ["dermatological", "chronic", "itch", "children"],
+    "source": "WHO / SA NDoH (PHC) skin guidance"
+  },
+  {
+    "id": "cond-029",
+    "title": "Acne",
+    "category": "dermatological",
+    "symptoms": [
+      "pimples and blackheads",
+      "oily skin",
+      "deeper painful lumps on face, chest or back",
+      "most often teenagers and young adults"
+    ],
+    "whenToSeeDoctor": "If acne is deep, scarring, painful or affecting confidence — effective prescription treatments exist. Sudden severe acne with other symptoms in women may point to a hormone cause.",
+    "homeCare": "Wash gently twice daily, do not squeeze or pick, use non-greasy products, give treatments six to eight weeks to work.",
+    "tags": ["dermatological", "adolescents", "common"],
+    "source": "SA NDoH (PHC) skin guidance"
+  },
+  {
+    "id": "cond-030",
+    "title": "Ringworm (Fungal Skin Infection)",
+    "category": "dermatological",
+    "symptoms": [
+      "ring-shaped scaly patch with a clear centre",
+      "itching",
+      "slowly expanding rim",
+      "can affect scalp, body, feet (athlete's foot) or groin"
+    ],
+    "whenToSeeDoctor": "If the scalp is involved (needs tablets, not cream), there is no improvement after two weeks of cream, or the person has diabetes or a weakened immune system.",
+    "homeCare": "Antifungal cream twice daily, continuing a week beyond the rash clearing. Dry skin folds properly, do not share towels or clothes, and wash bedding hot.",
+    "tags": ["dermatological", "fungal", "common", "children"],
+    "source": "SA NDoH Standard Treatment Guidelines (PHC)"
+  },
+  {
+    "id": "cond-031",
+    "title": "Scabies",
+    "category": "dermatological",
+    "symptoms": [
+      "intense itching, worse at night",
+      "thin burrow lines between fingers, on wrists, waist",
+      "rash in the same places",
+      "itching in close contacts at the same time"
+    ],
+    "whenToSeeDoctor": "For treatment cream — everyone in the house must be treated on the same day, so a clinic plan helps. Infants, pregnant women and crusted widespread rash need clinician care.",
+    "homeCare": "Apply permethrin cream as directed to the whole body, wash clothes and bedding on the hottest cycle that day, and trim nails. Itch can continue one to two weeks after successful treatment.",
+    "tags": ["dermatological", "parasite", "household", "itch"],
+    "source": "WHO / SA NDoH (PHC) guidance"
+  },
+  {
+    "id": "cond-032",
+    "title": "Impetigo (School Sores)",
+    "category": "dermatological",
+    "symptoms": [
+      "honey-coloured crusts around nose and mouth",
+      "small blisters that burst",
+      "spreading sores",
+      "common in children"
+    ],
+    "whenToSeeDoctor": "If sores spread despite hygiene, there are many lesions, or the child is unwell with fever — antibiotics may be needed.",
+    "homeCare": "Gently wash crusts away with clean water and soap, keep nails short, do not share towels, and keep children home until sores stop weeping or treatment has started.",
+    "tags": ["dermatological", "bacterial", "children", "contagious"],
+    "source": "SA NDoH Standard Treatment Guidelines (PHC)"
+  },
+  {
+    "id": "cond-033",
+    "title": "Chickenpox",
+    "category": "dermatological",
+    "symptoms": [
+      "itchy fluid-filled blisters in crops",
+      "fever",
+      "tiredness",
+      "blisters crust over in about a week"
+    ],
+    "whenToSeeDoctor": "If blisters become infected (redness, pus), the person is pregnant, a newborn is affected, or there is drowsiness, repeated vomiting or breathing difficulty. Keep away from pregnant women who have not had chickenpox.",
+    "homeCare": "Cool baths, calamine lotion, paracetamol for fever (never aspirin or ibuprofen for chickenpox in children), short nails, loose clothes. Contagious until every blister has crusted.",
+    "tags": ["dermatological", "viral", "children", "contagious"],
+    "source": "WHO / SA NDoH (PHC) guidance"
+  },
+  {
+    "id": "cond-034",
+    "title": "Shingles (Herpes Zoster)",
+    "category": "dermatological",
+    "symptoms": [
+      "burning pain in a band on one side of the body",
+      "clusters of blisters on red skin",
+      "tingling days before the rash",
+      "sometimes fever and tiredness"
+    ],
+    "whenToSeeDoctor": "See a doctor as soon as the rash starts — antiviral tablets work best within 72 hours. Same-day care if the rash is near the eye, there is weakness, or the immune system is weakened (for example by HIV).",
+    "homeCare": "Keep the rash clean and dry, loose clothing, paracetamol for pain. Shingles is contagious to people who have never had chickenpox until blisters scab.",
+    "tags": ["dermatological", "viral", "nerve-pain", "adults"],
+    "source": "WHO / SA NDoH (PHC) guidance"
+  },
+  {
+    "id": "cond-035",
+    "title": "Type 2 Diabetes",
+    "category": "endocrine",
+    "symptoms": [
+      "excessive thirst",
+      "passing urine often",
+      "tiredness",
+      "blurred vision",
+      "slow-healing wounds",
+      "often no symptoms at all"
+    ],
+    "whenToSeeDoctor": "Ask for a glucose test with any of these symptoms, or with risk factors — family history, overweight, age over 45, high blood pressure. Urgent care for drowsiness, rapid breathing, fruity-smelling breath, or a wound that will not heal.",
+    "homeCare": "Once diagnosed: daily medicine without gaps, regular meals with less sugar and refined starch, walking most days, daily foot checks, and clinic reviews for eyes, feet and kidneys.",
+    "tags": ["endocrine", "chronic", "screening", "lifestyle"],
+    "source": "SA NDoH diabetes guidelines / WHO"
+  },
+  {
+    "id": "cond-036",
+    "title": "Hypothyroidism (Underactive Thyroid)",
+    "category": "endocrine",
+    "symptoms": [
+      "tiredness",
+      "weight gain",
+      "feeling cold",
+      "constipation",
+      "dry skin",
+      "heavy or irregular periods",
+      "low mood"
+    ],
+    "whenToSeeDoctor": "A blood test at the clinic confirms it. Review is needed if symptoms return while on treatment, or if new fast or irregular heartbeat, sweating and weight loss appear (overactive).",
+    "homeCare": "Take levothyroxine on an empty stomach with water, 30-60 minutes before food, at the same time daily, and keep clinic blood tests — the dose is adjusted from them.",
+    "tags": ["endocrine", "chronic", "thyroid"],
+    "source": "SA NDoH Standard Treatment Guidelines / WHO"
+  },
+  {
+    "id": "cond-037",
+    "title": "Hyperthyroidism (Overactive Thyroid)",
+    "category": "endocrine",
+    "symptoms": [
+      "weight loss despite good appetite",
+      "palpitations",
+      "feeling hot and sweaty",
+      "tremor",
+      "anxiety",
+      "neck swelling",
+      "eye changes in some"
+    ],
+    "whenToSeeDoctor": "See a doctor for these symptoms — treatment protects the heart and bones. Urgent care for fever with severe symptoms, agitation or confusion (thyroid storm).",
+    "homeCare": "Follow clinic monitoring closely, stop smoking (smoking worsens thyroid eye disease), and limit caffeine while symptoms are active.",
+    "tags": ["endocrine", "thyroid", "heart"],
+    "source": "SA NDoH Standard Treatment Guidelines / WHO"
+  },
+  {
+    "id": "cond-038",
+    "title": "Tuberculosis (TB)",
+    "category": "infectious",
+    "symptoms": [
+      "cough for more than two weeks",
+      "night sweats",
+      "unintentional weight loss",
+      "fever",
+      "coughing blood",
+      "tiredness"
+    ],
+    "whenToSeeDoctor": "Anyone with a cough longer than two weeks should give sputum at a clinic — testing and treatment are free. Coughing blood or severe breathlessness needs urgent care. Close contacts and people living with HIV should be screened.",
+    "homeCare": "Treatment takes six months and must be finished even when feeling well — stopping early breeds drug resistance. Take tablets as directed, eat well, keep the room ventilated, and cover coughs.",
+    "tags": ["infectious", "TB", "South-Africa", "cough"],
+    "source": "SA NDoH TB guidelines / WHO"
+  },
+  {
+    "id": "cond-039",
+    "title": "HIV Infection",
+    "category": "infectious",
+    "symptoms": [
+      "often no symptoms for years",
+      "two to four weeks after infection: fever, rash, sore throat, swollen glands, flu-like illness",
+      "later: weight loss, recurrent infections"
+    ],
+    "whenToSeeDoctor": "The only way to know is a test — free at any clinic, or an HIV self-test kit. Treatment (ART) is free and started immediately. After any possible exposure, post-exposure prophylaxis works best within 72 hours — go to a clinic urgently.",
+    "homeCare": "Once on treatment, one tablet a day keeps the virus suppressed — take it at the same time daily, never skip, and keep viral load appointments. On effective treatment a person cannot pass HIV through sex.",
+    "tags": ["infectious", "HIV", "South-Africa", "ART", "testing"],
+    "source": "SA NDoH HIV guidelines (test and treat) / WHO"
+  },
+  {
+    "id": "cond-040",
+    "title": "Measles",
+    "category": "infectious",
+    "symptoms": [
+      "high fever",
+      "runny nose",
+      "red eyes",
+      "rash starting behind the ears and hairline then spreading down",
+      "small white spots inside the cheeks"
+    ],
+    "whenToSeeDoctor": "Measles needs a clinic assessment — complications include pneumonia, diarrhoea and brain inflammation. Urgent care for drowsiness, convulsions, fast breathing or dehydration.",
+    "homeCare": "Rest, fluids, paracetamol, vitamin A as given by the clinic, and keep the child away from others until at least four days after the rash appears. Immunisation (at 6 and 12 months in the SA schedule) prevents it.",
+    "tags": ["infectious", "viral", "children", "vaccine-preventable"],
+    "source": "WHO / SA NDoH EPI guidelines"
+  },
+  {
+    "id": "cond-041",
+    "title": "Malaria",
+    "category": "infectious",
+    "symptoms": [
+      "fever and chills",
+      "headache",
+      "muscle aches",
+      "flu-like illness",
+      "sometimes vomiting and diarrhoea",
+      "can occur weeks after a visit to a malaria area"
+    ],
+    "whenToSeeDoctor": "Any fever within weeks — even months — after visiting a malaria area (north-eastern Limpopo, the Lowveld of Mpumalanga including Kruger Park, northern KwaZulu-Natal) needs a same-day malaria test. Emergency care for confusion, yellow eyes, dark urine or bleeding.",
+    "homeCare": "Prevention: take prophylaxis as prescribed, sleep under a treated net, use repellent, and cover arms and legs at dusk and dawn. There is no effective home treatment — malaria is treated with prescribed tablets.",
+    "tags": ["infectious", "parasite", "malaria-areas", "travel"],
+    "source": "SA NDoH malaria guidelines / WHO"
+  },
+  {
+    "id": "cond-042",
+    "title": "Hepatitis B",
+    "category": "infectious",
+    "symptoms": [
+      "often silent for years",
+      "acute: tiredness, yellow eyes, dark urine, tummy pain, loss of appetite",
+      "later: chronic liver disease"
+    ],
+    "whenToSeeDoctor": "Testing is recommended in pregnancy, before immunisation decisions, and for household or sexual contacts of a person with hepatitis B. Chronic infection needs lifelong monitoring for liver damage. Yellow eyes or severe vomiting need urgent care.",
+    "homeCare": "Avoid alcohol (it accelerates liver damage), tell close contacts to test and vaccinate, never share razors or toothbrushes, and use condoms. The childhood vaccine protects the next generation.",
+    "tags": ["infectious", "liver", "vaccine-preventable", "screening"],
+    "source": "WHO / SA NDoH hepatitis guidance"
+  },
+  {
+    "id": "cond-043",
+    "title": "Meningitis",
+    "category": "infectious",
+    "symptoms": [
+      "severe headache",
+      "fever",
+      "stiff neck",
+      "vomiting",
+      "light intolerance",
+      "rash that does not fade when pressed",
+      "in babies: bulging fontanelle, high-pitched cry, drowsiness, poor feeding"
+    ],
+    "whenToSeeDoctor": "This is an emergency — call 10177 or go straight to a hospital. Minutes matter, especially with the non-fading rash.",
+    "homeCare": "None — this is not treatable at home. While waiting for help, keep the person still, dim lights, and give nothing by mouth.",
+    "tags": ["infectious", "emergency", "time-critical", "rash"],
+    "source": "WHO / SA NDoH meningitis guidance"
+  },
+  {
+    "id": "cond-044",
+    "title": "Depression",
+    "category": "mental-health",
+    "symptoms": [
+      "low mood most of the day",
+      "loss of enjoyment in things once enjoyed",
+      "sleep and appetite changes",
+      "tiredness",
+      "poor concentration",
+      "feelings of worthlessness",
+      "thoughts of death"
+    ],
+    "whenToSeeDoctor": "If symptoms last more than two weeks, work or relationships suffer, or there are any thoughts of self-harm — help is available immediately (SADAG 0800 567 567, Lifeline 0861 322 322).",
+    "homeCare": "Keep a daily routine, gentle exercise, stay connected to people, limit alcohol, and break tasks into small steps. Depression is treatable — counselling and medicine both work.",
+    "tags": ["mental-health", "common", "treatable"],
+    "source": "WHO / SA NDoH mental health guidelines; SADAG"
+  },
+  {
+    "id": "cond-045",
+    "title": "Anxiety",
+    "category": "mental-health",
+    "symptoms": [
+      "worry that is hard to control",
+      "restlessness",
+      "muscle tension",
+      "poor sleep",
+      "palpitations",
+      "avoiding situations"
+    ],
+    "whenToSeeDoctor": "If worry or panic stops work, study or relationships, panic attacks keep happening, or alcohol is being used to cope.",
+    "homeCare": "Slow breathing (longer out-breath than in-breath), regular exercise, less caffeine and nicotine, good sleep habits, and talking to someone trusted. Panic attacks are frightening but not dangerous.",
+    "tags": ["mental-health", "common", "self-care"],
+    "source": "WHO / SA NDoH mental health guidelines; SADAG"
+  },
+  {
+    "id": "cond-046",
+    "title": "Urinary Tract Infection (UTI)",
+    "category": "urological",
+    "symptoms": [
+      "burning when passing urine",
+      "passing urine often and urgently",
+      "lower tummy pain",
+      "cloudy or strong-smelling urine",
+      "sometimes blood in urine"
+    ],
+    "whenToSeeDoctor": "Same-day care — UTIs usually need prescribed antibiotics. Urgent care for fever, flank (loin) pain, or vomiting — the infection may have reached the kidneys. Men, pregnant women, children and catheter users always need assessment.",
+    "homeCare": "Drink extra water, paracetamol for pain, and finish the full antibiotic course. Passing urine after sex and wiping from front to back help prevent recurrences.",
+    "tags": ["urological", "infection", "women", "antibiotics"],
+    "source": "SA NDoH Standard Treatment Guidelines (PHC)"
+  },
+  {
+    "id": "cond-047",
+    "title": "Kidney Stones",
+    "category": "urological",
+    "symptoms": [
+      "severe waves of pain from the loin to the groin",
+      "blood in urine",
+      "nausea and vomiting",
+      "restlessness — cannot find a comfortable position"
+    ],
+    "whenToSeeDoctor": "Go for urgent assessment — pain control and imaging are needed. Emergency care if there is fever with the pain, or inability to pass urine.",
+    "homeCare": "Drink water steadily through the day once assessed. Small stones often pass with pain relief. Reducing salt and animal protein and drinking enough water lower recurrence.",
+    "tags": ["urological", "pain", "kidney"],
+    "source": "SA NDoH Standard Treatment Guidelines (PHC)"
+  },
+  {
+    "id": "cond-048",
+    "title": "Benign Prostatic Enlargement (BPH)",
+    "category": "urological",
+    "symptoms": [
+      "weak urine stream",
+      "straining to start",
+      "waking at night to pass urine",
+      "dribbling at the end",
+      "feeling of incomplete emptying"
+    ],
+    "whenToSeeDoctor": "A clinic assessment confirms it and rules out prostate cancer (examination and a blood test). Urgent care for complete inability to pass urine, or blood in urine.",
+    "homeCare": "Reduce evening fluids and caffeine, allow time to empty the bladder fully, and limit cold medicines containing decongestants — they worsen the blockage.",
+    "tags": ["urological", "older-men", "chronic"],
+    "source": "SA NDoH Standard Treatment Guidelines (PHC)"
+  },
+  {
+    "id": "cond-049",
+    "title": "Conjunctivitis (Pink Eye)",
+    "category": "ophthalmological",
+    "symptoms": [
+      "red eye",
+      "gritty or itchy feeling",
+      "discharge that may stick lashes together",
+      "watering",
+      "vision usually normal"
+    ],
+    "whenToSeeDoctor": "Same-day care for eye pain, light sensitivity, blurred vision, or if a contact lens wearer — these suggest a more serious infection. Newborns with sticky or red eyes need urgent care. No improvement after three to four days also needs review.",
+    "homeCare": "Bathe lids with clean water, wipe from inner to outer corner with a fresh cloth each time, do not share towels, avoid contact lenses and eye make-up, and wash hands often.",
+    "tags": ["ophthalmological", "infection", "contagious", "common"],
+    "source": "SA NDoH Standard Treatment Guidelines (PHC)"
+  },
+  {
+    "id": "cond-050",
+    "title": "Stye (Eyelid Gland Infection)",
+    "category": "ophthalmological",
+    "symptoms": [
+      "painful red lump on the eyelid margin",
+      "tender to touch",
+      "watering eye",
+      "sometimes a small pus point"
+    ],
+    "whenToSeeDoctor": "If it does not settle within one to two weeks, keeps recurring, the whole lid or face swells, or vision is affected.",
+    "homeCare": "Warm (not hot) compress held on the lid for 10 minutes, three to four times a day, gently massaging the lid. Do not squeeze or poke it, and avoid eye make-up until healed.",
+    "tags": ["ophthalmological", "infection", "self-care"],
+    "source": "SA NDoH (PHC) eye guidance"
+  },
+  {
+    "id": "cond-051",
+    "title": "Period Pain (Dysmenorrhoea)",
+    "category": "reproductive",
+    "symptoms": [
+      "cramping lower tummy pain in the first one to two days of a period",
+      "backache",
+      "sometimes nausea and diarrhoea"
+    ],
+    "whenToSeeDoctor": "If pain worsens over months, occurs between periods, comes with heavy bleeding or pain during sex — endometriosis, fibroids or infection need to be ruled out. Pain that stops school or work every month deserves care.",
+    "homeCare": "Heat pack on the lower tummy, early and regular ibuprofen or paracetamol at the first twinge, gentle exercise, and enough sleep.",
+    "tags": ["reproductive", "women", "common"],
+    "source": "WHO / SA NDoH (PHC) guidance"
+  },
+  {
+    "id": "cond-052",
+    "title": "Pelvic Inflammatory Disease (PID)",
+    "category": "reproductive",
+    "symptoms": [
+      "lower abdominal pain",
+      "fever",
+      "abnormal or smelly vaginal discharge",
+      "pain during sex",
+      "irregular bleeding",
+      "pain passing urine"
+    ],
+    "whenToSeeDoctor": "See a doctor promptly — PID needs antibiotic courses, and untreated it causes infertility and ectopic pregnancy. Emergency care for severe pain, vomiting or fainting. Partners need treatment too.",
+    "homeCare": "Complete the full antibiotic course, rest, paracetamol, and no sex until both partners finish treatment. Condoms prevent the infections that cause it.",
+    "tags": ["reproductive", "STI", "women", "antibiotics"],
+    "source": "SA NDoH STI guidelines (syndromic management)"
+  },
+  {
+    "id": "cond-053",
+    "title": "Vaginal Thrush (Candidiasis)",
+    "category": "reproductive",
+    "symptoms": [
+      "thick white discharge",
+      "itching and soreness",
+      "stinging during sex or when passing urine",
+      "no smell typically"
+    ],
+    "whenToSeeDoctor": "If this is the first episode, it recurs four or more times a year, there is diabetes or pregnancy, or the discharge smells, is greenish or comes with bleeding — an STI check is then wise.",
+    "homeCare": "Antifungal cream or pessaries from the pharmacy treat most episodes, and treating a precipitating factor (recent antibiotics, uncontrolled sugar, tight synthetic underwear) prevents repeat.",
+    "tags": ["reproductive", "fungal", "women", "common"],
+    "source": "SA NDoH Standard Treatment Guidelines (PHC)"
+  },
+  {
+    "id": "cond-054",
+    "title": "Menopause",
+    "category": "reproductive",
+    "symptoms": [
+      "periods stopping for 12 months",
+      "hot flushes and night sweats",
+      "sleep and mood changes",
+      "vaginal dryness",
+      "usually between 45 and 55"
+    ],
+    "whenToSeeDoctor": "Any bleeding after a year without periods needs prompt assessment. Severe symptoms or early menopause (before 40) deserve a clinic conversation about bone and heart health and treatment options.",
+    "homeCare": "Weight-bearing exercise, enough calcium, dress in layers, cut caffeine and alcohol, and sleep hygiene. Symptoms ease over years for most women.",
+    "tags": ["reproductive", "women", "midlife"],
+    "source": "WHO / SA NDoH (PHC) guidance"
+  },
+  {
+    "id": "cond-055",
+    "title": "Uterine Fibroids",
+    "category": "reproductive",
+    "symptoms": [
+      "heavy or long periods",
+      "pelvic pressure or fullness",
+      "frequent urination",
+      "sometimes tummy pain or cramps",
+      "often no symptoms at all"
+    ],
+    "whenToSeeDoctor": "For very heavy bleeding (soaking a pad an hour, clots, tiredness from anaemia), rapidly growing swelling, severe pain, or difficulty falling pregnant. Heavy bleeding over months causes anaemia — check it.",
+    "homeCare": "Iron-rich food with the anaemia that heavy periods cause, and heat for cramps. Most fibroids are benign; size and symptoms decide treatment, which ranges from tablets to procedures.",
+    "tags": ["reproductive", "women", "bleeding", "common"],
+    "source": "SA NDoH (PHC) guidance"
+  },
+  {
+    "id": "cond-056",
+    "title": "Croup",
+    "category": "paediatric",
+    "symptoms": [
+      "barking seal-like cough",
+      "noisy breathing (stridor) on breathing in",
+      "hoarse voice",
+      "worse at night",
+      "child usually between six months and three years"
+    ],
+    "whenToSeeDoctor": "Urgent care for stridor at rest, drooling or struggling to swallow, blue lips, or severe sucking-in of the chest wall. Croup that is mild may still need a clinic check.",
+    "homeCare": "Keep the child calm — crying worsens it. Cool night air or steamy bathroom air can ease a mild attack. Give paracetamol for fever and fluids in small sips.",
+    "tags": ["paediatric", "respiratory", "night", "urgent-care"],
+    "source": "WHO / SA NDoH (PHC) child guidance"
+  },
+  {
+    "id": "cond-057",
+    "title": "Infant Colic",
+    "category": "paediatric",
+    "symptoms": [
+      "crying more than three hours a day, more than three days a week",
+      "in a healthy, well-feeding baby",
+      "clenched fists, drawn-up legs",
+      "worse in the late afternoon and evening",
+      "typically weeks three to twelve"
+    ],
+    "whenToSeeDoctor": "To rule out other causes when crying is severe — the same day if there is fever, poor feeding, repeated vomiting, blood in the nappy, or the baby is not gaining weight.",
+    "homeCare": "Rhythmic soothing: gentle rocking, carrying, sucking (breast or dummy), white noise, and winding after feeds. It resolves by three to four months. Caring for a colicky baby is exhausting — parents need support and safe coping, never shaking.",
+    "tags": ["paediatric", "infant", "crying", "self-limiting"],
+    "source": "WHO / SA NDoH (PHC) child guidance"
+  },
+  {
+    "id": "cond-058",
+    "title": "Teething",
+    "category": "paediatric",
+    "symptoms": [
+      "drooling",
+      "gnawing on objects",
+      "fussiness and disturbed sleep",
+      "swollen gums",
+      "usually from about six months"
+    ],
+    "whenToSeeDoctor": "If fever stays above 38.5°C, there is diarrhoea or vomiting, or the baby refuses all feeds — teething does not cause high fever or illness, and something else may be wrong.",
+    "homeCare": "A chilled (not frozen) teething ring, clean finger massage of the gums, and paracetamol at correct weight dose if very uncomfortable. Teething gels and necklaces are not recommended.",
+    "tags": ["paediatric", "infant", "common"],
+    "source": "SA NDoH (PHC) child guidance / SA Paediatric Association"
+  },
+  {
+    "id": "cond-059",
+    "title": "Nappy Rash",
+    "category": "paediatric",
+    "symptoms": [
+      "red skin in the nappy area",
+      "sore patches",
+      "sometimes satellite spots at the edges (thrush)",
+      "baby uncomfortable at changes"
+    ],
+    "whenToSeeDoctor": "If there are blisters or pus, the rash does not improve after three to four days of care, or it spreads beyond the nappy area.",
+    "homeCare": "Change nappies often, wash with water and pat dry, give nappy-free air time, and apply a zinc-oxide barrier cream each change. Angular red spots that spread suggest thrush, which needs an antifungal cream.",
+    "tags": ["paediatric", "infant", "skin", "common"],
+    "source": "SA NDoH (PHC) child guidance"
+  },
+  {
+    "id": "cond-060",
+    "title": "Febrile Convulsion",
+    "category": "paediatric",
+    "symptoms": [
+      "a fit with fever in a child aged six months to five years",
+      "usually under two minutes",
+      "whole-body stiffening then jerking",
+      "sleepiness afterwards"
+    ],
+    "whenToSeeDoctor": "Call 10177 if the seizure lasts more than five minutes, jerks one side only, the child turns blue, or does not wake properly afterwards. Any first seizure should be seen by a doctor the same day to find the fever's cause.",
+    "homeCare": "During a fit: lay the child on their side on a soft surface, do not hold them down, put nothing in the mouth, and time it. Afterwards remove excess clothing and give paracetamol once awake. Most children outgrow them without lasting harm.",
+    "tags": ["paediatric", "seizure", "fever", "urgent-care"],
+    "source": "WHO / SA NDoH (PHC) child guidance"
+  },
+  {
+    "id": "cond-061",
+    "title": "Otitis Media (Middle Ear Infection)",
+    "category": "ENT",
+    "symptoms": [
+      "earache",
+      "fever",
+      "irritability and pulling at the ear in small children",
+      "reduced hearing",
+      "sometimes discharge if the drum bursts"
+    ],
+    "whenToSeeDoctor": "Children under two, both ears affected, discharge from the ear, severe pain, fever beyond two days, or swelling behind the ear (urgent). Many cases settle in 48 hours with pain relief alone.",
+    "homeCare": "Paracetamol or ibuprofen at weight-correct doses, warm face cloth over the ear, and keep the ear dry if discharging. Never poke cotton buds into the ear.",
+    "tags": ["ENT", "infection", "children", "common"],
+    "source": "SA NDoH Standard Treatment Guidelines (PHC)"
+  },
+  {
+    "id": "cond-062",
+    "title": "Tonsillitis",
+    "category": "ENT",
+    "symptoms": [
+      "sore throat",
+      "fever",
+      "swollen tender glands in the neck",
+      "difficulty swallowing",
+      "white spots on tonsils",
+      "sometimes headache and tummy pain in children"
+    ],
+    "whenToSeeDoctor": "If the person cannot swallow fluids or is drooling (urgent — go now), breathing is noisy, or fever and pain are severe with no cough (may be strep throat needing penicillin). Frequent recurrent attacks need review.",
+    "homeCare": "Cool drinks and soft food, warm salt-water gargles, paracetamol or ibuprofen. Most sore throats are viral and improve within a week.",
+    "tags": ["ENT", "infection", "common", "children"],
+    "source": "SA NDoH Standard Treatment Guidelines (PHC)"
+  },
+  {
+    "id": "cond-063",
+    "title": "Nosebleed (Epistaxis)",
+    "category": "ENT",
+    "symptoms": [
+      "bleeding from one or both nostrils",
+      "often after nose-picking, dry air, or a knock",
+      "blood trickling into the throat"
+    ],
+    "whenToSeeDoctor": "If bleeding does not stop after 20-30 minutes of firm pressure, is heavy after a head injury or fall (emergency), or nosebleeds keep recurring (blood pressure and other checks needed).",
+    "homeCare": "Sit leaning forward, pinch the soft part of the nose firmly for 10 minutes without letting go, breathe through the mouth, and a cold cloth on the bridge helps. Do not tilt the head back — blood runs into the throat.",
+    "tags": ["ENT", "bleeding", "first-aid", "common"],
+    "source": "SA NDoH (PHC) guidance / first-aid guidelines"
+  },
+  {
+    "id": "cond-064",
+    "title": "Diarrhoea in Children Under Five",
+    "category": "paediatric",
+    "symptoms": [
+      "loose watery stools",
+      "vomiting",
+      "sunken eyes",
+      "dry mouth",
+      "passing little urine",
+      "drowsiness",
+      "skin pinch going back slowly"
+    ],
+    "whenToSeeDoctor": "Immediately for any dehydration sign (sunken eyes, no urine for six hours, drowsiness, repeated vomiting), blood in the stool, or fever above 38.5°C. Diarrhoea lasting more than a week needs review.",
+    "homeCare": "Oral rehydration solution after every loose stool, zinc for 10-14 days, keep breastfeeding and feeding — never starve a child with diarrhoea. Keep vaccines (rotavirus) up to date and hands washed.",
+    "tags": ["paediatric", "dehydration", "ORS", "zinc", "South-Africa"],
+    "source": "WHO / SA NDoH integrated management of childhood illness (IMCI)"
+  }
+]

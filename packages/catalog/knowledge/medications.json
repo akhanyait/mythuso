@@ -1,0 +1,1034 @@
+[
+  {
+    "id": "med-001",
+    "name": "Paracetamol",
+    "genericName": "Paracetamol (acetaminophen)",
+    "category": "analgesic-antipyretic",
+    "commonDosage": "Adults: 500mg-1g every 4-6 hours when needed, maximum 4g in 24 hours. Children: 15mg per kg per dose, every 6 hours",
+    "sideEffects": [
+      "Rare at correct doses",
+      "Liver damage if the daily maximum is exceeded or taken with heavy alcohol use"
+    ],
+    "contraindications": [
+      "Severe liver disease",
+      "Careful dosing needed with low body weight, ongoing alcohol misuse or liver problems"
+    ],
+    "pregnancyCategory": "Safe at therapeutic doses — first-choice pain and fever medicine in pregnancy",
+    "saEmlLevel": "PHC",
+    "tags": ["pain", "fever", "OTC", "first-choice"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-002",
+    "name": "Ibuprofen",
+    "genericName": "Ibuprofen",
+    "category": "nsaid",
+    "commonDosage": "Adults: 200-400mg every 6-8 hours with food, maximum 1.2g in 24 hours without prescription. Children: 5-10mg per kg per dose, every 6-8 hours",
+    "sideEffects": [
+      "Stomach upset, heartburn and ulcers",
+      "Kidney strain, especially in older people or dehydration",
+      "Can raise blood pressure and worsen asthma in some people"
+    ],
+    "contraindications": [
+      "Active stomach ulcer or bleeding",
+      "Severe kidney disease",
+      "Third trimester of pregnancy",
+      "Aspirin-sensitive asthma",
+      "Caution with blood-thinning medicines"
+    ],
+    "pregnancyCategory": "Avoid, especially from 20 weeks onwards and never in the third trimester",
+    "saEmlLevel": "PHC",
+    "tags": ["pain", "inflammation", "fever", "OTC"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-003",
+    "name": "Aspirin (low-dose)",
+    "genericName": "Acetylsalicylic acid",
+    "category": "antiplatelet",
+    "commonDosage": "Heart protection: 75-150mg once daily after food, exactly as prescribed. Pain use (adults): 300-600mg every 4-6 hours, maximum 4g in 24 hours",
+    "sideEffects": [
+      "Stomach irritation and bleeding",
+      "Easy bruising",
+      "Ringing in the ears at high doses"
+    ],
+    "contraindications": [
+      "Children and teenagers with viral illness (risk of Reye's syndrome)",
+      "Active stomach ulcers",
+      "Bleeding disorders"
+    ],
+    "pregnancyCategory": "Low-dose only when specifically prescribed for a heart or clotting condition",
+    "saEmlLevel": "PHC",
+    "tags": ["heart", "antiplatelet", "clot-prevention"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-004",
+    "name": "Tramadol",
+    "genericName": "Tramadol",
+    "category": "opioid-analgesic",
+    "commonDosage": "Adults: 50-100mg every 4-6 hours for short periods, maximum 400mg in 24 hours; lowest effective dose for the shortest time",
+    "sideEffects": [
+      "Nausea, dizziness, drowsiness and constipation",
+      "Can be habit-forming",
+      "Serotonin syndrome when combined with certain antidepressants",
+      "Can trigger seizures in people with epilepsy"
+    ],
+    "contraindications": [
+      "Uncontrolled epilepsy",
+      "Severe liver or kidney impairment",
+      "Use with MAOI-type antidepressants"
+    ],
+    "pregnancyCategory": "Avoid — can cause withdrawal in the newborn",
+    "saEmlLevel": "Hospital",
+    "tags": ["pain", "opioid", "prescription-only"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-005",
+    "name": "Amoxicillin",
+    "genericName": "Amoxicillin",
+    "category": "antibiotic-penicillin",
+    "commonDosage": "Adults: 500mg every 8 hours. Children: 25-50mg per kg per day divided into three doses, as prescribed",
+    "sideEffects": [
+      "Rash",
+      "Diarrhoea and nausea",
+      "Thrush after a course"
+    ],
+    "contraindications": [
+      "Penicillin allergy — tell the clinic or pharmacist before collection"
+    ],
+    "pregnancyCategory": "Safe — commonly used in pregnancy",
+    "saEmlLevel": "PHC",
+    "tags": ["antibiotic", "penicillin", "infection"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-006",
+    "name": "Amoxicillin-clavulanic acid",
+    "genericName": "Co-amoxiclav",
+    "category": "antibiotic-penicillin",
+    "commonDosage": "Adults: 625mg every 8 hours with food, as prescribed; dose and duration depend on the infection",
+    "sideEffects": [
+      "Diarrhoea (common)",
+      "Nausea",
+      "Rash and thrush"
+    ],
+    "contraindications": [
+      "Penicillin allergy",
+      "Previous liver problems with this medicine"
+    ],
+    "pregnancyCategory": "Safe when needed",
+    "saEmlLevel": "PHC",
+    "tags": ["antibiotic", "broad-spectrum", "infection"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-007",
+    "name": "Azithromycin",
+    "genericName": "Azithromycin",
+    "category": "antibiotic-macrolide",
+    "commonDosage": "Commonly 500mg on day 1 then 250mg daily for 2-4 days, or a single 1g dose for certain infections — follow the prescribed course exactly",
+    "sideEffects": [
+      "Nausea, stomach cramps and diarrhoea",
+      "Headache",
+      "Can affect heart rhythm in people with existing rhythm problems"
+    ],
+    "contraindications": [
+      "Macrolide allergy",
+      "Caution with certain heart-rhythm medicines"
+    ],
+    "pregnancyCategory": "Generally safe when prescribed",
+    "saEmlLevel": "PHC",
+    "tags": ["antibiotic", "macrolide", "STI"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-008",
+    "name": "Ciprofloxacin",
+    "genericName": "Ciprofloxacin",
+    "category": "antibiotic-fluoroquinolone",
+    "commonDosage": "Adults: 250-750mg every 12 hours depending on the infection, as prescribed",
+    "sideEffects": [
+      "Nausea and diarrhoea",
+      "Dizziness and drowsiness",
+      "Tendon pain — rarely tendon rupture, mostly in older people",
+      "Sun sensitivity"
+    ],
+    "contraindications": [
+      "Quinolone allergy",
+      "Myasthenia gravis",
+      "Not routinely for children and growing adolescents",
+      "Take at least 2 hours apart from antacids, iron or calcium"
+    ],
+    "pregnancyCategory": "Avoid",
+    "saEmlLevel": "PHC",
+    "tags": ["antibiotic", "fluoroquinolone", "urinary"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-009",
+    "name": "Metronidazole",
+    "genericName": "Metronidazole",
+    "category": "antibiotic-antiprotozoal",
+    "commonDosage": "Adults: 400mg every 8 hours for 5-7 days, or a single 2g dose for some infections, as prescribed",
+    "sideEffects": [
+      "Metallic taste",
+      "Nausea and furred tongue",
+      "Dark urine",
+      "Severe flushing, vomiting and palpitations if alcohol is taken with it"
+    ],
+    "contraindications": [
+      "No alcohol during treatment and for 48 hours after the last dose",
+      "First trimester of pregnancy for some indications",
+      "Metronidazole allergy"
+    ],
+    "pregnancyCategory": "Used after the first trimester when needed",
+    "saEmlLevel": "PHC",
+    "tags": ["antibiotic", "amoebiasis", "giardia", "bacterial-vaginosis"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-010",
+    "name": "Cotrimoxazole",
+    "genericName": "Trimethoprim-sulfamethoxazole",
+    "category": "antibiotic-sulfa",
+    "commonDosage": "Infections: 960mg every 12 hours. Prevention (for example in HIV): 960mg once daily, as prescribed",
+    "sideEffects": [
+      "Rash and itching",
+      "Nausea",
+      "Sun sensitivity",
+      "Rarely severe skin reactions — stop and seek care for any spreading rash with mouth ulcers or fever",
+      "Can raise potassium"
+    ],
+    "contraindications": [
+      "Sulfa allergy",
+      "Severe liver or kidney disease",
+      "First trimester and last weeks of pregnancy"
+    ],
+    "pregnancyCategory": "Preventive daily dose in HIV continues with folic acid, on clinical advice",
+    "saEmlLevel": "PHC",
+    "tags": ["antibiotic", "prophylaxis", "HIV", "PCP"],
+    "source": "SA Essential Medicines List / SA NDoH ART guidelines"
+  },
+  {
+    "id": "med-011",
+    "name": "Doxycycline",
+    "genericName": "Doxycycline",
+    "category": "antibiotic-tetracycline",
+    "commonDosage": "Adults: 100mg every 12 hours, swallowed with plenty of water while sitting or standing upright",
+    "sideEffects": [
+      "Sun sensitivity — cover up and use sunscreen",
+      "Nausea and irritation of the food pipe if not taken upright with water",
+      "Diarrhoea"
+    ],
+    "contraindications": [
+      "Pregnancy",
+      "Children under 8 years for routine use",
+      "Tetracycline allergy"
+    ],
+    "pregnancyCategory": "Avoid — affects developing teeth and bones",
+    "saEmlLevel": "PHC",
+    "tags": ["antibiotic", "tetracycline", "STI"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-012",
+    "name": "Ceftriaxone",
+    "genericName": "Ceftriaxone",
+    "category": "antibiotic-cephalosporin",
+    "commonDosage": "Given as an intramuscular or intravenous injection at the clinic or hospital — commonly 1g daily; dose depends on the infection",
+    "sideEffects": [
+      "Pain at the injection site",
+      "Rash",
+      "Diarrhoea"
+    ],
+    "contraindications": [
+      "Cephalosporin allergy",
+      "Not mixed with calcium-containing drips in newborns"
+    ],
+    "pregnancyCategory": "Safe when needed",
+    "saEmlLevel": "Hospital",
+    "tags": ["antibiotic", "injection", "STI", "meningitis"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-013",
+    "name": "Benzathine benzylpenicillin",
+    "genericName": "Benzathine benzylpenicillin",
+    "category": "antibiotic-penicillin",
+    "commonDosage": "Syphilis: 2.4 million units by deep intramuscular injection, single dose (course per stage). Rheumatic fever prevention: monthly injection as prescribed",
+    "sideEffects": [
+      "Pain at the injection site",
+      "Rash",
+      "Rarely a severe allergic reaction — usually within 30 minutes, which is why a short wait after injection is advised"
+    ],
+    "contraindications": [
+      "Penicillin allergy"
+    ],
+    "pregnancyCategory": "Safe — the treatment of choice for syphilis in pregnancy",
+    "saEmlLevel": "PHC",
+    "tags": ["antibiotic", "injection", "syphilis", "rheumatic-fever"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-014",
+    "name": "Clotrimazole cream",
+    "genericName": "Clotrimazole",
+    "category": "antifungal-topical",
+    "commonDosage": "Apply a thin layer to the affected area 2-3 times daily and continue for 1-2 weeks after the skin clears",
+    "sideEffects": [
+      "Mild burning or stinging when applied",
+      "Contact irritation — uncommon"
+    ],
+    "contraindications": [
+      "Clotrimazole allergy"
+    ],
+    "pregnancyCategory": "Safe — topical treatment of choice in pregnancy",
+    "saEmlLevel": "PHC",
+    "tags": ["antifungal", "ringworm", "athlete's-foot", "topical"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-015",
+    "name": "Fluconazole",
+    "genericName": "Fluconazole",
+    "category": "antifungal-oral",
+    "commonDosage": "Vaginal thrush: one 150mg capsule. Other fungal infections: daily dosing as prescribed",
+    "sideEffects": [
+      "Nausea and headache",
+      "Rash",
+      "Rarely liver injury with longer courses"
+    ],
+    "contraindications": [
+      "Fluconazole allergy",
+      "Caution with liver disease, and with medicines such as warfarin, phenytoin and gliclazide — interactions are common"
+    ],
+    "pregnancyCategory": "A single 150mg dose is considered acceptable; regular dosing is avoided in pregnancy",
+    "saEmlLevel": "PHC",
+    "tags": ["antifungal", "thrush", "single-dose"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-016",
+    "name": "Permethrin 5% cream",
+    "genericName": "Permethrin",
+    "category": "antiparasitic-topical",
+    "commonDosage": "Apply to the whole body from the neck down (including the head and face in babies) at bedtime, wash off after 8-14 hours; repeat after 7 days. Treat all household contacts and wash bedding and clothes in hot water",
+    "sideEffects": [
+      "Itching may be worse for a few days after treatment",
+      "Mild skin irritation"
+    ],
+    "contraindications": [
+      "Permethrin allergy",
+      "Babies under 2 months are treated only on clinical advice"
+    ],
+    "pregnancyCategory": "Considered safe in pregnancy",
+    "saEmlLevel": "PHC",
+    "tags": ["scabies", "antiparasitic", "whole-household"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-017",
+    "name": "Oral rehydration solution (ORS)",
+    "genericName": "Oral rehydration salts",
+    "category": "rehydration",
+    "commonDosage": "Dissolve one sachet in 1 litre of clean water exactly as instructed. Adults: drink after every loose stool. Children: 50-100ml per kg over the first 4 hours, plus usual milk or food — small sips frequently if vomiting",
+    "sideEffects": [
+      "None when mixed and given correctly",
+      "Vomiting when drunk too quickly — give smaller sips"
+    ],
+    "contraindications": [
+      "Severe dehydration, repeated vomiting or drowsiness needs clinic assessment — ORS alone is not enough",
+      "Never dilute incorrectly or add extra sugar or salt"
+    ],
+    "pregnancyCategory": "Safe",
+    "saEmlLevel": "PHC",
+    "tags": ["diarrhoea", "dehydration", "children", "life-saving"],
+    "source": "WHO / UNICEF / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-018",
+    "name": "Zinc sulphate",
+    "genericName": "Zinc sulphate",
+    "category": "micronutrient",
+    "commonDosage": "Children with diarrhoea: 20mg once daily for 10-14 days (10mg daily for babies under 6 months), given together with ORS",
+    "sideEffects": [
+      "Mild stomach upset"
+    ],
+    "contraindications": [
+      "None at these doses"
+    ],
+    "pregnancyCategory": "Not applicable — paediatric use",
+    "saEmlLevel": "PHC",
+    "tags": ["diarrhoea", "children", "recovery"],
+    "source": "WHO / UNICEF / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-019",
+    "name": "Omeprazole",
+    "genericName": "Omeprazole",
+    "category": "ppi-antacid",
+    "commonDosage": "Adults: 20mg once daily in the morning before food, usually for 4-8 weeks; long-term use only under clinical review",
+    "sideEffects": [
+      "Headache, nausea and diarrhoea",
+      "Long-term use can lower vitamin B12 and magnesium and slightly raise fracture risk"
+    ],
+    "contraindications": [
+      "Omeprazole allergy",
+      "Review with the clinic before continuous use beyond 8 weeks"
+    ],
+    "pregnancyCategory": "Acceptable when needed",
+    "saEmlLevel": "PHC",
+    "tags": ["heartburn", "ulcer", "stomach-acid"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-020",
+    "name": "Metoclopramide",
+    "genericName": "Metoclopramide",
+    "category": "antiemetic",
+    "commonDosage": "Adults: 10mg every 8 hours for a maximum of 5 days",
+    "sideEffects": [
+      "Drowsiness and restlessness",
+      "Rare distressing muscle spasms of the face or neck (more common in young adults)",
+      "Long use can cause uncontrollable movements"
+    ],
+    "contraindications": [
+      "Children",
+      "Parkinson's disease",
+      "Epilepsy",
+      "Stomach or bowel blockage",
+      "Breastfeeding"
+    ],
+    "pregnancyCategory": "Only short, prescribed courses",
+    "saEmlLevel": "PHC",
+    "tags": ["nausea", "vomiting", "short-course"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-021",
+    "name": "Loperamide",
+    "genericName": "Loperamide",
+    "category": "antidiarrhoeal",
+    "commonDosage": "Adults: 4mg first dose, then 2mg after each loose stool, no more than 16mg in 24 hours and only for short periods",
+    "sideEffects": [
+      "Constipation, bloating and wind",
+      "Drowsiness"
+    ],
+    "contraindications": [
+      "Fever or blood in the stool (dysentery)",
+      "Children under 5 years",
+      "Not for acute diarrhoea with fever — rehydration is the treatment"
+    ],
+    "pregnancyCategory": "Avoid unless advised by a clinician",
+    "saEmlLevel": "PHC",
+    "tags": ["diarrhoea", "OTC", "short-term"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-022",
+    "name": "Senna",
+    "genericName": "Senna",
+    "category": "laxative",
+    "commonDosage": "Adults: 7.5-15mg at night, for a few days only",
+    "sideEffects": [
+      "Stomach cramps and urgency",
+      "Long-term daily use makes the bowel lazy and drains body salts"
+    ],
+    "contraindications": [
+      "Bowel blockage",
+      "Sudden tummy pain of unknown cause — get it assessed first",
+      "Not for long-term daily use without review"
+    ],
+    "pregnancyCategory": "Short-term use acceptable in pregnancy",
+    "saEmlLevel": "PHC",
+    "tags": ["constipation", "OTC", "short-term"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-023",
+    "name": "Salbutamol inhaler",
+    "genericName": "Salbutamol",
+    "category": "bronchodilator",
+    "commonDosage": "1-2 puffs (100-200 micrograms) when needed, up to 4 times daily. Acute wheeze: up to 6 puffs via a spacer, repeated as the clinic or ambulance service advises. Always use a spacer, especially in children",
+    "sideEffects": [
+      "Tremor and fast heartbeat",
+      "Headache",
+      "Low potassium with heavy overuse"
+    ],
+    "contraindications": [
+      "None absolute — the reliever must never be withheld in an asthma attack",
+      "Using it more than twice a week means the asthma is not controlled: book a clinic review"
+    ],
+    "pregnancyCategory": "Safe — asthma control in pregnancy protects the baby",
+    "saEmlLevel": "PHC",
+    "tags": ["asthma", "reliever", "inhaler", "spacer"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-024",
+    "name": "Beclometasone preventer inhaler",
+    "genericName": "Beclometasone dipropionate",
+    "category": "inhaled-corticosteroid",
+    "commonDosage": "100-400 micrograms twice daily as prescribed — every day, even when well, with the mouth rinsed after use",
+    "sideEffects": [
+      "Oral thrush and a hoarse voice — preventable by rinsing and using a spacer",
+      "Slight growth effect in children at high doses"
+    ],
+    "contraindications": [
+      "Not for an acute attack — the blue reliever inhaler is for attacks; this is a preventer"
+    ],
+    "pregnancyCategory": "Safe — and important to continue in pregnancy",
+    "saEmlLevel": "PHC",
+    "tags": ["asthma", "preventer", "daily", "inhaler"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-025",
+    "name": "Prednisone",
+    "genericName": "Prednisone",
+    "category": "corticosteroid-oral",
+    "commonDosage": "Asthma or severe allergy flare: commonly 30-40mg once daily for 3-5 days, exactly as prescribed; other conditions have longer courses with gradual tapering",
+    "sideEffects": [
+      "Raised sugar, increased appetite, mood change and poor sleep",
+      "Stomach irritation",
+      "Long courses: bone thinning, muscle weakness, high blood pressure, and infections flaring up",
+      "Never stop a long course suddenly — the body needs to be weaned off"
+    ],
+    "contraindications": [
+      "Untreated systemic infection",
+      "Live vaccines while on high doses",
+      "Caution with stomach ulcers and diabetes"
+    ],
+    "pregnancyCategory": "Used when clinically needed",
+    "saEmlLevel": "PHC",
+    "tags": ["steroid", "asthma-flare", "short-course", "taper"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-026",
+    "name": "Hydrocortisone cream 1%",
+    "genericName": "Hydrocortisone",
+    "category": "topical-corticosteroid",
+    "commonDosage": "Apply a thin layer to the affected skin once or twice daily for up to a week (shorter on the face and skin folds)",
+    "sideEffects": [
+      "Skin thinning, stretch marks and pigment change with overuse",
+      "Rebound flare when stopped suddenly after long use"
+    ],
+    "contraindications": [
+      "Infected skin unless the infection is also treated",
+      "Not for long-term daily use, and not stronger steroids on the face without advice"
+    ],
+    "pregnancyCategory": "Safe for short courses",
+    "saEmlLevel": "PHC",
+    "tags": ["eczema", "rash", "itch", "topical"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-027",
+    "name": "Amlodipine",
+    "genericName": "Amlodipine",
+    "category": "antihypertensive-ccb",
+    "commonDosage": "5mg once daily, may be increased to 10mg once daily as prescribed",
+    "sideEffects": [
+      "Ankle swelling",
+      "Flushing and headache",
+      "Palpitations"
+    ],
+    "contraindications": [
+      "Severe narrowing of the aortic valve",
+      "Acute heart failure",
+      "Shock"
+    ],
+    "pregnancyCategory": "Avoid — the clinic will switch medicines when pregnancy is planned",
+    "saEmlLevel": "PHC",
+    "tags": ["blood-pressure", "heart", "daily"],
+    "source": "SA Essential Medicines List / SA NDoH hypertension guidelines"
+  },
+  {
+    "id": "med-028",
+    "name": "Enalapril",
+    "genericName": "Enalapril",
+    "category": "antihypertensive-ace",
+    "commonDosage": "5-10mg once daily (up to 40mg under supervision), starting low and building up as prescribed",
+    "sideEffects": [
+      "Persistent dry cough",
+      "Dizziness with the first doses — take the first dose at bedtime",
+      "Raised potassium and kidney function changes",
+      "Rarely swelling of the lips or tongue — urgent care if this happens"
+    ],
+    "contraindications": [
+      "Pregnancy at any stage",
+      "Previous angioedema",
+      "Severe kidney artery narrowing"
+    ],
+    "pregnancyCategory": "Avoid — harmful to the unborn baby; effective alternatives exist in pregnancy",
+    "saEmlLevel": "PHC",
+    "tags": ["blood-pressure", "heart-failure", "kidney-protection"],
+    "source": "SA Essential Medicines List / SA NDoH hypertension guidelines"
+  },
+  {
+    "id": "med-029",
+    "name": "Hydrochlorothiazide",
+    "genericName": "Hydrochlorothiazide",
+    "category": "antihypertensive-diuretic",
+    "commonDosage": "12.5-25mg once daily in the morning",
+    "sideEffects": [
+      "Passing more urine in the first days",
+      "Low potassium and sodium",
+      "Dizziness",
+      "Gout flares",
+      "Mildly raised sugar and sun sensitivity"
+    ],
+    "contraindications": [
+      "Sulfa allergy",
+      "Severe kidney or liver disease",
+      "History of gout — discuss alternatives"
+    ],
+    "pregnancyCategory": "Avoid — particularly near delivery",
+    "saEmlLevel": "PHC",
+    "tags": ["blood-pressure", "water-tablet", "morning-dose"],
+    "source": "SA Essential Medicines List / SA NDoH hypertension guidelines"
+  },
+  {
+    "id": "med-030",
+    "name": "Furosemide",
+    "genericName": "Furosemide",
+    "category": "diuretic",
+    "commonDosage": "20-40mg once daily in the morning (higher doses only under hospital supervision)",
+    "sideEffects": [
+      "Dehydration and low potassium",
+      "Dizziness on standing",
+      "Gout flares",
+      "Ringing in the ears with rapid injection"
+    ],
+    "contraindications": [
+      "Dehydration",
+      "Severe low potassium or sodium",
+      "Complete kidney shutdown"
+    ],
+    "pregnancyCategory": "Only under specialist care",
+    "saEmlLevel": "PHC",
+    "tags": ["heart-failure", "fluid", "water-tablet"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-031",
+    "name": "Atenolol",
+    "genericName": "Atenolol",
+    "category": "beta-blocker",
+    "commonDosage": "25-50mg once daily, as prescribed",
+    "sideEffects": [
+      "Tiredness and cold hands and feet",
+      "Slow pulse and dizziness",
+      "Vivid dreams",
+      "Can mask the warning signs of a low sugar in people on diabetes medicines"
+    ],
+    "contraindications": [
+      "Asthma — discuss with the clinic before use",
+      "Severe slow pulse or heart block",
+      "Uncontrolled heart failure",
+      "Never stop suddenly — taper as instructed"
+    ],
+    "pregnancyCategory": "Avoid — alternatives are preferred in pregnancy",
+    "saEmlLevel": "PHC",
+    "tags": ["blood-pressure", "heart-rhythm", "angina"],
+    "source": "SA Essential Medicines List / SA NDoH hypertension guidelines"
+  },
+  {
+    "id": "med-032",
+    "name": "Simvastatin",
+    "genericName": "Simvastatin",
+    "category": "statin",
+    "commonDosage": "10-40mg once at night (maximum 40mg; maximum 20mg if also taking amlodipine)",
+    "sideEffects": [
+      "Muscle aches — report severe muscle pain, weakness or dark urine urgently",
+      "Raised liver enzymes on blood tests",
+      "Rarely serious muscle breakdown"
+    ],
+    "contraindications": [
+      "Active liver disease",
+      "Pregnancy and breastfeeding",
+      "Simvastatin allergy"
+    ],
+    "pregnancyCategory": "Avoid",
+    "saEmlLevel": "PHC",
+    "tags": ["cholesterol", "heart-protection", "night-dose"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-033",
+    "name": "Metformin",
+    "genericName": "Metformin",
+    "category": "antidiabetic",
+    "commonDosage": "Start 500mg once or twice daily with food, building to 1g twice daily as prescribed; maximum 2.55g daily in divided doses",
+    "sideEffects": [
+      "Nausea, runny tummy and a metallic taste — usually settle in the first weeks",
+      "Vitamin B12 deficiency over many years",
+      "Rarely lactic acidosis during severe illness with dehydration — sick-day rules apply"
+    ],
+    "contraindications": [
+      "Severe kidney impairment",
+      "Temporarily paused during serious illness, dehydration or scans with contrast dye — clinic will advise",
+      "Heavy alcohol use"
+    ],
+    "pregnancyCategory": "Safe — commonly continued in pregnancy, with insulin added where needed",
+    "saEmlLevel": "PHC",
+    "tags": ["diabetes", "first-line", "with-food"],
+    "source": "SA Essential Medicines List / SA NDoH diabetes guidelines"
+  },
+  {
+    "id": "med-034",
+    "name": "Gliclazide",
+    "genericName": "Gliclazide",
+    "category": "antidiabetic-sulfonylurea",
+    "commonDosage": "40-80mg once daily with breakfast, increased as prescribed up to 160mg twice daily",
+    "sideEffects": [
+      "Low sugar — shaking, sweating, confusion; treat with fast sugar and review the dose at the clinic",
+      "Weight gain",
+      "Mild stomach upset"
+    ],
+    "contraindications": [
+      "Type 1 diabetes or ketoacidosis",
+      "Severe kidney or liver disease",
+      "Skipped meals make low sugar more likely — never take without eating"
+    ],
+    "pregnancyCategory": "Avoid — insulin is used in pregnancy",
+    "saEmlLevel": "PHC",
+    "tags": ["diabetes", "second-line", "hypoglycaemia-risk"],
+    "source": "SA Essential Medicines List / SA NDoH diabetes guidelines"
+  },
+  {
+    "id": "med-035",
+    "name": "Insulin (human)",
+    "genericName": "Human insulin (short/intermediate-acting)",
+    "category": "antidiabetic-hormone",
+    "commonDosage": "Fully individualised — commonly started around 0.4-0.6 units per kg body weight per day in split doses, and adjusted by the clinic based on readings",
+    "sideEffects": [
+      "Low sugar if doses are missed around meals or activity changes",
+      "Weight gain",
+      "Injection-site lumps if sites are not rotated",
+      "Rare allergy"
+    ],
+    "contraindications": [
+      "None absolute — insulin is life-saving in type 1 diabetes",
+      "Doses must be adjusted during illness; never skip insulin when sick without clinic guidance"
+    ],
+    "pregnancyCategory": "Safe — the standard treatment for diabetes in pregnancy",
+    "saEmlLevel": "PHC",
+    "tags": ["diabetes", "insulin", "injection", "type-1"],
+    "source": "SA Essential Medicines List / SA NDoH diabetes guidelines"
+  },
+  {
+    "id": "med-036",
+    "name": "Warfarin",
+    "genericName": "Warfarin",
+    "category": "anticoagulant",
+    "commonDosage": "Dose is individualised and adjusted to the INR blood test (usually targeting 2.0-3.0, higher for some mechanical valves) — take the exact prescribed dose at the same time daily",
+    "sideEffects": [
+      "Bleeding — gums, nose, heavy bruises, blood in urine or stool (urgent care)",
+      "Rarely skin necrosis at the start"
+    ],
+    "contraindications": [
+      "Active bleeding",
+      "Bleeding disorders",
+      "Unsupervised use in pregnancy — specialist care only",
+      "Many interactions: antibiotics, antifungals, pain medicines and traditional remedies can swing the INR — always tell the clinic and pharmacist"
+    ],
+    "pregnancyCategory": "Avoid — specialist alternatives are used in pregnancy",
+    "saEmlLevel": "PHC",
+    "tags": ["blood-thinner", "INR", "clot-prevention", "interactions"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-037",
+    "name": "Levothyroxine",
+    "genericName": "Levothyroxine",
+    "category": "thyroid-hormone",
+    "commonDosage": "Individualised, commonly 25-100 micrograms once daily; take on an empty stomach 30-60 minutes before breakfast with water only",
+    "sideEffects": [
+      "None at the correct dose",
+      "Too high a dose: palpitations, weight loss, tremor, poor sleep and bone thinning over time"
+    ],
+    "contraindications": [
+      "Untreated adrenal insufficiency",
+      "Recent heart attack — start cautiously as directed"
+    ],
+    "pregnancyCategory": "Safe — and the dose usually needs to increase in pregnancy; never stop it",
+    "saEmlLevel": "PHC",
+    "tags": ["thyroid", "hormone", "morning-dose", "empty-stomach"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-038",
+    "name": "Amitriptyline",
+    "genericName": "Amitriptyline",
+    "category": "antidepressant-tca",
+    "commonDosage": "Nerve pain or migraine prevention: 10-25mg at night. Depression: higher doses under clinical supervision",
+    "sideEffects": [
+      "Drowsiness — take at night; avoid driving until the effect is known",
+      "Dry mouth, constipation, blurred vision",
+      "Weight gain and urinary difficulty in older men"
+    ],
+    "contraindications": [
+      "Recent heart attack or heart rhythm problems",
+      "Glaucoma",
+      "Urinary retention",
+      "Caution in older people — falls risk"
+    ],
+    "pregnancyCategory": "Avoid unless clearly needed — discuss with the clinic",
+    "saEmlLevel": "PHC",
+    "tags": ["nerve-pain", "migraine", "night-dose", "antidepressant"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-039",
+    "name": "Fluoxetine",
+    "genericName": "Fluoxetine",
+    "category": "antidepressant-ssri",
+    "commonDosage": "20mg once daily in the morning (may be increased to 40mg under supervision); improvement usually shows after 2-4 weeks — do not stop suddenly",
+    "sideEffects": [
+      "Nausea, headache and brief anxiety in the first days",
+      "Sleep changes and sexual dysfunction",
+      "Serotonin syndrome when combined with tramadol or similar medicines — report agitation, fever and tremor urgently"
+    ],
+    "contraindications": [
+      "Use with MAOI-type antidepressants",
+      "Manic episodes in the past — specialist supervision"
+    ],
+    "pregnancyCategory": "One of the better-studied antidepressants — planned use in pregnancy is coordinated with the clinic",
+    "saEmlLevel": "PHC",
+    "tags": ["depression", "anxiety", "SSRI", "morning-dose"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-040",
+    "name": "Carbamazepine",
+    "genericName": "Carbamazepine",
+    "category": "antiepileptic",
+    "commonDosage": "Start 100-200mg once or twice daily, building as prescribed to a usual range of 800-1200mg daily in divided doses",
+    "sideEffects": [
+      "Dizziness, drowsiness and blurred vision — often settle as the body adjusts",
+      "Any rash must be reported immediately — rare severe skin reactions",
+      "Low sodium and blood count changes on long-term blood monitoring"
+    ],
+    "contraindications": [
+      "Bone marrow suppression",
+      "Certain heart conduction problems",
+      "MAOI-type antidepressants",
+      "Weakens oral contraceptives — extra contraception needed"
+    ],
+    "pregnancyCategory": "Raises birth-defect risk — pregnancy planning is coordinated with the clinic, with folic acid before conception",
+    "saEmlLevel": "PHC",
+    "tags": ["epilepsy", "seizures", "neuralgia", "interactions"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-041",
+    "name": "Phenytoin",
+    "genericName": "Phenytoin",
+    "category": "antiepileptic",
+    "commonDosage": "Commonly 300mg once daily, adjusted to blood levels — take consistently, and never change dose without the clinic",
+    "sideEffects": [
+      "Gum overgrowth — mouth hygiene matters",
+      "Unsteadiness and jerky eye movements when the level is high",
+      "Rash — report immediately",
+      "Coarsening of facial features over many years"
+    ],
+    "contraindications": [
+      "Certain heart conduction problems",
+      "Phenytoin allergy",
+      "Many interactions — antibiotics and antifungals can push levels dangerously high"
+    ],
+    "pregnancyCategory": "Raises birth-defect risk — specialist planning with folic acid before conception",
+    "saEmlLevel": "PHC",
+    "tags": ["epilepsy", "seizures", "blood-levels", "interactions"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-042",
+    "name": "Sodium valproate",
+    "genericName": "Sodium valproate",
+    "category": "antiepileptic",
+    "commonDosage": "500mg-1g daily in divided doses, individualised and monitored",
+    "sideEffects": [
+      "Weight gain and tremor",
+      "Hair thinning",
+      "Liver injury — children under 2 are at highest risk",
+      "Polycystic ovary features in some women"
+    ],
+    "contraindications": [
+      "Pregnancy, or the possibility of pregnancy, unless a specialist has approved a specific plan — this medicine carries the highest birth-defect risk of the older seizure medicines",
+      "Liver disease"
+    ],
+    "pregnancyCategory": "Avoid — the highest-risk seizure medicine in pregnancy; effective alternatives exist",
+    "saEmlLevel": "PHC",
+    "tags": ["epilepsy", "seizures", "pregnancy-risk"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-043",
+    "name": "Allopurinol",
+    "genericName": "Allopurinol",
+    "category": "urate-lowering",
+    "commonDosage": "Start 100mg once daily and build up as prescribed (commonly 300mg daily; lower with kidney problems)",
+    "sideEffects": [
+      "Rash — any rash must be reported urgently (rare severe skin reactions)",
+      "Stomach upset",
+      "Gout may flare when starting — preventive cover is often given"
+    ],
+    "contraindications": [
+      "Do not start for the first time alone during an acute gout flare — flares are managed first, on clinical advice",
+      "Allopurinol allergy"
+    ],
+    "pregnancyCategory": "Avoid unless essential",
+    "saEmlLevel": "PHC",
+    "tags": ["gout", "uric-acid", "long-term"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-044",
+    "name": "Ferrous sulphate",
+    "genericName": "Ferrous sulphate",
+    "category": "iron-supplement",
+    "commonDosage": "Adults: one tablet (about 60mg of iron) once or twice daily. Children: 3-6mg of iron per kg per day. Take with water or a vitamin C drink, on an empty stomach if tolerated",
+    "sideEffects": [
+      "Black stools — normal and expected",
+      "Constipation and nausea",
+      "Stomach cramps"
+    ],
+    "contraindications": [
+      "Iron overload conditions such as haemochromatosis",
+      "Separate from levothyroxine, antacids and calcium by at least 4 hours",
+      "Tea, coffee and milk within an hour block absorption"
+    ],
+    "pregnancyCategory": "Safe — routinely given in pregnancy",
+    "saEmlLevel": "PHC",
+    "tags": ["anaemia", "iron", "pregnancy"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-045",
+    "name": "Folic acid",
+    "genericName": "Folic acid",
+    "category": "vitamin",
+    "commonDosage": "Preventing birth defects: 400-500 micrograms daily from before pregnancy through the first trimester. Deficiency or high-risk pregnancy: 5mg daily as prescribed",
+    "sideEffects": [
+      "None at normal doses",
+      "Rarely mild stomach upset"
+    ],
+    "contraindications": [
+      "Untreated vitamin B12 deficiency — folic acid can mask the anaemia while nerve damage continues; B12 is checked first"
+    ],
+    "pregnancyCategory": "Essential in pregnancy",
+    "saEmlLevel": "PHC",
+    "tags": ["pregnancy", "anaemia", "neural-tube-defects"],
+    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+  },
+  {
+    "id": "med-046",
+    "name": "Artemether-lumefantrine",
+    "genericName": "Artemether-lumefantrine",
+    "category": "antimalarial",
+    "commonDosage": "Adults (35kg and over): 4 tablets at 0, 8, 24, 36, 48 and 60 hours — 24 tablets in total; children are dosed by weight. Always take with food or milk containing fat",
+    "sideEffects": [
+      "Headache, dizziness and poor appetite",
+      "Nausea",
+      "Sleep disturbance"
+    ],
+    "contraindications": [
+      "Malaria with danger signs (confusion, fits, inability to drink) — this is emergency hospital treatment",
+      "Caution with other medicines affecting heart rhythm",
+      "Rifampicin and epilepsy medicines can make it fail — the clinic chooses the antimalarial accordingly"
+    ],
+    "pregnancyCategory": "Used for malaria treatment, with clinician guidance in the first trimester — untreated malaria is more dangerous",
+    "saEmlLevel": "PHC",
+    "tags": ["malaria", "treatment", "with-food"],
+    "source": "SA Essential Medicines List / SA NDoH malaria guidelines / WHO"
+  },
+  {
+    "id": "med-047",
+    "name": "TLD (fixed-dose ART)",
+    "genericName": "Tenofovir / lamivudine / dolutegravir",
+    "category": "antiretroviral",
+    "commonDosage": "One tablet once daily, at the same time every day, with or without food",
+    "sideEffects": [
+      "Mild sleep and dream changes in the first weeks",
+      "Weight gain over the first year",
+      "Rare kidney effects from tenofovir — blood tests monitor this",
+      "Antacids, iron and calcium supplements block absorption of the dolutegravir part — separate by at least 2 hours before or 6 hours after"
+    ],
+    "contraindications": [
+      "Severe kidney impairment (dose adjustment)",
+      "Rifampicin for TB requires dose adjustment — managed by the clinic"
+    ],
+    "pregnancyCategory": "Safe — the standard first-line regimen in South Africa, including in pregnancy",
+    "saEmlLevel": "PHC",
+    "tags": ["HIV", "ART", "one-pill-daily", "undetectable"],
+    "source": "SA Essential Medicines List / SA NDoH ART guidelines"
+  },
+  {
+    "id": "med-048",
+    "name": "TB combination (RHZE)",
+    "genericName": "Rifampicin / isoniazid / pyrazinamide / ethambutol",
+    "category": "antitubercular",
+    "commonDosage": "Weight-banded daily fixed-dose combination for the first 2 months, followed by rifampicin-isoniazid for 4 months — the full course is six months",
+    "sideEffects": [
+      "Orange-red urine, sweat and tears — normal and expected",
+      "Liver injury — report yellow eyes, dark urine or severe nausea the same day",
+      "Vision changes or difficulty telling colours apart (ethambutol) — same-day care",
+      "Rash, itching and gout flares",
+      "Vitamin B6 is usually given alongside to protect the nerves"
+    ],
+    "contraindications": [
+      "Jaundice or severe liver disease — managed by the TB unit",
+      "Rifampicin weakens oral contraceptives, warfarin and many other medicines — always tell every provider that TB treatment is being taken"
+    ],
+    "pregnancyCategory": "Used in pregnancy under the national TB programme, with vitamin B6",
+    "saEmlLevel": "PHC",
+    "tags": ["TB", "six-months", "combination", "interactions"],
+    "source": "SA Essential Medicines List / SA NDoH TB guidelines"
+  },
+  {
+    "id": "med-049",
+    "name": "Adrenaline 1:1000 injection",
+    "genericName": "Epinephrine",
+    "category": "emergency",
+    "commonDosage": "Severe allergic reaction (anaphylaxis): adults 0.5mg (0.5ml) injected into the outer thigh muscle; children 0.01mg per kg, maximum 0.5mg. Repeat after 5 minutes if there is no improvement — and always call 10177",
+    "sideEffects": [
+      "Fast heartbeat, tremor, pallor and anxiety — expected and temporary",
+      "The life-saving benefit far outweighs these effects in anaphylaxis"
+    ],
+    "contraindications": [
+      "None in anaphylaxis — delay is the greater danger",
+      "This is first aid while the ambulance is on the way, not a replacement for hospital care"
+    ],
+    "pregnancyCategory": "Use without delay in anaphylaxis at any stage of pregnancy",
+    "saEmlLevel": "PHC",
+    "tags": ["anaphylaxis", "emergency", "injection", "life-saving"],
+    "source": "SA Essential Medicines List / SA Resuscitation Council"
+  },
+  {
+    "id": "med-050",
+    "name": "Methyldopa",
+    "genericName": "Methyldopa",
+    "category": "antihypertensive-pregnancy",
+    "commonDosage": "250mg two to three times daily (up to 2-3g daily in divided doses), as prescribed",
+    "sideEffects": [
+      "Drowsiness and dizziness in the first days — usually settles",
+      "Dry mouth and blocked nose",
+      "Low mood",
+      "Rarely liver changes — blood tests monitor this"
+    ],
+    "contraindications": [
+      "Active liver disease",
+      "History of depression — discuss with the clinic",
+      "MAOI-type antidepressants"
+    ],
+    "pregnancyCategory": "Safe — a first-choice blood pressure medicine in pregnancy in South Africa",
+    "saEmlLevel": "PHC",
+    "tags": ["blood-pressure", "pregnancy", "first-choice"],
+    "source": "SA Essential Medicines List / SA NDoH maternity care guidelines"
+  }
+]
