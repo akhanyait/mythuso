@@ -98,6 +98,7 @@ test('the context parameter changes nothing about a refusal', () => {
      earlier turns is the first step to one that can. */
   const context: ConversationContext = {
     recentClassifications: ['care', 'care'],
+    recentExchanges: [],
     activeTask: 'care',
     turnCount: 4,
   };

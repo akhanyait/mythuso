@@ -263,6 +263,86 @@ test('a failed orchestrator leaves the classifier’s own reply standing, unmark
  });
 });
 
+/* ---- Conversational memory, since 21 September 2026: the orchestrator is now handed the actual
+   words of the last few turns, not only their classifications, so a follow-up question reads as
+   connected to what it followed. The stub provider answers every request with the same fixed
+   sentence regardless of what it is asked, so these tests read the *request* the route sent
+   rather than the reply it got back — the request is the thing that changed. */
+
+const systemPromptOf = (body: string): string => {
+ const parsed = JSON.parse(body) as { messages?: { role: string; content: string }[] };
+ const system = parsed.messages?.find((message) => message.role === 'system');
+ assert.ok(system, 'expected a system message in the request body');
+ return system.content;
+};
+
+test('a follow-up question is given the prior turn’s actual words, not just its classification', async () => {
+ const provider = await scriptedProvider();
+ try {
+  await withEnv({ OLLAMA_URL: provider.url }, async () => {
+   const sessionId = 'session-followup';
+   const first = await handleTurn({ text: 'I have a headache', userConsent: true, sessionId });
+   assert.equal(first.source, 'orchestrator', 'the first turn should have reached the orchestrator');
+   const second = await handleTurn({
+    text: 'how long before I should worry',
+    userConsent: true,
+    sessionId,
+   });
+   assert.equal(second.source, 'orchestrator');
+   assert.equal(provider.bodies.length, 2);
+   const secondPrompt = systemPromptOf(provider.bodies[1]);
+   /* The patient's own first words are in the prompt the second turn sent... */
+   assert.ok(
+    secondPrompt.includes('I have a headache'),
+    'the second request should carry the first turn’s text',
+   );
+   /* ...and so is the reply GilbertOne actually gave, word for word. */
+   assert.ok(
+    secondPrompt.includes(first.reply),
+    'the second request should carry the first turn’s reply',
+   );
+   /* The guidance around it says what the history is for, so the model cannot use it to invent a
+      diagnosis-adjacent continuity across turns. */
+   assert.ok(secondPrompt.includes('never as evidence to add to this turn'));
+   /* The first request had no history to carry — this is what "connected, not answered cold"
+      rests on: the difference between the two requests. */
+   const firstPrompt = systemPromptOf(provider.bodies[0]);
+   assert.equal(firstPrompt.includes('I have a headache'), false);
+  });
+ } finally {
+  await provider.close();
+ }
+});
+
+test('the history handed to the model is capped, not left to grow across a long session', async () => {
+ const provider = await scriptedProvider();
+ try {
+  await withEnv({ OLLAMA_URL: provider.url }, async () => {
+   const sessionId = 'session-long';
+   const turnCount = 8;
+   for (let n = 1; n <= turnCount; n += 1) {
+    const result = await handleTurn({
+     text: `question number ${n} about a symptom`,
+     userConsent: true,
+     sessionId,
+    });
+    assert.equal(result.source, 'orchestrator');
+   }
+   assert.equal(provider.bodies.length, turnCount);
+   const lastPrompt = systemPromptOf(provider.bodies[turnCount - 1]);
+   /* The earliest turns have aged out of the capped window entirely. */
+   assert.equal(lastPrompt.includes('question number 1 about'), false);
+   assert.equal(lastPrompt.includes('question number 2 about'), false);
+   /* The most recent turns before this one are still there, capped at CONTEXT_TURNS (5). */
+   const patientLines = lastPrompt.match(/Patient said:/g) ?? [];
+   assert.equal(patientLines.length, 5);
+   assert.ok(lastPrompt.includes('question number 7 about'));
+  });
+ } finally {
+  await provider.close();
+ }
+});
+
 test('the classifier’s own territory never reaches a model, however available one is', async () => {
  const provider = await scriptedProvider();
  try {

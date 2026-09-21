@@ -129,8 +129,13 @@ const orchestratorSystemPrompt = (context: SessionContext): string => {
   const lines = (context.lines ?? [])
     .map((line) => redactPHI(line))
     .filter((line) => line.trim().length > 0);
+  /* Since 21 September 2026 this block may include the literal text of earlier turns, not only
+     classifications — see turn.ts's contextLines. The heading says what that history is for: it
+     keeps the thread of a conversation legible across turns, and it is not a second, cumulative
+     input to reason over. The "never diagnose, never prescribe" rule above is stated once and
+     applies to every turn alike; a follow-up question is still a fresh question. */
   const contextBlock = lines.length
-    ? `\n\nWhat is already known about this conversation, and nothing else:\n${lines.map((line) => `- ${line}`).join("\n")}`
+    ? `\n\nWhat is already known about this conversation, for keeping the thread only — never as evidence to add to this turn's:\n${lines.map((line) => `- ${line}`).join("\n")}`
     : "";
   return `${llmSystemPrompt()}\n\n${TOOL_GUIDE}${contextBlock}`;
 };

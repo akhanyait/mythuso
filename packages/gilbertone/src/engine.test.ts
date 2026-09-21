@@ -153,6 +153,7 @@ test("nothing matched is unknown at zero", () => {
 test("context lifts a match the last two turns already were", () => {
   const context: ConversationContext = {
     recentClassifications: ["identity", "identity"],
+    recentExchanges: [],
     activeTask: null,
     turnCount: 2,
   };
@@ -168,16 +169,19 @@ test("context lifts a match the last two turns already were", () => {
 test("one prior turn, a disagreement, or another subject does not lift anything", () => {
   const one: ConversationContext = {
     recentClassifications: ["identity"],
+    recentExchanges: [],
     activeTask: null,
     turnCount: 1,
   };
   const disagreed: ConversationContext = {
     recentClassifications: ["identity", "voice"],
+    recentExchanges: [],
     activeTask: null,
     turnCount: 2,
   };
   const other: ConversationContext = {
     recentClassifications: ["voice", "voice"],
+    recentExchanges: [],
     activeTask: null,
     turnCount: 2,
   };
@@ -204,6 +208,7 @@ test("one prior turn, a disagreement, or another subject does not lift anything"
 test("the boost never carries confidence past one", () => {
   const context: ConversationContext = {
     recentClassifications: ["care", "care"],
+    recentExchanges: [],
     activeTask: "care",
     turnCount: 2,
   };

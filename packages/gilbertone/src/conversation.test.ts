@@ -6,6 +6,7 @@ import {
   getContext,
   hasActiveEscalation,
   resolveSlot,
+  CONTEXT_TURNS,
   TURN_LIMIT,
   type ConversationState,
   type Turn,
@@ -15,6 +16,7 @@ const turnOf = (n: number, over: Partial<Turn> = {}): Turn => ({
   turnId: `t${n}`,
   parentTurnId: n > 1 ? `t${n - 1}` : null,
   text: `message ${n}`,
+  reply: `reply ${n}`,
   classification: 'care',
   route: 'standard',
   timestamp: n,
@@ -60,6 +62,34 @@ test('getContext reads the last five classifications', () => {
   assert.deepEqual(context.recentClassifications, ['care', 'emergency', 'identity', 'voice', 'care']);
   assert.equal(context.turnCount, 6);
   assert.equal(context.activeTask, 'care');
+});
+
+test('getContext carries the same window of actual words as classifications, oldest first', () => {
+  let state = createConversation('session-1');
+  for (let n = 1; n <= 6; n += 1) state = addTurn(state, turnOf(n));
+  const context = getContext(state);
+  /* Six turns spoken, five kept — the same CONTEXT_TURNS window recentClassifications reads,
+     turn 1's words dropped along with its classification. */
+  assert.equal(context.recentExchanges.length, 5);
+  assert.deepEqual(
+    context.recentExchanges.map((exchange) => exchange.text),
+    ['message 2', 'message 3', 'message 4', 'message 5', 'message 6'],
+  );
+  assert.deepEqual(
+    context.recentExchanges.map((exchange) => exchange.reply),
+    ['reply 2', 'reply 3', 'reply 4', 'reply 5', 'reply 6'],
+  );
+});
+
+test('getContext never grows recentExchanges past CONTEXT_TURNS, however long the session runs', () => {
+  let state = createConversation('session-1');
+  for (let n = 1; n <= 25; n += 1) state = addTurn(state, turnOf(n));
+  const context = getContext(state);
+  assert.equal(context.recentExchanges.length, CONTEXT_TURNS);
+  assert.deepEqual(
+    context.recentExchanges.map((exchange) => exchange.text),
+    ['message 21', 'message 22', 'message 23', 'message 24', 'message 25'],
+  );
 });
 
 test('hasActiveEscalation follows the turns and the state', () => {

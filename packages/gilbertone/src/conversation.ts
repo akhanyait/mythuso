@@ -19,6 +19,12 @@ export interface Turn {
   turnId: string;
   parentTurnId: string | null;
   text: string;
+  /* The reply this turn was given — the classifier's own sentence, or the orchestrator's answer
+     when that tier wrote it. Added so a later turn's context can carry what was actually said,
+     not only how it was classified; stored exactly as it was returned to the caller, which for an
+     orchestrator answer is already redacted (turn.ts redacts the model's words before this turn is
+     built), and for a classifier answer is one of the contract's own fixed sentences. */
+  reply: string;
   classification: MessageClassification;
   route: string;
   timestamp: number;
@@ -36,9 +42,23 @@ export interface ConversationState {
   consentScope: string[];
 }
 
+/** One prior turn's words, as the context view carries them: what the patient said and what
+ *  GilbertOne replied. */
+export interface ConversationExchange {
+  text: string;
+  reply: string;
+}
+
 /** The small view of a session the classifier is given — never the whole history. */
 export interface ConversationContext {
   recentClassifications: MessageClassification[];
+  /* The last CONTEXT_TURNS turns' actual words, oldest first, the same window
+     recentClassifications reads — added so a caller building a prompt for a model (never the
+     keyword classifier, which only ever reads recentClassifications) can give it the conversation
+     itself rather than a label. Callers still owe this the same redaction discipline a fresh
+     message gets before it reaches a model; this view carries the words exactly as the turn
+     stored them. */
+  recentExchanges: ConversationExchange[];
   activeTask: string | null;
   turnCount: number;
 }
@@ -86,10 +106,10 @@ export function addTurn(
 
 /* The derived view: the last five classifications in order, the active task, and the count. */
 export function getContext(state: ConversationState): ConversationContext {
+  const recent = state.turns.slice(-CONTEXT_TURNS);
   return {
-    recentClassifications: state.turns
-      .slice(-CONTEXT_TURNS)
-      .map((turn) => turn.classification),
+    recentClassifications: recent.map((turn) => turn.classification),
+    recentExchanges: recent.map((turn) => ({ text: turn.text, reply: turn.reply })),
     activeTask: state.activeTask,
     turnCount: state.turns.length,
   };

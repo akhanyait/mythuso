@@ -78,9 +78,20 @@ const audit = (sessionId: string, route: string, text: string): void => {
 };
 
 /* What the model is told about the conversation, when the second tier is asked: where this turn
-   sits, how the classifier has read the recent ones, and whether a task is still open — the
-   context view's own fields and nothing else. The person's earlier words are not here, and could
-   not be: the context view has never carried them. */
+   sits, how the classifier has read the recent ones, whether a task is still open, and — since
+   the conversational-memory upgrade of 21 September 2026 — the actual words of the last few
+   exchanges, so a follow-up question ("how long before I should worry") reads as connected to
+   what it followed rather than answered cold.
+
+   Every prior turn's text and reply passes through the same redactor a fresh message does before
+   it reaches a model — req.text is redacted immediately below this function, and these lines get
+   no less. That the session store itself keeps req.text unredacted (so the audit trail and any
+   future human review see what was actually typed) is a decision about storage, not about what a
+   model is shown; this function is the boundary where that difference is enforced. Orchestrator.ts
+   redacts the whole block again before it reaches a model — the same redundancy the module's own
+   comment already claims for the current message — so a caller here forgetting this discipline
+   would not by itself leak a number, but the discipline belongs here anyway, at the point the
+   history is turned into words a model reads. */
 const contextLines = (context: ConversationContext): string[] => {
   const lines = [`This is turn ${context.turnCount + 1} of this conversation.`];
   if (context.recentClassifications.length)
@@ -91,6 +102,19 @@ const contextLines = (context: ConversationContext): string[] => {
     lines.push(
       `An earlier turn opened the "${context.activeTask}" task and it is still open.`,
     );
+  if (context.recentExchanges.length) {
+    lines.push(
+      "The recent exchange, oldest first — for following the thread of this conversation only. " +
+        "It is not new evidence: do not combine it with this turn to infer a condition, and do not " +
+        "say anything like 'given what you told me earlier' to imply a clinical read across turns. " +
+        "The same rule against diagnosing or prescribing applies to this turn exactly as it did to " +
+        "the first one.",
+    );
+    for (const exchange of context.recentExchanges) {
+      lines.push(`Patient said: ${redactPHI(exchange.text)}`);
+      lines.push(`GilbertOne replied: ${redactPHI(exchange.reply)}`);
+    }
+  }
   return lines;
 };
 
@@ -257,6 +281,10 @@ export async function handleTurn(
         ? req.parentTurnId
         : (previous?.turnId ?? null),
     text: req.text,
+    /* The reply this turn actually got — the classifier's fixed sentence, or the orchestrator's
+       answer when that tier wrote it, already redacted at line ~244 above. This is what makes a
+       later turn's context carry a real exchange rather than a label. */
+    reply,
     classification: answer.classification,
     route: answer.route,
     timestamp: now,
