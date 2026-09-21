@@ -70,9 +70,16 @@
    above the tab bar (or at the foot of the column on a wide screen), and the orb rises out of it,
    so it clears the bar however tall the bar has grown. Motion runs only under data-decor, which
    lib/motion.ts withholds under reduced motion, in a hidden tab and while Pause motion is pressed:
-   each of those leaves the robot still. The face and chest label share its gentle float. */
+   each of those leaves the robot still. The face shares its gentle float.
+
+   The robot's own size is declared once, here, because it is not only his size: it is the strip of
+   every column he floats over, and the reservation below reads it rather than repeating it. He was
+   88px until 21 September and the reservation was a separate 104, so growing him to 104 put him on
+   top of nine CTAs at 390px — in the workspaces, which never had a reservation at all. A number
+   typed twice drifts; this one is typed once. */
+:root { --al-footprint:104px; }
 .al-dock { position:relative; z-index:40; height:0; }
-.as-launcher { position:absolute; right:var(--space-16); bottom:var(--space-12); width:104px; height:104px; padding:0; border:0; border-radius:18px; background:transparent; box-shadow:none; cursor:pointer; }
+.as-launcher { position:absolute; right:var(--space-16); bottom:var(--space-12); width:var(--al-footprint); height:var(--al-footprint); padding:0; border:0; border-radius:18px; background:transparent; box-shadow:none; cursor:pointer; }
 .as-launcher[aria-expanded=true] { opacity:0; }
 .as-launcher span { position:absolute; }
 .al-glow { inset:0; background:none; }
@@ -90,12 +97,17 @@
 :root[data-decor=on] .al-glow { animation:al-breathe 3.25s ease-in-out infinite alternate; }
 :root[data-decor=on] .al-spark i { animation:al-x 3.5s ease-in-out infinite alternate; }
 :root[data-decor=on] .al-spark i::after { animation:al-y 3.5s ease-in-out -1.75s infinite alternate; }
-/* Room for it: the last thing on a page scrolls clear of the orb, and on a wide screen the footer's
-   help link moves out from under it. */
-.patient-surface main { padding-bottom:120px; }
-@media (min-width:1000px) { .patient-surface .app-footer { padding-right:120px; } }
+/* Room for it: the last thing on a page scrolls clear of the robot, and on a wide screen the
+   footer's help link moves out from under him. The reservation belongs to the dock rather than to
+   the patient surface, because since the audience decision of 19 September he is docked in the
+   clinical and back-office workspaces too, and those columns were reserving nothing — a doctor's
+   "Confirm and continue" at 390px sat underneath him. Any column that mounts the dock gives up the
+   strip he stands in; a column that does not, does not. The strip is how far he rises out of the
+   dock — his bottom offset plus his height — and a gap above that, so a CTA is clear of him rather
+   than touching him. */
+.app-shell main:has(~ .al-dock) { padding-bottom:calc(var(--space-12) + var(--al-footprint) + var(--space-16)); }
+@media (min-width:1000px) { .app-footer:has(~ .al-dock) { padding-right:calc(var(--al-footprint) + var(--space-16)); } }
 
 .al-smile { top:43%; left:46%; width:8%; height:4%; border:2px solid #62fff3; border-top:0; border-radius:0 0 50% 50%; }
-.as-launcher .al-name { top:66.5%; left:0; width:100%; color:#073449; font:750 5.2px/1.3 system-ui,sans-serif; text-align:center; }
 @keyframes al-float { to { transform:translateY(-2px); } }
 :root[data-decor=on] .al-orb { animation:al-float 3s ease-in-out infinite alternate; }

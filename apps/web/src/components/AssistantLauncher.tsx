@@ -1,5 +1,4 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
-import assistantUI from '../../../../packages/catalog/assistant-ui.json';
 import { AssistantGreeting } from './AssistantGreeting';
 import { OPEN_PARAM } from '../lib/roles';
 import type { PanelProps } from '../features/Assistant';
@@ -59,7 +58,13 @@ export function AssistantLauncher({ openModal, visit, audience }: { openModal?: 
    aria-expanded={open} aria-controls={opened ? 'assistant-panel' : undefined}
    onPointerEnter={() => void prefetch()} onFocus={() => void prefetch()}
    onClick={() => { setOpened(true); setOpen(!open); }}>
-   <span className="al-orb" aria-hidden="true"><span className="al-smile"/><span className="al-name">{assistantUI.robotName}</span></span>
+   {/* His name is not printed on his chest here. It fitted at 5.2px, which is not a name — it is a
+       smudge, four sizes below the smallest the type scale declares, and the accessibility sweep
+       was right to fail it. There is nowhere on a 104px robot for 13px of text that does not cover
+       the artwork this launcher exists to show. The name is said where it can be read: in the
+       button's accessible name, in the greeting bubble beside him, and on the chest of the larger
+       avatar inside the panel, which is an SVG and scales. */}
+   <span className="al-orb" aria-hidden="true"><span className="al-smile"/></span>
   </button>
   {opened && <Suspense fallback={open ? <p className="al-note" role="status">Opening GilbertOne.</p> : null}>
    <Panel open={open} dismiss={() => setOpen(false)} openModal={openModal ? modal => { setOpen(false); openModal(modal); } : undefined} visit={visit} audience={audience}/>
