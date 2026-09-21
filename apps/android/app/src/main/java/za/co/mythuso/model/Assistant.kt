@@ -72,7 +72,12 @@ data class GilbertVoicePolicy(
     val correctionBeforeSend: Boolean, val wakeWord: Boolean,
     val howItWorks: String, val beforePermission: String, val askPermissionLabel: String, val notNowLabel: String,
     val unavailable: String, val refused: String, val failed: String, val interrupted: String,
-    val talkLabel: String, val stopLabel: String, val captionsLabel: String, val correctLabel: String, val discardLabel: String
+    val talkLabel: String, val stopLabel: String, val captionsLabel: String, val correctLabel: String, val discardLabel: String,
+    /** voice.nativeSpeech.enabled: read before GilbertSpeaker reaches for TextToSpeech at all. */
+    val nativeSpeechEnabled: Boolean,
+    /** voice.voicePreference.order, applied to whatever locales this phone's engine actually has, exactly as it is on the web. */
+    val speechVoiceOrder: List<String>,
+    val muteLabel: String, val unmuteLabel: String, val speechUnavailable: String
 )
 data class GilbertRefusal(val id: String, val statement: String, val why: String)
 data class GilbertStemFixture(val says: String, val stems: List<String>)

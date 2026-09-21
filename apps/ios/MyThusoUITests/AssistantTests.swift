@@ -135,6 +135,34 @@ final class AssistantTests: XCTestCase {
         keep(app, "gilbert-unread")
     }
 
+    /* voice.nativeSpeech, added 21 September 2026: GilbertSpeaker reads a reply aloud through
+       AVSpeechSynthesizer, entirely on-device, so — unlike the microphone — nothing here asks the
+       system for anything. What a UI test can prove without a simulator's speech assets is the control
+       a person actually presses: the composer's speaker button exists, opens unmuted (matching
+       voice.webSpeech's own default of speaking), and its label — read from the contract, not typed by
+       this screen — flips with each tap. */
+    func testTheSpeakerToggleMutesAndUnmutesWithoutAskingForAnything() {
+        let app = launchApp()
+        openGilbert(app)
+        let field = app.textFields["gilbert-input"]
+        XCTAssertTrue(field.waitForExistence(timeout: 20), "GilbertOne has no text field")
+        field.tap()
+        field.typeText("when is my nurse coming")
+        app.buttons["gilbert-send"].tap()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "A nurse is expected on")).firstMatch.waitForExistence(timeout: 10),
+                      "a typed question did not get the visit answer")
+
+        let toggle = app.buttons["gilbert-speech-toggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 10), "the composer has no speaker toggle for GilbertOne's spoken replies")
+        XCTAssertEqual(toggle.label, "Mute GilbertOne's voice", "the speaker toggle does not open unmuted, matching voice.webSpeech's own default of speaking")
+        XCTAssertFalse(systemPrompt().waitForExistence(timeout: 3), "reading a reply aloud asked the system for something; AVSpeechSynthesizer is on-device and needs no permission")
+
+        toggle.tap()
+        XCTAssertEqual(toggle.label, "Let GilbertOne speak its answers", "tapping the speaker toggle did not mute it")
+        toggle.tap()
+        XCTAssertEqual(toggle.label, "Mute GilbertOne's voice", "tapping the speaker toggle again did not unmute it")
+    }
+
     func testTheScreenIsUsableAtBothTextSizes() {
         for (name, size) in [("the default content size", []), ("AccessibilityXXXL", Audit.largestAccessibilitySize)] {
             let app = launchApp(contentSize: size)

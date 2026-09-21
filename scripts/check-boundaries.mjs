@@ -14047,6 +14047,51 @@ if (
   throw new Error(
     "apps/web/src/lib/voice.ts no longer reads voice.voicePreference.order. The order is the founder's decision of 20 September 2026 and that file is the only one allowed to reach for the browser's voice list; a list read against an order typed in code is the locale setting §07's V03 refuses.",
   );
+/* The phones' half of the same reply, decided the day after voice.webSpeech: GilbertOne read aloud on
+   the phone itself, through each platform's own on-device synthesiser, with a mute control the web does
+   not have because a phone is far more often overheard than a desktop browser at a settled address.
+   The check is the same shape as voice.webSpeech's, above — a dated record held to the founder's day,
+   `enabled` pinned to true because switching it off again is the founder's decision recorded in the
+   contract, not an edit — and then the wiring: both GilbertVoice files read the flag before reaching
+   for a synthesiser, and both screens read the mute labels from the contract rather than typing them. */
+const nativeSpeech = gilbertVoice.nativeSpeech;
+if (!nativeSpeech)
+  throw new Error(
+    "voice.nativeSpeech is missing from packages/catalog/assistant.json. Whether GilbertOne may read its replies aloud on the phone is a decision with a day on it, the same as voice.webSpeech, and a flag that is not in the contract is a mood the code is having.",
+  );
+for (const [key, what] of [
+  ["enabled", "whether it is on"],
+  ["decidedBy", "who decided it"],
+  ["on", "the day it was decided"],
+  ["why", "the reason"],
+]) {
+  if (nativeSpeech[key] === undefined)
+    throw new Error(
+      `voice.nativeSpeech has no "${key}", which is ${what}. A speech decision that loses its provenance is a widening waiting to be mistaken for a default.`,
+    );
+}
+if (nativeSpeech.enabled !== true)
+  throw new Error(
+    `voice.nativeSpeech.enabled is ${JSON.stringify(nativeSpeech.enabled)}. GilbertOne speaking on the phone was switched on by the founder on 21 September 2026, and switching it off again is the founder's decision to record, not an edit to this field.`,
+  );
+if (!/founder/i.test(String(nativeSpeech.decidedBy)))
+  throw new Error(
+    `voice.nativeSpeech was decided by "${nativeSpeech.decidedBy}". A voice reading health answers aloud is the founder's call, the way voice.webSpeech and voice.voicePreference were.`,
+  );
+if (!/^\d{4}-\d{2}-\d{2}$/.test(String(nativeSpeech.on)))
+  throw new Error(
+    `voice.nativeSpeech.on is "${nativeSpeech.on}", which is not a date.`,
+  );
+if (
+  !/on-device|on the phone itself/i.test(String(nativeSpeech.why)) ||
+  !/mute/i.test(String(nativeSpeech.why))
+)
+  throw new Error(
+    "voice.nativeSpeech.why does not state that the voice is on-device and that a mute control exists. The phones carry a control the web does not, and the reason has to travel with the flag or the next reader has no way to tell the omission from the decision.",
+  );
+/* The wiring — both GilbertVoice files reading the flag, both screens reading the mute labels from the
+   contract and calling speaker.speak — is checked further down, once IOS_VOICE and ANDROID_VOICE are
+   in scope (see "nativeSpeech, wired" below, beside the Android speech section). */
 if (
   gilbertVoice.languages.length !== 1 ||
   gilbertVoice.languages[0].id !== "en" ||
@@ -15155,7 +15200,7 @@ if (
 /* ---- iOS: the microphone lives in one file, asks for on-device recognition, and writes nothing -- */
 const IOS_VOICE = "apps/ios/MyThuso/Features/GilbertVoice.swift";
 const IOS_SPEECH =
-  /\b(AVAudioEngine|AVAudioSession|AVAudioApplication|SFSpeechRecognizer|SFSpeechAudioBufferRecognitionRequest|SFSpeechRecognitionTask|requestRecordPermission|installTap)\b|\bimport\s+(Speech|AVFAudio|AVFoundation)\b/;
+  /\b(AVAudioEngine|AVAudioSession|AVAudioApplication|SFSpeechRecognizer|SFSpeechAudioBufferRecognitionRequest|SFSpeechRecognitionTask|requestRecordPermission|installTap|AVSpeechSynthesizer|AVSpeechUtterance|AVSpeechSynthesisVoice)\b|\bimport\s+(Speech|AVFAudio|AVFoundation)\b/;
 const IOS_RECORDING =
   /\b(AVAudioRecorder|AVAudioFile|AVAssetWriter|ExtAudioFile\w*|AudioFileCreate\w*|AVCaptureDevice|AVCaptureSession)\b/;
 for (const file of iosSources) {
@@ -15234,11 +15279,11 @@ for (const file of native.filter((f) => f.endsWith(".kt"))) {
       `${file} reaches for ${recorder[0]}. No recording of a voice is made or kept; on Android that is enforced by the recorder APIs not being here at all.`,
     );
   const speech = code.match(
-    /\b(SpeechRecognizer|RecognitionListener|RecognizerIntent)\b/,
+    /\b(SpeechRecognizer|RecognitionListener|RecognizerIntent|TextToSpeech|UtteranceProgressListener)\b/,
   );
   if (speech && file !== ANDROID_VOICE)
     throw new Error(
-      `${file} reaches for ${speech[0]}. Speech recognition lives in ${ANDROID_VOICE} and nowhere else.`,
+      `${file} reaches for ${speech[0]}. Speech, in either direction, lives in ${ANDROID_VOICE} and nowhere else.`,
     );
   if (
     /RECORD_AUDIO/.test(code) &&
@@ -15278,6 +15323,49 @@ const androidElsewhere = androidVoice.match(
 if (androidElsewhere)
   throw new Error(
     `${ANDROID_VOICE} reaches for ${androidElsewhere[0]}. Speech goes to the on-device recogniser and the words to the screen, and nothing else: no server recogniser, no recognition activity and nothing written down.`,
+  );
+
+/* ---- nativeSpeech, wired: both GilbertVoice files read the flag before reaching for a synthesiser,
+ * and both screens read the mute labels from the contract rather than typing them. voice.nativeSpeech
+ * itself — its provenance, its day and the caption/mute rule in its why — is checked earlier, beside
+ * voice.webSpeech; this is the wiring half, which needs IOS_VOICE and ANDROID_VOICE in scope. */
+if (!/Gilbert\.voice\.nativeSpeechEnabled/.test(gilbertCode(read(IOS_VOICE))))
+  throw new Error(
+    `${IOS_VOICE} no longer reads Gilbert.voice.nativeSpeechEnabled before GilbertSpeaker reaches for AVSpeechSynthesizer. The flag is the founder's decision of 21 September 2026, and a class that stops reading it has taken the decision into code, where no date and no reason travel with it.`,
+  );
+if (
+  !/GilbertData\.voice\.nativeSpeechEnabled/.test(gilbertCode(read(ANDROID_VOICE)))
+)
+  throw new Error(
+    `${ANDROID_VOICE} no longer reads GilbertData.voice.nativeSpeechEnabled before GilbertSpeaker reaches for TextToSpeech. The flag is the founder's decision of 21 September 2026, and a class that stops reading it has taken the decision into code, where no date and no reason travel with it.`,
+  );
+/* The mute button's own words come from the contract on both phones, not typed at the call site — the
+   same rule every other GilbertOne label in this file already holds to. */
+const iosAssistantView = gilbertCode(read(assistant));
+if (
+  !/Gilbert\.voice\.muteLabel/.test(iosAssistantView) ||
+  !/Gilbert\.voice\.unmuteLabel/.test(iosAssistantView)
+)
+  throw new Error(
+    `${assistant} does not read Gilbert.voice.muteLabel and Gilbert.voice.unmuteLabel from the generated contract. A speaker button with a hand-typed label is a fourth copy of a sentence that is supposed to exist once.`,
+  );
+if (!/speaker\.speak\(/.test(iosAssistantView))
+  throw new Error(
+    `${assistant} no longer calls speaker.speak(...) when a reply lands. GilbertSpeaker exists to be wired to the reply, the way voiceAdapter.speak is wired on the web; a screen that stops calling it has a mouth nobody opens.`,
+  );
+const androidScreensForSpeech = gilbertCode(
+  read(`${ANDROID_ROOT}/ui/GilbertScreens.kt`),
+);
+if (
+  !/GilbertData\.voice\.muteLabel/.test(androidScreensForSpeech) ||
+  !/GilbertData\.voice\.unmuteLabel/.test(androidScreensForSpeech)
+)
+  throw new Error(
+    `apps/android/.../ui/GilbertScreens.kt does not read GilbertData.voice.muteLabel and GilbertData.voice.unmuteLabel from the generated contract. A speaker button with a hand-typed label is a fourth copy of a sentence that is supposed to exist once.`,
+  );
+if (!/speaker\.speak\(/.test(androidScreensForSpeech))
+  throw new Error(
+    `apps/android/.../ui/GilbertScreens.kt no longer calls speaker.speak(...) when a reply lands. GilbertSpeaker exists to be wired to the reply, the way voiceAdapter.speak is wired on the web; a screen that stops calling it has a mouth nobody opens.`,
   );
 
 /* ---- The web: one file may hear, one page may say so, and nothing may record -----------------

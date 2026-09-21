@@ -11,14 +11,21 @@ import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import za.co.mythuso.model.GilbertData
+import java.util.Locale
 
-/* GilbertOne's ears on Android, and the only file in this app allowed to have any.
+/* GilbertOne's ears on Android, and — since 21 September 2026 — its mouth too: the only file in this
+ * app allowed to have either. GilbertListener is the ears; GilbertSpeaker, at the foot of this file, is
+ * the mouth. One file for both is the same rule as one file for the microphone: anybody asking when
+ * this app can hear or speak gets an answer by opening a single module, and the build refuses
+ * TextToSpeech everywhere else the way it already refuses SpeechRecognizer.
  *
  * The founder decided on 14 September 2026 what listening may be in Release 1: push-to-talk, English,
  * recognised on the phone itself, nothing kept. The build refuses SpeechRecognizer, RecognitionListener
@@ -196,4 +203,86 @@ class GilbertListener(private val context: Context) : RecognitionListener {
     }
 
     override fun onEvent(eventType: Int, params: Bundle?) {}
+}
+
+/* GilbertOne's mouth, added 21 September 2026 under voice.nativeSpeech. Android's TextToSpeech is
+ * on-device by default — the engine that already ships with the phone does the work, with no network
+ * request behind it — so unlike SpeechRecognizer there is no separate on-device request to make:
+ * onInit's status says whether an engine exists at all, and setLanguage says whether it has English.
+ *
+ * THE FLAG IS READ BEFORE ANYTHING ELSE. `speak` returns before touching the engine at all while
+ * voice.nativeSpeech.enabled is false, the same order GilbertVoice.swift and lib/voice.ts both keep, so
+ * switching the contract's flag off again leaves this class inert rather than merely unused.
+ *
+ * MUTE IS THE PHONE'S OWN CONTROL, WHICH THE WEB DOES NOT HAVE. A phone is far more often overheard
+ * than a desktop browser at a settled address, so `muted` — false by default, matching voice.webSpeech's
+ * own default of speaking — stops the current sentence immediately and every reply after it until
+ * somebody taps the composer's speaker button back on. It is Compose state on this object alone: nothing
+ * about the choice is written to SharedPreferences, DataStore or a file, so it resets the way the
+ * composer's own microphone state does when the sheet is opened again.
+ *
+ * THE CAPTION NEVER DEPENDS ON THE VOICE. GilbertScreens.kt writes every reply to the screen whether or
+ * not this class ever speaks a word of it; speaking is a second reading of words already there, never
+ * the only place they appear — the same rule voice.webSpeech states for the web. */
+class GilbertSpeaker(context: Context) : TextToSpeech.OnInitListener {
+    enum class State { UNAVAILABLE, READY }
+
+    var state by mutableStateOf(State.UNAVAILABLE)
+        private set
+    var speaking by mutableStateOf(false)
+        private set
+    /** Off is one tap away on the composer's speaker button; on is the default, matching voice.webSpeech. */
+    var muted by mutableStateOf(false)
+
+    private var engine: TextToSpeech? = TextToSpeech(context.applicationContext, this)
+    private val utteranceId = "gilbertone-reply"
+
+    override fun onInit(status: Int) {
+        if (status != TextToSpeech.SUCCESS) { state = State.UNAVAILABLE; return }
+        val result = engine?.setLanguage(preferredLocale())
+        state = if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED)
+            State.UNAVAILABLE else State.READY
+        engine?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(id: String?) { speaking = true }
+            override fun onDone(id: String?) { speaking = false }
+            @Suppress("DEPRECATION") override fun onError(id: String?) { speaking = false }
+        })
+    }
+
+    /** voice.voicePreference's own order — South African English first, then British, then Australian,
+     *  then any English voice — applied to whatever this engine actually has; an engine with none of the
+     *  four keeps its own default locale, and none is promised. The same rule lib/voice.ts applies to the
+     *  browser's voice list and GilbertVoice.swift to the phone's installed voices. */
+    private fun preferredLocale(): Locale {
+        val current = engine
+        for (tag in GilbertData.voice.speechVoiceOrder) {
+            val candidate = Locale.forLanguageTag(tag)
+            val availability = current?.isLanguageAvailable(candidate) ?: TextToSpeech.LANG_NOT_SUPPORTED
+            if (availability >= TextToSpeech.LANG_AVAILABLE) return candidate
+        }
+        return Locale.forLanguageTag(GilbertData.voice.recognitionLocales.first())
+    }
+
+    /** The reply's own words, already on the screen before this is ever called — never a substitute for
+     *  them. A held safety face or a muted screen answers with silence rather than an utterance nobody
+     *  asked to hear. */
+    fun speak(text: String) {
+        if (!GilbertData.voice.nativeSpeechEnabled || muted || state != State.READY) return
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return
+        engine?.speak(trimmed, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+    }
+
+    /** Stop, whether the composer's mute button, the sheet closing or the app leaving the foreground. */
+    fun stop() {
+        engine?.stop()
+        speaking = false
+    }
+
+    /** The sheet is gone for good; the engine is released rather than left running for nobody. */
+    fun shutdown() {
+        engine?.stop()
+        engine?.shutdown()
+        engine = null
+    }
 }

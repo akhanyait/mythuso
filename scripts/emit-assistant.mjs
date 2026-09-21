@@ -445,7 +445,12 @@ ${terms.groups
         stopLabel: ${swift(voice.sentences.stopLabel)},
         captionsLabel: ${swift(voice.sentences.captionsLabel)},
         correctLabel: ${swift(voice.sentences.correctLabel)},
-        discardLabel: ${swift(voice.sentences.discardLabel)})
+        discardLabel: ${swift(voice.sentences.discardLabel)},
+        nativeSpeechEnabled: ${voice.nativeSpeech.enabled},
+        speechVoiceOrder: ${listSwift(voice.voicePreference.order)},
+        muteLabel: ${swift(voice.sentences.muteLabel)},
+        unmuteLabel: ${swift(voice.sentences.unmuteLabel)},
+        speechUnavailable: ${swift(voice.sentences.speechUnavailable)})
 
     /* The shared fixtures every platform runs its own matcher against. */
     static let stemFixtures: [GilbertStemFixture] = [
@@ -652,7 +657,12 @@ ${terms.groups
         stopLabel = ${kotlin(voice.sentences.stopLabel)},
         captionsLabel = ${kotlin(voice.sentences.captionsLabel)},
         correctLabel = ${kotlin(voice.sentences.correctLabel)},
-        discardLabel = ${kotlin(voice.sentences.discardLabel)}
+        discardLabel = ${kotlin(voice.sentences.discardLabel)},
+        nativeSpeechEnabled = ${voice.nativeSpeech.enabled},
+        speechVoiceOrder = ${listKotlin(voice.voicePreference.order)},
+        muteLabel = ${kotlin(voice.sentences.muteLabel)},
+        unmuteLabel = ${kotlin(voice.sentences.unmuteLabel)},
+        speechUnavailable = ${kotlin(voice.sentences.speechUnavailable)}
     )
 
     /* The shared fixtures every platform runs its own matcher against. */

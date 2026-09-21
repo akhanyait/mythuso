@@ -805,6 +805,12 @@
       "why": "Switched on by the founder on 20 September 2026, for the demonstrator: the whole path built on 19 September is now live on the live assistant, so every reply is read aloud in its own words while the same words stay written on the screen beside it. The switch changes nothing about the rules it was built under. The caption is the reply itself, already written on the screen in full before the voice starts and for as long as it speaks, mandatory and not switchable — there is no setting anywhere that turns the written words off, because a spoken reply is another reading of the words and never a replacement for them. The mouth closes on Stop, on cancel, on failure, under reduced motion and on a hidden tab — the five the demonstrator's A10 already obeys — and a held safety face refuses the cue outright. §07's V03 refusal now stands over the chooser, not the voice: no voice is listed and no picker is drawn, and no South African voice is promised or implied — the browser is asked for a South African English voice first, in the order voice.voicePreference records, and another English voice or the browser's own default stands in when it is absent, because the contract says not to guarantee one is installed. Switching this flag off again is the founder's decision recorded here, not an edit.",
       "reverses": "voice.webSpeech.enabled = false, decided 19 September 2026"
     },
+    "nativeSpeech": {
+      "enabled": true,
+      "decidedBy": "Founder",
+      "on": "2026-09-21",
+      "why": "Asked for on 21 September 2026, the day after voice.webSpeech: GilbertOne's replies are read aloud on the phone itself, through the phone's own speech synthesiser — AVSpeechSynthesizer on iOS, TextToSpeech on Android — the same on-device rule the microphone has always kept, and nothing said is sent anywhere to make it happen. The words stay written on the screen in full whether the voice is on or off, which is the same rule the web keeps. Unlike the web, the phone carries its own mute control — a speaker button beside the composer — because a phone is far more often used somewhere a voice reading a health answer aloud would be overheard: a bus, a waiting room, a shared house, rather than a desktop at a settled address. Muting stops the current sentence immediately, mutes every reply after it, and is remembered for nothing beyond the screen being open — the same honest equivalent of persistence the consent gate on the web already uses, because apps/ios and apps/android hold nothing about a person's choices once the screen closes. English only, the on-device voice the phone already has, and voice.voicePreference's order — South African English first, then British, then Australian, then any English voice — applied quietly on both phones exactly as it is on the web; a phone with none of the four keeps its own system voice, and none is promised. Switching this off again is the founder's decision to record, not an edit."
+    },
     "webPoc": {
       "enabled": true,
       "scope": "The GilbertOne character demonstrator at /app/?preview=gilbertone. These sentences are written for a reviewer on a page labelled a demonstrator. The live patient assistant has its own set, voice.webSentences, and the two are kept apart on purpose: a page that says “this demonstration” to a patient is a page describing the wrong thing, and the demonstrator's refusals are worded for somebody who chose to open it.",
@@ -849,7 +855,10 @@
       "captionsLabel": "What GilbertOne has heard so far",
       "correctLabel": "Check what GilbertOne heard, and correct it before you send it",
       "discardLabel": "Discard",
-      "interrupted": "GilbertOne stopped listening because the phone needed its microphone for something else, or the microphone changed. Nothing was kept. Tap to talk again, or type."
+      "interrupted": "GilbertOne stopped listening because the phone needed its microphone for something else, or the microphone changed. Nothing was kept. Tap to talk again, or type.",
+      "muteLabel": "Mute GilbertOne's voice",
+      "unmuteLabel": "Let GilbertOne speak its answers",
+      "speechUnavailable": "GilbertOne cannot read this answer aloud on this phone right now. The words are still on the screen, in full."
     },
     "usageDescriptions": {
       "NSMicrophoneUsageDescription": "GilbertOne uses the microphone only after you tap the sphere, to hear a question in English. No recording is made.",

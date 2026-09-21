@@ -2,7 +2,11 @@ import Foundation
 import Speech
 import AVFAudio
 
-/* GilbertOne's ears, and the only file in this app allowed to have any.
+/* GilbertOne's ears, and — since 21 September 2026 — its mouth too: the only file in this app allowed
+   to have either. GilbertListener is the ears; GilbertSpeaker, at the foot of this file, is the mouth.
+   One file for both is the same rule as one file for the microphone: anybody asking when this app can
+   hear or speak gets an answer by opening a single module rather than trusting a sentence, and the
+   build refuses AVSpeechSynthesizer everywhere else the way it already refuses SFSpeechRecognizer.
 
    The founder decided on 14 September 2026 what listening may be in Release 1, and this file is that
    decision as code: push-to-talk, English, recognised on the phone itself, nothing kept. The build
@@ -283,5 +287,84 @@ final class GilbertListener: ObservableObject {
         guard rms > 0 else { return 0 }
         let decibels = 20 * log10(Double(rms))
         return min(1, max(0, (decibels + 50) / 40))
+    }
+}
+
+/* GilbertOne's mouth, added 21 September 2026 under voice.nativeSpeech. AVSpeechSynthesizer is entirely
+   on-device — the voices ship with the OS — so unlike GilbertListener there is no server path to refuse
+   and no requiresOnDeviceRecognition equivalent to set; the on-device rule is upheld simply by there
+   being no other kind of synthesiser to reach for.
+
+   THE FLAG IS READ BEFORE ANYTHING ELSE. `speak` returns before constructing an utterance, cancelling
+   anything or touching the synthesiser at all while voice.nativeSpeech.enabled is false — the same order
+   lib/voice.ts keeps for the web, so switching the contract's flag off again leaves this class inert
+   rather than merely unused.
+
+   MUTE IS THE PHONE'S OWN CONTROL, WHICH THE WEB DOES NOT HAVE. A phone is far more often overheard than
+   a desktop browser at a settled address, so `muted` — false by default, matching voice.webSpeech's own
+   default of speaking — stops the current sentence immediately and every reply after it until somebody
+   taps it back on. It is `@Published` state on this object alone: nothing about the choice is written to
+   disk, iCloud or UserDefaults, so it resets the way the composer's own microphone state does when the
+   screen is asked for again.
+
+   THE CAPTION NEVER DEPENDS ON THE VOICE. AssistantView writes every reply to the screen whether or not
+   this class ever speaks a word of it; speaking is a second reading of words already there, never the
+   only place they appear — the same rule voice.webSpeech states for the web. */
+@MainActor
+final class GilbertSpeaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
+    @Published private(set) var speaking = false
+    /// Off is one tap away on the composer's speaker button; on is the default, matching voice.webSpeech.
+    @Published var muted = false
+
+    private let synthesiser = AVSpeechSynthesizer()
+
+    override init() {
+        super.init()
+        synthesiser.delegate = self
+    }
+
+    /// The reply's own words, already on the screen before this is ever called — never a substitute for
+    /// them. A held safety face or a muted screen answers with silence rather than an utterance nobody
+    /// asked to hear.
+    func speak(_ text: String) {
+        guard Gilbert.voice.nativeSpeechEnabled, !muted else { return }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        synthesiser.stopSpeaking(at: .immediate)
+        let utterance = AVSpeechUtterance(string: trimmed)
+        utterance.voice = Self.preferredVoice()
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+        synthesiser.speak(utterance)
+    }
+
+    /// Stop, whether the composer's mute button, the screen closing or the app leaving the foreground.
+    func stop() {
+        synthesiser.stopSpeaking(at: .immediate)
+    }
+
+    /// voice.voicePreference's own order — South African English first, then British, then Australian,
+    /// then any English voice — applied to whatever this phone actually has installed; a phone with none
+    /// of the four keeps the system's own default voice, and none is promised. The same rule lib/voice.ts
+    /// applies to the browser's voice list.
+    private static func preferredVoice() -> AVSpeechSynthesisVoice? {
+        let installed = AVSpeechSynthesisVoice.speechVoices()
+        for tag in Gilbert.voice.speechVoiceOrder {
+            if let found = installed.first(where: {
+                $0.language.lowercased() == tag.lowercased() || $0.language.lowercased().hasPrefix("\(tag.lowercased())-")
+            }) {
+                return found
+            }
+        }
+        return AVSpeechSynthesisVoice(language: Gilbert.voice.recognitionLocales.first)
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
+        Task { @MainActor in self.speaking = true }
+    }
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        Task { @MainActor in self.speaking = false }
+    }
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        Task { @MainActor in self.speaking = false }
     }
 }

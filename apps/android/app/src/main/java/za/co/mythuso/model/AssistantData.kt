@@ -305,7 +305,12 @@ object GilbertData {
         stopLabel = "Stop",
         captionsLabel = "What GilbertOne has heard so far",
         correctLabel = "Check what GilbertOne heard, and correct it before you send it",
-        discardLabel = "Discard"
+        discardLabel = "Discard",
+        nativeSpeechEnabled = true,
+        speechVoiceOrder = listOf("en-ZA", "en-GB", "en-AU", "en"),
+        muteLabel = "Mute GilbertOne's voice",
+        unmuteLabel = "Let GilbertOne speak its answers",
+        speechUnavailable = "GilbertOne cannot read this answer aloud on this phone right now. The words are still on the screen, in full."
     )
 
     /* The shared fixtures every platform runs its own matcher against. */

@@ -17,6 +17,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.LocalHospital
 import androidx.compose.material.icons.outlined.Mic
@@ -136,6 +138,7 @@ import kotlin.math.sin
 @Composable private fun GilbertContent(store: PreviewStore, open: (String) -> Unit, close: (() -> Unit)?) {
     val context = LocalContext.current
     val listener = remember { GilbertListener(context) }
+    val speaker = remember { GilbertSpeaker(context) }
     val reduced = prefersReducedMotion()
     val largeType = LocalDensity.current.fontScale >= 1.6f
     var turns by remember { mutableStateOf(Gilbert.opening()) }
@@ -151,12 +154,12 @@ import kotlin.math.sin
     val scroll = rememberScrollState()
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> listener.permissionAnswered(granted) }
 
-    /* The microphone ends with the sheet, and with the app leaving the foreground. */
+    /* The microphone and the voice both end with the sheet, and with the app leaving the foreground. */
     DisposableEffect(context) {
         val lifecycle = (context as? ComponentActivity)?.lifecycle
-        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_STOP) listener.cancel() }
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_STOP) { listener.cancel(); speaker.stop() } }
         lifecycle?.addObserver(observer)
-        onDispose { lifecycle?.removeObserver(observer); listener.cancel() }
+        onDispose { lifecycle?.removeObserver(observer); listener.cancel(); speaker.shutdown() }
     }
     LaunchedEffect(listener.phase) { if (listener.phase == GilbertListener.Phase.HEARD) correction = listener.heard }
     /* After Send the sheet used to scroll to its foot — the refusals and the field — and leave the question
@@ -169,6 +172,10 @@ import kotlin.math.sin
         withFrameNanos { }
         if (reduced) scroll.scrollTo(latestTop) else scroll.animateScrollTo(latestTop)
         @Suppress("DEPRECATION") view.announceForAccessibility(spoken(turns.last()))
+        /* And the same words to GilbertSpeaker, which reads voice.nativeSpeech's flag and the mute
+           switch before it reaches for the engine at all. The reply is already on the screen above;
+           this is a second reading of it, never the only place the words appear. */
+        speaker.speak(spokenAloud(turns.last()))
     }
 
     val asked = turns.size > 1
@@ -212,7 +219,7 @@ import kotlin.math.sin
                     again = { turns = Gilbert.opening(); raised = false; sent.clear(); conversationRef = java.util.UUID.randomUUID().toString() })
                 Refusals()
             }
-            Composer(draft, { draft = it }, sendDraft, largeType)
+            Composer(draft, { draft = it }, sendDraft, largeType, speaker)
         }
     }
 }
@@ -421,17 +428,29 @@ import kotlin.math.sin
 private fun plainKeyboard(ime: ImeAction) =
     KeyboardOptions(autoCorrectEnabled = false, keyboardType = KeyboardType.Text, capitalization = KeyboardCapitalization.None, imeAction = ime)
 
+/* The words behind every reply kind, shared between what TalkBack is told and what GilbertSpeaker reads
+   aloud — one `when` rather than two that could answer the same turn differently. */
+private fun coreWords(turn: GilbertTurn): String = when (val reply = turn.reply) {
+    is GilbertReply.Situation -> reply.situation.sentence
+    GilbertReply.Identity -> GilbertData.whatItIs
+    GilbertReply.Voice -> GilbertData.voice.howItWorks
+    is GilbertReply.Emergency -> GilbertData.emergency.headline
+    GilbertReply.Unmatched -> GilbertData.unmatched.sentence
+    is GilbertReply.Handover -> GilbertData.handover.title
+}
+
 /* What TalkBack is told when a reply arrives: its first sentence, and that words were left unread. */
 private fun spoken(turn: GilbertTurn): String {
-    val first = when (val reply = turn.reply) {
-        is GilbertReply.Situation -> reply.situation.sentence
-        GilbertReply.Identity -> GilbertData.whatItIs
-        GilbertReply.Voice -> GilbertData.voice.howItWorks
-        is GilbertReply.Emergency -> GilbertData.emergency.headline
-        GilbertReply.Unmatched -> GilbertData.unmatched.sentence
-        is GilbertReply.Handover -> GilbertData.handover.title
-    }
+    val first = coreWords(turn)
     return if (turn.unread) "${GilbertData.name}: $first ${GilbertData.unread.sentence}" else "${GilbertData.name}: $first"
+}
+
+/* The same words, without the name spoken first: the sphere already says who is answering, and a voice
+   does not need to introduce itself before every sentence the way TalkBack announcing a new element
+   does. Matches spokenOf's own shape on the web and AssistantView.swift's spokenAloud on iOS. */
+private fun spokenAloud(turn: GilbertTurn): String {
+    val first = coreWords(turn)
+    return if (turn.unread) "$first ${GilbertData.unread.sentence}" else first
 }
 
 /* The numbers in a real column, printed and never dialled: the SOS screen says nothing here dials. */
@@ -481,7 +500,7 @@ private fun spoken(turn: GilbertTurn): String {
 /* The keyboard note shows while the field has the keyboard, which is when the keyboard's microphone key
    is on the screen; pinned all the time it took the conversation's room, which iOS's accessibility audit
    caught on the same layout. */
-@Composable private fun Composer(draft: String, onDraft: (String) -> Unit, send: () -> Unit, largeType: Boolean) {
+@Composable private fun Composer(draft: String, onDraft: (String) -> Unit, send: () -> Unit, largeType: Boolean, speaker: GilbertSpeaker) {
     var typing by remember { mutableStateOf(false) }
     Column(
         Modifier.fillMaxWidth().background(BrandInk).navigationBarsPadding()
@@ -503,10 +522,26 @@ private fun spoken(turn: GilbertTurn): String {
                 modifier = Modifier.weight(1f).onFocusChanged { typing = it.isFocused }
                     .semantics { contentDescription = GilbertData.conversation.inputLabel }
             )
+            SpeechToggle(speaker)
             FilledButton(GilbertData.conversation.sendLabel, Modifier.wrapContentWidth(), fill = false) { send() }
         }
         if (typing) Text(GilbertData.conversation.keyboardNote, style = MaterialTheme.typography.bodySmall, color = BrandMint)
         if (!largeType) Silence()
+    }
+}
+
+/* The speaker button beside the field: the composer's own control for GilbertSpeaker, drawn only while
+   voice.nativeSpeech is on. A tap mutes or unmutes; muting stops the sentence GilbertOne is part-way
+   through as well as every reply after it, because a control that only changes future replies while the
+   room can still hear the current one is not a mute. */
+@Composable private fun SpeechToggle(speaker: GilbertSpeaker) {
+    if (!GilbertData.voice.nativeSpeechEnabled) return
+    val label = if (speaker.muted) GilbertData.voice.unmuteLabel else GilbertData.voice.muteLabel
+    IconButton(
+        onClick = { speaker.muted = !speaker.muted; if (speaker.muted) speaker.stop() },
+        modifier = Modifier.size(TouchTarget).semantics { contentDescription = label }
+    ) {
+        Icon(if (speaker.muted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp, null, tint = SurfaceWhite)
     }
 }
 

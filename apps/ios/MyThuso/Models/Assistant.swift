@@ -185,6 +185,13 @@ struct GilbertVoicePolicy {
     let captionsLabel: String
     let correctLabel: String
     let discardLabel: String
+    /// voice.nativeSpeech.enabled: read before GilbertSpeaker reaches for AVSpeechSynthesizer at all.
+    let nativeSpeechEnabled: Bool
+    /// voice.voicePreference.order, applied to the phone's own installed voices exactly as it is on the web.
+    let speechVoiceOrder: [String]
+    let muteLabel: String
+    let unmuteLabel: String
+    let speechUnavailable: String
 }
 
 struct GilbertRefusal: Identifiable, Hashable {

@@ -38,6 +38,7 @@ import SwiftUI
 
 struct AssistantView: View {
     @StateObject private var listener = GilbertListener()
+    @StateObject private var speaker = GilbertSpeaker()
     /// The store the home reads its next visit from, so GilbertOne names the same one.
     @EnvironmentObject private var store: PreviewStore
     @State private var turns = Gilbert.opening()
@@ -104,7 +105,13 @@ struct AssistantView: View {
             gather()
             /* A second answer in the same state changes nothing VoiceOver is told about, so the reply
                itself is announced. The scroll above already brings its top into view. */
-            if let last = turns.last, turns.count > 1 { AccessibilityNotification.Announcement(spoken(last)).post() }
+            if let last = turns.last, turns.count > 1 {
+                AccessibilityNotification.Announcement(spoken(last)).post()
+                /* And the same words to GilbertSpeaker, which reads voice.nativeSpeech's flag and the
+                   mute switch before it reaches for the synthesiser at all. The reply is already on the
+                   screen above; this is a second reading of it, never the only place the words appear. */
+                speaker.speak(spokenAloud(last))
+            }
         }
         .onChange(of: pulse) { _, now in
             AccessibilityNotification.Announcement(Gilbert.spec(now).announcement).post()
@@ -115,21 +122,34 @@ struct AssistantView: View {
                would otherwise hear only that the state went back to Ready. */
             if phase == .interrupted { AccessibilityNotification.Announcement(Gilbert.voice.interrupted).post() }
         }
-        .onChange(of: scenePhase) { _, phase in if phase != .active { listener.cancel() } }
-        .onDisappear { listener.cancel() }
+        .onChange(of: scenePhase) { _, phase in if phase != .active { listener.cancel(); speaker.stop() } }
+        .onDisappear { listener.cancel(); speaker.stop() }
+    }
+
+    /// The words behind every reply kind, shared between what VoiceOver is told and what GilbertSpeaker
+    /// reads aloud — one switch rather than two that could answer the same turn differently.
+    private func coreWords(_ turn: Gilbert.Turn) -> String {
+        switch turn.reply {
+        case .situation(let situation): return situation.sentence
+        case .identity: return Gilbert.whatItIs
+        case .voice: return Gilbert.voice.howItWorks
+        case .emergency: return Gilbert.emergency.headline
+        case .unmatched: return Gilbert.unmatched.sentence
+        case .handover: return Gilbert.handover.title
+        }
     }
 
     private func spoken(_ turn: Gilbert.Turn) -> String {
-        let first: String
-        switch turn.reply {
-        case .situation(let situation): first = situation.sentence
-        case .identity: first = Gilbert.whatItIs
-        case .voice: first = Gilbert.voice.howItWorks
-        case .emergency: first = Gilbert.emergency.headline
-        case .unmatched: first = Gilbert.unmatched.sentence
-        case .handover: first = Gilbert.handover.title
-        }
+        let first = coreWords(turn)
         return turn.unread ? "\(Gilbert.name): \(first) \(Gilbert.unread.sentence)" : "\(Gilbert.name): \(first)"
+    }
+
+    /// The same words, without the name spoken first: the sphere already says who is answering, and a
+    /// voice does not need to introduce itself before every sentence the way VoiceOver announcing a new
+    /// element does. Matches spokenOf's own shape on the web.
+    private func spokenAloud(_ turn: Gilbert.Turn) -> String {
+        let first = coreWords(turn)
+        return turn.unread ? "\(first) \(Gilbert.unread.sentence)" : first
     }
 
     /// Reduce Motion is answered by never starting the reaction, not by shortening it.
@@ -607,10 +627,13 @@ struct AssistantView: View {
                from the conversation, and the accessibility audit found questions that could no longer be
                scrolled to a place a finger could reach. VoiceOver hears it as the field's hint either way. */
             if typeSize.isAccessibilitySize {
-                VStack(spacing: ThusoSpacing.space8) { composerField; composerSend(fill: true) }
+                VStack(spacing: ThusoSpacing.space8) {
+                    HStack(spacing: ThusoSpacing.space8) { composerField; speechToggle }
+                    composerSend(fill: true)
+                }
                 if typing { keyboardNote }
             } else {
-                HStack(spacing: ThusoSpacing.space8) { composerField; composerSend(fill: false) }
+                HStack(spacing: ThusoSpacing.space8) { composerField; speechToggle; composerSend(fill: false) }
                 if typing { keyboardNote }
                 silence
             }
@@ -648,6 +671,26 @@ extension AssistantView {
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityIdentifier("gilbert-keyboard-note")
+    }
+
+    /* The speaker button beside the field: the composer's own control for GilbertSpeaker, drawn only
+       while voice.nativeSpeech is on. A tap mutes or unmutes; muting stops the sentence GilbertOne is
+       part-way through as well as every reply after it, because a control that only changes future
+       replies while the room can still hear the current one is not a mute. */
+    @ViewBuilder fileprivate var speechToggle: some View {
+        if Gilbert.voice.nativeSpeechEnabled {
+            Button {
+                speaker.muted.toggle()
+                if speaker.muted { speaker.stop() }
+            } label: {
+                Image(systemName: speaker.muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                    .font(.body.weight(.semibold))
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(SceneButtonStyle(filled: false))
+            .accessibilityLabel(speaker.muted ? Gilbert.voice.unmuteLabel : Gilbert.voice.muteLabel)
+            .accessibilityIdentifier("gilbert-speech-toggle")
+        }
     }
 
     fileprivate func composerSend(fill: Bool) -> some View {
