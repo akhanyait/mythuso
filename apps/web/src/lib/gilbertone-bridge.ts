@@ -3,13 +3,11 @@
    not carry any of that — the bridge reads only a route name from the engine. */
 import {
   evaluateMessage,
-  greetingTerms,
   type Audience,
 } from '../../../../packages/gilbertone/src/engine.ts';
 import {
   emergencyGroupsIn,
   greet,
-  leavesUnread,
   send,
   type Turn,
 } from './assistant.ts';
@@ -83,16 +81,26 @@ export function sendWithGilbertEngine(
     return [...withHandover.slice(0, -1), corrected];
   }
 
-  /* The greeting, since the fix of 20 September 2026. The engine has classified "hello" as a
-     greeting since the greeting sentence arrived, but this bridge intercepted only the emergency
-     and handover routes — a greeting travels route 'standard' — so a hello fell through to send(),
-     where the matcher has no trigger for one, and answered "I can't assess that". That is the one
-     reply that reads as a refusal to somebody who only said hello, and it was the defect this
-     branch exists to fix. The engine's own terms are the unread rule's trigger set — never a
-     second copy of the list — so "hello, my knee aches" answers with the hello and the unread
-     block beside it rather than claiming more than it read. */
+  /* The greeting, since the fix of 20 September 2026 and widened on 21 September: a greeting
+     classification consumes the whole message. The engine's hello used to be answered with the
+     unread rule measured against the greeting terms alone, so "Hello World" drew the greeting and
+     then "I can't assess the rest of what you said" with the ambulance numbers beside it — a
+     refusal handed to somebody who had only said hello. There is nothing to measure a remainder
+     against: every category that can answer sits above the greeting in the engine's own order, so
+     "hello, when is my nurse coming?" arrives here as a care question and never as a hello with
+     words left over — a greeting classification is the engine's decision that nothing else in the
+     message is something it recognises.
+
+     One thing still reads the whole message before the hello is answered, and it is not the
+     engine's own narrow emergency list: the web's versioned detector — the founder's configured
+     words, with stems and gaps — runs first, and words it catches are an emergency whatever the
+     engine thought of them, routed through send() so the answer is the real emergency presentation
+     on the person's own words. A hello in front of frightening words the engine's list missed used
+     to meet the unread block by accident; it now meets the emergency answer on purpose. */
   if (result.classification === 'greeting') {
-    return greet(turns, text, leavesUnread(text, { triggers: greetingTerms }));
+    if (emergencyGroupsIn(text).length)
+      return send(turns, text, visit, raised, audience);
+    return greet(turns, text);
   }
 
   return send(turns, text, visit, raised, audience);

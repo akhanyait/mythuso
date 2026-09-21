@@ -311,15 +311,10 @@ export function questionFor(
 }
 
 /* Reading everything: a word that is neither one of the question's own trigger words nor filler is a
-   word GilbertOne did not read, and it is said so. Since the greeting fix of 20 September 2026 the
-   caller may hand in any trigger set rather than a question — the bridge passes the engine's own
-   greeting terms for a hello — so "nothing beside the match is a claim about everything" holds on
-   that path too. */
+   word GilbertOne did not read, and it is said so. Only a matched question is measured — a greeting
+   consumes its whole message in the bridge, so no other trigger set reaches this rule. */
 const fillerStems = new Set(contract.matcher.readEverything.filler.map(stem));
-export function leavesUnread(
-  text: string,
-  question: { triggers: readonly string[] },
-): boolean {
+export function leavesUnread(text: string, question: Question): boolean {
   const covered = new Set([
     ...fillerStems,
     ...question.triggers.flatMap(stems),
@@ -664,15 +659,20 @@ export const handOver = (turns: Turn[], raised = false): Turn[] =>
     unread: false,
   }));
 
-/** A message that was only a greeting, since the greeting fix of 20 September 2026. The engine
+/** A message the engine greeted on, since the greeting fix of 20 September 2026. The engine
  *  classifies "hello" as a greeting, and the matcher has no trigger for one — so without this the
  *  bridge's own fallback answered "I can't assess that" to somebody who had only said hello. The
  *  words are kept exactly as asked, the way every other turn keeps them; the reply is the
- *  contract's own sentence, worn with the greeting's state and face. `unread` is the caller's
- *  answer, because the trigger set the unread rule measures against is the engine's greeting
- *  terms, which live beside the engine; a greeting claims nothing, so unread words here add the
- *  unread block beside the hello rather than taking the sentence away. */
-export function greet(turns: Turn[], text: string, unread = false): Turn[] {
+ *  contract's own sentence, worn with the greeting's state and face.
+ *
+ *  Since 21 September 2026 the greeting consumes the whole message: the classification is the
+ *  engine's decision that nothing else in the message is something it recognises — every category
+ *  that can answer sits above the greeting in its order — so there is no remainder to measure and
+ *  no unread flag to carry. The split reply the unread rule used to produce here, a hello and then
+ *  "I can't assess the rest of what you said" with the ambulance numbers, answered a plain
+ *  "Hello World" with a refusal. Words the web's own emergency list catches never reach this turn:
+ *  the bridge runs that detector first and answers the emergency. */
+export function greet(turns: Turn[], text: string): Turn[] {
   const words = text.trim();
   if (!words) return turns;
   return append(turns, (id) => ({
@@ -682,7 +682,7 @@ export function greet(turns: Turn[], text: string, unread = false): Turn[] {
     reply: { kind: "greeting" },
     matched: null,
     groups: [],
-    unread,
+    unread: false,
   }));
 }
 

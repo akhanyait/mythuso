@@ -994,7 +994,7 @@ test("a typed question in a person’s own words gets the same contract answer",
   await expect(log(page).locator(".as-said")).toHaveCount(1);
 });
 
-test("a hello alone gets the greeting, in the contract’s own sentence — the fix of 20 September 2026", async ({
+test("a hello gets the greeting, in the contract’s own sentence — and consumes the whole message, the fix of 21 September 2026", async ({
   page,
 }) => {
   await page.goto("/app/?open=assistant");
@@ -1015,14 +1015,58 @@ test("a hello alone gets the greeting, in the contract’s own sentence — the 
   );
   await expect(panel(page).locator(".as-state")).toHaveText(cue("guiding"));
   await expect(log(page).locator(".as-said").last()).toContainText("hello");
-  /* A hello with something in it GilbertOne did not read keeps the hello and says so: the
-     greeting sentence stays, and the unread block is beside it. */
-  await ask(page, "hello, my knee aches");
-  const second = log(page).locator(".as-reply").last();
-  await expect(second).toHaveAttribute("data-outcome", "answer-and-unread");
-  await expect(second).toContainText(gilbert.answers.greeting.sentence);
-  await expect(second.locator(".as-unread .as-headline")).toHaveText(
-    gilbert.answers.unread.sentence,
+  /* Words beside the hello are not a remainder. Every category that can answer sits above the
+     greeting in the engine's order, so a greeting classification is its decision that nothing
+     else in the message is something it recognises — and until 21 September 2026 the bridge
+     answered that decision with the greeting AND "I can't assess the rest of what you said",
+     ambulance numbers beside it, because it measured the message against the greeting terms
+     alone. Each of these is now the greeting alone. */
+  for (const says of [
+    "Hello World",
+    "Hey there how are you",
+    "Good morning everyone",
+    "hello, my knee aches",
+  ]) {
+    await ask(page, says);
+    const reply = log(page).locator(".as-reply").last();
+    await expect(reply, says).toHaveAttribute("data-outcome", "answer");
+    await expect(reply, says).toContainText(gilbert.answers.greeting.sentence);
+    await expect(reply, says).not.toContainText(
+      gilbert.answers.unmatched.sentence,
+    );
+    await expect(reply, says).not.toContainText(gilbert.answers.unread.sentence);
+    await expect(reply.locator(".as-unread"), says).toHaveCount(0);
+  }
+});
+
+test("a hello in front of words the emergency list catches is an emergency, not a greeting", async ({
+  page,
+}) => {
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  /* "chest feels tight" is not on the engine's own emergency list, so the engine classifies this
+     message as a greeting — and a greeting now consumes the whole message. The one thing that may
+     read past the hello first is the web's own versioned detector, the founder's configured words,
+     and words it catches are an emergency whatever the engine thought of them: the warm hello must
+     never be the whole answer to frightening words. */
+  await ask(page, "hello, my chest feels tight");
+  const reply = log(page).locator(".as-reply").last();
+  await expect(reply).toHaveAttribute("data-outcome", "emergency");
+  await expect(reply).toHaveAttribute("data-groups", /chest-pain/);
+  await expect(reply).toContainText(condition("chest-pain"));
+  await expect(reply).toContainText(sos.emergency.headline);
+  await expect(reply).not.toContainText(gilbert.answers.greeting.sentence);
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-pulse",
+    "escalate",
+  );
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-cue",
+    faceOf("emergency").cue,
+  );
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-affect",
+    faceOf("emergency").posture,
   );
 });
 

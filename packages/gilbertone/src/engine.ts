@@ -146,12 +146,8 @@ const careTerms = [
    because "hi" lives inside "this" and "hey" inside "they", and a greeting fired by an ordinary
    word would answer the wrong message. The engine does not translate a greeting the way a person
    would; it recognises the word so that the reply can be warm in English, which is the only
-   language every sentence in this build is written in.
-
-   Exported since the greeting fix of 20 September 2026: the web bridge answers a greeting directly
-   instead of falling through to the matcher's "I can't assess that", and it reads this list — never
-   a second copy of it — to say whether the message held anything besides the hello. */
-export const greetingTerms = [
+   language every sentence in this build is written in. */
+const greetingTerms = [
   "hi",
   "hello",
   "hey",
@@ -352,8 +348,11 @@ function responseFor(
       };
 
     case "greeting":
-      /* The greeting sits below care, so this case is only reached when hello was the whole message:
-         a greeting in front of a real question answers as the question. Its sentence is read from
+      /* The greeting sits below care, so this case is reached only when the hello is everything the
+         engine recognises: a greeting in front of a real question answers as the question. The
+         words beside a hello that matched nothing else are the greeting's to consume — a greeting
+         classification is a decision about the whole message, so no caller renders an unread
+         remainder beside it (the web's rule since 21 September 2026). Its sentence is read from
          the contract — answers.greeting.sentence in packages/catalog/assistant.json — where a warm
          hello can be reworded by the people accountable for it rather than typed into this file. */
       return {

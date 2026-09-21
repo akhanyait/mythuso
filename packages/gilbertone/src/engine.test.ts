@@ -38,7 +38,19 @@ test("recognises care questions", () => {
 });
 
 test("recognises a greeting and answers it from the contract", () => {
-  for (const input of ["hello", "howzit", "sawubona", "good morning"]) {
+  /* The multi-word greetings are the ones beside a hello that matched nothing else: a greeting
+     classification is the engine's decision about the whole message — every category that can
+     answer sits above the greeting — so "Hello World" is a greeting, not a hello with a remainder
+     somebody downstream must refuse (the web's rule since 21 September 2026). */
+  for (const input of [
+    "hello",
+    "howzit",
+    "sawubona",
+    "good morning",
+    "Hello World",
+    "Hey there how are you",
+    "Good morning everyone",
+  ]) {
     const result = evaluateMessage(input);
     assert.equal(result.classification, "greeting", input);
     assert.equal(result.route, "standard", input);
