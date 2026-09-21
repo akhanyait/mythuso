@@ -23,7 +23,9 @@ const CONDITIONS = conditions as ConditionEntry[];
 
 /* Words that say the symptoms belong to a child. "Month old" and "year old" are matched as phrases
    because a number followed by "old" is a child's age more often than anything else in this
-   context. */
+   context. The separator is whitespace or a hyphen, because "8-month-old" is as ordinary a way to
+   write a baby's age as "8 months old" is, and the eval set of 21 September found the hyphenated
+   form reaching an IMCI-eligible child without the branch that reads it as one. */
 const CHILD_TERMS = [
   "baby", "babies", "infant", "newborn", "child", "children", "toddler", "little one",
   "my son", "my daughter", "my boy", "my girl",
@@ -31,7 +33,7 @@ const CHILD_TERMS = [
 const isAboutAChild = (text: string): boolean => {
   const lowered = text.toLowerCase();
   if (CHILD_TERMS.some((term) => lowered.includes(term))) return true;
-  return /\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(month|year)s?\s+old\b/.test(lowered);
+  return /\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)[\s-]+(month|year)s?[\s-]+old\b/.test(lowered);
 };
 
 /* The IMCI general danger signs, in the wording of the WHO/SA integrated management of childhood

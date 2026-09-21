@@ -62,8 +62,15 @@ const refuse = (id: string): RefusalResult => {
 
 /* The contract's patterns, as written down in the Phase A decision: asking for a diagnosis or a
    medicine, and claiming a role. Both are made lowercase-unfriendly on purpose — matching runs
-   against the message as typed, and "Should I take" is the same question. */
+   against the message as typed, and "Should I take" is the same question.
+
+   A dosing question is its own pattern rather than a fourth phrase folded into medicalAdvice: "how
+   much Panado should I give my toddler" names no medicine problem in medicalAdvice's own words, so
+   it reached the classifier unrefused until the eval set of 21 September found the gap. Nothing in
+   the fallback answer invented a dose either way, so it was not unsafe — but a dosing question
+   belongs behind clinical-referral like every other request for medical advice, not past it. */
 const medicalAdvice = /should i take|do i have|am i sick|what medicine|diagnos/i;
+const dosingQuestion = /how much .+ should i (give|take)|what('s| is) the (dose|dosage)|how many (mg|milligrams|tablets|ml)\b/i;
 const roleSpoofing = /i am a doctor|i am a nurse|treat me as|act as if i/i;
 
 export function evaluateRefusals(
@@ -78,7 +85,7 @@ export function evaluateRefusals(
   /* The exception the contract promised: an emergency word is an emergency whatever else came
      with it, and no policy here may lower it. The engine's emergency route answers instead. */
   if (classifyMessage(input, audience) === 'emergency') return { refused: false };
-  if (medicalAdvice.test(input)) return refuse('clinical-referral');
+  if (medicalAdvice.test(input) || dosingQuestion.test(input)) return refuse('clinical-referral');
   if (roleSpoofing.test(input)) return refuse('role-spoofing');
   if (containsPHI(input)) return refuse('phi-detected');
   return { refused: false };
