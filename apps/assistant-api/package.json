@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/server.ts",
     "check": "tsc",
-    "test": "node --test \"src/**/*.test.ts\""
+    "test": "node --test \"src/**/*.test.ts\"",
+    "eval:gilbertone": "node src/eval/run-eval.ts"
   },
   "dependencies": {
     "@langchain/community": "^0.3.59",
