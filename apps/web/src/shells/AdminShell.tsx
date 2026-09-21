@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Activity, ArrowRight, BarChart3, BookOpen, Landmark, LayoutGrid, LogOut, Radar, ShieldAlert, ShieldCheck, SlidersHorizontal, TrendingUp } from 'lucide-react';
+import { Activity, ArrowRight, BarChart3, BookOpen, Landmark, LayoutGrid, LogOut, Radar, ScrollText, ShieldAlert, ShieldCheck, SlidersHorizontal, TrendingUp } from 'lucide-react';
 import { Modal } from '../components/UI';
 import { AssistantLauncher } from '../components/AssistantLauncher';
 import { AdminConsole, adminTabs, type AdminTab } from '../features/Admin';
@@ -34,12 +34,14 @@ const ADMIN_SUBJECT = 'A-901';
    .tsx is that row now, beside the disclosure, on every surface. The capability's notice moved with
    it — see a-demo-login-is-not-an-account in packages/catalog/capabilities.json. */
 
-/* One icon per console section, so a pill row is recognisable at a glance rather than eight
+/* One icon per console section, so a pill row is recognisable at a glance rather than ten
    identically-shaped words. Nothing here is decorative twice: the icon says what kind of thing the
-   section is, and the label says which. */
+   section is, and the label says which. Governance takes a document, because what it tracks is five
+   documents waiting for signatures — Compliance keeps the chart, because it counts controls. */
 const tabIcons: Record<AdminTab, typeof Radar> = {
  Overview: LayoutGrid, Vetting: ShieldCheck, Operations: Radar, Clinical: Activity,
- Catalogue: BookOpen, Growth: TrendingUp, Finance: Landmark, Compliance: BarChart3, Configuration: SlidersHorizontal
+ Catalogue: BookOpen, Growth: TrendingUp, Finance: Landmark, Compliance: BarChart3,
+ Governance: ScrollText, Configuration: SlidersHorizontal
 };
 
 export default function AdminWorkspace({ audience }: { audience: RoleId }) {

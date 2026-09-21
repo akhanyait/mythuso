@@ -1,0 +1,188 @@
+{
+ "_note": "Where the governance work has actually got to, as a record an admin keeps rather than a switch the code reads. docs/governance/ prepares five documents for named, accountable people to read, decide and sign; today every sign-off field in them is blank, and nothing in this repository knows that except a person who opens the folder. This contract is the register of what has been signed, appointed and decided, so the back office can answer \"where are we\" without somebody reading five Markdown files, and so that the answer is attributed and dated instead of remembered. It is deliberately not a gate. Recording a signed DPIA here does not start the Health Passport, does not let deploy/ name it and does not switch anything on anywhere: those refusals are hard-coded and are changed by a developer, in a commit that cites the signed document. scripts/check-boundaries.mjs holds that separation open by refusing any file outside this feature's own three to read this contract at all.",
+ "version": 1,
+ "proposedBy": "The Governance Readiness lead",
+ "proposedBecause": "docs/governance/README.md prepares the work and says in its own words that signing a document there changes no code. A register that mirrors it is useful — a board, a funder or an Information Officer asks where the privacy work stands, and the honest answer should not depend on who last opened the folder. A register that unlocked something would be the opposite of useful: it would put a production decision behind a text field in a preview.",
+ "documents": "docs/governance",
+
+ "recording": {
+  "role": "admin",
+  "roleWhy": "Recording is clerical: an admin writes down what an accountable person decided somewhere else. It sits behind the back office's own role on the vetting register rather than a new one, because inventing an \"Information Officer\" role here would put a person on the register that nobody has appointed — which is the very thing this screen exists to say has not happened yet. Who may decide each record is the record's own decidedBy sentence, and it is never this role.",
+  "clearedWhy": "An admin whose own vetting is not clear does not write in the privacy register. The POPIA and confidentiality undertaking is one of that role's checks, renewed every twelve months, and somebody whose undertaking has lapsed is not the person to record that the DPIA is signed.",
+  "attribution": "The register keeps two people apart and shows both: the signatory, who is named in the record, and the recorder, who is named in the history beside the reason and the time. They are never assumed to be the same person."
+ },
+
+ "fieldTypes": [
+  { "id": "enum", "why": "One of a few named states, each with a label and what it means. A status with a free-text value is a status nobody can count." },
+  { "id": "boolean", "why": "Done or not done, with a label for each side, because \"appointed: false\" is not a sentence anybody reads." },
+  { "id": "text", "why": "A name, a reference or a place, as written on the document itself. Blank until there is one." },
+  { "id": "day", "why": "A calendar day, as yyyy-mm-dd. A signature has a date on it or it is not a signature." }
+ ],
+
+ "records": [
+  {
+   "key": "dpia",
+   "label": "Data Protection Impact Assessment",
+   "question": "Has a POPIA-oriented impact assessment been written, reviewed and signed by the responsible party and the Information Officer?",
+   "document": "docs/governance/DPIA-DRAFT.md",
+   "decidedBy": "The responsible party signs and the Information Officer signs; counsel advises. Neither signature is an admin's to give.",
+   "blockedUntil": "A signed DPIA, alongside a registered Information Officer, a residency decision and KMS or HSM key custody",
+   "refusedToday": "The Health Passport refuses to start without its development flag, refuses any production environment and refuses a host that is not the loopback; the build fails if anything under deploy/ names the service, its workspace or its port.",
+   "refusalLives": ["apps/passport/src/config.ts", "scripts/check-boundaries.mjs", "docs/PRIVACY-AND-SECURITY.md"],
+   "done": { "field": "status", "is": "signed" },
+   "fields": [
+    { "key": "status", "label": "Status", "type": "enum", "help": "Where the assessment itself has got to.", "blank": "not-started", "evidence": false, "allowed": [
+     { "value": "not-started", "label": "Not started", "means": "Nobody has begun the assessment. The draft in docs/governance is a prepared shape, not an assessment." },
+     { "value": "drafted", "label": "Drafted, not signed", "means": "An assessment has been written and is waiting on the people who must read and sign it. It carries no authority until they do." },
+     { "value": "signed", "label": "Signed", "means": "The responsible party and the Information Officer have both signed a completed assessment, and the register names where it is kept." }
+    ] },
+    { "key": "signedBy", "label": "Signed by", "type": "text", "help": "The people who signed it, as their names appear on the document.", "blank": "", "evidence": true },
+    { "key": "signedOn", "label": "Signed on", "type": "day", "help": "The day the last signature was given.", "blank": null, "evidence": true },
+    { "key": "documentRef", "label": "Where the signed document is kept", "type": "text", "help": "The path or reference of the signed artefact — docs/governance/DPIA-DRAFT.md if that is what was signed, or wherever the real one ended up.", "blank": "", "evidence": true }
+   ]
+  },
+  {
+   "key": "information-officer",
+   "label": "Information Officer",
+   "question": "Has an Information Officer been appointed by the head of the private body and registered with the Regulator?",
+   "document": "docs/governance/INFORMATION-OFFICER.md",
+   "decidedBy": "The head of the private body appoints; the appointed Information Officer then decides the lawful basis, the breach procedure, the operator agreements, retention and prior authorisation.",
+   "blockedUntil": "A registered Information Officer",
+   "refusedToday": "The identity service refuses to start in production without an Information Officer named in its environment, and the Health Passport waits on this appointment along with the rest.",
+   "refusalLives": ["apps/api/src/config.ts", "docs/PRIVACY-AND-SECURITY.md"],
+   "done": { "field": "appointed", "is": true },
+   "fields": [
+    { "key": "appointed", "label": "Appointed", "type": "boolean", "help": "Whether the head of the private body has appointed somebody in writing.", "blank": false, "evidence": false, "allowed": [
+     { "value": false, "label": "Not appointed", "means": "Nobody holds the office. Every duty POPIA gives an Information Officer is unowned." },
+     { "value": true, "label": "Appointed", "means": "A named person holds the office, and the register says when and under which registration reference." }
+    ] },
+    { "key": "name", "label": "Who holds the office", "type": "text", "help": "The appointed person's name, as written on the appointment.", "blank": "", "evidence": true },
+    { "key": "appointedOn", "label": "Appointed on", "type": "day", "help": "The day the appointment was made in writing.", "blank": null, "evidence": true },
+    { "key": "registrationRef", "label": "Registration reference", "type": "text", "help": "The Regulator's reference for the registration. An appointment nobody registered is half an appointment.", "blank": "", "evidence": true }
+   ]
+  },
+  {
+   "key": "data-residency",
+   "label": "Data residency",
+   "question": "Has the founder, with the Information Officer and counsel, decided where information may be held?",
+   "document": "docs/governance/DATA-RESIDENCY-OPTIONS.md",
+   "decidedBy": "The founder decides, as the responsible party, with the Information Officer and counsel. The options document sets out three kinds of hosting and what any of them must meet.",
+   "blockedUntil": "A residency decision, and the key custody decision that depends on it",
+   "refusedToday": "Nothing holds real health information anywhere. The Health Passport runs on synthetic data on a developer's loopback and nowhere else, and no deploy step reaches it.",
+   "refusalLives": ["apps/passport/src/config.ts", "docs/governance/KEY-CUSTODY-OPTIONS.md", "docs/PRIVACY-AND-SECURITY.md"],
+   "done": { "field": "decided", "is": true },
+   "fields": [
+    { "key": "decided", "label": "Decided", "type": "boolean", "help": "Whether a decision has been taken and written down.", "blank": false, "evidence": false, "allowed": [
+     { "value": false, "label": "Not decided", "means": "Where information may be held is an open question, so the DPIA cannot rate hosting, backup or transfer risk and key custody cannot be chosen." },
+     { "value": true, "label": "Decided", "means": "A region and a provider have been decided by a named person on a named day, and the DPIA can be written against them." }
+    ] },
+    { "key": "region", "label": "Region", "type": "text", "help": "Where information may be held, as the decision words it.", "blank": "", "evidence": true },
+    { "key": "provider", "label": "Provider", "type": "text", "help": "Who holds it there. An operator agreement under POPIA section 21 follows from this name.", "blank": "", "evidence": true },
+    { "key": "decidedBy", "label": "Decided by", "type": "text", "help": "Who took the decision, as the responsible party or on their written authority.", "blank": "", "evidence": true },
+    { "key": "decidedOn", "label": "Decided on", "type": "day", "help": "The day the decision was taken.", "blank": null, "evidence": true }
+   ]
+  }
+ ],
+
+ "changesNothing": {
+  "statement": "Recording a decision here changes no gate. The Health Passport still refuses to start without its development flag, the build still fails if anything under deploy/ names it, and the identity service still refuses to start in production without an Information Officer. Each of those is changed deliberately, by a developer, in a commit that cites the signed document — never by a value typed on this screen.",
+  "why": "docs/governance/README.md says it plainly: signing a document there changes no code. A register that flipped a runtime gate would mean a text field in a back-office preview could put a health record store into production, and that the signature it claimed to represent was never read by anybody. The register is a mirror of the work, and mirrors do not carry weight.",
+  "readBy": [
+   "apps/web/src/lib/governance.ts",
+   "apps/web/src/features/GovernanceReadiness.tsx",
+   "apps/web/src/features/Admin.tsx",
+   "scripts/check-boundaries.mjs",
+   "tests/governance-readiness.spec.ts",
+   "docs/FEATURE-MAP.md"
+  ],
+  "readByWhy": "The reasoning, the screen, the console tab that routes the screen and takes its one-line blurb, the check that holds this list, the journey and the feature map. Any other file naming this contract, the module that reads it or the screen, in any tree, fails the build — which is how \"read-only\" stops being a promise in a comment.",
+  "neverReadBy": [
+   { "tree": "apps/passport", "why": "The Passport's own configuration refuses to start without its development flag, and it must keep refusing on its own terms. A Passport that consulted a register an admin can edit would start because somebody typed a date." },
+   { "tree": "deploy", "why": "Nothing in deploy/ may name the Passport, and nothing in deploy/ may name the register that says whether it could be deployed either. The deploy boundary is decided in a commit, not in a preview." },
+   { "tree": "apps/api/src", "why": "The identity service asks its own environment for an Information Officer. A second source of truth for that answer is a way round the first." },
+   { "tree": "packages/engines/src", "why": "No engine changes what it does because of this register. An engine that read it would have a rule nobody could find from the rule's own contract." },
+   { "tree": "packages/mock-api/src", "why": "The contract mock answers routes from fixtures. There is no governance route, and inventing one would imply a service." },
+   { "tree": "apps/ios/MyThuso", "why": "There is no back office on the phones, and a governance register on a patient's handset would be somebody's appointment details travelling for no reason." },
+   { "tree": "apps/android/app/src/main", "why": "The same, for the same reason." }
+  ]
+ },
+
+ "rules": [
+  { "id": "recorder-on-the-register", "refusal": "governance-record-not-permitted", "statement": "Only the role this contract names records a governance decision, and the record is kept against a named person." },
+  { "id": "recorder-cleared", "refusal": "governance-recorder-not-cleared", "statement": "The person recording is a party the vetting register lets work today." },
+  { "id": "known-record", "refusal": "governance-record-not-known", "statement": "A change names one of the records this contract declares." },
+  { "id": "known-value", "refusal": "governance-value-not-allowed", "statement": "A status or a switch is one of the values its field allows, and text is text." },
+  { "id": "reason-required", "refusal": "governance-change-without-reason", "statement": "Every change says why, and the reason is kept beside who made it." },
+  { "id": "expected-version", "refusal": "governance-version-stale", "statement": "A change is made against the version the recorder was looking at, or not at all." },
+  { "id": "must-change", "refusal": "governance-unchanged", "statement": "A change changes something." },
+  { "id": "evidence-with-the-decision", "refusal": "governance-done-without-evidence", "statement": "A record marked done carries every piece of evidence its fields ask for: who, when and the reference." },
+  { "id": "blank-until-decided", "refusal": "governance-evidence-without-the-decision", "statement": "A record that is not done carries no signatory, no date and no reference." },
+  { "id": "a-day-is-a-day", "refusal": "governance-day-not-a-day", "statement": "A date is a calendar day, written yyyy-mm-dd." },
+  { "id": "never-dated-ahead", "refusal": "governance-dated-ahead", "statement": "A signature, an appointment or a decision is not dated after today." },
+  { "id": "history-append-only", "refusal": null, "statement": "The history is added to and never edited or deleted, and what the register says is always the blank state with the history replayed in version order." },
+  { "id": "recording-is-not-deciding", "refusal": null, "statement": "Writing a decision down here is not taking it. The record names the signatory; the history names the person who typed it; the code that refuses something goes on refusing until a developer changes it deliberately." }
+ ],
+
+ "refusals": [
+  { "id": "governance-record-not-permitted", "status": 403, "statement": "Only the back office records a governance decision, and it is recorded against a named person.", "why": "The register is read after something has gone wrong, by somebody asking who wrote what and when. A row nobody can be asked about is worth nothing." },
+  { "id": "governance-recorder-not-cleared", "status": 403, "statement": "Your own vetting is not clear today, so you cannot write in the governance register.", "why": "The POPIA and confidentiality undertaking is one of this role's checks, renewed every twelve months. Somebody whose undertaking has lapsed is not the person to record that the impact assessment is signed." },
+  { "id": "governance-record-not-known", "status": 422, "statement": "There is no governance record by that name.", "why": "An unknown record is refused rather than kept, or the register fills with rows nothing reads." },
+  { "id": "governance-value-not-allowed", "status": 422, "statement": "That is not one of the values this field holds.", "why": "A status nobody declared is a status nobody can count, and a guess at what the recorder meant is not a record." },
+  { "id": "governance-change-without-reason", "status": 422, "statement": "A change to the governance register says why, or it is not made.", "why": "\"Signed\" with no reason beside it is a claim. \"Signed — counsel returned the final version this morning and both signatures are on it\" is a record." },
+  { "id": "governance-version-stale", "status": 409, "statement": "The register changed after you opened it. Read what it says now and decide against that.", "why": "Two people recording the same appointment from screens opened at the same time would each overwrite a record they never saw." },
+  { "id": "governance-unchanged", "status": 409, "statement": "That is already what the register says, so there is nothing to record.", "why": "A change that changes nothing is a row saying something happened when nothing did." },
+  { "id": "governance-done-without-evidence", "status": 422, "statement": "A decision recorded as done names who, on what day, and where the document is. Fill those in or leave it as it was.", "why": "\"Signed\" with nobody's name on it cannot be checked by the next person to ask, which is the only thing a register is for." },
+  { "id": "governance-evidence-without-the-decision", "status": 422, "statement": "This is not recorded as done, so it carries no signatory, no date and no reference.", "why": "A half-filled row reads later as if somebody had signed. Every sign-off field is blank until the decision it belongs to is recorded." },
+  { "id": "governance-day-not-a-day", "status": 422, "statement": "Write the date as a calendar day, yyyy-mm-dd.", "why": "A date somebody has to interpret is a date two people will interpret differently." },
+  { "id": "governance-dated-ahead", "status": 422, "statement": "That date is after today. A signature, an appointment or a decision is dated when it happened.", "why": "A register that accepts tomorrow's signature is a register that can be filled in before the work is done." }
+ ],
+
+ "screen": {
+  "tab": "Governance",
+  "blurb": "Whether the DPIA, the Information Officer and the residency decision are done, who did them and when — and what goes on being refused either way.",
+  "intro": "docs/governance prepares five documents for named, accountable people to read, decide and sign. This is the register of what has actually been signed, appointed and decided. Each row says what is blocked until it is done, what is refused today and where that refusal lives in the code.",
+  "preview": "This preview keeps what you record in this tab's memory and nowhere else. It is not a register of record, nothing is sent anywhere, and a reload puts the blank fields back.",
+  "documentsLink": "The documents themselves are hand-written prose in {folder}, for real people to sign. Nothing on this screen edits them.",
+  "notDone": "Not done",
+  "done": "Done",
+  "state": "State",
+  "blockedUntil": "Blocked until",
+  "refusedToday": "What is refused today",
+  "refusalLives": "Where the refusal lives",
+  "whoDecides": "Who must decide it",
+  "document": "The document",
+  "recordedBy": "Recorded by {who} at {when}",
+  "neverRecorded": "Nothing has been recorded against this yet.",
+  "blank": "Blank",
+  "summary": "{done} of {total} done",
+  "version": "Register version {version}",
+  "record": "Record a change",
+  "recorder": "You are writing as {who}. The register names who signed; this line names who wrote it down.",
+  "clearAll": "Put every field back to blank",
+  "reason": "Why",
+  "reasonHelp": "Written into the register beside your name. It is read by the next person who asks how we know this was signed.",
+  "review": "Review this change",
+  "confirmQuestion": "Record this change to {record}?",
+  "confirm": "Confirm and record",
+  "cancel": "Cancel",
+  "recorded": "Version {version} was recorded at {at}.",
+  "historyHeading": "History",
+  "historyEmpty": "Nothing has been recorded yet.",
+  "historyNeverEdited": "Every change is added here with who made it, when and why. Nothing here is edited or removed.",
+  "when": "When",
+  "who": "Who",
+  "field": "What changed",
+  "from": "From",
+  "to": "To",
+  "why": "Why",
+  "changesNothing": "What recording this does not do"
+ },
+
+ "howToChange": [
+  "A record's fields, its blank state and the sentences beside it live here, in this contract, and nowhere else. The screen types none of them.",
+  "A new record is a new entry in records, with its document in docs/governance, the sentence saying who must decide it, and what is blocked, refused and where that refusal lives — each path checked to exist by scripts/check-boundaries.mjs.",
+  "Every field's blank value is the not-done state. The build replays the register from the blank state and fails if any record reads as done before anybody has recorded anything.",
+  "Adding a reader means adding a file to changesNothing.readBy, and that is a decision to argue for: every file on that list is one more place that could quietly start gating something on a value an admin typed.",
+  "If a signed DPIA, a registered Information Officer and a residency decision ever do exist, the code that refuses the Passport is changed in its own commit, citing them. This contract is not that commit and cannot stand in for it."
+ ]
+}

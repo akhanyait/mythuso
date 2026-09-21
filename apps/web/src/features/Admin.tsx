@@ -9,13 +9,15 @@ import { businessModel, money, bigMoney, platformMargin, services, type Service 
 import { momPlan, subscriptionLines } from '../lib/mom-plans';
 import { escalationRotaNow, momPlanNow } from '../lib/settings';
 import { Configuration } from './Configuration';
+import { GovernanceReadiness } from './GovernanceReadiness';
+import { governanceScreen } from '../lib/governance';
 import { settingsScreen } from '../../../../packages/engines/src/settings/shape.ts';
 /* How long the desk has to acknowledge an incident before it moves up the rota: the first rung of Core's
    setting escalation-minutes, in force. The console used to type five minutes in three places, which is a
    number an admin's change on the Configuration tab would never have reached. Read when a tab draws. */
 const acknowledgeWithinMinutes = () => Math.round(escalationRotaNow().stepsMs[0]! / 60_000);
 
-export const adminTabs = ['Overview', 'Vetting', 'Operations', 'Clinical', 'Catalogue', 'Growth', 'Finance', 'Compliance', 'Configuration'] as const;
+export const adminTabs = ['Overview', 'Vetting', 'Operations', 'Clinical', 'Catalogue', 'Growth', 'Finance', 'Compliance', 'Governance', 'Configuration'] as const;
 export type AdminTab = typeof adminTabs[number];
 /* What each tab is for, in one line, in the words somebody in this office would use. It replaces the
    one sentence that listed all eight and therefore described none of them. */
@@ -28,6 +30,7 @@ const tabBlurb: Record<AdminTab, string> = {
  Growth: 'Subscriptions, screening packages and the contracted lines in the proposal.',
  Finance: 'The round, what each tranche is gated on, and what a visit actually leaves.',
  Compliance: 'What has to exist before real patient information touches this platform, and what does not yet.',
+ Governance: governanceScreen.blurb,
  Configuration: settingsScreen.blurb
 };
 /* One party can be blocking in more than one place, so the console counts parties rather than
@@ -63,7 +66,8 @@ export function AdminConsole({ open, tab, setTab }: { open: (s: string) => void;
   </div>
   {tab === 'Overview' ? <Overview vetting={vetting}/> : tab === 'Vetting' ? <VettingConsole vetting={vetting} open={open}/> : tab === 'Operations' ? <Operations open={open} vetting={vetting} openSettings={() => { setSettingsEngine('safety'); setTab('Configuration'); }}/>
    : tab === 'Clinical' ? <Clinical open={open} vetting={vetting}/> : tab === 'Catalogue' ? <Catalogue/> : tab === 'Growth' ? <Growth/>
-   : tab === 'Finance' ? <Finance/> : tab === 'Compliance' ? <Compliance/> : <Configuration engine={settingsEngine} onEngine={setSettingsEngine}/>}
+   : tab === 'Finance' ? <Finance/> : tab === 'Compliance' ? <Compliance/> : tab === 'Governance' ? <GovernanceReadiness/>
+    : <Configuration engine={settingsEngine} onEngine={setSettingsEngine}/>}
  </>;
 }
 /* A figure in the dashboard language: large, thin, tabular, with what it is underneath it. The icon

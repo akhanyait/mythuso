@@ -1000,3 +1000,59 @@
 .clinical .ae-field { display: grid; gap: var(--space-4); font-size: 13px; font-weight: 500; color: var(--faint); }
 .clinical .ae-result { display: flex; align-items: flex-start; gap: var(--space-8); margin: 0; font-size: 14px; font-weight: 500; color: var(--charcoal); overflow-wrap: anywhere; }
 .clinical .ae-refusal { color: var(--danger); }
+
+/* ---- Governance readiness (Wave 7) ----------------------------------------------------------------
+ *
+ * The back office's Governance tab: three records that mirror the documents in docs/governance, and
+ * nothing else on the screen. It is drawn in the console's own pieces — the notes, the panel, the
+ * admin table, the rules list and the confirm block the Configuration tab already uses — because a
+ * fourth look for a fifth kind of table is how a console stops being one console.
+ *
+ * The three-row table leads deliberately. Somebody opens this to answer "where has the privacy work
+ * got to, and what is still blocked", and that answer is four columns wide: the state, what is
+ * blocked until it is done, what is refused today, and where in the code that refusal lives. The
+ * detail a recorder needs is inside each record's own panel below, because reading the state and
+ * writing it down are different jobs and only one of them is why most people open the tab.
+ *
+ * No accent colour carries information on its own: a done record is a teal pill reading "Done" with
+ * a tick, a record still open is a plain pill reading "Not done" with an open ring, and a blank
+ * field is set in the faint neutral and says "Blank" in words. */
+.clinical .gr-area { display: grid; gap: var(--space-12); max-width: 1080px; min-width: 0; }
+.clinical .gr-area > .privacy-note { margin: 0; }
+.clinical .gr-lead { display: grid; gap: var(--space-8); min-width: 0; margin-top: var(--space-8); }
+.clinical .gr-count { margin: 0; font-size: 14px; font-weight: 600; color: var(--charcoal); }
+/* Four sentences across cannot be squeezed into 320 pixels and are not asked to be: the table scrolls
+   inside its own box, the pattern the vetting register and the settings history already use. */
+.clinical .gr-table { min-width: 44rem; }
+.clinical .gr-table td, .clinical .gr-table th { vertical-align: top; }
+.clinical .gr-table .pill { white-space: nowrap; }
+.clinical .gr-paths { display: grid; gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+.clinical .gr-paths code, .clinical .gr-record code { font-size: 13px; overflow-wrap: anywhere; }
+.clinical .gr-guardrail { display: grid; gap: var(--space-8); min-width: 0; }
+.clinical .gr-guardrail h2 { margin: 0; font-size: 18px; font-weight: 600; color: var(--charcoal); }
+.clinical .gr-guardrail p { margin: 0; font-size: 15px; line-height: 1.55; color: var(--charcoal); }
+.clinical .gr-guardrail .helper { margin: 0; font-size: 14px; }
+.clinical .gr-record { display: grid; gap: var(--space-12); min-width: 0; }
+.clinical .gr-record-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8) var(--space-16); }
+.clinical .gr-record-head h2 { margin: 0; font-size: 20px; font-weight: 600; color: var(--charcoal); }
+.clinical .gr-question { margin: 0; font-size: 15px; line-height: 1.55; color: var(--charcoal); }
+/* A record's fields read as a column of pairs: the label, then what the register says, then the
+   question that field answers. The value is the largest thing in the row because it is the answer. */
+.clinical .gr-fields { display: grid; gap: var(--space-12); margin: 0; }
+.clinical .gr-fields > div { display: grid; gap: 2px; min-width: 0; padding-left: var(--space-12); border-left: 2px solid var(--line); }
+.clinical .gr-fields dt { font-size: 13px; color: var(--faint); }
+.clinical .gr-fields dd { margin: 0; font-size: 16px; font-weight: 600; color: var(--charcoal); overflow-wrap: anywhere; }
+.clinical .gr-fields dd.is-blank { font-weight: 400; color: var(--faint); }
+.clinical .gr-fields .helper { margin: 0; font-size: 13px; }
+.clinical .gr-meta { margin: 0; font-size: 13px; color: var(--faint); overflow-wrap: anywhere; }
+.clinical .gr-form { min-width: 0; }
+.clinical .gr-field { display: grid; gap: var(--space-4); min-width: 0; }
+.clinical .gr-field > input { width: 100%; min-width: 0; min-height: 44px; }
+.clinical .gr-field > .helper { margin: 0; }
+.clinical .gr-form .cf-choice { align-items: flex-start; padding: var(--space-4) 0; }
+.clinical .gr-form .cf-choice > input { margin-top: 12px; }
+.clinical .gr-form .cf-choice > span { display: grid; gap: 2px; min-width: 0; }
+.clinical .gr-form .cf-choice small { font-size: 13px; line-height: 1.5; color: var(--faint); }
+.clinical .gr-clear { justify-self: start; min-height: 44px; }
+.clinical .gr-recorder { display: flex; align-items: flex-start; gap: var(--space-8); margin: 0; }
+.clinical .gr-recorder svg { flex: none; margin-top: 2px; }
