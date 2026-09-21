@@ -705,8 +705,16 @@ test("the name never prints into the controls, and the conversation keeps room t
       the 72px this shell shipped with and the lockup stayed over the gate and in the footer, because the
       mockup's conversation header is the name card — 44px at every shell, and the floors did not move
       for it. */
+      /* Raised on 21 September 2026, and this is the part of the test that was wrong. The floors
+         above were set to whatever the layout had achieved rather than to what a person can read, so
+         50px at 320 passed — and 50px is not a conversation, it is three lines. Measured with a
+         question asked, which is the state that matters and the tighter of the two: the emergency
+         answer's own headline, "If this is a life threat, call an ambulance now", was being cut
+         through the middle of its glyphs at the composer's top edge, with the ambulance numbers
+         under it off the bottom of the scroller. The new numbers are the measured ones less a
+         little: 284 at 390, 151 at 320, 490 at 1440x1100 and 210 at 1366x768. */
       const floor =
-        width >= 1000 ? (height >= 900 ? 210 : 130) : width === 390 ? 220 : 50;
+        width >= 1000 ? (height >= 900 ? 460 : 190) : width === 390 ? 270 : 140;
       expect(
         scrollClient,
         `at ${where} the fixed chrome left the conversation ${scrollClient}px`,
@@ -729,7 +737,13 @@ test("on a wide screen the orb leaves the footer alone and the panel is anchored
   await page.waitForTimeout(500); // the panel grows out of the orb; measure it once it has
   const box = (await panel(page).boundingBox())!;
   const { width, height } = page.viewportSize()!;
-  expect(Math.round(box.width)).toBe(400);
+  /* 460 since 21 September 2026, from 400. The card was 400x800 inside a 1440x1100 window while the
+     conversation inside it had 250px: the head and the composer are fixed, so a card that refuses
+     width and height is refusing them on the answers' behalf. Wider pays twice — every wrapped
+     sentence in the composer's footnotes loses a line — and the conversation came to 519px. What
+     this test is actually about is the two offsets below; the width is the number that has to move
+     with the shell. */
+  expect(Math.round(box.width)).toBe(460);
   expect(Math.abs(width - (box.x + box.width) - 24)).toBeLessThanOrEqual(1);
   expect(Math.abs(height - (box.y + box.height) - 24)).toBeLessThanOrEqual(1);
 });

@@ -32,9 +32,18 @@ test('the patient conversation leads with a greeting and has a labelled micropho
  await expect(mic).toContainText('Tap to talk');
  await expect(panel.locator('#as-keyboard')).toContainText('microphone');
  await page.waitForTimeout(500);
- const input = await panel.locator('#as-input').boundingBox();
- const microphone = await mic.boundingBox();
- expect(microphone!.y).toBeGreaterThanOrEqual(input!.y + input!.height);
+ const input = (await panel.locator('#as-input').boundingBox())!;
+ const microphone = (await mic.boundingBox())!;
+ /* This used to hold the microphone strictly below the field. It was the wrong way to say it: on a
+    phone that stacking cost the composer a whole 44px row of its own, and the composer is fixed
+    chrome the conversation pays for — at 390x844 the answers had 261px while the microphone's bar,
+    its line and its disclosure had 212. Since 21 September 2026 the control shares the composer's
+    label row below 560px and keeps its own row above it. What the assertion was protecting is kept,
+    and said directly: the microphone never lies on the box a person types in, and it never squeezes
+    that box narrower than its own placeholder needs. */
+ const clear = microphone.y >= input.y + input.height || input.y >= microphone.y + microphone.height;
+ expect(clear, 'the microphone is printing over the text field').toBe(true);
+ expect(Math.round(input.width), 'the microphone squeezed the text field').toBeGreaterThanOrEqual(100);
  await page.waitForTimeout(500);
  await page.screenshot({ path: `/tmp/mythuso-polish-${test.info().project.name}.png` });
 });

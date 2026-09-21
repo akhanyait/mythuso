@@ -1419,3 +1419,176 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ---- Room to read, 21 September 2026 -----------------------------------------------------------
+   What the founder saw, and what it actually was.
+
+   Nothing here overlapped and nothing stacked wrongly: the panel is one flex column, and the head
+   and the composer are both `flex: 0 0 auto`, so they take what they need and the conversation is
+   handed the remainder. The remainder had run out. Measured at 390x844 on the conversation screen:
+   an 810px sheet, a 202px head, a 348px composer — 68% of it fixed chrome — and 261px left for the
+   answers. At 320x720 the conversation was 118px, and 97px once a question had been asked. The old
+   floors in tests/assistant.spec.ts (50px at 320) were set to whatever the layout had achieved
+   rather than to what a person can read, so the defect passed its own test.
+
+   A 261px scroller ending flush against an opaque white composer, with the conversation clipped
+   mid-glyph at the seam, is what reads as a second panel lying on the first. In the asked state the
+   sentence being cut in half was "If this is a life threat, call an ambulance now", with the
+   ambulance numbers under it off the bottom of the scroller entirely. That is the whole bug, and it
+   is a safety defect rather than a tidiness one.
+
+   Not one word moves. The room comes from four places that were spending it on chrome, and the seam
+   is given the affordance that says what it is. */
+
+/* 1. The card on a laptop was 400x800 inside a 1440x1100 window — 300px of height and most of the
+      width handed back to a page nobody is reading while this panel is open. It is the founder's
+      ask answered literally: 460 wide, and as tall as the window allows to 1000. Wider also pays
+      twice, because every wrapped paragraph in the composer's footnotes loses a line. The
+      conversation goes from 250px to about 480. */
+@media (min-width: 1000px) {
+  .as-panel {
+    width: min(460px, calc(100vw - 2 * var(--space-24)));
+    height: min(1000px, calc(100dvh - 2 * var(--space-24)));
+  }
+}
+
+/* 2. The head's bar. "Pause motion" is a 206px written pill, and beside a 44px close it left the
+      titles about 120px on a 390px sheet — so the descriptor, which is a contract sentence and may
+      not be shortened, wrapped to four lines and the head paid 62px for them. Inside this panel the
+      control keeps its written label as its accessible name and loses it from the screen, which is
+      the pattern components/MotionPause.tsx is written for and documents; it becomes the 44px
+      square its neighbour already is, the two controls read as a pair, and the descriptor gets the
+      width to fall on two lines. The label is not deleted: `.as-sr` clips it, a reader still hears
+      "Pause motion", and every test that finds it by name still finds it. */
+.as-head .as-pause {
+  width: 44px;
+  justify-content: center;
+  padding: 0;
+}
+.as-head .as-pause span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* 3. The character. 72px on the conversation was already the thrifty size; beside a caption that is
+      one word it is still the tallest thing in a band of fixed chrome, and 64 reads as the same
+      drawing. The gate keeps a greeting — it is the one screen with nothing below competing for the
+      height — but 132px is a portrait on a phone, so it comes to 112 there and stays at 132 on the
+      card, which now has the height for it. */
+.as-head[data-asked] .as-rig,
+.as-head .as-rig {
+  --rig: 64px;
+}
+@media (max-width: 560px) {
+  .as-head[data-gate] .as-rig {
+    --rig: 112px;
+  }
+}
+
+/* 4. The composer's own air. The microphone is 212px of the 348: a 44px bar, the line under it, and
+      143px of disclosure that is fixed chrome by decision — it is read before the first tap rather
+      than scrolled to, and tests/assistant.spec.ts holds it above the fold. Every word of it stays.
+      What goes is the air between the rows, which was a form's rhythm on a block that is a control
+      and three footnotes: the field's stack comes to 4px throughout, and the strip at the foot keeps
+      its own. */
+.as-field {
+  row-gap: var(--space-4);
+}
+.as-voice-lines {
+  gap: 2px;
+}
+.as-voice {
+  min-height: 40px;
+}
+
+/* 5. The seam, which is what was actually reported. A scroller that ends flush against an opaque
+      slab, clipped mid-word, cannot be told apart from a panel lying on top of content — the eye has
+      nothing to read the edge with. One shadow, thrown upward by the chrome, and the conversation is
+      legibly *under* it and still going. One shadow, never two stacked, and it is on the chrome
+      rather than the scroller so nothing is drawn over a safety sentence. The scroll also keeps a
+      little more room at its foot, so its last line can always be brought clear of the edge instead
+      of resting against it. */
+.as-compose,
+.as-gate-foot {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 -10px 18px -14px color-mix(in srgb, var(--brand-ink) 55%, transparent);
+}
+.as-scroll {
+  padding-bottom: var(--space-32);
+  scroll-padding-block-end: var(--space-16);
+}
+
+/* 6. The disabled Accept, which is the "grey highlight" in the founder's screenshot. It was drawn
+      as 28%-ink on white under 75%-white-on-ink text: rgb(187,200,204) behind rgb(195,206,210), a
+      contrast of about 1.1:1, so the words "I Accept and Continue" were a ghost on a grey pill on a
+      consent screen. Disabled or not, a person has to be able to read what the button she needs is
+      called. Ink at 80% on ink at 8%, which computes to 5.7:1, with a hairline so the shape is still
+      legibly out of reach and the change is not carried by colour alone. */
+.as-gate-accept:disabled {
+  background: color-mix(in srgb, var(--brand-ink) 8%, var(--surface));
+  color: color-mix(in srgb, var(--brand-ink) 80%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--brand-ink) 22%, var(--surface));
+}
+
+/* 7. The composer on a phone, where the trade is hardest. The microphone's disclosure is 143px of
+      contract text that may not be shortened, may not drop below the 12px this block already set it
+      at, and is fixed chrome by the decision of 18 September — it is read before the first tap
+      rather than scrolled to. So the only thing left to take is the row the button was sitting on
+      alone. The pattern is not new: the block at 359px below already puts the control beside the
+      composer's label, because at that width the row could not be paid for either. It was the right
+      shape at 390 too, and the whole sheet is the same argument — the label is one short line and
+      the control is 44px tall, so side by side they cost 44px instead of 105. The control keeps its
+      written "Tap to talk", the field keeps its own row and its full width, and the conversation
+      gets the difference. */
+@media (min-width: 360px) and (max-width: 560px) {
+  .as-compose {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-4) var(--space-8);
+  }
+  .as-compose > label {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .as-field {
+    display: contents;
+  }
+  .as-field input {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .as-send {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .as-voice {
+    grid-column: 2;
+    grid-row: 1;
+    width: auto;
+    padding-inline: var(--space-12);
+  }
+  .as-voice-lines {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  .as-silence {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+}
+
+/* 8. The head's seam, for the same reason as the composer's. The scroller is clipped at both ends,
+      and an ink band sitting flush on the conversation's top edge reads as something laid over it
+      exactly as the white slab at the foot did. The same one shadow, thrown the other way. */
+.as-head {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 10px 18px -14px color-mix(in srgb, var(--brand-ink) 55%, transparent);
+}
