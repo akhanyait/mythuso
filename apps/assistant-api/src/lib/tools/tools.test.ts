@@ -7,6 +7,9 @@ import { checkDrugInteraction, drugCheckTool } from './drug-check.ts';
 import { checkSymptoms, symptomCheckTool } from './symptom-check.ts';
 import { lookupMedication, medicationInfoTool } from './medication-info.ts';
 import { emergencyNumbers, emergencyNumbersTool } from './emergency-numbers.ts';
+import { lookupCoverage, coverageLookupTool } from './coverage-lookup.ts';
+import geography from '../../../../../packages/catalog/geography.json' with { type: 'json' };
+import { searchLiterature, literatureSearchTool } from './literature-search.ts';
 
 /* The five tools' own tests, added with the orchestrator tier on 21 September 2026. Every tool is
    a catalog lookup, so the assertions pin outputs to the catalog's own records — read here from
@@ -171,12 +174,172 @@ test('emergency-numbers carries sos.json’s own three, by the contract’s orde
  assert.equal(output.includes('For how you are feeling'), false);
 });
 
+test('coverage-lookup answers a phase-one zone as coverage, never as a facility', async () => {
+ const output = await lookupCoverage('is there a clinic near Melville');
+ assert.ok(output.includes('Melville'), 'the zone matched inside a longer sentence should be named');
+ assert.ok(output.includes('phase-one coverage area'));
+ assert.ok(
+  output.includes('not a directory of real clinics or pharmacies'),
+  'a matched zone must still say plainly that this is not a facility result',
+ );
+ assert.ok(output.includes('National Department of Health'));
+ assert.ok(output.includes('Sources: MyThuso geography catalog'));
+
+ /* Every zone geography.json actually carries answers, by its own name. */
+ for (const zone of geography.zones as { name: string }[])
+  assert.ok((await lookupCoverage(zone.name)).includes(zone.name), `${zone.name} should be read from geography.json, not typed`);
+});
+
+test('coverage-lookup refuses an area outside phase one honestly, not as an empty result', async () => {
+ const output = await lookupCoverage('Cape Town');
+ const outsideCoverage = (geography.refusals as { id: string; sentence: string }[]).find(
+  (entry) => entry.id === 'outside-coverage',
+ );
+ assert.ok(outsideCoverage, 'geography.json should still carry the outside-coverage refusal this tool reads');
+ assert.ok(output.includes(outsideCoverage!.sentence), "the catalog's own refusal sentence, not a typed one");
+ assert.ok(
+  output.includes('not a directory of real clinics or pharmacies'),
+  'an out-of-coverage answer must not read like "no results near you" when the real gap is that no facility directory exists at all',
+ );
+ assert.ok(output.includes('Randburg'), 'the covered zones are named so the refusal leaves the reader somewhere to stand');
+
+ /* Nonsense input gets the same honest refusal, not a silent non-answer. */
+ const gibberish = await lookupCoverage('zzz qqq nowhere');
+ assert.ok(gibberish.includes(outsideCoverage!.sentence));
+
+ const empty = await lookupCoverage('');
+ assert.ok(empty.includes('Name a suburb or area'));
+ assert.ok(empty.includes('not whether a clinic or pharmacy is there'));
+});
+
+/* literature-search's own tests. Unlike the other tools this one makes a live external call, so
+   every test stubs globalThis.fetch — the same pattern llm-adapter.test.ts and
+   orchestrator.test.ts already use for the model providers' own network calls — and restores it
+   in a finally, so a failure here can never leak a stub into a test that runs after it. */
+
+const stubFetch = (impl: typeof fetch): (() => void) => {
+ const original = globalThis.fetch;
+ globalThis.fetch = impl;
+ return () => {
+  globalThis.fetch = original;
+ };
+};
+
+const europePmcBody = (result: Record<string, unknown>[]): string =>
+ JSON.stringify({ resultList: { result } });
+
+test('literature-search parses a real-shaped Europe PMC response into cited results', async () => {
+ const restore = stubFetch((async (input: unknown) => {
+  assert.ok(String(input).startsWith('https://www.ebi.ac.uk/europepmc/webservices/rest/search'));
+  assert.ok(String(input).includes('query=gestational'), 'the query reaches the request URL');
+  return new Response(
+   europePmcBody([
+    {
+     id: '42149813',
+     pmid: '42149813',
+     pmcid: 'PMC13579056',
+     doi: '10.1093/ajh/hpag047',
+     title: 'Whole-body and intracellular arginine metabolism in hypertension.',
+     authorString: 'Hüttl VN, Deutz NEP, Wierzchowska-McNew RA.',
+     pubYear: '2026',
+     journalTitle: 'Am J Hypertens',
+     abstractText: 'This study investigates arginine metabolism in hypertensive adults, finding altered whole-body flux.',
+    },
+   ]),
+   { status: 200, headers: { 'content-type': 'application/json' } },
+  );
+ }) as unknown as typeof fetch);
+ try {
+  const output = await searchLiterature('gestational diabetes');
+  assert.ok(output.includes('Real, published papers from Europe PMC'));
+  assert.ok(output.includes('Whole-body and intracellular arginine metabolism in hypertension.'));
+  assert.ok(output.includes('2026'));
+  assert.ok(output.includes('Am J Hypertens'));
+  assert.ok(output.includes('Hüttl VN'));
+  assert.ok(output.includes('PMID:42149813'), 'every result carries the real identifier that makes it checkable');
+  assert.ok(output.includes('This study investigates arginine metabolism'), 'the abstract opening is carried, never a rewritten summary');
+  assert.ok(output.includes('never a conclusion drawn from them'));
+  assert.ok(output.includes('Sources: Europe PMC'));
+ } finally {
+  restore();
+ }
+});
+
+test('literature-search degrades to an honest "could not be reached" answer, never a hang or a thrown error', async () => {
+ const restore = stubFetch((async () => {
+  throw new Error('simulated network failure');
+ }) as unknown as typeof fetch);
+ try {
+  const output = await searchLiterature('hypertension');
+  assert.ok(output.includes('could not be reached'));
+  assert.ok(output.includes('says nothing about whether literature exists'), 'unreachable is never presented as "nothing found"');
+  assert.ok(output.includes('Sources: Europe PMC'));
+ } finally {
+  restore();
+ }
+
+ /* A response that answers but not with 200 (rate-limited, servers down) fails the same honest way. */
+ const restoreBadStatus = stubFetch((async () => new Response('', { status: 503 })) as unknown as typeof fetch);
+ try {
+  const output = await searchLiterature('hypertension');
+  assert.ok(output.includes('could not be reached'));
+ } finally {
+  restoreBadStatus();
+ }
+});
+
+test('literature-search reports an empty result set as empty, never invented', async () => {
+ const restore = stubFetch((async () =>
+  new Response(europePmcBody([]), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch);
+ try {
+  const output = await searchLiterature('zzzqqqnonsensequery');
+  assert.ok(output.includes('No papers with a checkable identifier were found'));
+  assert.ok(output.includes('not about the topic'));
+  assert.ok(output.includes('Sources: Europe PMC'));
+  assert.equal(output.includes('PMID:'), false, 'an empty answer must carry no fabricated identifier');
+ } finally {
+  restore();
+ }
+
+ /* A result Europe PMC itself indexes with no PMID, PMCID or DOI is not shown as a citation —
+    it would be a "source" that cannot actually be checked. */
+ const restoreNoIdentifier = stubFetch((async () =>
+  new Response(europePmcBody([{ title: 'A record with nothing to check it against', pubYear: '2020' }]), {
+   status: 200,
+   headers: { 'content-type': 'application/json' },
+  })) as unknown as typeof fetch);
+ try {
+  const output = await searchLiterature('untraceable');
+  assert.ok(output.includes('No papers with a checkable identifier were found'));
+  assert.equal(output.includes('A record with nothing to check it against'), false);
+ } finally {
+  restoreNoIdentifier();
+ }
+});
+
+test('literature-search asks for a topic rather than searching an empty string', async () => {
+ let called = false;
+ const restore = stubFetch((async () => {
+  called = true;
+  throw new Error('an empty query should never reach the network');
+ }) as unknown as typeof fetch);
+ try {
+  const output = await searchLiterature('');
+  assert.ok(output.includes('Name a topic'));
+  assert.equal(called, false);
+ } finally {
+  restore();
+ }
+});
+
 test('each LangChain wrapper carries the name the agent knows it by, and answers when invoked', async () => {
  assert.equal(knowledgeSearchTool.name, 'knowledge_search');
  assert.equal(drugCheckTool.name, 'drug_interaction_check');
  assert.equal(symptomCheckTool.name, 'symptom_check');
  assert.equal(medicationInfoTool.name, 'medication_info');
  assert.equal(emergencyNumbersTool.name, 'emergency_numbers');
+ assert.equal(coverageLookupTool.name, 'coverage_lookup');
+ assert.equal(literatureSearchTool.name, 'literature_search');
 
  const knowledge = await knowledgeSearchTool.invoke({ query: 'child immunisation schedule' });
  assert.ok(String(knowledge).includes('Knowledge base results'));
@@ -192,4 +355,19 @@ test('each LangChain wrapper carries the name the agent knows it by, and answers
 
  const numbers = await emergencyNumbersTool.invoke({ need: 'not specified' });
  assert.ok(String(numbers).includes('10177'));
+
+ const coverage = await coverageLookupTool.invoke({ area: 'Rosebank' });
+ assert.ok(String(coverage).includes('phase-one coverage area'));
+
+ const restore = stubFetch((async () =>
+  new Response(europePmcBody([{ pmid: '1', title: 'A paper', pubYear: '2020' }]), {
+   status: 200,
+   headers: { 'content-type': 'application/json' },
+  })) as unknown as typeof fetch);
+ try {
+  const literature = await literatureSearchTool.invoke({ query: 'hypertension' });
+  assert.ok(String(literature).includes('PMID:1'));
+ } finally {
+  restore();
+ }
 });

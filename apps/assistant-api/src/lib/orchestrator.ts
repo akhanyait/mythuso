@@ -19,6 +19,8 @@ import { symptomCheckTool } from "./tools/symptom-check.ts";
 import { medicationInfoTool } from "./tools/medication-info.ts";
 import { emergencyNumbersTool } from "./tools/emergency-numbers.ts";
 import { knowledgeSearchTool } from "./tools/knowledge-search.ts";
+import { literatureSearchTool } from "./tools/literature-search.ts";
+import { coverageLookupTool } from "./tools/coverage-lookup.ts";
 
 /* The orchestrator tier, added on 21 September 2026: a LangChain ReAct loop around the same two
    providers the plain model tier uses, with the catalog's own tools between the message and the
@@ -29,7 +31,8 @@ import { knowledgeSearchTool } from "./tools/knowledge-search.ts";
    turn route calls orchestrate() only for a patient-audience message the classifier could not
    match, exactly where it used to call the plain model tier. What the orchestrator adds is the
    tools: instead of answering a medicine question from memory, the model can read the catalog's
-   interaction record, medication entry, symptom guidance, emergency numbers or knowledge base
+   interaction record, medication entry, symptom guidance, emergency numbers, coverage area or
+   knowledge base — or, since 21 September 2026, search Europe PMC for a real, cited paper —
    before it writes a word.
 
    THE SAFETY CHAIN, IN ORDER. (1) The turn route has already run the refusal policies and the
@@ -37,8 +40,10 @@ import { knowledgeSearchTool } from "./tools/knowledge-search.ts";
    redacted here before any model sees them — the same redactPHI, run redundantly with the caller,
    because the duplication is the point. (3) The system prompt is the catalog's own llm prompt —
    never diagnose, never prescribe, always point at the humans who decide — extended only by the
-   tool instructions this tier exists to add. (4) Tools are read-only catalog lookups; none of them
-   can diagnose, prescribe or contact anyone. (5) The model's answer is redacted and length-capped
+   tool instructions this tier exists to add. (4) Every tool is read-only: most are catalog
+   lookups, and literature_search is a live, keyless call to Europe PMC, but all of them only ever
+   hand back a fact or a citation — none can diagnose, prescribe or contact anyone. (5) The
+   model's answer is redacted and length-capped
    on the way out. If any link fails — no provider, a hung model, a tool error, a timeout — the
    caller keeps the classifier's own answer, exactly as before this tier existed.
 
@@ -81,6 +86,8 @@ const TOOLS = [
   symptomCheckTool,
   medicationInfoTool,
   emergencyNumbersTool,
+  coverageLookupTool,
+  literatureSearchTool,
 ] as const;
 
 /* LangChain's tool classes are generic over each schema, so a union of them has no callable
@@ -105,6 +112,8 @@ const TOOL_GUIDE = [
   "- symptom_check: when a message describes how someone feels, to return the catalog's own 'when to see a doctor' guidance.",
   "- medication_info: when one medicine is named and the question is what it is, its usual dose, side effects or cautions.",
   "- emergency_numbers: when a message asks who to call, or names a crisis of any kind.",
+  "- coverage_lookup: when a message asks to find a clinic, pharmacy or nearby facility, or names a suburb and asks if MyThuso reaches it. It answers coverage only — MyThuso holds no directory of real facilities — so say that plainly rather than implying a result names a place to go.",
+  "- literature_search: when a message asks for research, evidence, a study or 'what does the literature say' about a topic. It returns real, cited papers from Europe PMC (title, authors, year, identifier) — never a conclusion. Report what it found as citations to check, never as a finding you endorse or a reason to change anything.",
   "",
   "How to work:",
   "1. Call a tool when one fits; call at most one tool per step, and wait for its result.",
