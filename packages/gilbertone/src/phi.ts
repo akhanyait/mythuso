@@ -22,11 +22,31 @@ export interface PHIPattern {
 }
 
 export const PHI_PATTERNS: readonly PHIPattern[] = Object.freeze([
-  { name: 'sa-id-number', pattern: /\b\d{13}\b/g, replacement: '[ID REDACTED]' },
-  { name: 'phone-intl', pattern: /\+27\s?\d[\d\s]{7,10}/g, replacement: '[PHONE REDACTED]' },
-  { name: 'phone-local', pattern: /\b0[1-9]\d[\d\s]{7,9}\b/g, replacement: '[PHONE REDACTED]' },
-  { name: 'email', pattern: /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, replacement: '[EMAIL REDACTED]' },
-  { name: 'medical-aid', pattern: /\b[A-Z]{2,5}\d{6,12}\b/g, replacement: '[MEDICAL AID REDACTED]' },
+  {
+    name: "sa-id-number",
+    pattern: /\b\d{13}\b/g,
+    replacement: "[ID REDACTED]",
+  },
+  {
+    name: "phone-intl",
+    pattern: /\+27\s?\d[\d\s]{7,10}/g,
+    replacement: "[PHONE REDACTED]",
+  },
+  {
+    name: "phone-local",
+    pattern: /\b0[1-9]\d[\d\s]{7,9}\b/g,
+    replacement: "[PHONE REDACTED]",
+  },
+  {
+    name: "email",
+    pattern: /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g,
+    replacement: "[EMAIL REDACTED]",
+  },
+  {
+    name: "medical-aid",
+    pattern: /\b[A-Z]{2,5}\d{6,12}\b/g,
+    replacement: "[MEDICAL AID REDACTED]",
+  },
 ]);
 
 /* The Luhn check, over the digits as they stand. Every South African identity number is built so
@@ -50,13 +70,16 @@ export function luhnValid(value: string): boolean {
   return sum % 10 === 0;
 }
 
-const matchesList = (pattern: PHIPattern, text: string): Array<{ pattern: PHIPattern; match: string }> => {
+const matchesList = (
+  pattern: PHIPattern,
+  text: string,
+): Array<{ pattern: PHIPattern; match: string }> => {
   /* A fresh expression per call: the shared one may be mid-scan from an earlier caller. */
   const fresh = new RegExp(pattern.pattern.source, pattern.pattern.flags);
   const found: Array<{ pattern: PHIPattern; match: string }> = [];
   for (const match of text.matchAll(fresh)) {
     /* The one pattern whose shape is not enough on its own. */
-    if (pattern.name === 'sa-id-number' && !luhnValid(match[0])) continue;
+    if (pattern.name === "sa-id-number" && !luhnValid(match[0])) continue;
     found.push({ pattern, match: match[0] });
   }
   return found;
@@ -68,9 +91,14 @@ export function containsPHI(text: string): boolean {
 }
 
 /** Every detected item, in the order the patterns are listed. */
-export function detectPHI(text: string): Array<{ name: string; match: string }> {
+export function detectPHI(
+  text: string,
+): Array<{ name: string; match: string }> {
   return PHI_PATTERNS.flatMap((pattern) =>
-    matchesList(pattern, text).map((found) => ({ name: found.pattern.name, match: found.match })),
+    matchesList(pattern, text).map((found) => ({
+      name: found.pattern.name,
+      match: found.match,
+    })),
   );
 }
 
@@ -80,7 +108,9 @@ export function redactPHI(text: string): string {
   for (const pattern of PHI_PATTERNS) {
     const fresh = new RegExp(pattern.pattern.source, pattern.pattern.flags);
     redacted = redacted.replace(fresh, (match) =>
-      pattern.name === 'sa-id-number' && !luhnValid(match) ? match : pattern.replacement,
+      pattern.name === "sa-id-number" && !luhnValid(match)
+        ? match
+        : pattern.replacement,
     );
   }
   return redacted;

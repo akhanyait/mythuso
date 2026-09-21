@@ -9,13 +9,13 @@
  * The web preview runs this directory in the browser, so time is handed in as ISO strings: an
  * evaluation names the day it was made on, and the day defaults to now only for a caller with none.
  */
-import consent from '../../../../catalog/consent.json' with { type: 'json' };
+import consent from "../../../../catalog/consent.json" with { type: "json" };
 
 /** What a guardian's consent would carry. Proof of authority is one of the contract's proof types. */
 export interface GuardianConsent {
   minorRef: string;
   guardianRef: string;
-  proofType: 'birth-certificate' | 'court-order' | 'legal-guardianship';
+  proofType: "birth-certificate" | "court-order" | "legal-guardianship";
   proofVerifiedAt: string | null;
   expiresAt: string | null;
 }
@@ -50,19 +50,22 @@ export function isMinor(dateOfBirth: string, asOf: string): boolean {
 export function evaluateGuardianConsent(
   minorAge: number,
   consentRecord: GuardianConsent | null,
-  asOf: string = new Date().toISOString()
+  asOf: string = new Date().toISOString(),
 ): GuardianEvaluation {
   if (minorAge >= AGE_THRESHOLD) {
     return { allowed: true }; // Not a minor — guardian consent not needed
   }
   if (!consentRecord) {
-    return { allowed: false, refusalId: 'minor-without-guardian' };
+    return { allowed: false, refusalId: "minor-without-guardian" };
   }
   if (!consentRecord.proofVerifiedAt) {
-    return { allowed: false, refusalId: 'no-proof-of-authority' };
+    return { allowed: false, refusalId: "no-proof-of-authority" };
   }
-  if (consentRecord.expiresAt && new Date(consentRecord.expiresAt) < new Date(asOf)) {
-    return { allowed: false, refusalId: 'expired-authority-document' };
+  if (
+    consentRecord.expiresAt &&
+    new Date(consentRecord.expiresAt) < new Date(asOf)
+  ) {
+    return { allowed: false, refusalId: "expired-authority-document" };
   }
   return { allowed: true };
 }

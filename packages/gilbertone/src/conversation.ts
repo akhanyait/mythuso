@@ -1,4 +1,4 @@
-import type { Audience, MessageClassification } from './engine.ts';
+import type { Audience, MessageClassification } from "./engine.ts";
 
 /* Conversation state for GilbertOne, as plain data and pure functions.
 
@@ -32,7 +32,7 @@ export interface ConversationState {
   turns: Turn[];
   activeTask: string | null;
   unresolvedSlots: string[];
-  escalationState: 'none' | 'pending' | 'active';
+  escalationState: "none" | "pending" | "active";
   consentScope: string[];
 }
 
@@ -57,25 +57,28 @@ export function createConversation(sessionId: string): ConversationState {
     turns: [],
     activeTask: null,
     unresolvedSlots: [],
-    escalationState: 'none',
+    escalationState: "none",
     consentScope: [],
   };
 }
 
 /* Append one turn, newest last, dropping the oldest past TURN_LIMIT. Immutable: the state that
    was passed in is untouched, and the returned state is a new object down to the turn array. */
-export function addTurn(state: ConversationState, turn: Turn): ConversationState {
+export function addTurn(
+  state: ConversationState,
+  turn: Turn,
+): ConversationState {
   const turns = [...state.turns, turn].slice(-TURN_LIMIT);
   const escalationState =
-    turn.classification === 'emergency'
-      ? 'active'
-      : turn.classification === 'handover' && state.escalationState === 'none'
-        ? 'pending'
+    turn.classification === "emergency"
+      ? "active"
+      : turn.classification === "handover" && state.escalationState === "none"
+        ? "pending"
         : state.escalationState;
   /* Care and handover are the two classifications that name something to do; a later question
      does not forget the task, and neither does a clarification. */
   const activeTask =
-    turn.classification === 'care' || turn.classification === 'handover'
+    turn.classification === "care" || turn.classification === "handover"
       ? turn.classification
       : state.activeTask;
   return { ...state, turns, activeTask, escalationState };
@@ -84,7 +87,9 @@ export function addTurn(state: ConversationState, turn: Turn): ConversationState
 /* The derived view: the last five classifications in order, the active task, and the count. */
 export function getContext(state: ConversationState): ConversationContext {
   return {
-    recentClassifications: state.turns.slice(-CONTEXT_TURNS).map((turn) => turn.classification),
+    recentClassifications: state.turns
+      .slice(-CONTEXT_TURNS)
+      .map((turn) => turn.classification),
     activeTask: state.activeTask,
     turnCount: state.turns.length,
   };
@@ -95,18 +100,25 @@ export function getContext(state: ConversationState): ConversationContext {
    that contains an emergency is never read as anything else. */
 export function hasActiveEscalation(state: ConversationState): boolean {
   return (
-    state.escalationState === 'active' ||
-    state.turns.some((turn) => turn.classification === 'emergency')
+    state.escalationState === "active" ||
+    state.turns.some((turn) => turn.classification === "emergency")
   );
 }
 
 /* Record a value for a slot and strike the slot off the waiting list. The value goes on the
    newest turn — the one that asked for it — and the unresolved list loses the name. Both are
    parts of one returned state; the state passed in is untouched. */
-export function resolveSlot(state: ConversationState, slotName: string, value: string): ConversationState {
+export function resolveSlot(
+  state: ConversationState,
+  slotName: string,
+  value: string,
+): ConversationState {
   const newest = state.turns[state.turns.length - 1];
   const turns = newest
-    ? [...state.turns.slice(0, -1), { ...newest, slots: { ...newest.slots, [slotName]: value } }]
+    ? [
+        ...state.turns.slice(0, -1),
+        { ...newest, slots: { ...newest.slots, [slotName]: value } },
+      ]
     : state.turns;
   return {
     ...state,

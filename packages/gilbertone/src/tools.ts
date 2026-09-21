@@ -1,5 +1,5 @@
-import type { Audience } from './engine.ts';
-import access from '../../catalog/apis/access.json' with { type: 'json' };
+import type { Audience } from "./engine.ts";
+import access from "../../catalog/apis/access.json" with { type: "json" };
 
 /* The allow-listed tool registry, grounded in the catalog's tool gateway.
 
@@ -38,7 +38,7 @@ type CatalogRoute = { path: string; refusals?: CatalogRefusal[] };
    until a caller asks it something. A sentence that is missing is refused at the call rather
    than defaulted, because a refusal nobody can read is not a refusal. */
 const toolsRoute = (access.routes as unknown as CatalogRoute[]).find(
-  (route) => route.path === '/v1/access/tools/{tool}',
+  (route) => route.path === "/v1/access/tools/{tool}",
 );
 const engineRefusals = access.refusals as unknown as CatalogRefusal[];
 
@@ -61,13 +61,17 @@ export class ToolRegistry {
   }
 
   /** Whether this caller may reach this tool: known, offered to the audience, grants carried. */
-  isAllowed(toolName: string, audience: Audience, grants: string[]): ToolCheckResult {
+  isAllowed(
+    toolName: string,
+    audience: Audience,
+    grants: string[],
+  ): ToolCheckResult {
     const tool = this.tools.find((entry) => entry.name === toolName);
-    if (!tool) return { allowed: false, refusal: sentence('tool-not-allowed') };
+    if (!tool) return { allowed: false, refusal: sentence("tool-not-allowed") };
     if (!tool.audiences.includes(audience))
-      return { allowed: false, refusal: sentence('tool-not-allowed') };
+      return { allowed: false, refusal: sentence("tool-not-allowed") };
     if (!tool.requiredGrants.every((grant) => grants.includes(grant)))
-      return { allowed: false, refusal: sentence('tool-grant-required') };
+      return { allowed: false, refusal: sentence("tool-grant-required") };
     return { allowed: true };
   }
 
