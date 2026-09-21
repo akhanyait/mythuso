@@ -576,7 +576,7 @@
     "alwaysAnswer": "What GilbertOne will always answer",
     "learnMore": "Learn more",
     "privacyHeading": "Privacy and voice",
-    "privacyBody": "GilbertOne listens only after you tap, hears English only, keeps no recording, and your browser or phone may turn your speech into text before sending. You can always type instead. GilbertOne does not send what you say to MyThuso.",
+    "privacyBody": "GilbertOne listens only after you tap, hears English only, and keeps no audio recording of any kind. You can always type instead. What you type — or what your browser or keyboard turns your speech into — may be sent to the language model provider configured for MyThuso, after details that could identify you have been removed, so please avoid typing identifying health information. When MyThuso's approved sentences can answer, no model is asked and your words stay on this device.",
     "willNotDoHeading": "What GilbertOne will not do",
     "willNotDo": [
       "Never tells you what you have.",
@@ -590,7 +590,7 @@
       "Not recognising an emergency does not mean there is not one."
     ],
     "poweredByHeading": "Powered by ThusoIQ",
-    "poweredByBody": "ThusoIQ is MyThuso's clinical rules platform. GilbertOne uses only approved sentences and the emergency red flags Thuso SOS already asks about.",
+    "poweredByBody": "ThusoIQ is MyThuso's clinical rules platform. GilbertOne's answers are built from MyThuso's approved sentences and the emergency red flags Thuso SOS already asks about, and a question they cannot place may be refined by the language model provider configured for MyThuso — never to diagnose and never to prescribe.",
     "checkboxDoctor": "I understand GilbertOne is not a doctor.",
     "checkboxEmergency": "I know what to do in an emergency.",
     "cancel": "Cancel",

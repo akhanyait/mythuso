@@ -9077,6 +9077,399 @@ if (
   }
 }
 
+/* The assistant runtime is the first thing this deploy publishes that is not a static file: a
+   service, a unit, an nginx location and a credential script, each of which can quietly stop
+   matching the others. The unit can name a path the deploy never writes; nginx can proxy to a
+   port the service no longer binds; the env script can stop being the only door the Azure key
+   goes through. Each of those is invisible from whichever file still agrees with itself, so
+   nothing here can be checked in one place — this reads all four and holds them together. */
+{
+  const conf = read("deploy/nginx/mythuso.conf");
+  const unit = read("deploy/ops/assistant-api.service");
+  const deploy = read("deploy/deploy.sh");
+  const envScript = read("deploy/ops/configure-assistant-env.sh");
+  const serverSource = read("apps/assistant-api/src/server.ts");
+
+  /* The port is read from where the service sets it — server.ts binds a literal — and nginx must
+     proxy to that same number, or the location answers 502 while the service hums on unaware. */
+  const port = serverSource.match(
+    /server\.listen\((\d+)/,
+  )?.[1];
+  if (!port)
+    throw new Error(
+      "scripts/check-boundaries.mjs can no longer read the assistant service's port out of apps/assistant-api/src/server.ts, so it cannot tell whether nginx proxies to the port the service binds.",
+    );
+  const location = conf.match(/location \/assistant\/ \{([\s\S]*?)\n    \}/);
+  if (!location)
+    throw new Error(
+      "deploy/nginx/mythuso.conf has no location /assistant/. The panel's bridge posts to /assistant/turn on the same origin, so without the location every request falls through to the catch-all and answers with the landing page under a 200 — the /status fault again, for the assistant.",
+    );
+  if (!location[1].includes(`proxy_pass http://127.0.0.1:${port};`))
+    throw new Error(
+      `deploy/nginx/mythuso.conf proxies /assistant/ to somewhere other than 127.0.0.1:${port}, which is the port apps/assistant-api/src/server.ts listens on. One of the two is wrong, and the request is the thing that finds out.`,
+    );
+  /* The paid-endpoint throttle, and its blast radius — added 21 September 2026. /assistant/ is the
+     only public path on this box that costs money per request, and its routes are open by design,
+     so the limit is the one control a script cannot ignore. The zone is declared once at http
+     level (limit_req_zone is one of the few directives that live there), applied only inside this
+     location, and the whole file is reread with the zone declaration and this location subtracted:
+     a limit_req that appeared at the server level would throttle every static page on this site,
+     and one in a co-tenant's file is not ours to edit. 429 rather than nginx's default 503,
+     because an unreachable service is a 503 and a throttled caller is not that. */
+  if (!/^limit_req_zone \$binary_remote_addr zone=assistant_limit:10m rate=60r\/m;$/m.test(conf))
+    throw new Error(
+      "deploy/nginx/mythuso.conf no longer declares the assistant rate-limit zone (limit_req_zone $binary_remote_addr zone=assistant_limit:10m rate=60r/m) at http level. The paid model endpoint is throttled by that zone or by nothing.",
+    );
+  if (!location[1].includes("limit_req zone=assistant_limit burst=10 nodelay;"))
+    throw new Error(
+      "deploy/nginx/mythuso.conf's location /assistant/ no longer applies limit_req zone=assistant_limit burst=10 nodelay. The zone would exist and nothing would use it — a limit that reads like a control and is not one.",
+    );
+  if (!location[1].includes("limit_req_status 429;"))
+    throw new Error(
+      "deploy/nginx/mythuso.conf's location /assistant/ no longer sets limit_req_status 429, so a throttled caller reads nginx's default 503 — the same status an unreachable service gives.",
+    );
+  if (/limit_req/.test(conf.replace(/limit_req_zone[^\n]*/g, "").replace(location[0], "")))
+    throw new Error(
+      "deploy/nginx/mythuso.conf uses limit_req outside location /assistant/. Throttling belongs on the one paid endpoint; anywhere else it is a limit on a static page, or on a co-tenant's site, that nobody asked for.",
+    );
+  /* The body ceiling, held to the service's own: nginx refuses an oversized request before it is
+     read and the service refuses one that reaches the port directly. Both numbers are read — the
+     service's from its own expression, nginx's from the location — and compared, because two
+     numbers that drift apart mean one of the two checks never fires. */
+  const maxBody = serverSource.match(/MAX_BODY_BYTES\s*=\s*(\d+)\s*\*\s*(\d+)/);
+  const nginxBody = location[1].match(/client_max_body_size\s+(\d+)k;/);
+  if (!maxBody || !nginxBody)
+    throw new Error(
+      "scripts/check-boundaries.mjs can no longer read the body ceiling from apps/assistant-api/src/server.ts (MAX_BODY_BYTES = n * m) and from deploy/nginx/mythuso.conf's location /assistant/ (client_max_body_size nk), so it cannot hold the two together.",
+    );
+  if (Number(maxBody[1]) * Number(maxBody[2]) !== Number(nginxBody[1]) * 1024)
+    throw new Error(
+      `deploy/nginx/mythuso.conf refuses bodies over ${nginxBody[1]} KB and apps/assistant-api/src/server.ts refuses over ${Number(maxBody[1]) * Number(maxBody[2])} bytes. nginx is the ceiling every caller meets and the service is the second line; the two must be the same number, read from each side rather than typed into both.`,
+    );
+  /* add_header inheritance: a location that declares one add_header inherits none. The whole
+     server-level set must therefore be redeclared inside, or the assistant's answers ship with no
+     X-Frame-Options and no HSTS — which is the exact lesson /assets/ taught this file. */
+  for (const header of [
+    "Cache-Control",
+    "X-Content-Type-Options",
+    "X-Frame-Options",
+    "Content-Security-Policy",
+    "Referrer-Policy",
+    "Permissions-Policy",
+    "Strict-Transport-Security",
+  ]) {
+    if (!new RegExp(`add_header\\s+${header}\\s`).test(location[1]))
+      throw new Error(
+        `deploy/nginx/mythuso.conf's location /assistant/ does not redeclare ${header}. A location that declares any add_header inherits none from the server level, so the assistant's responses would ship without it while every static page still carries it.`,
+      );
+  }
+  /* The service sets X-Content-Type-Options and Cache-Control itself; nginx redeclaring them on
+     top produces two of each ("nosniff, nosniff"), which a browser is entitled to make nothing of.
+     The hide is what keeps the redeclaration above from doubling. */
+  for (const hidden of ["X-Content-Type-Options", "Cache-Control"]) {
+    if (!location[1].includes(`proxy_hide_header ${hidden};`))
+      throw new Error(
+        `deploy/nginx/mythuso.conf's location /assistant/ redeclares ${hidden} but does not proxy_hide_header the service's own copy of it, so the browser receives the header twice.`,
+      );
+  }
+  /* HSTS inside the location stays at the five minutes the server level ships — a location that
+     quietly raised it would be the two-year decision taken at the edge of the file where nobody
+     reads, which is what the server-level comment exists to prevent. */
+  const hsts = location[1].match(/Strict-Transport-Security "([^"]*)"/)?.[1];
+  if (!hsts || !/max-age=300/.test(hsts) || !/includeSubDomains/.test(hsts))
+    throw new Error(
+      `location /assistant/ ships HSTS "${hsts ?? "none"}" — the server level ships "max-age=300; includeSubDomains", and the location must not drift from it.`,
+    );
+  /* The microphone policy, changed from () to (self) on 21 September 2026 — the same day the
+     contract's own web tap-to-talk was read against this file. The panel's recognition runs in
+     this origin, so () was a policy switching off a control the product ships and advertises;
+     (self) lets this site's own pages ask and keeps every other site out. camera=() and
+     geolocation=() stay refusals everywhere, and the two declarations must be one identical
+     string: the location inherits none of the server-level set, so a drift between them is two
+     policies wearing one name. The identity service's own answer is the other half — its
+     Permissions-Policy refuses the microphone outright and is asserted unchanged here, because
+     the assistant's microphone is the assistant's and an API that answers JSON about a person's
+     account has never needed one. */
+  const policies = [
+    ...conf.matchAll(/^[ \t]*add_header Permissions-Policy "([^"]*)" always;$/gm),
+  ].map((match) => match[1]);
+  if (policies.length !== 2)
+    throw new Error(
+      `deploy/nginx/mythuso.conf declares ${policies.length} Permissions-Policy headers; exactly two are expected — the server level and the /assistant/ location, which inherits none — and both carry the microphone policy.`,
+    );
+  for (const [index, policy] of policies.entries()) {
+    if (
+      !/microphone=\(self\)/.test(policy) ||
+      !/camera=\(\)/.test(policy) ||
+      !/geolocation=\(\)/.test(policy)
+    )
+      throw new Error(
+        `deploy/nginx/mythuso.conf's ${index === 0 ? "server-level" : "/assistant/"} Permissions-Policy is "${policy}". Both declarations must carry microphone=(self) — the panel's tap-to-talk runs in this origin — and camera=() and geolocation=() everywhere.`,
+      );
+  }
+  if (policies[0] !== policies[1])
+    throw new Error(
+      `deploy/nginx/mythuso.conf's two Permissions-Policy declarations disagree: server level "${policies[0]}", /assistant/ "${policies[1]}". A location that declares its own headers inherits none, so these are two policies and must be written as one string.`,
+    );
+  if (!read("apps/api/src/server.ts").includes("microphone=()"))
+    throw new Error(
+      "apps/api/src/server.ts no longer refuses the microphone in its own Permissions-Policy. The identity service is not the assistant: its policy has said camera=(), microphone=(), geolocation=() since it was written, and a microphone widened here — not in an nginx it does not rely on — is the one place the refusal is actually set.",
+    );
+  /* The identity /api/ block stays commented: nothing in this check may be readable as permission
+     to enable it, and an uncommented location here would be the moment a TLS-less /api/ went
+     live — the exact thing its comment says must not happen. */
+  if (
+    !/^\s*#\s*location \/api\//m.test(conf) ||
+    /^\s*location \/api\//m.test(conf)
+  )
+    throw new Error(
+      "deploy/nginx/mythuso.conf's /api/ identity location must stay commented out: the identity service is not enabled, and it must not be reachable over plain http.",
+    );
+
+  /* The unit's ExecStart names one file; the deploy must publish exactly it. Both paths are read
+     from the two files and compared, so the unit cannot point at a build the deploy does not make
+     and the deploy cannot stop publishing what the unit starts. */
+  const home = deploy.match(/^ASSISTANT=(\S+)$/m)?.[1];
+  const workdir = unit.match(/^WorkingDirectory=(\S+)$/m)?.[1];
+  const exec = unit.match(/^ExecStart=(.*)$/m)?.[1];
+  if (!home || !workdir || !exec)
+    throw new Error(
+      "scripts/check-boundaries.mjs can no longer read the assistant runtime's home out of deploy/deploy.sh and deploy/ops/assistant-api.service, so it cannot tell whether the unit points at what the deploy publishes.",
+    );
+  if (workdir !== home)
+    throw new Error(
+      `deploy/ops/assistant-api.service works from ${workdir} and deploy/deploy.sh publishes to ${home}. The unit would start a file that is not there.`,
+    );
+  if (exec !== "/usr/bin/node server.mjs")
+    throw new Error(
+      `deploy/ops/assistant-api.service runs "${exec}" — the deploy publishes exactly one file, server.mjs, and the unit must run exactly that one.`,
+    );
+  if (/\/var\/www/.test(unit))
+    throw new Error(
+      "deploy/ops/assistant-api.service names /var/www. The web root is rsynced with --delete on every deploy and served to the public internet; a service's code is neither disposable per-deploy nor public.",
+    );
+
+  /* The publish, as the series of promises deploy.sh makes about it: the server's Node is
+     validated against the package.json floor the bundle was built for (the artifact is transpiled
+     to that floor and no lower, so an older Node runs a syntax error rather than something
+     half-parsed), the new artifact lands beside the running one under .next and is moved into
+     place in one rename (a systemd start during a direct write would run a half-transferred
+     file), and no node_modules is ever sent — the Mac's cannot load on Linux and installing one
+     there hands the runtime back to the registry. Each promise is reread here so an edit cannot
+     quietly take one back. */
+  if (!deploy.includes('version_ge "$server_node" "$node_floor"'))
+    throw new Error(
+      "deploy/deploy.sh no longer validates the server's Node version against the package.json floor before publishing the assistant runtime. The bundle targets that floor; publishing it over an older Node is a service that starts and dies by SyntaxError.",
+    );
+  for (const [pattern, why] of [
+    [
+      /server\.mjs\.next/,
+      "publishes the artifact beside the running one first (server.mjs.next)",
+    ],
+    [
+      /mv -f \$ASSISTANT\/server\.mjs\.next \$ASSISTANT\/server\.mjs/,
+      "moves the new artifact into place in one atomic rename",
+    ],
+  ]) {
+    if (!pattern.test(deploy))
+      throw new Error(
+        `deploy/deploy.sh no longer ${why}, so a reader can arrive mid-write — a systemd start during the transfer runs a half-written file, which is the exact failure the two-step publish exists to prevent.`,
+      );
+  }
+  /* The remote digest is asked portably, with the same fallback the local side has always
+     carried: GNU coreutils names the tool sha256sum and the BSD userland names it shasum -a 256,
+     and whichever the server runs answers. The `|| remote_digest=""` guard is the other half: a
+     server with neither tool — or an ssh that fails — must not abort the deploy under set -e
+     with the half-transferred server.mjs.next still beside the running runtime; an empty digest
+     never equals a real local one, so the mismatch branch below removes the file and exits 1. */
+  const remoteDigest = deploy.match(/^\s*remote_digest=\$\(.*$/m)?.[0];
+  if (
+    !remoteDigest ||
+    !/command -v sha256sum/.test(remoteDigest) ||
+    !/shasum -a 256/.test(remoteDigest)
+  )
+    throw new Error(
+      "deploy/deploy.sh's remote digest no longer falls back from sha256sum to shasum -a 256. A server without GNU coreutils would leave the digest line failing instead of answering, and the publish would never reach its comparison.",
+    );
+  if (!remoteDigest?.includes('|| remote_digest=""'))
+    throw new Error(
+      'deploy/deploy.sh\'s remote digest no longer carries `|| remote_digest=""`. Under set -e a failed ssh or a server with neither tool would abort the deploy mid-publish, leaving server.mjs.next beside the running runtime instead of reaching the mismatch branch that removes it.',
+    );
+  if (/rsync[^\n]*node_modules/.test(deploy))
+    throw new Error(
+      "deploy/deploy.sh rsyncs a node_modules. The assistant artifact is one bundled file built on the build machine; a node_modules built on a Mac is a tree the Linux server cannot load, and one installed on the server is the production runtime depending on the registry again.",
+    );
+
+  /* The assistant build must happen before the first thing this deploy changes on the server: a
+     deploy that published the web entries and then failed to build the assistant runtime would
+     leave the box half-way through a build, which is the state no rollback covers. */
+  const buildAt = deploy.indexOf("npm run assistant-runtime --silent");
+  const publishAt = deploy.indexOf("rsync -az --delete");
+  if (buildAt < 0 || publishAt < 0 || buildAt > publishAt)
+    throw new Error(
+      "deploy/deploy.sh must run `npm run assistant-runtime` before it rsyncs anything to the server. The assistant build is part of this deploy's build, not a step that may fail after the server has started changing.",
+    );
+
+  /* The build wiring, read from both ends: package.json names the one script that produces the
+     artifact, that script names its entry, its output and its credential scan, and npm run check —
+     the single gate CI and a person run alike — invokes this file exactly once. A rename on either
+     side would leave the deploy building nothing while every message it prints still says it
+     built, which is the failure a build log is supposed to make impossible. */
+  const rootPackage = JSON.parse(read("package.json"));
+  if (rootPackage.scripts?.["assistant-runtime"] !== "node scripts/build-assistant.mjs")
+    throw new Error(
+      `package.json's assistant-runtime script is "${rootPackage.scripts?.["assistant-runtime"] ?? "absent"}". deploy/deploy.sh runs it by name before it touches the server, and scripts/build-assistant.mjs is the one thing it may be.`,
+    );
+  const boundaryUses =
+    (rootPackage.scripts?.check ?? "").match(/node scripts\/check-boundaries\.mjs/g) ?? [];
+  if (boundaryUses.length !== 1)
+    throw new Error(
+      `package.json's check script invokes scripts/check-boundaries.mjs ${boundaryUses.length} times; it must appear exactly once. Zero is this whole file being a check nobody runs, and two is a check whose second run nobody reads.`,
+    );
+  const buildScript = read("scripts/build-assistant.mjs");
+  for (const [pattern, why] of [
+    [
+      /apps\/assistant-api\/src\/server\.ts/,
+      "builds apps/assistant-api/src/server.ts",
+    ],
+    [/apps\/assistant-api\/dist/, "writes the artifact into apps/assistant-api/dist"],
+    [/server\.mjs/, "produces the one file the unit runs (server.mjs)"],
+    [
+      /AZURE_OPENAI_KEY/,
+      "scans the bundle for credential material before the deploy ever sees it",
+    ],
+  ]) {
+    if (!pattern.test(buildScript))
+      throw new Error(
+        `scripts/build-assistant.mjs no longer ${why}, and the deploy publishes whatever this script produces. A build that stopped naming its entry, its output or its credential scan is a deploy publishing something nobody described.`,
+      );
+  }
+
+  /* The env script is the only door the Azure key goes through, so the properties that make it a
+     door are asserted, not its wording: root, umask, echo off, atomic write, 0600, and a shell
+     that forgets the key before it returns. */
+  for (const [pattern, why] of [
+    [/umask 077/, "creates nothing readable by others"],
+    [/id -u[^;]*-ne 0/, "requires root in production"],
+    [/read -rs key/, "reads the key with the terminal echo off"],
+    [/mktemp/, "assembles the new file beside the old one before moving it"],
+    [/chmod 0600/, "leaves the file readable by root only"],
+    [/unset endpoint key model/, "clears the key from the shell's own memory"],
+  ]) {
+    if (!pattern.test(envScript))
+      throw new Error(
+        `deploy/ops/configure-assistant-env.sh no longer ${why}. It is the only sanctioned way the Azure key reaches this box, and the properties that keep it that way are listed here precisely so they cannot drift one at a time.`,
+      );
+  }
+
+  /* The production acknowledgement gate, added 21 September 2026: a configured key must never be
+     able to switch the public model on by itself, so production takes one more line, written by
+     hand — MYTHUSO_ASSISTANT_PRODUCTION=acknowledged in the service's own env file. The code half
+     is activation.ts, read by server.ts before it binds its port and by the orchestrator before
+     any model path (the Ollama probe included, which is the credential-less way a model could
+     otherwise appear). The absence half is the one that keeps it a gate: neither the unit nor the
+     credential script may put the acknowledgement in place — the script's operator does, from the
+     RUNBOOK — or the gate would approve itself and every install would take the production
+     decision automatically. */
+  const activation = read("apps/assistant-api/src/lib/activation.ts");
+  if (
+    !activation.includes("MYTHUSO_ASSISTANT_PRODUCTION") ||
+    !activation.includes("'acknowledged'")
+  )
+    throw new Error(
+      "apps/assistant-api/src/lib/activation.ts no longer carries MYTHUSO_ASSISTANT_PRODUCTION and the acknowledged value. Without that pair, credentials alone start a public model.",
+    );
+  if (
+    !/from '\.\/lib\/activation\.ts'/.test(serverSource) ||
+    !/activationRefusal/.test(serverSource)
+  )
+    throw new Error(
+      "apps/assistant-api/src/server.ts no longer enforces the production acknowledgement (./lib/activation.ts, activationRefusal) before it binds its port.",
+    );
+  const orchestratorSource = read("apps/assistant-api/src/lib/orchestrator.ts");
+  if (
+    !/from "\.\/activation\.ts"/.test(orchestratorSource) ||
+    !/modelTierAllowed/.test(orchestratorSource)
+  )
+    throw new Error(
+      "apps/assistant-api/src/lib/orchestrator.ts no longer gates on modelTierAllowed. The port refusal covers a configured key; the orchestrator gate is what also covers the Ollama probe — a model appearing with no credential configured anywhere.",
+    );
+  if (/MYTHUSO_ASSISTANT_PRODUCTION/.test(unit))
+    throw new Error(
+      "deploy/ops/assistant-api.service sets MYTHUSO_ASSISTANT_PRODUCTION itself. The acknowledgement is the operator's, by hand, once; a unit that carries it approves the production decision automatically on every install.",
+    );
+  if (!/MYTHUSO_ASSISTANT_PRODUCTION/.test(envScript))
+    throw new Error(
+      "deploy/ops/configure-assistant-env.sh no longer tells its operator that the production acknowledgement exists. The script runs first; a first enable that fails without the script having said why is how a gate gets worked around instead of understood.",
+    );
+  if (/MYTHUSO_ASSISTANT_PRODUCTION=acknowledged/.test(envScript))
+    throw new Error(
+      "deploy/ops/configure-assistant-env.sh writes (or prints) MYTHUSO_ASSISTANT_PRODUCTION=acknowledged. Typing the key and taking the production decision must be two separate acts: the script has the key, and the RUNBOOK has the line the operator appends afterwards.",
+    );
+  const noteAt = deploy.indexOf("cat <<NOTE");
+  const ackAt = deploy.indexOf("MYTHUSO_ASSISTANT_PRODUCTION=acknowledged");
+  if (
+    noteAt < 0 ||
+    ackAt < noteAt ||
+    deploy.indexOf("MYTHUSO_ASSISTANT_PRODUCTION=acknowledged", ackAt + 1) !== -1
+  )
+    throw new Error(
+      "deploy/deploy.sh must mention MYTHUSO_ASSISTANT_PRODUCTION=acknowledged exactly once, inside its closing NOTE (cat <<NOTE) — as the step it tells the operator to take. Elsewhere or twice is the deploy either doing it itself or not telling anyone it exists.",
+    );
+  if (!read("deploy/RUNBOOK.md").includes("MYTHUSO_ASSISTANT_PRODUCTION=acknowledged"))
+    throw new Error(
+      'deploy/RUNBOOK.md no longer carries the exact acknowledgement line. The deploy\'s NOTE points at its "Activating the assistant service" section for the command, and that section is the one place the operator reads it from.',
+    );
+
+  /* The origin policy: the wildcard is gone, the answer lives in ./lib/origin-policy.ts, and the
+     production list is the site's own two names. Every route here is unauthenticated, so a
+     wildcard is any page on the internet using this deployment as a free proxy to the paid model
+     provider — asserted by absence, and asserted present for the two names the allow-list must
+     keep. */
+  if (!/from '\.\/lib\/origin-policy\.ts'/.test(serverSource) || !/corsFor/.test(serverSource))
+    throw new Error(
+      "apps/assistant-api/src/server.ts no longer answers browser origins through ./lib/origin-policy.ts, where the production allow-list (mythuso.co.za and www.mythuso.co.za, and nothing else) lives.",
+    );
+  const originPolicy = read("apps/assistant-api/src/lib/origin-policy.ts");
+  for (const name of ["https://mythuso.co.za", "https://www.mythuso.co.za"])
+    if (!originPolicy.includes(name))
+      throw new Error(
+        `apps/assistant-api/src/lib/origin-policy.ts no longer names ${name} in its production allow-list. The panel's bridge is same-origin; the apex and www are the site this service answers.`,
+      );
+  for (const file of [
+    "apps/assistant-api/src/server.ts",
+    "apps/assistant-api/src/lib/origin-policy.ts",
+  ])
+    if (/access-control-allow-origin['"]?\s*:\s*['"]\*/.test(read(file)))
+      throw new Error(
+        `${file} answers any origin with a wildcard. Every route here is unauthenticated: a wildcard lets any page on the internet use this deployment as a free proxy to the paid model provider.`,
+      );
+
+  /* Nothing committed may carry a provider credential's value. The NAMES belong in the code —
+     reading process.env.AZURE_OPENAI_KEY is what the service is for — but a concrete
+     *.openai.azure.com URL or an env-file line with twenty-plus credential characters after the
+     equals sign is a pasted key wearing a comment. The script's own prompt does not match either
+     shape: its example endpoint starts with "<resource-name>", and its printf writes "%s" where a
+     value would be. Test fixtures use example.invalid — the TLD reserved for exactly that —
+     because the provider treats the endpoint as an opaque string and no test needs a real
+     resource shape to prove the variable names work. */
+  for (const file of [...files("deploy"), ...files("apps/assistant-api/src")]) {
+    const source = read(file);
+    if (/https:\/\/[a-z0-9][a-z0-9-]*\.openai\.azure\.com/.test(source))
+      throw new Error(
+        `${file} contains a concrete Azure OpenAI endpoint. Endpoints are typed into deploy/ops/configure-assistant-env.sh on the server and never committed — a resource's URL in a repository is half the pair that identifies it.`,
+      );
+    if (
+      /(AZURE_OPENAI_KEY|AZURE_OPENAI_API_KEY|OLLAMA_URL|AZURE_OPENAI_ENDPOINT)=[A-Za-z0-9_-]{20,}/.test(
+        source,
+      )
+    )
+      throw new Error(
+        `${file} contains something shaped like a provider credential's value beside its variable's name. The service reads /etc/mythuso/assistant.env at runtime; no value belongs in the repository, in a script, or in a test.`,
+      );
+  }
+}
+
 /* The status page carries no framework.
    It is the page somebody opens when they suspect nothing works — on a metered connection, in a car
    park, having just been told by a screen that it does not book a visit. It was first written as a
