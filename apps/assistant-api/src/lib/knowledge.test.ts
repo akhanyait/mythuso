@@ -181,3 +181,108 @@ test('Qdrant configured but nothing to embed with lands on the keyword floor', a
   assert.deepEqual(throughTheDoor, searchKnowledge('child immunisation schedule', 2));
  });
 });
+
+test('the embedding succeeds but Qdrant itself is unreachable: still the keyword floor', async () => {
+ /* Azure answers (a real deployment, a real key) and the vector road still fails, because nothing
+    is listening at QDRANT_URL — the fetch to Qdrant itself throws. That must land in exactly the
+    same place a missing credential does. */
+ const azureStub = createServer((req, res) => {
+  res.writeHead(200, { 'content-type': 'application/json' });
+  res.end(JSON.stringify({ data: [{ embedding: [0.1, 0.2, 0.3] }] }));
+ });
+ await new Promise<void>((resolve) => azureStub.listen(0, '127.0.0.1', resolve));
+ const address = azureStub.address();
+ assert.ok(address && typeof address === 'object');
+ try {
+  await withEnv(
+   {
+    QDRANT_URL: 'http://127.0.0.1:9',
+    AZURE_OPENAI_ENDPOINT: `http://127.0.0.1:${address.port}`,
+    AZURE_OPENAI_KEY: 'a-key',
+   },
+   async () => {
+    const throughTheDoor = await retrieveKnowledge('child immunisation schedule', 2);
+    assert.deepEqual(throughTheDoor, searchKnowledge('child immunisation schedule', 2));
+   },
+  );
+ } finally {
+  azureStub.closeAllConnections();
+  await new Promise<void>((resolve) => azureStub.close(() => resolve()));
+ }
+});
+
+test('Qdrant answers with an error status: still the keyword floor, not an error a patient sees', async () => {
+ const qdrantBodies: string[] = [];
+ const stub = createServer((req, res) => {
+  const chunks: Buffer[] = [];
+  req.on('data', (chunk: Buffer) => chunks.push(chunk));
+  req.on('end', () => {
+   if (req.url?.includes('/embeddings')) {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ data: [{ embedding: [0.1, 0.2, 0.3] }] }));
+    return;
+   }
+   qdrantBodies.push(Buffer.concat(chunks).toString('utf8'));
+   res.writeHead(500, { 'content-type': 'application/json' });
+   res.end(JSON.stringify({ status: { error: 'collection not found' } }));
+  });
+ });
+ await new Promise<void>((resolve) => stub.listen(0, '127.0.0.1', resolve));
+ const address = stub.address();
+ assert.ok(address && typeof address === 'object');
+ try {
+  await withEnv(
+   {
+    QDRANT_URL: `http://127.0.0.1:${address.port}`,
+    AZURE_OPENAI_ENDPOINT: `http://127.0.0.1:${address.port}`,
+    AZURE_OPENAI_KEY: 'a-key',
+   },
+   async () => {
+    const throughTheDoor = await retrieveKnowledge('child immunisation schedule', 2);
+    assert.deepEqual(throughTheDoor, searchKnowledge('child immunisation schedule', 2));
+   },
+  );
+ } finally {
+  stub.closeAllConnections();
+  await new Promise<void>((resolve) => stub.close(() => resolve()));
+ }
+ assert.equal(qdrantBodies.length, 1, 'the vector store was asked, and it answered badly');
+});
+
+test('Qdrant times out: the keyword floor answers instead of a hung request', async () => {
+ const azureStub = createServer((req, res) => {
+  res.writeHead(200, { 'content-type': 'application/json' });
+  res.end(JSON.stringify({ data: [{ embedding: [0.1, 0.2, 0.3] }] }));
+ });
+ /* Accepts the connection and never answers — the shape of a hung Qdrant, distinct from an
+    unreachable one (which fails the connection outright) and from an error status (which answers
+    fast but badly). All three must reach the same keyword floor. */
+ const stallingQdrant = createServer(() => {});
+ await new Promise<void>((resolve) => azureStub.listen(0, '127.0.0.1', resolve));
+ await new Promise<void>((resolve) => stallingQdrant.listen(0, '127.0.0.1', resolve));
+ const azureAddress = azureStub.address();
+ const qdrantAddress = stallingQdrant.address();
+ assert.ok(azureAddress && typeof azureAddress === 'object');
+ assert.ok(qdrantAddress && typeof qdrantAddress === 'object');
+ try {
+  await withEnv(
+   {
+    QDRANT_URL: `http://127.0.0.1:${qdrantAddress.port}`,
+    AZURE_OPENAI_ENDPOINT: `http://127.0.0.1:${azureAddress.port}`,
+    AZURE_OPENAI_KEY: 'a-key',
+   },
+   async () => {
+    const started = Date.now();
+    const throughTheDoor = await retrieveKnowledge('child immunisation schedule', 2);
+    const elapsed = Date.now() - started;
+    assert.deepEqual(throughTheDoor, searchKnowledge('child immunisation schedule', 2));
+    assert.ok(elapsed < 8_000, `the timeout should end the wait, and ${elapsed}ms did not`);
+   },
+  );
+ } finally {
+  azureStub.closeAllConnections();
+  stallingQdrant.closeAllConnections();
+  await new Promise<void>((resolve) => azureStub.close(() => resolve()));
+  await new Promise<void>((resolve) => stallingQdrant.close(() => resolve()));
+ }
+});

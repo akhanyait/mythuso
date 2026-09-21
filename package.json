@@ -27,10 +27,11 @@
     "records": "node scripts/emit-records.mjs",
     "generate": "npm run tokens && npm run vetting && npm run records && npm run earnings && npm run sos && npm run teleconsult && npm run locales && npm run dispensing && npm run programmes && npm run interpreting && npm run scheduling && npm run geography && npm run capabilities && npm run cancellation && npm run passport && npm run capture && npm run framing && npm run wellbeing && npm run banners && npm run appicon && npm run rewards && npm run shop && npm run plans && npm run thusoiq-contract && npm run events && npm run apis && npm run consent-grants && npm run protocols && npm run assistant && npm run open-source && npm run money && npm run care && npm run field-safety && npm run booking && npm run review-pack && npm run medicines && npm run verify-in-service && npm run passport-sharing && npm run devices && npm run mom-essential && npm run clinical && npm run sentinel && npm run movement && npm run groups && npm run household && npm run contract-tests && npm run event-privacy",
     "check": "npm run check -w @mythuso/gilbertone && npm run check -w @mythuso/thusoiq && npm run check -w @mythuso/commerce && npm run check -w @mythuso/geo && npm run check -w @mythuso/web && npm run check -w @mythuso/api && npm run check -w @mythuso/mock-api && npm run check -w @mythuso/passport && npm run check -w @mythuso/engines && npm run check -w @mythuso/assistant-api && node scripts/check-boundaries.mjs",
-    "test": "npm run test -w @mythuso/gilbertone && npm run test -w @mythuso/geo && npm run test -w @mythuso/thusoiq && npm run test -w @mythuso/commerce && npm run test -w @mythuso/api && npm run test -w @mythuso/mock-api && npm run test -w @mythuso/passport && npm run test -w @mythuso/engines && npm run test -w @mythuso/assistant-api && playwright test",
+    "test": "npm run test -w @mythuso/gilbertone && npm run test -w @mythuso/geo && npm run test -w @mythuso/thusoiq && npm run test -w @mythuso/commerce && npm run test -w @mythuso/api && npm run test -w @mythuso/mock-api && npm run test -w @mythuso/passport && npm run test -w @mythuso/engines && npm run test -w @mythuso/assistant-api && node --test scripts/ingest-knowledge-embeddings.test.ts && playwright test",
     "preview": "npm run preview -w @mythuso/web -- --host 0.0.0.0",
     "api": "npm run dev -w @mythuso/api",
     "test:live": "playwright test tests/live-identity.spec.ts",
+    "eval:gilbertone": "npm run eval:gilbertone -w @mythuso/assistant-api",
     "earnings": "node scripts/emit-earnings.mjs",
     "sos": "node scripts/emit-sos.mjs",
     "teleconsult": "node scripts/emit-teleconsult.mjs",
@@ -78,7 +79,8 @@
     "groups": "node scripts/emit-groups.mjs",
     "household": "node scripts/emit-household.mjs",
     "contract-tests": "node scripts/emit-contract-tests.mjs",
-    "event-privacy": "node scripts/emit-event-privacy-tests.mjs"
+    "event-privacy": "node scripts/emit-event-privacy-tests.mjs",
+    "ingest-knowledge-embeddings": "node scripts/ingest-knowledge-embeddings.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",

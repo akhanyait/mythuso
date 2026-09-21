@@ -7,8 +7,7 @@ import mentalHealth from "../../../../packages/catalog/knowledge/mental-health.j
 import saHealthSystem from "../../../../packages/catalog/knowledge/sa-health-system.json" with { type: "json" };
 import prevention from "../../../../packages/catalog/knowledge/prevention.json" with { type: "json" };
 import interactions from "../../../../packages/catalog/knowledge/interactions.json" with { type: "json" };
-import { redactPHI } from "../../../../packages/gilbertone/src/phi.ts";
-import { AZURE_API_VERSION } from "./llm-adapter.ts";
+import { azureCredentials, embedWithAzure } from "./llm-adapter.ts";
 
 /* The knowledge tier, added on 21 September 2026: the 250 catalog entries under
    packages/catalog/knowledge — conditions, medicines, first aid, maternal care, chronic illness,
@@ -20,14 +19,19 @@ import { AZURE_API_VERSION } from "./llm-adapter.ts";
    catalog text in front of a model that is itself barred from diagnosing or prescribing. The
    ranking below is term overlap — a reading aid, not a clinical assessment.
 
-   KEYWORD SEARCH, NO EMBEDDINGS, BY DESIGN. Qdrant is not deployed and no embedding model is
-   configured in any deployment of this product, so the default path is a plain TF-IDF keyword
-   search over an in-memory index built once at startup from static JSON imports — the same way the
-   adapter reads assistant.json, so the knowledge this service searches is the knowledge the
-   catalog says it has. If an operator sets QDRANT_URL, retrieveKnowledge() will try a vector
-   search first (query embedded through the same Azure credentials the chat tier reads, both under
-   short timeouts) and fall back to the keyword path on any failure — the keyword path is not a
-   degraded mode, it is the floor that cannot be removed from under a person's question. */
+   KEYWORD SEARCH IS THE FLOOR, ALWAYS BUILT. No deployment of this product has stood up Qdrant
+   yet, so the path every deployment actually takes today is a plain TF-IDF keyword search over an
+   in-memory index built once at startup from static JSON imports — the same way the adapter reads
+   assistant.json, so the knowledge this service searches is the knowledge the catalog says it has.
+   This is not a stand-in for a vector search that does not exist: an operator who sets QDRANT_URL
+   gets a real one. retrieveKnowledge() then embeds the query through embedWithAzure() in
+   llm-adapter.ts (the same Azure credentials, and now the same function, the chat tier reads) and
+   asks Qdrant first, under a short timeout, falling back to the keyword path on any failure —
+   missing credentials, a timeout, an unreachable Qdrant, an empty collection, all the same "use the
+   floor" instruction. The floor is not a degraded mode either way: it is what runs when nobody has
+   configured anything, and what a broken vector road falls back to when someone has. Populating
+   Qdrant is a separate, deliberate step — see scripts/ingest-knowledge-embeddings.mjs and the
+   comment above the Qdrant section below for how an operator actually turns this on. */
 
 export type KnowledgeResult = {
   /* The catalog entry's own id (cond-001, med-001, ...), so a caller can point back at exactly
@@ -65,6 +69,10 @@ type IndexedEntry = {
   title: string;
   source: string;
   snippet: string;
+  /* The entry's full flattened prose, untruncated — snippet exists for the panel, this exists for
+     embedding, where cutting an entry off at 240 characters would throw away half of what makes it
+     findable by meaning rather than by keyword. */
+  content: string;
   /* term -> weighted frequency: a hit in a title/name counts 3, a tag 2, body text 1. */
   terms: Map<string, number>;
 };
@@ -165,6 +173,7 @@ const indexEntry = (file: string, entry: KnowledgeEntry): IndexedEntry => {
     title,
     source: typeof entry.source === "string" ? entry.source : "MyThuso knowledge base",
     snippet: snippetOf(content),
+    content,
     terms,
   };
 };
@@ -263,44 +272,37 @@ export function searchKnowledge(query: string, topK: number = 4): KnowledgeResul
   return scored;
 }
 
-/* ---- The Qdrant path, future-proofing only ---- */
+/* ---- The Qdrant path ----
 
-const QDRANT_TIMEOUT_MS = 4000;
-const EMBEDDING_TIMEOUT_MS = 4000;
+   HOW AN OPERATOR ACTUALLY TURNS THIS ON. Three things, in order. First, the two Azure OpenAI
+   variables the chat tier already reads — AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_KEY (or
+   AZURE_OPENAI_API_KEY) — plus, only if the account's embeddings deployment is not named
+   text-embedding-3-small, AZURE_OPENAI_EMBEDDING_MODEL. Second, a Qdrant instance somewhere this
+   process can reach, named by QDRANT_URL (QDRANT_COLLECTION defaults to "gilbertone-knowledge" if
+   left unset). Third, running `node scripts/ingest-knowledge-embeddings.mjs` once, with those same
+   variables set, to actually populate that collection — standing up Qdrant does not, by itself,
+   put anything in it. From then on retrieveKnowledge() below asks it first on every call and this
+   whole knowledge module needs nothing further.
+
+   THE ASYMMETRY BETWEEN THE TWO SIDES. At query time, below, an empty or unreachable Qdrant is
+   silently fine — the whole point of the keyword floor is that it cannot be removed from under a
+   person's question, so a wrong QDRANT_URL, a Qdrant that is down, or a collection nobody has
+   populated yet all fall back to the keyword path with nothing worse than a log line. The ingestion
+   script is the opposite: an operator ran it on purpose to populate a store the product will then
+   trust, so it fails loudly — non-zero exit, a message that names what is missing — on a missing
+   credential, a failed embedding call or a rejected upsert, rather than leaving Qdrant half-seeded
+   and looking like it worked. */
+
+/* Shared by both steps of the vector road — the embedding call and the Qdrant search — because a
+   question this module is asked to answer must resolve fast either way: a slow vector road is not
+   better than the keyword floor, it is worse, and this ceiling is what turns "slow" into "fall
+   back" before a person notices the wait. */
+const VECTOR_STEP_TIMEOUT_MS = 4000;
 const QDRANT_DEFAULT_COLLECTION = "gilbertone-knowledge";
-const EMBEDDING_DEFAULT_MODEL = "text-embedding-3-small";
 
 const qdrantUrl = (): string => (process.env.QDRANT_URL ?? "").trim().replace(/\/+$/, "");
 const qdrantCollection = (): string =>
   (process.env.QDRANT_COLLECTION ?? "").trim() || QDRANT_DEFAULT_COLLECTION;
-
-/* The query vector, through the same Azure credentials the chat tier reads. The query is redacted
-   first — the same rule that governs every message that leaves this process. Returns null when
-   Azure is not configured or anything fails: null is the instruction to use the keyword floor. */
-async function embedQuery(query: string): Promise<number[] | null> {
-  const endpoint = (process.env.AZURE_OPENAI_ENDPOINT ?? "").trim().replace(/\/+$/, "");
-  const key = (process.env.AZURE_OPENAI_KEY ?? process.env.AZURE_OPENAI_API_KEY ?? "").trim();
-  if (!endpoint || !key) return null;
-  const model =
-    (process.env.AZURE_OPENAI_EMBEDDING_MODEL ?? "").trim() || EMBEDDING_DEFAULT_MODEL;
-  try {
-    const response = await fetch(
-      `${endpoint}/openai/deployments/${model}/embeddings?api-version=${AZURE_API_VERSION}`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json", "api-key": key },
-        body: JSON.stringify({ input: redactPHI(query) }),
-        signal: AbortSignal.timeout(EMBEDDING_TIMEOUT_MS),
-      },
-    );
-    if (!response.ok) return null;
-    const body = (await response.json()) as { data?: { embedding?: number[] }[] };
-    const vector = body.data?.[0]?.embedding;
-    return Array.isArray(vector) && vector.length ? vector : null;
-  } catch {
-    return null;
-  }
-}
 
 type QdrantPayload = {
   id?: unknown;
@@ -310,8 +312,9 @@ type QdrantPayload = {
   file?: unknown;
 };
 
-/* A plain REST search against Qdrant — no client library, so the future-proofing costs no new
-   dependency and a deployment without Qdrant never loads one. Returns null on any failure. */
+/* A plain REST search against Qdrant — no client library, so a deployment without Qdrant never
+   loads one and there is nothing here for a deployment with Qdrant to depend on beyond the network
+   call itself. Returns null on any failure. */
 async function qdrantSearch(
   url: string,
   vector: number[],
@@ -324,7 +327,7 @@ async function qdrantSearch(
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ vector, limit: Math.max(1, topK), with_payload: true }),
-        signal: AbortSignal.timeout(QDRANT_TIMEOUT_MS),
+        signal: AbortSignal.timeout(VECTOR_STEP_TIMEOUT_MS),
       },
     );
     if (!response.ok) return null;
@@ -358,21 +361,26 @@ async function qdrantSearch(
 
 /* The door the tools use. Vector search when an operator has stood up Qdrant, keyword search
    always — and whatever goes wrong on the vector road, the answer is the keyword floor, never an
-   error, in exactly the way the chat tier falls back to the classifier. */
+   error, in exactly the way the chat tier falls back to the classifier. The query is embedded
+   through embedWithAzure() in llm-adapter.ts — the same function, same credentials and same
+   redaction the ingestion script uses to embed the catalog it is being searched against, so the
+   two sides of the comparison are never built two different ways. */
 export async function retrieveKnowledge(
   query: string,
   topK: number = 4,
 ): Promise<KnowledgeResult[]> {
   const url = qdrantUrl();
   if (!url) return searchKnowledge(query, topK);
-  const vector = await embedQuery(query);
+  const vector = await embedWithAzure(query, VECTOR_STEP_TIMEOUT_MS);
   if (vector) {
     const hits = await qdrantSearch(url, vector, topK);
     if (hits) return hits;
-  } else {
+  } else if (!azureCredentials()) {
     /* No Azure embedding credentials: the vector road is closed for a reason an operator can fix,
        and that is worth one line in the log rather than silence. */
     console.log("[gilbertone:knowledge] qdrant configured but no embedding model; keyword search used");
+  } else {
+    console.log("[gilbertone:knowledge] qdrant configured but the embedding call failed; keyword search used");
   }
   return searchKnowledge(query, topK);
 }
@@ -382,3 +390,31 @@ export const knowledgeStats = (): { entries: number; files: number } => ({
   entries: CORPUS.length,
   files: new Set(CORPUS.map((entry) => entry.file)).size,
 });
+
+/* One catalog entry, one embeddable record — most entries here are already short catalog rows
+   (a condition, a medicine, a first-aid procedure), so splitting one into several pieces would
+   only separate a drug's name from its own dosage. Exported for
+   scripts/ingest-knowledge-embeddings.mjs, which is the single place that turns these into Qdrant
+   points, so the text a vector represents and the text the keyword index scores are computed from
+   the same corpus rather than two hand-kept copies of "what does this entry mean". `text` embeds
+   the full, untruncated content — the display `snippet` is cut to 240 characters for the panel,
+   which is too short to embed the entry well. */
+export type KnowledgeChunk = {
+  id: string;
+  title: string;
+  source: string;
+  file: string;
+  snippet: string;
+  text: string;
+};
+
+export function knowledgeChunks(): KnowledgeChunk[] {
+  return CORPUS.map((entry) => ({
+    id: entry.id,
+    title: entry.title,
+    source: entry.source,
+    file: entry.file,
+    snippet: entry.snippet,
+    text: `${entry.title}. ${entry.content}`,
+  }));
+}

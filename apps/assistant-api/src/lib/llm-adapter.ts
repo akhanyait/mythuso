@@ -43,6 +43,10 @@ const DEFAULT_PROBE_TIMEOUT_MS = 800;
    them changes no behaviour. */
 export const AZURE_API_VERSION = "2025-01-01-preview";
 export const AZURE_DEFAULT_MODEL = "gpt-4.1-mini";
+/* The embeddings deployment, alongside the chat one above. text-embedding-3-small is Azure's
+   current small embedding model — cheap enough to run once per catalog entry at ingestion time
+   and once per question at query time, which is the whole load this deployment ever carries. */
+export const AZURE_DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small";
 export const OLLAMA_DEFAULT_URL = "http://localhost:11434";
 /* llama3.1:8b, the tag this machine's Ollama actually carries — the bare name 'llama3.1' is not
    resolvable there ('model not found'), and med42-v2 was never installed. An operator who has a
@@ -131,10 +135,23 @@ const answerOf = (text: string): LLMResponse => {
   };
 };
 
+/* The endpoint and key an operator has set for Azure OpenAI, read the one way rather than twice:
+   the chat tier's deployment and the embeddings deployment below are different deployments on the
+   same account, so both read credentials through this function instead of each keeping its own
+   copy of "trim, drop a trailing slash, accept either spelling of the key" to drift out of step.
+   The key is read as AZURE_OPENAI_KEY or AZURE_OPENAI_API_KEY — the portal's own screen says "API
+   key", and an operator who named the variable after what the screen called it has still
+   configured it. */
+export function azureCredentials(
+  env: NodeJS.ProcessEnv = process.env,
+): { endpoint: string; key: string } | null {
+  const endpoint = (env.AZURE_OPENAI_ENDPOINT ?? "").trim().replace(/\/+$/, "");
+  const key = (env.AZURE_OPENAI_KEY ?? env.AZURE_OPENAI_API_KEY ?? "").trim();
+  return endpoint && key ? { endpoint, key } : null;
+}
+
 /* Azure OpenAI, when the operator has set both the endpoint and the key. The deployment name is
-   the model, as Azure names them; the API version is pinned rather than a moving 'latest'. The key
-   is read as AZURE_OPENAI_KEY or AZURE_OPENAI_API_KEY — the portal's own screen says "API key", and
-   an operator who named the variable after what the screen called it has still configured it. */
+   the model, as Azure names them; the API version is pinned rather than a moving 'latest'. */
 export class AzureOpenAIProvider implements LLMProvider {
   name = "azure-openai";
   available: boolean;
@@ -146,13 +163,12 @@ export class AzureOpenAIProvider implements LLMProvider {
      types, and stripping cannot rewrite a parameter property into a field. */
   constructor(timeoutMs: number = LLM_TIMEOUT_MS) {
     const env = process.env;
-    this.#endpoint = (env.AZURE_OPENAI_ENDPOINT ?? "")
-      .trim()
-      .replace(/\/+$/, "");
-    this.#key = (env.AZURE_OPENAI_KEY ?? env.AZURE_OPENAI_API_KEY ?? "").trim();
+    const creds = azureCredentials(env);
+    this.#endpoint = creds?.endpoint ?? "";
+    this.#key = creds?.key ?? "";
     this.#model = (env.AZURE_OPENAI_MODEL ?? "").trim() || AZURE_DEFAULT_MODEL;
     this.#timeoutMs = timeoutMs;
-    this.available = Boolean(this.#endpoint && this.#key);
+    this.available = Boolean(creds);
   }
   async complete(
     message: string,
@@ -178,6 +194,45 @@ export class AzureOpenAIProvider implements LLMProvider {
       choices?: { message?: { content?: string } }[];
     };
     return answerOf(body.choices?.[0]?.message?.content ?? "");
+  }
+}
+
+/* The embeddings call, alongside the chat call above: same account, same api-version, a different
+   deployment and a different shape of answer. Exported for the knowledge tier's query-time vector
+   search and for scripts/ingest-knowledge-embeddings.mjs, which is this same request run once per
+   catalog entry instead of once per question — one function, so the two could never read the
+   endpoint, the key or the api-version differently. Redacts before sending for the same reason
+   complete() does: whatever the caller forgot, an identity number or a phone number does not leave
+   this process, even though the ingestion script's own input is public catalog text with nothing
+   to redact. Returns null on missing credentials or any failure — null is the instruction to fall
+   back, never an error to surface, matching every other door this adapter opens. */
+export async function embedWithAzure(
+  text: string,
+  timeoutMs: number = LLM_TIMEOUT_MS,
+): Promise<number[] | null> {
+  const creds = azureCredentials();
+  if (!creds) return null;
+  const model =
+    (process.env.AZURE_OPENAI_EMBEDDING_MODEL ?? "").trim() ||
+    AZURE_DEFAULT_EMBEDDING_MODEL;
+  try {
+    const response = await fetch(
+      `${creds.endpoint}/openai/deployments/${model}/embeddings?api-version=${AZURE_API_VERSION}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json", "api-key": creds.key },
+        body: JSON.stringify({ input: redactPHI(text) }),
+        signal: AbortSignal.timeout(timeoutMs),
+      },
+    );
+    if (!response.ok) return null;
+    const body = (await response.json()) as {
+      data?: { embedding?: number[] }[];
+    };
+    const vector = body.data?.[0]?.embedding;
+    return Array.isArray(vector) && vector.length ? vector : null;
+  } catch {
+    return null;
   }
 }
 
