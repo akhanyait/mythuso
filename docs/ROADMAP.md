@@ -372,3 +372,47 @@ The founder switched `voice.webSpeech` on in `packages/catalog/assistant.json` �
 Verification: `npm run check`, `node scripts/check-boundaries.mjs`, the full package test suite, and focused browser runs over the assistant, polish, public-assistant, GilbertOne, landing and motion specs — 136 passed, 4 skipped, both viewports — on the shared checkout. The assistant emitter writes no change: native data carries none of the web-only voice fields, and no native file changed.
 
 Release measurement: **284.00 kB patient entry across 15 files**, gzip level 9 the documented way — 0.01 kB below the 284.01 kB robot release deployed on the morning of 20 September, and above the 282.16 kB figure recorded on 16 September, which the founder's approvals of the 283.07 kB and 284.01 kB deployments already accepted. The speech increment costs the entry nothing: it lives in the assistant's lazy chunk. Deployment: founder-approved run on 20 September 2026.
+
+### GilbertOne reference robot — 20 September 2026
+
+Applied the founder’s white-and-teal bust with lime antenna to the web app launcher, shared
+GilbertOne rig and signed-out website guide. Transparent 14,442-byte WebP; GilbertOne is rendered
+as chest text from assistant-ui.json. The 104px launcher keeps the dismissible hello greeting;
+blinking and gentle float respect reduced motion, pause and hidden tabs. Refusal and emergency
+eyes remain neutral. No assistant permissions or native functionality changed.
+
+Validation: npm run check, npm test, iOS simulator build, Android assembleDebug/lintDebug passed.
+Ten focused desktop/mobile checks passed in the workspace; eight polish checks passed against
+the isolated release. Its web build and boundary checks passed. Patient entry: 283.85 kB across
+15 referenced JS/CSS files, gzip level 9, versus the previous 284.01 kB; the robot image is a
+separate 14.44 kB request. Prepared /tmp/mythuso-robot-v2-release from HEAD plus only the visual
+files listed in RELEASE-SCOPE.txt, excluding unrelated unfinished clinical/API changes.
+Publication awaits separate approval for this run under AGENTS.md.
+
+Publication verified, 20 September 2026: founder approved this run with “apply to mythuso.co.za”. Ran /tmp/mythuso-robot-v2-release/deploy/deploy.sh successfully. External HTTPS checks passed for /, /app/, /staff/, /admin/, /status/, /shop/ and www; six required headers and HSTS max-age=300 confirmed. Certificate SAN covers apex and www. All five co-tenant statuses unchanged. Live mobile browser verified the exact new WebP, 104px launcher, GilbertOne chest text and hello greeting. Screenshot: /tmp/gilbert-v2-live-mobile.png; deploy log: /tmp/gilbert-v2-deploy.log.
+
+---
+
+## Gated — the twenty-feature roadmap, recorded 21 September 2026
+
+The founder described twenty features. On 21 September 2026 each was read back against what exists, and the answer for most of them is a gate rather than a date: a thing that must be true — a contract, a signature, a ceremony, a person — before the feature may be built as more than documentation. **Nothing below was implemented or connected by that pass**, and none of the gates has been satisfied. Each is written with its obstacle, because a gate without its obstacle is a to-do item and this is not a to-do list.
+
+**The assistant's second tier, and its model.** The service is now delivered by every deploy as one bundled file and installed dark; the bridge is live in the panel and falls back to the on-device answers while the service is off.
+
+- **The local fallback model is `llama3.1:8b`** — the tag this machine's Ollama actually carries, and the default in `apps/assistant-api/src/lib/llm-adapter.ts` that runs when no `OLLAMA_MODEL` is set. It is a general-purpose model at the fallback tier, not a clinical one.
+- **MedGemma is not the current default and must not be described as one.** It is a future, clinically reviewed evaluation-only model: Google's own model card says its outputs are not intended to guide clinical decisions and it is not optimised for multi-turn use, and `docs/GilbertOne_Developer_Scope_v1.md` records the same. The order is evaluation on a pinned checkpoint, then a clinical and privacy review, then anything else.
+- **Provider configured and production operational are states an operator reaches by hand** — a credential through the ops script and the acknowledgement line — and the Azure data-processing and residency questions must be answered before real patient text is acceptable.
+
+**The rest of the list, gated as written:**
+
+| Item | What must exist first |
+|---|---|
+| **Web offline storage for the nurse toolkit** | A signed DPIA and an explicit founder decision that change the web storage ban. Until then offline capture is **native-only**, its queues' encrypted storage is the only form, and no IndexedDB appears in `apps/web/src` — held by the build, not by a sentence. |
+| **Real payments** | A contracted South African payment provider, financial controls, reconciliation design, and a privacy review. |
+| **PHI, FHIR, Medplum, sharing tokens, coding** | A signed DPIA, a registered Information Officer, a data-residency decision, KMS or HSM custody, a retention policy, and interoperability governance. The Passport stays development-only until then, at its own refusal. |
+| **SMS identity** | A provider contract, DNS, TLS, rate limiting, fraud controls — and the complete existing activation sequence in `deploy/README.md`, step for step. |
+| **Triage, MedGemma, ICD, SNOMED, PHQ, GAD, drug, chronic, allergy intelligence** | Evaluation-only until clinical board review, protocol ratification, pharmacist sign-off where applicable, safety cases, versioned sources, and human review before anything is surfaced. Suggest; never decide. |
+| **Every clinical feature** | The repository's eight-step path, with no step skipped: catalog contract, generator, web, iOS, Android, boundary rule, journey test, feature-map update. |
+| **Qdrant, Ollama, PostgreSQL, Whisper, Piper, Medplum** | A new, isolated server of their own. **Never `liqzar-server`** — five production sites share that box, and this repository's deploy is built around never disturbing them. |
+| **The CHW workspace** | Truthful identity, which does not exist yet. Role-gated and lazy-loaded when it does. |
+| **Hardware reference work** | May proceed as documentation only, without activating a patient service. |
