@@ -20,7 +20,7 @@ const DUMMY_HEADER = 'x-fixture-authorization: Bearer fixture-token';
 
 /* Every line the server writes to the error stream while `body` runs, and the real console put
    back whatever happens — a test that leaks a mocked console changes what the next test is
-   measuring. Binding port 0 keeps this file clear of the 3001 a running service may hold. */
+   measuring. Binding port 0 keeps this file clear of the 8791 a running service may hold. */
 const withServer = async (
  turn: typeof handleTurn,
  body: (base: string) => Promise<void>,

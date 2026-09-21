@@ -150,8 +150,8 @@ export function createAssistantServer(turn: typeof handleTurn = handleTurn): Ser
    house idiom apps/api/src/server.ts carries. */
 export function start(): void {
  const server = createAssistantServer();
- server.listen(3001, () => {
-  console.log('Assistant API listening on 3001');
+ server.listen(8791, () => {
+  console.log('Assistant API listening on 8791');
  });
 }
 

@@ -165,7 +165,7 @@ else
   say "  2. systemctl enable --now assistant-api.service   # first activation"
 fi
 say "Then check it, from the box, with commands that reveal no secrets:"
-say "  curl -s http://127.0.0.1:3001/assistant/health        # expect \"azure\":true and \"activated\":true"
+say "  curl -s http://127.0.0.1:8791/assistant/health        # expect \"azure\":true and \"activated\":true"
 say "  curl -s https://mythuso.co.za/assistant/health        # the same, through nginx"
 say ""
 say "If the service will not be enabled, the file can wait: the unit reads it only at start."

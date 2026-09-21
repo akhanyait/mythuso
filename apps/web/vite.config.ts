@@ -93,7 +93,7 @@ export default defineConfig({
          get wrong in the browser — and this target is only what sits behind the path in
          development. No rewrite: the service's own routes are /assistant/turn and
          /assistant/health, and they are asked for by those names. */
-      '/assistant': { target: process.env.MYTHUSO_ASSISTANT ?? 'http://127.0.0.1:3001', changeOrigin: true }
+      '/assistant': { target: process.env.MYTHUSO_ASSISTANT ?? 'http://127.0.0.1:8791', changeOrigin: true }
     }
   }
 });

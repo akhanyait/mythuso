@@ -413,7 +413,7 @@ sudo systemctl enable --now assistant-api.service
 ### Proving it worked, with commands that reveal no secrets
 
 ```sh
-curl -s http://127.0.0.1:3001/assistant/health
+curl -s http://127.0.0.1:8791/assistant/health
 ```
 
 Expected: `{"ok":true,"mode":"phase-2-safe","azure":true,"ollama":false,"production":true,"activated":true}` —

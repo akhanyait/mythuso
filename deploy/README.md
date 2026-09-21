@@ -469,6 +469,6 @@ endpoint or the key: `"azure"` says the credentials were read, and `"production"
 agcafrica.com, artisanza.co.za, bidza.co.za, liqzar.co.za and skillsonwheels.co.za, plus PostgreSQL
 and two node applications on loopback ports 3000 and 4000, and BidZA's own timers — its backup at
 01:10 and its OCR job hourly under a CPU cap. MyThuso adds a site file, two timers, the assistant
-service on loopback 3001 (installed dark, enabled by hand) and, later, a service on 8787. The backup
+service on loopback 8791 (installed dark, enabled by hand) and, later, a service on 8787. The backup
 is at 02:40 so the two never share the disk. Nothing here modifies any
 of them, `nginx -t` gates every reload, and the deploy checks all five afterwards.

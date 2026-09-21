@@ -225,7 +225,7 @@ test('the runtime bundles to one deterministic artifact, carrying no credential 
 test('nginx carries the assistant proxy, the fence on it, and the microphone policy twice', () => {
   const nginx = readRepo('deploy/nginx/mythuso.conf');
   assert.match(nginx, /location \/assistant\/ \{/, 'the bridge is same-origin: the location is the bridge');
-  assert.match(nginx, /proxy_pass http:\/\/127\.0\.0\.1:3001;/, 'to the loopback port the unit binds');
+  assert.match(nginx, /proxy_pass http:\/\/127\.0\.0\.1:8791;/, 'to the loopback port the unit binds');
   assert.match(nginx, /proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;/);
   assert.match(nginx, /proxy_set_header X-Forwarded-Proto \$scheme;/);
   assert.match(nginx, /client_max_body_size 16k;/, 'the service’s own ceiling, mirrored at the edge');

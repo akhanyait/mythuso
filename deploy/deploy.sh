@@ -448,7 +448,7 @@ ssh "$TARGET" "if systemctl is-enabled --quiet mythuso-api.service 2>/dev/null; 
 # the location redeclares). The health route answers with booleans only — never the endpoint,
 # never the key.
 ssh "$TARGET" "if systemctl is-enabled --quiet assistant-api.service 2>/dev/null; then
-    curl -sf --max-time 15 http://127.0.0.1:3001/assistant/health && echo
+    curl -sf --max-time 15 http://127.0.0.1:8791/assistant/health && echo
     curl -sfL --max-time 15 --resolve '$HOST:443:127.0.0.1' --resolve '$HOST:80:127.0.0.1' http://$HOST/assistant/health && echo
   else echo 'assistant not enabled (see deploy/RUNBOOK.md — activate it only after the credentials ceremony)'; fi"
 
@@ -726,7 +726,7 @@ Still yours to do — deploy/RUNBOOK.md is this list with the failures written o
        sudo sh -c "printf 'MYTHUSO_ASSISTANT_PRODUCTION=acknowledged\n' >> /etc/mythuso/assistant.env"
                                                           # the production decision, its own act — a configured key alone must never start a public model
        sudo systemctl enable --now assistant-api.service
-       curl -s http://127.0.0.1:3001/assistant/health     # expect "azure":true and "activated":true — booleans only, no secrets
+       curl -s http://127.0.0.1:8791/assistant/health     # expect "azure":true and "activated":true — booleans only, no secrets
      The key is typed into that script and nowhere else — never into chat, Git, a shell command
      line or a log, each of which is a copy with a different owner.
 NOTE
