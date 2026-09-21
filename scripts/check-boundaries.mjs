@@ -15492,14 +15492,42 @@ if (launcherLabel !== gilbertContract.identity.callToAction)
   throw new Error(
     `The floating orb on the web is called "${launcherLabel}", and the contract's call to action is "${gilbertContract.identity.callToAction}". It is typed there only to keep the contract out of the patient's first load, and it is held to the contract here instead.`,
   );
+/* The founder's silence sentence is never left unsaid on this panel, whoever opened it — and since
+   the disclosure was said once, on 21 September 2026, where it is said depends on whether the
+   audience met the consent gate. The patient does: its last prohibition is the sentence's first
+   half, and the composer's strip under the conversation is its second half, the one with the
+   numbers in it. She used to read a third copy as well, the whole sentence under a repeat of the
+   nine refusals and a repeat of the ThusoIQ paragraph, sitting between her answers and the box she
+   types in — after ticking two boxes to get past exactly that. That copy is now drawn only for the
+   audiences that never see the gate, where it is the one place the prohibitions are said at all.
+   All three are checked here — the gate's list, the composer's strip and the ungated block — and so
+   is the contract still making the first half in that list, because a prohibition quietly dropped
+   from it would take the sentence with it and leave this file passing. */
+const assistantPanel = read("apps/web/src/features/Assistant.tsx");
+const silenceHalf = "not recognising an emergency does not mean there is not one";
 if (
-  !/\{silenceIsNotSafety\}/.test(read("apps/web/src/features/Assistant.tsx")) ||
-  !/<NotConnected of="voice"\s*\/>/.test(
-    read("apps/web/src/features/Assistant.tsx"),
+  !gilbertContract.consent.willNotDo.some((line) =>
+    line.toLowerCase().includes(silenceHalf),
   )
 )
   throw new Error(
-    "apps/web/src/features/Assistant.tsx no longer renders the voice notice and silenceIsNotSafety beside the conversation.",
+    `packages/catalog/assistant.json's consent.willNotDo no longer says that ${silenceHalf}. That prohibition is the first half of the founder's silenceIsNotSafety sentence, and the gate is where the panel says it.`,
+  );
+if (
+  !/consent\.willNotDo\.map/.test(assistantPanel) ||
+  !/say\(consent\.emergencyNotice\)/.test(assistantPanel) ||
+  !/<NotConnected of="voice"\s*\/>/.test(assistantPanel)
+)
+  throw new Error(
+    "apps/web/src/features/Assistant.tsx no longer renders the voice notice, the gate's prohibitions, or the composer's emergency strip. Between them the gate and the strip are the whole of silenceIsNotSafety for the patient: GilbertOne missing an emergency is not the same as there not being one, and here is who to call.",
+  );
+if (
+  !/\{!gated && \(/.test(assistantPanel) ||
+  !/\{silenceIsNotSafety\}/.test(assistantPanel) ||
+  !/refusalFor\(r, audienceId\)/.test(assistantPanel)
+)
+  throw new Error(
+    "apps/web/src/features/Assistant.tsx no longer renders the refusals and silenceIsNotSafety for the audiences that never see the consent gate. A nurse's preview opens straight onto its conversation, so that block is the only place it is told what GilbertOne will not do — in its own words, which is what refusalFor answers.",
   );
 
 /* ---- Wave 1 review fixes, 14 September 2026 ------------------------------------------------ */
@@ -29664,5 +29692,385 @@ console.log(
 
   console.log(
     `Access · the family arrangements: ${familyRoutes.length} routes over a roster, a sponsorship and a split carry no field named for a scope, a grant, a permission or an expiry, and ${familyColumns.length} store columns hold none; ${familyRoutes.flatMap((r) => r.refusals).length} refusal sentences are on their routes and none is restated in ${familyContractFile}; the service appears on one field of one route and is removed unless the recipient's own line detail names it; a split short, over, named twice or of nothing is refused by four calls to the domain; and a share nobody accepted is offered to nobody.`,
+  );
+}
+
+/* ==== Governance readiness · a register that records, and gates nothing (Wave 7) ======================
+   ADDED BY THE GOVERNANCE READINESS LEAD.
+
+   docs/governance/ prepares five documents for named, accountable people to read, decide and sign, and
+   says in its own words that signing one changes no code. packages/catalog/governance-status.json is the
+   register of what has actually been signed, appointed and decided, so the back office can answer "where
+   are we" without somebody opening five Markdown files — and it is deliberately not a switch.
+
+   The whole feature turns on that distinction, so it is checked rather than promised:
+
+     1. Nothing reads the register except the files it names. The reasoning, the screen, the console tab
+        that routes it, this check, the journey and the feature map — and no other file in any tree. The
+        Passport, deploy/, the identity service, the engines, the mock and both phones are named in the
+        contract with a reason each, and every one of those trees is swept here.
+     2. The blank state is the not-done state. The build replays the register from nothing and fails if a
+        record reads as done before anybody has recorded anything, because "every sign-off field is
+        blank" is the claim the screen makes on first load.
+     3. A record marked done carries its evidence, and a record not marked done carries none of it, both
+        refused in the contract's own sentences.
+     4. Every document, and every file a record says its refusal lives in, exists.
+     5. The screen types none of the contract's sentences, and renders the one that says recording
+        changes nothing.
+     6. The HEALTH PASSPORT P0 block above names none of this. The Passport refuses to start on its own
+        terms and goes on refusing until a developer changes it deliberately, citing a signed document. */
+{
+  const governanceFile = "packages/catalog/governance-status.json";
+  const governance = JSON.parse(read(governanceFile));
+  const governanceLib = "apps/web/src/lib/governance.ts";
+  const governanceScreenFile = "apps/web/src/features/GovernanceReadiness.tsx";
+  const governanceRefusal = (id) => {
+    const found = governance.refusals.find((r) => r.id === id);
+    if (!found)
+      throw new Error(
+        `${governanceFile} declares no refusal "${id}", which its rules name. A refusal with no sentence is a screen that says nothing when somebody needs to know why.`,
+      );
+    return found;
+  };
+
+  /* 1. Who may write in it is a role the vetting register actually holds, and it is not a new one.
+     An "Information Officer" role invented here would put a person on the register that nobody has
+     appointed, which is the very thing this screen exists to say has not happened. */
+  const registerRoles = new Set(
+    JSON.parse(read("packages/catalog/vetting.json")).roles.map((r) => r.id),
+  );
+  if (!registerRoles.has(governance.recording.role))
+    throw new Error(
+      `${governanceFile} lets "${governance.recording.role}" record a governance decision, and packages/catalog/vetting.json has no such role. A role the register does not hold is a gate nobody can be vetted through.`,
+    );
+
+  /* 2. The shape, and the blank state. Every field's blank is the not-done state, so the register
+     replayed from nothing says every document is unsigned — which is what docs/governance says today. */
+  const fieldTypes = new Set(governance.fieldTypes.map((t) => t.id));
+  const blankOf = (record) =>
+    Object.fromEntries(record.fields.map((f) => [f.key, f.blank]));
+  for (const record of governance.records) {
+    if (!existsSync(record.document))
+      throw new Error(
+        `${governanceFile} says the ${record.label} record tracks ${record.document}, which does not exist. A register pointing at a document nobody wrote is a register of nothing.`,
+      );
+    for (const path of record.refusalLives)
+      if (!existsSync(path))
+        throw new Error(
+          `${governanceFile} says the ${record.label} refusal lives in ${path}, which does not exist. The point of that column is that a reader can go and look.`,
+        );
+    const keys = record.fields.map((f) => f.key);
+    if (new Set(keys).size !== keys.length)
+      throw new Error(
+        `The ${record.label} record declares a field twice: ${keys.join(", ")}.`,
+      );
+    for (const field of record.fields) {
+      if (!fieldTypes.has(field.type))
+        throw new Error(
+          `${record.label}.${field.key} is a "${field.type}", which ${governanceFile} does not declare as a field type.`,
+        );
+      if (!field.label?.trim() || !field.help?.trim())
+        throw new Error(
+          `${record.label}.${field.key} has no label or no help. A field whose question is deleted quietly becomes whatever somebody typed in it.`,
+        );
+      if (field.allowed) {
+        for (const choice of field.allowed)
+          if (!choice.label?.trim() || !choice.means?.trim())
+            throw new Error(
+              `${record.label}.${field.key} offers a value with no label or no meaning beside it. "appointed: false" is not a sentence anybody reads.`,
+            );
+        if (!field.allowed.some((c) => c.value === field.blank))
+          throw new Error(
+            `${record.label}.${field.key} starts blank as ${JSON.stringify(field.blank)}, which is not one of the values it allows.`,
+          );
+      } else if (field.evidence !== true)
+        throw new Error(
+          `${record.label}.${field.key} is free text that is not evidence, so nothing decides whether it may be filled in. Every field is either the decision itself — with its allowed values — or the evidence for it.`,
+        );
+      if (field.evidence && !(field.blank === "" || field.blank === null))
+        throw new Error(
+          `${record.label}.${field.key} is evidence and does not start blank (${JSON.stringify(field.blank)}). Every sign-off field is blank until the decision it belongs to is recorded.`,
+        );
+    }
+    const decider = record.fields.find((f) => f.key === record.done.field);
+    if (!decider || !decider.allowed?.some((c) => c.value === record.done.is))
+      throw new Error(
+        `The ${record.label} record is done when ${record.done.field} is ${JSON.stringify(record.done.is)}, and no field of that name allows that value.`,
+      );
+    const blank = blankOf(record);
+    if (blank[record.done.field] === record.done.is)
+      throw new Error(
+        `The ${record.label} record reads as done before anybody has recorded anything. ${governanceRefusal("governance-done-without-evidence").statement}`,
+      );
+    if (!record.decidedBy?.trim() || !record.question?.trim())
+      throw new Error(
+        `The ${record.label} record does not say who must decide it, or what it asks. Recording is not deciding, and the screen has to say whose decision it is.`,
+      );
+  }
+
+  /* 3. Every rule names a refusal that exists, and every refusal is named by a rule. A sentence nobody
+     can reach is a promise nothing keeps. */
+  const ruleRefusals = new Set(
+    governance.rules.map((r) => r.refusal).filter(Boolean),
+  );
+  for (const rule of governance.rules) {
+    if (!rule.statement?.trim())
+      throw new Error(`${governanceFile} rule "${rule.id}" has no statement.`);
+    if (rule.refusal) governanceRefusal(rule.refusal);
+  }
+  const refusalIds = governance.refusals.map((r) => r.id);
+  if (new Set(refusalIds).size !== refusalIds.length)
+    throw new Error(`${governanceFile} declares a refusal twice.`);
+  for (const refusal of governance.refusals) {
+    if (
+      !Number.isInteger(refusal.status) ||
+      !refusal.statement?.trim() ||
+      !refusal.why?.trim()
+    )
+      throw new Error(
+        `${governanceFile} refusal "${refusal.id}" has no status, no sentence or no reason.`,
+      );
+    if (!ruleRefusals.has(refusal.id))
+      throw new Error(
+        `${governanceFile} declares "${refusal.id}" and no rule answers with it. A refusal nothing can reach reads later as a control that exists.`,
+      );
+  }
+
+  /* 4. The rules, run. The reasoning is TypeScript the web app imports, so the arithmetic is asked here
+     the way the screen asks it: the blank state is not done, evidence without a decision is refused, a
+     decision without evidence is refused, a day is a day, and tomorrow is not a signing date. */
+  const { proposeChange, registerOf, isDone } = await import(
+    "../apps/web/src/lib/governance.ts"
+  );
+  const recorder = {
+    roleId: governance.recording.role,
+    ref: "Staff 0102",
+    cleared: true,
+  };
+  const NOW = Date.parse("2026-09-21T09:00:00+02:00");
+  const blankRegister = registerOf([]);
+  for (const record of governance.records)
+    if (isDone(record, blankRegister.values[record.key]))
+      throw new Error(
+        `apps/web/src/lib/governance.ts replays an empty register and reads ${record.label} as done. Every sign-off field is blank until somebody records otherwise.`,
+      );
+  const askedFor = (request, expected, what) => {
+    const result = proposeChange(request, recorder, [], NOW);
+    if (result.ok || result.refusal.id !== expected)
+      throw new Error(
+        `apps/web/src/lib/governance.ts ${result.ok ? "accepted" : `refused with ${result.refusal.id}`} ${what}, and the contract refuses it with ${expected}: ${governanceRefusal(expected).statement}`,
+      );
+  };
+  const dpia = governance.records.find((r) => r.key === "dpia");
+  if (!dpia)
+    throw new Error(
+      `${governanceFile} no longer declares the DPIA record, and this check is written around it.`,
+    );
+  const signed = {
+    ...blankOf(dpia),
+    status: "signed",
+    signedBy: "The responsible party and the Information Officer",
+    signedOn: "2026-09-20",
+    documentRef: dpia.document,
+  };
+  const reason = "The signed copy came back from counsel this morning.";
+  askedFor(
+    { record: dpia.key, values: blankOf(dpia), reason, expectedVersion: 1 },
+    "governance-unchanged",
+    "a change that changes nothing",
+  );
+  askedFor(
+    {
+      record: dpia.key,
+      values: { ...signed, signedBy: "", signedOn: null, documentRef: "" },
+      reason,
+      expectedVersion: 1,
+    },
+    "governance-done-without-evidence",
+    "a DPIA recorded as signed by nobody, on no day, kept nowhere",
+  );
+  askedFor(
+    { record: dpia.key, values: { ...blankOf(dpia), signedBy: "Somebody" }, reason, expectedVersion: 1 },
+    "governance-evidence-without-the-decision",
+    "a signatory on a DPIA nobody has signed",
+  );
+  askedFor(
+    { record: dpia.key, values: { ...signed, signedOn: "20 September" }, reason, expectedVersion: 1 },
+    "governance-day-not-a-day",
+    "a signing date nobody can read as a calendar day",
+  );
+  askedFor(
+    { record: dpia.key, values: { ...signed, signedOn: "2027-01-01" }, reason, expectedVersion: 1 },
+    "governance-dated-ahead",
+    "a DPIA signed next year",
+  );
+  askedFor(
+    { record: dpia.key, values: signed, reason: "  ", expectedVersion: 1 },
+    "governance-change-without-reason",
+    "a signed DPIA recorded for no stated reason",
+  );
+  askedFor(
+    { record: dpia.key, values: signed, reason, expectedVersion: 7 },
+    "governance-version-stale",
+    "a change made against a register somebody else has written in since",
+  );
+  askedFor(
+    { record: "a-record-nobody-declared", values: signed, reason, expectedVersion: 1 },
+    "governance-record-not-known",
+    "a change to a record the contract does not declare",
+  );
+  for (const [who, expected, what] of [
+    [
+      { ...recorder, roleId: "nurse" },
+      "governance-record-not-permitted",
+      "a nurse writing in the governance register",
+    ],
+    [
+      { ...recorder, cleared: false },
+      "governance-recorder-not-cleared",
+      "an admin whose own vetting is not clear writing in it",
+    ],
+  ]) {
+    const result = proposeChange(
+      { record: dpia.key, values: signed, reason, expectedVersion: 1 },
+      who,
+      [],
+      NOW,
+    );
+    if (result.ok || result.refusal.id !== expected)
+      throw new Error(
+        `apps/web/src/lib/governance.ts ${result.ok ? "accepted" : `refused with ${result.refusal.id}`} ${what}, and the contract refuses it with ${expected}.`,
+      );
+  }
+  const accepted = proposeChange(
+    { record: dpia.key, values: signed, reason, expectedVersion: 1 },
+    recorder,
+    [],
+    NOW,
+  );
+  if (!accepted.ok)
+    throw new Error(
+      `apps/web/src/lib/governance.ts refuses a properly evidenced, dated, explained and attributed DPIA sign-off with ${accepted.refusal.id}. The register has to be writable by the role that keeps it, or it is a screen that only says no.`,
+    );
+  const afterwards = registerOf([accepted.entry]);
+  if (
+    !isDone(dpia, afterwards.values[dpia.key]) ||
+    afterwards.version !== 2 ||
+    accepted.entry.byRef !== recorder.ref ||
+    accepted.entry.from.status === accepted.entry.to.status
+  )
+    throw new Error(
+      "apps/web/src/lib/governance.ts recorded a DPIA sign-off that the register does not read back as done, attributed and versioned. The history is the whole feature.",
+    );
+
+  /* 5. THE BOUNDARY. Nothing reads the register but the files it names. This is the check the whole
+     feature exists behind: the day somebody gates the Passport, a deploy step, an engine or a phone on
+     a value an admin typed into a preview, the build says so by name. */
+  const governanceNames = /governance-status|lib\/governance|GovernanceReadiness/;
+  const governanceTrees = [
+    "apps/web/src",
+    "apps/api/src",
+    "apps/passport",
+    "apps/ios/MyThuso",
+    "apps/android/app/src/main",
+    "deploy",
+    "docs",
+    "packages/catalog",
+    "packages/engines/src",
+    "packages/mock-api/src",
+    "scripts",
+    "tests",
+  ];
+  for (const { tree, why } of governance.changesNothing.neverReadBy) {
+    if (!governanceTrees.includes(tree))
+      throw new Error(
+        `${governanceFile} says ${tree} never reads the register (${why}), and this check does not sweep it. A tree named in the contract and read by nothing is a boundary nobody holds.`,
+      );
+    if (!existsSync(tree))
+      throw new Error(
+        `${governanceFile} names ${tree}, which does not exist. A boundary list that outlives its trees is a list nobody reads.`,
+      );
+  }
+  for (const file of governance.changesNothing.readBy)
+    if (!existsSync(file))
+      throw new Error(
+        `${governanceFile} lists ${file} as a reader of the register, and it does not exist.`,
+      );
+  const mayRead = new Set(governance.changesNothing.readBy);
+  let governanceSwept = 0;
+  for (const file of governanceTrees.flatMap((tree) =>
+    files(tree).filter((f) => !f.includes("node_modules")),
+  )) {
+    if (file === governanceFile) continue;
+    governanceSwept++;
+    if (!governanceNames.test(read(file))) continue;
+    if (!mayRead.has(file))
+      throw new Error(
+        `${file} names the governance register, and ${governanceFile} does not list it as a reader. ${governance.changesNothing.statement} A file that reads the register is a file that could start gating something on it, so the list is short and argued for: ${[...mayRead].join(", ")}.`,
+      );
+  }
+  if (governanceSwept < 500)
+    throw new Error(
+      `scripts/check-boundaries.mjs swept ${governanceSwept} files for the governance register, so the check that nothing outside its own list reads it is reading almost nothing.`,
+    );
+
+  /* 6. And the Passport block above names none of it. The Passport refuses to start without its
+     development flag, and nothing under deploy/ names it; both are changed deliberately, in a commit
+     citing the signed DPIA, the residency decision and the key custody decision — never because a
+     register said so. */
+  const thisCheck = read("scripts/check-boundaries.mjs");
+  const passportBlockAt = thisCheck.indexOf("/* ==== HEALTH PASSPORT P0");
+  const passportBlockEnds = thisCheck.indexOf("/* ==== ", passportBlockAt + 8);
+  if (passportBlockAt < 0 || passportBlockEnds < 0)
+    throw new Error(
+      "scripts/check-boundaries.mjs can no longer find its own HEALTH PASSPORT P0 block, so the check that the governance register stays out of it is reading nothing.",
+    );
+  if (
+    governanceNames.test(
+      thisCheck.slice(passportBlockAt, passportBlockEnds),
+    )
+  )
+    throw new Error(
+      `The HEALTH PASSPORT P0 block names the governance register. ${governance.changesNothing.why}`,
+    );
+
+  /* 7. The screen says it, and types none of it. Every sentence on the Governance tab is the
+     contract's, rendered word for word, and the one that matters most is the one saying that
+     recording a decision here starts nothing. */
+  const governanceScreenSource = read(governanceScreenFile);
+  if (!/changesNothing\.statement/.test(governanceScreenSource))
+    throw new Error(
+      `${governanceScreenFile} no longer renders the contract's sentence about what recording a decision does not do. It is the one thing on that screen somebody could get wrong.`,
+    );
+  const governanceSentences = [
+    governance.changesNothing.statement,
+    governance.changesNothing.why,
+    governance.recording.attribution,
+    ...governance.refusals.map((r) => r.statement),
+    ...governance.records.flatMap((r) => [
+      r.question,
+      r.blockedUntil,
+      r.refusedToday,
+      r.decidedBy,
+    ]),
+    ...Object.values(governance.screen),
+  ].filter((sentence) => sentence.length > 24);
+  for (const file of [
+    governanceScreenFile,
+    governanceLib,
+    "tests/governance-readiness.spec.ts",
+  ].filter(existsSync)) {
+    const source = read(file);
+    const typed = governanceSentences.find((sentence) =>
+      source.includes(sentence),
+    );
+    if (typed)
+      throw new Error(
+        `${file} types out a sentence from the governance register: "${typed.slice(0, 72)}…". It lives in ${governanceFile} and is read from there. A screen or a test holding its own copy is the drift packages/catalog exists to stop.`,
+      );
+  }
+
+  console.log(
+    `Governance readiness · ${governance.records.length} records over ${governance.records.reduce((n, r) => n + r.fields.length, 0)} sign-off fields, every one of them blank until somebody records otherwise; ${governance.refusals.length} refusal sentences, each answered by a rule and each proved by running the reasoning; recorded only by the ${governance.recording.role} role on the vetting register, cleared, with a reason, against the version they read; and read by ${governance.changesNothing.readBy.length} files out of ${governanceSwept} swept across ${governanceTrees.length} trees — none of them the Passport, deploy/, the identity service, an engine, the mock or either phone.`,
   );
 }
