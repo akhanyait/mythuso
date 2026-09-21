@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, type Server } from 'node:http';
 import { orchestrate } from './orchestrator.ts';
+import { LLM_MAX_OUTPUT_TOKENS } from './llm-adapter.ts';
 
 /* The orchestrator tier's own tests, added with it on 21 September 2026. The model behind the
    tier is a scripted server speaking the OpenAI chat protocol on a local port — the same wire
@@ -232,6 +233,62 @@ test('a tool the agent invents gets the honest no-such-tool answer, and the loop
     'the model is told the tool does not exist, so it cannot quote it',
    );
   });
+ } finally {
+  await provider.close();
+ }
+});
+
+/* ── The output ceiling ─────────────────────────────────────────────────────────────────────────
+
+   Added with the CodeReview fixes of 21 September 2026: both LangChain clients this tier builds
+   must carry the same output-token ceiling the native adapter sends — LLM_MAX_OUTPUT_TOKENS,
+   one constant for all four model calls this service can make. In the pinned LangChain version
+   the option is maxTokens, and the scripted provider's request body is where it must land. */
+
+test('the Ollama LangChain client sends the output ceiling on the wire', async () => {
+ const provider = await scriptedProvider([
+  assistantAnswer('Ask the clinic nurse to check the card.'),
+ ]);
+ try {
+  await withEnv({ OLLAMA_URL: provider.url }, async () => {
+   const result = await orchestrate('what immunisation does my baby need');
+   assert.equal(result.degraded, false);
+   assert.equal(result.provider, 'ollama');
+  });
+  assert.equal(provider.bodies.length, 1, 'one request, whose body is the evidence');
+  const parsed = JSON.parse(provider.bodies[0]) as { max_tokens?: number };
+  assert.equal(
+   parsed.max_tokens,
+   LLM_MAX_OUTPUT_TOKENS,
+   'the ceiling reaches the wire as max_tokens — maxTokens is the option that carries it there',
+  );
+ } finally {
+  await provider.close();
+ }
+});
+
+test('the Azure LangChain client sends the same ceiling on the wire', async () => {
+ const provider = await scriptedProvider([
+  assistantAnswer('Ask the clinic nurse to check the card.'),
+ ]);
+ try {
+  /* The Azure branch answers from its own endpoint and deployment facts; the scripted provider
+     wears the endpoint's shape so the client's request lands here, whatever path it adds. */
+  await withEnv(
+   { AZURE_OPENAI_ENDPOINT: provider.url, AZURE_OPENAI_KEY: 'a-key' },
+   async () => {
+    const result = await orchestrate('what immunisation does my baby need');
+    assert.equal(result.degraded, false);
+    assert.equal(result.provider, 'azure-openai');
+   },
+  );
+  assert.equal(provider.bodies.length, 1, 'one request, whose body is the evidence');
+  const parsed = JSON.parse(provider.bodies[0]) as { max_tokens?: number };
+  assert.equal(
+   parsed.max_tokens,
+   LLM_MAX_OUTPUT_TOKENS,
+   'one constant for both tiers and both providers — the ceiling cannot drift between them',
+  );
  } finally {
   await provider.close();
  }

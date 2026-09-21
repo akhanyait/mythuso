@@ -23,6 +23,9 @@ have time for two commands tonight, make them those two.
 **What this runbook does not do.** It does not turn on the identity service, and it must not. That
 is `README.md`'s ordered list, and it needs an SMS provider first. Until then nobody can sign in,
 which is the correct state and is what the site says on every screen that could imply otherwise.
+It does not turn on the assistant service either — that is *Activating the assistant service*
+below, it waits for an Azure credential, and the credential is typed by hand at a terminal on the
+box rather than sent through a deploy.
 
 ---
 
@@ -94,16 +97,18 @@ each one means:
 | It says | What happened |
 |---|---|
 | `Baseline: the sites on this box that must not change` | It asked the same five sites you asked in step 0, and remembered the answer |
-| `Building the site` | `npm run build` — five entries into `apps/web/dist` |
-| `Checking the build output carries nothing it should not` | Nothing shaped like a key, an env file or the funding proposal is about to be published |
+| `Building the site` | `npm run build` — four entries into `apps/web/dist` |
+| `Building the assistant runtime` | GilbertOne's second tier, bundled into one self-contained JavaScript file — no `node_modules`, nothing to install on the box. It happens **before** anything on the server is touched, so a bundle that will not build is a deploy that changed nothing |
+| `Checking the build output carries nothing it should not` | Nothing shaped like a key, an env file or the funding proposal is about to be published — the web entries and the assistant bundle both |
 | `Checking liqzar-server before touching it` | nginx exists, and no other site already claims `mythuso.co.za` or `www.mythuso.co.za` — it looks in `sites-enabled` **and** `conf.d` |
-| `Publishing to /var/www/mythuso` | The five entries and their assets |
-| `Installing the scheduled jobs to /opt/mythuso/ops` | The health check and backup scripts and their units. Installing a unit does not start it |
+| `Publishing to /var/www/mythuso` | The four entries and their assets |
+| `Publishing the assistant runtime to /opt/mythuso/assistant` | One file, outside the web root, and only if the server's Node can run it — its sha256 is compared across the wire before it is moved into place |
+| `Installing the scheduled jobs to /opt/mythuso/ops` | The health check and backup scripts, their units, the assistant's unit and its credential script. Installing a unit does not start it |
 | `Installing the nginx site for mythuso.co.za` | One new file. The previous version is kept beside it until `nginx -t` has an opinion |
 | `Restoring TLS to the site file, if there is a certificate` | On the first run: `tls  no certificate for mythuso.co.za yet — http only`. That is correct tonight |
 | `Testing the whole nginx configuration` | `nginx -t` on **everything**, all six sites. Nothing is reloaded before this passes |
 | `Reloading nginx` | A graceful reload. Existing connections to the other five finish; no site restarts |
-| `Verifying by Host header` | Five entries, each asked to prove which page it served |
+| `Verifying by Host header` | Four entries, each asked to prove which page it served, then the `identity`, `assistant` and key lines |
 | `Checking the service's key material` | `keys  not checked — the identity service is not enabled`. Correct tonight |
 | `Re-checking the sites that must not change` | The five again, compared against the baseline |
 
@@ -112,11 +117,11 @@ The last block you want to see:
 ```
 landing  200  landing.html
 app      200  index.html
-staff    200  staff.html
-admin    200  admin.html
 status   200  status.html
+shop     200  shop.html
 /status  301 (expected 301 to /status/)
 identity  not enabled (see deploy/README.md)
+assistant not enabled (see deploy/RUNBOOK.md — activate it only after the credentials ceremony)
 keys      not checked — the identity service is not enabled (deploy/README.md)
 ```
 
@@ -136,12 +141,13 @@ The deploy checked these from the server. Check them from outside, because that 
 question — it involves DNS, the public internet and, later, TLS.
 
 ```sh
-for p in / /app/ /staff/ /admin/ /status/ /status; do
-  printf '%-10s %s\n' "$p" "$(curl -s -o /dev/null -w '%{http_code}' "http://mythuso.co.za$p")"
+for p in / /app/ /shop/ /staff/ /admin/ /status/ /status; do
+  printf '%-10s %s\n' "$p" "$(curl -s -o /dev/null -w '%{http_code}' "https://mythuso.co.za$p")"
 done
 ```
 
-Expected: `200` for the first five, `301` for `/status`.
+Expected: `200` for `/`, `/app/`, `/shop/` and `/status/`; `301` for `/staff/` and `/admin/`
+(they were applications of their own once — they send a reader to `/app/` now) and for `/status`.
 
 Then open `http://mythuso.co.za/status` in a browser and read it. It is the page that says what is
 connected and what is not, and if it is showing you the landing page instead, something is wrong
@@ -325,6 +331,140 @@ ssh liqzar-server "certbot certificates" | grep -E 'Certificate Name|Domains|Exp
 
 ---
 
+## Activating the assistant service
+
+Not part of tonight, and activation is not part of any deploy. The assistant — GilbertOne's
+second tier, the one that answers when the on-device contract cannot place what the patient
+asked — is installed by every deploy and left dark, the same deliberate state the identity
+service is in. It is turned on by hand, once, only when an Azure OpenAI resource exists. The
+sequence lives here rather than in `README.md` because it involves typing a credential, which is
+a thing done at a terminal on the box and nowhere else in this project.
+
+There are four states between "the code exists" and "the public can reach the model", and they
+have four different names, because each is a different answer to "is it working?":
+
+| State | What proves it |
+|---|---|
+| **Bridge shipped** | The panel in `/app/` and the `location /assistant/` in nginx. True after every deploy; the panel asks the bridge and falls back silently until the rest of this is done. |
+| **Runtime installed, disabled** | `server.mjs` and the unit sit at `/opt/mythuso/assistant`; `systemctl is-enabled assistant-api` says `disabled`. The state every deploy leaves behind. |
+| **Provider configured** | `/etc/mythuso/assistant.env` holds an endpoint, a key and a deployment name; where the service is running, `/assistant/health` reports `"azure":true`. In production this alone does not serve — the service refuses to start without the acknowledgement below. |
+| **Production operational** | The acknowledgement line is written and the unit is enabled. `/assistant/health` reports `"production":true,"activated":true`, and a question the on-device contract cannot place can reach the model. |
+
+**Never put the key anywhere but the prompt below.** Not into a chat — with an assistant, a
+colleague or a support agent — not into a commit or a branch, not onto a shell command line,
+not into a log, a ticket or a file in this repository. Each of those is a copy with a different
+owner, and the key opens a paid account. The script is the only sanctioned path: it takes the
+key with the terminal echo off, keeps it in the shell's own memory, writes it to one root-only
+file, and prints a fingerprint instead of the value.
+
+### What you need first
+
+- An Azure OpenAI **resource**, and inside it a **model deployment** — in the portal:
+  Deployments, Create. The service talks to the deployment, and the name you gave it is what
+  gets typed below. That name does not have to resemble the model: a deployment of gpt-4.1-mini
+  can be called anything, and a deployment called gpt-4.1-mini might be running something else.
+  Pressing Enter at the prompt accepts `gpt-4.1-mini`, which is what the deployment is called
+  when it is created with the portal's defaults.
+- The resource's endpoint, of the form `https://<resource-name>.openai.azure.com` — exactly
+  that, with nothing after the host name.
+- One of the resource's two API keys. Either one; they are equivalent.
+
+### The sequence, on the box
+
+```sh
+ssh liqzar-server
+sudo /opt/mythuso/ops/configure-assistant-env.sh
+```
+
+Three prompts. The endpoint is echoed as you type it — it is not a secret, and seeing it is how
+you catch the paste that went wrong. The key is not echoed at all. The deployment name defaults
+to `gpt-4.1-mini` on Enter.
+
+The script refuses an endpoint that is not `https`, or that carries a path, a query or a port,
+and refuses a key that is empty or not shaped like one. It writes `/etc/mythuso/assistant.env`
+atomically at `0600 root:root` — the new file is assembled beside the old one and moved over it
+only after every check has passed, so a run that fails, or one you interrupt with Ctrl-C, leaves
+the previous file untouched. Anything else you have put in that file by hand stays; only the
+three Azure lines are replaced. It prints the key's fingerprint — sixteen characters, the same
+ceremony the identity service's keys use — and never the key.
+
+The key and the decision are two separate acts on purpose. The service refuses the model tier in
+production until the production decision is written into the same file by hand — the script
+deliberately does not write it, so that a credential that arrives alone (pasted early, left
+behind by a test, restored from a backup) cannot put a public model in front of patients by
+itself:
+
+```sh
+sudo sh -c "printf 'MYTHUSO_ASSISTANT_PRODUCTION=acknowledged\n' >> /etc/mythuso/assistant.env"
+```
+
+Without that line the service does not half-start: it prints `Refusing to start: … but
+MYTHUSO_ASSISTANT_PRODUCTION is not set to "acknowledged" …` and exits, systemd tries again
+every five seconds, and the journal repeats the same refusal. With it, both halves of the
+switch are in place. Removing the line later, on purpose, is the decision reversed — the next
+restart turns the model tier off and leaves the credential where it is.
+
+Then, still on the box:
+
+```sh
+sudo systemctl enable --now assistant-api.service
+```
+
+### Proving it worked, with commands that reveal no secrets
+
+```sh
+curl -s http://127.0.0.1:3001/assistant/health
+```
+
+Expected: `{"ok":true,"mode":"phase-2-safe","azure":true,"ollama":false,"production":true,"activated":true}` —
+the health route answers in booleans, never the endpoint, never the key. `"azure":true` is the
+line that says the service found the credentials and read them; `"production"` and `"activated"`
+are the service's own account of the decision — in production, `activated` stays `false` until
+the acknowledgement line above is in the env file. Then through nginx, which is a different question —
+it proves the `location /assistant/` block and the headers it redeclares:
+
+```sh
+curl -s https://mythuso.co.za/assistant/health
+curl -sI https://mythuso.co.za/assistant/health | grep -iE 'x-frame|content-security|strict-transport'
+```
+
+Expected from the second: the same headers every page of the site carries — an
+`X-Frame-Options: DENY`, a `Content-Security-Policy: frame-ancestors 'none'` and a
+`Strict-Transport-Security` at `max-age=300`. And the service's own account of itself, which is
+safe to read and safe to paste:
+
+```sh
+systemctl status assistant-api.service
+journalctl -u assistant-api.service -n 30 --no-pager
+```
+
+Neither prints the key: `systemctl status` does not show environment files, and the service does
+not log it.
+
+If `azure` is still `false`, the service did not read the env file — `ls -l
+/etc/mythuso/assistant.env` should say `root root` and `-rw-------`. If the service will not
+start, the journal names the reason and never the key; the three ordinary ones are a deployment
+name that does not match what the portal has (Azure answers 404), an env file that was
+edited by hand instead of by the script, and the acknowledgement line not yet written — that
+last one repeats every five seconds and means the step above was skipped. Fix the first two by
+running the script again, then `sudo systemctl restart assistant-api.service`; fix the third by
+writing the acknowledgement line, which the service's own retry picks up within seconds.
+
+### What changes when it is on
+
+Nothing on the site. The panel in `/app/` asks `/assistant/turn` only after an answer the
+on-device matcher could not place, and falls back to the on-device answer while the service is
+dark — which is what it has been doing all along, and is why no deploy ever needed this to
+succeed. What the public can ask the model is bounded twice: nginx answers more than 60 requests
+a minute from one address with `429` (a burst of ten is let through first), and a request body
+over 16 KB is refused before the service sees it — the same 16 KB the service enforces itself.
+Rotating the key is the script again with the new one, then
+`sudo systemctl restart assistant-api.service` — and nothing else, because the acknowledgement
+line survives a rotation: the script replaces only the three Azure lines. Taking the service
+back out is in *Backing it out* below.
+
+---
+
 ## What the site does, and what it does not, on day one
 
 Somebody will open this link tonight and some of them will be deciding whether to fund it. What they
@@ -411,6 +551,35 @@ issuing for an hour.
 `/assets/` is not being served. Check the files arrived:
 `ssh liqzar-server "ls /var/www/mythuso/assets | head"`.
 
+**`Building the assistant runtime` stopped the deploy**
+The assistant bundle would not build, and nothing on the server was touched — that step runs
+before the first `ssh`, so a bundle that will not build is a deploy that changed nothing. The
+web entries were not published either. Read the error above it: it is a build error in
+`apps/assistant-api`, and `npm run assistant-runtime` reproduces it locally.
+
+**`not publishing the assistant runtime: …`**
+The server's Node is older than the bundle is built for — the floor is `engines.node` in
+`package.json`. The rest of the deploy completed and is unaffected; the assistant is skipped
+loudly rather than failed over, because the public site must not become unpublishable over it.
+Upgrade Node on the box and run the deploy again; the unit stays dark until then, which is the
+state it was in anyway.
+
+**`the assistant runtime arrived altered (sha256 …)`**
+The file that landed is not the file that was sent. Nothing was published — the half-transferred
+copy was deleted and the previous runtime is where it was. A wire that does that once usually
+does it twice; look at the network before retrying.
+
+**`assistant-api.service` will not start after activation**
+`ssh liqzar-server "journalctl -u assistant-api.service -n 30 --no-pager"` names the reason and
+never the key. The first thing to look for is the acknowledgement refusal — `Refusing to start:
+… MYTHUSO_ASSISTANT_PRODUCTION is not set to "acknowledged"` — which is not a fault but the
+production gate: the step in *Activating the assistant service* was skipped, the service's own
+five-second retry picks the line up the moment it is written, and no restart is needed. The two
+ordinary causes after that are a deployment name that does not match what the Azure portal has
+— the deployment's name, not the model's — and an env file edited by hand rather than by the
+script. Fix both the same way: run `sudo /opt/mythuso/ops/configure-assistant-env.sh`
+again, then `sudo systemctl restart assistant-api.service`.
+
 ---
 
 ## Backing it out
@@ -434,3 +603,21 @@ ssh liqzar-server "rm -rf /var/www/mythuso /opt/mythuso/ops"
 
 Leave `/etc/letsencrypt` alone. Deleting a certificate you may reinstall in an hour is how you meet
 the rate limit.
+
+The assistant has its own, smaller rollback, and the site does not notice it — the panel falls
+back to the on-device answers, which is what it does while the service is dark anyway:
+
+```sh
+ssh liqzar-server "systemctl disable --now assistant-api.service"
+ssh liqzar-server "rm -rf /opt/mythuso/assistant"      # a later deploy reinstalls it
+```
+
+`/etc/mythuso/assistant.env` can go too, but know what you are removing: it is the only copy of
+the Azure key on this box, and deleting it here does not disable the key — that is done in the
+Azure portal, or the key still opens the account from anywhere that holds it. Removing the file
+means the next activation is the full sequence in *Activating the assistant service* above, with
+a key pasted from the portal:
+
+```sh
+ssh liqzar-server "rm -f /etc/mythuso/assistant.env"
+```

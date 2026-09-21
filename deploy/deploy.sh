@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Publish the MyThuso landing page and app preview to a server.
 #
-# Adds only: /var/www/mythuso, one nginx site file, /opt/mythuso/ops (the scheduled jobs), and
-# (optionally) the identity service under /opt/mythuso. It never edits another site's
+# Adds only: /var/www/mythuso, one nginx site file, /opt/mythuso/ops (the scheduled jobs),
+# /opt/mythuso/assistant (the assistant runtime — one self-contained JavaScript file, built by
+# scripts/build-assistant.mjs, no node_modules and nothing installed on the box), and (optionally)
+# the identity service under /opt/mythuso. It never edits another site's
 # configuration, and it refuses to reload nginx unless `nginx -t` passes first.
 #
 # That box is shared. agcafrica.com, artisanza.co.za, bidza.co.za, liqzar.co.za and
@@ -28,6 +30,11 @@ HOST="${HOST:-mythuso.co.za}"
 ALIASES="${ALIASES:-www.mythuso.co.za}"
 ROOT=/var/www/mythuso
 OPS=/opt/mythuso/ops
+# The assistant runtime's home — outside $ROOT on purpose: the web root is rsynced with --delete
+# on every deploy and served to the public internet, and a service's code is neither disposable
+# per-deploy nor public. One file lives here (server.mjs), owned by root, read by a systemd
+# DynamicUser that exists only while the service runs.
+ASSISTANT=/opt/mythuso/assistant
 IGNORE="$(dirname "$0")/.deployignore"
 
 # The list is BidZA's, which is the other project on this box and keeps it current, plus BidZA's own
@@ -76,6 +83,21 @@ done
 # script would run. It is a name of a host in ~/.ssh/config, and those do not begin with a dash.
 case "$TARGET" in -*) echo "TARGET may not begin with a dash: <<$TARGET>>. Refusing."; exit 1 ;; esac
 
+# Compares two dotted version numbers the way a person expects, in pure bash: `sort -V` is a GNU
+# extension and this script runs from whatever machine the founder is on, not only from ones that
+# ship GNU coreutils. 22.12.0 is the floor, 22.13.1 clears it, 23.0.0 clears it, 22.11.9 does not.
+version_ge() { # <installed> <floor> — true when installed is at least the floor
+  local i a b have want
+  IFS='.' read -r -a a <<< "$1"
+  IFS='.' read -r -a b <<< "$2"
+  for i in 0 1 2; do
+    have=$((10#${a[i]:-0})); want=$((10#${b[i]:-0}))
+    if [ "$have" -gt "$want" ]; then return 0; fi
+    if [ "$have" -lt "$want" ]; then return 1; fi
+  done
+  return 0
+}
+
 # Every name in server_name has to be in the certificate. A certificate for the apex alone is a
 # browser warning on the first link anybody clicks who typed www, and the fix is a reissue rather
 # than an edit. Built from $ALIASES here so the two cannot drift apart.
@@ -112,6 +134,21 @@ fi
 say "Building the site"
 npm run build --silent
 
+# Built before anything on the server is touched, deliberately. The assistant bundle is one file
+# with no install step on the far side, but it is still half of what this deploy publishes, and a
+# deploy that shipped the web entries and then failed to build the assistant runtime would be a
+# deploy that left the box half-way through a build — so both builds run above the first ssh
+# below, and a failure in either one is a failure that mutated nothing.
+say "Building the assistant runtime"
+npm run assistant-runtime --silent
+
+# The Node floor the bundle is transpiled for, read out of package.json's engines rather than
+# typed here — a minimum written in two files is a minimum the two drift on. The publish step
+# below asks the server to prove it; a server that cannot run the bundle is a server the bundle
+# is not published to.
+node_floor=$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).engines.node.replace(/[^0-9.]/g,'')")
+[ -n "$node_floor" ] || { echo "cannot read the Node floor out of package.json — refusing to publish anything"; exit 1; }
+
 # ── Nothing shaped like a credential, and nothing from Documentation/ ───────────────────────────
 #
 # Only apps/web/dist is published, and .deployignore is passed to every rsync below — but the ignore
@@ -119,7 +156,7 @@ npm run build --silent
 # proposal in Documentation/ is confidential and no publication is authorised; an env file in a
 # build output is how BidZA once baked a localhost URL into a production bundle.
 say "Checking the build output carries nothing it should not"
-if found=$(find apps/web/dist \
+if found=$(find apps/web/dist apps/assistant-api/dist \
      \( -name '.env*' -o -name '*.env' -o -name '*.pem' -o -name '*.key' -o -name '*.p12' \
         -o -name 'id_rsa*' -o -name '*.db' -o -iname '*proposal*' -o -iname '*funding*' \) -print -quit) \
    && [ -n "$found" ]; then
@@ -127,6 +164,22 @@ if found=$(find apps/web/dist \
 fi
 if grep -rslI -e 'MYTHUSO_AUTH_PEPPER' -e 'MYTHUSO_ENCRYPTION_KEY' -e 'MYTHUSO_PROTECTION_KEYS' -e 'MYTHUSO_IDENTITY_API_KEY' -e 'BEGIN .*PRIVATE KEY' apps/web/dist 2>/dev/null | head -1 | grep -q .; then
   echo "the build output mentions a secret by name — refusing to publish it"; exit 1
+fi
+# The assistant bundle names its provider's variables — process.env.AZURE_OPENAI_KEY and friends —
+# because reading them from /etc/mythuso/assistant.env at runtime is what it is for. What it must
+# never carry is a value, and the two shapes below are the ones a value takes when somebody has
+# pasted one in: a concrete *.openai.azure.com endpoint (the LangChain tree's URL templates
+# interpolate "${...}" where a real resource name would sit, so only a typed endpoint matches), or
+# an env-file line — NAME=<twenty-plus credential characters> — baked into the artifact.
+# scripts/build-assistant.mjs refused to produce such a bundle in the first place; this is the
+# independent look at what is about to leave this machine.
+assistant_bundle=apps/assistant-api/dist/server.mjs
+[ -f "$assistant_bundle" ] || { echo "$assistant_bundle was not built — refusing"; exit 1; }
+if grep -qE 'https://[a-z0-9][a-z0-9-]+\.openai\.azure\.com' "$assistant_bundle"; then
+  echo "the assistant runtime names a concrete Azure endpoint — refusing to publish it"; exit 1
+fi
+if grep -qE '(AZURE_OPENAI_KEY|AZURE_OPENAI_API_KEY|OLLAMA_URL)=[A-Za-z0-9_-]{20,}' "$assistant_bundle"; then
+  echo "the assistant runtime carries what looks like a provider credential — refusing to publish it"; exit 1
 fi
 
 say "Checking $TARGET before touching it"
@@ -156,6 +209,47 @@ ssh "$TARGET" "mkdir -p $ROOT $OPS /etc/mythuso /var/log/mythuso /var/lib/mythus
 rsync -az --delete --exclude-from="$IGNORE" apps/web/dist/ "$TARGET:$ROOT/"
 ssh "$TARGET" "find $ROOT -type d -exec chmod 755 {} + && find $ROOT -type f -exec chmod 644 {} +"
 
+# ── The assistant runtime, under its own roof ──────────────────────────────────────────────────
+#
+# One JavaScript file that carries the whole service — the LangChain tree, the knowledge catalogs,
+# everything — built by scripts/build-assistant.mjs before this script touched the server. It is
+# published only when the server's Node can actually run it: the bundle is transpiled for the
+# floor in package.json's engines, and handing it to an older binary would not be a slower
+# service but a startup SyntaxError wearing a deploy's success message. A server too old (or
+# without Node at all) is skipped loudly rather than failed over — the web deploy does not depend
+# on the assistant runtime, and refusing it entirely over a Node version would leave the public
+# site unpublishable for a reason nobody was in a position to notice.
+say "Publishing the assistant runtime to $ASSISTANT"
+server_node=$(ssh "$TARGET" "node --version 2>/dev/null || true")
+server_node=${server_node#v}
+if [ -z "$server_node" ] || ! version_ge "$server_node" "$node_floor"; then
+  echo "!! not publishing the assistant runtime: $TARGET reports ${server_node:-no Node at all},"
+  echo "   and the bundle is built for >= $node_floor. The rest of this deploy is unaffected."
+  echo "   The unit this deploy installs names $ASSISTANT/server.mjs, so assistant-api.service"
+  echo "   will not start until Node is upgraded and this deploy is run again — and it stays dark"
+  echo "   until then, which is the state it was in anyway."
+else
+  # The digest is computed on both sides of the wire and compared before anything is moved into
+  # place, so the file the unit's ExecStart names is never a half-transferred one and a failed
+  # publish leaves the previous runtime exactly where it was.
+  local_digest=$( { command -v sha256sum >/dev/null && sha256sum || shasum -a 256; } < "$assistant_bundle" | cut -d' ' -f1)
+  ssh "$TARGET" "mkdir -p $ASSISTANT"
+  rsync -az "$assistant_bundle" "$TARGET:$ASSISTANT/server.mjs.next"
+  # The remote digest is asked for the same portable way as the local one: GNU coreutils calls the
+  # tool sha256sum, the BSD userland calls it shasum -a 256, and whichever the server carries
+  # answers. A server with neither — or an ssh that fails — must not abort the deploy mid-publish:
+  # the `|| remote_digest=""` sends that failure into the mismatch branch below, which removes
+  # server.mjs.next and exits 1, so no half-published artifact is ever left beside the running one.
+  remote_digest=$(ssh "$TARGET" "if command -v sha256sum >/dev/null 2>&1; then sha256sum $ASSISTANT/server.mjs.next; else shasum -a 256 $ASSISTANT/server.mjs.next; fi" | cut -d' ' -f1) || remote_digest=""
+  if [ "$local_digest" != "$remote_digest" ]; then
+    ssh "$TARGET" "rm -f $ASSISTANT/server.mjs.next"
+    echo "!! the assistant runtime arrived altered (sha256 ${remote_digest:-none}, expected $local_digest) — nothing published"
+    exit 1
+  fi
+  ssh "$TARGET" "chmod 0755 $ASSISTANT && chmod 0644 $ASSISTANT/server.mjs.next && chown root:root $ASSISTANT/server.mjs.next && mv -f $ASSISTANT/server.mjs.next $ASSISTANT/server.mjs"
+  echo "assistant runtime  $ASSISTANT/server.mjs  sha256 ${local_digest:0:16}…"
+fi
+
 # ── The scheduled jobs, on every deploy ────────────────────────────────────────────────────────
 #
 # BidZA's timers run scripts that live outside the directory its deploy syncs, and they quietly
@@ -173,14 +267,19 @@ ssh "$TARGET" "set -e
   chmod 0755 $OPS/*.sh && chown root:root $OPS/*.sh
   for f in $OPS/*.sh; do bash -n \"\$f\" || { echo \"\$f does not parse — no units installed\"; exit 1; }; done
   before=\$(md5sum /etc/systemd/system/mythuso-api.service 2>/dev/null | cut -d' ' -f1 || true)
+  before2=\$(md5sum /etc/systemd/system/assistant-api.service 2>/dev/null | cut -d' ' -f1 || true)
   install -o root -g root -m 0644 $OPS/*.service $OPS/*.timer /etc/systemd/system/
   systemctl daemon-reload
   after=\$(md5sum /etc/systemd/system/mythuso-api.service | cut -d' ' -f1)
+  after2=\$(md5sum /etc/systemd/system/assistant-api.service | cut -d' ' -f1)
   # daemon-reload makes systemd read the new unit; it does not apply it to a process already
   # running under the old one. Saying so is the difference between a hardening change that landed
   # and one that everybody believes landed.
   if [ -n \"\$before\" ] && [ \"\$before\" != \"\$after\" ] && systemctl is-active --quiet mythuso-api; then
     echo '!! mythuso-api.service changed and the service is running — systemctl restart mythuso-api to apply it'
+  fi
+  if [ -n \"\$before2\" ] && [ \"\$before2\" != \"\$after2\" ] && systemctl is-active --quiet assistant-api; then
+    echo '!! assistant-api.service changed and the service is running — systemctl restart assistant-api to apply it'
   fi"
 
 # The health check has to know which host to ask about, and a host that has moved must not leave it
@@ -340,6 +439,18 @@ ssh "$TARGET" "code=\$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: $HOST' h
 ssh "$TARGET" "if systemctl is-enabled --quiet mythuso-api.service 2>/dev/null; then
     curl -sf --max-time 15 http://127.0.0.1:8787/health && echo
   else echo 'identity  not enabled (see deploy/README.md)'; fi"
+
+# The assistant service, the same way: dark until credentials exist and somebody has followed the
+# activation sequence in deploy/RUNBOOK.md, and a deploy that reported "not enabled" as a failure
+# would be a deploy nobody trusts on the day it matters. When it IS enabled, both halves are
+# proven: the service on the loopback (did the bundle start, did it find its credentials) and the
+# nginx location in front of it (does /assistant/ reach the service, with the security headers
+# the location redeclares). The health route answers with booleans only — never the endpoint,
+# never the key.
+ssh "$TARGET" "if systemctl is-enabled --quiet assistant-api.service 2>/dev/null; then
+    curl -sf --max-time 15 http://127.0.0.1:3001/assistant/health && echo
+    curl -sfL --max-time 15 --resolve '$HOST:443:127.0.0.1' --resolve '$HOST:80:127.0.0.1' http://$HOST/assistant/health && echo
+  else echo 'assistant not enabled (see deploy/RUNBOOK.md — activate it only after the credentials ceremony)'; fi"
 
 # ── The keys have to exist before the service does ─────────────────────────────────────────────
 #
@@ -607,4 +718,15 @@ Still yours to do — deploy/RUNBOOK.md is this list with the failures written o
   4. Only then the identity service — see deploy/README.md. It must not be reachable over http.
      Its keys are their own step, each with a second copy, before the service is enabled:
      docs/DATA-PROTECTION.md. Once the unit is enabled this deploy checks them on every run.
+  5. GilbertOne's second tier, when an Azure OpenAI resource exists — the assistant service is
+     installed but dark, and it is activated by hand, in this order (deploy/RUNBOOK.md, "Activating
+     the assistant service", has the whole sequence with the rollbacks):
+       ssh $TARGET                     # then, on the box:
+       sudo /opt/mythuso/ops/configure-assistant-env.sh   # types the endpoint, the key (masked), the deployment name
+       sudo sh -c "printf 'MYTHUSO_ASSISTANT_PRODUCTION=acknowledged\n' >> /etc/mythuso/assistant.env"
+                                                          # the production decision, its own act — a configured key alone must never start a public model
+       sudo systemctl enable --now assistant-api.service
+       curl -s http://127.0.0.1:3001/assistant/health     # expect "azure":true and "activated":true — booleans only, no secrets
+     The key is typed into that script and nowhere else — never into chat, Git, a shell command
+     line or a log, each of which is a copy with a different owner.
 NOTE

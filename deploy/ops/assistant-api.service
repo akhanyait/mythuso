@@ -8,26 +8,59 @@
 # service answers exactly what the contract does; with the service down or unreachable, the panel
 # falls back to the contract on the patient's own device and looks identical. The provider
 # configuration — AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY or AZURE_OPENAI_API_KEY,
-# AZURE_OPENAI_MODEL, OLLAMA_URL, OLLAMA_MODEL — is read from /etc/mythuso/assistant.env, which the
-# unit that refuses to start over a missing file it does not need is a unit nobody can install.
+# AZURE_OPENAI_MODEL, OLLAMA_URL, OLLAMA_MODEL — is read from /etc/mythuso/assistant.env, which
+# deploy/ops/configure-assistant-env.sh writes (0600 root:root). The "-" on the EnvironmentFile is
+# deliberate: the unit starts without it and answers providerless, because a unit that refuses to
+# start over a file it does not need is a unit nobody can install.
 #
-# Before this may be enabled, the API's source must exist under the working directory below,
-# because ExecStart runs it in place from the repository layout (the service has no build step —
-# Node runs the TypeScript directly). The deploy currently publishes only the built web entries to
-# /var/www/mythuso, so enabling this unit without the source alongside it would fail at startup
-# rather than hum quietly.
+# What runs is the esbuild bundle built by `npm run assistant-runtime` and published by the deploy to
+# /opt/mythuso/assistant/server.mjs — a single Linux-neutral JavaScript file, so no node_modules is
+# ever copied from a Mac or installed on the box. It is built for the Node floor in the root
+# package.json's engines (22.12.0 at the time of writing); the deploy refuses to publish over a
+# server whose Node is older, and an older Node handed the file anyway fails at startup — the
+# bundle's syntax is that of the floor, so the process exits with a SyntaxError instead of running
+# something half-parsed.
+#
+# The service holds nothing at rest: sessions live in memory, no file is written, no socket is
+# passed to it but the one it binds. DynamicUser= is that fact expressed as a unit directive — an
+# ephemeral UID systemd allocates at start and forgets at stop, with no home, no files to own, and
+# no reason to exist between runs. It implies ProtectSystem=strict and PrivateTmp= as defaults;
+# they are written out below anyway, because the hardening should be readable here, not inferred.
+# The EnvironmentFile is read by systemd as root before the privileges drop, which is what lets it
+# stay 0600 root:root while the process it configures runs as nobody in particular.
 [Unit]
 Description=MyThuso Assistant API (GilbertOne's second tier; dark until a model provider is configured)
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/var/www/mythuso
-ExecStart=/usr/bin/node apps/assistant-api/src/server.ts
+DynamicUser=yes
+WorkingDirectory=/opt/mythuso/assistant
+ExecStart=/usr/bin/node server.mjs
 Environment=NODE_ENV=production
 EnvironmentFile=-/etc/mythuso/assistant.env
 Restart=on-failure
 RestartSec=5
+
+# The Azure key is in this process's memory and in its environment for as long as it runs — there
+# is no way to hold a credential in a process without that. So the two places that memory could
+# reach the disk are closed: a crash may not write a core file containing the key, and anything
+# the service creates is readable only by the service. Neither of these stops root, and nothing in
+# a unit file can; they stop the accident.
+LimitCORE=0
+UMask=0077
+
+# It needs a listening socket, outbound HTTPS to the model provider, and nothing else.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictAddressFamilies=AF_INET AF_INET6
 
 [Install]
 WantedBy=multi-user.target

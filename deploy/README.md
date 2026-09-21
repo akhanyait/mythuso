@@ -60,8 +60,10 @@ That check is the point of the script. Do not skip it by running the steps by ha
 | `/status/` | What is connected and what is not. Fifteen capabilities, none of them live. The page a funder or a clinician is sent to when they want to know whether any of this is real |
 | `/assets/` | Hashed bundles, cached for a year; HTML is never cached |
 | `/opt/mythuso/ops` | The scheduled jobs and their systemd units, reinstalled on every deploy |
+| `/opt/mythuso/assistant` | GilbertOne's second tier, as one self-contained JavaScript file — the whole service including its knowledge catalogs, built by `scripts/build-assistant.mjs` before anything on the server is touched. No `node_modules`, nothing to install on the box. Outside the web root because the web root is rsynced with `--delete`, and a service is not a static asset |
 | `/etc/mythuso/host.env` | The host the health check should be asking about, written by the deploy |
 | `/etc/mythuso/key.fingerprint` | One `name fingerprint` line per key this host holds. Not the keys, and not secret — it is how a key that changed without anybody rotating it becomes visible |
+| `/etc/mythuso/assistant.env` | The assistant's Azure credentials — written by hand on the box by `deploy/ops/configure-assistant-env.sh`, `0600 root:root`, never by a deploy, never in this repository |
 
 ### Three entries on one host, and the one-line change when DNS moves
 
@@ -122,6 +124,14 @@ is not twice the protection; a browser handed `DENY, DENY` is entitled to make n
 The commented `/api/` block therefore carries an `add_header` of its own, which is what severs the
 inheritance: nginx passes the server-level set down only to a level that declares none.
 
+The assistant's `/assistant/` location is the third case, and the one where nginx does the most.
+That service is deliberately minimal about headers — it sends `Cache-Control: no-store` and
+`X-Content-Type-Options: nosniff` itself, and nothing else — so the location redeclares the whole
+server-level set inside itself (a location that declares one `add_header` inherits none of them),
+and `proxy_hide_header` takes the two the service sends out of the upstream first, so the browser
+receives each header exactly once rather than twice. Its HSTS inside the location is the same
+`max-age=300` the server level carries; no location in this file relaxes it.
+
 The static entries are the other half, and they do need nginx. Each HTML file carries its own CSP in
 a `<meta http-equiv>`, but a meta tag cannot express `frame-ancestors`, so the only place that
 refusal can be stated for a page is a header. Hence `X-Frame-Options: DENY` and
@@ -165,6 +175,13 @@ Two of those patterns are BidZA's, learned the expensive way on this same box: a
 `.env.local` was once synced to production and baked a localhost URL into the client bundle, and
 `rsync --delete` removed the server's own `.env.production` in the same pass. The pattern is every
 env file now. Do not narrow it.
+
+The Azure key is not on that list because no deploy ever sees it. It is typed into
+`deploy/ops/configure-assistant-env.sh` at a terminal on the box, with the echo off, and lives
+only in `/etc/mythuso/assistant.env`. It must never be pasted into a chat, a commit, a shell
+command line or a log — each of those is a copy with a different owner, and no pattern in this
+repository catches what a person pastes somewhere else. **`RUNBOOK.md` has the activation
+sequence**, and it starts with that warning.
 
 ## What runs on a timer
 
@@ -404,10 +421,54 @@ refuses every write that needs sealing, with a 503 that reads like an applicatio
 failure discovered by the first person trying to enrol a second factor, days later. The deploy finds
 it while somebody is still looking at the output.
 
+## The assistant service is installed dark
+
+GilbertOne's second tier — the assistant that answers when the on-device contract cannot place what
+the patient asked — is one self-contained JavaScript file at `/opt/mythuso/assistant`.
+`scripts/build-assistant.mjs` bundles the whole service into it, knowledge catalogs included, so
+there is no `node_modules` on the box, no `npm install` on the box, and nothing for a server
+upgrade to half-apply. It is built before the deploy touches the server at all, so an assistant
+that will not build is a deploy that mutated nothing — and it is published only after the server's
+Node has proven it meets the floor in `package.json`'s `engines`, and only after the file's sha256
+has been compared across the wire, so the unit's `ExecStart` never names a half-transferred file.
+
+The unit, `deploy/ops/assistant-api.service`, is installed by every deploy and **enabled by hand,
+once** — the same deliberate dark state the identity service is in, and for a stronger reason: the
+service is useless without an Azure OpenAI credential, and the credential must never travel
+through this repository or a deploy at all. It is typed into `deploy/ops/configure-assistant-env.sh`
+on the box, which writes `/etc/mythuso/assistant.env` at `0600 root:root` and prints a
+fingerprint, never the key. **`RUNBOOK.md` — "Activating the assistant service" — is that
+sequence, with the rollbacks.**
+
+The distance between that install and a public model is four states, and they are named apart
+wherever they are reported, because each is a different answer to "is it working": **bridge
+shipped** (the panel and the `/assistant/` location, true after every deploy), **runtime installed
+but disabled** (`server.mjs` and the unit on the box, `systemctl is-enabled assistant-api` saying
+`disabled` — the state every deploy leaves behind), **provider configured** (the env file written
+by the script — and in production still not running, because a credential is not a decision), and
+**production operational** (the operator has appended `MYTHUSO_ASSISTANT_PRODUCTION=acknowledged`
+to that file by hand and enabled the unit). The acknowledgement is the one line in this
+deployment that says, deliberately, that the public internet is about to get a model; a key that
+arrives alone — pasted early, left by a test, restored from a backup — cannot make a public model
+answer without it, because the service refuses to start.
+
+Nothing on the site depends on it. The panel in `/app/` asks `/assistant/turn` only after an
+answer the on-device matcher could not place, and falls back to the on-device answer while the
+service is dark — its behaviour before activation and its behaviour during an outage, and the
+reason no deploy ever needed this to succeed. The request is same-origin, so the pages'
+`connect-src 'self'` covers it, through the nginx `location /assistant/` proxy — which also
+carries the paid endpoint's own fence, a 16 KB body limit matching the service's own constant and
+a per-address rate limit of 60 requests a minute answering 429, scoped to that one location so no
+co-tenant inherits it. Once the unit is enabled, every deploy proves both halves — the service on
+the loopback and the nginx location in front of it — and reports health in booleans, never the
+endpoint or the key: `"azure"` says the credentials were read, and `"production"` and
+`"activated"` say whether the acknowledgement is in place.
+
 ## What this host already runs
 
 agcafrica.com, artisanza.co.za, bidza.co.za, liqzar.co.za and skillsonwheels.co.za, plus PostgreSQL
 and two node applications on loopback ports 3000 and 4000, and BidZA's own timers — its backup at
-01:10 and its OCR job hourly under a CPU cap. MyThuso adds a site file, two timers and, later, a
-service on 8787. The backup is at 02:40 so the two never share the disk. Nothing here modifies any
+01:10 and its OCR job hourly under a CPU cap. MyThuso adds a site file, two timers, the assistant
+service on loopback 3001 (installed dark, enabled by hand) and, later, a service on 8787. The backup
+is at 02:40 so the two never share the disk. Nothing here modifies any
 of them, `nginx -t` gates every reload, and the deploy checks all five afterwards.

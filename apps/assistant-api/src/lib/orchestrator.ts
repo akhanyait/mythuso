@@ -1,10 +1,12 @@
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
 import { AzureChatOpenAI, ChatOpenAI } from "@langchain/openai";
 import { redactPHI } from "../../../../packages/gilbertone/src/phi.ts";
+import { modelTierAllowed } from "./activation.ts";
 import {
   AzureOpenAIProvider,
   AZURE_API_VERSION,
   AZURE_DEFAULT_MODEL,
+  LLM_MAX_OUTPUT_TOKENS,
   LLM_REPLY_LIMIT,
   OllamaProvider,
   OLLAMA_DEFAULT_MODEL,
@@ -153,6 +155,11 @@ async function resolveChatModel(): Promise<ResolvedModel | null> {
         azureOpenAIApiVersion: AZURE_API_VERSION,
         temperature: 0.2,
         maxRetries: 0,
+        /* The output ceiling, the same constant the native adapter sends: the answer is capped at
+           LLM_REPLY_LIMIT characters on the way out, and this stops a runaway generation at the
+           provider instead of paying for words that would be cut. In the pinned LangChain
+           version, maxTokens is the option that reaches the wire as max_tokens. */
+        maxTokens: LLM_MAX_OUTPUT_TOKENS,
       }),
     };
   }
@@ -176,6 +183,8 @@ async function resolveChatModel(): Promise<ResolvedModel | null> {
         configuration: { baseURL: `${url}/v1` },
         temperature: 0.2,
         maxRetries: 0,
+        /* The same ceiling as the Azure branch above — one constant, both providers. */
+        maxTokens: LLM_MAX_OUTPUT_TOKENS,
       }),
     };
   }
@@ -219,6 +228,13 @@ export async function orchestrate(
 ): Promise<OrchestratorResult> {
   const started = Date.now();
   const deadline = started + timeoutMs;
+
+  /* The acknowledgement gate, before anything else this function does: in production without the
+     acknowledgement there is no model path at all — not the Azure provider, not the Ollama probe
+     below, which is the one way a model could otherwise appear with no credential configured
+     anywhere. The caller keeps the classifier's reply, which is exactly what a deployment that has
+     not taken the production decision should say. See ./activation.ts. */
+  if (!modelTierAllowed()) return degradedResult("", started);
 
   const resolved = await resolveChatModel();
   if (!resolved) return degradedResult("", started);

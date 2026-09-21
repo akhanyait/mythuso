@@ -54,6 +54,13 @@ const MODEL_CLASSIFICATION = "model";
 /* A ceiling on what a model may put in one reply, so a runaway answer cannot bloat the session
    store or the panel. A normal answer is a few sentences; this is roughly two hundred words. */
 export const LLM_REPLY_LIMIT = 1200;
+/* The same ceiling in the units a provider counts in. The cap above is characters; every request
+   this module sends now also carries an explicit output-token ceiling, and four characters per
+   token is the conservative reading of English — so a quarter of the character cap is the
+   smallest token budget that cannot cut a reply short before the cap is reached. One constant,
+   read by both provider bodies here and by the orchestrator's LangChain clients, so the tiers
+   cannot drift apart. */
+export const LLM_MAX_OUTPUT_TOKENS = Math.ceil(LLM_REPLY_LIMIT / 4);
 
 /* What a provider answers with. `classification` is this module's constant and `confidence` its
    own usability weight — 1 when there is text, because there either is an answer or there is
@@ -158,6 +165,10 @@ export class AzureOpenAIProvider implements LLMProvider {
       headers: { "content-type": "application/json", "api-key": this.#key },
       body: JSON.stringify({
         messages: messagesFor(systemPrompt, context, message),
+        /* max_completion_tokens, not max_tokens: that is the field this API version — pinned above
+           at 2025-01-01-preview — documents for the gpt-4.1 family, and the older name is the
+           deprecated one on this surface. */
+        max_completion_tokens: LLM_MAX_OUTPUT_TOKENS,
       }),
       signal: AbortSignal.timeout(this.#timeoutMs),
     });
@@ -199,6 +210,9 @@ export class OllamaProvider implements LLMProvider {
         model: this.#model,
         messages: messagesFor(systemPrompt, context, message),
         stream: false,
+        /* This provider speaks Ollama's native /api/chat, where the ceiling lives under options as
+           num_predict; the OpenAI-compatible face of the same server calls it max_tokens. */
+        options: { num_predict: LLM_MAX_OUTPUT_TOKENS },
       }),
       signal: AbortSignal.timeout(this.#timeoutMs),
     });
