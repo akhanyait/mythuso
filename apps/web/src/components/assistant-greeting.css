@@ -1,4 +1,4 @@
-.assistant-greeting { position: fixed; right: 20px; bottom: 116px; z-index: 44; display: flex; align-items: center; max-width: min(290px, calc(100vw - 32px)); padding: 6px; border: 1px solid var(--brand-mint); border-radius: 18px 18px 4px 18px; background: var(--surface); color: var(--brand-ink); box-shadow: var(--shadow-raised); }
+.assistant-greeting { position: fixed; right: 20px; bottom: 132px; z-index: 44; display: flex; align-items: center; max-width: min(290px, calc(100vw - 32px)); padding: 6px; border: 1px solid var(--brand-mint); border-radius: 18px 18px 4px 18px; background: var(--surface); color: var(--brand-ink); box-shadow: var(--shadow-raised); }
 .assistant-greeting button { border: 0; background: transparent; color: inherit; font: inherit; font-size: 14px; text-align: left; min-height: 44px; padding: 8px; cursor: pointer; }
 .assistant-greeting button:last-child { min-width: 44px; font-size: 22px; }
-.al-dock .assistant-greeting { position: absolute; bottom: 108px; right: 16px; width: 280px; }
+.al-dock .assistant-greeting { position: absolute; bottom: 124px; right: 16px; width: 280px; }

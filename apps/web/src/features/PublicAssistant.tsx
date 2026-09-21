@@ -36,12 +36,12 @@ export default function PublicAssistant() {
  return <>
   <AssistantGreeting open={open} onOpen={() => setOpen(true)}/>
   <button ref={launcher} className="public-assistant-launcher" aria-label="Ask GilbertOne about MyThuso" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
-   <GilbertAvatar pose={rig.pose} size={88} blend={rig.blend} friendly={turns.length === 0}/>
+   <GilbertAvatar pose={rig.pose} size={104} blend={rig.blend} friendly={turns.length === 0}/>
   </button>
   <dialog ref={dialog} className="public-assistant" aria-labelledby="public-assistant-title" onCancel={() => setOpen(false)} onClose={() => setOpen(false)} onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}>
    <div className="public-assistant-frame">
     <header>
-     <GilbertAvatar pose={rig.pose} size={64} blend={rig.blend} friendly={turns.length === 0}/>
+     <GilbertAvatar pose={rig.pose} size={96} blend={rig.blend} friendly={turns.length === 0}/>
      <div><h2 id="public-assistant-title">{identity.name}</h2><p>{copy.label}</p><p>{identity.descriptorLine}</p></div>
      <button type="button" aria-label="Close GilbertOne" onClick={() => setOpen(false)}>×</button>
      <MotionPause/>

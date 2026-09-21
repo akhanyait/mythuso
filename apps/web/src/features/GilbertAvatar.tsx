@@ -4,6 +4,7 @@ import {
  type Cue, type MouthShape, type Pose, type RigState
 } from '../lib/gilbertone';
 import './gilbert-avatar.css';
+import assistantUI from '../../../../packages/catalog/assistant-ui.json';
 
 /* GilbertOne's rig and its motion controller — §08's GilbertAvatar.tsx.
  *
@@ -217,11 +218,13 @@ export function GilbertAvatar({ pose, size, blend = BLEND_MS, fail = false, frie
    </radialGradient></defs>
    {/* The only thing beneath the character, and it is a shadow rather than a stage. */}
    <ellipse className="go-shadow" cx="100" cy="188" rx={42 - lift} ry="5.5"/>
-   <g className="go-head" style={{ transform: `translate(${yaw * 0.55}px, ${-lift + pitch * 0.35}px) rotate(${tilt}deg)` }}>
+   <g className="go-head" style={{ transform: `translate(${yaw * 0.55}px, ${-lift + pitch * 0.35}px) rotate(${tilt * 0.6}deg)` }}>
     <g className="go-shell">
      {artworkFailed ? <rect x="34" y="24" width="132" height="126" rx="44" style={{ fill: `url(#${shellId})` }}/>
-      : <image href="/brand/gilbert-robot.webp" x="0" y="-10" width="200" height="200" onError={() => setArtworkFailed(true)}/>}
+      : <image href="/brand/gilbert-robot-v2.webp" x="0" y="0" width="200" height="200" onError={() => setArtworkFailed(true)}/>}
     </g>
+    <text x="100" y="143" textAnchor="middle" fill="#073449" fontSize="10" fontWeight="750" fontFamily="system-ui, sans-serif">{assistantUI.robotName}</text>
+    <g transform="translate(30, 8) scale(.7)">
     <g className="go-face go-visor" style={{ transform: `translate(${yaw * 0.9}px, ${pitch * 0.7}px)` }}>
      <g className="go-brows" style={{ transform: `translate(0px, ${-brow * 4}px)` }}>
       <path className="go-brow" d="M 67 73 Q 78 68 89 70"/>
@@ -240,11 +243,12 @@ export function GilbertAvatar({ pose, size, blend = BLEND_MS, fail = false, frie
       <rect className="go-lid" x="69" y="76" width="22" height="26" style={{ transform: `scaleY(${lid})` }}/>
       <rect className="go-lid go-lid-right" x="109" y="76" width="22" height="26" style={{ transform: `scaleY(${lid})` }}/>
      </g>
-     <g className="go-mouth">
+     <g className="go-mouth" transform="translate(0, -12)">
       <path className="go-mouth-line" d={MOUTH_LINE[mouth] ?? MOUTH_LINE.neutral} style={{ opacity: open ? 0 : 1 }}/>
       <ellipse className="go-mouth-open" cx="100" cy="130" rx="11" ry="9"
                style={{ opacity: open ? 1 : 0, transform: `scale(${scaleX}, ${(0.35 + jaw * 0.7) * scaleY})` }}/>
      </g>
+    </g>
     </g>
    </g>
   </svg>

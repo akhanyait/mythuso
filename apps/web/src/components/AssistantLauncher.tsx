@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
+import assistantUI from '../../../../packages/catalog/assistant-ui.json';
 import { AssistantGreeting } from './AssistantGreeting';
 import { OPEN_PARAM } from '../lib/roles';
 import type { PanelProps } from '../features/Assistant';
@@ -10,7 +11,7 @@ import type { Visit } from '../lib/scheduling';
    chunk; what differs is the audience it is handed, and the panel reads the rest from the
    contract.
 
-   This file is in the patient entry, so it is a button, a CSS orb and a lazy import, and nothing
+   This file is in the patient entry, so it is a button, a small robot image and a lazy import, and nothing
    more. The panel, the sphere's canvas, the conversation, the contract behind it and their
    stylesheet are a separate chunk, fetched the first time somebody reaches for the orb — on hover
    or focus as a prefetch, or on the press itself. A patient on metered data who never touches it
@@ -58,7 +59,7 @@ export function AssistantLauncher({ openModal, visit, audience }: { openModal?: 
    aria-expanded={open} aria-controls={opened ? 'assistant-panel' : undefined}
    onPointerEnter={() => void prefetch()} onFocus={() => void prefetch()}
    onClick={() => { setOpened(true); setOpen(!open); }}>
-   <span className="al-glow"/><span className="al-orb"/><span className="al-ring"/><span className="al-spark"><i/></span>
+   <span className="al-orb" aria-hidden="true"><span className="al-smile"/><span className="al-name">{assistantUI.robotName}</span></span>
   </button>
   {opened && <Suspense fallback={open ? <p className="al-note" role="status">Opening GilbertOne.</p> : null}>
    <Panel open={open} dismiss={() => setOpen(false)} openModal={openModal ? modal => { setOpen(false); openModal(modal); } : undefined} visit={visit} audience={audience}/>

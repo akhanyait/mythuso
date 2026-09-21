@@ -1,4 +1,5 @@
 {
+  "robotName": "GilbertOne",
   "scope": "Web presentation only; no change to assistant, voice or audience permissions.",
   "greeting": "Hello! I’m GilbertOne. Need a hand?",
   "dismissGreeting": "Dismiss GilbertOne’s greeting",

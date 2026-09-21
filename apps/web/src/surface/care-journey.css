@@ -70,18 +70,16 @@
    above the tab bar (or at the foot of the column on a wide screen), and the orb rises out of it,
    so it clears the bar however tall the bar has grown. Motion runs only under data-decor, which
    lib/motion.ts withholds under reduced motion, in a hidden tab and while Pause motion is pressed:
-   each of those leaves a still orb with its spark showing. The spark travels its own ellipse,
-   composed from two sine-like strokes a quarter-turn apart, so it stays round instead of being
-   squashed with the ring. */
+   each of those leaves the robot still. The face and chest label share its gentle float. */
 .al-dock { position:relative; z-index:40; height:0; }
-.as-launcher { position:absolute; right:var(--space-16); bottom:var(--space-12); width:88px; height:88px; padding:0; border:0; border-radius:18px; background:transparent; box-shadow:none; cursor:pointer; }
+.as-launcher { position:absolute; right:var(--space-16); bottom:var(--space-12); width:104px; height:104px; padding:0; border:0; border-radius:18px; background:transparent; box-shadow:none; cursor:pointer; }
 .as-launcher[aria-expanded=true] { opacity:0; }
 .as-launcher span { position:absolute; }
 .al-glow { inset:0; background:none; }
-.as-launcher .al-orb { inset:0; background:url('/brand/gilbert-robot.webp') center / contain no-repeat; }
-.al-orb::before, .al-orb::after { box-sizing:border-box; content:''; position:absolute; top:49%; width:14%; height:11%; border:3px solid #62fff3; border-bottom:0; border-radius:50% 50% 0 0; box-shadow:0 -1px 3px #62fff3; }
-.al-orb::before { left:31%; }
-.al-orb::after { right:31%; }
+.as-launcher .al-orb { inset:0; background:url('/brand/gilbert-robot-v2.webp') center / contain no-repeat; }
+.al-orb::before, .al-orb::after { box-sizing:border-box; content:''; position:absolute; top:32%; width:10%; height:8%; border:2px solid #62fff3; border-bottom:0; border-radius:50% 50% 0 0; box-shadow:0 -1px 3px #62fff3; }
+.al-orb::before { left:37%; }
+.al-orb::after { right:37%; }
 .al-ring, .al-spark { display:none; }
 @keyframes al-blink { 0%, 46%, 50%, 100% { transform:scaleY(1); } 48% { transform:scaleY(.08); } }
 :root[data-decor=on] .al-orb::before, :root[data-decor=on] .al-orb::after { animation:al-blink 5.5s linear infinite; }
@@ -94,5 +92,10 @@
 :root[data-decor=on] .al-spark i::after { animation:al-y 3.5s ease-in-out -1.75s infinite alternate; }
 /* Room for it: the last thing on a page scrolls clear of the orb, and on a wide screen the footer's
    help link moves out from under it. */
-.patient-surface main { padding-bottom:104px; }
-@media (min-width:1000px) { .patient-surface .app-footer { padding-right:104px; } }
+.patient-surface main { padding-bottom:120px; }
+@media (min-width:1000px) { .patient-surface .app-footer { padding-right:120px; } }
+
+.al-smile { top:43%; left:46%; width:8%; height:4%; border:2px solid #62fff3; border-top:0; border-radius:0 0 50% 50%; }
+.as-launcher .al-name { top:66.5%; left:0; width:100%; color:#073449; font:750 5.2px/1.3 system-ui,sans-serif; text-align:center; }
+@keyframes al-float { to { transform:translateY(-2px); } }
+:root[data-decor=on] .al-orb { animation:al-float 3s ease-in-out infinite alternate; }
