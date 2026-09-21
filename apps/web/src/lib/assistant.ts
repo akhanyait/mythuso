@@ -38,7 +38,9 @@ import { accessSettingsNow, rotaAt } from "./settings";
    A TEXT BOX, AND WHY IT IS HONEST. The emergency words read it, the unread rule reads the rest, and
    the unmatched answer says plainly that GilbertOne could not assess it and puts the ambulance first. The
    emergency words are a draft nobody clinical has reviewed, which is why the contract's
-   silenceIsNotSafety sentence stays beside the conversation.
+   silenceIsNotSafety sentence is never left unsaid: its first half is the last of the consent
+   gate's prohibitions, its second half — the numbers — is the composer's own strip, which stays on
+   the screen the whole conversation, and the public assistant surface renders it whole.
 
    A MICROPHONE IN THE BOX, AND NO LISTENING SPHERE. Since the founder's decision of 18 September 2026
    the composer carries a push-to-talk button, and the words are the browser's own recognition of them —
@@ -336,7 +338,8 @@ export type Reply =
   | { kind: "emergency"; groups: EmergencyGroup[] }
   | { kind: "unmatched" }
   /* The second-tier answer, since 20 September 2026: words a language model wrote, shown under the
-     answers.service heading only when the assistant API answered with source 'model'. It lives here
+     answers.service heading only when the assistant API answered with a source above its keyword
+     classifier — 'model', or 'orchestrator' since the LangChain tier of 21 September. It lives here
      so the panel treats it like every other reply — face, pulse, speech, outcome — without knowing
      or caring where the sentence came from. */
   | { kind: "service"; text: string }

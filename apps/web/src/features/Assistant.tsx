@@ -156,8 +156,14 @@ export default function Assistant({
      here — and the panel stays mounted once opened, so consenting survives closing and re-opening
      within a page's life and resets on reload. That is the honest equivalent of the per-session
      browser storage the mockup asked for, and the deviation is reported rather than hidden. The
-     two boxes are separate state so that Accept's disabled state is a truth about what was ticked. */
-  const [consented, setConsented] = useState(audienceId !== "patient");
+     two boxes are separate state so that Accept's disabled state is a truth about what was ticked.
+
+     `gated` is the same decision named once rather than twice, because since 21 September 2026 a
+     second thing depends on it: the conversation repeats the gate's prohibitions only for an
+     audience that never saw the gate. Whether this audience is shown the gate and whether it has
+     read the prohibitions are the same fact, and writing it twice is how they come apart. */
+  const gated = audienceId === "patient";
+  const [consented, setConsented] = useState(!gated);
   const [doctorBox, setDoctorBox] = useState(false);
   const [emergencyBox, setEmergencyBox] = useState(false);
   const conversationRef = useRef(crypto.randomUUID());
@@ -589,27 +595,42 @@ export default function Assistant({
             </div>
 
             <NotConnected of="voice" />
-            <section className="as-rule" aria-labelledby="as-refusals">
-              <h3 id="as-refusals">{conversation.refusalsHeading}</h3>
-              <ul>
-                {refusals.map((r) => (
-                  <li key={r.id}>{refusalFor(r, audienceId).statement}</li>
-                ))}
-              </ul>
-              {/* The founder's sentence in full, since 20 September 2026: the mockup moved its
-                  second half into the composer's strip and its first half stands in the gate's
-                  prohibitions, and the whole sentence — both numbers resolved — keeps its own
-                  line beside the conversation, where the build holds this screen to rendering it. */}
-              <p className="as-safety">{silenceIsNotSafety}</p>
-              <p className="as-powered">
-                {identity.poweredBy}. {identity.poweredByMeans}
-              </p>
-            </section>
+
+            {/* Said once to whoever is reading — the decision of 21 September 2026. This block used
+                to be drawn for every audience, including the patient, who had just read the same nine
+                prohibitions on the gate, the same silence sentence its last prohibition makes and
+                the same ThusoIQ paragraph in longer words, and had ticked two boxes to get past
+                all of it. She then met most of it again, sitting between her answers and the box
+                she types in. So the patient reads it on the gate and nowhere else; the half of the
+                silence sentence that carries the numbers is the composer's own strip below, which
+                stays on the screen the whole conversation.
+
+                An audience with no gate still reads it here, and that is the whole reason this
+                block survives: `consented` opens true for every audience but the patient, so a
+                nurse's preview never meets the consent screen, and these are the only words on her
+                screen that say what GilbertOne will not do. They are also her own — refusalFor
+                answers in the audience's words, and a nurse asking whether a rash is meningitis is
+                refused differently from a patient asking what she has. */}
+            {!gated && (
+              <section className="as-rule" aria-labelledby="as-refusals">
+                <h3 id="as-refusals">{conversation.refusalsHeading}</h3>
+                <ul>
+                  {refusals.map((r) => (
+                    <li key={r.id}>{refusalFor(r, audienceId).statement}</li>
+                  ))}
+                </ul>
+                <p className="as-safety">{silenceIsNotSafety}</p>
+                <p className="as-powered">
+                  {identity.poweredBy}. {identity.poweredByMeans}
+                </p>
+              </section>
+            )}
 
             {/* The footer, as the mockup draws it: the lockup, what powers the sentences, and the
                 product's own line. It sits at the end of the scroll rather than in fixed chrome —
                 every pixel of fixed chrome is paid for by the conversation above it, and this is
-                the last thing anybody reads. */}
+                the last thing anybody reads. The "Powered by ThusoIQ" line here is the credit
+                alone — what it means is the gate's paragraph, and it is not repeated. */}
             <footer className="as-foot">
               <img
                 className="as-logo"

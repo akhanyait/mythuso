@@ -111,8 +111,9 @@ export function sendWithGilbertEngine(
  * this phone with no network, and the path every message takes whether or not anything is
  * listening on the other end. This second function is the bridge's one door to the assistant API.
  * After the local reply for a message the matcher could not place, the panel may ask the service
- * for a sentence a language model wrote — and only a reply the service itself marks source
- * 'model' replaces what is on the screen. Everything else (a service that is not running, one
+ * for a sentence a language model wrote — and only a reply the service itself marks as written by
+ * a tier above the keyword classifier ('model', or 'orchestrator' since 21 September 2026)
+ * replaces what is on the screen. Everything else (a service that is not running, one
  * that answered with a refusal or an emergency, a slow one, a wrong one) leaves the local answer
  * standing, so the panel behaves identically with the API up, down or unreachable, except that
  * an unmatched answer may be followed a moment later by a model-written one under the
@@ -161,10 +162,23 @@ export async function refineWithAssistantService(
     if (!response.ok) return null;
     const body = (await response.json()) as { source?: string; reply?: string };
     /* One shape is accepted and everything else is quietly the local answer: a reply the
-       service's own field marks as model-written. The route, the classification and the
-       confidence beside it are the classifier's own and go unused here — this function returns
-       a turn, not a decision. */
-    if (body.source !== 'model' || typeof body.reply !== 'string' || !body.reply.trim()) return null;
+       service's own field marks as written by a tier above the keyword classifier. The route,
+       the classification and the confidence beside it are the classifier's own and go unused
+       here — this function returns a turn, not a decision.
+
+       Both of the service's model tiers are named, and that is the fix of 21 September 2026
+       rather than tidiness. The second tier was a plain model call marked source 'model' until
+       the LangChain orchestrator replaced it and renamed the field's value to 'orchestrator';
+       this comparison was not renamed with it, so every real answer the orchestrator wrote
+       failed it and was dropped, and every unmatched question in production fell back to "I
+       can't assess that" — a refusal shown to somebody the service had already answered. A name
+       nobody has written yet is still refused, because a sentence from a tier this file has
+       never heard of is not a sentence to put on a patient's screen; what changed is that both
+       live names are here, and that a third one has to be added here on purpose rather than
+       discovered in production. 'classifier' stays refused for its own reason: those words are
+       the local contract's, and they are already on the screen. */
+    if (body.source !== 'model' && body.source !== 'orchestrator') return null;
+    if (typeof body.reply !== 'string' || !body.reply.trim()) return null;
     const refined: Turn = { ...last, reply: { kind: 'service', text: body.reply.trim() } };
     return [...turns.slice(0, -1), refined];
   } catch {

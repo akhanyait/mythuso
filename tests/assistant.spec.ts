@@ -465,7 +465,11 @@ test("the orb floats on every patient page, and GilbertOne is fetched only when 
   expect(fetched.length).toBeGreaterThan(0);
   await expect(launcher(page)).toHaveAttribute("aria-expanded", "true");
   /* The gate stands between the open and the conversation; this journey is about what the open
-     fetched and what the conversation says, so it consents. */
+     fetched and what the conversation says, so it consents — but the prohibitions are read here
+     first, because the gate is the one place they are said. */
+  for (const line of gilbert.consent.willNotDo as string[])
+    await expect(panel(page).locator(".as-gate-list")).toContainText(line);
+  await expect(panel(page)).toContainText(gilbert.consent.poweredByBody);
   await consent(page);
   // the descriptor is never shown without the disclosure that goes with it
   await expect(
@@ -505,15 +509,17 @@ test("the orb floats on every patient page, and GilbertOne is fetched only when 
   await expect(log(page)).toContainText(
     "Type a question or choose a topic below.",
   );
+  /* And said once, which is the fix of 21 September 2026. The patient's conversation used to
+     repeat the gate's prohibitions and its ThusoIQ paragraph between the answers and the composer,
+     so somebody who had just agreed to all of it read most of it again while she was trying to ask
+     something. Everything that block carried has its place on the gate above, and the numbers half
+     of the silence sentence is the composer's strip already asserted above. The block itself is
+     not gone from the panel — the nurse's preview has no gate, and its own journey holds it. */
+  await expect(panel(page).locator(".as-rule")).toHaveCount(0);
   for (const refusal of gilbert.refusals)
-    await expect(panel(page).locator(".as-rule")).toContainText(
-      refusal.statement,
-    );
-  /* And the founder's whole sentence beside the conversation, since the mockup split its halves
-     between the strip and the gate: the screen still renders it, with both numbers in it. */
-  await expect(panel(page).locator(".as-rule")).toContainText(
-    say(gilbert.silenceIsNotSafety),
-  );
+    await expect(panel(page)).not.toContainText(refusal.statement);
+  await expect(panel(page)).not.toContainText(gilbert.identity.poweredByMeans);
+  await expect(panel(page)).not.toContainText(gilbert.consent.poweredByBody);
 });
 
 test("on a phone the orb sits above the tab bar, clear of every tab", async ({
@@ -1255,6 +1261,65 @@ test("an emergency word raises the answer, whatever else the message asked", asy
   await expect(panel(page).locator(".as-rig")).not.toHaveAttribute(
     "data-affect",
   );
+});
+
+/* The service tier, and the defect of 21 September 2026 that this journey exists to stop coming
+   back. The bridge accepts a second-tier answer by the name the service gives its own tier, and
+   when the service's plain model tier became the LangChain orchestrator the name changed from
+   "model" to "orchestrator" while the bridge went on comparing against "model". Every real answer
+   was dropped, and every unmatched question in production fell back to "I can't assess that" —
+   the one reply that reads as a refusal to somebody the service had already answered.
+
+   The service is not run here: the panel's side of the seam is what broke, so the route is
+   fulfilled with each source name in turn and the assertion is what reaches the screen. The
+   classifier's own name is refused, because the classifier's words are the local contract's and
+   are already on the screen. */
+const servedBy = async (page: Page, source: string, reply: string) =>
+  page.route("**/assistant/turn", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ source, reply }),
+    }),
+  );
+
+for (const source of ["orchestrator", "model"])
+  test(`an answer the service marks ${source} reaches the screen`, async ({
+    page,
+  }) => {
+    const words = `A headache has many causes. Drink water, rest, and if it is sudden and severe, or comes with a stiff neck, see a nurse today. (${source})`;
+    await servedBy(page, source, words);
+    await page.goto("/app/?open=assistant");
+    await consent(page);
+    await ask(page, "I have a headache");
+    const turn = log(page).locator(".as-turn").last();
+    /* The contract's own answer is on the screen first and the service's replaces it, so the
+       assertion waits on the words rather than on the turn count. */
+    await expect(turn.locator(".as-service")).toHaveText(words);
+    await expect(turn.locator(".as-headline")).toHaveText(
+      gilbert.answers.service.heading,
+    );
+    // the disclosure never travels without the words it is about
+    await expect(turn.locator(".as-reply")).toContainText(
+      gilbert.answers.service.disclosure,
+    );
+    await expect(turn.locator(".as-reply")).not.toContainText(
+      gilbert.answers.unmatched.sentence,
+    );
+  });
+
+test("the classifier's own tier never replaces the contract's answer", async ({
+  page,
+}) => {
+  await servedBy(page, "classifier", "Something the classifier already said.");
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await ask(page, "I have a headache");
+  const turn = log(page).locator(".as-turn").last();
+  await expect(turn.locator(".as-headline")).toHaveText(
+    gilbert.answers.unmatched.sentence,
+  );
+  await expect(turn.locator(".as-service")).toHaveCount(0);
 });
 
 /* The GilbertOne English engine (packages/gilbertone) makes the first emergency/handover
@@ -2030,7 +2095,10 @@ test("a nurse’s preview serves the nurse’s scope, and says it is simulated",
     sheet.getByRole("button", { name: gilbert.voice.sentences.talkLabel }),
   ).toHaveCount(0);
 
-  // a nurse asking about a rash and a patient asking about one are different refusals, on file
+  /* A nurse asking about a rash and a patient asking about one are different refusals, on file —
+     and since 21 September 2026 this block is hers alone: the patient reads the prohibitions on
+     the consent gate, which the nurse's preview never opens, so for her they are here or nowhere. */
+  await expect(sheet.locator(".as-rule")).toHaveCount(1);
   await expect(sheet).toContainText(refusalFor("no-diagnosis", "nurse"));
   await expect(sheet).not.toContainText(
     (
