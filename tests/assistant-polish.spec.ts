@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 
 test('transparent robot blinks, offers one dismissible greeting, and stops with reduced motion', async ({ page }) => {
@@ -9,6 +10,10 @@ test('transparent robot blinks, offers one dismissible greeting, and stops with 
  await expect.poll(() => launcher.locator('.al-orb').evaluate(el => getComputedStyle(el, '::before').animationName)).toBe('al-blink');
  const greeting = page.locator('.assistant-greeting');
  await expect(greeting).toBeVisible({ timeout: 7000 });
+ await expect(greeting).toContainText('Need help?');
+ await page.clock.install();
+ await page.clock.fastForward(20000);
+ await expect(greeting).toBeVisible();
  await page.screenshot({ path: `/tmp/mythuso-robot-launcher-${test.info().project.name}.png` });
  await greeting.getByRole('button', { name: 'Dismiss GilbertOne’s greeting' }).click();
  await launcher.click();
@@ -26,8 +31,10 @@ test('the patient conversation leads with a greeting and has a labelled micropho
  await panel.getByRole('checkbox', { name: 'I understand GilbertOne is not a doctor.' }).check();
  await panel.getByRole('checkbox', { name: 'I know what to do in an emergency.' }).check();
  await panel.getByRole('button', { name: 'I Accept and Continue' }).click();
- const first = panel.locator('.as-scroll > *').first();
- await expect(first).toHaveClass('as-log');
+ await expect(panel.locator('.as-welcome-hero')).toBeVisible();
+ await expect(panel.locator('#as-input')).toBeFocused();
+ await expect(panel.getByRole('button', { name: 'How do I book a nurse?' })).toBeVisible();
+ await expect(panel.getByRole('button', { name: 'Minimise GilbertOne' })).toBeVisible();
  const mic = panel.locator('.as-voice');
  await expect(mic).toContainText('Tap to talk');
  await expect(panel.locator('#as-keyboard')).toContainText('microphone');
@@ -74,4 +81,66 @@ test('the reference robot keeps neutral eyes on refusals and emergencies', async
   await page.waitForTimeout(1500);
   await expect(panel.locator('.go-eye-arc')).toHaveCount(0);
  }
+});
+
+test('minimising returns to the help bubble and reopening keeps the acknowledged conversation', async ({ page }) => {
+ await page.goto('/app/?open=assistant');
+ const panel = page.locator('#assistant-panel');
+ await panel.getByRole('checkbox', { name: 'I understand GilbertOne is not a doctor.' }).check();
+ await panel.getByRole('checkbox', { name: 'I know what to do in an emergency.' }).check();
+ await panel.getByRole('button', { name: 'I Accept and Continue' }).click();
+ await panel.locator('#as-input').fill('Hello');
+ await panel.getByRole('button', { name: 'Send', exact: true }).click();
+ await panel.getByRole('button', { name: 'Minimise GilbertOne' }).click();
+ await expect(panel).toBeHidden();
+ const bubble = page.locator('.assistant-greeting');
+ await expect(bubble).toBeVisible();
+ await bubble.getByRole('button', { name: 'Need help? Ask GilbertOne' }).click();
+ await expect(panel.locator('.as-said')).toHaveText('You asked: Hello');
+ await expect(panel.locator('.as-gate')).toHaveCount(0);
+});
+
+test('compact composer reveals microphone privacy and keeps attachments local', async ({ page }) => {
+ await page.goto('/app/?open=assistant');
+ const panel = page.locator('#assistant-panel');
+ await panel.getByRole('checkbox', { name: 'I understand GilbertOne is not a doctor.' }).check();
+ await panel.getByRole('checkbox', { name: 'I know what to do in an emergency.' }).check();
+ await panel.getByRole('button', { name: 'I Accept and Continue' }).click();
+ const details = panel.locator('.as-mic-details');
+ await expect(details).not.toHaveAttribute('open');
+ await expect(panel.locator('#as-keyboard')).toBeHidden();
+ await details.locator('summary').click();
+ await expect(panel.locator('#as-keyboard')).toBeVisible();
+ await expect(panel.locator('#as-keyboard')).toContainText('browser');
+ await details.locator('summary').click();
+ await expect(panel.getByRole('button', { name: 'Add a photo', exact: true })).toBeVisible();
+ const transfers: string[] = [];
+ page.on('request', request => { if (request.method() === 'POST') transfers.push(request.url()); });
+ await panel.locator('input[type=file]:not([capture])').setInputFiles({ name: 'example.txt', mimeType: 'text/plain', buffer: Buffer.from('Example only') });
+ await expect(panel.locator('.as-attachment-preview')).toContainText('Nothing is uploaded');
+ await expect(panel.locator('.as-attachment-file')).toContainText('example.txt');
+ await panel.getByRole('button', { name: 'Remove attachment' }).click();
+ await expect(panel.locator('.as-attachment-preview')).toHaveCount(0);
+ expect(transfers).toEqual([]);
+});
+
+test('patient suggestions answer the six navigation questions and keep extra symptoms on the safety path', async ({ page }) => {
+ const ui = JSON.parse(readFileSync(new URL('../packages/catalog/assistant-chat-ui.json', import.meta.url), 'utf8'));
+ await page.goto('/app/?open=assistant');
+ const panel = page.locator('#assistant-panel');
+ await panel.getByRole('checkbox', { name: 'I understand GilbertOne is not a doctor.' }).check();
+ await panel.getByRole('checkbox', { name: 'I know what to do in an emergency.' }).check();
+ await panel.getByRole('button', { name: 'I Accept and Continue' }).click();
+ await expect(panel.locator('.as-chips .as-ask')).toHaveCount(6);
+ for (const question of ui.patientQuestions) {
+   await panel.getByRole('button', { name: question.asks, exact: true }).click();
+   await expect(panel.locator('.as-reply').last()).toContainText(question.answer);
+   await panel.locator('#as-input').fill(question.asks);
+   await panel.getByRole('button', { name: 'Send', exact: true }).click();
+   await expect(panel.locator('.as-reply').last()).toContainText(question.answer);
+ }
+ await panel.locator('#as-input').fill('How do I book a nurse? I have chest pain');
+ await panel.getByRole('button', { name: 'Send', exact: true }).click();
+ await expect(panel.locator('.as-reply').last()).toHaveClass(/as-reply-emergency/);
+ await expect(panel.locator('.as-silence')).toBeVisible();
 });

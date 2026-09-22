@@ -62,6 +62,14 @@ type AssistantLib = typeof import("../apps/web/src/lib/assistant");
    quiet until a journey drives it on purpose, Start again and a closing panel stop the voice rather
    than outliving it, and a held safety face refuses the mouth outright.
 
+   The session, since the push-to-talk work of 22 September 2026. The first tap of the microphone
+   asks the contract's own two agreements — the microphone, and where the hearing and the reading
+   happen — before either is true, and declining costs nothing. The five moments a session can be in
+   — idle, listening, understanding, responding, speaking — are read from voice.session.states and
+   shown one at a time; the microphone interrupts the voice in the same tap the session's speaking
+   sentence promises; and Cancel, Stop the voice and Type instead are the session's own controls in
+   the session's own words.
+
    Motion stops rather than slows. */
 
 const json = (path: string) =>
@@ -81,6 +89,12 @@ const say = (text: string) =>
     .replace("{ambulance}", number("ambulance"))
     .replace("{mobile}", number("mobile"))
     .replace("{seconds}", String(gilbert.voice.maxListeningSeconds));
+/* The contract's session sentence for one of the five moments — idle, listening, understanding,
+   responding, speaking — read the way the panel reads it rather than retyped here. */
+const sessionSentence = (id: string) =>
+  (gilbert.voice.session.states as { id: string; sentence: string }[]).find(
+    (state) => state.id === id,
+  )!.sentence;
 const cue = (id: string) =>
   gilbert.states.find((s: { id: string }) => s.id === id).cue;
 /* The affect section's face for an answer kind — its cue and its posture, read from the contract the
@@ -131,10 +145,20 @@ const consent = async (page: Page) => {
   await sheet
     .getByRole("checkbox", { name: gilbert.consent.checkboxEmergency })
     .check();
-  await sheet
-    .getByRole("button", { name: gilbert.consent.accept })
-    .click();
+  await sheet.getByRole("button", { name: gilbert.consent.accept }).click();
 };
+
+/* The push-to-talk session's own consent, since 22 September 2026: the first tap of the microphone
+   puts the contract's two agreements on the screen — the microphone opening, and where the hearing
+   and the reading happen — and agreeing opens the microphone in the same act, which is why a journey
+   that wants to hear somebody taps once and agrees once. */
+const agree = async (page: Page) =>
+  panel(page)
+    .getByRole("button", {
+      name: gilbert.voice.session.consent.confirmLabel,
+      exact: true,
+    })
+    .click();
 
 /* The audience decision of 19 September 2026, read the way the panel reads it: from the contract,
    never retyped here. A disagreement between these tests and the panel is a disagreement with the
@@ -189,7 +213,11 @@ const watchForRecording = (page: Page) =>
         tally.__heard.push("getUserMedia");
         return Promise.reject(new Error("Refused by the assistant spec"));
       };
-    for (const name of ["MediaRecorder", "AudioContext", "webkitAudioContext"]) {
+    for (const name of [
+      "MediaRecorder",
+      "AudioContext",
+      "webkitAudioContext",
+    ]) {
       Object.defineProperty(window, name, {
         configurable: true,
         value: count(name),
@@ -323,7 +351,11 @@ const giveSpeech = (page: Page) =>
       onend: (() => void) | null = null;
       onerror: ((event: unknown) => void) | null = null;
       onboundary:
-        | ((event: { name: string; charIndex: number; charLength: number }) => void)
+        | ((event: {
+            name: string;
+            charIndex: number;
+            charLength: number;
+          }) => void)
         | null = null;
       constructor(text: string) {
         this.text = text;
@@ -506,8 +538,9 @@ test("the orb floats on every patient page, and GilbertOne is fetched only when 
     "idle",
   );
   await expect(panel(page).locator(".as-state")).toHaveText(cue("idle"));
-  await expect(log(page)).toContainText(
-    "Type a question or choose a topic below.",
+  await expect(panel(page).locator(".as-welcome-hero")).toBeVisible();
+  await expect(panel(page).locator(".as-wordmark")).toHaveText(
+    gilbert.identity.name,
   );
   /* And said once, which is the fix of 21 September 2026. The patient's conversation used to
      repeat the gate's prohibitions and its ThusoIQ paragraph between the answers and the composer,
@@ -597,15 +630,15 @@ test("the name never prints into the controls, and the conversation keeps room t
           right: r.right,
         };
       };
-      const h2 = document.querySelector(".as-titles h2") as HTMLElement;
+      const h2 = document.querySelector(".as-titles") as HTMLElement;
       const scroll = document.querySelector(".as-scroll") as HTMLElement;
       return {
-        name: box(".as-titles h2"),
+        name: box(".as-brand"),
         controls: box(".as-controls"),
         sheet: box("#assistant-panel"),
         compose: box(".as-compose"),
         silence: box(".as-silence"),
-        footnote: box(".as-keyboard"),
+        footnote: box(".as-mic-details > summary"),
         input: box(".as-field input"),
         /* The defect itself, in one number: the box around the name was narrower than the name, so the name
       printed past it and into whatever was beside it. */
@@ -685,7 +718,7 @@ test("the name never prints into the controls, and the conversation keeps room t
       line is held above the fold, not its first line. */
       expect(
         Math.round(footnote.bottom),
-        `at ${where} the voice disclosure is below the fold`,
+        `at ${where} the microphone privacy toggle is below the fold`,
       ).toBeLessThanOrEqual(height);
       /* And the control that bought the footnote did not buy it out of the box a person types in: it is a
       44px square in the field's row, and the row keeps the field wide enough that its contract
@@ -695,10 +728,17 @@ test("the name never prints into the controls, and the conversation keeps room t
         `at ${where} the row leaves the text field ${Math.round(input.width)}px`,
       ).toBeGreaterThanOrEqual(100);
 
-      expect(
-        scrollHeight,
-        `at ${where} the scroll has nothing to scroll`,
-      ).toBeGreaterThan(scrollClient);
+      if (!asked && (width === 390 || width === 1440)) {
+        expect(
+          scrollHeight,
+          `at ${where} the welcome should fit without scrolling`,
+        ).toBe(scrollClient);
+      } else {
+        expect(
+          scrollHeight,
+          `at ${where} longer content remains scrollable`,
+        ).toBeGreaterThan(scrollClient);
+      }
       /* Floors, not measurements: 236px at 390, 60px at 320, 226px at 1440 and 146px at 1366, all with
       nothing asked. They came down by about a sentence's worth when the founder's decision of 18
       September fixed the voice disclosure under the input — 134px of it at 390, 168px at 320, over the
@@ -736,20 +776,29 @@ test("on a wide screen the orb leaves the footer alone and the panel is anchored
   test.skip(isMobile, "A phone has a sheet, not a panel, and no footer.");
   await page.goto("/app/");
   const orb = (await launcher(page).boundingBox())!;
-  for (const link of await page.locator(".app-footer button").all())
-    expect(overlaps(orb, (await link.boundingBox())!)).toBe(false);
+  const invitation = page.locator(".assistant-greeting");
+  await expect(invitation).toBeVisible({ timeout: 7000 });
+  const bubble = (await invitation.boundingBox())!;
+  for (const link of await page.locator(".app-footer button").all()) {
+    const target = (await link.boundingBox())!;
+    expect(overlaps(orb, target)).toBe(false);
+    expect(
+      overlaps(bubble, target),
+      "the help bubble covers a footer action",
+    ).toBe(false);
+  }
   await launcher(page).click();
   await expect(panel(page)).toBeVisible();
   await page.waitForTimeout(500); // the panel grows out of the orb; measure it once it has
   const box = (await panel(page).boundingBox())!;
   const { width, height } = page.viewportSize()!;
-  /* 460 since 21 September 2026, from 400. The card was 400x800 inside a 1440x1100 window while the
+  /* 560 for the founder’s reference design of 21 September 2026, from 460. The card was 400x800 inside a 1440x1100 window while the
      conversation inside it had 250px: the head and the composer are fixed, so a card that refuses
      width and height is refusing them on the answers' behalf. Wider pays twice — every wrapped
      sentence in the composer's footnotes loses a line — and the conversation came to 519px. What
      this test is actually about is the two offsets below; the width is the number that has to move
      with the shell. */
-  expect(Math.round(box.width)).toBe(460);
+  expect(Math.round(box.width)).toBe(560);
   expect(Math.abs(width - (box.x + box.width) - 24)).toBeLessThanOrEqual(1);
   expect(Math.abs(height - (box.y + box.height) - 24)).toBeLessThanOrEqual(1);
 });
@@ -792,9 +841,7 @@ test("the panel opens and closes like a dialog, keeps focus inside, and gives it
   await page.keyboard.press("Enter");
   await expect(panel(page)).toBeVisible();
   await consent(page);
-  await panel(page)
-    .getByRole("button", { name: "When is my nurse coming?" })
-    .click();
+  await ask(page, "When is my nurse coming?");
   await panel(page).getByRole("button", { name: "Close GilbertOne" }).click();
   await expect(panel(page)).toBeHidden();
   await expect(launcher(page)).toBeFocused();
@@ -820,7 +867,7 @@ test("the consent gate stands before the conversation, and only both boxes and A
     panel(page).getByRole("heading", { name: gilbert.consent.heading }),
   ).toBeVisible();
   await expect(gate.locator(".as-gate-intro")).toContainText(
-    gilbert.consent.intro,
+    json("../packages/catalog/assistant-chat-ui.json").disclaimerIntro,
   );
   /* A reading screen: no field, no composer, no strip and no state caption — Accept is the only
      way the conversation can begin. */
@@ -828,16 +875,8 @@ test("the consent gate stands before the conversation, and only both boxes and A
   await expect(field(page)).toHaveCount(0);
   await expect(panel(page).locator(".as-silence")).toHaveCount(0);
   await expect(panel(page).locator(".as-state")).toHaveCount(0);
-  /* The gate promises exactly the questions the conversation answers, in the contract's words,
-     and the mockup's two links stand over their own sections. */
-  for (const offered of questionsOfferedTo("patient"))
-    await expect(gate.getByText(offered.asks, { exact: true })).toBeVisible();
-  await expect(
-    gate.getByText(gilbert.consent.exploreCommon, { exact: true }),
-  ).toBeVisible();
-  await expect(
-    gate.getByText(gilbert.consent.learnMore, { exact: true }),
-  ).toBeVisible();
+  /* Questions belong to the chat, never the acknowledgment screen. */
+  await expect(gate.locator(".as-chips")).toHaveCount(0);
   await expect(gate).toContainText(gilbert.consent.privacyHeading);
   await expect(gate).toContainText(gilbert.consent.privacyBody);
   const prohibitions = gate.locator(".as-gate-list");
@@ -874,8 +913,9 @@ test("the consent gate stands before the conversation, and only both boxes and A
   await expect(accept).toBeEnabled();
   await accept.click();
   await expect(panel(page).locator(".as-compose")).toBeVisible();
-  await expect(log(page)).toContainText(
-    "Type a question or choose a topic below.",
+  await expect(panel(page).locator(".as-welcome-hero")).toBeVisible();
+  await expect(panel(page).locator(".as-wordmark")).toHaveText(
+    gilbert.identity.name,
   );
   await expect(panel(page).locator(".as-gate-card")).toHaveCount(0);
   await expect(panel(page).getByRole("checkbox")).toHaveCount(0);
@@ -900,9 +940,7 @@ test("a suggested question gets the contract’s answer, and the emergency answe
   await page.goto("/app/?open=assistant");
   await expect(panel(page)).toBeVisible();
   await consent(page);
-  await panel(page)
-    .getByRole("button", { name: "Are my results back?" })
-    .click();
+  await ask(page, "Are my results back?");
   await expect(log(page)).toContainText(
     `${laboratory} results have been released to your record.`,
   );
@@ -924,12 +962,10 @@ test("a suggested question gets the contract’s answer, and the emergency answe
     "guiding",
   );
 
-  await panel(page)
-    .getByRole("button", { name: "Is everyone on my team registered?" })
-    .click();
+  await ask(page, "Is everyone on my team registered?");
   await expect(panel(page).locator(".as-figure")).toContainText("45");
 
-  await panel(page).getByRole("button", { name: "What are you?" }).click();
+  await ask(page, "What are you?");
   await expect(log(page).locator(".as-reply").last()).toContainText(
     gilbert.identity.whatItIsNot,
   );
@@ -944,9 +980,7 @@ test("a suggested question gets the contract’s answer, and the emergency answe
     faceOf("identity").posture,
   );
 
-  await panel(page)
-    .getByRole("button", { name: "What happens to what I say?" })
-    .click();
+  await ask(page, "What happens to what I say?");
   await expect(log(page).locator(".as-reply").last()).toContainText(
     gilbert.voice.sentences.web,
   );
@@ -961,9 +995,7 @@ test("a suggested question gets the contract’s answer, and the emergency answe
     faceOf("voice").posture,
   );
 
-  await panel(page)
-    .getByRole("button", { name: "What if it cannot wait?" })
-    .click();
+  await ask(page, "What if it cannot wait?");
   const answer = log(page).locator(".as-reply").last();
   await expect(answer).toContainText(sos.emergency.headline);
   await expect(answer.locator(".as-numbers li").first()).toContainText("10177");
@@ -1054,7 +1086,9 @@ test("a hello gets the greeting, in the contract’s own sentence — and consum
     await expect(reply, says).not.toContainText(
       gilbert.answers.unmatched.sentence,
     );
-    await expect(reply, says).not.toContainText(gilbert.answers.unread.sentence);
+    await expect(reply, says).not.toContainText(
+      gilbert.answers.unread.sentence,
+    );
     await expect(reply.locator(".as-unread"), says).toHaveCount(0);
   }
 });
@@ -1273,9 +1307,11 @@ test("an emergency word raises the answer, whatever else the message asked", asy
    The service is not run here: the panel's side of the seam is what broke, so the route is
    fulfilled with each source name in turn and the assertion is what reaches the screen. The
    classifier's own name is refused, because the classifier's words are the local contract's and
-   are already on the screen. */
+   are already on the screen. Since 22 September 2026 the bridge asks the versioned turn address
+   first — the address these routes intercept — and the legacy address only when the versioned
+   one answers 404, which the two fallback tests below pin. */
 const servedBy = async (page: Page, source: string, reply: string) =>
-  page.route("**/assistant/turn", (route) =>
+  page.route("**/assistant/v1/turn", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -1293,8 +1329,7 @@ for (const source of ["orchestrator", "model"])
     await consent(page);
     await ask(page, "I have a headache");
     const turn = log(page).locator(".as-turn").last();
-    /* The contract's own answer is on the screen first and the service's replaces it, so the
-       assertion waits on the words rather than on the turn count. */
+    /* A waiting message precedes the final service answer; the fallback must never flash. */
     await expect(turn.locator(".as-service")).toHaveText(words);
     await expect(turn.locator(".as-headline")).toHaveText(
       gilbert.answers.service.heading,
@@ -1320,6 +1355,69 @@ test("the classifier's own tier never replaces the contract's answer", async ({
     gilbert.answers.unmatched.sentence,
   );
   await expect(turn.locator(".as-service")).toHaveCount(0);
+});
+
+/* The versioned surface supersedes /assistant/turn, and a deployment older than it answers 404
+   at the versioned address. That one answer is retried on the legacy address with the same body
+   and the same 12-second budget; every other refusal is about this request or this deployment
+   and is final. Both directions are pinned here, against the panel rather than the bridge, so a
+   retry that stops happening or one that starts happening both fail a test. */
+test("a deployment older than the versioned surface is asked once more on the legacy turn address", async ({
+  page,
+}) => {
+  const asked: string[] = [];
+  await page.route("**/assistant/v1/turn", (route) => {
+    asked.push(new URL(route.request().url()).pathname);
+    return route.fulfill({
+      status: 404,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "not_found" }),
+    });
+  });
+  await page.route("**/assistant/turn", (route) => {
+    asked.push(new URL(route.request().url()).pathname);
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        source: "orchestrator",
+        reply: "An answer the old path carried.",
+      }),
+    });
+  });
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await ask(page, "I have a headache");
+  const turn = log(page).locator(".as-turn").last();
+  await expect(turn.locator(".as-service")).toHaveText(
+    "An answer the old path carried.",
+  );
+  expect(asked).toEqual(["/assistant/v1/turn", "/assistant/turn"]);
+});
+
+test("a service's own refusal never falls back to the legacy address", async ({
+  page,
+}) => {
+  const asked: string[] = [];
+  await page.route("**/assistant/v1/turn", (route) => {
+    asked.push(new URL(route.request().url()).pathname);
+    return route.fulfill({ status: 503, body: "" });
+  });
+  await page.route("**/assistant/turn", (route) => {
+    asked.push(new URL(route.request().url()).pathname);
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ source: "model", reply: "Should never be used." }),
+    });
+  });
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await ask(page, "I have a headache");
+  await expect(log(page).locator(".as-headline").last()).toHaveText(
+    gilbert.answers.unmatched.sentence,
+  );
+  expect(asked).toEqual(["/assistant/v1/turn"]);
 });
 
 /* The GilbertOne English engine (packages/gilbertone) makes the first emergency/handover
@@ -1381,9 +1479,7 @@ test("starting again clears the conversation back to its opening", async ({
 }) => {
   await page.goto("/app/?open=assistant");
   await consent(page);
-  await panel(page)
-    .getByRole("button", { name: "When is my nurse coming?" })
-    .click();
+  await ask(page, "When is my nurse coming?");
   await expect(log(page).locator(".as-said")).toHaveCount(1);
   await panel(page)
     .getByRole("button", { name: gilbert.conversation.startAgainLabel })
@@ -1438,7 +1534,9 @@ test("the composer is a text box, and nothing hears before the patient taps the 
   expect(await micCalls(page), voice.neverSoften).toEqual([]);
   // one text box, and it is a text box that hands nothing to the browser's own services
   await expect(
-    panel(page).locator('input, textarea, [contenteditable="true"]'),
+    panel(page).locator(
+      'input:not([type=file]), textarea, [contenteditable="true"]',
+    ),
   ).toHaveCount(1);
   await expect(field(page)).toHaveAttribute("type", "text");
   await expect(field(page)).toHaveAttribute("spellcheck", "false");
@@ -1448,7 +1546,7 @@ test("the composer is a text box, and nothing hears before the patient taps the 
   await expect(field(page)).toHaveAttribute("aria-describedby", "as-keyboard");
   await expect(
     page.locator(
-      'input[capture], input[accept*="audio"], input[accept*="video"], audio',
+      'input[capture]:not([accept="image/*"]), input[accept*="audio"], input[accept*="video"], audio',
     ),
   ).toHaveCount(0);
   // exactly one control offers to hear, and what it offers is the contract's own words for it
@@ -1460,7 +1558,7 @@ test("the composer is a text box, and nothing hears before the patient taps the 
       ),
     );
   const offers = names.filter((name) =>
-    /microphone|\bmic\b|voice input|dictat|speak now|(tap|hold|press) to (speak|talk)|start listening|listening|record/i.test(
+    /microphone|\bmic\b|voice input|dictat|speak now|(tap|hold|press) to (speak|talk)|start listening|listening|\brecord(?:ing)?\b/i.test(
       name,
     ),
   );
@@ -1485,13 +1583,31 @@ test("what the browser caught is a draft the patient sends herself, and an emerg
   await giveVoice(page);
   await page.goto("/app/?open=assistant");
   await consent(page);
+  /* The session is idle, and idle is the one moment the contract holds and the screen never
+     narrates. */
+  await expect(panel(page).locator(".as-voice-session")).toHaveCount(0);
   const mic = panel(page).getByRole("button", {
     name: gilbert.voice.sentences.talkLabel,
     exact: true,
   });
   await mic.click();
+  /* The first tap does not open the microphone: since the session work of 22 September 2026 it puts
+     the session's two agreements on the screen, and nothing is constructed or opened until they are
+     agreed to. */
+  await expect(panel(page).locator(".as-voice-consent")).toBeVisible();
+  expect(await micCalls(page), voice.neverSoften).toEqual([]);
+  await agree(page);
+  await expect(panel(page).locator(".as-voice-consent")).toHaveCount(0);
   // one recogniser, constructed at the tap and at no other moment
   expect(await micCalls(page)).toEqual(["new", "start"]);
+  /* And the session says which moment the voice is in, in the contract's own sentence. */
+  await expect(panel(page).locator(".as-voice-session")).toHaveAttribute(
+    "data-session",
+    "listening",
+  );
+  await expect(panel(page).locator(".as-voice-session")).toHaveText(
+    sessionSentence("listening"),
+  );
   const stop = panel(page).getByRole("button", {
     name: gilbert.voice.sentences.stopLabel,
     exact: true,
@@ -1520,6 +1636,8 @@ test("what the browser caught is a draft the patient sends herself, and an emerg
   await expect(log(page).locator(".as-said")).toHaveCount(0);
   await stop.click();
   await expect(field(page)).toHaveValue("I have chest");
+  /* The session goes quiet with the microphone: off is idle, and idle is not narrated. */
+  await expect(panel(page).locator(".as-voice-session")).toHaveCount(0);
   await expect(panel(page).locator(".as-voice-heard")).toHaveCount(0);
   await expect(panel(page).locator(".as-voice-state")).toHaveText(
     say(gilbert.voice.webSentences.states.off),
@@ -1575,6 +1693,8 @@ test("a microphone the browser took back says so, and leaves its words where its
       exact: true,
     })
     .click();
+  /* The first tap asks the session's own consent; agreeing is what opens the microphone. */
+  await agree(page);
   await dictate(page, "my arm is bleeding");
   await takeBack(page);
   /* The contract's `interrupted` tells the patient that whatever was caught is in the field below. It
@@ -1605,6 +1725,8 @@ test("a microphone the patient refused is said in the contract's words and leave
     exact: true,
   });
   await mic.click();
+  /* The first tap asks the session's two agreements before the microphone may open. */
+  await agree(page);
   await refuseVoice(page, "not-allowed");
   await expect(panel(page).locator(".as-voice-state")).toHaveText(
     gilbert.voice.webSentences.refused,
@@ -1632,6 +1754,233 @@ test("a microphone the patient refused is said in the contract's words and leave
     await page.evaluate(
       () => (window as unknown as { __heard: string[] }).__heard,
     ),
+  ).toEqual([]);
+});
+
+/* The session's own consent, since 22 September 2026: the microphone and where the hearing happens
+   are two different agreements — one button implies neither — and both are asked once, before the
+   first use of the voice, in the same words on every platform. Declining costs nothing: nothing is
+   constructed, typing always works, and the next tap asks again. */
+test("the first tap asks the session's two agreements, and nothing opens until they are given", async ({
+  page,
+}) => {
+  await watchForRecording(page);
+  await giveVoice(page);
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  const mic = panel(page).getByRole("button", {
+    name: gilbert.voice.sentences.talkLabel,
+    exact: true,
+  });
+  const card = panel(page).locator(".as-voice-consent");
+  await mic.click();
+  /* Both agreements in the contract's own words, with the cap read into the microphone sentence
+     rather than typed beside it. Nothing was constructed, opened or reached for. */
+  await expect(card).toBeVisible();
+  await expect(card.locator("p").first()).toHaveText(
+    say(gilbert.voice.session.consent.microphone),
+  );
+  await expect(card).toContainText(
+    gilbert.voice.session.consent.externalSpeechProcessing,
+  );
+  expect(await micCalls(page), voice.neverSoften).toEqual([]);
+  /* Not now is a real answer: nothing opened, nothing was constructed, and typing was never taken
+     away. */
+  await panel(page)
+    .getByRole("button", { name: gilbert.voice.session.consent.notNowLabel })
+    .click();
+  await expect(card).toHaveCount(0);
+  await ask(page, "my shoulder aches");
+  await expect(log(page).locator(".as-said")).toHaveCount(1);
+  expect(await micCalls(page), voice.neverSoften).toEqual([]);
+  /* And the next tap asks again, because the point of asking is that the answer is on record. */
+  await mic.click();
+  await expect(card).toBeVisible();
+  expect(await micCalls(page), voice.neverSoften).toEqual([]);
+  await agree(page);
+  await expect(card).toHaveCount(0);
+  expect(await micCalls(page)).toEqual(["new", "start"]);
+  await expect(panel(page).locator(".as-voice-session")).toHaveAttribute(
+    "data-session",
+    "listening",
+  );
+  /* And it heard: the draft the browser caught is the patient's to review, handed over when the
+     session is closed with the same control that opened it. */
+  await dictate(page, "my shoulder aches");
+  await expect(panel(page).locator(".as-voice-heard")).toContainText(
+    "my shoulder aches",
+  );
+  await panel(page)
+    .getByRole("button", {
+      name: gilbert.voice.sentences.stopLabel,
+      exact: true,
+    })
+    .click();
+  await expect(field(page)).toHaveValue("my shoulder aches");
+});
+
+/* Push-to-talk's own session, since 22 September 2026: the five moments — idle, listening,
+   understanding, responding, speaking — each with the contract's sentence, and the barge-in the
+   session's speaking sentence promises: tapping the microphone while the voice is reading stops the
+   voice and opens the microphone in the same tap. The service's route is delayed, so the
+   understanding moment can be read rather than raced. */
+test("the session names each of its five moments, and the microphone interrupts the voice", async ({
+  page,
+}) => {
+  await watchForRecording(page);
+  await giveVoice(page);
+  await page.route("**/assistant/v1/turn", async (route) => {
+    /* Long enough for the understanding moment to be asserted, then the service refuses and the
+       local contract's own answer is what lands. */
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    await route.fulfill({ status: 503, body: "" });
+  });
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  const session = panel(page).locator(".as-voice-session");
+  // idle is the one of the five the screen never narrates
+  await expect(session).toHaveCount(0);
+  await panel(page)
+    .getByRole("button", {
+      name: gilbert.voice.sentences.talkLabel,
+      exact: true,
+    })
+    .click();
+  await agree(page);
+  await expect(session).toHaveAttribute("data-session", "listening");
+  await expect(session).toHaveText(sessionSentence("listening"));
+  /* The same control that opened the microphone shuts it, and the session goes quiet with it. */
+  await panel(page)
+    .getByRole("button", {
+      name: gilbert.voice.sentences.stopLabel,
+      exact: true,
+    })
+    .click();
+  await expect(session).toHaveCount(0);
+  /* The answer being worked out: the turn is in flight, nothing has been decided, and the panel
+     says so rather than showing a reply it does not have. */
+  await ask(page, "I have a headache");
+  await expect(panel(page).locator(".as-pending")).toBeVisible();
+  await expect(session).toHaveAttribute("data-session", "understanding");
+  await expect(session).toHaveText(sessionSentence("understanding"));
+  /* The service refuses, the contract's own answer lands, and the voice is about to read it. */
+  await expect(panel(page).locator(".as-headline").last()).toHaveText(
+    gilbert.answers.unmatched.sentence,
+  );
+  await expect(session).toHaveAttribute("data-session", "responding");
+  /* The reading itself, driven by the utterance's own start event, with the reply's words written
+     on the screen for as long as the voice speaks. */
+  await beginSpeech(page);
+  await expect(session).toHaveAttribute("data-session", "speaking");
+  await expect(session).toHaveText(sessionSentence("speaking"));
+  const reply = log(page).locator(".as-reply").last();
+  await expect(reply).toContainText(number("ambulance"));
+  /* Barge-in, in one tap: the voice stops, the microphone opens, and the session says listening
+     again — while the reply's own words stay on the screen, because barge-in stops the voice and
+     never the answer. */
+  const cancels = async () =>
+    (await speechCalls(page)).filter((call) => call === "cancel").length;
+  const before = await cancels();
+  await panel(page)
+    .getByRole("button", {
+      name: gilbert.voice.sentences.talkLabel,
+      exact: true,
+    })
+    .click();
+  await expect.poll(cancels).toBeGreaterThan(before);
+  await expect(session).toHaveAttribute("data-session", "listening");
+  expect(await micCalls(page)).toEqual([
+    "new",
+    "start",
+    "stop",
+    "new",
+    "start",
+  ]);
+  await expect(reply).toContainText(number("ambulance"));
+  /* And the session's Cancel drops what a capture caught without keeping it: the words leave the
+     review line, the field stays untouched, and the microphone — not a failure — is what the state
+     line reports. */
+  await dictate(page, "something I want to take back");
+  await expect(panel(page).locator(".as-voice-heard")).toContainText(
+    "something I want to take back",
+  );
+  await panel(page)
+    .getByRole("button", {
+      name: gilbert.voice.session.labels.cancelCapture,
+      exact: true,
+    })
+    .click();
+  await expect(panel(page).locator(".as-voice-heard")).toHaveCount(0);
+  await expect(field(page)).toHaveValue("");
+  await expect(session).toHaveCount(0);
+  await expect(panel(page).locator(".as-voice-state")).toHaveText(
+    say(gilbert.voice.webSentences.states.off),
+  );
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { __heard: string[] }).__heard,
+    ),
+    voice.neverSoften,
+  ).toEqual([]);
+});
+
+/* The session's own controls on the typing side and the reading side, since 22 September 2026: Type
+   instead stops the capture, hands what was caught to the field — reviewed rather than kept — and
+   puts the cursor where the typing happens; Stop the voice closes the reading and leaves the
+   answer's own words on the screen, which is the caption rule read from the controls' direction. */
+test("Type instead hands the caught words over, and Stop the voice leaves the reply written", async ({
+  page,
+}) => {
+  await watchForRecording(page);
+  await giveVoice(page);
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  const session = panel(page).locator(".as-voice-session");
+  await panel(page)
+    .getByRole("button", {
+      name: gilbert.voice.sentences.talkLabel,
+      exact: true,
+    })
+    .click();
+  await agree(page);
+  await dictate(page, "I have a headache");
+  await expect(panel(page).locator(".as-voice-heard")).toContainText(
+    "I have a headache",
+  );
+  await panel(page)
+    .getByRole("button", {
+      name: gilbert.voice.session.labels.typeInstead,
+      exact: true,
+    })
+    .click();
+  /* The capture ended because somebody asked it to, so the words are handed over rather than
+     dropped — and the cursor is where typing happens. */
+  await expect(field(page)).toHaveValue("I have a headache");
+  await expect(field(page)).toBeFocused();
+  await expect(session).toHaveCount(0);
+  /* The same pair of controls on the reading side: the reply is read aloud, and Stop the voice
+     closes the voice while the words stay written. */
+  await ask(page, "can you hear me");
+  await expect(session).toHaveAttribute("data-session", "responding");
+  await beginSpeech(page);
+  await expect(session).toHaveAttribute("data-session", "speaking");
+  const cancels = async () =>
+    (await speechCalls(page)).filter((call) => call === "cancel").length;
+  const before = await cancels();
+  await panel(page)
+    .getByRole("button", {
+      name: gilbert.voice.session.labels.stopVoice,
+      exact: true,
+    })
+    .click();
+  await expect.poll(cancels).toBeGreaterThan(before);
+  await expect(session).toHaveCount(0);
+  await expect(log(page).locator(".as-reply").last()).toContainText(/tap/i);
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { __heard: string[] }).__heard,
+    ),
+    voice.neverSoften,
   ).toEqual([]);
 });
 
@@ -1837,9 +2186,7 @@ test("under reduced motion the orb and the character are still, complete frames,
     panel(page).getByRole("button", { name: /Pause motion|Play motion/ }),
   ).toHaveCount(0);
   await consent(page);
-  await panel(page)
-    .getByRole("button", { name: "Are my results back?" })
-    .click();
+  await ask(page, "Are my results back?");
   await expect(panel(page).locator(".as-name")).toHaveText("Result ready");
   await ask(page, "someone has collapsed");
   await expect(rig).toHaveAttribute("data-pulse", "escalate");
@@ -1870,9 +2217,7 @@ test("the open panel does not scroll sideways at 320px, with a long word typed a
   await page.setViewportSize({ width: 320, height: 720 });
   await page.goto("/app/?open=assistant");
   await consent(page);
-  await panel(page)
-    .getByRole("button", { name: "What if it cannot wait?" })
-    .click();
+  await ask(page, "What if it cannot wait?");
   await ask(
     page,
     "Pneumonoultramicroscopicsilicovolcanoconiosisandsomemoreletters",
@@ -2407,4 +2752,160 @@ test.describe("adversarial safety", () => {
       "guiding",
     );
   });
+});
+
+test("a delayed service answer shows a waiting message without displaying or speaking the fallback", async ({
+  page,
+}) => {
+  await giveSpeech(page);
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/assistant/v1/turn", async (route) => {
+    await gate;
+    await route.fulfill({
+      json: {
+        source: "orchestrator",
+        reply: "Here is the supported service answer.",
+      },
+    });
+  });
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await ask(page, "I have a headache");
+  await expect(panel(page).locator(".as-pending")).toHaveText(
+    "Getting your answer…",
+  );
+  await expect(log(page)).not.toContainText(gilbert.answers.unmatched.sentence);
+  expect(await spoken(page)).toEqual([]);
+  await expect(panel(page).locator(".as-silence")).toBeVisible();
+  release();
+  await expect(log(page).locator(".as-service")).toHaveText(
+    "Here is the supported service answer.",
+  );
+  await expect(panel(page).locator(".as-pending")).toHaveCount(0);
+  await expect.poll(async () => (await spoken(page)).length).toBe(1);
+  expect((await spoken(page))[0]).not.toContain(
+    gilbert.answers.unmatched.sentence,
+  );
+});
+
+test("a failed service request settles on the fallback instead of waiting forever", async ({
+  page,
+}) => {
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/assistant/v1/turn", async (route) => {
+    await gate;
+    await route.fulfill({ status: 503, body: "" });
+  });
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await ask(page, "I have a headache");
+  await expect(panel(page).locator(".as-pending")).toBeVisible();
+  release();
+  await expect(log(page).locator(".as-headline").last()).toHaveText(
+    gilbert.answers.unmatched.sentence,
+  );
+  await expect(panel(page).locator(".as-pending")).toHaveCount(0);
+});
+
+test("a pending answer cannot delay an emergency or reappear after Start again", async ({
+  page,
+}) => {
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/assistant/v1/turn", async (route) => {
+    await gate;
+    await route.fulfill({
+      json: { source: "model", reply: "An old service answer." },
+    });
+  });
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await ask(page, "I have a headache");
+  await expect(panel(page).locator(".as-pending")).toBeVisible();
+  await ask(page, "I have chest pain");
+  await expect(log(page).locator(".as-reply").last()).toHaveClass(
+    /as-reply-emergency/,
+  );
+  await expect(log(page).locator(".as-reply").last()).toContainText(
+    number("ambulance"),
+  );
+  await panel(page)
+    .getByRole("button", { name: gilbert.conversation.startAgainLabel })
+    .click();
+  const response = page.waitForResponse("**/assistant/v1/turn");
+  release();
+  await response;
+  await expect(panel(page).locator(".as-welcome-hero")).toBeVisible();
+  await expect(panel(page).locator(".as-log")).not.toContainText(
+    "An old service answer.",
+  );
+  await expect(panel(page).locator(".as-pending")).toHaveCount(0);
+});
+
+test("out-of-order service replies replace their own turns without speaking the latest answer twice", async ({
+  page,
+}) => {
+  await giveSpeech(page);
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/assistant/v1/turn", async (route) => {
+    const first = route.request().postDataJSON().text === "I have a headache";
+    if (first) await gate;
+    await route.fulfill({
+      json: {
+        source: "model",
+        reply: first ? "First answer." : "Second answer.",
+      },
+    });
+  });
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await ask(page, "I have a headache");
+  await expect(panel(page).locator(".as-pending")).toBeVisible();
+  await ask(page, "I have an itchy elbow");
+  await expect(log(page).locator(".as-service").last()).toHaveText(
+    "Second answer.",
+  );
+  await expect.poll(async () => (await spoken(page)).length).toBe(1);
+  release();
+  await expect(log(page).locator(".as-service")).toHaveText([
+    "First answer.",
+    "Second answer.",
+  ]);
+  await expect(panel(page).locator(".as-pending")).toHaveCount(0);
+  expect(await spoken(page)).toHaveLength(1);
+});
+
+test("a service timeout releases the waiting message to the fallback", async ({
+  page,
+}) => {
+  await page.clock.install();
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/assistant/v1/turn", async (route) => {
+    await gate;
+    await route.abort();
+  });
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await ask(page, "I have a headache");
+  await expect(panel(page).locator(".as-pending")).toBeVisible();
+  await page.clock.fastForward(60_000);
+  await expect(panel(page).locator(".as-pending")).toHaveCount(0);
+  await expect(log(page).locator(".as-headline").last()).toHaveText(
+    gilbert.answers.unmatched.sentence,
+  );
+  release();
 });

@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { goSection, openWorkspace } from './nav';
+import { confirmBooking, goSection, openWorkspace } from './nav';
 
 /* The care and dispatch seams, walked end to end against four simulated suppliers.
  *
@@ -85,7 +85,8 @@ test('a visit is booked against somebody the roster would actually offer, and sa
   await expect(d.locator('.clinician-profile h3')).toHaveText(offeredName);
   /* Booked, and the confirmation carries her too. */
   await d.locator('label.checkbox input').check();
-  await d.getByRole('button', { name: /Confirm & book/ }).click();
+  // The simulated payment may decline; use the shared journey helper to retry explicitly.
+  await confirmBooking(d);
   await expect(d.getByRole('heading', { name: 'Your visit is booked.' })).toBeVisible();
   await expect(d.locator('.nurse-row strong')).toHaveText(offeredName);
   await expect(d.getByText(simulation('booking').notice)).toBeVisible();
