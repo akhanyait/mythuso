@@ -143,10 +143,11 @@ const orchestratorSystemPrompt = (context: SessionContext): string => {
 /* ---- The model: the same two providers, through LangChain ---- */
 
 /* The chat model is resolved fresh on every orchestration, reading the same environment variables
-   the adapter's provider classes read — their `available` flags ARE the decision, so the two tiers
-   can never disagree about which provider this process is configured for. Azure first, Ollama
-   beside it, exactly as askModel orders them. The return type is the two concrete classes this
-   tier builds, because both carry bindTools — the base type marks it optional. */
+   the adapter's provider classes read — their `available` flags ARE the decision, so this tier
+   and the health route can never disagree about which provider this process is configured for.
+   Azure first, Ollama beside it: the configured deployment before the local fallback. The return
+   type is the two concrete classes this tier builds, because both carry bindTools — the base type
+   marks it optional. */
 type ResolvedModel = { name: string; model: AzureChatOpenAI | ChatOpenAI };
 
 async function resolveChatModel(): Promise<ResolvedModel | null> {

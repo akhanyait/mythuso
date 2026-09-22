@@ -8,11 +8,27 @@ import saHealthSystem from "../../../../packages/catalog/knowledge/sa-health-sys
 import prevention from "../../../../packages/catalog/knowledge/prevention.json" with { type: "json" };
 import interactions from "../../../../packages/catalog/knowledge/interactions.json" with { type: "json" };
 import { azureCredentials, embedWithAzure } from "./llm-adapter.ts";
+import {
+  attributionOf,
+  citationOf,
+  codesOf,
+  provenanceOf,
+  type KnowledgeCode,
+  type SourceCitation,
+} from "./knowledge-provenance.ts";
 
 /* The knowledge tier, added on 21 September 2026: the 250 catalog entries under
    packages/catalog/knowledge — conditions, medicines, first aid, maternal care, chronic illness,
    mental health, the SA health system, prevention and drug interactions — made searchable for the
    orchestrator's tools.
+
+   CODES AND CITATIONS, added on 22 September 2026 with the governed federation work. Every result
+   now carries two things beyond its text: the verified terminology codes of the entry it came from
+   (SNOMED CT, ICD-11, LOINC — {} where none was verified) and a structured citation built from the
+   entry's source object by knowledge-provenance.ts. Both are pass-through facts about the catalog,
+   never inferences: the codes are read from the JSON and the citation restates the recorded
+   authority, jurisdiction and dates. This module stays local-only — federated search, where a
+   result can come from an external source, lives one layer up in knowledge-federation.ts.
 
    WHAT THIS MODULE IS AND IS NOT. It is a lookup layer: it never decides anything, never ranks a
    condition more likely than another in a clinical sense, and never addresses a person. It puts
@@ -47,6 +63,12 @@ export type KnowledgeResult = {
   score: number;
   /* Which knowledge file the entry lives in, e.g. "conditions" or "medications". */
   file: string;
+  /* The entry's verified terminology codes — {} when none was verified, which is silence and
+     never a claim that no code exists. */
+  codes: KnowledgeCode;
+  /* The structured citation a surface renders: authority, jurisdiction, evidence grade and the
+     recorded dates, taken from the entry's own source object. */
+  citation: SourceCitation;
 };
 
 /* One catalog entry, seen loosely: the files agree on having an id and a source, and differ on
@@ -59,7 +81,13 @@ type KnowledgeEntry = {
   drug1?: string;
   drug2?: string;
   tags?: unknown;
-  source?: string;
+  /* The attribution as stored: the source object (authority, jurisdiction, dates) the migration
+     gave every entry, or — in fixtures and older payloads — a plain string. Read through
+     attributionOf() / provenanceOf() in knowledge-provenance.ts. */
+  source?: unknown;
+  /* The terminology codes as stored: { snomed?, icd11?, loinc? }, or absent entirely in
+     interactions (whose records are pairs of medicines, not diseases). Read through codesOf(). */
+  codes?: unknown;
   [key: string]: unknown;
 };
 
@@ -68,6 +96,10 @@ type IndexedEntry = {
   id: string;
   title: string;
   source: string;
+  /* Carried through from the entry so every result is born with its codes and citation; neither
+     takes part in ranking. */
+  codes: KnowledgeCode;
+  citation: SourceCitation;
   snippet: string;
   /* The entry's full flattened prose, untruncated — snippet exists for the panel, this exists for
      embedding, where cutting an entry off at 240 characters would throw away half of what makes it
@@ -118,13 +150,13 @@ export function tokenize(text: string): string[] {
 }
 
 /* The entry's prose, flattened in the catalog's own field order: conditions lead with their
-   symptoms, medications with their dosage, first aid with its steps. id, tags and source are
-   excluded — id and source are attribution, not content, and tags are indexed separately at
-   their own weight. */
+   symptoms, medications with their dosage, first aid with its steps. id, tags, codes and source
+   are excluded — id, codes and source are attribution, not content, and tags are indexed
+   separately at their own weight. */
 const contentOf = (entry: KnowledgeEntry): string => {
   const parts: string[] = [];
   for (const [key, value] of Object.entries(entry)) {
-    if (key === "id" || key === "tags" || key === "source") continue;
+    if (key === "id" || key === "tags" || key === "source" || key === "codes") continue;
     if (typeof value === "string" && value.trim()) parts.push(value.trim());
     else if (Array.isArray(value)) {
       const joined = value
@@ -167,11 +199,15 @@ const indexEntry = (file: string, entry: KnowledgeEntry): IndexedEntry => {
     for (const tag of entry.tags) if (typeof tag === "string") add(tag, 2);
   const content = contentOf(entry);
   add(content, 1);
+  const source = attributionOf(entry.source, "MyThuso knowledge base");
+  const provenance = provenanceOf(entry.source);
   return {
     file,
     id: entry.id,
     title,
-    source: typeof entry.source === "string" ? entry.source : "MyThuso knowledge base",
+    source,
+    codes: codesOf(entry.codes),
+    citation: citationOf(provenance ?? source),
     snippet: snippetOf(content),
     content,
     terms,
@@ -200,6 +236,10 @@ const loadCorpus = (): IndexedEntry[] => {
 /* Built once, at module load: the whole knowledge tier is a startup fact, and no search ever
    re-reads a file. */
 const CORPUS = loadCorpus();
+/* Same entries, by id — how the Qdrant road re-attaches provenance: a payload carries only
+   id/title/snippet/source/file, so codes and citation come from the catalog entry the id names.
+   An id the corpus does not know (a stale collection, a test fixture) simply gets none. */
+const CORPUS_BY_ID = new Map(CORPUS.map((entry) => [entry.id, entry]));
 const DOCUMENT_COUNT = CORPUS.length;
 
 /* Document frequency per term, for the inverse side of TF-IDF: a term every entry carries ranks
@@ -264,6 +304,8 @@ export function searchKnowledge(query: string, topK: number = 4): KnowledgeResul
       source: entry.source,
       score: carried / weightTotal,
       file: entry.file,
+      codes: entry.codes,
+      citation: entry.citation,
     };
   })
     .filter((result): result is KnowledgeResult => result !== null && result.score >= MIN_SCORE)
@@ -340,16 +382,22 @@ async function qdrantSearch(
       .map((hit) => {
         const payload = hit.payload ?? {};
         if (typeof payload.id !== "string" || typeof payload.title !== "string") return null;
+        /* Provenance is re-attached from the catalog itself, by id: the payload stores text, not
+           codes, and the authoritative shape lives in the JSON this process already loaded. An id
+           the corpus does not know keeps the payload's source string and gets no codes. */
+        const known = CORPUS_BY_ID.get(payload.id);
+        const source =
+          known?.source ??
+          (typeof payload.source === "string" ? payload.source : "MyThuso knowledge base");
         return {
           id: payload.id,
           title: payload.title,
           snippet: typeof payload.snippet === "string" ? payload.snippet : "",
-          source:
-            typeof payload.source === "string"
-              ? payload.source
-              : "MyThuso knowledge base",
+          source,
           score: typeof hit.score === "number" ? hit.score : 0,
           file: typeof payload.file === "string" ? payload.file : "knowledge",
+          codes: known?.codes ?? {},
+          citation: known?.citation ?? citationOf(source),
         } satisfies KnowledgeResult;
       })
       .filter((result): result is KnowledgeResult => result !== null);

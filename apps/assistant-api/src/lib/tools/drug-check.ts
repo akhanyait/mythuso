@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import interactions from "../../../../../packages/catalog/knowledge/interactions.json" with { type: "json" };
+import { attributionOf } from "../knowledge-provenance.ts";
 
 /* The drug-interaction tool: the 30 recorded pairs in packages/catalog/knowledge/interactions.json,
    nothing more. It answers "is this pair recorded, and what does the record say" — never "is this
@@ -14,7 +15,9 @@ type InteractionEntry = {
   severity: string;
   effect: string;
   recommendation: string;
-  source?: string;
+  /* The entry's attribution as stored: the source object the 22 September 2026 migration gave it
+     (or, in an older copy, a plain string). Read through attributionOf(). */
+  source?: unknown;
 };
 
 const PAIRS = interactions as InteractionEntry[];
@@ -88,7 +91,7 @@ export function checkDrugInteraction(drugA: string, drugB: string): string {
     ].join("\n"),
   );
   const sources = [
-    ...new Set(matches.map((pair) => pair.source ?? "MyThuso interaction list").filter(Boolean)),
+    ...new Set(matches.map((pair) => attributionOf(pair.source, "MyThuso interaction list"))),
   ].join("; ");
   return [
     `${matches.length === 1 ? "One recorded interaction" : `${matches.length} recorded interactions`} found between ${capitalise(keyA)} and ${capitalise(keyB)}:`,

@@ -1,11 +1,13 @@
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import { retrieveKnowledge, type KnowledgeResult } from "../knowledge.ts";
+import { citationLine } from "../knowledge-provenance.ts";
 
 /* The knowledge-search tool: the 250-entry catalog knowledge base, retrieved by the knowledge
    module's search (vector when an operator stands up Qdrant, keyword always) and handed to the
    model as titled, sourced excerpts. The tool's whole job is to make an answer attributable —
-   every result carries the source line the catalog recorded, so the reply can say where its facts
+   every result carries the source line the catalog recorded plus its structured citation
+   (authority, jurisdiction, evidence grade, review horizon), so the reply can say where its facts
    came from instead of asking to be trusted. */
 
 export function formatKnowledgeResults(
@@ -23,6 +25,7 @@ export function formatKnowledgeResults(
       `${i + 1}. ${result.title} (relevance ${(result.score * 100).toFixed(0)}%, ${result.file})`,
       `   ${result.snippet}`,
       `   Source: ${result.source}`,
+      `   Citation: ${citationLine(result.citation)}`,
     ].join("\n"),
   );
   return [

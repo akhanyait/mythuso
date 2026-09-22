@@ -2,6 +2,7 @@ import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import conditions from "../../../../../packages/catalog/knowledge/conditions.json" with { type: "json" };
 import { tokenize } from "../knowledge.ts";
+import { attributionOf } from "../knowledge-provenance.ts";
 
 /* The symptom-triage tool: it matches a person's own words against the recorded symptoms of the
    64 conditions in packages/catalog/knowledge/conditions.json and hands back the catalog's own
@@ -16,7 +17,9 @@ type ConditionEntry = {
   symptoms: string[];
   whenToSeeDoctor: string;
   homeCare: string;
-  source?: string;
+  /* The entry's attribution as stored: the source object the 22 September 2026 migration gave it
+     (or, in an older copy, a plain string). Read through attributionOf(). */
+  source?: unknown;
 };
 
 const CONDITIONS = conditions as ConditionEntry[];
@@ -138,7 +141,7 @@ export function checkSymptoms(input: string): string {
   );
   const sources = new Set<string>();
   for (const { condition, matched } of ranked) {
-    sources.add(condition.source ?? "MyThuso conditions list");
+    sources.add(attributionOf(condition.source, "MyThuso conditions list"));
     lines.push(
       `${condition.title} — matched symptoms: ${matched.join("; ")}.`,
       `When to see a doctor: ${condition.whenToSeeDoctor}`,

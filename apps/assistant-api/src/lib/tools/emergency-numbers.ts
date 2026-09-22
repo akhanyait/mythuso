@@ -21,14 +21,35 @@ const EMERGENCY_NUMBERS = sos.emergency.numbers as SosNumber[];
 /* Support lines, worded as the catalog's mental-health resources word them. Order is by how many
    people each one can help: the SADAG line answers any mental-health question. */
 const SUPPORT_LINES: { label: string; number: string }[] = [
-  { label: "SADAG mental health helpline (free counselling and referrals)", number: "0800 567 567" },
-  { label: "Lifeline South Africa (24-hour crisis counselling)", number: "0861 322 322" },
-  { label: "GBV Command Centre (gender-based violence, 24 hours)", number: "0800 428 428" },
+  {
+    label: "SADAG mental health helpline (free counselling and referrals)",
+    number: "0800 567 567",
+  },
+  {
+    label: "Lifeline South Africa (24-hour crisis counselling)",
+    number: "0861 322 322",
+  },
+  {
+    label: "GBV Command Centre (gender-based violence, 24 hours)",
+    number: "0800 428 428",
+  },
 ];
 
 const SUPPORT_HINTS = [
-  "mental", "depress", "anxiet", "anxious", "panic", "suicid", "sad", "grief", "trauma", "abuse",
-  "violence", "counsel", "stress", "lonely",
+  "mental",
+  "depress",
+  "anxiet",
+  "anxious",
+  "panic",
+  "suicid",
+  "sad",
+  "grief",
+  "trauma",
+  "abuse",
+  "violence",
+  "counsel",
+  "stress",
+  "lonely",
 ];
 
 export function emergencyNumbers(need?: string): string {
@@ -50,7 +71,10 @@ export function emergencyNumbers(need?: string): string {
     lines.push(
       "For how you are feeling, the support lines above are free to call, and a public clinic can arrange a mental-health consultation.",
     );
-  return lines.join("\n") + "\nSources: MyThuso emergency screen (sos.json); SA mental-health support lines from the MyThuso knowledge base.";
+  return (
+    lines.join("\n") +
+    "\nSources: MyThuso emergency screen (sos.json); SA mental-health support lines from the MyThuso knowledge base."
+  );
 }
 
 export const emergencyNumbersTool = tool(
@@ -62,7 +86,9 @@ export const emergencyNumbersTool = tool(
     schema: z.object({
       need: z
         .string()
-        .describe("What kind of help is being asked about, in the person's own words; 'not specified' if they did not say"),
+        .describe(
+          "What kind of help is being asked about, in the person's own words; 'not specified' if they did not say",
+        ),
     }),
   },
 );

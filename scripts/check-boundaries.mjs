@@ -1,4 +1,4 @@
-import './check-public-assistant.mjs';
+import "./check-public-assistant.mjs";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
@@ -4414,7 +4414,7 @@ for (const { source, command, files } of generated) {
 /* ==== end of Contracts & Core (Wave 1) ============================================================ */
 /* ==== Contracts & Core (Wave 2): the engine API contracts ==========================================
 
-   Added by the Contracts & Core lead for packages/catalog/apis.json, the twelve engine files under
+   Added by the Contracts & Core lead for packages/catalog/apis.json, the thirteen engine files under
    packages/catalog/apis/, packages/catalog/apis.lock and packages/mock-api. Self-contained, and kept
    apart from the GilbertOne section below it so the branches merge cleanly.
 
@@ -4793,6 +4793,31 @@ for (const { source, command, files } of generated) {
     if (/tokenFor\(|requesterOf\(/.test(handler)) return null;
     return { mechanism: "anonymous" };
   };
+  /* The assistant service's handlers: from the branch's own condition to the next branch's, or to the 404
+    the server falls back to. The service answers its own site only — its origin policy refuses a browser
+    origin it does not know before any route reads the URL, and that check is about where a call came from,
+    not who made it — and neither route asks for a session, a party or a credential. A handler that did ask
+    for one could not be worked out as anonymous, so one that does is refused rather than believed. */
+  const assistantSource = read("apps/assistant-api/src/server.ts");
+  const assistantHandler = (r) => {
+    const at = assistantSource.indexOf(r.evidence.handler);
+    if (at < 0) return "";
+    const next = assistantSource
+      .slice(at + 1)
+      .search(/\n {2}(?:if \(req\.method|send\(res, 404)/);
+    return assistantSource.slice(at, next < 0 ? undefined : at + 1 + next);
+  };
+  const assistantEnforcement = (r) => {
+    const handler = assistantHandler(r);
+    if (!handler) return null;
+    if (
+      /signedIn\(|asParty\(|asOperator\(|tokenFor\(|requesterOf\(|readCookie\(/.test(
+        handler,
+      )
+    )
+      return null;
+    return { mechanism: "anonymous" };
+  };
   /* A Passport statement: the branch that answers this method and path, and whether a grant requester is in hand. */
   const passportStatement = (r) => {
     const segments = r.path.split("/").filter(Boolean);
@@ -4943,6 +4968,8 @@ for (const { source, command, files } of generated) {
       return identityEnforcement(r);
     if (r.evidence.file === "apps/passport/src/server.ts")
       return passportEnforcement(r);
+    if (r.evidence.file === "apps/assistant-api/src/server.ts")
+      return assistantEnforcement(r);
     if (r.evidence.file.startsWith("packages/engines/src/"))
       return enginesEnforcement(r);
     return null;
@@ -5056,12 +5083,44 @@ for (const { source, command, files } of generated) {
   );
   const engineHasSettings = (engine) =>
     settingsShape.sources.some((source) => source.engine === engine);
+  /* Three more resources are answered by name in more than one place, and none of them is a second
+    store. "health" is answered by a service about itself — the identity service's GET /v1/access/health
+    and GilbertOne's GET /health — so an engine whose own routes carry a live health path claims
+    nothing another service's health route does, and no field is ever read as a reference into a
+    service's health, exactly as the per-engine settings resources are left out of the owner map.
+    "triage" is Clinical's store and the conversation service's address: the assistant takes a person
+    through the questions at the plan's /v1/triage/* paths, so its declaration of the resource is that
+    address rather than a second store, and Clinical keeps the owner. "handover" is the conversation
+    service's address for the pack it prepares and submits at the plan's /v1/handover/* paths, and the
+    record Access keeps for a conversation it hands to a nurse — its proposed conversation-handover
+    route answers with that record, never lowered and never quiet, in Access's own store. A reference
+    cannot say which of the two it means, so the word owns nothing, as "health" does, and no field is
+    read as a reference into either. */
+  const assistantPaths = apiContract.conventions.assistantPaths;
+  const engineAnswersHealth = (doc) =>
+    doc.routes.some(
+      (route) =>
+        !route.withdrawn &&
+        route.method === "GET" &&
+        (route.path === "/health" || route.path === `/v1/${doc.engine}/health`),
+    );
+  const engineWalksTriage = (doc) =>
+    doc.routes.some(
+      (route) => !route.withdrawn && route.path.startsWith("/v1/triage/"),
+    );
+  const engineWalksHandover = (doc) =>
+    doc.routes.some(
+      (route) => !route.withdrawn && route.path.startsWith("/v1/handover/"),
+    );
   const resourceOwner = new Map();
   const doorOwner = new Map();
   for (const { file, doc } of apiEngines) {
     for (const resource of doc.resources) {
       if (perEngineResources.has(resource) && engineHasSettings(doc.engine))
         continue;
+      if (resource === "health" && engineAnswersHealth(doc)) continue;
+      if (resource === "triage" && engineWalksTriage(doc)) continue;
+      if (resource === "handover" && engineWalksHandover(doc)) continue;
       if (resourceOwner.has(resource))
         throw new Error(
           `The resource "${resource}" is claimed by both ${resourceOwner.get(resource)} and ${doc.engine}. One store has one owner.`,
@@ -5185,21 +5244,27 @@ for (const { source, command, files } of generated) {
 
     const m = r.path.match(pattern);
     let resource;
-    if (m) {
-      if (m[1] !== doc.engine)
-        fail(
-          "no-engine-reads-another-engines-store",
-          `${where} is a route under /v1/${m[1]} in the ${doc.engine} engine's file.`,
-        );
+    if (m && m[1] === doc.engine) {
       resource = m[2];
     } else if (
       doc.engine === passportPaths.engine &&
       passportPaths.paths.includes(r.path)
     ) {
       resource = r.path.split("/")[1];
-    } else
+    } else if (
+      doc.engine === assistantPaths.engine &&
+      assistantPaths.paths.includes(r.path)
+    ) {
+      const segments = r.path.split("/").filter(Boolean);
+      resource = segments[0] === "v1" ? segments[1] : segments[0];
+    } else if (m)
+      fail(
+        "no-engine-reads-another-engines-store",
+        `${where} is a route under /v1/${m[1]} in the ${doc.engine} engine's file.`,
+      );
+    else
       throw new Error(
-        `${where} does not follow ${apiContract.conventions.pathPattern}${doc.engine === "record" ? ", and is not one of the §26 Passport paths" : ""}. ${apiContract.conventions.why}`,
+        `${where} does not follow ${apiContract.conventions.pathPattern}${doc.engine === "record" ? ", and is not one of the §26 Passport paths" : ""}${doc.engine === assistantPaths.engine ? ", and is not one of the GilbertOne assistant paths" : ""}. ${apiContract.conventions.why}`,
       );
     if (!doc.resources.includes(resource))
       fail(
@@ -6304,7 +6369,7 @@ for (const { source, command, files } of generated) {
     )
     .join(", ");
   console.log(
-    `ThusoIQ's engine API contract is frozen at version ${apiContract.version} and marked as the programme's delegated decision, awaiting a Head of Engineering: ${apiRoutes.length} routes over twelve engine files (${perEngine}), ${builtCount} of them built and found in their handlers, ${apiRoutes.length - builtCount} proposed; ${endpointCount} on an endpoint the documents name (§26), ${capabilityCount} serving a capability or message set the documents name, and ${apiRoutes.length - endpointCount - capabilityCount} ours. Every one names its callers and purposes, refuses something, says what it emits — only live events its own engine owns — and is in ${apiContract.lock} under a fingerprint no other line shares. No route names another engine's store outside a gateway, carries clinical content outside the Passport gateway, lets a supplier call it except the one legacy callback that names the door it should become, or carries an identity number, a transcript, a card number, a score or a sealed category; every money and dispatch write needs an idempotency key; and all ${feedIds.length} supplier doors are linked to the engine they serve. The development mock answers every route on loopback only, behind ${apiContract.mock.flag}, and nothing in deploy/ names it.`,
+    `ThusoIQ's engine API contract is frozen at version ${apiContract.version} and marked as the programme's delegated decision, awaiting a Head of Engineering: ${apiRoutes.length} routes over thirteen engine files (${perEngine}), ${builtCount} of them built and found in their handlers, ${apiRoutes.length - builtCount} proposed; ${endpointCount} on an endpoint the documents name (§26), ${capabilityCount} serving a capability or message set the documents name, and ${apiRoutes.length - endpointCount - capabilityCount} ours. Every one names its callers and purposes, refuses something, says what it emits — only live events its own engine owns — and is in ${apiContract.lock} under a fingerprint no other line shares. No route names another engine's store outside a gateway, carries clinical content outside the Passport gateway, lets a supplier call it except the one legacy callback that names the door it should become, or carries an identity number, a transcript, a card number, a score or a sealed category; every money and dispatch write needs an idempotency key; and all ${feedIds.length} supplier doors are linked to the engine they serve. The development mock answers every route on loopback only, behind ${apiContract.mock.flag}, and nothing in deploy/ names it.`,
   );
   console.log(
     `Built routes name exactly the callers their handlers enforce, worked out from vetting.json capabilities, consent.json grant gateways and the Passport's credential roles${missingEnforcement.length ? `, except ${missingEnforcement.length} whose enforcement is still missing` : ""}; every engine caller is one engine with the event that justifies it; Money hears ${moneyMay.size} billing events and no reference into the clinical record; ${quoteNote ?? `${quotesFound} capability quotes were found word for word in their sections and ${paraphrases} say they are paraphrases`}.`,
@@ -9092,9 +9157,7 @@ if (
 
   /* The port is read from where the service sets it — server.ts binds a literal — and nginx must
      proxy to that same number, or the location answers 502 while the service hums on unaware. */
-  const port = serverSource.match(
-    /server\.listen\((\d+)/,
-  )?.[1];
+  const port = serverSource.match(/server\.listen\((\d+)/)?.[1];
   if (!port)
     throw new Error(
       "scripts/check-boundaries.mjs can no longer read the assistant service's port out of apps/assistant-api/src/server.ts, so it cannot tell whether nginx proxies to the port the service binds.",
@@ -9113,7 +9176,11 @@ if (
      silently, before this line existed. Umami's own bind is loopback-only; this service's must be
      too, in code, because a firewall rule the deploy did not write is not this process's to rely
      on. */
-  if (!new RegExp(`server\\.listen\\(${port},\\s*['"]127\\.0\\.0\\.1['"]`).test(serverSource))
+  if (
+    !new RegExp(`server\\.listen\\(${port},\\s*['"]127\\.0\\.0\\.1['"]`).test(
+      serverSource,
+    )
+  )
     throw new Error(
       "apps/assistant-api/src/server.ts no longer binds explicitly to '127.0.0.1'. Without a host argument, node:http listens on every interface, which is exactly the gap that let this service silently collide with a co-tenant's port. This service has no route meant to be reached any way but through the nginx proxy in front of it.",
     );
@@ -9125,7 +9192,11 @@ if (
      a limit_req that appeared at the server level would throttle every static page on this site,
      and one in a co-tenant's file is not ours to edit. 429 rather than nginx's default 503,
      because an unreachable service is a 503 and a throttled caller is not that. */
-  if (!/^limit_req_zone \$binary_remote_addr zone=assistant_limit:10m rate=60r\/m;$/m.test(conf))
+  if (
+    !/^limit_req_zone \$binary_remote_addr zone=assistant_limit:10m rate=60r\/m;$/m.test(
+      conf,
+    )
+  )
     throw new Error(
       "deploy/nginx/mythuso.conf no longer declares the assistant rate-limit zone (limit_req_zone $binary_remote_addr zone=assistant_limit:10m rate=60r/m) at http level. The paid model endpoint is throttled by that zone or by nothing.",
     );
@@ -9137,7 +9208,11 @@ if (
     throw new Error(
       "deploy/nginx/mythuso.conf's location /assistant/ no longer sets limit_req_status 429, so a throttled caller reads nginx's default 503 — the same status an unreachable service gives.",
     );
-  if (/limit_req/.test(conf.replace(/limit_req_zone[^\n]*/g, "").replace(location[0], "")))
+  if (
+    /limit_req/.test(
+      conf.replace(/limit_req_zone[^\n]*/g, "").replace(location[0], ""),
+    )
+  )
     throw new Error(
       "deploy/nginx/mythuso.conf uses limit_req outside location /assistant/. Throttling belongs on the one paid endpoint; anywhere else it is a limit on a static page, or on a co-tenant's site, that nobody asked for.",
     );
@@ -9200,7 +9275,9 @@ if (
      the assistant's microphone is the assistant's and an API that answers JSON about a person's
      account has never needed one. */
   const policies = [
-    ...conf.matchAll(/^[ \t]*add_header Permissions-Policy "([^"]*)" always;$/gm),
+    ...conf.matchAll(
+      /^[ \t]*add_header Permissions-Policy "([^"]*)" always;$/gm,
+    ),
   ].map((match) => match[1]);
   if (policies.length !== 2)
     throw new Error(
@@ -9325,12 +9402,17 @@ if (
      side would leave the deploy building nothing while every message it prints still says it
      built, which is the failure a build log is supposed to make impossible. */
   const rootPackage = JSON.parse(read("package.json"));
-  if (rootPackage.scripts?.["assistant-runtime"] !== "node scripts/build-assistant.mjs")
+  if (
+    rootPackage.scripts?.["assistant-runtime"] !==
+    "node scripts/build-assistant.mjs"
+  )
     throw new Error(
       `package.json's assistant-runtime script is "${rootPackage.scripts?.["assistant-runtime"] ?? "absent"}". deploy/deploy.sh runs it by name before it touches the server, and scripts/build-assistant.mjs is the one thing it may be.`,
     );
   const boundaryUses =
-    (rootPackage.scripts?.check ?? "").match(/node scripts\/check-boundaries\.mjs/g) ?? [];
+    (rootPackage.scripts?.check ?? "").match(
+      /node scripts\/check-boundaries\.mjs/g,
+    ) ?? [];
   if (boundaryUses.length !== 1)
     throw new Error(
       `package.json's check script invokes scripts/check-boundaries.mjs ${boundaryUses.length} times; it must appear exactly once. Zero is this whole file being a check nobody runs, and two is a check whose second run nobody reads.`,
@@ -9341,7 +9423,10 @@ if (
       /apps\/assistant-api\/src\/server\.ts/,
       "builds apps/assistant-api/src/server.ts",
     ],
-    [/apps\/assistant-api\/dist/, "writes the artifact into apps/assistant-api/dist"],
+    [
+      /apps\/assistant-api\/dist/,
+      "writes the artifact into apps/assistant-api/dist",
+    ],
     [/server\.mjs/, "produces the one file the unit runs (server.mjs)"],
     [
       /AZURE_OPENAI_KEY/,
@@ -9420,12 +9505,17 @@ if (
   if (
     noteAt < 0 ||
     ackAt < noteAt ||
-    deploy.indexOf("MYTHUSO_ASSISTANT_PRODUCTION=acknowledged", ackAt + 1) !== -1
+    deploy.indexOf("MYTHUSO_ASSISTANT_PRODUCTION=acknowledged", ackAt + 1) !==
+      -1
   )
     throw new Error(
       "deploy/deploy.sh must mention MYTHUSO_ASSISTANT_PRODUCTION=acknowledged exactly once, inside its closing NOTE (cat <<NOTE) — as the step it tells the operator to take. Elsewhere or twice is the deploy either doing it itself or not telling anyone it exists.",
     );
-  if (!read("deploy/RUNBOOK.md").includes("MYTHUSO_ASSISTANT_PRODUCTION=acknowledged"))
+  if (
+    !read("deploy/RUNBOOK.md").includes(
+      "MYTHUSO_ASSISTANT_PRODUCTION=acknowledged",
+    )
+  )
     throw new Error(
       'deploy/RUNBOOK.md no longer carries the exact acknowledgement line. The deploy\'s NOTE points at its "Activating the assistant service" section for the command, and that section is the one place the operator reads it from.',
     );
@@ -9435,7 +9525,10 @@ if (
      wildcard is any page on the internet using this deployment as a free proxy to the paid model
      provider — asserted by absence, and asserted present for the two names the allow-list must
      keep. */
-  if (!/from '\.\/lib\/origin-policy\.ts'/.test(serverSource) || !/corsFor/.test(serverSource))
+  if (
+    !/from '\.\/lib\/origin-policy\.ts'/.test(serverSource) ||
+    !/corsFor/.test(serverSource)
+  )
     throw new Error(
       "apps/assistant-api/src/server.ts no longer answers browser origins through ./lib/origin-policy.ts, where the production allow-list (mythuso.co.za and www.mythuso.co.za, and nothing else) lives.",
     );
@@ -9475,6 +9568,56 @@ if (
     )
       throw new Error(
         `${file} contains something shaped like a provider credential's value beside its variable's name. The service reads /etc/mythuso/assistant.env at runtime; no value belongs in the repository, in a script, or in a test.`,
+      );
+  }
+}
+
+/* The two native clients of the unified conversation surface, generated from the same contract the
+   service is held to. They are the half of the seam a reviewer never runs: a Swift or Kotlin file
+   calling an address compiles exactly as well as one calling what the contract declares, and the
+   phone in somebody's hand is the caller nobody watches on deploy day. So three facts are held
+   together here — every built /v1 address the contract declares appears in both clients as the
+   literal they are called with, every address either client calls is a built route at that version,
+   and the contractVersion each client stamps on its requests is the contract's own. */
+{
+  const contract = JSON.parse(read("packages/catalog/apis/assistant.json"));
+  const clients = [
+    "apps/ios/MyThuso/Models/AssistantClient.swift",
+    "apps/android/app/src/main/java/za/co/mythuso/model/AssistantClient.kt",
+  ];
+  const built = contract.routes.filter(
+    (route) => route.status === "built" && route.path.startsWith("/v1/"),
+  );
+  for (const file of clients) {
+    const source = read(file);
+    for (const route of built) {
+      const address = `${route.method} /assistant${route.path}@${route.version}`;
+      if (!source.includes(`"${address}"`))
+        throw new Error(
+          `${file} does not call "${address}", which packages/catalog/apis/assistant.json declares as a built route. A native client that skips one of the surface's addresses is a platform where that part of the conversation does not exist.`,
+        );
+    }
+    for (const match of source.matchAll(
+      /"([A-Z]+ \/assistant\/[^"@]+)@(\d+)"/g,
+    )) {
+      /* The same path can carry a proposed version and a built one — knowledge/search is proposed
+         at @1 and built at @2 — so the lookup has to find the version the client actually calls
+         before it can say whether that version is built. */
+      const route = contract.routes.find(
+        (candidate) =>
+          `${candidate.method} /assistant${candidate.path}` === match[1] &&
+          candidate.version === Number(match[2]) &&
+          candidate.status === "built",
+      );
+      if (!route)
+        throw new Error(
+          `${file} calls "${match[1]}@${match[2]}" and packages/catalog/apis/assistant.json does not carry it as a built route at that version. A client calling an address the service refuses with 501 — or one no version of the contract declares — is a native screen waiting on an answer that is never coming.`,
+        );
+    }
+    const stamped = source.match(/contractVersion\s*=\s*(\d+)/)?.[1];
+    if (stamped !== String(contract.version))
+      throw new Error(
+        `${file} stamps contract version ${stamped ?? "none"} and packages/catalog/apis/assistant.json is version ${contract.version}. A client written against another version of the surface is a phone calling yesterday's addresses.`,
       );
   }
 }
@@ -10015,6 +10158,35 @@ for (const c of capabilities.capabilities) {
       );
   }
 }
+
+/* The flags. Not capabilities, and held to their own two facts: each one says what it is and why
+   it is where it is, and each one's boolean has to be a boolean — a flag with no sentence is one
+   nobody can decide to turn on, and one with no value is a comment. The id may not shadow a
+   capability's: two different readings of one name is how a screen renders a flag as a promise.
+
+   The unifiedApi flag is required by name: both native screens read it before they call the
+   assistant API, so a contract that loses the flag drops a constant from two generated files,
+   and this check exists so the failure names the contract rather than a missing symbol. */
+for (const flag of capabilities.flags ?? []) {
+  for (const field of ["id", "statement", "why"])
+    if (typeof flag[field] !== "string" || !flag[field])
+      throw new Error(
+        `Flag "${flag.id ?? "?"}" has no ${field}. A flag is a boolean somebody reads before doing the thing it names, and the sentence saying what it gates is what makes reading it worth doing.`,
+      );
+  if (typeof flag.enabled !== "boolean")
+    throw new Error(
+      `Flag "${flag.id}" does not say whether it is enabled. A flag with no boolean is a comment.`,
+    );
+  if (capabilities.capabilities.some((c) => c.id === flag.id))
+    throw new Error(
+      `Flag "${flag.id}" shares a capability's id. One name for a promise and a switch is how the switch gets read as the promise.`,
+    );
+}
+if (!(capabilities.flags ?? []).some((f) => f.id === "unifiedApi"))
+  throw new Error(
+    "packages/catalog/capabilities.json has lost the unifiedApi flag. Both native assistant screens read it before they call the assistant API, so the flag is required by name: a contract without it has stopped saying whether the unified conversation is switched on, and the generated files would drop the constant those screens compile against.",
+  );
+
 /* Nothing here asks a device for anything.
    Neither app declares a single permission: no uses-permission in the Android manifest, no
    NS*UsageDescription on the iOS target. That is not an accident of scope, it is the strongest true
@@ -10023,22 +10195,31 @@ for (const c of capabilities.capabilities) {
 
    So the rule is a whitelist rather than a blacklist. Naming RECORD_AUDIO and the microphone key
    specifically, as the two checks below do, would let CAMERA or a location key land without the
-   build noticing. A permission may exist only when a capability names it in requiresPermissions —
-   which forces whoever wants it to write down which feature it serves, in the same file that holds
-   what is blocking that feature and what the app currently tells people. Today the list is empty on
-   both sides, and this check is here for the day it stops being.
+   build noticing. A permission may exist only when a capability or flag names it in
+   requiresPermissions — which forces whoever wants it to write down which feature it serves, in the
+   same file that holds what is blocking that feature and what the app currently tells people. The
+   list stopped being empty on 14 September 2026, when voice named three for GilbertOne's
+   push-to-talk, and grew a fourth on 22 September with the unified conversation flag's INTERNET;
+   this check is why none of them could land without a sentence.
 
    Raised by mythuso-58, which verified the silence was total before suggesting it. */
+const permissionNaming = [
+  ...capabilities.capabilities,
+  ...(capabilities.flags ?? []),
+];
 const permissionsFor = new Set(
-  capabilities.capabilities.flatMap((c) =>
+  permissionNaming.flatMap((c) =>
     (c.requiresPermissions ?? []).map((p) =>
       typeof p === "string" ? p : p.permission,
     ),
   ),
 );
 /* Since voice named three, a permission is an object: the name, the platform it is declared on and the
-   feature it serves. A bare name says nothing about why, which is the half this whitelist exists for. */
-for (const c of capabilities.capabilities)
+   feature it serves. A bare name says nothing about why, which is the half this whitelist exists for.
+   The flags are read here too, since 22 September 2026: the unified conversation flag is what asks for
+   android.permission.INTERNET, and a whitelist that read only the capabilities would refuse the one
+   permission the contract itself declared. */
+for (const c of permissionNaming)
   for (const p of c.requiresPermissions ?? []) {
     if (
       typeof p === "string" ||
@@ -10047,7 +10228,7 @@ for (const c of capabilities.capabilities)
       !p.serves
     )
       throw new Error(
-        `Capability "${c.id}" names a permission without the platform it is declared on and the feature it serves (${JSON.stringify(p)}). The sentence saying why is the reason the whitelist asks.`,
+        `Capability or flag "${c.id}" names a permission without the platform it is declared on and the feature it serves (${JSON.stringify(p)}). The sentence saying why is the reason the whitelist asks.`,
       );
   }
 const androidAsks = [
@@ -10067,7 +10248,7 @@ for (const [platform, asks] of [
   for (const ask of asks) {
     if (!permissionsFor.has(ask))
       throw new Error(
-        `The ${platform} app asks the device for ${ask}, and no capability in packages/catalog/capabilities.json names it under requiresPermissions. Neither app has ever asked for anything, and more than one notice a person reads depends on that being true. If a feature needs it, say which feature — in the file that also holds what is blocking that feature.`,
+        `The ${platform} app asks the device for ${ask}, and nothing in packages/catalog/capabilities.json — no capability and no flag — names it under requiresPermissions. A permission declared without a feature written down for it is one nobody can switch off the day that feature is switched off. If a feature needs it, say which feature — in the file that also holds what is blocking that feature.`,
       );
   }
 }
@@ -14040,9 +14221,7 @@ if (!/never a promise/i.test(String(voicePreference.why)))
     "voice.voicePreference.why no longer says the preference is never a promise. §07's own row says not to guarantee a South African voice is installed, so the order is applied quietly and a browser with none of the four keeps its own default — a preference that reads as a promise is the V03 refusal undone.",
   );
 if (
-  !/voicePolicy\.voicePreference\.order/.test(
-    read("apps/web/src/lib/voice.ts"),
-  )
+  !/voicePolicy\.voicePreference\.order/.test(read("apps/web/src/lib/voice.ts"))
 )
   throw new Error(
     "apps/web/src/lib/voice.ts no longer reads voice.voicePreference.order. The order is the founder's decision of 20 September 2026 and that file is the only one allowed to reach for the browser's voice list; a list read against an order typed in code is the locale setting §07's V03 refuses.",
@@ -14179,6 +14358,71 @@ if (
 if (!gilbertVoice.browserNotice)
   throw new Error(
     "voice.browserNotice is missing from packages/catalog/assistant.json. A browser with no speech recognition is a moment of push-to-talk, and a sentence written in a component for it is words nobody reviewed on a health product.",
+  );
+/* Push-to-talk's own session, added 22 September 2026 with the two cloud routes: the five moments a
+   voice can be found in, the two agreements asked before its first use, and the labels of the
+   controls the session adds — each a sentence the panel reads rather than types. The consent is
+   checked here for the same reason voice.webSentences.beforePermission is: the microphone and
+   where the hearing happens are two agreements, and the day one of them is missing from the
+   contract is the day a component writes it. */
+const voiceSession = gilbertVoice.session;
+const SESSION_STATES = [
+  "idle",
+  "listening",
+  "understanding",
+  "responding",
+  "speaking",
+];
+if (!voiceSession?.why || !voiceSession.consent || !voiceSession.labels)
+  throw new Error(
+    "packages/catalog/assistant.json has lost voice.session, or the reason written beside it. Push-to-talk's five moments, its two agreements and its control labels are decisions on file — the panel shows those and nothing of its own.",
+  );
+if (voiceSession.states?.map((s) => s.id).join() !== SESSION_STATES.join())
+  throw new Error(
+    `voice.session.states declares ${voiceSession.states?.map((s) => s.id).join(", ")}. Push-to-talk has exactly five moments — ${SESSION_STATES.join(", ")} in that order — and the panel shows one of them at a time; a sixth moment or a reordering is a decision for the founder, recorded in voice.session.why, not an edit to the list.`,
+  );
+for (const state of voiceSession.states)
+  for (const field of ["label", "sentence", "why"])
+    if (!state[field])
+      throw new Error(
+        `voice.session.states "${state.id}" has no ${field}. Every moment a screen can name needs the contract's own words, or a component types them and a patient reads a sentence nobody reviewed.`,
+      );
+if (!/\{seconds\}/.test(String(voiceSession.consent.microphone ?? "")))
+  throw new Error(
+    "voice.session.consent.microphone does not carry the {seconds} token. The cap is the founder's and is read into the sentence rather than typed beside it — the same token the microphone's beforePermission sentence has always used — so the number a patient agrees to cannot drift from the number that closes the microphone.",
+  );
+for (const key of ["externalSpeechProcessing", "confirmLabel", "notNowLabel"])
+  if (!voiceSession.consent[key])
+    throw new Error(
+      `voice.session.consent has no "${key}". The session asks two agreements before the voice's first use — the microphone, and that the words may travel outside MyThuso — and a consent with no second sentence, or no way to decline, is one agreement wearing the name of two.`,
+    );
+if (
+  !/founder/i.test(String(voiceSession.consent.decidedBy)) ||
+  !/^\d{4}-\d{2}-\d{2}$/.test(String(voiceSession.consent.on))
+)
+  throw new Error(
+    `voice.session.consent records ${JSON.stringify(voiceSession.consent.decidedBy)} on ${JSON.stringify(voiceSession.consent.on)}. A consent asked of a patient is a dated decision with somebody's name on it; "recently" cannot be checked against her agreement.`,
+  );
+for (const key of ["cancelCapture", "stopVoice", "typeInstead"])
+  if (!voiceSession.labels[key])
+    throw new Error(
+      `voice.session.labels has no "${key}". The session's controls sit on the live composer and their labels are the contract's; a label typed into the component is a control a reviewer cannot check.`,
+    );
+/* The cloud voice's half of the same contract, added the same day the two routes were built. The
+   locale, the two voices, the output format and the promise that nothing is kept are read by
+   apps/assistant-api/src/lib/speech.ts rather than typed there, so this is where the decisions are
+   held: changing a voice is an edit to the contract with a reason beside it, never a string swap
+   in the adapter. */
+const cloud = gilbertVoice.cloud;
+if (
+  cloud?.recognitionLocale !== "en-ZA" ||
+  cloud?.voices?.female !== "en-ZA-LeahNeural" ||
+  cloud?.voices?.male !== "en-ZA-LukeNeural" ||
+  cloud?.outputFormat !== "audio-24khz-48kbitrate-mono-mp3" ||
+  cloud?.audioStored !== false
+)
+  throw new Error(
+    `voice.cloud no longer carries the decisions recorded on 22 September 2026 — en-ZA recognition, en-ZA-LeahNeural and en-ZA-LukeNeural, the 24 kHz mono MP3 output, and audioStored false. The service reads these values rather than typing them; changing one is a decision on file, not an edit to code.`,
   );
 const GILBERT_REFUSALS = [
   "no-diagnosis",
@@ -14725,6 +14969,172 @@ for (const [
   if (raised < 0 || asked < 0 || raised > asked)
     throw new Error(
       `${file} looks for a question before it looks for an emergency word. On ${platform} a message that asks something ordinary and mentions a chest pain would be answered as the ordinary question.`,
+    );
+}
+
+/* ---- The deterministic engine carries no network and no model -----------------------------------
+   The Foundation line: boundary checks proving that emergency handling has no network or model
+   dependency. The classifier in packages/gilbertone is the tier that raises an emergency, and its
+   answer must come from the message and the contract alone — there is no fetch to fail, no socket
+   to hang, no model client to misconfigure and no credential or environment variable to read.
+   Everything that shapes its answer is imported from packages/catalog as JSON; this check is what
+   keeps every other kind of dependency out, because the day an emergency reply can fail with a
+   network is the day it stopped being deterministic. */
+for (const file of files("packages/gilbertone/src")) {
+  if (!/\.ts$/.test(file) || /\.test\.ts$/.test(file)) continue;
+  const source = read(file);
+  for (const [pattern, dependency] of [
+    [/fetch\s*\(/, "calls fetch()"],
+    [
+      /from\s+["']node:(http|https|net|dns|tls)["']/,
+      "imports a network module",
+    ],
+    [/XMLHttpRequest/, "reaches for XMLHttpRequest"],
+    [/from\s+["']@langchain/, "imports a LangChain client"],
+    [/from\s*["']openai["']/, "imports the OpenAI client"],
+    [/\bAbortSignal\./, "builds an abort-signalled request"],
+    [/process\.env/, "reads an environment variable"],
+    [
+      /assistant-api|llm-adapter/,
+      "reaches into the assistant service's model code",
+    ],
+  ]) {
+    if (pattern.test(source))
+      throw new Error(
+        `${file} ${dependency}. packages/gilbertone is the deterministic tier — it routes, it raises emergencies, and it must answer from the message and the catalog alone. A network call can fail and a model can be wrong; neither may be able to change what this tier says.`,
+      );
+  }
+}
+
+/* ---- The turn route: one model door, and it opens after the gate ---------------------------------
+   The same Foundation line from the service's side, and the seat change of 21–22 September 2026
+   written as a rule: orchestrate() is the route's only door to a model — the plain askModel door
+   was removed once nothing called it — and it may be entered only for a patient-audience message
+   the classifier did not read with confidence and did not own as a keyword. Emergency is first in
+   that owned list: the classification that raises an ambulance is answered instantly, and
+   routes/turn.test.ts proves the behaviour against a live stub provider on a local port. These
+   are the source facts that keep the promise from being quietly rearranged. */
+{
+  const turn = read("apps/assistant-api/src/routes/turn.ts");
+  const owned = turn.match(/const keywordOwned[^=]*=\s*\[([^\]]*)\]/)?.[1];
+  if (!owned || !/["']emergency["']/.test(owned))
+    throw new Error(
+      'apps/assistant-api/src/routes/turn.ts\'s keywordOwned list no longer carries "emergency" where the orchestrator gate reads it. The one reading that must never be handed to a model is the one that raises an ambulance.',
+    );
+  const gateAt = turn.indexOf("const mayConsultOrchestrator");
+  const gate = gateAt < 0 ? "" : turn.slice(gateAt, turn.indexOf(";", gateAt));
+  for (const [fragment, meaning] of [
+    ['audience === "patient"', "the patient-audience restriction"],
+    [
+      "!keywordOwned.includes(answer.classification)",
+      "the keyword-owned exemption",
+    ],
+    ["answer.confidence < 0.5", "the confidence floor"],
+  ])
+    if (!gate.includes(fragment))
+      throw new Error(
+        `apps/assistant-api/src/routes/turn.ts's mayConsultOrchestrator gate no longer carries ${meaning} (${fragment}). The gate is the route's promise about which messages a model may be asked about; a reading that reaches the gate when it should not is already a model in the answer.`,
+      );
+  const openAt = turn.indexOf("if (mayConsultOrchestrator) {");
+  const calls = turn.match(/await orchestrate\(/g) ?? [];
+  if (
+    gateAt < 0 ||
+    openAt < gateAt ||
+    calls.length !== 1 ||
+    turn.indexOf("await orchestrate(") < openAt
+  )
+    throw new Error(
+      "apps/assistant-api/src/routes/turn.ts no longer waits for exactly one orchestrator() call inside the mayConsultOrchestrator block. One door, opened after the gate: a second call, or one before it, is a message reaching a model outside the route's own rules.",
+    );
+  for (const [pattern, meaning] of [
+    [
+      /from\s+["'][^"']*llm-adapter/,
+      "imports the adapter's model code directly",
+    ],
+    [/askModel\s*\(/, "calls the removed plain chat door"],
+    [/\bnew Map</, "builds its own session Map"],
+    [
+      /SESSION_IDLE_MS|SESSION_LIMIT|pruneSessions/,
+      "carries the session store's policy constants",
+    ],
+  ])
+    if (pattern.test(turn))
+      throw new Error(
+        `apps/assistant-api/src/routes/turn.ts ${meaning}. Models are asked through orchestrate() and sessions live behind ../lib/session-store.ts (both pinned on 22 September 2026); the route owning either again is how the safety order and the TTL policy start living in two places.`,
+      );
+  const store = read("apps/assistant-api/src/lib/session-store.ts");
+  if (
+    !/export interface SessionStore/.test(store) ||
+    !/export function createSessionStore\(/.test(store) ||
+    !/from "\.\.\/lib\/session-store\.ts"/.test(turn) ||
+    !/createSessionStore\(/.test(turn)
+  )
+    throw new Error(
+      "apps/assistant-api/src/lib/session-store.ts no longer exports the SessionStore interface and createSessionStore, or routes/turn.ts no longer reads sessions through them. The interface is the seam: the in-memory store is the development adapter, and a durable one has to be able to take its seat without the route noticing.",
+    );
+}
+
+/* ---- The speech routes: the cloud voice behind the gate, and nothing kept -----------------------
+   The two built routes of 22 September 2026 — POST /assistant/v1/listen, one capture turned into
+   words, and POST /assistant/v1/speak, words that already exist turned into sound — read through
+   one adapter (./lib/speech.ts) whose only switch is the environment. These checks hold the four
+   promises the adapter's own header makes and no more: both routes are gated on the speech
+   credentials and the production acknowledgement before anything is sent; an unconfigured box
+   answers the contract's speech-not-configured refusal rather than improvising; the listening
+   route refuses a capture that arrives without the person's agreement; and the adapter opens no
+   file, logs nothing and reads the locale, the voices and the format from the contract. */
+{
+  const speech = read("apps/assistant-api/src/lib/speech.ts");
+  const server = gilbertCode(read("apps/assistant-api/src/server.ts"));
+  if (!/from '\.\/lib\/speech\.ts'/.test(server))
+    throw new Error(
+      "apps/assistant-api/src/server.ts no longer imports ./lib/speech.ts. The two speech routes are the only callers of an external speech service, and the seam is what keeps the credentials, the locale and the voices behind one module with its own tests.",
+    );
+  const speechGated =
+    server.match(/!speech\.configured\(\)\s*\|\|\s*!modelTierAllowed\(\)/g) ??
+    [];
+  if (
+    speechGated.length !== 2 ||
+    !/\/assistant\/v1\/listen/.test(server) ||
+    !/\/assistant\/v1\/speak/.test(server) ||
+    !/speech\.recognize\(/.test(server) ||
+    !/speech\.synthesize\(/.test(server)
+  )
+    throw new Error(
+      "apps/assistant-api/src/server.ts no longer carries both speech routes — POST /assistant/v1/listen and POST /assistant/v1/speak — each gated on !speech.configured() || !modelTierAllowed() before anything is sent and reaching the seam through speech.recognize()/speech.synthesize(). A route that checked only one of the two would either reach Azure before the founder acknowledged production, or refuse a configured box its voice.",
+    );
+  const speechRefusals =
+    server.match(/refusalId: 'speech-not-configured'/g) ?? [];
+  if (
+    speechRefusals.length !== 2 ||
+    !/refusal\.id === 'speech-not-configured'/.test(server) ||
+    !/speech_without_consent/.test(server)
+  )
+    throw new Error(
+      "apps/assistant-api/src/server.ts no longer answers an unconfigured speech call with the contract's own speech-not-configured refusal, read out of assistant.json's refusals, or no longer refuses a capture that arrives without the person's agreement (speech_without_consent). The fallback story is the browser's own voice, told by the contract's sentence rather than by a guess; and nothing is listened to without consent.",
+    );
+  if (
+    /node:fs|from ['"]fs['"]|writeFile|createWriteStream|appendFile|FileHandle|node:fs\/promises/.test(
+      speech,
+    )
+  )
+    throw new Error(
+      "apps/assistant-api/src/lib/speech.ts reaches for the filesystem. A capture lives as bytes in memory for the length of one request and there is no code path that could keep one — voice.audioStored is false, and a module that can write a file is a module that can write somebody's voice to a disk.",
+    );
+  if (/console\./.test(speech))
+    throw new Error(
+      "apps/assistant-api/src/lib/speech.ts logs something. The key, the region, the words and the audio are never logged from this file; the routes own the one non-revealing failure line, and a console call here is how a credential or a patient's sentence ends up in a log.",
+    );
+  if (!/AZURE_SPEECH_KEY/.test(speech) || !/AZURE_SPEECH_REGION/.test(speech))
+    throw new Error(
+      "apps/assistant-api/src/lib/speech.ts no longer reads AZURE_SPEECH_KEY and AZURE_SPEECH_REGION. Both present is configured, either missing is not — that pair, read from the environment at call time, is the only switch the cloud voice has, and the same pair the browser fallback depends on.",
+    );
+  if (
+    !/assistant\.voice\.cloud/.test(speech) ||
+    !/ocp-apim-subscription-key/.test(speech)
+  )
+    throw new Error(
+      "apps/assistant-api/src/lib/speech.ts no longer reads voice.cloud from the contract, or no longer sends the key in Azure's own subscription header. The locale, the voices and the output format are decisions on file rather than strings in code, and that header is the only place the credential travels.",
     );
 }
 
@@ -15334,7 +15744,9 @@ if (!/Gilbert\.voice\.nativeSpeechEnabled/.test(gilbertCode(read(IOS_VOICE))))
     `${IOS_VOICE} no longer reads Gilbert.voice.nativeSpeechEnabled before GilbertSpeaker reaches for AVSpeechSynthesizer. The flag is the founder's decision of 21 September 2026, and a class that stops reading it has taken the decision into code, where no date and no reason travel with it.`,
   );
 if (
-  !/GilbertData\.voice\.nativeSpeechEnabled/.test(gilbertCode(read(ANDROID_VOICE)))
+  !/GilbertData\.voice\.nativeSpeechEnabled/.test(
+    gilbertCode(read(ANDROID_VOICE)),
+  )
 )
   throw new Error(
     `${ANDROID_VOICE} no longer reads GilbertData.voice.nativeSpeechEnabled before GilbertSpeaker reaches for TextToSpeech. The flag is the founder's decision of 21 September 2026, and a class that stops reading it has taken the decision into code, where no date and no reason travel with it.`,
@@ -15564,6 +15976,43 @@ if (!/stopLabel/.test(assistantVoice) || !/aria-pressed/.test(assistantVoice))
   throw new Error(
     `${ASSISTANT_VOICE_BUTTON} no longer offers the stop label while the microphone is open, or no longer says which state its control is in. A patient who taps a microphone open has to be able to shut it with the same control, and to tell from the control that she has.`,
   );
+/* The session's own half, since 22 September 2026: the five moments and the two agreements are read
+   from voice.session the way every other sentence this button shows is read from the contract, and
+   the panel hands the button the two moments only the panel knows — the answer being worked out,
+   and where typing happens. A session line typed into a component would be words nobody reviewed,
+   and the consent a patient agrees to has to be the one on file. */
+if (
+  !/session\.consent/.test(assistantVoice) ||
+  !/consent\.microphone\.replace\(\s*"\{seconds\}"/.test(assistantVoice) ||
+  !/consent\.externalSpeechProcessing/.test(assistantVoice) ||
+  !/consent\.confirmLabel/.test(assistantVoice) ||
+  !/consent\.notNowLabel/.test(assistantVoice)
+)
+  throw new Error(
+    `${ASSISTANT_VOICE_BUTTON} no longer asks the session's two agreements in voice.session.consent's own words, with the cap read into the microphone sentence. The microphone and the external processing are two agreements the founder had written down before the first voice use; asking for them in words typed here is asking for agreements nobody reviewed.`,
+  );
+if (!/session\.states\.find\(/.test(assistantVoice))
+  throw new Error(
+    `${ASSISTANT_VOICE_BUTTON} no longer finds its moment in voice.session.states. The five moments and their sentences are the contract's, and the panel says which one it is in from them rather than from words of its own.`,
+  );
+if (
+  !/labels\.cancelCapture/.test(assistantVoice) ||
+  !/labels\.stopVoice/.test(assistantVoice) ||
+  !/labels\.typeInstead/.test(assistantVoice)
+)
+  throw new Error(
+    `${ASSISTANT_VOICE_BUTTON} no longer offers the session's controls — Cancel, Stop the voice and Type instead — with their labels read from voice.session.labels. A control whose words are typed in the component drifts from the contract's list, and the cancel that drops what a capture caught is the one a patient reads before trusting the microphone.`,
+  );
+const assistantPanelCode = gilbertCode(
+  read("apps/web/src/features/Assistant.tsx"),
+);
+if (
+  !/pending=\{waitingForReply\}/.test(assistantPanelCode) ||
+  !/onTypeInstead=/.test(assistantPanelCode)
+)
+  throw new Error(
+    "apps/web/src/features/Assistant.tsx no longer hands the voice button the two moments only the panel knows — pending={waitingForReply} for the answer being worked out, and onTypeInstead for the step back to typing. The session's understanding moment would otherwise never be shown, and Type instead would have nowhere to put the cursor.",
+  );
 const voiceButtonMounts = webSources.filter(
   (f) =>
     f !== ASSISTANT_VOICE_BUTTON &&
@@ -15592,7 +16041,8 @@ if (launcherLabel !== gilbertContract.identity.callToAction)
    is the contract still making the first half in that list, because a prohibition quietly dropped
    from it would take the sentence with it and leave this file passing. */
 const assistantPanel = read("apps/web/src/features/Assistant.tsx");
-const silenceHalf = "not recognising an emergency does not mean there is not one";
+const silenceHalf =
+  "not recognising an emergency does not mean there is not one";
 if (
   !gilbertContract.consent.willNotDo.some((line) =>
     line.toLowerCase().includes(silenceHalf),
@@ -15856,15 +16306,26 @@ for (const file of native.filter((f) => /\.(kt|xml)$/.test(f))) {
     );
 }
 
-/* Web: a file picker is a microphone too. */
+/* Web: audio/video capture remains forbidden. The founder requested a still-photo picker on
+   22 September 2026; only the local-preview component may capture an image, never audio/video. */
 for (const file of files("apps/web/src").filter((f) => /\.(ts|tsx)$/.test(f))) {
-  const code = gilbertCode(read(file));
+  let code = gilbertCode(read(file));
+  if (file === "apps/web/src/components/AssistantAttachments.tsx") {
+    if (/\b(fetch|XMLHttpRequest|FormData|FileReader)\b/.test(code))
+      throw new Error(
+        `${file} must keep attachments local; it may not read or upload file contents.`,
+      );
+    code = code.replace(
+      /<input\b(?=[^>]*\baccept="image\/\*")(?=[^>]*\bcapture="environment")[^>]*>/g,
+      "",
+    );
+  }
   const picker = code.match(
     /<input\b[^>]*\bcapture\b[^>]*>|accept\s*[=:]\s*[{'"`][^}'"`]*\b(audio|video)\b/,
   );
   if (picker)
     throw new Error(
-      `${file} offers ${picker[0].slice(0, 60)}. A file input that accepts audio or captures from a device is a recorder, and the web has no microphone in this release.`,
+      `${file} offers ${picker[0].slice(0, 60)}. Audio/video file capture is forbidden; only the local still-photo preview is permitted.`,
     );
 }
 
@@ -16057,10 +16518,31 @@ if (
 /* ---- Listening, in words, only from the contract ------------------------------------------ */
 const LISTENING_WORDS =
   /\blisten(s|ing)?\b|\b(tap|hold|press|touch|swipe) to (speak|talk|record|dictate)\b|\bspeak now\b/i;
+/* The assistant API's own addresses are the contract's words as well, and read the way the Pulse
+   ids are: by name rather than by a screen. packages/catalog/apis/assistant.json declares each
+   built /v1 route's method, path and version; scripts/emit-assistant.mjs emits those literals —
+   "POST /assistant/v1/listen@3" and the bare path beside it — into both native clients, and the
+   native-clients check above requires every built address to be present by name. A route is the
+   address a phone has to call rather than a listening affordance, so a sweep that refused it would
+   be demanding the clients not name the route the service answers. The exemption is the exact
+   literals the catalog declares and nothing shaped like them: every other way the word is typed —
+   a state read by another name, a sentence, a label — still fails below. */
+const assistantAddresses = new Set(
+  JSON.parse(read("packages/catalog/apis/assistant.json"))
+    .routes.filter(
+      (route) => route.status === "built" && route.path.startsWith("/v1/"),
+    )
+    .flatMap((route) => [
+      `${route.method} /assistant${route.path}@${route.version}`,
+      `/assistant${route.path}`,
+    ]),
+);
 for (const file of handWrittenNative) {
   for (const literal of swiftLiterals(read(file))) {
     if (PULSE_ORDER.includes(literal))
       continue; /* a state's id, which is the contract's own word, read by id */
+    if (assistantAddresses.has(literal))
+      continue; /* a route's address, which the native-clients check requires by name */
     if (LISTENING_WORDS.test(literal))
       throw new Error(
         `${file} types "${literal}". The words Listening and tap to talk are the contract's — the Listening state and voice.sentences in packages/catalog/assistant.json — and a typed copy is a listening affordance nobody can switch off with the rest.`,
@@ -17593,15 +18075,12 @@ console.log(
         owner. And no store schema may hold a clinical value: scripts/clinical-tables.mjs reads every
         CREATE TABLE under packages/engines/src, and these engines hold synthetic development data — a
         schema that can keep a clinical value is the first half of keeping one. */
-  const { createRuntime, createClock, MEMORY } = await import(
-    "../packages/engines/src/runtime/index.ts"
-  );
-  const { loadRuntimeContract } = await import(
-    "../packages/engines/src/runtime/contract.ts"
-  );
-  const { scanEmissions } = await import(
-    "../packages/engines/src/event-privacy-scan.ts"
-  );
+  const { createRuntime, createClock, MEMORY } =
+    await import("../packages/engines/src/runtime/index.ts");
+  const { loadRuntimeContract } =
+    await import("../packages/engines/src/runtime/contract.ts");
+  const { scanEmissions } =
+    await import("../packages/engines/src/event-privacy-scan.ts");
   const engineContract = loadRuntimeContract();
   /* The two lists the runtime's own refusalFrom reads, in its order: the bus refusals, then the
      engineRuntime's. */
@@ -17609,13 +18088,18 @@ console.log(
     engineContract.busRefusals.find((r) => r.id === id) ??
     runtimeSettings.refusals.find((r) => r.id === id);
   for (const id of ["undeclared-event", "not-the-owner"])
-    if (!eventRefusalOf(id)?.statement?.trim() || !eventRefusalOf(id)?.why?.trim())
+    if (
+      !eventRefusalOf(id)?.statement?.trim() ||
+      !eventRefusalOf(id)?.why?.trim()
+    )
       throw new Error(
         `The catalog has lost the bus refusal "${id}", or its statement or its reasoning, so nothing here could say what the bus does with an emission it refuses.`,
       );
   const declaredEngineDirs = new Set(engineIdsForRuntime);
   const engineModules = [];
-  for (const entry of readdirSync("packages/engines/src", { withFileTypes: true })
+  for (const entry of readdirSync("packages/engines/src", {
+    withFileTypes: true,
+  })
     .filter((e) => e.isDirectory() && declaredEngineDirs.has(e.name))
     .sort((a, b) => (a.name < b.name ? -1 : 1))) {
     const file = `packages/engines/src/${entry.name}/engine.ts`;
@@ -17663,7 +18147,9 @@ console.log(
     }
   }
   let storeTablesRead = 0;
-  for (const file of [...engineSources].sort().filter((f) => !f.endsWith(".test.ts"))) {
+  for (const file of [...engineSources]
+    .sort()
+    .filter((f) => !f.endsWith(".test.ts"))) {
     const source = read(file);
     storeTablesRead += tablesIn(source).length;
     for (const found of clinicalIdentifiers(source))
@@ -29927,9 +30413,8 @@ console.log(
   /* 4. The rules, run. The reasoning is TypeScript the web app imports, so the arithmetic is asked here
      the way the screen asks it: the blank state is not done, evidence without a decision is refused, a
      decision without evidence is refused, a day is a day, and tomorrow is not a signing date. */
-  const { proposeChange, registerOf, isDone } = await import(
-    "../apps/web/src/lib/governance.ts"
-  );
+  const { proposeChange, registerOf, isDone } =
+    await import("../apps/web/src/lib/governance.ts");
   const recorder = {
     roleId: governance.recording.role,
     ref: "Staff 0102",
@@ -29978,17 +30463,32 @@ console.log(
     "a DPIA recorded as signed by nobody, on no day, kept nowhere",
   );
   askedFor(
-    { record: dpia.key, values: { ...blankOf(dpia), signedBy: "Somebody" }, reason, expectedVersion: 1 },
+    {
+      record: dpia.key,
+      values: { ...blankOf(dpia), signedBy: "Somebody" },
+      reason,
+      expectedVersion: 1,
+    },
     "governance-evidence-without-the-decision",
     "a signatory on a DPIA nobody has signed",
   );
   askedFor(
-    { record: dpia.key, values: { ...signed, signedOn: "20 September" }, reason, expectedVersion: 1 },
+    {
+      record: dpia.key,
+      values: { ...signed, signedOn: "20 September" },
+      reason,
+      expectedVersion: 1,
+    },
     "governance-day-not-a-day",
     "a signing date nobody can read as a calendar day",
   );
   askedFor(
-    { record: dpia.key, values: { ...signed, signedOn: "2027-01-01" }, reason, expectedVersion: 1 },
+    {
+      record: dpia.key,
+      values: { ...signed, signedOn: "2027-01-01" },
+      reason,
+      expectedVersion: 1,
+    },
     "governance-dated-ahead",
     "a DPIA signed next year",
   );
@@ -30003,7 +30503,12 @@ console.log(
     "a change made against a register somebody else has written in since",
   );
   askedFor(
-    { record: "a-record-nobody-declared", values: signed, reason, expectedVersion: 1 },
+    {
+      record: "a-record-nobody-declared",
+      values: signed,
+      reason,
+      expectedVersion: 1,
+    },
     "governance-record-not-known",
     "a change to a record the contract does not declare",
   );
@@ -30054,7 +30559,8 @@ console.log(
   /* 5. THE BOUNDARY. Nothing reads the register but the files it names. This is the check the whole
      feature exists behind: the day somebody gates the Passport, a deploy step, an engine or a phone on
      a value an admin typed into a preview, the build says so by name. */
-  const governanceNames = /governance-status|lib\/governance|GovernanceReadiness/;
+  const governanceNames =
+    /governance-status|lib\/governance|GovernanceReadiness/;
   const governanceTrees = [
     "apps/web/src",
     "apps/api/src",
@@ -30113,11 +30619,7 @@ console.log(
     throw new Error(
       "scripts/check-boundaries.mjs can no longer find its own HEALTH PASSPORT P0 block, so the check that the governance register stays out of it is reading nothing.",
     );
-  if (
-    governanceNames.test(
-      thisCheck.slice(passportBlockAt, passportBlockEnds),
-    )
-  )
+  if (governanceNames.test(thisCheck.slice(passportBlockAt, passportBlockEnds)))
     throw new Error(
       `The HEALTH PASSPORT P0 block names the governance register. ${governance.changesNothing.why}`,
     );
@@ -30160,5 +30662,720 @@ console.log(
 
   console.log(
     `Governance readiness · ${governance.records.length} records over ${governance.records.reduce((n, r) => n + r.fields.length, 0)} sign-off fields, every one of them blank until somebody records otherwise; ${governance.refusals.length} refusal sentences, each answered by a rule and each proved by running the reasoning; recorded only by the ${governance.recording.role} role on the vetting register, cleared, with a reason, against the version they read; and read by ${governance.changesNothing.readBy.length} files out of ${governanceSwept} swept across ${governanceTrees.length} trees — none of them the Passport, deploy/, the identity service, an engine, the mock or either phone.`,
+  );
+}
+
+/* ==== Governed health knowledge federation · real codes, recorded provenance, sources dark by default ====
+   ADDED BY THE KNOWLEDGE FEDERATION WORK, 22 SEPTEMBER 2026.
+
+   packages/catalog/knowledge holds the 250-entry knowledge base; on 22 September 2026 every entry
+   gained a source object (authority, jurisdiction, retrieved and review dates, evidence grade) and
+   the eight clinical files gained a codes object of SNOMED CT, ICD-11 and LOINC values verified by
+   hand against the issuing authorities' own browsers. federation.json beside them allowlists three
+   external sources — the ICD-11 WHO API, openFDA and Europe PMC — and every one of them ships
+   "active": false. The adapters in apps/assistant-api/src/lib/sources refuse to operate while their
+   source is dark, and scripts/knowledge-codes.mjs is the validator this check and the catalogue's
+   own tests share. The promise to a person is narrow enough to check mechanically, so it is:
+
+     1. Every one of the 250 entries carries a complete source object, its evidence grade drawn
+        from federation.json's own vocabulary. An entry with no recorded provenance is an entry no
+        answer may stand on.
+     2. Every terminology code is shaped like the real thing: SNOMED CT identifiers pass the
+        Verhoeff check digit, LOINC codes the LOINC check digit, ICD-11 codes the MMS format, and
+        the interactions file carries no codes key at all. What a code MEANS was verified by hand;
+        this check is what makes a later mistype or invention fail the build, not reach a person.
+     3. Every federation source ships dark and complete: "active": false, with the endpoint,
+        licence, rate limit basis, data-residency position and use boundaries a reviewer signs off,
+        and the four abstention sentences present. Activation is a deliberate edit of that file.
+     4. Darkness is structural, not merely configured: only the federation module may import the
+        adapters, no file may import the federation module yet, and each adapter's dark guard sits
+        before it wires its fetch — so an accidental import cannot wake a source. */
+{
+  const {
+    KNOWLEDGE_FILES,
+    ABSTENTION_KINDS,
+    validateEntrySource,
+    validateEntryCodes,
+  } = await import("./knowledge-codes.mjs");
+  const knowledgeDir = "packages/catalog/knowledge";
+  const federation = JSON.parse(read(`${knowledgeDir}/federation.json`));
+  const catalogue = Object.fromEntries(
+    KNOWLEDGE_FILES.map((file) => [
+      file,
+      JSON.parse(read(`${knowledgeDir}/${file}.json`)),
+    ]),
+  );
+
+  /* 1. Provenance: every entry, all nine files. */
+  let entriesSwept = 0;
+  for (const file of KNOWLEDGE_FILES)
+    for (const entry of catalogue[file]) {
+      entriesSwept += 1;
+      const findings = validateEntrySource(
+        entry.source,
+        federation.evidenceGrades,
+      );
+      if (findings.length)
+        throw new Error(
+          `${knowledgeDir}/${file}.json ${entry.id ?? "<no id>"}: ${findings.join("; ")}`,
+        );
+    }
+  if (entriesSwept < 250)
+    throw new Error(
+      `scripts/check-boundaries.mjs swept ${entriesSwept} catalogue entries for provenance, fewer than the 250 the catalogue holds — the check is reading almost nothing.`,
+    );
+
+  /* 2. Codes: the eight clinical files carry the object, interactions carries none, and every
+     value passes the issuing authority's own checksum or format. */
+  let codedSwept = 0;
+  for (const file of KNOWLEDGE_FILES)
+    for (const entry of catalogue[file]) {
+      const at = `${knowledgeDir}/${file}.json ${entry.id ?? "<no id>"}`;
+      if (file === "interactions") {
+        if ("codes" in entry)
+          throw new Error(
+            `${at}: interactions carry no terminology codes — a codes key here claims a review nobody did.`,
+          );
+        continue;
+      }
+      if (!("codes" in entry))
+        throw new Error(
+          `${at}: no codes object — {} is the honest value when no code was verified against its issuing authority.`,
+        );
+      const findings = validateEntryCodes(entry.codes);
+      if (findings.length) throw new Error(`${at}: ${findings.join("; ")}`);
+      codedSwept += 1;
+    }
+  if (codedSwept < 220)
+    throw new Error(
+      `scripts/check-boundaries.mjs swept ${codedSwept} coded entries, fewer than the 220 the eight clinical files hold — the checksum check is reading almost nothing.`,
+    );
+
+  /* 3. federation.json ships dark, with the record a reviewer needs to open a source. */
+  if (federation.policy?.darkByDefault !== true)
+    throw new Error(
+      `${knowledgeDir}/federation.json: policy.darkByDefault must be true — every external source starts dark.`,
+    );
+  const sources = Array.isArray(federation.sources) ? federation.sources : [];
+  if (sources.length < 3)
+    throw new Error(
+      `${knowledgeDir}/federation.json lists ${sources.length} external sources — the allowlist has shrunk, and this check is meant to guard it, not follow it.`,
+    );
+  const sourceIds = new Set();
+  for (const source of sources) {
+    const id = source.id ?? "<no id>";
+    if (sourceIds.has(id))
+      throw new Error(
+        `${knowledgeDir}/federation.json: source id "${id}" appears twice.`,
+      );
+    sourceIds.add(id);
+    if (source.active !== false)
+      throw new Error(
+        `${knowledgeDir}/federation.json source "${id}": "active" must be false — activation is a deliberate, reviewed edit of this file, never a side effect of another one.`,
+      );
+    for (const [field, value] of [
+      ["endpoint", source.endpoint],
+      ["role", source.role],
+      ["licensing.licence", source.licensing?.licence],
+      ["rateLimit.requestsPerMinute", source.rateLimit?.requestsPerMinute],
+      ["rateLimit.basis", source.rateLimit?.basis],
+      ["dataResidency.hostedIn", source.dataResidency?.hostedIn],
+      ["useFor", source.useFor],
+      ["notFor", source.notFor],
+      ["activation", source.activation],
+    ])
+      if (!value)
+        throw new Error(
+          `${knowledgeDir}/federation.json source "${id}": ${field} is missing. A flag nobody can review is a source nobody signed off — the record comes first, the flag second.`,
+        );
+    if (!String(source.endpoint).startsWith("https://"))
+      throw new Error(
+        `${knowledgeDir}/federation.json source "${id}": the endpoint is not https — a lookup would cross the border in the clear.`,
+      );
+    if (source.dataResidency?.crossBorderTransferApproved !== false)
+      throw new Error(
+        `${knowledgeDir}/federation.json source "${id}": crossBorderTransferApproved must be false — no POPIA s72 position is recorded as approved for any source.`,
+      );
+  }
+  for (const kind of ABSTENTION_KINDS)
+    if (
+      typeof federation.abstention?.[kind] !== "string" ||
+      !federation.abstention[kind].trim()
+    )
+      throw new Error(
+        `${knowledgeDir}/federation.json: the abstention sentence "${kind}" is missing — the federation answers "I cannot say" with a sentence, never with silence.`,
+      );
+
+  /* 4. Darkness is structural. */
+  const sourcesDir = "apps/assistant-api/src/lib/sources";
+  const federationModule = `${sourcesDir.replace(/\/sources$/, "")}/knowledge-federation.ts`;
+  for (const name of [
+    "config.ts",
+    "rate-gate.ts",
+    "icd11-adapter.ts",
+    "openfda-adapter.ts",
+    "pubmed-adapter.ts",
+  ])
+    if (!existsSync(`${sourcesDir}/${name}`))
+      throw new Error(
+        `${sourcesDir}/${name} is gone — the federation's ${name === "config.ts" || name === "rate-gate.ts" ? "plumbing" : "adapter"} is what keeps its sources dark; removing a file is not how a source is retired.`,
+      );
+  const guardString = "isSourceActive(config)";
+  for (const name of [
+    "icd11-adapter.ts",
+    "openfda-adapter.ts",
+    "pubmed-adapter.ts",
+  ]) {
+    const source = read(`${sourcesDir}/${name}`);
+    if (!source.includes(guardString))
+      throw new Error(
+        `${sourcesDir}/${name} no longer asks isSourceActive(config) — the dark guard is what makes "active": false mean anything.`,
+      );
+    if (!source.includes("gate.take(nowMs)"))
+      throw new Error(
+        `${sourcesDir}/${name} no longer passes its request through the rate gate — the limit in federation.json is signed-off fact, not a suggestion.`,
+      );
+    if (source.indexOf(guardString) > source.indexOf("deps.fetchImpl"))
+      throw new Error(
+        `${sourcesDir}/${name} wires its fetch before the dark guard — a reordering that would send a request before the configuration is consulted.`,
+      );
+    const adapterId = /const SOURCE_ID = "([^"]+)"/.exec(source)?.[1];
+    if (!adapterId || !sourceIds.has(adapterId))
+      throw new Error(
+        `${sourcesDir}/${name} names source "${adapterId ?? "<none>"}", which ${knowledgeDir}/federation.json does not allowlist — an adapter for a source nobody reviewed is the wiring the dark flag exists to stop.`,
+      );
+  }
+  const adapterSpecifier =
+    /["'][^"']*sources\/(?:config|rate-gate|icd11-adapter|openfda-adapter|pubmed-adapter)\.ts["']/;
+  const federationSpecifier = /["'][^"']*knowledge-federation(?:\.ts)?["']/;
+  let federationSwept = 0;
+  for (const file of files("apps/assistant-api/src").filter(
+    (f) => f.endsWith(".ts") && !f.includes(".test."),
+  )) {
+    federationSwept += 1;
+    if (file === federationModule) continue;
+    const source = read(file);
+    if (adapterSpecifier.test(source))
+      throw new Error(
+        `${file} imports the federation's source adapters. Only ${federationModule} may reach them — every other road to an adapter is a road around the dark guard.`,
+      );
+    if (federationSpecifier.test(source))
+      throw new Error(
+        `${file} imports knowledge-federation.ts. No route, engine, tool or store imports it yet — the federated answer ships only when a caller is wired deliberately, and this check makes that wiring a decision rather than an accident.`,
+      );
+  }
+  if (federationSwept < 25)
+    throw new Error(
+      `scripts/check-boundaries.mjs swept ${federationSwept} files in apps/assistant-api/src for federation reachability, so the check that only knowledge-federation.ts may import the adapters is reading almost nothing.`,
+    );
+
+  console.log(
+    `Knowledge federation · ${entriesSwept} catalogue entries across nine files carry a complete source object and ${codedSwept} across the eight clinical files carry a codes object whose every SNOMED CT, ICD-11 and LOINC value passes its issuing authority's checksum or format; ${sources.length} allowlisted external sources all read "active": false with endpoint, licence, rate limit, residency and use boundaries recorded and each adapter's dark guard sitting before its fetch; and of ${federationSwept} files swept in apps/assistant-api/src, ${federationModule} alone reaches the adapters and nothing imports it.`,
+  );
+}
+
+/* ==== Gated clinical flows · triage behind a ratified protocol, vitals behind an assessment, handover behind three contracts ====
+   ADDED BY THE GATED TRIAGE AND IOT WORK, 22 SEPTEMBER 2026.
+
+   Five addresses joined the assistant service on 22 September 2026: the two steps of a guided
+   assessment, a vital-sign reading, and the preparing and the submitting of a clinician handover.
+   All five are built and four of the five are built shut. What makes that safe rather than merely
+   cautious is that no gate here is a flag in a handler — each one reads a contract — so "the gate is
+   still where it was" is a mechanical question and is asked mechanically:
+
+     1. The register is the only thing that opens triage, and one module is the only thing that reads
+        it. packages/catalog/clinical.json designates which registered protocols are triage protocols
+        and packages/catalog/protocols.json says whether each is ratified under a formed board and an
+        appointed Medical Director; lib/triage-gate.ts reads both and nothing else in the service
+        reads either, because two readers of a register are two gates and two gates disagree.
+     2. Both triage branches ask that gate before they read a body, and answer a shut one with the
+        engine's own triage-not-ratified at the status the catalog declares — not a 501, which says
+        nothing is here when something is, not a 404, which says the address was never declared, and
+        not a sentence a handler typed.
+     3. The live seam is exactly as open as the register is. While the register designates nothing
+        ratified the seam refuses to ask a question, and the moment it designates one the seam must
+        already have been wired to that protocol's published content: unratified questions sitting in
+        a live seam are clinical content nobody signed, and a ratified protocol answered by a stub is
+        a 500 in front of a person who was told they would be assessed.
+     4. packages/catalog/vitals.json holds plausibility bounds and nothing readable as a threshold.
+        Every type carries exactly six keys — an id, a name, a LOINC code passing the LOINC check
+        digit, a UCUM unit, and an inclusive min below its max — so a severity, a cut-off or a scoring
+        input cannot be added to the contract quietly, and no key anywhere in the file names one.
+     5. Real device data stays dark behind an assessment that has not been done: while dpiA is not
+        "done" the real-device allowlist is empty, consent is required, the staleness window is a
+        positive number of milliseconds, and the only door is the exact environment switch the
+        contract names — which the live seam reads word for word as the contract words it, and which
+        the route asks before it reads a body and before it writes to any store.
+     6. A handover is prepared and never sent. The preparing branch assembles the pack and holds it
+        against its own reference; the submitting branch is one return that reads no body, reaches no
+        store, prepares nothing, answers no 200 and declares no refusal it cannot give.
+     7. No scoring word reaches a caller. Stripped of their comments — which are allowed, and meant,
+        to explain what this software refuses to do — none of the five branches says score, points,
+        rank, rating, grade, band, level, weight, percentile, priority or sats; no field on any of the
+        five routes is named for one; and every refusal id a branch answers with is one a contract
+        declares. */
+{
+  const { loincValid } = await import("./knowledge-codes.mjs");
+  const assistantContract = JSON.parse(
+    read("packages/catalog/apis/assistant.json"),
+  );
+  const sharedRefusals = JSON.parse(read("packages/catalog/apis.json"));
+  const vitalsContract = JSON.parse(read("packages/catalog/vitals.json"));
+  const protocolRegister = JSON.parse(read("packages/catalog/protocols.json"));
+  const clinicalRegister = JSON.parse(read("packages/catalog/clinical.json"));
+  const gatedFile = "apps/assistant-api/src/server.ts";
+  const gatedSource = read(gatedFile);
+  const gatedTree = "apps/assistant-api/src";
+  const gatedModules = files(gatedTree).filter(
+    (f) => f.endsWith(".ts") && !f.includes(".test."),
+  );
+
+  /* A comment is allowed to name the thing the code refuses to do — indeed it is where the reason
+     lives — so the sweeps below read code with the comments lifted out. Only whole-line // comments
+     and block comments are lifted, so no string literal loses a character to this. */
+  const codeOf = (text) =>
+    text
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .split("\n")
+      .map((line) => (/^\s*\/\//.test(line) ? "" : line))
+      .join("\n");
+
+  /* A refusal's status and its sentence belong to the catalog, so every comparison below is against
+     what the catalog declares and never against a number or a word typed into this script. */
+  const refusalOf = (id) => {
+    const engine = (assistantContract.refusals ?? []).find((r) => r.id === id);
+    if (engine) return engine;
+    for (const route of assistantContract.routes)
+      for (const refusal of route.refusals ?? [])
+        if (refusal.id === id) return refusal;
+    return (
+      (sharedRefusals.sharedRefusals ?? []).find((r) => r.id === id) ?? null
+    );
+  };
+
+  /* The same slice the caller-enforcement check takes: a branch runs from its own condition to the
+     next branch's condition, or to the 404 the server falls back to. */
+  const branchOf = (path) => {
+    const route = assistantContract.routes.find(
+      (r) => r.path === path && r.status === "built",
+    );
+    if (!route?.evidence?.handler)
+      throw new Error(
+        `packages/catalog/apis/assistant.json holds no built ${path} carrying a handler, so the gate checks below have nothing to read. A gated clinical route that is not built is not this section's business; one that claims to be built and names no evidence is.`,
+      );
+    const at = gatedSource.indexOf(route.evidence.handler);
+    if (at < 0)
+      throw new Error(
+        `${gatedFile} no longer holds the handler "${route.evidence.handler}" that packages/catalog/apis/assistant.json names as the evidence for ${path}.`,
+      );
+    const next = gatedSource
+      .slice(at + 1)
+      .search(/\n {2}(?:if \(req\.method|send\(res, 404)/);
+    return {
+      route,
+      branch: gatedSource.slice(at, next < 0 ? undefined : at + 1 + next),
+    };
+  };
+
+  const triagePaths = ["/v1/triage/start", "/v1/triage/answer"];
+  const gatedPaths = [
+    ...triagePaths,
+    "/v1/vitals",
+    "/v1/handover/prepare",
+    "/v1/handover/submit",
+  ];
+  const branches = Object.fromEntries(
+    gatedPaths.map((path) => [path, branchOf(path)]),
+  );
+
+  /* 1. The register designates, the registry ratifies, and one module reads either. */
+  const designated = clinicalRegister.triage?.triageProtocols?.ids;
+  if (!Array.isArray(designated))
+    throw new Error(
+      `packages/catalog/clinical.json#triage.triageProtocols.ids is not an array. The gate reads the board's designation from there, and a shape it cannot read is a gate nobody can reason about.`,
+    );
+  const registeredIds = new Set(protocolRegister.protocols.map((p) => p.id));
+  for (const id of designated)
+    if (!registeredIds.has(id))
+      throw new Error(
+        `packages/catalog/clinical.json designates "${id}" as a triage protocol, which packages/catalog/protocols.json does not register. ${clinicalRegister.triage.triageProtocols.why}`,
+      );
+  const isRatified = (id) => {
+    const row = protocolRegister.protocols.find((p) => p.id === id);
+    return (
+      !!row &&
+      row.status === "ratified" &&
+      !!row.ratifiedBy?.role?.trim() &&
+      !!row.ratifiedBy?.name?.trim() &&
+      typeof row.ratifiedOn === "number"
+    );
+  };
+  const boardFormed = protocolRegister.governance?.board?.status === "formed";
+  const directorAppointed =
+    protocolRegister.governance?.medicalDirector?.status === "appointed";
+  const ratifiedCount = designated.filter(isRatified).length;
+  const gateOpen =
+    designated.length > 0 &&
+    boardFormed &&
+    directorAppointed &&
+    ratifiedCount === designated.length;
+  const gateModule = `${gatedTree}/lib/triage-gate.ts`;
+  if (!existsSync(gateModule))
+    throw new Error(
+      `${gateModule} is gone. It is the only reader of the triage register and the routes' gate with it; a gate deleted rather than opened is still a route that answers something.`,
+    );
+  const registerImport = /from\s*["'][^"']*(?:protocols|clinical)\.json["']/;
+  let registerSwept = 0;
+  for (const file of gatedModules) {
+    registerSwept += 1;
+    if (file === gateModule) continue;
+    if (registerImport.test(codeOf(read(file))))
+      throw new Error(
+        `${file} reads the protocol register for itself. ${gateModule} is the one place that answers whether a ratified triage protocol exists, so a second reader is a second opinion — and two gates that disagree is a clinical route open by accident.`,
+      );
+  }
+
+  /* 2. Both triage branches ask the gate first, and answer a shut one with the catalog's refusal. */
+  const triageRefusal = refusalOf("triage-not-ratified");
+  if (!triageRefusal)
+    throw new Error(
+      `packages/catalog/apis/assistant.json declares no triage-not-ratified refusal, and it is the only thing both triage routes answer while the register designates nothing ratified. A sentence no contract holds is a sentence a handler invented.`,
+    );
+  if (triageRefusal.status === 501)
+    throw new Error(
+      `packages/catalog/apis/assistant.json answers an unrated triage protocol with a 501. Both routes are built: a 501 says nothing is here, and what is here is a gate.`,
+    );
+  for (const path of triagePaths) {
+    const { route, branch } = branches[path];
+    if (!branch.includes("clinical.triageOpen()"))
+      throw new Error(
+        `${gatedFile}'s ${path} branch no longer asks the clinical seam whether a ratified triage protocol lets it run. The gate is the whole of what keeps an unvalidated assessment from being asked.`,
+      );
+    if (
+      branch.indexOf("clinical.triageOpen()") >
+      branch.indexOf("readJsonBody(req)")
+    )
+      throw new Error(
+        `${gatedFile}'s ${path} branch asks the gate after it reads the body. A route that may not run reads nothing: a shut gate that has already buffered a request has accepted health information it was never allowed to hold.`,
+      );
+    /* The refusal must be read through errorWord() and statementOf() rather than typed, which is
+       detected on the two calls that carry the catalog id — tolerant of the whitespace and quote
+       style a formatter may reflow them into, so the guard fires on a handler that invents a
+       sentence and not on one a formatter merely wrapped onto the next line. */
+    if (
+      !/errorWord\(\s*["']triage-not-ratified["']\s*\)/.test(branch) ||
+      !/statementOf\(\s*["']triage-not-ratified["']/.test(branch)
+    )
+      throw new Error(
+        `${gatedFile}'s ${path} branch no longer answers a shut gate with the catalog's own triage-not-ratified word and sentence, read through errorWord() and statementOf(). A refusal typed into a handler is the drift packages/catalog exists to stop.`,
+      );
+    if (!branch.includes(`send(res, ${triageRefusal.status},`))
+      throw new Error(
+        `${gatedFile}'s ${path} branch does not answer a shut gate at the ${triageRefusal.status} packages/catalog/apis/assistant.json declares for triage-not-ratified.`,
+      );
+    if (branch.includes("not-yet-available"))
+      throw new Error(
+        `${gatedFile}'s ${path} branch answers not-yet-available. ${path} is built and its handler exists; the 501 belongs to an address nothing answers, and this one answers a gate.`,
+      );
+    if ((route.refusals ?? []).some((r) => r.id === "triage-not-ratified"))
+      throw new Error(
+        `packages/catalog/apis/assistant.json's ${path} declares triage-not-ratified as its own refusal. It is the engine's, answered by both triage routes: a route that redeclares it is a second copy of a sentence that must not drift.`,
+      );
+  }
+
+  /* 3. The live seam is exactly as open as the register is, and never open onto a stub. */
+  const seamAt = gatedSource.indexOf("export function liveClinicalFlows()");
+  if (seamAt < 0)
+    throw new Error(
+      `${gatedFile} no longer exports liveClinicalFlows() — the live clinical seam the real entry builds the server with.`,
+    );
+  const seam = gatedSource.slice(seamAt, gatedSource.indexOf("\n}", seamAt));
+  /* The stub is the internal-error 500 both triage doors return until a ratified protocol's real
+     content is wired. It is detected on the two facts that make it a stub — the internal-error refusal
+     id and the 500 beside it — rather than on one exact source line, so a formatter that reflows the
+     object across lines or swaps its quotes cannot make a stubbed seam read as wired. A regex that
+     silently stopped matching the stub would report seamStubbed=false and un-guard the gate from the
+     side that matters most: it would look as though real content were already there. */
+  const seamStubbed =
+    /refusalId:\s*["']internal-error["']/.test(seam) && /status:\s*500/.test(seam);
+  if (!seam.includes("triageGate().open"))
+    throw new Error(
+      `${gatedFile}'s live seam no longer answers triageOpen() from lib/triage-gate.ts's reading of the register. A seam that decides for itself whether triage is ratified is a second gate, and the register is the only one.`,
+    );
+  /* The gate is two locks, and this holds them together: triageOpen() must be the register's answer
+     ANDed with TRIAGE_SEAM_WIRED, so a ratified register alone can never expose a route whose seam
+     still returns the internal-error stub. Removing the AND is removing the lock that keeps a
+     ratified-but-unwired protocol from answering a 500 to a person told they would be assessed. */
+  if (!/triageGate\(\)\.open\s*&&\s*TRIAGE_SEAM_WIRED/.test(seam))
+    throw new Error(
+      `${gatedFile}'s live seam no longer ANDs triageGate().open with TRIAGE_SEAM_WIRED. The gate is two locks — a ratified register and a wired seam — so ratifying a protocol in the catalog cannot, on its own, expose a route whose beginTriage/answerTriage still return the internal-error stub.`,
+    );
+  /* TRIAGE_SEAM_WIRED is the second lock's honest declaration, and it must agree with the seam: true
+     only when the stub is gone (real content wired), false only while the stub is there. A flag that
+     disagrees with the code beside it is the whole bug this guard exists to stop — either it opens the
+     gate onto a 500, or it hides wired content behind a shut gate no reviewer was told to read. */
+  const seamWiredFlag = /export const TRIAGE_SEAM_WIRED\s*=\s*true\b/.test(gatedSource);
+  if (!/export const TRIAGE_SEAM_WIRED\s*=\s*(?:true|false)\b/.test(gatedSource))
+    throw new Error(
+      `${gatedFile} no longer declares TRIAGE_SEAM_WIRED as an exported boolean. It is the second lock on the triage gate; without it a ratified register would open the routes onto whatever the seam happens to hold.`,
+    );
+  if (seamWiredFlag === seamStubbed)
+    throw new Error(
+      seamWiredFlag
+        ? `${gatedFile} declares TRIAGE_SEAM_WIRED = true while its live seam still returns the internal-error 500 stub for beginTriage/answerTriage. The flag says the ratified protocol's content is wired, so the gate would open onto a 500 the moment the register ratifies: wire the real content into the seam first, then flip the flag — never the other way round.`
+        : `${gatedFile}'s live seam carries real triage content (no internal-error stub) while TRIAGE_SEAM_WIRED is false. Wired-but-undeclared content keeps the gate shut on a seam that is ready, and hides from a reviewer the fact that clinical questions now live in this file. Flip TRIAGE_SEAM_WIRED to true in the same change that wires the content.`,
+    );
+  if (gateOpen && seamStubbed)
+    throw new Error(
+      `packages/catalog now designates a ratified triage protocol, and ${gatedFile}'s live seam still refuses to ask a question. The gate is open, so both triage routes would answer a 500 to a person told they would be assessed: the ratified protocol's own published content — its questions, their order and what an answer means — has to be wired into that seam before the designation is written, not after.`,
+    );
+  if (!gateOpen && !seamStubbed)
+    throw new Error(
+      `${gatedFile}'s live seam carries triage questions while packages/catalog designates no ratified triage protocol. Unratified clinical content in a live seam is content nobody signed, reachable the moment a designation is written: it belongs in a contract the board ratified, read beside the gate and never invented in a handler.`,
+    );
+
+  /* 4. The vitals contract is bounds, codes and units, and holds no key a threshold could hide in. */
+  const vitalTypes = Array.isArray(vitalsContract.types)
+    ? vitalsContract.types
+    : [];
+  const vitalTypeKeys = ["id", "loinc", "max", "min", "name", "unit"];
+  if (vitalTypes.length < 5)
+    throw new Error(
+      `packages/catalog/vitals.json registers ${vitalTypes.length} vital-sign types. The contract has shrunk, and this check is meant to guard it rather than follow it.`,
+    );
+  const seenTypes = new Set();
+  for (const type of vitalTypes) {
+    const at = `packages/catalog/vitals.json type "${type.id ?? "<no id>"}"`;
+    if (seenTypes.has(type.id)) throw new Error(`${at} is registered twice.`);
+    seenTypes.add(type.id);
+    const keys = Object.keys(type).sort();
+    if (keys.join(",") !== vitalTypeKeys.join(","))
+      throw new Error(
+        `${at} carries ${keys.join(", ")} where the contract's shape is ${vitalTypeKeys.join(", ")}. A key added here is a rule the validator was never told about, and a severity, a cut-off or a scoring input would arrive exactly this way: every number in this file is a plausibility bound and nothing in it is a clinical threshold.`,
+      );
+    if (
+      typeof type.min !== "number" ||
+      typeof type.max !== "number" ||
+      !Number.isFinite(type.min) ||
+      !Number.isFinite(type.max) ||
+      type.min >= type.max
+    )
+      throw new Error(
+        `${at} has no finite inclusive bound with min below max: ${type.min} to ${type.max}. A bound that is not a range refuses nothing or refuses everything, and both are a reading lost.`,
+      );
+    if (!loincValid(type.loinc))
+      throw new Error(
+        `${at} carries "${type.loinc}" as its LOINC code, which fails the LOINC check digit. The code is what makes a number the observation it claims to be: a mistyped one files a heart rate as a temperature.`,
+      );
+    if (!/^[A-Za-z{%][A-Za-z0-9{}%[\]\/.\-]*$/.test(type.unit))
+      throw new Error(
+        `${at} carries "${type.unit}" as its unit, which is not shaped like a UCUM code. The unit is the other half of what stops a value being read as another measure.`,
+      );
+  }
+  const scoringKey =
+    /\b(score|scores|scored|scoring|sats|points|rank|ranking|rating|percentile|grade|band|bands|level|severity|threshold|priority|triage)\b/i;
+  const keysOf = (node) =>
+    Array.isArray(node)
+      ? node.flatMap(keysOf)
+      : node && typeof node === "object"
+        ? Object.entries(node).flatMap(([key, value]) => [
+            key,
+            ...keysOf(value),
+          ])
+        : [];
+  const scoredKey = keysOf(vitalsContract).find((key) => scoringKey.test(key));
+  if (scoredKey)
+    throw new Error(
+      `packages/catalog/vitals.json carries a key named "${scoredKey}". The contract holds the types, codes, units, bounds, staleness window, device allowlist and consent rule the validator reads; a key that names a score, a severity or a priority is a clinical judgement, and Clinical makes those under a ratified protocol and not here.`,
+    );
+
+  /* 5. Real device data is dark, and the one door is the switch the contract words. */
+  const dpiA = vitalsContract.darkForRealDevices?.dpiA;
+  if (!dpiA)
+    throw new Error(
+      `packages/catalog/vitals.json#darkForRealDevices.dpiA is missing. The assessment's state is the fact the route's darkness rests on, and a contract that does not record it is one nobody can check.`,
+    );
+  const deviceAllowlist = vitalsContract.deviceAllowlist?.real;
+  if (!Array.isArray(deviceAllowlist))
+    throw new Error(
+      `packages/catalog/vitals.json#deviceAllowlist.real is not an array. The allowlist is what makes an unregistered device refused rather than merely unlisted.`,
+    );
+  if (dpiA !== "done" && deviceAllowlist.length)
+    throw new Error(
+      `packages/catalog/vitals.json allowlists ${deviceAllowlist.length} real devices while darkForRealDevices.dpiA reads "${dpiA}". ${vitalsContract.darkForRealDevices.why}`,
+    );
+  if (vitalsContract.consent?.required !== true)
+    throw new Error(
+      `packages/catalog/vitals.json#consent.required is not true. A reading is the person's own health information the moment it is captured, so the agreement comes before the reading.`,
+    );
+  if (!(vitalsContract.staleness?.maxAgeMs > 0))
+    throw new Error(
+      `packages/catalog/vitals.json#staleness.maxAgeMs is not a positive number of milliseconds. Without a window, a reading from last year is current and a handover pack carries it as though it described the person in front of the clinician.`,
+    );
+  if (!vitalsContract.testing?.env || !vitalsContract.testing?.value)
+    throw new Error(
+      `packages/catalog/vitals.json#testing names no environment variable and exact value. The switch is the contract's, so a deployment cannot open this route with a word the contract does not describe.`,
+    );
+  if (
+    !Array.isArray(vitalsContract.sources) ||
+    !vitalsContract.sources.includes("manual")
+  )
+    throw new Error(
+      `packages/catalog/vitals.json#sources does not list "manual". A person typing their own reading is the one source that needs no device certification and no assessment.`,
+    );
+  const vitalsBranch = branches["/v1/vitals"].branch;
+  const testingSwitch = `process.env.${vitalsContract.testing.env} === '${vitalsContract.testing.value}'`;
+  if (!gatedSource.includes(testingSwitch))
+    throw new Error(
+      `${gatedFile} no longer reads the testing switch as ${testingSwitch}. packages/catalog/vitals.json names both halves of it, so a seam that opens this route by any other word — or by default — is a door the contract does not describe.`,
+    );
+  if (!vitalsBranch.includes("clinical.vitalsSynthetic()"))
+    throw new Error(
+      `${gatedFile}'s /v1/vitals branch no longer asks the clinical seam whether it may accept a reading at all. That question is the route's data protection gate.`,
+    );
+  if (
+    vitalsBranch.indexOf("clinical.vitalsSynthetic()") >
+    vitalsBranch.indexOf("readJsonBody(req)")
+  )
+    throw new Error(
+      `${gatedFile}'s /v1/vitals branch asks its gate after it reads the body. A dark route buffers nothing: a reading it may not accept is a reading it must not hold, even for the length of a request.`,
+    );
+  const dpiaRefusal = refusalOf("device-data-needs-a-dpia");
+  if (!dpiaRefusal)
+    throw new Error(
+      `packages/catalog/apis/assistant.json declares no device-data-needs-a-dpia refusal, and it is what /v1/vitals answers a process that has not said it is testing.`,
+    );
+  if (
+    /* Read through statementOf() rather than typed, detected tolerantly so the line break a
+       formatter puts between the call and its catalog id cannot read as a typed sentence. */
+    !/statementOf\(\s*["']device-data-needs-a-dpia["']/.test(vitalsBranch) ||
+    !vitalsBranch.includes(`send(res, ${dpiaRefusal.status},`)
+  )
+    throw new Error(
+      `${gatedFile}'s /v1/vitals branch does not answer its gate with the catalog's own device-data-needs-a-dpia sentence at the ${dpiaRefusal.status} the contract declares.`,
+    );
+  if (!vitalsBranch.includes("validateVital("))
+    throw new Error(
+      `${gatedFile}'s /v1/vitals branch no longer passes a reading through lib/vitals.ts's validator. The bounds, codes, units, window, allowlist and PHI rule all live there; a branch that stores what it was sent stores whatever it was sent.`,
+    );
+  if (
+    vitalsBranch.indexOf("validateVital(") >
+    vitalsBranch.indexOf("clinical.store().addReading(")
+  )
+    throw new Error(
+      `${gatedFile}'s /v1/vitals branch writes a reading to the session store before the validator has answered it. A refused reading is never stored — that ordering is the rule, and the rule is a line position.`,
+    );
+  const vitalsModule = `${gatedTree}/lib/vitals.ts`;
+  if (!existsSync(vitalsModule))
+    throw new Error(
+      `${vitalsModule} is gone. It is the only reader of packages/catalog/vitals.json and the validator the route holds a reading against.`,
+    );
+  const vitalsImport = /from\s*["'][^"']*vitals\.json["']/;
+  for (const file of gatedModules)
+    if (file !== vitalsModule && vitalsImport.test(codeOf(read(file))))
+      throw new Error(
+        `${file} reads the vital-sign contract for itself. ${vitalsModule} is the one place that turns it into a rule, so a second reader is a second validator — and two validators that disagree is a reading accepted by one and stored by the other.`,
+      );
+
+  /* 6. A handover is prepared, and the submission is one return that refuses. */
+  const prepareBranch = branches["/v1/handover/prepare"].branch;
+  if (!prepareBranch.includes("assembleHandover("))
+    throw new Error(
+      `${gatedFile}'s /v1/handover/prepare branch no longer assembles its pack through lib/observations.ts. The pack's shape, its honest "not-triaged" and the redaction of every line in it all live there.`,
+    );
+  if (!prepareBranch.includes("clinical.store().addHandover("))
+    throw new Error(
+      `${gatedFile}'s /v1/handover/prepare branch no longer holds the pack it prepared against its own reference. A submission — the day one exists to write — looks a pack up rather than trusting a caller to carry it back unchanged.`,
+    );
+  if (/fetch\(|https?:\/\//.test(codeOf(prepareBranch)))
+    throw new Error(
+      `${gatedFile}'s /v1/handover/prepare branch reaches a network. Preparing a pack for the person to review sends it nowhere: the routing is the next address down, and that one is a refusal.`,
+    );
+  const submitRoute = branches["/v1/handover/submit"].route;
+  const submitBranch = branches["/v1/handover/submit"].branch;
+  const routingRefusal = refusalOf("clinician-routing-not-built");
+  if (!routingRefusal)
+    throw new Error(
+      `packages/catalog/apis/assistant.json declares no clinician-routing-not-built refusal, and it is the only thing /v1/handover/submit answers.`,
+    );
+  for (const [absent, doing] of [
+    ["readJsonBody", "reads a body"],
+    ["clinical.store()", "reaches the session's observation store"],
+    ["assembleHandover(", "prepares a pack"],
+    ["send(res, 200", "answers a 200"],
+    ["fetch(", "reaches a network"],
+  ])
+    if (submitBranch.includes(absent))
+      throw new Error(
+        `${gatedFile}'s /v1/handover/submit branch ${doing}. It is built as a refusal and as nothing else: a handover acknowledged into nothing is worse than one refused, because the person stops looking for help that never started.`,
+      );
+  if (
+    /* As above: the sentence is read through statementOf(), detected tolerantly so a formatter's
+       line break between the call and its catalog id cannot read as a typed sentence. */
+    !/statementOf\(\s*["']clinician-routing-not-built["']/.test(submitBranch) ||
+    !submitBranch.includes(`send(res, ${routingRefusal.status},`)
+  )
+    throw new Error(
+      `${gatedFile}'s /v1/handover/submit branch does not answer with the catalog's own clinician-routing-not-built sentence at the ${routingRefusal.status} the contract declares.`,
+    );
+  const submitBody = codeOf(submitBranch).slice(
+    codeOf(submitBranch).indexOf("{") + 1,
+  );
+  const submitReturns = (submitBody.match(/return send\(res,/g) ?? []).length;
+  if (submitReturns !== 1)
+    throw new Error(
+      `${gatedFile}'s /v1/handover/submit branch holds ${submitReturns} returns where it holds one. A second return is a second path through a route that has only one answer, and the day routing is written here it is written deliberately and this check is deleted deliberately with it.`,
+    );
+  if (/\bif\s*\(|\bawait\b|\bfor\s*\(|\bwhile\s*\(|\btry\s*{/.test(submitBody))
+    throw new Error(
+      `${gatedFile}'s /v1/handover/submit branch decides something or waits for something. It is one unconditional refusal: a condition in it is a case where a handover might be submitted, and no identity service, no workforce roster and no destination contract exist to submit one to.`,
+    );
+  const submitExtra = (submitRoute.refusals ?? [])
+    .map((r) => r.id)
+    .filter(
+      (id) =>
+        !["origin-not-allowed", "clinician-routing-not-built"].includes(id),
+    );
+  if (submitExtra.length)
+    throw new Error(
+      `packages/catalog/apis/assistant.json's /v1/handover/submit declares ${submitExtra.join(", ")}, which a branch that is one unconditional return cannot answer. A refusal a route declares and never gives is a promise the catalog does not keep.`,
+    );
+
+  /* 7. No scoring word reaches a caller, and no refusal is a handler's own invention. */
+  const scoringWord =
+    /\b(score|scores|scored|scoring|sats|points|rank|ranking|rating|percentile|grade|band|bands|level|weight|priority|priorities)\b/i;
+  for (const path of gatedPaths) {
+    const hit = scoringWord.exec(codeOf(branches[path].branch));
+    if (hit)
+      throw new Error(
+        `${gatedFile}'s ${path} branch says "${hit[0]}". Setting a priority for a person is a clinical act under a ratified protocol, and there is none: the fields a clinician would act on are named by the protocol that ratifies them, and until then the honest answer is that nothing here was triaged.`,
+      );
+    const fieldNames = [
+      ...(branches[path].route.request ?? []),
+      ...(branches[path].route.response ?? []),
+    ].flatMap((field) => [
+      field.field,
+      ...(field.fields ?? []).map((sub) =>
+        typeof sub === "string" ? sub : sub.field,
+      ),
+    ]);
+    const namedFor = fieldNames.find((name) => scoringWord.test(String(name)));
+    if (namedFor)
+      throw new Error(
+        `packages/catalog/apis/assistant.json's ${path} carries a field named "${namedFor}". No clinical scoring is exposed by these routes, and a field is how it would be exposed.`,
+      );
+    for (const id of new Set(
+      [...branches[path].branch.matchAll(/refusalId: '([a-z0-9-]+)'/g)].map(
+        (m) => m[1],
+      ),
+    ))
+      if (!refusalOf(id))
+        throw new Error(
+          `${gatedFile}'s ${path} branch answers with the refusal "${id}", which no contract declares. A refusal sentence lives in packages/catalog and is read from there.`,
+        );
+  }
+
+  console.log(
+    `Gated clinical flows · ${gatedPaths.length} built assistant routes read from their own branches, every one of them gated on a contract and not on a flag: the triage register designates ${designated.length} of ${registeredIds.size} protocols as triage protocols, ${ratifiedCount} ratified under a board that is ${protocolRegister.governance?.board?.status} and a Medical Director who is ${protocolRegister.governance?.medicalDirector?.status}, so the gate is ${gateOpen ? "open" : "shut"} and the live seam ${seamStubbed ? "refuses to ask a question" : "is wired to the ratified protocol's content"} — ${registerSwept} files swept in ${gatedTree} and ${gateModule} alone reads either register; ${vitalTypes.length} vital-sign types carry exactly six keys each with a LOINC code passing its check digit, a UCUM-shaped unit and an inclusive bound, no key in the contract names a score or a threshold, the real-device allowlist holds ${deviceAllowlist.length} devices against an assessment reading "${dpiA}", and the only door is the exact switch the contract words; the handover preparing assembles and stores a pack and reaches no network, the submission is one unconditional ${routingRefusal.status} that reads no body, touches no store, answers no 200 and declares no refusal it cannot give; and no scoring word survives the stripping of a single comment in any of the five branches, no field on any of them is named for one, and every refusal id they answer with is declared.`,
   );
 }

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import medications from "../../../../../packages/catalog/knowledge/medications.json" with { type: "json" };
+import { attributionOf } from "../knowledge-provenance.ts";
 
 /* The medication-information tool: the catalog's own record for a medicine — dosage the record
    states, side effects it lists, contraindications it carries — read back in full. It does not
@@ -17,7 +18,9 @@ type MedicationEntry = {
   contraindications: string[];
   pregnancyCategory?: string;
   saEmlLevel?: string;
-  source?: string;
+  /* The entry's attribution as stored: the source object the 22 September 2026 migration gave it
+     (or, in an older copy, a plain string). Read through attributionOf(). */
+  source?: unknown;
 };
 
 const MEDICATIONS = medications as MedicationEntry[];
@@ -67,7 +70,7 @@ export function lookupMedication(name: string): string {
     if (entry.saEmlLevel) lines.push(`SA Essential Medicines List level: ${entry.saEmlLevel}`);
     lines.push(
       "This is the catalog's general record, not a prescription. Take a medicine only as the clinician who prescribed it directed, and ask them or a pharmacist before changing anything.",
-      `Sources: ${entry.source ?? "MyThuso medication list"}.`,
+      `Sources: ${attributionOf(entry.source, "MyThuso medication list")}.`,
     );
     return lines.join("\n");
   }

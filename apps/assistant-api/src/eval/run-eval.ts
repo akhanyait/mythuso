@@ -23,7 +23,7 @@ import { runCase } from "./harness.ts";
    check is a phrasing this eval has nothing to say about.
 
    HARD VS SOFT. A "hard" case restates one of the properties this codebase treats as build-breaking
-   elsewhere — never diagnose, an emergency word always wins except over withheld consent, the IMCI
+   elsewhere — never diagnose, an emergency word always wins, withheld consent included, the IMCI
    lead, no false "safe to combine" — and apps/assistant-api/src/eval/invariants.test.ts asserts the
    same cases as real node:test failures, so `npm test` already gates them. A "soft" case is a
    realistic phrasing worth a human reading the note on, including a few that are written to *fail*

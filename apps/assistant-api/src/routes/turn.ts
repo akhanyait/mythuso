@@ -1,6 +1,7 @@
 import {
   audiences,
   buildResponse,
+  classifyMessage,
   classifyWithConfidence,
   type Audience,
   type EngineResponse,
@@ -10,47 +11,37 @@ import {
   createConversation,
   getContext,
   type ConversationContext,
-  type ConversationState,
   type Turn,
 } from "../../../../packages/gilbertone/src/conversation.ts";
 import { evaluateRefusals } from "../../../../packages/gilbertone/src/refusals.ts";
 import { redactPHI } from "../../../../packages/gilbertone/src/phi.ts";
 import assistant from "../../../../packages/catalog/assistant.json" with { type: "json" };
 import { orchestrate } from "../lib/orchestrator.ts";
+import { createSessionStore } from "../lib/session-store.ts";
 import type {
   AssistantTurnRequest,
   AssistantTurnResponse,
 } from "../lib/schema.ts";
 
-/* The session store, since the Phase A upgrade of 19 September 2026.
+/* Sessions live behind ../lib/session-store.ts, extracted on 22 September 2026: the store's
+   policy — a half hour idle, a thousand sessions, oldest first out — is a decision about storage,
+   and this route reads through the SessionStore interface rather than owning the map. The
+   behavior is the same map it always was; ./lib/session-store.test.ts holds it. */
 
-   Turns arrive one request at a time, so continuity has to live somewhere between them. It lives
-   here, in memory, and nowhere else: nothing is written to disk and nothing survives a restart,
-   which is the same promise the web's panel keeps — a conversation, not a record. The two numbers
-   are the store's whole policy: a session nobody has asked about for half an hour is evicted,
-   and the map can never hold more than a thousand sessions, oldest first out. The request's own
-   sessionId names a conversation and never a person; a request without one gets a fresh session
-   and its id back, so a caller can keep the thread without ever having been given an identity. */
+const sessions = createSessionStore();
 
-const SESSION_IDLE_MS = 30 * 60 * 1000;
-const SESSION_LIMIT = 1000;
-
-type SessionEntry = { state: ConversationState; lastActive: number };
-
-const sessions = new Map<string, SessionEntry>();
-
-/* Evict what nobody is asking about — first anything idle, then the oldest entries — and leave
-   room for the one session this request may create or refresh after it runs. */
-function pruneSessions(now: number): void {
-  for (const [id, entry] of sessions)
-    if (now - entry.lastActive > SESSION_IDLE_MS) sessions.delete(id);
-  if (sessions.size < SESSION_LIMIT) return;
-  const oldestFirst = [...sessions.entries()].sort(
-    (a, b) => a[1].lastActive - b[1].lastActive,
-  );
-  for (const [id] of oldestFirst) {
-    if (sessions.size < SESSION_LIMIT) return;
-    sessions.delete(id);
+/* A required field of this route's contract that the caller did not send. It travels as a typed
+   error rather than as a refusal object because the answer is an HTTP 400 the route's own boundary
+   sets, not a 200 the handler shapes: server.ts maps it to the shared required-field-missing refusal
+   every route inherits from packages/catalog/apis.json. Coercing an absent field to a value — the
+   `=== true` that used to read a missing userConsent as a withheld one — invents part of somebody's
+   request, which is exactly what that shared refusal exists to refuse. */
+export class RequiredFieldMissingError extends Error {
+  readonly field: string;
+  constructor(field: string) {
+    super(`A field this route needs was not sent: ${field}`);
+    this.name = "RequiredFieldMissingError";
+    this.field = field;
   }
 }
 
@@ -151,6 +142,32 @@ export async function handleTurn(
       ? req.sessionId
       : crypto.randomUUID();
 
+  /* The audience is declared by the caller, never authenticated — the same rule the demo login's
+     role parameter follows — and a value the engine does not carry means the patient's, because
+     that is what a request without one means. It is resolved first, before anything is demanded or
+     refused, so the emergency check below classifies against the audience the caller declared. */
+  const asked = req?.audience;
+  const audience: Audience =
+    typeof asked === "string" &&
+    (audiences as readonly string[]).includes(asked)
+      ? asked
+      : "patient";
+
+  /* userConsent is a required field of this route's contract (packages/catalog/apis/assistant.json),
+     so an absent one is the caller's omission, answered with the shared required-field-missing 400
+     the route inherits — never coerced to false, which would invent a withheld consent the caller
+     never expressed and refuse the message on a guess. The one thing that outranks a missing field is
+     an emergency: it is classified here, before the field is demanded, so a person in danger is never
+     turned away for want of a flag — the same precedence refusals.ts gives the emergency over consent.
+     A withheld consent (an explicit false) is not this case; it travels on and meets the consent-required
+     refusal below, which is a sentence rather than a 400. */
+  const isEmergency =
+    typeof req?.text === "string" &&
+    req.text.trim().length > 0 &&
+    classifyMessage(req.text, audience) === "emergency";
+  if (!isEmergency && typeof req?.userConsent !== "boolean")
+    throw new RequiredFieldMissingError("userConsent");
+
   /* The engine's own classification of '' is 'unknown', which is right for a low-level classifier
      with nothing to go on. At this boundary "nothing was said" is not the same fact as "the
      message could not be classified", and a caller who typed or spoke nothing deserves to be asked
@@ -171,27 +188,17 @@ export async function handleTurn(
     };
   }
 
-  /* The audience is declared by the caller, never authenticated — the same rule the demo login's
-     role parameter follows — and a value the engine does not carry means the patient's, because
-     that is what a request without one means. */
-  const asked = req.audience;
-  const audience: Audience =
-    typeof asked === "string" &&
-    (audiences as readonly string[]).includes(asked)
-      ? asked
-      : "patient";
-
   const now = Date.now();
-  pruneSessions(now);
-  const held = sessions.get(sessionId);
-  const state = held ? held.state : createConversation(sessionId);
+  const state = sessions.read(sessionId, now) ?? createConversation(sessionId);
   const context = getContext(state);
 
   /* Refusals are asked before the classifier, and before the turn joins the session: a message a
-     policy refuses was not classified, and the transcript should not claim otherwise. Consent is
-     among them now — the sentence the withheld-consent caller reads is the catalog's
-     consent-required policy, while the route, the confirmation flag and the one action it
-     suggests stay exactly what they were. */
+     policy refuses was not classified, and the transcript should not claim otherwise. An absent
+     userConsent never reaches here — it was answered with a 400 above — so the value handed to the
+     policy is a real boolean: an explicit false is the withheld consent the caller reads as the
+     catalog's consent-required policy, while the route, the confirmation flag and the one action it
+     suggests stay exactly what they were. An emergency is refused by none of them: refusals.ts asks
+     the emergency first, so a person in danger is answered whatever their consent said. */
   const refusal = evaluateRefusals(
     req.text,
     audience,
@@ -203,7 +210,7 @@ export async function handleTurn(
        becoming an empty reply through a type the interface cannot narrow. */
     if (!refusal.sentence)
       throw new Error(`refusal "${refusal.refusalId}" carries no sentence`);
-    sessions.set(sessionId, { state, lastActive: now });
+    sessions.write(sessionId, state, now);
     audit(sessionId, refusal.refusalId ?? "refused", req.text);
     return response(
       {
@@ -291,7 +298,7 @@ export async function handleTurn(
     audience,
     slots: {},
   };
-  sessions.set(sessionId, { state: addTurn(state, nextTurn), lastActive: now });
+  sessions.write(sessionId, addTurn(state, nextTurn), now);
 
   audit(sessionId, answer.route, req.text);
   return response({ ...answer, reply }, sessionId, undefined, service);

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { handleTurn } from './turn.ts';
+import { handleTurn, RequiredFieldMissingError } from './turn.ts';
 import { buildResponse } from '../../../../packages/gilbertone/src/engine.ts';
 import assistant from '../../../../packages/catalog/assistant.json' with { type: 'json' };
 
@@ -82,6 +82,39 @@ test('an emergency word still outranks every refusal', async () => {
  assert.equal(result.refusalId, undefined);
  assert.equal(result.route, 'emergency');
  assert.equal(result.classification, 'emergency');
+});
+
+test('an emergency is answered when consent is withheld, and when it is absent altogether', async () => {
+ /* The corrected precedence: refusals.ts asks the emergency before consent, so a person in danger is
+    routed to the emergency numbers whatever their consent said — and an absent userConsent, which a
+    non-emergency message is refused for, never stands between an emergency and its answer. */
+ const withheld = await handleTurn({ text: "I can't breathe, please help", userConsent: false });
+ assert.equal(withheld.route, 'emergency');
+ assert.equal(withheld.classification, 'emergency');
+ assert.equal(withheld.refusalId, undefined);
+ const absent = await handleTurn({ text: 'chest pain, get me a nurse' } as unknown as Parameters<typeof handleTurn>[0]);
+ assert.equal(absent.route, 'emergency');
+ assert.equal(absent.classification, 'emergency');
+ assert.equal(absent.refusalId, undefined);
+});
+
+test('a non-emergency message with no userConsent is a required-field-missing, not a coerced consent refusal', async () => {
+ /* The contract declares userConsent required, so an absent one raises the typed error the route
+    boundary maps to a 400 — it is never read as a withheld consent, which would refuse the message on
+    a value the caller never sent. */
+ await assert.rejects(
+  () => handleTurn({ text: 'when is my nurse coming?' } as unknown as Parameters<typeof handleTurn>[0]),
+  (error: unknown) => error instanceof RequiredFieldMissingError && error.field === 'userConsent',
+ );
+});
+
+test('a withheld consent on a non-emergency message is still the consent refusal, not a 400', async () => {
+ /* An explicit false is a value the caller really sent, so it travels on and meets the consent-required
+    sentence — the 400 is reserved for a field that was never sent at all. */
+ const result = await handleTurn({ text: 'when is my nurse coming?', userConsent: false });
+ assert.equal(result.refusalId, 'consent-required');
+ assert.equal(result.requiresConfirmation, true);
+ assert.deepEqual(result.suggestedActions, ['confirm_message']);
 });
 
 test('the session carries the conversation: the same words strengthen as the thread agrees', async () => {
@@ -372,5 +405,38 @@ test('the classifier’s own territory never reaches a model, however available 
   });
  } finally {
   await provider.close();
+ }
+});
+
+/* The Foundation line's behavioural half: emergency handling has no network dependency at all —
+   not merely no model dependency. With nothing configured, the very first thing a model tier
+   would do is probe the default Ollama URL, so an emergency turn that never probes has proven it
+   never looked at the model tiers. The stub makes the point sharper than a closed port: any
+   request at all — the probe included — lands in `calls` and fails the assertion. */
+test('an emergency never touches the network, configured or not', async () => {
+ const originalFetch = globalThis.fetch;
+ let calls = 0;
+ globalThis.fetch = (async () => {
+  calls += 1;
+  throw new Error('an emergency turn must not reach the network');
+ }) as unknown as typeof fetch;
+ try {
+  await withEnv({}, async () => {
+   const emergency = await handleTurn({
+    text: 'chest pain, get me a nurse',
+    userConsent: true,
+    sessionId: 'session-emergency-offline',
+   });
+   assert.equal(emergency.classification, 'emergency');
+   assert.equal(
+    emergency.reply,
+    buildResponse('chest pain, get me a nurse', 'patient').reply,
+    'the classifier’s own emergency reply, word for word',
+   );
+   assert.equal(emergency.source, undefined);
+  });
+  assert.equal(calls, 0, 'not one request: the emergency path is offline by construction');
+ } finally {
+  globalThis.fetch = originalFetch;
  }
 });

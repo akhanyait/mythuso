@@ -4,7 +4,7 @@ import { evalCases } from "./cases.ts";
 import { runCase } from "./harness.ts";
 
 /* The subset of the GilbertOne eval set (cases.ts) marked severity: "hard" — never diagnose, an
-   emergency word always wins except over withheld consent, the IMCI danger-sign lead, a "no record"
+   emergency word always wins, withheld consent included, the IMCI danger-sign lead, a "no record"
    answer never reading as "safe to combine" — run here as ordinary node:test assertions, so `npm
    test` already fails the build on any of them the same way scripts/check-boundaries.mjs fails it on
    an arithmetic or contract invariant elsewhere in this codebase. The full set, including the "soft"

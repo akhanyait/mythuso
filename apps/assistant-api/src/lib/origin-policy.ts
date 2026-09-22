@@ -33,7 +33,10 @@ export type CorsDecision = {
 /* The whole production allow-list, written out: the apex and www, the two names the certificate
    covers and the two the deploy's server_name carries. Read as exact strings — no suffix
    matching, because "https://mythuso.co.za.evil.example" ends with nothing that helps it. */
-const PRODUCTION_ORIGINS = ['https://mythuso.co.za', 'https://www.mythuso.co.za'];
+const PRODUCTION_ORIGINS = [
+  "https://mythuso.co.za",
+  "https://www.mythuso.co.za",
+];
 
 /* The dev server's own shapes: any port, http or https, host, 127.0.0.1 or ::1. A vite dev server
    on a colleague's machine or in a container is the same conversation, and pinning one port would
@@ -42,17 +45,17 @@ const LOCALHOST_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
 
 /* Anything else development needs — a tunnel hostname, a second machine's name — is written in
    MYTHUSO_ASSISTANT_DEV_ORIGINS as a comma-separated list. Read only outside production. */
-const DEV_ORIGINS_VARIABLE = 'MYTHUSO_ASSISTANT_DEV_ORIGINS';
+const DEV_ORIGINS_VARIABLE = "MYTHUSO_ASSISTANT_DEV_ORIGINS";
 
 const originAllowed = (
   origin: string,
   env: Record<string, string | undefined>,
 ): boolean => {
-  if ((env.NODE_ENV ?? '').trim() === 'production')
+  if ((env.NODE_ENV ?? "").trim() === "production")
     return PRODUCTION_ORIGINS.includes(origin);
   if (LOCALHOST_ORIGIN.test(origin)) return true;
-  return (env[DEV_ORIGINS_VARIABLE] ?? '')
-    .split(',')
+  return (env[DEV_ORIGINS_VARIABLE] ?? "")
+    .split(",")
     .map((entry) => entry.trim())
     .filter(Boolean)
     .includes(origin);
@@ -67,12 +70,12 @@ export function corsFor(
   return {
     refused: false,
     headers: {
-      'access-control-allow-origin': origin,
+      "access-control-allow-origin": origin,
       /* The answer depends on the request's Origin header, so any cache between the two must key
          on it. Without this a shared cache could hand one origin's grant to another. */
-      vary: 'Origin',
-      'access-control-allow-methods': 'POST, GET, OPTIONS',
-      'access-control-allow-headers': 'content-type',
+      vary: "Origin",
+      "access-control-allow-methods": "POST, GET, OPTIONS",
+      "access-control-allow-headers": "content-type",
     },
   };
 }
