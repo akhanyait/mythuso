@@ -93,6 +93,21 @@ test('an emergency is never refused, whatever came with it', () => {
   assert.equal(evaluateRefusals('I have chest pain', 'control-tower', true).refused, false);
 });
 
+test('an emergency is never refused by withheld or absent consent', () => {
+  /* The one exception the ordering promised: consent is asked only after a message is known not to
+     be an emergency, so a withheld consent (false) never stands between a person in danger and the
+     emergency route. An absent consent reaches this module the same way — turn.ts hands evaluateRefusals
+     `req.userConsent === true`, so a missing field arrives here as false — which is exactly the case
+     below, and it must answer rather than refuse. */
+  assert.equal(evaluateRefusals('I have chest pain', 'patient', false).refused, false);
+  assert.equal(evaluateRefusals("I can't breathe, please help", 'patient', false).refused, false);
+  /* A non-emergency with the same withheld consent is still refused — proving it is the emergency
+     classification, not a blanket bypass, that lets these through. */
+  const nonEmergency = evaluateRefusals('I need some help arranging my next visit', 'patient', false);
+  assert.equal(nonEmergency.refused, true);
+  assert.equal(nonEmergency.refusalId, 'consent-required');
+});
+
 test('the context parameter changes nothing about a refusal', () => {
   /* These four rules are context-free on purpose: a refusal that could be talked out of itself by
      earlier turns is the first step to one that can. */

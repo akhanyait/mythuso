@@ -3,9 +3,10 @@
  *
  * ── Why a mock, and why this strict ─────────────────────────────────────────────────────────────────
  *
- * Wave 2 freezes the API contract for all twelve engines before any of them is built past the identity
- * service and the Passport P0. Screens are built against the contract in the meantime, so something has
- * to answer — and a mock that says yes to everything teaches every screen that nothing is ever refused.
+ * Wave 2 freezes the API contract for all thirteen engines before any of them is built past the identity
+ * service, the Passport P0 and the assistant service. Screens are built against the contract in the
+ * meantime, so something has to answer — and a mock that says yes to everything teaches every screen
+ * that nothing is ever refused.
  * This one refuses exactly as the contract says each route will: a role that is not a caller, a purpose
  * the route does not serve, a missing required field, a money or dispatch write without an idempotency
  * key, a path it cannot decode, and — when a test asks for it by id in the refusal header — each of the
@@ -56,12 +57,13 @@ const readJson = (file: string): any => JSON.parse(readFileSync(new URL(file, ro
 export function loadContract(): MockContract {
  const apis = readJson('packages/catalog/apis.json');
  const passport = apis.conventions.passportPaths;
+ const assistant = apis.conventions.assistantPaths;
  const routes: Route[] = [];
  for (const file of apis.engineFiles as string[]) {
   const doc = readJson(file);
   for (const route of doc.routes as Route[]) {
    if (route.withdrawn) continue;
-   routes.push({ ...route, engine: doc.engine, mountedPath: passport.paths.includes(route.path) ? passport.mount + route.path : route.path });
+   routes.push({ ...route, engine: doc.engine, mountedPath: passport.paths.includes(route.path) ? passport.mount + route.path : assistant.paths.includes(route.path) ? assistant.mount + route.path : route.path });
   }
  }
  return { routes, shared: apis.sharedRefusals, idempotency: apis.conventions.idempotency, mock: apis.mock };

@@ -1,7 +1,7 @@
-import { classifyMessage, type Audience } from './engine.ts';
-import type { ConversationContext } from './conversation.ts';
-import { containsPHI } from './phi.ts';
-import assistant from '../../catalog/assistant.json' with { type: 'json' };
+import { classifyMessage, type Audience } from "./engine.ts";
+import type { ConversationContext } from "./conversation.ts";
+import { containsPHI } from "./phi.ts";
+import assistant from "../../catalog/assistant.json" with { type: "json" };
 
 /* The refusal policy engine: four rules the engine asks before it classifies anything.
 
@@ -11,22 +11,24 @@ import assistant from '../../catalog/assistant.json' with { type: 'json' };
    message are the same words the accountable people can read in advance. This module holds the
    ids and the order; the catalog holds the sentences.
 
-   THE ORDER, AND THE ONE EXCEPTION. Consent is asked first: until the person has confirmed, the
-   message is not read beyond the check itself, and nothing — not even an emergency word — is
-   looked for in it. Then, before the other three policies, the emergency terms are asked: a
-   message carrying an emergency word is never refused, because the contract's own rule is that
-   no answer lowers an emergency, and a refusal is an answer. What a person in danger gets is the
-   emergency route, numbers first. After that: a message asking for a diagnosis or a medicine is
-   the clinical-referral refusal; a message claiming a role is the role-spoofing refusal, because
-   a role here is declared and never authenticated; a message carrying an identity number, a
-   phone number, an email address or a medical aid number is the soft phi-detected refusal, which
-   asks for the person's own words instead.
+   THE ORDER, AND THE ONE EXCEPTION. The emergency terms are asked first, before consent and before
+   the other three policies: a message carrying an emergency word is never refused, because the
+   contract's own rule is that no answer lowers an emergency, and a refusal is an answer. This is the
+   one exception that outranks consent itself — a person in danger who has not confirmed, or who
+   confirmed and then withdrew it, still gets the emergency route, numbers first, because withholding
+   it would lower the emergency. Only after a message is known not to be an emergency is consent
+   asked: until the person has confirmed, a non-emergency message is not read beyond the check itself,
+   and the sentence says so. After that: a message asking for a diagnosis or a medicine is the
+   clinical-referral refusal; a message claiming a role is the role-spoofing refusal, because a role
+   here is declared and never authenticated; a message carrying an identity number, a phone number, an
+   email address or a medical aid number is the soft phi-detected refusal, which asks for the person's
+   own words instead.
 
    The context parameter is accepted so a caller can hand this module the same state object it
    holds, and is deliberately not consulted: these four rules are context-free on purpose. A
    refusal that could be talked out of itself by earlier turns is the first step to one that can. */
 
-export type RefusalSeverity = 'hard' | 'soft';
+export type RefusalSeverity = "hard" | "soft";
 
 export interface RefusalResult {
   refused: boolean;
@@ -56,7 +58,7 @@ const refuse = (id: string): RefusalResult => {
     refused: true,
     refusalId: id,
     sentence: policy.statement,
-    severity: policy.severity === 'soft' ? 'soft' : 'hard',
+    severity: policy.severity === "soft" ? "soft" : "hard",
   };
 };
 
@@ -69,8 +71,10 @@ const refuse = (id: string): RefusalResult => {
    it reached the classifier unrefused until the eval set of 21 September found the gap. Nothing in
    the fallback answer invented a dose either way, so it was not unsafe — but a dosing question
    belongs behind clinical-referral like every other request for medical advice, not past it. */
-const medicalAdvice = /should i take|do i have|am i sick|what medicine|diagnos/i;
-const dosingQuestion = /how much .+ should i (give|take)|what('s| is) the (dose|dosage)|how many (mg|milligrams|tablets|ml)\b/i;
+const medicalAdvice =
+  /should i take|do i have|am i sick|what medicine|diagnos/i;
+const dosingQuestion =
+  /how much .+ should i (give|take)|what('s| is) the (dose|dosage)|how many (mg|milligrams|tablets|ml)\b/i;
 const roleSpoofing = /i am a doctor|i am a nurse|treat me as|act as if i/i;
 
 export function evaluateRefusals(
@@ -79,14 +83,18 @@ export function evaluateRefusals(
   consent: boolean,
   context?: ConversationContext,
 ): RefusalResult {
-  /* Consent first, whatever the message says. Nothing below this line has been read yet when
-     this fires, and the sentence says so. */
-  if (consent === false) return refuse('consent-required');
-  /* The exception the contract promised: an emergency word is an emergency whatever else came
-     with it, and no policy here may lower it. The engine's emergency route answers instead. */
-  if (classifyMessage(input, audience) === 'emergency') return { refused: false };
-  if (medicalAdvice.test(input) || dosingQuestion.test(input)) return refuse('clinical-referral');
-  if (roleSpoofing.test(input)) return refuse('role-spoofing');
-  if (containsPHI(input)) return refuse('phi-detected');
+  /* The exception the contract promised, asked before anything else — including consent: an
+     emergency word is an emergency whatever came with it, and no policy here may lower it. A
+     withheld or absent consent does not stand between a person in danger and the emergency route,
+     because refusing one is an answer that lowers it. The engine's emergency route answers instead. */
+  if (classifyMessage(input, audience) === "emergency")
+    return { refused: false };
+  /* Consent next, whatever else a non-emergency message says. Nothing below this line has been read
+     yet when this fires, and the sentence says so. */
+  if (consent === false) return refuse("consent-required");
+  if (medicalAdvice.test(input) || dosingQuestion.test(input))
+    return refuse("clinical-referral");
+  if (roleSpoofing.test(input)) return refuse("role-spoofing");
+  if (containsPHI(input)) return refuse("phi-detected");
   return { refused: false };
 }

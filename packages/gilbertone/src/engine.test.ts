@@ -3,11 +3,13 @@ import assert from "node:assert/strict";
 import {
   classifyMessage,
   classifyWithConfidence,
+  emergencyTerms,
   evaluateMessage,
   normalizeText,
 } from "./engine.ts";
 import type { ConversationContext } from "./conversation.ts";
 import assistant from "../../catalog/assistant.json" with { type: "json" };
+import emergencyTermsContract from "../../catalog/gilbert-emergency-terms.json" with { type: "json" };
 
 test("normalizes basic input", () => {
   assert.equal(normalizeText("I can't breathe!"), "i cant breathe");
@@ -74,12 +76,15 @@ test("a greeting in front of a real question answers as the question", () => {
 });
 
 test("an emergency word in the same message overrides a greeting", () => {
-  /* "hello, I need an ambulance" would not do as the fixture: "ambulance" is not one of this
-     engine's own emergency terms — the worded lists live in the versioned
-     gilbert-emergency-terms.json — so this uses a term the engine itself matches. */
-  const result = evaluateMessage("hello, I can't breathe");
-  assert.equal(result.classification, "emergency");
-  assert.equal(result.route, "emergency");
+  /* Both sentences, because both are now the engine's: since the terms were unified around the
+     versioned gilbert-emergency-terms.json this engine reads the same list the web reads and the
+     emitters write for the phones, so "ambulance" — the counter-example this test's comment once
+     ruled out — is a term the engine itself matches. */
+  for (const input of ["hello, I can't breathe", "hello, I need an ambulance"]) {
+    const result = evaluateMessage(input);
+    assert.equal(result.classification, "emergency", input);
+    assert.equal(result.route, "emergency", input);
+  }
 });
 
 test("clarifies when the request is vague", () => {
@@ -116,6 +121,70 @@ test("an emergency is an emergency for every audience", () => {
   const result = evaluateMessage("I have chest pains", "control-tower");
   assert.equal(result.classification, "emergency");
   assert.equal(result.route, "emergency");
+});
+
+test("the emergency words are the versioned list, flattened — one list, not a copy", () => {
+  /* packages/catalog/gilbert-emergency-terms.json is the list: the web reads it directly and
+     scripts/emit-assistant.mjs writes it into the native apps. This asserts the engine's own
+     matched words are those words in that order, so a term typed beside this file is drift and
+     this is where it shows. */
+  assert.deepEqual(
+    emergencyTerms,
+    emergencyTermsContract.groups.flatMap((group) => group.words),
+  );
+});
+
+test("every word the service matched before the list was unified still raises", () => {
+  /* The hand-typed list this engine carried until the unification, deduplicated — "hurt myself"
+     was typed twice. Each of these raised the ambulance answer then and must raise it now: the
+     list only ever raises, and the three words the versioned list did not carry (heart pain,
+     pass out, self harm) are what its version 2 entry adds. */
+  for (const term of [
+    "hurt myself",
+    "suicide",
+    "kill myself",
+    "end my life",
+    "self harm",
+    "self-harm",
+    "cant breathe",
+    "can't breathe",
+    "short of breath",
+    "severe bleeding",
+    "bleeding heavily",
+    "chest pain",
+    "heart pain",
+    "unconscious",
+    "fainting",
+    "seizure",
+    "overdose",
+    "not breathing",
+    "trouble breathing",
+    "pass out",
+  ]) {
+    assert.equal(classifyMessage(term), "emergency", term);
+  }
+});
+
+test("the words version 2 added raise the emergency answer, from their own groups", () => {
+  for (const [input, groupId] of [
+    ["I keep getting a heart pain when I walk", "chest-pain"],
+    ["I think I am going to pass out", "unresponsive"],
+    ["I have wanted to self harm", "crisis"],
+  ] as const) {
+    const result = evaluateMessage(input);
+    assert.equal(result.classification, "emergency", input);
+    assert.equal(result.route, "emergency", input);
+    assert.deepEqual(
+      result.suggestedActions,
+      ["call_emergency_services", "seek_urgent_help"],
+      input,
+    );
+    const group = emergencyTermsContract.groups.find((g) => g.id === groupId);
+    assert.ok(
+      group?.words.some((word) => normalizeText(input).includes(word)),
+      `no word of the "${groupId}" group raised "${input}"`,
+    );
+  }
 });
 
 test("a staff audience is told the scope, not offered the patient's doors", () => {

@@ -503,6 +503,15 @@ test('POST /v1/core/permission-checks@1 answers role x scope x purpose from vett
  const notServed = purposes.find(p => !roleServesPurpose('nurse', p));
  assert.ok(notServed, 'sanity: there is a purpose nurse serves nowhere, to prove a purpose refusal');
  assert.deepEqual(asCare({ roleId: 'nurse', scope: [], purposeOfUse: notServed }).body, { allowed: false, refusalId: 'purpose-not-allowed' });
+
+ /* A caller the binder refuses — apis.json's binderCannotAdmit, anonymous among them — serves no purpose
+  * in the matrix, even though every public /assistant route names anonymous + treatment as a caller. The
+  * binder turns anonymous away before it reaches any route, so the matrix must not claim it serves
+  * treatment; this pins the narrowing that stops the assistant routes from widening roleServesPurpose,
+  * and records the decision: the intended answer for a binder-refused caller is purpose-not-allowed, a
+  * truthful 'no', not allowed:true and not unknown-role (anonymous is still a caller id apis.json names). */
+ assert.equal(roleServesPurpose('anonymous', 'treatment'), false, 'a binder-refused caller serves no purpose, whatever a route names it for');
+ assert.deepEqual(asCare({ roleId: 'anonymous', scope: [], purposeOfUse: 'treatment' }).body, { allowed: false, refusalId: 'purpose-not-allowed' });
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
 });

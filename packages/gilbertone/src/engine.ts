@@ -1,5 +1,6 @@
 import type { ConversationContext } from "./conversation.ts";
 import assistant from "../../catalog/assistant.json" with { type: "json" };
+import emergencyTermsContract from "../../catalog/gilbert-emergency-terms.json" with { type: "json" };
 
 export type MessageClassification =
   | "emergency"
@@ -65,29 +66,16 @@ export const audiences: readonly Audience[] = [
 
 const isStaff = (audience: Audience) => audience !== "patient";
 
-const emergencyTerms = [
-  "hurt myself",
-  "hurt myself",
-  "suicide",
-  "kill myself",
-  "end my life",
-  "self harm",
-  "self-harm",
-  "cant breathe",
-  "can't breathe",
-  "short of breath",
-  "severe bleeding",
-  "bleeding heavily",
-  "chest pain",
-  "heart pain",
-  "unconscious",
-  "fainting",
-  "seizure",
-  "overdose",
-  "not breathing",
-  "trouble breathing",
-  "pass out",
-];
+/* The words that raise the ambulance numbers are not typed here. Since the founder's decision of
+   14 September 2026 they live in packages/catalog/gilbert-emergency-terms.json — read by the web
+   directly and written into the native apps by scripts/emit-assistant.mjs — and this service reads
+   the same file, flattened: one list, one version, one changelog, and a term changes there, never
+   here. The words are matched anywhere in the normalised text, so a general-group word like
+   "ambulance" raises on its own. That substring match is looser than the phones' stem-and-gap one,
+   and its over-triggers are the false positives the terms contract accepts on purpose: a list that
+   only ever raises, where a miss is not made safe by silence. */
+export const emergencyTerms: readonly string[] =
+  emergencyTermsContract.groups.flatMap((group) => group.words);
 
 const handoverTerms = [
   "talk to a nurse",
