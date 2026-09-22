@@ -1,6 +1,13 @@
-import ui from "../../../../packages/catalog/assistant-ui.json";
+import {
+  patientQuestions,
+  patientQuestionFor,
+  choosePatientHelp,
+} from "../lib/assistant-help";
+import ui from "../../../../packages/catalog/assistant-chat-ui.json";
 import {
   Component,
+  lazy,
+  Suspense,
   useEffect,
   useMemo,
   useRef,
@@ -11,6 +18,12 @@ import {
 } from "react";
 import {
   Ambulance,
+  CalendarDays,
+  FileText,
+  MessageCircle,
+  Users,
+  ShieldCheck,
+  Minus,
   ArrowRight,
   Ban,
   Cog,
@@ -23,6 +36,7 @@ import {
 } from "lucide-react";
 import { NotConnected } from "../components/NotConnected";
 import { MotionPause } from "../components/MotionPause";
+import { AssistantAttachments } from "../components/AssistantAttachments";
 import { AssistantVoiceButton } from "../components/AssistantVoiceButton";
 import { GilbertAvatar, GilbertStill, useGilbertRig } from "./GilbertAvatar";
 import {
@@ -76,6 +90,14 @@ import type { Visit } from "../lib/scheduling";
 import { useVoiceAdapter } from "../lib/voice";
 import "./assistant.css";
 
+/* The connected-capability region arrives on its own dynamic import, so the status, retrieval,
+   triage and handover routes it consumes — and the code that renders them — are a separate chunk of
+   the already-lazy panel and never part of the patient entry. It is fetched the first time the
+   panel renders it (once consented and asked), and a failure to download it degrades to nothing
+   rather than to the panel around it: the transcript, the emergency numbers and the refusals are
+   the product, and they do not depend on a service region that may not arrive. */
+const GilbertOneServices = lazy(() => import("./GilbertOneServices"));
+
 /* GilbertOne's panel on the web.
 
    It opens from the floating orb (components/AssistantLauncher.tsx) and arrives on a dynamic import.
@@ -94,6 +116,23 @@ export type PanelProps = {
   /* Who this panel serves, since the audience decision of 19 September 2026. The patient entry
      omits it and the patient is what it gets; the shells pass the audience the door chose. */
   audience?: AudienceId;
+};
+
+const QUESTION_ICONS: Record<string, typeof Ambulance> = {
+  book: CalendarDays,
+  results: FileText,
+  records: FileText,
+  contact: Users,
+  help: MessageCircle,
+  privacy: Lock,
+  visit: MessageCircle,
+  result: FileText,
+  settled: CalendarDays,
+  credential: Users,
+  identity: ShieldCheck,
+  voice: Lock,
+  nurse: UserRound,
+  emergency: Ambulance,
 };
 
 const SESSION_SUBJECT = "subject-this-session";
@@ -145,6 +184,9 @@ export default function Assistant({
   const audience = audienceOf(audienceId);
   const [turns, setTurns] = useState<Turn[]>(() => opening(audienceId));
   const [draft, setDraft] = useState("");
+  const [pendingReplies, setPendingReplies] = useState<Set<number>>(
+    () => new Set(),
+  );
   const [gatheredAt, setGatheredAt] = useState<number | null>(null);
   const [raised, setRaised] = useState(false);
   const [queue, setQueue] = useState<Queue>(emptyQueue);
@@ -184,7 +226,9 @@ export default function Assistant({
      half of it. lib/voice.ts still reads the flag before anything is reached for, so switching it
      off again leaves this wiring inert; the microphone half is the 18 September decision, unchanged. */
   const voiceAdapter = useVoiceAdapter("assistant");
-  const reply = turns[turns.length - 1].reply;
+  const lastTurn = turns[turns.length - 1];
+  const reply = lastTurn.reply;
+  const waitingForReply = pendingReplies.has(lastTurn.id);
   const asked = turns.length > 1;
   const pulse = asked ? pulseOf(reply) : "idle";
   const stage = useMemo(() => stageOf(reply, asked), [reply, asked]);
@@ -259,8 +303,8 @@ export default function Assistant({
      pose is refused rather than allowed to relax an urgent face, and only Start again — the
      patient's own reset — rests it. */
   useEffect(() => {
-    if (gatheredAt === null || !asked) return;
-    const last = turns[turns.length - 1];
+    if (gatheredAt === null || !asked || !open || waitingForReply) return;
+    const last = lastTurn;
     play(cueOf(reply, last.unread));
     /* And the reply's own words to the adapter, which reads the flag before anything is reached
        for. The words are already written on the screen beside the voice — the caption is the reply
@@ -272,18 +316,33 @@ export default function Assistant({
        staff preview's words are on its screen already. */
     if (audience.voice) {
       const caption = spokenOf(last, audienceId).split(" ");
+      /* A mouth closes only where one opened. The adapter reports the reading over on end, on
+         cancel and on failure alike — §07's own rule, and the sentence the demo's caption needs —
+         so this reading's close is the mouth closing against the start event that opened it. A
+         reading replaced, barged over or shut down before its first word never showed a mouth,
+         and one must not be conjured only to be closed: the empty caption track would take the
+         face for its step and hold it over whatever the reply — a handover, a greeting on the way
+         back in — was owed instead. */
+      let opened = false;
       voiceAdapter.speak(spokenOf(last, audienceId), {
-        onStart: () => play(affect.voiceMoments.speaking.cue, { caption }),
+        onStart: () => {
+          opened = true;
+          play(affect.voiceMoments.speaking.cue, { caption });
+        },
         onWord: (word) =>
           play(affect.voiceMoments.speaking.cue, { caption: [word] }),
-        onEnd: () => play(affect.voiceMoments.speaking.cue, { caption: [] }),
+        onEnd: () => {
+          if (opened) play(affect.voiceMoments.speaking.cue, { caption: [] });
+        },
       });
     }
   }, [
     gatheredAt,
     asked,
     reply,
-    turns,
+    lastTurn,
+    waitingForReply,
+    open,
     play,
     audience.voice,
     audienceId,
@@ -291,10 +350,18 @@ export default function Assistant({
   ]);
   useEffect(() => {
     if (!asked) return;
-    latest.current?.scrollIntoView({
-      block: "start",
-      behavior: reduced ? "auto" : "smooth",
-    });
+    /* Scroll only the transcript. scrollIntoView can also move the dialog itself, taking
+       the close control and emergency number out of view when an answer is taller than it. */
+    const entry = latest.current;
+    const viewport = entry?.closest<HTMLElement>(".as-scroll");
+    if (entry && viewport)
+      viewport.scrollTo({
+        top:
+          viewport.scrollTop +
+          entry.getBoundingClientRect().top -
+          viewport.getBoundingClientRect().top,
+        behavior: reduced ? "auto" : "smooth",
+      });
   }, [turns, asked, reduced]);
 
   const keepFocus = (event: KeyboardEvent<HTMLDialogElement>) => {
@@ -306,9 +373,9 @@ export default function Assistant({
        the escape: focus left the panel on the fifth Tab. */
     const stops = [
       ...dialog.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        'button:not([disabled]), summary, [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
       ),
-    ];
+    ].filter((element) => element.getClientRects().length > 0);
     const first = stops[0],
       last = stops[stops.length - 1];
     if (event.shiftKey && document.activeElement === first) {
@@ -336,27 +403,56 @@ export default function Assistant({
       field.current?.focus();
       return;
     }
-    /* The contract's answer goes up first and immediately — nothing adds a pause to make an
-       answer look considered — and only then does the panel ask the assistant API whether a
-       language model can say something more (refineWithAssistantService, and its comment, where
-       the userConsent it needs is explained). The answer that comes back replaces the unmatched
-       turn only if it is still the last thing that happened; anything else is dropped. With the
-       service not running, nothing changes: the contract's answer is already the answer. */
-    const local = sendWithGilbertEngine(turns, draft, visit, everRaised, audienceId);
+    const help =
+      audienceId === "patient" ? patientQuestionFor(draft) : undefined;
+    if (help) {
+      moved(choosePatientHelp(turns, help, draft));
+      setDraft("");
+      return;
+    }
+    /* Only an unmatched fallback waits for the service. Emergencies, refusals attached to
+       matched answers and approved answers remain immediate. Each request replaces only its
+       own turn, so a slow answer cannot overwrite a newer question or a reset conversation. */
+    const local = sendWithGilbertEngine(
+      turns,
+      draft,
+      visit,
+      everRaised,
+      audienceId,
+    );
+    const candidate = local[local.length - 1];
+    const text = draft;
     moved(local);
     setDraft("");
-    const token = ++refine.current;
-    void refineWithAssistantService(local, draft, audienceId, conversationRef.current).then(
-      (refined) => {
-        if (!refined || refine.current !== token) return;
-        setTurns((current) => (current === local ? refined : current));
-        setGatheredAt(performance.now());
-      },
-    );
+    if (candidate.reply.kind !== "unmatched") return;
+    voiceAdapter.cancel();
+    setPendingReplies((current) => new Set(current).add(candidate.id));
+    const generation = refine.current;
+    void refineWithAssistantService(
+      local,
+      text,
+      audienceId,
+      conversationRef.current,
+    ).then((refined) => {
+      if (refine.current !== generation) return;
+      const answer = refined?.[refined.length - 1] ?? candidate;
+      setTurns((current) =>
+        current.includes(candidate)
+          ? current.map((turn) => (turn === candidate ? answer : turn))
+          : current,
+      );
+      setPendingReplies((current) => {
+        const next = new Set(current);
+        next.delete(candidate.id);
+        return next;
+      });
+    });
   };
   /* Start again is the one action that rests the face: it is the patient saying the conversation is
      over, and it is the only thing that releases a cue A16 is holding. */
   const again = () => {
+    ++refine.current;
+    setPendingReplies(new Set());
     moved(opening(audienceId));
     setRaised(false);
     setSent({});
@@ -386,20 +482,43 @@ export default function Assistant({
       },
     });
   };
-  const chip = (question: Question) => (
-    <button
-      type="button"
-      key={question.id}
-      className={`as-ask${question.answer === "emergency" ? " urgent" : ""}`}
-      onClick={() => put(question)}
-    >
-      {question.answer === "emergency" && (
-        <Ambulance size={17} aria-hidden="true" />
-      )}
-      {question.asks}
-    </button>
-  );
+  const chip = (question: Question) => {
+    const Icon = QUESTION_ICONS[question.id] ?? MessageCircle;
+    return (
+      <button
+        type="button"
+        key={question.id}
+        className={`as-ask${question.answer === "emergency" ? " urgent" : ""}`}
+        onClick={() => put(question)}
+      >
+        <span className="as-question-icon">
+          <Icon size={23} aria-hidden="true" />
+        </span>
+        <span>{question.asks}</span>
+      </button>
+    );
+  };
   const sos = () => openModal?.("Emergency & urgent care");
+
+  const portrait = (
+    <div
+      className="as-rig"
+      data-pulse={pulse}
+      data-cue={rig.running?.id}
+      data-affect={postureOf(rig.running?.id)}
+      data-motion={reduced ? "still" : decor.playing ? "running" : "paused"}
+      aria-hidden="true"
+    >
+      <RigBoundary>
+        <GilbertAvatar
+          pose={rig.pose}
+          size={172}
+          blend={rig.blend}
+          friendly={!asked}
+        />
+      </RigBoundary>
+    </div>
+  );
 
   return (
     <dialog
@@ -428,27 +547,17 @@ export default function Assistant({
         >
           <div className="as-bar">
             <div className="as-titles">
-              {/* The lockup over the gate, where the promise is being made, and nowhere in the
-                  conversation: the mockup's conversation header is the name card, the head above a
-                  conversation is fixed chrome the conversation pays for, and 20px of brand the
-                  mockup itself does not draw there is 20px of reading taken from the answers. The
-                  full-colour lockup comes back at the end of the reading, in the footer. */}
-              {!consented && (
-                <img
-                  className="as-logo"
-                  src="/brand/mythuso-logo-reversed.svg"
-                  alt="MyThuso"
-                />
-              )}
-              {/* The dialog's own name. Before consent it is the sr-only heading — the gate's visible
-                  heading is "Before you continue", and the panel still announces itself as GilbertOne
-                  wherever it is looked up by name — and once consent is given the name returns to the
-                  top of the panel, in the contract's own word, with the mockup's subtitle under it. */}
-              <h2 id="as-title" className={consented ? undefined : "as-sr"}>
+              <img
+                className="as-logo as-brand"
+                src="/brand/mythuso-logo.svg"
+                alt="MyThuso"
+              />
+              <h2 id="as-title" className="as-sr">
                 {identity.name}
               </h2>
-              {consented && <p className="as-subtitle">{consent.subtitle}</p>}
-              <p className="as-descriptor">{identity.descriptorLine}</p>
+              {(!consented || asked) && (
+                <p className="as-descriptor">{identity.descriptorLine}</p>
+              )}
               {/* The simulated label is the contract's sentence for this audience, not a string
                   typed onto the layout: what it says and whether it is here at all are decisions
                   in the audiences section. */}
@@ -458,6 +567,14 @@ export default function Assistant({
             </div>
             <div className="as-controls">
               <MotionPause className="as-pause" />
+              <button
+                type="button"
+                className="as-close as-minimise"
+                aria-label={ui.minimiseLabel}
+                onClick={dismiss}
+              >
+                <Minus size={20} aria-hidden="true" />
+              </button>
               <button
                 ref={close}
                 type="button"
@@ -469,34 +586,10 @@ export default function Assistant({
               </button>
             </div>
           </div>
-          {/* The character, and the readable state surface the tests key on: data-pulse is the reply's
-         state, data-cue the cue that owns the face — absent when none does, because a cue that
-         finishes holds nothing — data-affect what that face means, reversed from the contract's
-         affect mapping so the attribute can never say warm while a held safety cue keeps the face
-         flat, and data-motion whether it may move at all. The svg's size prop is nominal;
-         assistant.css sizes the drawing at every width, as it sized the sphere. */}
-          <div
-            className="as-rig"
-            data-pulse={pulse}
-            data-cue={rig.running?.id}
-            data-affect={postureOf(rig.running?.id)}
-            data-motion={
-              reduced ? "still" : decor.playing ? "running" : "paused"
-            }
-            aria-hidden="true"
-          >
-            <RigBoundary>
-              <GilbertAvatar
-                pose={rig.pose}
-                size={172}
-                blend={rig.blend}
-                friendly={!asked}
-              />
-            </RigBoundary>
-          </div>
+          {(!consented || asked) && portrait}
           {/* The state caption belongs to a conversation. Over the gate it is left out: there is
               nothing yet for "Ready" to be about, and the gate's own words are the consent section's. */}
-          {consented && (
+          {consented && asked && (
             <div className="as-caption" data-pulse={pulse}>
               <p className="as-state" data-pulse={pulse}>
                 {stateSpec(pulse).cue}
@@ -513,8 +606,38 @@ export default function Assistant({
         </header>
 
         {consented ? (
-          <div className="as-scroll">
-            <div className="as-log" role="log" aria-label={conversation.logLabel}>
+          <div className="as-scroll" data-welcome={!asked || undefined}>
+            {!asked && (
+              <section className="as-welcome-hero" aria-label={identity.name}>
+                {portrait}
+                <div className="as-hero-copy">
+                  <p className="as-hello">{ui.hello}</p>
+                  <p className="as-wordmark">
+                    {identity.name.split(/(i)/).map((part, index) =>
+                      part === "i" ? (
+                        <span className="as-wordmark-i" key={index}>
+                          {part}
+                        </span>
+                      ) : (
+                        part
+                      ),
+                    )}
+                  </p>
+                  <p className="as-hero-descriptor">
+                    {identity.descriptorLine}
+                  </p>
+                  <p className="as-state" data-pulse={pulse}>
+                    {stateSpec(pulse).cue}
+                  </p>
+                </div>
+              </section>
+            )}
+            <div
+              className="as-log"
+              data-welcome={(!asked && gated) || undefined}
+              role="log"
+              aria-label={conversation.logLabel}
+            >
               <ol>
                 {turns.map((turn, index) => (
                   <li
@@ -529,15 +652,24 @@ export default function Assistant({
                       </p>
                     )}
                     <div
-                      className={`as-reply as-reply-${turn.reply.kind}`}
-                      data-outcome={outcomeOf(turn)}
+                      className={`as-reply as-reply-${pendingReplies.has(turn.id) ? "pending" : turn.reply.kind}`}
+                      aria-busy={pendingReplies.has(turn.id)}
+                      data-outcome={
+                        pendingReplies.has(turn.id)
+                          ? undefined
+                          : outcomeOf(turn)
+                      }
                       data-question={turn.matched?.id}
                       data-groups={
                         turn.groups.map((g) => g.id).join(" ") || undefined
                       }
                     >
                       <span className="as-who">{identity.name}</span>
-                      {!asked && audienceId === "patient" ? (
+                      {pendingReplies.has(turn.id) ? (
+                        <p className="as-pending" role="status">
+                          {ui.replyPending}
+                        </p>
+                      ) : !asked && audienceId === "patient" ? (
                         <p>{ui.welcome}</p>
                       ) : (
                         <ReplyBody
@@ -564,9 +696,48 @@ export default function Assistant({
 
             <div className="as-asks">
               {questionGroups.map((group) => {
-                const offered = questionsFor(audienceId).filter(
-                  (q) => q.group === group.id,
-                );
+                if (audienceId === "patient") {
+                  const help = patientQuestions.filter(
+                    (q) => q.group === group.id,
+                  );
+                  return (
+                    <section key={group.id} aria-labelledby={`as-${group.id}`}>
+                      <h3 id={`as-${group.id}`}>
+                        {group.id === "situations"
+                          ? ui.topicsHeading
+                          : ui.moreHeading}
+                      </h3>
+                      {group.id === "situations" && <p>{ui.topicsLead}</p>}
+                      <div className="as-chips">
+                        {help.map((q) => {
+                          const Icon = QUESTION_ICONS[q.id];
+                          return (
+                            <button
+                              type="button"
+                              className="as-ask"
+                              key={q.id}
+                              onClick={() => {
+                                moved(choosePatientHelp(turns, q));
+                              }}
+                            >
+                              <span className="as-question-icon">
+                                <Icon size={23} aria-hidden="true" />
+                              </span>
+                              <span>{q.asks}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                }
+                const offered = questionsFor(audienceId)
+                  .filter((q) => q.group === group.id)
+                  .sort(
+                    (a, b) =>
+                      ui.questionOrder.indexOf(a.id) -
+                      ui.questionOrder.indexOf(b.id),
+                  );
                 /* A group with nothing to offer this audience is not drawn at all: an empty
                    heading over no chips says the assistant has a section it refuses to show. */
                 if (!offered.length) return null;
@@ -575,7 +746,7 @@ export default function Assistant({
                     <h3 id={`as-${group.id}`}>
                       {group.id === "situations"
                         ? ui.topicsHeading
-                        : group.heading}
+                        : ui.moreHeading}
                     </h3>
                     {group.lead && (
                       <p>
@@ -586,15 +757,38 @@ export default function Assistant({
                   </section>
                 );
               })}
-              {asked && (
-                <button type="button" className="as-again" onClick={again}>
-                  <RotateCcw size={16} aria-hidden="true" />
-                  {conversation.startAgainLabel}
-                </button>
-              )}
             </div>
+            {asked && (
+              <button type="button" className="as-again" onClick={again}>
+                <RotateCcw size={16} aria-hidden="true" />
+                {conversation.startAgainLabel}
+              </button>
+            )}
 
-            <NotConnected of="voice" />
+            {/* The connected-capability region, only once there is a conversation to be about and the
+                person has consented. It carries the service's own status, the sources an answer may
+                stand on, the guided-assessment offer and the clinician-handover preparation — each
+                connected or saying why it is not, in the contract's own words. The session id is this
+                conversation's, so the region and the bridge's turn refinement speak of one session. */}
+            {asked && (
+              <Suspense fallback={null}>
+                <GilbertOneServices
+                  sessionId={conversationRef.current}
+                  audience={audienceId}
+                  consented={consented}
+                  lastAsked={lastTurn.asked}
+                  lastReplyKind={reply.kind}
+                />
+              </Suspense>
+            )}
+
+            <details className="as-voice-details">
+              <summary>{ui.voiceDetails}</summary>
+              <NotConnected of="voice" />
+              {!asked && (
+                <p className="as-foot-powered">{identity.poweredBy}</p>
+              )}
+            </details>
 
             {/* Said once to whoever is reading — the decision of 21 September 2026. This block used
                 to be drawn for every audience, including the patient, who had just read the same nine
@@ -626,66 +820,22 @@ export default function Assistant({
               </section>
             )}
 
-            {/* The footer, as the mockup draws it: the lockup, what powers the sentences, and the
-                product's own line. It sits at the end of the scroll rather than in fixed chrome —
-                every pixel of fixed chrome is paid for by the conversation above it, and this is
-                the last thing anybody reads. The "Powered by ThusoIQ" line here is the credit
-                alone — what it means is the gate's paragraph, and it is not repeated. */}
-            <footer className="as-foot">
-              <img
-                className="as-logo"
-                src="/brand/mythuso-logo.svg"
-                alt="MyThuso"
-              />
-              <p className="as-foot-powered">
-                <Cog size={14} aria-hidden="true" />
-                {identity.poweredBy}
-              </p>
-              <p className="as-foot-note">{consent.footer}</p>
-            </footer>
+            {/* Keep the credit quiet; the acknowledgment explains what powers the answers. */}
+            {asked && (
+              <footer className="as-foot">
+                <p className="as-foot-powered">{identity.poweredBy}</p>
+              </footer>
+            )}
           </div>
         ) : (
           <div className="as-scroll as-gate">
             <div className="as-gate-intro">
               <h3>{consent.heading}</h3>
-              <p>{consent.intro}</p>
+              <p>{ui.disclaimerIntro}</p>
+              <p className="as-gate-emergency">
+                {say(consent.emergencyNotice)}
+              </p>
             </div>
-            {questionGroups.map((group) => {
-              const offered = questionsFor(audienceId).filter(
-                (q) => q.group === group.id,
-              );
-              /* The gate is a reading screen: its questions promise what the conversation
-                 answers, so they are drawn as the same pills and are not controls. Pressing one
-                 before consent is not a thing that can mean anything. */
-              if (!offered.length) return null;
-              return (
-                <section key={group.id} className="as-gate-card">
-                  <div className="as-gate-card-head">
-                    <h3>
-                      {group.id === "situations"
-                        ? consent.tryAQuestion
-                        : consent.alwaysAnswer}
-                    </h3>
-                    {/* The mockup's two links, drawn where it draws them. Styled affordances
-                        rather than anchors: this build has nowhere behind them to go, and a link
-                        that opens nothing would be worse than a word that promises nothing. When
-                        a destination exists, this element becomes the anchor. */}
-                    <span className="as-gate-link">
-                      {group.id === "situations"
-                        ? consent.exploreCommon
-                        : consent.learnMore}
-                    </span>
-                  </div>
-                  <div className="as-chips">
-                    {offered.map((question) => (
-                      <span key={question.id} className="as-ask">
-                        {question.asks}
-                      </span>
-                    ))}
-                  </div>
-                </section>
-              );
-            })}
             <section className="as-gate-card">
               <div className="as-gate-card-head">
                 <span className="as-gate-icon">
@@ -717,6 +867,25 @@ export default function Assistant({
               </div>
               <p>{consent.poweredByBody}</p>
             </section>
+            {/* The service disclosures, since the integration of 22 September 2026: where the voice is
+                processed, where answers come from, and what an assessment and a handover will and will
+                not do. They are the web catalogue's own words — web-only copy, not the frozen
+                three-platform consent contract — because the microphone, the knowledge federation and
+                the gated triage and handover routes are this panel's, and the native apps do not carry
+                them. Each is a disclosure, not a tick-box: the moment-of-use consent for the microphone
+                and for a handover is asked again by the control that uses it, and the guided assessment
+                is refused outright until a ratified protocol exists. */}
+            {ui.service.consent.map((entry) => (
+              <section className="as-gate-card" key={entry.id}>
+                <div className="as-gate-card-head">
+                  <span className="as-gate-icon">
+                    <ShieldCheck size={18} aria-hidden="true" />
+                  </span>
+                  <h3>{entry.heading}</h3>
+                </div>
+                <p>{entry.body}</p>
+              </section>
+            ))}
           </div>
         )}
 
@@ -748,12 +917,18 @@ export default function Assistant({
                   voice={voiceAdapter}
                   onTranscript={onVoiceTranscript}
                   typingNote={conversation.webKeyboardNote}
-                  speechNote={consent.voiceNote}
+                  pending={waitingForReply}
+                  onTypeInstead={() => field.current?.focus()}
                 />
               )}
-              <button type="submit" className="as-send">
+              <AssistantAttachments />
+              <button
+                type="submit"
+                className="as-send"
+                aria-label={conversation.sendLabel}
+                title={conversation.sendLabel}
+              >
                 <Send size={17} aria-hidden="true" />
-                {conversation.sendLabel}
               </button>
             </div>
             {/* The mockup's warning strip, in the contract's own words. It carries what the
@@ -788,14 +963,21 @@ export default function Assistant({
             {/* Accept opens only when both boxes are ticked, and Cancel is the same dismiss the
                 cross, the backdrop and Escape use — the gate has no fourth way out. */}
             <div className="as-gate-actions">
-              <button type="button" className="as-gate-cancel" onClick={dismiss}>
+              <button
+                type="button"
+                className="as-gate-cancel"
+                onClick={dismiss}
+              >
                 {consent.cancel}
               </button>
               <button
                 type="button"
                 className="as-gate-accept"
                 disabled={!doctorBox || !emergencyBox}
-                onClick={() => setConsented(true)}
+                onClick={() => {
+                  setConsented(true);
+                  requestAnimationFrame(() => field.current?.focus());
+                }}
               >
                 {consent.accept}
                 <ArrowRight size={16} aria-hidden="true" />

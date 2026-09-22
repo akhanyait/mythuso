@@ -2343,6 +2343,159 @@ export interface GetMoneyHeldCashPaymentsResponse {
  readonly payments: ReadonlyArray<Readonly<Record<string, unknown>>>;
 }
 
+export type GetAssistantHealthRequest = Record<string, never>;
+export interface GetAssistantHealthResponse {
+ readonly ok: boolean;
+ readonly mode: string;
+ readonly azure: boolean;
+ readonly ollama: boolean;
+ readonly production: boolean;
+ readonly activated: boolean;
+}
+
+export interface PostAssistantTurnRequest {
+ readonly sessionId?: string;
+ readonly parentTurnId?: string;
+ readonly text: string;
+ readonly audience?: string;
+ readonly userConsent: boolean;
+}
+export interface PostAssistantTurnResponse {
+ readonly turnId: string;
+ readonly sessionId: string;
+ readonly route: string;
+ readonly classification: string;
+ readonly reply: string;
+ readonly style: string;
+ readonly confidence: number;
+ readonly requiresConfirmation: boolean;
+ readonly suggestedActions: readonly string[];
+ readonly refusalId?: string;
+ readonly source?: string;
+ readonly cue?: string;
+}
+
+export interface PostTurnRequest {
+ readonly sessionId?: string;
+ readonly parentTurnId?: string;
+ readonly text: string;
+ readonly audience?: string;
+ readonly userConsent: boolean;
+}
+export interface PostTurnResponse {
+ readonly turnId: string;
+ readonly sessionId: string;
+ readonly route: string;
+ readonly classification: string;
+ readonly reply: string;
+ readonly style: string;
+ readonly confidence: number;
+ readonly requiresConfirmation: boolean;
+ readonly suggestedActions: readonly string[];
+ readonly refusalId?: string;
+ readonly source?: string;
+ readonly cue?: string;
+}
+
+export interface PostListenV3Request {
+ readonly userConsent: boolean;
+ readonly language: string;
+ readonly audioBase64: string;
+ readonly audioFormat: string;
+}
+export interface PostListenV3Response {
+ readonly text: string;
+ readonly language: string;
+}
+
+export interface PostSpeakV3Request {
+ readonly text: string;
+ readonly language: string;
+ readonly voice?: string;
+}
+export interface PostSpeakV3Response {
+ readonly audioBase64: string;
+ readonly format: string;
+ readonly voice: string;
+ readonly language: string;
+}
+
+export interface PostTriageStartV3Request {
+ readonly userConsent: boolean;
+ readonly language: string;
+ readonly sessionId?: string;
+}
+export interface PostTriageStartV3Response {
+ readonly question: string;
+ readonly step: number;
+ readonly steps: number;
+ readonly sessionId: string;
+}
+
+export interface PostTriageAnswerV3Request {
+ readonly sessionId: string;
+ readonly step: number;
+ readonly answer: string;
+}
+export interface PostTriageAnswerV3Response {
+ readonly done: boolean;
+ readonly question?: string;
+ readonly step: number;
+}
+
+export interface PostVitalsV3Request {
+ readonly type: string;
+ readonly value: number;
+ readonly unit: string;
+ readonly capturedAt: string;
+ readonly source: string;
+ readonly deviceRef?: string;
+ readonly sessionId: string;
+ readonly userConsent: boolean;
+}
+export interface PostVitalsV3Response {
+ readonly accepted: boolean;
+ readonly entryRef: string;
+ readonly sessionId: string;
+}
+
+export interface PostHandoverPrepareV3Request {
+ readonly sessionId: string;
+ readonly userConsent: boolean;
+}
+export interface PostHandoverPrepareV3Response {
+ readonly handoverRef: string;
+ readonly preparedAt: string;
+ readonly pack: Readonly<Record<string, unknown>>;
+}
+
+export interface PostHandoverSubmitV3Request {
+ readonly handoverRef: string;
+}
+export interface PostHandoverSubmitV3Response {
+ readonly submitted: boolean;
+ readonly queueRef: string;
+}
+
+export interface PostKnowledgeSearchV2Request {
+ readonly query: string;
+ readonly language: string;
+}
+export interface PostKnowledgeSearchV2Response {
+ readonly sources: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly withheld: number;
+}
+
+export type GetStatusRequest = Record<string, never>;
+export interface GetStatusResponse {
+ readonly ok: boolean;
+ readonly mode: string;
+ readonly azure: boolean;
+ readonly ollama: boolean;
+ readonly production: boolean;
+ readonly activated: boolean;
+}
+
 export const apiRoutes = {
  postCoreEvents: { name: "postCoreEvents", method: "POST", path: "/v1/core/events", mountedPath: "/v1/core/events", version: 1, engine: "core", callers: ["engine:access","engine:pulse","engine:care","engine:clinical","engine:safety","engine:movement","engine:trust","engine:record","engine:medicines","engine:devices","engine:money"], purpose: ["audit"], idempotent: false, status: "built" },
  postCoreLoops: { name: "postCoreLoops", method: "POST", path: "/v1/core/loops", mountedPath: "/v1/core/loops", version: 1, engine: "core", callers: ["engine:care","engine:safety","engine:medicines","engine:access","engine:movement"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
@@ -2580,5 +2733,17 @@ export const apiRoutes = {
  postMoneyClaimsByClaimRefConsent: { name: "postMoneyClaimsByClaimRefConsent", method: "POST", path: "/v1/money/claims/{claimRef}/consent", mountedPath: "/v1/money/claims/{claimRef}/consent", version: 1, engine: "money", callers: ["patient"], purpose: ["billing"], idempotent: true, status: "built" },
  postMoneyClaimsByClaimRefSubmit: { name: "postMoneyClaimsByClaimRefSubmit", method: "POST", path: "/v1/money/claims/{claimRef}/submit", mountedPath: "/v1/money/claims/{claimRef}/submit", version: 1, engine: "money", callers: ["doctor","admin"], purpose: ["billing"], idempotent: true, status: "built" },
  getMoneyClaims: { name: "getMoneyClaims", method: "GET", path: "/v1/money/claims", mountedPath: "/v1/money/claims", version: 1, engine: "money", callers: ["patient","doctor"], purpose: ["billing"], idempotent: false, status: "built" },
- getMoneyHeldCashPayments: { name: "getMoneyHeldCashPayments", method: "GET", path: "/v1/money/held-cash-payments", mountedPath: "/v1/money/held-cash-payments", version: 1, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: false, status: "built" }
+ getMoneyHeldCashPayments: { name: "getMoneyHeldCashPayments", method: "GET", path: "/v1/money/held-cash-payments", mountedPath: "/v1/money/held-cash-payments", version: 1, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: false, status: "built" },
+ getAssistantHealth: { name: "getAssistantHealth", method: "GET", path: "/health", mountedPath: "/assistant/health", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built" },
+ postAssistantTurn: { name: "postAssistantTurn", method: "POST", path: "/turn", mountedPath: "/assistant/turn", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postTurn: { name: "postTurn", method: "POST", path: "/v1/turn", mountedPath: "/assistant/v1/turn", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postListenV3: { name: "postListenV3", method: "POST", path: "/v1/listen", mountedPath: "/assistant/v1/listen", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postSpeakV3: { name: "postSpeakV3", method: "POST", path: "/v1/speak", mountedPath: "/assistant/v1/speak", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postTriageStartV3: { name: "postTriageStartV3", method: "POST", path: "/v1/triage/start", mountedPath: "/assistant/v1/triage/start", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postTriageAnswerV3: { name: "postTriageAnswerV3", method: "POST", path: "/v1/triage/answer", mountedPath: "/assistant/v1/triage/answer", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postVitalsV3: { name: "postVitalsV3", method: "POST", path: "/v1/vitals", mountedPath: "/assistant/v1/vitals", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postHandoverPrepareV3: { name: "postHandoverPrepareV3", method: "POST", path: "/v1/handover/prepare", mountedPath: "/assistant/v1/handover/prepare", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postHandoverSubmitV3: { name: "postHandoverSubmitV3", method: "POST", path: "/v1/handover/submit", mountedPath: "/assistant/v1/handover/submit", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postKnowledgeSearchV2: { name: "postKnowledgeSearchV2", method: "POST", path: "/v1/knowledge/search", mountedPath: "/assistant/v1/knowledge/search", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
+ getStatus: { name: "getStatus", method: "GET", path: "/v1/status", mountedPath: "/assistant/v1/status", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built" }
 } as const satisfies Record<string, ApiRoute>;

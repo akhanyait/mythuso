@@ -82,23 +82,15 @@
 .as-launcher { position:absolute; right:var(--space-16); bottom:var(--space-12); width:var(--al-footprint); height:var(--al-footprint); padding:0; border:0; border-radius:18px; background:transparent; box-shadow:none; cursor:pointer; }
 .as-launcher[aria-expanded=true] { opacity:0; }
 .as-launcher span { position:absolute; }
-.al-glow { inset:0; background:none; }
 .as-launcher .al-orb { inset:0; background:url('/brand/gilbert-robot-v2.webp') center / contain no-repeat; }
 .al-orb::before, .al-orb::after { box-sizing:border-box; content:''; position:absolute; top:32%; width:10%; height:8%; border:2px solid #62fff3; border-bottom:0; border-radius:50% 50% 0 0; box-shadow:0 -1px 3px #62fff3; }
 .al-orb::before { left:37%; }
 .al-orb::after { right:37%; }
-.al-ring, .al-spark { display:none; }
 @keyframes al-blink { 0%, 46%, 50%, 100% { transform:scaleY(1); } 48% { transform:scaleY(.08); } }
 :root[data-decor=on] .al-orb::before, :root[data-decor=on] .al-orb::after { animation:al-blink 5.5s linear infinite; }
 .al-note { position:absolute; right:var(--space-16); bottom:84px; width:260px; margin:0; padding:var(--space-12); border-radius:var(--r-control); background:var(--surface); box-shadow:var(--shadow-raised); font-size:14px; }
-@keyframes al-breathe { to { transform:scale(1.14); opacity:1; } }
-@keyframes al-x { from { transform:translateX(-22px); } to { transform:translateX(22px); } }
-@keyframes al-y { from { transform:translateY(-8px); } to { transform:translateY(8px); } }
-:root[data-decor=on] .al-glow { animation:al-breathe 3.25s ease-in-out infinite alternate; }
-:root[data-decor=on] .al-spark i { animation:al-x 3.5s ease-in-out infinite alternate; }
-:root[data-decor=on] .al-spark i::after { animation:al-y 3.5s ease-in-out -1.75s infinite alternate; }
 /* Room for it: the last thing on a page scrolls clear of the robot, and on a wide screen the
-   footer's help link moves out from under him. The reservation belongs to the dock rather than to
+   footer's help link moves clear of both him and the 190px invitation beside him. The reservation belongs to the dock rather than to
    the patient surface, because since the audience decision of 19 September he is docked in the
    clinical and back-office workspaces too, and those columns were reserving nothing — a doctor's
    "Confirm and continue" at 390px sat underneath him. Any column that mounts the dock gives up the
@@ -106,7 +98,7 @@
    dock — his bottom offset plus his height — and a gap above that, so a CTA is clear of him rather
    than touching him. */
 .app-shell main:has(~ .al-dock) { padding-bottom:calc(var(--space-12) + var(--al-footprint) + var(--space-16)); }
-@media (min-width:1000px) { .app-footer:has(~ .al-dock) { padding-right:calc(var(--al-footprint) + var(--space-16)); } }
+@media (min-width:1000px) { .app-footer:has(~ .al-dock) { padding-right:calc(var(--al-footprint) + 224px); } }
 
 .al-smile { top:43%; left:46%; width:8%; height:4%; border:2px solid #62fff3; border-top:0; border-radius:0 0 50% 50%; }
 @keyframes al-float { to { transform:translateY(-2px); } }

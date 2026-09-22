@@ -2,21 +2,19 @@ import { useEffect, useState } from 'react';
 import copy from '../../../../packages/catalog/assistant-ui.json';
 import './assistant-greeting.css';
 
-/* One invitation per mount, never an announcement or a reason to open the microphone.
-   Opening the assistant or dismissing the invitation ends it for this page visit. */
+/* A quiet invitation, never an announcement or a reason to open the microphone.
+   Opening hides the invitation; minimising brings it back. Dismissal lasts for this page visit. */
 export function AssistantGreeting({ open, onOpen }: { open: boolean; onOpen: () => void }) {
- const [visible, setVisible] = useState(false);
- const [finished, setFinished] = useState(false);
- useEffect(() => { if (open) { setFinished(true); setVisible(false); } }, [open]);
+ const [state, setState] = useState<'waiting' | 'visible' | 'finished'>('waiting');
  useEffect(() => {
-  if (finished || open) return;
-  const appear = window.setTimeout(() => { if (!document.hidden) setVisible(true); }, copy.greetingDelayMs);
-  const disappear = window.setTimeout(() => { setVisible(false); setFinished(true); }, copy.greetingDelayMs + copy.greetingDurationMs);
-  return () => { clearTimeout(appear); clearTimeout(disappear); };
- }, [finished, open]);
- if (!visible || open || finished) return null;
+  if (open) { if (state !== 'finished') setState('visible'); return; }
+  if (state !== 'waiting') return;
+  const appear = window.setTimeout(() => setState('visible'), copy.greetingDelayMs);
+  return () => clearTimeout(appear);
+ }, [state, open]);
+ if (state !== 'visible' || open) return null;
  return <aside className="assistant-greeting">
-  <button type="button" onClick={onOpen}>{copy.greeting}</button>
-  <button type="button" aria-label={copy.dismissGreeting} onClick={() => { setVisible(false); setFinished(true); }}>×</button>
+  <button type="button" onClick={onOpen}><span>{copy.greeting}</span><strong>{copy.greetingAction}</strong></button>
+  <button type="button" aria-label={copy.dismissGreeting} onClick={() => setState('finished')}>×</button>
  </aside>;
 }

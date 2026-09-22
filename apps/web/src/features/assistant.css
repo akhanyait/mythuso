@@ -634,6 +634,8 @@
   background: color-mix(in srgb, var(--brand-mint) 30%, var(--surface));
 }
 .as-voice-state,
+.as-voice-session,
+.as-voice-consent-line,
 .as-voice-heard,
 .as-voice-browser,
 .as-voice-note {
@@ -816,6 +818,8 @@
   .as-silence,
   .as-keyboard,
   .as-voice-state,
+  .as-voice-session,
+  .as-voice-consent-line,
   .as-voice-heard,
   .as-voice-browser,
   .as-voice-note {
@@ -893,6 +897,8 @@
   .as-silence,
   .as-keyboard,
   .as-voice-state,
+  .as-voice-session,
+  .as-voice-consent-line,
   .as-voice-heard,
   .as-voice-browser,
   .as-voice-note {
@@ -998,6 +1004,8 @@
 .as-keyboard,
 .as-silence,
 .as-voice-state,
+.as-voice-session,
+.as-voice-consent-line,
 .as-voice-heard,
 .as-voice-browser,
 .as-voice-note {
@@ -1040,6 +1048,64 @@
 }
 .as-voice-lines {
   grid-row: 3;
+}
+/* The session line, since the push-to-talk session work of 22 September 2026: one of the contract's
+   five moments, shown beside the microphone's own state line and never the idle one. It is set a
+   step heavier than the footnote lines around it because it is the answer to "what is the voice
+   doing" — the microphone's state line answers "what is the microphone doing" — and the two are
+   different questions a person asks in the same breath. */
+.as-voice-session {
+  font-weight: 600;
+}
+/* The session's consent, put on the screen on the first tap of the microphone: the two agreements
+   the contract records — the microphone, and where the hearing and the reading happen — as a card
+   beside the control that asks for them. It is a card rather than another footnote because it is a
+   question, and a question that reads like a footnote is one a person reads past. */
+.as-voice-consent {
+  display: grid;
+  gap: var(--space-8);
+  padding: var(--space-12);
+  border: 1px solid var(--brand-green);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--brand-mint) 16%, var(--surface));
+}
+.as-voice-consent-line {
+  margin: 0;
+}
+/* The session's controls, on one row under the line that says which moment they belong to: Cancel
+   or Stop the voice for the state that is running, and Type instead beside it either way. The
+   targets keep the 44px touch floor the microphone button keeps, because a cancel that is hard to
+   hit is a capture that keeps going. */
+.as-voice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+}
+.as-voice-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 var(--space-16);
+  border: 1px solid var(--brand-green);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  color: var(--brand-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.as-voice-actions button:hover {
+  background: color-mix(in srgb, var(--brand-mint) 30%, var(--surface));
+}
+.as-voice-actions .as-voice-agree {
+  background: var(--brand-ink);
+  color: var(--surface);
+}
+.as-voice-actions .as-voice-agree:hover {
+  background: var(--brand-green);
 }
 .as-keyboard {
   border-color: var(--stone);
@@ -1516,7 +1582,8 @@
 .as-gate-foot {
   position: relative;
   z-index: 1;
-  box-shadow: 0 -10px 18px -14px color-mix(in srgb, var(--brand-ink) 55%, transparent);
+  box-shadow: 0 -10px 18px -14px
+    color-mix(in srgb, var(--brand-ink) 55%, transparent);
 }
 .as-scroll {
   padding-bottom: var(--space-32);
@@ -1590,5 +1657,986 @@
 .as-head {
   position: relative;
   z-index: 1;
-  box-shadow: 0 10px 18px -14px color-mix(in srgb, var(--brand-ink) 55%, transparent);
+  box-shadow: 0 10px 18px -14px
+    color-mix(in srgb, var(--brand-ink) 55%, transparent);
+}
+
+/* Acknowledgment first, conversation second. Topics stay available on request, so the
+   first chat view gives its space to the person's words. All safety copy remains readable. */
+.as-asks > summary,
+.as-voice-details > summary {
+  min-height: 44px;
+  display: list-item;
+  align-content: center;
+  cursor: pointer;
+  color: var(--brand-ink);
+  font-weight: 600;
+}
+.as-asks:not([open]) {
+  padding-block: 0;
+}
+.as-asks[open] > section {
+  margin-top: var(--space-16);
+}
+.as-gate .as-gate-card {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.as-gate .as-gate-card + .as-gate-card {
+  border-top: 1px solid var(--stone);
+  padding-top: var(--space-16);
+}
+.as-gate-emergency {
+  border-left: 3px solid var(--brand-orange);
+  padding-left: var(--space-12);
+}
+.as-head[data-gate] .as-rig {
+  --rig: 64px;
+}
+.as-gate-list {
+  columns: 1;
+}
+.as-foot {
+  padding-block: var(--space-8);
+}
+.as-voice {
+  min-height: 44px;
+  font-weight: 650;
+}
+.as-voice-note {
+  line-height: 1.45;
+}
+
+.as-voice-details {
+  margin-top: var(--space-8);
+  font-size: 13px;
+}
+
+/* Founder reference, 21 September: an aqua welcome, clear question cards and one voice action.
+   The large welcome scrolls away; the composer and safety strip remain in reach on a phone. */
+.as-panel {
+  border: 7px solid var(--surface);
+  border-radius: 32px;
+  background: var(--surface);
+  box-shadow:
+    0 18px 65px #07344930,
+    0 3px 12px #07344918;
+}
+.as-panel::backdrop {
+  background: #07344935;
+  backdrop-filter: blur(5px);
+}
+.as-frame {
+  border: 1px solid #b7dfe3;
+  border-radius: 25px;
+  overflow: hidden;
+  background: #f6fcfd;
+}
+.as-head,
+.as-head[data-asked] {
+  background: #f9fdfe;
+  color: var(--brand-ink);
+  border: 0;
+  box-shadow: none;
+  padding: 16px 20px 8px;
+  gap: 4px 12px;
+}
+.as-head .as-bar {
+  align-items: center;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+.as-titles {
+  min-width: 0;
+  flex: 1;
+}
+.as-head .as-brand {
+  display: block;
+  width: 142px;
+  max-width: 100%;
+  height: auto;
+  margin: 0;
+}
+.as-head .as-descriptor,
+.as-head .as-simulated {
+  color: var(--brand-ink);
+  font-size: 13px;
+  line-height: 1.4;
+  margin-top: 8px;
+}
+.as-head .as-controls {
+  flex: 0 0 auto;
+  gap: 6px;
+}
+.as-head .as-close,
+.as-head .as-pause {
+  border: 1px solid #dbe9ed;
+  background: #fff;
+  color: var(--brand-ink);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0;
+  box-shadow: 0 2px 6px #07344909;
+}
+.as-head .as-rig,
+.as-head[data-asked] .as-rig {
+  --rig: 48px;
+  margin: 0;
+}
+.as-head[data-gate] .as-rig {
+  --rig: 64px;
+}
+.as-caption {
+  color: var(--brand-ink);
+}
+.as-state,
+.as-head .as-state {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  width: fit-content;
+  border: 0;
+  padding: 3px 8px;
+  background: #e1f7f2;
+  color: var(--brand-ink);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.as-state[data-pulse="escalate"] {
+  background: #fff0dc;
+}
+.as-caption .as-name,
+.as-caption .as-figure {
+  color: var(--brand-ink);
+}
+.as-scroll {
+  padding: 8px 22px 20px;
+  background: #f6fcfd;
+}
+.as-welcome-hero {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin: 0 -22px 16px;
+  padding: 22px 22px 18px;
+  overflow: hidden;
+}
+.as-welcome-hero::before,
+.as-welcome-hero::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 115%;
+  height: 130px;
+  background: linear-gradient(105deg, #bceef0b3, #def6f280);
+  border-radius: 50%;
+  left: -28%;
+  top: 8px;
+  transform: rotate(10deg);
+}
+.as-welcome-hero::after {
+  left: 32%;
+  top: 28px;
+  transform: rotate(-18deg);
+  opacity: 0.6;
+}
+.as-welcome-hero .as-rig {
+  --rig: 176px;
+}
+.as-welcome-hero .as-rig text {
+  display: none;
+}
+.as-hero-copy p {
+  margin: 0;
+}
+.as-hello {
+  font-size: 21px;
+  line-height: 1.3;
+}
+.as-wordmark {
+  font-size: clamp(30px, 3vw, 41px);
+  font-weight: 800;
+  letter-spacing: -1.7px;
+  line-height: 1.2;
+  background: linear-gradient(90deg, var(--brand-ink) 0 63%, #009c89 63%);
+  background-clip: text;
+  color: transparent;
+  width: fit-content;
+}
+.as-hero-copy .as-hero-descriptor {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.as-hero-copy .as-hero-lead {
+  margin-top: 10px;
+  color: #42627a;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.as-hero-copy .as-state {
+  margin-top: 12px;
+}
+.as-log[data-welcome] .as-reply {
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.as-log[data-welcome] .as-who {
+  display: none;
+}
+.as-log[data-welcome] .as-turn {
+  margin: 0;
+}
+.as-log[data-welcome] p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.as-asks {
+  border: 0;
+  margin-top: 14px;
+  padding: 0;
+}
+.as-asks section + section {
+  margin-top: 22px;
+}
+.as-asks h3 {
+  font-size: 17px;
+  font-weight: 650;
+  margin: 0 0 10px;
+}
+.as-asks section:first-child h3 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.as-asks section > p {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #42627a;
+}
+.as-chips {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.as-chips .as-ask {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-height: 78px;
+  padding: 13px 12px;
+  border: 1px solid #dfebef;
+  border-radius: 19px;
+  background: #fff;
+  color: var(--brand-ink);
+  box-shadow: 0 3px 12px #07344906;
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: left;
+}
+.as-chips .as-ask:hover {
+  border-color: #4fcbbd;
+  background: #f0fcfa;
+}
+.as-chips .as-ask.urgent {
+  border-color: #eddac4;
+}
+.as-question-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #eefaf8;
+  color: #008e8e;
+}
+.as-ask.urgent .as-question-icon {
+  color: var(--brand-ink);
+  background: #fff0dc;
+}
+.as-reply {
+  border: 1px solid #dce9ed;
+  border-radius: 19px 19px 19px 5px;
+  box-shadow: 0 3px 12px #07344905;
+}
+.as-said {
+  background: #007e7c;
+}
+.as-voice-details {
+  margin-top: 16px;
+  color: #42627a;
+}
+.as-voice-details > summary {
+  font-weight: 400;
+  font-size: 13px;
+}
+.as-foot {
+  border: 0;
+  margin-top: 8px;
+  padding: 0;
+  color: #42627a;
+}
+.as-compose {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 5px;
+  border-top: 1px solid #d6e9eb;
+  border-radius: 24px 24px 0 0;
+  padding: 12px 16px max(10px, env(safe-area-inset-bottom));
+  background: #fcfefe;
+  box-shadow: 0 -5px 20px #07344905;
+}
+.as-compose > label {
+  grid-column: 1;
+  grid-row: auto;
+  min-height: 0;
+  font-size: 13px;
+}
+.as-compose .as-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+.as-compose .as-field input {
+  grid-column: 1;
+  grid-row: 1;
+  min-height: 50px;
+  border-radius: 20px;
+  border-color: #b8d9df;
+  background: #fff;
+  font-size: 16px;
+  padding-inline: 14px;
+}
+.as-compose .as-send {
+  grid-column: 2;
+  grid-row: 1;
+  min-height: 50px;
+  padding-inline: 15px;
+  border-radius: 20px;
+  background: #009b8b;
+  color: #fff;
+}
+.as-compose .as-voice {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-height: 44px;
+  width: 100%;
+  justify-content: center;
+  border-radius: 24px;
+  border-color: #a8dbdf;
+  background: linear-gradient(100deg, #d4f7f3, #f7fdfd 70%);
+  color: var(--brand-ink);
+}
+.as-compose .as-voice[aria-pressed="true"] {
+  background: #073449;
+  color: #fff;
+  border-color: #009b8b;
+}
+.as-compose .as-voice-lines {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  gap: 2px;
+}
+.as-compose .as-keyboard {
+  margin: 0;
+  padding-top: 4px;
+  font-size: 12px;
+  line-height: 1.35;
+  border: 0;
+}
+.as-compose .as-voice-note {
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+}
+.as-compose .as-silence {
+  grid-column: 1;
+  grid-row: auto;
+  margin: 2px 0 0;
+  border: 0;
+  border-radius: 12px;
+  background: #e4f7ef;
+  color: var(--brand-ink);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.as-gate {
+  padding-top: 14px;
+}
+.as-gate-intro h3 {
+  font-size: 24px;
+}
+.as-gate-foot {
+  background: #fcfefe;
+  border-top: 1px solid #d6e9eb;
+}
+.as-gate-accept {
+  background: #007f78;
+  border-radius: 24px;
+}
+.as-gate-check input {
+  accent-color: #008f84;
+}
+@media (min-width: 1000px) {
+  .as-panel {
+    width: min(560px, calc(100vw - 48px));
+    height: min(1020px, calc(100dvh - 40px));
+  }
+}
+@media (max-width: 560px) {
+  .as-panel {
+    border-width: 4px;
+    border-bottom-width: 0;
+    border-radius: 27px 27px 0 0;
+  }
+  .as-frame {
+    border-radius: 23px 23px 0 0;
+  }
+  .as-head,
+  .as-head[data-asked] {
+    padding: 12px 12px 6px;
+  }
+  .as-head .as-brand {
+    width: 126px;
+  }
+  .as-head .as-controls {
+    gap: 4px;
+  }
+  .as-scroll {
+    padding-inline: 14px;
+  }
+  .as-welcome-hero {
+    grid-template-columns: 110px minmax(0, 1fr);
+    gap: 8px;
+    margin-inline: -14px;
+    padding: 14px;
+  }
+  .as-welcome-hero .as-rig {
+    --rig: 114px;
+  }
+  .as-hello {
+    font-size: 17px;
+  }
+  .as-wordmark {
+    font-size: 29px;
+    letter-spacing: -1.3px;
+  }
+  .as-hero-copy .as-hero-descriptor,
+  .as-hero-copy .as-hero-lead {
+    font-size: 13px;
+  }
+  .as-hero-copy .as-hero-lead {
+    margin-top: 6px;
+  }
+  .as-chips {
+    gap: 8px;
+  }
+  .as-chips .as-ask {
+    gap: 8px;
+    padding: 10px;
+    min-height: 82px;
+    font-size: 13px;
+    border-radius: 16px;
+  }
+  .as-question-icon {
+    flex-basis: 28px;
+    height: 32px;
+    background: transparent;
+  }
+  .as-compose {
+    padding: 8px 10px max(8px, env(safe-area-inset-bottom));
+  }
+}
+@media (max-width: 359px) {
+  .as-head .as-brand {
+    width: 112px;
+  }
+  .as-head .as-controls {
+    gap: 2px;
+  }
+  .as-welcome-hero {
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+  .as-welcome-hero .as-rig {
+    --rig: 96px;
+  }
+  .as-wordmark {
+    font-size: 26px;
+  }
+  .as-chips .as-ask {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+.as-scroll {
+  gap: 16px;
+  grid-auto-rows: max-content;
+}
+/* The hero introduces the chat; a second opening bubble would repeat that introduction. */
+.as-log[data-welcome] {
+  display: none;
+}
+.as-asks {
+  gap: 22px;
+}
+.as-asks section + section {
+  margin-top: 0;
+}
+.as-compose > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 359px) {
+  .as-compose {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+  .as-compose .as-field input,
+  .as-compose .as-send {
+    min-height: 44px;
+  }
+  .as-compose .as-keyboard {
+    line-height: 1.3;
+  }
+}
+.as-head[data-asked] .as-rig {
+  --rig: 64px;
+}
+/* Hidden labels must stay inside their own section, never enlarge the dialog's scroll area. */
+.as-asks section {
+  position: relative;
+}
+.as-rig text {
+  display: none;
+}
+
+/* Keep the microphone explanation available without fixing a paragraph over the conversation. */
+.as-compose .as-voice {
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 52px;
+  padding: 4px 14px 4px 5px;
+  background: linear-gradient(115deg, #e6faf7, #fff);
+  box-shadow: 0 2px 8px #07344908;
+  font-size: 15px;
+}
+.as-mic-disc {
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #bdf1e9;
+  color: #006e70;
+}
+.as-voice[aria-pressed="true"] .as-mic-disc {
+  background: #fff;
+  color: #006e70;
+}
+.as-compose .as-mic-details {
+  margin: 0;
+  color: #42627a;
+  font-size: 12px;
+}
+.as-mic-details summary {
+  cursor: pointer;
+  width: fit-content;
+  padding: 5px 0;
+  min-height: 28px;
+}
+.as-mic-details[open] {
+  max-height: 160px;
+  overflow-y: auto;
+}
+.as-mic-details .as-voice-note {
+  text-align: left;
+}
+.as-compose .as-field {
+  grid-template-columns: minmax(0, 1fr) 44px 48px 48px;
+  gap: 8px;
+}
+.as-compose .as-field input:not([type="file"]) {
+  grid-column: 1 / 4;
+}
+.as-compose .as-send {
+  grid-column: 4;
+  padding-inline: 0;
+  justify-content: center;
+  gap: 0;
+  border-radius: 50%;
+}
+.as-compose .as-send svg {
+  width: 22px;
+  height: 22px;
+}
+.as-compose .as-voice {
+  grid-column: 1 / 3;
+}
+.as-compose .as-media {
+  display: grid;
+  place-items: center;
+  grid-row: 2;
+  min-height: 52px;
+  border: 1px solid #cce2e7;
+  border-radius: 24px;
+  background: #fff;
+  color: #073449;
+}
+.as-compose .as-camera {
+  grid-column: 3;
+}
+.as-compose .as-attach {
+  grid-column: 4;
+}
+.as-compose .as-media:hover {
+  background: #e6faf7;
+  border-color: #009b8b;
+}
+.as-compose .as-field input[type="file"] {
+  display: none;
+}
+.as-compose .as-voice-lines {
+  grid-row: auto;
+}
+.as-attachment-preview {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  max-height: 130px;
+  overflow-y: auto;
+  font-size: 12px;
+  color: #42627a;
+}
+.as-attachment-preview p {
+  margin: 2px 0 6px;
+}
+.as-attachment-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid #cce2e7;
+  border-radius: 12px;
+  background: #fff;
+}
+.as-attachment-file img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.as-attachment-file span {
+  flex: 1;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.as-attachment-file button {
+  flex: 0 0 44px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+}
+
+/* Keep the initial choices in view on everyday phone screens; small screens and larger text
+   retain scrolling rather than clipping choices or reducing touch targets. */
+.as-wordmark-i {
+  background: linear-gradient(
+    to bottom,
+    var(--brand-orange) 0 0.34em,
+    var(--brand-ink) 0.34em
+  );
+  background-clip: text;
+  color: transparent;
+}
+.as-scroll[data-welcome] {
+  gap: 4px;
+  padding-bottom: 8px;
+}
+.as-scroll[data-welcome] .as-welcome-hero {
+  margin-bottom: 0;
+  padding-block: 6px;
+}
+.as-scroll[data-welcome] .as-welcome-hero .as-rig {
+  --rig: 118px;
+}
+.as-scroll[data-welcome] .as-hero-copy .as-state {
+  margin-top: 5px;
+}
+.as-scroll[data-welcome] .as-hero-descriptor {
+  margin-top: 4px;
+}
+.as-scroll[data-welcome] .as-asks {
+  margin-top: 0;
+  gap: 10px;
+}
+.as-scroll[data-welcome] .as-asks h3 {
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+.as-scroll[data-welcome] .as-asks section > p {
+  margin-bottom: 6px;
+}
+.as-scroll[data-welcome] .as-chips {
+  gap: 6px;
+}
+.as-scroll[data-welcome] .as-chips .as-ask {
+  min-height: 56px;
+  padding: 8px 10px;
+}
+.as-scroll[data-welcome] .as-voice-details {
+  margin-top: 0;
+}
+.as-scroll[data-welcome] .as-foot {
+  margin-top: 0;
+}
+@media (max-width: 560px) {
+  .as-scroll[data-welcome] .as-welcome-hero {
+    grid-template-columns: 90px minmax(0, 1fr);
+  }
+  .as-scroll[data-welcome] .as-welcome-hero .as-rig {
+    --rig: 94px;
+  }
+  .as-scroll[data-welcome] .as-hello {
+    font-size: 15px;
+  }
+  .as-scroll[data-welcome] .as-chips .as-ask {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+/* ---- GilbertOne connected-capability region ----------------------------------------------------
+   The service region's own styles, appended 22 September 2026 with the integration that wired the
+   status, retrieval, triage and handover routes into the panel. It reuses the panel's tokens and the
+   same mint-on-ink pairing the summary rows above use, so a capability that is connected and one that
+   is gated read as part of the same surface rather than as an addition bolted on. Everything here is
+   inside the already-lazy panel chunk; none of it touches the patient entry. */
+.gos-region {
+  display: grid;
+  gap: var(--space-12);
+  margin-top: var(--space-16);
+}
+.gos-block {
+  border-top: 1px solid var(--stone);
+  padding-top: var(--space-12);
+  font-size: 14px;
+  color: var(--brand-ink);
+}
+.gos-block > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--brand-ink);
+  list-style: none;
+}
+.gos-block > summary::-webkit-details-marker {
+  display: none;
+}
+.gos-block > summary::before {
+  content: "";
+  inline-size: 8px;
+  block-size: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 120ms ease;
+}
+.gos-block[open] > summary::before {
+  transform: rotate(45deg);
+}
+.gos-block > summary svg {
+  color: var(--brand-mint);
+}
+.gos-assessment {
+  display: grid;
+  gap: var(--space-8);
+  padding-block: var(--space-12);
+}
+.gos-lead {
+  margin: 0 0 var(--space-8);
+  font-size: 13px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--brand-ink) 78%, var(--stone));
+}
+.gos-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+}
+.gos-heading svg {
+  color: var(--brand-mint);
+}
+.gos-note {
+  margin: var(--space-4) 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--brand-ink) 74%, var(--stone));
+}
+.gos-loading {
+  margin: 0;
+  font-size: 13px;
+  font-style: italic;
+  color: color-mix(in srgb, var(--brand-ink) 60%, var(--stone));
+}
+.gos-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+.gos-button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: 0 var(--space-16);
+  border: 0;
+  border-radius: 999px;
+  background: var(--brand-ink);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.gos-button:hover {
+  background: color-mix(in srgb, var(--brand-ink) 88%, #fff);
+}
+.gos-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.gos-button.subtle {
+  background: transparent;
+  color: var(--brand-ink);
+  border: 1px solid var(--stone);
+}
+.gos-button.subtle:hover {
+  background: color-mix(in srgb, var(--stone) 40%, #fff);
+}
+.gos-refusal {
+  display: flex;
+  gap: var(--space-8);
+  margin: var(--space-8) 0 0;
+  padding: var(--space-12);
+  border-left: 3px solid var(--brand-orange);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--brand-orange) 8%, #fff);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.gos-refusal svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--brand-orange);
+}
+.gos-status-list,
+.gos-pack {
+  display: grid;
+  gap: var(--space-8);
+  margin: 0;
+}
+.gos-status-list div,
+.gos-pack div {
+  display: grid;
+  gap: 2px;
+  padding-bottom: var(--space-8);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
+}
+.gos-status-list dt,
+.gos-pack dt {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-mint);
+}
+.gos-status-list dd,
+.gos-pack dd {
+  margin: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.gos-status-list dd[data-yes] {
+  color: var(--brand-mint);
+  font-weight: 650;
+}
+.gos-inline-list {
+  margin: 0;
+  padding-left: var(--space-20);
+  display: grid;
+  gap: 2px;
+}
+.gos-sources ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-8);
+}
+.gos-sources li {
+  display: grid;
+  gap: 2px;
+  padding-bottom: var(--space-8);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
+}
+.gos-source-title {
+  font-weight: 600;
+}
+.gos-source-from {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--brand-ink) 74%, var(--stone));
+}
+.gos-source-from strong {
+  color: var(--brand-mint);
+}
+.gos-question {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.gos-device {
+  margin-top: var(--space-12);
+  padding: var(--space-12);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--brand-mint) 8%, #fff);
+}
+.gos-device-static {
+  margin-top: var(--space-12);
+}
+.gos-review-lead {
+  margin: 0 0 var(--space-8);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.gos-handover {
+  display: grid;
+  gap: var(--space-8);
+  margin-top: var(--space-8);
+}
+.gos-submit-refused {
+  display: grid;
+  gap: var(--space-4);
 }

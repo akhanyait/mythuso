@@ -1,4 +1,6 @@
-.assistant-greeting { position: fixed; right: 20px; bottom: 132px; z-index: 44; display: flex; align-items: center; max-width: min(290px, calc(100vw - 32px)); padding: 6px; border: 1px solid var(--brand-mint); border-radius: 18px 18px 4px 18px; background: var(--surface); color: var(--brand-ink); box-shadow: var(--shadow-raised); }
-.assistant-greeting button { border: 0; background: transparent; color: inherit; font: inherit; font-size: 14px; text-align: left; min-height: 44px; padding: 8px; cursor: pointer; }
+.assistant-greeting { position: fixed; right: 132px; bottom: 42px; z-index: 44; display: flex; align-items: center; width: 190px; max-width: calc(100vw - 144px); padding: 5px; border: 1px solid #d8eceb; border-radius: 20px 20px 5px 20px; background: var(--surface); color: var(--brand-ink); box-shadow: 0 6px 24px #07344920; }
+.assistant-greeting button { border: 0; background: transparent; color: inherit; font: inherit; font-size: 14px; text-align: left; min-height: 44px; padding: 7px; cursor: pointer; }
+.assistant-greeting span, .assistant-greeting strong { display: block; }
 .assistant-greeting button:last-child { min-width: 44px; font-size: 22px; }
-.al-dock .assistant-greeting { position: absolute; bottom: 124px; right: 16px; width: 280px; }
+.al-dock .assistant-greeting { position: absolute; bottom: 34px; }
+.as-launcher::before { content: ''; position: absolute; inset: 0; border: 3px solid #64d7c4; border-radius: 50%; background: #effdfa; box-shadow: 0 0 0 5px #ffffffb3, 0 5px 22px #007e7c30; }

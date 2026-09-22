@@ -40,7 +40,19 @@ import { voice as voicePolicy } from "../../../../packages/catalog/assistant.jso
  * sold as production lip-sync. It is not sold as one. Boundary events are forwarded when the browser
  * fires them — Chrome does, reasonably — and the caller shapes one word at a time from them; when
  * they do not fire, the caller keeps the timed caption track it already had. Either way the shapes
- * are approximate articulation, which is exactly what §07's POC column asks for and no more. */
+ * are approximate articulation, which is exactly what §07's POC column asks for and no more.
+ *
+ * THE SESSION, SINCE 22 SEPTEMBER 2026. Push-to-talk has five moments — idle, listening,
+ * understanding, responding, speaking — and `voice.session` in packages/catalog/assistant.json is
+ * where their sentences, their consent and their control labels live. The panel shows those; what
+ * lives here are the two moments only a synthesiser can enter: `responding`, for the answer that
+ * has landed while the voice is about to read it, and `speaking`, for the reading itself. The
+ * session's third promise is the barge-in, and it is kept in one place: tapping the microphone
+ * while the voice is reading cancels the reading and opens the microphone in the same tap. Every
+ * ending of a reading — the utterance finishing, a browser failing it, a barge-in, a replacement,
+ * the panel shutting — runs through one close that happens exactly once, so the mouth and the
+ * caller are told the voice went quiet once. And nothing new is kept: a cancelled capture drops
+ * what it caught on both sides of the microphone. */
 
 export type VoiceStateId = "off" | "starting" | "open" | "error";
 
@@ -182,8 +194,8 @@ function readTranscript(event: RecognitionEvent): string {
  *  voice.voicePreference, and it is read rather than typed here: a preference that lived in this
  *  file would be one a reviewer had to read code to find, and this is the only module allowed to
  *  reach for the browser's voice list at all. */
-const VOICE_ORDER: readonly string[] = voicePolicy.voicePreference.order.map((tag) =>
-  tag.toLowerCase(),
+const VOICE_ORDER: readonly string[] = voicePolicy.voicePreference.order.map(
+  (tag) => tag.toLowerCase(),
 );
 
 /** The first voice in the contract's order that this browser actually has, or null when it has none
@@ -246,6 +258,47 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
     };
   }, []);
 
+  /* Whether this page has ever asked the synthesiser for anything. Nothing is reached for until
+    somebody presses something — a page that calls `cancel()` on an empty queue while it is drawing
+    itself has still reached for the API before anybody asked it to, and the journeys assert that it
+    has not. */
+  const everSpoke = useRef(false);
+  /* The browser's voices, kept from the moment it first has any. Some browsers fill the list in only
+    after firing `voiceschanged`, so an empty reading is not "this browser has none": the listener is
+    armed on the first utterance, guarded because a stand-in synthesiser may have no listener at
+    all, and the next utterance prefers from whatever has settled by then. Every part of this
+    happens inside `speak` — a page that asked for the voice list while it drew itself would have
+    reached for the synthesiser before anybody pressed anything. */
+  const voices = useRef<readonly SpeechSynthesisVoice[]>([]);
+  const hearingVoices = useRef(false);
+  /* The two moments of a session only the synthesiser enters, since the session work of 22 September
+    2026: `responding` is the answer that has landed while the voice is about to read it — a moment
+    the panel has a sentence for and must not have to guess at — and `speaking` is the reading
+    itself. Both are set by this file and by nothing else, so the panel's session line reads the
+    truth rather than inferring it from words arriving. */
+  const [responding, setResponding] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  /* The close of the reading in flight, so that every way a reading can end runs through one
+    function that stands the states down and tells the caller once. The synthesiser's own cancel
+    fires no event this file can hear, which is why the close has to be callable rather than only a
+    handler. */
+  const closeReading = useRef<(() => void) | null>(null);
+
+  /* Stop the voice, wherever it is stopped from: the session's own stop control, a barge-in from
+    the microphone, and the panel's resets all land here, and a close that has already happened is
+    told it has. Nothing is reached for before something was spoken — the everSpoke guard is the
+    same wall that has always stood between this page and an API nobody asked for. */
+  const cancel = useCallback(() => {
+    closeReading.current?.();
+    if (
+      !everSpoke.current ||
+      typeof window === "undefined" ||
+      !("speechSynthesis" in window)
+    )
+      return;
+    window.speechSynthesis.cancel();
+  }, []);
+
   const clearCap = () => {
     window.clearTimeout(cap.current);
     cap.current = 0;
@@ -271,6 +324,12 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
       stop();
       return;
     }
+    /* Barge-in, and the session's `speaking` sentence kept as a promise rather than a hope: tapping
+       the microphone while the voice is reading stops the voice and opens the microphone in the
+       same tap. The branch above must never reach here — that tap is the Stop for a microphone
+       that is already open — and the everSpoke guard inside `cancel` keeps a page that has never
+       spoken from reaching for the synthesiser at all. */
+    cancel();
 
     setFailure(null);
     setTranscript("");
@@ -354,31 +413,7 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
       setFailure("failed");
       setState("error");
     }
-  }, [stop]);
-
-  /* Whether this page has ever asked the synthesiser for anything. Nothing is reached for until
-    somebody presses something — a page that calls `cancel()` on an empty queue while it is drawing
-    itself has still reached for the API before anybody asked it to, and the journeys assert that it
-    has not. */
-  const everSpoke = useRef(false);
-  /* The browser's voices, kept from the moment it first has any. Some browsers fill the list in only
-    after firing `voiceschanged`, so an empty reading is not "this browser has none": the listener is
-    armed on the first utterance, guarded because a stand-in synthesiser may have no listener at
-    all, and the next utterance prefers from whatever has settled by then. Every part of this
-    happens inside `speak` — a page that asked for the voice list while it drew itself would have
-    reached for the synthesiser before anybody pressed anything. */
-  const voices = useRef<readonly SpeechSynthesisVoice[]>([]);
-  const hearingVoices = useRef(false);
-
-  const cancel = useCallback(() => {
-    if (
-      !everSpoke.current ||
-      typeof window === "undefined" ||
-      !("speechSynthesis" in window)
-    )
-      return;
-    window.speechSynthesis.cancel();
-  }, []);
+  }, [stop, cancel]);
 
   const speak = useCallback((text: string, options: SpeakOptions = {}) => {
     /* The contract's flag, before anything is reached for. While voice.webSpeech is false this surface
@@ -395,8 +430,12 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
     }
     everSpoke.current = true;
     /* One voice at a time. §04's stop event and §07's "close the mouth immediately on cancel" are the
-     same rule read from two directions, and both start with the previous utterance ending. */
+     same rule read from two directions, and both start with the previous utterance ending — and
+     "ending" is this file's own close, called here rather than waited for, because the
+     synthesiser's cancel fires no event this file can hear. A reading replaced without its close
+     would leave the face saying a mouth was open over a queue that had already been emptied. */
     const synthesis = window.speechSynthesis;
+    closeReading.current?.();
     synthesis.cancel();
 
     /* The voice list, read at the moment of speaking and never at load. A non-empty reading is kept
@@ -406,7 +445,10 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
      simply reads whatever `getVoices` answers with. */
     const listing = synthesis.getVoices();
     if (listing.length > 0) voices.current = listing;
-    if (!hearingVoices.current && typeof synthesis.addEventListener === "function") {
+    if (
+      !hearingVoices.current &&
+      typeof synthesis.addEventListener === "function"
+    ) {
       hearingVoices.current = true;
       synthesis.addEventListener("voiceschanged", () => {
         const settled = synthesis.getVoices();
@@ -419,12 +461,36 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
      preference is applied quietly and promises nothing, which is why the words written on the
      screen never depend on which voice takes them. */
     const chosen = preferredVoice(voices.current);
-    utterance.lang = chosen?.lang ?? voicePolicy.languages[0].recognitionLocales[0];
+    utterance.lang =
+      chosen?.lang ?? voicePolicy.languages[0].recognitionLocales[0];
     if (chosen) utterance.voice = chosen;
     let spokenWords = 0;
+    /* The reading's own close, shared by every ending it can have and idempotent because several of
+       them can arrive together: a cancel through the session's stop closes the reading and empties
+       the queue, and a browser may then fire nothing, an end, or an error of its own. Whatever
+       arrives first is the close; the rest are told it has happened. The states it stands down are
+       set by this file alone, and the caller's callback is guarded by aliveness the way every
+       callback here is. */
+    let closed = false;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      if (closeReading.current === close) closeReading.current = null;
+      setResponding(false);
+      setSpeaking(false);
+      if (!alive.current) return;
+      options.onEnd?.();
+    };
+    closeReading.current = close;
+    /* The answer has landed and the voice is about to read it: the session's `responding` moment is
+       entered before the request to speak rather than at the first word, because the moment between
+       the words arriving and the voice starting is one the panel has a sentence for. */
+    setResponding(true);
 
     utterance.onstart = () => {
       if (!alive.current) return;
+      setResponding(false);
+      setSpeaking(true);
       options.onStart?.();
     };
     utterance.onboundary = (event) => {
@@ -440,14 +506,8 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
       const word = text.slice(event.charIndex, event.charIndex + length);
       if (word) options.onWord?.(word, spokenWords++);
     };
-    utterance.onend = () => {
-      if (!alive.current) return;
-      options.onEnd?.();
-    };
-    utterance.onerror = () => {
-      if (!alive.current) return;
-      options.onEnd?.();
-    };
+    utterance.onend = close;
+    utterance.onerror = close;
 
     synthesis.speak(utterance);
   }, []);
@@ -457,6 +517,10 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
   useEffect(
     () => () => {
       clearCap();
+      /* A reading in flight dies with the panel, and its close — which would tell a component that
+         is going away about a mouth — is released without being called: the panel's own close
+         effect has already cancelled the voice it wanted stopped. */
+      closeReading.current = null;
       const listener = recogniser.current;
       recogniser.current = null;
       if (listener) {
@@ -477,6 +541,22 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
 
   const clearFailure = useCallback(() => setFailure(null), []);
 
+  /* The session's asked-for cancel, drop and all: whatever a capture has caught goes with it, on
+     both sides of the microphone — the transcript state and the recogniser — and nothing is handed
+     to the composer. Without the transcript step this would be `stop` (the words are handed over
+     when a capture ends with any, reviewed rather than kept), which is exactly the difference
+     between Stop and Cancel: one keeps what was heard for review, the other discards it. A
+     recogniser that has already closed makes this a plain wipe. */
+  const cancelCapture = useCallback(() => {
+    setTranscript("");
+    setFailure(null);
+    const listener = recogniser.current;
+    if (!listener) return;
+    asked.current = true;
+    clearCap();
+    listener.stop();
+  }, []);
+
   /* Only what the two web surfaces read. An exported member nothing calls is a promise about behaviour
     that no journey exercises, and on this module that is the wrong kind of unused. */
   return {
@@ -484,6 +564,11 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
     canSpeak,
     state,
     transcript,
+    /* The session's own two moments, beside the microphone's states: the panel reads which of the
+       five moments the voice is in from these and from the microphone's state, and from nothing
+       else. */
+    responding,
+    speaking,
     boundariesSeen,
     failureSentence: failure ? FAILURE_SENTENCES[surface][failure] : null,
     unavailable: SENTENCES[surface].unavailable,
@@ -493,6 +578,7 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
     stop,
     speak,
     cancel,
+    cancelCapture,
     clearFailure,
   } as const;
 }

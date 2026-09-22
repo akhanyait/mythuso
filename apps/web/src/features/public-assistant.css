@@ -36,3 +36,7 @@
 .public-assistant form { border-color: var(--stone); }
 .public-assistant form label, .public-assistant form p { color: var(--brand-ink); }
 .public-assistant input { border: 1px solid var(--brand-green); }
+
+/* At launcher size the chest lettering is illegible. The button's accessible name and
+   invitation bubble identify GilbertOne; keep the small character free of tiny text. */
+.public-assistant-launcher .go-rig text { display: none; }

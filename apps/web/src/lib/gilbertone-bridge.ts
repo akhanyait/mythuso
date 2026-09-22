@@ -40,13 +40,17 @@ import type { Visit } from './scheduling.ts';
  *
  * That reliability has a real cost, found by running the existing suite rather than reading
  * the code: send()'s reply for a forced match carries no matched groups (replyTo's emergency
- * case always returns groups: []), and the words it echoes back as "You asked" are the
- * synthetic phrase, not what the person actually typed. Both are corrected below, using the
- * real text against the real detector purely for what is shown, never for whether the
- * emergency presentation appears at all — the engine's route decision is never second-guessed
- * once made. A better long-term design is for the engine itself to return enough structured
- * emergency information for this bridge to build the reply directly, rather than reaching back
- * into a second matcher for it; tracked in the parity work this bridge is a first step toward.
+ * case always returns groups: []), the words it echoes back as "You asked" are the synthetic
+ * phrase, not what the person actually typed, and it records the phrase's own question as what
+ * was matched — which the nurse handover's summary then repeats back as if it had been asked.
+ * All three are corrected below, using the real text against the real detector purely for what
+ * is shown, never for whether the emergency presentation appears at all — the engine's route
+ * decision is never second-guessed once made. The matched question is cleared rather than
+ * re-derived because send()'s own emergency branch names no question at all: the groups carry
+ * the condition, and the handover says whether an emergency was raised, never which one. A
+ * better long-term design is for the engine itself to return enough structured emergency
+ * information for this bridge to build the reply directly, rather than reaching back into a
+ * second matcher for it; tracked in the parity work this bridge is a first step toward.
  */
 export function sendWithGilbertEngine(
   turns: Turn[],
@@ -65,7 +69,15 @@ export function sendWithGilbertEngine(
        it is the same "raised, but nothing specific named" case the unmodified answer already
        shows for a message the real matcher itself raises with no named condition. */
     const groups = emergencyGroupsIn(text);
-    const corrected: Turn = { ...last, asked: text, reply: { ...last.reply, groups }, groups };
+    /* matched: null, the way the real detector's own emergency turn leaves it — a forced match
+       names no question, and the handover's summary row reads this field back as its answer. */
+    const corrected: Turn = {
+      ...last,
+      asked: text,
+      reply: { ...last.reply, groups },
+      groups,
+      matched: null,
+    };
     return [...withEmergency.slice(0, -1), corrected];
   }
 
@@ -116,9 +128,9 @@ export function sendWithGilbertEngine(
  * replaces what is on the screen. Everything else (a service that is not running, one
  * that answered with a refusal or an emergency, a slow one, a wrong one) leaves the local answer
  * standing, so the panel behaves identically with the API up, down or unreachable, except that
- * an unmatched answer may be followed a moment later by a model-written one under the
- * answers.service heading. Nothing adds a pause to make an answer look considered: the local
- * answer is already on the screen when this runs, and this one arrives when it arrives. */
+ * the panel shows a waiting message until this request settles. A usable service reply is shown
+ * under answers.service; otherwise the local fallback is displayed once. Emergencies and
+ * approved local answers do not wait for this request. */
 declare const __ASSISTANT_API_URL__: string;
 
 const REFINE_TIMEOUT_MS = 12_000;
@@ -126,10 +138,17 @@ const REFINE_TIMEOUT_MS = 12_000;
 /* The URL the service is reached at: the vite define in development ('' by default, so the
    request goes to the dev server's /assistant proxy on this page's own origin), and the
    deployment's own value when one is set at build time. */
-const serviceUrl = (): string => {
+const serviceUrl = (path: string): string => {
   const base = typeof __ASSISTANT_API_URL__ === 'string' ? __ASSISTANT_API_URL__ : '';
-  return `${base}/assistant/turn`;
+  return `${base}${path}`;
 };
+
+/* The plan's versioned turn address, and the unversioned one it supersedes. The versioned path is
+   asked first; a service that predates it answers 404 — the one answer that means "no such route
+   here", not "no" in any of its meanings — and the same request goes once more to the old path,
+   sharing the one 12-second budget below. The fallback exists for deployments older than the
+   versioned surface, and it retires when none such exists rather than on a date. */
+const TURN_PATHS = ['/assistant/v1/turn', '/assistant/turn'] as const;
 
 export async function refineWithAssistantService(
   turns: Turn[],
@@ -145,20 +164,26 @@ export async function refineWithAssistantService(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REFINE_TIMEOUT_MS);
   try {
-    const response = await fetch(serviceUrl(), {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        text,
-        audience,
-        sessionId,
-        /* The confirmation refusals.ts asks for, and it is not a formality: the message this
-           request carries is the person's own message, typed and sent from this panel — pressing
-           Send is the confirmation. Nothing runs here without it. */
-        userConsent: true,
-      }),
-      signal: controller.signal,
-    });
+    const ask = (path: string) =>
+      fetch(serviceUrl(path), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          text,
+          audience,
+          sessionId,
+          /* The confirmation refusals.ts asks for, and it is not a formality: the message this
+             request carries is the person's own message, typed and sent from this panel — pressing
+             Send is the confirmation. Nothing runs here without it. */
+          userConsent: true,
+        }),
+        signal: controller.signal,
+      });
+    let response = await ask(TURN_PATHS[0]);
+    /* Only a 404 from the versioned path is retried, and only onto the unversioned one: every
+       other refusal — the origin's 403, the body limits' 400/413, the 501 family — is an answer
+       about this request or this deployment, and asking again would not change it. */
+    if (response.status === 404) response = await ask(TURN_PATHS[1]);
     if (!response.ok) return null;
     const body = (await response.json()) as { source?: string; reply?: string };
     /* One shape is accepted and everything else is quietly the local answer: a reply the
@@ -183,7 +208,7 @@ export async function refineWithAssistantService(
     return [...turns.slice(0, -1), refined];
   } catch {
     /* Unreachable, blocked, timed out, or answered with something that is not JSON — every one
-       of these is one fact to this function: keep what the contract already said. */
+       of these is one fact to this function: use the contract's fallback after waiting. */
     return null;
   } finally {
     clearTimeout(timer);

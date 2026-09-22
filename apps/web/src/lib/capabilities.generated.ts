@@ -3,8 +3,8 @@
 // disagree, so an edit here is lost rather than merely wrong.
 //
 // The 23 capabilities as the web's first view reads them: each one's name, connection, state,
-// notice, what blocks it and what its stand-in is and refuses, word for word from the contract. The rules, the
-// evidence, the surfaces, the permissions and the commentary are not written out, so a patient does not download
+// notice, what blocks it and what its stand-in is and refuses, word for word from the contract. The rules, the flags,
+// the evidence, the surfaces, the permissions and the commentary are not written out, so a patient does not download
 // them to read her visits; the status page reads the rules through lib/capability-rules.ts.
 
 export type FirstViewCapability = {
