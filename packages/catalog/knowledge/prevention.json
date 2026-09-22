@@ -19,7 +19,14 @@
       "All doses are recorded in the Road-to-Health Booklet (clinic card) — keep it safe and bring it to every clinic visit; missed doses can be caught up, so never skip a visit because one was missed before"
     ],
     "tags": ["immunisation", "EPI", "children", "free", "Road-to-Health"],
-    "source": "SA NDoH Expanded Programme on Immunisation (EPI) / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH Expanded Programme on Immunisation (EPI) / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-002",
@@ -34,7 +41,14 @@
       "Hepatitis B vaccination is offered to adults at ongoing risk, including healthcare exposure"
     ],
     "tags": ["immunisation", "adults", "flu", "older-people", "chronic"],
-    "source": "SA NDoH / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-003",
@@ -50,7 +64,14 @@
       "Index testing: when someone tests positive, the clinic helps their partners and children test too — with consent"
     ],
     "tags": ["HIV", "testing", "free", "annual", "self-testing"],
-    "source": "SA NDoH HIV testing services guidelines / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH HIV testing services guidelines / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-004",
@@ -66,7 +87,14 @@
       "Finishing full TB treatment (six months) protects the household and prevents drug resistance"
     ],
     "tags": ["TB", "screening", "TPT", "contacts", "prevention"],
-    "source": "SA NDoH TB guidelines / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH TB guidelines / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-005",
@@ -82,7 +110,14 @@
       "An abnormal smear usually means treating pre-cancer, not having cancer — follow-up visits matter"
     ],
     "tags": ["cervical-cancer", "Pap-smear", "screening", "women", "free"],
-    "source": "SA NDoH cervical cancer screening policy / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH cervical cancer screening policy / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-006",
@@ -97,7 +132,14 @@
       "Women with a mother or sister who had breast cancer should tell the clinic — earlier screening applies"
     ],
     "tags": ["breast-cancer", "awareness", "early-detection", "women"],
-    "source": "SA NDoH cancer control guidelines / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH cancer control guidelines / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-007",
@@ -112,7 +154,16 @@
       "People with diabetes, HIV, pregnancy, or a family history need more frequent checks"
     ],
     "tags": ["blood-pressure", "screening", "silent", "free", "adults"],
-    "source": "SA NDoH hypertension guidelines / WHO"
+    "codes": {
+      "loinc": "85354-9"
+    },
+    "source": {
+      "authority": "SA NDoH hypertension guidelines / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-008",
@@ -127,7 +178,16 @@
       "Diagnosing early protects eyes, kidneys, feet and heart before damage starts"
     ],
     "tags": ["diabetes", "screening", "glucose", "early-detection"],
-    "source": "SA NDoH diabetes guidelines / WHO"
+    "codes": {
+      "loinc": "2339-0"
+    },
+    "source": {
+      "authority": "SA NDoH diabetes guidelines / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-009",
@@ -141,7 +201,16 @@
       "People living with HIV on treatment also have heart-risk monitoring built into care over time"
     ],
     "tags": ["cholesterol", "heart-disease", "stroke", "risk-factors"],
-    "source": "SA NDoH / WHO cardiovascular risk guidance"
+    "codes": {
+      "loinc": "2093-3"
+    },
+    "source": {
+      "authority": "SA NDoH / WHO cardiovascular risk guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-010",
@@ -155,7 +224,14 @@
       "Screening involves a blood test (PSA) and sometimes a prostate examination — the clinic will explain and obtain consent before any examination"
     ],
     "tags": ["prostate", "men", "cancer", "early-detection"],
-    "source": "SA NDoH cancer control guidelines / urological societies"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH cancer control guidelines / urological societies",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-011",
@@ -170,7 +246,14 @@
       "Starting PrEP includes an HIV test and kidney check, with follow-up visits every few months"
     ],
     "tags": ["PrEP", "HIV-prevention", "free", "high-impact"],
-    "source": "SA NDoH PrEP guidelines / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH PrEP guidelines / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-012",
@@ -186,7 +269,14 @@
       "Male and female condoms give the same protection; the female condom can be inserted up to 8 hours before sex"
     ],
     "tags": ["condoms", "STI", "HIV-prevention", "free", "safer-sex"],
-    "source": "SA NDoH HIV prevention guidelines / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH HIV prevention guidelines / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-013",
@@ -202,7 +292,14 @@
       "Choose medical circumcision over traditional-only where the full procedure may not be completed — the health benefit comes from complete removal of the foreskin"
     ],
     "tags": ["MMC", "circumcision", "HIV-prevention", "free", "men"],
-    "source": "SA NDoH MMC programme / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH MMC programme / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-014",
@@ -217,7 +314,14 @@
       "No soap? Ash from a clean fire works as a rubbing agent where nothing else is available"
     ],
     "tags": ["handwashing", "hygiene", "diarrhoea-prevention", "free"],
-    "source": "WHO hand hygiene guidance / SA NDoH"
+    "codes": {},
+    "source": {
+      "authority": "WHO hand hygiene guidance / SA NDoH",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-015",
@@ -233,7 +337,14 @@
       "Paraffin, pesticides and bleach are stored away from water and food and never in drink bottles — accidental swallowing is a childhood emergency (Poisons Helpline 0861 555 777)"
     ],
     "tags": ["water-safety", "sanitation", "household", "diarrhoea", "cholera"],
-    "source": "WHO household water treatment guidance / SA NDoH environmental health"
+    "codes": {},
+    "source": {
+      "authority": "WHO household water treatment guidance / SA NDoH environmental health",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-016",
@@ -248,7 +359,14 @@
       "Pregnant women and small children are at highest risk of severe malaria and need special protection and early care"
     ],
     "tags": ["malaria", "nets", "prophylaxis", "travel", "seasonal"],
-    "source": "SA NDoH malaria guidelines / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH malaria guidelines / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-017",
@@ -264,7 +382,14 @@
       "Grow and buy what is in season: spinach, cabbage, carrots, butternut, beans and lentils are the affordable backbone of healthy eating"
     ],
     "tags": ["nutrition", "salt", "healthy-plate", "lifestyle"],
-    "source": "SA food-based dietary guidelines / WHO / SA salt legislation"
+    "codes": {},
+    "source": {
+      "authority": "SA food-based dietary guidelines / WHO / SA salt legislation",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-018",
@@ -280,7 +405,14 @@
       "Anyone with a heart condition, chest pain or long-standing diabetes should check in at the clinic before starting hard exercise — walking is safe for almost everyone"
     ],
     "tags": ["exercise", "activity", "lifestyle", "all-ages"],
-    "source": "WHO physical activity guidelines"
+    "codes": {},
+    "source": {
+      "authority": "WHO physical activity guidelines",
+      "jurisdiction": "International",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-019",
@@ -296,7 +428,14 @@
       "Free quit support is available — clinics, SADAG, the National Council Against Smoking and CANSA all offer programmes and advice lines"
     ],
     "tags": ["smoking", "cessation", "nicotine", "lifestyle"],
-    "source": "WHO / CANSA / National Council Against Smoking"
+    "codes": {},
+    "source": {
+      "authority": "WHO / CANSA / National Council Against Smoking",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "prv-020",
@@ -312,6 +451,13 @@
       "Worried about your own or someone else's drinking? Help is free — see the substance-use entry (mh-006) for SANCA and helpline options"
     ],
     "tags": ["alcohol", "harm-reduction", "pregnancy", "road-safety"],
-    "source": "WHO / SA NDoH / SANCA"
+    "codes": {},
+    "source": {
+      "authority": "WHO / SA NDoH / SANCA",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   }
 ]

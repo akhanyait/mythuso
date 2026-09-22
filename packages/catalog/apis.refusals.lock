@@ -448,3 +448,35 @@ GET /v1/access/sponsors@1 3d3cd780470c9d5f
 POST /v1/access/bill-splits@2 41fbaba9c9724063
 POST /v1/access/bill-splits/{splitRef}/accept@1 e11cceef7e4f855d
 shared apis/access.json#refusals tool-grant-required 27aa55b6bb100093
+GET /health@1 4d84c0722c4b03f2
+POST /turn@1 7bfe7bc36cbef327
+POST /v1/turn@1 21a2e1133745623c
+POST /v1/listen@1 9629429c4c2bf337
+POST /v1/speak@1 07f3ba6b4312d462
+POST /v1/triage/start@1 472847697164bb02
+POST /v1/triage/answer@1 ebcab9d778d0dc4f
+POST /v1/vitals@1 df1b06ec89d3e79c
+POST /v1/handover/prepare@1 25312dfe1ed0f28a
+POST /v1/handover/submit@1 99ba237684022094
+POST /v1/knowledge/search@1 fc8a082d24901716
+GET /v1/status@1 c5df230620b6782a
+shared apis/assistant.json#refusals a-model-tier-needs-its-acknowledgement 79720a00af749e6d
+shared apis/assistant.json#refusals no-clinical-decision b888a5fe9aef6e44
+POST /v1/listen@2 a84e5435a72d36fc
+POST /v1/speak@2 23303415d78c40e2
+POST /v1/triage/start@2 1f4d7ca67cb56fbd
+POST /v1/triage/answer@2 e87c93aa1e27853a
+POST /v1/vitals@2 d46e141c5d9b103d
+POST /v1/handover/prepare@2 52ac914c68ae47ba
+POST /v1/handover/submit@2 35845f550c95e2ff
+POST /v1/knowledge/search@2 83b2a4021ede7f8c
+shared apis/assistant.json#refusals not-yet-available 048d2ff11962d007
+POST /v1/listen@3 d0be500658b91126
+POST /v1/speak@3 cc9f5f059105a8eb
+shared apis/assistant.json#refusals speech-not-configured 4cd2154fe87b858e
+POST /v1/triage/start@3 e06bca8d3312a4ee
+POST /v1/triage/answer@3 3cef7bcd7c8ed672
+POST /v1/vitals@3 31b724e7eabe6d34
+POST /v1/handover/prepare@3 25abb70e6670d915
+POST /v1/handover/submit@3 11328e570c4baa5f
+shared apis/assistant.json#refusals triage-not-ratified 7440cd2760a05192

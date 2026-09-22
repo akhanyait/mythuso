@@ -25,7 +25,14 @@
       "A foot wound, blister or sore that is not healing, however small"
     ],
     "tags": ["diabetes", "insulin", "chronic", "children"],
-    "source": "SA NDoH diabetes guidelines / ISPAD / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH diabetes guidelines / ISPAD / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "chr-002",
@@ -54,7 +61,17 @@
       "Low-sugar episodes (shaking, sweating, confusion) — treat with sugar and adjust treatment at the clinic afterwards"
     ],
     "tags": ["diabetes", "chronic", "lifestyle", "feet", "screening"],
-    "source": "SA NDoH diabetes guidelines / WHO"
+    "codes": {
+      "snomed": "44054006",
+      "icd11": "5A11"
+    },
+    "source": {
+      "authority": "SA NDoH diabetes guidelines / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "chr-003",
@@ -82,7 +99,17 @@
       "Breathlessness lying flat, or waking gasping with swollen ankles"
     ],
     "tags": ["blood-pressure", "chronic", "silent", "stroke-risk"],
-    "source": "SA NDoH hypertension guidelines / WHO"
+    "codes": {
+      "snomed": "38341003",
+      "icd11": "BA00"
+    },
+    "source": {
+      "authority": "SA NDoH hypertension guidelines / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "chr-004",
@@ -111,7 +138,16 @@
       "Trouble keeping tablets down for more than a day"
     ],
     "tags": ["HIV", "ART", "undetectable", "adherence", "South-Africa"],
-    "source": "SA NDoH ART guidelines / WHO"
+    "codes": {
+      "snomed": "86406008"
+    },
+    "source": {
+      "authority": "SA NDoH ART guidelines / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "chr-005",
@@ -138,7 +174,16 @@
       "Coughing blood, worsening breathlessness, drenching night sweats returning"
     ],
     "tags": ["TB", "six-months", "curable", "adherence", "South-Africa"],
-    "source": "SA NDoH TB guidelines / WHO"
+    "codes": {
+      "snomed": "56717001"
+    },
+    "source": {
+      "authority": "SA NDoH TB guidelines / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "chr-006",
@@ -163,8 +208,21 @@
       "Coughing blood or worsening breathlessness",
       "A fever that arrives while on treatment"
     ],
-    "tags": ["MDR-TB", "resistance", "specialist", "long-course", "South-Africa"],
-    "source": "SA NDoH DR-TB guidelines / WHO consolidated DR-TB guidance"
+    "tags": [
+      "MDR-TB",
+      "resistance",
+      "specialist",
+      "long-course",
+      "South-Africa"
+    ],
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH DR-TB guidelines / WHO consolidated DR-TB guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "chr-007",
@@ -192,7 +250,17 @@
       "Any child with asthma who cannot talk, play or feed — call 10177"
     ],
     "tags": ["asthma", "inhaler", "preventer", "action-plan"],
-    "source": "GINA / SA NDoH asthma guidelines"
+    "codes": {
+      "snomed": "195967001",
+      "icd11": "CA23"
+    },
+    "source": {
+      "authority": "GINA / SA NDoH asthma guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "chr-008",
@@ -219,7 +287,16 @@
       "Chest pain with breathlessness"
     ],
     "tags": ["COPD", "smoking", "inhaler", "flare-ups"],
-    "source": "GOLD strategy / SA NDoH chronic respiratory care"
+    "codes": {
+      "snomed": "13645005"
+    },
+    "source": {
+      "authority": "GOLD strategy / SA NDoH chronic respiratory care",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "chr-009",
@@ -246,7 +323,16 @@
       "Rash while on anti-seizure medicine — same-day care, it can be serious"
     ],
     "tags": ["epilepsy", "seizure", "adherence", "safety"],
-    "source": "WHO epilepsy guidance / SA NDoH"
+    "codes": {
+      "snomed": "84757009"
+    },
+    "source": {
+      "authority": "WHO epilepsy guidance / SA NDoH",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "chr-010",
@@ -274,7 +360,14 @@
       "Chest pain — kidney disease and heart disease travel together"
     ],
     "tags": ["kidney", "CKD", "blood-pressure", "diabetes", "NSAID-caution"],
-    "source": "WHO / SA NDoH renal care guidance"
+    "codes": {},
+    "source": {
+      "authority": "WHO / SA NDoH renal care guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "chr-011",
@@ -298,7 +391,17 @@
       "Pregnancy or planning pregnancy — same-week clinic visit for dose adjustment"
     ],
     "tags": ["thyroid", "levothyroxine", "lifelong", "empty-stomach"],
-    "source": "WHO / SA NDoH Standard Treatment Guidelines"
+    "codes": {
+      "snomed": "40930008",
+      "icd11": "5A00"
+    },
+    "source": {
+      "authority": "WHO / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "chr-012",
@@ -325,7 +428,14 @@
       "Chest pain"
     ],
     "tags": ["heart", "valve", "penicillin", "streptococcal", "South-Africa"],
-    "source": "SA NDoH rheumatic fever and RHD guidance / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH rheumatic fever and RHD guidance / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "chr-013",
@@ -351,8 +461,23 @@
       "New weakness, speech trouble or vision loss — call 10177 (stroke)",
       "An irregular pulse that comes with chest pain, fainting or breathlessness"
     ],
-    "tags": ["heart-rhythm", "warfarin", "INR", "stroke-prevention", "bleeding-risk"],
-    "source": "WHO / SA NDoH cardiovascular care guidance"
+    "tags": [
+      "heart-rhythm",
+      "warfarin",
+      "INR",
+      "stroke-prevention",
+      "bleeding-risk"
+    ],
+    "codes": {
+      "loinc": "6301-6"
+    },
+    "source": {
+      "authority": "WHO / SA NDoH cardiovascular care guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "chr-014",
@@ -378,7 +503,16 @@
       "Very little urine passed, or kidney-area pain (urate can also form kidney stones)"
     ],
     "tags": ["gout", "urate", "allopurinol", "diet"],
-    "source": "WHO / SA NDoH Standard Treatment Guidelines"
+    "codes": {
+      "snomed": "90560007"
+    },
+    "source": {
+      "authority": "WHO / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "chr-015",
@@ -405,7 +539,17 @@
       "Coughing pink, frothy sputum — call 10177"
     ],
     "tags": ["heart-failure", "fluid", "daily-weight", "medicines"],
-    "source": "WHO / SA NDoH heart failure guidance"
+    "codes": {
+      "snomed": "84114007",
+      "icd11": "BD1Z"
+    },
+    "source": {
+      "authority": "WHO / SA NDoH heart failure guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "chr-016",
@@ -432,6 +576,15 @@
       "New right-upper tummy pain or a lump"
     ],
     "tags": ["hepatitis-B", "liver", "monitoring", "no-alcohol"],
-    "source": "WHO hepatitis B guidance / SA NDoH"
+    "codes": {
+      "snomed": "66071002"
+    },
+    "source": {
+      "authority": "WHO hepatitis B guidance / SA NDoH",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   }
 ]

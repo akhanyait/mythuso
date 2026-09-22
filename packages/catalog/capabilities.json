@@ -1,604 +1,549 @@
 {
- "_note": "What MyThuso can actually do, and what it only draws. Every screen used to carry its own hand-typed 'Design preview', 'Demonstration record' or 'Fictional workspace' — sixty-odd sentences saying roughly the same thing in slightly different words, some of them on screens whose function was by then real, and none of them connected to anything that would know. This file is the one place that knows. A capability is connected or it is not; a screen asks, and the notice is rendered from here or not rendered at all. When an integration lands, one boolean changes and the sentence disappears from every platform at once.",
- "_honestyNote": "Turning `connected` to true is a claim about the world, not about the code, so scripts/check-boundaries.mjs refuses it unless `evidence` names a file that exists and the capability's `blockedBy` list is empty. A health service that overstates its readiness is not a marketing problem, and the way that happens is never a lie — it is somebody tidying a banner off a layout at eleven at night.",
- "capabilities": [
-  {
-   "id": "accounts",
-   "name": "Accounts and sign-in",
-   "connected": false,
-   "evidence": "apps/api/src/identity",
-   "blockedBy": [
-    "An SMS provider for one-time codes.",
-    "An answer to what a one-time code costs somebody who has none. DNS and TLS were the second blocker here until 10 September and are done — mythuso.co.za serves https on both names, and the identity service is still switched off, because a certificate makes the endpoint safe to reach and does not make it safe to run."
-   ],
-   "notice": "Sign-in is not switched on yet. This account is local to your browser and disappears when you close it.",
-   "surfaces": [
-    "sign-in",
-    "profile",
-    "sign-out"
-   ],
-   "state": "simulated",
-   "simulation": {
-    "supplier": "A simulated one-time-code channel, in process.",
-    "notice": "Sign-in is simulated. The code is produced here and shown to you; no message leaves this machine and no provider is contacted.",
-    "refuses": [
-     "Send anything to a real handset.",
-     "Accept a code it did not itself produce.",
-     "Survive a restart as a real account would.",
-     "Grant a role. The demo login chooses which workspace to draw; it authenticates nobody, and no workspace it opens is reached by having permission to."
-    ],
-    "reachableFromTheNetwork": false
-   }
-  },
-  {
-   "id": "booking",
-   "name": "Booking a visit",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "A nurse roster with real availability.",
-    "Payment, because a visit nobody can pay for is not booked."
-   ],
-   "notice": "This does not book a visit. Nobody is dispatched and nothing is charged.",
-   "surfaces": [
-    "booking",
-    "visits",
-    "visit-detail"
-   ],
-   "state": "simulated",
-   "simulation": {
-    "supplier": "A simulated nurse roster, in process.",
-    "notice": "The roster is simulated. These nurses are fictional and none of them has agreed to attend.",
-    "refuses": [
-     "Commit a real person to a time.",
-     "Offer a nurse whose simulated vetting has lapsed.",
-     "Offer a nurse whose vetting has not finished.",
-     "Book outside a zone dispatch can reach."
-    ],
-    "reachableFromTheNetwork": false
-   }
-  },
-  {
-   "id": "payments",
-   "name": "Taking payment",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "A South African payment provider, contracted and integrated.",
-    "A merchant account."
-   ],
-   "notice": "No payment is taken. The prices shown are the catalogue's and no card is charged.",
-   "surfaces": [
-    "booking",
-    "wallet",
-    "plans"
-   ],
-   "state": "simulated",
-   "simulation": {
-    "supplier": "A simulated South African card and EFT provider, in process.",
-    "notice": "Payment is simulated. No card is charged, no bank is contacted and no money moves.",
-    "refuses": [
-     "Hold a card number, even a fictional one.",
-     "Settle, because settlement is a fact about a bank.",
-     "Produce a receipt that does not say it is simulated."
-    ],
-    "reachableFromTheNetwork": false
-   }
-  },
-  {
-   "id": "payouts",
-   "name": "Paying a nurse",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "A payment provider.",
-    "Verified bank details, which need the identity service switched on."
-   ],
-   "notice": "No money moves. These figures are the catalogue's arithmetic on sample visits.",
-   "surfaces": [
-    "earnings",
-    "payout-history"
-   ],
-   "state": "simulated",
-   "simulation": {
-    "supplier": "A simulated bank payout channel, in process.",
-    "notice": "The payout is simulated. Nothing is paid, and the bank details on this screen are fictional.",
-    "refuses": [
-     "Pay anybody.",
-     "Verify a real bank account.",
-     "Reverse a payout that never left."
-    ],
-    "reachableFromTheNetwork": false
-   }
-  },
-  {
-   "id": "credential-verification",
-   "name": "Confirming a credential with the body that issued it",
-   "connected": false,
-   "evidence": "apps/api/src/vetting/authority.ts",
-   "blockedBy": [
-    "An agreement or accreditation with each of the thirteen authorities. All thirteen adapters answer not-integrated.",
-    "A contracted identity provider for the identity check."
-   ],
-   "notice": "No credential on this screen has been confirmed with the body that issued it. A reviewer has looked at a document the applicant supplied, which is not the same thing.",
-   "surfaces": [
-    "vetting",
-    "nurse-profile",
-    "roster"
-   ],
-   "state": "simulated",
-   "simulation": {
-    "supplier": "Simulated answers from the thirteen authorities, in process.",
-    "notice": "Credential answers are simulated. No authority has been asked, and a cleared result here confirms nothing.",
-    "refuses": [
-     "Answer for a registration number that is not in the simulated register.",
-     "Return cleared for a lapsed check.",
-     "Be read as confirmation by any screen that grants a capability."
-    ],
-    "reachableFromTheNetwork": false
-   }
-  },
-  {
-   "id": "dispatch",
-   "name": "Dispatching a nurse",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "Live positions from nurse devices.",
-    "An accepted-visit protocol.",
-    "Booking, which is what would create something to dispatch."
-   ],
-   "notice": "Dispatch is not connected. These positions and visits are sample data, drawn from real coordinates.",
-   "surfaces": [
-    "dispatch",
-    "control-tower",
-    "incidents",
-    "thuso-ride",
-    "responder",
-    "admissions",
-    "facility-directory"
-   ],
-   "state": "simulated",
-   "simulation": {
-    "supplier": "Simulated nurse positions, in process.",
-    "notice": "Positions are simulated. No device is reporting, and this movement is generated on this machine.",
-    "refuses": [
-     "Carry a patient id, a visit id or an address.",
-     "Place a pin on anybody's home.",
-     "Claim an arrival time it has not derived."
-    ],
-    "reachableFromTheNetwork": false
-   }
-  },
-  {
-   "id": "clinical-records",
-   "name": "Holding a clinical record",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "The controls in docs/PRIVACY-AND-SECURITY.md.",
-    "An Information Officer's sign-off on retention.",
-    "SA-resident hosting for special personal information."
-   ],
-   "notice": "This record is sample data. Nothing you type here is stored, and no real record exists behind this screen.",
-   "surfaces": [
-    "passport",
-    "patient-file",
-    "assessment",
-    "capture",
-    "live-well"
-   ],
-   "state": "absent",
-   "_whyNotSimulated": "Marked simulated on 10 September and put back the same day, because nothing was ever built to stand behind it. The simulation notice said 'the controls around them are real and are exercised against this data', and no simulator was exercising anything — a false sentence on a clinical screen, which is the exact failure the third state was introduced to prevent rather than to commit. It is the one capability whose seam is a refusal by design: feeds.json's noSeam entry says there is no ingestion route for a clinical record and there must not be one. A record store standing in here is buildable and worth building — it would exercise the consent gate, the access log and the export against fictional people — but it is a piece of work, not a state change, and the state may not run ahead of it."
-  },
-  {
-   "id": "teleconsultation",
-   "name": "The consultation call",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "No media stack. Neither app declares a camera permission, and the consultation asks for no microphone — the only microphone either app asks for is GilbertOne's push-to-talk, named under the voice capability.",
-    "A doctor panel with a real rota."
-   ],
-   "notice": "The consultation has never asked this device for the camera or the microphone, and no connection is opened. What follows is the design of a consultation, drawn at full size.",
-   "surfaces": [
-    "teleconsult",
-    "waiting-room"
-   ],
-   "state": "simulated",
-   "simulation": {
-    "supplier": "A simulated session broker, in process.",
-    "notice": "The call is simulated. No camera or microphone is opened, and no media stack exists behind this screen.",
-    "refuses": [
-     "Open a camera or a microphone.",
-     "Declare a media permission on either native app.",
-     "Simulate a line quality better than the ladder permits."
-    ],
-    "reachableFromTheNetwork": false
-   }
-  },
-  {
-   "id": "screening",
-   "name": "AI-assisted screening",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "No model, no vendor and no licence. The frame around it — provenance, sign-off, conflict resolution — is built; the screening is not."
-   ],
-   "notice": "Nothing here is screened by software. The frame around a result is real; the result is sample data.",
-   "surfaces": [
-    "capture",
-    "screening-result",
-    "review-queue"
-   ],
-   "state": "simulated",
-   "simulation": {
-    "supplier": "A simulated screening model, in process.",
-    "notice": "This screening is simulated. No model produced it, and it is not a clinical opinion.",
-    "refuses": [
-     "Issue a diagnosis.",
-     "Be signed off by anybody but a named clinician.",
-     "Produce an urgent result without naming a red flag the emergency contract holds."
-    ],
-    "reachableFromTheNetwork": false
-   }
-  },
-  {
-   "id": "voice",
-   "name": "Talking to GilbertOne",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "No contracted South African speech provider: so English only, and only on phones that recognise it offline.",
-    "No language model. GilbertOne answers only from its approved sentences, and says so when it cannot assess something.",
-    "No decision about a recording beyond keeping none, so nothing is recorded on any platform, and on a phone no transcript leaves it.",
-    "On the web the microphone is real and the browser's own recognition does the work, which may carry what is said to the company that makes the browser. That route is disclosed before the first tap rather than removed, and no speech provider of MyThuso's is contracted to replace it.",
-    "No clinical or privacy review of patients speaking into a browser, so the web microphone is offered on the founder's decision of 18 September 2026 and not on a reviewer's."
-   ],
-   "notice": "GilbertOne listens only after you tap, hears English only, and keeps no recording. On a phone the words are turned into text on the phone itself. On the web — in the assistant, and on the labelled GilbertOne demonstrator — the browser's own recognition does the work, and it may send what you say to the company that makes the browser; MyThuso is not that company and keeps nothing. Either way the words are shown to you to check before you send them, and typing always works. No answer comes from a model, and nothing you say or type is sent to MyThuso by GilbertOne's own doing.",
-   "surfaces": [
-    "assistant",
-    "voice",
-    "home"
-   ],
-   "neverSoften": "No listening affordance may be drawn unless the microphone is actually open — not an enabled one, not a disabled one, not a decorative one. On the web a microphone may open in the live assistant and on the labelled GilbertOne demonstrator, nowhere else, only after an explicit tap, and only with the disclosure about the browser's own recognition shown before the first one; every other web surface offers nothing in any state. A control that looks like it is listening and is not is worse than no control, and on a health product it is the kind of worse that gets believed.",
-   "state": "on-device",
-   "onDevice": {
-    "what": "English push-to-talk recognised by the phone's own recogniser with no network: on iOS with requiresOnDeviceRecognition, on Android 12 and later with the on-device recogniser.",
-    "whyNotConnected": "Nothing is contracted and nothing leaves the phone, so the notice stays."
-   },
-   "webPoc": {
-    "what": "Real push-to-talk and real speech on the GilbertOne character demonstrator, through the browser's own SpeechRecognition and SpeechSynthesis: the microphone opens on a tap, closes on Stop or at the listening cap, and the words it caught are shown to be corrected or discarded before they go anywhere. The demonstrator answers nothing — there is no model behind it and no request leaves the page.",
-    "whyNotTheLiveProduct": "What still separates the two is not the microphone but what answers. The demonstrator says nothing back, asks nothing of a patient, and is labelled a demonstrator on every screen of it; the live assistant answers from an approved set of sentences and carries a person's question wherever it leads. Both take the same browser route, because a browser's recognition may send what is said to the company that makes the browser, and MDN says so — so both disclose it before the first tap, on the founder's decision of 18 September 2026. Widening the route did not widen what the demonstrator is allowed to become."
-   },
-   "requiresPermissions": [
+  "_note": "What MyThuso can actually do, and what it only draws. Every screen used to carry its own hand-typed 'Design preview', 'Demonstration record' or 'Fictional workspace' — sixty-odd sentences saying roughly the same thing in slightly different words, some of them on screens whose function was by then real, and none of them connected to anything that would know. This file is the one place that knows. A capability is connected or it is not; a screen asks, and the notice is rendered from here or not rendered at all. When an integration lands, one boolean changes and the sentence disappears from every platform at once.",
+  "_honestyNote": "Turning `connected` to true is a claim about the world, not about the code, so scripts/check-boundaries.mjs refuses it unless `evidence` names a file that exists and the capability's `blockedBy` list is empty. A health service that overstates its readiness is not a marketing problem, and the way that happens is never a lie — it is somebody tidying a banner off a layout at eleven at night.",
+  "capabilities": [
     {
-     "permission": "NSMicrophoneUsageDescription",
-     "platform": "ios",
-     "serves": "GilbertOne's push-to-talk, open only between a tap and Stop or the listening limit."
+      "id": "accounts",
+      "name": "Accounts and sign-in",
+      "connected": false,
+      "evidence": "apps/api/src/identity",
+      "blockedBy": [
+        "An SMS provider for one-time codes.",
+        "An answer to what a one-time code costs somebody who has none. DNS and TLS were the second blocker here until 10 September and are done — mythuso.co.za serves https on both names, and the identity service is still switched off, because a certificate makes the endpoint safe to reach and does not make it safe to run."
+      ],
+      "notice": "Sign-in is not switched on yet. This account is local to your browser and disappears when you close it.",
+      "surfaces": ["sign-in", "profile", "sign-out"],
+      "state": "simulated",
+      "simulation": {
+        "supplier": "A simulated one-time-code channel, in process.",
+        "notice": "Sign-in is simulated. The code is produced here and shown to you; no message leaves this machine and no provider is contacted.",
+        "refuses": [
+          "Send anything to a real handset.",
+          "Accept a code it did not itself produce.",
+          "Survive a restart as a real account would.",
+          "Grant a role. The demo login chooses which workspace to draw; it authenticates nobody, and no workspace it opens is reached by having permission to."
+        ],
+        "reachableFromTheNetwork": false
+      }
     },
     {
-     "permission": "NSSpeechRecognitionUsageDescription",
-     "platform": "ios",
-     "serves": "Turning GilbertOne's push-to-talk into text on the phone itself."
+      "id": "booking",
+      "name": "Booking a visit",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "A nurse roster with real availability.",
+        "Payment, because a visit nobody can pay for is not booked."
+      ],
+      "notice": "This does not book a visit. Nobody is dispatched and nothing is charged.",
+      "surfaces": ["booking", "visits", "visit-detail"],
+      "state": "simulated",
+      "simulation": {
+        "supplier": "A simulated nurse roster, in process.",
+        "notice": "The roster is simulated. These nurses are fictional and none of them has agreed to attend.",
+        "refuses": [
+          "Commit a real person to a time.",
+          "Offer a nurse whose simulated vetting has lapsed.",
+          "Offer a nurse whose vetting has not finished.",
+          "Book outside a zone dispatch can reach."
+        ],
+        "reachableFromTheNetwork": false
+      }
     },
     {
-     "permission": "android.permission.RECORD_AUDIO",
-     "platform": "android",
-     "serves": "GilbertOne's push-to-talk on Android 12 and later, through the on-device recogniser, asked on first use."
+      "id": "payments",
+      "name": "Taking payment",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "A South African payment provider, contracted and integrated.",
+        "A merchant account."
+      ],
+      "notice": "No payment is taken. The prices shown are the catalogue's and no card is charged.",
+      "surfaces": ["booking", "wallet", "plans"],
+      "state": "simulated",
+      "simulation": {
+        "supplier": "A simulated South African card and EFT provider, in process.",
+        "notice": "Payment is simulated. No card is charged, no bank is contacted and no money moves.",
+        "refuses": [
+          "Hold a card number, even a fictional one.",
+          "Settle, because settlement is a fact about a bank.",
+          "Produce a receipt that does not say it is simulated."
+        ],
+        "reachableFromTheNetwork": false
+      }
+    },
+    {
+      "id": "payouts",
+      "name": "Paying a nurse",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "A payment provider.",
+        "Verified bank details, which need the identity service switched on."
+      ],
+      "notice": "No money moves. These figures are the catalogue's arithmetic on sample visits.",
+      "surfaces": ["earnings", "payout-history"],
+      "state": "simulated",
+      "simulation": {
+        "supplier": "A simulated bank payout channel, in process.",
+        "notice": "The payout is simulated. Nothing is paid, and the bank details on this screen are fictional.",
+        "refuses": [
+          "Pay anybody.",
+          "Verify a real bank account.",
+          "Reverse a payout that never left."
+        ],
+        "reachableFromTheNetwork": false
+      }
+    },
+    {
+      "id": "credential-verification",
+      "name": "Confirming a credential with the body that issued it",
+      "connected": false,
+      "evidence": "apps/api/src/vetting/authority.ts",
+      "blockedBy": [
+        "An agreement or accreditation with each of the thirteen authorities. All thirteen adapters answer not-integrated.",
+        "A contracted identity provider for the identity check."
+      ],
+      "notice": "No credential on this screen has been confirmed with the body that issued it. A reviewer has looked at a document the applicant supplied, which is not the same thing.",
+      "surfaces": ["vetting", "nurse-profile", "roster"],
+      "state": "simulated",
+      "simulation": {
+        "supplier": "Simulated answers from the thirteen authorities, in process.",
+        "notice": "Credential answers are simulated. No authority has been asked, and a cleared result here confirms nothing.",
+        "refuses": [
+          "Answer for a registration number that is not in the simulated register.",
+          "Return cleared for a lapsed check.",
+          "Be read as confirmation by any screen that grants a capability."
+        ],
+        "reachableFromTheNetwork": false
+      }
+    },
+    {
+      "id": "dispatch",
+      "name": "Dispatching a nurse",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "Live positions from nurse devices.",
+        "An accepted-visit protocol.",
+        "Booking, which is what would create something to dispatch."
+      ],
+      "notice": "Dispatch is not connected. These positions and visits are sample data, drawn from real coordinates.",
+      "surfaces": [
+        "dispatch",
+        "control-tower",
+        "incidents",
+        "thuso-ride",
+        "responder",
+        "admissions",
+        "facility-directory"
+      ],
+      "state": "simulated",
+      "simulation": {
+        "supplier": "Simulated nurse positions, in process.",
+        "notice": "Positions are simulated. No device is reporting, and this movement is generated on this machine.",
+        "refuses": [
+          "Carry a patient id, a visit id or an address.",
+          "Place a pin on anybody's home.",
+          "Claim an arrival time it has not derived."
+        ],
+        "reachableFromTheNetwork": false
+      }
+    },
+    {
+      "id": "clinical-records",
+      "name": "Holding a clinical record",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "The controls in docs/PRIVACY-AND-SECURITY.md.",
+        "An Information Officer's sign-off on retention.",
+        "SA-resident hosting for special personal information."
+      ],
+      "notice": "This record is sample data. Nothing you type here is stored, and no real record exists behind this screen.",
+      "surfaces": [
+        "passport",
+        "patient-file",
+        "assessment",
+        "capture",
+        "live-well"
+      ],
+      "state": "absent",
+      "_whyNotSimulated": "Marked simulated on 10 September and put back the same day, because nothing was ever built to stand behind it. The simulation notice said 'the controls around them are real and are exercised against this data', and no simulator was exercising anything — a false sentence on a clinical screen, which is the exact failure the third state was introduced to prevent rather than to commit. It is the one capability whose seam is a refusal by design: feeds.json's noSeam entry says there is no ingestion route for a clinical record and there must not be one. A record store standing in here is buildable and worth building — it would exercise the consent gate, the access log and the export against fictional people — but it is a piece of work, not a state change, and the state may not run ahead of it."
+    },
+    {
+      "id": "teleconsultation",
+      "name": "The consultation call",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "No media stack. Neither app declares a camera permission, and the consultation asks for no microphone — the only microphone either app asks for is GilbertOne's push-to-talk, named under the voice capability.",
+        "A doctor panel with a real rota."
+      ],
+      "notice": "The consultation has never asked this device for the camera or the microphone, and no connection is opened. What follows is the design of a consultation, drawn at full size.",
+      "surfaces": ["teleconsult", "waiting-room"],
+      "state": "simulated",
+      "simulation": {
+        "supplier": "A simulated session broker, in process.",
+        "notice": "The call is simulated. No camera or microphone is opened, and no media stack exists behind this screen.",
+        "refuses": [
+          "Open a camera or a microphone.",
+          "Declare a media permission on either native app.",
+          "Simulate a line quality better than the ladder permits."
+        ],
+        "reachableFromTheNetwork": false
+      }
+    },
+    {
+      "id": "screening",
+      "name": "AI-assisted screening",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "No model, no vendor and no licence. The frame around it — provenance, sign-off, conflict resolution — is built; the screening is not."
+      ],
+      "notice": "Nothing here is screened by software. The frame around a result is real; the result is sample data.",
+      "surfaces": ["capture", "screening-result", "review-queue"],
+      "state": "simulated",
+      "simulation": {
+        "supplier": "A simulated screening model, in process.",
+        "notice": "This screening is simulated. No model produced it, and it is not a clinical opinion.",
+        "refuses": [
+          "Issue a diagnosis.",
+          "Be signed off by anybody but a named clinician.",
+          "Produce an urgent result without naming a red flag the emergency contract holds."
+        ],
+        "reachableFromTheNetwork": false
+      }
+    },
+    {
+      "id": "voice",
+      "name": "Talking to GilbertOne",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "No contracted South African speech provider: so English only, and only on phones that recognise it offline.",
+        "No language model. GilbertOne answers only from its approved sentences, and says so when it cannot assess something.",
+        "No decision about a recording beyond keeping none, so nothing is recorded on any platform, and on a phone no transcript leaves it.",
+        "On the web the microphone is real and the browser's own recognition does the work, which may carry what is said to the company that makes the browser. That route is disclosed before the first tap rather than removed, and no speech provider of MyThuso's is contracted to replace it.",
+        "No clinical or privacy review of patients speaking into a browser, so the web microphone is offered on the founder's decision of 18 September 2026 and not on a reviewer's."
+      ],
+      "notice": "GilbertOne listens only after you tap, hears English only, and keeps no recording. On a phone the words are turned into text on the phone itself. On the web — in the assistant, and on the labelled GilbertOne demonstrator — the browser's own recognition does the work, and it may send what you say to the company that makes the browser; MyThuso is not that company and keeps nothing. Either way the words are shown to you to check before you send them, and typing always works. No answer comes from a model, and nothing you say or type is sent to MyThuso by GilbertOne's own doing.",
+      "surfaces": ["assistant", "voice", "home"],
+      "neverSoften": "No listening affordance may be drawn unless the microphone is actually open — not an enabled one, not a disabled one, not a decorative one. On the web a microphone may open in the live assistant and on the labelled GilbertOne demonstrator, nowhere else, only after an explicit tap, and only with the disclosure about the browser's own recognition shown before the first one; every other web surface offers nothing in any state. A control that looks like it is listening and is not is worse than no control, and on a health product it is the kind of worse that gets believed.",
+      "state": "on-device",
+      "onDevice": {
+        "what": "English push-to-talk recognised by the phone's own recogniser with no network: on iOS with requiresOnDeviceRecognition, on Android 12 and later with the on-device recogniser.",
+        "whyNotConnected": "Nothing is contracted and nothing leaves the phone, so the notice stays."
+      },
+      "webPoc": {
+        "what": "Real push-to-talk and real speech on the GilbertOne character demonstrator, through the browser's own SpeechRecognition and SpeechSynthesis: the microphone opens on a tap, closes on Stop or at the listening cap, and the words it caught are shown to be corrected or discarded before they go anywhere. The demonstrator answers nothing — there is no model behind it and no request leaves the page.",
+        "whyNotTheLiveProduct": "What still separates the two is not the microphone but what answers. The demonstrator says nothing back, asks nothing of a patient, and is labelled a demonstrator on every screen of it; the live assistant answers from an approved set of sentences and carries a person's question wherever it leads. Both take the same browser route, because a browser's recognition may send what is said to the company that makes the browser, and MDN says so — so both disclose it before the first tap, on the founder's decision of 18 September 2026. Widening the route did not widen what the demonstrator is allowed to become."
+      },
+      "requiresPermissions": [
+        {
+          "permission": "NSMicrophoneUsageDescription",
+          "platform": "ios",
+          "serves": "GilbertOne's push-to-talk, open only between a tap and Stop or the listening limit."
+        },
+        {
+          "permission": "NSSpeechRecognitionUsageDescription",
+          "platform": "ios",
+          "serves": "Turning GilbertOne's push-to-talk into text on the phone itself."
+        },
+        {
+          "permission": "android.permission.RECORD_AUDIO",
+          "platform": "android",
+          "serves": "GilbertOne's push-to-talk on Android 12 and later, through the on-device recogniser, asked on first use."
+        }
+      ]
+    },
+    {
+      "id": "devices",
+      "name": "The connected kit",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "No device is contacted. No Bluetooth or eSIM permission is declared."
+      ],
+      "notice": "No device is connected. These readings are sample data and no instrument has been paired.",
+      "surfaces": ["kit", "capture", "provenance"],
+      "state": "simulated",
+      "simulation": {
+        "supplier": "A simulated instrument, in process.",
+        "notice": "The instrument is simulated. No Bluetooth session is opened and no device is contacted.",
+        "refuses": [
+          "Open a Bluetooth or eSIM session.",
+          "Declare a device permission on either native app.",
+          "Produce a reading without its provenance mark."
+        ],
+        "reachableFromTheNetwork": false
+      }
+    },
+    {
+      "id": "dispensing",
+      "name": "Sending a prescription to a pharmacy",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "A contracted pharmacy network.",
+        "A pharmacist's review of the substitution classes."
+      ],
+      "notice": "No prescription reaches a pharmacy. The substitution rules on this screen are real and have not been read by a pharmacist.",
+      "surfaces": ["dispensing", "orders", "prescription"],
+      "state": "simulated",
+      "simulation": {
+        "supplier": "A simulated pharmacy network, in process.",
+        "notice": "The pharmacy is simulated. No prescription is sent and no pharmacist has seen it.",
+        "refuses": [
+          "Substitute outside the classes the Act permits.",
+          "Change a molecule or a strength.",
+          "Dispense without a simulated pharmacist's registration."
+        ],
+        "reachableFromTheNetwork": false
+      }
+    },
+    {
+      "id": "interpreting",
+      "name": "Booking an interpreter",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "No interpreter is contacted.",
+        "SATI's accreditation route for SASL is drafted and unconfirmed."
+      ],
+      "notice": "No interpreter is contacted. The roster and the refusals are real; the people on it are not.",
+      "surfaces": ["interpreting", "booking", "teleconsult"],
+      "state": "simulated",
+      "simulation": {
+        "supplier": "A simulated interpreter roster, in process.",
+        "notice": "The interpreter is simulated. Nobody has been booked and nobody is expecting this visit.",
+        "refuses": [
+          "Offer a family member or a child.",
+          "Charge a patient for a cancelled accommodation.",
+          "Dispatch a visit that needs an interpreter and has none."
+        ],
+        "reachableFromTheNetwork": false
+      }
+    },
+    {
+      "id": "messaging",
+      "name": "Reaching a person",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "No SMS, email or push provider.",
+        "No WhatsApp channel, so no report or photo after a visit reaches anybody's phone, and no decision yet on whether a visit photo may travel over WhatsApp at all."
+      ],
+      "notice": "Nothing is sent. No message, invitation or reminder reaches anybody.",
+      "surfaces": ["family", "invitations", "notifications", "requests"],
+      "state": "simulated",
+      "simulation": {
+        "supplier": "A simulated delivery channel, in process.",
+        "notice": "Messages are simulated. A receipt is produced here; nothing reaches a handset, an inbox or a push service.",
+        "refuses": [
+          "Reach any address outside this machine.",
+          "Report a delivery it did not simulate.",
+          "Retry, because a simulated failure is a chosen failure."
+        ],
+        "reachableFromTheNetwork": false
+      }
+    },
+    {
+      "id": "emergency",
+      "name": "The emergency pathway",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "No contracted ambulance partner.",
+        "No urgent rota.",
+        "The routing questions have not been reviewed by a clinician."
+      ],
+      "notice": "This does not call anybody. In a real emergency dial 10177 or 112 from your phone.",
+      "surfaces": ["sos", "alert", "p1-refusal"],
+      "neverSoften": "The ambulance number on this screen is real and always shown first, connected or not. The one refusal on this pathway that is not about MyThuso is the one that matters most.",
+      "state": "simulated",
+      "simulation": {
+        "supplier": "A simulated acknowledgement channel, in process.",
+        "notice": "This acknowledgement is simulated. No ambulance service has been contacted. In a real emergency call 10177, or 112 from a mobile.",
+        "refuses": [
+          "Replace or delay the emergency numbers on any screen.",
+          "Claim an ambulance is coming.",
+          "Answer at all until the real numbers have been shown first."
+        ],
+        "reachableFromTheNetwork": false
+      }
+    },
+    {
+      "id": "doctor-review",
+      "name": "A doctor reviewing a nurse's visit",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "A panel of HPCSA-registered doctors, contracted and on a rota.",
+        "A Medical Director who owns the panel and signs off how a review is done."
+      ],
+      "notice": "No doctor reviews anything yet. There is no doctor panel, and a review shown in this preview was written by nobody.",
+      "surfaces": ["plans"],
+      "state": "absent"
+    },
+    {
+      "id": "medicine-collection",
+      "name": "Collecting chronic medicine for a patient",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "An arrangement to collect from CCMDD pick-up points and clinic pharmacies on a patient's written authorisation.",
+        "A partner pharmacy for private scripts."
+      ],
+      "notice": "No medicine is collected. MyThuso has no arrangement with CCMDD, a clinic or a pharmacy to collect on anybody's behalf.",
+      "surfaces": ["plans"],
+      "state": "absent"
+    },
+    {
+      "id": "thuso-devices",
+      "name": "MyThuso's own devices",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "Industrial design, firmware and a pilot run with a local electronics partner.",
+        "SAHPRA and ICASA certification."
+      ],
+      "notice": "Thuso Band and Thuso Home have not been built. They are designs with a target cost, and nobody can be given one.",
+      "surfaces": ["plans"],
+      "state": "absent"
+    },
+    {
+      "id": "carers",
+      "name": "Carers in the home",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "Carers recruited, trained and supervised by registered nurses, planned for phase 3.",
+        "A written scope of what a carer may and may not do in somebody's home."
+      ],
+      "notice": "No carer is employed or contracted. Carer hours are planned under a registered nurse's supervision, and none can be given yet.",
+      "surfaces": ["plans"],
+      "state": "absent"
+    },
+    {
+      "id": "laboratory-results",
+      "name": "Laboratory orders and results",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "A laboratory accredited to ISO 15189 by SANAS, contracted to collect samples, run tests and release results.",
+        "A clinical governance decision on who acknowledges a result, and how quickly."
+      ],
+      "notice": "No laboratory is connected. No sample is taken and no test is run, and a result shown here is a synthetic reference to nothing.",
+      "surfaces": ["lab-orders", "results"],
+      "state": "absent"
+    },
+    {
+      "id": "wearables",
+      "name": "Readings from your own watch, band or home device",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "A signed data protection impact assessment covering health data from another company's store or cloud (docs/governance/DPIA-DRAFT.md is unsigned).",
+        "A clinical reviewer who has read the wearable-readings consent scope, reading type by reading type.",
+        "No HealthKit entitlement or Health Connect permission is declared, and neither platform's library is in either app: adding one changes how the iOS app is signed and what either phone asks."
+      ],
+      "notice": "Apple Health, Health Connect and your own devices are not connected. A request to link one is recorded, and nothing is read from your phone or any device maker's cloud.",
+      "surfaces": ["wearable-link", "passport-devices"],
+      "state": "absent"
+    },
+    {
+      "id": "ussd-booking",
+      "name": "Booking a visit by USSD",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "A USSD aggregator under contract, reaching the mobile networks and saying where a session is logged.",
+        "A USSD code assigned to MyThuso."
+      ],
+      "notice": "No USSD code reaches MyThuso. No aggregator is contracted, so nothing dialled on a phone books anything.",
+      "surfaces": ["booking"],
+      "state": "absent"
+    },
+    {
+      "id": "scheme-claims",
+      "name": "Claims to medical schemes",
+      "connected": false,
+      "evidence": null,
+      "blockedBy": [
+        "A claims switching house under contract, which becomes an operator under POPIA section 21.",
+        "A licensed tariff code set and an adopted ICD-10 code set, chosen with the switching house.",
+        "A signed data protection impact assessment covering health information sent to a medical scheme."
+      ],
+      "notice": "No claim reaches a medical scheme. No switching partner is connected, so every claim stops before it is sent.",
+      "surfaces": ["passport", "review-queue"],
+      "state": "absent"
     }
-   ]
-  },
-  {
-   "id": "devices",
-   "name": "The connected kit",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "No device is contacted. No Bluetooth or eSIM permission is declared."
-   ],
-   "notice": "No device is connected. These readings are sample data and no instrument has been paired.",
-   "surfaces": [
-    "kit",
-    "capture",
-    "provenance"
-   ],
-   "state": "simulated",
-   "simulation": {
-    "supplier": "A simulated instrument, in process.",
-    "notice": "The instrument is simulated. No Bluetooth session is opened and no device is contacted.",
-    "refuses": [
-     "Open a Bluetooth or eSIM session.",
-     "Declare a device permission on either native app.",
-     "Produce a reading without its provenance mark."
-    ],
-    "reachableFromTheNetwork": false
-   }
-  },
-  {
-   "id": "dispensing",
-   "name": "Sending a prescription to a pharmacy",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "A contracted pharmacy network.",
-    "A pharmacist's review of the substitution classes."
-   ],
-   "notice": "No prescription reaches a pharmacy. The substitution rules on this screen are real and have not been read by a pharmacist.",
-   "surfaces": [
-    "dispensing",
-    "orders",
-    "prescription"
-   ],
-   "state": "simulated",
-   "simulation": {
-    "supplier": "A simulated pharmacy network, in process.",
-    "notice": "The pharmacy is simulated. No prescription is sent and no pharmacist has seen it.",
-    "refuses": [
-     "Substitute outside the classes the Act permits.",
-     "Change a molecule or a strength.",
-     "Dispense without a simulated pharmacist's registration."
-    ],
-    "reachableFromTheNetwork": false
-   }
-  },
-  {
-   "id": "interpreting",
-   "name": "Booking an interpreter",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "No interpreter is contacted.",
-    "SATI's accreditation route for SASL is drafted and unconfirmed."
-   ],
-   "notice": "No interpreter is contacted. The roster and the refusals are real; the people on it are not.",
-   "surfaces": [
-    "interpreting",
-    "booking",
-    "teleconsult"
-   ],
-   "state": "simulated",
-   "simulation": {
-    "supplier": "A simulated interpreter roster, in process.",
-    "notice": "The interpreter is simulated. Nobody has been booked and nobody is expecting this visit.",
-    "refuses": [
-     "Offer a family member or a child.",
-     "Charge a patient for a cancelled accommodation.",
-     "Dispatch a visit that needs an interpreter and has none."
-    ],
-    "reachableFromTheNetwork": false
-   }
-  },
-  {
-   "id": "messaging",
-   "name": "Reaching a person",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "No SMS, email or push provider.",
-    "No WhatsApp channel, so no report or photo after a visit reaches anybody's phone, and no decision yet on whether a visit photo may travel over WhatsApp at all."
-   ],
-   "notice": "Nothing is sent. No message, invitation or reminder reaches anybody.",
-   "surfaces": [
-    "family",
-    "invitations",
-    "notifications",
-    "requests"
-   ],
-   "state": "simulated",
-   "simulation": {
-    "supplier": "A simulated delivery channel, in process.",
-    "notice": "Messages are simulated. A receipt is produced here; nothing reaches a handset, an inbox or a push service.",
-    "refuses": [
-     "Reach any address outside this machine.",
-     "Report a delivery it did not simulate.",
-     "Retry, because a simulated failure is a chosen failure."
-    ],
-    "reachableFromTheNetwork": false
-   }
-  },
-  {
-   "id": "emergency",
-   "name": "The emergency pathway",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "No contracted ambulance partner.",
-    "No urgent rota.",
-    "The routing questions have not been reviewed by a clinician."
-   ],
-   "notice": "This does not call anybody. In a real emergency dial 10177 or 112 from your phone.",
-   "surfaces": [
-    "sos",
-    "alert",
-    "p1-refusal"
-   ],
-   "neverSoften": "The ambulance number on this screen is real and always shown first, connected or not. The one refusal on this pathway that is not about MyThuso is the one that matters most.",
-   "state": "simulated",
-   "simulation": {
-    "supplier": "A simulated acknowledgement channel, in process.",
-    "notice": "This acknowledgement is simulated. No ambulance service has been contacted. In a real emergency call 10177, or 112 from a mobile.",
-    "refuses": [
-     "Replace or delay the emergency numbers on any screen.",
-     "Claim an ambulance is coming.",
-     "Answer at all until the real numbers have been shown first."
-    ],
-    "reachableFromTheNetwork": false
-   }
-  },
-  {
-   "id": "doctor-review",
-   "name": "A doctor reviewing a nurse's visit",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "A panel of HPCSA-registered doctors, contracted and on a rota.",
-    "A Medical Director who owns the panel and signs off how a review is done."
-   ],
-   "notice": "No doctor reviews anything yet. There is no doctor panel, and a review shown in this preview was written by nobody.",
-   "surfaces": [
-    "plans"
-   ],
-   "state": "absent"
-  },
-  {
-   "id": "medicine-collection",
-   "name": "Collecting chronic medicine for a patient",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "An arrangement to collect from CCMDD pick-up points and clinic pharmacies on a patient's written authorisation.",
-    "A partner pharmacy for private scripts."
-   ],
-   "notice": "No medicine is collected. MyThuso has no arrangement with CCMDD, a clinic or a pharmacy to collect on anybody's behalf.",
-   "surfaces": [
-    "plans"
-   ],
-   "state": "absent"
-  },
-  {
-   "id": "thuso-devices",
-   "name": "MyThuso's own devices",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "Industrial design, firmware and a pilot run with a local electronics partner.",
-    "SAHPRA and ICASA certification."
-   ],
-   "notice": "Thuso Band and Thuso Home have not been built. They are designs with a target cost, and nobody can be given one.",
-   "surfaces": [
-    "plans"
-   ],
-   "state": "absent"
-  },
-  {
-   "id": "carers",
-   "name": "Carers in the home",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "Carers recruited, trained and supervised by registered nurses, planned for phase 3.",
-    "A written scope of what a carer may and may not do in somebody's home."
-   ],
-   "notice": "No carer is employed or contracted. Carer hours are planned under a registered nurse's supervision, and none can be given yet.",
-   "surfaces": [
-    "plans"
-   ],
-   "state": "absent"
-  },
-  {
-   "id": "laboratory-results",
-   "name": "Laboratory orders and results",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "A laboratory accredited to ISO 15189 by SANAS, contracted to collect samples, run tests and release results.",
-    "A clinical governance decision on who acknowledges a result, and how quickly."
-   ],
-   "notice": "No laboratory is connected. No sample is taken and no test is run, and a result shown here is a synthetic reference to nothing.",
-   "surfaces": [
-    "lab-orders",
-    "results"
-   ],
-   "state": "absent"
-  },
-  {
-   "id": "wearables",
-   "name": "Readings from your own watch, band or home device",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "A signed data protection impact assessment covering health data from another company's store or cloud (docs/governance/DPIA-DRAFT.md is unsigned).",
-    "A clinical reviewer who has read the wearable-readings consent scope, reading type by reading type.",
-    "No HealthKit entitlement or Health Connect permission is declared, and neither platform's library is in either app: adding one changes how the iOS app is signed and what either phone asks."
-   ],
-   "notice": "Apple Health, Health Connect and your own devices are not connected. A request to link one is recorded, and nothing is read from your phone or any device maker's cloud.",
-   "surfaces": [
-    "wearable-link",
-    "passport-devices"
-   ],
-   "state": "absent"
-  },
-  {
-   "id": "ussd-booking",
-   "name": "Booking a visit by USSD",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "A USSD aggregator under contract, reaching the mobile networks and saying where a session is logged.",
-    "A USSD code assigned to MyThuso."
-   ],
-   "notice": "No USSD code reaches MyThuso. No aggregator is contracted, so nothing dialled on a phone books anything.",
-   "surfaces": [
-    "booking"
-   ],
-   "state": "absent"
-  },
-  {
-   "id": "scheme-claims",
-   "name": "Claims to medical schemes",
-   "connected": false,
-   "evidence": null,
-   "blockedBy": [
-    "A claims switching house under contract, which becomes an operator under POPIA section 21.",
-    "A licensed tariff code set and an adopted ICD-10 code set, chosen with the switching house.",
-    "A signed data protection impact assessment covering health information sent to a medical scheme."
-   ],
-   "notice": "No claim reaches a medical scheme. No switching partner is connected, so every claim stops before it is sent.",
-   "surfaces": [
-    "passport",
-    "review-queue"
-   ],
-   "state": "absent"
-  }
- ],
- "rules": [
-  {
-   "id": "one-notice-per-screen",
-   "statement": "A screen renders the notice for the capability it depends on. Not three of them stacked, and not one it does not use.",
-   "why": "A nurse's schedule carried a Design preview banner, a WORKSPACE · DEMO eyebrow and a Fictional workspace paragraph before any content — three sentences saying one thing, filling the screen above the first visit. A reader who is told the same thing three times has been told it none."
-  },
-  {
-   "id": "the-notice-is-the-contract",
-   "statement": "No screen writes its own not-connected sentence. It names a capability and the sentence is rendered from this file.",
-   "why": "Sixty hand-typed variations cannot be switched off together, and some of them will be wrong. One place that knows means one boolean to change when an integration lands."
-  },
-  {
-   "id": "connected-needs-evidence",
-   "statement": "A capability may be marked connected only when `evidence` names a file that exists and `blockedBy` is empty. The build refuses it otherwise.",
-   "why": "The failure mode is never a lie. It is somebody clearing a banner off a layout because the screenshot looked better without it."
-  },
-  {
-   "id": "scaffolding-is-not-a-disclosure",
-   "statement": "A state picker and a gallery of loading states are development tools. They are removed from what ships, and removing them says nothing about whether anything is connected.",
-   "why": "The two got tangled: taking the demo furniture out felt like claiming the product was live. They are separate questions and this file answers only the second. This rule named a role switcher as well until 12 September, when the founder made one the way in; see a-demo-login-is-not-an-account for why that is a change to what ships rather than to what is claimed."
-  },
-  {
-   "id": "a-demo-login-is-not-an-account",
-   "statement": "The demo login is what ships, because there is nothing to sign in to. Every surface it opens renders the accounts notice, and the switcher says in the contract's own words that it grants no role.",
-   "why": "Four sign-in screens each carried this capability's notice, each explained that there are no accounts, and each then asked the reader to choose a workspace anyway. Replacing them with one switcher is honest about what was already happening — but it moves the notice off four screens at once, and a screen that stops speaking is exactly the disclosure failure a-simulation-says-so exists to refuse. So the notice moves with it rather than being dropped, and the switcher carries the refusal too: an auto login that looks like an account is worse than a sign-in wall with nothing behind it, because the wall at least admits it is a door."
-  },
-  {
-   "id": "simulated-is-not-connected",
-   "statement": "`state: simulated` never sets `connected: true`, and the two may not disagree. A simulated capability still lists everything blocking it.",
-   "why": "The whole hazard of a simulator is that it works. A person who has watched a payment go through end to end is one edit away from believing a payment provider exists, and the status page is the page a funder reads. So the boolean that removes every notice in the product is left alone, and the build fails if the state and the boolean drift apart."
-  },
-  {
-   "id": "a-simulation-says-so",
-   "statement": "A simulated capability renders its simulation notice, word for word, wherever the absent notice would have rendered. No screen may be quieter for being simulated than it was for being absent.",
-   "why": "The failure mode is not a screen that lies. It is a screen that stops speaking: the sentence goes away because something now answers, and nobody notices that what answers is a fixture. Silence is the disclosure failure, so the notice never disappears until the state is connected."
-  },
-  {
-   "id": "a-simulation-is-not-reachable-from-the-network",
-   "statement": "No simulator may be reached over HTTP. The eleven feed routes go on refusing every payload, and a simulated event enters in process through a function of its own.",
-   "why": "apps/api/src/feeds/index.ts argues that a route which could accept under some condition is a route somebody finds the condition for, usually late at night with a vendor on the phone. A simulation flag on those routes would be exactly that condition. So `decide` still has no acceptance to construct, and the simulators sit beside the boundary rather than inside it."
-  },
-  {
-   "id": "voice-is-on-device",
-   "statement": "`voice` alone is on-device: the phone recognises speech, GilbertOne answers from a contract, and nothing is connected.",
-   "why": "English push-to-talk on the phone, decided on 14 September 2026, is neither a stand-in answering (simulated) nor a supplier (connected). The state says exactly what is true, and the notice stays."
-  }
- ],
- "_permissionsNote": "A permission may exist only when a capability names it under requiresPermissions, with its platform and the feature it serves; scripts/check-boundaries.mjs fails any other. Today there are three, all GilbertOne's push-to-talk. No camera, no location, nothing for the consultation.",
- "_simulationNote": "A capability has four states; `on-device` is voice's alone (see voice-is-on-device), and the other three are these. `absent` means nothing is behind it and the screen says so. `connected` means a contracted supplier answers, and the rule connected-needs-evidence holds it to a file that exists and an empty blockedBy. `simulated` is the third: a named simulator, running in this process, producing what the supplier would produce so the product can be walked end to end before anybody has signed anything. It was added because the founder asked to see the whole journey work, and the honest way to give him that is a third state rather than the second one. Marking these connected would have removed the notice from every screen and told a funder reading the status page that a health service is live. A simulated capability keeps its notice and changes what it says: not 'this is not switched on' but 'this is simulated, and here is what the simulation will not do'. blockedBy is untouched by simulation, because a simulator does not unblock anything — the SMS provider is still unsigned the day the simulated one works perfectly."
+  ],
+  "rules": [
+    {
+      "id": "one-notice-per-screen",
+      "statement": "A screen renders the notice for the capability it depends on. Not three of them stacked, and not one it does not use.",
+      "why": "A nurse's schedule carried a Design preview banner, a WORKSPACE · DEMO eyebrow and a Fictional workspace paragraph before any content — three sentences saying one thing, filling the screen above the first visit. A reader who is told the same thing three times has been told it none."
+    },
+    {
+      "id": "the-notice-is-the-contract",
+      "statement": "No screen writes its own not-connected sentence. It names a capability and the sentence is rendered from this file.",
+      "why": "Sixty hand-typed variations cannot be switched off together, and some of them will be wrong. One place that knows means one boolean to change when an integration lands."
+    },
+    {
+      "id": "connected-needs-evidence",
+      "statement": "A capability may be marked connected only when `evidence` names a file that exists and `blockedBy` is empty. The build refuses it otherwise.",
+      "why": "The failure mode is never a lie. It is somebody clearing a banner off a layout because the screenshot looked better without it."
+    },
+    {
+      "id": "scaffolding-is-not-a-disclosure",
+      "statement": "A state picker and a gallery of loading states are development tools. They are removed from what ships, and removing them says nothing about whether anything is connected.",
+      "why": "The two got tangled: taking the demo furniture out felt like claiming the product was live. They are separate questions and this file answers only the second. This rule named a role switcher as well until 12 September, when the founder made one the way in; see a-demo-login-is-not-an-account for why that is a change to what ships rather than to what is claimed."
+    },
+    {
+      "id": "a-demo-login-is-not-an-account",
+      "statement": "The demo login is what ships, because there is nothing to sign in to. Every surface it opens renders the accounts notice, and the switcher says in the contract's own words that it grants no role.",
+      "why": "Four sign-in screens each carried this capability's notice, each explained that there are no accounts, and each then asked the reader to choose a workspace anyway. Replacing them with one switcher is honest about what was already happening — but it moves the notice off four screens at once, and a screen that stops speaking is exactly the disclosure failure a-simulation-says-so exists to refuse. So the notice moves with it rather than being dropped, and the switcher carries the refusal too: an auto login that looks like an account is worse than a sign-in wall with nothing behind it, because the wall at least admits it is a door."
+    },
+    {
+      "id": "simulated-is-not-connected",
+      "statement": "`state: simulated` never sets `connected: true`, and the two may not disagree. A simulated capability still lists everything blocking it.",
+      "why": "The whole hazard of a simulator is that it works. A person who has watched a payment go through end to end is one edit away from believing a payment provider exists, and the status page is the page a funder reads. So the boolean that removes every notice in the product is left alone, and the build fails if the state and the boolean drift apart."
+    },
+    {
+      "id": "a-simulation-says-so",
+      "statement": "A simulated capability renders its simulation notice, word for word, wherever the absent notice would have rendered. No screen may be quieter for being simulated than it was for being absent.",
+      "why": "The failure mode is not a screen that lies. It is a screen that stops speaking: the sentence goes away because something now answers, and nobody notices that what answers is a fixture. Silence is the disclosure failure, so the notice never disappears until the state is connected."
+    },
+    {
+      "id": "a-simulation-is-not-reachable-from-the-network",
+      "statement": "No simulator may be reached over HTTP. The eleven feed routes go on refusing every payload, and a simulated event enters in process through a function of its own.",
+      "why": "apps/api/src/feeds/index.ts argues that a route which could accept under some condition is a route somebody finds the condition for, usually late at night with a vendor on the phone. A simulation flag on those routes would be exactly that condition. So `decide` still has no acceptance to construct, and the simulators sit beside the boundary rather than inside it."
+    },
+    {
+      "id": "voice-is-on-device",
+      "statement": "`voice` alone is on-device: the phone recognises speech, GilbertOne answers from a contract, and nothing is connected.",
+      "why": "English push-to-talk on the phone, decided on 14 September 2026, is neither a stand-in answering (simulated) nor a supplier (connected). The state says exactly what is true, and the notice stays."
+    }
+  ],
+  "flags": [
+    {
+      "id": "unifiedApi",
+      "enabled": false,
+      "statement": "The unified conversation surface is behind a flag: with it off, every platform answers from the contract with no network at all; with it on, a native build may ask POST /assistant/v1/turn after a message the local matcher could not place.",
+      "why": "The service is real and is not deployed: it answers on loopback, and a phone in somebody's hand cannot reach that. A boolean that is false by default is the difference between a build that quietly reaches for an address the day somebody else runs it and one that reaches for it the day this file says so. The web panel reads no flag — its requests go through its own origin's proxy, which is the path a deploy changes — so the flag is for the natives, whose releases outlive a deploy.",
+      "requiresPermissions": [
+        {
+          "permission": "android.permission.INTERNET",
+          "platform": "android",
+          "serves": "Reaching the unified conversation surface at /assistant/v1/turn once the flag is on. Android needs this permission to open any connection; iOS reads no key for the same request, which is why this flag names one platform."
+        }
+      ]
+    }
+  ],
+  "_permissionsNote": "A permission may exist only when a capability or flag names it under requiresPermissions, with its platform and the feature it serves; scripts/check-boundaries.mjs fails any other. Today there are four: three for GilbertOne's push-to-talk and one for the unified conversation flag. No camera, no location, nothing for the consultation.",
+  "_simulationNote": "A capability has four states; `on-device` is voice's alone (see voice-is-on-device), and the other three are these. `absent` means nothing is behind it and the screen says so. `connected` means a contracted supplier answers, and the rule connected-needs-evidence holds it to a file that exists and an empty blockedBy. `simulated` is the third: a named simulator, running in this process, producing what the supplier would produce so the product can be walked end to end before anybody has signed anything. It was added because the founder asked to see the whole journey work, and the honest way to give him that is a third state rather than the second one. Marking these connected would have removed the notice from every screen and told a funder reading the status page that a health service is live. A simulated capability keeps its notice and changes what it says: not 'this is not switched on' but 'this is simulated, and here is what the simulation will not do'. blockedBy is untouched by simulation, because a simulator does not unblock anything — the SMS provider is still unsigned the day the simulated one works perfectly."
 }

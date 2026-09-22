@@ -15,7 +15,14 @@
       "Every visit, ask for the file to be kept safe; clinics store patient files, so simply return to the same clinic"
     ],
     "tags": ["clinic", "navigation", "PHC", "free"],
-    "source": "SA National Department of Health / provincial health departments"
+    "codes": {},
+    "source": {
+      "authority": "SA National Department of Health / provincial health departments",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "not-assessed",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "sahs-002",
@@ -34,7 +41,14 @@
       "Specialist care in the public sector requires a referral letter, except in emergencies"
     ],
     "tags": ["levels-of-care", "referral", "hospitals", "structure"],
-    "source": "SA National Department of Health"
+    "codes": {},
+    "source": {
+      "authority": "SA National Department of Health",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "not-assessed",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "sahs-003",
@@ -52,7 +66,14 @@
       "Patient transport is limited — provinces run patient transport for scheduled specialist visits; ask the clinic social worker what is available"
     ],
     "tags": ["referral", "appointments", "down-referral", "pathway"],
-    "source": "SA National Department of Health"
+    "codes": {},
+    "source": {
+      "authority": "SA National Department of Health",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "not-assessed",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "sahs-004",
@@ -69,7 +90,14 @@
       "If charged incorrectly after a clinic referral, ask the fees office about the referral exemption"
     ],
     "tags": ["free-services", "PHC", "fees", "rights"],
-    "source": "SA NDoH / Uniform Patient Fee System / National Health Act"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH / Uniform Patient Fee System / National Health Act",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "not-assessed",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "sahs-005",
@@ -87,8 +115,21 @@
       "Collection is still a clinical visit in miniature — blood pressure or viral load checks happen at set intervals",
       "If medicine runs out before the next collection date, go to the clinic: never just stop chronic medication"
     ],
-    "tags": ["CCMDD", "Dablapmpa", "chronic-medication", "pick-up-point", "convenience"],
-    "source": "SA NDoH CCMDD programme"
+    "tags": [
+      "CCMDD",
+      "Dablapmpa",
+      "chronic-medication",
+      "pick-up-point",
+      "convenience"
+    ],
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH CCMDD programme",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "not-assessed",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "sahs-006",
@@ -106,7 +147,14 @@
       "When travelling or moving, ask the clinic for a transfer letter to a new facility"
     ],
     "tags": ["chronic-medication", "repeat-scripts", "clinic-visits"],
-    "source": "SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "not-assessed",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "sahs-007",
@@ -124,7 +172,14 @@
       "Official information comes from the National Department of Health; be cautious of scams selling 'NHI registration' — there is no fee and no card to buy"
     ],
     "tags": ["NHI", "universal-coverage", "financing", "phased"],
-    "source": "SA NDoH / National Health Insurance Act 20 of 2023"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH / National Health Insurance Act 20 of 2023",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "not-assessed",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "sahs-008",
@@ -143,7 +198,14 @@
       "Unresolved complaints can be lodged with the Office of Health Standards Compliance (see sahs-012)"
     ],
     "tags": ["patient-rights", "charter", "confidentiality", "dignity"],
-    "source": "SA NDoH Patient Rights Charter"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH Patient Rights Charter",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "not-assessed",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "sahs-009",
@@ -162,7 +224,14 @@
       "If transport to hospital is faster than waiting for an ambulance in a life-threatening emergency, do not delay — get to the nearest facility"
     ],
     "tags": ["emergency", "10177", "112", "ambulance", "numbers"],
-    "source": "SA government emergency services directory"
+    "codes": {},
+    "source": {
+      "authority": "SA government emergency services directory",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "not-assessed",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "sahs-010",
@@ -181,7 +250,14 @@
       "Community health workers attached to the clinic can follow up at home — ask how to reach them"
     ],
     "tags": ["clinic-visit", "preparation", "queues", "practical"],
-    "source": "SA NDoH / provincial health department guidance"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH / provincial health department guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "not-assessed",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "sahs-011",
@@ -199,7 +275,14 @@
       "For chronic conditions requiring work adjustments (for example heavy lifting), ask the clinic to document it in a letter"
     ],
     "tags": ["sick-note", "medical-certificate", "work", "BCEA"],
-    "source": "Basic Conditions of Employment Act / HPCSA guidance"
+    "codes": {},
+    "source": {
+      "authority": "Basic Conditions of Employment Act / HPCSA guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "not-assessed",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "sahs-012",
@@ -217,7 +300,14 @@
       "Whistleblowers reporting in good faith are protected; the OHSC keeps complainants' details confidential where requested"
     ],
     "tags": ["complaints", "OHSC", "quality", "accountability"],
-    "source": "Office of Health Standards Compliance / National Health Amendment Act"
+    "codes": {},
+    "source": {
+      "authority": "Office of Health Standards Compliance / National Health Amendment Act",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "not-assessed",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "sahs-013",
@@ -235,7 +325,14 @@
       "Bring the containers of all remedies being used to the clinic visit — names alone are often not enough"
     ],
     "tags": ["traditional-healers", "integration", "interactions", "safety"],
-    "source": "SA NDoH Traditional Health Practitioners framework / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH Traditional Health Practitioners framework / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "not-assessed",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "sahs-014",
@@ -253,6 +350,13 @@
       "For scheme disputes or refused PMB claims, the Council for Medical Schemes (0861 123 267) assists"
     ],
     "tags": ["medical-aid", "PMB", "private", "public"],
-    "source": "Council for Medical Schemes / Medical Schemes Act"
+    "codes": {},
+    "source": {
+      "authority": "Council for Medical Schemes / Medical Schemes Act",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "not-assessed",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   }
 ]

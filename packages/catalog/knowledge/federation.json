@@ -1,0 +1,146 @@
+{
+  "version": 1,
+  "name": "MyThuso governed knowledge federation",
+  "compiledOn": "2026-09-21",
+  "reviewHorizonMonths": 12,
+  "policy": {
+    "darkByDefault": true,
+    "statement": "Every external source below starts dark: \"active\": false. Nothing in apps/assistant-api calls one until a deliberate edit flips a single source's flag, with the licence, rate limit and POPIA cross-border position reviewed and recorded first. The adapters in apps/assistant-api/src/lib/sources refuse to operate while their source is dark, so an accident of wiring cannot spend data or reputation either.",
+    "activationRequires": "1) A recorded decision against the source's licence and the POPIA s72 cross-border position; 2) credentials, where the source needs any, set in the deployment environment and never in this file; 3) one deliberate commit editing that source's \"active\" to true.",
+    "patientDataLeavesThisDeployment": false,
+    "popiaNote": "No patient identifiers are ever sent to an external source: a federated lookup carries only the topic words of a question. Even so, activation stays gated on a recorded cross-border transfer assessment, because a topic can be personal in context."
+  },
+  "evidenceGrades": {
+    "guideline": "Clinical or public-health guidance issued by a named authority — SA NDoH, WHO, NICD, SAHPRA, or a professional society whose guidance the catalogue cites.",
+    "regulatory-label": "Wording drawn from a regulator's product label, paired with its South African treatment-guideline counterpart (the drug-interaction entries: OpenFDA / SA NDoH Standard Treatment Guidelines).",
+    "not-assessed": "Service navigation, programme or directory information carried for completeness — no clinical evidence assessment has been performed on the entry, and none is implied."
+  },
+  "abstention": {
+    "no-evidence": "MyThuso's approved knowledge base has nothing that speaks to this question. Rather than guess, it says so plainly — a nurse or doctor can help where the records cannot.",
+    "expired-evidence": "The record for this topic is past its review date, so it may no longer be current. MyThuso will not present it as fact — please confirm with a nurse, doctor or pharmacist.",
+    "conflicting-evidence": "The records for this topic disagree with each other. Where the evidence conflicts, MyThuso does not choose a side for you — a nurse or doctor can weigh it up against your own situation.",
+    "outside-approved-scope": "This question falls outside what MyThuso's knowledge base is approved to answer. It is deliberately left unanswered rather than guessed at — please take it to a nurse or doctor."
+  },
+  "scope": {
+    "approved": [
+      "conditions (general health information)",
+      "medications (catalogue records, never prescriptions)",
+      "first-aid",
+      "maternal and newborn care",
+      "chronic illness",
+      "mental health",
+      "South African public health system navigation",
+      "prevention",
+      "recorded drug interactions"
+    ],
+    "excluded": [
+      "diagnosis",
+      "prescribing or dose changes",
+      "individual clinical decisions",
+      "anything that needs a licence to interpret (for example radiology or pathology results)"
+    ],
+    "statement": "The outside-approved-scope abstention is enforced where an answer is composed for a person — the federation answer path in apps/assistant-api/src/lib/knowledge-federation.ts (federatedSearch, through outsideApprovedScope), which decides scope before any lookup and abstains rather than guessing. That path stays dark until a live route is deliberately wired to it, so today the abstention is a property of answer composition, not of a connected route. The built /assistant/v1/knowledge/search route does not compose an answer at all: it lists the catalogue's own published sources (each id, title and source) through retrieveKnowledge and withholds any match with no source — its no-source-no-fact refusal — so it never returns a diagnosis for the abstention to catch, and the frozen knowledge/search@2 contract declares no outside-approved-scope refusal."
+  },
+  "sources": [
+    {
+      "id": "icd11-who",
+      "name": "WHO International Classification of Diseases 11th Revision (ICD-11) API",
+      "authority": "WHO",
+      "role": "terminology-lookup",
+      "jurisdiction": "International",
+      "active": false,
+      "activation": "Requires an ICD API client registered with WHO (client id and secret set in the deployment environment as ICD11_CLIENT_ID and ICD11_CLIENT_SECRET), a recorded licence and POPIA review, and this flag edited to true.",
+      "endpoint": "https://id.who.int/icd/release/11/2024-01/mms/search",
+      "auth": {
+        "type": "oauth2-client-credentials",
+        "tokenEndpoint": "https://icdaccessmanagement.who.int/connect/token",
+        "clientIdEnv": "ICD11_CLIENT_ID",
+        "clientSecretEnv": "ICD11_CLIENT_SECRET"
+      },
+      "rateLimit": {
+        "requestsPerMinute": 60,
+        "maxConcurrent": 1,
+        "basis": "Self-imposed ceiling. WHO does not publish a fixed public rate limit for the ICD API; a registered client's quota is confirmed with WHO ICD Access Management at registration, and this ceiling stays below it."
+      },
+      "licensing": {
+        "licence": "CC BY-ND 3.0 IGO",
+        "attributionRequired": true,
+        "notes": "ICD-11 is WHO copyright, licensed CC BY-ND 3.0 IGO: no derivatives. ICD-11 content would be presented unmodified and attributed, never folded into an edited derivative."
+      },
+      "dataResidency": {
+        "hostedIn": "WHO (Geneva, Switzerland)",
+        "patientDataShared": false,
+        "crossBorderTransferApproved": false,
+        "notes": "A lookup sends only the topic words of a question, never a patient identifier; the request still crosses the border, so activation waits on a recorded POPIA s72 assessment."
+      },
+      "useFor": "Validating and enriching the terminology codes the catalogue maps to its own entries.",
+      "notFor": "Clinical decision support, diagnosis lookup on behalf of a patient, or answering a person's question directly."
+    },
+    {
+      "id": "openfda",
+      "name": "openFDA drug label API (US Food and Drug Administration)",
+      "authority": "US FDA (openFDA)",
+      "role": "regulatory-label",
+      "jurisdiction": "United States",
+      "active": false,
+      "activation": "Optional free API key in the deployment environment as OPENFDA_API_KEY (the API works without one at the lower public limits), a recorded licence and POPIA review, and this flag edited to true.",
+      "endpoint": "https://api.fda.gov/drug/label.json",
+      "auth": {
+        "type": "none-or-api-key",
+        "apiKeyEnv": "OPENFDA_API_KEY",
+        "notes": "No key is required; an optional key raises the daily ceiling from 1,000 to 120,000 requests."
+      },
+      "rateLimit": {
+        "requestsPerMinute": 240,
+        "requestsPerDay": 1000,
+        "maxConcurrent": 1,
+        "basis": "openFDA's documented unauthenticated limits (open.fda.gov/apis/authentication): 240 requests per minute and 1,000 per day per IP address; with an API key the daily ceiling rises to 120,000."
+      },
+      "licensing": {
+        "licence": "Public domain (US Government work)",
+        "attributionRequired": false,
+        "notes": "openFDA data is a public-domain US Government dataset; MyThuso would still record its origin on every result, because attribution is a habit, not a requirement."
+      },
+      "dataResidency": {
+        "hostedIn": "United States (api.fda.gov)",
+        "patientDataShared": false,
+        "crossBorderTransferApproved": false,
+        "notes": "A lookup sends a medicine's generic name, never a patient; the request still crosses the border, so activation waits on a recorded POPIA s72 assessment."
+      },
+      "useFor": "Checking the catalogue's recorded drug-interaction warnings against the regulator's own label text.",
+      "notFor": "Presenting US label wording to a South African patient as though it were SA guidance without the SA NDoH treatment-guideline line beside it, or any dose, diagnosis or prescribing answer."
+    },
+    {
+      "id": "pubmed-europepmc",
+      "name": "Europe PMC REST search (PubMed and PMC literature)",
+      "authority": "Europe PMC (EMBL-EBI)",
+      "role": "literature-index",
+      "jurisdiction": "International",
+      "active": false,
+      "activation": "No credentials required; activation needs a recorded licence and POPIA review and this flag edited to true.",
+      "endpoint": "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+      "auth": {
+        "type": "none",
+        "notes": "No credentials; a descriptive User-Agent identifies the deployment, the same politeness the literature_search tool already practises."
+      },
+      "rateLimit": {
+        "requestsPerMinute": 30,
+        "maxConcurrent": 1,
+        "basis": "Self-imposed ceiling — Europe PMC publishes no fixed request-rate limit, so this deployment stays deliberately slow rather than testing any limit there may be."
+      },
+      "licensing": {
+        "licence": "Per-record",
+        "attributionRequired": true,
+        "notes": "Metadata and abstracts are served by Europe PMC; each article's full text keeps its own licence (CC BY, CC BY-NC or publisher terms), so only identifiers, titles and abstract openings would ever be carried, each attributed to its journal."
+      },
+      "dataResidency": {
+        "hostedIn": "EMBL-EBI (Hinxton, United Kingdom)",
+        "patientDataShared": false,
+        "crossBorderTransferApproved": false,
+        "notes": "A lookup sends only a topic string, never a patient; the request still crosses the border, so activation waits on a recorded POPIA s72 assessment."
+      },
+      "useFor": "Finding published literature that speaks to a question, always by a checkable identifier, the same discipline the literature_search tool already follows.",
+      "notFor": "Treating a search hit as clinical evidence by itself, or carrying any conclusion beyond the paper's own title and abstract opening."
+    }
+  ]
+}

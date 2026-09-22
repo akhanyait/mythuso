@@ -1,0 +1,85 @@
+{
+  "_note": "The vital-sign contract for GilbertOne's /assistant/v1/vitals route. It is a server-side contract in the shape of the knowledge federation's own files: read by apps/assistant-api/src/lib/vitals.ts and by nothing that ships to a phone, so it has no generator and no line in the generated-files registry. Every number here is a plausibility bound — the outside of which a typed or transmitted value is refused as a mistake — and never a clinical threshold, a triage cut-off or a scoring input: deciding what a reading MEANS for a patient is Clinical's, under a protocol a governance board has ratified, and none has. The LOINC codes name the observation and the UCUM units name the measure, so a value is never read as another; the codes pass the LOINC check digit that scripts/knowledge-codes.mjs validates. Nothing in this file diagnoses, scores or triages.",
+  "version": 1,
+  "engine": "assistant",
+  "consent": {
+    "required": true,
+    "why": "A reading is the person's own health information the moment it is captured, so the agreement comes first and a reading that arrives without it is refused rather than stored."
+  },
+  "darkForRealDevices": {
+    "dpiA": "not-done",
+    "why": "A real device, a HealthKit source and a Health Connect source each put a certified reading into the clinical record, which is a processing of special personal information that POPIA s57 holds behind a Data Protection Impact Assessment nobody has completed. Until it is, the route answers only synthetic readings, and only where the deployment switched testing on."
+  },
+  "testing": {
+    "env": "MYTHUSO_VITALS_TESTING",
+    "value": "synthetic",
+    "why": "The one door that opens the route while the DPIA is not done: a deployment that sets this variable to this exact value accepts a synthetic manual reading for its own tests. Absent it, or set to anything else, every reading is refused and the route is dark."
+  },
+  "sources": ["manual", "device", "healthkit", "healthconnect"],
+  "staleness": {
+    "maxAgeMs": 86400000,
+    "why": "A reading older than a day is stale: it describes a person who may have changed since, so it is refused rather than handed to a clinician as current. The bound is a freshness rule, not a clinical one."
+  },
+  "deviceAllowlist": {
+    "real": [],
+    "why": "The certified devices whose readings this deployment accepts. It is empty: no device has been registered against a completed DPIA, so a deviceRef that is not on this list is refused, and with the list empty every real-device reading is. A device joins only by a deliberate edit here, after the assessment that darkForRealDevices names."
+  },
+  "types": [
+    {
+      "id": "heart-rate",
+      "name": "Heart rate",
+      "loinc": "8867-4",
+      "unit": "{beats}/min",
+      "min": 20,
+      "max": 300
+    },
+    {
+      "id": "respiratory-rate",
+      "name": "Respiratory rate",
+      "loinc": "9279-1",
+      "unit": "{breaths}/min",
+      "min": 5,
+      "max": 60
+    },
+    {
+      "id": "systolic-blood-pressure",
+      "name": "Systolic blood pressure",
+      "loinc": "8480-6",
+      "unit": "mm[Hg]",
+      "min": 50,
+      "max": 300
+    },
+    {
+      "id": "diastolic-blood-pressure",
+      "name": "Diastolic blood pressure",
+      "loinc": "8462-4",
+      "unit": "mm[Hg]",
+      "min": 30,
+      "max": 200
+    },
+    {
+      "id": "body-temperature",
+      "name": "Body temperature",
+      "loinc": "8310-5",
+      "unit": "Cel",
+      "min": 30,
+      "max": 43
+    },
+    {
+      "id": "oxygen-saturation",
+      "name": "Oxygen saturation, arterial",
+      "loinc": "59408-5",
+      "unit": "%",
+      "min": 50,
+      "max": 100
+    },
+    {
+      "id": "body-weight",
+      "name": "Body weight",
+      "loinc": "29463-7",
+      "unit": "kg",
+      "min": 1,
+      "max": 500
+    }
+  ]
+}

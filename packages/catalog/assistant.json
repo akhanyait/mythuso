@@ -811,6 +811,19 @@
       "on": "2026-09-21",
       "why": "Asked for on 21 September 2026, the day after voice.webSpeech: GilbertOne's replies are read aloud on the phone itself, through the phone's own speech synthesiser — AVSpeechSynthesizer on iOS, TextToSpeech on Android — the same on-device rule the microphone has always kept, and nothing said is sent anywhere to make it happen. The words stay written on the screen in full whether the voice is on or off, which is the same rule the web keeps. Unlike the web, the phone carries its own mute control — a speaker button beside the composer — because a phone is far more often used somewhere a voice reading a health answer aloud would be overheard: a bus, a waiting room, a shared house, rather than a desktop at a settled address. Muting stops the current sentence immediately, mutes every reply after it, and is remembered for nothing beyond the screen being open — the same honest equivalent of persistence the consent gate on the web already uses, because apps/ios and apps/android hold nothing about a person's choices once the screen closes. English only, the on-device voice the phone already has, and voice.voicePreference's order — South African English first, then British, then Australian, then any English voice — applied quietly on both phones exactly as it is on the web; a phone with none of the four keeps its own system voice, and none is promised. Switching this off again is the founder's decision to record, not an edit."
     },
+    "cloud": {
+      "routes": "Push-to-talk's two built addresses: POST /assistant/v1/listen hears one capture and answers with its words, and POST /assistant/v1/speak reads back words that already exist. Both are declared in packages/catalog/apis/assistant.json and served by apps/assistant-api.",
+      "provider": "Azure Speech's REST service, in the region AZURE_SPEECH_REGION names, called with the key AZURE_SPEECH_KEY. Both are read from the service's own environment when a call is made — never here, and no value is written anywhere in this repository. The credential reaches the server the way every credential at this address does, through deploy/ops/configure-assistant-env.sh, and the routes answer the site's own origins only, through the same policy every address passes.",
+      "recognitionLocale": "en-ZA",
+      "outputFormat": "audio-24khz-48kbitrate-mono-mp3",
+      "voices": {
+        "female": "en-ZA-LeahNeural",
+        "male": "en-ZA-LukeNeural"
+      },
+      "audioStored": false,
+      "fallback": "Without both variables the routes answer the speech-not-configured refusal written in packages/catalog/apis/assistant.json, and the browser carries the sentence exactly as it does today: recognition through voice.webRecognition, playback through the browser's own synthesiser in voice.voicePreference's order. Nothing in the web panel is built on the cloud voice being there — it hears and speaks through the browser either way, and where the cloud voice is configured it is a better reading of the same words rather than a different route.",
+      "why": "Added on 22 September 2026, the day the two routes were built: the plan's premium push-to-talk voice, arriving the way the plan asks — behind the existing secure credential mechanism and activation gate, as an upgrade of the browser's own voice and never a dependency of it. One capture is heard once and kept nowhere, the same promise voice.audioStored has always made, and the locale and the two voices live here rather than in code, so which voice reads a health answer in South Africa stays a decision on file."
+    },
     "webPoc": {
       "enabled": true,
       "scope": "The GilbertOne character demonstrator at /app/?preview=gilbertone. These sentences are written for a reviewer on a page labelled a demonstrator. The live patient assistant has its own set, voice.webSentences, and the two are kept apart on purpose: a page that says “this demonstration” to a patient is a page describing the wrong thing, and the demonstrator's refusals are worded for somebody who chose to open it.",
@@ -859,6 +872,57 @@
       "muteLabel": "Mute GilbertOne's voice",
       "unmuteLabel": "Let GilbertOne speak its answers",
       "speechUnavailable": "GilbertOne cannot read this answer aloud on this phone right now. The words are still on the screen, in full."
+    },
+    "session": {
+      "why": "Push-to-talk's own states, recorded on 22 September 2026 with the voice session work, so that the panel reads a state rather than inventing one: the five moments a person can find the voice in — idle, listening, understanding, responding, speaking — each with one sentence a screen may show for it. The microphone's own states (voice.webSentences.states) stay what they were; these are the session's, and the panel shows exactly one of them at a time.",
+      "states": [
+        {
+          "id": "idle",
+          "label": "Idle",
+          "sentence": "GilbertOne is resting. Nothing is being heard, and nothing is being read aloud.",
+          "why": "The state the voice is in most of the time, and the one no screen needs to narrate. It is in the list because a session that cannot name its resting state cannot say which of the others it is in either."
+        },
+        {
+          "id": "listening",
+          "label": "Listening",
+          "sentence": "GilbertOne is listening. What is heard appears below as it is heard, and nothing is sent until you press Send.",
+          "why": "The microphone is open. voice.webSentences.states.open already carries the microphone's own words, and this sentence is the session's: hearing is the first step, and sending stays the person's own act."
+        },
+        {
+          "id": "understanding",
+          "label": "Understanding",
+          "sentence": "GilbertOne is working out what to say. Nothing has been decided yet, and an answer it does not have is not dressed up as one.",
+          "why": "The turn has been sent and an answer is being worked out. The second half is the honest half: what comes back may be the unmatched answer — the one with the ambulance numbers in it — rather than a match."
+        },
+        {
+          "id": "responding",
+          "label": "Responding",
+          "sentence": "The answer is arriving, and the voice is about to read it. Its words stay written on the screen whether or not the voice speaks.",
+          "why": "The moment between the answer landing and the voice starting, named so that the panel has a sentence for it rather than a gap. The second half is voice.webSpeech's own rule: the caption is the reply itself, and it is always there."
+        },
+        {
+          "id": "speaking",
+          "label": "Speaking",
+          "sentence": "GilbertOne is reading the answer aloud. The same words are written on the screen for as long as the voice speaks, and tapping the microphone stops the voice and opens it for you.",
+          "why": "The caption rule and the barge-in rule in one sentence: the reading is a second way to receive the same words rather than a replacement for them, and one tap of the microphone is what interrupts it."
+        }
+      ],
+      "consent": {
+        "microphone": "I agree that this page's microphone may open when I tap the microphone button, so GilbertOne can hear me, in English, for no longer than {seconds} seconds at a time — and that MyThuso keeps no recording of what I say.",
+        "externalSpeechProcessing": "I understand that turning my words into text, and GilbertOne's answers into speech, may happen outside MyThuso: through my browser's own speech recognition and voice, which may send what is said to the company that makes the browser, and where MyThuso has switched its cloud voice on for this page, through an external speech service acting for MyThuso. Neither route keeps a recording, and nothing is heard until I tap.",
+        "confirmLabel": "Agree and continue",
+        "notNowLabel": "Not now",
+        "decidedBy": "Founder",
+        "on": "2026-09-22",
+        "why": "Asked for with the push-to-talk build, because the microphone and where the hearing happens are two different agreements and one button implies neither. Both are asked once, before the first use of the voice, in the same words on every platform, and declining costs nothing: typing always works, and the microphone stays shut until somebody taps and agrees."
+      },
+      "labels": {
+        "cancelCapture": "Cancel",
+        "stopVoice": "Stop the voice",
+        "typeInstead": "Type instead",
+        "speakInstead": "Speak instead",
+        "why": "The controls the session adds to the live composer: an asked-for cancel that drops what a capture caught without keeping it, a stop for the voice alone when somebody wants silence rather than a new turn, and the step between the voice and plain typing. They are labels rather than sentences because they sit on buttons, and a button is what a reviewer reads in the accessibility tree."
+      }
     },
     "usageDescriptions": {
       "NSMicrophoneUsageDescription": "GilbertOne uses the microphone only after you tap the sphere, to hear a question in English. No recording is made.",

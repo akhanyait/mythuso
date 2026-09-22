@@ -16,7 +16,16 @@
     "pregnancyCategory": "Safe at therapeutic doses — first-choice pain and fever medicine in pregnancy",
     "saEmlLevel": "PHC",
     "tags": ["pain", "fever", "OTC", "first-choice"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {
+      "snomed": "387517004"
+    },
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-002",
@@ -39,7 +48,16 @@
     "pregnancyCategory": "Avoid, especially from 20 weeks onwards and never in the third trimester",
     "saEmlLevel": "PHC",
     "tags": ["pain", "inflammation", "fever", "OTC"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {
+      "snomed": "387207008"
+    },
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-003",
@@ -60,7 +78,16 @@
     "pregnancyCategory": "Low-dose only when specifically prescribed for a heart or clotting condition",
     "saEmlLevel": "PHC",
     "tags": ["heart", "antiplatelet", "clot-prevention"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {
+      "snomed": "387458008"
+    },
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-004",
@@ -82,7 +109,14 @@
     "pregnancyCategory": "Avoid — can cause withdrawal in the newborn",
     "saEmlLevel": "Hospital",
     "tags": ["pain", "opioid", "prescription-only"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-005",
@@ -90,18 +124,23 @@
     "genericName": "Amoxicillin",
     "category": "antibiotic-penicillin",
     "commonDosage": "Adults: 500mg every 8 hours. Children: 25-50mg per kg per day divided into three doses, as prescribed",
-    "sideEffects": [
-      "Rash",
-      "Diarrhoea and nausea",
-      "Thrush after a course"
-    ],
+    "sideEffects": ["Rash", "Diarrhoea and nausea", "Thrush after a course"],
     "contraindications": [
       "Penicillin allergy — tell the clinic or pharmacist before collection"
     ],
     "pregnancyCategory": "Safe — commonly used in pregnancy",
     "saEmlLevel": "PHC",
     "tags": ["antibiotic", "penicillin", "infection"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {
+      "snomed": "372687004"
+    },
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-006",
@@ -109,11 +148,7 @@
     "genericName": "Co-amoxiclav",
     "category": "antibiotic-penicillin",
     "commonDosage": "Adults: 625mg every 8 hours with food, as prescribed; dose and duration depend on the infection",
-    "sideEffects": [
-      "Diarrhoea (common)",
-      "Nausea",
-      "Rash and thrush"
-    ],
+    "sideEffects": ["Diarrhoea (common)", "Nausea", "Rash and thrush"],
     "contraindications": [
       "Penicillin allergy",
       "Previous liver problems with this medicine"
@@ -121,7 +156,14 @@
     "pregnancyCategory": "Safe when needed",
     "saEmlLevel": "PHC",
     "tags": ["antibiotic", "broad-spectrum", "infection"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-007",
@@ -141,7 +183,14 @@
     "pregnancyCategory": "Generally safe when prescribed",
     "saEmlLevel": "PHC",
     "tags": ["antibiotic", "macrolide", "STI"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-008",
@@ -164,7 +213,14 @@
     "pregnancyCategory": "Avoid",
     "saEmlLevel": "PHC",
     "tags": ["antibiotic", "fluoroquinolone", "urinary"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-009",
@@ -186,7 +242,14 @@
     "pregnancyCategory": "Used after the first trimester when needed",
     "saEmlLevel": "PHC",
     "tags": ["antibiotic", "amoebiasis", "giardia", "bacterial-vaginosis"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-010",
@@ -209,7 +272,14 @@
     "pregnancyCategory": "Preventive daily dose in HIV continues with folic acid, on clinical advice",
     "saEmlLevel": "PHC",
     "tags": ["antibiotic", "prophylaxis", "HIV", "PCP"],
-    "source": "SA Essential Medicines List / SA NDoH ART guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH ART guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-011",
@@ -230,7 +300,14 @@
     "pregnancyCategory": "Avoid — affects developing teeth and bones",
     "saEmlLevel": "PHC",
     "tags": ["antibiotic", "tetracycline", "STI"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-012",
@@ -238,11 +315,7 @@
     "genericName": "Ceftriaxone",
     "category": "antibiotic-cephalosporin",
     "commonDosage": "Given as an intramuscular or intravenous injection at the clinic or hospital — commonly 1g daily; dose depends on the infection",
-    "sideEffects": [
-      "Pain at the injection site",
-      "Rash",
-      "Diarrhoea"
-    ],
+    "sideEffects": ["Pain at the injection site", "Rash", "Diarrhoea"],
     "contraindications": [
       "Cephalosporin allergy",
       "Not mixed with calcium-containing drips in newborns"
@@ -250,7 +323,14 @@
     "pregnancyCategory": "Safe when needed",
     "saEmlLevel": "Hospital",
     "tags": ["antibiotic", "injection", "STI", "meningitis"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-013",
@@ -263,13 +343,18 @@
       "Rash",
       "Rarely a severe allergic reaction — usually within 30 minutes, which is why a short wait after injection is advised"
     ],
-    "contraindications": [
-      "Penicillin allergy"
-    ],
+    "contraindications": ["Penicillin allergy"],
     "pregnancyCategory": "Safe — the treatment of choice for syphilis in pregnancy",
     "saEmlLevel": "PHC",
     "tags": ["antibiotic", "injection", "syphilis", "rheumatic-fever"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-014",
@@ -281,13 +366,18 @@
       "Mild burning or stinging when applied",
       "Contact irritation — uncommon"
     ],
-    "contraindications": [
-      "Clotrimazole allergy"
-    ],
+    "contraindications": ["Clotrimazole allergy"],
     "pregnancyCategory": "Safe — topical treatment of choice in pregnancy",
     "saEmlLevel": "PHC",
     "tags": ["antifungal", "ringworm", "athlete's-foot", "topical"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-015",
@@ -307,7 +397,14 @@
     "pregnancyCategory": "A single 150mg dose is considered acceptable; regular dosing is avoided in pregnancy",
     "saEmlLevel": "PHC",
     "tags": ["antifungal", "thrush", "single-dose"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-016",
@@ -326,7 +423,14 @@
     "pregnancyCategory": "Considered safe in pregnancy",
     "saEmlLevel": "PHC",
     "tags": ["scabies", "antiparasitic", "whole-household"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-017",
@@ -345,7 +449,14 @@
     "pregnancyCategory": "Safe",
     "saEmlLevel": "PHC",
     "tags": ["diarrhoea", "dehydration", "children", "life-saving"],
-    "source": "WHO / UNICEF / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "WHO / UNICEF / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-018",
@@ -353,16 +464,19 @@
     "genericName": "Zinc sulphate",
     "category": "micronutrient",
     "commonDosage": "Children with diarrhoea: 20mg once daily for 10-14 days (10mg daily for babies under 6 months), given together with ORS",
-    "sideEffects": [
-      "Mild stomach upset"
-    ],
-    "contraindications": [
-      "None at these doses"
-    ],
+    "sideEffects": ["Mild stomach upset"],
+    "contraindications": ["None at these doses"],
     "pregnancyCategory": "Not applicable — paediatric use",
     "saEmlLevel": "PHC",
     "tags": ["diarrhoea", "children", "recovery"],
-    "source": "WHO / UNICEF / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "WHO / UNICEF / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-019",
@@ -381,7 +495,14 @@
     "pregnancyCategory": "Acceptable when needed",
     "saEmlLevel": "PHC",
     "tags": ["heartburn", "ulcer", "stomach-acid"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-020",
@@ -404,7 +525,14 @@
     "pregnancyCategory": "Only short, prescribed courses",
     "saEmlLevel": "PHC",
     "tags": ["nausea", "vomiting", "short-course"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-021",
@@ -412,10 +540,7 @@
     "genericName": "Loperamide",
     "category": "antidiarrhoeal",
     "commonDosage": "Adults: 4mg first dose, then 2mg after each loose stool, no more than 16mg in 24 hours and only for short periods",
-    "sideEffects": [
-      "Constipation, bloating and wind",
-      "Drowsiness"
-    ],
+    "sideEffects": ["Constipation, bloating and wind", "Drowsiness"],
     "contraindications": [
       "Fever or blood in the stool (dysentery)",
       "Children under 5 years",
@@ -424,7 +549,14 @@
     "pregnancyCategory": "Avoid unless advised by a clinician",
     "saEmlLevel": "PHC",
     "tags": ["diarrhoea", "OTC", "short-term"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-022",
@@ -444,7 +576,14 @@
     "pregnancyCategory": "Short-term use acceptable in pregnancy",
     "saEmlLevel": "PHC",
     "tags": ["constipation", "OTC", "short-term"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-023",
@@ -464,7 +603,14 @@
     "pregnancyCategory": "Safe — asthma control in pregnancy protects the baby",
     "saEmlLevel": "PHC",
     "tags": ["asthma", "reliever", "inhaler", "spacer"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-024",
@@ -482,7 +628,14 @@
     "pregnancyCategory": "Safe — and important to continue in pregnancy",
     "saEmlLevel": "PHC",
     "tags": ["asthma", "preventer", "daily", "inhaler"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-025",
@@ -504,7 +657,14 @@
     "pregnancyCategory": "Used when clinically needed",
     "saEmlLevel": "PHC",
     "tags": ["steroid", "asthma-flare", "short-course", "taper"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-026",
@@ -523,7 +683,14 @@
     "pregnancyCategory": "Safe for short courses",
     "saEmlLevel": "PHC",
     "tags": ["eczema", "rash", "itch", "topical"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-027",
@@ -531,11 +698,7 @@
     "genericName": "Amlodipine",
     "category": "antihypertensive-ccb",
     "commonDosage": "5mg once daily, may be increased to 10mg once daily as prescribed",
-    "sideEffects": [
-      "Ankle swelling",
-      "Flushing and headache",
-      "Palpitations"
-    ],
+    "sideEffects": ["Ankle swelling", "Flushing and headache", "Palpitations"],
     "contraindications": [
       "Severe narrowing of the aortic valve",
       "Acute heart failure",
@@ -544,7 +707,16 @@
     "pregnancyCategory": "Avoid — the clinic will switch medicines when pregnancy is planned",
     "saEmlLevel": "PHC",
     "tags": ["blood-pressure", "heart", "daily"],
-    "source": "SA Essential Medicines List / SA NDoH hypertension guidelines"
+    "codes": {
+      "snomed": "386864001"
+    },
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH hypertension guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-028",
@@ -566,7 +738,16 @@
     "pregnancyCategory": "Avoid — harmful to the unborn baby; effective alternatives exist in pregnancy",
     "saEmlLevel": "PHC",
     "tags": ["blood-pressure", "heart-failure", "kidney-protection"],
-    "source": "SA Essential Medicines List / SA NDoH hypertension guidelines"
+    "codes": {
+      "snomed": "372658000"
+    },
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH hypertension guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-029",
@@ -589,7 +770,14 @@
     "pregnancyCategory": "Avoid — particularly near delivery",
     "saEmlLevel": "PHC",
     "tags": ["blood-pressure", "water-tablet", "morning-dose"],
-    "source": "SA Essential Medicines List / SA NDoH hypertension guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH hypertension guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-030",
@@ -611,7 +799,14 @@
     "pregnancyCategory": "Only under specialist care",
     "saEmlLevel": "PHC",
     "tags": ["heart-failure", "fluid", "water-tablet"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-031",
@@ -634,7 +829,14 @@
     "pregnancyCategory": "Avoid — alternatives are preferred in pregnancy",
     "saEmlLevel": "PHC",
     "tags": ["blood-pressure", "heart-rhythm", "angina"],
-    "source": "SA Essential Medicines List / SA NDoH hypertension guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH hypertension guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-032",
@@ -655,7 +857,14 @@
     "pregnancyCategory": "Avoid",
     "saEmlLevel": "PHC",
     "tags": ["cholesterol", "heart-protection", "night-dose"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-033",
@@ -676,7 +885,16 @@
     "pregnancyCategory": "Safe — commonly continued in pregnancy, with insulin added where needed",
     "saEmlLevel": "PHC",
     "tags": ["diabetes", "first-line", "with-food"],
-    "source": "SA Essential Medicines List / SA NDoH diabetes guidelines"
+    "codes": {
+      "snomed": "372567009"
+    },
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH diabetes guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-034",
@@ -697,7 +915,14 @@
     "pregnancyCategory": "Avoid — insulin is used in pregnancy",
     "saEmlLevel": "PHC",
     "tags": ["diabetes", "second-line", "hypoglycaemia-risk"],
-    "source": "SA Essential Medicines List / SA NDoH diabetes guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH diabetes guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-035",
@@ -718,7 +943,14 @@
     "pregnancyCategory": "Safe — the standard treatment for diabetes in pregnancy",
     "saEmlLevel": "PHC",
     "tags": ["diabetes", "insulin", "injection", "type-1"],
-    "source": "SA Essential Medicines List / SA NDoH diabetes guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH diabetes guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-036",
@@ -739,7 +971,17 @@
     "pregnancyCategory": "Avoid — specialist alternatives are used in pregnancy",
     "saEmlLevel": "PHC",
     "tags": ["blood-thinner", "INR", "clot-prevention", "interactions"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {
+      "snomed": "372756006",
+      "loinc": "6301-6"
+    },
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-037",
@@ -758,7 +1000,14 @@
     "pregnancyCategory": "Safe — and the dose usually needs to increase in pregnancy; never stop it",
     "saEmlLevel": "PHC",
     "tags": ["thyroid", "hormone", "morning-dose", "empty-stomach"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-038",
@@ -780,7 +1029,14 @@
     "pregnancyCategory": "Avoid unless clearly needed — discuss with the clinic",
     "saEmlLevel": "PHC",
     "tags": ["nerve-pain", "migraine", "night-dose", "antidepressant"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-039",
@@ -800,7 +1056,14 @@
     "pregnancyCategory": "One of the better-studied antidepressants — planned use in pregnancy is coordinated with the clinic",
     "saEmlLevel": "PHC",
     "tags": ["depression", "anxiety", "SSRI", "morning-dose"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-040",
@@ -822,7 +1085,14 @@
     "pregnancyCategory": "Raises birth-defect risk — pregnancy planning is coordinated with the clinic, with folic acid before conception",
     "saEmlLevel": "PHC",
     "tags": ["epilepsy", "seizures", "neuralgia", "interactions"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-041",
@@ -844,7 +1114,14 @@
     "pregnancyCategory": "Raises birth-defect risk — specialist planning with folic acid before conception",
     "saEmlLevel": "PHC",
     "tags": ["epilepsy", "seizures", "blood-levels", "interactions"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-042",
@@ -865,7 +1142,14 @@
     "pregnancyCategory": "Avoid — the highest-risk seizure medicine in pregnancy; effective alternatives exist",
     "saEmlLevel": "PHC",
     "tags": ["epilepsy", "seizures", "pregnancy-risk"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-043",
@@ -885,7 +1169,14 @@
     "pregnancyCategory": "Avoid unless essential",
     "saEmlLevel": "PHC",
     "tags": ["gout", "uric-acid", "long-term"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-044",
@@ -906,7 +1197,14 @@
     "pregnancyCategory": "Safe — routinely given in pregnancy",
     "saEmlLevel": "PHC",
     "tags": ["anaemia", "iron", "pregnancy"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-045",
@@ -914,17 +1212,21 @@
     "genericName": "Folic acid",
     "category": "vitamin",
     "commonDosage": "Preventing birth defects: 400-500 micrograms daily from before pregnancy through the first trimester. Deficiency or high-risk pregnancy: 5mg daily as prescribed",
-    "sideEffects": [
-      "None at normal doses",
-      "Rarely mild stomach upset"
-    ],
+    "sideEffects": ["None at normal doses", "Rarely mild stomach upset"],
     "contraindications": [
       "Untreated vitamin B12 deficiency — folic acid can mask the anaemia while nerve damage continues; B12 is checked first"
     ],
     "pregnancyCategory": "Essential in pregnancy",
     "saEmlLevel": "PHC",
     "tags": ["pregnancy", "anaemia", "neural-tube-defects"],
-    "source": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH Standard Treatment Guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-046",
@@ -945,7 +1247,14 @@
     "pregnancyCategory": "Used for malaria treatment, with clinician guidance in the first trimester — untreated malaria is more dangerous",
     "saEmlLevel": "PHC",
     "tags": ["malaria", "treatment", "with-food"],
-    "source": "SA Essential Medicines List / SA NDoH malaria guidelines / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH malaria guidelines / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-047",
@@ -966,7 +1275,14 @@
     "pregnancyCategory": "Safe — the standard first-line regimen in South Africa, including in pregnancy",
     "saEmlLevel": "PHC",
     "tags": ["HIV", "ART", "one-pill-daily", "undetectable"],
-    "source": "SA Essential Medicines List / SA NDoH ART guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH ART guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-048",
@@ -988,7 +1304,14 @@
     "pregnancyCategory": "Used in pregnancy under the national TB programme, with vitamin B6",
     "saEmlLevel": "PHC",
     "tags": ["TB", "six-months", "combination", "interactions"],
-    "source": "SA Essential Medicines List / SA NDoH TB guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH TB guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-049",
@@ -1007,7 +1330,14 @@
     "pregnancyCategory": "Use without delay in anaphylaxis at any stage of pregnancy",
     "saEmlLevel": "PHC",
     "tags": ["anaphylaxis", "emergency", "injection", "life-saving"],
-    "source": "SA Essential Medicines List / SA Resuscitation Council"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA Resuscitation Council",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "med-050",
@@ -1029,6 +1359,13 @@
     "pregnancyCategory": "Safe — a first-choice blood pressure medicine in pregnancy in South Africa",
     "saEmlLevel": "PHC",
     "tags": ["blood-pressure", "pregnancy", "first-choice"],
-    "source": "SA Essential Medicines List / SA NDoH maternity care guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Essential Medicines List / SA NDoH maternity care guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   }
 ]

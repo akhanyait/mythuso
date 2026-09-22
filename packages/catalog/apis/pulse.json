@@ -1,15 +1,19 @@
 {
- "engine": "pulse",
- "_note": "GilbertOne Pulse has no HTTP routes of its own. Its events live in packages/catalog/assistant.json, and a person reaches GilbertOne through Access's conversation and tool routes. This file exists so the twelve engines are all accounted for, and so the speech-transcript door is linked to the engine it serves.",
- "version": 1,
- "resources": [],
- "doors": ["speech-transcript"],
- "doorsToAdd": [],
- "refusals": [
-  {"id": "no-routes-of-its-own", "status": 404, "statement": "Gilbert Pulse answers no HTTP route of its own.", "why": "The patient-facing layer speaks through Access, where the callers, purposes and allow-list are enforced."}
- ],
- "ownIds": [],
- "noRoutesBecause": "The Pulse Interaction Engine coordinates what the patient sees and hears on the device. Everything it asks of another engine goes through Access's tool gateway.",
- "routes": [
- ]
+  "engine": "pulse",
+  "_note": "GilbertOne Pulse has no HTTP routes of its own. Its events live in packages/catalog/assistant.json, and a person reaches GilbertOne through Access's conversation and tool routes. This file exists so the thirteen engines are all accounted for, and so the speech-transcript door is linked to the engine it serves.",
+  "version": 1,
+  "resources": [],
+  "doors": ["speech-transcript"],
+  "doorsToAdd": [],
+  "refusals": [
+    {
+      "id": "no-routes-of-its-own",
+      "status": 404,
+      "statement": "Gilbert Pulse answers no HTTP route of its own.",
+      "why": "The patient-facing layer speaks through Access, where the callers, purposes and allow-list are enforced."
+    }
+  ],
+  "ownIds": [],
+  "noRoutesBecause": "The Pulse Interaction Engine coordinates what the patient sees and hears on the device. Everything it asks of another engine goes through Access's tool gateway.",
+  "routes": []
 }

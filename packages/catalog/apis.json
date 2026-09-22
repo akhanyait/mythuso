@@ -1,5 +1,5 @@
 {
- "_note": "ThusoIQ's engine API contracts, version one, frozen. The Full Scope's Core acceptance test is \"role and scope matrix enforced on every API\", and the build plan's Wave 2 writes that matrix down before any engine builds further: every engine's routes live in one file under packages/catalog/apis/, and this file holds what they share — the path convention, the callers, the refusals every route inherits, what may never cross an API, the document sections a route may cite, and the development mock's rules. scripts/check-boundaries.mjs holds all twelve engine files to it, and packages/catalog/apis.lock freezes every route exactly as events.lock freezes events. Nothing here is a running service. The identity service and the Passport P0 answer the routes marked built, in development; everything else is a proposal answered only by packages/mock-api, on loopback, with synthetic data.",
+ "_note": "ThusoIQ's engine API contracts, version one, frozen. The Full Scope's Core acceptance test is \"role and scope matrix enforced on every API\", and the build plan's Wave 2 writes that matrix down before any engine builds further: every engine's routes live in one file under packages/catalog/apis/, and this file holds what they share — the path convention, the callers, the refusals every route inherits, what may never cross an API, the document sections a route may cite, and the development mock's rules. scripts/check-boundaries.mjs holds all thirteen engine files to it, and packages/catalog/apis.lock freezes every route exactly as events.lock freezes events. Nothing here is a running service. The identity service, the Passport P0 and the assistant service answer the routes marked built, in development; everything else is a proposal answered only by packages/mock-api, on loopback, with synthetic data.",
  "_decided": "The founder delegated the API conventions to the programme on 14 September 2026 (\"propose\"). They are decided for this build and are marked as the programme's decision, awaiting a Head of Engineering, who may overturn any of them — by withdrawing and versioning, not by editing a frozen route.",
  "decidedBy": "Programme (founder delegated)",
  "decidedOn": "2026-09-14",
@@ -24,6 +24,12 @@
    "namedIn": "§26",
    "paths": ["/fhir/{resourceType}", "/fhir/{resourceType}/{id}", "/consent/grant", "/consent/revoke", "/audit/mine", "/share/link", "/export", "/breakglass", "/hl7v2/inbound", "/summary/emergency"],
    "why": "The Health Passport's paths are named in ThusoIQ Master §26 and the P0 service already answers most of them. They keep their names and are mounted under /v1/record by reference, so the module contract a hospital integrator reads and the path this contract freezes are the same string."
+  },
+  "assistantPaths": {
+   "engine": "assistant",
+   "mount": "/assistant",
+   "paths": ["/health", "/turn", "/v1/turn", "/v1/listen", "/v1/speak", "/v1/triage/start", "/v1/triage/answer", "/v1/vitals", "/v1/handover/prepare", "/v1/handover/submit", "/v1/knowledge/search", "/v1/status"],
+   "why": "The conversation service answers its own paths: the health and turn routes it runs today, and the versioned /assistant/v1/* family the GilbertOne foundation plan declares for it. They keep their names and are mounted under /assistant by reference, so the address a client calls and the path this contract freezes are the same string, exactly as §26's Passport paths are."
   },
   "idempotency": {
    "field": "idempotencyKey",
@@ -56,7 +62,8 @@
   "packages/catalog/apis/record.json",
   "packages/catalog/apis/medicines.json",
   "packages/catalog/apis/devices.json",
-  "packages/catalog/apis/money.json"
+  "packages/catalog/apis/money.json",
+  "packages/catalog/apis/assistant.json"
  ],
 
  "routeShape": [

@@ -1,0 +1,898 @@
+{
+ "engine": "assistant",
+ "_note": "The assistant engine's routes. The service answers seven of them today, exactly as apps/assistant-api/src/server.ts registers them: GET /assistant/health and one turn at POST /assistant/turn, and at the plan's own versioned addresses POST /assistant/v1/turn, POST /assistant/v1/knowledge/search, GET /assistant/v1/status and push-to-talk's two — POST /assistant/v1/listen and POST /assistant/v1/speak, built on 22 September 2026 against Azure Speech. The rest of the /v1/* family — triage conducted over Clinical's rules, a reading written through the Passport gateway, handover prepare and submit — is declared and not built: the engine's not-yet-available refusal answers each of them with 501, so a caller meets a sentence it can read rather than a 404 it cannot tell from a typo, and packages/mock-api answers them on loopback with synthetic data until each is built. Those five routes were re-declared at version two because that refusal's answeredBy now names them, and adding a refusal is a change as much as rewording one: each version one is withdrawn in its favour, with no callers, its shape and its refusals unchanged. listen and speak are at version three for the same kind of reason: the shape a built capture arrives in is audio rather than the captureMs window version two was frozen with, so their version two entries are withdrawn in version three's favour with no callers, and the engine's cloud-speech refusal, added with them, answers version three alone. /v1/knowledge/search is at version two for the same reason, with the three refusals its handler actually answers and its sources now declared as objects rather than as text; its version one is withdrawn in the same way. The turn's declared shape is this contract's reading of the service it captures; the service's own request type also accepts an optional visitId, and this contract refuses that name — another engine's resource under an Id name, per packages/catalog/apis.json#_contractIdsNote — so it is not declared here.",
+ "version": 1,
+ "resources": ["health", "turn", "listen", "speak", "triage", "vitals", "handover", "knowledge", "status"],
+ "doors": [],
+ "doorsToAdd": [],
+ "refusals": [
+  {"id": "a-model-tier-needs-its-acknowledgement", "status": 503, "statement": "A public model answers only where its activation was acknowledged.", "why": "The production acknowledgement gate of apps/assistant-api/src/lib/activation.ts: with a provider configured in production, the service refuses to start until the acknowledgement line is in its environment. A tier whose own gate could be skipped without the contract saying so would be a gate the contract never held."},
+  {"id": "no-clinical-decision", "status": 422, "statement": "GilbertOne answers; it decides no clinical question.", "why": "The engine's own card in packages/catalog/events.json: it answers, and it decides no clinical question. A route in this file that could be read as deciding one is refused by this refusal before it is built."},
+  {"id": "not-yet-available", "status": 501, "statement": "This route is not built yet, and it says so rather than pretending.", "why": "The plan's /v1 family was written ahead of the service that answers it, and every address it declares answers today: a turn, a knowledge search, the versioned status and push-to-talk's two, built on 22 September 2026, and the two triage steps, the vitals reading and the two handover steps, built later the same day. No route of this engine is refused with this sentence now, and the branch in apps/assistant-api/src/server.ts that reads it is kept for the next address this contract declares ahead of the handler that answers it — a declared route with no handler would otherwise fall to the 404 the server keeps for addresses it has never heard of, which a caller cannot tell from a typo. The version two entries this refusal names are the ones it answered while those five were unbuilt; each is withdrawn in favour of a built version three and each keeps this refusal naming it, so the sentence a caller met at the time is still the sentence on record. listen and speak left the list the day they were built, and the version two entries this refusal once answered for them were withdrawn in favour of version three.", "answeredBy": ["POST /v1/listen@2", "POST /v1/speak@2", "POST /v1/triage/start@2", "POST /v1/triage/answer@2", "POST /v1/vitals@2", "POST /v1/handover/prepare@2", "POST /v1/handover/submit@2"]},
+  {"id": "speech-not-configured", "status": 501, "statement": "Cloud speech is not configured here; the browser's own voice is the one to carry on with.", "why": "Push-to-talk's two built addresses reach Azure Speech only when AZURE_SPEECH_KEY and AZURE_SPEECH_REGION are both set, read in apps/assistant-api/src/lib/speech.ts. Without them the routes answer this refusal rather than reaching for a service that is not there, and the web panel hears and speaks through the browser either way — so the caller is told which of the two voices is carrying it rather than given a failure. The sentence is read from this contract by the service, like every engine refusal, so it lives in one place.", "answeredBy": ["POST /v1/listen@3", "POST /v1/speak@3"]},
+  {"id": "triage-not-ratified", "status": 503, "statement": "Guided triage is not clinically validated here, and it is refused rather than guessed.", "why": "Taking a person through assessment questions and setting a priority for them is a clinical act, and packages/catalog/clinical.json runs it only under a triage protocol the clinical governance board has ratified. Its triage.triageProtocols.ids names none, no protocol in packages/catalog/protocols.json is ratified, the board is not formed and no Medical Director is appointed, so apps/assistant-api/src/lib/triage-gate.ts reads the register and answers that the gate is shut. Both triage addresses are built and refuse with this sentence at a 503 rather than a 501: the routes exist and the clinical act does not, and a caller is told which. The gate reads the register and not a flag in code, so the board ratifying a protocol is what opens it, with no edit to a handler; the questions themselves are that protocol's own content, which no contract holds yet, and software guesses none of it. The sentence is read from this contract by the service, like every engine refusal, so it lives in one place.", "answeredBy": ["POST /v1/triage/start@3", "POST /v1/triage/answer@3"]}
+ ],
+ "ownIds": [
+  {"field": "sessionId", "why": "The conversation, minted by this service and meaningful only in it. It lives in the service's memory for the life of the session and is never tied to a person."},
+  {"field": "turnId", "why": "One turn of one conversation, minted by this service."},
+  {"field": "parentTurnId", "why": "The turn a turn follows, when the caller keeps its own chain; the server links the turn to the previous one in the session it holds when the caller does not."}
+ ],
+ "routes": [
+  {
+   "method": "GET",
+   "path": "/health",
+   "version": 1,
+   "summary": "Whether the assistant service is up, and what it found configured: provider presence, production and the activation gate's own answer.",
+   "callers": ["anonymous"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "ok", "type": "boolean", "required": true, "why": "Whether the service answered at all."},
+    {"field": "mode", "type": "string", "required": true, "why": "The mode the service was started in."},
+    {"field": "azure", "type": "boolean", "required": true, "why": "Whether this process read an endpoint and a key for the primary provider from its environment — presence only, never a value."},
+    {"field": "ollama", "type": "boolean", "required": true, "why": "Whether the local provider's URL was set, reported the same cheap way, without a probe."},
+    {"field": "production", "type": "boolean", "required": true, "why": "Whether the process believes it is in production."},
+    {"field": "activated", "type": "boolean", "required": true, "why": "The acknowledgement gate's own answer, so the activation runbook can see it without anything printing a credential."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL, and a health check is no exception."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "apps/assistant-api/src/server.ts",
+    "handler": "req.method === 'GET' && req.url === '/assistant/health'"
+   },
+   "enforcedBy": { "mechanism": "anonymous" }
+  },
+  {
+   "method": "POST",
+   "path": "/turn",
+   "version": 1,
+   "summary": "One turn of the conversation as the service answers it today: the message read, classified and answered from the catalogue, with the session continued.",
+   "callers": ["anonymous"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "sessionId", "type": "string", "required": false, "why": "The conversation to continue, when the caller held one. Minted by the server when the request carried none, so every answer names the conversation it belongs to."},
+    {"field": "parentTurnId", "type": "string", "required": false, "why": "The turn this one follows, when the caller keeps its own chain."},
+    {"field": "text", "type": "string", "required": true, "why": "What the person said, as the caller typed or captured it. A turn is answered from the words it was given."},
+    {"field": "audience", "type": "string", "required": false, "why": "The audience the caller declares, never authenticated — the audience decision of 19 September 2026."},
+    {"field": "userConsent", "type": "boolean", "required": true, "why": "The person's agreement to have the turn answered. Nothing is answered without it."}
+   ],
+   "response": [
+    {"field": "turnId", "type": "string", "required": true, "why": "This turn."},
+    {"field": "sessionId", "type": "string", "required": true, "why": "The conversation the turn belongs to."},
+    {"field": "route", "type": "string", "required": true, "why": "Where the turn was routed."},
+    {"field": "classification", "type": "string", "required": true, "why": "What the turn was read as — emergency, handover, identity, voice, care, greeting, clarify or unknown."},
+    {"field": "reply", "type": "string", "required": true, "why": "The answer itself, written from the catalogue."},
+    {"field": "style", "type": "string", "required": true, "why": "The face the answer is written in."},
+    {"field": "confidence", "type": "number", "required": true, "why": "The classifier's own weight behind the classification, 0 to 1."},
+    {"field": "requiresConfirmation", "type": "boolean", "required": true, "why": "Whether the caller should confirm before anything is acted on."},
+    {"field": "suggestedActions", "type": "list", "required": true, "why": "What the person can do next, named by the catalogue."},
+    {"field": "refusalId", "type": "string", "required": false, "why": "Present only when a refusal policy answered instead of the classifier — an id in packages/catalog/assistant.json."},
+    {"field": "source", "type": "string", "required": false, "why": "Which tier wrote the reply. Absent means the classifier's, so a caller that ignores the field sees exactly what it saw before the field existed."},
+    {"field": "cue", "type": "string", "required": false, "why": "With a model-written reply, the face the catalog's affect section gives the answer, so a client wears the same face the web panel does."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "payload-too-large", "status": 413, "statement": "The request could not be processed safely.", "why": "A body over the ceiling is refused before it is parsed: nobody's next sentence to GilbertOne is that long — the ceiling carries push-to-talk's base64 capture as well — and the proxy refuses anything larger before it arrives."},
+    {"id": "invalid-request", "status": 400, "statement": "The request could not be processed safely.", "why": "A body that is not JSON is refused with its own status rather than answered as one generic bad request."},
+    {"id": "internal-error", "status": 500, "statement": "The request could not be processed safely.", "why": "A fault out of the turn is this process's, never the caller's: the caller gets one non-revealing sentence, and the log line carries an error's type name and nothing else."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A turn is answered; nothing on the bus changes.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "apps/assistant-api/src/server.ts",
+    "handler": "req.method === 'POST' && req.url === '/assistant/turn'"
+   },
+   "enforcedBy": { "mechanism": "anonymous" }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/turn",
+   "version": 1,
+   "summary": "One turn of the conversation at the plan's versioned address: the message read, classified and answered, with the session continued.",
+   "callers": ["anonymous"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "sessionId", "type": "string", "required": false, "why": "The conversation to continue, when the caller held one."},
+    {"field": "parentTurnId", "type": "string", "required": false, "why": "The turn this one follows, when the caller keeps its own chain."},
+    {"field": "text", "type": "string", "required": true, "why": "What the person said."},
+    {"field": "audience", "type": "string", "required": false, "why": "The audience the caller declares, never authenticated."},
+    {"field": "userConsent", "type": "boolean", "required": true, "why": "The person's agreement to have the turn answered."}
+   ],
+   "response": [
+    {"field": "turnId", "type": "string", "required": true, "why": "This turn."},
+    {"field": "sessionId", "type": "string", "required": true, "why": "The conversation the turn belongs to."},
+    {"field": "route", "type": "string", "required": true, "why": "Where the turn was routed."},
+    {"field": "classification", "type": "string", "required": true, "why": "What the turn was read as."},
+    {"field": "reply", "type": "string", "required": true, "why": "The answer itself."},
+    {"field": "style", "type": "string", "required": true, "why": "The face the answer is written in."},
+    {"field": "confidence", "type": "number", "required": true, "why": "The classifier's own weight behind the classification, 0 to 1."},
+    {"field": "requiresConfirmation", "type": "boolean", "required": true, "why": "Whether the caller should confirm before anything is acted on."},
+    {"field": "suggestedActions", "type": "list", "required": true, "why": "What the person can do next, named by the catalogue."},
+    {"field": "refusalId", "type": "string", "required": false, "why": "Present only when a refusal policy answered instead of the classifier."},
+    {"field": "source", "type": "string", "required": false, "why": "Which tier wrote the reply; absent means the classifier's."},
+    {"field": "cue", "type": "string", "required": false, "why": "With a model-written reply, the face the catalog gives the answer."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "payload-too-large", "status": 413, "statement": "The request could not be processed safely.", "why": "A body over the ceiling is refused before it is parsed: the ceiling carries push-to-talk's base64 capture as well as a typed sentence."},
+    {"id": "invalid-request", "status": 400, "statement": "The request could not be processed safely.", "why": "A body that is not JSON is refused with its own status."},
+    {"id": "internal-error", "status": 500, "statement": "The request could not be processed safely.", "why": "A fault out of the turn is this process's, never the caller's."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A turn is answered; nothing on the bus changes.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "apps/assistant-api/src/server.ts",
+    "handler": "req.method === 'POST' && req.url === '/assistant/v1/turn'"
+   },
+   "enforcedBy": { "mechanism": "anonymous" }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/listen",
+   "version": 1,
+   "summary": "Push-to-talk: the spoken turn captured only while the person holds the button, answered with its words and kept nowhere.",
+   "callers": [],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "userConsent", "type": "boolean", "required": true, "why": "The person's agreement, given at the button itself. There is no wake word and no passive listening, and nothing is captured without this."},
+    {"field": "language", "type": "string", "required": true, "why": "The language to hear, declared by the caller rather than guessed."},
+    {"field": "captureMs", "type": "integer", "required": true, "why": "The push-to-talk window the caller held the button for, so a capture has a bound by construction."}
+   ],
+   "response": [
+    {"field": "text", "type": "string", "required": true, "why": "What was heard."},
+    {"field": "language", "type": "string", "required": true, "why": "The language it was heard in."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "speech-without-consent", "status": 403, "statement": "Nothing is listened to without the person's agreement.", "why": "The plan's push-to-talk rule: the button is the consent, and a capture that arrived without it is refused rather than transcribed."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The capture is answered with its words and no audio is kept; nothing on the bus changes.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-22", "supersededBy": "POST /v1/listen@2", "why": "The engine's not-yet-available refusal names the route that answers it, and it was added on 22 September 2026: a frozen route cannot begin to answer a refusal it was frozen without, so the 501 a caller reads at this address lives at version two. Push-to-talk was never built here, its shape and its refusals are unchanged, and its callers are version two's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/listen",
+   "version": 2,
+   "summary": "Push-to-talk: the spoken turn captured only while the person holds the button, answered with its words and kept nowhere.",
+   "callers": [],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "userConsent", "type": "boolean", "required": true, "why": "The person's agreement, given at the button itself. There is no wake word and no passive listening, and nothing is captured without this."},
+    {"field": "language", "type": "string", "required": true, "why": "The language to hear, declared by the caller rather than guessed."},
+    {"field": "captureMs", "type": "integer", "required": true, "why": "The push-to-talk window the caller held the button for, so a capture has a bound by construction."}
+   ],
+   "response": [
+    {"field": "text", "type": "string", "required": true, "why": "What was heard."},
+    {"field": "language", "type": "string", "required": true, "why": "The language it was heard in."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "speech-without-consent", "status": 403, "statement": "Nothing is listened to without the person's agreement.", "why": "The plan's push-to-talk rule: the button is the consent, and a capture that arrived without it is refused rather than transcribed."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The capture is answered with its words and no audio is kept; nothing on the bus changes.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "withdrawn",
+   "withdrawn": {"on": "2026-09-22", "supersededBy": "POST /v1/listen@3", "why": "Push-to-talk was built on 22 September 2026, and the shape a built capture arrives in is the capture itself: version three's request carries the audio and the format it was recorded as, where this version was frozen declaring a captureMs window and a userConsent the browser recogniser's own path never sent. Its two refusals are carried to version three unchanged; the engine's not-yet-available refusal, which answered a version no handler stood behind, is not — version three is that handler. Its callers are version three's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/listen",
+   "version": 3,
+   "summary": "Push-to-talk, built: the captured audio is heard once by the cloud voice, answered with its words, and kept nowhere.",
+   "callers": ["anonymous"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "userConsent", "type": "boolean", "required": true, "why": "The person's agreement, given at the button itself. There is no wake word and no passive listening, and nothing is captured without this."},
+    {"field": "language", "type": "string", "required": true, "why": "The language to hear, declared by the caller rather than guessed — en-ZA first, the first locale of packages/catalog/assistant.json's voice preference."},
+    {"field": "audioBase64", "type": "string", "required": true, "why": "The push-to-talk capture itself, base64 in the request and held nowhere after its words are read out of it."},
+    {"field": "audioFormat", "type": "string", "required": true, "why": "What the capture was recorded as, so the recogniser is told the format rather than guessing it from the bytes."}
+   ],
+   "response": [
+    {"field": "text", "type": "string", "required": true, "why": "What was heard. The words are the answer; the audio they were heard from is not kept."},
+    {"field": "language", "type": "string", "required": true, "why": "The language it was heard in, echoed back so a caller can tell which locale actually answered."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "speech-without-consent", "status": 403, "statement": "Nothing is listened to without the person's agreement.", "why": "The plan's push-to-talk rule: the button is the consent, and a capture that arrived without it is refused rather than transcribed."},
+    {"id": "payload-too-large", "status": 413, "statement": "The request could not be processed safely.", "why": "A body over the ceiling is refused before it is parsed: a capture is bounded by the button and the contract's cap, and the ceiling carries that bound rather than stating it."},
+    {"id": "invalid-request", "status": 400, "statement": "The request could not be processed safely.", "why": "A body that is not JSON, or that is missing the audio or the language it would hear, is refused with its own status rather than reaching the recogniser."},
+    {"id": "internal-error", "status": 500, "statement": "The request could not be processed safely.", "why": "A fault out of the recogniser — a refusal, a timeout, a transport that hung — is this process's, never the caller's: the caller gets one non-revealing sentence and the log carries an error's type name."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The capture is answered with its words and no audio is kept; nothing on the bus changes.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "apps/assistant-api/src/server.ts",
+    "handler": "req.method === 'POST' && req.url === '/assistant/v1/listen'"
+   },
+   "enforcedBy": { "mechanism": "anonymous" }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/speak",
+   "version": 1,
+   "summary": "The voice reads back an answer that already exists; it writes no answer of its own.",
+   "callers": [],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "text", "type": "string", "required": true, "why": "The answer to read aloud, already written by the catalogue."},
+    {"field": "language", "type": "string", "required": true, "why": "The language to speak, declared by the caller."}
+   ],
+   "response": [
+    {"field": "audioRef", "type": "string", "required": true, "why": "The answer's audio, addressed for this caller and held no longer than the answer is being played."},
+    {"field": "durationMs", "type": "integer", "required": true, "why": "How long the reading runs."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "speech-not-authored", "status": 422, "statement": "The voice speaks the answer it was given, and writes none of its own.", "why": "The voice is a face, not an author: a request that would have it compose words is refused, and the words it may read come from the catalogue."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The voice reads an answer that already exists; nothing on the bus changes.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-22", "supersededBy": "POST /v1/speak@2", "why": "The engine's not-yet-available refusal names the route that answers it, and it was added on 22 September 2026: a frozen route cannot begin to answer a refusal it was frozen without, so the 501 a caller reads at this address lives at version two. The voice was never built here, its shape and its refusals are unchanged, and its callers are version two's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/speak",
+   "version": 2,
+   "summary": "The voice reads back an answer that already exists; it writes no answer of its own.",
+   "callers": [],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "text", "type": "string", "required": true, "why": "The answer to read aloud, already written by the catalogue."},
+    {"field": "language", "type": "string", "required": true, "why": "The language to speak, declared by the caller."}
+   ],
+   "response": [
+    {"field": "audioRef", "type": "string", "required": true, "why": "The answer's audio, addressed for this caller and held no longer than the answer is being played."},
+    {"field": "durationMs", "type": "integer", "required": true, "why": "How long the reading runs."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "speech-not-authored", "status": 422, "statement": "The voice speaks the answer it was given, and writes none of its own.", "why": "The voice is a face, not an author: a request that would have it compose words is refused, and the words it may read come from the catalogue."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The voice reads an answer that already exists; nothing on the bus changes.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "withdrawn",
+   "withdrawn": {"on": "2026-09-22", "supersededBy": "POST /v1/speak@3", "why": "The voice was built on 22 September 2026: version three's request names which catalogue voice to read with and its response carries the audio itself rather than a reference to it, where this version was frozen declaring an audioRef and a durationMs the caller never asked for. speech-not-authored does not follow it to version three — it was declared against a request that would have the voice compose words, and version three's request can carry no words but the answer's own, so that sentence stays with the version it described. Its callers are version three's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/speak",
+   "version": 3,
+   "summary": "The cloud voice reads back an answer that already exists, one request's words at a time; it writes no answer of its own.",
+   "callers": ["anonymous"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "text", "type": "string", "required": true, "why": "The answer to read aloud, already written by the catalogue. One call is one stretch of it, so a caller wanting sound before the last sentence is voiced asks sentence by sentence."},
+    {"field": "language", "type": "string", "required": true, "why": "The language to speak, declared by the caller."},
+    {"field": "voice", "type": "string", "required": false, "why": "Which catalogue voice to read with — the founder's female or male en-ZA voice named in packages/catalog/assistant.json's voice.cloud — when the caller has a preference; absent means the first of them."}
+   ],
+   "response": [
+    {"field": "audioBase64", "type": "string", "required": true, "why": "The reading itself, base64, held nowhere: the answer's audio travels in the response and is not stored."},
+    {"field": "format", "type": "string", "required": true, "why": "What the audio was encoded as, so the caller plays it rather than guessing."},
+    {"field": "voice", "type": "string", "required": true, "why": "Which voice actually read it, so the words on the screen can say what spoke them."},
+    {"field": "language", "type": "string", "required": true, "why": "The language it was read in."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "payload-too-large", "status": 413, "statement": "The request could not be processed safely.", "why": "A body over the ceiling is refused before it is parsed: the voice reads an answer the catalogue already wrote, and that answer has a bound."},
+    {"id": "invalid-request", "status": 400, "statement": "The request could not be processed safely.", "why": "A body that is not JSON, or that is missing the words to read, is refused with its own status rather than reaching the voice."},
+    {"id": "internal-error", "status": 500, "statement": "The request could not be processed safely.", "why": "A fault out of the voice is this process's, never the caller's; the web panel's own browser voice carries on either way, which is why the caller gets the same generic sentence every route sends."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The voice reads an answer that already exists; nothing on the bus changes.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "apps/assistant-api/src/server.ts",
+    "handler": "req.method === 'POST' && req.url === '/assistant/v1/speak'"
+   },
+   "enforcedBy": { "mechanism": "anonymous" }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/triage/start",
+   "version": 1,
+   "summary": "Begin a guided assessment conversation: the first question, asked a step at a time.",
+   "callers": [],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "userConsent", "type": "boolean", "required": true, "why": "The person's agreement to be taken through the questions."},
+    {"field": "language", "type": "string", "required": true, "why": "The language to ask in."},
+    {"field": "sessionId", "type": "string", "required": false, "why": "The conversation to continue, when the caller held one."}
+   ],
+   "response": [
+    {"field": "question", "type": "string", "required": true, "why": "The first question to ask."},
+    {"field": "step", "type": "integer", "required": true, "why": "Where the conversation is, counted from the first question."},
+    {"field": "steps", "type": "integer", "required": true, "why": "How many steps the conversation holds."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "assessment-needs-consent", "status": 403, "statement": "An assessment begins only where the person agreed to one.", "why": "The questions are the person's own health information as soon as they are answered, so the agreement comes first."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A question is asked; any scoring is Clinical's, on Clinical's own route, and nothing on this bus changes.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-22", "supersededBy": "POST /v1/triage/start@2", "why": "The engine's not-yet-available refusal names the route that answers it, and it was added on 22 September 2026: a frozen route cannot begin to answer a refusal it was frozen without, so the 501 a caller reads at this address lives at version two. A guided assessment was never begun here, its shape and its refusals are unchanged, and its callers are version two's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/triage/start",
+   "version": 2,
+   "summary": "Begin a guided assessment conversation: the first question, asked a step at a time.",
+   "callers": [],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "userConsent", "type": "boolean", "required": true, "why": "The person's agreement to be taken through the questions."},
+    {"field": "language", "type": "string", "required": true, "why": "The language to ask in."},
+    {"field": "sessionId", "type": "string", "required": false, "why": "The conversation to continue, when the caller held one."}
+   ],
+   "response": [
+    {"field": "question", "type": "string", "required": true, "why": "The first question to ask."},
+    {"field": "step", "type": "integer", "required": true, "why": "Where the conversation is, counted from the first question."},
+    {"field": "steps", "type": "integer", "required": true, "why": "How many steps the conversation holds."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "assessment-needs-consent", "status": 403, "statement": "An assessment begins only where the person agreed to one.", "why": "The questions are the person's own health information as soon as they are answered, so the agreement comes first."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A question is asked; any scoring is Clinical's, on Clinical's own route, and nothing on this bus changes.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "withdrawn",
+   "withdrawn": {"on": "2026-09-22", "supersededBy": "POST /v1/triage/start@3", "why": "The route was built on 22 September 2026, and a built route carries the refusals its handler actually answers: the engine's triage-not-ratified refusal at the gate that reads the protocol register, the body ceiling, a malformed body and its own faults, none of which a version frozen as proposed could begin to declare. Version three also returns the conversation id it minted, so the answer step has something to name. No assessment was ever begun here — this version was the one the engine's not-yet-available refusal answered at — its two frozen sentences are unchanged, and its callers are version three's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/triage/start",
+   "version": 3,
+   "summary": "Begin a guided assessment conversation: the first question, asked a step at a time — refused while no triage protocol is ratified.",
+   "callers": ["anonymous"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "userConsent", "type": "boolean", "required": true, "why": "The person's agreement to be taken through the questions. Only an explicit true begins one; anything else is refused rather than read as agreement."},
+    {"field": "language", "type": "string", "required": true, "why": "The language to ask in."},
+    {"field": "sessionId", "type": "string", "required": false, "why": "The conversation to continue, when the caller held one. A caller that held none is given one in the response."}
+   ],
+   "response": [
+    {"field": "question", "type": "string", "required": true, "why": "The first question to ask."},
+    {"field": "step", "type": "integer", "required": true, "why": "Where the conversation is, counted from the first question."},
+    {"field": "steps", "type": "integer", "required": true, "why": "How many steps the conversation holds."},
+    {"field": "sessionId", "type": "string", "required": true, "why": "The conversation this assessment is running in, so the answer step can name it. It names a conversation and never a person."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "assessment-needs-consent", "status": 403, "statement": "An assessment begins only where the person agreed to one.", "why": "The questions are the person's own health information as soon as they are answered, so the agreement comes first and an explicit true is the only thing that satisfies it."},
+    {"id": "payload-too-large", "status": 413, "statement": "The request could not be processed safely.", "why": "A body over the ceiling is refused before it is parsed, exactly as on the turn routes."},
+    {"id": "invalid-request", "status": 400, "statement": "The request could not be processed safely.", "why": "A body that is not JSON is refused with its own status rather than answered as one generic bad request."},
+    {"id": "internal-error", "status": 500, "statement": "The request could not be processed safely.", "why": "A fault out of the assessment is this process's, never the caller's — and a gate that is open with no protocol content behind it is exactly such a fault, because the questions are a ratified protocol's to publish and no contract holds any. The caller gets one non-revealing sentence and the log carries an error's type name."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A question is asked; any scoring is Clinical's, on Clinical's own route, and nothing on this bus changes. While the triage gate is shut no question is asked at all and the route emits nothing but its refusal.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "apps/assistant-api/src/server.ts",
+    "handler": "req.method === 'POST' && req.url === '/assistant/v1/triage/start'"
+   },
+   "enforcedBy": { "mechanism": "anonymous" }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/triage/answer",
+   "version": 1,
+   "summary": "Answer the current step of a guided assessment conversation and receive the next question.",
+   "callers": [],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "sessionId", "type": "string", "required": true, "why": "The conversation being answered."},
+    {"field": "step", "type": "integer", "required": true, "why": "Which step this answers, so an answer out of order is refused rather than guessed."},
+    {"field": "answer", "type": "string", "required": true, "why": "What the person answered."}
+   ],
+   "response": [
+    {"field": "done", "type": "boolean", "required": true, "why": "Whether the conversation reached its last step."},
+    {"field": "question", "type": "string", "required": false, "why": "The next question, when there is one."},
+    {"field": "step", "type": "integer", "required": true, "why": "Where the conversation is now."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "step-out-of-order", "status": 409, "statement": "An answer is counted only for the step it answers.", "why": "A conversation that skips a question has invented the answer to it, so the step is named in every answer and held to."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "An answer advances a conversation; the decision, when one is made, is Clinical's own route and not this bus.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-22", "supersededBy": "POST /v1/triage/answer@2", "why": "The engine's not-yet-available refusal names the route that answers it, and it was added on 22 September 2026: a frozen route cannot begin to answer a refusal it was frozen without, so the 501 a caller reads at this address lives at version two. The next-question step was never built here, its shape and its refusals are unchanged, and its callers are version two's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/triage/answer",
+   "version": 2,
+   "summary": "Answer the current step of a guided assessment conversation and receive the next question.",
+   "callers": [],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "sessionId", "type": "string", "required": true, "why": "The conversation being answered."},
+    {"field": "step", "type": "integer", "required": true, "why": "Which step this answers, so an answer out of order is refused rather than guessed."},
+    {"field": "answer", "type": "string", "required": true, "why": "What the person answered."}
+   ],
+   "response": [
+    {"field": "done", "type": "boolean", "required": true, "why": "Whether the conversation reached its last step."},
+    {"field": "question", "type": "string", "required": false, "why": "The next question, when there is one."},
+    {"field": "step", "type": "integer", "required": true, "why": "Where the conversation is now."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "step-out-of-order", "status": 409, "statement": "An answer is counted only for the step it answers.", "why": "A conversation that skips a question has invented the answer to it, so the step is named in every answer and held to."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "An answer advances a conversation; the decision, when one is made, is Clinical's own route and not this bus.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "withdrawn",
+   "withdrawn": {"on": "2026-09-22", "supersededBy": "POST /v1/triage/answer@3", "why": "The route was built on 22 September 2026, and a built route carries the refusals its handler actually answers: the engine's triage-not-ratified refusal at the gate that reads the protocol register, the body ceiling, a malformed body and its own faults, none of which a version frozen as proposed could begin to declare. No answer was ever counted here — this version was the one the engine's not-yet-available refusal answered at — its shape and its two frozen sentences are unchanged, and its callers are version three's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/triage/answer",
+   "version": 3,
+   "summary": "Answer the current step of a guided assessment conversation and receive the next question — refused while no triage protocol is ratified.",
+   "callers": ["anonymous"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "sessionId", "type": "string", "required": true, "why": "The conversation being answered, as the start step returned it."},
+    {"field": "step", "type": "integer", "required": true, "why": "Which step this answers, so an answer out of order is refused rather than guessed."},
+    {"field": "answer", "type": "string", "required": true, "why": "What the person answered."}
+   ],
+   "response": [
+    {"field": "done", "type": "boolean", "required": true, "why": "Whether the conversation reached its last step."},
+    {"field": "question", "type": "string", "required": false, "why": "The next question, when there is one. It is absent on the last step rather than empty, so a caller is never handed a blank to read aloud as a question."},
+    {"field": "step", "type": "integer", "required": true, "why": "Where the conversation is now."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "step-out-of-order", "status": 409, "statement": "An answer is counted only for the step it answers.", "why": "A conversation that skips a question has invented the answer to it, so the step is named in every answer and held to — and which step is current is the protocol's to know, not the caller's to assume."},
+    {"id": "payload-too-large", "status": 413, "statement": "The request could not be processed safely.", "why": "A body over the ceiling is refused before it is parsed, exactly as on the turn routes."},
+    {"id": "invalid-request", "status": 400, "statement": "The request could not be processed safely.", "why": "A body that is not JSON is refused with its own status rather than answered as one generic bad request."},
+    {"id": "internal-error", "status": 500, "statement": "The request could not be processed safely.", "why": "A fault out of the assessment is this process's, never the caller's — and a gate that is open with no protocol content behind it is exactly such a fault, because the steps are a ratified protocol's to publish and no contract holds any. The caller gets one non-revealing sentence and the log carries an error's type name."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "An answer advances a conversation; the decision, when one is made, is Clinical's own route and not this bus. While the triage gate is shut no answer is counted at all and the route emits nothing but its refusal.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "apps/assistant-api/src/server.ts",
+    "handler": "req.method === 'POST' && req.url === '/assistant/v1/triage/answer'"
+   },
+   "enforcedBy": { "mechanism": "anonymous" }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/vitals",
+   "version": 1,
+   "summary": "A certified device's reading, written to the record through the Passport gateway where a clinician reads it.",
+   "callers": [],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "deviceRef", "type": "string", "required": true, "why": "The kit device the reading came from."},
+    {"field": "value", "type": "number", "required": true, "why": "The reading itself. It crosses through the Passport gateway and is written to the record; it is never held here."},
+    {"field": "unit", "type": "string", "required": true, "why": "The unit the reading was taken in, so the number is never read as another."},
+    {"field": "capturedAt", "type": "instant", "required": true, "why": "When the device took it, with an offset."},
+    {"field": "userConsent", "type": "boolean", "required": true, "why": "The person's agreement for the reading to be written."}
+   ],
+   "response": [
+    {"field": "accepted", "type": "boolean", "required": true, "why": "Whether the reading was written."},
+    {"field": "entryRef", "type": "string", "required": true, "why": "The reading's entry in the record, where the grant decides who may open it."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "reading-not-validated", "status": 422, "statement": "A reading that failed validation is not written.", "why": "The record is a clinical document: a number nobody checked is refused rather than written and questioned later."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The reading is written to the record through the gateway, and the bus carries no clinical value.",
+   "idempotent": false,
+   "through": "passport-gateway",
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-22", "supersededBy": "POST /v1/vitals@2", "why": "The engine's not-yet-available refusal names the route that answers it, and it was added on 22 September 2026: a frozen route cannot begin to answer a refusal it was frozen without, so the 501 a caller reads at this address lives at version two. No reading was ever written through this address, its shape and its refusals are unchanged, and its callers are version two's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/vitals",
+   "version": 2,
+   "summary": "A certified device's reading, written to the record through the Passport gateway where a clinician reads it.",
+   "callers": [],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "deviceRef", "type": "string", "required": true, "why": "The kit device the reading came from."},
+    {"field": "value", "type": "number", "required": true, "why": "The reading itself. It crosses through the Passport gateway and is written to the record; it is never held here."},
+    {"field": "unit", "type": "string", "required": true, "why": "The unit the reading was taken in, so the number is never read as another."},
+    {"field": "capturedAt", "type": "instant", "required": true, "why": "When the device took it, with an offset."},
+    {"field": "userConsent", "type": "boolean", "required": true, "why": "The person's agreement for the reading to be written."}
+   ],
+   "response": [
+    {"field": "accepted", "type": "boolean", "required": true, "why": "Whether the reading was written."},
+    {"field": "entryRef", "type": "string", "required": true, "why": "The reading's entry in the record, where the grant decides who may open it."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "reading-not-validated", "status": 422, "statement": "A reading that failed validation is not written.", "why": "The record is a clinical document: a number nobody checked is refused rather than written and questioned later."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The reading is written to the record through the gateway, and the bus carries no clinical value.",
+   "idempotent": false,
+   "through": "passport-gateway",
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "withdrawn",
+   "withdrawn": {"on": "2026-09-22", "supersededBy": "POST /v1/vitals@3", "why": "The route was built on 22 September 2026, and what was built is not what this version declared. The handler names the reading's type and its source, holds it to the LOINC code and UCUM unit packages/catalog/vitals.json registers for that type, refuses a device nobody registered and a reading older than the contract's staleness window, and needs the conversation the reading belongs to; and it is dark for real device data until a data protection impact assessment has been done, which is a refusal this version had no sentence for. Version three declares all of it. No reading was ever written here — this version was the one the engine's not-yet-available refusal answered at — its frozen sentence is unchanged, and its callers are version three's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/vitals",
+   "version": 3,
+   "summary": "A vital reading, validated against the vitals contract and held in the session's observation context — dark for real device data until its data protection assessment is done.",
+   "callers": ["anonymous"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "type", "type": "string", "required": true, "why": "Which vital this is, by the id packages/catalog/vitals.json registers it under. An unregistered type is refused rather than read as the nearest one."},
+    {"field": "value", "type": "number", "required": true, "why": "The reading itself, held to the plausibility bounds the vitals contract registers for its type so a number nobody could have produced is refused rather than stored. It crosses through the Passport gateway and is never interpreted here: nothing says what it means for a patient."},
+    {"field": "unit", "type": "string", "required": true, "why": "The UCUM unit the reading was taken in, and the one the contract registers for that type: a number is never read as another unit, so a mismatch is refused rather than converted."},
+    {"field": "capturedAt", "type": "instant", "required": true, "why": "When it was taken, with an offset. A reading older than the staleness window the contract sets is refused rather than handed on as current, and so is one stamped in the future."},
+    {"field": "source", "type": "string", "required": true, "why": "Where it came from: manual, device, healthkit or healthconnect, the four the vitals contract lists. Anything else is refused, and only a manual reading needs no device behind it."},
+    {"field": "deviceRef", "type": "string", "required": false, "why": "The device it came from, which every source but a manual one must name and which must be on the contract's allowlist. The allowlist is empty until a data protection impact assessment has been done, so a device, a HealthKit source and a Health Connect one are all refused as unregistered."},
+    {"field": "sessionId", "type": "string", "required": true, "why": "The conversation whose observation context holds the reading, as the turn routes mint it. It names a conversation and never a person."},
+    {"field": "userConsent", "type": "boolean", "required": true, "why": "The person's agreement for the reading to be accepted. Only an explicit true is agreement; a reading is their own health information the moment it is."}
+   ],
+   "response": [
+    {"field": "accepted", "type": "boolean", "required": true, "why": "Whether the reading passed validation and was held. Nothing but true is ever sent: a refused reading is answered with its refusal and no body of its own."},
+    {"field": "entryRef", "type": "string", "required": true, "why": "The reading's own reference in the session's observation context, which is what a handover pack assembled from that session lists it under."},
+    {"field": "sessionId", "type": "string", "required": true, "why": "The conversation the reading was held against, echoed so a caller can see it was filed where it asked."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "vitals-needs-consent", "status": 403, "statement": "A reading is accepted only where the person agreed to one.", "why": "A vital reading is the person's own health information the moment it is held, so the agreement comes before the body is read as a reading, and an explicit true is the only thing that satisfies it."},
+    {"id": "device-data-needs-a-dpia", "status": 503, "statement": "A reading from a real device is refused here until its data protection assessment is done.", "why": "The device allowlist in packages/catalog/vitals.json is empty because no data protection impact assessment has been done for a real device, a HealthKit source or a Health Connect one, so the route is dark for all three and reads nothing from them. A process that says out loud it is testing — MYTHUSO_VITALS_TESTING=synthetic, and only that exact word — may put a synthetic reading through the same validation; every other process meets this refusal before a body is read."},
+    {"id": "reading-not-validated", "status": 422, "statement": "A reading that failed validation is not written.", "why": "A clinical document is no place for a number nobody checked. An unregistered type or source, a unit that is not the one the vitals contract registers for that type, a value outside the bounds it registers, a reading older than its staleness window or stamped in the future, and any string carrying an identity-shaped value — an identity number, a phone number, an email or a medical-aid number where a type or a unit belongs — are each refused here and never held. A reading with a person's identity inside it is not a reading this service should be holding at all."},
+    {"id": "unregistered-device", "status": 422, "statement": "A device this service has never registered is not read from.", "why": "A source that is not manual must name a device on the contract's allowlist, and the allowlist is empty until a data protection impact assessment has been done. Naming the refusal rather than folding it into validation says which of the two went wrong: the reading, or the kit it came from."},
+    {"id": "payload-too-large", "status": 413, "statement": "The request could not be processed safely.", "why": "A body over the ceiling is refused before it is parsed, exactly as on the turn routes."},
+    {"id": "invalid-request", "status": 400, "statement": "The request could not be processed safely.", "why": "A body that is not JSON is refused with its own status rather than answered as one generic bad request."},
+    {"id": "internal-error", "status": 500, "statement": "The request could not be processed safely.", "why": "A fault out of the validation or the store is this process's, never the caller's: the caller gets one non-revealing sentence and the log carries an error's type name."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The reading is validated and held in the session's observation context in this process's own memory; it is written to no record, it crosses the bus carrying no clinical value, and it survives no restart.",
+   "idempotent": false,
+   "through": "passport-gateway",
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "apps/assistant-api/src/server.ts",
+    "handler": "req.method === 'POST' && req.url === '/assistant/v1/vitals'"
+   },
+   "enforcedBy": { "mechanism": "anonymous" }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/handover/prepare",
+   "version": 1,
+   "summary": "Prepare the handover of a conversation to a person: an artefact assembled from what happened, ready to submit.",
+   "callers": [],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "sessionId", "type": "string", "required": true, "why": "The conversation being handed over."},
+    {"field": "userConsent", "type": "boolean", "required": true, "why": "The person's agreement to have it handed over."}
+   ],
+   "response": [
+    {"field": "handoverRef", "type": "string", "required": true, "why": "The prepared handover."},
+    {"field": "preparedAt", "type": "instant", "required": true, "why": "When it was prepared, with an offset."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "nothing-to-hand-over", "status": 409, "statement": "A handover is prepared from a conversation that happened.", "why": "An empty handover sent to a clinician is a person's time spent on nothing, so a session with no turns on it is refused."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A handover is prepared and held; nothing on the bus changes.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-22", "supersededBy": "POST /v1/handover/prepare@2", "why": "The engine's not-yet-available refusal names the route that answers it, and it was added on 22 September 2026: a frozen route cannot begin to answer a refusal it was frozen without, so the 501 a caller reads at this address lives at version two. No handover was ever prepared here, its shape and its refusals are unchanged, and its callers are version two's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/handover/prepare",
+   "version": 2,
+   "summary": "Prepare the handover of a conversation to a person: an artefact assembled from what happened, ready to submit.",
+   "callers": [],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "sessionId", "type": "string", "required": true, "why": "The conversation being handed over."},
+    {"field": "userConsent", "type": "boolean", "required": true, "why": "The person's agreement to have it handed over."}
+   ],
+   "response": [
+    {"field": "handoverRef", "type": "string", "required": true, "why": "The prepared handover."},
+    {"field": "preparedAt", "type": "instant", "required": true, "why": "When it was prepared, with an offset."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "nothing-to-hand-over", "status": 409, "statement": "A handover is prepared from a conversation that happened.", "why": "An empty handover sent to a clinician is a person's time spent on nothing, so a session with no turns on it is refused."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A handover is prepared and held; nothing on the bus changes.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "withdrawn",
+   "withdrawn": {"on": "2026-09-22", "supersededBy": "POST /v1/handover/prepare@3", "why": "The route was built on 22 September 2026, and what it returns is not what this version declared: the handler gives the person the pack itself to review before anything is submitted, with the readings the session holds, the urgency a clinician would read, and the summary — and it needs the refusals a built handler answers, for a body over the ceiling, a malformed body and its own faults. The pack carries clinical words, so version three says the gateway it crosses. No handover was ever prepared here — this version was the one the engine's not-yet-available refusal answered at — its frozen sentence is unchanged, and its callers are version three's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/handover/prepare",
+   "version": 3,
+   "summary": "Prepare the handover of a conversation to a clinician: the pack assembled from the session's observation context, returned for the person to review and never submitted.",
+   "callers": ["anonymous"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "sessionId", "type": "string", "required": true, "why": "The conversation being handed over, as the turn routes mint it. It names a conversation and never a person."},
+    {"field": "userConsent", "type": "boolean", "required": true, "why": "The person's agreement to have it handed over. A handover is their own conversation being offered to somebody else, so only an explicit true prepares one."}
+   ],
+   "response": [
+    {"field": "handoverRef", "type": "string", "required": true, "why": "The prepared handover's own reference, which is what a submission would name — held here against the pack so a submission looks the pack up rather than trusting a caller to carry it back unchanged."},
+    {"field": "preparedAt", "type": "instant", "required": true, "why": "When it was prepared, with an offset."},
+    {"field": "pack", "type": "string", "required": true, "why": "The pack itself, returned for the person to read before anything is submitted: a handover a person has not seen is one they have not agreed to. Every line of it is run through the same redactor the turn route uses, because a handover pack is exactly the artefact that redactor exists to protect.", "object": true, "fields": [
+     {"field": "summary", "type": "string", "required": true, "why": "What the session's observation context actually holds, and named beside it what it does not: that no triage was run because none is ratified, and that the conversation transcript lives in the conversation store and is not reproduced here."},
+     {"field": "urgency", "type": "string", "required": true, "why": "Never a score, a priority, a level or a band: the fields a clinician would act on are a ratified triage protocol's to set and there is none, so the honest word this carries is not-triaged. When a protocol is ratified, the category it sets is what belongs here."},
+     {"field": "symptoms", "type": "list", "required": true, "why": "The symptoms discussed, as a list of words. It is empty today and declared rather than dropped, because reading a symptom out of a person's own sentences is a clinical act that needs the same ratified protocol the triage gate waits for; a field that appeared only once there was something in it would be a shape a caller could not build against."},
+     {"field": "vitals", "type": "list", "required": true, "why": "One line per validated reading the session holds: its type, its value and UCUM unit, and when it was taken, each line redacted. A reading that failed validation was never held, so none can appear here."},
+     {"field": "sources", "type": "list", "required": true, "why": "The knowledge sources retrieved for the person, as a list of the catalogue's own entry references. It is empty today for the same reason the conversation store is another module's to keep: this service's observation context holds what the observation flows produced, and nothing reaches into a transcript it does not own."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "handover-needs-consent", "status": 403, "statement": "A handover is prepared only where the person agreed to one.", "why": "A handover is the person's own conversation being offered to a clinician, so the agreement comes before the session is read, and an explicit true is the only thing that satisfies it."},
+    {"id": "nothing-to-hand-over", "status": 409, "statement": "A handover is prepared from a conversation that happened.", "why": "An empty handover sent to a clinician is a person's time spent on nothing, so a session with no validated reading on it is refused rather than packed."},
+    {"id": "payload-too-large", "status": 413, "statement": "The request could not be processed safely.", "why": "A body over the ceiling is refused before it is parsed, exactly as on the turn routes."},
+    {"id": "invalid-request", "status": 400, "statement": "The request could not be processed safely.", "why": "A body that is not JSON is refused with its own status rather than answered as one generic bad request."},
+    {"id": "internal-error", "status": 500, "statement": "The request could not be processed safely.", "why": "A fault out of the assembly or the store is this process's, never the caller's: the caller gets one non-revealing sentence and the log carries an error's type name."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A handover is prepared, held in this process's own memory and returned to the person who asked for it; nothing on the bus changes, it is submitted nowhere and it survives no restart.",
+   "idempotent": false,
+   "through": "passport-gateway",
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "apps/assistant-api/src/server.ts",
+    "handler": "req.method === 'POST' && req.url === '/assistant/v1/handover/prepare'"
+   },
+   "enforcedBy": { "mechanism": "anonymous" }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/handover/submit",
+   "version": 1,
+   "summary": "Submit a prepared handover and learn truthfully whether it reached a queue: a submission that reached no reader is answered as failed.",
+   "callers": [],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "handoverRef", "type": "string", "required": true, "why": "The prepared handover being submitted."}
+   ],
+   "response": [
+    {"field": "submitted", "type": "boolean", "required": true, "why": "Whether it reached a queue."},
+    {"field": "queueRef", "type": "string", "required": true, "why": "The queue entry it was placed in."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "no-silent-loss", "status": 504, "statement": "A submission that reached no clinician is answered as failed, never as done.", "why": "A handover acknowledged into nothing is worse than one refused: the person stops looking for help that never started. The plan's clinician routing is not built, and this route says so rather than pretending."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A handover is placed in a queue for a person to read; nothing on the bus changes.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-22", "supersededBy": "POST /v1/handover/submit@2", "why": "The engine's not-yet-available refusal names the route that answers it, and it was added on 22 September 2026: a frozen route cannot begin to answer a refusal it was frozen without, so the 501 a caller reads at this address lives at version two. No handover was ever submitted here, its shape and its refusals are unchanged, and its callers are version two's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/handover/submit",
+   "version": 2,
+   "summary": "Submit a prepared handover and learn truthfully whether it reached a queue: a submission that reached no reader is answered as failed.",
+   "callers": [],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "handoverRef", "type": "string", "required": true, "why": "The prepared handover being submitted."}
+   ],
+   "response": [
+    {"field": "submitted", "type": "boolean", "required": true, "why": "Whether it reached a queue."},
+    {"field": "queueRef", "type": "string", "required": true, "why": "The queue entry it was placed in."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "no-silent-loss", "status": 504, "statement": "A submission that reached no clinician is answered as failed, never as done.", "why": "A handover acknowledged into nothing is worse than one refused: the person stops looking for help that never started. The plan's clinician routing is not built, and this route says so rather than pretending."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A handover is placed in a queue for a person to read; nothing on the bus changes.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "withdrawn",
+   "withdrawn": {"on": "2026-09-22", "supersededBy": "POST /v1/handover/submit@3", "why": "The route was built on 22 September 2026 as a refusal and as nothing else, and the refusal it answers is not the one this version declared: there is no queue for a submission to fail to reach, because the identity service, the nurse roster and the destination contract a routing would need do not exist, so the handler refuses the address itself at a 503 and reads no body. Version three declares that refusal. No handover was ever submitted here — this version was the one the engine's not-yet-available refusal answered at — its frozen sentence is unchanged, and its callers are version three's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/handover/submit",
+   "version": 3,
+   "summary": "Submit a prepared handover to a clinician — built as a refusal: the identity, roster and destination contracts a routing would need do not exist.",
+   "callers": ["anonymous"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "handoverRef", "type": "string", "required": true, "why": "The prepared handover being submitted, as the prepare step returned it. Declared for the day this route is activated; the handler reads no body today, because there is nothing it could do with one."}
+   ],
+   "response": [
+    {"field": "submitted", "type": "boolean", "required": true, "why": "Whether it reached a queue. Never sent today: the route refuses rather than answering, and an acknowledgement into nothing is the one answer it must not give."},
+    {"field": "queueRef", "type": "string", "required": true, "why": "The queue entry it was placed in, for the day a destination contract exists to place it in."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "clinician-routing-not-built", "status": 503, "statement": "A handover reaches no clinician from here: the identity, roster and destination contracts it would need do not exist.", "why": "Routing a pack to a clinician needs three contracts this repository does not have — an identity service that says who the person handing over is, a workforce roster that says which clinician is on and where, and a destination contract that says which queue a pack enters and who reads it. packages/catalog/roster.json is not the second of those: its own note calls it the simulated nurse roster that stands in while no workforce roster exists, holding nine people who are not real, whose credentials are valid nowhere and none of whom has agreed to attend anything, so a handover routed against it would be delivered to nobody. This refusal is the no-silent-loss rule kept rather than broken: a handover acknowledged into nothing is worse than one refused, because the person stops looking for help that never started. The route is built and its frame is here, so the day the three contracts exist the routing is written where the refusal is answered, and the caller is told which of the two it met."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Nothing is submitted and nothing is placed in any queue: the route refuses, so nothing on the bus changes and no clinician is told of a handover that never reached one.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "apps/assistant-api/src/server.ts",
+    "handler": "req.method === 'POST' && req.url === '/assistant/v1/handover/submit'"
+   },
+   "enforcedBy": { "mechanism": "anonymous" }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/knowledge/search",
+   "version": 1,
+   "summary": "Search the catalogue's published knowledge for entries an answer may stand on.",
+   "callers": [],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "query", "type": "string", "required": true, "why": "What the person is asking about."},
+    {"field": "language", "type": "string", "required": true, "why": "The language to answer in."}
+   ],
+   "response": [
+    {"field": "sources", "type": "list", "required": true, "why": "The published entries the answer may stand on."},
+    {"field": "withheld", "type": "integer", "required": true, "why": "How many matches were withheld for want of a source, so a thin answer says so rather than sounding complete."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "no-source-no-fact", "status": 422, "statement": "Nothing is returned without a source to stand on.", "why": "The catalogue is the only author: a search that could answer from nothing has stopped being a search."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A search reads what is published and writes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-22", "supersededBy": "POST /v1/knowledge/search@2", "why": "Version one declared its sources as text where the service returns each entry's own id, title and source, and it named two refusals where the handler answers four: the body limit, a malformed body and its own faults are declared at version two, which also declares the inside of each source. Both sentences version one was frozen with are unchanged, and its callers are version two's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/knowledge/search",
+   "version": 2,
+   "summary": "Search the catalogue's published knowledge for entries an answer may stand on.",
+   "callers": ["anonymous"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "query", "type": "string", "required": true, "why": "What the person is asking about."},
+    {"field": "language", "type": "string", "required": true, "why": "The language to answer in."}
+   ],
+   "response": [
+    {"field": "sources", "type": "list", "required": true, "why": "The published entries the answer may stand on: each one's own identity and where it came from, and nothing a caller could mistake for a fact in itself.", "object": true, "fields": [
+     {"field": "id", "type": "string", "required": true, "why": "The entry's own id in the catalogue, so a caller can name what it stood on."},
+     {"field": "title", "type": "string", "required": true, "why": "The entry's title as it is published."},
+     {"field": "source", "type": "string", "required": true, "why": "Where the entry was published from, never blank at this route: an entry with no source is withheld rather than returned."}
+    ]},
+    {"field": "withheld", "type": "integer", "required": true, "why": "How many matches were withheld for want of a source, so a thin answer says so rather than sounding complete."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."},
+    {"id": "payload-too-large", "status": 413, "statement": "The request could not be processed safely.", "why": "A body over the ceiling is refused before it is parsed, exactly as on the turn routes."},
+    {"id": "invalid-request", "status": 400, "statement": "The request could not be processed safely.", "why": "A body that is not JSON, or that is missing the query it searches by, is refused with its own status."},
+    {"id": "internal-error", "status": 500, "statement": "The request could not be processed safely.", "why": "A fault out of the search is this process's, never the caller's: the caller gets one non-revealing sentence and the log carries an error's type name."},
+    {"id": "no-source-no-fact", "status": 422, "statement": "Nothing is returned without a source to stand on.", "why": "The catalogue is the only author: a search that could answer from nothing has stopped being a search, so sources without a source are withheld and a search left with none is refused."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A search reads what is published and writes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "apps/assistant-api/src/server.ts",
+    "handler": "req.method === 'POST' && req.url === '/assistant/v1/knowledge/search'"
+   },
+   "enforcedBy": { "mechanism": "anonymous" }
+  },
+  {
+   "method": "GET",
+   "path": "/v1/status",
+   "version": 1,
+   "summary": "The service's versioned status address, answering what the health route answers.",
+   "callers": ["anonymous"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "ok", "type": "boolean", "required": true, "why": "Whether the service answered at all."},
+    {"field": "mode", "type": "string", "required": true, "why": "The mode the service was started in."},
+    {"field": "azure", "type": "boolean", "required": true, "why": "Whether the primary provider was found configured — presence only, never a value."},
+    {"field": "ollama", "type": "boolean", "required": true, "why": "Whether the local provider's URL was set."},
+    {"field": "production", "type": "boolean", "required": true, "why": "Whether the process believes it is in production."},
+    {"field": "activated", "type": "boolean", "required": true, "why": "The acknowledgement gate's own answer."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "apps/assistant-api/src/server.ts",
+    "handler": "req.method === 'GET' && req.url === '/assistant/v1/status'"
+   },
+   "enforcedBy": { "mechanism": "anonymous" }
+  }
+ ]
+}

@@ -31,7 +31,17 @@
       "Emergency: 10177 (ambulance) or 112 from a cellphone"
     ],
     "tags": ["depression", "mood", "common", "treatable"],
-    "source": "WHO / SA NDoH Mental Health Policy Framework / SADAG"
+    "codes": {
+      "snomed": "35489007",
+      "icd11": "6A70"
+    },
+    "source": {
+      "authority": "WHO / SA NDoH Mental Health Policy Framework / SADAG",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mh-002",
@@ -62,7 +72,16 @@
       "Nearest public clinic — ask about mental health services or a referral"
     ],
     "tags": ["anxiety", "worry", "common", "treatable"],
-    "source": "WHO / SA NDoH Mental Health Policy Framework / SADAG"
+    "codes": {
+      "icd11": "6B00"
+    },
+    "source": {
+      "authority": "WHO / SA NDoH Mental Health Policy Framework / SADAG",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mh-003",
@@ -91,7 +110,16 @@
       "Nearest public clinic for assessment and counselling referral"
     ],
     "tags": ["panic", "anxiety", "breathing", "reassuring"],
-    "source": "WHO / SADAG"
+    "codes": {
+      "icd11": "6B01"
+    },
+    "source": {
+      "authority": "WHO / SADAG",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mh-004",
@@ -121,7 +149,14 @@
       "Rape Crisis and provincial Thuthuzela Care Centres — care, counselling and medico-legal support after sexual assault; police stations and hospitals can direct"
     ],
     "tags": ["PTSD", "trauma", "violence", "counselling"],
-    "source": "WHO / SA NDoH Mental Health Policy Framework / SADAG"
+    "codes": {},
+    "source": {
+      "authority": "WHO / SA NDoH Mental Health Policy Framework / SADAG",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mh-005",
@@ -151,7 +186,14 @@
       "Hospice and palliative-care services in many districts offer bereavement counselling"
     ],
     "tags": ["grief", "bereavement", "loss", "support"],
-    "source": "WHO / SADAG"
+    "codes": {},
+    "source": {
+      "authority": "WHO / SADAG",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mh-006",
@@ -183,7 +225,14 @@
       "Public clinics and district hospitals — detoxification and referral are free"
     ],
     "tags": ["alcohol", "substance-use", "dependence", "South-Africa"],
-    "source": "WHO / SA NDoH / SANCA"
+    "codes": {},
+    "source": {
+      "authority": "WHO / SA NDoH / SANCA",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mh-007",
@@ -214,7 +263,14 @@
       "Overdose emergency: 10177"
     ],
     "tags": ["tik", "whoonga", "cannabis", "substance-use", "overdose"],
-    "source": "WHO / SA NDoH / SANCA"
+    "codes": {},
+    "source": {
+      "authority": "WHO / SA NDoH / SANCA",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mh-008",
@@ -247,7 +303,14 @@
       "Nearest clinic or hospital emergency department — same-day assessment"
     ],
     "tags": ["suicide", "crisis", "warning-signs", "emergency", "life-saving"],
-    "source": "WHO / SADAG / SA NDoH"
+    "codes": {},
+    "source": {
+      "authority": "WHO / SADAG / SA NDoH",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mh-009",
@@ -275,7 +338,14 @@
       "Emergency: 10177"
     ],
     "tags": ["self-harm", "coping", "crisis", "young-people"],
-    "source": "WHO / SADAG / Childline SA"
+    "codes": {},
+    "source": {
+      "authority": "WHO / SADAG / Childline SA",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mh-010",
@@ -305,7 +375,14 @@
       "Emergency: 10177"
     ],
     "tags": ["bipolar", "mania", "mood-stabiliser", "long-term"],
-    "source": "WHO / SA NDoH Mental Health Policy Framework / SADAG"
+    "codes": {},
+    "source": {
+      "authority": "WHO / SA NDoH Mental Health Policy Framework / SADAG",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mh-011",
@@ -335,7 +412,14 @@
       "Emergency: 10177"
     ],
     "tags": ["psychosis", "schizophrenia", "family-support", "treatable"],
-    "source": "WHO / SA NDoH Mental Health Policy Framework"
+    "codes": {},
+    "source": {
+      "authority": "WHO / SA NDoH Mental Health Policy Framework",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mh-012",
@@ -365,7 +449,14 @@
       "Clinic social worker services — free"
     ],
     "tags": ["stress", "burnout", "wellbeing", "daily-life"],
-    "source": "WHO / SADAG"
+    "codes": {},
+    "source": {
+      "authority": "WHO / SADAG",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mh-013",
@@ -398,7 +489,14 @@
       "Emergency: 10177"
     ],
     "tags": ["teenagers", "adolescents", "school", "early-help"],
-    "source": "WHO adolescent mental health / SADAG / Childline SA"
+    "codes": {},
+    "source": {
+      "authority": "WHO adolescent mental health / SADAG / Childline SA",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mh-014",
@@ -423,6 +521,13 @@
       "SADAG website (sadag.org) lists additional support groups and resources"
     ],
     "tags": ["crisis-lines", "directory", "South-Africa", "free"],
-    "source": "SADAG / Lifeline SA / SA government (GBV Command Centre) / Childline SA"
+    "codes": {},
+    "source": {
+      "authority": "SADAG / Lifeline SA / SA government (GBV Command Centre) / Childline SA",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "not-assessed",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   }
 ]

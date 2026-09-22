@@ -1,0 +1,133 @@
+{
+  "welcome": "How can I help you today?",
+  "topicsHeading": "Try a question",
+  "topicsLead": "Find your way around MyThuso. Visits, records and messages currently use preview information.",
+  "talkLabel": "Tap to talk",
+  "disclaimerIntro": "Please read and acknowledge this disclaimer before starting your chat.",
+  "voiceSteps": "Tap to talk → Stop → review → Send.",
+  "voiceDetails": "About voice and privacy",
+  "hello": "Hello, I’m",
+  "moreHeading": "More ways I can help",
+  "minimiseLabel": "Minimise GilbertOne",
+  "questionOrder": [
+    "visit",
+    "result",
+    "settled",
+    "credential",
+    "identity",
+    "voice",
+    "nurse",
+    "emergency"
+  ],
+  "microphoneDetails": "Microphone & browser privacy",
+  "attachments": {
+    "camera": "Add a photo",
+    "file": "Attach a file",
+    "notice": "Local preview only — GilbertOne cannot receive or analyse files yet. Nothing is uploaded.",
+    "remove": "Remove attachment",
+    "limitBytes": 10485760,
+    "tooLarge": "Choose a file smaller than 10 MB.",
+    "preview": "Attachment preview"
+  },
+  "patientQuestions": [
+    {
+      "id": "book",
+      "group": "situations",
+      "asks": "How do I book a nurse?",
+      "answer": "Choose “Book a nurse” in MyThuso, select a service, then follow the steps to choose the person, location, nurse, time and payment method. Review the details before confirming. Bookings and payments are simulated in this preview; no real nurse is dispatched."
+    },
+    {
+      "id": "results",
+      "group": "situations",
+      "asks": "Where can I find my results?",
+      "answer": "Open your Health Passport to find the laboratory information and documents available in the preview. These are sample records, not your real test results. GilbertOne cannot check whether a real result is ready or interpret a result for you."
+    },
+    {
+      "id": "records",
+      "group": "situations",
+      "asks": "How do I view my health records?",
+      "answer": "Open “Health Passport” in MyThuso to explore your health summary, readings, documents and care history. The current preview shows sample information; it is not connected to your real clinical record."
+    },
+    {
+      "id": "contact",
+      "group": "situations",
+      "asks": "How can I contact my care team?",
+      "answer": "Open “My visits”, choose a visit, then look for “Messages with your nurse”. You can also explore “Your care team” through the Health Passport. Messages in this preview are simulated and do not reach a real nurse. For help with your health now, contact your healthcare provider directly."
+    },
+    {
+      "id": "help",
+      "group": "always",
+      "asks": "What can GilbertOne help me with?",
+      "answer": "I can help you find your way around MyThuso and explain its supported features, including booking steps, the Health Passport and messages. I am not a person or a doctor. I cannot diagnose, prescribe, interpret your test results or arrange emergency assistance."
+    },
+    {
+      "id": "privacy",
+      "group": "always",
+      "asks": "How is my information protected?",
+      "answer": "Read the privacy information in the acknowledgment before starting. You choose when to send text and when to open the microphone. Browser speech recognition may process audio through your browser provider. Camera and file selections currently stay as local previews and are not uploaded. Open “About voice and privacy” for the voice capability details. Do not enter sensitive health or identifying information into this preview."
+    }
+  ],
+  "replyPending": "Getting your answer…",
+  "service": {
+    "regionLabel": "GilbertOne connected capabilities",
+    "unreachable": "GilbertOne’s service did not answer. Nothing was sent and nothing is connected by this — the words on this page are still the approved ones.",
+    "statusHeading": "What is connected",
+    "statusLead": "The truthful state of the service behind this panel, read from its own status route. A capability that is gated says so here rather than looking available.",
+    "statusButton": "Check what is connected",
+    "statusRecheck": "Check again",
+    "statusAzure": "Cloud language model configured",
+    "statusOllama": "Local language model configured",
+    "statusProduction": "Running as production",
+    "statusActivated": "Production acknowledgement given",
+    "statusYes": "Yes",
+    "statusNo": "No",
+    "statusGated": "Guided triage, device readings and handover submission are built but gated: each is refused with its own reason until the clinical, privacy and routing contracts it needs exist. Nothing here fakes them.",
+    "knowledgeButton": "See the sources",
+    "knowledgeHeading": "Where an answer may stand",
+    "knowledgeLead": "Published entries from the knowledge catalogue that relate to what you asked. Each is an attribution, not a diagnosis, and GilbertOne does not rank one above another clinically.",
+    "knowledgeEmpty": "No published source matched that question. GilbertOne would rather say so than answer from nothing.",
+    "knowledgeWithheld": "{count} further match was withheld for want of a source to stand on.",
+    "knowledgeWithheldMany": "{count} further matches were withheld for want of a source to stand on.",
+    "knowledgeSourceLabel": "Source",
+    "triageOfferHeading": "Would a structured assessment help?",
+    "triageOfferBody": "GilbertOne can offer a guided, question-by-question assessment. It is not a diagnosis and it never replaces a clinician. Emergencies are answered immediately and separately, and never wait on this.",
+    "triageAccept": "Start a structured assessment",
+    "triageDecline": "Not now",
+    "triageRefusedHeading": "A structured assessment is not available here",
+    "nurseOfferBody": "You can prepare a summary of this conversation for a nurse instead. Nothing reaches a clinician until the identity, roster and destination contracts exist — the panel will say so plainly if you try to send it.",
+    "nurseOfferButton": "Connect with a nurse instead",
+    "handoverHeading": "Summary for a clinician",
+    "handoverPrepareButton": "Prepare a summary for a nurse",
+    "handoverReviewLead": "Review what would be shared before anything is sent. This pack is assembled from what the session holds and is redacted on the way in.",
+    "handoverSubmitButton": "Send to a nurse",
+    "handoverSummaryLabel": "Summary",
+    "handoverUrgencyLabel": "Urgency",
+    "handoverSymptomsLabel": "Symptoms discussed",
+    "handoverVitalsLabel": "Device readings",
+    "handoverSourcesLabel": "Knowledge sources",
+    "handoverRefLabel": "Reference",
+    "handoverPreparedLabel": "Prepared",
+    "handoverNone": "None recorded in this session.",
+    "handoverSubmittedHeading": "This summary reaches no clinician from here",
+    "vitalsConnectHeading": "Connect a device",
+    "vitalsConnectBody": "GilbertOne cannot read a blood-pressure cuff, pulse oximeter, thermometer or glucometer yet. A real device reading is refused until its data protection impact assessment is done, so nothing here is labelled connected that is not.",
+    "vitalsConnectButton": "Why is this not connected?",
+    "consent": [
+      {
+        "id": "external-speech",
+        "heading": "Where your voice is processed",
+        "body": "The microphone opens only when you tap it, and browser speech recognition may process your audio through your browser provider. Where a cloud speech service is used instead, your words are transcribed and then let go: no audio is recorded or kept on any path."
+      },
+      {
+        "id": "knowledge-federation",
+        "heading": "Where answers come from",
+        "body": "Health information may be retrieved from an approved knowledge catalogue and, later, from federated authoritative sources. Every fact carries its source; where there is no source to stand on, GilbertOne abstains rather than guessing. A language model may phrase an answer, and it is disclosed when it does."
+      },
+      {
+        "id": "triage-handover",
+        "heading": "Assessment and handover",
+        "body": "A structured assessment begins only where you agree to one, and it is refused while no ratified protocol exists. A handover summary is prepared only with your agreement and reaches no clinician until the identity, roster and destination contracts exist. Your consent to each is asked again at the moment it is used."
+      }
+    ]
+  }
+}

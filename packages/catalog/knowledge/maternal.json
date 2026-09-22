@@ -13,7 +13,14 @@
     ],
     "whenToSeekCare": "Attend every scheduled visit; go earlier than planned for any danger sign (see mat-002), reduced baby movements after 28 weeks, or a fever",
     "tags": ["antenatal", "visits", "BANC", "free-services"],
-    "source": "SA NDoH Guidelines for Maternity Care (BANC)"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH Guidelines for Maternity Care (BANC)",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-002",
@@ -32,7 +39,14 @@
     ],
     "whenToSeekCare": "Go to the clinic or labour ward immediately — do not wait for the next appointment. Call 10177 for a fit, heavy bleeding, or when transport is a problem",
     "tags": ["antenatal", "danger-signs", "pre-eclampsia", "urgent-care"],
-    "source": "SA NDoH Guidelines for Maternity Care / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH Guidelines for Maternity Care / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-003",
@@ -49,7 +63,14 @@
     ],
     "whenToSeekCare": "Clinic review for weight loss, inability to keep food down, or worries about being able to afford enough food — clinics connect mothers to social support and food programmes",
     "tags": ["antenatal", "nutrition", "folate", "FASD", "South-Africa"],
-    "source": "SA NDoH Maternity Care guidelines / WHO antenatal guidance"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH Maternity Care guidelines / WHO antenatal guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-004",
@@ -66,7 +87,16 @@
     ],
     "whenToSeekCare": "Any difficulty taking ART, side effects, or missed doses — the clinic can help; do not stop. Urgent care for a fever, rash with blisters, or new severe illness in pregnancy",
     "tags": ["antenatal", "HIV", "ART", "PMTCT", "South-Africa"],
-    "source": "SA NDoH PMTCT / ART guidelines"
+    "codes": {
+      "snomed": "86406008"
+    },
+    "source": {
+      "authority": "SA NDoH PMTCT / ART guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-005",
@@ -82,7 +112,14 @@
     ],
     "whenToSeekCare": "Attend the clinic for the booked treatment course if any test needs treatment; go earlier for a new genital sore, rash or discharge in pregnancy",
     "tags": ["antenatal", "syphilis", "screening", "STI"],
-    "source": "SA NDoH Guidelines for Maternity Care"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH Guidelines for Maternity Care",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-006",
@@ -98,7 +135,16 @@
     ],
     "whenToSeekCare": "Same-day clinic visit for breathlessness at rest, a racing heart, fainting, or being too tired to do daily tasks — severe anaemia in pregnancy needs urgent treatment",
     "tags": ["antenatal", "anaemia", "iron", "nutrition"],
-    "source": "SA NDoH Guidelines for Maternity Care / WHO"
+    "codes": {
+      "loinc": "718-7"
+    },
+    "source": {
+      "authority": "SA NDoH Guidelines for Maternity Care / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-007",
@@ -113,7 +159,17 @@
     ],
     "whenToSeekCare": "Immediately — clinic or labour ward — for any warning sign above, or a severe headache that tablets do not settle. Call 10177 for a fit or confusion",
     "tags": ["antenatal", "pre-eclampsia", "blood-pressure", "danger-signs"],
-    "source": "SA NDoH Guidelines for Maternity Care / WHO"
+    "codes": {
+      "snomed": "398254007",
+      "loinc": "85354-9"
+    },
+    "source": {
+      "authority": "SA NDoH Guidelines for Maternity Care / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-008",
@@ -129,7 +185,14 @@
     ],
     "whenToSeekCare": "Go to the labour ward with regular contractions, broken waters, or bleeding. Call 10177 if the baby is coming now, there is heavy bleeding, or the mother feels very unwell",
     "tags": ["labour", "when-to-go", "planning", "facility-birth"],
-    "source": "SA NDoH Guidelines for Maternity Care / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH Guidelines for Maternity Care / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-009",
@@ -144,7 +207,14 @@
     ],
     "whenToSeekCare": "Go to the facility when contractions are regular and strengthening, at once if the waters break, and straight away for any bleeding or reduced baby movements",
     "tags": ["labour", "Braxton-Hicks", "contractions"],
-    "source": "SA NDoH Guidelines for Maternity Care / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH Guidelines for Maternity Care / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-010",
@@ -160,7 +230,14 @@
     ],
     "whenToSeekCare": "Same-day care if the baby feeds poorly or not at all, is cold to touch, breathes fast, has yellow palms and soles, or the cord area becomes red, smelly or weepy",
     "tags": ["postnatal", "newborn", "breastfeeding", "immediate-care"],
-    "source": "SA NDoH Maternal and Neonatal Care guidelines / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH Maternal and Neonatal Care guidelines / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-011",
@@ -174,7 +251,14 @@
     ],
     "whenToSeekCare": "Same-day care for heavy bleeding (a pad soaked within an hour, or fist-sized clots), fever, smelly discharge, severe headache or vision changes, a painful red breast, or a low mood with thoughts of self-harm",
     "tags": ["postnatal", "visits", "Road-to-Health", "six-weeks"],
-    "source": "SA NDoH Guidelines for Maternity Care / WHO postnatal guidance"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH Guidelines for Maternity Care / WHO postnatal guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-012",
@@ -191,7 +275,14 @@
     ],
     "whenToSeekCare": "Immediately — clinic or hospital — for any of the above. Call 10177 for a fit, chest pain, severe breathlessness or heavy bleeding that will not slow",
     "tags": ["postnatal", "danger-signs", "bleeding", "mastitis"],
-    "source": "SA NDoH Guidelines for Maternity Care / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH Guidelines for Maternity Care / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-013",
@@ -208,7 +299,14 @@
     ],
     "whenToSeekCare": "Go to a clinic or hospital immediately — a sick newborn is always an emergency at any hour",
     "tags": ["postnatal", "newborn", "danger-signs", "urgent-care"],
-    "source": "SA NDoH Neonatal Care guidelines / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH Neonatal Care guidelines / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-014",
@@ -226,7 +324,14 @@
     ],
     "whenToSeekCare": "Same-day clinic help for persistent nipple pain, a baby who feeds fewer than 8 times in 24 hours, is not waking for feeds, or is not gaining weight after the first week; mastitis with fever; breastfeeding is often fixable with support, so ask before giving up",
     "tags": ["postnatal", "breastfeeding", "exclusive-six-months", "support"],
-    "source": "SA NDoH infant feeding policy / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH infant feeding policy / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-015",
@@ -243,7 +348,14 @@
     ],
     "whenToSeekCare": "Clinic review for any feeding difficulty, poor weight gain, or where the cost of formula has become a crisis — clinics and social workers know the options",
     "tags": ["postnatal", "formula", "safe-preparation", "cup-feeding"],
-    "source": "SA NDoH infant feeding policy / WHO safe formula preparation guidance"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH infant feeding policy / WHO safe formula preparation guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-016",
@@ -258,7 +370,14 @@
     ],
     "whenToSeekCare": "MomConnect supports but never replaces clinic visits — go to the clinic for any concern raised by a message or noticed at home",
     "tags": ["antenatal", "MomConnect", "SMS", "free", "South-Africa"],
-    "source": "SA NDoH MomConnect programme (*134*550#)"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH MomConnect programme (*134*550#)",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "not-assessed",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-017",
@@ -275,7 +394,14 @@
     ],
     "whenToSeekCare": "The six-week postnatal visit is the natural point to choose a method; earlier for heavy bleeding with a chosen method, severe headaches, or trouble accessing supplies",
     "tags": ["postnatal", "contraception", "family-planning", "free-services"],
-    "source": "SA NDoH Contraception Policy / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH Contraception Policy / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-018",
@@ -295,8 +421,22 @@
       "Every vaccine is recorded in the Road-to-Health Booklet and all are free at public clinics; missed doses are caught up — a late vaccine still works, it just needs to happen"
     ],
     "whenToSeekCare": "Take the baby for immunisation on schedule even with a mild snuffle; delay only for fever or serious illness, then go as soon as the baby is well. Clinic review for any reaction beyond a feverish, irritable day or a sore leg",
-    "tags": ["postnatal", "immunisation", "EPI", "Road-to-Health", "free-services", "South-Africa"],
-    "source": "SA NDoH Expanded Programme on Immunisation (EPI-SA) schedule"
+    "tags": [
+      "postnatal",
+      "immunisation",
+      "EPI",
+      "Road-to-Health",
+      "free-services",
+      "South-Africa"
+    ],
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH Expanded Programme on Immunisation (EPI-SA) schedule",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-019",
@@ -312,7 +452,16 @@
     ],
     "whenToSeekCare": "Clinic visit for low mood lasting more than two weeks or affecting care of the baby; same-day help for any thoughts of self-harm or of harming the baby",
     "tags": ["postnatal", "depression", "mental-health", "support"],
-    "source": "SA NDoH mental health guidelines / WHO; SADAG; Lifeline"
+    "codes": {
+      "snomed": "35489007"
+    },
+    "source": {
+      "authority": "SA NDoH mental health guidelines / WHO; SADAG; Lifeline",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "mat-020",
@@ -328,6 +477,13 @@
     ],
     "whenToSeekCare": "Go early rather than late — a mother who arrives in established labour with an unbooked pregnancy is the highest-risk delivery a ward sees",
     "tags": ["labour", "planning", "transport", "birth-companion"],
-    "source": "SA NDoH Guidelines for Maternity Care / MomConnect"
+    "codes": {},
+    "source": {
+      "authority": "SA NDoH Guidelines for Maternity Care / MomConnect",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   }
 ]

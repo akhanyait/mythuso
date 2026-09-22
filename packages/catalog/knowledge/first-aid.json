@@ -23,7 +23,16 @@
     ],
     "whenToCall": "Immediately when a person is unresponsive and not breathing normally",
     "tags": ["emergency", "cardiac", "CPR", "life-support"],
-    "source": "SA Resuscitation Council / AHA guidelines"
+    "codes": {
+      "snomed": "89666000"
+    },
+    "source": {
+      "authority": "SA Resuscitation Council / AHA guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-002",
@@ -45,7 +54,16 @@
     ],
     "whenToCall": "Immediately when a child is unresponsive and not breathing normally",
     "tags": ["emergency", "cardiac", "CPR", "children"],
-    "source": "SA Resuscitation Council / AHA guidelines"
+    "codes": {
+      "snomed": "89666000"
+    },
+    "source": {
+      "authority": "SA Resuscitation Council / AHA guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-003",
@@ -67,7 +85,16 @@
     ],
     "whenToCall": "Immediately when a baby is unresponsive and not breathing normally",
     "tags": ["emergency", "CPR", "infant", "life-support"],
-    "source": "SA Resuscitation Council / AHA guidelines"
+    "codes": {
+      "snomed": "89666000"
+    },
+    "source": {
+      "authority": "SA Resuscitation Council / AHA guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-004",
@@ -86,7 +113,14 @@
     ],
     "whenToCall": "Call 10177 at once if coughing fails, the person cannot speak, or turns blue — and immediately if they collapse",
     "tags": ["emergency", "choking", "airway"],
-    "source": "SA Resuscitation Council / AHA guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Resuscitation Council / AHA guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-005",
@@ -105,7 +139,14 @@
     ],
     "whenToCall": "Call 10177 at once if the cry or cough is silent, breathing fails, or the baby turns blue",
     "tags": ["emergency", "choking", "infant", "airway"],
-    "source": "SA Resuscitation Council / AHA guidelines"
+    "codes": {},
+    "source": {
+      "authority": "SA Resuscitation Council / AHA guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-006",
@@ -129,7 +170,14 @@
     ],
     "whenToCall": "10177 immediately for spurting or pooling blood, or any bleeding that does not stop with 10 minutes of firm pressure",
     "tags": ["trauma", "bleeding", "emergency", "shock"],
-    "source": "SA first-aid guidance / SA Resuscitation Council"
+    "codes": {},
+    "source": {
+      "authority": "SA first-aid guidance / SA Resuscitation Council",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-007",
@@ -151,7 +199,16 @@
     ],
     "whenToCall": "10177 for burns bigger than the person's hand, burns to the face, hands, feet, genitals or joints, any chemical or electrical burn, smoke inhalation, or burns in babies and young children",
     "tags": ["trauma", "burns", "paraffin", "children", "South-Africa"],
-    "source": "SA burn care guidance / WHO"
+    "codes": {
+      "snomed": "125666000"
+    },
+    "source": {
+      "authority": "SA burn care guidance / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-008",
@@ -172,7 +229,16 @@
     ],
     "whenToCall": "10177 for head, neck or back injuries, bones showing through skin, deformed or unreachable limbs, or any fracture in a child, an older person, or after a serious fall or road crash",
     "tags": ["trauma", "fracture", "splint", "injury"],
-    "source": "SA first-aid guidance / WHO trauma guidance"
+    "codes": {
+      "snomed": "125605004"
+    },
+    "source": {
+      "authority": "SA first-aid guidance / WHO trauma guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-009",
@@ -191,7 +257,14 @@
     ],
     "whenToCall": "A clinic assessment is needed if the person cannot bear weight, the joint looks deformed, the limb is numb, or there is no improvement after a week",
     "tags": ["trauma", "sprain", "RICE", "self-care"],
-    "source": "SA first-aid guidance / WHO injury guidance"
+    "codes": {},
+    "source": {
+      "authority": "SA first-aid guidance / WHO injury guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-010",
@@ -212,7 +285,14 @@
     ],
     "whenToCall": "10177 for every snake bite, even without symptoms. Antivenom, where needed, is given in hospital",
     "tags": ["bites-and-stings", "snake", "envenomation", "South-Africa"],
-    "source": "SA Poisons Information Helpline 0861 555 777 / SA medical toxicology guidance"
+    "codes": {},
+    "source": {
+      "authority": "SA Poisons Information Helpline 0861 555 777 / SA medical toxicology guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-011",
@@ -233,7 +313,14 @@
     ],
     "whenToCall": "10177 for any scorpion sting in a child, any sting with breathing difficulty or swelling of lips and tongue, and severe pain or cramps after a spider bite",
     "tags": ["bites-and-stings", "scorpion", "spider", "bee", "South-Africa"],
-    "source": "SA Poisons Information Helpline 0861 555 777 / SA medical toxicology guidance"
+    "codes": {},
+    "source": {
+      "authority": "SA Poisons Information Helpline 0861 555 777 / SA medical toxicology guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-012",
@@ -254,7 +341,14 @@
     ],
     "whenToCall": "10177 for severe wounds, uncontrolled bleeding, bites to the face or hands, or any bite from a wild, stray or sick animal. Otherwise attend a clinic the same day",
     "tags": ["bites-and-stings", "dog", "rabies", "South-Africa", "same-day"],
-    "source": "WHO rabies guidance / SA NDoH rabies guidelines"
+    "codes": {},
+    "source": {
+      "authority": "WHO rabies guidance / SA NDoH rabies guidelines",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-013",
@@ -274,7 +368,14 @@
     ],
     "whenToCall": "Poisons Information Helpline 0861 555 777 for every poisoning question; 10177 for drowsiness, convulsions, breathing trouble or chemical burns",
     "tags": ["poisoning", "paraffin", "children", "South-Africa", "helpline"],
-    "source": "SA Poisons Information Helpline 0861 555 777 / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA Poisons Information Helpline 0861 555 777 / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-014",
@@ -294,7 +395,14 @@
     ],
     "whenToCall": "10177 if breathing stops, the person stays unconscious more than a minute, faints repeatedly, hurt their head, is pregnant, or has never fainted before over age 40",
     "tags": ["environmental", "fainting", "recovery-position"],
-    "source": "SA first-aid guidance"
+    "codes": {},
+    "source": {
+      "authority": "SA first-aid guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-015",
@@ -314,7 +422,16 @@
     ],
     "whenToCall": "10177 if the seizure lasts more than 5 minutes, repeats without recovery, is a first-ever seizure, happens in water, or the person is injured, pregnant or struggles to breathe afterwards",
     "tags": ["environmental", "seizure", "epilepsy", "recovery-position"],
-    "source": "WHO epilepsy guidance / SA first-aid guidance"
+    "codes": {
+      "snomed": "91175000"
+    },
+    "source": {
+      "authority": "WHO epilepsy guidance / SA first-aid guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-016",
@@ -334,7 +451,14 @@
     ],
     "whenToCall": "10177 during a convulsion lasting beyond 5 minutes or with breathing difficulty; otherwise same-day doctor for every first convulsion",
     "tags": ["environmental", "seizure", "children", "fever"],
-    "source": "WHO / SA NDoH (PHC) child guidance"
+    "codes": {},
+    "source": {
+      "authority": "WHO / SA NDoH (PHC) child guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-017",
@@ -356,7 +480,16 @@
     ],
     "whenToCall": "10177 immediately for every suspected anaphylaxis, even if it seems to settle",
     "tags": ["emergency", "anaphylaxis", "allergy", "adrenaline"],
-    "source": "SA Resuscitation Council / WHO anaphylaxis guidance"
+    "codes": {
+      "snomed": "39579001"
+    },
+    "source": {
+      "authority": "SA Resuscitation Council / WHO anaphylaxis guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-018",
@@ -376,7 +509,16 @@
     ],
     "whenToCall": "10177 immediately when any FAST sign appears",
     "tags": ["emergency", "stroke", "FAST", "time-critical"],
-    "source": "WHO / SA NDoH stroke care guidance"
+    "codes": {
+      "snomed": "230690007"
+    },
+    "source": {
+      "authority": "WHO / SA NDoH stroke care guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-019",
@@ -397,7 +539,14 @@
     ],
     "whenToCall": "10177 immediately for any chest pain lasting more than a few minutes, or chest discomfort with sweating, nausea or breathlessness",
     "tags": ["emergency", "heart-attack", "chest-pain", "time-critical"],
-    "source": "WHO / SA NDoH cardiovascular care guidance"
+    "codes": {},
+    "source": {
+      "authority": "WHO / SA NDoH cardiovascular care guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-020",
@@ -415,7 +564,14 @@
     ],
     "whenToCall": "10177 immediately for confusion, aggression, seizures, collapse or hot dry skin in the heat. Clinic care for heat cramps and fainting that do not settle",
     "tags": ["environmental", "heat", "summer", "workers"],
-    "source": "WHO / SA first-aid guidance"
+    "codes": {},
+    "source": {
+      "authority": "WHO / SA first-aid guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-021",
@@ -436,7 +592,14 @@
     ],
     "whenToCall": "10177 if the person is confused, cannot swallow, convulses, or does not recover after two rounds of sugar; same-day clinic for every severe episode to adjust treatment",
     "tags": ["environmental", "diabetes", "hypoglycaemia", "emergency"],
-    "source": "SA diabetes guidelines / WHO"
+    "codes": {},
+    "source": {
+      "authority": "SA diabetes guidelines / WHO",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   },
   {
     "id": "fa-022",
@@ -455,6 +618,13 @@
     ],
     "whenToCall": "10177 for every drowning, even after apparent recovery",
     "tags": ["environmental", "drowning", "children", "CPR", "water-safety"],
-    "source": "SA Resuscitation Council / WHO drowning guidance"
+    "codes": {},
+    "source": {
+      "authority": "SA Resuscitation Council / WHO drowning guidance",
+      "jurisdiction": "South Africa",
+      "retrievedDate": "2026-09-21",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-09-21"
+    }
   }
 ]

@@ -1,6 +1,6 @@
 /* ThusoIQ's engine API contracts, written out for the web app and both native apps by a machine.
 
-   packages/catalog/apis.json lists the twelve engine files under packages/catalog/apis/. This reads
+   packages/catalog/apis.json lists the thirteen engine files under packages/catalog/apis/. This reads
    every one of them and emits, for each live route, one constant carrying its method, path, version,
    engine, callers, purposes, idempotency and status, and one request and one response shape typed
    from the route's fields — into apps/web/src/lib/apis.generated.ts, Swift and Kotlin.
@@ -13,7 +13,7 @@
    NAMES. A route's name is its method and its path's words — POST /v1/care/visits/{appointmentRef}/start
    is postCareVisitsByAppointmentRefStart — so two routes cannot share a name without sharing a method
    and a path, and the generator refuses the day they do. A Passport §26 path is named under its engine,
-   and its mounted path is emitted beside it.
+   and its mounted path is emitted beside it; so is a GilbertOne assistant path, under /assistant.
 
    OBJECT FIELDS. packages/catalog/feeds.json has no object type, so a field whose value is a JSON object
    keeps the nearest type and says "object": true. It is typed here as an object — never as the string
@@ -65,7 +65,9 @@ export function routeName(route) {
  });
  return route.method.toLowerCase() + pascal(spelled) + (route.version > 1 ? `V${route.version}` : '');
 }
-export const mountedPath = (contract, route) => (contract.conventions.passportPaths.paths.includes(route.path) ? contract.conventions.passportPaths.mount + route.path : route.path);
+export const mountedPath = (contract, route) => (contract.conventions.passportPaths.paths.includes(route.path) ? contract.conventions.passportPaths.mount + route.path
+ : contract.conventions.assistantPaths.paths.includes(route.path) ? contract.conventions.assistantPaths.mount + route.path
+ : route.path);
 
 const liveRoutes = root => {
  const { contract, routes } = loadApis(root);
