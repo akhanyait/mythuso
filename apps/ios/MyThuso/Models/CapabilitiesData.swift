@@ -8,10 +8,14 @@
 // integration lands, one boolean changes in the contract and the notice disappears from every
 // platform at once.
 //
+// The flags at the end are not capabilities: each is a boolean a build reads before it does the
+// thing the flag names, false until the contract says otherwise, and emitted so both platforms
+// read one value rather than two.
+//
 // The keys beginning with an underscore in the contract are commentary and are not written out.
-// `requiresPermissions` names the only permissions either app may declare — today three, all for
-// GilbertOne's push-to-talk — and scripts/check-boundaries.mjs refuses any permission no capability
-// has asked for.
+// `requiresPermissions` names the only permissions either app may declare — 4 across the
+// capabilities and flags of this contract — and scripts/check-boundaries.mjs refuses any
+// permission no capability or flag has asked for.
 
 import Foundation
 
@@ -413,4 +417,11 @@ extension Capabilities {
                        statement: "`voice` alone is on-device: the phone recognises speech, GilbertOne answers from a contract, and nothing is connected.",
                        why: "English push-to-talk on the phone, decided on 14 September 2026, is neither a stand-in answering (simulated) nor a supplier (connected). The state says exactly what is true, and the notice stays.")
     ]
+
+    /* The flags: a boolean a caller reads before it does the thing the flag names. Not a
+       capability — no notice, no state — and false until packages/catalog/capabilities.json says
+       otherwise, so turning one on is a change to the contract and not to a source file. */
+    /// The unified conversation surface is behind a flag: with it off, every platform answers from the contract with no network at all; with it on, a native build may ask POST /assistant/v1/turn after a message the local matcher could not place.
+    /// The service is real and is not deployed: it answers on loopback, and a phone in somebody's hand cannot reach that. A boolean that is false by default is the difference between a build that quietly reaches for an address the day somebody else runs it and one that reaches for it the day this file says so. The web panel reads no flag — its requests go through its own origin's proxy, which is the path a deploy changes — so the flag is for the natives, whose releases outlive a deploy.
+    static let unifiedApi = false
 }

@@ -259,6 +259,18 @@ object ApisData {
     val POST_MONEY_CLAIMS_BY_CLAIM_REF_SUBMIT = Route("postMoneyClaimsByClaimRefSubmit", "POST", "/v1/money/claims/{claimRef}/submit", "/v1/money/claims/{claimRef}/submit", 1, "money", listOf("doctor", "admin"), listOf("billing"), true, "built")
     val GET_MONEY_CLAIMS = Route("getMoneyClaims", "GET", "/v1/money/claims", "/v1/money/claims", 1, "money", listOf("patient", "doctor"), listOf("billing"), false, "built")
     val GET_MONEY_HELD_CASH_PAYMENTS = Route("getMoneyHeldCashPayments", "GET", "/v1/money/held-cash-payments", "/v1/money/held-cash-payments", 1, "money", listOf("ops-desk"), listOf("billing"), false, "built")
+    val GET_ASSISTANT_HEALTH = Route("getAssistantHealth", "GET", "/health", "/assistant/health", 1, "assistant", listOf("anonymous"), listOf("audit"), false, "built")
+    val POST_ASSISTANT_TURN = Route("postAssistantTurn", "POST", "/turn", "/assistant/turn", 1, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
+    val POST_TURN = Route("postTurn", "POST", "/v1/turn", "/assistant/v1/turn", 1, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
+    val POST_LISTEN_V3 = Route("postListenV3", "POST", "/v1/listen", "/assistant/v1/listen", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
+    val POST_SPEAK_V3 = Route("postSpeakV3", "POST", "/v1/speak", "/assistant/v1/speak", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
+    val POST_TRIAGE_START_V3 = Route("postTriageStartV3", "POST", "/v1/triage/start", "/assistant/v1/triage/start", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
+    val POST_TRIAGE_ANSWER_V3 = Route("postTriageAnswerV3", "POST", "/v1/triage/answer", "/assistant/v1/triage/answer", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
+    val POST_VITALS_V3 = Route("postVitalsV3", "POST", "/v1/vitals", "/assistant/v1/vitals", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
+    val POST_HANDOVER_PREPARE_V3 = Route("postHandoverPrepareV3", "POST", "/v1/handover/prepare", "/assistant/v1/handover/prepare", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
+    val POST_HANDOVER_SUBMIT_V3 = Route("postHandoverSubmitV3", "POST", "/v1/handover/submit", "/assistant/v1/handover/submit", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
+    val POST_KNOWLEDGE_SEARCH_V2 = Route("postKnowledgeSearchV2", "POST", "/v1/knowledge/search", "/assistant/v1/knowledge/search", 2, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
+    val GET_STATUS = Route("getStatus", "GET", "/v1/status", "/assistant/v1/status", 1, "assistant", listOf("anonymous"), listOf("audit"), false, "built")
 
     val routes = listOf(
         POST_CORE_EVENTS,
@@ -497,7 +509,19 @@ object ApisData {
         POST_MONEY_CLAIMS_BY_CLAIM_REF_CONSENT,
         POST_MONEY_CLAIMS_BY_CLAIM_REF_SUBMIT,
         GET_MONEY_CLAIMS,
-        GET_MONEY_HELD_CASH_PAYMENTS
+        GET_MONEY_HELD_CASH_PAYMENTS,
+        GET_ASSISTANT_HEALTH,
+        POST_ASSISTANT_TURN,
+        POST_TURN,
+        POST_LISTEN_V3,
+        POST_SPEAK_V3,
+        POST_TRIAGE_START_V3,
+        POST_TRIAGE_ANSWER_V3,
+        POST_VITALS_V3,
+        POST_HANDOVER_PREPARE_V3,
+        POST_HANDOVER_SUBMIT_V3,
+        POST_KNOWLEDGE_SEARCH_V2,
+        GET_STATUS
     )
 
     data class PostCoreEventsRequest(
@@ -2584,5 +2608,146 @@ object ApisData {
     class GetMoneyHeldCashPaymentsRequest
     data class GetMoneyHeldCashPaymentsResponse(
         val payments: List<Map<String, Any?>>
+    )
+    class GetAssistantHealthRequest
+    data class GetAssistantHealthResponse(
+        val ok: Boolean,
+        val mode: String,
+        val azure: Boolean,
+        val ollama: Boolean,
+        val production: Boolean,
+        val activated: Boolean
+    )
+    data class PostAssistantTurnRequest(
+        val sessionId: String? = null,
+        val parentTurnId: String? = null,
+        val text: String,
+        val audience: String? = null,
+        val userConsent: Boolean
+    )
+    data class PostAssistantTurnResponse(
+        val turnId: String,
+        val sessionId: String,
+        val route: String,
+        val classification: String,
+        val reply: String,
+        val style: String,
+        val confidence: Double,
+        val requiresConfirmation: Boolean,
+        val suggestedActions: List<String>,
+        val refusalId: String? = null,
+        val source: String? = null,
+        val cue: String? = null
+    )
+    data class PostTurnRequest(
+        val sessionId: String? = null,
+        val parentTurnId: String? = null,
+        val text: String,
+        val audience: String? = null,
+        val userConsent: Boolean
+    )
+    data class PostTurnResponse(
+        val turnId: String,
+        val sessionId: String,
+        val route: String,
+        val classification: String,
+        val reply: String,
+        val style: String,
+        val confidence: Double,
+        val requiresConfirmation: Boolean,
+        val suggestedActions: List<String>,
+        val refusalId: String? = null,
+        val source: String? = null,
+        val cue: String? = null
+    )
+    data class PostListenV3Request(
+        val userConsent: Boolean,
+        val language: String,
+        val audioBase64: String,
+        val audioFormat: String
+    )
+    data class PostListenV3Response(
+        val text: String,
+        val language: String
+    )
+    data class PostSpeakV3Request(
+        val text: String,
+        val language: String,
+        val voice: String? = null
+    )
+    data class PostSpeakV3Response(
+        val audioBase64: String,
+        val format: String,
+        val voice: String,
+        val language: String
+    )
+    data class PostTriageStartV3Request(
+        val userConsent: Boolean,
+        val language: String,
+        val sessionId: String? = null
+    )
+    data class PostTriageStartV3Response(
+        val question: String,
+        val step: Int,
+        val steps: Int,
+        val sessionId: String
+    )
+    data class PostTriageAnswerV3Request(
+        val sessionId: String,
+        val step: Int,
+        val answer: String
+    )
+    data class PostTriageAnswerV3Response(
+        val done: Boolean,
+        val question: String? = null,
+        val step: Int
+    )
+    data class PostVitalsV3Request(
+        val type: String,
+        val value: Double,
+        val unit: String,
+        val capturedAt: String,
+        val source: String,
+        val deviceRef: String? = null,
+        val sessionId: String,
+        val userConsent: Boolean
+    )
+    data class PostVitalsV3Response(
+        val accepted: Boolean,
+        val entryRef: String,
+        val sessionId: String
+    )
+    data class PostHandoverPrepareV3Request(
+        val sessionId: String,
+        val userConsent: Boolean
+    )
+    data class PostHandoverPrepareV3Response(
+        val handoverRef: String,
+        val preparedAt: String,
+        val pack: Map<String, Any?>
+    )
+    data class PostHandoverSubmitV3Request(
+        val handoverRef: String
+    )
+    data class PostHandoverSubmitV3Response(
+        val submitted: Boolean,
+        val queueRef: String
+    )
+    data class PostKnowledgeSearchV2Request(
+        val query: String,
+        val language: String
+    )
+    data class PostKnowledgeSearchV2Response(
+        val sources: List<Map<String, Any?>>,
+        val withheld: Int
+    )
+    class GetStatusRequest
+    data class GetStatusResponse(
+        val ok: Boolean,
+        val mode: String,
+        val azure: Boolean,
+        val ollama: Boolean,
+        val production: Boolean,
+        val activated: Boolean
     )
 }

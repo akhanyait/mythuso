@@ -57,6 +57,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import kotlinx.coroutines.launch
+import za.co.mythuso.model.AssistantClient
 import za.co.mythuso.model.BookingData
 import za.co.mythuso.model.Gilbert
 import za.co.mythuso.model.GilbertChannel
@@ -68,6 +70,7 @@ import za.co.mythuso.model.HandoverOutcome
 import za.co.mythuso.model.Handovers
 import za.co.mythuso.model.PreviewStore
 import za.co.mythuso.model.Pulse
+import za.co.mythuso.model.unifiedApi
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.max
@@ -104,6 +107,11 @@ import kotlin.math.sin
  * Colour. Words are white (12.04:1 on BrandInk) or BrandMint (8.09); BrandInk on the white field and
  * buttons (12.04). Orange marks the emergency question and the escalated sphere as an edge and a fill,
  * never as text. */
+
+/* Where the assistant API is reached from this build: the emulator's alias for the machine's own
+ * loopback (10.0.2.2), where the service binds. A physical phone cannot reach it, which is the truth
+ * — the service is not deployed — and the local answer is what such a phone keeps. */
+private const val ASSISTANT_BASE = "http://10.0.2.2:8791"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun GilbertSheet(store: PreviewStore, onDismiss: () -> Unit, open: (String) -> Unit) {
@@ -147,6 +155,11 @@ import kotlin.math.sin
        the conversation is capped, and a dropped turn must not be what lowers an urgency. */
     var raised by remember { mutableStateOf(false) }
     var conversationRef by remember { mutableStateOf(java.util.UUID.randomUUID().toString()) }
+    /* Bumped only when a conversation starts again, the one place the web bumps its refinement
+       generation: a refinement already in flight must not replace an answer in a conversation it no
+       longer belongs to. */
+    var refineGeneration by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
     val sent = remember { mutableStateMapOf<Int, HandoverOutcome>() }
     LaunchedEffect(turns) { if (turns.any { it.reply is GilbertReply.Emergency }) raised = true }
     var draft by remember { mutableStateOf("") }
@@ -185,8 +198,52 @@ import kotlin.math.sin
         GilbertListener.Phase.FINISHING -> Pulse.THINKING
         else -> if (asked) Gilbert.pulse(latest) else Pulse.IDLE
     }
-    val sendDraft = { if (draft.isNotBlank()) { turns = Gilbert.send(draft, GilbertChannel.TYPED, turns, store.visits.firstOrNull()); draft = "" } }
-    val sendCorrection = { turns = Gilbert.send(correction, GilbertChannel.SPOKEN, turns, store.visits.firstOrNull()); correction = ""; listener.sent() }
+    /* The native refinement, the acceptance apps/web/src/lib/gilbertone-bridge.ts applies word for
+       word: a message the local matcher could not place is asked about at /assistant/v1/turn, but
+       only when the unifiedApi flag is on — off by default, so a build with no service deployed
+       makes no call at all — and the service's sentence replaces the local answer only when the
+       generated client accepted it: a model tier named as the source and words that are not empty.
+       Refused, unreachable, timed out, unusable: the local answer stands, the one the person
+       already has on the screen. Nothing here waits on the network; the replacement is an
+       improvement that arrives late or not at all. */
+    val refine: (GilbertTurn) -> Unit = { candidate ->
+        val asked = candidate.asked
+        if (unifiedApi && asked != null && candidate.reply == GilbertReply.Unmatched) {
+            val generation = refineGeneration
+            val session = conversationRef
+            scope.launch {
+                val words = AssistantClient.refine(asked, session, "patient", ASSISTANT_BASE)
+                if (generation == refineGeneration && words != null) {
+                    val index = turns.indexOfFirst { it == candidate }
+                    if (index >= 0) {
+                        val refined = candidate.copy(reply = GilbertReply.Service(words))
+                        val stillLast = index == turns.lastIndex
+                        turns = turns.toMutableList().also { it[index] = refined }
+                        /* The turn keeps its id, so the id-keyed announcement above does not fire for
+                           it; the words are announced and read out here, and only while the
+                           replacement is still the last turn the person can see. */
+                        if (stillLast) {
+                            view.announceForAccessibility(spoken(refined))
+                            speaker.speak(spokenAloud(refined))
+                        }
+                    }
+                }
+            }
+        }
+    }
+    val sendDraft = {
+        if (draft.isNotBlank()) {
+            turns = Gilbert.send(draft, GilbertChannel.TYPED, turns, store.visits.firstOrNull())
+            draft = ""
+            refine(turns.last())
+        }
+    }
+    val sendCorrection = {
+        turns = Gilbert.send(correction, GilbertChannel.SPOKEN, turns, store.visits.firstOrNull())
+        correction = ""
+        listener.sent()
+        refine(turns.last())
+    }
 
     CompositionLocalProvider(LocalOnStudioNight provides true, LocalContentColor provides SurfaceWhite) {
         Column(Modifier.fillMaxWidth().fillMaxHeight().imePadding()) {
@@ -216,7 +273,7 @@ import kotlin.math.sin
                 }
                 /* Starting again is a new conversation: a new reference in the queue, nothing remembered. */
                 Suggestions(asked, choose = { turns = Gilbert.choose(it, turns, store.visits.firstOrNull()) },
-                    again = { turns = Gilbert.opening(); raised = false; sent.clear(); conversationRef = java.util.UUID.randomUUID().toString() })
+                    again = { refineGeneration += 1; turns = Gilbert.opening(); raised = false; sent.clear(); conversationRef = java.util.UUID.randomUUID().toString() })
                 Refusals()
             }
             Composer(draft, { draft = it }, sendDraft, largeType, speaker)
@@ -352,6 +409,18 @@ import kotlin.math.sin
                     FilledButton(GilbertData.unmatched.handoverLabel) { onHandOver() }
                     QuietButton(GilbertData.unmatched.sosLabel, urgent = true) { open("Thuso SOS") }
                 }
+                /* A sentence the service wrote for a message GilbertOne could not place, drawn with the
+                   heading, disclosure and emergency numbers the contract fixes, so the words can never
+                   appear without them. */
+                is GilbertReply.Service -> {
+                    Body(GilbertData.service.heading, strong = true)
+                    Body(reply.text)
+                    Body(GilbertData.service.disclosure, quiet = true)
+                    Body(GilbertData.service.ifUrgent)
+                    Lines(GilbertData.service.lines)
+                    FilledButton(GilbertData.service.handoverLabel) { onHandOver() }
+                    QuietButton(GilbertData.service.sosLabel, urgent = true) { open("Thuso SOS") }
+                }
                 /* What goes, what does not, and the one button that sends it to the simulated nurse queue.
                    After the button: what happened, the reference, and the ambulance numbers, because a
                    queue nobody reads must never be the last thing an urgent person is shown. */
@@ -436,6 +505,8 @@ private fun coreWords(turn: GilbertTurn): String = when (val reply = turn.reply)
     GilbertReply.Voice -> GilbertData.voice.howItWorks
     is GilbertReply.Emergency -> GilbertData.emergency.headline
     GilbertReply.Unmatched -> GilbertData.unmatched.sentence
+    is GilbertReply.Service -> (listOf(GilbertData.service.heading, reply.text, GilbertData.service.disclosure, GilbertData.service.ifUrgent)
+        + GilbertData.service.lines.map { "${it.number}, ${it.name}." }).joinToString(" ")
     is GilbertReply.Handover -> GilbertData.handover.title
 }
 

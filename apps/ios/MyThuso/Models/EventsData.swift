@@ -39,7 +39,8 @@ enum EventsData {
         Engine(id: "record", name: "Record", productName: "Health Passport"),
         Engine(id: "medicines", name: "Medicines & Labs", productName: "Thuso Pharmacy"),
         Engine(id: "devices", name: "Devices", productName: "Thuso Kit"),
-        Engine(id: "money", name: "Money", productName: "Thuso Money")
+        Engine(id: "money", name: "Money", productName: "Thuso Money"),
+        Engine(id: "assistant", name: "GilbertOne API Engine", productName: "GilbertOne")
     ]
 
     static let appointmentRequestedV1 = EventKey("appointment.requested", 1, "care")

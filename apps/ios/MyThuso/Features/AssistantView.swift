@@ -54,6 +54,10 @@ struct AssistantView: View {
     @State private var conversationRef = UUID().uuidString
     @State private var handedOver: [Int: HandoverOutcome] = [:]
     @State private var firstEmergency: Int?
+    /* Guards the screen's one asynchronous refinement the way the web panel's counter does: it moves
+       only when the conversation it was written for ends — Start again — so an answer that arrives
+       after that is discarded rather than painted over a conversation nobody is in anymore. */
+    @State private var refineGeneration = 0
     @FocusState private var correcting: Bool
     /// Whether the composer has the keyboard, and so whether the keyboard's own microphone key is on screen.
     @FocusState private var typing: Bool
@@ -135,6 +139,12 @@ struct AssistantView: View {
         case .voice: return Gilbert.voice.howItWorks
         case .emergency: return Gilbert.emergency.headline
         case .unmatched: return Gilbert.unmatched.sentence
+        case .service(let words):
+            /* The heading, the words, the disclosure and the numbers, in that order: the one spoken
+               reading of a model answer may never soften the disclosure by omission, exactly as
+               spokenOf reads it on the web. */
+            return ([Gilbert.service.heading, words, Gilbert.service.disclosure, Gilbert.service.ifUrgent]
+                + Gilbert.service.lines.map { "\($0.number), \($0.name)." }).joined(separator: " ")
         case .handover: return Gilbert.handover.title
         }
     }
@@ -159,13 +169,58 @@ struct AssistantView: View {
         let words = draft
         draft = ""
         turns = Gilbert.send(words, channel: .typed, to: turns, visit: store.visits.first)
+        refineIfUnmatched()
     }
 
     private func sendCorrection() {
-        turns = Gilbert.send(correction, channel: .spoken, to: turns, visit: store.visits.first)
+        let words = correction
         correction = ""
         listener.sent()
+        turns = Gilbert.send(words, channel: .spoken, to: turns, visit: store.visits.first)
+        refineIfUnmatched()
     }
+
+    /* The service refinement, for the one case where it may speak: a message GilbertOne could not
+       place. The matcher's answer is on the screen before this runs — nothing here waits, and the
+       screen never withholds a reply it already has. An unreachable, refused, slow or unusable
+       service changes nothing at all, because AssistantClient.refine returns nil for every one of
+       them, and nil simply leaves the local answer standing.
+
+       The capability flag is read before anything is asked of the network. It ships false, which is
+       the rollback state: the whole conversation runs on the phone until the contract says
+       otherwise. A replacement is looked up by the turn it was asked about — never drawn over a
+       newer one — and only when it is still the last turn is it read out, because the words are new
+       and the announcement that fires on a new turn's id does not fire for a replacement. */
+    private func refineIfUnmatched() {
+        guard Capabilities.unifiedApi else { return }
+        guard let candidate = turns.last, case .unmatched = candidate.reply, let asked = candidate.asked else { return }
+        let generation = refineGeneration
+        let session = conversationRef
+        Task { @MainActor in
+            let refined = await AssistantClient.refine(text: asked, sessionId: session, audience: "patient", base: Self.serviceBase)
+            guard generation == refineGeneration, let words = refined else { return }
+            guard let index = turns.firstIndex(where: { $0 == candidate }) else { return }
+            let refinedTurn = serviceTurn(candidate, words: words)
+            let stillLast = index == turns.index(before: turns.endIndex)
+            turns[index] = refinedTurn
+            if stillLast {
+                AccessibilityNotification.Announcement(spoken(refinedTurn)).post()
+                speaker.speak(spokenAloud(refinedTurn))
+            }
+        }
+    }
+
+    /// The unmatched turn, with the service's words where its answer was. Everything else — which
+    /// message, how it came, what was unread about it — is the conversation's and stays.
+    private func serviceTurn(_ turn: Gilbert.Turn, words: String) -> Gilbert.Turn {
+        Gilbert.Turn(id: turn.id, asked: turn.asked, channel: turn.channel, reply: .service(words),
+                     matched: turn.matched, groups: turn.groups, unread: turn.unread)
+    }
+
+    /// Where the assistant API is reached from this build: the service binds on the machine's own
+    /// loopback and a simulator shares it. A real phone cannot reach it, which is the truth — the
+    /// service is not deployed — and the local answer is what such a phone keeps.
+    private static let serviceBase = URL(string: "http://localhost:8791")!
 
     /* The ground the sphere is lit against: brandInk, recessed at the ends by the design system's ink at
        45%. Every word was measured against brandInk itself, the lighter of the two. */
@@ -438,6 +493,20 @@ struct AssistantView: View {
                 Label(Gilbert.unmatched.sosLabel, systemImage: "cross.case.fill").frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(SceneButtonStyle(filled: false, urgent: true))
+        case .service(let words):
+            SceneText(Gilbert.service.heading, weight: .semibold)
+            SceneText(words)
+            SceneText(Gilbert.service.disclosure, quiet: true)
+            SceneText(Gilbert.service.ifUrgent)
+            lines(Gilbert.service.lines)
+            Button { turns = Gilbert.handOver(turns: turns) } label: {
+                Label(Gilbert.service.handoverLabel, systemImage: "person.fill").frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(SceneButtonStyle(filled: true))
+            Button { showingSos = true } label: {
+                Label(Gilbert.service.sosLabel, systemImage: "cross.case.fill").frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(SceneButtonStyle(filled: false, urgent: true))
         case .handover:
             handoverBody(turn)
         }
@@ -584,7 +653,13 @@ struct AssistantView: View {
                 }
             }
             if asked {
-                Button { turns = Gilbert.opening() } label: {
+                Button {
+                    /* Start again is the patient saying the conversation is over: a refinement still
+                       in flight was written for the conversation being left, so it is discarded
+                       rather than shown in the new one. */
+                    refineGeneration += 1
+                    turns = Gilbert.opening()
+                } label: {
                     Label(Gilbert.conversation.startAgainLabel, systemImage: "arrow.counterclockwise")
                         .frame(minHeight: 44)
                 }

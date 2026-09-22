@@ -113,17 +113,17 @@ extension Gilbert {
     /// Nil until a clinician has read the list below. It is shown as nil rather than hidden.
     static let emergencyWordsReviewedBy: String? = nil
     /// The version of packages/catalog/gilbert-emergency-terms.json these terms came from.
-    static let emergencyTermsVersion = 1
+    static let emergencyTermsVersion = 2
 
     static let emergencyGroups: [GilbertEmergencyGroup] = [
         GilbertEmergencyGroup(id: "chest-pain", condition: "chest-pain", name: "Chest pain or pressure",
-                              words: ["chest pain", "chest hurts", "chest tight", "tight chest", "chest tightness", "pressure in my chest", "chest pressure", "heart attack", "crushing pain"]),
+                              words: ["chest pain", "chest hurts", "chest tight", "tight chest", "chest tightness", "pressure in my chest", "chest pressure", "heart attack", "crushing pain", "heart pain"]),
         GilbertEmergencyGroup(id: "breathing", condition: "breathing", name: "Difficulty breathing",
                               words: ["cant breathe", "cannot breathe", "can not breathe", "struggling to breathe", "hard to breathe", "difficulty breathing", "trouble breathing", "short of breath", "shortness of breath", "breathless", "gasping", "choking", "not breathing", "stopped breathing", "blue lips", "lips are blue"]),
         GilbertEmergencyGroup(id: "bleeding", condition: "bleeding", name: "Bleeding that will not stop",
                               words: ["bleeding", "bled", "haemorrhage", "hemorrhage", "spurting blood", "blood everywhere", "lot of blood"]),
         GilbertEmergencyGroup(id: "unresponsive", condition: "unresponsive", name: "Not responding",
-                              words: ["unconscious", "unresponsive", "not responding", "collapsed", "passed out", "passing out", "blacked out", "blacking out", "fainted", "fainting", "wont wake", "cant wake", "not waking"]),
+                              words: ["unconscious", "unresponsive", "not responding", "collapsed", "passed out", "passing out", "blacked out", "blacking out", "fainted", "fainting", "wont wake", "cant wake", "not waking", "pass out"]),
         GilbertEmergencyGroup(id: "stroke", condition: "stroke", name: "Signs of a stroke",
                               words: ["stroke", "face drooping", "face dropped", "slurred", "cant move my arm", "numb on one side", "cant speak"]),
         GilbertEmergencyGroup(id: "seizure", condition: "seizure", name: "A fit or seizure",
@@ -133,7 +133,7 @@ extension Gilbert {
         GilbertEmergencyGroup(id: "obstetric", condition: "obstetric", name: "A pregnancy emergency",
                               words: ["pregnant and bleeding", "waters broke", "waters broken", "baby is coming", "in labour", "in labor", "contraction", "contractions"]),
         GilbertEmergencyGroup(id: "crisis", condition: nil, name: "Words about harming yourself",
-                              words: ["kill myself", "suicide", "suicidal", "end my life", "want to die", "hurt myself", "harm myself", "overdose", "overdosed", "overdosing", "took too many pills", "poisoned"]),
+                              words: ["kill myself", "suicide", "suicidal", "end my life", "want to die", "hurt myself", "harm myself", "overdose", "overdosed", "overdosing", "took too many pills", "poisoned", "self harm"]),
         GilbertEmergencyGroup(id: "general", condition: nil, name: "Words about an emergency",
                               words: ["emergency", "ambulance", "ambulans", "dying", "severe pain", "worst headache"])
     ]
@@ -173,6 +173,17 @@ extension Gilbert {
         lines: [GilbertLine(number: "10177", name: "Ambulance"), GilbertLine(number: "112", name: "Emergency, from a mobile")],
         notAnAmbulance: "MyThuso is not an ambulance service, and nothing on this screen should be mistaken for one. We send a registered nurse to a house. We do not carry anybody to hospital, we do not have paramedics, sirens or blue lights, and we cannot reach you faster than an ambulance can.",
         sosLabel: "Open Thuso SOS")
+
+    /* The answer drawn around a sentence a language model wrote: the heading, the disclosure and
+       the emergency numbers, emitted so a native screen cannot show the words without them. */
+    static let service = GilbertService(
+        state: "guiding",
+        heading: "An answer written by a language model",
+        disclosure: "That part was written by a language model, not read from one of GilbertOne's approved sentences. It can be wrong, it is not a diagnosis and not a prescription, and it is never a substitute for a real nurse or doctor. If a clinician's answer matters to you, say so — GilbertOne can hand this conversation to the nurse queue.",
+        ifUrgent: "If any of this might be an emergency, do not wait for an answer here. Call one of these now:",
+        lines: [GilbertLine(number: "10177", name: "Ambulance"), GilbertLine(number: "112", name: "Emergency, from a mobile")],
+        sosLabel: "Open Thuso SOS",
+        handoverLabel: "Talk to a nurse")
 
     static let identityState = "guiding"
     static let voiceState = "guiding"

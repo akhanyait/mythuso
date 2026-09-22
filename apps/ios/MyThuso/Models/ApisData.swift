@@ -259,6 +259,18 @@ enum ApisData {
     static let postMoneyClaimsByClaimRefSubmit = Route(id: "postMoneyClaimsByClaimRefSubmit", method: "POST", path: "/v1/money/claims/{claimRef}/submit", mountedPath: "/v1/money/claims/{claimRef}/submit", version: 1, engine: "money", callers: ["doctor", "admin"], purpose: ["billing"], idempotent: true, status: "built")
     static let getMoneyClaims = Route(id: "getMoneyClaims", method: "GET", path: "/v1/money/claims", mountedPath: "/v1/money/claims", version: 1, engine: "money", callers: ["patient", "doctor"], purpose: ["billing"], idempotent: false, status: "built")
     static let getMoneyHeldCashPayments = Route(id: "getMoneyHeldCashPayments", method: "GET", path: "/v1/money/held-cash-payments", mountedPath: "/v1/money/held-cash-payments", version: 1, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: false, status: "built")
+    static let getAssistantHealth = Route(id: "getAssistantHealth", method: "GET", path: "/health", mountedPath: "/assistant/health", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postAssistantTurn = Route(id: "postAssistantTurn", method: "POST", path: "/turn", mountedPath: "/assistant/turn", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postTurn = Route(id: "postTurn", method: "POST", path: "/v1/turn", mountedPath: "/assistant/v1/turn", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postListenV3 = Route(id: "postListenV3", method: "POST", path: "/v1/listen", mountedPath: "/assistant/v1/listen", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postSpeakV3 = Route(id: "postSpeakV3", method: "POST", path: "/v1/speak", mountedPath: "/assistant/v1/speak", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postTriageStartV3 = Route(id: "postTriageStartV3", method: "POST", path: "/v1/triage/start", mountedPath: "/assistant/v1/triage/start", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postTriageAnswerV3 = Route(id: "postTriageAnswerV3", method: "POST", path: "/v1/triage/answer", mountedPath: "/assistant/v1/triage/answer", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postVitalsV3 = Route(id: "postVitalsV3", method: "POST", path: "/v1/vitals", mountedPath: "/assistant/v1/vitals", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postHandoverPrepareV3 = Route(id: "postHandoverPrepareV3", method: "POST", path: "/v1/handover/prepare", mountedPath: "/assistant/v1/handover/prepare", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postHandoverSubmitV3 = Route(id: "postHandoverSubmitV3", method: "POST", path: "/v1/handover/submit", mountedPath: "/assistant/v1/handover/submit", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postKnowledgeSearchV2 = Route(id: "postKnowledgeSearchV2", method: "POST", path: "/v1/knowledge/search", mountedPath: "/assistant/v1/knowledge/search", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let getStatus = Route(id: "getStatus", method: "GET", path: "/v1/status", mountedPath: "/assistant/v1/status", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built")
 
     static let routes: [Route] = [
         postCoreEvents,
@@ -497,7 +509,19 @@ enum ApisData {
         postMoneyClaimsByClaimRefConsent,
         postMoneyClaimsByClaimRefSubmit,
         getMoneyClaims,
-        getMoneyHeldCashPayments
+        getMoneyHeldCashPayments,
+        getAssistantHealth,
+        postAssistantTurn,
+        postTurn,
+        postListenV3,
+        postSpeakV3,
+        postTriageStartV3,
+        postTriageAnswerV3,
+        postVitalsV3,
+        postHandoverPrepareV3,
+        postHandoverSubmitV3,
+        postKnowledgeSearchV2,
+        getStatus
     ]
 
     struct PostCoreEventsRequest {
@@ -2584,5 +2608,146 @@ enum ApisData {
     struct GetMoneyHeldCashPaymentsRequest {}
     struct GetMoneyHeldCashPaymentsResponse {
         let payments: [[String: Any]]
+    }
+    struct GetAssistantHealthRequest {}
+    struct GetAssistantHealthResponse {
+        let ok: Bool
+        let mode: String
+        let azure: Bool
+        let ollama: Bool
+        let production: Bool
+        let activated: Bool
+    }
+    struct PostAssistantTurnRequest {
+        let sessionId: String?
+        let parentTurnId: String?
+        let text: String
+        let audience: String?
+        let userConsent: Bool
+    }
+    struct PostAssistantTurnResponse {
+        let turnId: String
+        let sessionId: String
+        let route: String
+        let classification: String
+        let reply: String
+        let style: String
+        let confidence: Double
+        let requiresConfirmation: Bool
+        let suggestedActions: [String]
+        let refusalId: String?
+        let source: String?
+        let cue: String?
+    }
+    struct PostTurnRequest {
+        let sessionId: String?
+        let parentTurnId: String?
+        let text: String
+        let audience: String?
+        let userConsent: Bool
+    }
+    struct PostTurnResponse {
+        let turnId: String
+        let sessionId: String
+        let route: String
+        let classification: String
+        let reply: String
+        let style: String
+        let confidence: Double
+        let requiresConfirmation: Bool
+        let suggestedActions: [String]
+        let refusalId: String?
+        let source: String?
+        let cue: String?
+    }
+    struct PostListenV3Request {
+        let userConsent: Bool
+        let language: String
+        let audioBase64: String
+        let audioFormat: String
+    }
+    struct PostListenV3Response {
+        let text: String
+        let language: String
+    }
+    struct PostSpeakV3Request {
+        let text: String
+        let language: String
+        let voice: String?
+    }
+    struct PostSpeakV3Response {
+        let audioBase64: String
+        let format: String
+        let voice: String
+        let language: String
+    }
+    struct PostTriageStartV3Request {
+        let userConsent: Bool
+        let language: String
+        let sessionId: String?
+    }
+    struct PostTriageStartV3Response {
+        let question: String
+        let step: Int
+        let steps: Int
+        let sessionId: String
+    }
+    struct PostTriageAnswerV3Request {
+        let sessionId: String
+        let step: Int
+        let answer: String
+    }
+    struct PostTriageAnswerV3Response {
+        let done: Bool
+        let question: String?
+        let step: Int
+    }
+    struct PostVitalsV3Request {
+        let type: String
+        let value: Double
+        let unit: String
+        let capturedAt: String
+        let source: String
+        let deviceRef: String?
+        let sessionId: String
+        let userConsent: Bool
+    }
+    struct PostVitalsV3Response {
+        let accepted: Bool
+        let entryRef: String
+        let sessionId: String
+    }
+    struct PostHandoverPrepareV3Request {
+        let sessionId: String
+        let userConsent: Bool
+    }
+    struct PostHandoverPrepareV3Response {
+        let handoverRef: String
+        let preparedAt: String
+        let pack: [String: Any]
+    }
+    struct PostHandoverSubmitV3Request {
+        let handoverRef: String
+    }
+    struct PostHandoverSubmitV3Response {
+        let submitted: Bool
+        let queueRef: String
+    }
+    struct PostKnowledgeSearchV2Request {
+        let query: String
+        let language: String
+    }
+    struct PostKnowledgeSearchV2Response {
+        let sources: [[String: Any]]
+        let withheld: Int
+    }
+    struct GetStatusRequest {}
+    struct GetStatusResponse {
+        let ok: Bool
+        let mode: String
+        let azure: Bool
+        let ollama: Bool
+        let production: Bool
+        let activated: Bool
     }
 }

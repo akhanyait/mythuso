@@ -47,6 +47,14 @@ data class GilbertEmergency(
     val state: String, val noticed: String, val headline: String, val lead: String,
     val lines: List<GilbertLine>, val notAnAmbulance: String, val sosLabel: String
 )
+/** The answer drawn around a sentence a language model wrote: the heading it is shown under, the
+ *  disclosure it may never be shown without, and the emergency numbers beside it, so a screen cannot
+ *  show the words without them. The words are the service's; these sentences are the contract's and
+ *  never move. */
+data class GilbertService(
+    val state: String, val heading: String, val disclosure: String, val ifUrgent: String,
+    val lines: List<GilbertLine>, val sosLabel: String, val handoverLabel: String
+)
 data class GilbertHandoverField(val id: String, val label: String)
 /** An urgency code a handover carries, most urgent first in the contract's order. */
 data class GilbertUrgency(val id: String, val name: String, val why: String)
@@ -102,6 +110,10 @@ sealed interface GilbertReply {
     /** The emergency answer, with the groups that raised it — empty when the question was chosen. */
     data class Emergency(val groups: List<GilbertEmergencyGroup>) : GilbertReply
     data object Unmatched : GilbertReply
+    /** A sentence the service wrote for a message GilbertOne could not place, drawn with GilbertData.service's
+     *  heading, disclosure and numbers. It only ever replaces an unmatched answer, and only when the service
+     *  named a model tier as its source. */
+    data class Service(val text: String) : GilbertReply
     /** The structured summary and its urgency code. Never the person's words, never which emergency words. */
     data class Handover(val rows: List<SummaryRow>, val urgency: String) : GilbertReply
 }
@@ -226,6 +238,7 @@ object Gilbert {
         GilbertReply.Voice -> Pulse.of(GilbertData.voiceState, Pulse.GUIDING)
         is GilbertReply.Emergency -> Pulse.of(GilbertData.emergency.state, Pulse.ESCALATE)
         GilbertReply.Unmatched -> Pulse.of(GilbertData.unmatched.state, Pulse.GUIDING)
+        is GilbertReply.Service -> Pulse.of(GilbertData.service.state, Pulse.GUIDING)
         is GilbertReply.Handover -> Pulse.of(GilbertData.handover.state, Pulse.HANDOVER)
     }
 

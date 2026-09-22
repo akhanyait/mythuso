@@ -272,7 +272,8 @@ object EventsData {
         Engine("record", "Record", "Health Passport"),
         Engine("medicines", "Medicines & Labs", "Thuso Pharmacy"),
         Engine("devices", "Devices", "Thuso Kit"),
-        Engine("money", "Money", "Thuso Money")
+        Engine("money", "Money", "Thuso Money"),
+        Engine("assistant", "GilbertOne API Engine", "GilbertOne")
     )
 
     val events get() = EventKey.all

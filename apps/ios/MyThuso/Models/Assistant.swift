@@ -106,6 +106,20 @@ struct GilbertEmergency {
     let sosLabel: String
 }
 
+/// The answer drawn around a sentence a language model wrote: the heading it is shown under, the
+/// disclosure it may never be shown without, and the emergency numbers beside it, so a screen
+/// cannot show the words without them. The words are the service's; these sentences are the
+/// contract's and never move.
+struct GilbertService {
+    let state: String
+    let heading: String
+    let disclosure: String
+    let ifUrgent: String
+    let lines: [GilbertLine]
+    let sosLabel: String
+    let handoverLabel: String
+}
+
 struct GilbertHandoverField: Hashable {
     let id: String
     let label: String
@@ -233,6 +247,10 @@ enum Gilbert {
         /// The emergency answer, with the groups that raised it — empty when the question was chosen.
         case emergency([GilbertEmergencyGroup])
         case unmatched
+        /// A sentence the service wrote for a message GilbertOne could not place, drawn with
+        /// GilbertService's heading, disclosure and numbers. It only ever replaces an unmatched
+        /// answer, and only when the service named a model tier as its source.
+        case service(String)
         case handover([SummaryRow])
     }
 
@@ -392,6 +410,7 @@ enum Gilbert {
         case .voice: return Pulse(rawValue: voiceState) ?? .guiding
         case .emergency: return Pulse(rawValue: emergency.state) ?? .escalate
         case .unmatched: return Pulse(rawValue: unmatched.state) ?? .guiding
+        case .service: return Pulse(rawValue: service.state) ?? .guiding
         case .handover: return Pulse(rawValue: handover.state) ?? .handover
         }
     }
