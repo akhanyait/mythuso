@@ -1,6 +1,6 @@
 # MyThuso architecture decision — UI first
 
-Status: implemented UI preview, September 2026. The funding proposal is product context, not authority to register companies, contact partners, purchase services or launch clinical operations. All preview people, readings, visits and transactions are fictional. No backend is deployed.
+Status: implemented UI preview, September 2026. The funding proposal is product context, not authority to register companies, contact partners, purchase services or launch clinical operations. All preview people, readings, visits and transactions are fictional. Three services exist in the tree and **none of them answers a request in production**: the identity service and the GilbertOne engine are installed by every deploy and left disabled, and the Health Passport is not deployed at all — `scripts/check-boundaries.mjs` fails if anything under `deploy/` names it.
 
 ## Platform decision
 
@@ -10,6 +10,7 @@ Status: implemented UI preview, September 2026. The funding proposal is product 
 | iOS / iPadOS | Swift + SwiftUI; minimum iOS 17 | Native navigation, forms, accessibility and system sharing; direct future HealthKit, CoreBluetooth, Keychain and AVFoundation access. |
 | Android | Kotlin + Jetpack Compose + Material 3; minimum Android 8 / API 26 | Native controls, accessibility, system sharing and direct future Health Connect, Bluetooth and Keystore access. |
 | Backend, built: identity, data protection and workforce vetting | TypeScript on Node's own primitives — `node:http`, `node:crypto`, `node:sqlite` — with storage behind an interface, as three modules in one process | The first backend slices need no framework and no dependencies, which means no supply chain to audit for the two things most worth not having one for: authentication, and the vault that holds a nurse's police clearance. Storage is one interface per module so PostgreSQL is a file change, not a rewrite. `apps/api/package.json` has no `dependencies` key at all. |
+| GilbertOne, the assistant engine | `apps/assistant-api`: TypeScript on `node:http` with no web framework, and the LangChain tier as its only runtime dependencies | A **separate service** rather than a feature of any one app, so the three clients consume one address family and the intelligence behind it is testable, auditable and certifiable as one unit. It is the only service here that carries npm dependencies at all, which is why `scripts/build-assistant.mjs` bundles it into one self-contained file before a deploy touches the box: no `node_modules` on a server that also runs five other people's sites. |
 | Rest of the backend, proposed | TypeScript modular monolith, PostgreSQL, private object storage, managed queue | Clear domain boundaries and transactions without premature distributed service complexity. Two of the modules below now exist; the rest are not scaffolded in this phase. |
 | Contracts, proposed | OpenAPI with generated Swift, Kotlin and TypeScript clients | Share schemas and error semantics; retain independent native presentation code. Version at API boundaries. |
 
@@ -29,6 +30,8 @@ Sources checked: [Apple SwiftUI](https://developer.apple.com/documentation/Swift
 - `packages/catalog/feeds.json`: the eleven places the outside world would have to reach in, one per supplier that would have to be signed — what would have to arrive as a schema, what the product does while it does not, what must be true before it may be switched on, and what must never arrive at all. It is the one contract in this directory with **no** `emit-*.mjs` behind it, deliberately: a feed schema is a contract between the service and a supplier, and no phone has any business holding the shape of a payment provider's callback. What the apps render is the capability's notice, which comes from `capabilities.json` and is generated. `apps/api/src/feeds/` reads this file directly.
 
 - `apps/api/src`: `identity.ts`, `twoFactor.ts` and `store.ts` for identity; `protection/` for the gate, the envelopes, the audit chain, the key rotation and the chain witness; `vetting/` for the evidence vault; `feeds/` for the ingestion boundary, which is eleven routes that accept nothing and are registered from the contract rather than written out. Each module owns its own tables and creates them itself, and `personalData.ts` is the register that says what all of them hold, in the words that go to the data subject. The one record type the gate needs that `packages/catalog/records.json` does not yet carry — vetting evidence, which is workforce data rather than part of the patient record — is declared in `gate.ts` with a comment naming the catalogue as its intended home.
+- `apps/assistant-api/src`: the GilbertOne engine, and its own section below. `server.ts` answers the address family `packages/catalog/apis/assistant.json` declares and reads every refusal sentence it says out loud from that contract rather than typing one a second time; `routes/turn.ts` is the conversation; `lib/` holds the knowledge search and the governed federation above it, the model adapters, the speech seam, the triage gate, the vital-sign validation, the observation store and the two session stores.
+- `packages/gilbertone`: the deterministic half of GilbertOne, and the half that runs on the patient's own device. It has no `dependencies` key, and the build fails if anything under `src/` calls `fetch()`, imports a network or model module, reaches for `XMLHttpRequest`, or reads an environment variable — so the emergency answer, the refusals and the approved sentences cannot come to depend on a service being reachable. It reads its emergency terms from `packages/catalog/gilbert-emergency-terms.json` and keeps no typed copy of them.
 - `packages/catalog/business-model.json`: the proposal's commercial model — subscriptions, network and B2B lines, screening packages, kit and own-device costs, the indicative trajectory and the seed round with its milestone gates. The admin console reads this rather than restating the numbers, and `scripts/check-boundaries.mjs` fails the build if the funding allocation or the tranches stop summing to the round, or if a service pays the nurse more than the patient pays.
 - `packages/design-tokens/tokens.json`: the palette, radii, spacing scale, shadows, type stacks and motion specification. It is the source rather than a reference: `scripts/emit-tokens.mjs` writes it out as `apps/web/src/tokens.generated.css`, `apps/ios/MyThuso/DesignSystem/Tokens.swift` and `apps/android/app/src/main/java/za/co/mythuso/ui/Tokens.kt`, so a colour is converted from hex once, by a machine, rather than three times by hand.
 
@@ -112,6 +115,66 @@ SANC, HPCSA, SAPS, an accredited Home Affairs provider — which nothing here do
 Officer. Encryption at rest and key rotation have moved off this list: the protection module seals
 what it holds and `npm run rotate -w @mythuso/api` re-wraps it. The console's Compliance tab lists
 the rest as not built, because they are not.
+
+## GilbertOne is a separate service, and the three apps are its clients
+
+GilbertOne is not a web widget with a model standing behind it. It is `apps/assistant-api`: its own
+process, its own loopback port, its own address family, and a contract authored in the catalogue
+exactly like every other engine's — `packages/catalog/apis/assistant.json`, the thirteenth engine
+file. The founder's decision of 22 September 2026 (`docs/ROADMAP.md`, "The foundation under one
+GilbertOne") is the reason, and it is a regulatory one rather than a tidy one: intelligence
+scattered across three applications cannot be upgraded, reviewed or certified as a single thing,
+and one bounded API can be. So the applications are **consumers** of GilbertOne. They render it;
+they do not carry it, and no medical logic lives in a client.
+
+Twelve addresses are built, and every one is declared in the contract with its callers, its request
+and response shapes and its refusals. What gates each is written down here because a built route is
+not the same thing as a live clinical one:
+
+| Address | What it is | What gates it |
+|---|---|---|
+| `GET /assistant/health` and `GET /assistant/v1/status` | The same truthful reading at two addresses — provider presence, production and activation, all booleans, nothing that could carry a secret | Nothing. It is the address a deploy verifies and the runbook's activation sequence reads |
+| `POST /assistant/turn` and `POST /assistant/v1/turn` | One conversation turn | The model tier, which stays dark until an operator has configured a provider **and** written the production acknowledgement by hand |
+| `POST /assistant/v1/knowledge/search` | The sources an answer may stand on | The 250-entry local catalogue always answers. The three allowlisted external sources in `packages/catalog/knowledge/federation.json` all ship `"active": false`, and the federation module above them is imported by no route |
+| `POST /assistant/v1/listen` and `POST /assistant/v1/speak` | Push-to-talk's two halves | Azure Speech, and only where its key and region are set. Where they are not, the contract's own speech-not-configured refusal answers and the browser's voice carries on |
+| `POST /assistant/v1/triage/start` and `/triage/answer` | A guided assessment | Two locks, both shut: no protocol on the register is designated a triage protocol and none is ratified, and `TRIAGE_SEAM_WIRED` is `false` in the source. Opening the first is a catalog act; opening the second is a code change |
+| `POST /assistant/v1/vitals` | One validated reading | The real-device allowlist is empty because no data protection impact assessment covers a device, a HealthKit source or a Health Connect one, so a process that has not said out loud it is synthetic is refused |
+| `POST /assistant/v1/handover/prepare` | The clinician-ready pack, assembled for the person to review | Nothing. It reaches no network and carries no score and no priority |
+| `POST /assistant/v1/handover/submit` | The seam that would route a pack to a clinician | Always refused, unconditionally, at a 503. It needs an identity service, a nurse roster and a destination contract, and none of the three exists |
+
+Every gate reads a contract rather than a flag in a handler, which is the point: opening one is a
+governance act — a board ratifies a protocol, an assessment is signed, a roster comes into being —
+and never an edit to the code that refuses.
+
+**Who actually calls it.** The web is the one live consumer. `apps/web/src/lib/gilbertone-bridge.ts`
+asks the versioned turn address same-origin — through nginx's `location /assistant/` in production
+and the dev server's own proxy in development, so `connect-src 'self'` covers it and there is no CORS
+to get wrong — and falls back to `/assistant/turn` only on a 404, for a deployment older than the
+versioned surface. `apps/web/src/lib/gilbertone-service.ts` reaches the rest of the family, each on a
+press and never on panel open. iOS and Android each carry a typed client generated from the same
+contract — `Models/AssistantClient.swift` and `model/AssistantClient.kt` — and **neither uses it**:
+`capabilities.json`'s `unifiedApi` flag is `enabled: false`, so a phone answers from the contract
+with no network at all. That is deliberate rather than unfinished. A native release outlives a
+deploy, and a boolean that is false by default is the difference between a build that quietly
+reaches for an address the day somebody else runs it and one that reaches for it the day the
+catalogue says so.
+
+**What stays on the device, and why that is not a compromise.** `packages/gilbertone` is the
+deterministic fallback: the emergency matcher reading `packages/catalog/gilbert-emergency-terms.json`,
+the refusals, and the approved sentences. It is compiled into all three platforms, it never touches
+the network, and the build fails if it ever could. An emergency is recognised and answered with the
+ambulance numbers while the engine is dark, unreachable or mid-outage — which is the state it is in
+today and the state it is in during any failure, and the reason no deploy has ever needed this
+service to succeed.
+
+**What is not true of it.** No capability becomes connected because the engine exists: `/status`
+still reports fifteen capabilities and none of them live, and switching on the model tier is not the
+switching on of `screening`, `voice` or `clinical-records`. GilbertOne does not diagnose, does not
+prescribe, sets no priority and lowers no emergency; where a model refined an answer the reply says
+so rather than presenting itself as an approved sentence. It holds nothing at rest — both stores are
+in-memory and nothing survives a restart — it binds loopback so the only way in is the nginx proxy in
+front of it, and its unit runs as systemd's ephemeral `DynamicUser`. It is installed dark by every
+deploy and enabled by hand, once, only after the credential ceremony in `deploy/RUNBOOK.md`.
 
 ## Session and the admin console
 

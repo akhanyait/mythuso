@@ -4,6 +4,12 @@
 
 Three separate applications: **React/TypeScript web**, **SwiftUI iOS**, and **Kotlin/Jetpack Compose Android**. Mobile screens are fully native; no WebViews or web wrappers. This is a design preview with fictional data, not a functioning clinical platform.
 
+Behind them sit three services, and none of them answers a request in production. Two are about
+records and identity — [the identity service](#run-the-identity-service) and the Health Passport,
+which refuses to start outside development. The third is **GilbertOne**, MyThuso's assistant: not a
+feature of the web app but [its own API engine](#run-the-gilbertone-engine), which all three
+applications consume and which carries the intelligence so the clients do not have to.
+
 ## Run the web preview
 
 Requires Node 22.12 or newer.
@@ -83,6 +89,46 @@ clinical table appears in it.
 `npm test` runs the preview suite with no backend, plus the live sign-in test, which skips unless
 the service is up.
 
+## Run the GilbertOne engine
+
+GilbertOne is the assistant's **API engine**: a separate service at `apps/assistant-api`, with its
+own process, its own address family and its own contract in the catalogue
+(`packages/catalog/apis/assistant.json`, the thirteenth engine file). The web, iOS and Android
+applications are consumers of it — they render GilbertOne, they do not carry it, and no medical logic
+lives in a client.
+
+```sh
+npm start -w @mythuso/assistant-api   # http://127.0.0.1:8791, reached through the app's own /assistant proxy
+npm run assistant-runtime             # bundle it into the one self-contained file a deploy publishes
+npm run eval:gilbertone               # the South African safety evaluation set
+```
+
+It binds **loopback only**, so the sole way in is the nginx `location /assistant/` in front of it.
+Twelve addresses are built — a turn, a knowledge search, push-to-talk's listen and speak, a guided
+triage, a vital-sign reading, a handover pack and its submission, and two status readings that report
+in booleans and never a secret.
+
+**Almost all of it refuses, and that is the design.** A built route is not a live clinical one:
+triage waits on a protocol a governance board has ratified and on a second lock in the source;
+vitals waits on a data protection impact assessment, so its device allowlist is empty; the handover
+*submission* always answers 503 because the identity, roster and destination contracts it would need
+do not exist; and the three allowlisted external knowledge sources all ship `"active": false`. The
+model tier is dark until an operator configures a provider **and** writes
+`MYTHUSO_ASSISTANT_PRODUCTION=acknowledged` by hand — [deploy/RUNBOOK.md](deploy/RUNBOOK.md) is that
+sequence.
+
+What never waits on any of it is the emergency. `packages/gilbertone` is the deterministic half,
+compiled into all three platforms: it reads the emergency terms from the catalogue, answers from the
+message and the contract alone, and the build fails if anything under it calls `fetch()`, imports a
+network or model module, or reads an environment variable. iOS and Android carry typed clients
+generated from the same contract and do not use them yet — `capabilities.json`'s `unifiedApi` flag is
+`enabled: false`, so a phone answers on-device with no network at all.
+
+No capability becomes connected because the engine exists, and it is installed **disabled** by every
+deploy. [Architecture](docs/ARCHITECTURE.md) has the boundaries and the gates;
+[Privacy and security](docs/PRIVACY-AND-SECURITY.md) has what a question may send and after what
+removal.
+
 ## Run iOS
 
 Open `apps/ios/MyThuso.xcodeproj` in Xcode, select the **MyThuso** scheme and an iOS 17+ simulator, and Run. Physical devices require your own signing team. The checked-in project needs no third-party package manager.
@@ -145,7 +191,7 @@ The patient journey and the flows above are interactive on all three platforms. 
 
 [Architecture decisions](docs/ARCHITECTURE.md) explain the native stack, modular boundaries, planned backend, API contracts and integration gates. [Privacy and security](docs/PRIVACY-AND-SECURITY.md) separates implemented preview protections from POPIA, clinical and security work required before a pilot.
 
-CI checks web types/build/journeys, source boundaries, dependency advisories and native builds. Design tokens and the vetting table are not written out three times: `npm run generate` emits them into CSS, Swift and Kotlin, and the boundary check re-runs the generators and byte-compares, so a refusal sentence cannot say one thing on iOS and another on Android. What is still written by hand — clinical reference ranges, locale sets, demo verification codes — is checked for drift the older way. UI state resets on reload/restart. There is no authentication, real payment, dispatch, diagnosis, prescription or connected device, and no credential is verified with any issuing body — the formats are real, the numbers are fictional, and nothing is sent anywhere. Security and POPIA compliance are not established merely by this UI.
+CI checks web types/build/journeys, source boundaries, dependency advisories and native builds. Design tokens and the vetting table are not written out three times: `npm run generate` emits them into CSS, Swift and Kotlin, and the boundary check re-runs the generators and byte-compares, so a refusal sentence cannot say one thing on iOS and another on Android. What is still written by hand — clinical reference ranges, locale sets, demo verification codes — is checked for drift the older way. UI state resets on reload/restart. There is no authentication, real payment, dispatch, diagnosis, prescription or connected device, and no credential is verified with any issuing body — the formats are real, the numbers are fictional, and nothing is sent anywhere. The one named exception is the GilbertOne engine's model tier, which is dark until an operator both configures a provider and writes the production acknowledgement by hand; [Privacy and security](docs/PRIVACY-AND-SECURITY.md) says exactly what a question may then send, and after what removal. Security and POPIA compliance are not established merely by this UI.
 
 ## Layout
 
@@ -154,7 +200,11 @@ CI checks web types/build/journeys, source boundaries, dependency advisories and
 | `apps/web` | Responsive React application |
 | `apps/ios` | Native SwiftUI Xcode application |
 | `apps/android` | Native Compose Android application |
+| `apps/api` | The identity service — one-time codes, sessions and the vetting evidence vault. Holds no health information |
+| `apps/assistant-api` | **The GilbertOne API engine** — the assistant as its own service, consumed by all three apps. Installed dark |
+| `apps/passport` | The Health Passport P0. Development and synthetic data only, and it refuses to start otherwise |
 | `packages/catalog` | Service definitions, the commercial model from the proposal, and the vetting table every app reads |
+| `packages/gilbertone` | GilbertOne's deterministic half: the emergency matcher, the refusals and the approved sentences, on every device and never on a network |
 | `packages/design-tokens` | The design tokens every app is generated from |
 | `packages/geo` | Coordinate validation and arrival estimates, with the porting contract for native |
 | `docs` | Architecture, privacy controls and feature scope |
@@ -167,7 +217,7 @@ CI checks web types/build/journeys, source boundaries, dependency advisories and
 
 Only phase-one services are bookable. Later-phase services appear in the catalogue marked with their phase, so the plan is visible without implying a nurse can be sent today.
 
-**This remains a preview with no backend.** There is no server, no stored record and no real account; approving a nurse approves nobody, suspending a laboratory suspends nobody, and releasing a tranche moves no money. What a working product additionally needs is listed in [Privacy and security](docs/PRIVACY-AND-SECURITY.md) and summarised in the console's Compliance tab.
+**This remains a preview with nothing serving behind it.** Three services exist in the tree and none of them answers a request in production: the identity service and the GilbertOne engine are installed by every deploy and left disabled, and the Health Passport refuses to start outside development. There is no stored record and no real account; approving a nurse approves nobody, suspending a laboratory suspends nobody, and releasing a tranche moves no money. What a working product additionally needs is listed in [Privacy and security](docs/PRIVACY-AND-SECURITY.md) and summarised in the console's Compliance tab.
 
 The proposal is confidential. No deployment or publication is included.
 

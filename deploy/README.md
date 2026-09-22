@@ -32,7 +32,7 @@ their owners finding out first:
   refused deploy rather than five refused websites — **and the site file is rolled back when it
   fails.** Refusing to reload is not enough on its own: the running nginx keeps serving the
   configuration it already loaded, so nothing looks wrong, and a broken file left in
-  `sites-enabled` takes nginx down at the next *start* — a reboot, a package upgrade, somebody
+  `sites-enabled` takes nginx down at the next _start_ — a reboot, a package upgrade, somebody
   else's deploy — hours later, for a reason nobody will connect back to this. The output is read as
   well as its exit status, because `conflicting server name` is a warning: `nginx -t` exits 0 while
   one of two blocks claiming a name is silently ignored, and on this box the block that loses could
@@ -52,18 +52,18 @@ That check is the point of the script. Do not skip it by running the steps by ha
 
 ## What is deployed
 
-| Path | What |
-|---|---|
-| `/` | The public landing page |
-| `/app/` | The product — runs with no backend, exactly as it does locally. Patients and families with no role on the address; the clinical workspaces and the back office behind `?role=`, from the demo login in the bar at the top of every screen |
-| `/staff/`, `/admin/` | 301s to `/app/`. They were applications of their own until 12 September; an old bookmark lands on the one door rather than on a 404 |
-| `/status/` | What is connected and what is not. Fifteen capabilities, none of them live. The page a funder or a clinician is sent to when they want to know whether any of this is real |
-| `/assets/` | Hashed bundles, cached for a year; HTML is never cached |
-| `/opt/mythuso/ops` | The scheduled jobs and their systemd units, reinstalled on every deploy |
-| `/opt/mythuso/assistant` | GilbertOne's second tier, as one self-contained JavaScript file — the whole service including its knowledge catalogs, built by `scripts/build-assistant.mjs` before anything on the server is touched. No `node_modules`, nothing to install on the box. Outside the web root because the web root is rsynced with `--delete`, and a service is not a static asset |
-| `/etc/mythuso/host.env` | The host the health check should be asking about, written by the deploy |
-| `/etc/mythuso/key.fingerprint` | One `name fingerprint` line per key this host holds. Not the keys, and not secret — it is how a key that changed without anybody rotating it becomes visible |
-| `/etc/mythuso/assistant.env` | The assistant's Azure credentials — written by hand on the box by `deploy/ops/configure-assistant-env.sh`, `0600 root:root`, never by a deploy, never in this repository |
+| Path                           | What                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/`                            | The public landing page                                                                                                                                                                                                                                                                                                                                            |
+| `/app/`                        | The product — runs with no backend, exactly as it does locally. Patients and families with no role on the address; the clinical workspaces and the back office behind `?role=`, from the demo login in the bar at the top of every screen                                                                                                                          |
+| `/staff/`, `/admin/`           | 301s to `/app/`. They were applications of their own until 12 September; an old bookmark lands on the one door rather than on a 404                                                                                                                                                                                                                                |
+| `/status/`                     | What is connected and what is not. Fifteen capabilities, none of them live. The page a funder or a clinician is sent to when they want to know whether any of this is real                                                                                                                                                                                         |
+| `/assets/`                     | Hashed bundles, cached for a year; HTML is never cached                                                                                                                                                                                                                                                                                                            |
+| `/opt/mythuso/ops`             | The scheduled jobs and their systemd units, reinstalled on every deploy                                                                                                                                                                                                                                                                                            |
+| `/opt/mythuso/assistant`       | The GilbertOne engine — the assistant's own service, not a feature of the web app — as one self-contained JavaScript file: the whole service including its knowledge catalogs, built by `scripts/build-assistant.mjs` before anything on the server is touched. No `node_modules`, nothing to install on the box. Outside the web root because the web root is rsynced with `--delete`, and a service is not a static asset |
+| `/etc/mythuso/host.env`        | The host the health check should be asking about, written by the deploy                                                                                                                                                                                                                                                                                            |
+| `/etc/mythuso/key.fingerprint` | One `name fingerprint` line per key this host holds. Not the keys, and not secret — it is how a key that changed without anybody rotating it becomes visible                                                                                                                                                                                                       |
+| `/etc/mythuso/assistant.env`   | The assistant's Azure credentials — written by hand on the box by `deploy/ops/configure-assistant-env.sh`, `0600 root:root`, never by a deploy, never in this repository                                                                                                                                                                                           |
 
 ### Three entries on one host, and the one-line change when DNS moves
 
@@ -74,7 +74,7 @@ added, built, published and unreachable, and every check the deploy ran came bac
 without a block of its own `/status` fell through to the catch-all and answered with the landing page
 and a 200. That is why the verification now asks each path to prove which entry it served rather than
 only that it answered, and why `scripts/check-boundaries.mjs` reads the entry list out of the Vite
-config and holds nginx, the deploy script *and the dev server's own path map* to it. A fourth entry
+config and holds nginx, the deploy script _and the dev server's own path map_ to it. A fourth entry
 means a `location`, a `verify_entry` line, a path in the dev map and a row in the table above.
 
 There were five. `staff.html` and `admin.html` were the clinical workspaces and the back office, each
@@ -118,13 +118,16 @@ the same build served twice.
 The identity service sets its own transport headers in `apps/api/src/server.ts`, for the reason
 written above them: a control that only exists in a particular nginx is a control that vanishes the
 first time the service runs anywhere else, and this nginx is not ours to rely on. So nginx does not
-need to set them *for the API* — and must be stopped from trying, because add_header does not
+need to set them _for the API_ — and must be stopped from trying, because add_header does not
 replace a header the upstream already sent, it appends a second one. Two `X-Frame-Options` headers
 is not twice the protection; a browser handed `DENY, DENY` is entitled to make nothing of either.
 The commented `/api/` block therefore carries an `add_header` of its own, which is what severs the
 inheritance: nginx passes the server-level set down only to a level that declares none.
 
 The assistant's `/assistant/` location is the third case, and the one where nginx does the most.
+It proxies the whole prefix rather than one path, so every address in the engine's contract — the
+versioned `/assistant/v1/*` family as well as the unversioned two — rides the same block and inherits
+the same fence below without the site file needing to know the contract's shape.
 That service is deliberately minimal about headers — it sends `Cache-Control: no-store` and
 `X-Content-Type-Options: nosniff` itself, and nothing else — so the location redeclares the whole
 server-level set inside itself (a location that declares one `add_header` inherits none of them),
@@ -188,10 +191,10 @@ sequence**, and it starts with that warning.
 Both units are installed by every deploy and **enabled by hand, once**. Installing is not starting:
 the repository stays the truth about what the jobs do, and turning one on stays a decision.
 
-| Unit | When | What it does |
-|---|---|---|
-| `mythuso-healthcheck.timer` | every 5 min | Asks the questions a patient's browser asks |
-| `mythuso-backup.timer` | 02:40 SAST | Snapshots the identity database and restores it to check |
+| Unit                        | When        | What it does                                             |
+| --------------------------- | ----------- | -------------------------------------------------------- |
+| `mythuso-healthcheck.timer` | every 5 min | Asks the questions a patient's browser asks              |
+| `mythuso-backup.timer`      | 02:40 SAST  | Snapshots the identity database and restores it to check |
 
 ```sh
 ssh <target> "systemctl enable --now mythuso-healthcheck.timer"
@@ -272,7 +275,7 @@ What they are not:
   `/etc/mythuso/api.env`, deliberately nowhere near the database they protect — so restoring an
   archive without them gives back sealed values nobody can open. Keep a copy of the key somewhere that is not this server;
   [Data protection](../docs/DATA-PROTECTION.md#the-key-ceremony) is how. Nothing here can do that for
-  you, and nothing here will notice that you did not. The converse *is* checked: before it compresses
+  you, and nothing here will notice that you did not. The converse _is_ checked: before it compresses
   anything, the backup searches the fresh snapshot for each key's own characters — every protection
   key version separately — and deletes the snapshot rather than keeping it if any of them is there. A backup containing the key that opens it is a
   backup with no encryption at all, and configuration finding its way into a table is the ordinary
@@ -316,7 +319,6 @@ To turn it on, in this order:
    before the service runs, because a key generated in a hurry at step eight is a key with no second
    copy — and a key with no second copy is a platform one lost server away from losing every sealed
    value permanently. There are two, and they must be different values:
-
    - `MYTHUSO_ENCRYPTION_KEY` is the identity service's own, sealing a name and a second-factor
      secret in `apps/api/src/sensitive.ts`. One key, no versions.
    - `MYTHUSO_PROTECTION_KEYS` is the data protection module's root keys, written as
@@ -366,7 +368,7 @@ To turn it on, in this order:
 
    A weak pepper, an `http` origin, a missing provider, or the development setting that returns
    codes in the response will each stop the service from starting. That is the point of them. A
-   malformed encryption key does the same. A *missing* one does not — the service starts and refuses
+   malformed encryption key does the same. A _missing_ one does not — the service starts and refuses
    the writes that need sealing, which is why the deploy checks for it separately.
 
 7. **Uncomment the `/api/` block** in the nginx site, `nginx -t`, reload.
@@ -380,7 +382,7 @@ To turn it on, in this order:
 Rotating the pepper signs everyone out, because every stored session digest stops matching. That is
 the intended behaviour, not a side effect. Rotating a protection key is a different and much more
 careful operation, and it is [written up separately](../docs/DATA-PROTECTION.md#rotation) — the two
-rules worth carrying here are that a rotation only ever *adds* a key version, and that no key is
+rules worth carrying here are that a rotation only ever _adds_ a key version, and that no key is
 ever removed on the same day one is added.
 
 ### What the deploy checks about the keys
@@ -400,7 +402,7 @@ Two of them are advice rather than refusals, because they have legitimate causes
 has changed since the last deploy is reported loudly and not failed — a rotation you performed is a
 line to update in `/etc/mythuso/key.fingerprint`, and a change nobody performed is exactly the thing
 you wanted to be told about. And more than one protection key version with no
-`MYTHUSO_PROTECTION_INDEX_VERSION` pinned is a warning, because blind indexes default to the *lowest*
+`MYTHUSO_PROTECTION_INDEX_VERSION` pinned is a warning, because blind indexes default to the _lowest_
 version configured: retiring the oldest key would silently move them and every index would stop
 matching, which is a search that returns nothing rather than an error.
 
@@ -421,10 +423,12 @@ refuses every write that needs sealing, with a 503 that reads like an applicatio
 failure discovered by the first person trying to enrol a second factor, days later. The deploy finds
 it while somebody is still looking at the output.
 
-## The assistant service is installed dark
+## The GilbertOne engine is installed dark
 
-GilbertOne's second tier — the assistant that answers when the on-device contract cannot place what
-the patient asked — is one self-contained JavaScript file at `/opt/mythuso/assistant`.
+GilbertOne is its own service — `apps/assistant-api`, with an address family authored in
+`packages/catalog/apis/assistant.json` and three applications consuming it — and the thing that
+answers when the on-device contract cannot place what the patient asked. On this box it is one
+self-contained JavaScript file at `/opt/mythuso/assistant`.
 `scripts/build-assistant.mjs` bundles the whole service into it, knowledge catalogs included, so
 there is no `node_modules` on the box, no `npm install` on the box, and nothing for a server
 upgrade to half-apply. It is built before the deploy touches the server at all, so an assistant
@@ -452,12 +456,16 @@ deployment that says, deliberately, that the public internet is about to get a m
 arrives alone — pasted early, left by a test, restored from a backup — cannot make a public model
 answer without it, because the service refuses to start.
 
-Nothing on the site depends on it. The panel in `/app/` asks `/assistant/turn` only after an
-answer the on-device matcher could not place, and falls back to the on-device answer while the
+Nothing on the site depends on it. The panel in `/app/` asks `POST /assistant/v1/turn` only after an
+answer the on-device matcher could not place — falling back to the unversioned `/assistant/turn` only
+where a deployment older than the versioned surface answers that 404 — and falls back to the on-device
+answer while the
 service is dark — its behaviour before activation and its behaviour during an outage, and the
-reason no deploy ever needed this to succeed. The request is same-origin, so the pages'
+reason no deploy ever needed this to succeed. **The two phone apps ask it nothing at all**: each
+carries a typed client generated from the same contract, and `capabilities.json`'s `unifiedApi` flag
+is `enabled: false`, so a native build answers on-device and opens no connection. The request is same-origin, so the pages'
 `connect-src 'self'` covers it, through the nginx `location /assistant/` proxy — which also
-carries the paid endpoint's own fence, a 16 KB body limit matching the service's own constant and
+carries the paid endpoint's own fence, a 768 KB body limit matching the service's own constant and
 a per-address rate limit of 60 requests a minute answering 429, scoped to that one location so no
 co-tenant inherits it. Once the unit is enabled, every deploy proves both halves — the service on
 the loopback and the nginx location in front of it — and reports health in booleans, never the

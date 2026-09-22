@@ -4,7 +4,7 @@ Nurse-led home healthcare for South Africa. A patient books a visit; a SANC-regi
 to the house; a registered doctor reviews what the nurse found. Built by Akhanya IT Innovations,
 Johannesburg. `Documentation/` holds the funding proposal this is built from.
 
-Three native apps and one service:
+Three native apps and three services:
 
 - `apps/web` — React 19 + TypeScript + Vite. **Three entries**, and the split is about who is
   reading rather than who is working: the public page (`landing.html`, served at `/`), the whole
@@ -42,6 +42,21 @@ Three native apps and one service:
   `MYTHUSO_PASSPORT_DEVELOPMENT=synthetic-data-only`, binds to loopback, and a boundary check fails if
   anything in `deploy/` names it — because the controls it needs (a signed DPIA, an Information
   Officer, a residency decision, KMS/HSM custody) do not exist yet.
+- `apps/assistant-api` — **GilbertOne, the assistant's API engine**: a separate service rather than a
+  feature of any one app, with its own process on `127.0.0.1:8791`, its own address family authored in
+  `packages/catalog/apis/assistant.json`, and the web, iOS and Android applications as its clients.
+  `node:http` with no web framework; the LangChain tier and the catalog it reads are the only
+  dependencies it carries, which is why `npm run assistant-runtime` bundles it into one self-contained
+  file before a deploy touches the box. **Installed dark by every deploy** — loopback only, nginx's
+  `location /assistant/` the sole way in, and the model tier refusing to serve in production without
+  `MYTHUSO_ASSISTANT_PRODUCTION=acknowledged` written by hand. Built is not live: triage, the
+  vital-sign reading and the handover submission are each gated on a contract that does not exist
+  yet, and the three allowlisted external knowledge sources all ship `"active": false`.
+- `packages/gilbertone` — the deterministic half of GilbertOne, compiled into all three platforms:
+  emergency recognition, essential refusals and safe offline fallback, answered from the message and
+  the contract alone. **No dependencies, no network, no environment variable**, and the build fails if
+  anything under `src/` calls `fetch()`, imports a network or model module, or reads one. This is what
+  answers while the engine above is dark, which — today — it always is.
 - `packages/catalog` — the contracts everything else derives from, as JSON. `apis.json` and
   `apis/<engine>.json` hold every engine's frozen API contract (who may call each route, for which
   purpose, what it refuses and what it emits), locked in `apis.lock` beside `events.lock`, with each
@@ -161,4 +176,7 @@ namespaces.** Use `#private` fields.
 `./deploy/deploy.sh` builds and publishes to `mythuso.co.za` on `liqzar-server`, which also
 hosts five unrelated production sites. Never edit another site's config; `nginx -t` before any
 reload. The identity service is installed but deliberately switched off until DNS, TLS and an SMS
-provider exist — a one-time-code endpoint over plain http hands out accounts. See `deploy/README.md`.
+provider exist — a one-time-code endpoint over plain http hands out accounts. The GilbertOne engine
+is installed the same way and left dark for a different reason: no model provider is configured, and
+activation is a sequence done by hand at a terminal on the box (`deploy/RUNBOOK.md`, _Activating the
+assistant service_). See `deploy/README.md`.

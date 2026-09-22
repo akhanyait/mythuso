@@ -546,14 +546,14 @@ From `packages/catalog/protocols.json`. Named and numbered. Not ratified, not in
 
 ## C. GilbertOne's emergency terms
 
-#### C1. The emergency terms list, version 1
+#### C1. The emergency terms list, version 2
 
 | | |
 |---|---|
 | File | `packages/catalog/gilbert-emergency-terms.json` |
-| Version | 1 |
+| Version | 2 |
 | Status | proposed-starting-configuration |
-| termsHash | `4ad44d7666d291c7` |
+| termsHash | `9398cc967c9390c4` |
 | Accepted by | Founder on 2026-09-14: "Propose it; we can configure as we go." |
 | Clinical review | No clinical reviewer yet — required before real patients. |
 | What a match does | These words only ever raise. A match turns the answer into the emergency answer; the absence of a match lowers nothing, decides nothing and is never shown as reassurance. False positives are acceptable — somebody asking about a stroke they had years ago is shown the ambulance numbers — and a miss is not made safe by GilbertOne being silent about it, which is why the sentence under silenceIsNotSafety stays on the screen beside every conversation. |
@@ -562,17 +562,17 @@ From `packages/catalog/protocols.json`. Named and numbered. Not ratified, not in
 
 | Group | Condition | Terms |
 |---|---|---|
-| `chest-pain` | `chest-pain` | 9 |
+| `chest-pain` | `chest-pain` | 10 |
 | `breathing` | `breathing` | 16 |
 | `bleeding` | `bleeding` | 7 |
-| `unresponsive` | `unresponsive` | 13 |
+| `unresponsive` | `unresponsive` | 14 |
 | `stroke` | `stroke` | 7 |
 | `seizure` | `seizure` | 9 |
 | `infant` | `infant` | 7 |
 | `obstetric` | `obstetric` | 8 |
-| `crisis` — Words about harming yourself | none | 12 |
+| `crisis` — Words about harming yourself | none | 13 |
 | `general` — Words about an emergency | none | 6 |
-| **Total** | | **94** |
+| **Total** | | **97** |
 
 **Question for the reviewer:** read every term in the file. Is anything a patient in South Africa commonly says about a life-threatening emergency missing, is any group wrong, and is the list safe to show real patients as a starting configuration?
 

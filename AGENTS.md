@@ -4,14 +4,14 @@ This file exists so that an agent opening this repository cold, in any tool, fin
 it finds the code. It is a pointer, not a brief.
 
 **Read `CLAUDE.md` first and in full.** It is the whole brief: what the product is, the three native
-apps and the two services, and the sections that matter most —
+apps and the three services, and the sections that matter most —
 
-- `## The rules that are not negotiable` (`CLAUDE.md:54`) — nothing here is a real service; a number
+- `## The rules that are not negotiable` (`CLAUDE.md:69`) — nothing here is a real service; a number
   lives in one place; contracts are authored in `packages/catalog/*.json` and everything else derives.
-- `## Working here` (`CLAUDE.md:87`) — how to build, check and test.
-- `## Adding a feature — the shape it takes` (`CLAUDE.md:111`) — eight steps, ending at
+- `## Working here` (`CLAUDE.md:102`) — how to build, check and test.
+- `## Adding a feature — the shape it takes` (`CLAUDE.md:126`) — eight steps, ending at
   `docs/FEATURE-MAP.md`. A feature that skips a step is not finished.
-- `## Deployment` (`CLAUDE.md:159`) — static files only, one manual script, a shared box.
+- `## Deployment` (`CLAUDE.md:174`) — static files only, one manual script, a shared box.
 
 The patient entry budget is measured in `CLAUDE.md:28` and is **282.16 kB**. Compare a new figure
 only against one taken the same way. If your change raises it, the convenience has been paid for by
@@ -22,9 +22,18 @@ the people this is built for, and that is a decision to bring to the founder rat
 `docs/ROADMAP.md` carries the founder's decisions with their dates. The live one for the assistant is
 `## Founder-requested — one GilbertOne, decided 19 September 2026` — five phases, the safety invariant
 that **affect may never soften a refusal or an emergency**, and the fact that a truthful signed-in role
-is blocked on the identity service, which is deliberately switched off. Read that section before
-touching `apps/web/src/lib/gilbertone.ts`, `apps/web/src/features/GilbertAvatar.tsx` or anything
-that renders an assistant.
+is blocked on the identity service, which is deliberately switched off. `### The foundation under one
+GilbertOne — 22 September 2026` and `## GilbertOne, one engine and three clients` in the same file
+record the direction the founder fixed, and it is the one to hold to: **GilbertOne is a separate API
+engine — `apps/assistant-api`, its contract in `packages/catalog/apis/assistant.json` — and the web,
+iOS and Android applications are its clients rather than its carriers.** Read those sections before
+touching `apps/assistant-api/src`, `packages/gilbertone/src`, `apps/web/src/lib/gilbertone.ts`,
+`apps/web/src/features/GilbertAvatar.tsx` or anything that renders an assistant. Two things about it
+are settled and are not yours to reopen: the **look and feel is fixed**, and the deterministic half in
+`packages/gilbertone` stays on every device — no dependency, no network, no environment variable —
+which is what answers while the engine is dark. The two phones carry a generated typed client they do
+not call, because `capabilities.json`'s `unifiedApi` flag is `enabled: false`; switching it on is a
+founder decision, not a tidy-up.
 
 `docs/FEATURE-MAP.md` is the map of what exists and what does not. `docs/PRIVACY-AND-SECURITY.md` is
 honest about which controls exist. `/status` on the live site is the page that says, capability by
