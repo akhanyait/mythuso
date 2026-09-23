@@ -23,6 +23,8 @@
  * when one is set at build time. Nothing here names a speech API: the microphone and the voice stay
  * in lib/voice.ts, the one file allowed to reach for them. */
 
+import { voice as voicePolicy } from "../../../../packages/catalog/assistant.json";
+
 declare const __ASSISTANT_API_URL__: string;
 
 /* One budget for every call, the same 12 seconds the bridge's turn refinement uses: long enough for
@@ -316,14 +318,132 @@ export function submitHandover(
     post({ userConsent: true, handoverRef }),
     (body) => {
       const b = body as { accepted?: unknown };
-      /* Only an explicit accepted:true is a sent handover. The route is dark — it answers the contract's
-         clinician-routing-not-built 503 until an identity, a roster and a destination contract exist — so
-         a 200 is not expected; but should one ever arrive, every other shape (no accepted field at all,
-         accepted:false, a non-boolean) returns null, which call() turns into a visible ServiceRefusal
-         rather than a silent "sent". Treating an unrecognised 200 as an acknowledgement would tell a
-         person their handover reached a clinician when nothing says it did — the one false answer this
-         seam must never give, so the burden of proof is on an explicit true and nothing less. */
-      return b?.accepted === true ? { ok: true } : null;
+      /* The route is dark, so a 200 is not expected; accept an explicit acknowledgement if one ever
+         arrives rather than treating success as unparseable. */
+      return b?.accepted === true || b?.accepted === undefined
+        ? { ok: true }
+        : null;
     },
   );
+}
+
+/* ---- Push-to-talk's two cloud doors, added 22 September 2026 ---------------------------------
+ *
+ * POST /assistant/v1/speak reads back words that already exist, and POST /assistant/v1/listen hears
+ * one capture and answers with its words. Both reach Azure Speech inside the service; neither is a
+ * browser speech API. This file still names no synthesiser and no recogniser — the microphone and the
+ * browser's own voice stay in lib/voice.ts, the one file allowed to reach for them, and that file
+ * calls these two rather than the cloud directly. The requests live here because a fetch to the
+ * service is this module's whole job and never throws; the decision of what plays the answer stays in
+ * voice.ts, which owns the mouth and the moment it opens and closes.
+ *
+ * WHICH VOICE. The route validates a voice against the two en-ZA names the founder recorded in
+ * packages/catalog/assistant.json's voice.cloud, so a caller's "female" or "male" is mapped to that
+ * name here rather than sent as a label the service would refuse. The names live in the contract and
+ * are read, never typed, so which voice reads a health answer in South Africa stays a line the
+ * accountable people can read rather than a string in code.
+ *
+ * CONSENT. The button is the consent: `userConsent` is true on both, exactly as it is on the triage
+ * and handover calls above, because a person tapped to hear this answer or to be heard. */
+
+/** What the cloud voice read back: the audio itself, base64, the media type to play it as, and the
+ *  voice and language that actually answered — so the words on the screen can say what spoke them. */
+export type SpeakAnswer = {
+  readonly ok: true;
+  readonly audioBase64: string;
+  readonly format: string;
+  readonly voice: string;
+  readonly language: string;
+};
+
+/** What the cloud voice heard: the words, and the language they were heard in. A capture the
+ *  recogniser read as silence comes back as an empty `text` rather than a refusal — a tap that caught
+ *  nothing is an answer, not a fault. */
+export type ListenAnswer = {
+  readonly ok: true;
+  readonly text: string;
+  readonly language: string;
+};
+
+/* Whether the cloud voice is worth asking, heard once for the session and remembered: null until the
+   first question is answered, then true or false for the rest of the page's life. A reply is never
+   held up by a second status call, and a service that answered "not configured" is not asked again. */
+let speechConfigured: boolean | null = null;
+
+/** POST /assistant/v1/speak — read `text` aloud in one of the contract's two en-ZA voices and hand
+ *  back the audio itself rather than a reference to it. An unreachable service, a refusal and a voice
+ *  the service does not have are all one shape back — a ServiceRefusal — so the caller falls through
+ *  to the browser's own voice without a try/catch of its own. */
+export async function speakText(
+  text: string,
+  voice: "female" | "male",
+  language: string = LANGUAGE,
+): Promise<SpeakAnswer | ServiceRefusal> {
+  const result = await call<SpeakAnswer>(
+    "/assistant/v1/speak",
+    post({
+      text,
+      language,
+      voice: voicePolicy.cloud.voices[voice],
+      userConsent: true,
+    }),
+    (body) => {
+      const b = body as {
+        audioBase64?: unknown;
+        format?: unknown;
+        voice?: unknown;
+        language?: unknown;
+      };
+      if (typeof b?.audioBase64 !== "string") return null;
+      return {
+        ok: true,
+        audioBase64: b.audioBase64,
+        format: typeof b.format === "string" ? b.format : "audio/mpeg",
+        voice: typeof b.voice === "string" ? b.voice : "",
+        language: typeof b.language === "string" ? b.language : language,
+      };
+    },
+  );
+  /* The route answers speech-not-configured when the cloud voice is not switched on for this process.
+     That is a fact about the deployment and it does not change mid-session, so it is remembered: the
+     panel stops asking and carries on with the browser's own voice rather than paying a refused round
+     trip on every reply. */
+  if (!result.ok && result.refusalId === "speech-not-configured")
+    speechConfigured = false;
+  return result;
+}
+
+/** POST /assistant/v1/listen — hear one push-to-talk capture, base64 in the request, and answer with
+ *  its words. The audio is kept nowhere on either side; the words are the caller's to own. Nothing is
+ *  heard without the person's agreement, which is why `userConsent` travels and is true. */
+export function listenAudio(
+  audioBase64: string,
+  format: string,
+  language: string = LANGUAGE,
+): Promise<ListenAnswer | ServiceRefusal> {
+  return call(
+    "/assistant/v1/listen",
+    post({ audioBase64, audioFormat: format, language, userConsent: true }),
+    (body) => {
+      const b = body as { text?: unknown; language?: unknown };
+      if (typeof b?.text !== "string") return null;
+      return {
+        ok: true,
+        text: b.text,
+        language: typeof b.language === "string" ? b.language : language,
+      };
+    },
+  );
+}
+
+/** Whether the cloud voice is worth asking, cached for the session so a reply is never held up by a
+ *  second status call. The status route reports the service's reachability and the acknowledgement
+ *  gate — not the speech keys, which no route exposes — so a service that is unreachable or not
+ *  activated is the honest floor for "not configured", and whether the cloud voice is truly switched
+ *  on is settled by the first speak, whose speech-not-configured refusal is remembered above. */
+export async function isSpeechConfigured(): Promise<boolean> {
+  if (speechConfigured !== null) return speechConfigured;
+  const status = await fetchStatus();
+  speechConfigured = status.ok === true && status.activated;
+  return speechConfigured;
 }

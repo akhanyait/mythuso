@@ -54,7 +54,7 @@ export const roleExtras: Record<string,string[]> = {
  Doctor:['Clinical protocols','Referral pathway','Per-case fees','Claim draft',medicines.screen.prescribe.heading,medicines.screen.results.heading],
  Partner:['Prescription RX-0081','Laboratory order LAB-0023',medicines.screen.pharmacy.heading],
  /* The HL7 quarantine is a development operator's view (Wave 5), under its contract heading, which says so. */
- 'Control Tower':['Nurse onboarding & vetting','Employer programmes',HL7_QUARANTINE_HEADING]
+ 'Control Tower':['Nurse onboarding & vetting','Employer programmes',HL7_QUARANTINE_HEADING,'Device Lab']
 };
 /* A nurse's morning, a doctor's queue, a controller's board and a partner's orders — four screens
  * that each have exactly one thing a person opened them for.

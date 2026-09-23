@@ -53,6 +53,8 @@ const KitHealth = lazy(() => import('../features/Devices').then(m => ({ default:
 const DeviceRegistryDesk = lazy(() => import('../features/Devices').then(m => ({ default: m.DeviceRegistryDesk })));
 /* The HL7 v2 quarantine, a development operator's view (Wave 5): its own import, fetched when the Control Tower opens it. */
 const Hl7Quarantine = lazy(() => import('../features/Hl7Quarantine').then(m => ({ default: m.Hl7Quarantine })));
+/* Device Lab: the synthetic vital-sign simulator, staff only, fetched when the Control Tower opens it. */
+const DeviceLab = lazy(() => import('../features/DeviceLab').then(m => ({ default: m.DeviceLab })));
 /* Sentinel and safeguarding arrive when a nurse opens her kit or her assessment, a doctor opens a patient, or the Control
    Tower opens its incidents, and not before: they carry the Safety, Core and Devices domains and every engine's settings
    through lib/settings. Added by the Safety lead, Wave 5. */
@@ -583,6 +585,7 @@ function staffModalBody(modal: string, close: () => void, open: (m: string) => v
  if (modal === medicinesWords.pharmacy.heading) return <PharmacyQueue/>;
  if (modal === medicinesWords.handover.heading) return <CollectionHandover/>;
  if (modal === HL7_QUARANTINE_HEADING) return <Suspense fallback={null}><Hl7Quarantine/></Suspense>;
+ if (modal === 'Device Lab') return <Suspense fallback={null}><DeviceLab/></Suspense>;
  /* "Clinical protocols" is in two roles' More tools and was the roadmap fallback in both. It is a
     screen now, and the same screen — a protocol that differs by which door you came through is two
     protocols. */

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { voice as voicePolicy } from "../../../../packages/catalog/assistant.json";
+import { isSpeechConfigured, speakText } from "./gilbertone-service";
 
 /* The browser's own microphone and the browser's own voice, for the two web surfaces allowed one.
  *
@@ -215,6 +216,15 @@ function preferredVoice(
   return null;
 }
 
+/* The cloud voice the panel asks for, since push-to-talk's two doors were built on 22 September 2026:
+   the founder's female en-ZA voice — the first of the two the contract names and the one an absent
+   preference defaults to. This file chooses the label; lib/gilbertone-service.ts maps it to the
+   contract's own voice name, so no en-ZA voice is typed here and the preference stays a decision on
+   file rather than a string in the one module that reaches for a voice. The cloud reading is an
+   upgrade of the browser's own voice and never a dependency of it: where the cloud is not configured
+   the browser carries the same words exactly as it did before this door existed. */
+const CLOUD_VOICE: "female" | "male" = "female";
+
 export type SpeakOptions = {
   /** Fired per word when the browser supports boundary events. `index` counts words, not characters,
      so a caller can shape the nth word without counting back through the string itself. */
@@ -283,12 +293,37 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
     fires no event this file can hear, which is why the close has to be callable rather than only a
     handler. */
   const closeReading = useRef<(() => void) | null>(null);
+  /* The cloud reading in flight, since the cloud voice became the preferred one: its audio element,
+     so the session's stop and a barge-in can silence it the way `speechSynthesis.cancel()` silences
+     the browser's, and its object URL, so the close that happens exactly once revokes it rather than
+     leaving a blob the page cannot reclaim. Both are cleared by that close and by the panel's own
+     shutdown. */
+  const cloudAudio = useRef<HTMLAudioElement | null>(null);
+  const cloudUrl = useRef<string | null>(null);
+  /* The cloud reading's own word cursor, for the caption a `timeupdate` approximates: advanced only
+     when the estimated word changes, so a clock that fires several times a second does not redraw one
+     word several times. Reset at the start of each cloud reading. */
+  const cloudWord = useRef(-1);
+  /* Whether the cloud voice is worth asking, mirrored from the service's session cache so `speak` can
+     decide without awaiting: null until the first status answer, then true or false. A reply is never
+     held up by the check — the browser's own voice starts synchronously until the cloud is known to be
+     there, and the check warms this in the background for the next reply. */
+  const cloudReady = useRef<boolean | null>(null);
+  /* Which reading is the current one. A cloud fetch that resolves after a barge-in, a replacement or
+     the panel shutting has bumped this is abandoned: it plays nothing and, crucially, does not fall
+     back to the browser's voice for a reply the person has already moved past. */
+  const speakGen = useRef(0);
 
   /* Stop the voice, wherever it is stopped from: the session's own stop control, a barge-in from
     the microphone, and the panel's resets all land here, and a close that has already happened is
     told it has. Nothing is reached for before something was spoken — the everSpoke guard is the
     same wall that has always stood between this page and an API nobody asked for. */
   const cancel = useCallback(() => {
+    /* Abandon a cloud fetch in flight before closing whatever is playing, so a reading that has not
+       started yet does not start after the person asked for silence — the same tap that stops the
+       browser's voice stops the cloud's, and a cloud answer still on the wire is dropped rather than
+       played into the quiet. */
+    speakGen.current += 1;
     closeReading.current?.();
     if (
       !everSpoke.current ||
@@ -415,102 +450,296 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
     }
   }, [stop, cancel]);
 
-  const speak = useCallback((text: string, options: SpeakOptions = {}) => {
-    /* The contract's flag, before anything is reached for. While voice.webSpeech is false this surface
-     does not speak at all: no utterance is constructed, nothing is cancelled, nothing is asked of the
-     browser's voice — and the order is the wall, because a check that reached for the API first would
-     be a reach the flag exists to refuse. */
-    if (!SPEAKS[surface]) {
-      options.onEnd?.();
-      return;
-    }
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      options.onEnd?.();
-      return;
-    }
-    everSpoke.current = true;
-    /* One voice at a time. §04's stop event and §07's "close the mouth immediately on cancel" are the
-     same rule read from two directions, and both start with the previous utterance ending — and
-     "ending" is this file's own close, called here rather than waited for, because the
-     synthesiser's cancel fires no event this file can hear. A reading replaced without its close
-     would leave the face saying a mouth was open over a queue that had already been emptied. */
-    const synthesis = window.speechSynthesis;
-    closeReading.current?.();
-    synthesis.cancel();
+  /* The browser's own voice, exactly as it was before the cloud door existed: the reading the cloud
+     path hands back to when it cannot voice, and the only voice a panel uses until the cloud is known
+     to be there. The dispatcher has already closed the reading in flight and emptied the browser's
+     queue, so this only chooses a voice, builds the utterance and hands it over. */
+  const speakViaBrowser = useCallback(
+    (text: string, options: SpeakOptions) => {
+      if (
+        typeof window === "undefined" ||
+        !("speechSynthesis" in window)
+      ) {
+        /* A cloud reading that fell back here has already entered the responding moment, so it is
+           stood back down rather than left hanging over a browser that has no voice at all. */
+        setResponding(false);
+        options.onEnd?.();
+        return;
+      }
+      const synthesis = window.speechSynthesis;
 
-    /* The voice list, read at the moment of speaking and never at load. A non-empty reading is kept
-     and re-read on every utterance, so a voice installed while the page is open is still seen; the
-     `voiceschanged` listen is armed once, for browsers that announce their voices only after an
-     event, and a browser with no listener at all — a stand-in synthesiser, or an old engine —
-     simply reads whatever `getVoices` answers with. */
-    const listing = synthesis.getVoices();
-    if (listing.length > 0) voices.current = listing;
-    if (
-      !hearingVoices.current &&
-      typeof synthesis.addEventListener === "function"
-    ) {
-      hearingVoices.current = true;
-      synthesis.addEventListener("voiceschanged", () => {
-        const settled = synthesis.getVoices();
-        if (settled.length > 0) voices.current = settled;
-      });
-    }
+      /* The voice list, read at the moment of speaking and never at load. A non-empty reading is kept
+       and re-read on every utterance, so a voice installed while the page is open is still seen; the
+       `voiceschanged` listen is armed once, for browsers that announce their voices only after an
+       event, and a browser with no listener at all — a stand-in synthesiser, or an old engine —
+       simply reads whatever `getVoices` answers with. */
+      const listing = synthesis.getVoices();
+      if (listing.length > 0) voices.current = listing;
+      if (
+        !hearingVoices.current &&
+        typeof synthesis.addEventListener === "function"
+      ) {
+        hearingVoices.current = true;
+        synthesis.addEventListener("voiceschanged", () => {
+          const settled = synthesis.getVoices();
+          if (settled.length > 0) voices.current = settled;
+        });
+      }
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    /* The contract's order, then the browser's own default when it has none of the four. The
-     preference is applied quietly and promises nothing, which is why the words written on the
-     screen never depend on which voice takes them. */
-    const chosen = preferredVoice(voices.current);
-    utterance.lang =
-      chosen?.lang ?? voicePolicy.languages[0].recognitionLocales[0];
-    if (chosen) utterance.voice = chosen;
-    let spokenWords = 0;
-    /* The reading's own close, shared by every ending it can have and idempotent because several of
-       them can arrive together: a cancel through the session's stop closes the reading and empties
-       the queue, and a browser may then fire nothing, an end, or an error of its own. Whatever
-       arrives first is the close; the rest are told it has happened. The states it stands down are
-       set by this file alone, and the caller's callback is guarded by aliveness the way every
-       callback here is. */
-    let closed = false;
-    const close = () => {
-      if (closed) return;
-      closed = true;
-      if (closeReading.current === close) closeReading.current = null;
-      setResponding(false);
-      setSpeaking(false);
-      if (!alive.current) return;
-      options.onEnd?.();
-    };
-    closeReading.current = close;
-    /* The answer has landed and the voice is about to read it: the session's `responding` moment is
-       entered before the request to speak rather than at the first word, because the moment between
-       the words arriving and the voice starting is one the panel has a sentence for. */
-    setResponding(true);
+      const utterance = new SpeechSynthesisUtterance(text);
+      /* The contract's order, then the browser's own default when it has none of the four. The
+       preference is applied quietly and promises nothing, which is why the words written on the
+       screen never depend on which voice takes them. */
+      const chosen = preferredVoice(voices.current);
+      utterance.lang =
+        chosen?.lang ?? voicePolicy.languages[0].recognitionLocales[0];
+      if (chosen) utterance.voice = chosen;
+      let spokenWords = 0;
+      /* The reading's own close, shared by every ending it can have and idempotent because several of
+         them can arrive together: a cancel through the session's stop closes the reading and empties
+         the queue, and a browser may then fire nothing, an end, or an error of its own. Whatever
+         arrives first is the close; the rest are told it has happened. The states it stands down are
+         set by this file alone, and the caller's callback is guarded by aliveness the way every
+         callback here is. */
+      let closed = false;
+      const close = () => {
+        if (closed) return;
+        closed = true;
+        if (closeReading.current === close) closeReading.current = null;
+        setResponding(false);
+        setSpeaking(false);
+        if (!alive.current) return;
+        options.onEnd?.();
+      };
+      closeReading.current = close;
+      /* The answer has landed and the voice is about to read it: the session's `responding` moment is
+         entered before the request to speak rather than at the first word, because the moment between
+         the words arriving and the voice starting is one the panel has a sentence for. */
+      setResponding(true);
 
-    utterance.onstart = () => {
-      if (!alive.current) return;
-      setResponding(false);
-      setSpeaking(true);
-      options.onStart?.();
-    };
-    utterance.onboundary = (event) => {
-      if (!alive.current || event.name !== "word") return;
-      setBoundariesSeen(true);
-      /* The browser gives a character index and, where it can, a length. Where it cannot, the word is
-      read off the text to the next space — which is the same answer for everything this page says
-      out loud, and wrong only for text nobody here writes. */
-      const length =
-        event.charLength && event.charLength > 0
-          ? event.charLength
-          : (text.slice(event.charIndex).match(/^\S+/)?.[0].length ?? 0);
-      const word = text.slice(event.charIndex, event.charIndex + length);
-      if (word) options.onWord?.(word, spokenWords++);
-    };
-    utterance.onend = close;
-    utterance.onerror = close;
+      utterance.onstart = () => {
+        if (!alive.current) return;
+        setResponding(false);
+        setSpeaking(true);
+        options.onStart?.();
+      };
+      utterance.onboundary = (event) => {
+        if (!alive.current || event.name !== "word") return;
+        setBoundariesSeen(true);
+        /* The browser gives a character index and, where it can, a length. Where it cannot, the word is
+        read off the text to the next space — which is the same answer for everything this page says
+        out loud, and wrong only for text nobody here writes. */
+        const length =
+          event.charLength && event.charLength > 0
+            ? event.charLength
+            : (text.slice(event.charIndex).match(/^\S+/)?.[0].length ?? 0);
+        const word = text.slice(event.charIndex, event.charIndex + length);
+        if (word) options.onWord?.(word, spokenWords++);
+      };
+      utterance.onend = close;
+      utterance.onerror = close;
 
-    synthesis.speak(utterance);
+      synthesis.speak(utterance);
+    },
+    [],
+  );
+
+  /* Read the reply through the cloud voice rather than the browser's: hand the words to the service,
+     which answers with the audio itself, decode that to a blob the page can play, and play it — firing
+     the same start, word and end callbacks the browser's utterance fires, so the mouth and the caption
+     track cannot tell which voice carried the words and do not need to. Answers true when the cloud
+     voice has the reading (playing, or abandoned after a barge-in) and false when it could not, which
+     is the caller's cue to fall through to the browser's own voice.
+
+     ON WORD BOUNDARIES, HONESTLY. A cloud reading carries no `onboundary` stream — the audio is one
+     blob, not a synthesiser's event timeline — so the caption is advanced from the element's own
+     `timeupdate`, a coarse clock that estimates the word being spoken from how far through the audio it
+     is. That is an approximation of the same kind §07 warns `onboundary` is: a shape for the mouth,
+     never a viseme stream and never sold as lip-sync. */
+  const speakViaCloud = useCallback(
+    async (
+      text: string,
+      options: SpeakOptions,
+      gen: number,
+    ): Promise<boolean> => {
+      /* The answer has landed and the cloud voice is about to fetch the reading of it: the responding
+         moment covers the request as well as the first sound, because the gap between the words
+         arriving and the voice starting is one the panel has a sentence for. */
+      setResponding(true);
+      const result = await speakText(text, CLOUD_VOICE);
+      /* Abandoned while the service was being asked — a barge-in, a replacement, the panel shutting.
+         Play nothing, stand the responding moment back down, and answer true so the caller does not
+         fall through to the browser's voice for a reply the person has already moved past. */
+      if (gen !== speakGen.current) {
+        setResponding(false);
+        setSpeaking(false);
+        return true;
+      }
+      /* Refused, unreachable, or not configured: the browser's own voice carries the same words, which
+         is the whole fallback this door exists to allow. */
+      if (!result.ok) return false;
+
+      let url: string;
+      try {
+        const binary = atob(result.audioBase64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1)
+          bytes[i] = binary.charCodeAt(i);
+        const blob = new Blob([bytes], {
+          type: result.format || "audio/mpeg",
+        });
+        url = URL.createObjectURL(blob);
+      } catch {
+        /* An answer that will not decode is not a fault to surface: the browser's voice carries the
+           same words rather than the person meeting silence. */
+        return false;
+      }
+      /* A cancel that landed while the bytes were being decoded: drop the blob, play nothing. */
+      if (gen !== speakGen.current) {
+        URL.revokeObjectURL(url);
+        setResponding(false);
+        setSpeaking(false);
+        return true;
+      }
+
+      const audio = new Audio(url);
+      cloudAudio.current = audio;
+      cloudUrl.current = url;
+      cloudWord.current = -1;
+
+      /* Let go of the element and its blob without telling the caller the reading ended: the close
+         below does that, and a start that failed hands back to the browser's voice instead, which
+         would fire a second end for one reply if this fired the first. */
+      const detach = () => {
+        audio.onplay = null;
+        audio.ontimeupdate = null;
+        audio.onended = null;
+        audio.onerror = null;
+        audio.pause();
+        if (cloudAudio.current === audio) cloudAudio.current = null;
+        if (cloudUrl.current === url) {
+          URL.revokeObjectURL(url);
+          cloudUrl.current = null;
+        }
+      };
+      /* The reading's own close, shared by every ending it can have — the audio finishing, an error, a
+         barge-in through `cancel`, a replacement, the panel shutting — and idempotent, because several
+         of those can arrive together. It is the same shape as the browser reading's close: it stands
+         the two moments down and tells the caller once. */
+      let closed = false;
+      const close = () => {
+        if (closed) return;
+        closed = true;
+        if (closeReading.current === close) closeReading.current = null;
+        detach();
+        setResponding(false);
+        setSpeaking(false);
+        if (!alive.current) return;
+        options.onEnd?.();
+      };
+      closeReading.current = close;
+
+      audio.onplay = () => {
+        if (!alive.current) return;
+        setResponding(false);
+        setSpeaking(true);
+        options.onStart?.();
+      };
+      audio.ontimeupdate = () => {
+        if (!alive.current || !audio.duration) return;
+        const words = text.split(/\s+/).filter(Boolean);
+        if (words.length === 0) return;
+        const index = Math.min(
+          words.length - 1,
+          Math.floor((audio.currentTime / audio.duration) * words.length),
+        );
+        if (index === cloudWord.current) return;
+        cloudWord.current = index;
+        options.onWord?.(words[index], index);
+      };
+      audio.onended = close;
+      audio.onerror = close;
+
+      try {
+        await audio.play();
+      } catch {
+        /* The browser refused to start the audio — an autoplay policy, a stalled decode. Let go of the
+           element without telling the caller it ended and hand back to the browser's own voice, which
+           is the fallback that has always carried the words. */
+        if (closeReading.current === close) closeReading.current = null;
+        detach();
+        return false;
+      }
+      return true;
+    },
+    [],
+  );
+
+  /* Ask the service whether the cloud voice is there, in the background, and remember the answer for
+     the rest of the session so no reply is ever held up by the question. It is a status read and
+     nothing else — no microphone, no synthesiser, no speech API — and it never throws. */
+  const warmCloud = useCallback(() => {
+    void isSpeechConfigured().then((ready) => {
+      if (alive.current) cloudReady.current = ready;
+    });
   }, []);
+
+  const speak = useCallback(
+    (text: string, options: SpeakOptions = {}) => {
+      /* The contract's flag, before anything is reached for. While voice.webSpeech is false this
+       surface does not speak at all: no cloud request is sent, no utterance is constructed, nothing is
+       cancelled, nothing is asked of the browser's voice — and the order is the wall, because a check
+       that reached for either voice first would be a reach the flag exists to refuse. */
+      if (!SPEAKS[surface]) {
+        options.onEnd?.();
+        return;
+      }
+      if (typeof window === "undefined") {
+        options.onEnd?.();
+        return;
+      }
+      everSpoke.current = true;
+      /* One voice at a time, whichever voice it is. §04's stop event and §07's "close the mouth
+       immediately on cancel" are the same rule read from two directions, and both start with the
+       previous reading ending — and "ending" is this file's own close, called here rather than waited
+       for, because neither the synthesiser's cancel nor a paused cloud element fires an event this file
+       can hear. The generation is bumped beside it, so a cloud fetch still in flight for the reading
+       just replaced is abandoned rather than played over the new one. */
+      const gen = (speakGen.current += 1);
+      closeReading.current?.();
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+
+      /* The cloud voice first, but only once it is known to be there: a reply is never held up by the
+       status check, so until that check has answered the browser's own voice carries the words
+       synchronously exactly as it did before the cloud door existed, and the check warms in the
+       background for the next reply. When the cloud is known to be configured the reading is fetched
+       and played, and a cloud that refuses or fails mid-reply falls through to the browser's voice
+       rather than leaving the person with silence. */
+      if (cloudReady.current === true) {
+        void (async () => {
+          const voiced = await speakViaCloud(text, options, gen);
+          /* Abandoned while the cloud was asked, so nothing plays and the browser's voice is not
+           started for a reply already moved past; otherwise, a cloud that could not voice falls
+           through to the browser's own. */
+          if (voiced || gen !== speakGen.current) return;
+          speakViaBrowser(text, options);
+        })();
+        return;
+      }
+      if (cloudReady.current === null) warmCloud();
+      speakViaBrowser(text, options);
+    },
+    [speakViaBrowser, speakViaCloud, warmCloud],
+  );
+
+  /* Warm the cloud-voice check as soon as a surface that may speak is on the screen, so the first
+     reply can prefer the cloud voice rather than spending itself discovering whether one is there. It
+     is a status read and nothing else — no microphone opens, no synthesiser is reached for, no speech
+     API is named — and it is the same question the capability block asks, answered once for the
+     session. A surface the contract does not let speak does not ask it at all. */
+  useEffect(() => {
+    if (SPEAKS[surface]) warmCloud();
+  }, [warmCloud, surface]);
 
   /* Everything the page opened, closed on the way out. A recogniser left running by a component that
     has gone is a microphone nobody on the screen can turn off. */
@@ -521,6 +750,24 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
          is going away about a mouth — is released without being called: the panel's own close
          effect has already cancelled the voice it wanted stopped. */
       closeReading.current = null;
+      /* A cloud reading in flight dies with the panel too: the element is silenced and let go, its blob
+         revoked, and the generation bumped so a fetch still on the wire is abandoned rather than
+         played into a panel that has gone. The close above was released without being called, so this
+         is what actually stops the sound and reclaims the memory. */
+      speakGen.current += 1;
+      const cloud = cloudAudio.current;
+      cloudAudio.current = null;
+      if (cloud) {
+        cloud.onplay = null;
+        cloud.ontimeupdate = null;
+        cloud.onended = null;
+        cloud.onerror = null;
+        cloud.pause();
+      }
+      if (cloudUrl.current) {
+        URL.revokeObjectURL(cloudUrl.current);
+        cloudUrl.current = null;
+      }
       const listener = recogniser.current;
       recogniser.current = null;
       if (listener) {

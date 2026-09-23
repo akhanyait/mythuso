@@ -1,0 +1,92 @@
+/* Device Lab: the staff-only synthetic vital sign simulator.
+   Loaded with features/DeviceLab.tsx on a dynamic import from the Control Tower's More tools,
+   so none of it is on a patient's first load. It leans on the shared panel, pill, helper and
+   table styles and adds only what the simulator's own layout needs. */
+
+/* ---- Banner ---------------------------------------------------------------------------------- */
+.dl-banner {
+  display: flex; align-items: center; gap: var(--space-8, 8px);
+  padding: var(--space-12, 12px) var(--space-16, 16px);
+  background: #b3261e; color: #fff;
+  font-weight: 700; font-size: 0.95rem; letter-spacing: 0.04em;
+  border-radius: var(--radius-8, 8px);
+  text-transform: uppercase;
+}
+
+/* ---- Preset selector ------------------------------------------------------------------------- */
+.dl-presets { border: none; padding: 0; margin: 0; }
+.dl-presets legend { font-weight: 600; margin-bottom: var(--space-8, 8px); }
+.dl-preset-grid {
+  display: grid; gap: var(--space-8, 8px);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+}
+.dl-preset-option {
+  display: grid; gap: 2px;
+  padding: var(--space-12, 12px);
+  border: 2px solid var(--line, rgba(0, 0, 0, .08));
+  border-radius: var(--radius-8, 8px);
+  cursor: pointer; transition: border-color .15s, background .15s;
+}
+.dl-preset-option:hover { border-color: var(--ink-quiet, #5b6b6a); }
+.dl-preset-option.selected { border-color: var(--brand, #1a6b4a); background: rgba(26, 107, 74, .04); }
+.dl-preset-option input { position: absolute; opacity: 0; pointer-events: none; }
+.dl-preset-name { font-weight: 600; font-size: 0.9rem; }
+.dl-preset-desc { font-size: 0.8rem; color: var(--ink-quiet, #5b6b6a); }
+
+/* ---- Controls -------------------------------------------------------------------------------- */
+.dl-controls { align-items: center; flex-wrap: wrap; }
+.dl-count { margin-inline-start: auto; }
+
+/* ---- Status ---------------------------------------------------------------------------------- */
+.dl-status { display: flex; align-items: center; gap: var(--space-8, 8px); flex-wrap: wrap; font-size: 0.85rem; }
+.dl-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.dl-dot.active { background: #1a6b4a; animation: dl-pulse 1.2s infinite; }
+.dl-dot.stopped { background: var(--ink-quiet, #5b6b6a); }
+@keyframes dl-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+
+/* ---- Readings grid --------------------------------------------------------------------------- */
+.dl-readings h3 { font-size: 1rem; margin: 0 0 var(--space-8, 8px); }
+.dl-reading-grid {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: var(--space-8, 8px);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+}
+.dl-reading {
+  display: grid; grid-template-columns: auto 1fr auto auto auto;
+  gap: var(--space-8, 8px); align-items: center;
+  padding: var(--space-12, 12px);
+  border-radius: var(--radius-8, 8px);
+  border: 1px solid var(--line, rgba(0, 0, 0, .08));
+  background: var(--surface, #fff);
+}
+.dl-reading-icon { display: flex; align-items: center; color: var(--ink-quiet, #5b6b6a); }
+.dl-reading-label { font-size: 0.8rem; color: var(--ink-quiet, #5b6b6a); white-space: nowrap; }
+.dl-reading-value { font-weight: 700; font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.dl-reading-unit { font-size: 0.75rem; color: var(--ink-quiet, #5b6b6a); }
+.dl-reading-severity { font-size: 0.85rem; }
+
+/* Severity colours */
+.dl-normal .dl-reading-value, td.dl-normal { color: #1a6b4a; }
+.dl-normal .dl-reading-severity { color: #1a6b4a; }
+.dl-warning .dl-reading-value, td.dl-warning { color: #b26a00; }
+.dl-warning .dl-reading-severity { color: #b26a00; }
+.dl-warning { border-color: #b26a00; }
+.dl-critical .dl-reading-value, td.dl-critical { color: #b3261e; }
+.dl-critical .dl-reading-severity { color: #b3261e; }
+.dl-critical { border-color: #b3261e; background: rgba(179, 38, 30, .03); }
+
+/* ---- Log table ------------------------------------------------------------------------------- */
+.dl-log { margin-top: var(--space-12, 12px); }
+.dl-log summary { cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+.dl-table { margin-top: var(--space-8, 8px); font-size: 0.8rem; }
+.dl-table td, .dl-table th { padding: 4px 8px; }
+
+/* ---- Footer ---------------------------------------------------------------------------------- */
+.dl-footer { font-size: 0.8rem; border-top: 1px solid var(--line, rgba(0, 0, 0, .08)); padding-top: var(--space-12, 12px); }
+
+/* ---- Responsive ------------------------------------------------------------------------------ */
+@media (max-width: 520px) {
+  .dl-reading { grid-template-columns: auto 1fr auto; gap: 4px; }
+  .dl-reading-unit, .dl-reading-severity { grid-column: 2 / -1; }
+  .dl-preset-grid { grid-template-columns: 1fr; }
+}
