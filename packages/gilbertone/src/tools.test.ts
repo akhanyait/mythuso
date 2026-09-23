@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ToolRegistry, type AllowedTool } from "./tools.ts";
+import { ToolRegistry, loadPluginAllowlist, pluginAllowlist, type AllowedTool } from "./tools.ts";
 import access from "../../catalog/apis/access.json" with { type: "json" };
 
 /* The refusal sentences are the catalog's own — "tool-not-allowed" in the tool route's refusals,
@@ -112,4 +112,43 @@ test("the registry keeps its own copy of the list it was handed", () => {
   const own = new ToolRegistry(source);
   source.pop();
   assert.equal(own.listForAudience("patient").length, 1);
+});
+
+/* The allow-list is read statically from packages/catalog/plugins.json — no network, no environment —
+   and it, not a hand-typed list, is what gives a registry something to offer. The contract's own data
+   is asked here, so a skill added to it or revoked in it moves these answers rather than a mock. */
+test("pluginAllowlist offers the allow-listed skills for the contract's jurisdiction, in order", () => {
+  const offered = pluginAllowlist().map((tool) => tool.name);
+  assert.deepEqual(offered, [
+    "book-visit",
+    "find-nearby-clinic",
+    "nurse-queue",
+  ]);
+});
+
+test("a revoked skill is not offered, and a jurisdiction nobody approved is offered nothing", () => {
+  assert.ok(!pluginAllowlist().some((tool) => tool.name === "general-record-dump"));
+  assert.deepEqual(pluginAllowlist("ZZ"), []);
+});
+
+test("loadPluginAllowlist populates a registry that reaches an allow-listed skill", () => {
+  const loaded = loadPluginAllowlist();
+  const check = loaded.isAllowed("book-visit", "patient", ["care:read"]);
+  assert.equal(check.allowed, true);
+  assert.deepEqual(loaded.resolve("book-visit"), {
+    engine: "care",
+    route: "/v1/care/visits",
+  });
+});
+
+test("the loaded registry still refuses a revoked skill and a grant the caller does not carry", () => {
+  const loaded = loadPluginAllowlist();
+  const revoked = loaded.isAllowed("general-record-dump", "patient", [
+    "record:read",
+  ]);
+  assert.equal(revoked.allowed, false);
+  assert.equal(revoked.refusal, sentenceOf("tool-not-allowed"));
+  const noGrant = loaded.isAllowed("nurse-queue", "nurse", []);
+  assert.equal(noGrant.allowed, false);
+  assert.equal(noGrant.refusal, sentenceOf("tool-grant-required"));
 });

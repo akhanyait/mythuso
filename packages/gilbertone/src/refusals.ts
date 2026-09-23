@@ -1,6 +1,7 @@
 import { classifyMessage, type Audience } from "./engine.ts";
 import type { ConversationContext } from "./conversation.ts";
 import { containsPHI } from "./phi.ts";
+import { checkEscalation, type EscalationResult } from "./escalation.ts";
 import assistant from "../../catalog/assistant.json" with { type: "json" };
 
 /* The refusal policy engine: four rules the engine asks before it classifies anything.
@@ -35,6 +36,13 @@ export interface RefusalResult {
   refusalId?: string;
   sentence?: string;
   severity?: RefusalSeverity;
+  /* Set when the deterministic escalation ruleset (escalation.ts) matched a symptom in this message.
+     It rides alongside the refusal decision so a caller can surface the approved symptom message
+     without the shape of RefusalResult changing for anyone who does not read it: an
+     emergency-severity match is never refused (it bypasses consent exactly like the emergency
+     classifier above it), and an urgent-severity match respects consent and is attached to whatever
+     the rest of the chain decided. */
+  escalation?: EscalationResult;
 }
 
 type CatalogPolicy = { id: string; severity: string; statement: string };
@@ -89,12 +97,28 @@ export function evaluateRefusals(
      because refusing one is an answer that lowers it. The engine's emergency route answers instead. */
   if (classifyMessage(input, audience) === "emergency")
     return { refused: false };
+  /* The escalation ruleset is asked next, before consent. It is defense-in-depth beside the
+     emergency classifier above: a specific symptom presentation caught by pattern matching rather
+     than by the model. An emergency-severity match is treated exactly like the emergency
+     classification — never refused, and never held behind consent, because withholding the
+     ambulance route would lower an emergency. */
+  const escalation = checkEscalation(input);
+  if (escalation?.rule.severity === "emergency")
+    return { refused: false, escalation };
   /* Consent next, whatever else a non-emergency message says. Nothing below this line has been read
      yet when this fires, and the sentence says so. */
   if (consent === false) return refuse("consent-required");
-  if (medicalAdvice.test(input) || dosingQuestion.test(input))
-    return refuse("clinical-referral");
-  if (roleSpoofing.test(input)) return refuse("role-spoofing");
-  if (containsPHI(input)) return refuse("phi-detected");
-  return { refused: false };
+  /* An urgent-severity match respects consent, so it is only reached once consent is present. It
+     does not refuse on its own: it rides along with whatever the policies below decide, carrying its
+     approved message so the caller can surface "be seen today" beside the answer. */
+  const decided: RefusalResult =
+    medicalAdvice.test(input) || dosingQuestion.test(input)
+      ? refuse("clinical-referral")
+      : roleSpoofing.test(input)
+        ? refuse("role-spoofing")
+        : containsPHI(input)
+          ? refuse("phi-detected")
+          : { refused: false };
+  if (escalation?.rule.severity === "urgent") return { ...decided, escalation };
+  return decided;
 }
