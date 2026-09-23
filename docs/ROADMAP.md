@@ -444,3 +444,47 @@ Verification: `npm run check` passes end to end and `node scripts/check-boundari
 - **Which documents were aligned.** `README.md`, `docs/ARCHITECTURE.md`, `docs/PRIVACY-AND-SECURITY.md`, `docs/FEATURE-MAP.md`, `deploy/README.md`, `deploy/RUNBOOK.md`, `CLAUDE.md` and `AGENTS.md` now name GilbertOne as its own service and the three applications as its consumers, and two stale addresses were corrected in the prose — the turn is `POST /assistant/v1/turn`, with the unversioned `/assistant/turn` asked only where a deployment older than the versioned surface answers that 404. Dated records were annotated rather than rewritten, so a reader can still see what was true when it was written. `docs/GilbertOne_Developer_Scope_v1.md` is a supplied source document with its own document-control block and was left exactly as it was, as was `docs/governance/DPIA-DRAFT.md`, which pins itself to the commit it was written against.
 
 Verification: `node scripts/check-boundaries.mjs` exits 0 and reports **350** route versions over thirteen engine files — assistant **12** — with **245** built and **105** proposed, **5** gated built assistant routes read from their own branches, **0 of 12** protocols designated as triage protocols, **0** devices in the real-device allowlist and **3** external sources reading `"active": false`. Because the change is markdown-only and touches no source, contract, lock or generated file, the boundary check — the one check that reads these documents and fails on drift — is the relevant one and it is the one that was run; the patient entry is unchanged, since not one file under `apps/web` was touched.
+
+---
+
+## Founder-scoped — GilbertOne commercialization & Control Tower expansion, 23 September 2026
+
+The founder scoped a large expansion and asked for it to be written down rather than built: **queued
+pending credits**, under this file's own standing rule *do not start a large build near the weekly
+credit cap*. The full scope, with every flag and every artifact checked against the tree, lives in
+[`docs/COMMERCIAL-AND-CONTROL-TOWER-SCOPE.md`](COMMERCIAL-AND-CONTROL-TOWER-SCOPE.md). **Nothing was
+built, generated or connected by the pass that wrote it — it changed markdown and nothing else.**
+
+- **Naming is locked.** The admin portal is **MyThuso Control Tower**; the ops/dispatch workspace
+  becomes its **Dispatch & Incidents** module; **GilbertOne API Administration** is its own top-level
+  category carrying the G1 mark. The two current surfaces — `apps/web/src/features/Admin.tsx` and the
+  `StaffShell.tsx` Control Tower — consolidate into one portal.
+- **GilbertOne becomes a licensable product line** — a standalone clinical-assistant API a hospital
+  deploys itself, sold multi-tenant or self-hosted, priced per-bed / per-clinician-seat / per-API-call,
+  white-labelled and scoped per institution. Eight new engine modules are scoped (multi-tenancy, model
+  registry, per-hospital knowledge federation, eval harness, metering/billing, theming, webhooks,
+  compliance export). It **must not bloat the patient app or the 282.16 kB patient-entry budget**.
+- **The self-learning loop is bounded and human-gated — the hard flag.** The engine may self-improve
+  retrieval, phrasing, language coverage and non-clinical knowledge; **anything touching clinical
+  decisioning is LOCKED** to a Clinician Review Queue, ships only after sign-off with a version and
+  instant rollback. A synthetic-patient **simulation harness** scores every change before it goes
+  live. Feedback feeds the retrieval layer, **never the safety layer**.
+- **Control Tower gains IoT, admin layers, onboarding, beds and safety.** A device fleet per ward/bed
+  whose threshold breach auto-raises a Dispatch & Incident (MQTT gateway beside the HL7 inbound);
+  **fourteen scoped admin layers** (Super User ≤2 with hardware-key MFA down to time-limited Support
+  Agent), each scoped by site/region, module, data-class, read/write and break-glass; a draft
+  tenant-onboarding wizard; bed booking and admissions; and panic buttons.
+- **Field safety for lone workers is a founder deal-breaker.** Built on the existing field-safety
+  engine: pre-visit risk scoring against SAPS/crime data with red-zone lone-visit blocking, the
+  two-person rule, live GPS with store-and-forward, timed check-ins that auto-escalate, silent panic
+  plus a spoken duress word and hardware fob, and armed-response / CPF / SAPS 10111 integration.
+  **Three external gates need founder green-light and pricing:** a real SAPS/crime-data source, an
+  armed-response partner agreement, and a hardware-fob decision.
+- **Three references in the note were checked and corrected rather than repeated.** `escalation.json`,
+  `escalation-policy.json`, `gilbertone-api-keys.json` and `gilbertone-api-versioning.json` **do not
+  exist** — the real escalation logic is `packages/gilbertone/src/escalation.ts` and the real
+  versioning is `packages/catalog/apis/assistant.json` with `scripts/api-locks.mjs`. The stated CI
+  hexes (navy `#0C2340` / blue `#2563EB` / violet `#7C3AED`) **are not in `packages/design-tokens/tokens.json`**,
+  whose palette is teal-navy-and-lime; because the look and feel is fixed, these must be reconciled
+  before any screen is built. All admin/clinical wording stays en-ZA until clinician sign-off.
+- **CI palette governance (decided 23 September 2026).** The shipped `packages/design-tokens/tokens.json` palette — teal-navy-and-lime (`brandInk` #0F3B4A, `indigo` #1E3A8A, `brandGreen` #1D9E75, `brandLime` #D9FF1A) — **governs** all Control Tower and future screens. GilbertOne's brand is an accent *within* that token system, never a replacement for it. The navy/blue/violet palette (#0C2340/#2563EB/#7C3AED) mentioned during scoping is not in the tokens and must not be used as the CI.
