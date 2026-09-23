@@ -96,8 +96,39 @@ persist patient data. Checked.
 `packages/catalog/gilbert-emergency-terms.json`: raise `version`, add a changelog entry (day, role,
 terms added and removed as "group: term", why, the new `termsHash`), and keep the shared fixtures
 passing on all three platforms — `npm run check` replays the changelog and fails otherwise. The list
-has no clinical reviewer yet, and needs one before real patients. The 30-second listening cap and
+has no clinical reviewer yet, and needs one before real patients.
+<!-- superseded by the 2026-09-21 speech conversation amendment below -->
+The 30-second listening cap and
 "Your Thuso AI Doctor · not a person, and not a doctor" are founder decisions, not edits.
+
+---
+
+<!-- Founder Decision Amendment — 2026-09-21 (supersedes the push-to-talk rule above) -->
+
+**Speech conversation mode — founder amendment, 21 September 2026.**
+
+ALL audio processing is on-device: wake word (Porcupine), VAD (Silero),
+STT (faster-whisper), TTS (Piper). No audio or transcript ever leaves the machine.
+No retention: the audio buffer is a ring buffer, overwritten continuously.
+The session transcript exists only in memory and is destroyed when the
+conversation ends. No localStorage/sessionStorage/indexedDB for patient data.
+Visible mic indicator whenever the mic is hot. Physical/software kill switch
+that hard-disables the audio pipeline.
+The 30-second cap becomes a 45-second per-utterance cap (prevents runaway
+transcription cost/latency on a stuck VAD), after which GilbertOne prompts
+the user to continue.
+apps/passport gating is UNCHANGED by this amendment. Speech output is
+read-only delivery; it does not unlock persistence of any health data.
+Cloud voice APIs (ElevenLabs, Resemble) remain prohibited for the on-device
+conversation mode. Azure Speech REST routes (/v1/listen, /v1/speak) remain
+available as the server-side fallback for en-ZA neural voice when configured.
+
+> **DPIA caution:** This amendment changes GilbertOne's privacy posture in front
+> of regulators even if no data leaves the device, because the mic is now capable
+> of always listening. When the DPIA for passport gets written, this amendment
+> must be in scope.
+
+---
 
 ## Working here
 
