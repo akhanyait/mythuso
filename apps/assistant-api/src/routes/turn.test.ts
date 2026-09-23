@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { handleTurn, RequiredFieldMissingError } from './turn.ts';
+import { handleTurn, handleTurnStream, RequiredFieldMissingError, type TurnStreamEvent } from './turn.ts';
 import { buildResponse } from '../../../../packages/gilbertone/src/engine.ts';
 import assistant from '../../../../packages/catalog/assistant.json' with { type: 'json' };
 
@@ -322,8 +322,11 @@ test('a follow-up question is given the prior turn’s actual words, not just it
     sessionId,
    });
    assert.equal(second.source, 'orchestrator');
-   assert.equal(provider.bodies.length, 2);
-   const secondPrompt = systemPromptOf(provider.bodies[1]);
+   /* Since the NER pre-pass (22 September 2026) each turn that reaches the orchestrator makes two
+      model requests — the entity pre-read, then the ReAct loop — so two turns are four requests, and
+      each turn's *loop* prompt (the one carrying history) is the second of its pair. */
+   assert.equal(provider.bodies.length, 4);
+   const secondPrompt = systemPromptOf(provider.bodies[3]);
    /* The patient's own first words are in the prompt the second turn sent... */
    assert.ok(
     secondPrompt.includes('I have a headache'),
@@ -339,7 +342,7 @@ test('a follow-up question is given the prior turn’s actual words, not just it
    assert.ok(secondPrompt.includes('never as evidence to add to this turn'));
    /* The first request had no history to carry — this is what "connected, not answered cold"
       rests on: the difference between the two requests. */
-   const firstPrompt = systemPromptOf(provider.bodies[0]);
+   const firstPrompt = systemPromptOf(provider.bodies[1]);
    assert.equal(firstPrompt.includes('I have a headache'), false);
   });
  } finally {
@@ -361,8 +364,10 @@ test('the history handed to the model is capped, not left to grow across a long 
     });
     assert.equal(result.source, 'orchestrator');
    }
-   assert.equal(provider.bodies.length, turnCount);
-   const lastPrompt = systemPromptOf(provider.bodies[turnCount - 1]);
+   /* Two model requests per turn since the NER pre-pass — the entity pre-read then the loop — so the
+      capped-history assertion reads the last turn's *loop* request, the second of its pair. */
+   assert.equal(provider.bodies.length, turnCount * 2);
+   const lastPrompt = systemPromptOf(provider.bodies[turnCount * 2 - 1]);
    /* The earliest turns have aged out of the capped window entirely. */
    assert.equal(lastPrompt.includes('question number 1 about'), false);
    assert.equal(lastPrompt.includes('question number 2 about'), false);
@@ -438,5 +443,122 @@ test('an emergency never touches the network, configured or not', async () => {
   assert.equal(calls, 0, 'not one request: the emergency path is offline by construction');
  } finally {
   globalThis.fetch = originalFetch;
+ }
+});
+
+/* ---- The streaming door, added with the speed pass of 23 September 2026: the same generator the
+   non-streaming handleTurn drains, read instead as Server-Sent Events. These tests hold the shape
+   of that event stream — the classification first (the early data the door exists to give), then
+   the full response, then a `done` frame that closes it — and that the streamed response is the
+   very answer the non-streaming path returns, carrying beside it the two orchestrator facts (the
+   tools used and the sources they stood on) the JSON contract has never named. They read the door
+   directly rather than a live socket: the server only carries these frames to the wire, so their
+   order and content are the route's promise, and are proved here without a full server. */
+
+const drain = async (
+ req: Parameters<typeof handleTurn>[0],
+): Promise<TurnStreamEvent[]> => {
+ const events: TurnStreamEvent[] = [];
+ for await (const event of handleTurnStream(req)) events.push(event);
+ return events;
+};
+
+test('the streaming door sends classification, then response, then done — in that order', async () => {
+ /* An emergency is the classifier's own territory, so no model is consulted and no provider is
+    needed: the stream is the pure shape of the door. */
+ const events = await drain({
+  text: 'chest pain, get me a nurse',
+  userConsent: true,
+  sessionId: 'session-stream-emergency',
+ });
+ assert.deepEqual(
+  events.map((event) => event.event),
+  ['classification', 'response', 'done'],
+ );
+ const classification = events[0].data as {
+  classification: string;
+  confidence: number;
+  source: string;
+ };
+ assert.equal(classification.classification, 'emergency');
+ assert.equal(classification.source, 'classifier');
+ const response = events[1].data as {
+  route: string;
+  reply: string;
+  source?: string;
+  toolsUsed: string[];
+  sources: string[];
+ };
+ assert.equal(response.route, 'emergency');
+ assert.equal(response.source, undefined, 'a classifier reply names no model tier');
+ assert.deepEqual(response.toolsUsed, []);
+ assert.deepEqual(response.sources, []);
+ assert.deepEqual(events[2].data, {}, 'the done frame carries nothing');
+});
+
+test('the classification frame is available before the answer is composed', async () => {
+ const provider = await scriptedProvider();
+ try {
+  await withEnv({ OLLAMA_URL: provider.url }, async () => {
+   const gen = handleTurnStream({
+    text: 'what immunisation does my baby need',
+    userConsent: true,
+    sessionId: 'session-stream-early',
+   });
+   /* The first frame is pulled while the orchestrator is still working: this is the early data a
+      streaming client shows at once, and it is the classifier's read, which the model may not
+      change. */
+   const first = await gen.next();
+   assert.equal(first.done, false);
+   assert.equal((first.value as TurnStreamEvent).event, 'classification');
+   let next = await gen.next();
+   while (!next.done) next = await gen.next();
+  });
+ } finally {
+  await provider.close();
+ }
+});
+
+test('the streamed response is the orchestrator’s answer, with its tools and sources beside it', async () => {
+ const provider = await scriptedProvider();
+ try {
+  await withEnv({ OLLAMA_URL: provider.url }, async () => {
+   const events = await drain({
+    text: 'what immunisation does my baby need',
+    userConsent: true,
+    sessionId: 'session-stream-orchestrator',
+   });
+   assert.deepEqual(
+    events.map((event) => event.event),
+    ['classification', 'response', 'done'],
+   );
+   const classification = events[0].data as { classification: string; source: string };
+   assert.equal(classification.classification, 'unknown');
+   assert.equal(
+    classification.source,
+    'classifier',
+    'the classification is always the classifier’s own read, whatever tier writes the reply',
+   );
+   const streamed = events[1].data as {
+    reply: string;
+    route: string;
+    source?: string;
+    cue?: string;
+    toolsUsed: string[];
+    sources: string[];
+   };
+   assert.equal(streamed.source, 'orchestrator');
+   assert.equal(streamed.cue, assistant.affect.answers.service.cue);
+   assert.equal(
+    streamed.reply,
+    'The clinic nurse follows the SA immunisation schedule — bring the card at 6, 10 and 14 weeks, and at 9 months.',
+   );
+   /* The tier writes the reply; it never re-routes the turn. */
+   assert.equal(streamed.route, 'unknown');
+   assert.ok(Array.isArray(streamed.toolsUsed), 'the response frame carries the tools used');
+   assert.ok(Array.isArray(streamed.sources), 'the response frame carries the sources');
+  });
+ } finally {
+  await provider.close();
  }
 });

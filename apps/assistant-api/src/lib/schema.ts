@@ -10,6 +10,12 @@ export type AssistantTurnRequest = {
   /* Declared by the caller, never authenticated — the audience decision of 19 September 2026. */
   audience?: Audience;
   userConsent: boolean;
+  /* Opt-in Server-Sent Events, added with the speed pass of 23 September 2026 and declared at
+     POST /v1/turn@2. Absent or false — the default, and what every caller that predates it sends,
+     the web bridge included — the turn is answered with the one JSON response it has always been;
+     true asks the /v1/turn route to stream the classifier's read early and the answer when it is
+     ready, as text/event-stream instead. handleTurn ignores it; only the streaming door reads it. */
+  stream?: boolean;
 };
 
 export type AssistantTurnResponse = {

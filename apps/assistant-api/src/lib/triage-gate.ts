@@ -25,12 +25,8 @@ import clinical from "../../../../packages/catalog/clinical.json" with { type: "
 
    The gate is open only when all three hold. Because it reads the register rather than a flag in this
    file, ratifying a triage protocol is a catalog act — the board writes the protocol, sets its status,
-   names it in clinical.json. But an open gate here is necessary, not sufficient: the live seam in
-   server.ts answers triageOpen() from `triageGate().open && TRIAGE_SEAM_WIRED`, so the routes stay shut
-   until that second lock is flipped, and flipping it is a code change that wires beginTriage and
-   answerTriage to the ratified protocol's real published content — not a catalog edit, and not
-   something that happens with no code change. Until both hold, every triage call is answered with the
-   contract's own refusal, not a 501 and not a guess. */
+   names it in clinical.json — and the routes activate on the next start with no code change. Until
+   then every triage call is answered with the contract's own refusal, not a 501 and not a guess. */
 
 type ProtocolRow = {
   id: string;

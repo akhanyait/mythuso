@@ -72,7 +72,7 @@ async function runSubject(evalCase: EvalCase): Promise<EvalOutcome> {
     case "symptom-check":
       return { reply: checkSymptoms(evalCase.input) };
     case "drug-check":
-      return { reply: checkDrugInteraction(evalCase.input, evalCase.drugB ?? "") };
+      return { reply: await checkDrugInteraction(evalCase.input, evalCase.drugB ?? "") };
     case "medication-info":
       return { reply: lookupMedication(evalCase.input) };
     case "emergency-numbers":

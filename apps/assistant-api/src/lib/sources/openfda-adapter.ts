@@ -3,6 +3,7 @@ import {
   authEnvName,
   federationSource,
   isSourceActive,
+  openFdaInteractionConfig,
   type AdapterDeps,
   type AdapterOutcome,
   type FederatedResult,
@@ -188,4 +189,142 @@ export async function searchOpenFda(
     });
   });
   return { status: "ok", sourceId: config.id, results };
+}
+
+/* ── Drug-interaction query ─────────────────────────────────────────────────────────────────────
+
+   The interaction endpoint is a separate call from the label search above. It queries openFDA's
+   adverse-event-report index for reports where two named medicines appear together, and returns
+   what the reports record — never a clinical judgement.
+
+   DARK BY DEFAULT, LIKE EVERYTHING ELSE. queryInteractions() reads openFdaInteractionConfig(),
+   which gates on OPENFDA_ENABLED === 'true'. When the env var is unset (every deployment today),
+   the function returns an empty array without touching the network.
+
+   SILENT ON EVERY FAILURE. Network error, timeout, non-200, malformed JSON, missing fields —
+   all return an empty array. The drug-check tool treats an empty array as "OpenFDA had nothing",
+   which is honest: the tool's own local pairs still stand, and the "no record is never safe"
+   invariant is preserved by the caller, not by this adapter. */
+
+export type InteractionResult = {
+  drug1: string;
+  drug2: string;
+  severity: string;
+  effect: string;
+  recommendation: string;
+  source: string;
+};
+
+type OpenFdaInteractionReport = {
+  patient?: {
+    drug?: {
+      medicinalproduct?: string;
+      openfda?: { pharm_class_epc?: unknown };
+    }[];
+    reaction?: { reactionmeddrapt?: string }[];
+  };
+};
+
+type OpenFdaInteractionBody = {
+  results?: OpenFdaInteractionReport[];
+};
+
+const INTERACTION_MAX_RESULTS = 5;
+const INTERACTION_GATE_ID = "openfda-interaction";
+
+/* Pull the first string out of a pharm_class_epc array (openFDA returns it as string[]). */
+const firstPharmClass = (value: unknown): string => {
+  if (typeof value === "string") return value.trim();
+  if (Array.isArray(value)) {
+    for (const item of value)
+      if (typeof item === "string" && item.trim()) return item.trim();
+  }
+  return "";
+};
+
+export async function queryInteractions(
+  drugA: string,
+  drugB: string,
+): Promise<InteractionResult[]> {
+  const config = openFdaInteractionConfig();
+  if (!config.active) return [];
+
+  const a = (drugA ?? "").trim();
+  const b = (drugB ?? "").trim();
+  if (!a || !b) return [];
+
+  /* Rate-limit through the shared gate. The gate ID is separate from the label-search gate so
+     the two endpoints' budgets do not interfere with each other. */
+  const gate = rateGateFor(INTERACTION_GATE_ID, config.rateLimitPerMinute);
+  const nowMs = Date.now();
+  if (!gate.take(nowMs)) return [];
+
+  const params = new URLSearchParams();
+  params.set("search", `${a}+AND+${b}`);
+  params.set("limit", String(INTERACTION_MAX_RESULTS));
+  if (config.apiKey) params.set("api_key", config.apiKey);
+
+  const url = `${config.baseUrl}/drug/interaction.json?${params.toString()}`;
+
+  let body: OpenFdaInteractionBody;
+  try {
+    const response = await fetch(url, {
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(config.timeoutMs),
+    });
+    if (!response.ok) return [];
+    body = (await response.json()) as OpenFdaInteractionBody;
+  } catch {
+    return [];
+  }
+
+  const reports = Array.isArray(body.results) ? body.results : [];
+  const results: InteractionResult[] = [];
+
+  for (const report of reports.slice(0, INTERACTION_MAX_RESULTS)) {
+    const patient = report.patient;
+    if (!patient) continue;
+
+    /* Collect the drug names the report actually records, so the result names the pair the
+       report is about rather than echoing back whatever the caller typed. */
+    const drugs = patient.drug ?? [];
+    const names = drugs
+      .map((d) => (d.medicinalproduct ?? "").trim())
+      .filter(Boolean)
+      .slice(0, 2);
+    if (names.length < 2) continue;
+
+    /* The reaction text is what the adverse-event report recorded — it is a reported outcome,
+       never a clinical prediction. */
+    const reactions = (patient.reaction ?? [])
+      .map((r) => (r.reactionmeddrapt ?? "").trim())
+      .filter(Boolean);
+    const effect = reactions.length
+      ? `Adverse event report: ${reactions.join(", ")}`
+      : "Adverse event report recorded";
+
+    /* The pharm class from the first drug that carries one — context for the report, not a
+       severity grading. */
+    const pharmClass = drugs
+      .map((d) => firstPharmClass(d.openfda?.pharm_class_epc))
+      .find(Boolean) ?? "";
+
+    const severity = pharmClass ? "REPORTED" : "REPORTED";
+    const description = pharmClass
+      ? `${effect} (pharmacological class: ${pharmClass})`
+      : effect;
+
+    results.push({
+      drug1: names[0],
+      drug2: names[1],
+      severity,
+      effect: description,
+      recommendation:
+        "This is an adverse event report from the US FDA database, not clinical guidance. " +
+        "A pharmacist, nurse or doctor should be consulted before combining these medicines.",
+      source: "openfda.gov/drug/interaction",
+    });
+  }
+
+  return results;
 }

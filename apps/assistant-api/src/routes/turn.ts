@@ -134,9 +134,44 @@ const response = (
   cue: service?.cue,
 });
 
-export async function handleTurn(
+/* The classification the streaming path sends ahead of the answer, added with the speed pass of
+   23 September 2026. It carries the classifier's own read of the message — the classification and
+   the weight beside it — and always names the classifier as its source, because that is the tier
+   that decided it: the orchestrator may replace the reply but never the classification, so this
+   event is true whether or not a model is consulted afterwards. It is emitted the moment the
+   classifier has read the message and before the slow orchestrator call, so a client can show the
+   read at once and wait only for the words. */
+export type TurnClassificationEvent = {
+  classification: AssistantTurnResponse["classification"];
+  confidence: number;
+  source: "classifier";
+};
+
+/* What one turn produces, seen from inside: the response the non-streaming path returns, plus the
+   two orchestrator facts the streaming path surfaces on its response event and the JSON contract
+   does not — which tools grounded the answer and which sources they carried. Empty for a turn the
+   classifier answered alone. */
+type TurnOutcome = {
+  response: AssistantTurnResponse;
+  toolsUsed: string[];
+  sources: string[];
+};
+
+/* One Server-Sent Event the streaming path writes: a name and a JSON-serializable payload. The
+   server serializes these verbatim, so the shaping of every event lives here, in the route that
+   owns the turn, rather than in the transport that carries it. */
+export type TurnStreamEvent = { event: string; data: unknown };
+
+/* The turn, as one generator: every step of the handler below in the order it has always run, but
+   able to yield the classifier's read partway through and return the whole outcome at the end. Both
+   public doors are thin readers of this one — handleTurn drains it and keeps the return, ignoring
+   the yields; handleTurnStream forwards the yields as SSE events and then the return as its final
+   event — so the two can never classify, refuse, orchestrate or audit a message differently. The
+   yields are pure: they change nothing, which is why draining them and discarding them leaves the
+   non-streaming path byte-for-byte the handler it replaced. */
+async function* runTurn(
   req: AssistantTurnRequest,
-): Promise<AssistantTurnResponse> {
+): AsyncGenerator<TurnClassificationEvent, TurnOutcome> {
   const sessionId =
     typeof req?.sessionId === "string" && req.sessionId.trim()
       ? req.sessionId
@@ -173,7 +208,7 @@ export async function handleTurn(
      message could not be classified", and a caller who typed or spoke nothing deserves to be asked
      for one, not told the assistant is uncertain about a message it never received. */
   if (!req || typeof req.text !== "string" || !req.text.trim()) {
-    return {
+    const clarify: AssistantTurnResponse = {
       turnId: crypto.randomUUID(),
       sessionId,
       route: "clarify",
@@ -186,6 +221,12 @@ export async function handleTurn(
       requiresConfirmation: false,
       suggestedActions: ["clarify_message"],
     };
+    yield {
+      classification: clarify.classification,
+      confidence: clarify.confidence,
+      source: "classifier",
+    };
+    return { response: clarify, toolsUsed: [], sources: [] };
   }
 
   const now = Date.now();
@@ -212,7 +253,7 @@ export async function handleTurn(
       throw new Error(`refusal "${refusal.refusalId}" carries no sentence`);
     sessions.write(sessionId, state, now);
     audit(sessionId, refusal.refusalId ?? "refused", req.text);
-    return response(
+    const refused = response(
       {
         classification: "unknown",
         route: "unknown",
@@ -228,6 +269,12 @@ export async function handleTurn(
       sessionId,
       refusal.refusalId,
     );
+    yield {
+      classification: refused.classification,
+      confidence: refused.confidence,
+      source: "classifier",
+    };
+    return { response: refused, toolsUsed: [], sources: [] };
   }
 
   /* The classifier with the session behind it. buildResponse gives the contract's replies, and
@@ -236,6 +283,16 @@ export async function handleTurn(
   const engine = buildResponse(req.text, audience);
   const { confidence } = classifyWithConfidence(req.text, audience, context);
   const answer: EngineResponse = { ...engine, confidence };
+
+  /* The classification goes out here, before the orchestrator is consulted: this is the early data
+     the streaming path exists to give, and it is the classifier's own read, which the orchestrator
+     may not change. The non-streaming door drains this yield and discards it, so emitting it costs
+     that path nothing. */
+  yield {
+    classification: answer.classification,
+    confidence: answer.confidence,
+    source: "classifier",
+  };
 
   /* The orchestrator tier, since 21 September 2026, in the seat the plain model tier held: where
      the classifier found nothing it knows, a LangChain agent an operator configured may be asked
@@ -262,6 +319,8 @@ export async function handleTurn(
     (answer.classification === "unknown" || answer.confidence < 0.5);
   let reply = answer.reply;
   let service: { cue: string; source: "model" | "orchestrator" } | undefined;
+  let toolsUsed: string[] = [];
+  let sources: string[] = [];
   if (mayConsultOrchestrator) {
     const orchestrated = await orchestrate(redactPHI(req.text), {
       lines: contextLines(context),
@@ -274,6 +333,10 @@ export async function handleTurn(
          panel draws around these words carries the disclosure on the output side. */
       reply = redactPHI(orchestrated.answer);
       service = { cue: serviceCue, source: "orchestrator" };
+      /* Carried for the streaming path's response event, which surfaces what grounded the answer;
+         the non-streaming JSON has never carried these and still does not. */
+      toolsUsed = orchestrated.toolsUsed;
+      sources = orchestrated.sources;
       console.log(
         `[gilbertone:orchestrator] ${sessionId} ${orchestrated.provider} ${orchestrated.toolsUsed.join(",") || "-"} ${orchestrated.ms}ms`,
       );
@@ -289,8 +352,8 @@ export async function handleTurn(
         : (previous?.turnId ?? null),
     text: req.text,
     /* The reply this turn actually got — the classifier's fixed sentence, or the orchestrator's
-       answer when that tier wrote it, already redacted at line ~244 above. This is what makes a
-       later turn's context carry a real exchange rather than a label. */
+       answer when that tier wrote it, already redacted above. This is what makes a later turn's
+       context carry a real exchange rather than a label. */
     reply,
     classification: answer.classification,
     route: answer.route,
@@ -301,5 +364,52 @@ export async function handleTurn(
   sessions.write(sessionId, addTurn(state, nextTurn), now);
 
   audit(sessionId, answer.route, req.text);
-  return response({ ...answer, reply }, sessionId, undefined, service);
+  return {
+    response: response({ ...answer, reply }, sessionId, undefined, service),
+    toolsUsed,
+    sources,
+  };
+}
+
+/* The non-streaming door, and the one every caller has always used: it runs the generator to
+   completion, discards the classification yields it was never interested in, and returns the
+   response — exactly the value the pre-streaming handler returned, from exactly the steps it ran,
+   because those steps are the generator's body unchanged. */
+export async function handleTurn(
+  req: AssistantTurnRequest,
+): Promise<AssistantTurnResponse> {
+  const gen = runTurn(req);
+  let next = await gen.next();
+  while (!next.done) next = await gen.next();
+  return next.value.response;
+}
+
+/* The streaming door, added with the speed pass of 23 September 2026: the same generator, read as
+   Server-Sent Events. The classifier's read goes out first, as it is yielded and before the
+   orchestrator has finished, so a client sees the classification while the answer is still being
+   composed; the full response follows as one event, carrying the two orchestrator facts — the tools
+   used and the sources they stood on — that the JSON contract does not; then a `done` event closes
+   the stream. This is response-level streaming, not token streaming: the orchestrator's compose
+   node produces the final text as one piece, and true token streaming would mean hooking the
+   model's own streaming interface inside the LangGraph, which this pass deliberately does not
+   touch. A caller that does not ask to stream never reaches this door, and the web bridge does not. */
+export async function* handleTurnStream(
+  req: AssistantTurnRequest,
+): AsyncGenerator<TurnStreamEvent> {
+  const gen = runTurn(req);
+  let next = await gen.next();
+  while (!next.done) {
+    yield { event: "classification", data: next.value };
+    next = await gen.next();
+  }
+  const outcome = next.value;
+  yield {
+    event: "response",
+    data: {
+      ...outcome.response,
+      toolsUsed: outcome.toolsUsed,
+      sources: outcome.sources,
+    },
+  };
+  yield { event: "done", data: {} };
 }

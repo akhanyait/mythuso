@@ -1,6 +1,8 @@
-import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
+import { AIMessage, HumanMessage, SystemMessage, ToolMessage, type BaseMessage } from "@langchain/core/messages";
 import { AzureChatOpenAI, ChatOpenAI } from "@langchain/openai";
+import { Annotation, StateGraph, START, END } from "@langchain/langgraph";
 import { redactPHI } from "../../../../packages/gilbertone/src/phi.ts";
+import { checkEscalation } from "../../../../packages/gilbertone/src/escalation.ts";
 import { modelTierAllowed } from "./activation.ts";
 import {
   AzureOpenAIProvider,
@@ -11,20 +13,27 @@ import {
   OllamaProvider,
   OLLAMA_DEFAULT_MODEL,
   OLLAMA_DEFAULT_URL,
+  OLLAMA_OPTIONS,
   llmSystemPrompt,
   probeOllama,
 } from "./llm-adapter.ts";
 import { drugCheckTool } from "./tools/drug-check.ts";
 import { symptomCheckTool } from "./tools/symptom-check.ts";
 import { medicationInfoTool } from "./tools/medication-info.ts";
-import { emergencyNumbersTool } from "./tools/emergency-numbers.ts";
+import { emergencyNumbers, emergencyNumbersTool } from "./tools/emergency-numbers.ts";
 import { knowledgeSearchTool } from "./tools/knowledge-search.ts";
 import { literatureSearchTool } from "./tools/literature-search.ts";
 import { coverageLookupTool } from "./tools/coverage-lookup.ts";
+import {
+  checkEntityEscalation,
+  extractEntities,
+  NER_TIMEOUT_MS,
+  type Extraction,
+  type NerModel,
+} from "./ner/extract.ts";
+import { entityContextBlock, routeEntities, type ToolHint } from "./ner/route-entities.ts";
 
-/* The orchestrator tier, added on 21 September 2026: a LangChain ReAct loop around the same two
-   providers the plain model tier uses, with the catalog's own tools between the message and the
-   answer.
+/* The orchestrator tier, restructured to a LangGraph StateGraph on 22 September 2026.
 
    WHERE THIS SITS. The keyword classifier in packages/gilbertone still decides everything that is
    safe to decide — routes, emergencies, refusals — and those turns never reach this module. The
@@ -32,8 +41,13 @@ import { coverageLookupTool } from "./tools/coverage-lookup.ts";
    match, exactly where it used to call the plain model tier. What the orchestrator adds is the
    tools: instead of answering a medicine question from memory, the model can read the catalog's
    interaction record, medication entry, symptom guidance, emergency numbers, coverage area or
-   knowledge base — or, since 21 September 2026, search Europe PMC for a real, cited paper —
-   before it writes a word.
+   knowledge base — or search Europe PMC for a real, cited paper — before it writes a word.
+
+   THE GRAPH. The internals are now an explicit LangGraph StateGraph with named nodes and
+   conditional edges, replacing the previous flat ReAct loop. The external interface — the
+   orchestrate() function, its parameters, and OrchestratorResult — is unchanged.
+
+   Nodes: check_activation → escalate → extract → route → invoke_tools → gate → compose → END
 
    THE SAFETY CHAIN, IN ORDER. (1) The turn route has already run the refusal policies and the
    emergency classifier before this module is entered. (2) The message and every context line are
@@ -43,9 +57,9 @@ import { coverageLookupTool } from "./tools/coverage-lookup.ts";
    tool instructions this tier exists to add. (4) Every tool is read-only: most are catalog
    lookups, and literature_search is a live, keyless call to Europe PMC, but all of them only ever
    hand back a fact or a citation — none can diagnose, prescribe or contact anyone. (5) The
-   model's answer is redacted and length-capped
-   on the way out. If any link fails — no provider, a hung model, a tool error, a timeout — the
-   caller keeps the classifier's own answer, exactly as before this tier existed.
+   model's answer is redacted and length-capped on the way out. If any link fails — no provider, a
+   hung model, a tool error, a timeout — the caller keeps the classifier's own answer, exactly as
+   before this tier existed.
 
    ONE CEILING. The whole orchestration — model calls, tool rounds, everything — runs inside a
    15-second budget. A turn that cannot finish inside it is a turn the classifier answers alone. */
@@ -203,6 +217,13 @@ async function resolveChatModel(): Promise<ResolvedModel | null> {
         maxRetries: 0,
         /* The same ceiling as the Azure branch above — one constant, both providers. */
         maxTokens: LLM_MAX_OUTPUT_TOKENS,
+        /* The speed pass's inference hints for the local provider, passed through to Ollama's
+           OpenAI-compatible surface in the request body's `options` field — the smaller context
+           window, the GPU offload and the bounded thread count that make a local inference faster
+           on constrained hardware. modelKwargs is spread into the body, so this is where an option
+           LangChain has no first-class field for is said; it rides beside maxTokens rather than
+           replacing it, and the two reach the wire as `options` and `max_tokens` respectively. */
+        modelKwargs: { options: { ...OLLAMA_OPTIONS } },
       }),
     };
   }
@@ -224,7 +245,7 @@ const sourcesOf = (toolOutput: string): string[] => {
   return [...new Set(found)];
 };
 
-/* ---- The loop ---- */
+/* ---- The degraded result factory ---- */
 
 const degradedResult = (
   provider: string,
@@ -239,43 +260,178 @@ const degradedResult = (
   degraded: true,
 });
 
-export async function orchestrate(
-  message: string,
-  sessionContext: SessionContext = {},
-  timeoutMs: number = ORCHESTRATOR_TIMEOUT_MS,
-): Promise<OrchestratorResult> {
-  const started = Date.now();
-  const deadline = started + timeoutMs;
+/* ════════════════════════════════════════════════════════════════════════════════════════════════
+   THE STATE GRAPH
+   ════════════════════════════════════════════════════════════════════════════════════════════════ */
 
-  /* The acknowledgement gate, before anything else this function does: in production without the
-     acknowledgement there is no model path at all — not the Azure provider, not the Ollama probe
-     below, which is the one way a model could otherwise appear with no credential configured
-     anywhere. The caller keeps the classifier's reply, which is exactly what a deployment that has
-     not taken the production decision should say. See ./activation.ts. */
-  if (!modelTierAllowed()) return degradedResult("", started);
+/* The graph's state annotation. Each channel uses a replace reducer — nodes read the full state
+   and return partial updates for the channels they own. */
+const OrchestratorState = Annotation.Root({
+  /* The PHI-redacted user text. */
+  input: Annotation<string>({ reducer: (_, b) => b, default: () => "" }),
+  /* Absolute deadline timestamp (started + timeoutMs). */
+  deadline: Annotation<number>({ reducer: (_, b) => b, default: () => 0 }),
+  /* Timestamp when orchestration began, for the ms field. */
+  started: Annotation<number>({ reducer: (_, b) => b, default: () => 0 }),
+  /* Resolved provider name ("azure-openai" | "ollama" | ""). */
+  providerName: Annotation<string>({ reducer: (_, b) => b, default: () => "" }),
+  /* The resolved chat model instance (opaque — passed through, never serialized). */
+  model: Annotation<ResolvedModel | null>({ reducer: (_, b) => b, default: () => null }),
+  /* The composed system prompt. */
+  systemPrompt: Annotation<string>({ reducer: (_, b) => b, default: () => "" }),
+  /* LangChain message history for the ReAct loop. */
+  messages: Annotation<BaseMessage[]>({ reducer: (_, b) => b, default: () => [] }),
+  /* NER extraction results. */
+  extraction: Annotation<Extraction | null>({ reducer: (_, b) => b, default: () => null }),
+  /* Routed tool hints from NER. */
+  hints: Annotation<ToolHint[]>({ reducer: (_, b) => b, default: () => [] }),
+  /* Tool names invoked during the ReAct loop. */
+  toolsUsed: Annotation<string[]>({ reducer: (_, b) => b, default: () => [] }),
+  /* Collected source citations. */
+  sources: Annotation<string[]>({ reducer: (_, b) => b, default: () => [] }),
+  /* The final composed answer (raw, before compose redacts/caps it — or already final if from
+     an escalation path). Null means no answer yet. */
+  result: Annotation<string | null>({ reducer: (_, b) => b, default: () => null }),
+  /* Confidence weight for the result. */
+  confidence: Annotation<number>({ reducer: (_, b) => b, default: () => 0 }),
+  /* True when the orchestration degraded — no provider, timeout, or failure. */
+  degraded: Annotation<boolean>({ reducer: (_, b) => b, default: () => false }),
+  /* True when an early-exit path (escalation, entity red-flag) produced the final answer and
+     subsequent nodes should be skipped. */
+  earlyExit: Annotation<boolean>({ reducer: (_, b) => b, default: () => false }),
+  /* True when the result has already been composed (redacted + capped) so compose skips it. */
+  composed: Annotation<boolean>({ reducer: (_, b) => b, default: () => false }),
+});
+
+type GraphState = typeof OrchestratorState.State;
+
+/* ---- Node: check_activation ----
+   The acknowledgement gate fires FIRST, before anything else. In production without the
+   acknowledgement there is no model path at all. Then resolves the chat model and composes
+   the system prompt. Any failure here sets degraded and short-circuits to END. */
+async function nodeCheckActivation(state: GraphState): Promise<Partial<GraphState>> {
+  if (!modelTierAllowed()) {
+    return { degraded: true, providerName: "", earlyExit: true };
+  }
 
   const resolved = await resolveChatModel();
-  if (!resolved) return degradedResult("", started);
+  if (!resolved) {
+    return { degraded: true, providerName: "", earlyExit: true };
+  }
 
-  /* The catalog prompt is the tier's licence to run: no rules, no model — the same rule the plain
-     tier enforces, for the same reason. */
-  const systemPrompt = orchestratorSystemPrompt(sessionContext);
-  if (!systemPrompt.trim()) return degradedResult(resolved.name, started);
+  const systemPrompt = orchestratorSystemPrompt(
+    /* The session context is captured in the closure of orchestrate() and passed via the
+       initial state's systemPrompt field — but since we need the resolved model first, we
+       compose it here. The sessionContext is threaded through a module-level variable set
+       by orchestrate() before graph.invoke(). */
+    sessionContextRef,
+  );
+  if (!systemPrompt.trim()) {
+    return { degraded: true, providerName: resolved.name, model: resolved, earlyExit: true };
+  }
 
-  const messages: (SystemMessage | HumanMessage | AIMessage | ToolMessage)[] = [
-    new SystemMessage(systemPrompt),
-    new HumanMessage(redactPHI(message ?? "")),
+  return {
+    providerName: resolved.name,
+    model: resolved,
+    systemPrompt,
+  };
+}
+
+/* ---- Node: escalate ----
+   Runs checkEscalation from packages/gilbertone on the redacted input as a redundant safety net.
+   The turn route already classified emergencies before calling orchestrate(), but the duplication
+   is the point — if an emergency pattern fires here, the graph short-circuits with the approved
+   refusal sentence. */
+async function nodeEscalate(state: GraphState): Promise<Partial<GraphState>> {
+  if (state.degraded || state.earlyExit) return {};
+
+  const matched = checkEscalation(state.input);
+  if (matched) {
+    const answer = redactPHI(matched.rule.message)
+      .trim()
+      .slice(0, LLM_REPLY_LIMIT);
+    return { result: answer, confidence: 1, earlyExit: true, composed: true };
+  }
+  return {};
+}
+
+/* ---- Node: extract ----
+   The NER pre-pass: one bounded model call reads the message as typed entities. If a red-flag
+   symptom fires entity-level escalation, the graph short-circuits with the approved sentence.
+   Any failure is a silent null and the graph proceeds unstructured. */
+async function nodeExtract(state: GraphState): Promise<Partial<GraphState>> {
+  if (state.degraded || state.earlyExit) return {};
+
+  const resolved = state.model;
+  if (!resolved) return { degraded: true, earlyExit: true };
+
+  const remainingForNer = state.deadline - Date.now();
+  const extraction =
+    remainingForNer >= MIN_STEP_BUDGET_MS
+      ? await extractEntities(
+          state.input,
+          resolved.model as unknown as NerModel,
+          Math.min(NER_TIMEOUT_MS, remainingForNer),
+        )
+      : null;
+
+  if (extraction) {
+    const redFlag = checkEntityEscalation(extraction);
+    if (redFlag) {
+      /* Escalate and stop: the approved sentence comes from the deterministic ruleset when it
+         has one for this presentation, and from the catalog's own emergency numbers when it does
+         not — either way the words and the numbers are owned elsewhere, never typed here. */
+      const matched = checkEscalation(redFlag);
+      const answer = redactPHI(
+        matched ? matched.rule.message : emergencyNumbers(redFlag),
+      )
+        .trim()
+        .slice(0, LLM_REPLY_LIMIT);
+      return { extraction, result: answer, confidence: 1, earlyExit: true, composed: true };
+    }
+  }
+
+  const hints = extraction ? routeEntities(extraction) : [];
+  return { extraction, hints };
+}
+
+/* ---- Node: route ----
+   Builds the initial message array: system prompt, entity context block (if any), and the
+   human message. This is the transition from the pre-read into the ReAct loop. */
+async function nodeRoute(state: GraphState): Promise<Partial<GraphState>> {
+  if (state.degraded || state.earlyExit) return {};
+
+  const entityBlock = entityContextBlock(state.extraction, state.hints);
+  const messages: BaseMessage[] = [
+    new SystemMessage(state.systemPrompt),
+    /* The pre-read rides between the catalog's rules and the person's words: guidance the loop
+       may decline, added only when the extraction found something to say. */
+    ...(entityBlock ? [new SystemMessage(entityBlock)] : []),
+    new HumanMessage(state.input),
   ];
+  return { messages };
+}
 
+/* ---- Node: invoke_tools ----
+   The ReAct loop, wrapped in a single graph node. Iterates up to MAX_STEPS times: invoke the
+   model with tools bound, dispatch any tool calls, feed results back. When the model answers
+   without tool calls, the raw content is stored in state.result for compose to finalise. */
+async function nodeInvokeTools(state: GraphState): Promise<Partial<GraphState>> {
+  if (state.degraded || state.earlyExit) return {};
+
+  const resolved = state.model;
+  if (!resolved) return { degraded: true, earlyExit: true };
+
+  const messages = [...state.messages];
   const toolsUsed: string[] = [];
   const sources = new Set<string>();
   const toolsBound = resolved.model.bindTools([...TOOLS]);
 
   try {
     for (let step = 0; step < MAX_STEPS; step += 1) {
-      const remaining = deadline - Date.now();
+      const remaining = state.deadline - Date.now();
       if (remaining < MIN_STEP_BUDGET_MS)
-        return degradedResult(resolved.name, started);
+        return { degraded: true, providerName: resolved.name, toolsUsed, sources: [...sources] };
 
       const ai = (await toolsBound.invoke(messages, {
         signal: AbortSignal.timeout(remaining),
@@ -285,19 +441,15 @@ export async function orchestrate(
       const calls = ai.tool_calls ?? [];
       if (!calls.length) {
         /* No tool call: this step's content is the answer. */
-        const answer = redactPHI(String(ai.content ?? ""))
-          .trim()
-          .slice(0, LLM_REPLY_LIMIT);
-        if (!answer) break;
+        const raw = String(ai.content ?? "");
+        if (!raw.trim()) break;
         const confidence = toolsUsed.length ? (sources.size ? 0.9 : 0.8) : 0.6;
         return {
-          answer,
+          result: raw,
           toolsUsed,
-          confidence,
           sources: [...sources],
-          provider: resolved.name,
-          ms: Date.now() - started,
-          degraded: false,
+          confidence,
+          messages,
         };
       }
 
@@ -342,10 +494,133 @@ export async function orchestrate(
   } catch {
     /* A provider that timed out, refused or failed mid-loop is a tier that did not answer: the
        caller keeps the classifier's reply. */
-    return degradedResult(resolved.name, started);
+    return { degraded: true, toolsUsed, sources: [...sources] };
   }
 
   /* The loop ran out of steps without a final answer — a model that only ever called tools is a
      model that never answered, and the classifier's reply stands. */
-  return degradedResult(resolved.name, started);
+  return { degraded: true, toolsUsed, sources: [...sources] };
+}
+
+/* ---- Node: gate ----
+   Post-tool escalation re-check: a safety net that reads the composed tool results and checks
+   whether anything the tools surfaced triggers an escalation pattern. If it does, the refusal
+   sentence replaces whatever the loop produced. */
+async function nodeGate(state: GraphState): Promise<Partial<GraphState>> {
+  if (state.degraded || state.earlyExit) return {};
+
+  /* Re-check the input against escalation rules one final time after tools have run — the
+     tools themselves are read-only and cannot escalate, but a belt-and-braces check on the
+     original input ensures nothing slipped through. */
+  const matched = checkEscalation(state.input);
+  if (matched) {
+    const answer = redactPHI(matched.rule.message)
+      .trim()
+      .slice(0, LLM_REPLY_LIMIT);
+    return { result: answer, confidence: 1, composed: true, earlyExit: true };
+  }
+  return {};
+}
+
+/* ---- Node: compose ----
+   Final answer processing: PHI redaction and the LLM_REPLY_LIMIT character cap. Escalation paths
+   that already composed their answer (composed=true) skip this node's logic. */
+async function nodeCompose(state: GraphState): Promise<Partial<GraphState>> {
+  if (state.degraded || state.composed) return {};
+
+  if (state.result !== null) {
+    const answer = redactPHI(state.result)
+      .trim()
+      .slice(0, LLM_REPLY_LIMIT);
+    return { result: answer, composed: true };
+  }
+  return {};
+}
+
+/* ---- Conditional edge routers ---- */
+
+function routeAfterActivation(state: GraphState): typeof END | "escalate" {
+  return state.earlyExit ? END : "escalate";
+}
+
+function routeAfterEscalate(state: GraphState): typeof END | "extract" {
+  return state.earlyExit ? END : "extract";
+}
+
+function routeAfterExtract(state: GraphState): typeof END | "route" {
+  return state.earlyExit ? END : "route";
+}
+
+function routeAfterInvokeTools(state: GraphState): typeof END | "gate" {
+  return state.degraded ? END : "gate";
+}
+
+function routeAfterGate(state: GraphState): typeof END | "compose" {
+  return state.earlyExit ? END : "compose";
+}
+
+/* ---- The compiled graph ---- */
+
+const orchestratorGraph = new StateGraph(OrchestratorState)
+  .addNode("check_activation", nodeCheckActivation)
+  .addNode("escalate", nodeEscalate)
+  .addNode("extract", nodeExtract)
+  .addNode("route", nodeRoute)
+  .addNode("invoke_tools", nodeInvokeTools)
+  .addNode("gate", nodeGate)
+  .addNode("compose", nodeCompose)
+  .addEdge(START, "check_activation")
+  .addConditionalEdges("check_activation", routeAfterActivation, { [END]: END, escalate: "escalate" })
+  .addConditionalEdges("escalate", routeAfterEscalate, { [END]: END, extract: "extract" })
+  .addConditionalEdges("extract", routeAfterExtract, { [END]: END, route: "route" })
+  .addEdge("route", "invoke_tools")
+  .addConditionalEdges("invoke_tools", routeAfterInvokeTools, { [END]: END, gate: "gate" })
+  .addConditionalEdges("gate", routeAfterGate, { [END]: END, compose: "compose" })
+  .addEdge("compose", END)
+  .compile();
+
+/* ---- The session context reference ----
+   The graph nodes are stateless functions; the session context that orchestrate() receives is
+   set here before each invocation so check_activation can compose the system prompt. This is
+   safe because Node.js is single-threaded and orchestrate() awaits the graph to completion
+   before returning — no two invocations interleave within one event loop tick. */
+let sessionContextRef: SessionContext = {};
+
+/* ---- The public interface (unchanged) ---- */
+
+export async function orchestrate(
+  message: string,
+  sessionContext: SessionContext = {},
+  timeoutMs: number = ORCHESTRATOR_TIMEOUT_MS,
+): Promise<OrchestratorResult> {
+  const started = Date.now();
+  const deadline = started + timeoutMs;
+
+  /* Set the session context for the graph's check_activation node. */
+  sessionContextRef = sessionContext;
+
+  const redactedText = redactPHI(message ?? "");
+
+  /* Invoke the StateGraph. The graph handles the full pipeline: activation gate, escalation,
+     NER extraction, routing, the ReAct tool loop, the post-tool gate, and final composition. */
+  const finalState = await orchestratorGraph.invoke({
+    input: redactedText,
+    deadline,
+    started,
+  });
+
+  /* Map the graph's final state to the OrchestratorResult contract. */
+  if (finalState.degraded || finalState.result === null) {
+    return degradedResult(finalState.providerName ?? "", started);
+  }
+
+  return {
+    answer: finalState.result,
+    toolsUsed: finalState.toolsUsed ?? [],
+    confidence: finalState.confidence,
+    sources: [...new Set(finalState.sources ?? [])],
+    provider: finalState.providerName,
+    ms: Date.now() - started,
+    degraded: false,
+  };
 }

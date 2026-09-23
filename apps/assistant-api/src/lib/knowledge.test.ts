@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import {
+  clearKnowledgeCache,
   knowledgeStats,
   retrieveKnowledge,
   searchKnowledge,
@@ -33,6 +34,10 @@ const withEnv = async <T>(
   for (const key of ENV_KEYS) delete process.env[key];
   for (const [key, value] of Object.entries(values))
     if (value) process.env[key] = value;
+  /* retrieveKnowledge now answers a repeated (query, topK) from its LRU cache, so each env-scoped
+     test starts from an empty one: a question an earlier test asked would otherwise be served from
+     memory and never reach the embedding or Qdrant call these tests count. */
+  clearKnowledgeCache();
   try {
     return await body();
   } finally {
@@ -337,5 +342,163 @@ test("Qdrant times out: the keyword floor answers instead of a hung request", as
     stallingQdrant.closeAllConnections();
     await new Promise<void>((resolve) => azureStub.close(() => resolve()));
     await new Promise<void>((resolve) => stallingQdrant.close(() => resolve()));
+  }
+});
+
+/* ---- The retrieval cache ----
+
+   Added with the speed pass of 23 September 2026. These three hold the LRU in knowledge.ts to its
+   own promise: a repeated question is answered from memory rather than re-queried, the cache is
+   bounded at 200 entries and evicts oldest-first, and clearKnowledgeCache() empties it. Each runs
+   against a counting stub on the vector road, because a cache hit is only observable as a network
+   call that did not happen — the keyword floor returns identical results whether or not it ran. */
+
+/* One stub wearing both Azure's embedding shape and Qdrant's search shape, counting the embedding
+   calls it answers: the count is the observable fact these tests read. */
+const countingVectorStub = async (): Promise<{
+  url: string;
+  embeddings: () => number;
+  close: () => Promise<void>;
+}> => {
+  let embeddingCalls = 0;
+  const stub = createServer((req, res) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    req.on("end", () => {
+      res.writeHead(200, { "content-type": "application/json" });
+      if (req.url?.includes("/embeddings")) {
+        embeddingCalls += 1;
+        res.end(JSON.stringify({ data: [{ embedding: [0.1, 0.2, 0.3] }] }));
+        return;
+      }
+      res.end(
+        JSON.stringify({
+          result: [
+            {
+              score: 0.9,
+              payload: {
+                id: "stub-001",
+                title: "Stub entry",
+                snippet: "Stub snippet",
+                source: "Stub source",
+                file: "prevention",
+              },
+            },
+          ],
+        }),
+      );
+    });
+  });
+  await new Promise<void>((resolve) => stub.listen(0, "127.0.0.1", resolve));
+  const address = stub.address();
+  assert.ok(address && typeof address === "object");
+  return {
+    url: `http://127.0.0.1:${address.port}`,
+    embeddings: () => embeddingCalls,
+    close: async () => {
+      stub.closeAllConnections();
+      await new Promise<void>((resolve) => stub.close(() => resolve()));
+    },
+  };
+};
+
+test("a repeated question is answered from the cache, not re-queried", async () => {
+  const stub = await countingVectorStub();
+  try {
+    await withEnv(
+      {
+        QDRANT_URL: stub.url,
+        AZURE_OPENAI_ENDPOINT: stub.url,
+        AZURE_OPENAI_KEY: "a-key",
+      },
+      async () => {
+        const first = await retrieveKnowledge("child immunisation schedule", 4);
+        const afterFirst = stub.embeddings();
+        assert.equal(afterFirst, 1, "the first ask embeds and searches once");
+
+        /* The same words, differing only in case and spacing, are the one question: the normalized
+           key means this is a hit, so no second embedding call reaches the stub. */
+        const second = await retrieveKnowledge(
+          "  Child   Immunisation SCHEDULE ",
+          4,
+        );
+        assert.equal(
+          stub.embeddings(),
+          afterFirst,
+          "a repeated question is served from memory, with nothing on the network",
+        );
+        assert.deepEqual(second, first, "the cached array is the one the first call built");
+      },
+    );
+  } finally {
+    await stub.close();
+  }
+});
+
+test("the cache is bounded at 200 entries and evicts the oldest first", async () => {
+  const stub = await countingVectorStub();
+  try {
+    await withEnv(
+      {
+        QDRANT_URL: stub.url,
+        AZURE_OPENAI_ENDPOINT: stub.url,
+        AZURE_OPENAI_KEY: "a-key",
+      },
+      async () => {
+        /* Fill past the ceiling: q0 is written first, then q1..q200 push the cache over 200 and
+           evict q0 as the oldest. Each is a distinct normalized key, so each is its own entry. */
+        for (let i = 0; i <= 200; i += 1)
+          await retrieveKnowledge(`distinct query number q${i}`, 4);
+
+        const before = stub.embeddings();
+        /* q0 was evicted, so asking it again is a miss and reaches the wire. */
+        await retrieveKnowledge("distinct query number q0", 4);
+        assert.equal(
+          stub.embeddings(),
+          before + 1,
+          "the oldest entry was evicted, so it is queried again rather than served from memory",
+        );
+        /* q200 is the most recent, so it is still cached and asking it is a hit. */
+        const afterQ0 = stub.embeddings();
+        await retrieveKnowledge("distinct query number q200", 4);
+        assert.equal(
+          stub.embeddings(),
+          afterQ0,
+          "a recent entry is still cached, so it is not re-queried",
+        );
+      },
+    );
+  } finally {
+    await stub.close();
+  }
+});
+
+test("clearKnowledgeCache() empties the cache, so the next ask is a miss", async () => {
+  const stub = await countingVectorStub();
+  try {
+    await withEnv(
+      {
+        QDRANT_URL: stub.url,
+        AZURE_OPENAI_ENDPOINT: stub.url,
+        AZURE_OPENAI_KEY: "a-key",
+      },
+      async () => {
+        await retrieveKnowledge("maternal antenatal care", 4);
+        const before = stub.embeddings();
+        assert.equal(before, 1);
+
+        /* withEnv cleared the cache on entry; clearing it again mid-test must make the repeat a
+           miss rather than a hit. */
+        clearKnowledgeCache();
+        await retrieveKnowledge("maternal antenatal care", 4);
+        assert.equal(
+          stub.embeddings(),
+          before + 1,
+          "after a clear the same question is queried again",
+        );
+      },
+    );
+  } finally {
+    await stub.close();
   }
 });

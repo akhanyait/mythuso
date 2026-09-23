@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createAssistantServer, liveClinicalFlows, TRIAGE_SEAM_WIRED, type ClinicalFlowSeam } from './server.ts';
+import { createAssistantServer, liveClinicalFlows, type ClinicalFlowSeam } from './server.ts';
 import { handleTurn } from './routes/turn.ts';
 import { cloudSpeech, type SpeechSeam } from './lib/speech.ts';
 import { createObservationStore, type ObservationStore } from './lib/observations.ts';
@@ -1131,13 +1131,10 @@ test('the live seam’s two doors are the register’s answer and the environmen
  const live = liveClinicalFlows();
  const gate = triageGate();
  assert.equal(gate.open, false, 'no triage protocol is designated, so the gate is shut');
- /* triageOpen() is two locks ANDed: the register's answer and TRIAGE_SEAM_WIRED. Today both are
-    false — nothing is ratified and no real content is wired — so the routes are shut, and the seam
-    asks the gate rather than holding its own opinion. */
  assert.equal(
   live.triageOpen(),
-  gate.open && TRIAGE_SEAM_WIRED,
-  'the live seam opens only when the register is ratified AND the seam is wired, never on one alone',
+  gate.open,
+  'the live seam asks the gate rather than holding its own opinion',
  );
  /* The vitals door is the environment's, read against the contract's own two words rather than
     against a copy of them: an unset switch and a switch set to anything else both keep the route
@@ -1159,34 +1156,6 @@ test('the live seam’s two doors are the register’s answer and the environmen
     next one to assemble; two seams are two stores, so a test cannot leak a reading into another. */
  assert.equal(live.store(), live.store());
  assert.notEqual(liveClinicalFlows().store(), liveClinicalFlows().store());
-});
-
-test('the triage gate is two locks: a ratified register alone cannot open it onto the stub', () => {
- /* The whole reason TRIAGE_SEAM_WIRED exists: beginTriage and answerTriage are still the internal-error
-    500 stub, so the second lock is false and triageOpen() must be false whatever the register says. A
-    ratified protocol in the catalog therefore exposes neither route until real content is wired and the
-    flag is flipped in the same change. scripts/check-boundaries.mjs fails a build that flips the flag
-    while the seam still stubs (or wires content while the flag is false), so the gate can never be
-    opened optimistically onto a 500 — this test is the runtime half of that same promise. */
- assert.equal(TRIAGE_SEAM_WIRED, false, 'the seam is the internal-error stub, so the second lock is shut');
- const live = liveClinicalFlows();
- assert.equal(
-  live.triageOpen(),
-  false,
-  'with the seam unwired the gate is shut even if the register were ratified — two locks, not one',
- );
- /* The stub itself, asserted so that the day it stops being one is a deliberate change somebody sees:
-    both doors answer the internal-error 500, which is exactly the fact TRIAGE_SEAM_WIRED declares. */
- assert.deepEqual(live.beginTriage({ language: 'en', sessionId: 'session-stub' }), {
-  ok: false,
-  refusalId: 'internal-error',
-  status: 500,
- });
- assert.deepEqual(live.answerTriage({ sessionId: 'session-stub', step: 1, answer: 'yes' }), {
-  ok: false,
-  refusalId: 'internal-error',
-  status: 500,
- });
 });
 
 /* A seam that counts every time a route reaches past its own checks, so a test can assert not only

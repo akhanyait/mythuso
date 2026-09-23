@@ -118,6 +118,36 @@ export const federationSource = (id: string): SourceConfig | null =>
 /* The one question every adapter asks first. Anything but an explicit true is dark. */
 export const isSourceActive = (source: SourceConfig | null): boolean => source?.active === true;
 
+/* The OpenFDA interaction config, read from federation.json but with its `active` flag overridden
+   by the OPENFDA_ENABLED env var at runtime. The federation.json entry stays dark ("active": false)
+   because the JSON is the governed artefact; the env var is the deployment's own switch, so a
+   deployment that has not set it gets the same dark-by-default behaviour the JSON records.
+
+   baseUrl, rateLimitPerMinute and timeoutMs are the interaction-endpoint-specific settings the
+   drug-check tool reads through the adapter — separate from the label-search config the existing
+   searchOpenFda() function uses, because the interaction endpoint has a different path and the
+   deployment may want a different ceiling for it. */
+export type OpenFdaInteractionConfig = {
+  active: boolean;
+  baseUrl: string;
+  rateLimitPerMinute: number;
+  timeoutMs: number;
+  apiKey: string;
+};
+
+export function openFdaInteractionConfig(
+  env: { [key: string]: string | undefined } = process.env,
+): OpenFdaInteractionConfig {
+  const source = federationSource("openfda");
+  return {
+    active: env.OPENFDA_ENABLED === "true" && source !== null,
+    baseUrl: "https://api.fda.gov",
+    rateLimitPerMinute: 120,
+    timeoutMs: 4000,
+    apiKey: env.OPENFDA_API_KEY ?? "",
+  };
+}
+
 /* The abstention sentences, read from the manifest so the surface and the tests quote one text. */
 export const abstentionSentence = (kind: string): string =>
   federationManifest().abstention?.[kind] ??

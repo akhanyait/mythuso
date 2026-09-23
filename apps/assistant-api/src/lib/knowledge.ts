@@ -407,15 +407,86 @@ async function qdrantSearch(
   }
 }
 
+/* ---- The retrieval cache ----
+
+   Added with the speed pass of 23 September 2026: a plain in-memory LRU over retrieveKnowledge's
+   results, keyed by the normalized query and the topK it was asked for. It exists because the same
+   question is asked more than once in a conversation — a follow-up re-reads the knowledge base the
+   turn before it just searched — and both roads through retrieveKnowledge are worth skipping on a
+   repeat: the keyword floor re-scores all 250 entries, and the vector road costs an Azure embedding
+   call and a Qdrant round-trip under a four-second ceiling. A hit returns the identical array the
+   first call built, in constant time, with nothing on the network.
+
+   THE BOUNDS ARE THE POINT. Two hundred entries, evicted oldest-first, and the whole cache is
+   process-lifetime only: it dies on restart, holds no PHI beyond the query text a caller already
+   sent, touches no disk and reads no environment. It is a Map used as an LRU — insertion order is
+   recency, so a read re-inserts to mark itself recent and an eviction drops the first key — with no
+   npm dependency, because a cache this small is not a thing to take a library for.
+
+   The key folds case and whitespace so "Child  immunisation" and "child immunisation" are the one
+   question they always were, and carries topK beside it because a four-result answer and a
+   two-result answer to the same words are different arrays and must not be handed for one another. */
+const CACHE_MAX = 200;
+const cache = new Map<string, { results: KnowledgeResult[]; accessedAt: number }>();
+
+/* A separator no query text carries, so a query ending in a digit cannot collide with the topK. */
+const cacheKey = (query: string, topK: number): string =>
+  `${query.trim().toLowerCase().replace(/\s+/g, " ")}\u0000${topK}`;
+
+function cacheGet(key: string): KnowledgeResult[] | null {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  /* Re-insert to move this key to the end — the most-recently-used end of the LRU. */
+  cache.delete(key);
+  cache.set(key, entry);
+  return entry.results;
+}
+
+function cacheSet(key: string, results: KnowledgeResult[]): void {
+  if (cache.size >= CACHE_MAX) {
+    /* Evict the oldest: a Map iterates in insertion order, so the first key is the least recent. */
+    const firstKey = cache.keys().next().value;
+    if (firstKey !== undefined) cache.delete(firstKey);
+  }
+  cache.set(key, { results, accessedAt: Date.now() });
+}
+
+/* Exported for the tests, which must start from an empty cache to hold the network-call counts they
+   assert on: retrieveKnowledge now answers a repeat from memory, so a test that counts embedding or
+   Qdrant calls has to clear the cache first or a question an earlier test asked would never reach
+   the wire. Nothing in the service calls this — the cache is meant to live for the process. */
+export function clearKnowledgeCache(): void {
+  cache.clear();
+}
+
 /* The door the tools use. Vector search when an operator has stood up Qdrant, keyword search
    always — and whatever goes wrong on the vector road, the answer is the keyword floor, never an
    error, in exactly the way the chat tier falls back to the classifier. The query is embedded
    through embedWithAzure() in llm-adapter.ts — the same function, same credentials and same
    redaction the ingestion script uses to embed the catalog it is being searched against, so the
-   two sides of the comparison are never built two different ways. */
+   two sides of the comparison are never built two different ways.
+
+   Since the speed pass of 23 September 2026 the whole lookup is wrapped in the LRU cache above: a
+   repeated (query, topK) is answered from memory before either road is taken, and a first ask
+   caches whatever the two roads produced — vector hits or the keyword floor alike — so the next one
+   is free. The cache sits in front of the fallback logic rather than inside it, so a hit skips the
+   embedding call and the Qdrant round-trip too, which is the latency the pass exists to remove. */
 export async function retrieveKnowledge(
   query: string,
   topK: number = 4,
+): Promise<KnowledgeResult[]> {
+  const key = cacheKey(query, topK);
+  const cached = cacheGet(key);
+  if (cached) return cached;
+
+  const results = await retrieveUncached(query, topK);
+  cacheSet(key, results);
+  return results;
+}
+
+async function retrieveUncached(
+  query: string,
+  topK: number,
 ): Promise<KnowledgeResult[]> {
   const url = qdrantUrl();
   if (!url) return searchKnowledge(query, topK);

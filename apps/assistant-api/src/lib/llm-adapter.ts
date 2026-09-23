@@ -58,6 +58,28 @@ export const OLLAMA_DEFAULT_URL = "http://localhost:11434";
    resolvable there ('model not found'), and med42-v2 was never installed. An operator who has a
    different model sets OLLAMA_MODEL and this default never runs. */
 export const OLLAMA_DEFAULT_MODEL = "llama3.1:8b";
+/* Inference options for the local provider, added with the speed pass of 23 September 2026 and
+   carried here beside the Ollama defaults so every resolver reads the same numbers rather than
+   each typing its own. They are hints the orchestrator's LangChain client passes through to
+   Ollama's OpenAI-compatible surface in the request body's `options` field, and Ollama applies
+   what the loaded model supports and ignores the rest — so they tune a local inference without
+   ever being a promise this service can break.
+
+   num_ctx is halved from Ollama's 8192 default to 4096: this tier's whole prompt — the catalog's
+   system rules, the tool guide, a few context lines and one short question — fits well inside it,
+   and a smaller context window is a materially faster and lighter inference on constrained
+   hardware. num_gpu asks Ollama to offload layers to a GPU when one is present; num_thread bounds
+   the CPU threads it may use when there is not, so one inference cannot take a whole box.
+
+   Recommended for production: `ollama pull llama3.1:8b-q4_K_M`.
+   4-bit quantization: ~4.7 GB VRAM, ~2x faster inference than the 8b default.
+   The full llama3.1:8b (~8 GB) works but is slower on constrained hardware. The quantized tag is
+   an operator's choice, set through OLLAMA_MODEL; these options help whichever tag is loaded. */
+export const OLLAMA_OPTIONS = {
+  num_ctx: 4096,
+  num_gpu: 1,
+  num_thread: 4,
+} as const;
 /* A ceiling on what a model may put in one reply, so a runaway answer cannot bloat the session
    store or the panel. A normal answer is a few sentences; this is roughly two hundred words. */
 export const LLM_REPLY_LIMIT = 1200;

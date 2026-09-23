@@ -82,6 +82,15 @@ const assistantToolCall = (name: string, args: Record<string, unknown>): string 
   'tool_calls',
  );
 
+/* The NER pre-pass (./ner/extract.ts) runs one bounded model call BEFORE the ReAct loop, so every
+   orchestration that reaches a provider spends its first request on extraction. This is that first
+   response: a well-formed extraction with no entities, which yields no escalation and no tool hints,
+   so the loop after it runs exactly as it did before the pre-pass existed. The scripts below prepend
+   it and count it as request one. */
+const nerEmpty = assistantAnswer(
+ '{"medications":[],"symptoms":[],"vitals_mentioned":[],"time_references":[]}',
+);
+
 type Scripted = { server: Server; url: string; bodies: string[]; close: () => Promise<void> };
 
 /* A provider that answers each request with the next line of its script (the last line repeats),
@@ -142,6 +151,7 @@ test('with no provider configured the tier is dark: a degraded result, never an 
 
 test('a tool call is dispatched, its result fed back, and its sources become the answer’s', async () => {
  const provider = await scriptedProvider([
+  nerEmpty,
   assistantToolCall('knowledge_search', { query: 'child immunisation schedule' }),
   assistantAnswer(
    'Babies follow the SA EPI schedule: birth doses, then visits at 6, 10 and 14 weeks and 9 months. Ask the clinic nurse to check the card.',
@@ -160,10 +170,10 @@ test('a tool call is dispatched, its result fed back, and its sources become the
     'the EPI attribution the tool carried is the answer’s source',
    );
    assert.ok(result.ms < 15_000);
-   /* Two requests — the tool call, then the answer — and the second carries the first's result
-      back to the model: the loop's whole contract in one body. */
-   assert.equal(provider.bodies.length, 2);
-   const toolMessages = wireMessages(provider.bodies[1]).filter(
+   /* Three requests — the NER pre-pass, the tool call, then the answer — and the third carries the
+      tool's result back to the model: the loop's whole contract in one body. */
+   assert.equal(provider.bodies.length, 3);
+   const toolMessages = wireMessages(provider.bodies[2]).filter(
     (message) => message.role === 'tool',
    );
    assert.equal(toolMessages.length, 1);
@@ -223,6 +233,7 @@ test('a provider that refuses everything is a degradation, not an error', async 
 
 test('a tool the agent invents gets the honest no-such-tool answer, and the loop still finishes', async () => {
  const provider = await scriptedProvider([
+  nerEmpty,
   assistantToolCall('crystal_ball', { question: 'will I recover' }),
   assistantAnswer('I cannot look into the future, but a nurse can talk it through with you.'),
  ]);
@@ -233,8 +244,8 @@ test('a tool the agent invents gets the honest no-such-tool answer, and the loop
    assert.deepEqual(result.toolsUsed, ['crystal_ball']);
    assert.ok(result.answer.includes('nurse'));
    assert.ok(
-    provider.bodies[1].includes('No tool named') &&
-     provider.bodies[1].includes('crystal_ball'),
+    provider.bodies[2].includes('No tool named') &&
+     provider.bodies[2].includes('crystal_ball'),
     'the model is told the tool does not exist, so it cannot quote it',
    );
   });
@@ -256,6 +267,7 @@ test('a tool the agent invents gets the honest no-such-tool answer, and the loop
 
 test('the Ollama LangChain client sends the output ceiling on the wire', async () => {
  const provider = await scriptedProvider([
+  nerEmpty,
   assistantAnswer('Ask the clinic nurse to check the card.'),
  ]);
  try {
@@ -264,8 +276,8 @@ test('the Ollama LangChain client sends the output ceiling on the wire', async (
    assert.equal(result.degraded, false);
    assert.equal(result.provider, 'ollama');
   });
-  assert.equal(provider.bodies.length, 1, 'one request, whose body is the evidence');
-  const parsed = JSON.parse(provider.bodies[0]) as { max_tokens?: number };
+  assert.equal(provider.bodies.length, 2, 'the NER pre-pass and the loop step, both on the one client');
+  const parsed = JSON.parse(provider.bodies[1]) as { max_tokens?: number };
   assert.equal(
    parsed.max_tokens,
    LLM_MAX_OUTPUT_TOKENS,
@@ -278,6 +290,7 @@ test('the Ollama LangChain client sends the output ceiling on the wire', async (
 
 test('the Azure LangChain client sends the same ceiling on the wire, as max_completion_tokens', async () => {
  const provider = await scriptedProvider([
+  nerEmpty,
   assistantAnswer('Ask the clinic nurse to check the card.'),
  ]);
  try {
@@ -291,8 +304,8 @@ test('the Azure LangChain client sends the same ceiling on the wire, as max_comp
     assert.equal(result.provider, 'azure-openai');
    },
   );
-  assert.equal(provider.bodies.length, 1, 'one request, whose body is the evidence');
-  const parsed = JSON.parse(provider.bodies[0]) as {
+  assert.equal(provider.bodies.length, 2, 'the NER pre-pass and the loop step, both on the one client');
+  const parsed = JSON.parse(provider.bodies[1]) as {
    max_tokens?: number;
    max_completion_tokens?: number;
   };
