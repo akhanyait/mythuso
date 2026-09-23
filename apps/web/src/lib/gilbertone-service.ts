@@ -356,6 +356,20 @@ export type SpeakAnswer = {
   readonly language: string;
 };
 
+/** The cloud voice's own "not in this language" answer, added with the multi-language frontend of
+ *  23 September 2026. The contract marks each of voice.languages ttsAvailable, and a language it has
+ *  no neural voice for — isiZulu, isiXhosa, Sesotho and the further South African languages — is
+ *  answered `{ ok: false, voiceUnavailable: true, language }` rather than failed or, worse, read in
+ *  an English voice. This client surfaces that flag as its own shape instead of swallowing it into a
+ *  ServiceRefusal, so lib/voice.ts can tell "this language has no voice" (say so, keep the words on
+ *  the screen, never fall back to the browser's English) apart from "the cloud is down" (fall back to
+ *  the browser's own voice exactly as it always has). */
+export type SpeakUnavailable = {
+  readonly ok: false;
+  readonly voiceUnavailable: true;
+  readonly language: string;
+};
+
 /** What the cloud voice heard: the words, and the language they were heard in. A capture the
  *  recogniser read as silence comes back as an empty `text` rather than a refusal — a tap that caught
  *  nothing is an answer, not a fault. */
@@ -378,8 +392,8 @@ export async function speakText(
   text: string,
   voice: "female" | "male",
   language: string = LANGUAGE,
-): Promise<SpeakAnswer | ServiceRefusal> {
-  const result = await call<SpeakAnswer>(
+): Promise<SpeakAnswer | SpeakUnavailable | ServiceRefusal> {
+  const result = await call<SpeakAnswer | SpeakUnavailable>(
     "/assistant/v1/speak",
     post({
       text,
@@ -393,7 +407,17 @@ export async function speakText(
         format?: unknown;
         voice?: unknown;
         language?: unknown;
+        voiceUnavailable?: unknown;
       };
+      /* The language-has-no-voice answer, surfaced rather than swallowed: it arrives as a 200 whose
+         body says ok:false and voiceUnavailable:true, so it reaches this parse rather than the
+         refusal branch in `call`, and it is handed back as its own shape for lib/voice.ts to read. */
+      if (b?.voiceUnavailable === true)
+        return {
+          ok: false,
+          voiceUnavailable: true,
+          language: typeof b.language === "string" ? b.language : language,
+        };
       if (typeof b?.audioBase64 !== "string") return null;
       return {
         ok: true,
@@ -407,8 +431,14 @@ export async function speakText(
   /* The route answers speech-not-configured when the cloud voice is not switched on for this process.
      That is a fact about the deployment and it does not change mid-session, so it is remembered: the
      panel stops asking and carries on with the browser's own voice rather than paying a refused round
-     trip on every reply. */
-  if (!result.ok && result.refusalId === "speech-not-configured")
+     trip on every reply. A voiceUnavailable answer is not this fact — it says the cloud is configured
+     and simply has no voice for THIS language — so it must not poison the cache and stop the panel
+     asking for a language the cloud can voice. */
+  if (
+    !result.ok &&
+    "refusalId" in result &&
+    result.refusalId === "speech-not-configured"
+  )
     speechConfigured = false;
   return result;
 }

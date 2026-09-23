@@ -21,6 +21,7 @@ import {
   CalendarDays,
   FileText,
   MessageCircle,
+  Mic,
   Users,
   ShieldCheck,
   Minus,
@@ -39,6 +40,7 @@ import { MotionPause } from "../components/MotionPause";
 import { AssistantAttachments } from "../components/AssistantAttachments";
 import { AssistantVoiceButton } from "../components/AssistantVoiceButton";
 import { GilbertAvatar, GilbertStill, useGilbertRig } from "./GilbertAvatar";
+import { GilbertOneWordmark } from "../components/GilbertOneWordmark";
 import {
   affect,
   answers,
@@ -61,6 +63,7 @@ import {
   refusalFor,
   refusals,
   say,
+  screens,
   silenceIsNotSafety,
   spokenOf,
   stateSpec,
@@ -89,6 +92,7 @@ import { useDecor, useReducedMotion } from "../lib/motion";
 import type { Visit } from "../lib/scheduling";
 import { useVoiceAdapter } from "../lib/voice";
 import "./assistant.css";
+import "./gilbertone-theme.css";
 
 /* The connected-capability region arrives on its own dynamic import, so the status, retrieval,
    triage and handover routes it consumes — and the code that renders them — are a separate chunk of
@@ -97,6 +101,41 @@ import "./assistant.css";
    rather than to the panel around it: the transcript, the emergency numbers and the refusals are
    the product, and they do not depend on a service region that may not arrive. */
 const GilbertOneServices = lazy(() => import("./GilbertOneServices"));
+
+/* The consent gate's emergency sentence with its numbers as tap-to-call links — the founder-approved
+   improvement of 23 September 2026. The numbers are the contract's, read from sos.json by id through
+   lines() and never typed here, and the sentence stays consent.emergencyNotice: it is split on its own
+   {ambulance} and {mobile} placeholders so the words around the links are the catalog's, and only the
+   two numbers become tel: anchors a thumb can press. */
+function EmergencyLinks() {
+  const [ambulance] = lines(["ambulance"]);
+  const [mobile] = lines(["mobile"]);
+  return (
+    <>
+      {consent.emergencyNotice
+        .split(/(\{ambulance\}|\{mobile\})/)
+        .map((part, index) => {
+          if (part === "{ambulance}")
+            return (
+              <a
+                key={index}
+                className="as-tel"
+                href={`tel:${ambulance.number}`}
+              >
+                {ambulance.number}
+              </a>
+            );
+          if (part === "{mobile}")
+            return (
+              <a key={index} className="as-tel" href={`tel:${mobile.number}`}>
+                {mobile.number}
+              </a>
+            );
+          return part;
+        })}
+    </>
+  );
+}
 
 /* GilbertOne's panel on the web.
 
@@ -137,6 +176,15 @@ const QUESTION_ICONS: Record<string, typeof Ambulance> = {
 
 const SESSION_SUBJECT = "subject-this-session";
 type Sent = { handover: Handover; sentNow: boolean };
+
+/* The panel's own view of a turn: a Turn plus the two facts the bridge attaches to a model answer —
+   the language the service answered in and whether this reply wears the session's one answers.service
+   disclosure. Both optional, so every plain Turn the contract's own answers produce is one of these
+   too, and the panel reads them back only where a model reply can carry them. */
+type PanelTurn = Turn & {
+  readonly detectedLanguage?: string;
+  readonly disclosure?: boolean;
+};
 
 /* The same containment the demonstrator's widget gives its rig: a rig that throws must not take the
    words with it, and on this panel the words are the product. The still character and one sentence
@@ -182,7 +230,7 @@ export default function Assistant({
   /* The audience's own entry: its simulated label, its voice flag, its two action buttons and
      what it opens with are the contract's, never this component's defaults. */
   const audience = audienceOf(audienceId);
-  const [turns, setTurns] = useState<Turn[]>(() => opening(audienceId));
+  const [turns, setTurns] = useState<PanelTurn[]>(() => opening(audienceId));
   const [draft, setDraft] = useState("");
   const [pendingReplies, setPendingReplies] = useState<Set<number>>(
     () => new Set(),
@@ -324,17 +372,25 @@ export default function Assistant({
          face for its step and hold it over whatever the reply — a handover, a greeting on the way
          back in — was owed instead. */
       let opened = false;
-      voiceAdapter.speak(spokenOf(last, audienceId), {
-        onStart: () => {
-          opened = true;
-          play(affect.voiceMoments.speaking.cue, { caption });
+      voiceAdapter.speak(
+        spokenOf(last, audienceId),
+        {
+          onStart: () => {
+            opened = true;
+            play(affect.voiceMoments.speaking.cue, { caption });
+          },
+          onWord: (word) =>
+            play(affect.voiceMoments.speaking.cue, { caption: [word] }),
+          onEnd: () => {
+            if (opened) play(affect.voiceMoments.speaking.cue, { caption: [] });
+          },
         },
-        onWord: (word) =>
-          play(affect.voiceMoments.speaking.cue, { caption: [word] }),
-        onEnd: () => {
-          if (opened) play(affect.voiceMoments.speaking.cue, { caption: [] });
-        },
-      });
+        /* The reply's own language, from the turn response's detectedLanguage and English when it
+           carries none. lib/voice.ts hands it to the cloud speak path, so a isiZulu answer is asked
+           for in isiZulu and — where the cloud has no voice for it — is left on the screen as text
+           rather than read aloud in an English voice. */
+        last.detectedLanguage ?? "en",
+      );
     }
   }, [
     gatheredAt,
@@ -500,6 +556,18 @@ export default function Assistant({
   };
   const sos = () => openModal?.("Emergency & urgent care");
 
+  /* The welcome's "Tap to talk" line names the languages GilbertOne actually hears, read from the
+     contract's voice.languages rather than a sentence typed here — so it never claims English only
+     when the catalog lists isiZulu, isiXhosa, Afrikaans and Sesotho beside it. It is a line of text,
+     not a control: exactly one control on this screen offers to hear, and it is the microphone. */
+  const heardNames = voice.languages.map((language) => language.name);
+  const talkSubtitle = screens.welcome.talkSubtitle.replace(
+    "{languages}",
+    heardNames.length > 1
+      ? `${heardNames.slice(0, -1).join(", ")} and ${heardNames[heardNames.length - 1]}`
+      : (heardNames[0] ?? ""),
+  );
+
   const portrait = (
     <div
       className="as-rig"
@@ -612,17 +680,7 @@ export default function Assistant({
                 {portrait}
                 <div className="as-hero-copy">
                   <p className="as-hello">{ui.hello}</p>
-                  <p className="as-wordmark">
-                    {identity.name.split(/(i)/).map((part, index) =>
-                      part === "i" ? (
-                        <span className="as-wordmark-i" key={index}>
-                          {part}
-                        </span>
-                      ) : (
-                        part
-                      ),
-                    )}
-                  </p>
+                  <GilbertOneWordmark className="as-wordmark" />
                   <p className="as-hero-descriptor">
                     {identity.descriptorLine}
                   </p>
@@ -679,6 +737,7 @@ export default function Assistant({
                           handOver={nurse}
                           sent={sent[turn.id]}
                           onSend={() => handTo(turn)}
+                          disclosure={turn.disclosure}
                         />
                       )}
                       {turn.unread && (
@@ -688,6 +747,19 @@ export default function Assistant({
                           audience={audienceId}
                         />
                       )}
+                      {/* A reply the cloud has no voice for stays on the screen as text, and the
+                          contract says so in its own words rather than in a sentence typed here.
+                          Only the reply just spoken can carry it: the adapter's flag describes the
+                          reading on the screen now, and it is a language other than English that has
+                          no voice — an English reply is never noted. */}
+                      {index === turns.length - 1 &&
+                        voiceAdapter.voiceUnavailable &&
+                        turn.detectedLanguage &&
+                        turn.detectedLanguage !== "en" && (
+                          <p className="as-quiet as-voice-note">
+                            {voice.voiceUnavailableNotice}
+                          </p>
+                        )}
                     </div>
                   </li>
                 ))}
@@ -758,6 +830,19 @@ export default function Assistant({
                 );
               })}
             </div>
+            {!asked && audience.voice && voiceAdapter.supported && (
+              <p className="as-talkbar">
+                <span className="as-talkbar-icon" aria-hidden="true">
+                  <Mic size={18} />
+                </span>
+                <span className="as-talkbar-copy">
+                  <span className="as-talkbar-label">
+                    {voice.sentences.talkLabel}
+                  </span>
+                  <span className="as-talkbar-sub">{talkSubtitle}</span>
+                </span>
+              </p>
+            )}
             {asked && (
               <button type="button" className="as-again" onClick={again}>
                 <RotateCcw size={16} aria-hidden="true" />
@@ -832,8 +917,14 @@ export default function Assistant({
             <div className="as-gate-intro">
               <h3>{consent.heading}</h3>
               <p>{ui.disclaimerIntro}</p>
+            </div>
+            <div className="as-emergency">
+              <p className="as-emergency-heading">
+                <TriangleAlert size={16} aria-hidden="true" />
+                {screens.consent.emergencyHeading}
+              </p>
               <p className="as-gate-emergency">
-                {say(consent.emergencyNotice)}
+                <EmergencyLinks />
               </p>
             </div>
             <section className="as-gate-card">
@@ -1069,6 +1160,11 @@ type ReplyProps = {
   handOver: () => void;
   sent?: Sent;
   onSend: () => void;
+  /* Whether this model reply wears the answers.service disclosure — the heading that says a language
+     model wrote it and the line that says it is not a diagnosis. The bridge sets it true for the
+     session's first model answer and false for every one after it, so the notice is read once rather
+     than repeated into blindness. The disclosure's own text stays the catalogue's. */
+  disclosure?: boolean;
 };
 
 function ReplyBody({
@@ -1078,6 +1174,7 @@ function ReplyBody({
   handOver,
   sent,
   onSend,
+  disclosure,
 }: ReplyProps) {
   const { sos: allowSos, handover: allowHandover } =
     audienceOf(audience).actions;
@@ -1162,9 +1259,13 @@ function ReplyBody({
          unmatched answer already offers, scoped by the audience's own entry. */
       return (
         <>
-          <p className="as-headline">{answers.service.heading}</p>
+          {disclosure && (
+            <p className="as-headline">{answers.service.heading}</p>
+          )}
           <p className="as-service">{reply.text}</p>
-          <p className="as-quiet">{answers.service.disclosure}</p>
+          {disclosure && (
+            <p className="as-quiet">{answers.service.disclosure}</p>
+          )}
           <p>{say(answers.service.ifUrgent)}</p>
           <Lines ids={answers.service.numbers} />
           {(allowHandover || allowSos) && (

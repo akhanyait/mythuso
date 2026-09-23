@@ -150,6 +150,27 @@ const serviceUrl = (path: string): string => {
    versioned surface, and it retires when none such exists rather than on a date. */
 const TURN_PATHS = ['/assistant/v1/turn', '/assistant/turn'] as const;
 
+/* The first-reply-only disclosure, added with the multi-language frontend of 23 September 2026. A
+   model-written answer is shown under the answers.service disclosure — the heading that says a
+   language model wrote it and the line that says it is not a diagnosis — but only the FIRST time in a
+   page's life: the disclosure is a once-per-session notice rather than a banner repeated over every
+   reply, where a notice nobody reads is worse than none. The flag is module scope and nothing else,
+   so it resets naturally on reload and keeps the promise the rest of apps/web/src keeps — no browser
+   storage of any kind, which scripts/check-boundaries.mjs refuses here. The disclosure's own TEXT
+   stays the catalogue's (answers.service); this only decides whether the first reply wears it. */
+let disclosureShownThisSession = false;
+
+/** A refined turn is a Turn plus two facts the panel reads to decide what to draw, and which the
+ *  plain Turn type in lib/assistant.ts does not carry: the language the service answered in
+ *  (`detectedLanguage`, from the turn response, so a isiZulu reply is never read aloud in English)
+ *  and whether this reply is the session's first model answer and so wears the answers.service
+ *  disclosure (`disclosure`). It is a Turn plus these, so it flows through the panel's Turn-typed
+ *  state unchanged and is read back where the panel needs it. */
+export type RefinedTurn = Turn & {
+  readonly detectedLanguage: string;
+  readonly disclosure: boolean;
+};
+
 export async function refineWithAssistantService(
   turns: Turn[],
   text: string,
@@ -185,7 +206,11 @@ export async function refineWithAssistantService(
        about this request or this deployment, and asking again would not change it. */
     if (response.status === 404) response = await ask(TURN_PATHS[1]);
     if (!response.ok) return null;
-    const body = (await response.json()) as { source?: string; reply?: string };
+    const body = (await response.json()) as {
+      source?: string;
+      reply?: string;
+      detectedLanguage?: string;
+    };
     /* One shape is accepted and everything else is quietly the local answer: a reply the
        service's own field marks as written by a tier above the keyword classifier. The route,
        the classification and the confidence beside it are the classifier's own and go unused
@@ -204,7 +229,24 @@ export async function refineWithAssistantService(
        the local contract's, and they are already on the screen. */
     if (body.source !== 'model' && body.source !== 'orchestrator') return null;
     if (typeof body.reply !== 'string' || !body.reply.trim()) return null;
-    const refined: Turn = { ...last, reply: { kind: 'service', text: body.reply.trim() } };
+    /* The language the service answered in, read off the turn response's own detectedLanguage and
+       defaulted to English when a deployment predates the field. The panel hands it to the voice so a
+       isiZulu answer is never read aloud in an English voice, and shows the contract's
+       voiceUnavailableNotice beside the reply when the cloud has no voice for it. */
+    const detectedLanguage =
+      typeof body.detectedLanguage === 'string' && body.detectedLanguage.trim()
+        ? body.detectedLanguage.trim()
+        : 'en';
+    /* The disclosure is shown once per page life: the first model answer wears it and every model
+       answer after it does not, because a notice repeated over each reply stops being read. */
+    const disclosure = !disclosureShownThisSession;
+    if (disclosure) disclosureShownThisSession = true;
+    const refined: RefinedTurn = {
+      ...last,
+      reply: { kind: 'service', text: body.reply.trim() },
+      detectedLanguage,
+      disclosure,
+    };
     return [...turns.slice(0, -1), refined];
   } catch {
     /* Unreachable, blocked, timed out, or answered with something that is not JSON — every one

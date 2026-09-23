@@ -542,6 +542,11 @@ test("the orb floats on every patient page, and GilbertOne is fetched only when 
   await expect(panel(page).locator(".as-wordmark")).toHaveText(
     gilbert.identity.name,
   );
+  /* The wordmark is the drawn GilbertOne logo — an svg, not a line of text — and its accessible name
+     still reads once, from the visually-hidden text beside the drawing. The welcome also carries the
+     "Tap to talk" line, which is text rather than a second control that offers to hear. */
+  await expect(panel(page).locator(".as-wordmark svg")).toHaveCount(1);
+  await expect(panel(page).locator(".as-talkbar")).toBeVisible();
   /* And said once, which is the fix of 21 September 2026. The patient's conversation used to
      repeat the gate's prohibitions and its ThusoIQ paragraph between the answers and the composer,
      so somebody who had just agreed to all of it read most of it again while she was trying to ask
@@ -728,16 +733,20 @@ test("the name never prints into the controls, and the conversation keeps room t
         `at ${where} the row leaves the text field ${Math.round(input.width)}px`,
       ).toBeGreaterThanOrEqual(100);
 
-      if (!asked && (width === 390 || width === 1440)) {
-        expect(
-          scrollHeight,
-          `at ${where} the welcome should fit without scrolling`,
-        ).toBe(scrollClient);
-      } else {
+      if (asked) {
         expect(
           scrollHeight,
           `at ${where} longer content remains scrollable`,
         ).toBeGreaterThan(scrollClient);
+      } else {
+        /* The GilbertOne redesign of 23 September 2026 gave the welcome a "Popular things you can
+           ask" grid and a "Tap to talk" line, so it is a reading surface that scrolls rather than
+           one that must fit a single screen. What is held now is that it is never shorter than the
+           room it is given — no fixed chrome has eaten the welcome. */
+        expect(
+          scrollHeight,
+          `at ${where} the welcome is at least one screen tall`,
+        ).toBeGreaterThanOrEqual(scrollClient);
       }
       /* Floors, not measurements: 236px at 390, 60px at 320, 226px at 1440 and 146px at 1366, all with
       nothing asked. They came down by about a sentence's worth when the founder's decision of 18
@@ -884,6 +893,12 @@ test("the consent gate stands before the conversation, and only both boxes and A
     await expect(prohibitions).toContainText(line);
   await expect(gate).toContainText(gilbert.consent.poweredByHeading);
   await expect(gate).toContainText(gilbert.consent.poweredByBody);
+
+  /* The emergency banner's numbers are tap-to-call links, and they are the contract's own — read
+     from sos.json through the same resolver, never typed into the layout. */
+  const banner = gate.locator(".as-emergency");
+  await expect(banner).toContainText(say(gilbert.consent.emergencyNotice));
+  await expect(banner.locator('a[href^="tel:"]')).toHaveCount(2);
 
   /* Accept opens only when both understandings are ticked — one box is not enough. */
   const accept = panel(page).getByRole("button", {

@@ -288,6 +288,15 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
     truth rather than inferring it from words arriving. */
   const [responding, setResponding] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  /* Whether the cloud voice has just said it has no voice for the reply's own language — an isiZulu,
+     isiXhosa or Sesotho answer the contract marks ttsAvailable:false. Since the multi-language
+     frontend of 23 September 2026 this is a fact the panel reads rather than infers: when it is true
+     the reply's words stay on the screen in full and the browser's own voice is NOT reached for,
+     because it would read a isiZulu answer in an English voice — the one softening this branch
+     exists to refuse. It is reset at the start of every reading, so it describes the reply on the
+     screen now and never a stale one, and it is a plain React state that dies with the page: no
+     browser storage, the same promise the rest of apps/web/src keeps. */
+  const [voiceUnavailable, setVoiceUnavailable] = useState(false);
   /* The close of the reading in flight, so that every way a reading can end runs through one
     function that stands the states down and tells the caller once. The synthesiser's own cancel
     fires no event this file can hear, which is why the close has to be callable rather than only a
@@ -561,12 +570,15 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
       text: string,
       options: SpeakOptions,
       gen: number,
+      language: string,
     ): Promise<boolean> => {
       /* The answer has landed and the cloud voice is about to fetch the reading of it: the responding
          moment covers the request as well as the first sound, because the gap between the words
          arriving and the voice starting is one the panel has a sentence for. */
       setResponding(true);
-      const result = await speakText(text, CLOUD_VOICE);
+      /* The reply's own language travels, so an Afrikaans answer is asked for in an Afrikaans voice
+         and a language the cloud has no voice for is told apart from a cloud that is down. */
+      const result = await speakText(text, CLOUD_VOICE, language);
       /* Abandoned while the service was being asked — a barge-in, a replacement, the panel shutting.
          Play nothing, stand the responding moment back down, and answer true so the caller does not
          fall through to the browser's voice for a reply the person has already moved past. */
@@ -575,9 +587,22 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
         setSpeaking(false);
         return true;
       }
-      /* Refused, unreachable, or not configured: the browser's own voice carries the same words, which
-         is the whole fallback this door exists to allow. */
-      if (!result.ok) return false;
+      if (!result.ok) {
+        /* The cloud names a language it has no voice for. This is not a failure to fall back from:
+           the browser's own voice would read the same words in English, over a isiZulu answer, which
+           is the exact softening this branch refuses. Say so on the published state, stand the
+           responding moment down, and answer true so the caller does not fall through — the words
+           stay written on the screen, only the reading aloud is missing. */
+        if ("voiceUnavailable" in result && result.voiceUnavailable) {
+          setVoiceUnavailable(true);
+          setResponding(false);
+          setSpeaking(false);
+          return true;
+        }
+        /* Refused, unreachable, or not configured: the browser's own voice carries the same words,
+           which is the whole fallback this door exists to allow. */
+        return false;
+      }
 
       let url: string;
       try {
@@ -685,7 +710,7 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
   }, []);
 
   const speak = useCallback(
-    (text: string, options: SpeakOptions = {}) => {
+    (text: string, options: SpeakOptions = {}, language = "en") => {
       /* The contract's flag, before anything is reached for. While voice.webSpeech is false this
        surface does not speak at all: no cloud request is sent, no utterance is constructed, nothing is
        cancelled, nothing is asked of the browser's voice — and the order is the wall, because a check
@@ -699,6 +724,9 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
         return;
       }
       everSpoke.current = true;
+      /* A new reading clears the last one's "no voice in this language" note: the flag describes the
+         reply about to be spoken, not a fact about the whole session. */
+      setVoiceUnavailable(false);
       /* One voice at a time, whichever voice it is. §04's stop event and §07's "close the mouth
        immediately on cancel" are the same rule read from two directions, and both start with the
        previous reading ending — and "ending" is this file's own close, called here rather than waited
@@ -717,10 +745,11 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
        rather than leaving the person with silence. */
       if (cloudReady.current === true) {
         void (async () => {
-          const voiced = await speakViaCloud(text, options, gen);
+          const voiced = await speakViaCloud(text, options, gen, language);
           /* Abandoned while the cloud was asked, so nothing plays and the browser's voice is not
            started for a reply already moved past; otherwise, a cloud that could not voice falls
-           through to the browser's own. */
+           through to the browser's own — unless it said the language has no voice at all, which
+           answers true above and so never reaches this fall-through. */
           if (voiced || gen !== speakGen.current) return;
           speakViaBrowser(text, options);
         })();
@@ -816,6 +845,10 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
        else. */
     responding,
     speaking,
+    /* Whether the cloud voice has no voice for the reply's own language. The panel reads this to show
+       the contract's voiceUnavailableNotice beside a reply that stays on the screen as text, and it
+       is the reason the browser's own voice was not reached for as a fallback. */
+    voiceUnavailable,
     boundariesSeen,
     failureSentence: failure ? FAILURE_SENTENCES[surface][failure] : null,
     unavailable: SENTENCES[surface].unavailable,
