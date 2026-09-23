@@ -64,6 +64,10 @@ export const conversation = contract.conversation;
    groups, the privacy and refusal notes, the two boxes and the two buttons — so a sentence on
    that screen can be reworded where every other approved sentence is, and never in the panel. */
 export const consent = contract.consent;
+/* Web-only layout copy for the three restyled GilbertOne surfaces (welcome, consent gate, public
+   sheet). Short headings, labels and framing lines the layout needs; every clinical sentence and
+   number still comes from its own section and from sos.json. Not emitted to the phones. */
+export const screens = contract.screens;
 export const voice = contract.voice;
 export const answers = contract.answers;
 export const fixtures = contract.fixtures;

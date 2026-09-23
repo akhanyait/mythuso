@@ -1,42 +1,328 @@
-.public-assistant-launcher { position: fixed; z-index: 45; right: 20px; bottom: 20px; border: 1px solid var(--brand-mint); border-radius: 18px; background: var(--brand-ink); padding: 0; cursor: pointer; box-shadow: var(--shadow-raised); }
-.public-assistant { position: fixed; inset: auto 16px 16px auto; margin: 0; padding: 0; width: min(440px, calc(100vw - 32px)); height: min(780px, calc(100dvh - 32px)); max-height: none; max-width: none; border: 1px solid var(--brand-mint); border-radius: 20px; background: var(--brand-ink); color: var(--surface); overflow: hidden; }
-.public-assistant::backdrop { background: #103e4a55; }
-.public-assistant-frame { height: 100%; display: flex; flex-direction: column; overflow-y: auto; }
-.public-assistant header { display: grid; grid-template-columns: 64px minmax(0, 1fr) 44px; align-items: center; gap: 8px; padding: 12px; border-bottom: 1px solid var(--brand-mint); }
-.public-assistant header .m-pause { grid-column: 2 / -1; justify-self: start; }
-.public-assistant h2 { margin: 0; color: inherit; font-size: 18px; }
-.public-assistant header p { margin: 2px 0; font-size: 12px; color: var(--brand-mint); }
-.public-assistant button { min-height: 44px; padding: 8px 12px; border: 1px solid var(--brand-mint); border-radius: 12px; background: var(--brand-ink); color: var(--surface); font: inherit; cursor: pointer; }
-.public-assistant-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 16px; overflow-wrap: anywhere; }
-.public-assistant p { line-height: 1.5; }
-.public-assistant-note { font-size: 13px; color: var(--brand-mint); }
-.public-assistant ol { list-style: none; padding: 0; margin: 0; }
-.public-assistant ol > li { margin-block: 20px; scroll-margin: 12px; }
-.public-assistant-question { padding: 12px; background: var(--surface); color: var(--brand-ink); border-radius: 12px; }
-.public-assistant-answer { border-left: 2px solid var(--brand-mint); padding-left: 12px; }
-.public-assistant [data-outcome=emergency] .public-assistant-answer { border-color: var(--brand-orange); }
-.public-assistant a { color: var(--brand-mint); text-decoration: underline; }
-.public-assistant nav { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 16px; }
-.public-assistant form { flex-shrink: 0; padding: 12px 16px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid var(--brand-mint); }
-.public-assistant form > div { display: flex; gap: 8px; margin-top: 6px; }
-.public-assistant input { width: 100%; min-width: 0; min-height: 44px; border-radius: 12px; border: 0; padding: 8px; font-size: 16px; color: var(--brand-ink); background: var(--surface); }
-.public-assistant form p { font-size: 12px; margin-bottom: 0; color: var(--brand-mint); }
-@media (max-height: 550px) { .public-assistant-scroll { flex: 1 0 50dvh; } }
-.public-assistant form label { color: var(--surface); font-weight: 600; }
+.public-assistant-launcher {
+  position: fixed;
+  z-index: 45;
+  right: 20px;
+  bottom: 20px;
+  border: 1px solid var(--brand-mint);
+  border-radius: 18px;
+  background: var(--brand-ink);
+  padding: 0;
+  cursor: pointer;
+  box-shadow: var(--shadow-raised);
+}
+.public-assistant {
+  position: fixed;
+  inset: auto 16px 16px auto;
+  margin: 0;
+  padding: 0;
+  width: min(440px, calc(100vw - 32px));
+  height: min(780px, calc(100dvh - 32px));
+  max-height: none;
+  max-width: none;
+  border: 1px solid var(--brand-mint);
+  border-radius: 20px;
+  background: var(--brand-ink);
+  color: var(--surface);
+  overflow: hidden;
+}
+.public-assistant::backdrop {
+  background: #103e4a55;
+}
+.public-assistant-frame {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.public-assistant header {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--brand-mint);
+}
+.public-assistant header .m-pause {
+  grid-column: 2 / -1;
+  justify-self: start;
+}
+.public-assistant h2 {
+  margin: 0;
+  color: inherit;
+  font-size: 18px;
+}
+.public-assistant header p {
+  margin: 2px 0;
+  font-size: 12px;
+  color: var(--brand-mint);
+}
+.public-assistant button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--brand-mint);
+  border-radius: 12px;
+  background: var(--brand-ink);
+  color: var(--surface);
+  font: inherit;
+  cursor: pointer;
+}
+.public-assistant-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+  overflow-wrap: anywhere;
+}
+.public-assistant p {
+  line-height: 1.5;
+}
+.public-assistant-note {
+  font-size: 13px;
+  color: var(--brand-mint);
+}
+.public-assistant ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.public-assistant ol > li {
+  margin-block: 20px;
+  scroll-margin: 12px;
+}
+.public-assistant-question {
+  padding: 12px;
+  background: var(--surface);
+  color: var(--brand-ink);
+  border-radius: 12px;
+}
+.public-assistant-answer {
+  border-left: 2px solid var(--brand-mint);
+  padding-left: 12px;
+}
+.public-assistant [data-outcome="emergency"] .public-assistant-answer {
+  border-color: var(--brand-orange);
+}
+.public-assistant a {
+  color: var(--brand-mint);
+  text-decoration: underline;
+}
+.public-assistant nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-block: 16px;
+}
+.public-assistant form {
+  flex-shrink: 0;
+  padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--brand-mint);
+}
+.public-assistant form > div {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.public-assistant input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 0;
+  padding: 8px;
+  font-size: 16px;
+  color: var(--brand-ink);
+  background: var(--surface);
+}
+.public-assistant form p {
+  font-size: 12px;
+  margin-bottom: 0;
+  color: var(--brand-mint);
+}
+@media (max-height: 550px) {
+  .public-assistant-scroll {
+    flex: 1 0 50dvh;
+  }
+}
+.public-assistant form label {
+  color: var(--surface);
+  font-weight: 600;
+}
 
-.public-assistant-launcher { background: transparent; border: 0; box-shadow: none; }
-.public-assistant { background: var(--surface); color: var(--brand-ink); border-color: var(--stone); }
-.public-assistant header { background: var(--brand-ink); color: var(--surface); border: 0; }
-.public-assistant-scroll { background: color-mix(in srgb, var(--brand-mint) 9%, var(--surface)); }
-.public-assistant-note { color: var(--brand-ink); }
-.public-assistant-question { background: var(--brand-ink); color: var(--surface); }
-.public-assistant-answer { background: var(--surface); padding: 12px; border-radius: 12px; }
-.public-assistant a { color: var(--brand-ink); font-weight: 600; }
-.public-assistant nav button { background: var(--surface); color: var(--brand-ink); border-color: var(--brand-green); }
-.public-assistant form { border-color: var(--stone); }
-.public-assistant form label, .public-assistant form p { color: var(--brand-ink); }
-.public-assistant input { border: 1px solid var(--brand-green); }
+.public-assistant-launcher {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.public-assistant {
+  background: var(--surface);
+  color: var(--brand-ink);
+  border-color: var(--stone);
+}
+.public-assistant header {
+  background: var(--brand-ink);
+  color: var(--surface);
+  border: 0;
+}
+.public-assistant-scroll {
+  background: color-mix(in srgb, var(--brand-mint) 9%, var(--surface));
+}
+.public-assistant-note {
+  color: var(--brand-ink);
+}
+.public-assistant-question {
+  background: var(--brand-ink);
+  color: var(--surface);
+}
+.public-assistant-answer {
+  background: var(--surface);
+  padding: 12px;
+  border-radius: 12px;
+}
+.public-assistant a {
+  color: var(--brand-ink);
+  font-weight: 600;
+}
+.public-assistant nav button {
+  background: var(--surface);
+  color: var(--brand-ink);
+  border-color: var(--brand-green);
+}
+.public-assistant form {
+  border-color: var(--stone);
+}
+.public-assistant form label,
+.public-assistant form p {
+  color: var(--brand-ink);
+}
+.public-assistant input {
+  border: 1px solid var(--brand-green);
+}
 
 /* At launcher size the chest lettering is illegible. The button's accessible name and
    invitation bubble identify GilbertOne; keep the small character free of tiny text. */
-.public-assistant-launcher .go-rig text { display: none; }
+.public-assistant-launcher .go-rig text {
+  display: none;
+}
+
+/* ---- GilbertOne design language, founder-approved 23 September 2026 ----------------------------
+   The signed-out bottom sheet wears the same palette as the panel. It is a separate lazy chunk and
+   cannot see the panel's custom properties, so the brand board's colours are declared here on the
+   sheet's own root. Appended last so it re-skins the light theme above from one place. */
+.public-assistant {
+  --go-teal: #0e3f3f;
+  --go-green: #1ca588;
+  --go-orange: #f4633a;
+  --go-mint: #eaf7f3;
+  --go-mint-2: #f2faf8;
+  --go-icon-bg: #dcf2ec;
+  --go-icon: #17877b;
+  --go-emergency-bg: #fbe9ea;
+  --go-emergency: #d6455b;
+  --go-slate: #3e4c5e;
+  --go-card: #ffffff;
+  --go-line: color-mix(in srgb, var(--go-teal) 12%, transparent);
+  --go-radius: 18px;
+  --go-shadow: 0 6px 20px color-mix(in srgb, var(--go-teal) 10%, transparent);
+  background: var(--go-mint);
+  color: var(--go-slate);
+  border-color: var(--go-line);
+}
+.public-assistant header {
+  background: var(--go-teal);
+  color: #fff;
+}
+.public-assistant header p {
+  color: color-mix(in srgb, #fff 78%, var(--go-teal));
+}
+.public-assistant-titles {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.public-assistant-mark {
+  width: 34px;
+  height: 30px;
+}
+.public-assistant-scroll {
+  background: var(--go-mint);
+}
+.public-assistant-greeting {
+  background: var(--go-card);
+  border-radius: var(--go-radius);
+  box-shadow: var(--go-shadow);
+  padding: 14px;
+  margin-bottom: 16px;
+}
+.public-assistant-greeting p {
+  margin: 0 0 4px;
+  color: var(--go-teal);
+}
+.public-assistant-note {
+  color: var(--go-slate) !important;
+  font-size: 13px;
+}
+.public-assistant-quick {
+  margin: 16px 0 8px;
+  color: var(--go-teal);
+  font-weight: 700;
+}
+.public-assistant-question {
+  background: var(--go-teal) !important;
+  color: #fff !important;
+  border-radius: 14px;
+}
+.public-assistant-answer {
+  background: var(--go-card) !important;
+  border-radius: 14px;
+  box-shadow: var(--go-shadow);
+}
+.public-assistant-answer strong {
+  color: var(--go-green);
+}
+.public-assistant a {
+  color: var(--go-icon) !important;
+}
+.public-assistant nav button {
+  background: var(--go-card);
+  color: var(--go-teal);
+  border: 1px solid var(--go-line);
+  border-radius: 14px;
+  box-shadow: var(--go-shadow);
+}
+.public-assistant-again {
+  background: var(--go-card);
+  color: var(--go-teal);
+  border-color: var(--go-line);
+}
+.public-assistant form {
+  background: var(--go-mint-2);
+  border-color: var(--go-line);
+}
+.public-assistant form label {
+  color: var(--go-teal);
+}
+.public-assistant input {
+  border: 1px solid var(--go-line) !important;
+  border-radius: 14px;
+  color: var(--go-teal);
+}
+.public-assistant-send {
+  background: var(--go-green);
+  color: #fff;
+  border: 0;
+  border-radius: 14px;
+  font-weight: 600;
+}
+.public-assistant-emergency {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--go-emergency-bg);
+  color: var(--go-emergency) !important;
+  font-size: 12px;
+}
+.public-assistant-emergency a {
+  color: var(--go-emergency) !important;
+  font-weight: 700;
+}

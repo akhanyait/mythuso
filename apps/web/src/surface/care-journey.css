@@ -82,10 +82,10 @@
 .as-launcher { position:absolute; right:var(--space-16); bottom:var(--space-12); width:var(--al-footprint); height:var(--al-footprint); padding:0; border:0; border-radius:18px; background:transparent; box-shadow:none; cursor:pointer; }
 .as-launcher[aria-expanded=true] { opacity:0; }
 .as-launcher span { position:absolute; }
-.as-launcher .al-orb { inset:0; background:url('/brand/gilbert-robot-v2.webp') center / contain no-repeat; }
-.al-orb::before, .al-orb::after { box-sizing:border-box; content:''; position:absolute; top:32%; width:10%; height:8%; border:2px solid #62fff3; border-bottom:0; border-radius:50% 50% 0 0; box-shadow:0 -1px 3px #62fff3; }
-.al-orb::before { left:37%; }
-.al-orb::after { right:37%; }
+.as-launcher .al-orb { inset:0; background:url('/brand/gilbert-icon.webp') center / contain no-repeat; }
+/* The new icon is the drawn robot head and carries its own face, so the abstract eye and smile
+   overlays the old orb art needed are hidden rather than laid over it. The whole orb still floats. */
+.al-orb::before, .al-orb::after { display:none; }
 @keyframes al-blink { 0%, 46%, 50%, 100% { transform:scaleY(1); } 48% { transform:scaleY(.08); } }
 :root[data-decor=on] .al-orb::before, :root[data-decor=on] .al-orb::after { animation:al-blink 5.5s linear infinite; }
 .al-note { position:absolute; right:var(--space-16); bottom:84px; width:260px; margin:0; padding:var(--space-12); border-radius:var(--r-control); background:var(--surface); box-shadow:var(--shadow-raised); font-size:14px; }
@@ -100,6 +100,6 @@
 .app-shell main:has(~ .al-dock) { padding-bottom:calc(var(--space-12) + var(--al-footprint) + var(--space-16)); }
 @media (min-width:1000px) { .app-footer:has(~ .al-dock) { padding-right:calc(var(--al-footprint) + 224px); } }
 
-.al-smile { top:43%; left:46%; width:8%; height:4%; border:2px solid #62fff3; border-top:0; border-radius:0 0 50% 50%; }
+.al-smile { display:none; }
 @keyframes al-float { to { transform:translateY(-2px); } }
 :root[data-decor=on] .al-orb { animation:al-float 3s ease-in-out infinite alternate; }

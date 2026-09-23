@@ -2,10 +2,25 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { GilbertAvatar, useGilbertRig } from './GilbertAvatar';
 import { AssistantGreeting } from '../components/AssistantGreeting';
 import { MotionPause } from '../components/MotionPause';
+import { G1Mark } from '../components/G1Mark';
 import { useDecor } from '../lib/motion';
-import { emergencyAnswer, identity, lines, say, silenceIsNotSafety } from '../lib/assistant';
+import { conversation, emergencyAnswer, identity, lines, screens, silenceIsNotSafety } from '../lib/assistant';
 import { publicAnswer, publicAssistant as copy, type PublicAnswer } from '../lib/public-assistant';
 import './public-assistant.css';
+
+/* The signed-out sheet's emergency footer, with its numbers as tap-to-call links. The sentence is the
+   contract's silenceIsNotSafety and the numbers come from sos.json by id through lines() — never typed
+   here — so the strip says exactly what the panel says, and a thumb can dial straight from it. */
+function EmergencyFooter() {
+ const numbers = lines(['ambulance', 'mobile']);
+ const pattern = new RegExp(`(${numbers.map((entry) => entry.number).join('|')})`, 'g');
+ return <p className="public-assistant-emergency">
+  {silenceIsNotSafety.split(pattern).map((part, index) => {
+   const match = numbers.find((entry) => entry.number === part);
+   return match ? <a key={index} href={`tel:${match.number}`}>{match.number}</a> : part;
+  })}
+ </p>;
+}
 
 type Turn = { asked: string; answer: PublicAnswer };
 /* Website-only surface: no role parameter, patient visit, microphone, network or persistence.
@@ -42,12 +57,12 @@ export default function PublicAssistant() {
    <div className="public-assistant-frame">
     <header>
      <GilbertAvatar pose={rig.pose} size={96} blend={rig.blend} friendly={turns.length === 0}/>
-     <div><h2 id="public-assistant-title">{identity.name}</h2><p>{copy.label}</p><p>{identity.descriptorLine}</p></div>
+     <div className="public-assistant-titles"><G1Mark className="public-assistant-mark"/><h2 id="public-assistant-title">{identity.name}</h2><p>{copy.label}</p><p>{identity.descriptorLine}</p></div>
      <button type="button" aria-label="Close GilbertOne" onClick={() => setOpen(false)}>×</button>
      <MotionPause/>
     </header>
     <div className="public-assistant-scroll">
-     <p>{copy.welcome}</p><p className="public-assistant-note">{copy.privacy}</p>
+     <div className="public-assistant-greeting"><p>{copy.welcome}</p><p className="public-assistant-note">{copy.privacy}</p></div>
      <div role="log" aria-label="MyThuso website conversation" aria-live="polite"><ol>
       {turns.map((turn, index) => <li key={index} ref={index === turns.length - 1 ? latest : undefined} data-outcome={turn.answer.kind}>
        <p className="public-assistant-question"><strong>You:</strong> {turn.asked}</p>
@@ -58,13 +73,14 @@ export default function PublicAssistant() {
        </div>
       </li>)}
      </ol></div>
+     <p className="public-assistant-quick">{screens.publicSheet.quickHeading}</p>
      <nav aria-label="MyThuso questions">{copy.questions.map(q => <button type="button" key={q.id} onClick={() => ask(q.question)}>{q.question}</button>)}</nav>
-     {turns.length > 0 && <button type="button" onClick={() => { setTurns([]); setDraft(''); rig.rest(); }}>Start again</button>}
+     {turns.length > 0 && <button type="button" className="public-assistant-again" onClick={() => { setTurns([]); setDraft(''); rig.rest(); }}>{conversation.startAgainLabel}</button>}
     </div>
     <form onSubmit={submit}>
      <label htmlFor="public-assistant-input">{copy.inputLabel}</label>
-     <div><input id="public-assistant-input" value={draft} onChange={e => setDraft(e.target.value)} placeholder={copy.inputHint} maxLength={500} autoComplete="off"/><button type="submit">Send</button></div>
-     <p>{say(silenceIsNotSafety)}</p>
+     <div><input id="public-assistant-input" value={draft} onChange={e => setDraft(e.target.value)} placeholder={copy.inputHint} maxLength={500} autoComplete="off"/><button type="submit" className="public-assistant-send">{conversation.sendLabel}</button></div>
+     <EmergencyFooter/>
     </form>
    </div>
   </dialog>

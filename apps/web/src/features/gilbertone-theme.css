@@ -1,0 +1,320 @@
+/* The GilbertOne design language, founder-approved 23 September 2026.
+ *
+ * This layer is imported after assistant.css so it wins by source order, and every rule is scoped
+ * under .as-panel: the tuned dark sheet above is left untouched and re-skinned from one place rather
+ * than rewritten. It turns the panel into the light mint surface the three reference screens show —
+ * deep-teal headings, a green-teal accent, white cards on mint, an orange i-dot, and a pink emergency
+ * register — using the brand board's palette held here as custom properties.
+ *
+ * The palette lives here and in public-assistant.css (the signed-out sheet is a separate lazy chunk
+ * and cannot see these variables). It is deliberately NOT written into packages/design-tokens: those
+ * tokens regenerate across iOS and Android, and this is a web surface skin.
+ *
+ * Motion is compositor-only (transform and opacity) and gated on the panel's own data-motion, so the
+ * character floats and its antenna glows only while motion is allowed, and Pause motion stills it. */
+
+.as-panel {
+  --go-teal: #0e3f3f;
+  --go-green: #1ca588;
+  --go-orange: #f4633a;
+  --go-lime: #c8d420;
+  --go-mint: #eaf7f3;
+  --go-mint-2: #f2faf8;
+  --go-icon-bg: #dcf2ec;
+  --go-icon: #17877b;
+  --go-emergency-bg: #fbe9ea;
+  --go-emergency: #d6455b;
+  --go-slate: #3e4c5e;
+  --go-card: #ffffff;
+  --go-line: color-mix(in srgb, var(--go-teal) 12%, transparent);
+  --go-radius: 18px;
+  --go-shadow: 0 6px 20px color-mix(in srgb, var(--go-teal) 10%, transparent);
+  background: var(--go-mint);
+  color: var(--go-slate);
+}
+.as-panel::backdrop {
+  background: color-mix(in srgb, var(--go-teal) 34%, transparent);
+}
+
+/* ---- Chrome: head, scroll --------------------------------------------------------------------- */
+.as-panel .as-head {
+  background: var(--go-mint-2);
+  border-bottom: 1px solid var(--go-line);
+}
+.as-panel .as-scroll {
+  background: var(--go-mint);
+}
+.as-panel .as-descriptor,
+.as-panel .as-hero-descriptor {
+  color: var(--go-slate);
+}
+.as-panel .as-simulated {
+  color: var(--go-icon);
+}
+.as-panel .as-close {
+  background: var(--go-card);
+  border: 1px solid var(--go-line);
+  color: var(--go-teal);
+}
+
+/* ---- The wordmark: the drawn logo needs an explicit box --------------------------------------- */
+.as-panel .as-wordmark {
+  display: inline-flex;
+  align-items: center;
+  margin: 2px 0;
+}
+.as-panel .as-wordmark svg {
+  display: block;
+  height: 30px;
+  width: auto;
+}
+
+/* ---- Welcome hero (screen 1) ------------------------------------------------------------------ */
+.as-panel .as-welcome-hero {
+  background: var(--go-card);
+  border-radius: var(--go-radius);
+  box-shadow: var(--go-shadow);
+  padding: var(--space-16);
+}
+.as-panel .as-hello {
+  color: var(--go-teal);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.as-panel .as-state {
+  background: var(--go-icon-bg);
+  color: var(--go-icon);
+  border-radius: var(--r-pill);
+  font-weight: 600;
+}
+.as-panel .as-state::before {
+  background: var(--go-green);
+}
+
+/* ---- Conversation turns ----------------------------------------------------------------------- */
+.as-panel .as-said {
+  background: var(--go-teal);
+  color: #fff;
+  border-radius: var(--go-radius);
+}
+.as-panel .as-reply {
+  background: var(--go-card);
+  color: var(--go-slate);
+  border-radius: var(--go-radius);
+  box-shadow: var(--go-shadow);
+}
+.as-panel .as-who {
+  color: var(--go-green);
+  font-weight: 700;
+}
+.as-panel .as-reply a {
+  color: var(--go-icon);
+}
+
+/* ---- "Popular things you can ask" grid -------------------------------------------------------- */
+.as-panel .as-asks h3 {
+  color: var(--go-teal);
+}
+.as-panel .as-asks p {
+  color: var(--go-slate);
+}
+.as-panel .as-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-8);
+}
+.as-panel .as-ask {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  background: var(--go-card);
+  color: var(--go-teal);
+  border: 1px solid var(--go-line);
+  border-radius: 16px;
+  box-shadow: var(--go-shadow);
+  text-align: left;
+}
+.as-panel .as-question-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--go-icon-bg);
+  color: var(--go-icon);
+}
+.as-panel .as-ask.urgent {
+  border-color: color-mix(in srgb, var(--go-emergency) 40%, transparent);
+}
+.as-panel .as-ask.urgent .as-question-icon {
+  background: var(--go-emergency-bg);
+  color: var(--go-emergency);
+}
+
+/* ---- "Tap to talk" line (text, not a control) -------------------------------------------------- */
+.as-panel .as-talkbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  margin: var(--space-8) 0 0;
+  padding: var(--space-12);
+  background: var(--go-card);
+  border: 1px solid var(--go-line);
+  border-radius: 16px;
+}
+.as-panel .as-talkbar-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--go-icon-bg);
+  color: var(--go-icon);
+}
+.as-panel .as-talkbar-copy {
+  display: grid;
+  gap: 2px;
+}
+.as-panel .as-talkbar-label {
+  color: var(--go-teal);
+  font-weight: 700;
+}
+.as-panel .as-talkbar-sub {
+  color: var(--go-slate);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* ---- Composer --------------------------------------------------------------------------------- */
+.as-panel .as-compose {
+  background: var(--go-mint-2);
+  border-top: 1px solid var(--go-line);
+}
+.as-panel .as-compose label {
+  color: var(--go-teal);
+}
+.as-panel .as-field input {
+  background: var(--go-card);
+  color: var(--go-teal);
+  border: 1px solid var(--go-line);
+  border-radius: 14px;
+}
+.as-panel .as-send {
+  background: var(--go-green);
+  color: #fff;
+  border: 0;
+  border-radius: 14px;
+}
+.as-panel .as-silence {
+  background: var(--go-emergency-bg);
+  color: var(--go-emergency);
+  border-radius: 12px;
+}
+.as-panel .as-keyboard {
+  color: var(--go-slate);
+}
+
+/* ---- "About voice and privacy" collapsible ---------------------------------------------------- */
+.as-panel .as-voice-details summary {
+  color: var(--go-teal);
+  font-weight: 600;
+}
+.as-panel .as-voice-details {
+  color: var(--go-slate);
+}
+
+/* ---- Consent gate (screen 2) ------------------------------------------------------------------ */
+.as-panel .as-gate {
+  background: var(--go-mint);
+}
+.as-panel .as-gate-intro h3 {
+  color: var(--go-teal);
+}
+.as-panel .as-gate-intro p {
+  color: var(--go-slate);
+}
+.as-panel .as-emergency {
+  background: var(--go-emergency-bg);
+  border-radius: var(--go-radius);
+  padding: var(--space-12);
+}
+.as-panel .as-emergency-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  color: var(--go-emergency);
+  font-weight: 700;
+}
+.as-panel .as-gate-emergency {
+  color: var(--go-emergency);
+}
+.as-panel .as-tel {
+  color: var(--go-emergency);
+  font-weight: 700;
+  text-decoration: underline;
+}
+.as-panel .as-gate-card {
+  background: var(--go-card);
+  border-radius: var(--go-radius);
+  box-shadow: var(--go-shadow);
+}
+.as-panel .as-gate-card h3 {
+  color: var(--go-teal);
+}
+.as-panel .as-gate-card p,
+.as-panel .as-gate-list li {
+  color: var(--go-slate);
+}
+.as-panel .as-gate-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--go-icon-bg);
+  color: var(--go-icon);
+}
+.as-panel .as-gate-foot {
+  background: var(--go-mint-2);
+  border-top: 1px solid var(--go-line);
+}
+.as-panel .as-gate-check {
+  background: var(--go-card);
+  border: 1px solid var(--go-line);
+  border-radius: 14px;
+  color: var(--go-slate);
+}
+.as-panel .as-gate-cancel {
+  background: var(--go-card);
+  color: var(--go-teal);
+  border: 1px solid var(--go-line);
+  border-radius: 14px;
+}
+.as-panel .as-gate-accept {
+  background: var(--go-green);
+  color: #fff;
+  border: 0;
+  border-radius: 14px;
+}
+.as-panel .as-gate-accept:disabled {
+  background: color-mix(in srgb, var(--go-green) 40%, var(--go-mint));
+  color: color-mix(in srgb, #fff 70%, var(--go-mint));
+}
+
+/* ---- Subtle character motion, driven by the cue/motion state ---------------------------------- */
+@keyframes go-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .as-panel .as-rig[data-motion="running"] svg {
+    animation: go-float 4.5s ease-in-out infinite;
+  }
+}
