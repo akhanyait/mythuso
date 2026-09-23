@@ -558,7 +558,7 @@ From `packages/catalog/protocols.json`. Named and numbered. Not ratified, not in
 | Clinical review | No clinical reviewer yet — required before real patients. |
 | What a match does | These words only ever raise. A match turns the answer into the emergency answer; the absence of a match lowers nothing, decides nothing and is never shown as reassurance. False positives are acceptable — somebody asking about a stroke they had years ago is shown the ambulance numbers — and a miss is not made safe by GilbertOne being silent about it, which is why the sentence under silenceIsNotSafety stays on the screen beside every conversation. |
 | Known false positives reported by the tests | 4 (non-blocking) |
-| Not for this review | The listening cap and the words "Your Thuso AI Doctor" are founder decisions (`packages/catalog/assistant.json` `voice.listeningDecision`, decided by the Founder on 2026-09-14), not edits. How a term is matched is `assistant.json` `matcher`. |
+| Not for this review | The listening cap and the words "Your Thuso AI Doctor" are founder decisions (`packages/catalog/assistant.json` `voice.listeningDecision`, decided by the Founder on 2026-09-21), not edits. How a term is matched is `assistant.json` `matcher`. |
 
 | Group | Condition | Terms |
 |---|---|---|
