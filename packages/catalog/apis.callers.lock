@@ -450,3 +450,7 @@ POST /v1/triage/answer@2 callers=- purpose=treatment because=-
 POST /v1/vitals@2 callers=- purpose=treatment because=-
 POST /v1/handover/prepare@2 callers=- purpose=treatment because=-
 POST /v1/handover/submit@2 callers=- purpose=treatment because=-
+GET /v1/devices/simulator-presets@1 callers=operator purpose=audit because=-
+POST /v1/devices/simulations@1 callers=operator purpose=audit because=-
+POST /v1/devices/simulations/{simulationRef}/stop@1 callers=operator purpose=audit because=-
+GET /v1/devices/simulations/{simulationRef}/outputs@1 callers=operator purpose=audit because=-

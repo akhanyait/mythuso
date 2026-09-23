@@ -296,15 +296,15 @@ object GilbertData {
     )
 
     val voice = GilbertVoicePolicy(
-        mode = "push-to-talk",
-        gesture = "tap-to-start-tap-to-stop",
+        mode = "conversation",
+        gesture = "wake-word-with-push-to-talk-fallback",
         maxListeningSeconds = 30,
         recognitionLocales = listOf("en-ZA", "en-GB", "en-US"),
         recognition = "on-device",
         audioStored = false,
         transcriptLifetime = "conversation",
         correctionBeforeSend = true,
-        wakeWord = false,
+        wakeWord = true,
         howItWorks = "Tap the sphere and speak in English. GilbertOne listens until you tap Stop, or for 30 seconds at most, turns what you say into text on this phone, and shows it to you to correct before anything is sent.",
         beforePermission = "Your phone is about to ask whether MyThuso may use the microphone and speech recognition. GilbertOne uses them only after you tap the sphere, in English, on this phone. No recording is made and nothing you say leaves the phone.",
         askPermissionLabel = "Continue",

@@ -232,6 +232,10 @@ object ApisData {
     val POST_DEVICES_KITS_BY_KIT_REF_LOSS_V2 = Route("postDevicesKitsByKitRefLossV2", "POST", "/v1/devices/kits/{kitRef}/loss", "/v1/devices/kits/{kitRef}/loss", 2, "devices", listOf("operator", "nurse"), listOf("audit"), false, "built")
     val GET_DEVICES_SETTINGS = Route("getDevicesSettings", "GET", "/v1/devices/settings", "/v1/devices/settings", 1, "devices", listOf("admin"), listOf("audit"), false, "built")
     val POST_DEVICES_SETTING_CHANGES_V2 = Route("postDevicesSettingChangesV2", "POST", "/v1/devices/setting-changes", "/v1/devices/setting-changes", 2, "devices", listOf("admin"), listOf("audit"), true, "built")
+    val GET_DEVICES_SIMULATOR_PRESETS = Route("getDevicesSimulatorPresets", "GET", "/v1/devices/simulator-presets", "/v1/devices/simulator-presets", 1, "devices", listOf("operator"), listOf("audit"), false, "proposed")
+    val POST_DEVICES_SIMULATIONS = Route("postDevicesSimulations", "POST", "/v1/devices/simulations", "/v1/devices/simulations", 1, "devices", listOf("operator"), listOf("audit"), false, "proposed")
+    val POST_DEVICES_SIMULATIONS_BY_SIMULATION_REF_STOP = Route("postDevicesSimulationsBySimulationRefStop", "POST", "/v1/devices/simulations/{simulationRef}/stop", "/v1/devices/simulations/{simulationRef}/stop", 1, "devices", listOf("operator"), listOf("audit"), true, "proposed")
+    val GET_DEVICES_SIMULATIONS_BY_SIMULATION_REF_OUTPUTS = Route("getDevicesSimulationsBySimulationRefOutputs", "GET", "/v1/devices/simulations/{simulationRef}/outputs", "/v1/devices/simulations/{simulationRef}/outputs", 1, "devices", listOf("operator"), listOf("audit"), false, "proposed")
     val POST_MONEY_PAYMENTS = Route("postMoneyPayments", "POST", "/v1/money/payments", "/v1/money/payments", 1, "money", listOf("patient", "caregiver", "sponsor"), listOf("billing"), true, "built")
     val GET_MONEY_PAYOUTS = Route("getMoneyPayouts", "GET", "/v1/money/payouts", "/v1/money/payouts", 1, "money", listOf("nurse", "locum", "doctor"), listOf("billing"), false, "built")
     val POST_MONEY_PAYMENTS_V2 = Route("postMoneyPaymentsV2", "POST", "/v1/money/payments", "/v1/money/payments", 2, "money", listOf("patient", "caregiver", "sponsor"), listOf("billing"), true, "built")
@@ -483,6 +487,10 @@ object ApisData {
         POST_DEVICES_KITS_BY_KIT_REF_LOSS_V2,
         GET_DEVICES_SETTINGS,
         POST_DEVICES_SETTING_CHANGES_V2,
+        GET_DEVICES_SIMULATOR_PRESETS,
+        POST_DEVICES_SIMULATIONS,
+        POST_DEVICES_SIMULATIONS_BY_SIMULATION_REF_STOP,
+        GET_DEVICES_SIMULATIONS_BY_SIMULATION_REF_OUTPUTS,
         POST_MONEY_PAYMENTS,
         GET_MONEY_PAYOUTS,
         POST_MONEY_PAYMENTS_V2,
@@ -2369,6 +2377,30 @@ object ApisData {
     data class PostDevicesSettingChangesV2Response(
         val settingsVersion: Int,
         val appliesFrom: String
+    )
+    class GetDevicesSimulatorPresetsRequest
+    data class GetDevicesSimulatorPresetsResponse(
+        val presets: List<String>
+    )
+    data class PostDevicesSimulationsRequest(
+        val preset: String
+    )
+    data class PostDevicesSimulationsResponse(
+        val simulationRef: String,
+        val outputs: List<String>
+    )
+    data class PostDevicesSimulationsBySimulationRefStopRequest(
+        val simulationRef: String
+    )
+    data class PostDevicesSimulationsBySimulationRefStopResponse(
+        val stopped: Boolean
+    )
+    data class GetDevicesSimulationsBySimulationRefOutputsRequest(
+        val simulationRef: String
+    )
+    data class GetDevicesSimulationsBySimulationRefOutputsResponse(
+        val outputs: List<String>,
+        val active: Boolean
     )
     data class PostMoneyPaymentsRequest(
         val idempotencyKey: String,

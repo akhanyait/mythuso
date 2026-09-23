@@ -757,16 +757,16 @@
     ]
   },
   "voice": {
-    "mode": "push-to-talk",
-    "gesture": "tap-to-start-tap-to-stop",
+    "mode": "conversation",
+    "gesture": "wake-word-with-push-to-talk-fallback",
     "gestureWhy": "Tap to start and a large Stop to finish, rather than holding. Holding a control down for as long as you speak shuts out VoiceOver and TalkBack, which turn a hold into a separate gesture, and anybody with a tremor or using Switch Control. The microphone still closes on its own after maxListeningSeconds, so a tap is never an open microphone left behind.",
     "maxListeningSeconds": 30,
     "listeningDecision": {
       "maxListeningSeconds": 30,
-      "gesture": "tap-to-start-tap-to-stop",
+      "gesture": "wake-word-with-push-to-talk-fallback",
       "decidedBy": "Founder",
-      "on": "2026-09-14",
-      "why": "Confirmed: tap to talk, a large Stop, and the microphone closes on its own after 30 seconds. Changing the cap or the gesture is the founder's decision, not an edit."
+      "on": "2026-09-21",
+      "why": "Amended: conversation mode with wake-word and push-to-talk fallback, replacing the tap-only gesture of 14 September. The microphone still closes on its own after 30 seconds. Changing the cap or the gesture remains the founder's decision, not an edit."
     },
     "languages": [
       {
@@ -785,7 +785,12 @@
     "audioStored": false,
     "transcriptLifetime": "conversation",
     "correctionBeforeSend": true,
-    "wakeWord": false,
+    "wakeWord": true,
+    "perUtteranceCapSeconds": 45,
+    "bargeIn": true,
+    "echoCancellation": true,
+    "amendmentDate": "2026-09-21",
+    "amendmentNote": "Founder Decision Amendment supersedes push-to-talk rule of 2026-09-14. Full duplex conversation with on-device Porcupine wake word, Silero VAD, faster-whisper STT, Piper TTS.",
     "modelImprovementOffered": false,
     "web": true,
     "webRecognition": "browser",

@@ -232,6 +232,10 @@ enum ApisData {
     static let postDevicesKitsByKitRefLossV2 = Route(id: "postDevicesKitsByKitRefLossV2", method: "POST", path: "/v1/devices/kits/{kitRef}/loss", mountedPath: "/v1/devices/kits/{kitRef}/loss", version: 2, engine: "devices", callers: ["operator", "nurse"], purpose: ["audit"], idempotent: false, status: "built")
     static let getDevicesSettings = Route(id: "getDevicesSettings", method: "GET", path: "/v1/devices/settings", mountedPath: "/v1/devices/settings", version: 1, engine: "devices", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built")
     static let postDevicesSettingChangesV2 = Route(id: "postDevicesSettingChangesV2", method: "POST", path: "/v1/devices/setting-changes", mountedPath: "/v1/devices/setting-changes", version: 2, engine: "devices", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
+    static let getDevicesSimulatorPresets = Route(id: "getDevicesSimulatorPresets", method: "GET", path: "/v1/devices/simulator-presets", mountedPath: "/v1/devices/simulator-presets", version: 1, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "proposed")
+    static let postDevicesSimulations = Route(id: "postDevicesSimulations", method: "POST", path: "/v1/devices/simulations", mountedPath: "/v1/devices/simulations", version: 1, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "proposed")
+    static let postDevicesSimulationsBySimulationRefStop = Route(id: "postDevicesSimulationsBySimulationRefStop", method: "POST", path: "/v1/devices/simulations/{simulationRef}/stop", mountedPath: "/v1/devices/simulations/{simulationRef}/stop", version: 1, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: true, status: "proposed")
+    static let getDevicesSimulationsBySimulationRefOutputs = Route(id: "getDevicesSimulationsBySimulationRefOutputs", method: "GET", path: "/v1/devices/simulations/{simulationRef}/outputs", mountedPath: "/v1/devices/simulations/{simulationRef}/outputs", version: 1, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "proposed")
     static let postMoneyPayments = Route(id: "postMoneyPayments", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 1, engine: "money", callers: ["patient", "caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "built")
     static let getMoneyPayouts = Route(id: "getMoneyPayouts", method: "GET", path: "/v1/money/payouts", mountedPath: "/v1/money/payouts", version: 1, engine: "money", callers: ["nurse", "locum", "doctor"], purpose: ["billing"], idempotent: false, status: "built")
     static let postMoneyPaymentsV2 = Route(id: "postMoneyPaymentsV2", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 2, engine: "money", callers: ["patient", "caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "built")
@@ -483,6 +487,10 @@ enum ApisData {
         postDevicesKitsByKitRefLossV2,
         getDevicesSettings,
         postDevicesSettingChangesV2,
+        getDevicesSimulatorPresets,
+        postDevicesSimulations,
+        postDevicesSimulationsBySimulationRefStop,
+        getDevicesSimulationsBySimulationRefOutputs,
         postMoneyPayments,
         getMoneyPayouts,
         postMoneyPaymentsV2,
@@ -2369,6 +2377,30 @@ enum ApisData {
     struct PostDevicesSettingChangesV2Response {
         let settingsVersion: Int
         let appliesFrom: String
+    }
+    struct GetDevicesSimulatorPresetsRequest {}
+    struct GetDevicesSimulatorPresetsResponse {
+        let presets: [String]
+    }
+    struct PostDevicesSimulationsRequest {
+        let preset: String
+    }
+    struct PostDevicesSimulationsResponse {
+        let simulationRef: String
+        let outputs: [String]
+    }
+    struct PostDevicesSimulationsBySimulationRefStopRequest {
+        let simulationRef: String
+    }
+    struct PostDevicesSimulationsBySimulationRefStopResponse {
+        let stopped: Bool
+    }
+    struct GetDevicesSimulationsBySimulationRefOutputsRequest {
+        let simulationRef: String
+    }
+    struct GetDevicesSimulationsBySimulationRefOutputsResponse {
+        let outputs: [String]
+        let active: Bool
     }
     struct PostMoneyPaymentsRequest {
         let idempotencyKey: String

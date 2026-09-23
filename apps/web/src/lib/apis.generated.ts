@@ -2077,6 +2077,34 @@ export interface PostDevicesSettingChangesV2Response {
  readonly appliesFrom: string;
 }
 
+export type GetDevicesSimulatorPresetsRequest = Record<string, never>;
+export interface GetDevicesSimulatorPresetsResponse {
+ readonly presets: readonly string[];
+}
+
+export interface PostDevicesSimulationsRequest {
+ readonly preset: string;
+}
+export interface PostDevicesSimulationsResponse {
+ readonly simulationRef: string;
+ readonly outputs: readonly string[];
+}
+
+export interface PostDevicesSimulationsBySimulationRefStopRequest {
+ readonly simulationRef: string;
+}
+export interface PostDevicesSimulationsBySimulationRefStopResponse {
+ readonly stopped: boolean;
+}
+
+export interface GetDevicesSimulationsBySimulationRefOutputsRequest {
+ readonly simulationRef: string;
+}
+export interface GetDevicesSimulationsBySimulationRefOutputsResponse {
+ readonly outputs: readonly string[];
+ readonly active: boolean;
+}
+
 export interface PostMoneyPaymentsRequest {
  readonly idempotencyKey: string;
  readonly payableRef: string;
@@ -2707,6 +2735,10 @@ export const apiRoutes = {
  postDevicesKitsByKitRefLossV2: { name: "postDevicesKitsByKitRefLossV2", method: "POST", path: "/v1/devices/kits/{kitRef}/loss", mountedPath: "/v1/devices/kits/{kitRef}/loss", version: 2, engine: "devices", callers: ["operator","nurse"], purpose: ["audit"], idempotent: false, status: "built" },
  getDevicesSettings: { name: "getDevicesSettings", method: "GET", path: "/v1/devices/settings", mountedPath: "/v1/devices/settings", version: 1, engine: "devices", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
  postDevicesSettingChangesV2: { name: "postDevicesSettingChangesV2", method: "POST", path: "/v1/devices/setting-changes", mountedPath: "/v1/devices/setting-changes", version: 2, engine: "devices", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
+ getDevicesSimulatorPresets: { name: "getDevicesSimulatorPresets", method: "GET", path: "/v1/devices/simulator-presets", mountedPath: "/v1/devices/simulator-presets", version: 1, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "proposed" },
+ postDevicesSimulations: { name: "postDevicesSimulations", method: "POST", path: "/v1/devices/simulations", mountedPath: "/v1/devices/simulations", version: 1, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "proposed" },
+ postDevicesSimulationsBySimulationRefStop: { name: "postDevicesSimulationsBySimulationRefStop", method: "POST", path: "/v1/devices/simulations/{simulationRef}/stop", mountedPath: "/v1/devices/simulations/{simulationRef}/stop", version: 1, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: true, status: "proposed" },
+ getDevicesSimulationsBySimulationRefOutputs: { name: "getDevicesSimulationsBySimulationRefOutputs", method: "GET", path: "/v1/devices/simulations/{simulationRef}/outputs", mountedPath: "/v1/devices/simulations/{simulationRef}/outputs", version: 1, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "proposed" },
  postMoneyPayments: { name: "postMoneyPayments", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 1, engine: "money", callers: ["patient","caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "built" },
  getMoneyPayouts: { name: "getMoneyPayouts", method: "GET", path: "/v1/money/payouts", mountedPath: "/v1/money/payouts", version: 1, engine: "money", callers: ["nurse","locum","doctor"], purpose: ["billing"], idempotent: false, status: "built" },
  postMoneyPaymentsV2: { name: "postMoneyPaymentsV2", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 2, engine: "money", callers: ["patient","caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "built" },

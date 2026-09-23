@@ -640,6 +640,12 @@ const PROPOSED: Record<string, string[]> = {
   'POST /v1/access/conversations/{conversationRef}/messages@1',
   'POST /v1/access/tools/{tool}@1',
  ],
+ devices: [
+  'GET /v1/devices/simulations/{simulationRef}/outputs@1',
+  'GET /v1/devices/simulator-presets@1',
+  'POST /v1/devices/simulations/{simulationRef}/stop@1',
+  'POST /v1/devices/simulations@1',
+ ],
  money: [
   'POST /v1/money/wallets@1',
  ],
@@ -846,6 +852,17 @@ test('devices: a withdrawn route is registered nowhere, and the runtime answers 
   assert.ok(!runtime.bound().includes(key as RouteKey), `${key} is withdrawn and must not be registered`);
   const answer = callWith(runtime, key, { role: 'nobody-synthetic-0', purpose: 'purpose-not-served-synthetic', fields: {} });
   assert.deepEqual([answer.status, answer.body['error'], answer.body['message'], answer.answeredBy], [404, 'no-route', NO_ROUTE_MESSAGE, 'runtime'], key);
+ }
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('devices: a proposed route is registered nowhere, and the mock answers it — no engine has built it', () => {
+ const runtime = world('devices');
+ for (const key of PROPOSED['devices']!) {
+  assert.ok(!runtime.bound().includes(key as RouteKey), `${key} is proposed and must not be registered`);
+  const answer = callWith(runtime, key, { role: 'nobody-synthetic-0', purpose: 'purpose-not-served-synthetic', fields: {} });
+  assert.equal(answer.answeredBy, 'mock', `${key} is answered by ${answer.answeredBy}`);
  }
  assert.deepEqual(runtime.faults(), []);
  runtime.close();

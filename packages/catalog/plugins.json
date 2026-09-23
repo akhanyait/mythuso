@@ -1,0 +1,240 @@
+{
+  "_note": "Plugins is the skill allow-list GilbertOne's tool gateway reaches: which named skills may be invoked, in which jurisdiction, behind which grant, and the shape each one's input must match. It is a DATA contract, not an engine file — it is deliberately not listed in packages/catalog/apis.json's engineFiles and declares no engine in packages/catalog/events.json, because packages/catalog/apis/ holds exactly one file per declared engine and scripts/check-boundaries.mjs refuses any other. The four routes below are therefore conceptual and every one is \"proposed\": they are documentation of the surface this allow-list describes, not governed engine routes, and they become real only when the founder decides whether the plugin gateway extends the access engine's tool-gateway (POST /v1/access/tools/{tool}, §15D) or becomes an engine of its own. That decision is deferred. packages/gilbertone/src/tools.ts reads this file's allow-list statically — no network, no environment — to populate its ToolRegistry, and the refusal sentences a plugin meets live here rather than in code, so the words that refuse a skill are the words the accountable people can read in advance.",
+  "engine": "plugins",
+  "version": 1,
+  "jurisdiction": "ZA",
+  "jurisdictions": [
+    {
+      "id": "ZA",
+      "label": "South Africa",
+      "why": "The only jurisdiction MyThuso is deployed in today. A skill is approved for the jurisdictions it names and refused everywhere else, so a skill nobody approved for a place is never invoked there."
+    }
+  ],
+  "resources": [
+    "plugin",
+    "allowlist",
+    "invocation"
+  ],
+  "ownIds": [
+    "pluginId",
+    "invocationRef"
+  ],
+  "schemaFieldTypes": [
+    "string",
+    "integer",
+    "number",
+    "boolean",
+    "iso-date",
+    "instant",
+    "list"
+  ],
+  "_schemaFieldTypesNote": "The types a plugin's declared input schema may name, kept to the field types packages/catalog/feeds.json already defines so a plugin schema speaks the same vocabulary as every route. A skill whose input does not match its declared schema is refused with plugin-schema-violation rather than invoked on a guess.",
+  "pluginStates": [
+    {
+      "id": "allowlisted",
+      "label": "On the allow-list",
+      "why": "The skill may be invoked in a jurisdiction it names, behind the grants it declares."
+    },
+    {
+      "id": "revoked",
+      "label": "Revoked",
+      "why": "The skill was on the allow-list and has been withdrawn. It is never invoked again; an attempt is refused with plugin-revoked, and revocation is not undone by editing this file back — a revoked skill stays listed as revoked so the refusal has something to answer."
+    }
+  ],
+  "refusals": [
+    {
+      "id": "plugin-not-allowlisted",
+      "status": 403,
+      "statement": "That skill is not on the allowlist for this jurisdiction.",
+      "why": "A patient-facing model reaches only named skills on an allow-list (§15D), never a general-purpose one. A skill nobody wrote down is refused rather than tried."
+    },
+    {
+      "id": "plugin-jurisdiction-mismatch",
+      "status": 403,
+      "statement": "That skill is not approved for use in this jurisdiction.",
+      "why": "A skill approved for one place is not approved for every place. The allow-list is scoped per jurisdiction so a skill's approval never travels further than the people who gave it."
+    },
+    {
+      "id": "plugin-revoked",
+      "status": 410,
+      "statement": "That skill has been revoked and can no longer be invoked.",
+      "why": "Revocation is permanent for the version revoked. A withdrawn skill answers 410 rather than 404 so a caller who held it knows it existed and was taken away, not that it was never there."
+    },
+    {
+      "id": "plugin-schema-violation",
+      "status": 422,
+      "statement": "The plugin's input does not match its declared schema.",
+      "why": "A skill declares the shape of its input. An input that does not match it is refused before the skill runs, because a skill invoked on arguments it did not declare is doing something nobody reviewed."
+    }
+  ],
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/v1/plugins/registry",
+      "version": 1,
+      "status": "proposed",
+      "summary": "List every registered skill, allowlisted or revoked, with the jurisdictions and grants each one names.",
+      "answersWith": [
+        "plugin-not-allowlisted"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/plugins/allowlist",
+      "version": 1,
+      "status": "proposed",
+      "summary": "List the skills allowlisted for the current jurisdiction — the registry with everything not approved here, and everything revoked, left out.",
+      "answersWith": [
+        "plugin-jurisdiction-mismatch"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/plugins/{id}/invoke",
+      "version": 1,
+      "status": "proposed",
+      "summary": "Invoke an allowlisted skill by id, with arguments matching its declared schema, and record the invocation.",
+      "answersWith": [
+        "plugin-not-allowlisted",
+        "plugin-jurisdiction-mismatch",
+        "plugin-revoked",
+        "plugin-schema-violation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/plugins/{id}/revoke",
+      "version": 1,
+      "status": "proposed",
+      "summary": "Revoke a skill's allow-list entry, so it is never invoked again and a later attempt answers plugin-revoked.",
+      "answersWith": [
+        "plugin-not-allowlisted",
+        "plugin-revoked"
+      ]
+    }
+  ],
+  "_routesNote": "Conceptual documentation of the surface this allow-list describes, each marked \"proposed\". These are not governed engine routes: they are not in packages/catalog/apis.json's engineFiles, they carry no callers, purposes, emits or capability citations, and scripts/check-boundaries.mjs's API matrix never reads them. \"answersWith\" names the refusals above that the route would answer, by id, so the sentences stay in one place.",
+  "plugins": [
+    {
+      "id": "book-visit",
+      "name": "Book a home visit",
+      "version": 1,
+      "status": "allowlisted",
+      "jurisdictions": [
+        "ZA"
+      ],
+      "engine": "care",
+      "route": "/v1/care/visits",
+      "purpose": "The visits on the caller's own care plan.",
+      "requiredGrants": [
+        "care:read"
+      ],
+      "audiences": [
+        "patient"
+      ],
+      "schema": {
+        "input": [
+          {
+            "field": "serviceId",
+            "type": "string",
+            "required": true,
+            "why": "The service to book, an entry in packages/catalog/services.json."
+          },
+          {
+            "field": "when",
+            "type": "instant",
+            "required": true,
+            "why": "The requested time."
+          },
+          {
+            "field": "idempotencyKey",
+            "type": "string",
+            "required": true,
+            "why": "Chosen by the caller, so a retry on a dropped connection is one visit and not two."
+          }
+        ]
+      }
+    },
+    {
+      "id": "find-nearby-clinic",
+      "name": "Find a nearby clinic",
+      "version": 1,
+      "status": "allowlisted",
+      "jurisdictions": [
+        "ZA"
+      ],
+      "engine": "movement",
+      "route": "/v1/movement/facilities",
+      "purpose": "The facilities near a place the caller names.",
+      "requiredGrants": [],
+      "audiences": [
+        "patient",
+        "nurse"
+      ],
+      "schema": {
+        "input": [
+          {
+            "field": "zoneId",
+            "type": "string",
+            "required": true,
+            "why": "The zone to search, an entry in packages/catalog/geography.json."
+          }
+        ]
+      }
+    },
+    {
+      "id": "nurse-queue",
+      "name": "Nurse queue",
+      "version": 1,
+      "status": "allowlisted",
+      "jurisdictions": [
+        "ZA"
+      ],
+      "engine": "access",
+      "route": "/v1/access/queue",
+      "purpose": "The nurse queue, for staff who carry the grant.",
+      "requiredGrants": [
+        "queue:read"
+      ],
+      "audiences": [
+        "nurse",
+        "control-tower"
+      ],
+      "schema": {
+        "input": []
+      }
+    },
+    {
+      "id": "general-record-dump",
+      "name": "General record read",
+      "version": 1,
+      "status": "revoked",
+      "jurisdictions": [
+        "ZA"
+      ],
+      "engine": "record",
+      "route": "/v1/record/fhir/{resourceType}",
+      "purpose": "A general-purpose record read.",
+      "requiredGrants": [
+        "record:read"
+      ],
+      "audiences": [
+        "patient"
+      ],
+      "revoked": {
+        "on": "2026-09-19",
+        "why": "Gilbert never gets a general-purpose record tool (§15D). A generic FHIR read in front of a model is unrestricted access with a conversation in front of it, so it was revoked and is kept listed as revoked rather than deleted, so an attempt answers plugin-revoked."
+      },
+      "schema": {
+        "input": [
+          {
+            "field": "resourceType",
+            "type": "string",
+            "required": true,
+            "why": "The FHIR resource type."
+          }
+        ]
+      }
+    }
+  ]
+}

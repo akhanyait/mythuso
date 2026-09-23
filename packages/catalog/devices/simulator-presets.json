@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "description": "Synthetic device simulator presets for testing and demonstration. All readings carry source: simulator and quality: synthetic. The simulator-as-real refusal (422) fires if any consumer treats these as clinical data.",
+  "presets": [
+    {
+      "id": "sim.well",
+      "name": "Healthy adult at rest",
+      "description": "Normal vital signs within reference ranges",
+      "readings": [
+        { "type": "heart-rate", "value": 72, "unit": "bpm", "timestamp_offset_ms": 0 },
+        { "type": "spo2", "value": 98, "unit": "%", "timestamp_offset_ms": 0 },
+        { "type": "temperature", "value": 36.8, "unit": "°C", "timestamp_offset_ms": 0 },
+        { "type": "blood-pressure-systolic", "value": 120, "unit": "mmHg", "timestamp_offset_ms": 0 },
+        { "type": "blood-pressure-diastolic", "value": 80, "unit": "mmHg", "timestamp_offset_ms": 0 },
+        { "type": "respiratory-rate", "value": 16, "unit": "breaths/min", "timestamp_offset_ms": 0 }
+      ]
+    },
+    {
+      "id": "sim.hypox",
+      "name": "Progressive hypoxia",
+      "description": "SpO2 dropping over 5 readings with compensatory tachycardia",
+      "readings": [
+        { "type": "spo2", "value": 94, "unit": "%", "timestamp_offset_ms": 0 },
+        { "type": "heart-rate", "value": 88, "unit": "bpm", "timestamp_offset_ms": 0 },
+        { "type": "spo2", "value": 91, "unit": "%", "timestamp_offset_ms": 60000 },
+        { "type": "heart-rate", "value": 96, "unit": "bpm", "timestamp_offset_ms": 60000 },
+        { "type": "spo2", "value": 88, "unit": "%", "timestamp_offset_ms": 120000 },
+        { "type": "heart-rate", "value": 104, "unit": "bpm", "timestamp_offset_ms": 120000 },
+        { "type": "spo2", "value": 86, "unit": "%", "timestamp_offset_ms": 180000 },
+        { "type": "heart-rate", "value": 112, "unit": "bpm", "timestamp_offset_ms": 180000 },
+        { "type": "spo2", "value": 85, "unit": "%", "timestamp_offset_ms": 240000 },
+        { "type": "heart-rate", "value": 118, "unit": "bpm", "timestamp_offset_ms": 240000 }
+      ]
+    },
+    {
+      "id": "sim.tachy",
+      "name": "Tachycardia",
+      "description": "Elevated heart rate with normal oxygenation",
+      "readings": [
+        { "type": "heart-rate", "value": 132, "unit": "bpm", "timestamp_offset_ms": 0 },
+        { "type": "spo2", "value": 97, "unit": "%", "timestamp_offset_ms": 0 },
+        { "type": "temperature", "value": 37.1, "unit": "°C", "timestamp_offset_ms": 0 },
+        { "type": "blood-pressure-systolic", "value": 110, "unit": "mmHg", "timestamp_offset_ms": 0 },
+        { "type": "blood-pressure-diastolic", "value": 70, "unit": "mmHg", "timestamp_offset_ms": 0 }
+      ]
+    },
+    {
+      "id": "sim.brady",
+      "name": "Bradycardia with hypotension",
+      "description": "Low heart rate with dropping blood pressure",
+      "readings": [
+        { "type": "heart-rate", "value": 45, "unit": "bpm", "timestamp_offset_ms": 0 },
+        { "type": "blood-pressure-systolic", "value": 88, "unit": "mmHg", "timestamp_offset_ms": 0 },
+        { "type": "blood-pressure-diastolic", "value": 52, "unit": "mmHg", "timestamp_offset_ms": 0 },
+        { "type": "spo2", "value": 95, "unit": "%", "timestamp_offset_ms": 0 }
+      ]
+    },
+    {
+      "id": "sim.fever",
+      "name": "High fever with tachycardia",
+      "description": "Temperature 39.2°C with compensatory heart rate elevation",
+      "readings": [
+        { "type": "temperature", "value": 39.2, "unit": "°C", "timestamp_offset_ms": 0 },
+        { "type": "heart-rate", "value": 110, "unit": "bpm", "timestamp_offset_ms": 0 },
+        { "type": "spo2", "value": 97, "unit": "%", "timestamp_offset_ms": 0 },
+        { "type": "respiratory-rate", "value": 22, "unit": "breaths/min", "timestamp_offset_ms": 0 }
+      ]
+    },
+    {
+      "id": "sim.desat",
+      "name": "Critical desaturation",
+      "description": "SpO2 78% — immediate escalation trigger",
+      "readings": [
+        { "type": "spo2", "value": 78, "unit": "%", "timestamp_offset_ms": 0 },
+        { "type": "heart-rate", "value": 140, "unit": "bpm", "timestamp_offset_ms": 0 },
+        { "type": "respiratory-rate", "value": 32, "unit": "breaths/min", "timestamp_offset_ms": 0 },
+        { "type": "temperature", "value": 37.4, "unit": "°C", "timestamp_offset_ms": 0 }
+      ]
+    },
+    {
+      "id": "sim.stale",
+      "name": "Stale readings (>24h old)",
+      "description": "Tests staleness validation — all timestamps are 25+ hours in the past",
+      "readings": [
+        { "type": "heart-rate", "value": 75, "unit": "bpm", "timestamp_offset_ms": -90000000 },
+        { "type": "spo2", "value": 96, "unit": "%", "timestamp_offset_ms": -90000000 },
+        { "type": "temperature", "value": 36.9, "unit": "°C", "timestamp_offset_ms": -93600000 }
+      ]
+    }
+  ],
+  "invariants": {
+    "allReadingsCarrySource": "simulator",
+    "allReadingsCarryQuality": "synthetic",
+    "simulatorAsRealRefusal": "Any consumer that treats simulator data as clinical data triggers the simulator-as-real refusal (422) from apis/devices.json"
+  }
+}

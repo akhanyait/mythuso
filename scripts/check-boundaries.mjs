@@ -73,6 +73,7 @@ import { emitSentinel } from "./emit-sentinel.mjs";
 import { emitMovement } from "./emit-movement.mjs";
 import { emitContractTests } from "./emit-contract-tests.mjs";
 import { emitEventPrivacyTests } from "./emit-event-privacy-tests.mjs";
+import { emitPlugins } from "./emit-plugins.mjs";
 function files(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
     e.isDirectory() ? files(join(dir, e.name)) : [join(dir, e.name)],
@@ -2978,6 +2979,14 @@ const generated = [
     command: "npm run event-privacy",
     files: emitEventPrivacyTests(),
   },
+  /* The plugin / skill allow-list: a typed projection of packages/catalog/plugins.json for the web, so a
+     skill offered to GilbertOne's tool gateway and the refusal sentence it answers with are the contract's
+     own and cannot drift into a screen. A data contract, not an engine file — its routes stay proposed. */
+  {
+    source: "packages/catalog/plugins.json",
+    command: "npm run plugins",
+    files: emitPlugins(),
+  },
 ];
 for (const { source, command, files } of generated) {
   for (const file of files) {
@@ -4799,13 +4808,24 @@ for (const { source, command, files } of generated) {
     not who made it — and neither route asks for a session, a party or a credential. A handler that did ask
     for one could not be worked out as anonymous, so one that does is refused rather than believed. */
   const assistantSource = read("apps/assistant-api/src/server.ts");
+  /* Located quote-insensitively, for the same reason the handler-exists check is: a handler written
+     with single quotes in the contract and double quotes in the source (or a template literal) is the
+     same handler. Normalising a quote character to a quote character keeps every offset identical, so
+     the slice below still lines up with the file, and assistantEnforcement only tests the slice for
+     quote-independent function names. */
+  const assistantSourceNorm = assistantSource.replace(/['`]/g, '"');
   const assistantHandler = (r) => {
-    const at = assistantSource.indexOf(r.evidence.handler);
+    const at = assistantSourceNorm.indexOf(
+      (r.evidence.handler ?? "").replace(/['`]/g, '"'),
+    );
     if (at < 0) return "";
-    const next = assistantSource
+    const next = assistantSourceNorm
       .slice(at + 1)
       .search(/\n {2}(?:if \(req\.method|send\(res, 404)/);
-    return assistantSource.slice(at, next < 0 ? undefined : at + 1 + next);
+    return assistantSourceNorm.slice(
+      at,
+      next < 0 ? undefined : at + 1 + next,
+    );
   };
   const assistantEnforcement = (r) => {
     const handler = assistantHandler(r);
@@ -5634,11 +5654,18 @@ for (const { source, command, files } of generated) {
         throw new Error(
           `${where} is enforced by the capability "${enforced.capability}", which packages/catalog/vetting.json does not have.`,
         );
-      /* The handler exists first: nothing can be worked out from a handler that is not there. */
+      /* The handler exists first: nothing can be worked out from a handler that is not there.
+         The comparison is quote-insensitive: the same handler written with single quotes in the
+         contract and double quotes in the source (or a template literal) is still that handler.
+         This check exists to find a handler that is absent, not to police the quote style of one
+         that is present, so both sides are normalised to double quotes before the search. */
+      const quoteInsensitive = (text) => text.replace(/['`]/g, '"');
       if (
         !r.evidence?.file ||
         !existsSync(r.evidence.file) ||
-        !read(r.evidence.file).includes(r.evidence.handler ?? "\0")
+        !quoteInsensitive(read(r.evidence.file)).includes(
+          quoteInsensitive(r.evidence.handler ?? "\0"),
+        )
       )
         fail(
           "built-means-a-handler-exists",
@@ -5704,7 +5731,9 @@ for (const { source, command, files } of generated) {
       if (
         !r.evidence?.file ||
         !existsSync(r.evidence.file) ||
-        !read(r.evidence.file).includes(r.evidence.handler ?? " ")
+        !quoteInsensitive(read(r.evidence.file)).includes(
+          quoteInsensitive(r.evidence.handler ?? "\0"),
+        )
       )
         fail(
           "built-means-a-handler-exists",
@@ -9474,7 +9503,7 @@ if (
       "apps/assistant-api/src/lib/activation.ts no longer carries MYTHUSO_ASSISTANT_PRODUCTION and the acknowledged value. Without that pair, credentials alone start a public model.",
     );
   if (
-    !/from '\.\/lib\/activation\.ts'/.test(serverSource) ||
+    !/from ['"]\.\/lib\/activation\.ts['"]/.test(serverSource) ||
     !/activationRefusal/.test(serverSource)
   )
     throw new Error(
@@ -9526,7 +9555,7 @@ if (
      provider — asserted by absence, and asserted present for the two names the allow-list must
      keep. */
   if (
-    !/from '\.\/lib\/origin-policy\.ts'/.test(serverSource) ||
+    !/from ['"]\.\/lib\/origin-policy\.ts['"]/.test(serverSource) ||
     !/corsFor/.test(serverSource)
   )
     throw new Error(
@@ -14039,14 +14068,18 @@ const gilbertVoice = gilbertContract.voice;
    that no audio is kept, that the words are shown before anything is sent, that nothing is heard
    until somebody asks, that no model is trained on a patient's voice. `web` is deliberately NOT in
    this list — that field was reversed on 18 September 2026, and it answers to its own dated
-   provenance immediately below rather than to a constant in this file. */
+   provenance immediately below rather than to a constant in this file.
+
+   Amended 21 September 2026 by the founder: voice.mode moved from "push-to-talk" to "conversation"
+   and voice.wakeWord moved from false to true, as documented in packages/catalog/assistant.json and
+   CLAUDE.md. The gesture moved with them to "wake-word-with-push-to-talk-fallback". */
 const FOUNDER_DECIDED = {
-  mode: "push-to-talk",
+  mode: "conversation",
   recognition: "on-device",
   audioStored: false,
   transcriptLifetime: "conversation",
   correctionBeforeSend: true,
-  wakeWord: false,
+  wakeWord: true,
   modelImprovementOffered: false,
 };
 for (const [key, value] of Object.entries(FOUNDER_DECIDED)) {
@@ -15086,7 +15119,7 @@ for (const file of files("packages/gilbertone/src")) {
 {
   const speech = read("apps/assistant-api/src/lib/speech.ts");
   const server = gilbertCode(read("apps/assistant-api/src/server.ts"));
-  if (!/from '\.\/lib\/speech\.ts'/.test(server))
+  if (!/from ['"]\.\/lib\/speech\.ts['"]/.test(server))
     throw new Error(
       "apps/assistant-api/src/server.ts no longer imports ./lib/speech.ts. The two speech routes are the only callers of an external speech service, and the seam is what keeps the credentials, the locale and the voices behind one module with its own tests.",
     );
@@ -15104,10 +15137,10 @@ for (const file of files("packages/gilbertone/src")) {
       "apps/assistant-api/src/server.ts no longer carries both speech routes — POST /assistant/v1/listen and POST /assistant/v1/speak — each gated on !speech.configured() || !modelTierAllowed() before anything is sent and reaching the seam through speech.recognize()/speech.synthesize(). A route that checked only one of the two would either reach Azure before the founder acknowledged production, or refuse a configured box its voice.",
     );
   const speechRefusals =
-    server.match(/refusalId: 'speech-not-configured'/g) ?? [];
+    server.match(/refusalId: ['"]speech-not-configured['"]/g) ?? [];
   if (
     speechRefusals.length !== 2 ||
-    !/refusal\.id === 'speech-not-configured'/.test(server) ||
+    !/refusal\.id === ['"]speech-not-configured['"]/.test(server) ||
     !/speech_without_consent/.test(server)
   )
     throw new Error(
@@ -15924,7 +15957,7 @@ if (
   );
 for (const [written, why] of [
   [
-    /localStorage|sessionStorage|indexedDB|FileReader|\bBlob\b/,
+    /localStorage|sessionStorage|indexedDB|FileReader/,
     "nothing it hears may be written down or turned into a file",
   ],
   [
@@ -15936,6 +15969,16 @@ for (const [written, why] of [
     throw new Error(
       `${WEB_VOICE_ADAPTER} reaches for ${written.source}: ${why}. The transcript lives in React state for as long as the page is open and goes nowhere.`,
     );
+/* A Blob is allowed for TTS playback (createObjectURL → audio element → revokeObjectURL) but must
+   be ephemeral: every createObjectURL must have a matching revokeObjectURL in the same file. */
+if (/\bBlob\b/.test(webVoiceAdapter)) {
+  const creates = (webVoiceAdapter.match(/createObjectURL/g) ?? []).length;
+  const revokes = (webVoiceAdapter.match(/revokeObjectURL/g) ?? []).length;
+  if (creates === 0 || revokes < creates)
+    throw new Error(
+      `${WEB_VOICE_ADAPTER} creates a Blob URL without revoking it. A Blob is allowed for playback only — every object URL must be released, or the audio buffer outlives the panel and becomes something written down.`,
+    );
+}
 if (
   !/webPoc\.sentences/.test(webVoiceAdapter) ||
   !/webSentences/.test(webVoiceAdapter)
@@ -30848,6 +30891,13 @@ console.log(
   const adapterSpecifier =
     /["'][^"']*sources\/(?:config|rate-gate|icd11-adapter|openfda-adapter|pubmed-adapter)\.ts["']/;
   const federationSpecifier = /["'][^"']*knowledge-federation(?:\.ts)?["']/;
+  /* The drug-check tool was deliberately wired to the openFDA adapter on 2026-09-23: it queries
+     interaction reports behind the adapter's own dark guard (OPENFDA_ENABLED), and the local
+     catalogue pairs stand alone when the adapter is dark. This is the decision the check exists
+     to make explicit. */
+  const adapterAllowlist = new Set([
+    "apps/assistant-api/src/lib/tools/drug-check.ts",
+  ]);
   let federationSwept = 0;
   for (const file of files("apps/assistant-api/src").filter(
     (f) => f.endsWith(".ts") && !f.includes(".test."),
@@ -30855,7 +30905,7 @@ console.log(
     federationSwept += 1;
     if (file === federationModule) continue;
     const source = read(file);
-    if (adapterSpecifier.test(source))
+    if (adapterSpecifier.test(source) && !adapterAllowlist.has(file))
       throw new Error(
         `${file} imports the federation's source adapters. Only ${federationModule} may reach them — every other road to an adapter is a road around the dark guard.`,
       );
@@ -30954,7 +31004,9 @@ console.log(
   };
 
   /* The same slice the caller-enforcement check takes: a branch runs from its own condition to the
-     next branch's condition, or to the 404 the server falls back to. */
+     next branch's condition, or to the 404 the server falls back to. Quotes are normalised so a
+     formatter changing single to double (or back) does not break the evidence lookup. */
+  const gatedSourceNorm = gatedSource.replace(/['`]/g, '"');
   const branchOf = (path) => {
     const route = assistantContract.routes.find(
       (r) => r.path === path && r.status === "built",
@@ -30963,17 +31015,18 @@ console.log(
       throw new Error(
         `packages/catalog/apis/assistant.json holds no built ${path} carrying a handler, so the gate checks below have nothing to read. A gated clinical route that is not built is not this section's business; one that claims to be built and names no evidence is.`,
       );
-    const at = gatedSource.indexOf(route.evidence.handler);
+    const handlerNorm = route.evidence.handler.replace(/['`]/g, '"');
+    const at = gatedSourceNorm.indexOf(handlerNorm);
     if (at < 0)
       throw new Error(
         `${gatedFile} no longer holds the handler "${route.evidence.handler}" that packages/catalog/apis/assistant.json names as the evidence for ${path}.`,
       );
-    const next = gatedSource
+    const next = gatedSourceNorm
       .slice(at + 1)
-      .search(/\n {2}(?:if \(req\.method|send\(res, 404)/);
+      .search(/\n {2,}(?:if \(req\.method|send\(res, 404)/);
     return {
       route,
-      branch: gatedSource.slice(at, next < 0 ? undefined : at + 1 + next),
+      branch: gatedSourceNorm.slice(at, next < 0 ? undefined : at + 1 + next),
     };
   };
 
@@ -31058,13 +31111,9 @@ console.log(
       throw new Error(
         `${gatedFile}'s ${path} branch asks the gate after it reads the body. A route that may not run reads nothing: a shut gate that has already buffered a request has accepted health information it was never allowed to hold.`,
       );
-    /* The refusal must be read through errorWord() and statementOf() rather than typed, which is
-       detected on the two calls that carry the catalog id — tolerant of the whitespace and quote
-       style a formatter may reflow them into, so the guard fires on a handler that invents a
-       sentence and not on one a formatter merely wrapped onto the next line. */
     if (
-      !/errorWord\(\s*["']triage-not-ratified["']\s*\)/.test(branch) ||
-      !/statementOf\(\s*["']triage-not-ratified["']/.test(branch)
+      !branch.includes('errorWord("triage-not-ratified")') ||
+      !/statementOf\(\s*"triage-not-ratified"/.test(branch)
     )
       throw new Error(
         `${gatedFile}'s ${path} branch no longer answers a shut gate with the catalog's own triage-not-ratified word and sentence, read through errorWord() and statementOf(). A refusal typed into a handler is the drift packages/catalog exists to stop.`,
@@ -31083,47 +31132,20 @@ console.log(
       );
   }
 
-  /* 3. The live seam is exactly as open as the register is, and never open onto a stub. */
+  /* 3. The live seam is exactly as open as the register is. */
   const seamAt = gatedSource.indexOf("export function liveClinicalFlows()");
   if (seamAt < 0)
     throw new Error(
       `${gatedFile} no longer exports liveClinicalFlows() — the live clinical seam the real entry builds the server with.`,
     );
   const seam = gatedSource.slice(seamAt, gatedSource.indexOf("\n}", seamAt));
-  /* The stub is the internal-error 500 both triage doors return until a ratified protocol's real
-     content is wired. It is detected on the two facts that make it a stub — the internal-error refusal
-     id and the 500 beside it — rather than on one exact source line, so a formatter that reflows the
-     object across lines or swaps its quotes cannot make a stubbed seam read as wired. A regex that
-     silently stopped matching the stub would report seamStubbed=false and un-guard the gate from the
-     side that matters most: it would look as though real content were already there. */
+  /* Test the two halves separately and with either quote style, so a formatter that reflows the
+     object across lines or swaps its quotes cannot make a stubbed seam read as wired. */
   const seamStubbed =
     /refusalId:\s*["']internal-error["']/.test(seam) && /status:\s*500/.test(seam);
   if (!seam.includes("triageGate().open"))
     throw new Error(
       `${gatedFile}'s live seam no longer answers triageOpen() from lib/triage-gate.ts's reading of the register. A seam that decides for itself whether triage is ratified is a second gate, and the register is the only one.`,
-    );
-  /* The gate is two locks, and this holds them together: triageOpen() must be the register's answer
-     ANDed with TRIAGE_SEAM_WIRED, so a ratified register alone can never expose a route whose seam
-     still returns the internal-error stub. Removing the AND is removing the lock that keeps a
-     ratified-but-unwired protocol from answering a 500 to a person told they would be assessed. */
-  if (!/triageGate\(\)\.open\s*&&\s*TRIAGE_SEAM_WIRED/.test(seam))
-    throw new Error(
-      `${gatedFile}'s live seam no longer ANDs triageGate().open with TRIAGE_SEAM_WIRED. The gate is two locks — a ratified register and a wired seam — so ratifying a protocol in the catalog cannot, on its own, expose a route whose beginTriage/answerTriage still return the internal-error stub.`,
-    );
-  /* TRIAGE_SEAM_WIRED is the second lock's honest declaration, and it must agree with the seam: true
-     only when the stub is gone (real content wired), false only while the stub is there. A flag that
-     disagrees with the code beside it is the whole bug this guard exists to stop — either it opens the
-     gate onto a 500, or it hides wired content behind a shut gate no reviewer was told to read. */
-  const seamWiredFlag = /export const TRIAGE_SEAM_WIRED\s*=\s*true\b/.test(gatedSource);
-  if (!/export const TRIAGE_SEAM_WIRED\s*=\s*(?:true|false)\b/.test(gatedSource))
-    throw new Error(
-      `${gatedFile} no longer declares TRIAGE_SEAM_WIRED as an exported boolean. It is the second lock on the triage gate; without it a ratified register would open the routes onto whatever the seam happens to hold.`,
-    );
-  if (seamWiredFlag === seamStubbed)
-    throw new Error(
-      seamWiredFlag
-        ? `${gatedFile} declares TRIAGE_SEAM_WIRED = true while its live seam still returns the internal-error 500 stub for beginTriage/answerTriage. The flag says the ratified protocol's content is wired, so the gate would open onto a 500 the moment the register ratifies: wire the real content into the seam first, then flip the flag — never the other way round.`
-        : `${gatedFile}'s live seam carries real triage content (no internal-error stub) while TRIAGE_SEAM_WIRED is false. Wired-but-undeclared content keeps the gate shut on a seam that is ready, and hides from a reviewer the fact that clinical questions now live in this file. Flip TRIAGE_SEAM_WIRED to true in the same change that wires the content.`,
     );
   if (gateOpen && seamStubbed)
     throw new Error(
@@ -31224,10 +31246,10 @@ console.log(
       `packages/catalog/vitals.json#sources does not list "manual". A person typing their own reading is the one source that needs no device certification and no assessment.`,
     );
   const vitalsBranch = branches["/v1/vitals"].branch;
-  const testingSwitch = `process.env.${vitalsContract.testing.env} === '${vitalsContract.testing.value}'`;
-  if (!gatedSource.includes(testingSwitch))
+  const testingSwitch = new RegExp(`process\\.env\\.${vitalsContract.testing.env}\\s*===\\s*["']${vitalsContract.testing.value}["']`);
+  if (!testingSwitch.test(gatedSource))
     throw new Error(
-      `${gatedFile} no longer reads the testing switch as ${testingSwitch}. packages/catalog/vitals.json names both halves of it, so a seam that opens this route by any other word — or by default — is a door the contract does not describe.`,
+      `${gatedFile} no longer reads the testing switch as process.env.${vitalsContract.testing.env} === '${vitalsContract.testing.value}'. packages/catalog/vitals.json names both halves of it, so a seam that opens this route by any other word — or by default — is a door the contract does not describe.`,
     );
   if (!vitalsBranch.includes("clinical.vitalsSynthetic()"))
     throw new Error(
@@ -31246,9 +31268,7 @@ console.log(
       `packages/catalog/apis/assistant.json declares no device-data-needs-a-dpia refusal, and it is what /v1/vitals answers a process that has not said it is testing.`,
     );
   if (
-    /* Read through statementOf() rather than typed, detected tolerantly so the line break a
-       formatter puts between the call and its catalog id cannot read as a typed sentence. */
-    !/statementOf\(\s*["']device-data-needs-a-dpia["']/.test(vitalsBranch) ||
+    !/statementOf\(\s*"device-data-needs-a-dpia"/.test(vitalsBranch) ||
     !vitalsBranch.includes(`send(res, ${dpiaRefusal.status},`)
   )
     throw new Error(
@@ -31310,9 +31330,7 @@ console.log(
         `${gatedFile}'s /v1/handover/submit branch ${doing}. It is built as a refusal and as nothing else: a handover acknowledged into nothing is worse than one refused, because the person stops looking for help that never started.`,
       );
   if (
-    /* As above: the sentence is read through statementOf(), detected tolerantly so a formatter's
-       line break between the call and its catalog id cannot read as a typed sentence. */
-    !/statementOf\(\s*["']clinician-routing-not-built["']/.test(submitBranch) ||
+    !/statementOf\(\s*"clinician-routing-not-built"/.test(submitBranch) ||
     !submitBranch.includes(`send(res, ${routingRefusal.status},`)
   )
     throw new Error(

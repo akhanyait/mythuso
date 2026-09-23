@@ -8,7 +8,9 @@
   "wearable-links",
   "kits",
   "settings",
-  "setting-changes"
+  "setting-changes",
+  "simulator-presets",
+  "simulations"
  ],
  "doors": [
   "device-reading",
@@ -2206,6 +2208,179 @@
    "enforcedBy": {
     "mechanism": "engines-runtime:callers"
    }
+  },
+  {
+   "method": "GET",
+   "path": "/v1/devices/simulator-presets",
+   "version": 1,
+   "summary": "List the synthetic simulator presets available for testing and demonstration.",
+   "callers": [
+    "operator"
+   ],
+   "purpose": [
+    "audit"
+   ],
+   "request": [],
+   "response": [
+    {
+     "field": "presets",
+     "type": "list",
+     "required": true,
+     "why": "Each preset's id, name and description."
+    }
+   ],
+   "refusals": [
+    {
+     "id": "simulator-as-real",
+     "status": 422,
+     "statement": "A simulator reading is labelled and never presented as real.",
+     "why": "§5.5."
+    }
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Listing presets changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/simulations",
+   "version": 1,
+   "summary": "Start a simulator session for a preset, producing synthetic readings.",
+   "callers": [
+    "operator"
+   ],
+   "purpose": [
+    "audit"
+   ],
+   "request": [
+    {
+     "field": "preset",
+     "type": "string",
+     "required": true,
+     "why": "The preset to simulate, by its catalog id."
+    }
+   ],
+   "response": [
+    {
+     "field": "simulationRef",
+     "type": "string",
+     "required": true,
+     "why": "The simulation started."
+    },
+    {
+     "field": "outputs",
+     "type": "list",
+     "required": true,
+     "why": "The first batch of synthetic simulator outputs, each carrying source: simulator and quality: synthetic."
+    }
+   ],
+   "refusals": [
+    {
+     "id": "simulator-as-real",
+     "status": 422,
+     "statement": "A simulator reading is labelled and never presented as real.",
+     "why": "§5.5."
+    }
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A simulator session produces synthetic data for testing; no engine acts on it.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/simulations/{simulationRef}/stop",
+   "version": 1,
+   "summary": "Stop an active simulator session.",
+   "callers": [
+    "operator"
+   ],
+   "purpose": [
+    "audit"
+   ],
+   "request": [
+    {
+     "field": "simulationRef",
+     "type": "string",
+     "required": true,
+     "why": "The simulation to stop."
+    }
+   ],
+   "response": [
+    {
+     "field": "stopped",
+     "type": "boolean",
+     "required": true,
+     "why": "Whether the session was stopped."
+    }
+   ],
+   "refusals": [
+    {
+     "id": "simulator-as-real",
+     "status": 422,
+     "statement": "A simulator reading is labelled and never presented as real.",
+     "why": "§5.5."
+    }
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Stopping a simulator changes nothing outside the session.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "GET",
+   "path": "/v1/devices/simulations/{simulationRef}/outputs",
+   "version": 1,
+   "summary": "Read the synthetic outputs produced by an active or completed simulator session.",
+   "callers": [
+    "operator"
+   ],
+   "purpose": [
+    "audit"
+   ],
+   "request": [
+    {
+     "field": "simulationRef",
+     "type": "string",
+     "required": true,
+     "why": "The simulation to read."
+    }
+   ],
+   "response": [
+    {
+     "field": "outputs",
+     "type": "list",
+     "required": true,
+     "why": "All synthetic simulator outputs produced so far, each carrying source: simulator and quality: synthetic."
+    },
+    {
+     "field": "active",
+     "type": "boolean",
+     "required": true,
+     "why": "Whether the session is still producing outputs."
+    }
+   ],
+   "refusals": [
+    {
+     "id": "simulator-as-real",
+     "status": 422,
+     "statement": "A simulator reading is labelled and never presented as real.",
+     "why": "§5.5."
+    }
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
   }
  ]
 }

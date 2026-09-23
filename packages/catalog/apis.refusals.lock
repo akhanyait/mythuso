@@ -480,3 +480,7 @@ POST /v1/vitals@3 31b724e7eabe6d34
 POST /v1/handover/prepare@3 25abb70e6670d915
 POST /v1/handover/submit@3 11328e570c4baa5f
 shared apis/assistant.json#refusals triage-not-ratified 7440cd2760a05192
+GET /v1/devices/simulator-presets@1 fd2c9b342314470a
+POST /v1/devices/simulations@1 79b858beaa264b2d
+POST /v1/devices/simulations/{simulationRef}/stop@1 f020d9cfcec807b4
+GET /v1/devices/simulations/{simulationRef}/outputs@1 2b5e409cc0021b13

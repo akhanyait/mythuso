@@ -356,3 +356,7 @@ POST /v1/triage/answer@3 7a93ab959644d9df
 POST /v1/vitals@3 d3499f008f04246a
 POST /v1/handover/prepare@3 d4165e1d871f9006
 POST /v1/handover/submit@3 1389c53f39a4150c
+GET /v1/devices/simulator-presets@1 2f19d4c076c399e2
+POST /v1/devices/simulations@1 ecf45542cfa8cdfb
+POST /v1/devices/simulations/{simulationRef}/stop@1 979d4a029f82dcbf
+GET /v1/devices/simulations/{simulationRef}/outputs@1 f0a06d9d9e57661f
