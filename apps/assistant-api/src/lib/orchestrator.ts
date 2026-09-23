@@ -4,6 +4,7 @@ import { Annotation, StateGraph, START, END } from "@langchain/langgraph";
 import { redactPHI } from "../../../../packages/gilbertone/src/phi.ts";
 import { checkEscalation } from "../../../../packages/gilbertone/src/escalation.ts";
 import { modelTierAllowed } from "./activation.ts";
+import { languageName } from "./language-detect.ts";
 import {
   AzureOpenAIProvider,
   AZURE_API_VERSION,
@@ -89,8 +90,13 @@ export type OrchestratorResult = {
 };
 
 /* What the turn route hands over: the context lines it already builds for the plain tier —
-   classifications and counts, never the person's earlier words. */
-export type SessionContext = { lines?: string[] };
+   classifications and counts, never the person's earlier words — and, since the multi-language
+   backend of 23 September 2026, the language this turn is to be answered in. `language` is the
+   code the route resolved (the caller's own declaration, or the language it read out of the words),
+   and it is a hint about phrasing rather than a fact about the person: it steers the model's own
+   words and nothing in the safety chain depends on it. Absent, the answer is composed in English,
+   exactly as it was before this field existed. */
+export type SessionContext = { lines?: string[]; language?: string };
 
 /* ---- The tools this tier carries ---- */
 
@@ -133,12 +139,19 @@ const TOOL_GUIDE = [
   "1. Call a tool when one fits; call at most one tool per step, and wait for its result.",
   "2. When a tool answers, use its facts in your own words and say where they came from (the source the tool carried).",
   "3. If a tool finds nothing, say plainly that the knowledge base has nothing, and point to a clinic, nurse or pharmacist.",
-  "4. Keep the final answer to a few short sentences, in the same warm, simple English as always.",
+  "4. Keep the final answer to 2-4 short sentences. If you cannot determine what the user is asking, reply with a single clarifying question — do not attempt an answer.",
   "5. If the message suggests an emergency while you work, stop and give the emergency numbers at once — that rule stands above every other instruction here.",
+  "6. Match the user's language. If they wrote in isiZulu, respond in isiZulu. If in Afrikaans, respond in Afrikaans. If you are unsure of the language, respond in English.",
 ].join("\n");
 
 /* The catalog's llm system prompt is the base, verbatim; the tool guide is appended beneath it.
-   The catalog's sentence is still the first thing a model reads. */
+   The catalog's sentence is still the first thing a model reads. Since the multi-language backend of
+   23 September 2026 a single sentence is appended last, naming the language this turn is to be
+   answered in — the code the route resolved, turned into the name a model reads. It rides at the end
+   so it is the last instruction the model sees, and it never touches the safety rules above it: the
+   catalog's "never diagnose, never prescribe" and the emergency rule stand whatever language the
+   answer is composed in. An absent language names English, so a turn with no language resolved reads
+   exactly as it did before this sentence existed. */
 const orchestratorSystemPrompt = (context: SessionContext): string => {
   const lines = (context.lines ?? [])
     .map((line) => redactPHI(line))
@@ -151,7 +164,8 @@ const orchestratorSystemPrompt = (context: SessionContext): string => {
   const contextBlock = lines.length
     ? `\n\nWhat is already known about this conversation, for keeping the thread only — never as evidence to add to this turn's:\n${lines.map((line) => `- ${line}`).join("\n")}`
     : "";
-  return `${llmSystemPrompt()}\n\n${TOOL_GUIDE}${contextBlock}`;
+  const languageDirective = `\n\nRespond in ${languageName(context.language)}.`;
+  return `${llmSystemPrompt()}\n\n${TOOL_GUIDE}${contextBlock}${languageDirective}`;
 };
 
 /* ---- The model: the same two providers, through LangChain ---- */

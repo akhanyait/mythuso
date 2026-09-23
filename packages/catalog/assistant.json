@@ -546,7 +546,7 @@
     "service": {
       "state": "guiding",
       "heading": "An answer written by a language model",
-      "disclosure": "That part was written by a language model, not read from one of GilbertOne's approved sentences. It can be wrong, it is not a diagnosis and not a prescription, and it is never a substitute for a real nurse or doctor. If a clinician's answer matters to you, say so — GilbertOne can hand this conversation to the nurse queue.",
+      "disclosure": "AI-generated. Not a diagnosis. Speak to a nurse for clinical decisions.",
       "ifUrgent": "If any of this might be an emergency, do not wait for an answer here. Call one of these now:",
       "numbers": ["ambulance", "mobile"],
       "sosLabel": "Open Thuso SOS",
@@ -599,6 +599,22 @@
     "voiceNote": "Speech becomes text before sending.",
     "emergencyNotice": "If you think it is an emergency, call {ambulance}, or {mobile} from a mobile.",
     "footer": "People. Rules. Safer care."
+  },
+  "screens": {
+    "_note": "Web-only layout copy for the three GilbertOne surfaces restyled on 23 September 2026 — the live assistant welcome, the patient consent gate and the signed-out public sheet. These are the short headings, labels and framing lines a layout needs that no shared contract section carries; every clinical sentence, refusal, consent line and emergency number still comes from its own section above and from sos.json, and no number is typed here. Nothing in this section is emitted to the phones: the native surfaces keep their own layouts and scripts/emit-assistant.mjs does not read it.",
+    "welcome": {
+      "popularHeading": "Popular things you can ask",
+      "note": "Here to help",
+      "talkSubtitle": "I hear {languages}. Tap the microphone beside the box to speak, or type instead."
+    },
+    "consent": {
+      "emergencyHeading": "If it might be an emergency",
+      "callLabel": "Call {name} on {number}"
+    },
+    "publicSheet": {
+      "close": "Close",
+      "quickHeading": "Popular questions"
+    }
   },
   "affect": {
     "decidedBy": "Founder",
@@ -772,9 +788,43 @@
       {
         "id": "en",
         "name": "English",
-        "recognitionLocales": ["en-ZA", "en-GB", "en-US"]
+        "recognitionLocales": ["en-ZA", "en-GB", "en-US"],
+        "ttsAvailable": true,
+        "ttsVoices": {
+          "female": "en-ZA-LeahNeural",
+          "male": "en-ZA-LukeNeural"
+        }
+      },
+      {
+        "id": "zu",
+        "name": "isiZulu",
+        "recognitionLocales": ["zu-ZA"],
+        "ttsAvailable": false
+      },
+      {
+        "id": "xh",
+        "name": "isiXhosa",
+        "recognitionLocales": ["xh-ZA"],
+        "ttsAvailable": false
+      },
+      {
+        "id": "af",
+        "name": "Afrikaans",
+        "recognitionLocales": ["af-ZA"],
+        "ttsAvailable": true,
+        "ttsVoices": {
+          "female": "af-ZA-AdriNeural",
+          "male": "af-ZA-WillemNeural"
+        }
+      },
+      {
+        "id": "st",
+        "name": "Sesotho",
+        "recognitionLocales": ["st-ZA"],
+        "ttsAvailable": false
       }
     ],
+    "voiceUnavailableNotice": "Voice output is not available in this language yet. The response is displayed as text.",
     "voicePreference": {
       "order": ["en-ZA", "en-GB", "en-AU", "en"],
       "decidedBy": "Founder",
@@ -1057,7 +1107,7 @@
   },
   "llm": {
     "why": "The second tier, added on 20 September 2026. The keyword classifier stays the first decision in every direction: it routes, it raises emergencies, and it is never second-guessed — an emergency it classifies is answered with the classifier's own words and the language model is never asked at all. A refusal policy is asked before it, too, so a message about to be refused never reaches a model. Only where the classifier found nothing it knows — an unknown classification, or a match it is less than half sure of, for a patient audience, because a staff preview's session is scoped to the three universal questions — is a model consulted, and all it may write is the one sentence in the answers.service block: its own heading and disclosure sit around it, the reply is redacted before it is shown, and if the model is slow, refuses or fails, the classifier's unmatched answer — the one with the ambulance numbers in it — stands untouched. The default URL probe and the environment variables the adapter reads are in apps/assistant-api/src/lib/llm-adapter.ts; what is here is the only sentence a model is ever told.",
-    "systemPrompt": "You are GilbertOne, the health assistant for MyThuso, a South African home healthcare platform. You help patients navigate healthcare services: booking nurses, checking symptoms and medication guidance — always in general terms and always pointing at the humans who decide. You never diagnose a condition, you never prescribe a medication and you never give specific medical advice; when a message asks for any of those, you say plainly that the decision belongs to a registered nurse or doctor and that MyThuso can arrange one. You always recommend consulting a healthcare professional for a medical concern. You are warm, empathetic and speak in clear, simple English. When a message suggests an emergency — chest pain, difficulty breathing, severe bleeding, a person who cannot be woken, signs of a stroke, a seizure — you immediately direct the person to call {ambulance} for an ambulance, {police} for the police or {mobile} from a mobile phone, and you do not continue with anything else. You do not store or remember personal health information between conversations, and you never ask for an identity number, a phone number, an email address or medical aid details."
+    "systemPrompt": "You are GilbertOne, the health assistant for MyThuso, a South African home healthcare platform. You help patients navigate healthcare services: booking nurses, checking symptoms and medication guidance — always in general terms and always pointing at the humans who decide. You never diagnose a condition, you never prescribe a medication and you never give specific medical advice; when a message asks for any of those, you say plainly that the decision belongs to a registered nurse or doctor and that MyThuso can arrange one. You always recommend consulting a healthcare professional for a medical concern. You are warm, empathetic and respond in the same language the user wrote in. Be concise — 2-4 sentences maximum unless the user asks for detail. If you do not understand the question, say so plainly and ask the user to rephrase — never guess. Do not include disclaimers or medical-advice warnings in your response text; the platform handles disclosure separately. When a message suggests an emergency — chest pain, difficulty breathing, severe bleeding, a person who cannot be woken, signs of a stroke, a seizure — you immediately direct the person to call {ambulance} for an ambulance, {police} for the police or {mobile} from a mobile phone, and you do not continue with anything else. You do not store or remember personal health information between conversations, and you never ask for an identity number, a phone number, an email address or medical aid details."
   },
   "events": [
     {

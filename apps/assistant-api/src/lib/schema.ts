@@ -9,6 +9,15 @@ export type AssistantTurnRequest = {
   visitId?: string;
   /* Declared by the caller, never authenticated — the audience decision of 19 September 2026. */
   audience?: Audience;
+  /* The language the caller wants the answer in, added with the multi-language backend of
+     23 September 2026. Optional, and never trusted as a fact about the person: when it is present
+     the turn is answered in it, and when it is absent the service reads the language of the words
+     it was sent (../lib/language-detect.ts) and answers in that. Either way the language the answer
+     came back in is reported as detectedLanguage on the response, so a caller that sent none can
+     still show which one answered. A code the detector does not know is treated as absent rather
+     than as an error — a wrong language hint changes how a sentence reads, never whether it is
+     safe. */
+  language?: string;
   userConsent: boolean;
   /* Opt-in Server-Sent Events, added with the speed pass of 23 September 2026 and declared at
      POST /v1/turn@2. Absent or false — the default, and what every caller that predates it sends,
@@ -55,4 +64,12 @@ export type AssistantTurnResponse = {
      answer, read from packages/catalog/assistant.json — so a client can wear the same face
      the web panel does without typing a cue id of its own. */
   cue?: string;
+  /* The language this turn's reply was produced in, added with the multi-language backend of
+     23 September 2026. It is the request's own `language` when the caller declared one, and the
+     language the service read out of the words otherwise — so a client that sent no language can
+     still tell which one answered, and one that did can see its declaration was honoured. Always
+     present, and "en" whenever nothing else was declared or confidently detected: the safe default
+     the service has always spoken. A classifier reply that never reached the model still carries
+     the language it was read as, because the field describes the turn, not the tier that wrote it. */
+  detectedLanguage: string;
 };

@@ -23,11 +23,15 @@ import assistant from "../../../../packages/catalog/assistant.json" with { type:
    THE LOCALE AND THE VOICES ARE DECISIONS ON FILE. The recognition locale, the output format and
    the founder's two en-ZA voices are read from packages/catalog/assistant.json's voice.cloud,
    never typed here, so which voice reads a health answer in South Africa stays a line the
-   accountable people can read rather than a string in code. A caller's declared language is
-   honoured when it names one of the contract's own recognition locales — en-ZA, en-GB, en-US —
-   and meets the cloud voice's decided locale, en-ZA, otherwise: the contract promises no other
-   locale, and plain "en" is a declaration this file answers with the first locale rather than a
-   guess at a second one.
+   accountable people can read rather than a string in code, and every language's own recognition
+   locales and neural voices are read from its voice.languages. A caller's declared language is
+   honoured when it names one of the contract's own recognition locales — en-ZA, en-GB, en-US and,
+   since the multi-language backend of 23 September 2026, zu-ZA, xh-ZA, af-ZA and st-ZA — or a bare
+   language id, which meets that language's own first locale; anything else meets the cloud voice's
+   decided locale, en-ZA. Only some of those languages have a voice that speaks them: voice.languages
+   marks each one ttsAvailable, and a language with no neural voice is answered without any Azure
+   call so the route can show the contract's voiceUnavailableNotice rather than fail — the words are
+   still written, only the reading aloud is missing.
 
    FAILURE IS ONE FLAG, NEVER AN EXCEPTION. Both doors return { ok: false } for every way an
    external call can end badly — an unconfigured process, a refusal, a timeout under the
@@ -37,16 +41,36 @@ import assistant from "../../../../packages/catalog/assistant.json" with { type:
    route treats a provider's raw error. Nothing Azure says is forwarded, and nothing about the
    audio or the words is ever logged. */
 
+/* One entry of the contract's voice.languages: a language GilbertOne may be written in, the
+   recognition locales Azure hears it in, and — only where the contract says a cloud voice exists
+   for it (ttsAvailable) — the two neural voices that speak it. */
+type CatalogVoice = { female: string; male: string };
+type CatalogLanguage = {
+  id: string;
+  name: string;
+  recognitionLocales: string[];
+  ttsAvailable?: boolean;
+  ttsVoices?: CatalogVoice;
+};
+
 /* Read once from the contract; the values cannot change while the process runs. */
+const CATALOG_LANGUAGES: readonly CatalogLanguage[] =
+  (assistant.voice.languages ?? []) as CatalogLanguage[];
 export const SPEECH_LOCALE: string = assistant.voice.cloud.recognitionLocale;
 export const SPEECH_OUTPUT_FORMAT: string = assistant.voice.cloud.outputFormat;
+/* The two voices a caller may name explicitly in a speak request, and the ones the route validates
+   against. They stay the cloud voice's own en-ZA pair; a language's own voices are resolved from
+   the contract per request below, so an Afrikaans answer is spoken in an Afrikaans voice without
+   the caller having to name one. */
 export const SPEECH_VOICES: readonly string[] = [
   assistant.voice.cloud.voices.female,
   assistant.voice.cloud.voices.male,
 ];
-const DEFAULT_VOICE: string = assistant.voice.cloud.voices.female;
-const RECOGNITION_LOCALES: readonly string[] =
-  assistant.voice.languages?.[0]?.recognitionLocales ?? [];
+/* Every recognition locale the contract names, across all its languages — en-ZA, en-GB, en-US and,
+   since the multi-language backend of 23 September 2026, zu-ZA, xh-ZA, af-ZA and st-ZA. */
+const RECOGNITION_LOCALES: readonly string[] = CATALOG_LANGUAGES.flatMap(
+  (language) => language.recognitionLocales ?? [],
+);
 
 /* How long each call may take. The capture ceiling is generous because a full push-to-talk
    capture is uploaded and read in one request; the voice's is short because one call is one
@@ -62,7 +86,10 @@ export type RecognisedSpeech =
   | { ok: true; text: string; language: string }
   | { ok: false };
 
-/* What was voiced, or { ok: false } when it was not voiced at all. */
+/* What was voiced, or { ok: false } when it was not voiced at all. The not-ok reading carries
+   voiceUnavailable:true — with the locale that was asked for — when the reason is a language the
+   contract has no cloud voice for, so the route can tell that apart from a call that failed and
+   show the contract's own voiceUnavailableNotice instead of an error. */
 export type ReadSpeech =
   | {
       ok: true;
@@ -71,7 +98,7 @@ export type ReadSpeech =
       voice: string;
       language: string;
     }
-  | { ok: false };
+  | { ok: false; voiceUnavailable?: boolean; language?: string };
 
 /* The two doors and the configuration question, as one injectable shape: server.ts holds a seam
    of this type, its own tests hand it a fake, and the production default is cloudSpeech() below.
@@ -103,16 +130,36 @@ function cloudCredentials(
   return key && /^[a-z0-9-]+$/.test(region) ? { region, key } : null;
 }
 
-/* The locale a call actually hears or speaks in. A declared language that names one of the
-   contract's own recognition locales is honoured — case-insensitively, in the contract's own
-   spelling — and every other declaration meets the cloud voice's decided locale. The response
-   echoes this value, not the caller's ask, so a caller can tell which locale answered. */
-function localeFor(language: string): string {
+/* The contract's own language entry a declared language names — by one of its recognition locales
+   ("en-ZA", "af-ZA") or by its bare id ("en", "af"), case-insensitively. Undefined for a language
+   the contract does not carry, which is how synthesize tells a language with no cloud voice from
+   one with. */
+function languageEntry(language: string): CatalogLanguage | undefined {
   const asked = language.trim().toLowerCase();
   return (
-    RECOGNITION_LOCALES.find((locale) => locale.toLowerCase() === asked) ??
-    SPEECH_LOCALE
+    CATALOG_LANGUAGES.find((entry) =>
+      (entry.recognitionLocales ?? []).some(
+        (locale) => locale.toLowerCase() === asked,
+      ),
+    ) ?? CATALOG_LANGUAGES.find((entry) => entry.id.toLowerCase() === asked)
   );
+}
+
+/* The locale a call actually hears or speaks in. A declared language that names one of the
+   contract's own recognition locales is honoured — case-insensitively, in the contract's own
+   spelling; a bare language id ("af", "zu") meets that language's own first recognition locale;
+   and every other declaration meets the cloud voice's decided locale. The response echoes this
+   value, not the caller's ask, so a caller can tell which locale answered. */
+function localeFor(language: string): string {
+  const asked = language.trim().toLowerCase();
+  const exact = RECOGNITION_LOCALES.find(
+    (locale) => locale.toLowerCase() === asked,
+  );
+  if (exact) return exact;
+  const entry = CATALOG_LANGUAGES.find(
+    (candidate) => candidate.id.toLowerCase() === asked,
+  );
+  return entry?.recognitionLocales?.[0] ?? SPEECH_LOCALE;
 }
 
 /* SSML is XML, so the words are escaped before they are placed inside it: an ampersand or an
@@ -191,13 +238,30 @@ export function cloudSpeech(
   const synthesize: SpeechSeam["synthesize"] = async (request) => {
     const credentials = cloudCredentials(env);
     if (!credentials) return { ok: false };
-    /* The route checks the voice against SPEECH_VOICES and answers its own 400 for an unknown
-       name; this is the same check once more, because a door that would place a caller's string
-       inside SSML must be sure the string is one of two constants. */
-    const asked = request.voice?.trim() ?? "";
-    if (asked && !SPEECH_VOICES.includes(asked)) return { ok: false };
-    const voice = asked || DEFAULT_VOICE;
     const locale = localeFor(request.language);
+    /* The contract names a cloud voice for some languages and not others: voice.languages marks
+       each one ttsAvailable. A language with no neural voice — isiZulu, isiXhosa, Sesotho, and the
+       further South African languages Azure has no voice for — is answered here, before any Azure
+       call, so nothing is spent synthesising a language that cannot be spoken and the route above
+       can say so plainly (voiceUnavailable) rather than fail. The words stay on the screen either
+       way; only the reading aloud is missing. */
+    const entry = languageEntry(request.language);
+    const voices = entry?.ttsAvailable ? entry.ttsVoices : undefined;
+    if (!voices) return { ok: false, voiceUnavailable: true, language: locale };
+    /* The route checks the voice against SPEECH_VOICES and answers its own 400 for an unknown
+       name; this is the same check once more, widened to the two voices the contract names for THIS
+       language, because a door that would place a caller's string inside SSML must be sure the
+       string is one the contract owns. With no voice asked for, the language's own female voice
+       speaks — an Afrikaans answer in af-ZA-AdriNeural, an English one in the contract's default. */
+    const asked = request.voice?.trim() ?? "";
+    if (
+      asked &&
+      !SPEECH_VOICES.includes(asked) &&
+      asked !== voices.female &&
+      asked !== voices.male
+    )
+      return { ok: false };
+    const voice = asked || voices.female;
     const ssml =
       `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${locale}">` +
       `<voice name="${voice}">${escapeXml(request.text)}</voice></speak>`;

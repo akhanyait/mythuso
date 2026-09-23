@@ -4822,10 +4822,7 @@ for (const { source, command, files } of generated) {
     const next = assistantSourceNorm
       .slice(at + 1)
       .search(/\n {2}(?:if \(req\.method|send\(res, 404)/);
-    return assistantSourceNorm.slice(
-      at,
-      next < 0 ? undefined : at + 1 + next,
-    );
+    return assistantSourceNorm.slice(at, next < 0 ? undefined : at + 1 + next);
   };
   const assistantEnforcement = (r) => {
     const handler = assistantHandler(r);
@@ -14304,15 +14301,78 @@ if (
 /* The wiring — both GilbertVoice files reading the flag, both screens reading the mute labels from the
    contract and calling speaker.speak — is checked further down, once IOS_VOICE and ANDROID_VOICE are
    in scope (see "nativeSpeech, wired" below, beside the Android speech section). */
+/* The languages GilbertOne may be heard in. This check held the door to a single English voice
+   until 23 September 2026, when the founder approved the multi-language backend: recognition in the
+   contract's own South African locales, and a cloud voice only where Azure actually has one (English
+   and Afrikaans), with every other language answered as text and the person told so in
+   voice.voiceUnavailableNotice. What the check still refuses is an edit that widens this quietly —
+   an unapproved language, an entry with no locale, or a language marked as having a voice it does
+   not name. The approved set and the shape are the founder's decision recorded here, not an edit. */
+const APPROVED_VOICE_LANGUAGES = ["en", "zu", "xh", "af", "st"];
+const VOICE_LOCALE_SHAPE = /^[a-z]{2,3}-[A-Z]{2}$/;
 if (
-  gilbertVoice.languages.length !== 1 ||
+  !Array.isArray(gilbertVoice.languages) ||
+  gilbertVoice.languages.length === 0
+)
+  throw new Error(
+    "packages/catalog/assistant.json offers no voice.languages. The languages GilbertOne may be heard in are the founder's decision on file, and an empty list is a service that cannot say which one it speaks.",
+  );
+if (
   gilbertVoice.languages[0].id !== "en" ||
   !gilbertVoice.languages[0].recognitionLocales.every((locale) =>
     /^en-[A-Z]{2}$/.test(locale),
   )
 )
   throw new Error(
-    "packages/catalog/assistant.json offers voice in a language other than English. No other language may be heard until a contracted South African provider exists and that language has passed its own clinical comprehension test — see the speech-transcript door in feeds.json.",
+    "packages/catalog/assistant.json's first voice language is not English with en-XX recognition locales. English is the service's own default and the one every fallback meets, so it stays first and stays English — the founder's decision of 14 September 2026, unchanged by the multi-language pass of 23 September 2026.",
+  );
+for (const voiceLanguage of gilbertVoice.languages) {
+  if (
+    typeof voiceLanguage.id !== "string" ||
+    !APPROVED_VOICE_LANGUAGES.includes(voiceLanguage.id)
+  )
+    throw new Error(
+      `packages/catalog/assistant.json offers voice in "${voiceLanguage.id}", which the founder has not approved. The approved languages are ${APPROVED_VOICE_LANGUAGES.join(", ")}; adding another is a founder decision recorded here, not an edit — no language may be heard until it has passed its own clinical comprehension test.`,
+    );
+  if (typeof voiceLanguage.name !== "string" || !voiceLanguage.name.trim())
+    throw new Error(
+      `voice.languages entry "${voiceLanguage.id}" has no name. The name is what a person is shown when a language is offered, and an entry without one is a choice nobody can read.`,
+    );
+  if (
+    !Array.isArray(voiceLanguage.recognitionLocales) ||
+    voiceLanguage.recognitionLocales.length === 0 ||
+    !voiceLanguage.recognitionLocales.every(
+      (locale) => typeof locale === "string" && VOICE_LOCALE_SHAPE.test(locale),
+    )
+  )
+    throw new Error(
+      `voice.languages entry "${voiceLanguage.id}" carries no well-formed recognitionLocales. Each locale is what Azure hears that language in (xx-XX), and an entry with none cannot be listened in at all.`,
+    );
+  /* A language the contract says has a cloud voice must name both of them: the speaking door
+     resolves a person's answer to one of these two, and a voice marked available with no voice
+     beside it is a promise the door cannot keep. */
+  if (
+    voiceLanguage.ttsAvailable === true &&
+    (!voiceLanguage.ttsVoices ||
+      typeof voiceLanguage.ttsVoices.female !== "string" ||
+      typeof voiceLanguage.ttsVoices.male !== "string")
+  )
+    throw new Error(
+      `voice.languages entry "${voiceLanguage.id}" is marked ttsAvailable but names no ttsVoices.female and ttsVoices.male. A voice the contract promises is a voice the contract has to name, or the speaking door has nothing to speak it in.`,
+    );
+}
+/* A language with no cloud voice is answered as text, and the person has to be told that is why
+   rather than left with a silent button: the notice is the contract's own sentence, and the moment
+   any language lacks a voice it has to exist. */
+if (
+  gilbertVoice.languages.some(
+    (voiceLanguage) => voiceLanguage.ttsAvailable !== true,
+  ) &&
+  (typeof gilbertVoice.voiceUnavailableNotice !== "string" ||
+    !gilbertVoice.voiceUnavailableNotice.trim())
+)
+  throw new Error(
+    "packages/catalog/assistant.json offers a language with no cloud voice but carries no voice.voiceUnavailableNotice. A language that cannot be spoken aloud has to say so in the contract's own words, or the screen types a reason of its own.",
   );
 if (
   !Number.isInteger(gilbertVoice.maxListeningSeconds) ||
@@ -31142,7 +31202,8 @@ console.log(
   /* Test the two halves separately and with either quote style, so a formatter that reflows the
      object across lines or swaps its quotes cannot make a stubbed seam read as wired. */
   const seamStubbed =
-    /refusalId:\s*["']internal-error["']/.test(seam) && /status:\s*500/.test(seam);
+    /refusalId:\s*["']internal-error["']/.test(seam) &&
+    /status:\s*500/.test(seam);
   if (!seam.includes("triageGate().open"))
     throw new Error(
       `${gatedFile}'s live seam no longer answers triageOpen() from lib/triage-gate.ts's reading of the register. A seam that decides for itself whether triage is ratified is a second gate, and the register is the only one.`,
@@ -31246,7 +31307,9 @@ console.log(
       `packages/catalog/vitals.json#sources does not list "manual". A person typing their own reading is the one source that needs no device certification and no assessment.`,
     );
   const vitalsBranch = branches["/v1/vitals"].branch;
-  const testingSwitch = new RegExp(`process\\.env\\.${vitalsContract.testing.env}\\s*===\\s*["']${vitalsContract.testing.value}["']`);
+  const testingSwitch = new RegExp(
+    `process\\.env\\.${vitalsContract.testing.env}\\s*===\\s*["']${vitalsContract.testing.value}["']`,
+  );
   if (!testingSwitch.test(gatedSource))
     throw new Error(
       `${gatedFile} no longer reads the testing switch as process.env.${vitalsContract.testing.env} === '${vitalsContract.testing.value}'. packages/catalog/vitals.json names both halves of it, so a seam that opens this route by any other word — or by default — is a door the contract does not describe.`,

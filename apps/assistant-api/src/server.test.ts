@@ -108,6 +108,7 @@ const QUIET_ANSWER: AssistantTurnResponse = {
  confidence: 1,
  requiresConfirmation: false,
  suggestedActions: [],
+ detectedLanguage: 'en',
 };
 
 test('a malformed body is the caller’s 400, and writes no failure line', async () => {

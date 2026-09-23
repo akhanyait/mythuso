@@ -101,8 +101,13 @@ test("the system prompt carries the contract’s safety rules and sos.json’s n
   );
   assert.ok(
     prompt.includes(
-      "You are warm, empathetic and speak in clear, simple English",
+      "You are warm, empathetic and respond in the same language the user wrote in",
     ),
+    "the multi-language directive of 23 September 2026: the answer is composed in the person's own language rather than always in English",
+  );
+  assert.ok(
+    prompt.includes("the platform handles disclosure separately"),
+    "the model is told not to write its own disclaimer, so the contract's own disclosure stays the only one a person reads",
   );
   assert.ok(
     prompt.includes("You do not store or remember personal health information"),

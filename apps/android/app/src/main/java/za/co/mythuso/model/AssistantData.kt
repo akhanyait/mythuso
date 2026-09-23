@@ -245,7 +245,7 @@ object GilbertData {
     val service = GilbertService(
         state = "guiding",
         heading = "An answer written by a language model",
-        disclosure = "That part was written by a language model, not read from one of GilbertOne's approved sentences. It can be wrong, it is not a diagnosis and not a prescription, and it is never a substitute for a real nurse or doctor. If a clinician's answer matters to you, say so — GilbertOne can hand this conversation to the nurse queue.",
+        disclosure = "AI-generated. Not a diagnosis. Speak to a nurse for clinical decisions.",
         ifUrgent = "If any of this might be an emergency, do not wait for an answer here. Call one of these now:",
         lines = listOf(GilbertLine("10177", "Ambulance"), GilbertLine("112", "Emergency, from a mobile")),
         sosLabel = "Open Thuso SOS",
@@ -299,7 +299,7 @@ object GilbertData {
         mode = "conversation",
         gesture = "wake-word-with-push-to-talk-fallback",
         maxListeningSeconds = 30,
-        recognitionLocales = listOf("en-ZA", "en-GB", "en-US"),
+        recognitionLocales = listOf("en-ZA", "en-GB", "en-US", "zu-ZA", "xh-ZA", "af-ZA", "st-ZA"),
         recognition = "on-device",
         audioStored = false,
         transcriptLifetime = "conversation",

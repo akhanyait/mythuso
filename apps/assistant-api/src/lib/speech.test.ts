@@ -390,3 +390,69 @@ test("the locale, the format and the two voices are the contract's own, read and
     "nothing here may keep a recording, and the contract says so in the words a person reads",
   );
 });
+
+/* The multi-language voices, added with the multi-language backend of 23 September 2026. The
+   contract now names a cloud voice for some languages and not others, and the speaking door has to
+   honour that split: a language Azure has no neural voice for is refused before any call leaves,
+   and one it does have is spoken in that language's own voice, resolved from the contract rather
+   than typed here. */
+const CATALOG_LANGUAGES = assistant.voice.languages as Array<{
+  id: string;
+  recognitionLocales: string[];
+  ttsAvailable?: boolean;
+  ttsVoices?: { female: string; male: string };
+}>;
+
+test("a language the contract has no cloud voice for is answered voiceUnavailable, without any Azure call", async () => {
+  /* zu, xh and st are in the contract's voice.languages marked ttsAvailable:false, and the further
+     South African languages (tn, nso, …) are not carried at all. Either way the speaking door must
+     refuse before it reaches the network — mustNotFetch throws if it is called — and say why, so the
+     route can show the contract's voiceUnavailableNotice rather than an internal error. The hearing
+     door is untouched: it still recognises whatever Azure hears, so a zu-ZA capture is still read. */
+  const speech = cloudSpeech(mustNotFetch, ENV);
+  for (const language of ["zu", "zu-ZA", "xh", "st", "tn", "nso"]) {
+    const read = await speech.synthesize({ text: "Sawubona", language });
+    assert.equal(read.ok, false, `${language} has no cloud voice`);
+    assert.equal(
+      !read.ok && read.voiceUnavailable,
+      true,
+      `${language} is answered voiceUnavailable, not as a failure`,
+    );
+  }
+});
+
+test("an Afrikaans answer is spoken in an Afrikaans voice, resolved from the contract", async () => {
+  const bytes = Buffer.from("ID3 a fake afrikaans mp3");
+  const { calls, impl } = answering(() => new Response(bytes, { status: 200 }));
+  const speech = cloudSpeech(impl, ENV);
+  const af = CATALOG_LANGUAGES.find((language) => language.id === "af");
+  const afVoices = af?.ttsVoices;
+  assert.ok(af?.ttsAvailable && afVoices, "the contract carries an Afrikaans voice");
+  const read = await speech.synthesize({ text: "Goeie dag", language: "af" });
+  assert.deepEqual(
+    read,
+    {
+      ok: true,
+      audioBase64: bytes.toString("base64"),
+      format: "audio/mpeg",
+      voice: afVoices.female,
+      language: "af-ZA",
+    },
+    "no voice asked for is the Afrikaans female voice the contract decides, in the af-ZA locale",
+  );
+  const ssml = String(calls[0].init.body);
+  assert.equal(ssml.includes(`<voice name="${afVoices.female}">`), true);
+  assert.equal(ssml.includes(`xml:lang="af-ZA"`), true);
+  /* The male voice the contract names for Afrikaans is honoured when a caller asks for it, even
+     though it is not one of the two en-ZA voices SPEECH_VOICES carries. */
+  const male = await speech.synthesize({
+    text: "Goeie dag",
+    language: "af",
+    voice: afVoices.male,
+  });
+  assert.equal(
+    male.ok && male.voice,
+    afVoices.male,
+    "the Afrikaans male voice the contract names is honoured",
+  );
+});
