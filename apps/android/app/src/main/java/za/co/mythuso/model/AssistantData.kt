@@ -245,7 +245,7 @@ object GilbertData {
     val service = GilbertService(
         state = "guiding",
         heading = "An answer written by a language model",
-        disclosure = "AI-generated. Not a diagnosis. Speak to a nurse for clinical decisions.",
+        disclosure = "AI-generated. Not a diagnosis or a prescription. Speak to a nurse for clinical decisions — GilbertOne can hand this conversation over.",
         ifUrgent = "If any of this might be an emergency, do not wait for an answer here. Call one of these now:",
         lines = listOf(GilbertLine("10177", "Ambulance"), GilbertLine("112", "Emergency, from a mobile")),
         sosLabel = "Open Thuso SOS",

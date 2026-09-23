@@ -179,7 +179,7 @@ extension Gilbert {
     static let service = GilbertService(
         state: "guiding",
         heading: "An answer written by a language model",
-        disclosure: "AI-generated. Not a diagnosis. Speak to a nurse for clinical decisions.",
+        disclosure: "AI-generated. Not a diagnosis or a prescription. Speak to a nurse for clinical decisions — GilbertOne can hand this conversation over.",
         ifUrgent: "If any of this might be an emergency, do not wait for an answer here. Call one of these now:",
         lines: [GilbertLine(number: "10177", name: "Ambulance"), GilbertLine(number: "112", name: "Emergency, from a mobile")],
         sosLabel: "Open Thuso SOS",
