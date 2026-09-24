@@ -113,8 +113,9 @@ struct AssistantView: View {
                 AccessibilityNotification.Announcement(spoken(last)).post()
                 /* And the same words to GilbertSpeaker, which reads voice.nativeSpeech's flag and the
                    mute switch before it reaches for the synthesiser at all. The reply is already on the
-                   screen above; this is a second reading of it, never the only place the words appear. */
-                speaker.speak(spokenAloud(last))
+                   screen above; this is a second reading of it, never the only place the words appear.
+                   A reply written in one of voice.spokenLanguages is asked for in its own voice. */
+                speaker.speak(spokenAloud(last), language: Gilbert.spokenLanguage(in: last.reply))
             }
         }
         .onChange(of: pulse) { _, now in
@@ -148,9 +149,11 @@ struct AssistantView: View {
         case .service(let words):
             /* The heading, the words, the disclosure and the numbers, in that order: the one spoken
                reading of a model answer may never soften the disclosure by omission, exactly as
-               spokenOf reads it on the web. */
+               spokenOf reads it on the web. The numbers are spoken as digits — sos.json's spoken
+               form, since 23 September 2026 — because "10111" read as a quantity is a number nobody
+               can dial in a hurry. */
             return ([Gilbert.service.heading, words, Gilbert.service.disclosure, Gilbert.service.ifUrgent]
-                + Gilbert.service.lines.map { "\($0.number), \($0.name)." }).joined(separator: " ")
+                + Gilbert.service.lines.map { "\($0.spoken), \($0.name)." }).joined(separator: " ")
         case .handover: return Gilbert.handover.title
         }
     }
@@ -211,7 +214,7 @@ struct AssistantView: View {
             turns[index] = refinedTurn
             if stillLast {
                 AccessibilityNotification.Announcement(spoken(refinedTurn)).post()
-                speaker.speak(spokenAloud(refinedTurn))
+                speaker.speak(spokenAloud(refinedTurn), language: Gilbert.spokenLanguage(in: refinedTurn.reply))
             }
         }
     }

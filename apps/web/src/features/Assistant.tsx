@@ -66,6 +66,7 @@ import {
   say,
   screens,
   silenceIsNotSafety,
+  spokenLanguageOf,
   spokenOf,
   stateSpec,
   unmatchedDetail,
@@ -386,6 +387,9 @@ export default function Assistant({
       voiceAdapter.speak(
         spokenOf(last, audienceId),
         {
+          /* The reply's own language, when its words are one of voice.spokenLanguages — decided
+             from the reply alone, so the browser's voice is asked for in that language first. */
+          language: spokenLanguageOf(last.reply)?.localeOrder,
           onStart: () => {
             opened = true;
             play(affect.voiceMoments.speaking.cue, { caption });

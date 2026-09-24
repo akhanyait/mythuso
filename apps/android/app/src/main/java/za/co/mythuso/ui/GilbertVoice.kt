@@ -252,9 +252,18 @@ class GilbertSpeaker(context: Context) : TextToSpeech.OnInitListener {
     /** voice.voicePreference's own order — South African English first, then British, then Australian,
      *  then any English voice — applied to whatever this engine actually has; an engine with none of the
      *  four keeps its own default locale, and none is promised. The same rule lib/voice.ts applies to the
-     *  browser's voice list and GilbertVoice.swift to the phone's installed voices. */
-    private fun preferredLocale(): Locale {
+     *  browser's voice list and GilbertVoice.swift to the phone's installed voices. A reply detected as
+     *  one of voice.spokenLanguages is asked for in that language's own localeOrder first, and this order
+     *  stands behind it. */
+    private fun preferredLocale(language: GilbertSpokenLanguage? = null): Locale {
         val current = engine
+        if (language != null) {
+            for (tag in language.localeOrder) {
+                val candidate = Locale.forLanguageTag(tag)
+                val availability = current?.isLanguageAvailable(candidate) ?: TextToSpeech.LANG_NOT_SUPPORTED
+                if (availability >= TextToSpeech.LANG_AVAILABLE) return candidate
+            }
+        }
         for (tag in GilbertData.voice.speechVoiceOrder) {
             val candidate = Locale.forLanguageTag(tag)
             val availability = current?.isLanguageAvailable(candidate) ?: TextToSpeech.LANG_NOT_SUPPORTED
@@ -266,10 +275,11 @@ class GilbertSpeaker(context: Context) : TextToSpeech.OnInitListener {
     /** The reply's own words, already on the screen before this is ever called — never a substitute for
      *  them. A held safety face or a muted screen answers with silence rather than an utterance nobody
      *  asked to hear. */
-    fun speak(text: String) {
+    fun speak(text: String, language: GilbertSpokenLanguage? = null) {
         if (!GilbertData.voice.nativeSpeechEnabled || muted || state != State.READY) return
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return
+        engine?.language = preferredLocale(language)
         engine?.speak(trimmed, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
     }
 

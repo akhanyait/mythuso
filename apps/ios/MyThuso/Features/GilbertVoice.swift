@@ -326,13 +326,18 @@ final class GilbertSpeaker: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
     /// The reply's own words, already on the screen before this is ever called — never a substitute for
     /// them. A held safety face or a muted screen answers with silence rather than an utterance nobody
     /// asked to hear.
-    func speak(_ text: String) {
+    ///
+    /// The language, since 23 September 2026: a reply detected as one of voice.spokenLanguages is asked
+    /// for in its own locale order first, because an English voice reading isiZulu words is the reading
+    /// the founder heard and asked to fix. Detection is decided by Gilbert.spokenLanguage(in:) — a fact
+    /// about the words — and this method only chooses the voice, exactly as the web keeps the seam.
+    func speak(_ text: String, language: GilbertSpokenLanguage? = nil) {
         guard Gilbert.voice.nativeSpeechEnabled, !muted else { return }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         synthesiser.stopSpeaking(at: .immediate)
         let utterance = AVSpeechUtterance(string: trimmed)
-        utterance.voice = Self.preferredVoice()
+        utterance.voice = Self.preferredVoice(for: language)
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate
         synthesiser.speak(utterance)
     }
@@ -345,9 +350,20 @@ final class GilbertSpeaker: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
     /// voice.voicePreference's own order — South African English first, then British, then Australian,
     /// then any English voice — applied to whatever this phone actually has installed; a phone with none
     /// of the four keeps the system's own default voice, and none is promised. The same rule lib/voice.ts
-    /// applies to the browser's voice list.
-    private static func preferredVoice() -> AVSpeechSynthesisVoice? {
+    /// applies to the browser's voice list. Since 23 September 2026 a reply in one of
+    /// voice.spokenLanguages is asked for in its own order first, with this order standing behind it —
+    /// the same two-step the web's adapter keeps.
+    private static func preferredVoice(for language: GilbertSpokenLanguage? = nil) -> AVSpeechSynthesisVoice? {
         let installed = AVSpeechSynthesisVoice.speechVoices()
+        if let language {
+            for tag in language.localeOrder {
+                if let found = installed.first(where: {
+                    $0.language.lowercased() == tag.lowercased() || $0.language.lowercased().hasPrefix("\(tag.lowercased())-")
+                }) {
+                    return found
+                }
+            }
+        }
         for tag in Gilbert.voice.speechVoiceOrder {
             if let found = installed.first(where: {
                 $0.language.lowercased() == tag.lowercased() || $0.language.lowercased().hasPrefix("\(tag.lowercased())-")

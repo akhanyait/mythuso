@@ -225,6 +225,26 @@ function preferredVoice(
    the browser carries the same words exactly as it did before this door existed. */
 const CLOUD_VOICE: "female" | "male" = "female";
 
+/** The first voice in a spoken language's own order — voice.spokenLanguages, since 23 September
+ *  2026 — with the contract's English order standing behind it. A reply written in isiZulu is asked
+ *  for in isiZulu first, because a voice reading English pronunciation over isiZulu words is the
+ *  reading the founder heard and asked to fix; a browser with no isiZulu voice keeps everything
+ *  exactly as it was, the same quiet preference and never a promise, and the words stay on the
+ *  screen in full beside whatever voice takes them. */
+function preferredVoiceFor(
+  voices: readonly SpeechSynthesisVoice[],
+  language: readonly string[],
+): SpeechSynthesisVoice | null {
+  for (const tag of language.map((tag) => tag.toLowerCase())) {
+    const found = voices.find((voice) => {
+      const lang = voice.lang.toLowerCase();
+      return lang === tag || lang.startsWith(`${tag}-`);
+    });
+    if (found) return found;
+  }
+  return preferredVoice(voices);
+}
+
 export type SpeakOptions = {
   /** Fired per word when the browser supports boundary events. `index` counts words, not characters,
      so a caller can shape the nth word without counting back through the string itself. */
@@ -233,6 +253,10 @@ export type SpeakOptions = {
   /** Called on end, on cancel and on failure alike, because §07 asks the mouth to close on all three
      and a caller should not have to wire the same close three times. */
   readonly onEnd?: () => void;
+  /** A reply's own language, from voice.spokenLanguages — the locale order its words are asked for
+     in first, with the contract's English order standing behind it. Absent means English, which is
+     every approved sentence the contract carries. */
+  readonly language?: readonly string[];
 };
 
 export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
@@ -499,9 +523,15 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
       /* The contract's order, then the browser's own default when it has none of the four. The
        preference is applied quietly and promises nothing, which is why the words written on the
        screen never depend on which voice takes them. */
-      const chosen = preferredVoice(voices.current);
+      /* A reply's own language first when its words are that language's — voice.spokenLanguages,
+         since 23 September 2026 — then the contract's English order, then the browser's own default. */
+      const chosen = options.language
+        ? preferredVoiceFor(voices.current, options.language)
+        : preferredVoice(voices.current);
       utterance.lang =
-        chosen?.lang ?? voicePolicy.languages[0].recognitionLocales[0];
+        chosen?.lang ??
+        options.language?.[0] ??
+        voicePolicy.languages[0].recognitionLocales[0];
       if (chosen) utterance.voice = chosen;
       let spokenWords = 0;
       /* The reading's own close, shared by every ending it can have and idempotent because several of

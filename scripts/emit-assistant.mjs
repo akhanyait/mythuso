@@ -146,6 +146,12 @@ export function emitAssistant(root = "") {
       throw new Error(
         `${SOURCE} names the emergency number "${id}", which ${SOS} does not have.`,
       );
+    /* The spoken form is a decision on file since 23 September 2026, and a number without one is a
+       number a voice will read as a quantity — the exact reading the decision exists to refuse. */
+    if (typeof found.spoken !== 'string' || !found.spoken.trim())
+      throw new Error(
+        `${SOS} carries the emergency number "${id}" with no spoken form. A phone's read-aloud would read ${found.number} as a quantity; sos.json's spokenNumbers decision requires the words a call-taker would say.`,
+      );
     return found;
   };
   const values = {
@@ -429,7 +435,7 @@ export function emitAssistant(root = "") {
       : "emptyMap()";
   const handover = answers.handover;
   const lines = (ids) => ids.map(line);
-  const kLine = (n) => `GilbertLine(${kotlin(n.number)}, ${kotlin(n.name)})`;
+  const kLine = (n) => `GilbertLine(${kotlin(n.number)}, ${kotlin(n.spoken)}, ${kotlin(n.name)})`;
 
   const swiftFile = `${banner()}
 
@@ -529,7 +535,7 @@ ${terms.groups
         lines: [${lines(answers.unread.numbers)
           .map(
             (n) =>
-              `GilbertLine(number: ${swift(n.number)}, name: ${swift(n.name)})`,
+              `GilbertLine(number: ${swift(n.number)}, spoken: ${swift(n.spoken)}, name: ${swift(n.name)})`,
           )
           .join(", ")}],
         sosLabel: ${swift(answers.unread.sosLabel)},
@@ -543,7 +549,7 @@ ${terms.groups
         lines: [${lines(answers.unmatched.numbers)
           .map(
             (n) =>
-              `GilbertLine(number: ${swift(n.number)}, name: ${swift(n.name)})`,
+              `GilbertLine(number: ${swift(n.number)}, spoken: ${swift(n.spoken)}, name: ${swift(n.name)})`,
           )
           .join(", ")}],
         sosLabel: ${swift(answers.unmatched.sosLabel)},
@@ -557,7 +563,7 @@ ${terms.groups
         lines: [${lines(answers.emergency.numbers)
           .map(
             (n) =>
-              `GilbertLine(number: ${swift(n.number)}, name: ${swift(n.name)})`,
+              `GilbertLine(number: ${swift(n.number)}, spoken: ${swift(n.spoken)}, name: ${swift(n.name)})`,
           )
           .join(", ")}],
         notAnAmbulance: ${swift(sos.emergency.notAnAmbulance)},
@@ -573,7 +579,7 @@ ${terms.groups
         lines: [${lines(answers.service.numbers)
           .map(
             (n) =>
-              `GilbertLine(number: ${swift(n.number)}, name: ${swift(n.name)})`,
+              `GilbertLine(number: ${swift(n.number)}, spoken: ${swift(n.spoken)}, name: ${swift(n.name)})`,
           )
           .join(", ")}],
         sosLabel: ${swift(answers.service.sosLabel)},
@@ -607,7 +613,7 @@ ${terms.groups
         lines: [${lines(handover.numbers)
           .map(
             (n) =>
-              `GilbertLine(number: ${swift(n.number)}, name: ${swift(n.name)})`,
+              `GilbertLine(number: ${swift(n.number)}, spoken: ${swift(n.spoken)}, name: ${swift(n.name)})`,
           )
           .join(", ")}])
 
@@ -650,6 +656,9 @@ ${terms.groups
         discardLabel: ${swift(voice.sentences.discardLabel)},
         nativeSpeechEnabled: ${voice.nativeSpeech.enabled},
         speechVoiceOrder: ${listSwift(voice.voicePreference.order)},
+        spokenLanguages: [
+${(voice.spokenLanguages ?? []).map((language) => `            GilbertSpokenLanguage(id: ${swift(language.id)}, name: ${swift(language.name)}, localeOrder: ${listSwift(language.localeOrder)}, detectWords: ${listSwift(language.detectWords)})`).join(",\n")}
+        ],
         muteLabel: ${swift(voice.sentences.muteLabel)},
         unmuteLabel: ${swift(voice.sentences.unmuteLabel)},
         speechUnavailable: ${swift(voice.sentences.speechUnavailable)})
@@ -874,6 +883,9 @@ ${terms.groups
         discardLabel = ${kotlin(voice.sentences.discardLabel)},
         nativeSpeechEnabled = ${voice.nativeSpeech.enabled},
         speechVoiceOrder = ${listKotlin(voice.voicePreference.order)},
+        spokenLanguages = listOf(
+${(voice.spokenLanguages ?? []).map((language) => `            GilbertSpokenLanguage(${kotlin(language.id)}, ${kotlin(language.name)}, ${listKotlin(language.localeOrder)}, ${listKotlin(language.detectWords)})`).join(",\n")}
+        ),
         muteLabel = ${kotlin(voice.sentences.muteLabel)},
         unmuteLabel = ${kotlin(voice.sentences.unmuteLabel)},
         speechUnavailable = ${kotlin(voice.sentences.speechUnavailable)}

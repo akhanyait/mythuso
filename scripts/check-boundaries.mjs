@@ -8127,10 +8127,51 @@ SA_EMERGENCY_NUMBERS.forEach(([id, number], index) => {
     throw new Error(`Emergency number ${number} does not say when to use it`);
 });
 const allowedDigits = new Set(SA_EMERGENCY_NUMBERS.map(([, n]) => n));
-for (const run of read("packages/catalog/sos.json").match(/\d{3,}/g) ?? []) {
+/* A founder decision record's own date — decidedBy/on/why, the shape every decision in the contracts
+   carries — is not a number on the emergency pathway, so the date is folded away before the scan:
+   the ISO date, and the same year written in words of the record ("September 2026"). Everything
+   else in this file is scanned: a wrong digit in a preview that is fictional on purpose is a
+   cosmetic defect, and a wrong digit here is not. */
+for (const run of read("packages/catalog/sos.json")
+  .replace(/"on":\s*"\d{4}-\d{2}-\d{2}"/g, '"on"')
+  .replace(/\b\d{4}\b/g, "")
+  .match(/\d{3,}/g) ?? []) {
   if (!allowedDigits.has(run))
     throw new Error(
       `packages/catalog/sos.json contains the number ${run}. The only numbers allowed on the emergency pathway are the real ones — ${[...allowedDigits].join(", ")} — because every other screen in this preview is fictional on purpose and this one must not be.`,
+    );
+}
+/* The founder's decision of 23 September 2026, recorded in sos.json as emergency.spokenNumbers: an
+   emergency number is a telephone number, not a quantity, and a synthesiser handed "10177" reads a
+   quantity. Each number's spoken field must spell its own digits, word for word, and the decision
+   record must stand with decidedBy, on and why — the same shape every founder decision in the
+   contracts carries. */
+const DIGIT_WORDS = {
+  "0": "zero",
+  "1": "one",
+  "2": "two",
+  "3": "three",
+  "4": "four",
+  "5": "five",
+  "6": "six",
+  "7": "seven",
+  "8": "eight",
+  "9": "nine",
+};
+if (
+  !sos.emergency.spokenNumbers ||
+  sos.emergency.spokenNumbers.decidedBy !== "Founder" ||
+  !sos.emergency.spokenNumbers.on ||
+  !sos.emergency.spokenNumbers.why
+)
+  throw new Error(
+    "packages/catalog/sos.json does not carry the founder's spokenNumbers decision record. A number read aloud as a quantity is a number misread, and the decision that prevents it may not be deleted from the contract that carries the numbers.",
+  );
+for (const [, number] of SA_EMERGENCY_NUMBERS) {
+  const entry = sos.emergency.numbers.find((n) => n.number === number);
+  if (!entry.spoken || entry.spoken !== [...number].map((d) => DIGIT_WORDS[d]).join(" "))
+    throw new Error(
+      `Emergency number ${number} has no spoken form that spells its own digits. "Ten Triple One" is a phone number said one digit at a time; a synthesiser handed the bare digits reads one thousand and something, and the spoken field is the one seam that prevents it.`,
     );
 }
 /* The eight conditions that end the questions. Losing one of them silently is losing the reason

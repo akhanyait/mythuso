@@ -82,6 +82,10 @@ struct GilbertEmergencyGroup: Identifiable, Hashable {
 
 struct GilbertLine: Hashable {
     let number: String
+    /// sos.json's spoken field, since 23 September 2026: what a voice reads where it would otherwise
+    /// read the digits as a quantity — "one zero one seven seven", not ten thousand one hundred and
+    /// seventy-seven. The digits stay what is printed and dialled; only the reading changes.
+    let spoken: String
     let name: String
 }
 
@@ -203,6 +207,10 @@ struct GilbertVoicePolicy {
     let nativeSpeechEnabled: Bool
     /// voice.voicePreference.order, applied to the phone's own installed voices exactly as it is on the web.
     let speechVoiceOrder: [String]
+    /// voice.spokenLanguages, since 23 September 2026: a reply a model wrote in one of these languages
+    /// is read in its own locale order first, with `speechVoiceOrder` standing behind it. Empty means
+    /// every reply is English, which is every approved sentence the contract carries.
+    let spokenLanguages: [GilbertSpokenLanguage]
     let muteLabel: String
     let unmuteLabel: String
     let speechUnavailable: String
@@ -212,6 +220,14 @@ struct GilbertRefusal: Identifiable, Hashable {
     let id: String
     let statement: String
     let why: String
+}
+
+/// One of voice.spokenLanguages: a reply detected as this language is read in `localeOrder` first.
+struct GilbertSpokenLanguage: Hashable {
+    let id: String
+    let name: String
+    let localeOrder: [String]
+    let detectWords: [String]
 }
 
 struct GilbertStemFixture {
@@ -297,6 +313,24 @@ enum Gilbert {
 
     static func fill(_ text: String, _ values: [String: String]) -> String {
         values.reduce(text) { result, pair in result.replacingOccurrences(of: "{\(pair.key)}", with: pair.value) }
+    }
+
+    // MARK: - Which language a reply is written in
+
+    /* voice.spokenLanguages, since 23 September 2026: a reply a model wrote in one of these
+       languages is read in that language's localeOrder first, with speechVoiceOrder standing
+       behind it. Only a service reply is ever tested, because every approved sentence in the
+       contract is English; two of the words must appear, so one loanword in an English answer
+       changes nothing. The same rule as spokenLanguageOf on the web and the Kotlin model's. */
+    static func spokenLanguage(in reply: Reply) -> GilbertSpokenLanguage? {
+        guard case .service(let text) = reply else { return nil }
+        let folded = text.lowercased()
+        for language in voice.spokenLanguages {
+            var found = 0
+            for word in language.detectWords where folded.contains(word) { found += 1 }
+            if found >= 2 { return language }
+        }
+        return nil
     }
 
     // MARK: - Words into stems

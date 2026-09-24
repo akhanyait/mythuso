@@ -18,6 +18,7 @@ their job is to read, decide and sign, not to search the repository.
 | [`KEY-CUSTODY-OPTIONS.md`](KEY-CUSTODY-OPTIONS.md) | How encryption keys are held today, the options (cloud KMS, HSM, split-knowledge ceremony) and proposed minimum controls | The **founder**, with the Information Officer and whoever administers production | Hand-written |
 | [`DPIA-DRAFT.md`](DPIA-DRAFT.md) | A POPIA-oriented Data Protection Impact Assessment: inventory, purposes, flows, third parties, retention, rights, security, risks and measures | The **responsible party** signs; the **Information Officer** signs; counsel advises | Hand-written |
 | [`INFORMATION-OFFICER.md`](INFORMATION-OFFICER.md) | Appointing and registering the Information Officer and deputies, the PAIA manual, what the code already provides, and the decisions due before real patients | The **head of the private body** appoints; the **Information Officer** decides | Hand-written |
+| [`ADMIN-PORTAL-SCOPE.md`](ADMIN-PORTAL-SCOPE.md) | The admin portal that controls every role's access to everything: what it administers, what it reads rather than restates, the four tiers of "dynamic", and the identity dependency that decides its sequence | The **founder** decides the sequence, who the admin office is, and whether route enablement exists at all | Hand-written; refers to contracts rather than restating numbers |
 
 ## The order
 

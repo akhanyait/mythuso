@@ -152,7 +152,7 @@ extension Gilbert {
         sentence: "I can't assess the rest of what you said.",
         detail: "I answered the part I recognised. The rest is not something I can read, and that is not a judgement that it is minor.",
         ifUrgent: "If any of it might be an emergency, do not wait for me. Call one of these now:",
-        lines: [GilbertLine(number: "10177", name: "Ambulance"), GilbertLine(number: "112", name: "Emergency, from a mobile")],
+        lines: [GilbertLine(number: "10177", spoken: "one zero one seven seven", name: "Ambulance"), GilbertLine(number: "112", spoken: "one one two", name: "Emergency, from a mobile")],
         sosLabel: "Open Thuso SOS",
         handoverLabel: "Talk to a nurse")
 
@@ -161,7 +161,7 @@ extension Gilbert {
         sentence: "I can't assess that.",
         detail: "I answer only from a short list of approved sentences, and what you said is not one I can match. That is not a judgement that it is minor.",
         ifUrgent: "If this might be an emergency, do not wait for me. Call one of these now:",
-        lines: [GilbertLine(number: "10177", name: "Ambulance"), GilbertLine(number: "112", name: "Emergency, from a mobile")],
+        lines: [GilbertLine(number: "10177", spoken: "one zero one seven seven", name: "Ambulance"), GilbertLine(number: "112", spoken: "one one two", name: "Emergency, from a mobile")],
         sosLabel: "Open Thuso SOS",
         handoverLabel: "Talk to a nurse")
 
@@ -170,7 +170,7 @@ extension Gilbert {
         noticed: "You mentioned something Thuso SOS treats as an emergency:",
         headline: "If this is a life threat, call an ambulance now",
         lead: "Do not wait for MyThuso. Do not finish this screen. Call the number below, then come back if you still need us.",
-        lines: [GilbertLine(number: "10177", name: "Ambulance"), GilbertLine(number: "112", name: "Emergency, from a mobile")],
+        lines: [GilbertLine(number: "10177", spoken: "one zero one seven seven", name: "Ambulance"), GilbertLine(number: "112", spoken: "one one two", name: "Emergency, from a mobile")],
         notAnAmbulance: "MyThuso is not an ambulance service, and nothing on this screen should be mistaken for one. We send a registered nurse to a house. We do not carry anybody to hospital, we do not have paramedics, sirens or blue lights, and we cannot reach you faster than an ambulance can.",
         sosLabel: "Open Thuso SOS")
 
@@ -181,7 +181,7 @@ extension Gilbert {
         heading: "An answer written by a language model",
         disclosure: "AI-generated. Not a diagnosis or a prescription. Speak to a nurse for clinical decisions — GilbertOne can hand this conversation over.",
         ifUrgent: "If any of this might be an emergency, do not wait for an answer here. Call one of these now:",
-        lines: [GilbertLine(number: "10177", name: "Ambulance"), GilbertLine(number: "112", name: "Emergency, from a mobile")],
+        lines: [GilbertLine(number: "10177", spoken: "one zero one seven seven", name: "Ambulance"), GilbertLine(number: "112", spoken: "one one two", name: "Emergency, from a mobile")],
         sosLabel: "Open Thuso SOS",
         handoverLabel: "Talk to a nurse")
 
@@ -214,7 +214,7 @@ extension Gilbert {
         sentReference: "Handover reference",
         alreadySent: "This conversation was handed over already. Asking again sends nothing new unless the urgency has risen.",
         stillUrgent: "If this cannot wait, do not wait for a nurse. Call one of these now:",
-        lines: [GilbertLine(number: "10177", name: "Ambulance"), GilbertLine(number: "112", name: "Emergency, from a mobile")])
+        lines: [GilbertLine(number: "10177", spoken: "one zero one seven seven", name: "Ambulance"), GilbertLine(number: "112", spoken: "one one two", name: "Emergency, from a mobile")])
 
     static let silenceIsNotSafety = "GilbertOne not recognising an emergency does not mean there is not one. If you think it is an emergency, call 10177, or 112 from a mobile."
 
@@ -255,6 +255,9 @@ extension Gilbert {
         discardLabel: "Discard",
         nativeSpeechEnabled: true,
         speechVoiceOrder: ["en-ZA", "en-GB", "en-AU", "en"],
+        spokenLanguages: [
+            GilbertSpokenLanguage(id: "zu", name: "isiZulu", localeOrder: ["zu-ZA", "zu"], detectWords: ["sawubona", "sanibonani", "unjani", "ninjani", "ngiyabonga", "siyabonga", "kakhulu", "kancane", "yini", "kanjani", "ngempela", "ngicela", "namhlanje", "izolo", "kusasa", "manje", "kahle", "kabi", "asazi", "angazi", "abantu", "umuntu", "umama", "ubaba", "umntwana", "abantwana", "indoda", "umfana", "intombi", "gogo", "mkhulu", "umuzi", "indlu", "amanzi", "ukudla", "umuthi", "imithi", "impilo", "usizo", "isibindi"])
+        ],
         muteLabel: "Mute GilbertOne's voice",
         unmuteLabel: "Let GilbertOne speak its answers",
         speechUnavailable: "GilbertOne cannot read this answer aloud on this phone right now. The words are still on the screen, in full.")

@@ -37,7 +37,7 @@ data class GilbertQuestionGroup(val id: String, val heading: String, val lead: S
 data class GilbertQuestion(val id: String, val asks: String, val group: String, val answer: String, val triggers: List<String>, val audiences: List<String>)
 /** [condition] is the sos.json condition this group raises, or null; [name] is resolved at generation. */
 data class GilbertEmergencyGroup(val id: String, val condition: String?, val name: String, val words: List<String>)
-data class GilbertLine(val number: String, val name: String)
+data class GilbertLine(val number: String, val spoken: String, val name: String)
 /** The unmatched answer, and the unread answer that follows a question with words left over. */
 data class GilbertUnmatched(
     val state: String, val sentence: String, val detail: String, val ifUrgent: String,
@@ -85,9 +85,15 @@ data class GilbertVoicePolicy(
     val nativeSpeechEnabled: Boolean,
     /** voice.voicePreference.order, applied to whatever locales this phone's engine actually has, exactly as it is on the web. */
     val speechVoiceOrder: List<String>,
+    /** voice.spokenLanguages, since 23 September 2026: a reply a model wrote in one of these languages
+     *  is read in its own locale order first, with speechVoiceOrder standing behind it. Empty means
+     *  every reply is English, which is every approved sentence the contract carries. */
+    val spokenLanguages: List<GilbertSpokenLanguage>,
     val muteLabel: String, val unmuteLabel: String, val speechUnavailable: String
 )
 data class GilbertRefusal(val id: String, val statement: String, val why: String)
+/** One of voice.spokenLanguages: a reply detected as this language is read in localeOrder first. */
+data class GilbertSpokenLanguage(val id: String, val name: String, val localeOrder: List<String>, val detectWords: List<String>)
 data class GilbertStemFixture(val says: String, val stems: List<String>)
 data class GilbertMessageFixture(val says: String, val expect: String, val question: String?, val groups: List<String>, val audience: String?)
 
@@ -146,6 +152,21 @@ object Gilbert {
 
     fun fill(text: String, values: Map<String, String>): String =
         values.entries.fold(text) { result, (key, value) -> result.replace("{$key}", value) }
+
+    /** voice.spokenLanguages, since 23 September 2026: a reply a model wrote in one of these languages is
+     *  read in that language's localeOrder first, with speechVoiceOrder standing behind it. Only a service
+     *  reply is ever tested, because every approved sentence in the contract is English; two of the words
+     *  must appear, so one loanword in an English answer changes nothing. The same rule as spokenLanguageOf
+     *  on the web and Assistant.swift's spokenLanguage(in:). */
+    fun spokenLanguage(reply: GilbertReply): GilbertSpokenLanguage? {
+        val text = (reply as? GilbertReply.Service)?.text?.lowercase() ?: return null
+        for (language in GilbertData.voice.spokenLanguages) {
+            var found = 0
+            for (word in language.detectWords) if (text.contains(word)) found += 1
+            if (found >= 2) return language
+        }
+        return null
+    }
 
     // Words into stems. The same steps in the same order as the web's and iOS's.
 

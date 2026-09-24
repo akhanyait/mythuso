@@ -8,10 +8,15 @@
   "previewNote": "Nothing here dials. This is a design preview: pressing a button on this screen does not call 10177, 112, 10111, a nurse, a doctor or anybody else. The numbers are printed so that a person reading this can dial them themselves, from their own phone.",
   "whyFirst": "Emergency services are at the top of this screen because that is the order the decision has to be taken in. A screen that offers its own service first, and the ambulance underneath, is asking a frightened person to compare them — and some of them will choose wrong.",
   "numbers": [
-   { "id": "ambulance", "number": "10177", "name": "Ambulance", "detail": "The national emergency ambulance number in South Africa. It works from a landline and from a mobile.", "whenToUse": "Anyone who is unconscious, struggling to breathe, bleeding badly, having a seizure, showing signs of a stroke, or in severe pain that came on suddenly." },
-   { "id": "mobile", "number": "112", "name": "Emergency, from a mobile", "detail": "Reaches an emergency call centre from any mobile phone on any South African network, and the operator routes you to the ambulance, the fire service or the police.", "whenToUse": "From a mobile phone, or when you do not know which service you need. Try this if 10177 does not answer." },
-   { "id": "police", "number": "10111", "name": "Police", "detail": "The South African Police Service emergency number.", "whenToUse": "A crime in progress, a violent situation, or a road accident where the police are needed as well as an ambulance. Ask for an ambulance too — do not choose between them." }
-  ]
+   { "id": "ambulance", "number": "10177", "spoken": "one zero one seven seven", "name": "Ambulance", "detail": "The national emergency ambulance number in South Africa. It works from a landline and from a mobile.", "whenToUse": "Anyone who is unconscious, struggling to breathe, bleeding badly, having a seizure, showing signs of a stroke, or in severe pain that came on suddenly." },
+   { "id": "mobile", "number": "112", "spoken": "one one two", "name": "Emergency, from a mobile", "detail": "Reaches an emergency call centre from any mobile phone on any South African network, and the operator routes you to the ambulance, the fire service or the police.", "whenToUse": "From a mobile phone, or when you do not know which service you need. Try this if 10177 does not answer." },
+   { "id": "police", "number": "10111", "spoken": "one zero one one one", "name": "Police", "detail": "The South African Police Service emergency number.", "whenToUse": "A crime in progress, a violent situation, or a road accident where the police are needed as well as an ambulance. Ask for an ambulance too — do not choose between them." }
+  ],
+  "spokenNumbers": {
+   "decidedBy": "Founder",
+   "on": "2026-09-23",
+   "why": "Asked for on 23 September 2026, after the founder heard the synthesiser read 10111 as one thousand one hundred and eleven. An emergency number is a telephone number, not a quantity: each entry's spoken field is that number read as digits, the way an emergency call-taker would read it back, and every reading of it — the web's spoken reply and a phone's read-aloud — reads those words rather than the digits. The digits stay what is dialled and what is printed; only what is said changes. Changing a spoken form is the founder's decision recorded here, not an edit, and scripts/check-boundaries.mjs holds each one to the digits it belongs to."
+  }
  },
 
  "redFlags": {

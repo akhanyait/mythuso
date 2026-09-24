@@ -94,6 +94,20 @@ export const lines = (ids: string[]) =>
     const n = numberById(id);
     return { number: n.number, name: n.name };
   });
+/* What a voice reads where it would otherwise have read the digits. sos.json's spokenNumbers decision
+   of 23 September 2026: an emergency number is a telephone number, not a quantity, and "10111" said
+   aloud as one thousand one hundred and eleven is a number nobody can dial in a hurry. The spoken
+   form is the contract's own field — derived nowhere, typed nowhere — and the boundary check holds it
+   to the digits beside it. The screen still shows the digits; only the reading changes. */
+export const spokenNumber = (id: string): string => {
+  const n = numberById(id) as { number: string; spoken?: string };
+  return n.spoken ?? n.number;
+};
+export const spokenLines = (ids: string[]) =>
+  ids.map((id) => {
+    const n = numberById(id);
+    return { number: n.number, name: n.name, spoken: spokenNumber(id) };
+  });
 
 export type Situation = {
   id: string;
@@ -732,10 +746,13 @@ export function spokenOf(turn: Turn, audience: AudienceId): string {
   const add = (...items: string[]) => {
     for (const item of items) if (item) words.push(item);
   };
-  /* The numbers are read as they are written, number first: a person hearing "10177, Ambulance"
-     hears the same order she would read, and the numbers are why this function exists at all. */
+  /* The numbers are read as they are spoken, number first: a person hearing "one zero one seven
+     seven, Ambulance" hears the call-taker's own reading of a telephone number rather than a
+     quantity — sos.json's spokenNumbers decision of 23 September 2026 — and the order is the one
+     she would read, which is why this function exists at all. The digits stay on the screen beside
+     the voice; the reading and the print are two readings of one number, from the same file. */
   const numbers = (ids: string[]) => {
-    for (const n of lines(ids)) words.push(`${n.number}, ${n.name}.`);
+    for (const n of spokenLines(ids)) words.push(`${n.spoken}, ${n.name}.`);
   };
   switch (turn.reply.kind) {
     case "situation":
@@ -817,4 +834,30 @@ export function spokenOf(turn: Turn, audience: AudienceId): string {
   /* The tokens are filled once, at the end, with the same values the written words are filled
      with — so a number somebody hears cannot drift from the number she reads beside it. */
   return say(words.join(" "));
+}
+
+/* ---- Which language a reply is written in ---------------------------------------------------
+ * voice.spokenLanguages, since 23 September 2026: a person may write to GilbertOne in isiZulu and
+ * the service may answer in her language, and the voice that reads the reply follows the words
+ * rather than the microphone's English-only rule — which stands, because hearing is the founder's
+ * decision of 14 September 2026 and the recogniser still hears English only.
+ *
+ * Only a reply a language model wrote is ever tested, because every approved sentence in the
+ * contract is English and a detector run over them could only ever find nothing. The words are
+ * counted against the contract's own list — a short list of isiZulu words no English sentence
+ * contains — and two must appear, so one loanword in an English answer changes nothing. Detection
+ * is a fact about the reply, decided before any voice is asked for, so the seam stays where it
+ * always was: lib/voice.ts chooses the voice, this file decides what language the words are. */
+export type SpokenLanguage = (typeof voice.spokenLanguages)[number];
+
+export function spokenLanguageOf(reply: Reply): SpokenLanguage | null {
+  if (reply.kind !== "service") return null;
+  const text = reply.text.toLowerCase();
+  for (const language of voice.spokenLanguages) {
+    let found = 0;
+    for (const word of language.detectWords)
+      if (text.includes(word)) found += 1;
+    if (found >= 2) return language;
+  }
+  return null;
 }

@@ -84,6 +84,10 @@ const laboratory = json("../packages/catalog/records.json").records.find(
 ).name;
 const number = (id: string) =>
   sos.emergency.numbers.find((n: { id: string }) => n.id === id).number;
+/* The same number's read-aloud words, sos.json's spoken field — an emergency number is a telephone
+   number, not a quantity, so the voice reads it digit by digit. */
+const spokenNumber = (id: string) =>
+  sos.emergency.numbers.find((n: { id: string }) => n.id === id).spoken;
 const say = (text: string) =>
   text
     .replace("{ambulance}", number("ambulance"))
@@ -2108,7 +2112,9 @@ test("every reply is handed to the browser's voice, and the resets stop it", asy
     number("ambulance"),
   );
   await expect.poll(async () => (await spoken(page)).length).toBe(2);
-  expect((await spoken(page))[1]).toContain(number("ambulance"));
+  /* The emergency number is read digit by digit — the founder's own name for 10177 is spoken, not
+     the digits the screen shows, because a synthesiser handed a bare number reads a quantity. */
+  expect((await spoken(page))[1]).toContain(spokenNumber("ambulance"));
   await beginSpeech(page);
   await expect(rig).toHaveAttribute("data-cue", faceOf("emergency").cue);
   await endSpeech(page);

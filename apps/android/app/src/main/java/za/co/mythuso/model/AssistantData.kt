@@ -215,7 +215,7 @@ object GilbertData {
         sentence = "I can't assess the rest of what you said.",
         detail = "I answered the part I recognised. The rest is not something I can read, and that is not a judgement that it is minor.",
         ifUrgent = "If any of it might be an emergency, do not wait for me. Call one of these now:",
-        lines = listOf(GilbertLine("10177", "Ambulance"), GilbertLine("112", "Emergency, from a mobile")),
+        lines = listOf(GilbertLine("10177", "one zero one seven seven", "Ambulance"), GilbertLine("112", "one one two", "Emergency, from a mobile")),
         sosLabel = "Open Thuso SOS",
         handoverLabel = "Talk to a nurse"
     )
@@ -225,7 +225,7 @@ object GilbertData {
         sentence = "I can't assess that.",
         detail = "I answer only from a short list of approved sentences, and what you said is not one I can match. That is not a judgement that it is minor.",
         ifUrgent = "If this might be an emergency, do not wait for me. Call one of these now:",
-        lines = listOf(GilbertLine("10177", "Ambulance"), GilbertLine("112", "Emergency, from a mobile")),
+        lines = listOf(GilbertLine("10177", "one zero one seven seven", "Ambulance"), GilbertLine("112", "one one two", "Emergency, from a mobile")),
         sosLabel = "Open Thuso SOS",
         handoverLabel = "Talk to a nurse"
     )
@@ -235,7 +235,7 @@ object GilbertData {
         noticed = "You mentioned something Thuso SOS treats as an emergency:",
         headline = "If this is a life threat, call an ambulance now",
         lead = "Do not wait for MyThuso. Do not finish this screen. Call the number below, then come back if you still need us.",
-        lines = listOf(GilbertLine("10177", "Ambulance"), GilbertLine("112", "Emergency, from a mobile")),
+        lines = listOf(GilbertLine("10177", "one zero one seven seven", "Ambulance"), GilbertLine("112", "one one two", "Emergency, from a mobile")),
         notAnAmbulance = "MyThuso is not an ambulance service, and nothing on this screen should be mistaken for one. We send a registered nurse to a house. We do not carry anybody to hospital, we do not have paramedics, sirens or blue lights, and we cannot reach you faster than an ambulance can.",
         sosLabel = "Open Thuso SOS"
     )
@@ -247,7 +247,7 @@ object GilbertData {
         heading = "An answer written by a language model",
         disclosure = "AI-generated. Not a diagnosis or a prescription. Speak to a nurse for clinical decisions — GilbertOne can hand this conversation over.",
         ifUrgent = "If any of this might be an emergency, do not wait for an answer here. Call one of these now:",
-        lines = listOf(GilbertLine("10177", "Ambulance"), GilbertLine("112", "Emergency, from a mobile")),
+        lines = listOf(GilbertLine("10177", "one zero one seven seven", "Ambulance"), GilbertLine("112", "one one two", "Emergency, from a mobile")),
         sosLabel = "Open Thuso SOS",
         handoverLabel = "Talk to a nurse"
     )
@@ -277,7 +277,7 @@ object GilbertData {
         sentReference = "Handover reference",
         alreadySent = "This conversation was handed over already. Asking again sends nothing new unless the urgency has risen.",
         stillUrgent = "If this cannot wait, do not wait for a nurse. Call one of these now:",
-        lines = listOf(GilbertLine("10177", "Ambulance"), GilbertLine("112", "Emergency, from a mobile"))
+        lines = listOf(GilbertLine("10177", "one zero one seven seven", "Ambulance"), GilbertLine("112", "one one two", "Emergency, from a mobile"))
     )
 
     const val silenceIsNotSafety = "GilbertOne not recognising an emergency does not mean there is not one. If you think it is an emergency, call 10177, or 112 from a mobile."
@@ -320,6 +320,9 @@ object GilbertData {
         discardLabel = "Discard",
         nativeSpeechEnabled = true,
         speechVoiceOrder = listOf("en-ZA", "en-GB", "en-AU", "en"),
+        spokenLanguages = listOf(
+            GilbertSpokenLanguage("zu", "isiZulu", listOf("zu-ZA", "zu"), listOf("sawubona", "sanibonani", "unjani", "ninjani", "ngiyabonga", "siyabonga", "kakhulu", "kancane", "yini", "kanjani", "ngempela", "ngicela", "namhlanje", "izolo", "kusasa", "manje", "kahle", "kabi", "asazi", "angazi", "abantu", "umuntu", "umama", "ubaba", "umntwana", "abantwana", "indoda", "umfana", "intombi", "gogo", "mkhulu", "umuzi", "indlu", "amanzi", "ukudla", "umuthi", "imithi", "impilo", "usizo", "isibindi"))
+        ),
         muteLabel = "Mute GilbertOne's voice",
         unmuteLabel = "Let GilbertOne speak its answers",
         speechUnavailable = "GilbertOne cannot read this answer aloud on this phone right now. The words are still on the screen, in full."

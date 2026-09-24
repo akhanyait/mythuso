@@ -188,8 +188,9 @@ private const val ASSISTANT_BASE = "http://10.0.2.2:8791"
         @Suppress("DEPRECATION") view.announceForAccessibility(spoken(turns.last()))
         /* And the same words to GilbertSpeaker, which reads voice.nativeSpeech's flag and the mute
            switch before it reaches for the engine at all. The reply is already on the screen above;
-           this is a second reading of it, never the only place the words appear. */
-        speaker.speak(spokenAloud(turns.last()))
+           this is a second reading of it, never the only place the words appear. A reply written in
+           one of voice.spokenLanguages is asked for in its own voice. */
+        speaker.speak(spokenAloud(turns.last()), Gilbert.spokenLanguage(turns.last().reply))
     }
 
     val asked = turns.size > 1
@@ -225,7 +226,7 @@ private const val ASSISTANT_BASE = "http://10.0.2.2:8791"
                            replacement is still the last turn the person can see. */
                         if (stillLast) {
                             view.announceForAccessibility(spoken(refined))
-                            speaker.speak(spokenAloud(refined))
+                            speaker.speak(spokenAloud(refined), Gilbert.spokenLanguage(refined.reply))
                         }
                     }
                 }
@@ -505,7 +506,9 @@ private fun plainKeyboard(ime: ImeAction) =
     KeyboardOptions(autoCorrectEnabled = false, keyboardType = KeyboardType.Text, capitalization = KeyboardCapitalization.None, imeAction = ime)
 
 /* The words behind every reply kind, shared between what TalkBack is told and what GilbertSpeaker reads
-   aloud — one `when` rather than two that could answer the same turn differently. */
+   aloud — one `when` rather than two that could answer the same turn differently. A service answer's
+   numbers are spoken as digits — sos.json's spoken form, since 23 September 2026 — because "10111"
+   read as a quantity is a number nobody can dial in a hurry. */
 private fun coreWords(turn: GilbertTurn): String = when (val reply = turn.reply) {
     is GilbertReply.Situation -> reply.situation.sentence
     GilbertReply.Identity -> GilbertData.whatItIs
@@ -518,7 +521,7 @@ private fun coreWords(turn: GilbertTurn): String = when (val reply = turn.reply)
             + CrisisLinesData.heading + CrisisLinesData.lines.map { "${it.number}, ${it.name}." }).joinToString(" ")
     GilbertReply.Unmatched -> GilbertData.unmatched.sentence
     is GilbertReply.Service -> (listOf(GilbertData.service.heading, reply.text, GilbertData.service.disclosure, GilbertData.service.ifUrgent)
-        + GilbertData.service.lines.map { "${it.number}, ${it.name}." }).joinToString(" ")
+        + GilbertData.service.lines.map { "${it.spoken}, ${it.name}." }).joinToString(" ")
     is GilbertReply.Handover -> GilbertData.handover.title
 }
 

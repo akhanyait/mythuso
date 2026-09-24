@@ -829,8 +829,19 @@
       "order": ["en-ZA", "en-GB", "en-AU", "en"],
       "decidedBy": "Founder",
       "on": "2026-09-20",
-      "why": "Decided with the speech switch-on of 20 September 2026, for the browser's voice wherever it speaks on the web. Where the browser offers a choice, the voice asked for is South African English first, then British, then Australian, then any English voice, and nothing outside that order is ever chosen for it. The preference is applied quietly and is never a promise — the contract's own rule for §07 is that a South African voice is not guaranteed to be installed — so a browser that has none of the four keeps the browser's default, no voice list and no chooser are drawn, and the reply's words stay on the screen in full beside every voice, so nothing a person reads depends on which voice speaks them. Changing the order or the list is the founder's decision recorded here, not an edit."
+      "why": "Decided with the speech switch-on of 20 September 2026, for the browser's voice wherever it speaks on the web. Where the browser offers a choice, the voice asked for is South African English first, then British, then Australian, then any English voice, and nothing outside that order is ever chosen for it. The preference is applied quietly and is never a promise — the contract's own rule for §07 is that a South African voice is not guaranteed to be installed — so a browser that has none of the four keeps the browser's default, no voice list and no chooser are drawn, and the reply's words stay on the screen in full beside every voice, so nothing a person reads depends on which voice speaks them. Changing the order or the list is the founder's decision recorded here, not an edit. Since 23 September 2026 this order is what an English reply is asked for; a reply written in one of the languages below is asked for in its own order first, and this order stands behind it."
     },
+    "spokenLanguages": [
+      {
+        "id": "zu",
+        "name": "isiZulu",
+        "localeOrder": ["zu-ZA", "zu"],
+        "detectWords": ["sawubona", "sanibonani", "unjani", "ninjani", "ngiyabonga", "siyabonga", "kakhulu", "kancane", "yini", "kanjani", "ngempela", "ngicela", "namhlanje", "izolo", "kusasa", "manje", "kahle", "kabi", "asazi", "angazi", "abantu", "umuntu", "umama", "ubaba", "umntwana", "abantwana", "indoda", "umfana", "intombi", "gogo", "mkhulu", "umuzi", "indlu", "amanzi", "ukudla", "umuthi", "imithi", "impilo", "usizo", "isibindi"],
+        "decidedBy": "Founder",
+        "on": "2026-09-23",
+        "why": "Asked for on 23 September 2026, after the founder heard a reply the service had written in isiZulu read aloud by an English voice: a person may write to GilbertOne in isiZulu, and the reading follows the words rather than the microphone's English-only rule — which stands, because hearing is the founder's decision of 14 September 2026 and the recogniser still hears English only. The reply's language is detected from its own words, against a short list of isiZulu words no English sentence contains, and only a reply a language model wrote is ever tested, because every approved sentence in this contract is English; two of the words must appear, so one loanword in an English answer changes nothing. Where the browser has an isiZulu voice it is asked for first, in this entry's own order, with voice.voicePreference's English order standing behind it; where it has none, everything is exactly as it was — the same quiet preference, never a promise, no voice listed and no chooser drawn. The emergency numbers inside a reply are still read one digit at a time in English words, because isiZulu numerals are machine-drafted and unreviewed and a miscounted ambulance number is not a translation problem. Changing the list, the order or the threshold is the founder's decision recorded here, not an edit."
+      }
+    ],
     "recognition": "on-device",
     "audioStored": false,
     "transcriptLifetime": "conversation",
