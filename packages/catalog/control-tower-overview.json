@@ -141,12 +141,6 @@
 
  "discrepancies": [
   {
-   "id": "voice-capability-says-no-language-model",
-   "sentence": "packages/catalog/capabilities.json's voice capability lists 'No language model. GilbertOne answers only from its approved sentences' among what blocks it. Since 21 September 2026 the assistant service asks Azure OpenAI where the classifier found nothing (docs/governance/ASSISTANT-ACTIVATION.md). The capability's sentence is rendered on the status page and on all three platforms, so correcting it is a change to generated native data and is not made in this contracts-only pass.",
-   "owner": "Founder",
-   "why": "Recorded, not silently resolved (docs/PROMPT-CONTROL-TOWER-UI.md §12). An Overview that said 'live' beside a status page that says 'no language model' is two screens disagreeing about the same service."
-  },
-  {
    "id": "wake-word",
    "sentence": "packages/catalog/voice.json#lockedSettings.wakeWordQuestion: the 21 September amendment says wake word; the plan says no wake word and cites a 22 September direction the tree does not hold.",
    "owner": "Founder",
