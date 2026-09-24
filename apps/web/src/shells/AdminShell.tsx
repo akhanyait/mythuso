@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { Activity, ArrowRight, BarChart3, BookOpen, Landmark, LayoutGrid, LogOut, Radar, ScrollText, ShieldAlert, ShieldCheck, SlidersHorizontal, TrendingUp } from 'lucide-react';
 import { Modal } from '../components/UI';
 import { AssistantLauncher } from '../components/AssistantLauncher';
@@ -44,7 +44,14 @@ const tabIcons: Record<AdminTab, typeof Radar> = {
  Governance: ScrollText, Configuration: SlidersHorizontal
 };
 
-export default function AdminWorkspace({ audience }: { audience: RoleId }) {
+/* The parallel run's notice, fetched only at ?legacy=1 (docs/control-tower-cutover.md). */
+const LegacyNotice = lazy(() => import('../features/portal/LegacyNotice'));
+
+/* `legacy` is the parallel run. The back office is the merged portal now; this shell draws it only at
+   ?role=back-office&legacy=1, read-only, for one release cycle — the console's tabs still move, so the
+   old place can be checked against the new one, and every control inside a tab is refused beside the
+   cutover plan's sentence and a link to the same tab in the portal. */
+export default function AdminWorkspace({ audience, legacy = false }: { audience: RoleId; legacy?: boolean }) {
  const [modal, setModal] = useState<string | null>(null);
  const [tab, setTab] = useState<AdminTab>('Overview');
  const { subject, roleName, state, credential, initials, stopped } = whoIs(ADMIN_SUBJECT, 'Console access is withdrawn until this is put right.');
@@ -87,7 +94,10 @@ export default function AdminWorkspace({ audience }: { audience: RoleId }) {
     </div>
    </header>
    <DemoBar note={t('shell.previewBadge', 'en-ZA')}/>
-   <main id="main" tabIndex={-1}><AdminConsole open={setModal} tab={tab} setTab={setTab}/></main>
+   <main id="main" tabIndex={-1}>
+    {legacy && <Suspense fallback={null}><LegacyNotice surface="back-office" section={tab}/></Suspense>}
+    <AdminConsole open={setModal} tab={tab} setTab={setTab} readOnly={legacy}/>
+   </main>
    <footer className="app-footer"><span>© 2026 MyThuso · Back office</span><span>{t('shell.tagline', 'en-ZA')}</span></footer>
    {/* The assistant in the back office, for the audience the door chose — the same orb, the same
        lazy panel, this audience's own questions and simulated label. Drawn at the foot of the

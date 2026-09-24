@@ -14,6 +14,14 @@ export const PATIENT_TAB_LABEL: Record<string, string> = {
 };
 
 export async function goSection(page: Page, name: string) {
+  /* The Control Tower and the back office are one portal now (Phase 3), and their old sections are
+     categories and tabs in it. A journey that names an old section is taken to where the portal's
+     contract says that section went — the same table the portal itself resolves an old address by. */
+  /* A role chosen in the same tab arrives on a dynamic import, so wait for whichever navigation it
+     draws before deciding which kind of shell this is. */
+  await expect(page.getByRole('navigation', { name: 'Main navigation' }).or(page.locator('.tabbar'))
+    .or(page.getByRole('tablist', { name: PORTAL_CATEGORIES })).first()).toBeVisible();
+  if (await portalIsOpen(page)) { await goLegacySection(page, name); return; }
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
   if (await sidebar.isVisible()) {
     const entry = sidebar.getByRole('button', { name, exact: true });
@@ -70,7 +78,63 @@ export async function openWorkspace(page: Page, role: string) {
   const id = ROLE_PARAM[role];
   if (!id) throw new Error(`No role "${role}" on the demo login. It offers: ${Object.keys(ROLE_PARAM).join(', ')}.`);
   await page.goto(`/app/?role=${id}`);
-  await expect(page.getByRole('navigation', { name: 'Primary' }).or(page.getByRole('navigation', { name: 'Main navigation' })).first()).toBeVisible();
+  /* The Control Tower opens the merged portal, whose navigation is its category list. */
+  await expect(page.getByRole('navigation', { name: 'Primary' }).or(page.getByRole('navigation', { name: 'Main navigation' }))
+    .or(page.getByRole('tablist', { name: PORTAL_CATEGORIES })).first()).toBeVisible();
+}
+
+/* ---- The merged Control Tower (Phase 3) -------------------------------------------------------
+ *
+ * One portal where the Control Tower workspace and the back office were two. Its categories, their
+ * tabs and where every old tab and section went are packages/catalog/control-tower-portal.json's, read
+ * here rather than copied, so a journey written against an old name follows the tab to its new place
+ * the way an old bookmark does. The category list is a tab list — a column from 1000px, a strip below
+ * it — and only one of the two is ever displayed, so a role query finds the one on the screen. */
+type PortalTab = { id: string; label: string };
+type PortalCategory = { id: string; label: string; tabs: PortalTab[]; tools?: string[] };
+export const portalContract = JSON.parse(readFileSync(new URL('../packages/catalog/control-tower-portal.json', import.meta.url), 'utf8')) as {
+  categories: PortalCategory[];
+  legacyAddresses: { legacy: string; category: string; tab: string; disposition: string; tool?: boolean }[];
+  [key: string]: unknown;
+};
+export const PORTAL_CATEGORIES = 'Categories';
+export const portalCategory = (id: string) => {
+  const found = portalContract.categories.find(c => c.id === id);
+  if (!found) throw new Error(`packages/catalog/control-tower-portal.json has no category "${id}".`);
+  return found;
+};
+export const portalIsOpen = (page: Page) => page.getByRole('tablist', { name: PORTAL_CATEGORIES }).isVisible();
+/** A category by its label, then — where it has more than one — a tab inside it by its label. */
+export async function goPortal(page: Page, categoryLabel: string, tabLabel?: string) {
+  const tab = page.getByRole('tablist', { name: PORTAL_CATEGORIES }).getByRole('tab', { name: categoryLabel, exact: true });
+  await tab.click();
+  const category = portalContract.categories.find(c => c.label === categoryLabel);
+  if (!category) throw new Error(`No category "${categoryLabel}" in packages/catalog/control-tower-portal.json.`);
+  /* Arrived, not merely pressed: every category is its own dynamic import, and a journey that reads the
+     screen before the category has replaced its loading state is reading the category it left. */
+  await expect(tab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#pt-category .pt-loading')).toHaveCount(0);
+  await expect(page.locator('#pt-category .pt-intro .eyebrow')).toContainText(categoryLabel);
+  if (tabLabel && category.tabs.length > 1) {
+    const inner = page.getByRole('tablist', { name: `${categoryLabel} tabs` }).getByRole('tab', { name: tabLabel, exact: true });
+    await inner.click();
+    await expect(inner).toHaveAttribute('aria-selected', 'true');
+  }
+}
+/** An old section or tab, by its old name, wherever the portal's contract says it went. */
+export async function goLegacySection(page: Page, name: string) {
+  const entry = portalContract.legacyAddresses.find(e => e.legacy === `control-tower:${name}`)
+    ?? portalContract.legacyAddresses.find(e => e.legacy === `back-office:${name}`);
+  if (!entry) throw new Error(`The merged Control Tower has no old section called "${name}". packages/catalog/control-tower-portal.json#legacyAddresses lists every one.`);
+  const category = portalCategory(entry.category);
+  await goPortal(page, category.label, category.tabs.find(t => t.id === entry.tab)!.label);
+}
+/** The back office's old tabs, by their old names: Vetting, Operations, Catalogue and the rest. */
+export async function goConsole(page: Page, name: string) {
+  const entry = portalContract.legacyAddresses.find(e => e.legacy === `back-office:${name}`);
+  if (!entry) throw new Error(`The back office had no tab called "${name}".`);
+  const category = portalCategory(entry.category);
+  await goPortal(page, category.label, category.tabs.find(t => t.id === entry.tab)!.label);
 }
 /* The console lands on Overview, and Overview is what its heading now says. It used to say
    "Operations console" on all eight tabs — the name of the console, at the largest size on the

@@ -29,7 +29,13 @@ import { initialsOf } from './names';
  * shell reads them back through `openingLine` and the phones read the generated `FramingData`, so
  * the door, the screen behind it and both native apps cannot start describing one job differently. */
 
-export type Surface = 'patient' | 'clinical' | 'back-office';
+/* `portal` is the merged Control Tower (docs/PROMPT-CONTROL-TOWER-UI.md §5.1, Phase 3): the Control
+   Tower workspace and the back office are one surface now, and both roles open it — each at its own
+   category. ROLLBACK LIVES HERE. docs/control-tower-cutover.md: if a critical workflow breaks on
+   cutover, the portal is rolled back rather than patched forward, by pointing these two roles' surface
+   at 'clinical' and 'back-office' again and deploying. The old shells stay in the bundle for the
+   parallel run precisely so that is a two-word revert. */
+export type Surface = 'patient' | 'clinical' | 'back-office' | 'portal';
 /* The four workspaces inside the clinical application, named here as well as in the shell that
    draws them. The shell cannot be imported from this module — the door would then pull in the very
    bundle it exists to defer — so shells/StaffShell.tsx checks its own table against this type
@@ -67,9 +73,9 @@ export const roles: readonly Role[] = [
    opensTo: openingFor('doctor') },
  { id: 'partner', label: 'Pharmacy partner', surface: 'clinical', workspace: 'Partner', subjectId: 'P-501',
    opensTo: openingFor('partner') },
- { id: 'control-tower', label: 'Control Tower', surface: 'clinical', workspace: 'Control Tower', subjectId: 'O-801',
+ { id: 'control-tower', label: 'Control Tower', surface: 'portal', workspace: 'Control Tower', subjectId: 'O-801',
    opensTo: openingFor('control-tower') },
- { id: 'back-office', label: 'Back office', surface: 'back-office', workspace: null, subjectId: 'A-901',
+ { id: 'back-office', label: 'Back office', surface: 'portal', workspace: null, subjectId: 'A-901',
    opensTo: openingFor('back-office') }
 ];
 
@@ -145,12 +151,14 @@ export function roleFromSearch(search: string): RoleId {
  const asked = new URLSearchParams(search).get(ROLE_PARAM);
  return roles.some(r => r.id === asked) ? asked as RoleId : 'patient';
 }
-export function searchForRole(search: string, id: RoleId, explicitPatient = false): string {
- const params = new URLSearchParams(search);
+export function searchForRole(_search: string, id: RoleId, explicitPatient = false): string {
  // /app/ keeps its legacy patient default. At the main address the explicit patient
  // parameter distinguishes a dashboard from the public site. A new role starts at home.
- params.delete('open');
- if (id === 'patient' && !explicitPatient) params.delete(ROLE_PARAM); else params.set(ROLE_PARAM, id);
+ /* Home means nothing carried over: a patient's section, or the Control Tower's category, tab and
+    period, belonged to the role being left, and a portal reopened later on a category somebody else
+    chose is a portal not starting where its door says. So the new address is the role alone. */
+ const params = new URLSearchParams();
+ if (!(id === 'patient' && !explicitPatient)) params.set(ROLE_PARAM, id);
  const query = params.toString();
  return query ? `?${query}` : '';
 }

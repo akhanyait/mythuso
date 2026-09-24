@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { BadgeCheck, Banknote, CalendarClock, CircleAlert, FileText, Gauge, Landmark, LockKeyhole, Radio, ScrollText, ShieldCheck, Stethoscope, TimerReset, Users } from 'lucide-react';
 import { Pill, SectionTitle } from '../components/UI';
+import { ReadOnly } from '../components/ReadOnly';
 import { Metric, Metrics } from '../surface/Surface';
 import { DispatchBoard, IncidentBoard, controlTowerCounts } from './Dispatch';
 import { useVettingState, VettingConsole, type VettingState } from './Vetting';
@@ -43,13 +44,17 @@ const blocking = (subjects: VettingSubject[], roleId?: string) =>
    sidebar and the sidebar draws these eight as pill rows, which is where a workspace's navigation
    belongs; below that the sidebar is gone and the strip below is the only way through, so both
    drive one value rather than each holding their own idea of where the reader is. */
-export function AdminConsole({ open, tab, setTab }: { open: (s: string) => void; tab: AdminTab; setTab: (t: AdminTab) => void }) {
+export function AdminConsole({ open, tab, setTab, readOnly = false }: { open: (s: string) => void; tab: AdminTab; setTab: (t: AdminTab) => void; readOnly?: boolean }) {
  /* Held above the tabs on purpose: a decision taken in Vetting has to still be true when the
     Operations board is opened, or the gate is a screenshot of a gate. */
  const vetting = useVettingState();
  /* Which engine's settings Configuration opens on. Held here so the link on the Operations tab can open
     Configuration on the field-safety settings rather than on everything. */
  const [settingsEngine, setSettingsEngine] = useState('');
+ const body = tab === 'Overview' ? <Overview vetting={vetting}/> : tab === 'Vetting' ? <VettingConsole vetting={vetting} open={open}/> : tab === 'Operations' ? <Operations open={open} vetting={vetting} openSettings={() => { setSettingsEngine('safety'); setTab('Configuration'); }}/>
+   : tab === 'Clinical' ? <Clinical open={open} vetting={vetting}/> : tab === 'Catalogue' ? <Catalogue/> : tab === 'Growth' ? <Growth/>
+   : tab === 'Finance' ? <Finance/> : tab === 'Compliance' ? <Compliance/> : tab === 'Governance' ? <GovernanceReadiness/>
+    : <Configuration engine={settingsEngine} onEngine={setSettingsEngine}/>;
  return <>
   {/* The name of the console is the eyebrow and the name of the section is the heading, which is
       the way round it was not. Eight tabs each opened on "Operations console" set at the largest
@@ -64,10 +69,9 @@ export function AdminConsole({ open, tab, setTab }: { open: (s: string) => void;
   <div className="underline-tabs console-tabs" role="group" aria-label="Console sections">
    {adminTabs.map(t => <button key={t} className={tab === t ? 'selected' : ''} aria-pressed={tab === t} onClick={() => setTab(t)}>{t}</button>)}
   </div>
-  {tab === 'Overview' ? <Overview vetting={vetting}/> : tab === 'Vetting' ? <VettingConsole vetting={vetting} open={open}/> : tab === 'Operations' ? <Operations open={open} vetting={vetting} openSettings={() => { setSettingsEngine('safety'); setTab('Configuration'); }}/>
-   : tab === 'Clinical' ? <Clinical open={open} vetting={vetting}/> : tab === 'Catalogue' ? <Catalogue/> : tab === 'Growth' ? <Growth/>
-   : tab === 'Finance' ? <Finance/> : tab === 'Compliance' ? <Compliance/> : tab === 'Governance' ? <GovernanceReadiness/>
-    : <Configuration engine={settingsEngine} onEngine={setSettingsEngine}/>}
+  {/* Read-only is the parallel run's: the tab strip above still moves, and everything inside a tab is
+      disabled, because the portal is the screen of record now (docs/control-tower-cutover.md). */}
+  {readOnly ? <ReadOnly>{body}</ReadOnly> : body}
  </>;
 }
 /* A figure in the dashboard language: large, thin, tabular, with what it is underneath it. The icon
@@ -334,3 +338,9 @@ function Compliance() {
   <div className="privacy-note alert space-top"><CircleAlert size={19}/>Nothing on this screen is a compliance status. It is a checklist of what must exist before real patient information touches this platform, and no patient information is held on it today.</div>
  </>;
 }
+/* The merged Control Tower draws these panels unchanged, under its own navigation
+   (docs/control-tower-tab-inventory.md: each of them "moved"). They are exported rather than copied so
+   that the parallel run compares one component in two places, never two components that happen to
+   agree. The documents register is re-exported from here rather than imported by the portal: this file
+   is one of the few the build lets name it. */
+export { Overview as FundingOverview, Clinical as ClinicalOversight, Catalogue, Growth, Finance, Compliance as ControlChecklist, GovernanceReadiness as GovernanceDocuments, tabBlurb as adminTabBlurb };

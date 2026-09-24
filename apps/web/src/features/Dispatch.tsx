@@ -295,6 +295,18 @@ export const controlTowerCounts = () => ({
  critical: incidents.filter(i => i.severity === 'Critical').length,
  high: incidents.filter(i => i.severity === 'High').length
 });
+/* The Control Tower's strip, in one place. It was the Control Tower branch of the staff shell's
+   metricsOf, and the merged portal draws the same three figures over the same two boards — so the
+   strip moved here, beside the counts it is made of, and both shells read it rather than each keeping
+   a copy that could start to disagree. scripts/check-boundaries.mjs scans this block for a typed
+   figure exactly as it scans the shell's. */
+type TowerFigure = { label: string; value: string; chip: string; flagged: boolean };
+export const controlTowerFigures = (): TowerFigure[] => {
+ const c = controlTowerCounts();
+ return [{ label: 'Visits on the board', value: String(c.waiting), chip: 'Awaiting a nurse', flagged: false },
+         { label: 'Nurses on duty', value: String(c.nurses), chip: `${c.offDuty} off duty`, flagged: false },
+         { label: 'Open incidents', value: String(c.incidents), chip: c.critical ? `${c.critical} critical` : `${c.high} high`, flagged: c.critical > 0 }];
+};
 /* Severity is what a controller picks the next incident by, so it decides the order of the board and
    it is a column rather than the first word of a sentence. Written down here because a board that
    sorts by reference sorts by the order somebody happened to open things in: INC-015 is the chest

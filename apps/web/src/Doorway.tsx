@@ -9,10 +9,18 @@ import { roleFromSearch, roleOf, searchForRole, type RoleId } from './lib/roles'
    This switcher grants no server permissions and stores no identity in the browser. */
 
 /* Two chunks, not five. The four clinical roles are one application wearing four sets of navigation,
-   so they share a chunk; the back office is a different audience and a different set of screens.
+   so they share a chunk; the Control Tower and the back office are a different audience and a
+   different set of screens, and since Phase 3 one portal.
    Named imports would defeat the split, so these are the whole modules. */
 const ClinicalWorkspace = lazy(() => import('./shells/StaffShell'));
-const BackOffice = lazy(() => import('./shells/AdminShell'));
+/* The back office's door is the merged Control Tower's now (Phase 3): ?role=control-tower and
+   ?role=back-office both open one portal, behind this one dynamic import, so a patient still downloads
+   none of it. It replaced the back office's own import rather than sitting beside it — the old console
+   is reached from inside the portal's chunk, for the parallel run's ?legacy=1 and for a rollback — which
+   is why the door costs the patient's first load less than a second import would have.
+   docs/control-tower-cutover.md: rolling back is pointing the two roles' surface in lib/roles.ts at
+   'clinical' and 'back-office' again; this line does not change for it. */
+const ControlTower = lazy(() => import('./shells/PortalShell'));
 /* And one more door, which is not a role at all: ?preview=gilbertone opens the character
    demonstrator — a preview of GilbertOne's presentation, and a design review of an animation scope,
    with no model, no server, no voice and no patient data behind it. The live GilbertOne is the panel
@@ -62,7 +70,7 @@ export default function Doorway() {
    : <Suspense fallback={<Opening role={role}/>}>
       {/* The role is also the audience the assistant serves in that workspace, passed on so the
          shells never hold a second copy of the door's one vocabulary. */}
-      {workspace ? <ClinicalWorkspace key={role} role={workspace} audience={role}/> : <BackOffice audience={role}/>}
+      {surface === 'clinical' && workspace ? <ClinicalWorkspace key={role} role={workspace} audience={role}/> : <ControlTower key={role} audience={role}/>}
      </Suspense>}
  </RoleContext.Provider>;
 }

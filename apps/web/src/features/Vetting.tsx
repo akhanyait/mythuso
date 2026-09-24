@@ -188,8 +188,12 @@ function ReasonForm({ label, hint, confirm, onConfirm, onCancel }: { label: stri
  * single one of the twelve parties whose clearance they are responsible for. That is the console,
  * and the console already existed; the only thing missing was somewhere for its state to live
  * outside the back office. */
-export function VettingQueue({ open }: { open: (s: string) => void }) {
- const vetting = useVettingState();
+/* `vetting` is optional so the merged portal can hand in the state it holds above every category — a
+   nurse suspended here has to be refused on the Dispatch board the portal draws in another category,
+   exactly as the back office held it above its tabs. The Control Tower workspace keeps its own. */
+export function VettingQueue({ open, vetting: shared }: { open: (s: string) => void; vetting?: VettingState }) {
+ const own = useVettingState();
+ const vetting = shared ?? own;
  return <>
   <div className="page-intro"><div><div className="eyebrow">CONTROL TOWER</div>
    <h1>Vetting queue</h1>

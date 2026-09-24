@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openAdminConsole, openFirstRun } from './nav';
+import { goConsole, openAdminConsole, openFirstRun } from './nav';
 const tab = (page: Page, index: number) => page.locator('.tabbar button').nth(index);
 const openAdmin = openAdminConsole;
 test('signing out really closes the account, and signing back in restores it', async ({ page }) => {
@@ -24,7 +24,7 @@ test('signing out from the sign-in screen can start a new account instead', asyn
 });
 test('a high-risk check needs a second reviewer, and one name cannot be both', async ({ page }) => {
   await openAdmin(page);
-  await page.getByRole('button', { name: 'Vetting', exact: true }).click();
+  await goConsole(page, 'Vetting');
   await expect(page.locator('.panel.metric').filter({ hasText: 'Awaiting a second reviewer' })).toContainText('1');
   await page.getByRole('button', { name: /Brother Lwazi Mahlangu/ }).click();
   const detail = page.locator('.vetting-grid > *').last();
@@ -45,7 +45,7 @@ test('a high-risk check needs a second reviewer, and one name cannot be both', a
 });
 test('a lapsed clearance suspends a nurse, and the dispatch board refuses her by name', async ({ page }) => {
   await openAdmin(page);
-  await page.getByRole('button', { name: 'Vetting', exact: true }).click();
+  await goConsole(page, 'Vetting');
   const ayanda = page.getByRole('button', { name: /Sister Ayanda Dube/ });
   await expect(ayanda).toContainText('Suspended');
   await expect(ayanda).toContainText('Police clearance lapsed');   // not a negative countdown
@@ -55,17 +55,18 @@ test('a lapsed clearance suspends a nurse, and the dispatch board refuses her by
   await expect(detail).toContainText('Police clearance');
   await expect(detail).toContainText('Lapsed');
   // and the board will not let her be sent to a patient
-  await page.getByRole('button', { name: 'Operations', exact: true }).click();
-  const row = page.locator('.record-row').filter({ hasText: 'Sister Ayanda Dube' });
+  await goConsole(page, 'Operations');
+  /* The board's own rows: the merged Dispatch tab also carries the shift board, which names her too. */
+  const row = page.locator('.dispatch-grid .record-row').filter({ hasText: 'Sister Ayanda Dube' });
   await expect(row).toContainText('Police clearance lapsed');
   await expect(row.getByRole('button', { name: 'Cannot be assigned' })).toBeDisabled();
   // a cleared nurse on the same board still can be
-  const cleared = page.locator('.record-row').filter({ hasText: 'Sister Palesa Khumalo' });
+  const cleared = page.locator('.dispatch-grid .record-row').filter({ hasText: 'Sister Palesa Khumalo' });
   await expect(cleared.getByRole('button', { name: 'Assign' })).toBeEnabled();
 });
 test('every vetting decision is written to a log the console can only add to', async ({ page }) => {
   await openAdmin(page);
-  await page.getByRole('button', { name: 'Vetting', exact: true }).click();
+  await goConsole(page, 'Vetting');
   await page.getByRole('button', { name: 'Decision audit' }).click();
   const before = await page.locator('.timeline li, .record-row.static').count();
   await page.getByRole('button', { name: 'Queue' }).click();
@@ -79,7 +80,7 @@ test('every vetting decision is written to a log the console can only add to', a
 });
 test('changing a price shows what the platform is actually left with', async ({ page }) => {
   await openAdmin(page);
-  await page.getByRole('button', { name: 'Catalogue', exact: true }).click();
+  await goConsole(page, 'Catalogue');
   const row = page.getByRole('row', { name: /Wound care/ });
   await expect(row).toContainText('R 66');            // 299 − 224 nurse − 9 payment
   await row.getByRole('textbox').fill('260');
@@ -89,7 +90,7 @@ test('changing a price shows what the platform is actually left with', async ({ 
 });
 test('funding tranches only release against milestones', async ({ page }) => {
   await openAdmin(page);
-  await page.getByRole('button', { name: 'Finance', exact: true }).click();
+  await goConsole(page, 'Finance');
   const released = page.locator('.panel.metric').filter({ hasText: 'Released' });
   await expect(released).toContainText('R3m');
   const m3 = page.locator('.record-row').filter({ hasText: 'M3' });
@@ -101,11 +102,14 @@ test('funding tranches only release against milestones', async ({ page }) => {
 });
 test('the console reports against the proposal, and is honest about compliance', async ({ page }) => {
   await openAdmin(page);
+  /* The back office's Overview is a tab of the merged Control Tower's Overview since Phase 3; the
+     category opens on the state of the world, and the funding view is one tab along. */
+  await goConsole(page, 'Overview');
   await expect(page.getByText('% of the month-9 plan').first()).toBeVisible();
   await expect(page.getByRole('row', { name: /Month 15/ })).toContainText('R1.15m');
-  await page.getByRole('button', { name: 'Growth', exact: true }).click();
+  await goConsole(page, 'Growth');
   await expect(page.getByRole('row', { name: /Chronic Routine/ })).toContainText('R 199/m');
-  await page.getByRole('button', { name: 'Compliance', exact: true }).click();
+  await goConsole(page, 'Compliance');
   await expect(page.getByText('Nothing on this screen is a compliance status', { exact: false })).toBeVisible();
   await expect(page.locator('.record-row').filter({ hasText: 'SA hosting' })).toContainText('Not built');
 });

@@ -1,0 +1,388 @@
+{
+ "_note": "The merged MyThuso Control Tower: one portal where the Control Tower workspace and the back office used to be two (docs/PROMPT-CONTROL-TOWER-UI.md §5.1, §6, §10 Phase 3). This file holds the portal's shape as data — its categories in the plan's order, the tabs inside each, where every tab and section of the two old surfaces now lives, the context the address carries, the parallel run's two sentences, and every written empty state and refusal a category screen shows that no other contract already owns. It holds no status and no count: a service's state is read from packages/catalog/control-tower-overview.json and the assistant's health route, a device fact from packages/catalog/vitals.json and packages/catalog/devices/, a queue's state from packages/catalog/clinical-review-queue.json and packages/catalog/protocols.json#governance, and a pack's gates from packages/catalog/compliance-pack.json. Web only: docs/control-tower-tab-inventory.md places every one of these surfaces in the web application, no native screen reads this file, and so it has no generator and no line in the generated-files registry, like packages/catalog/vitals.json.",
+ "version": 1,
+ "status": "built",
+ "_statusWhy": "The portal is in the tree and held by tests/control-tower-portal.spec.ts on both viewports. Built is not accepted: gate G15 stays open until whoever runs the cutover signs docs/control-tower-cutover.md, and nothing here is a real service.",
+ "gate": "G15",
+ "name": "MyThuso Control Tower",
+
+ "statusVocabularyFrom": "packages/catalog/control-tower-overview.json#statusVocabulary",
+ "_statusVocabularyWhy": "One vocabulary for every service state the portal shows (§5.2). It lives in the Overview's contract, which the plan authored first; this file points at it rather than keeping a second copy, and scripts/check-boundaries.mjs fails a portal file that declares its own list of status words.",
+ "buildVocabulary": [
+  { "id": "built", "sentence": "In the tree, held by tests." },
+  { "id": "proposed", "sentence": "Declared in a contract, not built." },
+  { "id": "dark", "sentence": "Built but unreachable by default." },
+  { "id": "gated", "sentence": "Built but blocked on a named gate." },
+  { "id": "named-but-absent", "sentence": "A contract the work must author." }
+ ],
+ "_buildVocabularyWhy": "The plan's §2 words for how far a thing is built, used exactly. A copy of a Markdown table no screen can read, so scripts/check-boundaries.mjs holds each row to docs/PROMPT-CONTROL-TOWER-UI.md §2 word for word.",
+
+ "previewPicker": {
+  "refusalFrom": "packages/catalog/capabilities.json#accounts.simulation.refuses",
+  "refusalStartsWith": "Grant a role.",
+  "sentence": "No session, permission or admin layer exists behind this portal. Every category is open to anybody who opens this address, which is why nothing here acts on anything real. The fifteen admin layers are gate G16.",
+  "why": "The role switcher is a preview picker and the portal is where a reader could most easily mistake a category list for access control. The capability's own sentence says the switcher authenticates nobody; this one says what that means for the portal."
+ },
+
+ "context": {
+  "params": [
+   {
+    "id": "site",
+    "label": "Site",
+    "values": [ { "id": "all", "label": "All sites" } ],
+    "default": "all",
+    "sentence": "There is no site registry, so there is one site and it is all of them. The address carries it so a link keeps working the day a second one exists.",
+    "why": "§5.2 asks for site in the address. A site list with invented hospitals in it would be read as customers."
+   },
+   {
+    "id": "period",
+    "label": "Period",
+    "values": [
+     { "id": "today", "label": "Today" },
+     { "id": "last-7-days", "label": "Last 7 days" },
+     { "id": "last-30-days", "label": "Last 30 days" }
+    ],
+    "default": "today",
+    "sentence": "The period is carried in the address so a link opens the same view. No screen here reads a metered figure yet, so changing it changes no number; a screen that would be scoped by it says so.",
+    "why": "A period control that silently changed nothing would be a control lying about what it does."
+   },
+   {
+    "id": "tenant",
+    "label": "Tenant",
+    "values": [],
+    "default": null,
+    "refusalFrom": "packages/catalog/control-tower-overview.json#refusals.no-invented-tenant",
+    "sentence": "No tenant. A tenant in the address is ignored until a tenancy contract creates one.",
+    "why": "docs/control-tower-cutover.md: a tenant parameter is refused until a tenant exists."
+   }
+  ],
+  "categoryParam": "category",
+  "tabParam": "tab",
+  "why": "Which category, which tab, which site and which period all live in the address and nowhere else — no storage, the same rule the role follows (apps/web/src/lib/roles.ts) — so the address is bookmarkable and Back returns to the previous tab."
+ },
+
+ "categories": [
+  {
+   "id": "overview",
+   "label": "Overview",
+   "from": ["back-office Overview (moved)", "new, §5.3"],
+   "tabs": [
+    { "id": "state", "label": "State of the world", "heading": "Overview", "blurb": "Every service with its state and the reason for it, the tenants, what changed, what the Control Tower did today, and every gate still open.", "new": true },
+    { "id": "funding", "label": "Against the funding plan", "legacy": "back-office:Overview" },
+    { "id": "moves", "label": "What moved where", "blurb": "Every tab and section of the Control Tower workspace and the back office, and where it is now.", "new": true }
+   ]
+  },
+  {
+   "id": "dispatch",
+   "label": "Dispatch & Incidents",
+   "from": ["control-tower Dispatch (moved)", "control-tower Incidents (moved)", "back-office Operations (merged)"],
+   "tabs": [
+    { "id": "dispatch", "label": "Dispatch", "legacy": "control-tower:Dispatch", "headsItself": true },
+    { "id": "incidents", "label": "Incidents", "legacy": "control-tower:Incidents" }
+   ],
+   "tools": ["Employer programmes", "HL7 quarantine (development)"]
+  },
+  {
+   "id": "vetting",
+   "label": "Vetting",
+   "from": ["control-tower Vetting queue (moved)", "back-office Vetting (merged)"],
+   "tabs": [ { "id": "queue", "label": "Vetting queue", "legacy": "control-tower:Vetting queue", "headsItself": true } ],
+   "tools": ["Nurse onboarding & vetting"]
+  },
+  {
+   "id": "quality",
+   "label": "Quality",
+   "from": ["control-tower Quality (moved)"],
+   "tabs": [ { "id": "quality", "label": "Quality", "legacy": "control-tower:Quality", "headsItself": true } ]
+  },
+  {
+   "id": "audit",
+   "label": "Audit",
+   "from": ["control-tower Audit exports (moved)"],
+   "tabs": [ { "id": "exports", "label": "Audit exports", "legacy": "control-tower:Audit exports", "blurb": "Check a date range against the bound an admin sets, before the export route would be asked for it." } ]
+  },
+  {
+   "id": "devices",
+   "label": "Devices & Fleet",
+   "from": ["new, §5.4"],
+   "tabs": [
+    { "id": "fleet", "label": "Fleet overview", "blurb": "Devices by ward, bed, class and status, what needs attention, and the cohorts they fall into.", "new": true },
+    { "id": "provisioning", "label": "Provisioning", "blurb": "Discover, pair, assign and verify: the four steps a device would take to join a fleet.", "new": true },
+    { "id": "allowlist", "label": "Device-class allowlist", "blurb": "Which classes of device a site may use, and everything a class must show before it is added.", "new": true }
+   ],
+   "tools": ["Device Lab"]
+  },
+  {
+   "id": "gilbertone",
+   "label": "GilbertOne API Administration",
+   "mark": "G1",
+   "from": ["new, §7"],
+   "tabs": [ { "id": "phase-4", "label": "GilbertOne API Administration", "blurb": "The assistant engine's own administration: its state, its voice, its model providers, its reasoning level, its knowledge, its compliance and every external API it talks to.", "new": true } ]
+  },
+  {
+   "id": "configuration",
+   "label": "Configuration",
+   "from": ["back-office Configuration (moved)", "§6.2 tree, new"],
+   "tabs": [ { "id": "tree", "label": "Configuration", "legacy": "back-office:Configuration", "blurb": "Sites, wards, beds, staff, roles, branding and integrations, and every setting the engines work to." } ]
+  },
+  {
+   "id": "finance",
+   "label": "Finance",
+   "from": ["back-office Finance (moved)", "§6.2 cost allocation, new"],
+   "tabs": [
+    { "id": "round", "label": "The round and its tranches", "heading": "Finance", "legacy": "back-office:Finance" },
+    { "id": "cost-allocation", "label": "Cost allocation", "blurb": "What the platform costs to run, divided three ways: per bed, per seat and per call.", "new": true }
+   ]
+  },
+  {
+   "id": "compliance",
+   "label": "Compliance",
+   "from": ["back-office Compliance (moved)", "§6.2 compliance pack preview, new"],
+   "tabs": [
+    { "id": "controls", "label": "Control checklist", "heading": "Compliance", "legacy": "back-office:Compliance" },
+    { "id": "pack", "label": "Compliance pack preview", "blurb": "The six sections a hospital would be handed, the governance decision that keeps each one empty, and the document that would unblock it.", "new": true }
+   ]
+  },
+  {
+   "id": "governance",
+   "label": "Governance",
+   "from": ["back-office Governance (moved)", "§6.2 Clinician Review Queue, new"],
+   "tabs": [
+    { "id": "readiness", "label": "Documents awaiting signature", "heading": "Governance", "legacy": "back-office:Governance" },
+    { "id": "review-queue", "label": "Clinician Review Queue", "blurb": "The one door through which a change to clinical behaviour may move, who would sign it, and what it refuses.", "new": true }
+   ]
+  },
+  {
+   "id": "clinical",
+   "label": "Clinical oversight",
+   "from": ["back-office Clinical (moved)"],
+   "tabs": [ { "id": "oversight", "label": "Clinical oversight", "legacy": "back-office:Clinical" } ]
+  },
+  {
+   "id": "catalogue",
+   "label": "Catalogue",
+   "from": ["back-office Catalogue (moved)"],
+   "tabs": [ { "id": "catalogue", "label": "Catalogue", "legacy": "back-office:Catalogue" } ]
+  },
+  {
+   "id": "growth",
+   "label": "Growth",
+   "from": ["back-office Growth (moved)"],
+   "tabs": [ { "id": "growth", "label": "Growth", "legacy": "back-office:Growth" } ]
+  }
+ ],
+ "_categoriesWhy": "The first eleven are the plan's order (§5.1), which scripts/check-boundaries.mjs holds to the tree drawn there. Clinical oversight, Catalogue and Growth follow because docs/control-tower-tab-inventory.md moves them in and the plan's tree does not name them; they are appended rather than interleaved so the plan's order is not reargued by a screen.",
+
+ "roleLanding": {
+  "control-tower": { "category": "dispatch", "tab": "dispatch" },
+  "back-office": { "category": "overview", "tab": "state" },
+  "why": "docs/control-tower-cutover.md: ?role=control-tower opens the portal on Dispatch & Incidents and ?role=back-office on Overview, for one release cycle with the notice below."
+ },
+
+ "legacyAddresses": [
+  { "legacy": "back-office:Overview", "category": "overview", "tab": "funding", "disposition": "moved" },
+  { "legacy": "back-office:Vetting", "category": "vetting", "tab": "queue", "disposition": "merged" },
+  { "legacy": "back-office:Operations", "category": "dispatch", "tab": "dispatch", "disposition": "merged", "alsoTo": "dispatch/incidents" },
+  { "legacy": "back-office:Clinical", "category": "clinical", "tab": "oversight", "disposition": "moved" },
+  { "legacy": "back-office:Catalogue", "category": "catalogue", "tab": "catalogue", "disposition": "moved" },
+  { "legacy": "back-office:Growth", "category": "growth", "tab": "growth", "disposition": "moved" },
+  { "legacy": "back-office:Finance", "category": "finance", "tab": "round", "disposition": "moved" },
+  { "legacy": "back-office:Compliance", "category": "compliance", "tab": "controls", "disposition": "moved" },
+  { "legacy": "back-office:Governance", "category": "governance", "tab": "readiness", "disposition": "moved" },
+  { "legacy": "back-office:Configuration", "category": "configuration", "tab": "tree", "disposition": "moved" },
+  { "legacy": "control-tower:Dispatch", "category": "dispatch", "tab": "dispatch", "disposition": "moved" },
+  { "legacy": "control-tower:Incidents", "category": "dispatch", "tab": "incidents", "disposition": "moved" },
+  { "legacy": "control-tower:Vetting queue", "category": "vetting", "tab": "queue", "disposition": "moved" },
+  { "legacy": "control-tower:Quality", "category": "quality", "tab": "quality", "disposition": "moved" },
+  { "legacy": "control-tower:Audit exports", "category": "audit", "tab": "exports", "disposition": "moved" },
+  { "legacy": "control-tower:Nurse onboarding & vetting", "category": "vetting", "tab": "queue", "disposition": "moved", "tool": true },
+  { "legacy": "control-tower:Employer programmes", "category": "dispatch", "tab": "dispatch", "disposition": "moved", "tool": true },
+  { "legacy": "control-tower:HL7 quarantine (development)", "category": "dispatch", "tab": "dispatch", "disposition": "moved", "tool": true },
+  { "legacy": "control-tower:Device Lab", "category": "devices", "tab": "fleet", "disposition": "moved", "tool": true }
+ ],
+ "_legacyAddressesWhy": "Every tab and section docs/control-tower-tab-inventory.md marks moved or merged, and where it lands. scripts/check-boundaries.mjs holds this list to the inventory's tables in both directions and to the two old surfaces' own tab lists, so a tab cannot be dropped on the way in. Neither old surface put its tab in the address, so the addresses that must keep working are the two roles; a category parameter naming any old tab or section (?role=back-office&category=operations) resolves here as well, so a link written the old way lands on the new place.",
+
+ "decisions": [
+  {
+   "id": "field-safety-settings-link",
+   "sentence": "The link that opened Configuration on the field-safety settings hung off the back office's Operations tab. It now sits under the Incidents tab, beside the board whose waiting times those settings decide.",
+   "decidedBy": "Phase 3 build, 24 September 2026, for acceptance at the cutover sign-off",
+   "why": "docs/control-tower-tab-inventory.md left this undecided and docs/control-tower-cutover.md made it a blocker. The settings are how long the safety desk waits; the desk is the Incidents tab. Recorded here so the person who signs the cutover accepts or changes it rather than discovering it."
+  }
+ ],
+
+ "notice": {
+  "sentence": "The Control Tower workspace and the back office are one portal now. Everything either of them held is in a category here.",
+  "linkLabel": "What moved where",
+  "shownWhen": "A role address with no category in it — ?role=control-tower or ?role=back-office as it was bookmarked before the merge — for one release cycle.",
+  "why": "docs/control-tower-cutover.md, the addresses that must keep working: the old address lands on the portal with a one-line notice that the two surfaces are now one."
+ },
+
+ "legacy": {
+  "param": "legacy",
+  "value": "1",
+  "sentence": "This screen is kept for comparison while the Control Tower changes over. Do this in the Control Tower.",
+  "linkLabel": "Open this in the Control Tower",
+  "why": "docs/control-tower-cutover.md, the parallel run: the legacy surfaces stay reachable by an explicit address, read-only, with every action refused in this sentence. The sentence is the cutover plan's own, word for word."
+ },
+
+ "rollback": {
+  "sentence": "Pointing control-tower and back-office at their old shells again is one change to apps/web/src/lib/roles.ts (each role's surface) and a deploy. The old shells stay in the bundle for the parallel run so that rollback is a small revert rather than a rebuild.",
+  "why": "docs/control-tower-cutover.md, Rollback."
+ },
+
+ "loading": {
+  "sentence": "Getting this screen ready. It was not downloaded until you opened it.",
+  "why": "Every category is a dynamic import, so a patient never pays for it. A panel that fills is announced; a panel that is filling says so rather than showing a blank region (§5.2)."
+ },
+
+ "overview": {
+  "healthTimeoutMs": 6000,
+  "_healthTimeoutWhy": "Long enough for a slow connection to the one route the Overview reads live; short enough that the service row settles as disconnected rather than spinning. A timeout is not a clinical number.",
+  "checkingSentence": "Asking the assistant's health route.",
+  "recordedLabel": "What the activation record says",
+  "whatChangedWindow": "No release date is recorded anywhere this screen can read — deploys happen at a terminal on the server — so what changed is the feature map's Delivered entries from the Control Tower plan's Phase 0 onwards, newest first.",
+  "whatChanged": [
+   { "kind": "contract", "on": "2026-09-24", "ref": "packages/catalog/control-tower-portal.json", "heading": "Delivered — the merged MyThuso Control Tower portal, Phase 3, 24 September 2026 (web only)" },
+   { "kind": "contract", "on": "2026-09-24", "ref": "packages/catalog/control-tower-overview.json", "heading": "Delivered — GilbertOne API Administration, Phase 2: five contracts, the Overview schema and the cutover documents, 24 September 2026" },
+   { "kind": "boundary-check", "on": "2026-09-24", "ref": "packages/catalog/crisis-lines.json", "heading": "Delivered — crisis lines on the emergency answer, 24 September 2026 (all three platforms, founder request)" },
+   { "kind": "contract", "on": "2026-09-23", "ref": "packages/catalog/clinical-review-queue.json", "heading": "Delivered — Control Tower & GilbertOne commercialisation, Phase 0: contracts and guards only, 23–24 September 2026" }
+  ],
+  "_whatChangedWhy": "The Overview contract reads what changed from docs/FEATURE-MAP.md's Delivered sections, which no screen can read: the file is most of a megabyte of Markdown. So each item is a copy of one Delivered heading, and scripts/check-boundaries.mjs holds every heading to the feature map word for word, every ref to a file that exists, and the list to newest first."
+ },
+
+ "devices": {
+  "factsFrom": {
+   "allowlist": "packages/catalog/vitals.json#deviceAllowlist.real",
+   "dpia": "packages/catalog/vitals.json#darkForRealDevices.dpiA",
+   "classes": "packages/catalog/devices.json#deviceClasses",
+   "tiers": "packages/catalog/devices/pairing-paths.json#deviceTiers",
+   "transports": "packages/catalog/devices/pairing-paths.json#transports",
+   "indicators": "packages/catalog/devices/health-indicators.json#indicators",
+   "thresholds": "packages/catalog/devices/thresholds.json#thresholds"
+  },
+  "dpiaWords": { "not-done": "not done", "done": "done" },
+  "fleetEmpty": "The real-device allowlist holds {real} devices, and the DPIA that would let one onto it is {dpia}. No device belongs to a fleet, so there is no ward, bed, class or status to group one by.",
+  "attentionEmpty": "Nothing needs attention, because nothing is being watched. Low battery, offline too long, calibration overdue, firmware behind and verification pending are each an indicator below; a fleet with no device raises none of them.",
+  "cohortEmpty": "No cohort exists. A cohort is the devices of one model on one firmware, and there are {real} real devices to put in one.",
+  "bulkRefusal": "No bulk action is offered. There is no device to act on, and a bulk action on a fleet of none would be a button that says it did something.",
+  "indicatorsHeading": "What this view would watch",
+  "synthetic": "The kit registry the desk works today holds synthetic instruments only. It is under Dispatch & Incidents, Incidents, and the Device Lab simulator is in this category's More tools; neither is a real device and neither is on the allowlist.",
+  "provisioningEmpty": "Nothing can be provisioned. The real-device allowlist holds {real} devices and the DPIA is {dpia}, so a device that completed all four steps would still be refused at the first reading.",
+  "steps": [
+   { "id": "discover", "label": "Discover", "sentence": "Find the device on one of the transports below, in trust order. Discovery proves nothing: a device answering on a radio is not a device somebody is holding.", "readsFrom": "transports" },
+   { "id": "pair", "label": "Pair", "sentence": "Complete the transport's possession proof. A pairing without it is refused, and no device whose class may carry clinical weight pairs by a transport's 'just works' mode.", "readsFrom": "pairingRefusals" },
+   { "id": "assign", "label": "Assign", "sentence": "Give the device to whoever holds it between readings — a site, a ward and bed, a nurse's kit or a patient. No site, ward or bed exists to assign one to.", "readsFrom": "tiers" },
+   { "id": "verify", "label": "Verify", "sentence": "Check the device's own credential before its first reading is accepted. No device holds a credential yet, so there is nothing to verify against.", "readsFrom": "trust" }
+  ],
+  "startRefusal": "There is no Start button. Provisioning is proposed: no pairing route exists, and a wizard that walked somebody through four steps to a refusal would be wasting their afternoon.",
+  "allowlistEmpty": "No device class is on this deployment's allowlist: the real-device allowlist holds {real} devices and the DPIA is {dpia}.",
+  "gate": "A device class cannot be enabled at a site until the DPIA covers it. This is a gate, not a delay.",
+  "addingAClassRequires": [
+   "Vendor and model",
+   "The tier it is supported at",
+   "The pairing path it uses",
+   "A physiological range for each reading type it reports",
+   "Its escalation weight",
+   "Its firmware baseline",
+   "A security review confirming its credential model",
+   "A POPIA note"
+  ],
+  "_addingAClassRequiresWhy": "§5.4 View 3, the plan's list of what a class needs before it is added. The physiological range is a plausibility bound in packages/catalog/vitals.json's sense, never a threshold: a threshold is a clinical rule and waits on a ratified review-queue entry (packages/catalog/devices/thresholds.json).",
+  "enableRefusal": "Nothing on this screen enables a device class. A class joins the allowlist by a deliberate, reviewed edit to packages/catalog/vitals.json after the DPIA covers it, never by a button.",
+  "thresholdsEmpty": "No device class carries a threshold. Every threshold is a clinical rule and waits on a ratified entry in the Clinician Review Queue."
+ },
+
+ "gilbertone": {
+  "status": "proposed",
+  "phase": 4,
+  "sentence": "Not built yet — Phase 4. Its seven sub-screens are declared in contracts and none is drawn. The assistant is live in production, and this category can neither see it, configure it nor switch it off.",
+  "subScreens": [
+   { "id": "overview", "label": "Overview", "contract": "packages/catalog/control-tower-overview.json", "gate": "G15" },
+   { "id": "voice", "label": "Voice", "contract": "packages/catalog/voice.json", "gate": "G29" },
+   { "id": "model-providers", "label": "Model Providers", "contract": "packages/catalog/model-providers.json", "gate": "G30" },
+   { "id": "intelligence", "label": "Intelligence", "contract": "packages/catalog/intelligence-levels.json", "gate": "G31" },
+   { "id": "knowledge", "label": "Knowledge", "contract": "packages/catalog/knowledge-corpus-tiers.json", "gate": "G10" },
+   { "id": "compliance", "label": "Compliance", "contract": "packages/catalog/compliance-pack.json", "gate": "G14" },
+   { "id": "api-registry", "label": "API Registry", "contract": "packages/catalog/api-registry.json", "gate": "G32" }
+  ],
+  "_subScreensWhy": "The seven sub-screens of §7, each with the contract it would read and the gate §7 names for it. Listed so the category says what it will be; none is a screen, and scripts/check-boundaries.mjs fails the build if a file under apps/web/src renders one before Phase 4.",
+  "why": "§4 and §10: GilbertOne API Administration is Phase 4, gated. Phase 3 places it in the portal with its mark and says so."
+ },
+
+ "configuration": {
+  "tree": [
+   { "id": "settings", "label": "Settings", "level": 1, "body": "settings" },
+   { "id": "sites", "label": "Sites", "level": 1, "emptyState": "No site exists. MyThuso has no site registry: every visit, nurse and device in this preview belongs to one operation with no site boundary. A site is created by a tenancy contract naming what one is, and that contract does not exist." },
+   { "id": "wards", "label": "Wards", "level": 2, "parent": "sites", "emptyState": "No ward exists, because no site exists to hold one. Wards are the hospital shape the plan describes; nothing in the tree models a hospital floor yet." },
+   { "id": "beds", "label": "Beds", "level": 3, "parent": "wards", "emptyState": "No bed exists, because no ward exists to hold one. A bed is also the first axis of cost allocation, which is why that axis is empty too." },
+   { "id": "staff", "label": "Staff", "level": 1, "emptyState": "No tenant has its own staff directory, because no tenant exists. The people this preview knows are parties on the vetting register, and they are read and decided on in Vetting.", "countFrom": "the vetting register" },
+   { "id": "roles", "label": "Roles", "level": 1, "emptyState": "No admin role exists. The roles below open screens and grant nothing; the fifteen admin layers the plan describes are named-but-absent until gate G16." },
+   { "id": "branding", "label": "Branding", "level": 1, "emptyState": "One brand, fixed. The token palette in packages/design-tokens/tokens.json governs every screen, and no tenant may override it; per-tenant branding needs a tenant, and none exists." },
+   { "id": "integrations", "label": "Integrations", "level": 1, "emptyState": "No integration is connected: {connected} of {total} capabilities in packages/catalog/capabilities.json. Each one below is simulated or absent, and says so on the screens that depend on it." }
+  ],
+  "_treeWhy": "§6.2: Configuration becomes the tenant-admin home, a tree of sites, wards, beds, staff, roles, branding and integrations, each with its own sub-screen and its own empty state. The existing settings screen stays reachable as the tree's first node, so nothing that was on the Configuration tab moved away from it."
+ },
+
+ "costAllocation": {
+  "axes": [
+   { "id": "per-bed", "label": "Per bed", "divides": "What a site costs, over the beds it runs.", "emptyState": "No bed exists to divide a cost over." },
+   { "id": "per-seat", "label": "Per seat", "divides": "What the portal and the clinical workspaces cost, over the people who sign in to them.", "emptyState": "No seat exists: nobody signs in, because no account does." },
+   { "id": "per-call", "label": "Per call", "divides": "What the assistant's model and speech providers cost, over the conversations that used them.", "emptyState": "No call is metered. The assistant answers in production and records no usage anywhere this screen can read." }
+  ],
+  "emptyState": "No cost can be allocated, because nothing is metered. There is no meter behind any of the three axes, and a figure on this screen would be a guess drawn to look like a bill.",
+  "refusal": "No cost figure is shown until a meter exists behind it. The period chosen above changes nothing here, for the same reason."
+ },
+
+ "compliancePack": {
+  "readsFrom": "packages/catalog/compliance-pack.json",
+  "generateRefusalFrom": "packages/catalog/compliance-pack.json#refusals.no-pack-before-all-four-close",
+  "decisionsHeading": "The four decisions every section waits on",
+  "sectionsHeading": "The six sections",
+  "todayLabel": "What this section would say today",
+  "unblockLabel": "What would unblock it"
+ },
+
+ "reviewQueue": {
+  "readsFrom": "packages/catalog/clinical-review-queue.json",
+  "boardFrom": "packages/catalog/protocols.json#governance",
+  "entriesHeading": "Entries",
+  "boardHeading": "Who would sign",
+  "statesHeading": "The states an entry moves through",
+  "tiersHeading": "What may be proposed",
+  "refusalsHeading": "What the queue refuses",
+  "boardWords": { "not-formed": "not formed", "formed": "formed", "not-appointed": "not appointed", "appointed": "appointed" },
+  "noSignature": "Nothing on this screen signs, ratifies, rejects or rolls back. The governance board is {board} and the Medical Director is {director}, so no signature exists to give — for anybody.",
+  "why": "§6.2: Governance gains the Clinician Review Queue. The queue's contract is proposed and has no runtime, no route and no entry; the screen reads the contract and the governance record it names, and offers no action while the board is not formed."
+ },
+
+ "refusals": [
+  {
+   "id": "no-permission-claimed",
+   "statement": "The portal claims no permission. A category being on the screen does not mean anybody may use it; nothing here is reached by having permission to.",
+   "why": "Default-deny (§1) has no allow to invert while there is no session. Saying so is the control that exists."
+  },
+  {
+   "id": "no-device-class-enabled",
+   "statement": "Nothing in the portal enables a device class, pairs a device or assigns one.",
+   "why": "§12: do not enable a device class at a site without a DPIA. The DPIA is not done."
+  },
+  {
+   "id": "no-signature-while-board-not-formed",
+   "statement": "The review-queue screen offers no sign, ratify, reject or roll-back action while the governance board is not formed.",
+   "why": "packages/catalog/clinical-review-queue.json#no-signature-no-ratification: a ratification that cannot say whose authority it was is citing nobody."
+  },
+  {
+   "id": "no-cost-without-a-meter",
+   "statement": "No cost allocation figure is drawn until a meter exists behind it.",
+   "why": "A cost per bed with no bed and no meter is an invented number on a finance screen."
+  },
+  {
+   "id": "no-gilbertone-sub-screen-before-phase-4",
+   "statement": "No GilbertOne administration sub-screen is drawn before Phase 4 and its gates.",
+   "why": "§9: nothing in this phase is built as more than documentation until its gate is green."
+  }
+ ],
+
+ "preview": "The portal is the two old surfaces' screens, unchanged, under one navigation, with six new screens that are each a written empty state or a contract read aloud: the Overview, Devices & Fleet, the Configuration tree, cost allocation, the compliance pack preview and the Clinician Review Queue. Nothing in it acts on a real service."
+}

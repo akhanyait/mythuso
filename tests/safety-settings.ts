@@ -29,7 +29,9 @@ export const editorLabel = (row: { type: string; unit: string | null }) => fill(
 
 /* The Configuration tab of a console that is already open, by the tab's own name on either viewport. */
 export async function openConfiguration(page: Page) {
-  await page.getByRole('button', { name: say.tab, exact: true }).click();
+  /* A category of the merged Control Tower since Phase 3, rather than a button on the back office's
+     strip; its first node is the settings screen the tab used to be. */
+  await page.getByRole('tablist', { name: 'Categories' }).getByRole('tab', { name: say.tab, exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: say.tab })).toBeVisible();
 }
 

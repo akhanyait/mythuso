@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { noticeFor } from './notices';
-import { goSection, openAdminConsole, openFirstRun, openWorkspace } from './nav';
+import { goSection, goConsole, openAdminConsole, openFirstRun, openWorkspace } from './nav';
 /* Tab-bar labels are translated, so the phone path addresses tabs by position, not by text. */
 const tabOrder = ['Overview', 'Book a nurse', 'My visits', 'Health Passport', 'More'];
 const tab = (page: Page, index: number) => page.locator('.tabbar button').nth(index);
@@ -190,7 +190,7 @@ test('vetting refuses a malformed credential, and states the refusal it is under
 });
 test('an identity number is checked against its own check digit, not just its length', async ({ page }) => {
   await openAdminConsole(page);
-  await page.getByRole('button', { name: 'Vetting', exact: true }).click();
+  await goConsole(page, 'Vetting');
   await page.getByRole('button', { name: /Preview an application/ }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: /Care sponsor/ }).click();
