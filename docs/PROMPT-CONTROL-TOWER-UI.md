@@ -529,6 +529,8 @@ Never claim done without the test. Never claim working without the harness. Neve
 | 20 Sep 2026 | 283.85 kB | Reference robot v2 |
 | 22 Sep 2026 | 283.93 kB | One-engine, three-clients pass |
 | 24 Sep 2026 | 283.87 kB | Phase 0 contracts + safety fixes + voice honesty |
+| 24 Sep 2026 | 284.01 kB | The voice capability's notice made true (7026c87c): patients are told a message the approved sentences cannot place may go to the language model. Measured at f3fbca41 (283.87) and 7026c87c (284.01), same method. The rise is that sentence; it reaches the patient because it is the disclosure, and it is not moved off the first view |
+| 24 Sep 2026 | 283.98 kB | Phases 3 and 4 merged (bc1ea375): the portal and GilbertOne administration add nothing to the patient entry, and two small reads moved behind dynamic imports took 0.03 kB back |
 
 Only comparisons taken the same way are legitimate: every script, module preload and stylesheet referenced by apps/web/dist/index.html, gzipped at level 9.
 
