@@ -50,7 +50,7 @@ export function ComplianceCategory() {
    what it would say if it were generated today. There is no Generate button, because the pack's own
    first refusal is that nothing is produced — not a draft, not a preview — until all four decisions
    close. */
-function CompliancePackPreview() {
+export function CompliancePackPreview() {
  const words = portalContract.compliancePack;
  const decision = (id: string) => {
   const found = pack.gatesOn.decisions.find(d => d.id === id);

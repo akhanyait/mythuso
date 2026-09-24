@@ -149,3 +149,64 @@
 .portal .pt-g1-state { display: flex; gap: var(--space-16); align-items: center; padding: var(--space-16); border-radius: var(--r-card); background: var(--pane); border: 1px solid var(--pane-line); margin-bottom: var(--space-16); color: var(--charcoal); }
 .portal .pt-g1-state p { margin: var(--space-8) 0 0; line-height: 1.5; }
 .portal .pt-g1-large { width: 64px; height: 57px; flex: 0 0 auto; }
+
+/* ---- GilbertOne API Administration, Phase 4 ----------------------------------------------------
+   The seven sub-screens (features/portal/gilbertone/). What is new is the disabled action and the
+   sentence that holds it, the locked setting, the provider card and the preview panel. A disabled
+   control is clinical.css's flat cloud wash with faint on it, a pair the token file measures, never a
+   translucent grey; a locked setting is text on the soft teal, with a lock icon that is decoration. The
+   registry's card states reuse the portal's status grounds where the word means the same thing, and
+   the one word the registry adds — configured — takes the gated ground: present, and not checked.
+   Nothing here animates. */
+.portal .g1-grid { display: grid; gap: var(--space-16); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1000px) { .portal .g1-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.portal .g1-card { padding: var(--space-16); border-radius: var(--r-card); border: 1px solid var(--pane-line); background: var(--pane); color: var(--charcoal); min-width: 0; }
+.portal .g1-card h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-8); }
+.portal .g1-card .pt-facts { display: flex; flex-direction: column; gap: var(--space-8); }
+.portal .g1-fact { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+@media (min-width: 700px) { .portal .g1-fact { grid-template-columns: minmax(0, 12rem) minmax(0, 1fr); gap: var(--space-16); } }
+.portal .g1-fact dt { font-weight: 600; color: var(--charcoal); font-size: 14px; }
+.portal .g1-fact dd { margin: 0; color: var(--charcoal); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.portal .g1-cards .pt-row { display: block; padding: 0; border: 0; background: none; }
+.portal .g1-cards .pt-row > .g1-card { margin: 0; }
+.portal .g1-inline { display: inline-block; margin-right: var(--space-8); }
+.portal .g1-tag { display: inline-block; padding: 2px var(--space-8); border-radius: var(--r-pill); background: var(--cloud); color: var(--charcoal); font-size: 13px; font-weight: 600; }
+.portal .pt-row > .g1-tag { flex: 0 0 auto; }
+.portal .g1-subregion + .g1-subregion { margin-top: var(--space-16); }
+.portal .g1-subregion h3 { margin: 0 0 var(--space-8); font-size: 16px; font-weight: 600; color: var(--charcoal); }
+
+.portal .g1-action, .portal .g1-actions { display: flex; flex-direction: column; gap: var(--space-8); margin: var(--space-12) 0 0; }
+.portal .g1-action-row { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.portal .g1-disabled { min-height: 44px; min-width: 44px; padding: var(--space-8) var(--space-16); border: 1px solid var(--stone); cursor: not-allowed; font-size: 15px; }
+.portal .g1-refusal { margin: 0; color: var(--charcoal); font-size: 14px; line-height: 1.5; }
+.portal .g1-check { display: inline-flex; align-items: center; gap: var(--space-8); min-height: 44px; color: var(--charcoal); cursor: not-allowed; }
+.portal .g1-check input { width: 20px; height: 20px; }
+.portal .g1-locked { display: flex; gap: var(--space-12); align-items: flex-start; padding: var(--space-16); margin: 0 0 var(--space-12); border-radius: var(--r-card); background: var(--teal-soft); color: var(--teal-ink); }
+.portal .g1-locked svg { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 2px; }
+.portal .g1-locked strong { display: block; margin-bottom: var(--space-4); font-weight: 600; }
+.portal .g1-locked p { margin: 0; line-height: 1.55; color: var(--teal-ink); }
+.portal .g1-locked-cell { color: var(--charcoal); font-size: 14px; }
+.portal .g1-notice { padding: var(--space-8) var(--space-12); border-radius: var(--r-control); background: var(--mango-soft); color: var(--ink); font-size: 14px; }
+
+.portal .pt-status.g1-card-status.is-configured { background: var(--pale-sage); color: var(--charcoal); }
+.portal .pt-status.g1-card-status.is-error, .portal .pt-status.g1-card-status.is-rate-limited { background: var(--danger-soft); color: var(--danger); }
+.portal .pt-status.g1-card-status.is-key-expiring { background: var(--mango-soft); color: var(--mango-ink); }
+
+.portal .g1-form { display: flex; flex-direction: column; gap: var(--space-12); max-width: 36rem; }
+.portal .g1-field { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; color: var(--charcoal); }
+.portal .g1-field > span { font-size: 14px; font-weight: 600; }
+.portal .g1-field input, .portal .g1-field select, .portal .g1-field textarea { min-height: 44px; max-width: 100%; padding: var(--space-8) var(--space-12); font-size: 15px; }
+.portal .g1-field input:disabled { background: var(--cloud); border-color: var(--stone); color: var(--faint); cursor: not-allowed; }
+.portal .g1-field textarea { min-height: 88px; resize: vertical; }
+.portal .g1-field small { color: var(--faint); font-size: 13px; line-height: 1.45; }
+
+.portal .g1-preview { display: flex; flex-direction: column; gap: var(--space-12); padding: var(--space-16); border-radius: var(--r-card); border: 1px solid var(--pane-line); background: var(--pane); color: var(--charcoal); }
+.portal .g1-questions { margin: 0; padding-left: var(--space-20); font-size: 14px; line-height: 1.55; color: var(--charcoal); }
+.portal .g1-preview-fields { display: grid; gap: var(--space-12); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1000px) { .portal .g1-preview-fields { grid-template-columns: minmax(0, 14rem) minmax(0, 1fr); } }
+.portal .g1-verdict, .portal .g1-rejected { margin: 0; min-height: 1.5em; font-size: 14px; line-height: 1.5; }
+.portal .g1-verdict { color: var(--charcoal); }
+.portal .g1-rejected { padding: var(--space-8) var(--space-12); border-radius: var(--r-control); background: var(--danger-soft); color: var(--danger); font-weight: 600; }
+.portal .g1-cost { margin: 0; }
+.portal .g1-details { margin-top: var(--space-12); }
+.portal .g1-details > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 500; color: var(--charcoal); }
