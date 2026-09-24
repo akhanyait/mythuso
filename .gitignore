@@ -41,5 +41,16 @@ test-results/
 # Copilot's own agent tooling reference material, not part of MyThuso.
 .github/agents/
 
+# Qoder's own workspace cache and scratch scripts, not part of MyThuso. Found staged by a
+# blanket `git add -A` on 23 September 2026 — 943 files of generated repo-wiki content that
+# should never have reached the index.
+.qoder/
+.fix2-verify.mjs
+.requote.mjs
+.verify-files.txt
+
+# Local editor settings, not shared across contributors.
+.vscode/
+
 # The engines' development stores and bus trail. Synthetic data, and never committed.
 packages/engines/.data/
