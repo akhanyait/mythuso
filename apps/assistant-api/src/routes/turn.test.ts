@@ -220,17 +220,26 @@ test("the audit line says a message was handled and never what it said", async (
   } finally {
     console.log = original;
   }
-  const audit = lines.filter((line) => line.startsWith("[gilbertone]"));
+  /* Only the audit lines are held to the words: other lines in the same window (a local model's
+     probe timing, say "182ms") are not the message, and matching them made this test flaky. */
+  /* The session id is a random UUID that can contain "182" or "114" by chance, so it is taken out
+     before the words are looked for. */
+  const audit = lines
+    .filter((line) => line.startsWith("[gilbertone]"))
+    .map((line) => line.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i, "<session>"));
   assert.equal(audit.length, said.length);
   for (const text of said) {
     assert.ok(audit.some((line) => line.endsWith(`| ${text.length} chars`)));
     for (const word of ["8001015009087", "kill", "myself", "182", "114"])
       assert.equal(
-        lines.some((line) => line.includes(word)),
+        audit.some((line) => line.includes(word)),
         false,
-        `a log line carried "${word}"`,
+        `an audit line carried "${word}"`,
       );
   }
+  /* The message itself, whole, reaches no line at all. */
+  for (const text of said)
+    assert.equal(lines.some((line) => line.includes(text)), false);
 });
 
 /* ---- The orchestrator tier, since 21 September 2026: where the classifier found nothing it
