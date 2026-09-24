@@ -1,7 +1,7 @@
 import levels from '../../../../../../packages/catalog/intelligence-levels.json' with { type: 'json' };
 import { g1 } from '../../../lib/gilbertone-admin';
 import { Empty, Region, RovingList } from '../Parts';
-import { GatedAction, Locked } from './Controls';
+import { GatedAction, GatedSlider, Locked } from './Controls';
 
 /* GilbertOne · Intelligence (§7.5): the five reasoning levels and which conversation may reach which,
  * from packages/catalog/intelligence-levels.json.
@@ -21,8 +21,18 @@ const levelName = (id: number) => {
 
 export function IntelligenceScreen() {
  const words = g1.intelligence;
+ const lockedLevel = levels.levels[0]!.id;
  return <>
   <Locked title={levelName(levels.levels[0]!.id)}>{levels.lockedToLevel0.sentence}</Locked>
+
+  {/* The selector the wireframe draws, drawn gated: a slider whose ends are the contract's own
+      (level 0 to platformMaximum), resting at the level the contract locks it to and held by the same
+      gate as the set-level action below. No number here is typed; it moves nothing. */}
+  <Region title="The level selector">
+   <GatedSlider id="set-level" label="Reasoning level"
+    min={levels.levels[0]!.id} max={levels.platformMaximum} value={lockedLevel}
+    valueText={levelName(lockedLevel)} ticks={levels.levels.map(l => l.id)}/>
+  </Region>
 
   <Region title={words.levelsHeading} count={levels.levels.length}>
    <RovingList label={`${levels.levels.length} levels`} rows={levels.levels.map(l => ({

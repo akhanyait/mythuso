@@ -222,6 +222,24 @@
 .portal .g1-details { margin-top: var(--space-12); }
 .portal .g1-details > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 500; color: var(--charcoal); }
 
+/* ---- The gated level selector (GilbertOne · Intelligence) ---------------------------------------
+   A slider whose ends are the contract's, drawn aria-disabled beside G31. It is a role="slider" div,
+   not an <input>: a range with no value would rest at its midpoint and read as a level nobody set, and
+   the boundary check rightly forbids a value on any field these screens draw. The component hands this
+   sheet a --pt-ratio of the contract's own numbers and the calc below turns it into the thumb's place,
+   every colour is a token, the chip reuses the mango-soft-on-ink pair the notices already use, and the
+   44px row meets the target floor even though it moves nothing. No transition: a control that cannot
+   be moved has nothing to settle, and the panel's own rise is the only motion this region carries. */
+.portal .pt-slider { display: flex; flex-direction: column; gap: var(--space-8); min-width: 0; }
+.portal .pt-slider-top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+.portal .pt-slider-chip { display: inline-block; padding: var(--space-4) var(--space-12); border-radius: var(--r-pill); background: var(--mango-soft); color: var(--ink); font-size: 14px; font-weight: 600; }
+.portal .pt-range { display: flex; align-items: center; height: 44px; padding: 0 14px; cursor: not-allowed; }
+.portal .pt-range-track { position: relative; flex: 1 1 auto; height: 6px; border-radius: var(--r-pill); background: var(--stone); }
+.portal .pt-range-fill { position: absolute; left: 0; top: 0; height: 6px; border-radius: var(--r-pill); background: var(--pale-sage); width: calc(var(--pt-ratio, 0) * 100%); }
+.portal .pt-range-thumb { position: absolute; top: 50%; left: calc(var(--pt-ratio, 0) * 100%); width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: var(--r-pill); background: var(--charcoal); border: 2px solid var(--surface); }
+.portal .pt-slider-ticks { display: flex; justify-content: space-between; padding: 0 var(--space-4); }
+.portal .pt-slider-tick { color: var(--faint); font-size: 13px; font-variant-numeric: tabular-nums; }
+
 /* ---- Founder access (packages/catalog/founder-access.json) -------------------------------------
    The one live form on the GilbertOne screens. Every colour is a token; the revealed key breaks
    anywhere so a long key never scrolls a phone sideways; every control is at least 44px. */

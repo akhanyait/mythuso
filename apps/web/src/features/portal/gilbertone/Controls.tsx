@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react';
+import { useId, type CSSProperties, type ReactNode } from 'react';
 import { Lock } from 'lucide-react';
 import { actionOf, cardStatusOf, gateIsOpen, gateOf, refusalFor, type Action } from '../../../lib/gilbertone-admin';
 
@@ -72,6 +72,42 @@ export function GatedCheckbox({ id }: { id: string }) {
  assertOpen(action);
  return <div className="g1-action">
   <label className="g1-check"><input type="checkbox" disabled aria-describedby={why}/><span>{action.label}</span></label>
+  <p id={why} className="g1-refusal"><strong>{gateOf(action.gate).label}.</strong> {refusalFor(action)}</p>
+ </div>;
+}
+
+/* The plan's level selector (§7.5), drawn as a slider and held by its gate. It is not an <input>:
+   a range with no value would rest at its midpoint and read as a level nobody set, and a field on
+   these screens is never given a value while no vault exists. So the thumb is placed by a ratio of
+   the caller's own contract numbers, handed to the sheet as a custom property that turns it into the
+   percentage there — a GilbertOne screen types no digit but a 0 or a 1 — the whole thing is
+   aria-disabled, and it moves nothing: it shows where the selector sits and what holds it, described
+   by the gate's sentence like every other control here. Every number is the caller's contract's. */
+export function GatedSlider({ id, label, min, max, value, valueText, ticks }: {
+ id: string; label: string; min: number; max: number; value: number; valueText: string; ticks: readonly number[];
+}) {
+ const why = useId();
+ const action = actionOf(id);
+ assertOpen(action);
+ const span = max - min;
+ const ratio = span === 0 ? 0 : (value - min) / span;
+ return <div className="g1-action">
+  <div className="pt-slider">
+   <div className="pt-slider-top">
+    <span className="pt-slider-chip">{valueText}</span>
+    <span className="g1-tag">{gateOf(action.gate).label}</span>
+   </div>
+   <div className="pt-range" role="slider" aria-label={label} aria-disabled="true"
+    aria-valuemin={min} aria-valuemax={max} aria-valuenow={value} aria-valuetext={valueText} aria-describedby={why}>
+    <span className="pt-range-track" style={{ '--pt-ratio': ratio } as CSSProperties}>
+     <span className="pt-range-fill"/>
+     <span className="pt-range-thumb"/>
+    </span>
+   </div>
+   <div className="pt-slider-ticks" aria-hidden="true">
+    {ticks.map(t => <span key={t} className="pt-slider-tick">{t}</span>)}
+   </div>
+  </div>
   <p id={why} className="g1-refusal"><strong>{gateOf(action.gate).label}.</strong> {refusalFor(action)}</p>
  </div>;
 }
