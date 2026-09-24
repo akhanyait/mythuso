@@ -18,23 +18,23 @@ rather than patients. But it means "what is left to build" is mostly not screens
 integrations underneath them, and each one is a contract, a vendor or an accreditation before it is
 a line of code.
 
-| Capability | What is actually blocking it |
-|---|---|
-| `accounts` | An SMS provider for one-time codes |
-| `booking` | A nurse roster with real availability |
-| `payments` | A South African payment provider, contracted |
-| `payouts` | The same provider, plus bank verification |
-| `credential-verification` | Agreements with thirteen separate authorities |
-| `dispatch` | Live positions from nurse devices |
-| `clinical-records` | The controls in `docs/PRIVACY-AND-SECURITY.md` |
-| `teleconsultation` | A media stack; no camera or microphone is declared on either app |
-| `screening` | No model, no vendor, no licence |
-| `voice` | The same, plus a POPIA answer for recording a symptom |
-| `devices` | No device is contacted; no Bluetooth or eSIM permission declared |
-| `dispensing` | A contracted pharmacy network |
-| `interpreting` | No interpreter is contacted |
-| `messaging` | No SMS, email or push provider |
-| `emergency` | No contracted ambulance partner |
+| Capability                | What is actually blocking it                                     |
+| ------------------------- | ---------------------------------------------------------------- |
+| `accounts`                | An SMS provider for one-time codes                               |
+| `booking`                 | A nurse roster with real availability                            |
+| `payments`                | A South African payment provider, contracted                     |
+| `payouts`                 | The same provider, plus bank verification                        |
+| `credential-verification` | Agreements with thirteen separate authorities                    |
+| `dispatch`                | Live positions from nurse devices                                |
+| `clinical-records`        | The controls in `docs/PRIVACY-AND-SECURITY.md`                   |
+| `teleconsultation`        | A media stack; no camera or microphone is declared on either app |
+| `screening`               | No model, no vendor, no licence                                  |
+| `voice`                   | The same, plus a POPIA answer for recording a symptom            |
+| `devices`                 | No device is contacted; no Bluetooth or eSIM permission declared |
+| `dispensing`              | A contracted pharmacy network                                    |
+| `interpreting`            | No interpreter is contacted                                      |
+| `messaging`               | No SMS, email or push provider                                   |
+| `emergency`               | No contracted ambulance partner                                  |
 
 **The cheapest three to connect, in order:** `messaging` and `accounts` share one provider and one
 decision. `payments` is a single South African integration and unlocks `payouts`. Those three turn
@@ -51,7 +51,7 @@ written reason there is none — `voice`, `devices` and `clinical-records`, each
 
 What that changes about the table above is the size of the job. Connecting a supplier should now be a
 data change and a small adapter: the schema is agreed, the refusals are written down, the tests are
-green, and what is missing is the vendor rather than the code. It should also be a slightly *harder*
+green, and what is missing is the vendor rather than the code. It should also be a slightly _harder_
 decision than it was, and deliberately — a capability may no longer be marked `connected` while any
 of the conditions its seam wrote down is unmet, which for `dispatch` means a position feed carrying
 the accuracy the device reported, and for `credential-verification` means an authority's answer
@@ -81,14 +81,14 @@ books for them, and the two rows below had been fixed and left written down as o
 
 Closed, and named here so they are not built twice:
 
-- ~~The Health Passport has no device permission screen.~~ *Review permission* is **gone**, not
+- ~~The Health Passport has no device permission screen.~~ _Review permission_ is **gone**, not
   wired: it sat on the denied block, opened nothing, and flipped the screen's own state to ready. A
   control that appears to grant a permission and grants none is worse than no control. The three
   cards saying what each device would read sit under the notice instead of behind it, so reviewing
   one is a single press. Held by `tests/patient-screens.spec.ts`, which asserts the button is
   absent.
 - ~~"Chat to our care team" opens a booking.~~ Closed 9 September, and it was the file's only
-  *blocking* row. It is not a chat — `messaging` is not connected and a window with a fictional
+  _blocking_ row. It is not a chat — `messaging` is not connected and a window with a fictional
   agent in it is the same defect in better clothes. It is a screen that says what a care team would
   do and hands over to the three things that exist. Held by `tests/flow-closures.spec.ts`.
 
@@ -109,7 +109,7 @@ Closed, and named here so they are not built twice:
   belong in `capture.json` under `durability`, beside `stores`, as a `refusals` list: one for a phone
   with no room, which is the nurse's to fix and worth telling her how, and one for a disk that
   refused and did not say why, which is not hers and must not send her looking for space she has.
-  Both must keep the clause saying the work is *not* on the disk — `LedgerStorageFailureTests`
+  Both must keep the clause saying the work is _not_ on the disk — `LedgerStorageFailureTests`
   asserts on those words and that assertion is the point. The quarantine sentence has three callers
   and three wordings on one platform already, and iOS has the same seam with no sentences at all,
   which is the second reason it wants a contract rather than a third copy.
@@ -170,38 +170,45 @@ These are in `docs/` already and are listed here so they are not lost:
 Ordered by what I would build first.
 
 ### 1. Arrival tracking, for the patient
+
 The one thing a person waiting at home actually wants, and the product currently cannot answer:
-*where is she now.* `dispatch` already carries real coordinates and arrival estimates; the map
+_where is she now._ `dispatch` already carries real coordinates and arrival estimates; the map
 already draws them for the Control Tower. The patient sees none of it. This is mostly plumbing an
 existing capability to a second audience, and it is the feature most likely to be described to a
 friend.
 
 ### 2. ~~A visit summary a patient can act on~~ — built
+
 What was measured, what was in range, what the doctor said, and one button that rebooks with the
 same patient chosen. `tests/patient-screens.spec.ts` holds it.
 
 ### 3. Offline capture for the nurse
+
 A nurse in a house in Soweto with one bar cannot lose an assessment. The kit capture flow already
 has an offline queue; the rest of the clinical capture does not. This is a working-conditions
 feature and it is the kind of thing that decides whether nurses stay.
 
 ### 4. A sponsor's view
+
 `business-model.json` already has sponsored care and the family screens already show "Sponsored
 care" as a state. Nobody can see what they are paying for. This is the second revenue line in the
 proposal and it has no screen at all.
 
 ### 5. ~~Nurse earnings forecasting~~ — built
-*If you take a shift* sits above the nurse's weeks and answers what one is worth before she commits
+
+_If you take a shift_ sits above the nurse's weeks and answers what one is worth before she commits
 to it. Kept here struck through rather than deleted, because a recommendation list that quietly
 loses the ones somebody took is a list nobody can audit.
 
 ### 6. An "explain this to me" layer on the Health Passport
+
 Reference ranges are already rendered — and, since the move into `packages/catalog/records.json`,
-rendered from one place on all three platforms. What a reading *means* is not. This is where `screening`
+rendered from one place on all three platforms. What a reading _means_ is not. This is where `screening`
 will eventually live, and a written, sourced, non-AI version of it could exist now — and would be
 more defensible than the model that replaces it.
 
 ### 7. A public status page
+
 When the identity service, payments and dispatch do come up, something should say which are
 running. The capability contract is already exactly this data.
 
@@ -397,7 +404,7 @@ Publication verified, 20 September 2026: founder approved this run with “apply
 
 The founder described twenty features. On 21 September 2026 each was read back against what exists, and the answer for most of them is a gate rather than a date: a thing that must be true — a contract, a signature, a ceremony, a person — before the feature may be built as more than documentation. **Nothing below was implemented or connected by that pass**, and none of the gates has been satisfied. Each is written with its obstacle, because a gate without its obstacle is a to-do item and this is not a to-do list.
 
-**The assistant's second tier, and its model.** The service is now delivered by every deploy as one bundled file and installed dark; the bridge is live in the panel and falls back to the on-device answers while the service is off. *Read this line as the model tier of the engine described below*: GilbertOne is its own service — `apps/assistant-api` — and the web, iOS and Android applications are its clients, not its carriers.
+**The assistant's second tier, and its model.** The service is now delivered by every deploy as one bundled file and installed dark; the bridge is live in the panel and falls back to the on-device answers while the service is off. _Read this line as the model tier of the engine described below_: GilbertOne is its own service — `apps/assistant-api` — and the web, iOS and Android applications are its clients, not its carriers.
 
 - **The local fallback model is `llama3.1:8b`** — the tag this machine's Ollama actually carries, and the default in `apps/assistant-api/src/lib/llm-adapter.ts` that runs when no `OLLAMA_MODEL` is set. It is a general-purpose model at the fallback tier, not a clinical one.
 - **MedGemma is not the current default and must not be described as one.** It is a future, clinically reviewed evaluation-only model: Google's own model card says its outputs are not intended to guide clinical decisions and it is not optimised for multi-turn use, and `docs/GilbertOne_Developer_Scope_v1.md` records the same. The order is evaluation on a pinned checkpoint, then a clinical and privacy review, then anything else.
@@ -405,17 +412,17 @@ The founder described twenty features. On 21 September 2026 each was read back a
 
 **The rest of the list, gated as written:**
 
-| Item | What must exist first |
-|---|---|
-| **Web offline storage for the nurse toolkit** | A signed DPIA and an explicit founder decision that change the web storage ban. Until then offline capture is **native-only**, its queues' encrypted storage is the only form, and no IndexedDB appears in `apps/web/src` — held by the build, not by a sentence. |
-| **Real payments** | A contracted South African payment provider, financial controls, reconciliation design, and a privacy review. |
-| **PHI, FHIR, Medplum, sharing tokens, coding** | A signed DPIA, a registered Information Officer, a data-residency decision, KMS or HSM custody, a retention policy, and interoperability governance. The Passport stays development-only until then, at its own refusal. |
-| **SMS identity** | A provider contract, DNS, TLS, rate limiting, fraud controls — and the complete existing activation sequence in `deploy/README.md`, step for step. |
-| **Triage, MedGemma, ICD, SNOMED, PHQ, GAD, drug, chronic, allergy intelligence** | Evaluation-only until clinical board review, protocol ratification, pharmacist sign-off where applicable, safety cases, versioned sources, and human review before anything is surfaced. Suggest; never decide. |
-| **Every clinical feature** | The repository's eight-step path, with no step skipped: catalog contract, generator, web, iOS, Android, boundary rule, journey test, feature-map update. |
-| **Qdrant, Ollama, PostgreSQL, Whisper, Piper, Medplum** | A new, isolated server of their own. **Never `liqzar-server`** — five production sites share that box, and this repository's deploy is built around never disturbing them. |
-| **The CHW workspace** | Truthful identity, which does not exist yet. Role-gated and lazy-loaded when it does. |
-| **Hardware reference work** | May proceed as documentation only, without activating a patient service. |
+| Item                                                                             | What must exist first                                                                                                                                                                                                                                             |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Web offline storage for the nurse toolkit**                                    | A signed DPIA and an explicit founder decision that change the web storage ban. Until then offline capture is **native-only**, its queues' encrypted storage is the only form, and no IndexedDB appears in `apps/web/src` — held by the build, not by a sentence. |
+| **Real payments**                                                                | A contracted South African payment provider, financial controls, reconciliation design, and a privacy review.                                                                                                                                                     |
+| **PHI, FHIR, Medplum, sharing tokens, coding**                                   | A signed DPIA, a registered Information Officer, a data-residency decision, KMS or HSM custody, a retention policy, and interoperability governance. The Passport stays development-only until then, at its own refusal.                                          |
+| **SMS identity**                                                                 | A provider contract, DNS, TLS, rate limiting, fraud controls — and the complete existing activation sequence in `deploy/README.md`, step for step.                                                                                                                |
+| **Triage, MedGemma, ICD, SNOMED, PHQ, GAD, drug, chronic, allergy intelligence** | Evaluation-only until clinical board review, protocol ratification, pharmacist sign-off where applicable, safety cases, versioned sources, and human review before anything is surfaced. Suggest; never decide.                                                   |
+| **Every clinical feature**                                                       | The repository's eight-step path, with no step skipped: catalog contract, generator, web, iOS, Android, boundary rule, journey test, feature-map update.                                                                                                          |
+| **Qdrant, Ollama, PostgreSQL, Whisper, Piper, Medplum**                          | A new, isolated server of their own. **Never `liqzar-server`** — five production sites share that box, and this repository's deploy is built around never disturbing them.                                                                                        |
+| **The CHW workspace**                                                            | Truthful identity, which does not exist yet. Role-gated and lazy-loaded when it does.                                                                                                                                                                             |
+| **Hardware reference work**                                                      | May proceed as documentation only, without activating a patient service.                                                                                                                                                                                          |
 
 ### The foundation under one GilbertOne — 22 September 2026
 
@@ -423,7 +430,7 @@ The founder recorded the direction before any of it was built, and it is now the
 
 This pass built the foundation and nothing above it: no deployment, no activation, no model connected, no database, no FHIR store, no Qdrant service, no voice provider, no clinician routing. The service remains dark and `deploy/` was not touched.
 
-- **The assistant has a catalog-authored, versioned contract.** `packages/catalog/apis/assistant.json` is the thirteenth engine file: twelve routes, two built — `GET /assistant/health` and `POST /assistant/turn`, captured from `apps/assistant-api/src/server.ts` as it answers them today, with their callers, request and response shapes and refusals — and ten declared dark: the `/v1/turn`, `/v1/listen`, `/v1/speak`, `/v1/triage/start`, `/v1/triage/answer`, `/v1/vitals`, `/v1/handover/prepare`, `/v1/handover/submit`, `/v1/knowledge/search` and `/v1/status` family the plan names under `/assistant`, carried by the generated clients as proposals like every engine's. The proposed routes refuse what they must not become: none decides a clinical question, a model tier needs its acknowledgement, listen keeps the push-to-talk rule in the contract itself, and a handover submit that reaches no reader is answered as failed, never as done. The append-only locks carry all twelve route versions — fingerprints, callers and refusals — appended by the repository's own seeding command, and the boundary check now reports 335 route versions over thirteen engine files. *Superseded later the same day, and the record is kept here rather than rewritten*: all **twelve** addresses are built now, not two, and the check reports **350** route versions over thirteen engine files. What was declared dark in this bullet is answered in _GilbertOne, one engine and three clients_ below — built, and gated, which is a different thing from dark.
+- **The assistant has a catalog-authored, versioned contract.** `packages/catalog/apis/assistant.json` is the thirteenth engine file: twelve routes, two built — `GET /assistant/health` and `POST /assistant/turn`, captured from `apps/assistant-api/src/server.ts` as it answers them today, with their callers, request and response shapes and refusals — and ten declared dark: the `/v1/turn`, `/v1/listen`, `/v1/speak`, `/v1/triage/start`, `/v1/triage/answer`, `/v1/vitals`, `/v1/handover/prepare`, `/v1/handover/submit`, `/v1/knowledge/search` and `/v1/status` family the plan names under `/assistant`, carried by the generated clients as proposals like every engine's. The proposed routes refuse what they must not become: none decides a clinical question, a model tier needs its acknowledgement, listen keeps the push-to-talk rule in the contract itself, and a handover submit that reaches no reader is answered as failed, never as done. The append-only locks carry all twelve route versions — fingerprints, callers and refusals — appended by the repository's own seeding command, and the boundary check now reports 335 route versions over thirteen engine files. _Superseded later the same day, and the record is kept here rather than rewritten_: all **twelve** addresses are built now, not two, and the check reports **350** route versions over thirteen engine files. What was declared dark in this bullet is answered in _GilbertOne, one engine and three clients_ below — built, and gated, which is a different thing from dark.
 - **One emergency list, raised by three terms and lowering nothing.** Version 2 of `packages/catalog/gilbert-emergency-terms.json` added "heart pain", "pass out" and "self harm" — three words the classifier's own typed list had carried since it was built — on the day `packages/gilbertone`'s classifier stopped keeping that list and began reading the shared one, so the web, the classifier, iOS and Android now read one version with one changelog. Two characterization tests hold it: the engine's matched words must equal the contract's, flattened, and every word the service matched before the unification must still raise. The list still only ever raises, and it is still not clinician-reviewed — the file says so.
 - **The session store is a seam now.** `apps/assistant-api/src/lib/session-store.ts` holds the same map, the same two numbers — half an hour idle, a thousand sessions, oldest first out — and the same read-prunes/write-refreshes behaviour behind a `SessionStore` interface the route reads through; `session-store.test.ts` holds any implementation to that policy through the interface alone.
 - **The unreachable model door was removed, proven first.** A caller-and-test sweep proved nothing live called `askModel` or the providers' `complete()` paths, and both were removed from `llm-adapter.ts` on 22 September 2026; the chat tier remains the orchestrator, and the availability flags remain the decision the health route reports.
@@ -450,8 +457,8 @@ Verification: `node scripts/check-boundaries.mjs` exits 0 and reports **350** ro
 ## Founder-scoped — GilbertOne commercialization & Control Tower expansion, 23 September 2026
 
 The founder scoped a large expansion and asked for it to be written down rather than built: **queued
-pending credits**, under this file's own standing rule *do not start a large build near the weekly
-credit cap*. The full scope, with every flag and every artifact checked against the tree, lives in
+pending credits**, under this file's own standing rule _do not start a large build near the weekly
+credit cap_. The full scope, with every flag and every artifact checked against the tree, lives in
 [`docs/COMMERCIAL-AND-CONTROL-TOWER-SCOPE.md`](COMMERCIAL-AND-CONTROL-TOWER-SCOPE.md). **Nothing was
 built, generated or connected by the pass that wrote it — it changed markdown and nothing else.**
 
@@ -487,7 +494,7 @@ built, generated or connected by the pass that wrote it — it changed markdown 
   hexes (navy `#0C2340` / blue `#2563EB` / violet `#7C3AED`) **are not in `packages/design-tokens/tokens.json`**,
   whose palette is teal-navy-and-lime; because the look and feel is fixed, these must be reconciled
   before any screen is built. All admin/clinical wording stays en-ZA until clinician sign-off.
-- **CI palette governance (decided 23 September 2026).** The shipped `packages/design-tokens/tokens.json` palette — teal-navy-and-lime (`brandInk` #0F3B4A, `indigo` #1E3A8A, `brandGreen` #1D9E75, `brandLime` #D9FF1A) — **governs** all Control Tower and future screens. GilbertOne's brand is an accent *within* that token system, never a replacement for it. The navy/blue/violet palette (#0C2340/#2563EB/#7C3AED) mentioned during scoping is not in the tokens and must not be used as the CI.
+- **CI palette governance (decided 23 September 2026).** The shipped `packages/design-tokens/tokens.json` palette — teal-navy-and-lime (`brandInk` #0F3B4A, `indigo` #1E3A8A, `brandGreen` #1D9E75, `brandLime` #D9FF1A) — **governs** all Control Tower and future screens. GilbertOne's brand is an accent _within_ that token system, never a replacement for it. The navy/blue/violet palette (#0C2340/#2563EB/#7C3AED) mentioned during scoping is not in the tokens and must not be used as the CI.
 
 ## The voice that reads a reply follows the reply's own language, and emergency numbers are read as telephone numbers — 23 September 2026
 
@@ -499,3 +506,14 @@ built, generated or connected by the pass that wrote it — it changed markdown 
 - **What did not move.** Recognition stays English-only on every platform — the boundary check that pins `voice.languages` to one entry and `voicePreference.order` to the exact array is untouched. The matcher, the emergency precedence, the approved sentences and the refusals are unchanged. VoiceOver and TalkBack read the same words the synthesiser reads, because both come from the same one function per platform.
 
 Verification: `node scripts/check-boundaries.mjs` exits 0 — including a new check that each emergency number's `spoken` field spells that number's own digits word for word, and that the founder's `spokenNumbers` decision record stands in the contract. `npm run check -w @mythuso/assistant-api` passes; the assistant-api suite passes 238 with 0 failures; the assistant Playwright spec passes 95 of 100 with 4 skipped and one pre-existing flake at `assistant.spec.ts:2051` (the A10 speech-cue attribute, documented in the feature map as an in-suite timing flake that passes deterministically in isolation — it was run five times in isolation after this change and passed every time). Native iOS and Android code compiles against the same contract via the generators but was not built in this sandbox: no Xcode exists here and the sandbox's Java is 21, so the iOS build and the Android Gradle build must be run on the machines that have them.
+
+## Founder-requested — Control Tower screen redesign, decided 24 September 2026
+
+**Asked for by the founder**: the Control Tower's 14 categories / 27 tabs are dense and difficult to follow. Redesign them to make sense, with animations, charts, switchers, level switchers and modern configurators, for admins, Control Tower admin and the founder. Access to the Control Tower requires login + authenticator code. Eight screen designs were generated and approved; the full spec is `docs/design-review/CONTROL-TOWER-REDESIGN.md`.
+
+- **Auth ruling**: TOTP-only gate for now (password + authenticator code, reusing the existing scrypt + RFC 6238 machinery from `apps/assistant-api/src/lib/founder-access.ts` and `apps/api/src/totp.ts`). Full identity service / SMS OTP deferred until the founder chooses an SMS provider. The `?role=` preview picker stays behind `MYTHUSO_AUTH_MODE=demo`; production mode removes it. This is Tier 1 of the extended-scope auth ladder, not Tier 3.
+- **CI ruling**: the shipped `packages/design-tokens/tokens.json` teal-navy-and-lime palette governs (`brandInk` #0F3B4A, `indigo` #1E3A8A, `brandGreen` #1D9E75, `brandLime` #D9FF1A) on the mist/charcoal/sage surface language from `docs/DESIGN-LANGUAGE.md`. GilbertOne's brand is an accent within the token system, never a replacement. This overrides the stale "no indigo" comment in `apps/web/src/features/portal/portal.css` and reconciles the 8 Sep DESIGN-LANGUAGE direction with the 23 Sep CI palette governance.
+- **IA approach**: the contract's 14 categories stay intact (so `check-boundaries.mjs` and `tests/control-tower-portal.spec.ts` pass unchanged); the shell presents them as 9 visual nav groups — Overview · Dispatch & Incidents · Clinical · Devices & IoT · GilbertOne API Administration · Commerce · Configuration · Governance · Founder. Every category address (`?category=X&tab=Y`) keeps working; the group is resolved from the category.
+- **Component vocabulary**: sliders (stone track, charcoal fill, circular thumb, floating mango-soft value chip), toggle switches (brandGreen ON / stone OFF), segmented controls, progress rings, numeric steppers, status chips (six-word vocabulary), sage area sparklines, dark vault panel — all 44px targets, two-ring focus, token-only colors, contract-driven values.
+- **Motion**: runs through the existing system (`lib/motion.ts`, `surface/motion.css`, `components/ChartMotion.tsx`) — only `transform`/`opacity`, gated on `[data-decor='on']`, removed under reduced motion, no `cubic-bezier` literals in stylesheets, token durations only. `portal.css` is excluded from the cubic-bezier and sage-fill boundary checks, so the rules are self-enforced there.
+- **Phased plan** (8 phases, ~16–20 batches, each independently verifiable and committable): Phase 0 spec (done) → Phase 1 auth gate → Phase 2 shell + IA + CSS → Phase 3 Overview + charts → Phase 4 Dispatch & Incidents → Phase 5 GilbertOne Admin → Phase 6 Configuration → Phase 7 Founder → Phase 8 remaining screens. Legacy shells stay at `?legacy=1` until G15 closes. Patient entry budget ≤ 282.16 kB; Control Tower stays behind dynamic imports.
