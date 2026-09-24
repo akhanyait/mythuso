@@ -425,7 +425,15 @@ async function qdrantSearch(
 
    The key folds case and whitespace so "Child  immunisation" and "child immunisation" are the one
    question they always were, and carries topK beside it because a four-result answer and a
-   two-result answer to the same words are different arrays and must not be handed for one another. */
+   two-result answer to the same words are different arrays and must not be handed for one another.
+
+   NOT TENANT-KEYED, BECAUSE NOTHING HERE IS TENANT-AWARE YET. Every caller today shares one
+   deployment and one knowledge catalog, so a key of query+topK alone leaks nothing. The day a
+   tenant concept reaches this service — packages/catalog/gilbertone-inference-isolation.json's
+   no-cross-tenant-cache-reuse refusal is written against this exact cache — the key has to gain a
+   tenant component before that day, not after: scripts/check-boundaries.mjs fails the build the
+   moment a tenant identifier appears anywhere else in apps/assistant-api/src while this file still
+   does not, so that moment cannot pass unnoticed. */
 const CACHE_MAX = 200;
 const cache = new Map<string, { results: KnowledgeResult[]; accessedAt: number }>();
 

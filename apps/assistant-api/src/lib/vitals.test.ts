@@ -268,6 +268,8 @@ test('the contract’s own darkness is a catalog fact, asserted so an edit to it
  });
  assert.equal(vitalsContract.darkForRealDevices.dpiA, 'not-done');
  assert.equal(vitalsContract.consent.required, true);
- assert.equal(maxAgeMs, 86_400_000, 'the staleness window is a day');
+ assert.equal(maxAgeMs, 3_600_000, 'the staleness window is an hour (a day until 24 September 2026)');
+ /* The validation protocol's case S08: a reading three hours old is refused as stale. */
+ assert.ok(maxAgeMs < 3 * 3_600_000, 'a three-hour-old reading must fall outside the window');
  assert.deepEqual(sources, ['manual', 'device', 'healthkit', 'healthconnect']);
 });

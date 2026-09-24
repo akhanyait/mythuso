@@ -1,0 +1,60 @@
+{
+  "_note": "The two South African crisis lines GilbertOne's emergency answer adds when a message carried words about harming yourself. Read by the web, generated into Swift and Kotlin by scripts/emit-crisis-lines.mjs. Written 24 September 2026 at the founder's request, because the answer to \"I want to kill myself\" listed an ambulance and nothing else — the clinical validation protocol's case U10 (docs/scope/03-Clinical-Validation-Protocol.md) expects crisis numbers.",
+  "_tokens": "{ambulance} and {mobile} are filled from packages/catalog/sos.json by number id, on the web when it reads this file and by the generator for Swift and Kotlin. No emergency number is typed in this file.",
+  "_whyItsOwnFile": "packages/catalog/sos.json holds exactly the three numbers South Africa's emergency services answer on, and the build fails if any other number appears there, because that file is the one place in this preview that must not be fictional. A crisis line is not an emergency service, so it does not go in that file and that check is not weakened to let it in. The numbers below are not new: they are the ones packages/catalog/knowledge/mental-health.json already carries with its sources, and the build fails if the two files disagree.",
+  "version": 1,
+  "clinicalReview": {
+    "reviewedBy": null,
+    "reviewedOn": null,
+    "why": "required before real patients"
+  },
+  "showsWhen": {
+    "terms": "packages/catalog/gilbert-emergency-terms.json",
+    "group": "crisis",
+    "rule": "The lines are shown when, and only when, the message matched the crisis group of the emergency terms. Any other emergency — chest pain, bleeding, a stroke — gets the emergency answer exactly as it was, with no crisis line in it."
+  },
+  "order": "The ambulance numbers are always shown first, and the crisis lines after them. A crisis line is added to the emergency answer; it never replaces a number in it, never moves one and never lowers the answer's urgency.",
+  "heading": "If you are thinking about harming yourself, you can also talk to someone now:",
+  "lines": [
+    {
+      "id": "sadag",
+      "name": "SADAG helpline",
+      "number": "0800 567 567",
+      "whenToUse": "Free counselling and referrals, from the South African Depression and Anxiety Group.",
+      "source": {
+        "authority": "SADAG (South African Depression and Anxiety Group)",
+        "from": "packages/catalog/knowledge/mental-health.json"
+      }
+    },
+    {
+      "id": "lifeline",
+      "name": "Lifeline South Africa",
+      "number": "0861 322 322",
+      "whenToUse": "24-hour crisis counselling.",
+      "source": {
+        "authority": "Lifeline South Africa",
+        "from": "packages/catalog/knowledge/mental-health.json"
+      }
+    }
+  ],
+  "refusals": [
+    {
+      "id": "never-instead",
+      "sentence": "A crisis line never replaces the emergency numbers. If someone's life is in danger now, call {ambulance}, or {mobile} from a mobile, first.",
+      "enforcedBy": "scripts/check-boundaries.mjs — the emergency answer must still list the ambulance and mobile numbers, and every platform renders the crisis lines after them."
+    },
+    {
+      "id": "nothing-dials",
+      "sentence": "Nothing here dials a crisis line by itself. The numbers are shown so that you can call them from your own phone.",
+      "enforcedBy": "No platform adds a call action for these lines; they are printed in the same list the ambulance numbers are printed in."
+    },
+    {
+      "id": "no-counselling",
+      "sentence": "GilbertOne does not counsel. It shows you who can, and the people on these lines are trained to."
+    },
+    {
+      "id": "not-reviewed",
+      "sentence": "This list has not been reviewed by a clinician yet, and needs to be before real patients."
+    }
+  ]
+}

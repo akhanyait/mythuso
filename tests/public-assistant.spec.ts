@@ -56,3 +56,23 @@ test('public scope keeps emergency guidance and every approved question works at
  await page.keyboard.press('Escape');
  await expect(panel).not.toBeVisible();
 });
+
+/* The crisis lines on the signed-out sheet: added after the ambulance numbers for words about harming
+   yourself, and absent for any other emergency. packages/catalog/crisis-lines.json. */
+test('words about harming yourself add the crisis lines after the ambulance numbers on the public sheet', async ({ page }) => {
+ await page.goto('/landing.html');
+ await page.getByRole('button', { name: 'Ask GilbertOne about MyThuso' }).click();
+ const panel = page.getByRole('dialog', { name: 'GilbertOne' });
+ const field = panel.getByLabel('Ask about MyThuso', { exact: true });
+ await field.fill('I want to kill myself');
+ await panel.getByRole('button', { name: 'Send', exact: true }).click();
+ const crisis = panel.locator('ol > li').last();
+ await expect(crisis).toHaveAttribute('data-outcome', 'emergency');
+ await expect(crisis.locator('li strong')).toHaveText(['10177', '112', '0800 567 567', '0861 322 322']);
+ await field.fill('I have chest pain');
+ await panel.getByRole('button', { name: 'Send', exact: true }).click();
+ const chest = panel.locator('ol > li').last();
+ await expect(chest).toHaveAttribute('data-outcome', 'emergency');
+ await expect(chest.locator('li strong')).toHaveText(['10177', '112']);
+ await expect(chest.locator('.public-assistant-crisis')).toHaveCount(0);
+});

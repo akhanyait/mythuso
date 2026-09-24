@@ -54,6 +54,28 @@ const sttAnswer = (payload: unknown, status = 200) =>
 const RECOGNITION_LOCALES: readonly string[] =
   assistant.voice.languages?.[0]?.recognitionLocales ?? [];
 
+test("a key in a region outside South Africa is not a configured cloud voice, so no audio leaves for it", async () => {
+  for (const region of ["westeurope", "eastus", "uksouth", "southafricawest"]) {
+    const speech = cloudSpeech(mustNotFetch, {
+      AZURE_SPEECH_KEY: ENV.AZURE_SPEECH_KEY,
+      AZURE_SPEECH_REGION: region,
+    });
+    assert.equal(speech.configured(), false, `${region} is not a region the DPIA assessed`);
+    assert.deepEqual(
+      await speech.recognize({ audioBase64: "AAAA", language: "en-ZA", audioFormat: "audio/wav" }),
+      { ok: false },
+    );
+  }
+  assert.equal(
+    cloudSpeech(mustNotFetch, {
+      AZURE_SPEECH_KEY: ENV.AZURE_SPEECH_KEY,
+      AZURE_SPEECH_REGION: "SouthAfricaNorth",
+    }).configured(),
+    true,
+    "the assessed region, however it was capitalised, is still configured",
+  );
+});
+
 test("with either half of the credentials missing the cloud voice is not configured, and no door opens", async () => {
   for (const env of [
     {},

@@ -137,7 +137,13 @@ struct AssistantView: View {
         case .situation(let situation): return situation.sentence
         case .identity: return Gilbert.whatItIs
         case .voice: return Gilbert.voice.howItWorks
-        case .emergency: return Gilbert.emergency.headline
+        case .emergency(let groups):
+            /* A crisis answer is read with its numbers — the ambulance first, then the crisis lines —
+               because the lines are the reason it differs, and a reading that left them out would be a
+               different answer. Any other emergency is read as it always was. */
+            guard Gilbert.showsCrisisLines(groups) else { return Gilbert.emergency.headline }
+            return ([Gilbert.emergency.headline] + Gilbert.emergency.lines.map { "\($0.number), \($0.name)." }
+                + [Gilbert.Crisis.heading] + Gilbert.Crisis.lines.map { "\($0.number), \($0.name)." }).joined(separator: " ")
         case .unmatched: return Gilbert.unmatched.sentence
         case .service(let words):
             /* The heading, the words, the disclosure and the numbers, in that order: the one spoken
@@ -476,6 +482,12 @@ struct AssistantView: View {
             SceneText(Gilbert.emergency.lead)
             lines(Gilbert.emergency.lines)
             SceneText(Gilbert.emergency.notAnAmbulance, quiet: true)
+            /* The crisis lines, after the ambulance numbers and in the same column, only when the crisis
+               words raised this answer — packages/catalog/crisis-lines.json, generated into CrisisLinesData. */
+            if Gilbert.showsCrisisLines(groups) {
+                SceneText(Gilbert.Crisis.heading)
+                lines(Gilbert.Crisis.lines)
+            }
             Button { showingSos = true } label: {
                 Label(Gilbert.emergency.sosLabel, systemImage: "cross.case.fill").frame(maxWidth: .infinity, minHeight: 44)
             }

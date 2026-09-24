@@ -319,6 +319,10 @@
       {
         "says": "the plumber is fitting a new geyser",
         "why": "\"fitting\" is a seizure term."
+      },
+      {
+        "says": "I have a nose bleed",
+        "why": "\"bleed\" and \"bleeding\" share a stem, so an ordinary nosebleed is shown the emergency answer. The clinical validation protocol (docs/scope/03, case U05) expects first aid rather than red. Recorded here on 24 September 2026 and deliberately not tuned out: a nosebleed that will not stop, or one in somebody on a blood thinner, is an emergency, and the words alone cannot tell the two apart. Lowering it needs a clinician's decision on what replaces the match, not a removed term."
       }
     ]
   }

@@ -2924,3 +2924,85 @@ test("a service timeout releases the waiting message to the fallback", async ({
   );
   release();
 });
+
+/* The crisis lines, since 24 September 2026. A message about harming yourself matched the crisis
+   words and got the ambulance and nothing else; packages/catalog/crisis-lines.json adds the two South
+   African crisis lines after the ambulance numbers — never instead of them — and only for the crisis
+   words, so a chest pain is answered exactly as it was. The numbers are written out here on purpose:
+   the journey checks what a person reads, not what the contract says she should. */
+const crisisContract = json("../packages/catalog/crisis-lines.json");
+
+test("words about harming yourself add the crisis lines after the ambulance numbers", async ({
+  page,
+}) => {
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await ask(page, "I want to kill myself");
+  const answer = log(page).locator(".as-reply").last();
+  await expect(answer).toHaveAttribute("data-outcome", "emergency");
+  await expect(answer).toContainText(sos.emergency.headline);
+  await expect(answer).toContainText(crisisContract.heading);
+  const numbers = answer.locator(".as-numbers li strong");
+  await expect(numbers).toHaveText([
+    "10177",
+    "112",
+    "0800 567 567",
+    "0861 322 322",
+  ]);
+  await expect(answer.locator(".as-crisis")).toContainText("SADAG helpline");
+  await expect(answer.locator(".as-crisis")).toContainText(
+    "Lifeline South Africa",
+  );
+  // the crisis lines add help and lower nothing: the stage still leads with the ambulance
+  await expect(panel(page).locator(".as-figure")).toHaveText("10177");
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute(
+    "data-pulse",
+    "escalate",
+  );
+});
+
+test("an emergency that is not about harming yourself shows no crisis line", async ({
+  page,
+}) => {
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await ask(page, "I have chest pain");
+  const answer = log(page).locator(".as-reply").last();
+  await expect(answer).toHaveAttribute("data-outcome", "emergency");
+  await expect(answer.locator(".as-numbers li strong")).toHaveText([
+    "10177",
+    "112",
+  ]);
+  await expect(answer.locator(".as-crisis")).toHaveCount(0);
+  await expect(answer).not.toContainText("0800 567 567");
+  await expect(answer).not.toContainText("0861 322 322");
+});
+
+/* The spoken reading carries the crisis lines too, after the ambulance numbers, and only when the
+   crisis words raised the answer — spokenOf on the module the browser loads. */
+test("the spoken reading of a crisis answer says the ambulance numbers, then the crisis lines", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, "Arithmetic, not layout: once is enough.");
+  await page.goto("/app/");
+  const read = await page.evaluate(async () => {
+    const lib = (await import(
+      "/src/lib/assistant.ts" as string
+    )) as AssistantLib;
+    const say = (words: string) => {
+      const turn = lib.send(lib.opening("patient"), words, null, false, "patient").at(-1)!;
+      return lib.spokenOf(turn, "patient");
+    };
+    return { crisis: say("I want to kill myself"), chest: say("I have chest pain") };
+  });
+  const at = (text: string) => read.crisis.indexOf(text);
+  expect(at("10177")).toBeGreaterThan(-1);
+  expect(at("112")).toBeGreaterThan(at("10177"));
+  expect(at(crisisContract.heading)).toBeGreaterThan(at("112"));
+  expect(at("0800 567 567")).toBeGreaterThan(at(crisisContract.heading));
+  expect(at("0861 322 322")).toBeGreaterThan(at("0800 567 567"));
+  expect(read.chest).toContain("10177");
+  expect(read.chest).not.toContain(crisisContract.heading);
+  expect(read.chest).not.toContain("0800 567 567");
+});

@@ -493,6 +493,12 @@ enum Gilbert {
         return [SummaryRow(label: label("channel"), value: channel), SummaryRow(label: label("matched"), value: matched), urgency]
     }
 
+    /// Whether the crisis lines belong on this emergency answer: the message matched the group
+    /// packages/catalog/crisis-lines.json names, and nothing else does.
+    static func showsCrisisLines(_ groups: [GilbertEmergencyGroup]) -> Bool {
+        groups.contains { $0.id == Crisis.group }
+    }
+
     /// Whether any of these turns got the emergency answer. Whether, never which.
     static func emergencyRaised(in turns: [Turn]) -> Bool {
         turns.contains { turn in

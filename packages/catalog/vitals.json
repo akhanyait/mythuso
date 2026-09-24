@@ -17,8 +17,14 @@
   },
   "sources": ["manual", "device", "healthkit", "healthconnect"],
   "staleness": {
-    "maxAgeMs": 86400000,
-    "why": "A reading older than a day is stale: it describes a person who may have changed since, so it is refused rather than handed to a clinician as current. The bound is a freshness rule, not a clinical one."
+    "maxAgeMs": 3600000,
+    "why": "A reading older than an hour is stale: it describes a person who may have changed since, so it is refused rather than handed to a clinician as current. The bound is a freshness rule, not a clinical one.",
+    "changed": {
+      "on": "2026-09-24",
+      "from": 86400000,
+      "by": "Founder instruction",
+      "why": "The clinical validation protocol (docs/scope/03, case S08) expects a blood pressure taken three hours ago to be refused as stale, and a day-long window accepted it. An hour is the proposal: long enough for a reading taken at the start of a conversation, short enough that three hours cannot pass. It is not clinically reviewed, and a clinician may set it lower but not above three hours without the protocol's S08 case changing with it."
+    }
   },
   "deviceAllowlist": {
     "real": [],

@@ -271,7 +271,7 @@ extension Gilbert {
         GilbertStemFixture(says: "hémorragie 2026", stems: ["hemorragi", "2026"])
     ]
     /// Ordinary sentences the terms raise today: reported by the self-test, never blocking.
-    static let falsePositiveFixtures: [String] = ["I feel fit and well today", "I had a stroke of luck with the parking", "I am dying to know when my nurse is coming", "the plumber is fitting a new geyser"]
+    static let falsePositiveFixtures: [String] = ["I feel fit and well today", "I had a stroke of luck with the parking", "I am dying to know when my nurse is coming", "the plumber is fitting a new geyser", "I have a nose bleed"]
     static let messageFixtures: [GilbertMessageFixture] = [
         GilbertMessageFixture(says: "When is my nurse coming? I have chest pains", expect: "emergency", question: nil, groups: ["chest-pain"], audience: nil),
         GilbertMessageFixture(says: "my visit today, my chest feels tight", expect: "emergency", question: nil, groups: ["chest-pain"], audience: nil),

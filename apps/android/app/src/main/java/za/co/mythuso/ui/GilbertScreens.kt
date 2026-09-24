@@ -60,6 +60,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.launch
 import za.co.mythuso.model.AssistantClient
 import za.co.mythuso.model.BookingData
+import za.co.mythuso.model.CrisisLinesData
 import za.co.mythuso.model.Gilbert
 import za.co.mythuso.model.GilbertChannel
 import za.co.mythuso.model.GilbertData
@@ -399,6 +400,12 @@ private const val ASSISTANT_BASE = "http://10.0.2.2:8791"
                     Body(GilbertData.emergency.lead)
                     Lines(GilbertData.emergency.lines)
                     Body(GilbertData.emergency.notAnAmbulance, quiet = true)
+                    /* The crisis lines, after the ambulance numbers and in the same column, only when the crisis
+                       words raised this answer — packages/catalog/crisis-lines.json, generated into CrisisLinesData. */
+                    if (Gilbert.showsCrisisLines(reply.groups)) {
+                        Body(CrisisLinesData.heading)
+                        Lines(CrisisLinesData.lines)
+                    }
                     FilledButton(GilbertData.emergency.sosLabel) { open("Thuso SOS") }
                 }
                 GilbertReply.Unmatched -> {
@@ -503,7 +510,12 @@ private fun coreWords(turn: GilbertTurn): String = when (val reply = turn.reply)
     is GilbertReply.Situation -> reply.situation.sentence
     GilbertReply.Identity -> GilbertData.whatItIs
     GilbertReply.Voice -> GilbertData.voice.howItWorks
-    is GilbertReply.Emergency -> GilbertData.emergency.headline
+    /* A crisis answer is read with its numbers — the ambulance first, then the crisis lines — because the
+       lines are the reason it differs, and a reading that left them out would be a different answer. Any
+       other emergency is read as it always was. */
+    is GilbertReply.Emergency -> if (!Gilbert.showsCrisisLines(reply.groups)) GilbertData.emergency.headline
+        else (listOf(GilbertData.emergency.headline) + GilbertData.emergency.lines.map { "${it.number}, ${it.name}." }
+            + CrisisLinesData.heading + CrisisLinesData.lines.map { "${it.number}, ${it.name}." }).joinToString(" ")
     GilbertReply.Unmatched -> GilbertData.unmatched.sentence
     is GilbertReply.Service -> (listOf(GilbertData.service.heading, reply.text, GilbertData.service.disclosure, GilbertData.service.ifUrgent)
         + GilbertData.service.lines.map { "${it.number}, ${it.name}." }).joinToString(" ")

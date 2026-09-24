@@ -5,6 +5,7 @@ import { MotionPause } from '../components/MotionPause';
 import { G1Mark } from '../components/G1Mark';
 import { useDecor } from '../lib/motion';
 import { conversation, emergencyAnswer, identity, lines, screens, silenceIsNotSafety } from '../lib/assistant';
+import { crisisLines, showsCrisisLines } from '../lib/crisis-lines';
 import { publicAnswer, publicAssistant as copy, type PublicAnswer } from '../lib/public-assistant';
 import './public-assistant.css';
 
@@ -69,7 +70,7 @@ export default function PublicAssistant() {
        <div className="public-assistant-answer"><strong>{identity.name}</strong>
         {turn.answer.kind === 'faq' ? <><p>{turn.answer.question.answer}</p><a href={turn.answer.question.href} onClick={() => setOpen(false)}>{turn.answer.question.linkLabel}</a></>
          : turn.answer.kind === 'refusal' ? <p>{copy.refusal}</p>
-         : <><p>{emergencyAnswer.headline}</p><p>{emergencyAnswer.lead}</p><ul>{lines(emergencyAnswer.numbers).map(n => <li key={n.number}><strong>{n.number}</strong> — {n.name}</li>)}</ul><p>{emergencyAnswer.notAnAmbulance}</p></>}
+         : <><p>{emergencyAnswer.headline}</p><p>{emergencyAnswer.lead}</p><ul>{lines(emergencyAnswer.numbers).map(n => <li key={n.number}><strong>{n.number}</strong> — {n.name}</li>)}</ul><p>{emergencyAnswer.notAnAmbulance}</p>{showsCrisisLines(turn.answer.groups) && <div className="public-assistant-crisis"><p>{crisisLines.heading}</p><ul>{crisisLines.lines.map(l => <li key={l.id}><strong>{l.number}</strong> — {l.name}</li>)}</ul></div>}</>}
        </div>
       </li>)}
      </ol></div>

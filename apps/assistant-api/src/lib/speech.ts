@@ -119,15 +119,23 @@ export type SpeechSeam = {
 
 /* The region and the key, read the way every credential in this service is read: by name, at the
    moment it is needed, and never stored. Both are required — a key with no region has nowhere to
-   go — and the region has to be a plausible hostname label before it may be interpolated into a
-   URL. Lowercased because Azure's region names are, and an operator who typed "SouthAfricaNorth"
-   has still configured it. */
+   go. Lowercased because Azure's region names are, and an operator who typed "SouthAfricaNorth"
+   has still configured it.
+
+   PINNED TO SOUTH AFRICA, 24 September 2026. The region used to be any plausible hostname label,
+   so a key created in westeurope sent a South African patient's voice to Europe — a cross-border
+   transfer POPIA s72 governs, of speech that may carry health information. The Watchful DPIA
+   (docs/scope/02, §4 and §8) names southafricanorth for cloud speech. Any other region is treated
+   exactly as no region: the cloud voice is not configured and the route answers as it does on a
+   box with no key, rather than sending the audio somewhere the DPIA did not assess. */
+const SPEECH_REGIONS: readonly string[] = ["southafricanorth"];
+
 function cloudCredentials(
   env: Record<string, string | undefined>,
 ): { region: string; key: string } | null {
   const region = (env.AZURE_SPEECH_REGION ?? "").trim().toLowerCase();
   const key = (env.AZURE_SPEECH_KEY ?? "").trim();
-  return key && /^[a-z0-9-]+$/.test(region) ? { region, key } : null;
+  return key && SPEECH_REGIONS.includes(region) ? { region, key } : null;
 }
 
 /* The contract's own language entry a declared language names — by one of its recognition locales

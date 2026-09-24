@@ -195,6 +195,10 @@ object Gilbert {
         return false
     }
 
+    /** Whether the crisis lines belong on this emergency answer: the message matched the group
+     *  packages/catalog/crisis-lines.json names, and nothing else does. */
+    fun showsCrisisLines(groups: List<GilbertEmergencyGroup>): Boolean = groups.any { it.id == CrisisLinesData.group }
+
     fun emergencyGroups(text: String): List<GilbertEmergencyGroup> {
         val said = stems(text)
         return GilbertData.emergencyGroups.filter { group -> group.words.any { hasSequence(said, stems(it), GilbertData.maxGap) } }

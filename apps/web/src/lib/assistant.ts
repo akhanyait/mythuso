@@ -8,6 +8,7 @@ import {
 import { recordById } from "./records";
 import { EXPIRY_WARNING_DAYS } from "./vetting";
 import { conditions, emergency as sosEmergency, numberById } from "./sos";
+import { crisisLines, showsCrisisLines } from "./crisis-lines";
 import {
   summarise,
   urgencyWords,
@@ -758,6 +759,13 @@ export function spokenOf(turn: Turn, audience: AudienceId): string {
       add(emergencyAnswer.headline, emergencyAnswer.lead);
       numbers(emergencyAnswer.numbers);
       add(emergencyAnswer.notAnAmbulance);
+      /* The crisis lines after the ambulance numbers, in the order the screen shows them, and only
+         when the crisis words raised this answer — packages/catalog/crisis-lines.json. */
+      if (showsCrisisLines(turn.reply.groups)) {
+        add(crisisLines.heading);
+        for (const line of crisisLines.lines)
+          words.push(`${line.number}, ${line.name}.`);
+      }
       break;
     case "unmatched":
       add(

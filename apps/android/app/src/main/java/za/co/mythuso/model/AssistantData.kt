@@ -337,7 +337,7 @@ object GilbertData {
         GilbertStemFixture("hémorragie 2026", listOf("hemorragi", "2026"))
     )
     /** Ordinary sentences the terms raise today: reported by the JVM test, never blocking. */
-    val falsePositiveFixtures = listOf("I feel fit and well today", "I had a stroke of luck with the parking", "I am dying to know when my nurse is coming", "the plumber is fitting a new geyser")
+    val falsePositiveFixtures = listOf("I feel fit and well today", "I had a stroke of luck with the parking", "I am dying to know when my nurse is coming", "the plumber is fitting a new geyser", "I have a nose bleed")
     val messageFixtures = listOf(
         GilbertMessageFixture("When is my nurse coming? I have chest pains", "emergency", null, listOf("chest-pain"), null),
         GilbertMessageFixture("my visit today, my chest feels tight", "emergency", null, listOf("chest-pain"), null),

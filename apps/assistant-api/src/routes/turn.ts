@@ -62,11 +62,15 @@ const refusalActions: Record<string, string[]> = {
    neither of them owns. */
 const serviceCue: string = assistant.affect.answers.service.cue;
 
-/* The audit line: one line per processed message, the message redacted first. This is the only
-   place a turn's words leave the session, and no line ever carries an identity number, a phone
-   number, an email address or a medical aid number — the redactor runs before the writer. */
+/* The audit line: one line per processed message, saying that it was handled and how, never what
+   it said. Until 24 September 2026 the line carried the message itself after redactPHI, which
+   removes identity, phone, email and medical-aid numbers and nothing clinical — so "I want to kill
+   myself" or a blood pressure reached the process log word for word. The Watchful DPIA
+   (docs/scope/02, §8) refuses a raw utterance in a routine log, and a log is read by whoever runs
+   the box, not by a clinician. The route and the message's length are enough to count, trace and
+   debug a turn; the words stay in the session that needed them. */
 const audit = (sessionId: string, route: string, text: string): void => {
-  console.log(`[gilbertone] ${sessionId} ${route} | ${redactPHI(text)}`);
+  console.log(`[gilbertone] ${sessionId} ${route} | ${text.length} chars`);
 };
 
 /* What the model is told about the conversation, when the second tier is asked: where this turn
