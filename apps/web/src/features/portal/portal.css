@@ -1,0 +1,151 @@
+/* The merged Control Tower's own sheet, loaded with the portal's chunk and never on a patient's page.
+ *
+ * It sits on top of surface/clinical.css, which both old surfaces already wore, so the portal is the
+ * same glass on the same aurora rather than a third look. What is here is only what the portal adds:
+ * the category list as a tab list (a column from 1000px, a strip below it), the context bar, the
+ * status words, the written empty states and the loading state.
+ *
+ * Every colour is a token from packages/design-tokens/tokens.json through tokens.generated.css, and
+ * every text-on-ground pair below is a row in tokens.json#contrast: charcoal and faint on the aurora
+ * and on the glass floor, surface on charcoal, and each status word on its own soft ground. No hex, no
+ * indigo — indigo is the palette the plan's Appendix C says the Control Tower must not wear — and no
+ * outline: none anywhere: the focus ring is core.css's two rings. Nothing here animates. */
+
+/* ---- The category list ------------------------------------------------------------------------ */
+.portal .pt-side-nav { display: none; }
+.portal .pt-strip-nav { display: block; margin: 0 calc(-1 * var(--space-16)) var(--space-16); }
+.portal .pt-tablist { display: flex; gap: var(--space-8); }
+.portal .pt-tablist.horizontal { overflow-x: auto; scrollbar-width: thin; padding: var(--space-4) var(--space-16) var(--space-8); }
+.portal .pt-tablist.vertical { flex-direction: column; }
+.portal .pt-tab {
+ display: flex; align-items: center; gap: var(--space-8);
+ min-height: 44px; padding: var(--space-8) var(--space-16);
+ border-radius: var(--r-pill); border: 1px solid var(--pane-line);
+ background: var(--pane); color: var(--charcoal);
+ font-size: 15px; font-weight: 500; white-space: nowrap; text-align: left;
+}
+.portal .pt-tab:hover { background: var(--surface); }
+.portal .pt-tab[aria-selected='true'] { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
+.portal .pt-tab svg { flex: 0 0 auto; }
+.portal .pt-tab-g1 { width: 22px; height: 20px; flex: 0 0 auto; }
+.portal .pt-tab[aria-selected='true'] .pt-tab-g1 { background: var(--surface); border-radius: var(--r-pill); padding: 1px 2px; }
+@media (min-width: 1000px) {
+ .portal .pt-side-nav { display: block; }
+ .portal .pt-strip-nav { display: none; }
+ .portal .pt-tablist.vertical .pt-tab { width: 100%; white-space: normal; }
+}
+
+/* ---- The chrome above a category ------------------------------------------------------------- */
+.portal .pt-body { display: flex; flex-direction: column; gap: var(--space-16); min-width: 0; }
+.portal .pt-body > * { min-width: 0; }
+.portal .pt-name { color: var(--charcoal); font-weight: 600; }
+.portal .pt-preview, .portal .pt-notice {
+ display: flex; gap: var(--space-12); align-items: flex-start; flex-wrap: wrap;
+ margin: 0; padding: var(--space-12) var(--space-16);
+ border-radius: var(--r-card); border: 1px solid var(--pane-line);
+ background: var(--pane); color: var(--charcoal); font-size: 14px; line-height: 1.5;
+}
+.portal .pt-preview svg { flex: 0 0 auto; margin-top: 2px; }
+.portal .pt-preview span { flex: 1 1 16rem; }
+.portal .pt-notice { background: var(--mango-soft); color: var(--ink); border-color: var(--mango-soft); }
+.portal .pt-notice span { flex: 1 1 16rem; }
+.portal .pt-notice .text-button { color: var(--ink); min-height: 44px; }
+
+.portal .pt-context { display: flex; flex-wrap: wrap; gap: var(--space-12) var(--space-24); }
+.portal .pt-context-field { display: flex; flex-direction: column; gap: var(--space-4); flex: 1 1 14rem; min-width: 0; color: var(--charcoal); }
+.portal .pt-context-field > span { font-size: 13px; font-weight: 600; color: var(--faint); letter-spacing: .4px; }
+.portal .pt-context-field select { min-height: 44px; max-width: 100%; border-radius: var(--r-control); border: 1px solid var(--faint); background: var(--surface); color: var(--charcoal); padding: 0 var(--space-12); font-size: 15px; }
+.portal .pt-context-field small { color: var(--faint); font-size: 13px; line-height: 1.45; }
+.portal .pt-context-value { font-size: 15px; font-weight: 500; }
+
+/* ---- A category's own frame ------------------------------------------------------------------ */
+.portal .pt-intro .eyebrow { display: flex; align-items: center; gap: var(--space-8); }
+.portal .pt-g1 { width: 28px; height: 25px; }
+.portal .pt-subtabs { margin: 0 calc(-1 * var(--space-16)) var(--space-16); }
+@media (min-width: 1000px) { .portal .pt-subtabs { margin-left: 0; margin-right: 0; padding-left: 0; } }
+/* The Control Tower's boards head themselves with a shift-head the old workspace floated above its
+   figures; the same order here, so the heading still comes before the numbers under it. */
+.portal .pt-panel { display: flex; flex-direction: column; min-width: 0; }
+.portal .pt-panel > * { flex: 0 0 auto; min-width: 0; }
+.portal .pt-panel > .shift-head, .portal .pt-panel > .page-intro { order: -1; }
+
+/* ---- Regions, lists, the tree ---------------------------------------------------------------- */
+.portal .pt-region { margin: var(--space-24) 0 0; }
+.portal .pt-region > h2 { font-size: 18px; font-weight: 500; letter-spacing: -.3px; color: var(--charcoal); margin: 0 0 var(--space-12); }
+.portal .pt-count { color: var(--faint); font-weight: 400; }
+.portal .pt-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-8); }
+.portal .pt-row {
+ display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8) var(--space-12);
+ min-height: 44px; padding: var(--space-12) var(--space-16);
+ border-radius: var(--r-card); border: 1px solid var(--pane-line); background: var(--pane); color: var(--charcoal);
+}
+.portal .pt-row > strong { font-weight: 600; }
+.portal .pt-row > span:not(.pt-status-wrap):not(.pt-build):not(.pt-checking) { flex: 1 1 100%; color: var(--charcoal); font-size: 14px; line-height: 1.5; }
+.portal .pt-row code, .portal .pt-card code, .portal .pt-bullets code, .portal .pt-table code { font-size: 13px; overflow-wrap: anywhere; }
+.portal .pt-card h3 { margin: 0 0 var(--space-8); font-size: 16px; font-weight: 600; color: var(--charcoal); }
+.portal .pt-card p { margin: 0 0 var(--space-8); color: var(--charcoal); font-size: 14px; line-height: 1.5; }
+.portal .pt-label { font-size: 13px !important; font-weight: 600; color: var(--faint) !important; letter-spacing: .3px; }
+.portal .pt-bullets, .portal .pt-fields { margin: 0 0 var(--space-8); padding-left: var(--space-20); color: var(--charcoal); font-size: 14px; line-height: 1.5; }
+.portal .pt-fields { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.portal .pt-fields li { padding: var(--space-4) var(--space-8); border-radius: var(--r-control); background: var(--cloud); color: var(--charcoal); }
+.portal .pt-refusals { margin: 0; padding-left: var(--space-20); color: var(--charcoal); font-size: 14px; line-height: 1.55; display: flex; flex-direction: column; gap: var(--space-8); }
+.portal .pt-refusals strong { font-weight: 600; }
+.portal .pt-refusals span { color: var(--faint); }
+.portal .pt-table caption { text-align: left; color: var(--faint); font-size: 13px; padding-bottom: var(--space-8); }
+.portal .pt-table .text-button { min-height: 44px; text-align: left; }
+.portal .pt-facts { display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr); gap: var(--space-8) var(--space-16); margin: 0 0 var(--space-12); color: var(--charcoal); }
+.portal .pt-facts dt { font-weight: 600; }
+.portal .pt-facts dd { margin: 0; }
+.portal .pt-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-12); }
+.portal .pt-step { display: flex; gap: var(--space-16); padding: var(--space-16); border-radius: var(--r-card); border: 1px solid var(--pane-line); background: var(--pane); color: var(--charcoal); }
+.portal .pt-step > div { min-width: 0; }
+.portal .pt-step h3 { margin: 0 0 var(--space-4); font-size: 16px; font-weight: 600; }
+.portal .pt-step p { margin: 0 0 var(--space-8); font-size: 14px; line-height: 1.5; }
+.portal .pt-step-n { flex: 0 0 32px; height: 32px; border-radius: var(--r-pill); background: var(--charcoal); color: var(--surface); display: grid; place-items: center; font-weight: 600; }
+
+.portal .pt-config { display: grid; gap: var(--space-24); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1000px) { .portal .pt-config { grid-template-columns: 15rem minmax(0, 1fr); align-items: start; } }
+.portal .pt-config-node > h2 { font-size: 20px; font-weight: 500; color: var(--charcoal); margin: 0 0 var(--space-12); }
+.portal .pt-tree { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-4); }
+.portal .pt-node { display: flex; align-items: center; min-height: 44px; padding: 0 var(--space-16); border-radius: var(--r-pill); color: var(--charcoal); cursor: pointer; border: 1px solid transparent; }
+.portal .pt-node.level-2 { margin-left: var(--space-20); }
+.portal .pt-node.level-3 { margin-left: var(--space-40); }
+.portal .pt-node:hover { background: var(--pane); border-color: var(--pane-line); }
+.portal .pt-node[aria-selected='true'] { background: var(--charcoal); color: var(--surface); }
+
+/* ---- The status words ------------------------------------------------------------------------
+   The word is the state; the ground behind it is a second channel, never the only one. */
+.portal .pt-status-wrap { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-8); }
+.portal .pt-status, .portal .pt-build {
+ display: inline-block; padding: 2px var(--space-8); border-radius: var(--r-pill);
+ font-size: 13px; font-weight: 600; letter-spacing: .2px; white-space: nowrap;
+}
+.portal .pt-status.is-connected, .portal .pt-build.is-built { background: var(--teal-soft); color: var(--teal-ink); }
+.portal .pt-status.is-degraded { background: var(--mango-soft); color: var(--mango-ink); }
+.portal .pt-status.is-disconnected, .portal .pt-build.is-named-but-absent { background: var(--danger-soft); color: var(--danger); }
+.portal .pt-status.is-dark, .portal .pt-build.is-dark { background: var(--charcoal); color: var(--surface); }
+.portal .pt-status.is-not-configured, .portal .pt-build.is-proposed { background: var(--cloud); color: var(--charcoal); }
+.portal .pt-status.is-gated, .portal .pt-build.is-gated { background: var(--pale-sage); color: var(--charcoal); }
+.portal .pt-status-sentence { color: var(--faint); font-size: 13px; }
+.portal .pt-checking { color: var(--faint); font-size: 14px; }
+.portal .pt-legend { margin-top: var(--space-12); color: var(--charcoal); }
+.portal .pt-legend summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 500; }
+.portal .pt-legend dl { margin: 0; display: flex; flex-direction: column; gap: var(--space-8); }
+.portal .pt-legend dl > div { display: flex; flex-wrap: wrap; gap: var(--space-12); align-items: baseline; }
+.portal .pt-legend dd { margin: 0; color: var(--charcoal); font-size: 14px; }
+
+/* ---- Empty and loading ------------------------------------------------------------------------- */
+.portal .pt-empty { padding: var(--space-16); border-radius: var(--r-card); border: 1px dashed var(--faint); background: var(--pane); color: var(--charcoal); }
+.portal .pt-empty strong { display: block; margin-bottom: var(--space-8); font-weight: 600; }
+.portal .pt-empty p { margin: 0; line-height: 1.55; color: var(--charcoal); }
+.portal .pt-loading { display: flex; flex-direction: column; gap: var(--space-12); padding: var(--space-24) 0; color: var(--charcoal); }
+.portal .pt-loading p { margin: 0; color: var(--faint); }
+/* A skeleton that stands still. The pulse most skeletons carry is motion a reader did not ask for, and
+   a still block says "something goes here" just as well. */
+.portal .pt-skeleton { display: block; height: 20px; width: min(28rem, 100%); border-radius: var(--r-control); background: var(--cloud); }
+.portal .pt-skeleton.short { width: min(16rem, 70%); }
+
+/* ---- GilbertOne, not built ------------------------------------------------------------------- */
+.portal .pt-g1-state { display: flex; gap: var(--space-16); align-items: center; padding: var(--space-16); border-radius: var(--r-card); background: var(--pane); border: 1px solid var(--pane-line); margin-bottom: var(--space-16); color: var(--charcoal); }
+.portal .pt-g1-state p { margin: var(--space-8) 0 0; line-height: 1.5; }
+.portal .pt-g1-large { width: 64px; height: 57px; flex: 0 0 auto; }

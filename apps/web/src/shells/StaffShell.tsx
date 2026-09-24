@@ -3,6 +3,7 @@ import framing from '../../../../packages/catalog/framing.json' with { type: 'js
 import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
 import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bluetooth, BookOpen, CalendarDays, CalendarRange, ClipboardPlus, CreditCard, FileText, FlaskConical, LogOut, Package, Radar, Repeat, ShieldAlert, ShieldCheck, Siren, Truck, Video } from 'lucide-react';
 import { Modal, SectionTitle } from '../components/UI';
+import { ReadOnly } from '../components/ReadOnly';
 import { AssistantLauncher } from '../components/AssistantLauncher';
 import { Metric, Metrics, NavRow } from '../surface/Surface';
 import '../surface/clinical.css';
@@ -20,7 +21,7 @@ import type { Part } from '../lib/visit-queue';
 import { cycle, weeks } from '../lib/earnings';
 import { ClinicalDeck, DeckTitleLevel, type DeckFigure, type DeckHeadline } from '../features/ClinicalDeck';
 import { earningsSummary, rand } from '../features/Earnings';
-import { DispatchBoard, IncidentBoard, QualityBoard, ShiftBoard, controlTowerCounts } from '../features/Dispatch';
+import { DispatchBoard, IncidentBoard, QualityBoard, ShiftBoard, controlTowerFigures } from '../features/Dispatch';
 import { FulfilmentQueue, partnerCounts } from '../features/Fulfilment';
 import { ClinicalProtocols, ReferralLetter, ReferralPathway, VisitAssessment, DoctorReview } from '../features/Clinical';
 import { CareVisit } from '../features/CareVisit';
@@ -55,6 +56,9 @@ const DeviceRegistryDesk = lazy(() => import('../features/Devices').then(m => ({
 const Hl7Quarantine = lazy(() => import('../features/Hl7Quarantine').then(m => ({ default: m.Hl7Quarantine })));
 /* Device Lab: the synthetic vital-sign simulator, staff only, fetched when the Control Tower opens it. */
 const DeviceLab = lazy(() => import('../features/DeviceLab').then(m => ({ default: m.DeviceLab })));
+/* The parallel run's notice, fetched only at ?legacy=1: it reads the portal's contract, which nobody
+   opening a nurse's schedule needs to download. */
+const LegacyNotice = lazy(() => import('../features/portal/LegacyNotice'));
 /* Sentinel and safeguarding arrive when a nurse opens her kit or her assessment, a doctor opens a patient, or the Control
    Tower opens its incidents, and not before: they carry the Safety, Core and Devices domains and every engine's settings
    through lib/settings. Added by the Safety lead, Wave 5. */
@@ -168,7 +172,13 @@ const signedInAs = (role: StaffRole) => whoIs(workspaces[role].subjectId, 'Dispa
  * above it, and this file's whole job is to draw one. */
 
 /* ---- The workspace ----------------------------------------------------------------------------- */
-export default function StaffWorkspace({ role, audience }: { role: StaffRole; audience: RoleId }) {
+/* `legacy` is the parallel run (docs/control-tower-cutover.md). The Control Tower workspace is the merged
+   portal now; this shell draws it only at ?role=control-tower&legacy=1, read-only, for one release cycle,
+   so that somebody can check the old place against the new one. Every control inside the section is
+   disabled beside the cutover plan's own sentence and a link to the same place in the portal; the
+   navigation is not, because comparing needs it. Nothing here acts on anything real either way — the rule
+   is about which screen is the one of record. */
+export default function StaffWorkspace({ role, audience, legacy = false }: { role: StaffRole; audience: RoleId; legacy?: boolean }) {
  const { sections } = workspaces[role];
  const [section, setSection] = useState<string>(sections[0].id);
  const [modal, setModal] = useState<string | null>(null);
@@ -229,7 +239,10 @@ export default function StaffWorkspace({ role, audience }: { role: StaffRole; au
        of this one asks which. */}
    <DemoBar note={t('shell.previewBadge', 'en-ZA')}/>
    <main id="main" tabIndex={-1}>
-    {renderSection(role, section, setModal, home)}
+    {legacy
+     ? <><Suspense fallback={null}><LegacyNotice surface="control-tower" section={section}/></Suspense>
+        <ReadOnly>{renderSection(role, section, setModal, home)}</ReadOnly></>
+     : renderSection(role, section, setModal, home)}
    </main>
    <footer className="app-footer"><span>© 2026 MyThuso · {role} workspace</span><span>{t('shell.tagline', 'en-ZA')}</span></footer>
    {/* The assistant, in this workspace for the audience the door chose: the same orb and the same
@@ -363,10 +376,9 @@ const metricsOf = (role: StaffRole, queue: Part[]): readonly Figure[] => {
   return [{ label: 'Open orders', value: String(c.open), chip: c.pastWindow ? `${c.pastWindow} past its window` : 'All inside their windows', flagged: c.pastWindow > 0 },
           { label: 'Collections', value: String(c.collections), chip: `Next ${c.nextCollection}`, flagged: false },
           { label: 'Ready for release', value: String(c.readyForRelease), chip: 'Awaiting a clinician', flagged: false }]; }
- if (role === 'Control Tower') { const c = controlTowerCounts();
-  return [{ label: 'Visits on the board', value: String(c.waiting), chip: 'Awaiting a nurse', flagged: false },
-          { label: 'Nurses on duty', value: String(c.nurses), chip: `${c.offDuty} off duty`, flagged: false },
-          { label: 'Open incidents', value: String(c.incidents), chip: c.critical ? `${c.critical} critical` : `${c.high} high`, flagged: c.critical > 0 }]; }
+ /* The Control Tower's three live in features/Dispatch.tsx now, because the merged portal draws the
+    same strip over the same boards and one strip is one place. */
+ if (role === 'Control Tower') return controlTowerFigures();
  /* The doctor's third tile used to be "18 reviewed today" over "Median 4 m 10 s". Both were typed,
     neither had a list under it to be counted from, and a productivity figure nobody can check is
     the one number a clinical screen must not carry. The longest wait replaces them: it is the same

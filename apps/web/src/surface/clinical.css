@@ -1644,3 +1644,20 @@
  .clinical .review-wait { min-width: 0; flex: 1 1 auto; }
  .clinical .review-flag .pill { white-space: nowrap; }
 }
+
+/* ---- The parallel run -------------------------------------------------------------------------
+   The two old surfaces, kept read-only for one release cycle behind ?legacy=1 while the merged
+   Control Tower becomes the screen of record (docs/control-tower-cutover.md). The fieldset is what
+   disables every control inside a section at once; it is drawn as nothing, because a border round the
+   whole screen would say "form" where it means "kept for comparison". min-inline-size: 0 is the reason
+   this rule exists at all — a fieldset's default is min-content, which would push a wide table off
+   the side of a phone. The sentence above it is the cutover plan's own, on the mango ground a notice
+   takes, ink on it at the ratio tokens.json#contrast holds. */
+.clinical .legacy-readonly { border: 0; margin: 0; padding: 0; min-inline-size: 0; min-width: 0; }
+.clinical .legacy-notice {
+ display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8) var(--space-12);
+ margin: 0 0 var(--space-16); padding: var(--space-12) var(--space-16);
+ border-radius: var(--r-card); background: var(--mango-soft); color: var(--ink); font-size: 14px; line-height: 1.5;
+}
+.clinical .legacy-notice span { flex: 1 1 16rem; }
+.clinical .legacy-notice a { display: inline-flex; align-items: center; gap: var(--space-4); min-height: 44px; color: var(--ink); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
