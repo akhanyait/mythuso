@@ -4612,6 +4612,11 @@ for (const { source, command, files } of generated) {
         return r.legacyCallback && e.supplier ? [e.supplier] : [];
       case "development-token":
         return ["developer"];
+      /* Founder access (24 September 2026): the founder's two factors at sign-in, or the session they
+      mint, and nobody else — packages/catalog/founder-access.json. */
+      case "founder-credential":
+      case "founder-session":
+        return ["founder"];
       /* Record P1: a share link is opened as the recipient of the grant it rides on, and no link is made for a role that reads aggregates. */
       case "passport-share-link":
         return grantRolesForApis
@@ -4827,9 +4832,13 @@ for (const { source, command, files } of generated) {
       (r.evidence.handler ?? "").replace(/['`]/g, '"'),
     );
     if (at < 0) return "";
+    /* Two spaces or more: the service's branches sit at four, and a pattern that asked for exactly two
+       found no next branch at all, so every slice ran to the end of the file and the first route was
+       judged by every handler after it. Founder access made that visible — its session check, read as
+       the health route's own, would have made the health route a founder's. */
     const next = assistantSourceNorm
       .slice(at + 1)
-      .search(/\n {2}(?:if \(req\.method|send\(res, 404)/);
+      .search(/\n {2,}(?:if \(req\.method|send\(res, 404)/);
     return assistantSourceNorm.slice(at, next < 0 ? undefined : at + 1 + next);
   };
   const assistantEnforcement = (r) => {
@@ -4841,6 +4850,16 @@ for (const { source, command, files } of generated) {
       )
     )
       return null;
+    /* Founder access: a branch that asks the founder gate first and then either checks the two factors
+       or resolves the founder's session cookie, and calls neither of the other founder checks. A branch
+       that touches the founder module any other way is worked out as nothing, and refused. */
+    const gated = /^[^]*?\{\s*(?:\/\*[^]*?\*\/\s*)?const gated = founder\.gate\(req\.headers\);/.test(handler);
+    const credential = /founder\.signIn\(/.test(handler);
+    const session = /founder\.sessionFrom\(req\.headers\.cookie\)/.test(handler);
+    if (credential || session || /\bfounder\./.test(handler)) {
+      if (!gated || credential === session) return null;
+      return { mechanism: credential ? "founder-credential" : "founder-session" };
+    }
     return { mechanism: "anonymous" };
   };
   /* A Passport statement: the branch that answers this method and path, and whether a grant requester is in hand. */
@@ -9619,11 +9638,24 @@ if (
     "apps/ios/MyThuso/Models/AssistantClient.swift",
     "apps/android/app/src/main/java/za/co/mythuso/model/AssistantClient.kt",
   ];
+  /* Founder access's four routes are the one exception, and it runs the other way: they are the
+     founder's, reached from the Control Tower in a browser, and a phone app is no place for a key
+     reveal. So they are left out of what a native client must call, and a native client that names
+     one fails below — the same literal the rule above would demand, refused. */
+  const founderOnly = (route) => (route.callers ?? []).includes("founder");
   const built = contract.routes.filter(
-    (route) => route.status === "built" && route.path.startsWith("/v1/"),
+    (route) =>
+      route.status === "built" &&
+      route.path.startsWith("/v1/") &&
+      !founderOnly(route),
   );
   for (const file of clients) {
     const source = read(file);
+    for (const route of contract.routes.filter(founderOnly))
+      if (source.includes(`/assistant${route.path}`))
+        throw new Error(
+          `${file} names /assistant${route.path}, a founder-access route. Founder access is the founder's, in the Control Tower, and a native app never carries a way to reveal a key.`,
+        );
     for (const route of built) {
       const address = `${route.method} /assistant${route.path}@${route.version}`;
       if (!source.includes(`"${address}"`))
@@ -32943,6 +32975,15 @@ const p4Lib = "apps/web/src/lib/gilbertone-admin.ts";
 const p4Category = "apps/web/src/features/portal/GilbertOne.tsx";
 const p4Screens = files(p4Dir).filter((f) => /\.tsx?$/.test(f));
 const p4Files = [...p4Screens, p4Category, p4Lib];
+/* Founder access (24 September 2026, packages/catalog/founder-access.json#decision) is the one file under
+   the GilbertOne screens that draws live inputs and buttons: the founder's sign-in and the key reveal.
+   It is named here, once, and exempted from exactly three sweeps below — the password-type sweep and
+   the draw-no-input sweep in check 2, and the no-control-of-its-own sweep in check 3 — because those are
+   the three things it exists to do. Every other sweep in this block still reads it (no key shape, no
+   key-material name, no speak route or request of its own, no number typed), and the Founder access
+   block at the end of this file holds it to stricter rules of its own. Every other GilbertOne file is
+   held exactly as before: no enabled control, no input outside Controls.tsx, no password field. */
+const p4Founder = `${p4Dir}/founder/FounderAccess.tsx`;
 const p4G1 = p4.portal.gilbertone;
 const p4Summary = {};
 /* Code with its comments and its import lines gone, for the sweeps that must not trip over prose
@@ -33021,6 +33062,7 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
       if (never.has(p2Canon(name)) && name !== "value" && name !== "key")
         throw new Error(`${f} passes or holds "${name}", a field packages/catalog/api-registry.json#keyMetadata.neverFields names as key material. A screen may describe a key's metadata; it never carries the key.`);
     }
+    if (f === p4Founder) continue; /* founder access's sign-in and reveal: held by the Founder access block instead */
     if (/type=["'{]\s*["']?password/.test(code))
       throw new Error(`${f} sets an input's type to password itself. The one key field is ShapeField's, in Controls.tsx, disabled and without a value.`);
     for (const [tag, kind] of code.matchAll(/<(input|textarea|select)\b[^>]*>/g)) {
@@ -33092,7 +33134,7 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
   const used = new Set();
   for (const f of p4Files) {
     const code = p4Code(f);
-    if (!f.endsWith("/Controls.tsx")) {
+    if (!f.endsWith("/Controls.tsx") && f !== p4Founder) {
       const own = /<(button|form)\b|\bon(Click|Submit|KeyUp|Input)=/.exec(code);
       if (own)
         throw new Error(`${f} draws ${own[0]} of its own. A GilbertOne control is drawn by Controls.tsx, disabled beside its gate, and nothing here has a handler: ${p4.portal.refusals.find((r) => r.id === "no-gilbertone-action-while-its-gate-is-open").statement}`);
@@ -33251,5 +33293,259 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
 }
 
 console.log(
-  `GilbertOne API Administration, Phase 4 · ${p4Summary.subScreens} sub-screens behind dynamic imports, each reading a contract under a gate a register holds; no key, fragment, fingerprint or deployment address on any of them and no field that takes one; ${p4Summary.actions} actions, every one disabled beside its gate while G29, G30, G31, G32 or Module 8 is open; no Save as default on a locked voice; no speak route, synthesiser or request but the two status reads; ${p4Summary.configured} cards configured, each backed by its contract; the Overview reads booleans only; and no number typed that a contract owns.`,
+  `GilbertOne API Administration, Phase 4 · ${p4Summary.subScreens} sub-screens behind dynamic imports, each reading a contract under a gate a register holds; no key, fragment, fingerprint or deployment address on any of them and no field that takes one; ${p4Summary.actions} actions, every one disabled beside its gate while G29, G30, G31, G32 or Module 8 is open, and founder access's one file the only live form, held by its own block below; no Save as default on a locked voice; no speak route, synthesiser or request but the two status reads; ${p4Summary.configured} cards configured, each backed by its contract; the Overview reads booleans only; and no number typed that a contract owns.`,
 );
+
+/* ==== Founder access (24 September 2026) ============================================================
+   packages/catalog/founder-access.json: a sign-in for the founder alone and a guarded reveal of the two
+   Azure keys, in the Control Tower, on the founder's decision recorded there. The portal has no
+   authentication, so every control lives in the assistant service — apps/assistant-api/src/lib/
+   founder-access.ts and four branches of server.ts — and the checks below hold those controls to what
+   the contract promises: dark unless both switches hold; exactly two names; a session AND a fresh code
+   for a reveal; the cookie exactly as specified; no log line that could carry a secret; the TOTP and
+   the script's numbers the contract's own; and, in the browser, a revealed key held in one component's
+   state from one route's answer and stored nowhere. Each was proved by breaking its source and
+   restoring it byte for byte (docs/FEATURE-MAP.md, the Founder access entry). */
+{
+  const fa = JSON.parse(read("packages/catalog/founder-access.json"));
+  const faLibFile = "apps/assistant-api/src/lib/founder-access.ts";
+  const faLibCode = uncommented(read(faLibFile));
+  const faServerFile = "apps/assistant-api/src/server.ts";
+  const faServer = read(faServerFile);
+  const faWebLibFile = "apps/web/src/lib/founder-access.ts";
+  const faWebLib = uncommented(read(faWebLibFile));
+  const faScreenFile = "apps/web/src/features/portal/gilbertone/founder/FounderAccess.tsx";
+  const faScreen = uncommented(read(faScreenFile));
+  const faScriptFile = "deploy/ops/configure-founder-access.sh";
+  const faScript = read(faScriptFile);
+  const faContract = JSON.parse(read("packages/catalog/apis/assistant.json"));
+  const faRoutes = faContract.routes.filter((r) => (r.callers ?? []).includes("founder"));
+  const faStatement = (id) => {
+    for (const r of faRoutes) for (const x of r.refusals) if (x.id === id) return x.statement;
+    return id;
+  };
+  /* A method of the object createFounderAccess returns: from its name to the next method's. */
+  const faMethod = (source, name) => {
+    const at = source.search(new RegExp(`\\n {4}(?:async )?${name}\\(`));
+    if (at < 0) return "";
+    const end = source.slice(at + 1).search(/\n {4}(?:async )?[a-zA-Z]+\([^)]*\) \{/);
+    return source.slice(at, end < 0 ? undefined : at + 1 + end);
+  };
+  /* A founder branch of the server: from its condition to the next branch's. */
+  const faBranch = (method, path) => {
+    const at = faServer.indexOf(`req.method === "${method}" && req.url === "/assistant${path}"`);
+    if (at < 0) return "";
+    const next = faServer.slice(at + 1).search(/\n {2,}(?:if \(req\.method|const refusedRoute|send\(res, 404)/);
+    return faServer.slice(at, next < 0 ? undefined : at + 1 + next);
+  };
+
+  /* 1. Four routes, all the founder's, all built in server.ts, and nobody else calls them. */
+  const faKeys = ["POST /v1/founder/session", "DELETE /v1/founder/session", "GET /v1/founder/keys", "POST /v1/founder/reveal"];
+  const declared = faRoutes.map((r) => `${r.method} ${r.path}`).sort().join();
+  if (declared !== [...faKeys].sort().join())
+    throw new Error(`packages/catalog/apis/assistant.json gives the founder caller [${declared}]; founder access is exactly ${faKeys.join(", ")}.`);
+  for (const r of faContract.routes)
+    if (r.path.startsWith("/v1/founder/") && (r.callers.length !== 1 || r.callers[0] !== "founder"))
+      throw new Error(`${r.method} ${r.path}@${r.version} is a founder-access route callable by [${r.callers}]. It is the founder's, and nobody else's.`);
+  for (const r of faRoutes)
+    if (r.status !== "built" || r.evidence?.file !== faServerFile)
+      throw new Error(`${r.method} ${r.path}@${r.version} is not built in ${faServerFile}, and founder access is.`);
+
+  /* 2. Dark unless BOTH hold: the enable line, exact, and a well-formed credential. Every founder branch
+     asks the gate first — before it reads a body, a cookie or a password — and answers a closed gate
+     with a refusal; the gate is dark whenever either half is missing; and nothing under deploy/ can
+     write the enable line or the founder's file. */
+  if (!/\(env\[contract\.enable\.variable\] \?\? ""\)\.trim\(\) === contract\.enable\.value &&\s*founderCredential\(env\) !== null/.test(faLibCode))
+    throw new Error(`${faLibFile}'s founderAccessEnabled no longer requires both the exact enable line and a well-formed credential. ${faStatement("founder-access-dark")}`);
+  if (!/const enabled = founderAccessEnabled\(env\);/.test(faLibCode) || !/if \(!enabled \|\| !credential\) return \{ ok: false, refusalId: "founder-access-dark" \};/.test(faLibCode))
+    throw new Error(`${faLibFile}'s gate no longer answers founder-access-dark whenever either half is missing. ${faStatement("founder-access-dark")}`);
+  if (fa.enable.variable !== "MYTHUSO_FOUNDER_ACCESS" || fa.enable.value !== "enabled")
+    throw new Error("packages/catalog/founder-access.json's enable line is no longer MYTHUSO_FOUNDER_ACCESS=enabled, which the RUNBOOK tells the founder to type.");
+  for (const key of faKeys) {
+    const [method, path] = key.split(" ");
+    const branch = faBranch(method, path);
+    if (!branch) throw new Error(`${faServerFile} has no branch for ${key}.`);
+    const gate = branch.indexOf("const gated = founder.gate(req.headers);");
+    const firstStatement = uncommented(branch.slice(branch.indexOf("{") + 1)).trim();
+    if (gate < 0 || !firstStatement.startsWith("const gated = founder.gate(req.headers);") || !/if \(gated\) \{[^}]*return refuse\(res, cors\.headers, gated\.refusalId\);/.test(branch))
+      throw new Error(`${faServerFile}'s ${key} branch does not ask the founder gate first and refuse on it. Dark means every founder route refuses before it reads anything.`);
+  }
+  for (const f of files("deploy")) {
+    const code = read(f).split("\n").filter((l) => !/^\s*#/.test(l) && !/^\s*say /.test(l)).join("\n");
+    if (/\.(sh|service|timer|conf)$/.test(f) && (/MYTHUSO_FOUNDER_ACCESS=enabled/.test(code) || /printf[^\n]*MYTHUSO_FOUNDER_ACCESS/.test(code)))
+      throw new Error(`${f} writes the founder-access enable line. It is written by hand, on the box, by the founder — never by a script or a deploy.`);
+    if (f === "deploy/deploy.sh" && /founder\.env|configure-founder-access/.test(code))
+      throw new Error("deploy/deploy.sh names the founder's credential file or runs its script. A deploy installs the script with the other ops files and never runs it or touches the file.");
+  }
+  if (!/^EnvironmentFile=-\/etc\/mythuso\/founder\.env$/m.test(read("deploy/ops/assistant-api.service")))
+    throw new Error("deploy/ops/assistant-api.service no longer reads /etc/mythuso/founder.env as an optional EnvironmentFile, so founder access could not be switched on — or a missing file would stop the service starting.");
+
+  /* 3. The reveal allowlist is exactly the two Azure keys, read from the contract, checked before the
+     environment is read; and the only other environment reads are the contract's three variables. */
+  if (JSON.stringify(fa.reveal.allowlist) !== JSON.stringify(["AZURE_OPENAI_KEY", "AZURE_SPEECH_KEY"]))
+    throw new Error(`packages/catalog/founder-access.json's reveal allowlist is ${JSON.stringify(fa.reveal.allowlist)}. It is exactly AZURE_OPENAI_KEY and AZURE_SPEECH_KEY. ${faStatement("founder-name-not-allowed")}`);
+  if (JSON.stringify(fa.keys.map((k) => k.name)) !== JSON.stringify(fa.reveal.allowlist))
+    throw new Error("packages/catalog/founder-access.json's keys are not the allowlist, in its order.");
+  const registryCards = new Set(JSON.parse(read("packages/catalog/api-registry.json")).cards.map((c) => c.id));
+  for (const k of fa.keys)
+    if (!registryCards.has(k.card)) throw new Error(`packages/catalog/founder-access.json puts ${k.name} on the card "${k.card}", which packages/catalog/api-registry.json does not have.`);
+  if (!/export const REVEAL_ALLOWLIST: readonly string\[\] = contract\.reveal\.allowlist;/.test(faLibCode))
+    throw new Error(`${faLibFile} no longer reads the reveal allowlist from packages/catalog/founder-access.json.`);
+  const revealBody = faMethod(faLibCode, "reveal");
+  const allow = revealBody.indexOf("!REVEAL_ALLOWLIST.includes(name)");
+  const readEnv = revealBody.indexOf("env[name]");
+  if (allow < 0 || readEnv < 0 || allow > readEnv)
+    throw new Error(`${faLibFile}'s reveal no longer refuses a name outside the allowlist before it reads the environment. ${faStatement("founder-name-not-allowed")}`);
+  const envReads = [...faLibCode.matchAll(/\benv\[([^\]]+)\]/g)].map((m) => m[1]).filter((x) => x !== "name");
+  const allowedReads = ["contract.credential.passwordHashVariable", "contract.credential.totpSecretVariable", "contract.enable.variable"];
+  const stray = envReads.find((x) => !allowedReads.includes(x));
+  if (stray)
+    throw new Error(`${faLibFile} reads env[${stray}]. Founder access reads its three contract variables and the allowlisted key names, and nothing else from the environment.`);
+  if (!/REVEAL_ALLOWLIST\.map\(/.test(faMethod(faLibCode, "keys")))
+    throw new Error(`${faLibFile}'s metadata read no longer walks the allowlist and only the allowlist.`);
+
+  /* 4. The reveal needs a live session AND a fresh code. The branch resolves the session before it reads
+     the body or reveals; the lib's reveal burns the code through the one TOTP check, and nothing in it
+     answers ok before that check has passed. The lock is checked before any password is hashed. */
+  const revealBranch = faBranch("POST", "/v1/founder/reveal");
+  const sess = revealBranch.indexOf("if (!founder.sessionFrom(req.headers.cookie))");
+  if (sess < 0 || sess > revealBranch.indexOf("readJsonBody(") || sess > revealBranch.indexOf("founder.reveal("))
+    throw new Error(`${faServerFile}'s reveal branch does not refuse a request without a live session before it reads the body and reveals. ${faStatement("founder-no-session")}`);
+  const verify = revealBody.indexOf("verifyTotp(credential.totpSecret");
+  const okAt = revealBody.indexOf("return { ok: true");
+  if (verify < 0 || !/if \(!check\.ok\) return fail\("founder-code-refused"\);\s*lastUsedStep = check\.step;/.test(revealBody) || okAt < verify || !/now\(\), lastUsedStep\)/.test(revealBody))
+    throw new Error(`${faLibFile}'s reveal no longer demands a fresh, unburned code — checked against the last step used, burned on success — before it answers. ${faStatement("founder-code-refused")}`);
+  for (const k of faKeys.filter((k) => k !== "POST /v1/founder/session")) {
+    const [method, path] = k.split(" ");
+    if (!faBranch(method, path).includes("if (!founder.sessionFrom(req.headers.cookie))"))
+      throw new Error(`${faServerFile}'s ${k} branch does not ask for a live founder session.`);
+  }
+  const signInBody = faMethod(faLibCode, "signIn");
+  if (!/verifyTotp\(credential\.totpSecret, [^;]*lastUsedStep\);[^]*?lastUsedStep = check\.step;/.test(signInBody))
+    throw new Error(`${faLibFile}'s sign-in no longer burns the code it accepts.`);
+  if (signInBody.indexOf("if (locked())") < 0 || signInBody.indexOf("if (locked())") > signInBody.indexOf("verifyPassword("))
+    throw new Error(`${faLibFile}'s sign-in hashes a password before it asks whether the account is locked. ${faStatement("founder-locked-out")}`);
+  if (!/failures >= contract\.lockout\.consecutiveFailures/.test(faLibCode) || !/lockedUntil = now\(\) \+ contract\.lockout\.lockSeconds \* 1000;\s*session = null;/.test(faLibCode))
+    throw new Error(`${faLibFile}'s lock no longer reads its count and time from the contract, or no longer ends the session. ${faStatement("founder-locked-out")}`);
+  if (fa.lockout.consecutiveFailures !== 5 || fa.lockout.lockSeconds !== 900)
+    throw new Error("packages/catalog/founder-access.json's lock is no longer five consecutive failures for fifteen minutes, as the founder specified.");
+
+  /* 5. The cookie, exactly: __Host-, HttpOnly, Secure, SameSite=Strict, Path=/, Max-Age the fifteen
+     minutes, 256 random bits compared in constant time, no Domain, and a session that is never renewed. */
+  if (!fa.session.cookie.startsWith("__Host-") || JSON.stringify(fa.session.attributes) !== JSON.stringify(["HttpOnly", "Secure", "SameSite=Strict", "Path=/"]) || fa.session.lifetimeSeconds !== 900 || fa.session.idBytes !== 32)
+    throw new Error("packages/catalog/founder-access.json's session cookie is no longer __Host-, HttpOnly, Secure, SameSite=Strict, Path=/, fifteen minutes and 256 random bits.");
+  if (!faLibCode.includes('`${COOKIE}=${id}; ${contract.session.attributes.join("; ")}; Max-Age=${contract.session.lifetimeSeconds}`'))
+    throw new Error(`${faLibFile} no longer builds the session cookie from exactly the contract's name, attributes and lifetime.`);
+  if (/Domain=|Expires=/i.test(faLibCode))
+    throw new Error(`${faLibFile} writes a Domain or an Expires. The __Host- cookie has neither.`);
+  if (!/randomBytes\(contract\.session\.idBytes\)\.toString\("base64url"\)/.test(faLibCode) || !/timingSafeEqual\(digest\(id\), current\.idHash\)/.test(faLibCode))
+    throw new Error(`${faLibFile}'s session id is no longer the contract's random bytes, or is no longer compared in constant time.`);
+  if (/expiresAt\s*=|expiresAt:\s*now\(\)/.test(faMethod(faLibCode, "sessionFrom")))
+    throw new Error(`${faLibFile}'s session check renews the session. It ends ${fa.session.lifetimeSeconds} seconds after sign-in, whatever happens in between.`);
+  const setCookies = [...uncommented(faServer).matchAll(/"set-cookie": ([^,}]+)/g)].map((m) => m[1].trim());
+  if (!setCookies.length || setCookies.some((v) => v !== "signed.cookie" && v !== "clearedFounderCookie()"))
+    throw new Error(`${faServerFile} sets a cookie from something other than the founder module's own builders: ${setCookies.join(", ")}.`);
+
+  /* 6. No log line can carry a password, a code, a cookie or a value. The lib logs nothing; every console
+     call in a founder branch is console.log(founderLine(...)) with none of those in its arguments; and
+     founderLine drops a name outside the allowlist and a fingerprint of the wrong shape. */
+  if (/console\./.test(faLibCode))
+    throw new Error(`${faLibFile} writes to the console. Founder access's one log line is built by founderLine and written by server.ts.`);
+  for (const key of faKeys) {
+    const [method, path] = key.split(" ");
+    const branch = uncommented(faBranch(method, path));
+    for (const call of branch.matchAll(/console\.(\w+)\(([^;]*?)\);/g)) {
+      if (call[1] !== "log" || !call[2].trim().startsWith("founderLine("))
+        throw new Error(`${faServerFile}'s ${key} branch logs with console.${call[1]}(${call[2].slice(0, 40)}…). A founder branch writes one line, through founderLine, and nothing else.`);
+      if (/password|asked\.code|\bcode\b|cookie|revealedKey|\.value\b|req\.headers/i.test(call[2]))
+        throw new Error(`${faServerFile}'s ${key} branch passes something that could be a password, a code, a cookie or a key to its log line: ${call[2].trim()}`);
+    }
+  }
+  const lineFn = faLibCode.slice(faLibCode.indexOf("export function founderLine("), faLibCode.indexOf("export type SignedIn"));
+  if (!/if \(key && REVEAL_ALLOWLIST\.includes\(key\.name\)\) line\.name = key\.name;/.test(lineFn) || !lineFn.includes("^[0-9a-f]{${contract.reveal.fingerprintHexLength}}$"))
+    throw new Error(`${faLibFile}'s founderLine no longer confines a line to the event, the outcome, an allowlisted name and a fingerprint of the right shape.`);
+
+  /* 7. The TOTP is apps/api/src/totp.ts, imported, with the contract's numbers; no second HMAC here. The
+     script's numbers are the contract's; it takes the password twice with echo off, as root, and
+     writes 0600 through mktemp and mv. */
+  const totpSource = read("apps/api/src/totp.ts");
+  const totpNumber = (name) => Number((totpSource.match(new RegExp(`export const ${name} = (\\d+);`)) ?? [])[1]);
+  if (totpNumber("DIGITS") !== fa.totp.codeDigits || totpNumber("STEP_SECONDS") !== fa.totp.stepSeconds || totpNumber("DRIFT_STEPS") !== fa.totp.driftSteps)
+    throw new Error("packages/catalog/founder-access.json's TOTP digits, step or drift disagree with apps/api/src/totp.ts, which founder access imports.");
+  if (!/from "\.\.\/\.\.\/\.\.\/api\/src\/totp\.ts"/.test(faLibCode) || /createHmac|function hotp|function totp/.test(faLibCode))
+    throw new Error(`${faLibFile} no longer imports the identity service's TOTP, or carries a second implementation. The repository keeps one.`);
+  const scriptValue = (name) => (faScript.match(new RegExp(`^${name}=(\\S+)$`, "m")) ?? [])[1];
+  const expected = {
+    PASSWORD_MINIMUM: fa.credential.passwordMinimumLength, SCRYPT_LOG2N: fa.credential.scrypt.log2N, SCRYPT_R: fa.credential.scrypt.r,
+    SCRYPT_P: fa.credential.scrypt.p, SCRYPT_KEY_BYTES: fa.credential.scrypt.keyLength, SCRYPT_SALT_BYTES: fa.credential.scrypt.saltBytes,
+    TOTP_SECRET_BYTES: fa.credential.totpSecretBytes, TOTP_DIGITS: fa.totp.codeDigits, TOTP_PERIOD: fa.totp.stepSeconds,
+    HASH_VARIABLE: fa.credential.passwordHashVariable, SECRET_VARIABLE: fa.credential.totpSecretVariable,
+  };
+  for (const [name, value] of Object.entries(expected))
+    if (scriptValue(name) !== String(value))
+      throw new Error(`${faScriptFile} sets ${name}=${scriptValue(name)}, and packages/catalog/founder-access.json says ${value}. The script cannot read the contract on the box, so the build holds it to it.`);
+  if (fa.credential.passwordMinimumLength < 14 || fa.credential.scrypt.log2N < 17)
+    throw new Error("packages/catalog/founder-access.json asks for less than the founder specified: a password of at least fourteen characters, and scrypt at N = 2^17 or more.");
+  for (const [shape, what] of [
+    [/^umask 077$/m, "umask 077"], [/\[ "\$\(id -u\)" -ne 0 \]/, "the root check"], [/read -rs password/, "the hidden password"],
+    [/read -rs again/, "the hidden second password"], [/mktemp "\$\{ENV_FILE\}\.new\.XXXXXX"/, "mktemp beside the file"],
+    [/chmod 0600 "\$tmp"/, "chmod 0600"], [/mv -f "\$tmp" "\$ENV_FILE"/, "the atomic move"], [/printf '%s' "\$password" \| "\$NODE" -e/, "the password on stdin"],
+  ])
+    if (!shape.test(faScript)) throw new Error(`${faScriptFile} no longer has ${what}.`);
+
+  /* 8. In the browser, a revealed key is shown only inside the reveal component, only from the reveal
+     route's answer, and stored nowhere. The response's field is named in two hand-written files — the
+     lib's type and RevealKey — and nowhere else under apps/web/src; RevealKey's state is set from the
+     answer's body and from nothing else; nothing in either file stores, logs, posts elsewhere or puts
+     anything in an address; only the reveal panel imports the lib; and the panel reaches the two
+     screens only through dynamic imports. */
+  const field = "revealedKey";
+  for (const f of files("apps/web/src").filter((f) => /\.tsx?$/.test(f))) {
+    if (f === faWebLibFile || f === faScreenFile || f.endsWith("apis.generated.ts")) continue;
+    const text = read(f);
+    if (text.includes(field))
+      throw new Error(`${f} names ${field}. A revealed key is read by founder access's reveal component and nowhere else.`);
+    if (/lib\/founder-access['"]/.test(text))
+      throw new Error(`${f} imports lib/founder-access. Only the reveal panel does.`);
+    if (/^\s*import (?!type\b)[^;]*founder\/FounderAccess/m.test(text))
+      throw new Error(`${f} imports the founder panel statically. It arrives on a dynamic import, so nobody who does not open it downloads it.`);
+  }
+  const split = faScreen.indexOf("function RevealKey(");
+  const revealKey = faScreen.slice(split);
+  if (split < 0 || faScreen.slice(0, split).includes(field) || !revealKey.includes(`shown.${field}`))
+    throw new Error(`${faScreenFile} shows a revealed key outside RevealKey, or RevealKey no longer draws it.`);
+  const setters = [...revealKey.matchAll(/setShown\(([^)]*)\)/g)].map((m) => m[1].trim());
+  if (!setters.length || setters.some((v) => v !== "answer.body" && v !== "null"))
+    throw new Error(`${faScreenFile} sets the revealed key from something other than the reveal route's answer: setShown(${setters.join("), setShown(")}).`);
+  if (!/const answer = await reveal\(name, typed\);/.test(revealKey))
+    throw new Error(`${faScreenFile}'s RevealKey no longer takes its answer from the reveal route.`);
+  if ([...faWebLib.matchAll(new RegExp(`\\b${field}\\b`, "g"))].length !== 1 || !/export const reveal = \(name: string, code: string\): Promise<Answer<RevealAnswer>> =>\s*call<RevealAnswer>\('POST', founder\.routes\.reveal, \{ name, code \}\);/.test(faWebLib))
+    throw new Error(`${faWebLibFile} does more with a revealed key than hand the route's answer to its caller.`);
+  for (const [f, code] of [[faWebLibFile, faWebLib], [faScreenFile, faScreen]]) {
+    const leak = code.match(/localStorage|sessionStorage|indexedDB|document\.cookie|history\.(pushState|replaceState)|location\.(href|assign|search|hash)|URLSearchParams|console\.|postMessage|sendBeacon|caches\.|dangerouslySetInnerHTML/);
+    if (leak) throw new Error(`${f} uses ${leak[0]}. A revealed key and the two factors are never stored, logged, posted elsewhere or put in an address.`);
+  }
+  if ((faScreen.match(/<form\b/g) ?? []).length !== (faScreen.match(/<form\b[^>]*method="post" onSubmit=\{submit\}/g) ?? []).length)
+    throw new Error(`${faScreenFile} draws a form that is not method="post" with its own submit handler. A form that fell back to a plain submit must never put a password or a code in an address.`);
+  if (!/setTimeout\(\(\) => wipe\(words\.wiped\), wipeAfterMs\)/.test(revealKey) || !/document\.addEventListener\('visibilitychange'/.test(revealKey) || !/window\.addEventListener\('pagehide'/.test(revealKey) || !/window\.addEventListener\('popstate'/.test(revealKey))
+    throw new Error(`${faScreenFile}'s RevealKey no longer wipes the key after the contract's time, when the tab is hidden, when the page is left and when the history moves.`);
+  if (!/export const wipeAfterMs = founder\.reveal\.wipeAfterSeconds \* 1000;/.test(faWebLib) || fa.reveal.wipeAfterSeconds !== 30)
+    throw new Error(`${faWebLibFile}'s wipe is no longer the contract's thirty seconds.`);
+  const inputs = [...faScreen.matchAll(/<input\b[^>]*>/g)].map((m) => m[0]);
+  const passwords = inputs.filter((i) => /type="password"/.test(i));
+  const codes = inputs.filter((i) => /autoComplete="one-time-code"/.test(i));
+  if (passwords.length !== 1 || !/autoComplete="current-password"/.test(passwords[0]) || codes.length !== 2 || inputs.length !== 4 || codes.some((c) => !/inputMode="numeric"/.test(c)))
+    throw new Error(`${faScreenFile} draws inputs other than the founder's one password field (current-password), its hidden username, and two numeric one-time-code fields.`);
+  for (const f of ["apps/web/src/features/portal/gilbertone/ModelProviders.tsx", "apps/web/src/features/portal/gilbertone/ApiRegistry.tsx"])
+    if (!/lazy\(\(\) => import\('\.\/founder\/FounderAccess'\)/.test(read(f)))
+      throw new Error(`${f} no longer reaches the founder panel through a dynamic import.`);
+
+  /* 9. The portal's key refusal says out loud that founder access is its one exception. */
+  const portalKeyRefusal = JSON.parse(read("packages/catalog/control-tower-portal.json")).refusals.find((r) => r.id === "no-key-on-an-admin-screen").statement;
+  if (!/founder access/i.test(portalKeyRefusal))
+    throw new Error("packages/catalog/control-tower-portal.json's no-key-on-an-admin-screen refusal no longer names founder access as its one exception, so the screen would claim no key is ever shown while one can be.");
+
+  console.log(
+    `Founder access · ${faRoutes.length} routes, the founder's alone, each asking the gate first and dark unless ${fa.enable.variable}=${fa.enable.value} and a credential both hold, with nothing under deploy/ able to write either; a reveal allowlist of exactly ${fa.reveal.allowlist.join(" and ")}, checked before the environment is read; a reveal only with a live session and a fresh, burned code; ${fa.lockout.consecutiveFailures} failures lock for ${fa.lockout.lockSeconds / 60} minutes before any hash; the cookie ${fa.session.cookie} exactly ${fa.session.attributes.join("; ")}; Max-Age=${fa.session.lifetimeSeconds}, never renewed; one log line per act that cannot carry a secret; the identity service's TOTP and the script's numbers the contract's; and a revealed key held only in RevealKey's state, from the reveal route, wiped after ${fa.reveal.wipeAfterSeconds} seconds and stored nowhere.`,
+  );
+}
