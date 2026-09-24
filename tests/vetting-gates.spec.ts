@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { openAdminConsole } from './nav';
+import { goConsole, openAdminConsole } from './nav';
 
 /* The seven gates, as a reviewer reads them.
 
@@ -20,7 +20,7 @@ async function openParty(page: import('@playwright/test').Page, name: RegExp) {
 
 test.beforeEach(async ({ page }) => {
  await openAdminConsole(page);
- await page.getByRole('button', { name: 'Vetting', exact: true }).click();
+ await goConsole(page, 'Vetting');
 });
 
 test('a cleared nurse stands at gate 7, activated, with no rule to read', async ({ page }) => {

@@ -162,7 +162,9 @@ test('a clinical workspace navigates as itself, not as the patient shop', async 
   /* A clinical tab shows "Earnings" and is named "Earnings & payouts", because a full section name
      does not fit in a fifth of a 390px screen without wrapping to two lines — which is what made
      the nurse's workspace look broken. Read the name, not the label. */
-  const entries = async () => (await nav.isVisible() ? nav : bar)
+  /* The Control Tower is the merged portal since Phase 3, and its navigation is its category list. */
+  const categories = page.getByRole('tablist', { name: 'Categories' });
+  const entries = async () => (await categories.isVisible() ? categories : await nav.isVisible() ? nav : bar)
     .locator('button').evaluateAll(els => els.map(el => el.getAttribute('aria-label') ?? (el as HTMLElement).innerText));
   const patient = await entries();
   expect(patient.join(' ')).toMatch(/Book/);

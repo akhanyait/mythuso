@@ -52,7 +52,8 @@ const noOverflow = (page: Page) => page.evaluate(() =>
 async function openGovernance(page: Page) {
   await page.clock.install({ time: START });
   await openAdminConsole(page);
-  await page.getByRole('button', { name: say.tab, exact: true }).first().click();
+  /* A category of the merged Control Tower since Phase 3, rather than a button on the back office's strip. */
+  await page.getByRole('tablist', { name: 'Categories' }).getByRole('tab', { name: say.tab, exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: say.tab })).toBeVisible();
   return page.locator('.gr-area');
 }

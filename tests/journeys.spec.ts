@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openAdminConsole, openWorkspace, PATIENT_TAB_LABEL } from './nav';
+import { goPortal, openAdminConsole, openWorkspace, portalContract, PATIENT_TAB_LABEL } from './nav';
 
 /* Every navigation destination in every application, walked, and asked one question.
  *
@@ -75,14 +75,13 @@ async function goStaff(page: Page, name: string) {
   await page.locator('.tabbar').getByRole('button', { name, exact: true }).click();
 }
 
-/* The console is one page with a tab strip rather than a routed shell, so a section is a panel
-   rather than a screen — and the strip is in the sidebar above 1000px and inside the console below
-   it. Both carry the same eight names. */
-async function goAdmin(page: Page, name: string) {
-  const sidebar = page.getByRole('navigation', { name: 'Console sections' });
-  const strip = (await sidebar.isVisible()) ? sidebar : page.locator('.console-tabs');
-  await strip.getByRole('button', { name, exact: true }).first().click();
-}
+/* The Control Tower workspace and the back office are one portal since Phase 3, so they are one
+   application here: every category and every tab inside it, from the portal's own contract, walked
+   through its category list and its tab lists on either viewport. */
+const portalDestinations: Destination[] = portalContract.categories.flatMap(category => category.tabs.map(tab => ({
+  name: tab.label,
+  open: (page: Page) => goPortal(page, category.label, tab.label)
+})));
 
 const patientSections = ['Overview', 'Book a nurse', 'My visits', 'Health Passport', 'My family',
                          'Care plans', 'Thuso Wallet', 'Explore MyThuso', 'Language & access', 'Privacy & settings',
@@ -90,10 +89,8 @@ const patientSections = ['Overview', 'Book a nurse', 'My visits', 'Health Passpo
 const staffSections: Record<string, string[]> = {
   Nurse: ['Schedule', 'Assessments', 'Thuso Kit', 'Earnings & payouts', 'Vetting'],
   Doctor: ['Review queue', 'Teleconsultation', 'Patient context', 'Consultation records', 'Protocols'],
-  Partner: ['Orders', 'Substitution & repeats', 'Collections', 'Results'],
-  'Control Tower': ['Dispatch', 'Incidents', 'Vetting queue', 'Quality']
+  Partner: ['Orders', 'Substitution & repeats', 'Collections', 'Results']
 };
-const adminSections = ['Overview', 'Vetting', 'Operations', 'Clinical', 'Catalogue', 'Growth', 'Finance', 'Compliance', 'Configuration'];
 
 const applications: Application[] = [
   { app: 'Patient', enter: async page => { await page.goto('/app/'); },
@@ -103,8 +100,7 @@ const applications: Application[] = [
     enter: async (page: Page) => { await openWorkspace(page, role); },
     destinations: sections.map(name => ({ name, open: (page: Page) => goStaff(page, name) }))
   })),
-  { app: 'Admin', enter: openAdminConsole,
-    destinations: adminSections.map(name => ({ name, open: (page: Page) => goAdmin(page, name) })) }
+  { app: 'Control Tower', enter: openAdminConsole, destinations: portalDestinations }
 ];
 
 /* The shell's own "nothing behind this name" shapes. `.workflow-door` is the panel StaffShell draws

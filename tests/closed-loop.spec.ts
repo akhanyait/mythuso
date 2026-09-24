@@ -50,7 +50,9 @@ const onDutyAt = (post: string, at: number) => {
 /* The workspace arrives on a dynamic import, whether it is opened by its link or chosen in the same tab, so
    the navigation is waited for before a section is chosen from it. */
 async function openBoard(page: Page): Promise<Locator> {
-  await expect(page.getByRole('navigation', { name: 'Primary' }).or(page.getByRole('navigation', { name: 'Main navigation' })).first()).toBeVisible();
+  /* The Control Tower is the merged portal since Phase 3, whose navigation is its category list. */
+  await expect(page.getByRole('navigation', { name: 'Primary' }).or(page.getByRole('navigation', { name: 'Main navigation' }))
+    .or(page.getByRole('tablist', { name: 'Categories' })).first()).toBeVisible();
   await goSection(page, 'Incidents');
   const board = page.getByRole('region', { name: screen.heading });
   await expect(board).toBeVisible();

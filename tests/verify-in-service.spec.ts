@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { chooseRole, openAdminConsole, openWorkspace, goSection } from './nav';
+import { chooseRole, goConsole, openAdminConsole, openWorkspace, goSection } from './nav';
 import { noticeFor } from './notices';
 
 /* Verify in service, on both viewports.
@@ -130,7 +130,7 @@ test('a complaint about a past visit is refused until it says what it is about, 
 
 test('the reviewer\'s queue ages each complaint against its window, carries no account in a row, and decides nothing without a reason', async ({ page }) => {
   await openAdminConsole(page);
-  await page.getByRole('button', { name: 'Vetting', exact: true }).click();
+  await goConsole(page, 'Vetting');
   await page.getByRole('button', { name: vis.complaints.reviewer.heading, exact: true }).click();
   const queue = page.getByRole('region', { name: vis.complaints.reviewer.heading });
   await expect(queue).toContainText(vis.complaints.reviewer.noScore);

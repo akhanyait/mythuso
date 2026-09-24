@@ -1,6 +1,6 @@
 import { test, expect, type Page, type TestInfo } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { chooseRole, openAdminConsole, openWorkspace } from './nav';
+import { chooseRole, goSection, openAdminConsole, openWorkspace } from './nav';
 import { changeTiming, editorLabel, fieldSafety, fill, minutesText, openChangeForm, openConfiguration, openSettingsPanel, say, settingsContract, timingItem, timingRow, type Bound, type TimingRow } from './safety-settings';
 
 /* Configuration, on the back office, on both viewports.
@@ -257,9 +257,12 @@ test('the next offer made reads the expiry in force', async ({ page }) => {
   await expect(page.locator('.care-offer')).toContainText(offerClock(later(longer)));
 });
 
-test('the Operations tab keeps the way to the field safety settings, and opens Configuration on them alone', async ({ page }) => {
+/* The back office's Operations tab was split across the merged Control Tower's Dispatch and Incidents
+   (docs/control-tower-tab-inventory.md), and the way to the field-safety settings went with the incident
+   half — packages/catalog/control-tower-portal.json#decisions records why. */
+test('the Incidents tab keeps the way to the field safety settings, and opens Configuration on them alone', async ({ page }) => {
   await openAdminConsole(page);
-  await page.getByRole('button', { name: 'Operations', exact: true }).click();
+  await goSection(page, 'Incidents');
   await expect(page.locator('#main')).toContainText(say.operationsNote);
   await page.getByRole('button', { name: say.operationsOpen }).click();
   await expect(page.getByRole('heading', { level: 1, name: say.tab })).toBeVisible();
