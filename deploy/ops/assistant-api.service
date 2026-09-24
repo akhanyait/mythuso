@@ -39,6 +39,12 @@ WorkingDirectory=/opt/mythuso/assistant
 ExecStart=/usr/bin/node server.mjs
 Environment=NODE_ENV=production
 EnvironmentFile=-/etc/mythuso/assistant.env
+# Founder access (packages/catalog/founder-access.json): the founder's password hash and authenticator
+# secret, written by deploy/ops/configure-founder-access.sh (0600 root:root), and the enable line the
+# founder adds by hand. Optional for the same reason as the line above: without it — every deployment's
+# normal state — the service starts, and every founder route answers that founder access is switched
+# off. Nothing a deploy does writes this file.
+EnvironmentFile=-/etc/mythuso/founder.env
 Restart=on-failure
 RestartSec=5
 
