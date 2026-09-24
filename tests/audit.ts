@@ -94,3 +94,20 @@ export const audit = async (page: Page, where: string) => {
 
   expect(await undersizedText(page, MIN_TEXT), `${where} renders text under ${MIN_TEXT}px, which is the smallest size the type scale declares`).toEqual([]);
 };
+
+/* The sweep the merged Control Tower's journeys take of each new screen: every control on it has an
+   accessible name, nothing has a positive tabindex, and nothing is animating while reduced motion is
+   asked for. Moved here from tests/control-tower-portal.spec.ts in Phase 4 so the GilbertOne
+   administration journeys (tests/gilbertone-admin.spec.ts) sweep their seven screens the same way
+   rather than keeping a second copy, and widened by two kinds — a textarea and a disclosure's summary —
+   because the voice preview and the provider cards are the first portal screens to draw either. */
+export const controlSweep = (page: Page) => page.evaluate(() => {
+ const nameless = [...document.querySelectorAll<HTMLElement>('#pt-category button, #pt-category a[href], #pt-category input, #pt-category select, #pt-category textarea, #pt-category summary, [role="tab"], [role="treeitem"], .pt-context select')]
+  .filter(el => el.getClientRects().length)
+  .filter(el => !(el.getAttribute('aria-label') || el.getAttribute('aria-labelledby') || el.textContent?.trim()
+   || el.closest('label')?.textContent?.trim() || [...((el as HTMLInputElement).labels ?? [])].some(l => l.textContent?.trim())))
+  .map(el => el.outerHTML.slice(0, 80));
+ const positive = [...document.querySelectorAll('[tabindex]')].filter(el => Number(el.getAttribute('tabindex')) > 0).length;
+ const running = document.getAnimations().filter(a => a.playState === 'running').length;
+ return { nameless, positive, running };
+});

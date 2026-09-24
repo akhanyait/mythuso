@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { audit, zoomedTo200 } from './audit';
+import { audit, controlSweep as sweep, zoomedTo200 } from './audit';
 import { PORTAL_CATEGORIES, goPortal, portalCategory } from './nav';
 
 /* The merged MyThuso Control Tower, on both viewports (docs/PROMPT-CONTROL-TOWER-UI.md §5, §6,
@@ -250,14 +250,16 @@ test.describe('every new screen says what it holds, and why it is empty', () => 
   await expect(page.locator('#pt-subpanel').getByRole('button')).toHaveCount(0);
  });
 
- test('GilbertOne API Administration carries its mark and says it is not built — Phase 4', async ({ page }) => {
+ test('GilbertOne API Administration carries its mark, opens on its Overview, and acts on nothing', async ({ page }) => {
   await openPortal(page);
   await goPortal(page, 'GilbertOne API Administration');
   await expect(panel(page).getByRole('img', { name: 'GilbertOne' })).toBeVisible();
   await expect(panel(page)).toContainText(portal.gilbertone.sentence);
-  await expect(panel(page)).toContainText(refusal('no-gilbertone-sub-screen-before-phase-4'));
-  await expect(panel(page).locator('.pt-list li')).toHaveCount(portal.gilbertone.subScreens.length);
-  await expect(page.locator('#pt-subpanel').getByRole('button')).toHaveCount(0);
+  await expect(panel(page)).toContainText(refusal('no-gilbertone-action-while-its-gate-is-open'));
+  /* The seven sub-screens are the category's tabs; tests/gilbertone-admin.spec.ts walks each of them. */
+  await expect(page.getByRole('tablist', { name: 'GilbertOne API Administration tabs' }).getByRole('tab')).toHaveCount(portal.gilbertone.subScreens.length);
+  await expect(page.locator('#pt-subpanel .pt-loading')).toHaveCount(0);
+  await expect(page.locator('#pt-subpanel button:not([disabled])')).toHaveCount(0);
  });
 
  test('Finance: cost allocation on three axes, with no figure on any of them', async ({ page }) => {
@@ -297,17 +299,6 @@ const newScreens: [string, string?][] = [
  ['GilbertOne API Administration'], ['Configuration'],
  ['Finance', 'Cost allocation'], ['Compliance', 'Compliance pack preview'], ['Governance', 'Clinician Review Queue']
 ];
-const sweep = (page: Page) => page.evaluate(() => {
- const nameless = [...document.querySelectorAll<HTMLElement>('#pt-category button, #pt-category a[href], #pt-category input, #pt-category select, [role="tab"], [role="treeitem"], .pt-context select')]
-  .filter(el => el.getClientRects().length)
-  .filter(el => !(el.getAttribute('aria-label') || el.getAttribute('aria-labelledby') || el.textContent?.trim()
-   || el.closest('label')?.textContent?.trim() || [...((el as HTMLInputElement).labels ?? [])].some(l => l.textContent?.trim())))
-  .map(el => el.outerHTML.slice(0, 80));
- const positive = [...document.querySelectorAll('[tabindex]')].filter(el => Number(el.getAttribute('tabindex')) > 0).length;
- const running = document.getAnimations().filter(a => a.playState === 'running').length;
- return { nameless, positive, running };
-});
-
 test.describe('the accessibility floor on every new screen', () => {
  test('at the configured viewport', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
