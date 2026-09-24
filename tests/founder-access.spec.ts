@@ -158,6 +158,9 @@ test('the revealed key is wiped after the contract\'s thirty seconds, with the c
  await mockService(page, { requests: [] });
  await open(page);
  await signIn(page);
+ /* Paused before the reveal, so the only time that passes is the time this test moves: a slow
+    machine's real seconds must not count toward the thirty. */
+ await page.clock.pauseAt(new Date(Date.now() + 60_000));
  const row = await revealFirst(page);
  await row.getByRole('button', { name: words.show }).click();
  await expect(row.locator('.g1-founder-secret')).toHaveText(KEY);

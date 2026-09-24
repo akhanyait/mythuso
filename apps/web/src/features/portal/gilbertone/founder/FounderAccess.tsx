@@ -5,7 +5,6 @@ import {
  codeDigits, founderContract, founderKeys, founderWords as words, masked, probe, reveal, sessionEnded, sessionMinutes,
  signIn, signOut, useFounderState, wipeAfterMs, type KeyMetadata, type RevealAnswer
 } from '../../../../lib/founder-access';
-import { Loading } from '../../Parts';
 
 /* Founder access in the Control Tower: the founder signs in with a password and an authenticator code,
  * sees what may be said about the two Azure keys without revealing them — set or not, the masked last
@@ -34,7 +33,7 @@ export function FounderAccessPanel({ cardId }: { cardId?: string }) {
  const entries = founderKeys.filter(k => !cardId || k.card === cardId);
  return <div className="g1-founder">
   <p className="helper">{words.intro}</p>
-  {state.phase === 'checking' && <Loading/>}
+  {state.phase === 'checking' && <p className="helper" role="status" aria-busy="true">{words.checking}</p>}
   {state.phase === 'refused' && <p className="g1-founder-refusal" role="status">{state.message}</p>}
   {state.phase === 'signed-out' && <SignIn message={state.message}/>}
   {state.phase === 'signed-in' && <>

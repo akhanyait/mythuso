@@ -4,7 +4,7 @@ import registry from '../../../../../../packages/catalog/api-registry.json' with
 import founder from '../../../../../../packages/catalog/founder-access.json' with { type: 'json' };
 import { cardOf, g1, modelProviders } from '../../../lib/gilbertone-admin';
 import { portalRefusal } from '../../../lib/portal';
-import { BuildWord, Empty, Loading, Region, RovingList } from '../Parts';
+import { BuildWord, Empty, Region, RovingList } from '../Parts';
 import { CardStatusWord, GatedAction, GatedActions, GatedCheckbox, ShapeField } from './Controls';
 
 /* GilbertOne · Model Providers (§7.4), read from packages/catalog/model-providers.json.
@@ -64,7 +64,7 @@ export function ModelProvidersScreen() {
   </Region>
 
   <Region title={founder.words.heading}>
-   <Suspense fallback={<Loading/>}><FounderAccessPanel/></Suspense>
+   <Suspense fallback={<p className="helper">{founder.words.checking}</p>}><FounderAccessPanel/></Suspense>
   </Region>
 
   <Region title={words.keyEntryHeading}>

@@ -88,6 +88,7 @@
   "words": {
     "heading": "Founder access",
     "intro": "The founder may sign in here and reveal the two Azure keys the assistant service holds, one at a time, with a fresh authenticator code for each. Nobody else can, and nothing on this panel is stored in the browser.",
+    "checking": "Asking the assistant service whether founder access is switched on…",
     "notAnswered": "The assistant service did not answer, so founder access cannot be reached from here.",
     "signInHeading": "Sign in as the founder",
     "passwordLabel": "Password",

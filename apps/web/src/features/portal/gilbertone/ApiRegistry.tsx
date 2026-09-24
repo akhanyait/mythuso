@@ -4,7 +4,7 @@ import founder from '../../../../../../packages/catalog/founder-access.json' wit
 import providers from '../../../../../../packages/catalog/model-providers.json' with { type: 'json' };
 import { noticeFor } from '../../../lib/capabilities';
 import { cardsByCategory, g1, registryActions, type Card } from '../../../lib/gilbertone-admin';
-import { BuildWord, Empty, Loading, Region, RovingList } from '../Parts';
+import { BuildWord, Empty, Region, RovingList } from '../Parts';
 import { CardStatusWord, GatedAction, GatedActions, ShapeField } from './Controls';
 import { VoicePreview } from './VoicePreview';
 
@@ -58,7 +58,7 @@ export function ApiRegistryScreen() {
      </dl>
      <GatedActions ids={actions} label={`${card.name} actions`}/>
      {founderCard(card) && <details className="g1-founder-details"><summary>{founder.words.heading}</summary>
-      <Suspense fallback={<Loading/>}><FounderAccessPanel cardId={card.id}/></Suspense></details>}
+      <Suspense fallback={<p className="helper">{founder.words.checking}</p>}><FounderAccessPanel cardId={card.id}/></Suspense></details>}
      {isTts(card) && <details className="g1-details"><summary>{words.previewSummary}</summary><VoicePreview placement={card.name}/></details>}
     </article> };
    })}/>
