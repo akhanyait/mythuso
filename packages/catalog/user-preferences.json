@@ -1,0 +1,137 @@
+{
+ "_note": "Module 20 of docs/PROMPT-CONTROL-TOWER-UI.md (§8): what a person may change about how GilbertOne speaks to them, what their hospital may change, and what nobody may. Proposed 24 September 2026, Phase 2 of that plan: a contract and its build checks. Three tiers — the clinical register, locked (packages/catalog/voice.json's clinical-delivery zone); the tenant's presentation, overridable per tenant (voice.json's presentation zone); and the person's own preference, over both, on the accessibility axes only. What exists today, read from the tree: a person can mute GilbertOne's voice on a phone (the speaker button packages/catalog/assistant.json#voice.nativeSpeech records), switch playback on the web, and nothing else. There is no rate or pitch setting on any platform — iOS speaks at AVSpeechUtteranceDefaultSpeechRate, Android and the web at their own defaults — and nothing is remembered once the screen closes, because apps/web/src may not use browser storage and the phones hold nothing about a person's choices. No store for a preference exists anywhere.",
+ "version": 1,
+ "module": 20,
+ "engine": "assistant",
+ "status": "proposed",
+ "gate": "G35",
+ "_gateWhy": "docs/PROMPT-CONTROL-TOWER-UI.md §9: the three-tier model enforced by a boundary check, and platform accessibility integration tested. scripts/check-boundaries.mjs now holds the first. The second has not been done: no test turns VoiceOver or TalkBack on and listens to what GilbertOne does beside it (docs/ACCESSIBILITY.md, what is still not measured on each platform).",
+
+ "reads": {
+  "classes": "packages/catalog/voice.json#queryClasses",
+  "zones": "packages/catalog/voice.json#zones",
+  "captions": "packages/catalog/voice.json#lockedSettings.captions",
+  "mute": "packages/catalog/assistant.json#voice.nativeSpeech",
+  "why": "Which classes are locked is voice.json's to say. This file says what a person may do to each, and derives the list from there so a fourth locked class cannot be added without this file covering it."
+ },
+
+ "tiers": [
+  {
+   "id": "clinical-register",
+   "label": "Clinical register",
+   "zone": "clinical-delivery",
+   "overridableBy": [],
+   "sentence": "Emergency, refusal and escalation answers are read in the locked register. Nobody overrides it — not the tenant and not the person — beyond the accessibility axes.",
+   "why": "How the words that send somebody to an ambulance sound is a clinical decision, made once, through the Clinician Review Queue."
+  },
+  {
+   "id": "tenant-presentation",
+   "label": "Tenant presentation",
+   "zone": "presentation",
+   "overridableBy": ["tenant"],
+   "sentence": "A hospital may choose how routine answers, navigation, a visitor's greeting and an administrator's answers sound. No tenant exists, so none has.",
+   "why": "A brand choice, reviewed by nobody clinical, because nothing clinical rides on it."
+  },
+  {
+   "id": "user-preference",
+   "label": "Your preference",
+   "zone": null,
+   "overridableBy": ["user"],
+   "sentence": "You may change how fast and how high GilbertOne speaks, for every answer, and you may mute it. You may not choose its voice, and you may not turn the written words off.",
+   "why": "The person listening knows what they can hear. The accessibility axes are theirs on every answer, including the locked ones, because an emergency answer somebody cannot follow at the default speed is an emergency answer that failed."
+  }
+ ],
+
+ "axes": [
+  {
+   "id": "rate",
+   "label": "Speed",
+   "appliesTo": "every class",
+   "bounds": null,
+   "_boundsWhy": "Not decided. Each platform's synthesiser has its own range, and a range written here before anybody has listened at the edges is a number nobody tested.",
+   "builtToday": false,
+   "why": "Slower speech helps somebody with a processing difficulty, a second-language listener and anybody in a noisy room, and it helps them most on the answers that matter."
+  },
+  {
+   "id": "pitch",
+   "label": "Pitch",
+   "appliesTo": "every class",
+   "bounds": null,
+   "builtToday": false,
+   "why": "Some hearing losses lose one end of the range; pitch brings the words back into what the listener can hear."
+  },
+  {
+   "id": "mute",
+   "label": "Mute",
+   "appliesTo": "every class",
+   "builtToday": true,
+   "builtIn": "packages/catalog/assistant.json#voice.nativeSpeech (the phones' speaker button) and the web's playback switch",
+   "why": "Muting is always allowed, because the written words are always there. A phone reading a health answer aloud on a bus is a disclosure the person did not choose."
+  },
+  {
+   "id": "captions",
+   "label": "Written words",
+   "appliesTo": "every class",
+   "userMayTurnOff": false,
+   "builtToday": true,
+   "why": "Not an axis a person moves. Listed so nobody builds a toggle for it: the written words are the answer, and the voice is a second reading of them."
+  }
+ ],
+
+ "voiceChoice": {
+  "offeredToUser": false,
+  "sentence": "No voice list and no chooser is drawn for a person, on any class.",
+  "why": "§07's V03 refusal stands (apps/web/src/lib/gilbertone.ts): a voice is chosen by review, not by a locale setting, and no South African voice is promised to be installed. A person's voice chooser would draw whatever the device happened to have and imply a promise the contract refuses."
+ },
+
+ "platformScreenReader": {
+  "overridesPlatformVoice": false,
+  "consentRequired": true,
+  "consentSentence": null,
+  "_consentSentenceWhy": "No override is offered, so there is no consent to ask for. If one is ever proposed, its sentence is written here first, in words the person reads before anything about their screen reader changes.",
+  "sentence": "GilbertOne never changes the voice, speed, pitch or language VoiceOver, TalkBack or a browser screen reader uses. It reads its own answers with its own synthesiser, and the screen reader goes on speaking the way its owner set it.",
+  "today": "Nothing on any platform reads whether VoiceOver or TalkBack is running, so GilbertOne's own reading and the screen reader can both speak the same answer. That is a gap in how the two coexist, not an override, and it is recorded as an open accessibility question rather than fixed by guesswork: whether GilbertOne should stay silent while a screen reader is on is a question for people who use one.",
+  "why": "A screen reader is configured by somebody who depends on it, often over years. Changing how it speaks — even for one string — without asking is taking their accessibility settings away from them. scripts/check-boundaries.mjs fails the build if a native file uses the attributes that change how the screen reader speaks, while this file records no consent to do so.",
+  "overrideApis": {
+   "ios": ["accessibilitySpeechPitch", "accessibilitySpeechLanguage", "accessibilitySpeechIPANotation"],
+   "android": ["TtsSpan"],
+   "_overrideApisWhy": "The platform attributes that change how the screen reader itself pronounces or pitches a piece of text. GilbertOne's own AVSpeechSynthesizer and TextToSpeech are not on this list: they are GilbertOne's voice, not the screen reader's."
+  }
+ },
+
+ "persistence": {
+  "store": null,
+  "sentence": "A preference lasts as long as the screen is open. Nothing is remembered after that, on any platform.",
+  "why": "apps/web/src may not use browser storage (CLAUDE.md), and the phones hold nothing about a person's choices once the screen closes (assistant.json voice.nativeSpeech). A server-side store is named-but-absent, and before it exists somebody has to decide whether 'speaks slower' is health information — an accessibility need can reveal a disability, which is special personal information under POPIA."
+ },
+
+ "refusals": [
+  {
+   "id": "no-preference-changes-a-clinical-voice",
+   "statement": "No preference, of a person or a tenant, changes the voice or register of an emergency, a refusal or an escalation. Speed and pitch are the only things a person may change about them.",
+   "why": "An accessibility axis makes the same words easier to hear. A voice choice makes them sound different, and how an emergency sounds is locked."
+  },
+  {
+   "id": "no-screen-reader-override-without-consent",
+   "statement": "GilbertOne never changes how VoiceOver, TalkBack or a browser screen reader speaks without the person's explicit consent, asked in words written in this file first.",
+   "why": "The screen reader belongs to the person who set it up. Changing it silently is taking away an accommodation they depend on."
+  },
+  {
+   "id": "captions-cannot-be-turned-off",
+   "statement": "The written words cannot be switched off by a preference.",
+   "why": "The written words are the answer. Somebody who cannot hear, or who has muted the voice, reads what everybody else hears."
+  },
+  {
+   "id": "no-voice-chooser-for-a-person",
+   "statement": "A person is not offered a list of voices.",
+   "why": "§07's V03 refusal: no voice selection and no promise that a South African voice is installed."
+  },
+  {
+   "id": "no-preference-remembered-without-a-store",
+   "statement": "A preference is not remembered after the screen closes until a store exists that the DPIA has considered.",
+   "why": "A remembered accessibility need is a record about somebody's body. It is not kept by accident in a browser or a phone's preferences file."
+  }
+ ],
+
+ "preview": "No preference screen exists. A person can mute GilbertOne on a phone and switch playback on the web; speed and pitch are not adjustable anywhere yet, and nothing is remembered once the screen closes."
+}

@@ -1,0 +1,181 @@
+{
+ "_note": "The state-of-the-world schema for the merged Control Tower's Overview screen (docs/PROMPT-CONTROL-TOWER-UI.md §5.3, §10 Phase 2): what the landing screen shows, where each fact is read from, and what it says when there is nothing to show. Proposed 24 September 2026. No screen reads it — the merged portal is Phase 3 — and it holds no live value of its own: every status is derived when the screen loads, from the file or the route named beside it, so the Overview cannot drift from the thing it reports on. Why it exists, in the plan's words: 'This session spent effort discovering that production was live and nothing recorded it. The Overview screen makes that discovery instant.' The plan's wireframe (D.2) names a demonstration hospital as an active tenant. No tenant exists and none is named here; the tenant section is a written empty state.",
+ "version": 1,
+ "status": "proposed",
+ "gate": "G15",
+ "_gateWhy": "The Overview is the merged portal's landing screen, and the merged portal is G15 (docs/PROMPT-CONTROL-TOWER-UI.md §9): the tab inventory and session model are authored, and docs/control-tower-cutover.md now carries the parallel-run and rollback plans. Building the screen is Phase 3.",
+
+ "statusVocabulary": [
+  { "id": "connected", "sentence": "Answering, and switched on.", "why": "The only word that says a service is working, so it is derived from a live answer and never typed." },
+  { "id": "degraded", "sentence": "Answering, with part of it switched off or failing.", "why": "A service up with its model tier refused is not the same as a service down." },
+  { "id": "disconnected", "sentence": "Not answering.", "why": "Said plainly, so a failure is never drawn as a grey that could mean anything." },
+  { "id": "dark", "sentence": "Built, and switched off on purpose.", "why": "The plan's status vocabulary. Dark is a decision; disconnected is a fault." },
+  { "id": "not-configured", "sentence": "Nothing is connected behind it. No supplier is contracted.", "why": "The honest state of every capability packages/catalog/capabilities.json marks connected: false." },
+  { "id": "gated", "sentence": "Built, and waiting on a named gate.", "why": "The reason travels with the state, so the screen never says 'not yet' without saying what for." }
+ ],
+ "_statusVocabularyWhy": "One vocabulary for the whole portal (§5.2): a service is never 'green' on one screen and 'operational' on another. packages/catalog/api-registry.json's provider cards use the plan's §7.8 card words, which describe a provider rather than a service, and record the one they add.",
+
+ "sections": [
+  {
+   "id": "service-state",
+   "label": "Services",
+   "services": [
+    {
+     "id": "assistant",
+     "label": "GilbertOne assistant",
+     "readFrom": "GET /assistant/health",
+     "fieldsRead": ["ok", "activated", "azure", "speech"],
+     "connectedWhen": "ok and activated are both true",
+     "degradedWhen": "ok is true and activated is false",
+     "disconnectedWhen": "no answer, or ok is not true",
+     "recordedState": "Live in production since 21 September 2026, activated, with Azure OpenAI and Azure Speech configured (docs/governance/ASSISTANT-ACTIVATION.md). Who activated it, and under what approval, is not recorded.",
+     "why": "The one service answering members of the public. Its health route reports booleans only, so the screen can read it without any risk of drawing a secret."
+    },
+    {
+     "id": "identity",
+     "label": "Identity service",
+     "fixedState": "dark",
+     "reason": "Installed on the server and switched off until DNS, TLS and an SMS provider exist: a one-time-code endpoint over plain http hands out accounts.",
+     "readFrom": "deploy/README.md, 'The identity service is not turned on'",
+     "capabilityRef": "accounts",
+     "why": "Built and deliberately unreachable, which is what dark means."
+    },
+    {
+     "id": "devices",
+     "label": "Devices",
+     "fixedState": "gated",
+     "reason": "No real device is on the allowlist, and the DPIA that would let one onto it is not done.",
+     "readFrom": "packages/catalog/vitals.json darkForRealDevices and deviceAllowlist.real",
+     "capabilityRef": "devices",
+     "why": "The route exists and refuses real devices by name until a gate a person must close."
+    },
+    {
+     "id": "payments",
+     "label": "Payments",
+     "fixedState": "not-configured",
+     "reason": "No payment provider is contracted.",
+     "readFrom": "packages/catalog/capabilities.json payments",
+     "capabilityRef": "payments",
+     "why": "The capability's own sentence is what a person reads; the Overview only names its state."
+    },
+    {
+     "id": "messaging",
+     "label": "Messaging",
+     "fixedState": "not-configured",
+     "reason": "No SMS, email or push provider is contracted.",
+     "readFrom": "packages/catalog/capabilities.json messaging",
+     "capabilityRef": "messaging",
+     "why": "As payments."
+    },
+    {
+     "id": "passport",
+     "label": "Health Passport",
+     "fixedState": "dark",
+     "reason": "Development only, synthetic data only, and never deployed: the build fails if anything in deploy/ names it.",
+     "readFrom": "CLAUDE.md, apps/passport",
+     "capabilityRef": "clinical-records",
+     "why": "The only store built to hold health records, and the one most likely to be assumed live by somebody reading a portal. The plan's list of five services leaves it out; it is added so its absence is said rather than inferred."
+    }
+   ],
+   "emptyState": null,
+   "why": "Every service with a status and a one-line reason (§5.3). A service whose state is fixed by a decision carries that decision's reason; the one that can change by itself is read live."
+  },
+  {
+   "id": "active-tenants",
+   "label": "Active tenants",
+   "readFrom": null,
+   "tenants": [],
+   "emptyState": "There are no tenants. A tenant is a hospital or organisation that runs GilbertOne under its own name, with its own data kept apart from every other tenant's. None has been created, because nothing in MyThuso can keep one tenant's data apart from another's yet — packages/catalog/gilbertone-inference-isolation.json records what that would take. A tenant is created by a tenancy contract that does not exist, not by a button on this screen.",
+   "why": "The plan asks for a count, names and state, and a written empty state if there are none. There are none, and the empty state is the section."
+  },
+  {
+   "id": "what-changed",
+   "label": "What changed",
+   "readFrom": ["docs/FEATURE-MAP.md, the Delivered sections", "the gate registers below"],
+   "itemShape": {
+    "fields": [
+     { "field": "kind", "type": "string", "why": "contract, boundary-check, gate-resolved or gate-opened." },
+     { "field": "ref", "type": "string", "why": "The file or gate it concerns." },
+     { "field": "on", "type": "date", "why": "The day it landed." },
+     { "field": "sentence", "type": "string", "why": "What changed, in the words the feature map already uses." }
+    ]
+   },
+   "sinceWhen": "the last release",
+   "_sinceWhenWhy": "The plan asks for 'since you last looked'. Remembering when somebody last looked needs a per-person record, which needs a signed-in person and a store; the browser may keep nothing (CLAUDE.md) and no session exists. So the digest is since the last release, and says so.",
+   "emptyState": "Nothing has changed since the last release.",
+   "why": "The digest that would have made 21 September's activation visible on 21 September."
+  },
+  {
+   "id": "recent-activity",
+   "label": "Recent activity",
+   "readFrom": null,
+   "kinds": ["sign-off", "deploy", "restart", "break-glass grant", "kill switch"],
+   "emptyState": "Nothing the Control Tower does is recorded yet. Deploys and restarts happen at a terminal on the server and are not written anywhere this screen can read; no sign-off, break-glass grant or kill switch has ever been made, because none of them exists.",
+   "why": "The plan asks for an unfiltered log of what the Control Tower did today. It has done nothing, because it has no controls; saying so is the log."
+  },
+  {
+   "id": "open-gates",
+   "label": "Open gates",
+   "registers": ["docs/PROMPT-CONTROL-TOWER-UI.md §9", "docs/PROMPT-CONTROL-TOWER.md §12"],
+   "gates": [
+    { "id": "G36", "owner": "Founder + Session", "state": "open", "movedBy": ["docs/governance/ASSISTANT-ACTIVATION.md written", "CLAUDE.md corrected"], "blockedOn": "The journald retention decision, open and owned by the founder (docs/governance/ASSISTANT-ACTIVATION.md)." },
+    { "id": "G15", "owner": "Session", "state": "open", "movedBy": ["docs/control-tower-tab-inventory.md", "docs/control-tower-session-model.md", "docs/control-tower-cutover.md"], "blockedOn": "Every document it lists now exists. It stays open until the parallel-run and rollback plans are accepted by whoever runs the cutover, and nobody has." },
+    { "id": "G16", "owner": "Session", "state": "open", "movedBy": ["docs/control-tower-session-model.md"], "blockedOn": "The data-class register the session model names is not authored." },
+    { "id": "G29", "owner": "Session + layer 4", "state": "open", "movedBy": ["packages/catalog/voice.json"], "blockedOn": "The clinical-delivery register has not been reviewed by a Clinical Administrator; nobody holds that layer." },
+    { "id": "G30", "owner": "Session + Info Officer", "state": "open", "movedBy": ["packages/catalog/model-providers.json"], "blockedOn": "No key vault, no tenant, no residency decision, no DPIA." },
+    { "id": "G31", "owner": "Founder + layer 1", "state": "open", "movedBy": ["packages/catalog/intelligence-levels.json"], "blockedOn": "No tenant to set a ceiling for, and no clinician session to test the lock against." },
+    { "id": "G32", "owner": "Session", "state": "open", "movedBy": ["packages/catalog/api-registry.json"], "blockedOn": "No secret vault, no health-check runner, no enable or disable control, no balance reading." },
+    { "id": "G35", "owner": "Session", "state": "open", "movedBy": ["packages/catalog/user-preferences.json"], "blockedOn": "Platform accessibility integration is not tested with VoiceOver or TalkBack running." },
+    { "id": "G33", "owner": "Founder + Info Officer", "state": "open", "movedBy": [], "blockedOn": "No BCX ALP Cloud contract, section 72 register entry, DPA or residency decision." },
+    { "id": "G34", "owner": "Founder + legal", "state": "open", "movedBy": [], "blockedOn": "No regulatory affairs opinion on medical-device classification." },
+    { "id": "G1", "owner": "Founder + legal", "state": "open", "movedBy": ["docs/governance/REGULATORY-CLASSIFICATION.md"], "blockedOn": "No legal or regulatory opinion on SAHPRA status." },
+    { "id": "G14", "owner": "Founder + Info Officer", "state": "open", "movedBy": ["packages/catalog/compliance-pack.json"], "blockedOn": "DPIA, Information Officer, residency decision, key custody and retention policy, all open." },
+    { "id": "G22", "owner": "Founder + legal", "state": "open", "movedBy": [], "blockedOn": "No crime-data source, armed-response partner, fob decision or legal review of armed dispatch." },
+    { "id": "G26", "owner": "Founder", "state": "open", "movedBy": ["packages/catalog/break-glass.json"], "blockedOn": "No external anchor decision for break-glass." }
+   ],
+   "_gatesWhy": "The gates this plan's phases wait on, from both registers. Each id and owner is a copy of a row in a Markdown table, which no screen can read, so scripts/check-boundaries.mjs holds every id and owner here to its row in the register it came from, and holds every gate §9 lists to appearing here. A gate is marked resolved only with evidence naming a file that exists. G34 and G1 are the same question in two registers' numbering, recorded as both rather than merged by assumption.",
+   "emptyState": "No gate is open.",
+   "why": "A short list of what is unresolved, with the owner and the reason, so the screen's reader knows who to ask."
+  }
+ ],
+
+ "discrepancies": [
+  {
+   "id": "voice-capability-says-no-language-model",
+   "sentence": "packages/catalog/capabilities.json's voice capability lists 'No language model. GilbertOne answers only from its approved sentences' among what blocks it. Since 21 September 2026 the assistant service asks Azure OpenAI where the classifier found nothing (docs/governance/ASSISTANT-ACTIVATION.md). The capability's sentence is rendered on the status page and on all three platforms, so correcting it is a change to generated native data and is not made in this contracts-only pass.",
+   "owner": "Founder",
+   "why": "Recorded, not silently resolved (docs/PROMPT-CONTROL-TOWER-UI.md §12). An Overview that said 'live' beside a status page that says 'no language model' is two screens disagreeing about the same service."
+  },
+  {
+   "id": "wake-word",
+   "sentence": "packages/catalog/voice.json#lockedSettings.wakeWordQuestion: the 21 September amendment says wake word; the plan says no wake word and cites a 22 September direction the tree does not hold.",
+   "owner": "Founder",
+   "why": "As above."
+  }
+ ],
+
+ "refusals": [
+  {
+   "id": "no-status-typed",
+   "statement": "The Overview never shows a status it did not read. A fixed state carries the decision that fixes it; the assistant's is read from its health route when the screen loads.",
+   "why": "A status typed into a screen is correct on the day it is typed. The whole point of this screen is the day after."
+  },
+  {
+   "id": "no-invented-tenant",
+   "statement": "No tenant is shown, named or counted until a tenancy contract creates one. No demonstration tenant stands in.",
+   "why": "A demo tenant on the landing screen of an administration portal is read as a customer."
+  },
+  {
+   "id": "no-secret-on-the-overview",
+   "statement": "The Overview shows presence, booleans and counts. It never shows a key, an endpoint or anything from a credentials file.",
+   "why": "The landing screen is the one everybody with any role opens first."
+  },
+  {
+   "id": "no-per-viewer-memory-without-a-session",
+   "statement": "'What changed' is since the last release, not since you last looked, until a signed-in person and a store exist to remember when that was.",
+   "why": "Remembering a viewer needs an identity and somewhere to keep it, and the browser may keep nothing."
+  }
+ ],
+
+ "preview": "No Overview screen exists. Read today, it would say: the assistant is live and activated; identity and the Health Passport are dark; devices are gated; payments and messaging are not configured; there are no tenants; nothing the Control Tower does is recorded; and every gate listed is open."
+}

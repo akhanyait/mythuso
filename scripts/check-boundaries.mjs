@@ -31811,3 +31811,777 @@ console.log(
     `Crisis lines · ${crisis.lines.length} lines in packages/catalog/crisis-lines.json agree with knowledge/mental-health.json, are shown for the "${crisis.showsWhen.group}" group of the emergency terms and nothing else, come after [${emergencyNumbers.join(", ")}] on ${after.length} screens and readings, and are typed in none of ${crisisSwept.length} hand-written web and native files. Not reviewed by a clinician yet.`,
   );
 }
+
+/* ==== GilbertOne API Administration, Phase 2 (24 September 2026): Modules 16–20 and the Overview ======
+ *
+ * docs/PROMPT-CONTROL-TOWER-UI.md §8 asks for five contracts — voice.json, model-providers.json,
+ * intelligence-levels.json, api-registry.json, user-preferences.json — each with its boundary check
+ * the same day, and §5.3's Overview schema beside them. The plan words several checks as runtime
+ * behaviour: "a disabled provider is called", "a PHI-tagged field is sent to a Tier 3 provider", "a
+ * patient-facing clinical-assist turn runs above level 2". None of that runtime exists — no level
+ * selector, no enable switch, no vault, no session. So each check below holds what CAN be held today,
+ * against the contracts and the code that exist, and says in its own comment what waits for the
+ * runtime. A check that pretended to test a switch nobody has built would be the overstatement these
+ * contracts are written to refuse. Each was proved by breaking its source and restoring it. */
+const p2 = {
+  voice: JSON.parse(read("packages/catalog/voice.json")),
+  providers: JSON.parse(read("packages/catalog/model-providers.json")),
+  levels: JSON.parse(read("packages/catalog/intelligence-levels.json")),
+  registry: JSON.parse(read("packages/catalog/api-registry.json")),
+  prefs: JSON.parse(read("packages/catalog/user-preferences.json")),
+  overview: JSON.parse(read("packages/catalog/control-tower-overview.json")),
+  assistant: JSON.parse(read("packages/catalog/assistant.json")),
+  apis: JSON.parse(read("packages/catalog/apis/assistant.json")),
+  capabilities: JSON.parse(read("packages/catalog/capabilities.json")),
+  feeds: JSON.parse(read("packages/catalog/feeds.json")),
+};
+const p2Files = {
+  voice: "packages/catalog/voice.json",
+  providers: "packages/catalog/model-providers.json",
+  levels: "packages/catalog/intelligence-levels.json",
+  registry: "packages/catalog/api-registry.json",
+  prefs: "packages/catalog/user-preferences.json",
+  overview: "packages/catalog/control-tower-overview.json",
+};
+/* Code without its prose: several checks look for a name that must not appear, and the comment
+   explaining why names it. The "//" rule spares a URL's "://". */
+const p2Code = (src) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+const p2Canon = (name) => String(name).toLowerCase().replace(/[^a-z0-9]/g, "");
+const p2Health = p2.apis.routes.find(
+  (r) => r.method === "GET" && r.path === "/health" && r.status === "built",
+);
+const p2HealthFields = new Set((p2Health?.response ?? []).map((f) => f.field));
+const p2Clinical = p2.voice.queryClasses.filter(
+  (c) => c.zone === "clinical-delivery",
+);
+const p2Summary = {};
+
+/* 1. Nothing secret in the catalogue. packages/catalog is generated into two app-store binaries and
+   bundled into a public web page, so a key here is a key published. The sweep is every file in the
+   catalogue, not just the five new ones, for the shapes a real credential or a real deployment's
+   address takes; and in the new contracts, no property the registry's own neverFields names may
+   carry a value. It cannot see a key an operator types into a box — that is the vault's job, and the
+   vault does not exist (G30, G32). */
+{
+  const keyShapes = [
+    [/\bsk-(?:ant-)?[A-Za-z0-9_-]{16,}/, "an OpenAI- or Anthropic-style secret key"],
+    [/(?<![0-9A-Fa-f])[0-9a-f]{32}(?![0-9A-Fa-f])/, "a 32-hex-character string, the shape of an Azure key"],
+    [/AKIA[0-9A-Z]{16}/, "an AWS access key id"],
+    [/AIza[0-9A-Za-z_-]{30,}/, "a Google API key"],
+    [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, "a private key"],
+    [/https?:\/\/[a-z0-9-]+\.(?:openai\.azure\.com|cognitiveservices\.azure\.com|api\.cognitive\.microsoft\.com)/i, "the address of a real Azure deployment"],
+    [/https?:\/\/[a-z0-9-]+\.[a-z0-9-]+\.inference\.ml\.azure\.com/i, "the address of a real Azure ML endpoint"],
+  ];
+  let swept = 0;
+  for (const file of files("packages/catalog").filter((f) =>
+    /\.(json|lock)$/.test(f),
+  )) {
+    swept++;
+    const text = read(file);
+    for (const [shape, what] of keyShapes)
+      if (shape.test(text))
+        throw new Error(
+          `${file} contains ${what}. packages/catalog/model-providers.json's no-key-in-the-catalogue refusal: the catalogue ships inside two app-store binaries and a public web bundle, so nothing in it may be a credential or a deployment's address. The key goes into the vault through a password field, once, and only its metadata is ever written anywhere.`,
+        );
+  }
+  const never = new Set(p2.registry.keyMetadata.neverFields.map(p2Canon));
+  if (never.size < 5)
+    throw new Error(
+      `packages/catalog/api-registry.json's keyMetadata.neverFields names ${never.size} fields. It is the list this check reads to know what a key looks like as a property; emptying it would let every check that reads it pass over nothing.`,
+    );
+  const walk = (node, path, file) => {
+    if (Array.isArray(node)) node.forEach((v, i) => walk(v, `${path}[${i}]`, file));
+    else if (node && typeof node === "object")
+      for (const [k, v] of Object.entries(node)) {
+        if (never.has(p2Canon(k)) && typeof v === "string" && v.trim())
+          throw new Error(
+            `${file} carries a value at ${path}.${k}, a field packages/catalog/api-registry.json's keyMetadata.neverFields names as key material. A contract may describe a key's metadata; it never holds the key.`,
+          );
+        walk(v, `${path}.${k}`, file);
+      }
+  };
+  for (const [name, file] of Object.entries(p2Files)) walk(p2[name], "", file);
+  p2Summary.catalogueSwept = swept;
+}
+
+/* 2. Push-to-talk and the caption rule are locked settings, never toggles (§7.3, G29). Checked in
+   voice.json's own record and in the assistant contract it reads: the gesture must still include
+   push-to-talk and the caption rule must still say it is not switchable. */
+{
+  for (const id of ["pushToTalk", "captions"]) {
+    const s = p2.voice.lockedSettings?.[id];
+    if (!s || s.locked !== true || s.configurable !== false || s.toggle !== false)
+      throw new Error(
+        `packages/catalog/voice.json's lockedSettings.${id} is not locked, not-configurable and not a toggle. The plan (§7.3) shows it as a locked setting precisely so nobody builds a switch for it; a contract that allowed one would be the first step to a screen that offers it.`,
+      );
+  }
+  if (!/push-to-talk/.test(String(p2.assistant.voice.gesture)))
+    throw new Error(
+      `packages/catalog/assistant.json's voice.gesture is "${p2.assistant.voice.gesture}", which no longer includes push-to-talk. packages/catalog/voice.json locks push-to-talk as the way the microphone opens; removing it from the gesture is a founder decision recorded in assistant.json's listeningDecision, and voice.json with it.`,
+    );
+  if (!/not switchable/i.test(String(p2.assistant.voice.webSpeech?.why)))
+    throw new Error(
+      "packages/catalog/assistant.json's voice.webSpeech.why no longer says the caption is not switchable. packages/catalog/voice.json's caption rule reads it from there; a caption rule that has lost its source is a rule somebody will find a toggle for.",
+    );
+}
+
+/* 3. No wake word is wired while the founder's two records on it disagree. assistant.json says
+   wakeWord true (the 21 September amendment); the plan says no wake word and cites a 22 September
+   direction the tree does not hold. voice.json records the question as open, and while it is, no
+   application may listen for a wake word. packages/gilbertone's speech-state.ts carries the events
+   as an architecture contract and is not swept; the generated AssistantData files carry the boolean
+   and are not code that listens. */
+{
+  const q = p2.voice.lockedSettings.wakeWordQuestion;
+  if (!q || !q.state)
+    throw new Error(
+      "packages/catalog/voice.json no longer records the wake-word question. Two founder records disagree about it; deleting the question does not settle it.",
+    );
+  if (q.state === "open") {
+    const wiring = /wake_word_detected|start_wake_word_detection|\bporcupine\b|WakeWordDetector|WakeWordEngine|PvPorcupine|ai\.picovoice/i;
+    const swept = [
+      ...files("apps/web/src").filter((f) => /\.(ts|tsx)$/.test(f)),
+      ...files("apps/ios/MyThuso").filter((f) => f.endsWith(".swift")),
+      ...files("apps/android/app/src/main").filter((f) => f.endsWith(".kt")),
+      ...files("apps/assistant-api/src").filter((f) => f.endsWith(".ts")),
+    ].filter((f) => !/\.test\.tsx?$/.test(f));
+    for (const f of swept)
+      if (wiring.test(p2Code(read(f))))
+        throw new Error(
+          `${f} wires wake-word detection while packages/catalog/voice.json records the wake-word question as open. An always-listening microphone changes MyThuso's privacy posture before the Information Regulator; it waits for the founder to record which of the two conflicting directions stands.`,
+        );
+    p2Summary.wakeWordSwept = swept.length;
+  }
+}
+
+/* 4. The clinical-delivery voice changes only through the Clinician Review Queue. Emergency, refusal
+   and escalation are locked, answered at level 0, adjustable on rate and pitch only, never savable
+   as a preview default, and name no voice. Their definition is pinned by a hash the way
+   gilbert-clinical-core.json pins escalation.ts: an edit fails until the pin moves with it, and a pin
+   other than the founding one needs the ratified queue entry that allowed it. What cannot be checked
+   yet: that the entry exists and is ratified — the queue has no store to look it up in. */
+{
+  const FOUNDING_CLINICAL_DELIVERY_PIN = "0f8c806c90e70d84";
+  const zone = p2.voice.zones.find((z) => z.id === "clinical-delivery");
+  if (!zone || zone.configurable !== "locked" || zone.changedOnlyThrough !== "packages/catalog/clinical-review-queue.json")
+    throw new Error(
+      "packages/catalog/voice.json's clinical-delivery zone is not locked to changes through packages/catalog/clinical-review-queue.json. How an emergency answer sounds is a clinical change, and it moves through the one door clinical changes move through.",
+    );
+  for (const id of ["emergency", "refusal", "escalation"]) {
+    const c = p2Clinical.find((k) => k.id === id);
+    if (!c)
+      throw new Error(
+        `packages/catalog/voice.json has no "${id}" class in the clinical-delivery zone. The plan locks emergency, refusal and escalation; moving one out of the zone is making its voice configurable.`,
+      );
+  }
+  for (const c of p2Clinical) {
+    if (c.level !== 0)
+      throw new Error(
+        `packages/catalog/voice.json's "${c.id}" class is answered at level ${c.level}. A clinical-delivery answer is decided at level 0, by the deterministic layer, before any model is asked.`,
+      );
+    if (c.accessibilityAxes.some((a) => !["rate", "pitch"].includes(a)))
+      throw new Error(
+        `packages/catalog/voice.json lets "${c.id}" be adjusted on ${c.accessibilityAxes.join(", ")}. Rate and pitch are accessibility axes; anything else changes how the words that send somebody to an ambulance sound.`,
+      );
+    if (c.previewMaySaveAsDefault !== false)
+      throw new Error(
+        `packages/catalog/voice.json offers Save as default on the "${c.id}" preview row. The preview plays the locked register so the boundary can be heard; a save button presents it as configurable.`,
+      );
+    if ("voice" in c || "voiceRef" in c)
+      throw new Error(
+        `packages/catalog/voice.json gives the "${c.id}" class a voice of its own. The clinical register names no voice; the voices live in packages/catalog/assistant.json and apply to every class alike.`,
+      );
+  }
+  const reg = p2.voice.clinicalDeliveryRegister;
+  const hash = createHash("sha256")
+    .update(JSON.stringify({ sentence: reg.sentence, classes: p2Clinical }))
+    .digest("hex")
+    .slice(0, 16);
+  if (hash !== reg.pinnedHash)
+    throw new Error(
+      `packages/catalog/voice.json's clinical-delivery register hashes to ${hash} and pins ${reg.pinnedHash}. A change to the emergency, refusal or escalation classes or to the register's sentence is a clinical change: it goes through packages/catalog/clinical-review-queue.json, and the ratified entry is recorded by raising the register's version, naming the entry in ratifiedEntryRef and moving the pin with it.`,
+    );
+  if ((reg.pinnedHash !== FOUNDING_CLINICAL_DELIVERY_PIN || reg.version !== 1) && !reg.ratifiedEntryRef)
+    throw new Error(
+      `packages/catalog/voice.json's clinical-delivery register is at version ${reg.version} with pin ${reg.pinnedHash}, moved from its founding version, and names no ratifiedEntryRef. The register changes only through a ratified Clinician Review Queue entry, and the entry is how the change says whose authority it carries.`,
+    );
+}
+
+/* 5. The signed-out visitor never runs above level 1 — voice.json's class and intelligence-levels.json's
+   conversation type agree, and today's public sheet reaches no model at all. What waits for the
+   runtime: a per-turn level check, because no turn records a level yet. */
+{
+  const visitorClass = p2.voice.queryClasses.find(
+    (c) => c.conversationType === "signed-out-visitor",
+  );
+  const visitor = p2.levels.conversationTypes.find(
+    (t) => t.id === "signed-out-visitor",
+  );
+  if (!visitorClass || !visitor)
+    throw new Error(
+      "packages/catalog/voice.json and packages/catalog/intelligence-levels.json no longer both name the signed-out-visitor conversation. The plan's invariant — a visitor never above level 1 — is held by the two agreeing.",
+    );
+  for (const c of p2.voice.queryClasses.filter((k) => k.conversationType))
+    if (!p2.levels.conversationTypes.some((t) => t.id === c.conversationType))
+      throw new Error(
+        `packages/catalog/voice.json's "${c.id}" class names conversation type "${c.conversationType}", which packages/catalog/intelligence-levels.json does not define. A class with no level is a class nothing limits.`,
+      );
+  const visitorMax = Math.max(visitor.defaultLevel, visitor.ceiling, visitor.ceilingWithClinician ?? 0);
+  if (visitorMax > 1)
+    throw new Error(
+      `packages/catalog/intelligence-levels.json lets a signed-out visitor reach level ${visitorMax}. Nothing is known about a visitor and nothing they ask is answered clinically; the plan's ceiling is 1, and it is not a setting.`,
+    );
+  for (const f of ["apps/web/src/lib/public-assistant.ts", "apps/web/src/features/PublicAssistant.tsx"]) {
+    const code = p2Code(read(f));
+    if (/gilbertone-bridge|\bfetch\s*\(|\/assistant\/|sendWithGilbertEngine/.test(code))
+      throw new Error(
+        `${f} now calls the assistant service. The public page's sheet answers at level 0 from packages/catalog/assistant-public.json, which is how a signed-out visitor is held under level 1 today; a call to the service would need a per-turn level, which nothing records yet.`,
+      );
+  }
+}
+
+/* 6. §07's V03 refusal stands, and a voice name lives in one place. V03 is the web's standing refusal
+   of a voice chooser (G29 requires it unchanged); a neural voice name typed into any of the new
+   contracts, or into the service that speaks, is a second answer to which voice reads a health answer. */
+{
+  if (!/id:\s*"V03"/.test(read("apps/web/src/lib/gilbertone.ts")))
+    throw new Error(
+      "apps/web/src/lib/gilbertone.ts no longer carries §07's V03 refusal. G29 requires it unchanged: no voice chooser, and no promise that a South African voice is installed.",
+    );
+  const neural = /\b[a-z]{2}-[A-Z]{2}-[A-Za-z]+Neural\b/;
+  for (const [name, file] of Object.entries(p2Files))
+    if (neural.test(JSON.stringify(p2[name])))
+      throw new Error(
+        `${file} names the voice ${JSON.stringify(p2[name]).match(neural)[0]}. Voices are read from packages/catalog/assistant.json, per language, and a second copy is how two screens come to disagree about which voice reads an emergency.`,
+      );
+  if (neural.test(p2Code(read("apps/assistant-api/src/lib/speech.ts"))))
+    throw new Error(
+      "apps/assistant-api/src/lib/speech.ts types a neural voice name. It reads its voices from packages/catalog/assistant.json, and packages/catalog/voice.json points there too.",
+    );
+}
+
+/* 7. A provider's recorded state is the tree's. Built or dark means an adapter file that exists and
+   carries the named symbol; proposed means no adapter, no variable and no production claim; and
+   "configured in production" is only said where the health route reports that field and the
+   activation record read it true. The plan's wireframe shows providers as active that nothing can
+   call; this is the check that stops a contract saying so. */
+{
+  const statuses = new Set(["built", "dark", "proposed", "gated", "named-but-absent"]);
+  const adapters = [
+    ...p2.providers.providers.map((p) => [p2Files.providers, p]),
+    ...p2.registry.cards.filter((c) => c.adapter).map((c) => [p2Files.registry, c]),
+  ];
+  for (const [file, p] of adapters) {
+    if (!statuses.has(p.buildStatus))
+      throw new Error(
+        `${file}'s "${p.id}" has buildStatus "${p.buildStatus}". The plan's status vocabulary is exact: built, proposed, dark, gated or named-but-absent.`,
+      );
+    if (["built", "dark"].includes(p.buildStatus)) {
+      if (!p.adapter || !existsSync(p.adapter.file) || !p2Code(read(p.adapter.file)).includes(p.adapter.symbol))
+        throw new Error(
+          `${file} records "${p.id}" as ${p.buildStatus}, and ${p.adapter?.file ?? "no adapter file"} does not carry ${p.adapter?.symbol ?? "the adapter"} in code. Built means in the tree; a status with no file behind it is the overstatement the plan's vocabulary exists to stop.`,
+        );
+    } else if (p.adapter || (p.configuredByPresenceOf ?? p.environment ?? []).length || p.productionConfigured)
+      throw new Error(
+        `${file} records "${p.id}" as ${p.buildStatus} and still gives it an adapter, an environment variable or a production claim. A proposed provider is a name in a plan until code exists to call it.`,
+      );
+    if (p.healthField && !p2HealthFields.has(p.healthField))
+      throw new Error(
+        `${file}'s "${p.id}" reads health field "${p.healthField}", which GET /health in packages/catalog/apis/assistant.json does not return.`,
+      );
+    if (p.productionConfigured === true) {
+      const evidence = p.productionEvidence && existsSync(p.productionEvidence) ? read(p.productionEvidence) : "";
+      if (!p.healthField || !new RegExp(`\\b${p.healthField}:\\s*true\\b`).test(evidence))
+        throw new Error(
+          `${file} says "${p.id}" is configured in production, and ${p.productionEvidence ?? "no evidence file"} does not record /assistant/health reporting ${p.healthField ?? "(no field)"}:true. Production state is what was read off the box, not what a contract would like it to be.`,
+        );
+    }
+  }
+  /* The platform order the contract shows is the order orchestrator.ts actually resolves in. */
+  const orchestrator = p2Code(read("apps/assistant-api/src/lib/orchestrator.ts"));
+  const inCode = [
+    ["azure-openai", orchestrator.indexOf("new AzureOpenAIProvider")],
+    ["ollama", orchestrator.indexOf("new OllamaProvider")],
+  ]
+    .filter(([, at]) => at >= 0)
+    .sort((a, b) => a[1] - b[1])
+    .map(([id]) => id);
+  if (JSON.stringify(inCode) !== JSON.stringify(p2.providers.routing.platformOrderToday.order))
+    throw new Error(
+      `packages/catalog/model-providers.json records the platform order [${p2.providers.routing.platformOrderToday.order.join(", ")}], and apps/assistant-api/src/lib/orchestrator.ts resolves [${inCode.join(", ")}]. The Model Providers screen shows the order the service uses, not one a contract remembers.`,
+    );
+}
+
+/* 8. A provider's residency matches the residency decision — which, today, is that there is none.
+   docs/governance/DATA-RESIDENCY-OPTIONS.md §7 is read for its "Option chosen" row: while it is
+   blank, no provider in either contract may carry a tier or a section 72 determination, and the
+   speech card's determination must agree with the feed seam packages/catalog/feeds.json keeps for
+   the same supplier. Once §7 is signed, each tier must be one the contract defines. What cannot be
+   checked: whether a tier, once assigned, is legally right — that is counsel's. */
+{
+  const decisionDoc = read("docs/governance/DATA-RESIDENCY-OPTIONS.md");
+  const row = decisionDoc.split("\n").find((l) => /^\|\s*Option chosen/.test(l));
+  if (!row)
+    throw new Error(
+      "docs/governance/DATA-RESIDENCY-OPTIONS.md no longer has an 'Option chosen' row in §7. packages/catalog/model-providers.json's residency is held to that row; without it nothing says whether a decision exists.",
+    );
+  const decided = row.split("|")[2].trim().length > 0;
+  const tierIds = new Set(p2.providers.residencyTiers.map((t) => t.id));
+  if (p2.providers.residencyToday.decided !== decided)
+    throw new Error(
+      `packages/catalog/model-providers.json says residencyToday.decided is ${p2.providers.residencyToday.decided}, and docs/governance/DATA-RESIDENCY-OPTIONS.md §7's Option chosen row is ${decided ? "filled in" : "blank"}. The contract reads the decision; it does not keep its own.`,
+    );
+  const withResidency = [
+    ...p2.providers.providers.map((p) => [p2Files.providers, p]),
+    ...p2.registry.cards.filter((c) => c.residency).map((c) => [p2Files.registry, c]),
+  ];
+  for (const [file, p] of withResidency) {
+    const r = p.residency;
+    if (!decided && (r.tier !== null || r.section72Determined !== false))
+      throw new Error(
+        `${file} gives "${p.id}" residency tier ${JSON.stringify(r.tier)} and section72Determined ${r.section72Determined}, while docs/governance/DATA-RESIDENCY-OPTIONS.md §7 is blank. A tier written ahead of the responsible party's decision is a guess that reads like a policy.`,
+      );
+    if (r.tier !== null && !tierIds.has(r.tier))
+      throw new Error(`${file}'s "${p.id}" has residency tier "${r.tier}", which packages/catalog/model-providers.json#residencyTiers does not define.`);
+    if (["adequate", "contractual"].includes(r.tier) && !r.dpaRef)
+      throw new Error(`${file}'s "${p.id}" is Tier 2 or 3 with no dpaRef. A transfer that relies on an agreement names the agreement.`);
+  }
+  for (const p of p2.providers.providers)
+    for (const c of p.candidateRegions ?? [])
+      if (!tierIds.has(c.proposedTier))
+        throw new Error(`packages/catalog/model-providers.json's "${p.id}" candidate region "${c.region}" proposes tier "${c.proposedTier}", which residencyTiers does not define.`);
+  for (const card of p2.registry.cards.filter((c) => c.residency && c.feedRef)) {
+    const feed = p2.feeds.feeds.find((f) => f.id === card.feedRef);
+    if (feed && feed.operator.determined !== card.residency.section72Determined)
+      throw new Error(
+        `packages/catalog/api-registry.json's "${card.id}" records section72Determined ${card.residency.section72Determined}, and packages/catalog/feeds.json's ${feed.id} seam records ${feed.operator.determined} for the same supplier. One determination, recorded once, read in both places.`,
+      );
+  }
+  p2Summary.residencyDecided = decided;
+}
+
+/* 9. The clinical-evaluation model is never the default routing target. Today every slot is null —
+   there is no tenant and no harness — so this holds the rule in the contract for the day one is
+   filled, and holds that the evaluation model is not in the platform order the service resolves. */
+{
+  const r = p2.providers.routing;
+  const evalModel = r.clinicalEvaluationModel;
+  if (evalModel.mayBeDefaultRoutingTarget !== false)
+    throw new Error(
+      "packages/catalog/model-providers.json allows the clinical-evaluation model to be the default routing target. It tests proposed clinical changes; a model that answers patients and grades changes to how patients are answered is marking its own work.",
+    );
+  if (
+    evalModel.providerRef &&
+    ((evalModel.providerRef === r.defaultModel.providerRef && evalModel.modelRef === r.defaultModel.modelRef) ||
+      r.platformOrderToday.order[0] === evalModel.providerRef)
+  )
+    throw new Error(
+      `packages/catalog/model-providers.json routes patients by default to ${evalModel.providerRef}${evalModel.modelRef ? ` ${evalModel.modelRef}` : ""}, the clinical-evaluation model. The default and the evaluator are different models by rule.`,
+    );
+}
+
+/* 10. The five levels, and level 0's hold on the emergency path. Level 0 asks no model; no level
+   changes the emergency path; levels above 2 need a clinician and level 4 a recorded purpose; the
+   classes locked to level 0 are exactly voice.json's clinical-delivery classes; and turn.ts still
+   keeps the orchestrator away from the classifier's own territory, through the symbol the contract
+   names (the list's contents are held by the GilbertOne block above). What waits for the runtime:
+   a per-turn level, which nothing records. */
+{
+  const ids = p2.levels.levels.map((l) => l.id);
+  if (JSON.stringify(ids) !== JSON.stringify([0, 1, 2, 3, 4]) || p2.levels.platformMaximum !== 4)
+    throw new Error(
+      `packages/catalog/intelligence-levels.json declares levels [${ids.join(", ")}] with a platform maximum of ${p2.levels.platformMaximum}. The plan's five are 0 to 4, and every ceiling in the file is read against them.`,
+    );
+  const zero = p2.levels.levels[0];
+  if (zero.modelCall !== false || zero.runsIn !== "packages/gilbertone")
+    throw new Error(
+      "packages/catalog/intelligence-levels.json's level 0 asks a model or no longer runs in packages/gilbertone. Level 0 is the deterministic layer — the floor that answers when everything above it is dark or wrong.",
+    );
+  for (const l of p2.levels.levels) {
+    if (l.changesEmergencyPath !== false)
+      throw new Error(
+        `packages/catalog/intelligence-levels.json's level ${l.id} changes the emergency path. No level does: an emergency, a refusal and an escalation are answered at level 0, first, every time.`,
+      );
+    if ((l.id > 2) !== (l.requiresClinician === true))
+      throw new Error(
+        `packages/catalog/intelligence-levels.json's level ${l.id} has requiresClinician ${l.requiresClinician}. Levels 3 and 4 are clinical assist with a clinician signed in, and levels 0 to 2 are not clinical at all.`,
+      );
+  }
+  if (p2.levels.levels[4].requiresRecordedPurpose !== true)
+    throw new Error("packages/catalog/intelligence-levels.json's level 4 no longer requires a recorded purpose.");
+  const locked = p2.levels.lockedToLevel0.classes.slice().sort().join();
+  const fromVoice = p2Clinical.map((c) => c.id).sort().join();
+  if (locked !== fromVoice)
+    throw new Error(
+      `packages/catalog/intelligence-levels.json locks [${locked}] to level 0 and packages/catalog/voice.json's clinical-delivery zone holds [${fromVoice}]. The two lists are one rule said twice; they agree or neither holds.`,
+    );
+  const enforced = p2.levels.lockedToLevel0.enforcedInCode;
+  if (!p2Code(read(enforced.file)).includes(`const ${enforced.symbol}`))
+    throw new Error(
+      `packages/catalog/intelligence-levels.json says ${enforced.file} enforces level 0 through ${enforced.symbol}, and the file no longer declares it. Move the contract's pointer with the code, or the rule points at nothing.`,
+    );
+}
+
+/* 11. A patient's clinical-assist turn never runs above level 2 without a clinician, and no
+   conversation's default or ceiling escapes the platform maximum. Every type's ceiling without a
+   clinician is 2 or less unless it is a clinical type that names the level above which a clinician
+   is required; and because no clinician session exists (clinicianLock.readsFrom is null), nothing
+   may claim to read one. What waits for the runtime: testing the lock against a real session. */
+{
+  for (const t of p2.levels.conversationTypes) {
+    if (!(t.defaultLevel <= t.ceiling && t.ceiling <= p2.levels.platformMaximum))
+      throw new Error(
+        `packages/catalog/intelligence-levels.json's "${t.id}" has default ${t.defaultLevel} and ceiling ${t.ceiling}. A default above its own ceiling, or a ceiling above the platform maximum, is a limit that limits nothing.`,
+      );
+    const clinicianGated = typeof t.requiresClinicianAbove === "number" && t.requiresClinicianAbove <= 2;
+    if (t.ceiling > 2 && !clinicianGated)
+      throw new Error(
+        `packages/catalog/intelligence-levels.json lets "${t.id}" reach level ${t.ceiling} with no clinician. Above level 2 the model reasons at length; without a clinician reading it, that is advice nobody is accountable for.`,
+      );
+    if (t.ceiling > 2 && !t.clinical)
+      throw new Error(`packages/catalog/intelligence-levels.json's "${t.id}" is not clinical and reaches level ${t.ceiling}. Levels 3 and 4 are clinical assist only.`);
+  }
+  const pca = p2.levels.conversationTypes.find((t) => t.id === "patient-clinical-assist");
+  if (!pca || pca.defaultLevel > 2 || pca.ceiling > 2)
+    throw new Error(
+      "packages/catalog/intelligence-levels.json lets a patient's clinical-assist turn run above level 2 without a clinician. The plan's invariant, and not a setting.",
+    );
+  if (p2.levels.clinicianLock.readsFrom !== null && !existsSync(String(p2.levels.clinicianLock.readsFrom).split("#")[0]))
+    throw new Error(
+      `packages/catalog/intelligence-levels.json's clinician lock reads from ${p2.levels.clinicianLock.readsFrom}, which does not exist. Until a session exists that can say a clinician is signed in, the lock reads nothing and the answer is no.`,
+    );
+}
+
+/* 12. A provider this registry records as proposed is never called — the plan's "a disabled provider
+   is called", in the one form the tree can hold today. There is no enable or disable switch yet, so
+   the build holds the stronger rule: no service, app or dependency names a proposed provider at all,
+   so nothing exists that could call it. When the switch exists, the check it needs is a route test
+   asserting the capability's not-connected sentence, and this sweep stays as its floor. */
+{
+  const categories = new Set(["llm", "speech", "payments", "sms", "maps", "push", "email", "device-gateway", "vector-store", "knowledge-source"]);
+  const statuses = new Set(p2.registry.cardStatuses.map((s) => s.id));
+  const code = [
+    ...files("apps/assistant-api/src"),
+    ...files("apps/api/src"),
+    ...files("apps/passport/src"),
+    ...files("apps/web/src"),
+    ...files("packages/gilbertone/src"),
+    ...files("packages/mock-api/src"),
+    ...files("packages/engines/src"),
+    ...files("apps/ios/MyThuso"),
+    ...files("apps/android/app/src/main"),
+  ]
+    .filter((f) => /\.(ts|tsx|mjs|js|swift|kt)$/.test(f))
+    .filter((f) => !/\.test\.tsx?$|\.generated\.|Data\.(swift|kt)$/.test(f))
+    .map((f) => [f, p2Code(read(f)).toLowerCase()]);
+  const manifests = ["package.json", ...["apps", "packages"].flatMap((d) => readdirSync(d).map((n) => `${d}/${n}/package.json`))]
+    .filter((f) => existsSync(f))
+    .map((f) => {
+      const pkg = JSON.parse(read(f));
+      return [f, Object.keys({ ...pkg.dependencies, ...pkg.devDependencies, ...pkg.optionalDependencies }).join(" ").toLowerCase()];
+    });
+  let proposed = 0;
+  for (const card of p2.registry.cards) {
+    if (!categories.has(card.category))
+      throw new Error(`packages/catalog/api-registry.json's "${card.id}" is in category "${card.category}", which the registry does not draw.`);
+    if (!statuses.has(card.statusToday))
+      throw new Error(`packages/catalog/api-registry.json's "${card.id}" has statusToday "${card.statusToday}", which is not one of its cardStatuses.`);
+    if (card.detailsFrom?.startsWith("packages/catalog/model-providers.json")) {
+      const provider = p2.providers.providers.find((p) => p.id === card.id);
+      if (!provider || provider.buildStatus !== card.buildStatus)
+        throw new Error(
+          `packages/catalog/api-registry.json's "${card.id}" says ${card.buildStatus}, and packages/catalog/model-providers.json says ${provider?.buildStatus ?? "nothing"}. One provider, one status.`,
+        );
+    }
+    if (card.buildStatus !== "proposed") continue;
+    proposed++;
+    if (card.statusToday !== "not-configured" || !card.codeNames?.length)
+      throw new Error(
+        `packages/catalog/api-registry.json's proposed "${card.id}" is shown as "${card.statusToday}" or names nothing to sweep for. A proposed card is not-configured, and it names the strings its code would have to use so the build can prove none exists.`,
+      );
+    for (const name of card.codeNames.map((n) => n.toLowerCase())) {
+      for (const [f, text] of code)
+        if (text.includes(name))
+          throw new Error(
+            `${f} names "${name}", and packages/catalog/api-registry.json records ${card.name} as proposed — not configured, not contracted, no adapter. A call to a provider the registry says is off is the one thing its a-disabled-provider-is-never-called refusal exists to stop. Record the adapter on the card, with its gate, in the same change.`,
+          );
+      for (const [f, deps] of manifests)
+        if (deps.includes(name))
+          throw new Error(`${f} depends on a package named for "${name}", and packages/catalog/api-registry.json records ${card.name} as proposed.`);
+    }
+  }
+  p2Summary.proposedCards = proposed;
+  p2Summary.codeSwept = code.length;
+}
+
+/* 13. Every provider credential the assistant service reads has a card. A variable read in code that
+   no card names is an external API the registry does not know about — which is how a provider gets
+   called with nothing on the screen saying so. And every variable a card names is read somewhere. */
+{
+  const named = new Set(p2.registry.cards.flatMap((c) => c.environment ?? []));
+  const providerVar = /^(AZURE|OLLAMA|QDRANT|OPENFDA|ICD11|PUBMED|EUROPEPMC|OPENAI|ANTHROPIC|DEEPSEEK|DASHSCOPE|QWEN|ELEVENLABS|DEEPGRAM|GOOGLE|FCM|FIREBASE|SENDGRID|MAILGUN|PAYFAST|PEACH|YOCO|BULKSMS|CLICKATELL|SMSPORTAL|MAPBOX|MQTT)_/;
+  const read_ = new Set();
+  for (const f of files("apps/assistant-api/src").filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts")))
+    for (const m of p2Code(read(f)).matchAll(/\benv\.([A-Z][A-Z0-9_]+)|process\.env\[["']([A-Z][A-Z0-9_]+)["']\]/g)) {
+      const v = m[1] ?? m[2];
+      if (v && providerVar.test(v)) read_.add(v);
+    }
+  const federation = read("packages/catalog/knowledge/federation.json");
+  for (const v of read_)
+    if (!named.has(v) && !federation.includes(v))
+      throw new Error(
+        `apps/assistant-api reads ${v}, and no card in packages/catalog/api-registry.json names it. An external API the registry does not know about is one the API Registry screen could never switch off.`,
+      );
+  const everywhere = [
+    ...files("apps/assistant-api/src"),
+    ...files("apps/web/src"),
+    "apps/web/vite.config.ts",
+  ]
+    .filter((f) => /\.(ts|tsx)$/.test(f))
+    .map((f) => read(f))
+    .join("\n");
+  for (const card of p2.registry.cards)
+    for (const v of card.environment ?? [])
+      if (!everywhere.includes(v))
+        throw new Error(`packages/catalog/api-registry.json's "${card.id}" names ${v}, and nothing in the service or the web reads it. A card's variables are the ones its adapter reads.`);
+  for (const p of p2.providers.providers) {
+    const card = p2.registry.cards.find((c) => c.id === p.id);
+    if (!card)
+      throw new Error(`packages/catalog/model-providers.json's "${p.id}" has no card in packages/catalog/api-registry.json, which lists every external API.`);
+    for (const v of p.configuredByPresenceOf)
+      if (!(card.environment ?? []).includes(v))
+        throw new Error(`packages/catalog/model-providers.json says "${p.id}" is configured by ${v}, and its api-registry.json card does not list it.`);
+  }
+  p2Summary.providerVars = read_.size;
+}
+
+/* 14. Health information never goes to a Tier 3 provider, and every flow the registry records is a
+   real one: a built route, a field that route accepts, a provider that is built. Today no provider
+   has a tier — the residency decision is blank — so no flow can reach Tier 3, and the check reports
+   how many health-information flows reach a provider with no decision at all. It reports rather than
+   fails: that is production's state, recorded open in docs/governance/ASSISTANT-ACTIVATION.md, and
+   no code change closes it. What cannot be checked: fields tagged at runtime, which needs the
+   data-class register docs/control-tower-session-model.md names and nobody has written. */
+{
+  let undecided = 0;
+  const tierOf = (id) => {
+    const p = p2.providers.providers.find((x) => x.id === id);
+    if (p) return p.residency.tier;
+    return p2.registry.cards.find((c) => c.id === id)?.residency?.tier ?? null;
+  };
+  for (const flow of p2.registry.dataFlows) {
+    const [method, path] = flow.route.split(" ");
+    const route = p2.apis.routes.find(
+      (r) => r.method === method && r.path === path && r.version === flow.version && r.status === "built",
+    );
+    if (!route || !route.request.some((f) => f.field === flow.field))
+      throw new Error(
+        `packages/catalog/api-registry.json records a flow of ${flow.field} on ${flow.route}@${flow.version}, and packages/catalog/apis/assistant.json has no built route of that version accepting that field. A data flow on a route that does not exist is a map of somewhere else.`,
+      );
+    const card = p2.registry.cards.find((c) => c.id === flow.providerRef);
+    if (!card || card.buildStatus === "proposed")
+      throw new Error(
+        `packages/catalog/api-registry.json sends ${flow.route}'s ${flow.field} to "${flow.providerRef}", which ${card ? "is proposed — nothing can call it" : "has no card"}.`,
+      );
+    if (typeof flow.phi !== "boolean")
+      throw new Error(`packages/catalog/api-registry.json's flow of ${flow.route} ${flow.field} does not say whether it may carry health information.`);
+    const tier = tierOf(flow.providerRef);
+    if (flow.phi && tier === "contractual")
+      throw new Error(
+        `packages/catalog/api-registry.json sends ${flow.route}'s ${flow.field}, which may carry health information, to ${flow.providerRef}, a Tier 3 (contractual) provider. Health information is special personal information under POPIA, and the no-health-information-to-a-tier-3-provider refusal holds it back from the weakest tier.`,
+      );
+    if (flow.phi && tier === null) undecided++;
+  }
+  p2Summary.phiFlows = p2.registry.dataFlows.filter((f) => f.phi).length;
+  p2Summary.phiUndecided = undecided;
+}
+
+/* 15. A key never reaches the browser. The key's metadata shape holds no field its own neverFields
+   names; the health and status routes carry only booleans and a mode — presence, never a value; and
+   no web source or Vite variable names a provider credential, because the web bundle is public. What
+   waits for the vault: that a key submitted through a screen is never echoed back. */
+{
+  const never = new Set(p2.registry.keyMetadata.neverFields.map(p2Canon));
+  for (const f of p2.registry.keyMetadata.fields)
+    if (never.has(p2Canon(f.field)))
+      throw new Error(
+        `packages/catalog/api-registry.json's keyMetadata carries "${f.field}", which its own neverFields names. The screen shows a key's last four and a fingerprint prefix; the key exists only in the vault.`,
+      );
+  for (const r of p2.apis.routes.filter((r) => ["/health", "/v1/status"].includes(r.path) && r.status === "built"))
+    for (const f of r.response)
+      if (/key|secret|token|endpoint|url|password/i.test(f.field) || !(f.type === "boolean" || f.field === "mode"))
+        throw new Error(
+          `${r.method} ${r.path}@${r.version} returns "${f.field}" (${f.type}). The Overview and the Model Providers screen read this route; it carries presence as booleans and a mode, never a value from a credentials file.`,
+        );
+  const credentialVars = p2.registry.cards
+    .flatMap((c) => c.environment ?? [])
+    .filter((v) => /KEY|SECRET|TOKEN|ENDPOINT|URL/.test(v));
+  const web = [...files("apps/web/src").filter((f) => /\.(ts|tsx)$/.test(f)), "apps/web/vite.config.ts"];
+  for (const f of web) {
+    const text = p2Code(read(f));
+    for (const v of credentialVars)
+      if (text.includes(v))
+        throw new Error(`${f} names ${v}. The web bundle is public; a provider credential's name in it is the first step to its value in it.`);
+    const exposed = text.match(/VITE_[A-Z0-9_]*(KEY|SECRET|TOKEN|PASSWORD)\b/);
+    if (exposed)
+      throw new Error(`${f} reads ${exposed[0]}. Vite writes every VITE_ variable into the public bundle, so a key named that way is a key published.`);
+  }
+}
+
+/* 16. The not-connected sentence is the capability's, and a card's seams are real. A card names a
+   capability and a feed that exist; a proposed card's capability cannot be connected while nothing
+   can call the provider; and no card writes a not-connected sentence of its own — the discipline
+   packages/catalog/feeds.json keeps for its seams. */
+{
+  const caps = new Map(p2.capabilities.capabilities.map((c) => [c.id, c]));
+  const feedIds = new Set(p2.feeds.feeds.map((f) => f.id));
+  for (const card of p2.registry.cards) {
+    if (card.capabilityRef && !caps.has(card.capabilityRef))
+      throw new Error(`packages/catalog/api-registry.json's "${card.id}" names capability "${card.capabilityRef}", which packages/catalog/capabilities.json does not declare.`);
+    if (card.feedRef && !feedIds.has(card.feedRef))
+      throw new Error(`packages/catalog/api-registry.json's "${card.id}" names feed "${card.feedRef}", which packages/catalog/feeds.json does not declare.`);
+    if (card.buildStatus === "proposed" && card.capabilityRef && caps.get(card.capabilityRef).connected)
+      throw new Error(
+        `packages/catalog/capabilities.json marks ${card.capabilityRef} connected, and packages/catalog/api-registry.json records ${card.name} — one of its providers — as proposed. A capability cannot be connected through a provider nothing can call.`,
+      );
+    for (const k of Object.keys(card))
+      if (/notice|notconnected|sentence/i.test(k))
+        throw new Error(
+          `packages/catalog/api-registry.json's "${card.id}" carries its own "${k}". A card never writes its own not-connected sentence; it names a capability and the sentence comes from packages/catalog/capabilities.json word for word.`,
+        );
+  }
+}
+
+/* 17. No preference changes the clinical voice, and the three tiers hold. The classes a person may
+   not re-voice are read from voice.json's clinical-delivery zone, so a fourth locked class is covered
+   the day it is added. A person gets rate, pitch, mute and the words that cannot be turned off; no
+   voice chooser; and the clinical register is overridable by nobody. What waits for the runtime: a
+   preference store, which does not exist, and the platform tests G35 asks for. */
+{
+  const tiers = new Map(p2.prefs.tiers.map((t) => [t.id, t]));
+  const clinicalTier = tiers.get("clinical-register");
+  if (!clinicalTier || clinicalTier.zone !== "clinical-delivery" || clinicalTier.overridableBy.length)
+    throw new Error(
+      "packages/catalog/user-preferences.json's clinical register is missing, is not voice.json's clinical-delivery zone, or is overridable by somebody. Nobody overrides how an emergency, a refusal or an escalation sounds beyond the accessibility axes.",
+    );
+  if (!tiers.get("tenant-presentation") || tiers.get("tenant-presentation").zone !== "presentation" || !tiers.get("user-preference"))
+    throw new Error("packages/catalog/user-preferences.json no longer has the plan's three tiers: the clinical register, the tenant's presentation and the person's preference.");
+  const allowed = new Set(["rate", "pitch", "mute", "captions"]);
+  for (const a of p2.prefs.axes)
+    if (!allowed.has(a.id))
+      throw new Error(
+        `packages/catalog/user-preferences.json offers "${a.id}" as a preference on every answer. A person may change speed and pitch, and mute; anything else applied to an emergency answer changes how it sounds, which is locked (packages/catalog/voice.json).`,
+      );
+  if (p2.prefs.voiceChoice.offeredToUser !== false)
+    throw new Error("packages/catalog/user-preferences.json offers a person a voice chooser. §07's V03 refusal: no voice selection, and no promise a South African voice is installed.");
+  const captions = p2.prefs.axes.find((a) => a.id === "captions");
+  if (!captions || captions.userMayTurnOff !== false || p2.voice.lockedSettings.captions.locked !== true)
+    throw new Error("packages/catalog/user-preferences.json lets a person turn the written words off, or voice.json no longer locks them. The written words are the answer.");
+  for (const c of p2Clinical)
+    for (const a of c.accessibilityAxes)
+      if (!p2.prefs.axes.some((x) => x.id === a))
+        throw new Error(`packages/catalog/voice.json lets "${c.id}" be adjusted on ${a}, which packages/catalog/user-preferences.json does not define as a person's axis.`);
+}
+
+/* 18. The platform's screen reader is never overridden without explicit consent. GilbertOne speaks
+   with its own synthesiser; the attributes that change how VoiceOver or TalkBack itself speaks a
+   piece of text are refused in hand-written native code while the contract records no consent
+   sentence to ask with. What waits for G35: listening to the two together on real devices. */
+{
+  const sr = p2.prefs.platformScreenReader;
+  const consentOnFile = sr.consentRequired === true && typeof sr.consentSentence === "string" && sr.consentSentence.trim().length > 0;
+  if (sr.overridesPlatformVoice !== false && !consentOnFile)
+    throw new Error(
+      "packages/catalog/user-preferences.json lets GilbertOne override the platform screen reader's voice with no consent sentence on file. The screen reader belongs to the person who set it up.",
+    );
+  const apis = [...sr.overrideApis.ios, ...sr.overrideApis.android];
+  if (apis.length < 2)
+    throw new Error("packages/catalog/user-preferences.json names no screen-reader override APIs, which is the list this check sweeps for.");
+  const nativeHand = [
+    ...files("apps/ios/MyThuso").filter((f) => f.endsWith(".swift")),
+    ...files("apps/android/app/src/main").filter((f) => f.endsWith(".kt")),
+  ].filter((f) => !/Data\.(swift|kt)$/.test(f));
+  if (!consentOnFile)
+    for (const f of nativeHand) {
+      const code = p2Code(read(f));
+      const hit = apis.find((a) => new RegExp(`\\b${a}\\b`).test(code));
+      if (hit)
+        throw new Error(
+          `${f} uses ${hit}, which changes how the platform's screen reader speaks. packages/catalog/user-preferences.json records no consent to do that; GilbertOne reads with its own voice and leaves VoiceOver and TalkBack as their owner set them.`,
+        );
+    }
+  p2Summary.screenReaderSwept = nativeHand.length;
+}
+
+/* 19. The Overview reads what it reports. Every gate it lists is a row in the register it came from,
+   with the same owner, and every gate §9 of the plan lists appears; a gate marked resolved names
+   evidence that exists. Every service's state is in the portal vocabulary, never "connected" by
+   typing, and never contradicting its capability; the assistant reads only fields its health route
+   returns. No tenant is listed while no tenancy contract exists, and the wireframe's demonstration
+   tenant is named nowhere in the new contracts. */
+{
+  const register = (file) =>
+    new Map(
+      read(file)
+        .split("\n")
+        .map((l) => l.match(/^\|\s*(G\d+[a-e]?)\s*\|[^|]*\|[^|]*\|\s*([^|]+?)\s*\|\s*$/))
+        .filter(Boolean)
+        .map((m) => [m[1], m[2]]),
+    );
+  const ui = register("docs/PROMPT-CONTROL-TOWER-UI.md");
+  const plan = register("docs/PROMPT-CONTROL-TOWER.md");
+  if (ui.size < 10 || plan.size < 20)
+    throw new Error("scripts/check-boundaries.mjs can no longer read the gate registers' tables, so the Overview's gates are held to nothing.");
+  const section = (id) => p2.overview.sections.find((s) => s.id === id);
+  const gates = section("open-gates").gates;
+  for (const g of gates) {
+    const owner = ui.get(g.id) ?? plan.get(g.id);
+    if (!owner)
+      throw new Error(`packages/catalog/control-tower-overview.json lists gate ${g.id}, which neither gate register holds.`);
+    if (owner !== g.owner)
+      throw new Error(
+        `packages/catalog/control-tower-overview.json gives ${g.id} to "${g.owner}", and its register gives it to "${owner}". The Overview copies a Markdown row no screen can read; the copy agrees with the row or the screen tells somebody the wrong person to ask.`,
+      );
+    if (g.state === "resolved" && !(g.resolvedBy && existsSync(g.resolvedBy)))
+      throw new Error(`packages/catalog/control-tower-overview.json marks ${g.id} resolved with no evidence file. A gate closes on evidence, not on a word.`);
+    for (const f of g.movedBy)
+      if (/^(docs|packages)\//.test(f) && !existsSync(f.split(" ")[0]))
+        throw new Error(`packages/catalog/control-tower-overview.json says ${g.id} was moved by ${f}, which does not exist.`);
+  }
+  for (const id of ui.keys())
+    if (!gates.some((g) => g.id === id))
+      throw new Error(`docs/PROMPT-CONTROL-TOWER-UI.md §9 lists ${id}, and the Overview's open gates do not. The gates this phase waits on are the ones the landing screen shows.`);
+  const vocabulary = new Set(p2.overview.statusVocabulary.map((s) => s.id));
+  const caps = new Map(p2.capabilities.capabilities.map((c) => [c.id, c]));
+  for (const s of section("service-state").services) {
+    if (s.fixedState !== undefined) {
+      if (!vocabulary.has(s.fixedState) || s.fixedState === "connected")
+        throw new Error(
+          `packages/catalog/control-tower-overview.json fixes ${s.id} as "${s.fixedState}". A fixed state is dark, gated or not-configured — a decision with its reason. Connected is only ever read live.`,
+        );
+      if (!s.reason)
+        throw new Error(`packages/catalog/control-tower-overview.json fixes ${s.id} as ${s.fixedState} with no reason.`);
+    }
+    if (s.capabilityRef && !caps.has(s.capabilityRef))
+      throw new Error(`packages/catalog/control-tower-overview.json's ${s.id} names capability "${s.capabilityRef}", which packages/catalog/capabilities.json does not declare.`);
+    if (s.capabilityRef && caps.get(s.capabilityRef).connected && s.fixedState)
+      throw new Error(`packages/catalog/capabilities.json marks ${s.capabilityRef} connected, and the Overview still fixes ${s.id} as ${s.fixedState}. Read it live now.`);
+    for (const f of s.fieldsRead ?? [])
+      if (!p2HealthFields.has(f))
+        throw new Error(`packages/catalog/control-tower-overview.json reads "${f}" from the assistant's health route, which does not return it.`);
+  }
+  const tenants = section("active-tenants").tenants;
+  if (tenants.length && !existsSync("packages/catalog/tenancy.json"))
+    throw new Error(
+      "packages/catalog/control-tower-overview.json lists a tenant, and no tenancy contract exists. A tenant is created by a contract naming what one is (packages/catalog/gilbertone-inference-isolation.json), not by a row on a landing screen.",
+    );
+  for (const [name, file] of Object.entries(p2Files))
+    if (/milpark/i.test(JSON.stringify(p2[name])))
+      throw new Error(`${file} names the plan wireframe's demonstration tenant. No tenant exists, and a demo tenant on an administration screen is read as a customer.`);
+  p2Summary.gates = gates.length;
+}
+
+console.log(
+  `GilbertOne administration, Phase 2 · ${p2Summary.catalogueSwept} catalogue files hold no key or deployment address; push-to-talk and captions are locked and no application wires a wake word while the founder's two records disagree (${p2Summary.wakeWordSwept} files); the emergency, refusal and escalation voice is pinned and changes only through the review queue; a signed-out visitor is held at level 1 and a patient's clinical assist at 2; no level changes the emergency path; ${p2Summary.proposedCards} proposed providers are named in none of ${p2Summary.codeSwept} source files; every provider variable the service reads has a card; ${p2Summary.phiFlows} health-information flows reach no Tier 3 provider${p2Summary.phiUndecided ? `, and ${p2Summary.phiUndecided} of them reach a provider with no residency decision — open, recorded in docs/governance/ASSISTANT-ACTIVATION.md` : ""}; no preference re-voices a clinical answer and no native file overrides the screen reader (${p2Summary.screenReaderSwept} files); and the Overview's ${p2Summary.gates} gates agree with their registers. Not checkable until the runtime exists: a per-turn level, an enable switch, the vault, a clinician session.`,
+);

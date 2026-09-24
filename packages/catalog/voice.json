@@ -1,0 +1,275 @@
+{
+ "_note": "Module 16 of docs/PROMPT-CONTROL-TOWER-UI.md (§7.3, §8): the query-to-voice mapping the GilbertOne API Administration Voice screen would read. Proposed 24 September 2026, Phase 2 of that plan — a contract and its build checks, and nothing else. No screen reads this file, no route serves it, and apps/assistant-api/src/lib/voice-config.ts, the service the plan names for it, does not exist. What this file adds is the thing the plan asks for before any screen: which kinds of answer may have their voice configured, by whom, and which may not be configured at all. It holds no voice. Every voice name, every locale a voice exists for, the cloud voice's own pair, the push-to-talk and caption decisions and the 30-second and 45-second caps already live in packages/catalog/assistant.json#voice, decided by the founder on dated records there, and this file points at them rather than typing them again — scripts/check-boundaries.mjs fails the build if a neural voice name appears here. How GilbertOne speaks today, as read from the tree on 24 September 2026: one voice for everything a platform says. The web asks the browser for a voice in voice.voicePreference's order; the phones use their own on-device synthesiser in the same order; where the cloud voice is configured — it is, in production, in southafricanorth only (docs/governance/ASSISTANT-ACTIVATION.md) — POST /assistant/v1/speak reads with one of the two en-ZA voices in voice.cloud.voices, or an Afrikaans voice for an Afrikaans answer. No kind of answer has a voice of its own. So the lock below is not a lock on something that varies today; it is the rule that no configuration may ever give an emergency, a refusal or an escalation a voice chosen for presentation.",
+ "version": 1,
+ "module": 16,
+ "engine": "assistant",
+ "status": "proposed",
+ "_statusWhy": "The plan's own vocabulary (docs/PROMPT-CONTROL-TOWER-UI.md §2): declared in a contract, not built. The voice itself — browser, phone and cloud — is built and answers patients; what is proposed is the per-class mapping, the per-tenant provider choice and the preview panel. There is no tenant, so there is no per-tenant anything yet (packages/catalog/gilbertone-inference-isolation.json).",
+ "gate": "G29",
+ "_gateWhy": "docs/PROMPT-CONTROL-TOWER-UI.md §9: the clinical-delivery register reviewed by layer 4 (Clinical Administrator) through the Clinician Review Queue; §07's V03 refusal unchanged; the push-to-talk constraint in a contract. This file puts the third in a contract and scripts/check-boundaries.mjs holds the second. The first has not happened: the queue has never received an entry, and the governance board that would ratify one is recorded as not formed in packages/catalog/protocols.json#governance.",
+
+ "reads": {
+  "voicePolicy": "packages/catalog/assistant.json#voice",
+  "voicesPerLanguage": "packages/catalog/assistant.json#voice.languages[].ttsVoices",
+  "cloudVoices": "packages/catalog/assistant.json#voice.cloud.voices",
+  "voiceOrder": "packages/catalog/assistant.json#voice.voicePreference.order",
+  "voiceUnavailableNotice": "packages/catalog/assistant.json#voice.voiceUnavailableNotice",
+  "levels": "packages/catalog/intelligence-levels.json",
+  "userPreferences": "packages/catalog/user-preferences.json",
+  "providers": "packages/catalog/api-registry.json",
+  "reviewQueue": "packages/catalog/clinical-review-queue.json",
+  "v03": "apps/web/src/lib/gilbertone.ts#REFUSED V03",
+  "why": "Every fact the Voice screen needs that already has a home is read from it. A second copy of a voice name is a second answer to 'which voice reads an emergency in South Africa', and the day the two disagree nobody can say which was the decision."
+ },
+
+ "zones": [
+  {
+   "id": "clinical-delivery",
+   "label": "Clinical delivery",
+   "configurable": "locked",
+   "sentence": "Emergency, refusal and escalation answers are read in a neutral, clear register. Their voice is not configurable by a tenant, an administrator or a user. Rate and pitch may be adjusted for accessibility; nothing else about how they sound may be.",
+   "changedOnlyThrough": "packages/catalog/clinical-review-queue.json",
+   "why": "An emergency answer read in a warm presentation voice at a comfortable pace is an emergency answer that sounds less urgent than it is. How the words that send somebody to an ambulance sound is part of what they say, so changing it is a clinical change and moves through the one door clinical changes move through."
+  },
+  {
+   "id": "clinical-assist",
+   "label": "Clinical assist",
+   "configurable": "clinician-only",
+   "sentence": "Answers that assist a clinician are available only when a clinician is signed in. Nobody is signed in to anything today: packages/catalog/intelligence-levels.json records that no clinician session exists for the lock to read.",
+   "changedOnlyThrough": "packages/catalog/clinical-review-queue.json",
+   "why": "A register written for a nurse reading a result is not a register for a patient reading about themselves, and the only thing that can tell the two audiences apart is a signed-in clinician, which does not exist yet."
+  },
+  {
+   "id": "presentation",
+   "label": "Presentation",
+   "configurable": "tenant",
+   "sentence": "Routine answers, navigation, what a signed-out visitor hears and what an administrator hears may have their voice set per tenant, from the voices packages/catalog/assistant.json lists for each language. No tenant exists, so today every one of them uses the platform's own voice in voice.voicePreference's order.",
+   "changedOnlyThrough": null,
+   "why": "How the booking steps or a greeting sound is a brand decision a hospital may reasonably want to make, and it changes nothing a clinician would have to review."
+  }
+ ],
+
+ "queryClasses": [
+  {
+   "id": "emergency",
+   "label": "Emergency",
+   "zone": "clinical-delivery",
+   "register": "neutral-clear",
+   "level": 0,
+   "accessibilityAxes": ["rate", "pitch"],
+   "previewMaySaveAsDefault": false,
+   "decidedBy": "packages/gilbertone emergency recognition and packages/catalog/gilbert-emergency-terms.json",
+   "why": "The answer with the ambulance numbers in it. It is decided at level 0 by the deterministic layer and read in the locked register; the preview panel plays it so an administrator hears the boundary, and offers no Save as default on this row."
+  },
+  {
+   "id": "refusal",
+   "label": "Refusal",
+   "zone": "clinical-delivery",
+   "register": "neutral-clear",
+   "level": 0,
+   "accessibilityAxes": ["rate", "pitch"],
+   "previewMaySaveAsDefault": false,
+   "decidedBy": "packages/catalog/assistant.json#refusals and #refusalPolicies",
+   "why": "A refusal that sounds apologetic or playful reads as negotiable. The words are the contract's; the register keeps them sounding like what they are."
+  },
+  {
+   "id": "escalation",
+   "label": "Escalation",
+   "zone": "clinical-delivery",
+   "register": "neutral-clear",
+   "level": 0,
+   "accessibilityAxes": ["rate", "pitch"],
+   "previewMaySaveAsDefault": false,
+   "decidedBy": "packages/gilbertone/src/escalation.ts, inventoried in packages/catalog/gilbert-clinical-core.json",
+   "why": "Telling somebody to be seen today is a clinical act the Tier 1 ruleset decides. Its sound is locked for the same reason its words are."
+  },
+  {
+   "id": "clinical-assist",
+   "label": "Clinical assist",
+   "zone": "clinical-assist",
+   "register": "professional",
+   "level": null,
+   "levelFrom": "packages/catalog/intelligence-levels.json#conversationTypes patient-clinical-assist, nurse-facing and doctor-facing",
+   "accessibilityAxes": ["rate", "pitch"],
+   "previewMaySaveAsDefault": false,
+   "decidedBy": null,
+   "why": "Its level is decided by who is signed in, which intelligence-levels.json owns; this file only says its voice is not a tenant's to set."
+  },
+  {
+   "id": "routine",
+   "label": "Routine",
+   "zone": "presentation",
+   "register": "tenant-chosen",
+   "conversationType": "patient-general",
+   "accessibilityAxes": ["rate", "pitch"],
+   "previewMaySaveAsDefault": true,
+   "why": "Everyday answers from the catalogue: what a visit costs, what to expect."
+  },
+  {
+   "id": "navigation",
+   "label": "Navigation",
+   "zone": "presentation",
+   "register": "tenant-chosen",
+   "conversationType": "patient-general",
+   "accessibilityAxes": ["rate", "pitch"],
+   "previewMaySaveAsDefault": true,
+   "why": "Where a screen is and how to get there."
+  },
+  {
+   "id": "signed-out-visitor",
+   "label": "Signed-out visitor",
+   "zone": "presentation",
+   "register": "tenant-chosen",
+   "conversationType": "signed-out-visitor",
+   "accessibilityAxes": ["rate", "pitch"],
+   "previewMaySaveAsDefault": true,
+   "why": "What somebody on the public page hears before they have an account. Its voice may be presented; its level may not rise above 1, which packages/catalog/intelligence-levels.json holds and scripts/check-boundaries.mjs cross-checks from here."
+  },
+  {
+   "id": "admin",
+   "label": "Admin",
+   "zone": "presentation",
+   "register": "tenant-chosen",
+   "conversationType": "admin-facing",
+   "accessibilityAxes": ["rate", "pitch"],
+   "previewMaySaveAsDefault": true,
+   "why": "What an administrator hears in the Control Tower. Nothing here is a patient's."
+  }
+ ],
+
+ "clinicalDeliveryRegister": {
+  "version": 1,
+  "sentence": "Neutral, clear and unambiguous: the words at the pace the listener set, without warmth added or urgency removed.",
+  "ratifiedEntryRef": null,
+  "pinnedHash": "0f8c806c90e70d84",
+  "_pinnedHashWhy": "The first 16 hex characters of the SHA-256 of this register's sentence and the three clinical-delivery classes above, serialised as scripts/check-boundaries.mjs serialises them. The build recomputes it: any edit to those classes or this sentence fails until the pin is changed with it, and a pin other than version 1's founding value is refused unless ratifiedEntryRef names the Clinician Review Queue entry that allowed it — the same way packages/catalog/gilbert-clinical-core.json pins escalation.ts. The queue has no runtime store yet, so the build can require the reference but cannot look it up; that is said here rather than implied.",
+  "reviewedBy": null,
+  "_reviewedByWhy": "Nobody clinical has reviewed this register. Locked is not the same as reviewed — packages/catalog/gilbert-clinical-core.json's locked-is-not-the-same-as-clinically-reviewed refusal, restated for sound."
+ },
+
+ "providers": {
+  "tts": ["azure-speech", "google-cloud-tts", "elevenlabs", "alibaba-qwen-tts"],
+  "stt": ["azure-speech", "deepgram-nova-3", "openai-whisper", "alibaba-qwen-asr"],
+  "registry": "packages/catalog/api-registry.json",
+  "perTenant": false,
+  "_perTenantWhy": "The plan asks for a provider chosen per tenant. There is no tenant, so there is one choice, made by configuration on the box: Azure Speech, when both its variables are set and its region is southafricanorth. Each id above is a card in api-registry.json, which says of each whether it is built and whether it is configured — only azure-speech is either.",
+  "onDeviceConversationMode": "The founder's speech amendment of 21 September 2026 (CLAUDE.md) keeps cloud voices out of the on-device conversation mode — ElevenLabs is named there — and keeps Azure Speech's two routes as the server-side fallback. A cloud TTS or STT card in the registry is never a route for the on-device mode, whatever its status."
+ },
+
+ "parameters": {
+  "tts": [
+   { "id": "rate", "who": "tenant for presentation classes; user for every class", "boundsFrom": "packages/catalog/user-preferences.json#axes", "why": "Speed is an accessibility axis before it is a style: somebody with a processing difficulty needs slower speech on an emergency answer most of all." },
+   { "id": "pitch", "who": "tenant for presentation classes; user for every class", "boundsFrom": "packages/catalog/user-preferences.json#axes", "why": "Some hearing losses lose one end of the range; pitch is how a listener brings the words back into it." },
+   { "id": "volume", "who": "the device", "boundsFrom": null, "why": "Volume is the phone's or the browser's, and no setting here may make an emergency answer quieter than the device is set to." }
+  ],
+  "stt": [
+   { "id": "languageHints", "from": "packages/catalog/assistant.json#voice.languages[].recognitionLocales", "why": "The locales the service already accepts; a hint outside them is a language nothing downstream can answer." },
+   { "id": "silenceThreshold", "value": null, "why": "Not decided. The browser and the phones decide when a capture ends today; a server-side threshold arrives with a server-side stream, which does not exist." },
+   { "id": "interimResults", "value": null, "why": "Not decided. The panel shows what was heard for correction before anything is sent (voice.correctionBeforeSend); interim results would change what is on the screen while somebody is still speaking, which is a design decision, not a default." }
+  ]
+ },
+
+ "lockedSettings": {
+  "pushToTalk": {
+   "locked": true,
+   "configurable": false,
+   "toggle": false,
+   "sentence": "Tap to speak, and tap Stop to finish. The microphone opens only because somebody tapped it, and closes on its own after the cap in packages/catalog/assistant.json#voice. There is no setting that removes the tap.",
+   "gestureFrom": "packages/catalog/assistant.json#voice.gesture",
+   "why": "The plan (§7.3) asks for push-to-talk as a locked setting, not a toggle. Every microphone any platform opens today is opened by a tap; the build holds that the gesture recorded in assistant.json still includes push-to-talk, and that no application wires a wake word."
+  },
+  "captions": {
+   "locked": true,
+   "configurable": false,
+   "toggle": false,
+   "sentence": "The written words stay on the screen in full, before the voice starts and for as long as it speaks. Nothing turns them off.",
+   "ruleFrom": "packages/catalog/assistant.json#voice.webSpeech.why",
+   "why": "A spoken reply is a second reading of the words, never a replacement for them — the founder's rule of 20 September 2026. A person who cannot hear, or who is somewhere the voice cannot be heard, reads exactly what everybody else hears."
+  },
+  "wakeWordQuestion": {
+   "state": "open",
+   "sentence": "No application listens for a wake word. packages/catalog/assistant.json records voice.wakeWord as true and the gesture as wake-word-with-push-to-talk-fallback, from the founder's speech amendment of 21 September 2026, and packages/gilbertone/src/speech-state.ts carries a state machine with wake-word events — but no web, iOS or Android file wires one, so what patients reach is push-to-talk only.",
+   "discrepancy": "docs/PROMPT-CONTROL-TOWER-UI.md §7.3 says 'no wake word, no passive recording, no background listening' and calls this the 22 September founder direction. No record of a 22 September direction on the wake word was found in the tree on 24 September 2026; the only dated record is the 21 September amendment, which says the opposite. This file does not choose between them. Until the founder records which stands, scripts/check-boundaries.mjs fails the build if any application wires wake-word detection.",
+   "owner": "Founder",
+   "why": "An always-available microphone changes the privacy posture in front of the Information Regulator even when nothing leaves the device (CLAUDE.md's DPIA caution). A question that large is not settled by whichever document a builder read last."
+  }
+ },
+
+ "previewPanel": {
+  "questions": [
+   "What does this voice sound like?",
+   "How does it sound on my own sentence, including one in a South African language?",
+   "How does it sound on the answers that matter — the same sentence in the emergency, refusal and routine registers?",
+   "How does it compare with two or three alternatives on the same sentence?",
+   "What does it cost, and how fast is it?"
+  ],
+  "placements": ["the Voice screen", "every TTS card in packages/catalog/api-registry.json"],
+  "costBeforePlay": true,
+  "sessionRunningTotal": true,
+  "rejectsPatientIdentifiers": {
+   "redactorFrom": "packages/gilbertone/src/phi.ts#redactPHI",
+   "sentence": "This preview does not read text that looks like a person's details. Remove the name, number or identity number and try again.",
+   "why": "An administrator testing a voice on a real case note is the most natural mistake in the world. The same redactor the assistant service runs on every turn decides what looks like an identifier, so the preview and the service cannot disagree about it."
+  },
+  "costAndLatency": {
+   "value": null,
+   "why": "No price has been recorded for any provider and no latency has been measured through this panel, because the panel does not exist. A figure shown here would be typed, not measured."
+  }
+ },
+
+ "languages": {
+  "from": "packages/catalog/assistant.json#voice.languages",
+  "sentence": "A language with ttsAvailable false has no voice anywhere in MyThuso, and the Voice screen marks it not available rather than hiding it. Its answers are shown as text, with voice.voiceUnavailableNotice.",
+  "why": "§07's V03 refusal stands: no voice is chosen by locale setting and no South African voice is promised to be installed. isiZulu, isiXhosa and Sesotho are understood and not spoken, and the screen says so in the contract's own words."
+ },
+
+ "refusals": [
+  {
+   "id": "clinical-delivery-voice-is-not-configurable",
+   "statement": "An emergency, refusal or escalation answer is never read in a voice a tenant, an administrator or a user chose. Rate and pitch may change; the voice may not.",
+   "why": "How an emergency answer sounds is part of what it says. A setting that could make it sound calmer than it is would be a clinical change made in a brand menu."
+  },
+  {
+   "id": "clinical-delivery-changes-only-through-the-queue",
+   "statement": "The clinical-delivery register changes only through a ratified entry in the Clinician Review Queue, recorded by raising its version and naming the entry.",
+   "why": "The same door escalation.ts and the emergency terms move through (packages/catalog/clinical-review-queue.json no-auto-promotion-without-a-signature). A second, quieter door for how those words sound would be a way round the first."
+  },
+  {
+   "id": "no-save-as-default-on-a-locked-row",
+   "statement": "The preview plays the emergency, refusal and escalation registers so they can be heard. It never offers to save a voice as their default.",
+   "why": "Hearing the boundary is the point of the preview; a Save button on that row would present a locked setting as a configurable one."
+  },
+  {
+   "id": "push-to-talk-is-not-a-setting",
+   "statement": "Push-to-talk is shown as a locked setting, never a toggle. No screen offers to keep the microphone open.",
+   "why": "A toggle is an invitation to switch it. The microphone opens because somebody tapped it, and that is not something a tenant configures on a patient's behalf."
+  },
+  {
+   "id": "captions-are-not-a-setting",
+   "statement": "The written words are never switched off. There is no caption toggle, for a tenant or a user.",
+   "why": "A spoken reply is another reading of the words, not a replacement for them."
+  },
+  {
+   "id": "no-voice-name-typed-here",
+   "statement": "This file names no voice. Voices are read from packages/catalog/assistant.json, per language, and nowhere else.",
+   "why": "The plan's wireframes name voices the catalogue does not hold. Which voice reads a health answer in South Africa is a decision already on file in one place."
+  },
+  {
+   "id": "no-real-patient-text-in-a-preview",
+   "statement": "The preview refuses text that looks like a person's details, using the service's own redactor.",
+   "why": "An administrator's test sentence becomes audio at a provider. A patient's details have no business being that sentence."
+  },
+  {
+   "id": "no-billed-preview-without-its-cost",
+   "statement": "No preview plays through a paid provider without showing its estimated cost first, and the panel keeps a running total for the session.",
+   "why": "A preview button that spends money without saying so is a bill somebody discovers later."
+  },
+  {
+   "id": "no-wake-word-while-the-question-is-open",
+   "statement": "No application listens for a wake word while the founder's two records on it disagree.",
+   "why": "An always-listening microphone is a change of privacy posture that needs one decision on file, not two that contradict each other."
+  }
+ ],
+
+ "preview": "No Voice screen exists. No tenant has chosen a voice, no class has a voice of its own, and no preview has been played. The voices GilbertOne speaks in today are the browser's, the phone's and, in production, the cloud pair in packages/catalog/assistant.json."
+}

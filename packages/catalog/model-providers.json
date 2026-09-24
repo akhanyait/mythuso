@@ -1,0 +1,205 @@
+{
+ "_note": "Module 17 of docs/PROMPT-CONTROL-TOWER-UI.md (§7.4, §8): the language-model provider registry the Model Providers screen would read — which providers exist, which models each offers, which is the default, which is the fallback, which model the Clinician Review Queue's simulation harness would evaluate against, and where each provider's data would live. Proposed 24 September 2026, Phase 2 of that plan: a contract and its build checks. No screen, no route and no runtime service reads it; apps/assistant-api/src/lib/provider-registry.ts, secret-vault.ts and key-registry.ts, which the plan names, do not exist. What is true today, read from the tree and from docs/governance/ASSISTANT-ACTIVATION.md: the service has two provider adapters, both in apps/assistant-api/src/lib/llm-adapter.ts and resolved in that order by apps/assistant-api/src/lib/orchestrator.ts — Azure OpenAI, configured in production since 21 September 2026, and Ollama, built and not configured. Alibaba Qwen, DeepSeek and Anthropic Claude are named by the plan and by nothing else: no adapter, no variable, no key, no contract. The plan's wireframe shows two of them active with balances and key fragments; none of that is true, and none of it is written here. No key, key fragment, endpoint of a real deployment or secret appears in this file or may: scripts/check-boundaries.mjs sweeps the whole catalogue for key-shaped strings and deployment endpoints.",
+ "version": 1,
+ "module": 17,
+ "engine": "assistant",
+ "status": "proposed",
+ "gate": "G30",
+ "_gateWhy": "docs/PROMPT-CONTROL-TOWER-UI.md §9: the key vault built, per-tenant scoping tested, the residency decision per provider and a DPIA per provider. None exists. The vault is named-but-absent; there is no tenant to scope to; docs/governance/DATA-RESIDENCY-OPTIONS.md §7 is blank; docs/governance/DPIA-DRAFT.md §12 is unsigned.",
+
+ "reads": {
+  "keyMetadataShape": "packages/catalog/api-registry.json#keyMetadata",
+  "residencyDecision": "docs/governance/DATA-RESIDENCY-OPTIONS.md#7-decision",
+  "keyCustodyDecision": "docs/governance/KEY-CUSTODY-OPTIONS.md",
+  "health": "packages/catalog/apis/assistant.json GET /health",
+  "activationRecord": "docs/governance/ASSISTANT-ACTIVATION.md",
+  "levels": "packages/catalog/intelligence-levels.json",
+  "why": "The key's metadata is one shape for every external API, so it lives once, in the registry; residency is a decision a named person signs in one document; what is configured is what the health route and the activation record say. This file reads each of them rather than keeping its own opinion."
+ },
+
+ "residencyTiers": [
+  {
+   "id": "onshore",
+   "label": "Tier 1 — onshore",
+   "sentence": "Processing in South Africa.",
+   "why": "The planning documents' stated position (DATA-RESIDENCY-OPTIONS.md §3). A South African region still leaves questions about support access, backups and telemetry (§4, Option A), so onshore is where the data is processed, not a finding that nothing crosses a border."
+  },
+  {
+   "id": "adequate",
+   "label": "Tier 2 — adequate",
+   "sentence": "Processing in a country the responsible party has recorded as offering adequate protection under POPIA section 72.",
+   "why": "Adequacy is a legal determination about a named recipient in a named country (packages/catalog/feeds.json _supplierNote). This tier names the determination; it does not make one."
+  },
+  {
+   "id": "contractual",
+   "label": "Tier 3 — contractual",
+   "sentence": "Processing elsewhere, relying on a binding agreement under section 72 rather than on the country.",
+   "why": "The weakest of the three, and the one packages/catalog/api-registry.json refuses health information to."
+  }
+ ],
+
+ "residencyToday": {
+  "decided": false,
+  "decidedIn": "docs/governance/DATA-RESIDENCY-OPTIONS.md#7-decision",
+  "sentence": "No residency decision has been recorded, so no provider below has a tier. A tier is assigned in the same change that cites the signed decision, and not before.",
+  "why": "A tier written ahead of the decision is the answer to a question the responsible party has not been asked. scripts/check-boundaries.mjs reads §7 of that document and fails the build if any provider carries a tier while its decision rows are blank."
+ },
+
+ "providers": [
+  {
+   "id": "azure-openai",
+   "name": "Azure OpenAI",
+   "buildStatus": "built",
+   "adapter": { "file": "apps/assistant-api/src/lib/llm-adapter.ts", "symbol": "AzureOpenAIProvider" },
+   "configuredByPresenceOf": ["AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_KEY"],
+   "_configuredByPresenceOfWhy": "Variable names, never values. The key may also be given as AZURE_OPENAI_API_KEY, the portal's own spelling (llm-adapter.ts azureCredentials).",
+   "healthField": "azure",
+   "productionConfigured": true,
+   "productionEvidence": "docs/governance/ASSISTANT-ACTIVATION.md",
+   "models": {
+    "from": "apps/assistant-api/src/lib/llm-adapter.ts AZURE_DEFAULT_MODEL and AZURE_DEFAULT_EMBEDDING_MODEL, each overridden by AZURE_OPENAI_MODEL and AZURE_OPENAI_EMBEDDING_MODEL",
+    "productionDeployment": null,
+    "_productionDeploymentWhy": "The activation record read the credentials file for the acknowledgement line and the speech region only, never for a model or a key. Which deployment production runs is not recorded, so it is not stated here."
+   },
+   "region": null,
+   "_regionWhy": "Not recorded. The endpoint was not read off the box, and a region guessed from the plan's summary ('southafricanorth') would be the plan's claim, not the box's. The cloud voice's region is pinned in code; this provider's is not.",
+   "residency": { "tier": null, "section72Determined": false, "dpaRef": null },
+   "residencyWhy": "Patient text — redacted of identifiers, not of anything clinical — reaches this provider in production today. That is the gap docs/governance/ASSISTANT-ACTIVATION.md records as open: no residency decision, no DPIA, no approval on file. This file makes the gap citable; it does not close it."
+  },
+  {
+   "id": "ollama",
+   "name": "Ollama (local model)",
+   "buildStatus": "dark",
+   "adapter": { "file": "apps/assistant-api/src/lib/llm-adapter.ts", "symbol": "OllamaProvider" },
+   "configuredByPresenceOf": ["OLLAMA_URL"],
+   "healthField": "ollama",
+   "productionConfigured": false,
+   "productionEvidence": null,
+   "models": {
+    "from": "apps/assistant-api/src/lib/llm-adapter.ts OLLAMA_DEFAULT_MODEL, overridden by OLLAMA_MODEL",
+    "productionDeployment": null
+   },
+   "region": "the host it runs on",
+   "residency": { "tier": null, "section72Determined": false, "dpaRef": null },
+   "residencyWhy": "A model on the same machine sends nothing anywhere, which is why the plan wants it. It is still unassigned: the machine it would run on is liqzar-server, which DATA-RESIDENCY-OPTIONS.md §2 recommends holds no health information at all.",
+   "darkWhy": "Built, and unreachable by default: orchestrator.ts asks Azure first and reaches Ollama only where Azure is not configured and something answers on the loopback's default port. In production Azure is configured, so Ollama is not reached."
+  },
+  {
+   "id": "alibaba-qwen",
+   "name": "Alibaba Qwen",
+   "buildStatus": "proposed",
+   "adapter": null,
+   "configuredByPresenceOf": [],
+   "healthField": null,
+   "productionConfigured": false,
+   "productionEvidence": null,
+   "models": { "from": null, "productionDeployment": null },
+   "candidateRegions": [
+    { "region": "Johannesburg, through BCX ALP Cloud", "proposedTier": "onshore", "gate": "G33" },
+    { "region": "Frankfurt", "proposedTier": "adequate", "gate": "G33" },
+    { "region": "Singapore", "proposedTier": "contractual", "gate": "G33" }
+   ],
+   "_candidateRegionsWhy": "The plan's own three (§7.8), recorded as candidates with the tier the plan proposes for each. None is chosen, and a proposed tier is not an adequacy finding. G33 (a signed BCX ALP Cloud contract, the section 72 register updated, a DPA executed, the residency decision recorded) is open.",
+   "region": null,
+   "residency": { "tier": null, "section72Determined": false, "dpaRef": null },
+   "residencyWhy": "Not configured, not contracted, not decided."
+  },
+  {
+   "id": "deepseek",
+   "name": "DeepSeek",
+   "buildStatus": "proposed",
+   "adapter": null,
+   "configuredByPresenceOf": [],
+   "healthField": null,
+   "productionConfigured": false,
+   "productionEvidence": null,
+   "models": { "from": null, "productionDeployment": null },
+   "region": null,
+   "residency": { "tier": null, "section72Determined": false, "dpaRef": null },
+   "residencyWhy": "Not configured, not contracted, not decided. The plan's wireframe shows it as a fallback in Singapore; nothing in the tree calls it."
+  },
+  {
+   "id": "anthropic-claude",
+   "name": "Anthropic Claude",
+   "buildStatus": "proposed",
+   "adapter": null,
+   "configuredByPresenceOf": [],
+   "healthField": null,
+   "productionConfigured": false,
+   "productionEvidence": null,
+   "models": { "from": null, "productionDeployment": null },
+   "region": null,
+   "residency": { "tier": null, "section72Determined": false, "dpaRef": null },
+   "residencyWhy": "Not configured, not contracted, not decided."
+  }
+ ],
+
+ "routing": {
+  "perTenant": false,
+  "_perTenantWhy": "The plan asks for a default, a fallback and a clinical-evaluation model per tenant. There is no tenant (packages/catalog/gilbertone-inference-isolation.json), so what follows is the one platform-wide order the code already has, and three per-tenant slots that stay empty until a tenancy contract exists.",
+  "platformOrderToday": {
+   "from": "apps/assistant-api/src/lib/orchestrator.ts",
+   "order": ["azure-openai", "ollama"],
+   "sentence": "Azure first; Ollama only where Azure is not configured. Neither is ever asked about an emergency, a message a refusal policy answered, or anything the keyword classifier owns (apps/assistant-api/src/routes/turn.ts keywordOwned).",
+   "why": "Recorded so the Model Providers screen shows the order the service actually uses rather than one a screen invents."
+  },
+  "defaultModel": { "providerRef": null, "modelRef": null, "why": "Per tenant; no tenant." },
+  "fallbackModel": { "providerRef": null, "modelRef": null, "why": "Per tenant; no tenant." },
+  "clinicalEvaluationModel": {
+   "providerRef": null,
+   "modelRef": null,
+   "mayBeDefaultRoutingTarget": false,
+   "why": "The model the review queue's simulation harness would replay a proposed change against. It evaluates; it never answers a patient. Using it as the default would put a model chosen to stress-test clinical changes in front of everybody, and the harness would then be grading its own traffic. No harness exists (packages/catalog/clinical-review-queue.json has never received an entry)."
+  }
+ },
+
+ "localAgent": {
+  "provider": "ollama",
+  "endpointFrom": "apps/assistant-api/src/lib/llm-adapter.ts OLLAMA_DEFAULT_URL, overridden by OLLAMA_URL",
+  "loopbackOnly": true,
+  "testCall": null,
+  "why": "The plan's test button makes a minimal call and reports latency. Nothing makes it yet. The endpoint is the loopback default the code already holds, and a local agent anywhere but the loopback is a network provider and belongs on its own card."
+ },
+
+ "panels": {
+  "health": { "builtIn": null, "why": "The plan's health-check runner (apps/assistant-api/src/lib/provider-health.ts) does not exist. /assistant/health reports configuration by presence, which is not the same as a provider answering, and the screen must not present one as the other." },
+  "tokenUsage": { "builtIn": null, "why": "The service keeps no usage meter: since 24 September 2026 the turn route logs a message's route and length, never its words (apps/assistant-api/src/routes/turn.ts), and nothing counts tokens. The per-turn audit shape the meter would read is proposed in packages/catalog/intelligence-levels.json#auditPerTurn." },
+  "balance": { "builtIn": null, "why": "No balance is recorded for any provider. A balance shown before one is read from the provider is a number somebody typed." },
+  "audit": { "builtIn": null, "why": "Every key creation, rotation, revocation, use and health-check failure is to be logged to an append-only store. No key is created by any screen, so there is nothing to log yet; the shape is packages/catalog/api-registry.json#keyMetadata's." }
+ },
+
+ "refusals": [
+  {
+   "id": "no-key-in-the-catalogue",
+   "statement": "No key, key fragment, endpoint of a real deployment or secret is written in this file or anywhere in packages/catalog.",
+   "why": "The catalogue is generated into two app-store binaries and a public web bundle. A key here is a key published."
+  },
+  {
+   "id": "no-key-in-a-column-browser-log-or-url",
+   "statement": "A provider's key is never stored in a database column, in the browser, in a log line or in a URL. It is submitted once, over TLS, to a vault, and only its metadata is ever shown again.",
+   "why": "Each of those four is a place a key is copied to and forgotten about. The vault is the security boundary; the mask on a screen is a convenience."
+  },
+  {
+   "id": "no-tier-before-the-residency-decision",
+   "statement": "No provider is given a residency tier until docs/governance/DATA-RESIDENCY-OPTIONS.md §7 is signed, and each tier then cites it.",
+   "why": "A tier is a statement about where a patient's words are processed. Written before the responsible party decides, it is a guess that reads like a policy."
+  },
+  {
+   "id": "clinical-evaluation-model-never-routes",
+   "statement": "The clinical-evaluation model is never the default routing target for any conversation.",
+   "why": "It exists to test proposed clinical changes. A model that both answers patients and grades changes to how patients are answered is marking its own work."
+  },
+  {
+   "id": "configured-is-not-healthy",
+   "statement": "A provider shown as configured has its credentials present. That is not a claim it is answering, and no screen may present one as the other.",
+   "why": "/assistant/health reports presence by design (its own summary says so). A green dot drawn from presence would say a provider works on the strength of a variable being set."
+  },
+  {
+   "id": "a-plan-provider-is-not-a-configured-one",
+   "statement": "Alibaba Qwen, DeepSeek and Anthropic Claude are proposed. None has an adapter, a key or a contract, and no screen shows any of them as active, with a balance, or with a key.",
+   "why": "The plan's wireframes show them active. A screen built from the wireframe would tell an administrator a provider is processing patient text when nothing in the tree can call it."
+  }
+ ],
+
+ "preview": "No Model Providers screen exists, no key has been entered through any screen, and no provider but Azure OpenAI is configured anywhere. Alibaba Qwen, DeepSeek and Anthropic Claude are names in a plan."
+}

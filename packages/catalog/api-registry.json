@@ -1,0 +1,494 @@
+{
+ "_note": "Module 19 of docs/PROMPT-CONTROL-TOWER-UI.md (§7.8, §8): every external API the platform talks to or has been asked to talk to, as a card the API Registry screen would draw, with the shape of a key's metadata, the actions a card offers, and the flows of data that reach each provider. Proposed 24 September 2026, Phase 2 of that plan: a contract and its build checks. No screen reads it, no action has a handler, and the secret vault, the key registry and the health-check runner the plan names (apps/assistant-api/src/lib/secret-vault.ts, key-registry.ts, provider-health.ts) do not exist. Read from the tree on 24 September 2026, the platform talks to exactly two external APIs in production — Azure OpenAI and Azure Speech in southafricanorth — plus, from a browser and only when somebody switches the street map on, OpenFreeMap's tiles, which need no key. Ollama, Qdrant and the three knowledge sources have adapters and are dark. Every payment, SMS, maps, push, email and device-gateway provider the plan lists is proposed: nothing in any service can call one, and scripts/check-boundaries.mjs fails the build the day code names one while its card still says so. The plan's wireframe shows keys, balances and credit for providers that are not configured; none of that is written here. When a provider is switched off, every route that depends on it answers with the capability's own not-connected sentence out of packages/catalog/capabilities.json — the discipline packages/catalog/feeds.json already keeps for its seams — and this file never writes a not-connected sentence of its own.",
+ "version": 1,
+ "module": 19,
+ "engine": "assistant",
+ "status": "proposed",
+ "gate": "G32",
+ "_gateWhy": "docs/PROMPT-CONTROL-TOWER-UI.md §9: the secret vault built, the health-check runner tested, enable and disable tested, balance tracking tested. None is built. Nothing on a card below may be drawn as live until its part of G32 is.",
+
+ "reads": {
+  "llmProviders": "packages/catalog/model-providers.json#providers",
+  "residencyTiers": "packages/catalog/model-providers.json#residencyTiers",
+  "residencyDecision": "docs/governance/DATA-RESIDENCY-OPTIONS.md#7-decision",
+  "notConnectedSentences": "packages/catalog/capabilities.json",
+  "feedSeams": "packages/catalog/feeds.json",
+  "knowledgeSources": "packages/catalog/knowledge/federation.json#sources",
+  "mapTiles": "packages/catalog/geography.json#rendering.source",
+  "voicePreview": "packages/catalog/voice.json#previewPanel",
+  "routes": "packages/catalog/apis/assistant.json",
+  "why": "A card is an index, not a second home. A provider's model list, a source's licence, a tile server's attribution and a capability's not-connected sentence each already live somewhere; the card names where."
+ },
+
+ "cardStatuses": [
+  { "id": "connected", "sentence": "Configured, and its last health check answered.", "why": "Needs the health-check runner, which does not exist, so no card can honestly show this yet." },
+  { "id": "configured", "sentence": "Its credentials are present. Whether it is answering has not been checked.", "why": "Not in the plan's list (§7.8), and needed: /assistant/health reports presence, and the one word the plan offers for a working provider claims more than presence proves. Recorded here as a discrepancy with the plan, resolved on the side of saying less." },
+  { "id": "disconnected", "sentence": "Configured, and its last health check did not answer.", "why": "A provider that is set up and failing is a different fact from one nobody set up." },
+  { "id": "error", "sentence": "Configured, and its last call returned an error.", "why": "Separate from disconnected because an error names a reason and silence does not." },
+  { "id": "rate-limited", "sentence": "Configured, and it is refusing calls for now because too many were made.", "why": "A rate limit clears on its own; an administrator reading it as an outage would rotate a key for nothing." },
+  { "id": "key-expiring", "sentence": "Its key expires soon. Rotate it before it does.", "why": "The plan's own card state. The period that counts as soon is not decided and is left to the administrator setting it names." },
+  { "id": "dark", "sentence": "Built, and unreachable by default.", "why": "The plan's status vocabulary, for an adapter that exists and is not switched on." },
+  { "id": "not-configured", "sentence": "Nothing in MyThuso can call this provider. It is a name on a list.", "why": "The honest state of every proposed card: no adapter, no key, no contract." }
+ ],
+
+ "cards": [
+  {
+   "id": "azure-openai",
+   "category": "llm",
+   "name": "Azure OpenAI",
+   "detailsFrom": "packages/catalog/model-providers.json#providers azure-openai",
+   "buildStatus": "built",
+   "statusToday": "configured",
+   "environment": ["AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_KEY", "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_MODEL", "AZURE_OPENAI_EMBEDDING_MODEL"],
+   "codeNames": [],
+   "capabilityRef": null,
+   "feedRef": null,
+   "why": "The model tier in production since 21 September 2026 (docs/governance/ASSISTANT-ACTIVATION.md)."
+  },
+  {
+   "id": "ollama",
+   "category": "llm",
+   "name": "Ollama (local model)",
+   "detailsFrom": "packages/catalog/model-providers.json#providers ollama",
+   "buildStatus": "dark",
+   "statusToday": "dark",
+   "environment": ["OLLAMA_URL", "OLLAMA_MODEL"],
+   "codeNames": [],
+   "capabilityRef": null,
+   "feedRef": null,
+   "why": "Built, reached only where Azure is not configured."
+  },
+  {
+   "id": "alibaba-qwen",
+   "category": "llm",
+   "name": "Alibaba Qwen",
+   "detailsFrom": "packages/catalog/model-providers.json#providers alibaba-qwen",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["dashscope", "qwen"],
+   "capabilityRef": null,
+   "feedRef": null,
+   "gate": "G33",
+   "why": "Named by the plan. The residency selector's three regions for it are candidates in model-providers.json, none chosen."
+  },
+  {
+   "id": "deepseek",
+   "category": "llm",
+   "name": "DeepSeek",
+   "detailsFrom": "packages/catalog/model-providers.json#providers deepseek",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["deepseek"],
+   "capabilityRef": null,
+   "feedRef": null,
+   "why": "Named by the plan and by nothing else."
+  },
+  {
+   "id": "anthropic-claude",
+   "category": "llm",
+   "name": "Anthropic Claude",
+   "detailsFrom": "packages/catalog/model-providers.json#providers anthropic-claude",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["anthropic"],
+   "capabilityRef": null,
+   "feedRef": null,
+   "why": "Named by the plan and by nothing else."
+  },
+  {
+   "id": "azure-speech",
+   "category": "speech",
+   "serves": ["tts", "stt"],
+   "name": "Azure Speech",
+   "buildStatus": "built",
+   "statusToday": "configured",
+   "adapter": { "file": "apps/assistant-api/src/lib/speech.ts", "symbol": "SPEECH_REGIONS" },
+   "environment": ["AZURE_SPEECH_KEY", "AZURE_SPEECH_REGION"],
+   "healthField": "speech",
+   "productionConfigured": true,
+   "productionEvidence": "docs/governance/ASSISTANT-ACTIVATION.md",
+   "regionFrom": "apps/assistant-api/src/lib/speech.ts SPEECH_REGIONS",
+   "voicesFrom": "packages/catalog/assistant.json#voice.cloud.voices and #voice.languages[].ttsVoices",
+   "residency": { "tier": null, "section72Determined": false, "dpaRef": null },
+   "codeNames": [],
+   "capabilityRef": null,
+   "feedRef": "speech-transcript",
+   "why": "The cloud voice behind POST /assistant/v1/listen and /v1/speak. Its region is pinned to South Africa in code, so audio cannot be sent to a region the DPIA did not assess — but a pinned region is not a residency decision, and the tier stays unassigned until DATA-RESIDENCY-OPTIONS.md §7 is signed."
+  },
+  {
+   "id": "google-cloud-tts",
+   "category": "speech",
+   "serves": ["tts"],
+   "name": "Google Cloud Text-to-Speech",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["texttospeech.googleapis.com", "@google-cloud/text-to-speech"],
+   "capabilityRef": null,
+   "feedRef": null,
+   "why": "Named by the plan. Not to be confused with the phones' own on-device synthesisers, which are not external APIs."
+  },
+  {
+   "id": "elevenlabs",
+   "category": "speech",
+   "serves": ["tts"],
+   "name": "ElevenLabs",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["elevenlabs"],
+   "capabilityRef": null,
+   "feedRef": null,
+   "prohibitedFor": "the on-device conversation mode, by the founder's speech amendment of 21 September 2026 (CLAUDE.md)",
+   "why": "Named by the plan, and named by the founder as a cloud voice the on-device conversation mode may not use."
+  },
+  {
+   "id": "alibaba-qwen-tts",
+   "category": "speech",
+   "serves": ["tts"],
+   "name": "Alibaba Qwen-TTS",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["dashscope", "qwen"],
+   "capabilityRef": null,
+   "feedRef": null,
+   "gate": "G33",
+   "why": "Named by the plan, which records it as speaking no South African language yet. That claim is the plan's and was not checked here."
+  },
+  {
+   "id": "deepgram-nova-3",
+   "category": "speech",
+   "serves": ["stt"],
+   "name": "Deepgram Nova-3",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["deepgram"],
+   "capabilityRef": null,
+   "feedRef": "speech-transcript",
+   "why": "Named by the plan, which records Afrikaans as added in November 2025. That claim is the plan's and was not checked here. The wireframe shows it active with credit; it is not configured."
+  },
+  {
+   "id": "openai-whisper",
+   "category": "speech",
+   "serves": ["stt"],
+   "name": "OpenAI Whisper (hosted)",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["whisper-1", "/audio/transcriptions"],
+   "capabilityRef": null,
+   "feedRef": "speech-transcript",
+   "why": "The hosted API. faster-whisper running on the device, which the founder's speech amendment names, is not an external API and is not this card."
+  },
+  {
+   "id": "alibaba-qwen-asr",
+   "category": "speech",
+   "serves": ["stt"],
+   "name": "Alibaba Qwen-ASR",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["dashscope", "qwen"],
+   "capabilityRef": null,
+   "feedRef": "speech-transcript",
+   "gate": "G33",
+   "why": "Named by the plan and by nothing else."
+  },
+  {
+   "id": "payfast",
+   "category": "payments",
+   "name": "PayFast",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["payfast"],
+   "capabilityRef": "payments",
+   "feedRef": "payment-result",
+   "why": "No payment provider is contracted. The payments capability's own sentence is what a screen shows."
+  },
+  {
+   "id": "peach-payments",
+   "category": "payments",
+   "name": "Peach Payments",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["peachpayments", "peach-payments"],
+   "capabilityRef": "payments",
+   "feedRef": "payment-result",
+   "why": "As above."
+  },
+  {
+   "id": "yoco",
+   "category": "payments",
+   "name": "Yoco",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["yoco"],
+   "capabilityRef": "payments",
+   "feedRef": "payment-result",
+   "why": "As above."
+  },
+  {
+   "id": "bulksms",
+   "category": "sms",
+   "name": "BulkSMS",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["bulksms"],
+   "capabilityRef": "messaging",
+   "feedRef": "message-delivery",
+   "why": "No SMS provider is contracted, and apps/api refuses MYTHUSO_SMS_PROVIDER in production because there is no adapter behind the name (packages/catalog/feeds.json message-delivery)."
+  },
+  {
+   "id": "clickatell",
+   "category": "sms",
+   "name": "Clickatell",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["clickatell"],
+   "capabilityRef": "messaging",
+   "feedRef": "message-delivery",
+   "why": "As above."
+  },
+  {
+   "id": "smsportal",
+   "category": "sms",
+   "name": "SMSPortal",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["smsportal"],
+   "capabilityRef": "messaging",
+   "feedRef": "message-delivery",
+   "why": "As above."
+  },
+  {
+   "id": "openfreemap-tiles",
+   "category": "maps",
+   "name": "OpenFreeMap tiles",
+   "detailsFrom": "packages/catalog/geography.json#rendering.source",
+   "buildStatus": "built",
+   "statusToday": "configured",
+   "environment": ["VITE_MAP_TILES"],
+   "keyRequired": false,
+   "calledFrom": "the browser, only after somebody switches the street map on",
+   "codeNames": [],
+   "capabilityRef": null,
+   "feedRef": null,
+   "why": "Not in the plan's list, and in use: the web's street map asks this tile server for streets by tile coordinate, with no key and nothing about the caseload. Listed because a registry of every external API that left out the one the web already calls would be the overstatement in reverse."
+  },
+  {
+   "id": "google-maps",
+   "category": "maps",
+   "name": "Google Maps",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["maps.googleapis.com", "@googlemaps"],
+   "capabilityRef": "dispatch",
+   "feedRef": null,
+   "why": "Named by the plan. The map chose a keyless source on purpose (packages/catalog/geography.json whyEngine): a key is a billing relationship and an expiry."
+  },
+  {
+   "id": "mapbox",
+   "category": "maps",
+   "name": "Mapbox",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["api.mapbox.com", "mapbox-gl"],
+   "capabilityRef": "dispatch",
+   "feedRef": null,
+   "why": "Named by the plan, and deliberately replaced by MapLibre so no Mapbox token is needed (apps/web/src/map/TileMap.tsx)."
+  },
+  {
+   "id": "firebase-cloud-messaging",
+   "category": "push",
+   "name": "Firebase Cloud Messaging",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["fcm.googleapis.com", "firebase-admin", "firebase-messaging", "FirebaseMessaging"],
+   "capabilityRef": "messaging",
+   "feedRef": "message-delivery",
+   "why": "No push provider is contracted, and neither app declares a push entitlement."
+  },
+  {
+   "id": "sendgrid",
+   "category": "email",
+   "name": "SendGrid",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["sendgrid"],
+   "capabilityRef": "messaging",
+   "feedRef": "message-delivery",
+   "why": "No email provider is contracted."
+  },
+  {
+   "id": "mailgun",
+   "category": "email",
+   "name": "Mailgun",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["mailgun"],
+   "capabilityRef": "messaging",
+   "feedRef": "message-delivery",
+   "why": "As above."
+  },
+  {
+   "id": "mqtt-broker",
+   "category": "device-gateway",
+   "name": "MQTT broker (self-hosted)",
+   "buildStatus": "proposed",
+   "statusToday": "not-configured",
+   "environment": [],
+   "codeNames": ["mqtt"],
+   "capabilityRef": "devices",
+   "feedRef": "device-reading",
+   "why": "No device is on the real-device allowlist and the DPIA is not done. A device's readings would enter through the device seam in apps/api/src/capture, never a second door (packages/catalog/feeds.json noSeam)."
+  },
+  {
+   "id": "qdrant",
+   "category": "vector-store",
+   "name": "Qdrant",
+   "buildStatus": "dark",
+   "statusToday": "dark",
+   "adapter": { "file": "apps/assistant-api/src/lib/knowledge.ts", "symbol": "QDRANT_URL" },
+   "environment": ["QDRANT_URL", "QDRANT_COLLECTION"],
+   "productionConfigured": null,
+   "_productionConfiguredWhy": "Not recorded. /assistant/health does not report it and the activation record did not read the credentials file for it. Off unless QDRANT_URL is set.",
+   "codeNames": [],
+   "capabilityRef": null,
+   "feedRef": null,
+   "why": "Not in the plan's list, and built: an optional vector index over the catalogue's own knowledge, queried with an embedding of the question."
+  },
+  {
+   "id": "knowledge-sources",
+   "category": "knowledge-source",
+   "name": "External knowledge sources",
+   "detailsFrom": "packages/catalog/knowledge/federation.json#sources",
+   "buildStatus": "dark",
+   "statusToday": "dark",
+   "adapter": { "file": "apps/assistant-api/src/lib/sources/config.ts", "symbol": "isSourceActive" },
+   "environment": ["OPENFDA_ENABLED", "OPENFDA_API_KEY"],
+   "productionConfigured": null,
+   "_productionConfiguredWhy": "Every source ships active: false in federation.json. openFDA's interaction check can also be switched on by OPENFDA_ENABLED on the box, and the activation record did not read the credentials file for it, so whether production sets it is not recorded here.",
+   "codeNames": [],
+   "capabilityRef": null,
+   "feedRef": null,
+   "why": "WHO ICD-11, openFDA and Europe PMC, each with its licence, rate limit, residency and use boundaries in federation.json. One card here points at them rather than copying three."
+  }
+ ],
+
+ "keyMetadata": {
+  "fields": [
+   { "field": "providerRef", "type": "string", "why": "The card the key belongs to." },
+   { "field": "fingerprintPrefix", "type": "string", "why": "The first eight hex characters of the key's SHA-256. Enough to tell two keys apart, useless for reconstructing either." },
+   { "field": "lastFour", "type": "string", "why": "What an administrator matches against the provider's own console." },
+   { "field": "createdAt", "type": "instant", "why": "When it was entered." },
+   { "field": "lastRotatedAt", "type": "instant", "nullable": true, "why": "Null until it has been rotated once." },
+   { "field": "lastUsedAt", "type": "instant", "nullable": true, "why": "A key nobody has used in months is a key to revoke." },
+   { "field": "scopes", "type": "list", "why": "The endpoints the provider is authorised to serve for MyThuso, from the scope checkboxes." },
+   { "field": "rateLimit", "type": "object", "why": "The configured window and ceiling." },
+   { "field": "expiresAt", "type": "instant", "why": "Default one year from creation; configurable." },
+   { "field": "status", "type": "string", "why": "One of cardStatuses above." }
+  ],
+  "neverFields": ["key", "apiKey", "secret", "clientSecret", "token", "accessToken", "password", "fullKey", "value", "keyMaterial"],
+  "maskedDisplay": "••••{lastFour}",
+  "unmaskedDisplay": "{lastFour} · SHA-256 {fingerprintPrefix}",
+  "showMetadataToggle": {
+   "sentence": "Show metadata switches between the masked last four and the last four with its fingerprint. It never shows the key. The full key exists only in the vault.",
+   "why": "The plan's mask and unmask toggle is a display convenience, not a security boundary. A toggle that could reveal the key would put it in the browser, which the vault exists to prevent."
+  },
+  "entry": {
+   "sentence": "The key is typed into a password field, submitted once over TLS to the vault, and never shown again.",
+   "why": "Every place a key is shown is a place it can be copied from."
+  }
+ },
+
+ "actions": [
+  { "id": "enable", "builtIn": null, "audited": true, "gate": "G32", "why": "Switching a provider on is a production change and is logged with who and why." },
+  { "id": "disable", "builtIn": null, "audited": true, "gate": "G32", "whenDisabled": "Every route that depends on the provider answers the capability's not-connected sentence from packages/catalog/capabilities.json, or, for the model tier, falls back to the deterministic layer's own answer, as apps/assistant-api already does with nothing configured.", "why": "Switching an API off is a first-class control. The safe state already exists — it is what the service does with nothing configured — so disabling is a return to it, not a new failure mode." },
+  { "id": "rotate-key", "builtIn": null, "audited": true, "gate": "G32", "why": "A new key is entered once; the old one is revoked at the provider and its metadata kept for the audit." },
+  { "id": "test", "builtIn": null, "audited": true, "gate": "G32", "why": "A minimal call that reports pass or fail and latency. For a paid provider it shows its estimated cost first, like the voice preview." },
+  { "id": "view-logs", "builtIn": null, "audited": true, "gate": "G32", "why": "The provider's own audit: key events and health-check failures, never a patient's words." },
+  { "id": "configure-scopes", "builtIn": null, "audited": true, "gate": "G32", "why": "Which endpoints the key may serve. A scope not ticked is refused before the provider is asked." }
+ ],
+
+ "addProvider": {
+  "fields": [
+   { "field": "providerRef", "type": "string", "why": "A card above; a provider with no card is added to this file first." },
+   { "field": "region", "type": "string", "why": "Where it processes." },
+   { "field": "residencyTier", "type": "string", "nullable": true, "why": "From packages/catalog/model-providers.json#residencyTiers, and null until the residency decision is signed." },
+   { "field": "dpaRef", "type": "string", "nullable": true, "why": "Required for Tier 2 and Tier 3." },
+   { "field": "scopes", "type": "list", "why": "Checkboxes for the endpoints the provider is authorised to serve." },
+   { "field": "rateLimit", "type": "object", "why": "A configurable window." },
+   { "field": "expiresAt", "type": "instant", "why": "Default one year." }
+  ],
+  "residencySelector": {
+   "sentence": "Choosing a South African region records that processing is onshore. It does not determine section 72 for support access, backups or telemetry, which DATA-RESIDENCY-OPTIONS.md §4 lists as open questions even for an onshore region. Choosing Tier 2 or Tier 3 requires a DPA reference before the provider can be saved.",
+   "why": "The plan says the Tier 1 choice auto-populates the section 72 determination. A dropdown cannot make a legal determination; it can record which question has been answered and which has not."
+  }
+ },
+
+ "usageAndBalance": {
+  "usage": { "fields": ["requestsToday", "tokensIn", "tokensOut", "costEstimate"], "today": null, "why": "No meter exists. The turn route logs a route and a length, nothing else." },
+  "balance": { "fields": ["remainingCredit", "estimatedDaysAtCurrentBurn", "lastTopUpAt"], "today": null, "why": "No balance is read from any provider. The wireframe's figures are illustrations, not records." }
+ },
+
+ "dataFlows": [
+  { "route": "POST /turn", "version": 1, "field": "text", "providerRef": "azure-openai", "phi": true, "after": "redactPHI: identifiers removed, clinical content kept", "why": "A patient's question may be about their health. Removing identifiers does not make it not health information." },
+  { "route": "POST /v1/turn", "version": 1, "field": "text", "providerRef": "azure-openai", "phi": true, "after": "redactPHI: identifiers removed, clinical content kept", "why": "As above, at the versioned address." },
+  { "route": "POST /v1/knowledge/search", "version": 2, "field": "query", "providerRef": "azure-openai", "phi": true, "after": "redactPHI, then embedded", "why": "A search query is a question, and a question may be about somebody's health." },
+  { "route": "POST /v1/knowledge/search", "version": 2, "field": "query", "providerRef": "qdrant", "phi": true, "after": "as an embedding, where QDRANT_URL is set", "why": "An embedding of a health question is still derived from it." },
+  { "route": "POST /v1/listen", "version": 3, "field": "audioBase64", "providerRef": "azure-speech", "phi": true, "after": "held in memory for the one request, never stored", "why": "What somebody says about their health is health information whether it arrives typed or spoken." },
+  { "route": "POST /v1/speak", "version": 3, "field": "text", "providerRef": "azure-speech", "phi": true, "after": "the catalogue's answer, read aloud", "why": "An answer about somebody's health, sent to be spoken, carries the question's subject with it." }
+ ],
+ "_dataFlowsWhy": "Every route in packages/catalog/apis/assistant.json that sends a request field to an external provider, tagged by whether it may carry health information. scripts/check-boundaries.mjs holds each flow to a built route and a real field, refuses a health-information flow to a Tier 3 provider or to any provider that is not built, and reports — without failing, because it is production's state and not a code defect — how many health-information flows reach a provider with no residency decision. Today that is all of them, which is the gap docs/governance/ASSISTANT-ACTIVATION.md records.",
+
+ "refusals": [
+  {
+   "id": "a-disabled-provider-is-never-called",
+   "statement": "A provider that is not configured, or has been disabled, is never called. Every route that depends on it answers the capability's own not-connected sentence, or the deterministic layer's answer.",
+   "why": "A switch that turns a provider off on the screen and leaves it callable in code is a switch that lies. Until the enable and disable controls exist, the build holds the stronger rule: a provider this file records as proposed has no code that could call it at all."
+  },
+  {
+   "id": "no-health-information-to-a-tier-3-provider",
+   "statement": "A request field that may carry health information is never sent to a provider whose residency tier is contractual.",
+   "why": "Health information is special personal information under POPIA. A contractual transfer is the weakest of the three tiers, and the one a hospital's Information Officer is least able to verify."
+  },
+  {
+   "id": "no-key-reaches-the-browser",
+   "statement": "A provider's key never reaches the browser, in full or in part beyond its last four characters and a fingerprint prefix. No health or status route carries anything but booleans, a mode and counts.",
+   "why": "The vault is the security boundary and the mask is a convenience. A key in a browser is a key in every extension, every screenshot and every support session."
+  },
+  {
+   "id": "no-balance-or-usage-without-a-reading",
+   "statement": "No balance, credit or usage figure is shown for a provider until it has been read from that provider or counted by the service.",
+   "why": "The plan's wireframe shows balances for providers nothing can call. A figure on a card is read as a fact about money."
+  },
+  {
+   "id": "a-region-is-not-a-section-72-determination",
+   "statement": "Choosing a region records where processing happens. It never records a section 72 determination; that is recorded by the responsible party, with its basis, in DATA-RESIDENCY-OPTIONS.md §7.",
+   "why": "Support access, backups, logs and telemetry can cross a border from an onshore region. A form that treated a region as the answer would close a question nobody had asked."
+  },
+  {
+   "id": "the-not-connected-sentence-is-the-capability's",
+   "statement": "A card never writes its own not-connected sentence. It names a capability, and the sentence is rendered from packages/catalog/capabilities.json word for word.",
+   "why": "packages/catalog/feeds.json's the-notice-comes-from-the-capability rule, for the same reason: when an integration lands, one boolean changes and the sentence stops being said everywhere on the same day."
+  }
+ ],
+
+ "preview": "No API Registry screen exists. No key has been entered, rotated or revoked through any screen, no provider has been enabled or disabled from one, and no balance has been read. Azure OpenAI and Azure Speech are configured in production, OpenFreeMap's tiles are asked for from the browser without a key, Ollama, Qdrant and the knowledge sources are built and dark, and every other card is a name in a plan."
+}

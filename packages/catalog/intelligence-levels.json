@@ -1,0 +1,227 @@
+{
+ "_note": "Module 18 of docs/PROMPT-CONTROL-TOWER-UI.md (§7.5, §8): the reasoning level a conversation runs at, from 0 (the deterministic layer alone) to 4 (deep reasoning with a clinician and a recorded purpose), and which kind of conversation may reach which level. Proposed 24 September 2026, Phase 2 of that plan: a contract and its build checks. There is no level selector anywhere in the service — apps/assistant-api/src/lib/intelligence-level.ts, which the plan names, does not exist — and nothing records a level against a turn. What the service does today, read from apps/assistant-api/src/routes/turn.ts: every message is answered first by the deterministic layer in packages/gilbertone; emergencies, refusals and everything the keyword classifier owns stop there; and only a patient's message the classifier found nothing for may be passed to the orchestrator's one model call, with its tools and the output ceiling in apps/assistant-api/src/lib/llm-adapter.ts. That is level 0 for everything, then something closest to level 2 for the rest — an observation about the code, not a setting anybody chose. No token budget, price or latency is written here: none has been decided or measured.",
+ "version": 1,
+ "module": 18,
+ "engine": "assistant",
+ "status": "proposed",
+ "gate": "G31",
+ "_gateWhy": "docs/PROMPT-CONTROL-TOWER-UI.md §9: a hard ceiling per tenant, the per-conversation-type mapping, and the clinical-assist lock tested. The mapping is below. There is no tenant to set a ceiling for, and the lock cannot be tested against a clinician session because no session of any kind exists (docs/control-tower-session-model.md).",
+
+ "levels": [
+  {
+   "id": 0,
+   "name": "Deterministic only",
+   "changes": "No model is asked. The answer comes from the message and the contract alone, on the device or in the service, with no network.",
+   "modelCall": false,
+   "clinicalBoundary": "Emergency, refusal and escalation always run here, whatever level anything else runs at.",
+   "requiresClinician": false,
+   "requiresRecordedPurpose": false,
+   "changesEmergencyPath": false,
+   "runsIn": "packages/gilbertone",
+   "why": "The one level that answers when everything else is dark, unreachable or wrong. It is the floor every other level stands on, not a setting below them."
+  },
+  {
+   "id": 1,
+   "name": "Minimal",
+   "changes": "A model may rephrase or retrieve for a non-clinical question, with a small budget and no tools that read clinical content.",
+   "modelCall": true,
+   "clinicalBoundary": "Non-clinical only.",
+   "requiresClinician": false,
+   "requiresRecordedPurpose": false,
+   "changesEmergencyPath": false,
+   "tokenBudget": null,
+   "why": "What a visitor who has not signed in may reach: help finding their way, with nothing clinical in it."
+  },
+  {
+   "id": 2,
+   "name": "Standard",
+   "changes": "One model call with the catalogue's tools and a moderate budget, for a question the classifier did not answer.",
+   "modelCall": true,
+   "clinicalBoundary": "Non-clinical only.",
+   "requiresClinician": false,
+   "requiresRecordedPurpose": false,
+   "changesEmergencyPath": false,
+   "tokenBudget": null,
+   "why": "The closest named level to what the orchestrator does today. Its answers carry the service disclosure and are never a diagnosis (packages/catalog/apis/assistant.json no-clinical-decision)."
+  },
+  {
+   "id": 3,
+   "name": "Thorough",
+   "changes": "Several model steps with a larger budget, for assisting a clinician.",
+   "modelCall": true,
+   "clinicalBoundary": "Clinical assist only with a clinician signed in.",
+   "requiresClinician": true,
+   "requiresRecordedPurpose": false,
+   "changesEmergencyPath": false,
+   "tokenBudget": null,
+   "why": "Assisting a clinician is a different act from answering a patient, and only a signed-in clinician can make it that act."
+  },
+  {
+   "id": 4,
+   "name": "Deep reasoning",
+   "changes": "Extended reasoning with the largest budget, for a named clinical purpose.",
+   "modelCall": true,
+   "clinicalBoundary": "Clinical assist only with a clinician signed in and a purpose recorded against the turn.",
+   "requiresClinician": true,
+   "requiresRecordedPurpose": true,
+   "changesEmergencyPath": false,
+   "tokenBudget": null,
+   "why": "The most expensive and the least predictable level. A purpose on the record is what lets somebody reviewing it later ask whether the reasoning was needed."
+  }
+ ],
+
+ "lockedToLevel0": {
+  "classes": ["emergency", "refusal", "escalation"],
+  "classesFrom": "packages/catalog/voice.json#queryClasses, zone clinical-delivery",
+  "enforcedInCode": { "file": "apps/assistant-api/src/routes/turn.ts", "symbol": "keywordOwned" },
+  "sentence": "An emergency, a refusal and an escalation are answered at level 0, before any model is asked, and no setting at any level changes that.",
+  "why": "The model tier is the part of GilbertOne that can be wrong in new ways. The answers that send somebody to an ambulance are the ones that must not be. turn.ts already never hands the classifier's own territory to the orchestrator, and scripts/check-boundaries.mjs holds that list; this file states the same rule for every level to come."
+ },
+
+ "platformMaximum": 4,
+ "hardCeiling": {
+  "setBy": "layer 1 (Super User)",
+  "perTenant": null,
+  "sentence": "A tenant cannot set any conversation above its ceiling. No tenant exists, so no ceiling has been set, and every conversation is held to the ceilings in conversationTypes below.",
+  "why": "The ceiling is the commercial and safety limit the platform sells within. It is not a tenant's to raise, and until a tenant exists there is nothing to raise."
+ },
+
+ "conversationTypes": [
+  {
+   "id": "signed-out-visitor",
+   "label": "Signed-out visitor",
+   "defaultLevel": 1,
+   "ceiling": 1,
+   "clinical": false,
+   "why": "Somebody on the public page with no account. Nothing about them is known, nothing they ask may be answered clinically, and no setting may take them above level 1.",
+   "today": {
+    "surface": "apps/web/src/lib/public-assistant.ts",
+    "level": 0,
+    "sentence": "The public page's sheet answers from packages/catalog/assistant-public.json and the emergency terms alone and asks no model, so it runs at level 0. scripts/check-boundaries.mjs fails the build if it starts calling the assistant service. Nobody is signed in anywhere else either: the patient panel's audience is declared by the caller and never authenticated (packages/catalog/apis/assistant.json, the audience field)."
+   }
+  },
+  {
+   "id": "patient-general",
+   "label": "Patient · general",
+   "defaultLevel": 2,
+   "ceiling": 2,
+   "clinical": false,
+   "why": "What the live assistant does for a patient today: the classifier first, and one model call where it found nothing."
+  },
+  {
+   "id": "patient-clinical-assist",
+   "label": "Patient · clinical assist",
+   "defaultLevel": 1,
+   "ceiling": 2,
+   "ceilingWithClinician": 4,
+   "clinical": true,
+   "why": "A clinical question from a patient is never answered above level 2 unless a clinician is in the loop. No clinician session exists, so today the ceiling of 2 is the only ceiling."
+  },
+  {
+   "id": "nurse-facing",
+   "label": "Nurse-facing",
+   "defaultLevel": 2,
+   "ceiling": 4,
+   "clinical": true,
+   "requiresClinicianAbove": 2,
+   "why": "A nurse is a clinician, but the preview's nurse role is a URL parameter, not a signed-in person (apps/web/src/Doorway.tsx). Levels 3 and 4 wait for a real clinician session."
+  },
+  {
+   "id": "doctor-facing",
+   "label": "Doctor-facing",
+   "defaultLevel": 2,
+   "ceiling": 4,
+   "clinical": true,
+   "requiresClinicianAbove": 2,
+   "why": "The same as the nurse: a doctor's workspace today is reached by typing ?role=doctor, which proves nothing about who is reading."
+  },
+  {
+   "id": "admin-facing",
+   "label": "Admin-facing",
+   "defaultLevel": 2,
+   "ceiling": 2,
+   "clinical": false,
+   "why": "An administrator asking about the platform. Nothing clinical, so nothing above level 2."
+  }
+ ],
+ "_conversationTypesWhy": "The six the plan names (§7.5). The defaults are proposed, in the founder's standing direction that open policy questions become administrator settings with proposed defaults; the ceilings on the signed-out visitor and on a patient's clinical-assist turn are the plan's invariants and are not settings.",
+
+ "clinicianLock": {
+  "readsFrom": null,
+  "sentence": "Levels above 2 on a clinical conversation need a clinician signed in. No session exists that could say one is, so no clinical conversation runs above level 2.",
+  "why": "A lock that reads a URL parameter is a lock anybody can open by typing. Until docs/control-tower-session-model.md's layers are real, the honest reading of 'is a clinician signed in' is no."
+ },
+
+ "estimators": {
+  "cost": {
+   "fields": [
+    { "field": "level", "type": "integer", "why": "The level estimated." },
+    { "field": "providerRef", "type": "string", "why": "A provider id from packages/catalog/model-providers.json." },
+    { "field": "turns", "type": "integer", "why": "How many turns the estimate covers, for example a 500-turn day." },
+    { "field": "currency", "type": "string", "why": "ZAR, because the people paying are in South Africa." },
+    { "field": "estimate", "type": "decimal", "nullable": true, "why": "Null until a provider's price is recorded against the provider, not typed into a screen." },
+    { "field": "basis", "type": "string", "why": "Where the price came from and when, so an estimate can be traced to the price list it used." }
+   ],
+   "today": "No price is recorded for any provider, so every estimate is null and the screen says so."
+  },
+  "latency": {
+   "fields": [
+    { "field": "level", "type": "integer", "why": "The level measured." },
+    { "field": "providerRef", "type": "string", "why": "A provider id from packages/catalog/model-providers.json." },
+    { "field": "medianMs", "type": "integer", "nullable": true, "why": "Null until measured through the service, not quoted from a provider's page." },
+    { "field": "sampleSize", "type": "integer", "why": "How many turns the median is taken over; a median of three is not a median." },
+    { "field": "measuredAt", "type": "instant", "nullable": true, "why": "When." }
+   ],
+   "today": "Nothing is measured, so every median is null."
+  }
+ },
+
+ "auditPerTurn": {
+  "fields": [
+   { "field": "level", "type": "integer", "why": "The level the turn ran at." },
+   { "field": "providerRef", "type": "string", "nullable": true, "why": "Null at level 0, where no provider is asked." },
+   { "field": "modelRef", "type": "string", "nullable": true, "why": "Which model, so a bad answer can be traced to the model that gave it." },
+   { "field": "tokensIn", "type": "integer", "nullable": true, "why": "A count, never the words." },
+   { "field": "tokensOut", "type": "integer", "nullable": true, "why": "A count, never the words." },
+   { "field": "costEstimate", "type": "decimal", "nullable": true, "why": "From the cost estimator's basis, so the figure and its price list travel together." }
+  ],
+  "neverCarries": ["the message", "the reply", "any identifier of the person"],
+  "today": "Not recorded. The turn route's one log line carries the route and the length of the message, never its words (apps/assistant-api/src/routes/turn.ts), and no level exists to record.",
+  "why": "The plan asks for the level recorded per turn beside the provider, the model, the tokens and the cost. None of those needs a word of what was said, and a record that carried words would be the logging defect of 21 to 24 September again (docs/governance/ASSISTANT-ACTIVATION.md)."
+ },
+
+ "refusals": [
+  {
+   "id": "level-0-is-not-a-setting",
+   "statement": "No level, ceiling or tenant setting changes how an emergency, a refusal or an escalation is answered. They are answered at level 0, first, every time.",
+   "why": "The deterministic layer is the backstop for everything above it. A level that could reach round it would make every level a way to change emergency handling."
+  },
+  {
+   "id": "no-patient-clinical-assist-above-2-without-a-clinician",
+   "statement": "A patient's clinical-assist turn never runs above level 2 unless a clinician is signed in.",
+   "why": "Above level 2 the model reasons at length about something clinical. Without a clinician reading it, that is advice nobody is accountable for."
+  },
+  {
+   "id": "no-signed-out-visitor-above-1",
+   "statement": "A signed-out visitor's turn never runs above level 1.",
+   "why": "Nothing is known about a visitor, and nothing they ask is answered clinically. Level 1 is all the help finding their way needs."
+  },
+  {
+   "id": "no-level-4-without-a-purpose",
+   "statement": "A level 4 turn is refused unless a purpose is recorded against it before it runs.",
+   "why": "Deep reasoning is the costliest and least predictable level. A purpose written first is the only way to ask afterwards whether it was needed."
+  },
+  {
+   "id": "no-tenant-above-its-ceiling",
+   "statement": "A tenant cannot set a conversation above the ceiling the Super User set for it.",
+   "why": "The ceiling is the limit the platform is sold within, not a tenant's preference."
+  },
+  {
+   "id": "no-estimate-without-a-recorded-price",
+   "statement": "No cost or latency estimate is shown until the price or the measurement it rests on is recorded with its source.",
+   "why": "The plan's wireframe shows a rand figure for 100 turns. No price is recorded anywhere in the tree; a figure on a screen would be invented."
+  }
+ ],
+
+ "preview": "No level selector exists and no level has ever been recorded against a turn. Every message is answered at level 0 first; a patient's unanswered one may reach one model call. The ceilings above are rules this file states and the build holds, not controls anything enforces at runtime yet."
+}
