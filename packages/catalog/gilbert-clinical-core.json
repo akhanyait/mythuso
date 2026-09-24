@@ -1,0 +1,104 @@
+{
+ "_note": "Decision 6.1 in code, Module 2 of the founder's Control Tower & GilbertOne Commercialization plan (proposed 23 September 2026): 'Clinical configuration is tiered.' This file is Tier 1 — the locked global core, named as data rather than left as a sentence in a plan document, so a boundary check can one day compare a tenant's own layer against it. It holds none of Tier 1's actual wording: no regular expression, no approved message, no emergency word. Those stay exactly where they already live — packages/gilbertone/src/escalation.ts and packages/catalog/gilbert-emergency-terms.json — because copying them here would be the second copy CLAUDE.md's 'a number lives in one place' rule exists to prevent. What this file adds is the thing that did not exist before it: a stable, citable inventory of what those two files hold, the rule that nothing may touch it except through packages/catalog/clinical-review-queue.json, and the vocabulary — rule ids, group ids — a Tier 2 layer is allowed to reference. Nothing here is built: no boundary check yet diffs a tenant layer against this file, no merge service exists, and no queue entry citing this file has ever been proposed.",
+ "_source": "Decision 6.1, verbatim from the plan: 'Tier 1 — locked global core. packages/gilbertone/src/escalation.ts, packages/catalog/gilbert-emergency-terms.json, the red-flag symptom set, the escalation semantics. No tenant may add to, subtract from, reorder or suppress Tier 1.' Read against the actual files (below), the plan's four nouns collapse to two files: the red-flag symptom set is the patterns field inside each rule in escalation.ts, and the escalation semantics are the ordering and first-match behaviour escalation.ts's own checkEscalation() implements and its file comment documents. There is no third or fourth artefact.",
+ "version": 1,
+ "engine": "clinical",
+ "governedBy": "packages/catalog/clinical-review-queue.json",
+ "_governedByWhy": "The queue is the one door through which a change to either locked file may move (refusal no-auto-promotion-without-a-signature there). This file does not restate that refusal's machinery — states, transitions, signature shape — it only names, precisely, the two files and their contents that refusal protects, so a queue entry proposing a Tier 1 change has something exact to cite in proposedChangeRef.",
+
+ "lockedArtifacts": [
+  {
+   "id": "escalation-ruleset",
+   "file": "packages/gilbertone/src/escalation.ts",
+   "holds": "The deterministic pre-model escalation ruleset: the ESCALATION_RULES array and the checkEscalation() function that walks it. Runs before any model call, has no fetch, no environment read and no I/O of any kind — enforced structurally by the package's own build, not by this contract. This is where the plan's 'red-flag symptom set' actually lives: each rule's patterns field is a small set of case-insensitive regular expressions for one presentation (chest pain radiating to the arm, a throat that is swelling, a blood pressure over 180/120), and the plan's 'escalation semantics' is the file's own rule, stated in its top comment: rules are tried in array order, the first one whose pattern matches wins, so the order below is the triage order.",
+   "asOf": "2026-09-24",
+   "ruleOrder": [
+    { "id": "cardiac-chest-pain", "severity": "emergency", "action": "call_emergency" },
+    { "id": "self-harm", "severity": "emergency", "action": "call_emergency" },
+    { "id": "neuro-stroke", "severity": "emergency", "action": "call_emergency" },
+    { "id": "respiratory-distress", "severity": "emergency", "action": "call_emergency" },
+    { "id": "severe-allergic", "severity": "emergency", "action": "call_emergency" },
+    { "id": "uncontrolled-bleeding", "severity": "emergency", "action": "call_emergency" },
+    { "id": "seizure", "severity": "emergency", "action": "call_emergency" },
+    { "id": "poisoning-overdose", "severity": "emergency", "action": "call_emergency" },
+    { "id": "persistent-high-fever", "severity": "urgent", "action": "clinician_soon" },
+    { "id": "severe-dehydration", "severity": "urgent", "action": "urgent_care" },
+    { "id": "hypertensive-crisis", "severity": "urgent", "action": "urgent_care" },
+    { "id": "acute-abdomen", "severity": "urgent", "action": "urgent_care" }
+   ],
+   "_ruleOrderWhy": "Eight emergency rules, all call_emergency, tried before four urgent rules split between urgent_care ('be seen today, now') and clinician_soon ('a clinician, today'). The Severity type in escalation.ts also allows 'routine', but no rule currently claims it — every rule that exists today either calls emergency services or asks for care within the day; a routine rung, if one is ever added to Tier 1, changes this inventory and goes through the queue like any other Tier 1 change.",
+   "whatIsNotCopiedHere": "No pattern (regular expression) and no message string appears in this file. A Tier 2 layer, a review-queue entry, or anything else that needs to refer to a Tier 1 rule cites it by the id in ruleOrder above — never by quoting or paraphrasing its pattern or its approved sentence, both of which stay solely in escalation.ts.",
+   "currentVersioning": "escalation.ts carries no version field of its own — unlike gilbert-emergency-terms.json below, it is a plain TypeScript module versioned only by git history. Until a change to it goes through the queue, 'the ruleOrder above, as measured on 2026-09-24' is the only handle this file or a Tier 2 layer has for citing its current state; a ratified queue entry changing it would name the diff in proposedChangeRef, not a version number, because none exists to name.",
+   "codeHash": "abe62e55fb395308",
+   "_codeHashWhy": "Added 24 September 2026, when an audit found that nothing tied escalation.ts to this inventory: an unsigned edit to a rule's pattern would have passed the build. This is the first 16 hex characters of the SHA-256 of the file's code, with comments stripped and whitespace collapsed, so a comment edit costs nothing and any change to a pattern, a message, a number or the first-match logic fails the build until this value is changed with it. scripts/check-boundaries.mjs also holds the rule ids, severities and actions to ruleOrder above, in order. Changing this hash is how a ratified Tier 1 change is recorded, the way gilbert-emergency-terms.json records one with its termsHash. The value is not a signature: it proves the file is the one this inventory describes, not that anybody reviewed it, and escalation.ts is still unreviewed."
+  },
+  {
+   "id": "emergency-terms-list",
+   "file": "packages/catalog/gilbert-emergency-terms.json",
+   "pinnedVersion": 2,
+   "pinnedTermsHash": "9398cc967c9390c4",
+   "holds": "The word list that makes GilbertOne show the ambulance numbers instead of answering — read by apps/web/src/lib/assistant.ts, generated into Swift and Kotlin, and checked by scripts/check-boundaries.mjs. Ten groups; a match in any of them raises, and the absence of a match decides nothing.",
+   "groupOrder": [
+    { "id": "chest-pain", "condition": "chest-pain" },
+    { "id": "breathing", "condition": "breathing" },
+    { "id": "bleeding", "condition": "bleeding" },
+    { "id": "unresponsive", "condition": "unresponsive" },
+    { "id": "stroke", "condition": "stroke" },
+    { "id": "seizure", "condition": "seizure" },
+    { "id": "infant", "condition": "infant" },
+    { "id": "obstetric", "condition": "obstetric" },
+    { "id": "crisis", "condition": null, "name": "Words about harming yourself" },
+    { "id": "general", "condition": null, "name": "Words about an emergency" }
+   ],
+   "whatIsNotCopiedHere": "No word from any group's words array appears in this file, and no group's list is counted or summarised here either — a count is itself a number derived from content that lives in one place, and this file is not that place. A Tier 2 layer references a group by the id in groupOrder above; it never adds a word to it, because a tenant's own words belong in the tenant's own list, never merged into this one.",
+   "ownStatus": "As of pinnedVersion 2, gilbert-emergency-terms.json's own status is \"proposed-starting-configuration\" and its clinicalReview.reviewedBy is null: the list has never been looked at by a clinician. Locking it into Tier 1 fixes who may change it — no tenant, ever, and after this file existed, only through a ratified queue entry — it does not upgrade its clinical standing. That standing is recorded once, in gilbert-emergency-terms.json's own clinicalReview field, and this file does not keep a second, potentially stale, opinion of it."
+  }
+ ],
+
+ "lockRule": {
+  "statement": "No tenant may add to, subtract from, reorder or suppress anything named in lockedArtifacts above: not a word in a group, not a rule, not the order rules or groups are tried in, not an action, not a message.",
+  "concreteWays": [
+   "Inserting a rule before, after or between the ruleOrder entries above, which would change what checkEscalation() tries first and is a reorder even if nothing is removed.",
+   "Disabling, muting or narrowing a Tier 1 rule's pattern or a group's word for one tenant's traffic — a suppression, even a scoped one, is still a suppression.",
+   "Weakening a Tier 1 rule's action (for example, treating a cardiac-chest-pain match as clinician_soon instead of call_emergency for a given site).",
+   "Adding a word to an existing Tier 1 group, or a new group to gilbert-emergency-terms.json, on a tenant's instruction — a tenant's own words belong in its own Tier 2 layer, never merged into this list."
+  ],
+  "enforcementToday": "Structural only, by this contract naming the rule and by the two files' own build-time protections (escalation.ts's no-fetch/no-environment boundary check; gilbert-emergency-terms.json's termsHash check) — nothing yet compares a Tier 2 layer's content against this inventory line by line. Building that comparison is downstream of 'the service that reads them' the plan names for Module 2: apps/assistant-api/src/lib/clinical-config.ts, which would load this file and every ratified Tier 2 layer and merge them in the order referencedBy below requires. It does not exist. Until it does, and until scripts/check-boundaries.mjs is taught to diff a Tier 2 file against this one, lockRule is a promise this contract states, not a promise the build checks."
+ },
+
+ "referencedBy": {
+  "rule": "A Tier 2 layer cites Tier 1 only by the ids in ruleOrder and groupOrder above (for example, 'cardiac-chest-pain', 'chest-pain'). It never restates a pattern, a word, a message or an action, because a restatement is a copy a future Tier 1 change could silently leave behind.",
+  "orderingRule": "Wherever a Tier 2 additive rung is merged against this ruleset, every Tier 1 rule is tried first, in the exact order ruleOrder gives, and a tenant's own rungs are only consulted once none of them has matched. A Tier 2 rung may not be interleaved among Tier 1 rules and may not be given a ruleOrder or groupOrder id already in use — an id collision is treated as an attempted override, not a coincidence.",
+  "template": "packages/catalog/tenant-clinical-layers/_template.json is the shape a Tier 2 layer that references this file takes."
+ },
+
+ "queueHistory": {
+  "note": "gilbert-emergency-terms.json's own changelog records two changes to Tier 1 content — version 1 on 2026-09-14 and version 2 on 2026-09-22 — both made directly, by engineering, before packages/catalog/clinical-review-queue.json existed (proposed 2026-09-23). They are recorded here as history, not as a violation of governedBy: the queue's no-auto-promotion-without-a-signature refusal binds changes made after there was a queue to bind them to. No change to either locked file has been proposed to, or ratified by, the queue since it began to exist.",
+  "sinceThisFileExisted": "none"
+ },
+
+ "refusals": [
+  {
+   "id": "tier1-is-closed-to-tenants",
+   "statement": "Nothing in packages/catalog/tenant-clinical-layers/ may add to, subtract from, reorder or suppress a rule in escalation.ts or a group or word in gilbert-emergency-terms.json. A tenant's own additions live only in its own layer file.",
+   "why": "A safety net that any one site could quietly loosen is not a shared safety net. The founder's decision 6.1 draws this line so that every patient, on every tenant's deployment, gets the same emergency recognition MyThuso itself ships with."
+  },
+  {
+   "id": "tier1-change-needs-a-ratified-tier1-entry",
+   "statement": "From the day packages/catalog/clinical-review-queue.json began to exist, no further change to escalation.ts or gilbert-emergency-terms.json may be made except through a queue entry naming tier 1, tenantRef null, and reaching ratified.",
+   "why": "Restates clinical-review-queue.json's no-auto-promotion-without-a-signature refusal from Tier 1's own side, so this file — the thing that inventory refusal protects — says the same rule rather than assuming a reader has the queue file open too."
+  },
+  {
+   "id": "no-second-copy-of-tier1-wording",
+   "statement": "Neither this file nor any Tier 2 layer may contain a Tier 1 pattern, word, message or action's text. A reference is an id from ruleOrder or groupOrder above; anything more is a copy.",
+   "why": "The same reasoning as CLAUDE.md's 'a number lives in one place', applied to clinical wording rather than a price or a share: a message duplicated here could read one way after escalation.ts changes and another way here, and the gap would only be found by someone reading both files on the same day."
+  },
+  {
+   "id": "locked-is-not-the-same-as-clinically-reviewed",
+   "statement": "Naming gilbert-emergency-terms.json and escalation.ts as Tier 1 fixes who may change them. It says nothing about whether either has been reviewed by a clinician — gilbert-emergency-terms.json's own clinicalReview.reviewedBy is null, and this file does not claim otherwise.",
+   "why": "A reader who sees 'locked global core' could mistake permanence for approval. The two are different facts, decided by different people, and conflating them is exactly the kind of overstatement CLAUDE.md's 'a health service that overstates its readiness is not a marketing problem' rule exists to catch."
+  }
+ ],
+
+ "preview": "No change to escalation.ts or gilbert-emergency-terms.json has ever been proposed to, or ratified by, the Clinician Review Queue. Both files were last changed directly, before the queue existed. No tenant-clinical-layers file but the template exists, and nothing merges one against this file yet."
+}

@@ -286,8 +286,8 @@ const BUILT: Record<string, string[]> = {
   'POST /v1/access/witness-statements@1',
  ],
  assistant: [
-  'GET /health@1',
-  'GET /v1/status@1',
+  'GET /health@2',
+  'GET /v1/status@2',
   'POST /turn@1',
   'POST /v1/handover/prepare@3',
   'POST /v1/handover/submit@3',
@@ -517,6 +517,8 @@ const WITHDRAWN: Record<string, string[]> = {
   'POST /v1/access/sponsors@1',
  ],
  assistant: [
+  'GET /health@1',
+  'GET /v1/status@1',
   'POST /v1/handover/prepare@1',
   'POST /v1/handover/prepare@2',
   'POST /v1/handover/submit@1',
@@ -639,6 +641,13 @@ const PROPOSED: Record<string, string[]> = {
  access: [
   'POST /v1/access/conversations/{conversationRef}/messages@1',
   'POST /v1/access/tools/{tool}@1',
+ ],
+ clinical: [
+  'GET /v1/clinical/review-queue@1',
+  'POST /v1/clinical/review-queue/{entryRef}/review@1',
+  'POST /v1/clinical/review-queue/{entryRef}/rollback@1',
+  'POST /v1/clinical/review-queue/{entryRef}/sign@1',
+  'POST /v1/clinical/review-queue@1',
  ],
  devices: [
   'GET /v1/devices/simulations/{simulationRef}/outputs@1',
@@ -794,6 +803,17 @@ test('clinical: a withdrawn route is registered nowhere, and the runtime answers
   assert.ok(!runtime.bound().includes(key as RouteKey), `${key} is withdrawn and must not be registered`);
   const answer = callWith(runtime, key, { role: 'nobody-synthetic-0', purpose: 'purpose-not-served-synthetic', fields: {} });
   assert.deepEqual([answer.status, answer.body['error'], answer.body['message'], answer.answeredBy], [404, 'no-route', NO_ROUTE_MESSAGE, 'runtime'], key);
+ }
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('clinical: a proposed route is registered nowhere, and the mock answers it — no engine has built it', () => {
+ const runtime = world('clinical');
+ for (const key of PROPOSED['clinical']!) {
+  assert.ok(!runtime.bound().includes(key as RouteKey), `${key} is proposed and must not be registered`);
+  const answer = callWith(runtime, key, { role: 'nobody-synthetic-0', purpose: 'purpose-not-served-synthetic', fields: {} });
+  assert.equal(answer.answeredBy, 'mock', `${key} is answered by ${answer.answeredBy}`);
  }
  assert.deepEqual(runtime.faults(), []);
  runtime.close();

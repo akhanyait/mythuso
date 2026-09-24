@@ -158,33 +158,67 @@ A **device fleet per ward and per bed** becomes a first-class Control Tower conc
 > "What I would not build yet." IoT control is therefore scoped against a seam that is built and a
 > supplier/DPIA gate that is not satisfied.
 
+> **Flag — expanded 24 September 2026.** This section's telemetry/threshold/alerting bullets above
+> are the full extent of what reached this tracked document through 23 September. A fuller device-
+> lifecycle specification received from the founder on 24 September — discovery over BLE/mDNS/QR-DPP/
+> NFC/cellular, mandatory physical-possession proof before any pairing completes, an 11-indicator
+> device-health panel with per-audience visibility, and a certificate/trust/revocation model — is
+> **not** an edit to this section's bullets; it is now authored as its own contract layer:
+> `packages/catalog/devices/pairing-paths.json`, `health-indicators.json`, `thresholds.json` and
+> `trust-model.json`, plus `docs/security/DEVICE-TRUST-MODEL.md`. Read those, not an expansion of the
+> three bullets above, for the fuller shape — they were written against this codebase's actual device
+> contract and adversary register (`docs/security/ADVERSARY-REGISTER.md`), not restated here a second
+> time. Nothing in any of them is built: `thresholds.json` carries no live number, every pairing path
+> is a proposal gated on device binding not existing yet, and the real-device allowlist this flag
+> already named is still at 0.
+
 ---
 
 ## 4. Admin layers (sub-roles → super users)
 
-Fourteen layers. **Each is scoped by site/region, module, data-class, read/write, and time-bound
+Fifteen layers. **Each is scoped by site/region, module, data-class, read/write, and time-bound
 break-glass.** The scoping dimensions are the point: a role is not just "what module" but "which
 site, which data class, may it write, and does elevated access expire."
 
+> **Flag — reconciled 24 September 2026.** This section read "fourteen layers" through 23 September,
+> without a Device Fleet Administrator. A fuller revision of the founder's plan, received 24
+> September, adds layer 15 below and this section's separation-of-duties rule, so that the device
+> contracts §3 flags as "contracted but none is contacted" — now expanded into
+> `packages/catalog/devices/{pairing-paths,health-indicators,thresholds,trust-model}.json` and
+> `docs/security/DEVICE-TRUST-MODEL.md` — have an owner distinct from Facilities (layer 7, which
+> owns bed inventory, not the device register) and from the Security & Compliance Officer (layer 3,
+> which owns trust and revocation, not provisioning). Nothing below is built; the layer is added
+> here because the contracts it would own already are.
+
 | #   | Layer                                         | Notes                                                         |
 | --- | --------------------------------------------- | ------------------------------------------------------------- |
-| 1   | **Super User / Platform Owner**               | **≤ 2 people**, **hardware-key MFA**.                         |
+| 1   | **Super User / Platform Owner**               | **≤ 2 people**, **hardware-key MFA**. Owns the device-class allowlist. |
 | 2   | **System Administrator**                      |                                                               |
-| 3   | **Security & Compliance Officer**             | POPIA accountable.                                            |
-| 4   | **Clinical Administrator / Medical Director** | The sign-off authority for the Clinician Review Queue in §2.  |
+| 3   | **Security & Compliance Officer**             | POPIA accountable. Owns device trust and revocation (layer 15 provisions; this layer trusts and revokes). |
+| 4   | **Clinical Administrator / Medical Director** | The sign-off authority for the Clinician Review Queue in §2, including a device threshold rule. Cannot provision a device without layer 15's register entry. |
 | 5   | **Nursing / Ward Manager**                    |                                                               |
 | 6   | **Operations & Dispatch Manager**             | Owns the Dispatch & Incidents module.                         |
 | 7   | **Facilities / Bed Manager**                  | Owns bed inventory (§7).                                      |
 | 8   | **Finance / Billing Officer**                 |                                                               |
 | 9   | **Data & Analytics Officer**                  |                                                               |
-| 10  | **GilbertOne Engine Administrator**           | Administers the engine under "GilbertOne API Administration." |
+| 10  | **GilbertOne Engine Administrator**           | Administers the engine under "GilbertOne API Administration." Cannot self-approve a clinical change, including a device threshold. |
 | 11  | **Content & Knowledge Officer**               | Steward of the knowledge federation.                          |
 | 12  | **Regional / Site Admin**                     | Scoped to **one hospital**.                                   |
-| 13  | **Auditor**                                   | **Read-only.**                                                |
+| 13  | **Auditor**                                   | **Read-only.** Audits the people who appointed it, which is why §11's external anchor matters. |
 | 14  | **Support Agent**                             | **Narrow, time-limited.**                                     |
+| 15  | **Device Fleet Administrator**                | Added 24 September 2026. Owns provisioning, decommissioning, firmware-cohort tracking and the per-site device register. Does not own clinical thresholds (layer 4) or trust/revocation (layer 3). |
 
 The scoping axes, restated so they are not lost: **site/region · module · data-class · read/write ·
 time-bound break-glass.** Break-glass elevation is granted, logged and **expires**.
+
+Separation of duties, named because layer 15 makes it possible to violate for the first time: layer
+15 cannot approve a device threshold; layer 4 cannot provision a device without layer 15's register
+entry; layer 10 cannot self-approve a clinical change; layer 13 audits the people who appointed it.
+Default-deny holds across all fifteen — a user with no assigned role sees nothing. None of this is
+enforced today: `docs/control-tower-session-model.md`, authored 24 September 2026, found that the
+live `?role=` switcher in `apps/web/src/Doorway.tsx` "grants no server permissions and stores no
+identity in the browser," and an unrecognised role falls through to the patient app — the opposite
+of default-deny. The table above is the target shape, not the current one.
 
 ---
 
@@ -198,7 +232,7 @@ shape but not yet authored into a contract:
 3. **Staff bulk-import + vetting** — vetting runs through the existing pipeline; approving a nurse
    still approves nobody until the vetting gates are real (`docs/ROADMAP.md`'s
    `credential-verification` needs agreements with thirteen separate authorities).
-4. **Role assignment** — the fourteen layers of §4.
+4. **Role assignment** — the fifteen layers of §4.
 5. **Branding / CI upload** — the white-label step.
 6. **Integrations (HL7 / IoT)** — the seams of §3.
 7. **Language selection**

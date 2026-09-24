@@ -2,7 +2,7 @@
  "engine": "clinical",
  "_note": "Clinical Intelligence is decision support with a doctor's signature: the clinical inbox, review and sign, structured consultations, triage on ratified protocols, result acknowledgement, Home Guidance and PROMs. Every protocol in packages/catalog/protocols.json is a draft today, so every triage and guidance call is refused in practice until the board ratifies one. Wave 2 contract; built on the engine runtime in Wave 5, when the inbox, the signature, the consultation, triage and outcome questions were withdrawn for versions that refuse what the first could not. packages/catalog/clinical.json holds the frames, registries, words and settings.",
  "version": 1,
- "resources": ["reviews", "consultations", "triage", "results", "guidance", "proms", "settings", "setting-changes", "setting-reviews", "review-confirmers"],
+ "resources": ["reviews", "consultations", "triage", "results", "guidance", "proms", "settings", "setting-changes", "setting-reviews", "review-confirmers", "review-queue"],
  "doors": ["screening-result", "media-session"],
  "doorsToAdd": [],
  "refusals": [
@@ -559,6 +559,145 @@
    "status": "built",
    "evidence": {"file": "packages/engines/src/clinical/engine.ts", "handler": "'POST /v1/clinical/setting-reviews@2'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/clinical/review-queue",
+   "version": 1,
+   "summary": "Read the Clinician Review Queue: every proposed change to Tier 1 global escalation behaviour, a tenant's Tier 2 additive layer, or a device threshold rule, by reference and state. Carries none of the change's own content, per packages/catalog/clinical-review-queue.json whereContentLives.",
+   "callers": ["doctor", "nurse", "admin"],
+   "purpose": ["audit", "treatment"],
+   "request": [
+    {"field": "configScope", "type": "string", "required": false, "why": "Filter by 1, 2 or device."},
+    {"field": "tenantRef", "type": "string", "required": false, "why": "Filter to one tenant's Tier 2 entries."},
+    {"field": "stateCode", "type": "string", "required": false, "why": "Filter by state, from packages/catalog/clinical-review-queue.json states."}
+   ],
+   "response": [
+    {"field": "entries", "type": "list", "required": true, "object": true, "why": "Queue entries.", "shapeFrom": "packages/catalog/clinical-review-queue.json#entryShape"}
+   ],
+   "refusals": [
+    {"id": "queue-state-not-declared", "status": 422, "statement": "That is not a state an entry can be in.", "why": "A filter on an undeclared state answers an empty queue, which reads as nothing proposed."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/review-queue",
+   "version": 1,
+   "summary": "Propose a change to Tier 1, a tenant's Tier 2 layer, or a device threshold rule. Enters the queue as proposed and decides nothing until ratified.",
+   "callers": ["doctor", "nurse"],
+   "purpose": ["audit", "treatment"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same proposal once."},
+    {"field": "configScope", "type": "string", "required": true, "why": "1, 2 or device, from packages/catalog/clinical-review-queue.json tiers."},
+    {"field": "tenantRef", "type": "string", "required": false, "why": "Required for a Tier 2 entry, refused if present for Tier 1."},
+    {"field": "proposedChangeRef", "type": "string", "required": true, "why": "Where the change is written. Never the change's own content."},
+    {"field": "basisRef", "type": "string", "required": true, "why": "What the proposal cites. A proposal with nothing behind it is refused."}
+   ],
+   "response": [
+    {"field": "entryRef", "type": "string", "required": true, "why": "The queue entry created."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "Always proposed on creation."}
+   ],
+   "refusals": [
+    {"id": "tier-not-declared", "status": 422, "statement": "That is not a tier this queue accepts.", "why": "packages/catalog/clinical-review-queue.json names exactly three."},
+    {"id": "tenant-required-for-tier-2", "status": 422, "statement": "A Tier 2 entry names the tenant it applies to.", "why": "A tenantless Tier 2 entry cannot be checked against that tenant's own Tier 1 boundary."},
+    {"id": "tenant-forbidden-for-tier-1", "status": 422, "statement": "A Tier 1 entry names no tenant. It is global.", "why": "A Tier 1 change scoped to one tenant would not be the global core it claims to be."},
+    {"id": "no-evidence-no-proposal", "status": 422, "statement": "A proposal cites what it is based on, or it is not recorded.", "why": "packages/catalog/clinical-review-queue.json refusals: a-proposed-entry-carries-no-authority — and an unevidenced one is not worth the board's time to refuse a second way."}
+   ],
+   "emits": ["clinical.review_queue.entry_proposed@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/review-queue/{entryRef}/review",
+   "version": 1,
+   "summary": "Move a proposed entry to in-review, naming who is looking at it. Decides nothing; a reviewed entry still carries no authority until signed.",
+   "callers": ["doctor"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "entryRef", "type": "string", "required": true, "why": "The entry, from the path."},
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller."}
+   ],
+   "response": [
+    {"field": "entryRef", "type": "string", "required": true, "why": "The entry."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "Always in-review on success."}
+   ],
+   "refusals": [
+    {"id": "queue-review-not-a-confirmer", "status": 403, "statement": "Only a vetted clinician holding the sign-clinical-review capability the settings in force name moves an entry to review.", "why": "Reviewing a proposal to change clinical behaviour is a clinician's act, the same standing packages/catalog/clinical.json already requires to sign a review."},
+    {"id": "not-proposed", "status": 409, "statement": "Only a proposed entry may move to in-review.", "why": "An entry already reviewed, ratified, rejected or rolled back has already moved past this step, and moving it again would be a second history for the same entry."},
+    {"id": "self-action", "status": 403, "statement": "Nobody reviews a change they proposed themselves.", "why": "packages/catalog/vetting.json's selfActionRefusals, applied to the queue: a review by the proposer is no review."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Moving an entry to in-review carries no authority and decides nothing a subscriber would act on; only ratification and rejection are worth announcing.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/review-queue/{entryRef}/sign",
+   "version": 1,
+   "summary": "Ratify or reject an in-review entry, by name, role and day. Only a ratified entry may ever be cited as the reason a clinical behaviour changed.",
+   "callers": ["doctor"],
+   "purpose": ["audit", "treatment"],
+   "request": [
+    {"field": "entryRef", "type": "string", "required": true, "why": "The entry, from the path."},
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller."},
+    {"field": "outcome", "type": "string", "required": true, "why": "ratified or rejected."},
+    {"field": "reason", "type": "string", "required": true, "why": "Why. Required either way, so a rejection is as traceable as a ratification."}
+   ],
+   "response": [
+    {"field": "entryRef", "type": "string", "required": true, "why": "The entry."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "ratified or rejected."},
+    {"field": "signOff", "type": "string", "required": true, "object": true, "why": "Role, name and day, matching packages/catalog/protocols.json's ratification shape.", "shapeFrom": "packages/catalog/clinical-review-queue.json#entryShape"}
+   ],
+   "refusals": [
+    {"id": "queue-sign-not-a-confirmer", "status": 403, "statement": "Only a vetted clinician holding the sign-clinical-review capability the settings in force name signs an entry.", "why": "packages/catalog/clinical-review-queue.json refusals: no-signature-no-ratification."},
+    {"id": "not-in-review", "status": 409, "statement": "Only an in-review entry may be ratified or rejected.", "why": "Signing a proposed entry would skip the board looking at it; signing a ratified one twice would be two signatures for one decision."},
+    {"id": "tier-2-may-not-subtract", "status": 422, "statement": "This Tier 2 entry removes, weakens or overrides a Tier 1 rule, and is refused rather than ratified.", "why": "packages/catalog/clinical-review-queue.json refusals: tier-2-may-not-subtract. Caught again here because a proposal can be well-evidenced and still subtract; ratification is the last gate before it would take effect."},
+    {"id": "governance-board-not-formed", "status": 409, "statement": "The clinical governance board packages/catalog/protocols.json#governance records is not-formed, and its Medical Director is not-appointed. Nothing may be ratified until both exist.", "why": "A ratification under an authority this file admits does not yet exist would be exactly the borrowed authority packages/catalog/protocols.json was written to refuse."}
+   ],
+   "emits": ["clinical.review_queue.entry_ratified@1", "clinical.review_queue.entry_rejected@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/review-queue/{entryRef}/rollback",
+   "version": 1,
+   "summary": "Propose reverting a live entry. Creates a new entry naming the one it would revert; the live entry itself is never edited or removed. The new entry is proposed, reviewed and ratified exactly like any other change before the rollback takes effect.",
+   "callers": ["doctor", "nurse"],
+   "purpose": ["audit", "treatment"],
+   "request": [
+    {"field": "entryRef", "type": "string", "required": true, "why": "The live entry to revert, from the path."},
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller."},
+    {"field": "basisRef", "type": "string", "required": true, "why": "Why this is being reverted."}
+   ],
+   "response": [
+    {"field": "entryRef", "type": "string", "required": true, "why": "The new entry created."},
+    {"field": "rollbackRef", "type": "string", "required": true, "why": "The live entry it would revert."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "Always proposed on creation — a rollback is not itself live until it, too, is ratified."}
+   ],
+   "refusals": [
+    {"id": "not-live", "status": 409, "statement": "Only a live entry may be named as the target of a rollback.", "why": "packages/catalog/clinical-review-queue.json refusals: rollback-is-a-new-row. Reverting a proposal, a rejection or an already-rolled-back entry is not a rollback of anything in effect."},
+    {"id": "no-evidence-no-rollback", "status": 422, "statement": "A rollback cites why it is being reverted, or it is not recorded.", "why": "Reverting a live clinical rule is itself a clinical change, held to the same evidence requirement as the rule it undoes."}
+   ],
+   "emits": ["clinical.review_queue.entry_proposed@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
   }
  ]
 }

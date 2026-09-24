@@ -145,6 +145,9 @@ enum EventsData {
     static let claimDecidedV1 = EventKey("claim.decided", 1, "money")
     static let visitBillableV1 = EventKey("visit.billable", 1, "care")
     static let reviewBillableV1 = EventKey("review.billable", 1, "clinical")
+    static let clinicalReviewQueueEntryProposedV1 = EventKey("clinical.review_queue.entry_proposed", 1, "clinical")
+    static let clinicalReviewQueueEntryRatifiedV1 = EventKey("clinical.review_queue.entry_ratified", 1, "clinical")
+    static let clinicalReviewQueueEntryRejectedV1 = EventKey("clinical.review_queue.entry_rejected", 1, "clinical")
     static let pulseSessionStartedV1 = EventKey("pulse.session.started", 1, "pulse")
     static let pulseListeningStartedV1 = EventKey("pulse.listening.started", 1, "pulse")
     static let pulseUtteranceFinalisedV2 = EventKey("pulse.utterance.finalised", 2, "pulse")
@@ -263,6 +266,9 @@ enum EventsData {
         claimDecidedV1,
         visitBillableV1,
         reviewBillableV1,
+        clinicalReviewQueueEntryProposedV1,
+        clinicalReviewQueueEntryRatifiedV1,
+        clinicalReviewQueueEntryRejectedV1,
         pulseSessionStartedV1,
         pulseListeningStartedV1,
         pulseUtteranceFinalisedV2,

@@ -1,0 +1,102 @@
+{
+ "_note": "Break-Glass Governance & External Anchor — the audit contract only. Proposed 24 September 2026, from the founder's Control Tower & GilbertOne Commercialization plan, Module 11: 'the break-glass audit contract: time-boxed (≤ 4 h), reason at grant, second-party notification on grant and use, separate append-only tamper-evident log, periodic access review.' The plan's admin-layer table names Layer 1 — Super User / Platform Owner — as ≤2 people, hardware-key MFA, resting on 'an external governance anchor (Module 11)' and owning the device class allowlist (docs/COMMERCIAL-AND-CONTROL-TOWER-SCOPE.md section 4 records the closest in-repo version of that layer: fourteen layers, Layer 1 the same ≤2 people and hardware-key MFA, though the founder's fuller plan is said to run to fifteen). This file writes none of that board-level question: who the external anchor is, and how it is chosen, is a founder and board decision for docs/governance/SUPER-USER-GOVERNANCE.md, out of this file's scope entirely. What this file writes is the shape of a break-glass grant, its expiry, its notifications and the log it is written into — the data contract Module 11 asks for regardless of who ends up governing it. Nothing here is built: there is no route, no handler, no log table, and no break-glass grant of this kind has ever been issued. This is not the Health Passport's own break-glass (packages/catalog/passport-gateway.json breakGlass): that one opens a patient's emergency summary during a medical emergency, reviews within 24 hours, and already runs in apps/passport/src/gateway.ts. This one is administrative — elevated access to MyThuso's own systems, such as the device class allowlist Layer 1 owns — and it is new.",
+ "version": 1,
+
+ "distinctFrom": {
+  "passportBreakGlass": {
+   "reference": "packages/catalog/passport-gateway.json breakGlass",
+   "sentence": "The Passport's break-glass opens one thing — the emergency summary (allergies and current medicines) — for one reason class (the patient cannot consent), reviewed within 24 hours, and it is built and tested (apps/passport/src/gateway.ts, apps/passport/src/operator.ts). Its numbers (24-hour review, not a 4-hour hard expiry) are correct for what it does: a clinician at a bedside needs the access now and the review can follow. This file's numbers are different because what it gates is different — elevated access to production systems and configuration, not a single patient's emergency data during a single encounter — and the plan sets its own ceiling for that: 4 hours, not 24."
+  },
+  "sharedMechanismNotSharedInstance": "Both this file's log and the Passport's patient-visible chain (apps/passport/src/audit.ts) and the identity service's access log (apps/api/src/protection/audit.ts) use the same idea — an HMAC chain over an allowlist of fields, so an edit, a deletion or a reordering breaks verification from that point on. Module 11 asks for a log 'separate' from the others, and this file honours that literally: a third chain, keyed and stored on its own, never a shared table with a filter on it. Sharing a table with either existing chain would mean an administrator with reason to read one could read the other by construction, which is the exact failure separation is for."
+ },
+
+ "auditMechanism": {
+  "modelledOn": "apps/api/src/protection/audit.ts HashChainAudit",
+  "sentence": "Read that file rather than a description of it: an HMAC-SHA256 over a canonical, sorted serialisation of each entry and the hash of the entry before it, keyed from a value that lives in the service's environment rather than in the database, so an attacker with the database file alone cannot recompute the chain. append() takes an allowlist of fields and throws on anything outside it. verify() walks the whole chain and names the first entry that no longer follows, because once one link breaks every link after it fails too, and a report of four hundred broken entries hides the one place somebody actually touched. head() exists so the current head can be copied somewhere the store cannot reach.",
+  "honestLimits": "Exactly apps/api/src/protection/audit.ts's own three: it does not prove truncation to nothing (an empty log verifies), it does not prove the entries are honest, only that they are the entries that were written, and it proves nothing against somebody holding both the file and the key. Tamper-evident, not tamper-proof — carried here in the same words rather than a stronger claim invented for a governance document.",
+  "genesis": "A fixed value, as apps/api/src/protection/audit.ts's GENESIS is, so an empty log is distinguishable from a log keyed wrong.",
+  "keySeparation": "This log's HMAC key is its own, derived for a 'break-glass' purpose distinct from the identity service's audit purpose and the Passport's audit purpose, following the same key-ring-derivation pattern apps/passport/src/keys.ts already uses for its own six derived keys. A grant chain keyed off an existing service's audit key would not be a separate log, whatever table it lives in."
+ },
+
+ "grantShape": {
+  "fields": [
+   { "field": "grantRef", "type": "string", "why": "The grant." },
+   { "field": "granteeRef", "type": "string", "why": "Who holds the elevated access. Never a shared or generic account — a break-glass grant to 'admin' rather than a named person is a grant nobody can be asked about." },
+   { "field": "granteeRole", "type": "string", "why": "The admin layer the grantee ordinarily holds, from the plan's admin-layer table (docs/COMMERCIAL-AND-CONTROL-TOWER-SCOPE.md section 4) once that table is a contract in this catalog rather than prose — named here as a forward reference, not created by this file." },
+   { "field": "scope", "type": "string", "why": "Exactly what the grant elevates access to — a named system, a named data class, or, for Layer 1, the device class allowlist the plan names it as owning. A scope of 'everything' is not a scope; see refusals." },
+   { "field": "reasonCode", "type": "string", "why": "One of reasons below. Required at grant, before anything is accessed — 'reason at grant' in the plan's own words, matching the discipline packages/catalog/passport-gateway.json's own breakGlass already applies to its clinicians." },
+   { "field": "reasonNote", "type": "string", "why": "Free text describing the specific situation, screened the same way packages/catalog/passport-gateway.json's breakglass-note-identifying refusal already screens a clinician's note — for anything shaped like a phone number, an identity number or an email address — because a note written under pressure is exactly where a name ends up, and this note is read by the periodic reviewer, not sealed away from everybody the way the Passport's is." },
+   { "field": "grantedAt", "type": "instant", "why": "When the grant began. The expiry clock starts here, not when it is first used." },
+   { "field": "expiresAt", "type": "instant", "why": "grantedAt plus at most 4 hours. Computed, never accepted from the request — a grant that could name its own expiry could name one past the ceiling." },
+   { "field": "secondParty", "type": "object", "shapeFrom": "secondPartyNotification.shape", "why": "Who was told, and when, on grant. Required before the grant is usable — see refusals." },
+   { "field": "usedAt", "type": "list", "nullable": true, "why": "Every moment the grant was actually exercised, each triggering its own second-party notification (secondPartyNotification below) — a grant issued and never used is a different fact from one issued and used repeatedly, and both are kept." },
+   { "field": "revokedAt", "type": "instant", "nullable": true, "why": "If the grant is ended before its natural expiry. A break-glass grant is not something the grantee themselves can quietly let lapse unnoticed — see reviewCadence." }
+  ]
+ },
+
+ "reasons": [
+  { "id": "system-outage-requires-elevated-access", "label": "A system outage needs access no ordinary role carries" },
+  { "id": "device-allowlist-emergency-change", "label": "The device class allowlist Layer 1 owns needs an emergency change outside the ordinary review cycle" },
+  { "id": "security-incident-response", "label": "Responding to a security incident under apps/api/src/incidents.ts's register needs access the incident's own severity does not ordinarily carry" },
+  { "id": "key-recovery", "label": "Recovering or rotating a key under docs/governance/KEY-CUSTODY-OPTIONS.md's ceremony, outside the ordinary administrative role" }
+ ],
+ "_reasonsNote": "A proposed starting list, in the same spirit as packages/catalog/gilbert-emergency-terms.json's own proposed configuration: not clinically or operationally reviewed, and the plan does not itself enumerate reasons, so these four are this file's own proposal for what 'reason at grant' would choose from, open to the same governance review the emergency terms list already waits on.",
+
+ "timeBox": {
+  "maximumHours": 4,
+  "why": "Module 11's own ceiling. Shorter than the Passport's clinical break-glass review window (24 hours) because what is being protected is different: a clinician's break-glass opens a fixed, narrow read for the length of an encounter; this grant opens administrative access whose blast radius is whatever its scope names, and a shorter ceiling means a forgotten grant expires within the same working shift it was opened in rather than surviving to the next day unnoticed.",
+  "enforcement": "named-but-absent", "enforcementWhy": "No route or scheduled process exists yet to actually revoke access at expiresAt. This file states the ceiling the contract will hold a future implementation to; it does not itself expire anything, the same honesty packages/catalog/devices.json's settings hold about a guardrail bound existing in the contract before any code enforces it."
+ },
+
+ "secondPartyNotification": {
+  "required": ["on-grant", "on-each-use"],
+  "shape": [
+   { "field": "notifiedRef", "type": "string", "why": "A second, named person — never the grantee themselves, and never a role the grantee also holds alone. For a ≤2-person Layer 1, the second party is necessarily the other of the two, which is exactly the point: a grant Layer 1 issues to itself is still told to the one other person who could question it." },
+   { "field": "notifiedAt", "type": "instant", "why": "When the notification was sent, not when it might have been read." },
+   { "field": "acknowledgedAt", "type": "instant", "nullable": true, "why": "Whether the second party confirmed they saw it. Null does not block the grant — this is notification, not approval, matching the plan's own words 'second-party notification' rather than 'second-party approval' — but an unacknowledged notification is what the periodic review reads first." }
+  ],
+  "deliveryMechanism": "named-but-absent", "deliveryWhy": "There is no paging, push or SMS delivery anywhere in this codebase — apps/api/src/incidents.ts says so of its own breach register ('detection, paging and notification delivery' absent), and grepping apps/passport/src/gateway.ts for its own promise that 'the patient and their next of kin are told' on break-glass finds no send mechanism at all: the notice is a sentence written into the patient-visible chain, read only if and when the patient opens it. This file does not repeat that gap quietly. A break-glass grant recorded here as notified-on-grant means an entry was written naming who was told; it does not mean a message reached them, until a messaging provider and a delivery route exist."
+ },
+
+ "reviewCadence": {
+  "sentence": "A periodic review of every grant issued since the last one — used or not, expired cleanly or revoked early — read by somebody other than any grantee under review.",
+  "cadence": "proposed", "cadenceValue": "Monthly, proposed by analogy with no document giving a number: packages/catalog/vetting.json's re-verification sweep (npm run reverify) is the closest built pattern of a periodic pass over standing already granted, and this file borrows its shape — a scheduled pass that is a dry run unless committed — rather than inventing a different cadence mechanism for the same idea.",
+  "reviewer": "Not the grantee, and not solely the second party who received the on-grant or on-use notification — the plan's external governance anchor (Module 11) is the natural reviewer once docs/governance/SUPER-USER-GOVERNANCE.md names one; until it does, this field names nobody, because a review performed by the person being reviewed is not a review.",
+  "builtStatus": "named-but-absent"
+ },
+
+ "refusals": [
+  {
+   "id": "grant-past-four-hours-is-invalid",
+   "statement": "A break-glass grant whose expiresAt is more than 4 hours after grantedAt is not a valid grant. It is refused at the point it would be recorded, not silently truncated to 4 hours.",
+   "why": "Module 11's own ceiling: '≤ 4 h.' Truncating a longer request to the ceiling would let somebody ask for more and receive the maximum by default; refusing it outright means the person asking has to notice the ceiling and ask again inside it, which is the friction a time-boxed grant is supposed to have."
+  },
+  {
+   "id": "no-second-party-notification-no-valid-grant",
+   "statement": "A grant with no secondParty entry recorded at the moment it is granted is not a valid grant, and a use with no secondParty entry recorded at the moment of that use is not a valid use.",
+   "why": "Module 11's own requirement: 'second-party notification on grant and use.' A break-glass mechanism whose whole justification is 'access without waiting for approval' has exactly one control left once approval is removed — that somebody else is told. Making that optional would remove the last one."
+  },
+  {
+   "id": "reason-required-before-access",
+   "statement": "A grant with no reasonCode, or a reasonNote that fails the identity-shape screen in grantShape, is refused before any scope is opened.",
+   "why": "'Reason at grant,' not reason afterwards. packages/catalog/passport-gateway.json's own breakglass-justification and breakglass-note-identifying refusals already draw this line for the Passport's clinical break-glass; this file draws the same line for an administrative one, because a reason written after the fact is a justification, not a reason."
+  },
+  {
+   "id": "self-notification-is-not-second-party-notification",
+   "statement": "A notifiedRef equal to the granteeRef, or naming an account the grantee also controls, is refused. The second party is somebody else.",
+   "why": "The whole value of a second party is that they are not the person being granted access. A ≤2-person Layer 1 makes this the other of the two by construction (secondPartyNotification.shape); it does not make it acceptable for either of the two to be their own second party."
+  },
+  {
+   "id": "no-scope-of-everything",
+   "statement": "A grant whose scope names 'all systems,' 'full access' or an equivalent unbounded phrase is refused. Scope names what is actually being reached.",
+   "why": "A break-glass grant is meant to be narrow and reviewable. An unbounded scope is not a scope the periodic review (reviewCadence) could ever meaningfully check against what was actually touched."
+  },
+  {
+   "id": "log-is-append-only",
+   "statement": "No grant, use, revocation or review entry in this log is ever edited or deleted. A correction is a new entry naming the one it corrects.",
+   "why": "The same discipline apps/api/src/protection/audit.ts already holds for its own chain, and the reason Module 11 asks for a 'tamper-evident' log rather than an editable record: an append-only log that could be corrected in place would let the correction also erase what it was correcting."
+  }
+ ],
+
+ "preview": "No break-glass grant of this kind has ever been issued, used, notified or reviewed. This file describes a log with nothing written to it."
+}

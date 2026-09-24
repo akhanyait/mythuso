@@ -1,0 +1,115 @@
+{
+ "_note": "The Clinician Review Queue: the one door through which anything that could change clinical behaviour — a global escalation rule, a tenant's additive protocol step, or a device's threshold rule — is allowed to move. Proposed 23 September 2026, from the founder's Control Tower & GilbertOne Commercialization plan, Module 1, described there as 'the load-bearing safety contract.' This file holds the queue's shape, its states and its refusals. It holds no clinical content and it is not going to: a proposed change's actual wording, number or threshold lives wherever that kind of thing already lives in this catalog (a protocol's content in packages/catalog/protocols.json once ratified, a device threshold in packages/catalog/devices/thresholds.json once ratified, an escalation rule in packages/gilbertone/src/escalation.ts once ratified) and never here. scripts/check-boundaries.mjs fails the build if this file grows a field a clinical number could be written into. Nothing here is built: no route has a handler, no queue exists at runtime, and no change has ever moved through it.",
+ "version": 1,
+ "engine": "clinical",
+ "api": "packages/catalog/apis/clinical.json",
+
+ "governedBy": "packages/catalog/protocols.json#governance",
+ "_governedByWhy": "The queue is answered by the same clinical governance board and the same Medical Director that ratify a protocol — not a second board invented for device rules or tenant layers. packages/catalog/protocols.json#governance already records that board as not-formed and that Medical Director as not-appointed; this file reads that state rather than keeping a second copy of it, and every refusal below that needs a signature is refused for that reason until it changes there.",
+
+ "whereContentLives": {
+  "decision": "references-and-states",
+  "sentence": "An entry in the queue never carries the change itself — no wording, no threshold, no number, no code. It carries a reference to where the proposed change is written, who proposed it, what tier it claims, what evidence backs it, and where it stands. What the change actually says lives in the file that kind of content already lives in: a protocol's text in packages/catalog/protocols.json, a device threshold in packages/catalog/devices/thresholds.json, an escalation rule in the pull request that would edit packages/gilbertone/src/escalation.ts.",
+  "why": "A queue that could carry a threshold directly is a queue somebody wires a screen to read before the board ever votes, which is the exact failure packages/catalog/protocols.json's a-draft-carries-nothing refusal already exists to prevent. Keeping the same discipline here means a second file can't reopen a door the first one closed."
+ },
+
+ "tiers": [
+  {
+   "id": 1,
+   "label": "Tier 1 — global core",
+   "sentence": "The deterministic escalation ruleset, the shared emergency-term list, red-flag patterns and escalation semantics. Identical for every tenant, reviewed by the global clinical governance board, and never addable-to or subtractable-from by a tenant.",
+   "mayBeProposedBy": "any-clinician",
+   "mayBeRatifiedBy": "sign-clinical-review"
+  },
+  {
+   "id": 2,
+   "label": "Tier 2 — per-tenant additive",
+   "sentence": "A site's own protocol steps, formulary exclusions or extra escalation rungs. Subject to the same review queue, scoped to one tenant, and may only add to Tier 1 — never remove, weaken or override a Tier 1 rule.",
+   "mayBeProposedBy": "any-clinician",
+   "mayBeRatifiedBy": "sign-clinical-review",
+   "mustNotSubtractFromTier1": true
+  },
+  {
+   "id": "device",
+   "label": "Device threshold rule",
+   "sentence": "A rule that decides whether a device reading auto-creates an incident. A threshold that can raise an incident by itself is a clinical act, exactly as much as a protocol step is, and is proposed and ratified the same way — it never arrives as a default on a device-class allowlist entry.",
+   "mayBeProposedBy": "any-clinician",
+   "mayBeRatifiedBy": "sign-clinical-review"
+  }
+ ],
+ "_tiersNote": "Tier 1 and Tier 2 are decision 1.1 and the device tier is decision 1.4's threshold, both from the same source plan. scripts/check-boundaries.mjs fails the build if a Tier 2 entry's diff removes or narrows anything a Tier 1 rule states, and if a device-class allowlist entry (packages/catalog/devices/thresholds.json, once it exists) carries a number with no ratified entry here naming it.",
+
+ "states": [
+  { "id": "proposed", "label": "Proposed", "sentence": "Logged with its evidence and its proposer. Carries no authority yet." },
+  { "id": "in-review", "label": "In review", "sentence": "The clinical governance board is looking at it. Still carries no authority." },
+  { "id": "ratified", "label": "Ratified", "sentence": "Signed off by name, role and day, under the same governance protocols.json already records. Only a ratified entry may be cited as the reason a clinical behaviour changed." },
+  { "id": "rejected", "label": "Rejected", "sentence": "Looked at and declined. Kept, because a change proposed and refused is itself worth knowing happened." },
+  { "id": "live", "label": "Live", "sentence": "A ratified entry that the corresponding file (protocol, threshold, escalation rule) has actually adopted. Ratified and live are different states because a board's signature and a code change landing are two different events, and this queue does not pretend the second happens the moment the first does." },
+  { "id": "rolled-back", "label": "Rolled back", "sentence": "Reverted to the version named in rollbackRef. A rollback is always a new entry that supersedes the one it reverts — the entry it reverts is never edited or removed." }
+ ],
+ "transitions": {
+  "allowed": [
+   ["proposed", "in-review"],
+   ["in-review", "ratified"],
+   ["in-review", "rejected"],
+   ["ratified", "live"],
+   ["live", "rolled-back"]
+  ],
+  "appendOnly": "Every transition is a new row in the entry's history, naming who made it and when. No row is ever edited or removed, matching packages/catalog/protocols.json's a-new-version-is-a-new-row rule."
+ },
+
+ "entryShape": {
+  "fields": [
+   { "field": "entryRef", "type": "string", "why": "The queue entry." },
+   { "field": "tier", "type": "string", "why": "1, 2 or device, from tiers above." },
+   { "field": "tenantRef", "type": "string", "nullable": true, "why": "Required for a Tier 2 entry, null for Tier 1 and for a device entry that applies globally." },
+   { "field": "proposedChangeRef", "type": "string", "why": "Where the change itself is written — a protocol id, a device threshold rule id, or a reference to the diff that would edit packages/gilbertone/src/escalation.ts. Never the change's content." },
+   { "field": "basisRef", "type": "string", "why": "What the proposer is citing — a guideline, an incident, a founder instruction. Required; an entry with nothing behind it is refused at proposal." },
+   { "field": "proposedByRef", "type": "string", "why": "Who proposed it." },
+   { "field": "proposedAt", "type": "instant", "why": "When." },
+   { "field": "stateCode", "type": "string", "why": "From states above." },
+   { "field": "reviewerRef", "type": "string", "nullable": true, "why": "Who reviewed it, once in-review." },
+   { "field": "signOff", "type": "object", "nullable": true, "why": "Role, name and day, matching packages/catalog/protocols.json's ratification shape exactly — never a second signature format." },
+   { "field": "rollbackRef", "type": "string", "nullable": true, "why": "The entry this one reverts, only present on a rolled-back entry." },
+   { "field": "supersedes", "type": "string", "nullable": true, "why": "The prior entry this one replaces, for a rollback or a re-proposal." }
+  ]
+ },
+
+ "refusals": [
+  {
+   "id": "a-proposed-entry-carries-no-authority",
+   "statement": "A proposed or in-review entry decides nothing. Nothing may read this queue and change clinical behaviour before an entry reaches ratified.",
+   "why": "The same reasoning as packages/catalog/protocols.json's a-draft-carries-nothing: a change acted on before the board signs it is the board's authority borrowed without asking."
+  },
+  {
+   "id": "no-signature-no-ratification",
+   "statement": "An entry is not ratified until it carries the role, the name and the day of who signed it, under the governance packages/catalog/protocols.json#governance records.",
+   "why": "A ratification that cannot say whose authority it was is citing nobody."
+  },
+  {
+   "id": "tier-2-may-not-subtract",
+   "statement": "A Tier 2 entry that removes, weakens or overrides anything a Tier 1 entry states is refused at proposal, not caught at review.",
+   "why": "A tenant's own additive layer that could quietly cancel a global safety rule is not additive. Catching this at proposal rather than review means a reviewer's attention goes to whether the addition is sound, not to re-deriving whether it secretly subtracts."
+  },
+  {
+   "id": "no-auto-promotion-without-a-signature",
+   "statement": "Nothing may write to packages/gilbertone/src/escalation.ts, the shared emergency-term list, the triage ruleset, or a device threshold rule, unless a ratified entry in this queue names exactly that change.",
+   "why": "This is the self-learning boundary docs/COMMERCIAL-AND-CONTROL-TOWER-SCOPE.md §2 describes ('anything touching clinical decisioning' is 'LOCKED — never autonomously'), stated here as a refusal rather than a policy: the engine improves its own phrasing and its own retrieval freely, and it may never improve its own idea of what counts as an emergency. Reconciliation note, 24 September 2026: an earlier draft of this file called this 'Module 6's self-learning boundary.' The module-numbered plan that reached this codebase separately numbers Module 6 as the SAHPRA/medical-device regulatory-classification question (docs/governance/REGULATORY-CLASSIFICATION.md) — a different thing entirely — and the tracked scope document carries no module numbers in §2 at all. The 'Module 6' reference was wrong under both numberings and is removed rather than corrected to a number, since no numbered source this codebase holds assigns this boundary one. scripts/check-boundaries.mjs enforces this structurally — it fails the build if any code path that could promote a change to those files is reachable without also reading a ratified entry ref."
+  },
+  {
+   "id": "rollback-is-a-new-row",
+   "statement": "Reverting a live entry never edits or removes it. A rollback is proposed, reviewed and ratified exactly like any other change, naming the entry it reverts.",
+   "why": "What was true on the day a clinician acted on a rule has to stay readable after the rule is rolled back, the same reason no ratified protocol version is ever edited in place."
+  },
+  {
+   "id": "device-threshold-carries-no-number-until-ratified",
+   "statement": "A device-class allowlist entry (packages/catalog/devices/thresholds.json) carries no numeric threshold until a ratified entry here names it. Until then the class exists with no threshold, and a reading against it is recorded but never auto-creates an incident.",
+   "why": "The same discipline packages/catalog/sentinel.json already holds for vitals thresholds, applied to device thresholds for the same reason: a number that could decide a dispatch is a clinical decision, not a device-onboarding default."
+  }
+ ],
+
+ "capability": "sign-clinical-review",
+ "_capabilityWhy": "Reuses packages/catalog/clinical.json's existing confirmerCapability and review-confirmer setting rather than inventing a second signing authority. Whoever the settings in force name as a clinical review confirmer today is who may move an entry from in-review to ratified here — no new vetting role is proposed by this file.",
+
+ "preview": "No entry has ever been proposed. This file describes a queue with nobody in it."
+}

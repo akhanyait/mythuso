@@ -1,0 +1,153 @@
+{
+ "_note": "Every indicator a device's health could be shown by, its threshold behaviour, where it would come from, and — the part a later boundary check and a My Devices or fleet screen would actually read — who sees what. Sits beside packages/catalog/devices.json, which already owns four of the indicators below (health.states, health.calibration, the battery and firmware fields in the health route's response) and this file does not restate their behaviour, only cross-references it. The other seven indicators are this file's own proposal: nothing in devices.json, the engine, or any screen computes them today.",
+ "_honestSourceNote": "As pairing-paths.json's _honestSourceNote records, no tracked plan document names these eleven indicators, an audience table, or the specific roles 'security officer' and 'auditor' as device-data viewers. This file's indicator list and audience shape are original design work for the founder's Control Tower plan's admin-layer roles (docs/COMMERCIAL-AND-CONTROL-TOWER-SCOPE.md §4, layers 3 'Security & Compliance Officer' and 13 'Auditor'), cross-checked against what those layers say ('POPIA accountable' and 'Read-only' respectively) rather than invented independently — but §4 does not itself describe a device health panel, so the mapping from layer to indicator visibility below is this file's inference, not a transcription.",
+ "version": 1,
+ "engine": "devices",
+
+ "indicators": [
+  {
+   "id": "battery",
+   "label": "Battery",
+   "builtToday": true,
+   "source": "GET /v1/devices/registry/{deviceRef}/health@2 response field batteryPercent (packages/catalog/apis/devices.json), rendered by devices.json screens.nurse.battery / batteryUnknown.",
+   "thresholdBehaviour": "No threshold exists. devices.json's battery field is shown as a raw percentage or 'not reported'; nothing marks a reading, refuses a capture, or raises an event on a low battery today, and this file proposes none — a battery threshold that could gate a capture is exactly the kind of number packages/catalog/devices/thresholds.json refuses to hold without a ratified clinical-review-queue.json entry, and battery is not a reading type, so it likely never needs one.",
+   "why": "Kept in the panel because a flat instrument is the most common reason a visit's readings go missing, and the nurse screen already shows it."
+  },
+  {
+   "id": "signal-connectivity",
+   "label": "Signal / connectivity",
+   "builtToday": false,
+   "source": "Not read anywhere. A future indicator of whether the device currently has a live transport link (BLE connected, Wi-Fi joined, cellular registered) distinct from lastSeen below, which is a timestamp rather than a live state.",
+   "thresholdBehaviour": "Proposed as a state, not a number: connected, disconnected, or connecting. No threshold to ratify.",
+   "why": "lastSyncAt tells you when a device last spoke; it says nothing about whether the device is reachable right now. A nurse mid-visit needs the second question answered, not just the first."
+  },
+  {
+   "id": "last-seen",
+   "label": "Last seen",
+   "builtToday": true,
+   "source": "GET /v1/devices/registry/{deviceRef}/health@2 response field lastSyncAt, rendered by devices.json screens.nurse.lastSync / neverSynced.",
+   "thresholdBehaviour": "Feeds the stale state in devices.json health.states, worked out against the admin setting stale-after-minutes (devices.json settings, default 1440, proposed and not decided). This file adds nothing to that arithmetic.",
+   "why": "Already built. Listed for completeness of the panel, not as new work."
+  },
+  {
+   "id": "last-reading",
+   "label": "Last reading",
+   "builtToday": false,
+   "source": "Not a field on the health route today. Would be worked out from the most recent entry in the readings resource (packages/catalog/apis/devices.json resources: readings) for the device, which the engine already stores as a reference.",
+   "thresholdBehaviour": "No threshold. A display of when and, where the caller may see clinical content, what — never a number that could gate anything.",
+   "why": "Distinct from lastSeen: a device can sync (send a heartbeat) without having taken a reading since the last visit. A clinician needs to know which."
+  },
+  {
+   "id": "reading-freshness",
+   "label": "Reading freshness",
+   "builtToday": false,
+   "source": "Derived from last-reading and the takenAt field devices.json readings already require (packages/catalog/apis/devices.json POST /v1/devices/readings@2 request field takenAt).",
+   "thresholdBehaviour": "Would need its own admin setting, on the same pattern as devices.json's stale-after-minutes, if it is ever to mark a reading rather than merely display an age. Proposed here as a display-only indicator ('taken 3 days ago') until a settings proposal for a freshness threshold is made the way the Devices lead proposed the three existing settings on 15 September 2026 — not decided by this file.",
+   "why": "A certified instrument's calibration can be in date while its most recent reading is weeks old; freshness and calibration answer different questions and neither substitutes for the other."
+  },
+  {
+   "id": "calibration-status",
+   "label": "Calibration status",
+   "builtToday": true,
+   "source": "GET /v1/devices/registry/{deviceRef}/health@2 response field calibrationStateCode, from devices.json health.calibration (in-date, due, overdue, not-tracked).",
+   "thresholdBehaviour": "Governed entirely by devices.json's calibration-due-days setting and calibrationNeverRefuses: 'An overdue calibration marks the readings taken while it lasts and never refuses one.' This file changes none of that.",
+   "why": "Already built. Listed for completeness."
+  },
+  {
+   "id": "firmware-version",
+   "label": "Firmware version",
+   "builtToday": true,
+   "source": "Registered at POST /v1/devices/registry@2 (request field firmware) and re-read at GET /v1/devices/registry/{deviceRef}/health@2 (response field firmware).",
+   "thresholdBehaviour": "No threshold. Devices.json does not compare a firmware string against a minimum version anywhere, and this file proposes no such comparison — firmware/OTA trust is explicitly out of scope for Module 10's threat model (docs/security/THREAT-MODEL.md, 'What is out of scope for this pass') and this file keeps the same boundary rather than quietly reopening it.",
+   "why": "Shown so a clinician or security officer can see what a device is running; judging whether that version is acceptable is the deferred firmware/OTA module's job, not this one's."
+  },
+  {
+   "id": "data-integrity",
+   "label": "Data integrity",
+   "builtToday": false,
+   "source": "Not read anywhere. Would need a per-reading integrity check (a signature or a hash the device produces at capture time) that nothing in packages/catalog/devices.json's readings shape carries today — its request fields are subjectRef, deviceRef, metric, unit, takenAt, source, quality, consentState, intendedUse, simulated and batteryPercent, none of which is an integrity proof.",
+   "thresholdBehaviour": "Proposed as pass/fail, decided the moment a reading arrives, not a number to ratify. Depends entirely on trust-model.json's device credential existing first — an integrity check with no per-device key to check it against has nothing to verify.",
+   "why": "docs/security/ADVERSARY-REGISTER.md's 'replayed reading' row is explicit that no device-originated submission carries a nonce or sequence number today. This indicator names the gap that row already describes rather than closing it."
+  },
+  {
+   "id": "credential-validity",
+   "label": "Credential validity",
+   "builtToday": false,
+   "source": "Not read anywhere, because no device credential exists. See packages/catalog/devices/trust-model.json.",
+   "thresholdBehaviour": "Proposed as a state (valid, revoked, quarantined, unknown), never a number.",
+   "why": "Named explicitly in docs/governance/DPIA-DRAFT.md §9 as 'Device binding... blocked on a key per device,' and in docs/security/ADVERSARY-REGISTER.md as the single missing primitive both 'compromised device' and 'spoofed device' terminate on. This indicator is a placeholder for the day that primitive exists, not a claim that it does."
+  },
+  {
+   "id": "physiological-plausibility",
+   "label": "Physiological plausibility",
+   "builtToday": false,
+   "source": "Not read anywhere. Would compare a reading's value against a plausible physiological range — not a clinical reference range (packages/catalog/records.json#observations.measures already owns those) but a much wider sanity band that would catch, say, a heart rate of 400.",
+   "thresholdBehaviour": "This is exactly the kind of number packages/catalog/devices/thresholds.json and packages/catalog/clinical-review-queue.json's device tier refuse to hold without ratification. No number is proposed here, deliberately — see thresholds.json.",
+   "why": "Distinct from a clinical alert threshold: implausibility is evidence the device or the transmission is faulty, not evidence about the patient. Keeping the two separate in the design now avoids a later temptation to let a 'sanity check' quietly become an unratified clinical threshold."
+  },
+  {
+   "id": "physical-state",
+   "label": "Physical state",
+   "builtToday": false,
+   "source": "Not read anywhere. Would be a self-reported or operator-recorded state (undamaged, damaged, recalled) distinct from devices.json's recall mechanism, which already exists and is the authoritative source for 'recalled.'",
+   "thresholdBehaviour": "No threshold. For 'recalled,' this indicator reads devices.json's existing marks.recalled rather than duplicating it — a number lives in one place, and devices.json's recall.effectiveFrom is already that place. 'Damaged' with no recall recorded yet is the only state this indicator would add.",
+   "why": "A nurse who drops a cuff needs somewhere to say so before an operator gets around to recording a formal recall; this indicator is that interim flag, never a substitute for the recall itself."
+  }
+ ],
+
+ "audiences": {
+  "_note": "Who sees which indicators, and in what form. The four audience rows below map onto vetting.json roles and devices.json callers where those exist, and are named honestly as not-yet-existing roles where they do not.",
+  "patient": {
+   "existingRole": true,
+   "roleSource": "packages/catalog/apis/devices.json — patient is already a caller on POST /v1/devices/readings@2.",
+   "scope": "Own devices only (own-device source, consumer or medical-grade-personally-owned tier).",
+   "sees": ["battery", "signal-connectivity", "last-seen", "last-reading", "physical-state"],
+   "form": "plain-language",
+   "formSentence": "'Reporting' or 'Not reporting since {when}', never a raw stateCode; battery as a percentage or 'Battery not reported', matching devices.json screens.nurse.battery/batteryUnknown wording exactly rather than a second form of the same words.",
+   "neverSees": ["calibration-status", "firmware-version", "data-integrity", "credential-validity", "physiological-plausibility", "reading-freshness"],
+   "neverSeesWhy": "Calibration and firmware are instrument-maintenance facts a patient cannot act on and that devices.json's own nurse/ops screens already treat as backstage; integrity, credential and plausibility are security-and-clinical judgements a patient reading raw would either misread as their own health status or have no context to weigh, mirroring records.json's rule that clinical judgement is stated, never handed over as a number to interpret."
+  },
+  "family": {
+   "existingRole": false,
+   "roleSource": "No such role or scope exists. packages/catalog/household.json's own _noGuardianAuthority and rosterIsInformation are explicit that a household membership 'carries no relationship, no authority and no scope, and adding one changes nothing about who may open what' — so a family member added to a patient's household today gains precisely nothing here.",
+   "scope": "None, until a consent grant naming device-health as a category is designed — no such category exists in packages/catalog/consent.json today.",
+   "sees": [],
+   "form": "not applicable",
+   "why": "This file's brief described a combined 'patient/family' audience; household.json's existing no-authority rule means that combination cannot be built as a single row without contradicting a rule this catalog already enforces. Flagged rather than silently reconciled: if family visibility is wanted, it needs its own consent purpose and its own grant, the same way every other cross-account read in this catalog works, not a side effect of household membership."
+  },
+  "clinician": {
+   "existingRole": true,
+   "roleSource": "packages/catalog/apis/devices.json — nurse is already a caller on GET /v1/devices/registry/{deviceRef}/health@2 and on POST /v1/devices/readings@2; doctor is not a caller on any devices route today, which this file notes rather than assumes.",
+   "scope": "Devices in the patient's care under an active visit or ongoing care relationship, per whatever caller-scoping the routes above already enforce.",
+   "sees": ["battery", "signal-connectivity", "last-seen", "last-reading", "reading-freshness", "calibration-status", "firmware-version", "physiological-plausibility", "physical-state"],
+   "form": "full-panel",
+   "formSentence": "Every field the health route returns, plus the calibration and recall sentences devices.json screens.nurse already renders word for word.",
+   "neverSees": ["data-integrity", "credential-validity"],
+   "neverSeesWhy": "These are security judgements about the device's own trustworthiness as a network endpoint, not about the patient's care — the same separation devices.json already draws between clinical weight (clinician's business) and a device's registry state (operator's business)."
+  },
+  "security-officer": {
+   "existingRole": false,
+   "roleSource": "Not a vetting.json role and not a caller on any devices route today. Named as a Control Tower admin layer in docs/COMMERCIAL-AND-CONTROL-TOWER-SCOPE.md §4, row 3: 'Security & Compliance Officer — POPIA accountable.' That row describes accountability, not a device screen; the mapping to these two indicators is this file's inference.",
+   "scope": "Fleet-wide, read-only, for the credential and integrity view only — never the clinical fields.",
+   "sees": ["credential-validity", "data-integrity", "signal-connectivity"],
+   "form": "trust-view",
+   "formSentence": "Per-device credential state and last integrity check result, once trust-model.json's design is built — today this row has nothing to show, because neither indicator is read anywhere.",
+   "neverSees": ["physiological-plausibility", "reading-freshness"],
+   "neverSeesWhy": "Those are clinical-adjacent judgements about a reading's content; a security officer's remit here is the device as an endpoint, not the reading as a fact about a patient."
+  },
+  "auditor": {
+   "existingRole": false,
+   "roleSource": "Not a vetting.json role and not a caller on any devices route today. Named as a Control Tower admin layer in docs/COMMERCIAL-AND-CONTROL-TOWER-SCOPE.md §4, row 13: 'Auditor — Read-only.'",
+   "scope": "Everything, read-only, matching the layer's own one-word description.",
+   "sees": ["battery", "signal-connectivity", "last-seen", "last-reading", "reading-freshness", "calibration-status", "firmware-version", "data-integrity", "credential-validity", "physiological-plausibility", "physical-state"],
+   "form": "full-read-only",
+   "formSentence": "Every indicator, exactly as its own audience row above would show it to whoever normally sees it — an auditor's view composes the other rows rather than inventing a new one, matching devices.json settings' own 'Only somebody who may change these settings reads them and who changed them' discipline of naming who reads by what they are checking.",
+   "neverSees": [],
+   "neverSeesWhy": "An auditor who could not see everything could not audit it. Read-only is the constraint, not a narrower field list."
+  }
+ },
+
+ "_audienceBuildNote": "No screen, route or boundary check reads this table today. It exists so that when a My Devices screen (patient), a fleet screen (clinician/operator) or a Control Tower security/audit tab is built, the visibility split is decided once, here, rather than four times across three platforms — the same reasoning packages/catalog/devices.json gives for keeping marks and settings in one place.",
+
+ "preview": "No indicator here is read from a real device, and no audience row has ever been checked against a real login. This file describes a panel nobody has built."
+}

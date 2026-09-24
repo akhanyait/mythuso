@@ -1,0 +1,135 @@
+{
+ "_note": "Tenant Offboarding & Data Portability. Proposed 24 September 2026, from the founder's Control Tower & GilbertOne Commercialization plan, Module 9: 'the exit path — data export, deletion, key revocation, device de-registration, audit-log retention per contract... a commercial product without an offboarding path is one procurement teams won't sign; also a POPIA obligation.' This file writes the exit path's states, its per-data-class meaning of export and deletion, and its refusals. Nothing here runs: there is no route in packages/catalog/apis/, no handler under apps/, and no offboarding has ever been requested, prepared or completed. scripts/check-boundaries.mjs is not asked to enforce anything here — that is Phase 0 work for whoever builds the routes this file describes.",
+ "version": 1,
+
+ "partyScope": {
+  "sentence": "The plan calls this tenant offboarding, meaning a hospital's whole relationship with MyThuso ending. There is no tenant registry in this repository — packages/catalog/clinical-review-queue.json's tenantRef is the only tenant concept anywhere in the catalog, and it names one clinical protocol addition, not a hosted customer. So this contract is written one level down, against the party types that already exist and already have some of the exit mechanics a tenant's offboarding would need to compose from: an individual account (apps/api), a vetted party such as a nurse, doctor or pharmacy (packages/catalog/vetting.json), and an employer or sponsor programme (packages/catalog/programmes.json). A hospital-tenant offboarding, once tenancy exists, is this same state machine run once per party the tenant's own account roster names, plus a step this file does not yet have: telling every engine that the tenant itself is gone, which needs a tenant contract to declare who and what that reaches.",
+  "partyTypes": [
+   { "id": "individual-account", "label": "A patient or account holder leaving", "existingExit": "apps/api/src/erasure.ts (erasure with a seven-day grace period) and apps/passport (exportRecord; no deletion route exists — see dataClasses.health below)." },
+   { "id": "vetted-party", "label": "A nurse, doctor, pharmacy, laboratory or other vetted party leaving", "existingExit": "packages/catalog/vetting.json's lifecycle — suspension and revocation withdraw dispatch by arithmetic; there is no route that also purges the party's own vetting evidence, which apps/api/src/erasure.ts already names as something a nurse's own erasure request cannot reach in full." },
+   { "id": "employer-sponsor-programme", "label": "An employer or sponsor's programme ending", "existingExit": "None built. packages/catalog/programmes.json defines what an employer sees and never sees while the programme runs, and says nothing about what happens to the aggregate reports or the enrolment records once it ends." },
+   { "id": "hospital-tenant", "label": "A hospital's whole relationship ending", "existingExit": "None. Named by the plan; no tenant registry exists to offboard from. This is the shape this file is really written for, and the one it can do least about today." }
+  ]
+ },
+
+ "gatesOn": {
+  "decisions": [
+   { "id": "retention-policy", "document": "docs/governance/INFORMATION-OFFICER.md", "section": "4, decision D-8", "state": "Every retention period apps/api/src/personalData.ts marks 'MyThuso's own setting' is undecided, and the access log's own retention has nothing carrying it out (packages/catalog/consent.json accessLog.retention; DPIA-DRAFT.md section 6, 'Undecided')." },
+   { "id": "dpa-template", "document": "packages/catalog/compliance-pack.json", "section": "section dpa-template", "state": "The template this offboarding contract's audit-log-retention-per-contract clause would cite does not exist as a filled document; it is itself a schema gated on the DPIA, the Information Officer and the residency decision." },
+   { "id": "information-officer", "document": "docs/governance/INFORMATION-OFFICER.md", "section": "1 and 5", "state": "Nobody is appointed or registered, so nobody holds the authority decision D-8 gives the retention schedule this contract needs, and nobody is the addressee of the notification a hospital's exit would send under POPIA section 18." }
+  ],
+  "why": "Module 9's own line: 'gates on retention policy, DPA template, Information Officer.' An exit path is a promise about what happens to somebody's information after the relationship that justified holding it ends — exactly the promise a retention schedule states and a DPA records as a contract term. Writing an offboarding contract that could complete before either exists would let a party leave under a promise nobody wrote down."
+ },
+
+ "states": [
+  { "id": "requested", "label": "Requested", "sentence": "The party (or whoever may act for a hospital-tenant, once one exists) has asked to leave. Nothing is exported, revoked or purged yet." },
+  { "id": "export-prepared", "label": "Export prepared", "sentence": "Every data class this contract can honestly export has been assembled and handed over, in the shape dataClasses below states. A class this contract cannot export yet (see dataClasses.health) is named as not exported, never silently skipped." },
+  { "id": "confirmed", "label": "Confirmed", "sentence": "The party has confirmed the export is what they wanted and that they understand what happens next: which keys are revoked, which devices are de-registered, and what is retained anyway and why. Confirmation is required before anything is purged, mirroring apps/api/src/erasure.ts's own grace period — a request nobody confirms is not carried out." },
+  { "id": "purged", "label": "Purged", "sentence": "Deletion has been carried out for every data class whose disposition is erase or anonymise, key revocation and device de-registration are both complete, and the answer names what could not be purged and why — the same partial-refusal discipline apps/api/src/erasure.ts already uses for an individual account." },
+  { "id": "cancelled", "label": "Cancelled", "sentence": "The party withdrew the request before it was confirmed. Nothing that happened before cancellation is undone from the audit log — a request made and then cancelled is itself worth knowing happened, the same reasoning packages/catalog/clinical-review-queue.json gives for keeping a rejected proposal." }
+ ],
+ "transitions": {
+  "allowed": [
+   ["requested", "export-prepared"],
+   ["requested", "cancelled"],
+   ["export-prepared", "confirmed"],
+   ["export-prepared", "cancelled"],
+   ["confirmed", "purged"]
+  ],
+  "appendOnly": "Every transition is a new row in the request's history, naming who made it and when. No row is ever edited or removed, and a cancelled or purged request is never re-opened under the same reference — a new request starts a new history, so what was true on the day somebody asked to leave stays readable afterwards."
+ },
+
+ "entryShape": {
+  "fields": [
+   { "field": "requestRef", "type": "string", "why": "The offboarding request." },
+   { "field": "partyRef", "type": "string", "why": "Who is leaving." },
+   { "field": "partyType", "type": "string", "why": "One of partyScope.partyTypes above." },
+   { "field": "requestedByRef", "type": "string", "why": "Who asked. For an individual account, the account itself; for a vetted party or a hospital-tenant, whoever holds the authority to ask on their behalf — a question this file does not answer for a hospital-tenant, because no tenant contract yet says who that is." },
+   { "field": "requestedAt", "type": "instant", "why": "When." },
+   { "field": "stateCode", "type": "string", "why": "From states above." },
+   { "field": "exportRef", "type": "string", "nullable": true, "why": "Where the assembled export was written — never the export's own contents, the same discipline packages/catalog/clinical-review-queue.json holds for a proposed clinical change: a reference, not a copy." },
+   { "field": "exportPreparedAt", "type": "instant", "nullable": true, "why": "When export-prepared was reached." },
+   { "field": "confirmedAt", "type": "instant", "nullable": true, "why": "When the party confirmed." },
+   { "field": "purgedAt", "type": "instant", "nullable": true, "why": "When purged was reached." },
+   { "field": "retainedItems", "type": "list", "nullable": true, "why": "Every holding that survived purge, each naming its retention basis — the same shape apps/api/src/erasure.ts's own answer already gives a departing account, extended to whichever data classes this request covered." },
+   { "field": "notPurgeable", "type": "list", "nullable": true, "why": "Every data class this contract names as having no deletion mechanism at all today (dataClasses.health below), so an offboarding answer says so in those words rather than reporting purged against a class nothing can purge." }
+  ]
+ },
+
+ "dataClasses": {
+  "why": "POPIA treats identity and health information differently, and apps/api and apps/passport are already built as two separate services with two separate stores and two separate keys for exactly that reason (CLAUDE.md; apps/passport/src/config.ts refuses to start if its key or database is shared with apps/api's). An offboarding contract that treated the two as one export or one deletion would erase that distinction the moment it mattered most — when a relationship ends and somebody asks what is left.",
+  "identity": {
+   "heldIn": "apps/api",
+   "export": {
+    "mechanism": "POST /account/export (apps/api/src/subjectExport.ts)", "shape": "Step-up-gated, scoped to the caller's own session, delivered once in the response with no file, link or third party — built for a single account, not a bulk tenant export. A hospital-tenant's export would be this same route called once per account the tenant's roster names, which needs the tenant roster this file does not yet have.",
+    "status": "Implemented for a single account (docs/PRIVACY-AND-SECURITY.md calls it Implemented under 'Access'); not built for a bulk or per-tenant scope."
+   },
+   "deletion": {
+    "mechanism": "POST /account/erasure (apps/api/src/erasure.ts)", "shape": "A seven-day grace period, an immediate sign-out, a tombstone (erased-<id>@erased.invalid) rather than a blank, and dispositions of erase, anonymise or retain per table from apps/api/src/personalData.ts's holdings register.", "whatSurvives": "The sign-in audit chain (apps/api/src/protection/audit.ts) is never rewritten by an erasure; a row written before the erasure still names the person, and the register says so to the person rather than hiding it. Vetting evidence with an active retention basis (a police clearance, for instance) is retained with its ground and disposal date named, exactly as apps/api/src/erasure.ts already states for a nurse's own request.",
+    "status": "Implemented for a single account; the periods it disposes against are 'MyThuso's own setting' pending decision D-8."
+   }
+  },
+  "health": {
+   "heldIn": "apps/passport",
+   "export": {
+    "mechanism": "POST /export (apps/passport/src/gateway.ts exportRecord)", "shape": "A FHIR Bundle in the patient's own session, with named exclusions — the same per-person, no-bulk-route limit as the identity export above.",
+    "status": "Implemented for a single patient's own session (DPIA-DRAFT.md section 7 lists it, development only); not built for a bulk or per-tenant scope."
+   },
+   "deletion": {
+    "mechanism": "named-but-absent", "shape": "No route, no handler and no designed mechanism exists anywhere in apps/passport for deleting a Patient token, an Observation, a consent grant record or an entry in the patient-visible audit chain. apps/passport/src/store.ts's only DELETEs are HL7 quarantine and unmatched-message purges (purgeHl7) — messages that were never filed to a record — and DPIA-DRAFT.md section 6 states this plainly: 'Passport P0 | No retention or disposal is built.'",
+    "status": "Absent. This is not a governance gate — appointing an Information Officer or signing the DPIA would not make this route exist. It is a code gap this contract states rather than implies a workaround for. A hospital-tenant's health-side offboarding cannot reach purged until it is built, whatever else is decided."
+   }
+  }
+ },
+
+ "keyRevocation": {
+  "sentence": "What is revoked when a party leaves, and what is not, because it cannot be.",
+  "revoked": [
+   { "what": "Every consent grant where the leaving party is the subject or the recipient", "mechanism": "packages/catalog/consent.json grants.revocation: graceSeconds 0, event passport.consent.granted@3 / passport.consent.revoked@3. Stops the next read, not the next sync, exactly as it does for an ordinary revocation." },
+   { "what": "Any operator or developer credential minted for the leaving party", "mechanism": "apps/passport/src/operator.ts credentials already expire on their own clock (operatorCredentialHours: 12, developerCredential.hours: 8); offboarding revokes one before its natural expiry by the same mechanism a compromise would use, once that mechanism exists — today nothing revokes one early, it only expires." },
+   { "what": "A vetted party's standing to be dispatched", "mechanism": "packages/catalog/vetting.json's lifecycle: suspension or revocation withdraws dispatch by arithmetic on the next read, never by deleting the party's history." }
+  ],
+  "notRevocable": {
+   "what": "A per-person data key that, once destroyed, would make that person's Health Passport entries unreadable forever.", "why": "apps/passport/src/keys.ts derives one master key by HKDF into per-purpose keys; DPIA-DRAFT.md risk R-21 and docs/governance/KEY-CUSTODY-OPTIONS.md control K10 both record that per-person key derivation is not built. So 'revoke this person's key' has nothing to point at today beyond the single master key every other patient's record also depends on — which offboarding one party can never be allowed to touch. True cryptographic erasure of one leaving party's health data does not exist as a capability, and this contract does not pretend it can be offered until K10 is decided and built."
+  }
+ },
+
+ "deviceDeregistration": {
+  "sentence": "What happens to a leaving party's devices, referencing the device contracts that already exist rather than inventing a second registry.",
+  "kitInstruments": { "from": "packages/catalog/devices.json kits.states", "action": "A kit issued to a leaving nurse moves to returned (or lost, if it is not returned), through the same kit audit devices.json already keeps — 'every issue, return and loss is a row added to the kit's audit with who, when and why.' Offboarding does not add a new state; it is what drives an issued kit to one of the two it already has." },
+  "wearableLinks": { "from": "packages/catalog/devices.json wearableLinks", "action": "A requested-not-connected link moves to withdrawn, using the existing withdraw action. Nothing is read from the patient's phone either way — the link connects nothing today regardless of offboarding — so de-registration here is closing a request, not disconnecting a live feed." },
+  "hospitalDeviceFleet": { "status": "named-but-absent", "why": "The plan's IoT control (docs/COMMERCIAL-AND-CONTROL-TOWER-SCOPE.md section 3) scopes a device fleet per ward and bed for a hospital-tenant; no such fleet, registry or per-site device allowlist exists yet, so a hospital-tenant's device de-registration has nothing built to act on beyond the kit and wearable-link mechanics above." }
+ },
+
+ "auditLogRetentionPerContract": {
+  "sentence": "What stays in the audit trail after a party is gone, and for how long, per the DPA template's own field for it (packages/catalog/compliance-pack.json section dpa-template.terminationAndReturn) rather than a second retention number invented here.",
+  "identitySide": { "retention": "packages/catalog/consent.json accessLog.retention: six years from the day the entry was written, MyThuso's own setting, never disposed of by an offboarding, because the entry is evidence of who read whose record — not the leaving party's to take with them or have deleted.", "auditChain": "apps/api/src/protection/audit.ts's hash chain: append-only, never rewritten by an offboarding, and an entry naming the leaving party stays exactly as written after they are gone, the same limit apps/api/src/erasure.ts already states for an ordinary erasure." },
+  "healthSide": { "retention": "Undecided. DPIA-DRAFT.md section 6 lists the Passport's retention and disposal as not built at all, so there is no period to state for its audit chain (apps/passport/src/audit.ts) either — it is kept indefinitely today, in practice, for everybody, offboarded or not." },
+  "onceADpaExists": "The DPA template's terminationAndReturn field, once compliance-pack.json can be filled, states the retention period a specific hospital-tenant contracted for. This file's own numbers above are MyThuso's platform-wide defaults, which a signed DPA may not shorten below — a hospital cannot contract for less audit retention than the platform already commits to keeping."
+ },
+
+ "refusals": [
+  {
+   "id": "no-purge-before-confirmed",
+   "statement": "Nothing is deleted, and no key is revoked, before the party has reached confirmed. export-prepared is reversible by cancellation; purged is not.",
+   "why": "Mirrors apps/api/src/erasure.ts's seven-day grace period: a request made in anger, by mistake, or by someone else's hands on a signed-in phone should not be able to reach an irreversible state in one step."
+  },
+  {
+   "id": "no-offboarding-completes-while-a-gate-is-unmet",
+   "statement": "An offboarding request may sit at export-prepared or confirmed indefinitely, but it may not be recorded as fully purged while any of gatesOn.decisions above is unresolved for the data classes it covers, and it may never be recorded as fully purged for a health-side data class at all, because no deletion mechanism exists there yet (dataClasses.health).",
+   "why": "Module 9's own gating: retention policy, DPA template, Information Officer. A record marked purged is a claim a hospital's procurement team, or a Regulator investigating a complaint, would rely on. Marking it before the gate closes, or before the mechanism it depends on is built, is the exact overstatement CLAUDE.md refuses."
+  },
+  {
+   "id": "identity-and-health-exported-and-reported-separately",
+   "statement": "An export or a purge answer never merges the identity-side and health-side results into one figure or one 'done.' Each is reported against its own dataClasses entry, naming its own mechanism, its own status and its own gaps.",
+   "why": "The two sides have different controls, different keys and different services by design (CLAUDE.md, apps/passport/src/config.ts). A merged answer would let a completed identity-side export stand in for a health-side export that cannot happen yet."
+  },
+  {
+   "id": "no-tenant-wide-action-without-a-tenant-contract",
+   "statement": "No offboarding request may be recorded against a hospital-tenant as a single unit until a tenancy contract exists naming the accounts, vetted parties and programmes that belong to it. Until then, offboarding a hospital's relationship is one requestRef per party it named, run separately.",
+   "why": "partyScope above: there is no tenant registry to resolve 'everyone who belongs to this hospital' against, so a single tenant-wide requestRef would be a promise this file cannot check the completeness of."
+  }
+ ],
+
+ "preview": "No offboarding request has ever been made. This file describes a state machine with nobody in it."
+}

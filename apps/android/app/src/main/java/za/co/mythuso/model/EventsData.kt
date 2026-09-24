@@ -121,6 +121,9 @@ object EventsData {
             val CLAIM_DECIDED_V1 = EventKey("claim.decided", 1, "money")
             val VISIT_BILLABLE_V1 = EventKey("visit.billable", 1, "care")
             val REVIEW_BILLABLE_V1 = EventKey("review.billable", 1, "clinical")
+            val CLINICAL_REVIEW_QUEUE_ENTRY_PROPOSED_V1 = EventKey("clinical.review_queue.entry_proposed", 1, "clinical")
+            val CLINICAL_REVIEW_QUEUE_ENTRY_RATIFIED_V1 = EventKey("clinical.review_queue.entry_ratified", 1, "clinical")
+            val CLINICAL_REVIEW_QUEUE_ENTRY_REJECTED_V1 = EventKey("clinical.review_queue.entry_rejected", 1, "clinical")
             val PULSE_SESSION_STARTED_V1 = EventKey("pulse.session.started", 1, "pulse")
             val PULSE_LISTENING_STARTED_V1 = EventKey("pulse.listening.started", 1, "pulse")
             val PULSE_UTTERANCE_FINALISED_V2 = EventKey("pulse.utterance.finalised", 2, "pulse")
@@ -239,6 +242,9 @@ object EventsData {
                 CLAIM_DECIDED_V1,
                 VISIT_BILLABLE_V1,
                 REVIEW_BILLABLE_V1,
+                CLINICAL_REVIEW_QUEUE_ENTRY_PROPOSED_V1,
+                CLINICAL_REVIEW_QUEUE_ENTRY_RATIFIED_V1,
+                CLINICAL_REVIEW_QUEUE_ENTRY_REJECTED_V1,
                 PULSE_SESSION_STARTED_V1,
                 PULSE_LISTENING_STARTED_V1,
                 PULSE_UTTERANCE_FINALISED_V2,

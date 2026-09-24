@@ -1,0 +1,99 @@
+{
+ "_note": "The template for a per-tenant Tier 2 additive clinical layer — Decision 6.1, Module 2 of the founder's Control Tower & GilbertOne Commercialization plan (proposed 23 September 2026). This is not a tenant: every value below that isn't a fixed rule is a placeholder, and no service reads this file or any file shaped like it. A real tenant's layer would be a sibling file in this directory, tenant-clinical-layers/<tenantId>.json, built to this shape and carrying that tenant's own additive content once each item in it is ratified. Nothing here is built: no tenant has been onboarded, no file but this template exists in this directory, and apps/assistant-api/src/lib/clinical-config.ts — the service the plan names as the thing that would read packages/catalog/gilbert-clinical-core.json and every ratified Tier 2 layer together and answer from both — does not exist. Until it does, filling this shape in for a real tenant changes no answer GilbertOne gives.",
+ "_whyATemplateAndNotASecondQueue": "packages/catalog/clinical-review-queue.json already declares the tier, the states, the transitions and the entryShape a queue entry takes, and it deliberately carries no clinical content of its own (its whereContentLives section). This file is one level down from that: the shape of the document a Tier 2 queue entry's proposedChangeRef points at, the same way a ratified protocol's contentRef would point into packages/catalog/protocols.json. It reuses the queue's tiers, states and capability outright rather than inventing a second review mechanism — see ratification below.",
+
+ "tier": 2,
+ "tenantRef": null,
+ "_tenantRefWhy": "Null in the template. A real layer file names exactly one tenant — one hospital or licensed site, in the per-tenant deployment model docs/COMMERCIAL-AND-CONTROL-TOWER-SCOPE.md describes — and applies to that tenant alone. It is never null on a real file, never a wildcard, and a second tenant is never added to an existing file: two tenants sharing one layer file would mean two tenants sharing one sign-off, which the queue's tenant-scoped review does not provide for.",
+
+ "status": "template",
+ "_statusWhy": "\"template\" is not one of clinical-review-queue.json's entry states (proposed, in-review, ratified, rejected, live, rolled-back), because this file is not itself a queue entry. A real tenant layer file has no single status of its own — each item inside it (a protocol step, a formulary exclusion, an escalation rung) carries its own itemStatus, tracking the state of the one queue entry proposing it, because a tenant can easily have three ratified items and a fourth still in review at the same time.",
+
+ "inheritsFrom": {
+  "file": "packages/catalog/gilbert-clinical-core.json",
+  "pins": { "escalationRulesetAsOf": "2026-09-24", "emergencyTermsVersion": 2, "emergencyTermsHash": "9398cc967c9390c4" },
+  "why": "A layer is additive against a specific, named state of Tier 1, not against 'whatever Tier 1 says today'. If Tier 1 changes while a tenant's layer is live, the layer's own claim to add-without-subtracting has to be re-checked against the new state before anyone can say it still holds — pinning the exact state it was reviewed against is what makes that re-check possible instead of assumed."
+ },
+
+ "additiveProtocolSteps": [
+  {
+   "id": "example-step-1",
+   "appliesToProtocol": "wound-care",
+   "_appliesToProtocolWhy": "Names an id from packages/catalog/protocols.json. That protocol's own status there is still \"draft\" — its content is null and no step exists to add one after — so this example shows the shape only. A real entry naming a draft protocol id is refused at proposal until the protocol it extends has been ratified by the global clinical governance board.",
+   "addsAfterStepRef": null,
+   "_addsAfterStepRefWhy": "Once the named protocol is ratified and has content, this names the step id the tenant's addition follows. A Tier 2 step may only be appended after an existing step in the ratified protocol — never inserted before or between two of the protocol's own steps, which would be a reorder of global content, not an addition to it.",
+   "stepText": null,
+   "_stepTextWhy": "Null in the template, and null on a real entry until its queue entry reaches ratified. This is where the step's actual wording lives once it exists — a per-tenant protocol addition has no other file to live in, the same way a ratified protocol's own wording lives in packages/catalog/protocols.json once contentRef is filled in.",
+   "basisRef": null,
+   "queueEntryRef": null,
+   "itemStatus": "template"
+  }
+ ],
+
+ "formularyExclusions": [
+  {
+   "id": "example-exclusion-1",
+   "excludesEntryCode": "SYN-0000",
+   "_excludesEntryCodeWhy": "Names an entryCode from packages/catalog/medicines.json's formulary.entries — itself a synthetic, unlicensed development list (formulary.licensed is false there), so a real exclusion has nothing licensed to exclude from yet. A formulary exclusion may only remove a tenant's own use of an entry the global formulary already offers; it can never add an entry the global formulary does not carry, which is outside what 'additive' means for a formulary even though it isn't a Tier 1 subtraction.",
+   "reason": null,
+   "basisRef": null,
+   "queueEntryRef": null,
+   "itemStatus": "template"
+  }
+ ],
+
+ "extraEscalationRungs": [
+  {
+   "id": "example-rung-1",
+   "severity": null,
+   "_severityWhy": "\"urgent\" or \"routine\" only, never \"emergency\". Tier 1 already owns every emergency presentation escalation.ts recognises (packages/catalog/gilbert-clinical-core.json's ruleOrder); a tenant rung claiming severity emergency would in effect let a tenant decide what counts as an emergency, which is precisely what clinical-review-queue.json's no-auto-promotion-without-a-signature refusal exists to stop, read for a tenant instead of for engineering.",
+   "action": null,
+   "_actionWhy": "\"urgent_care\" or \"clinician_soon\" only, for the same reason severity is capped below emergency — call_emergency is a Tier 1 action.",
+   "evaluatedAfter": "all-tier-1-rules",
+   "_evaluatedAfterWhy": "escalation.ts's checkEscalation() returns the first rule in ESCALATION_RULES whose pattern matches, tried in that array's own order. The only way a tenant rung is additive rather than a reorder is for the merging service (apps/assistant-api/src/lib/clinical-config.ts, named in the plan, not built) to try every Tier 1 rule first, in Tier 1's own order, and consult a tenant's rungs only once none of them has matched — never interleaved among Tier 1 rules, and never given a ruleOrder or groupOrder id gilbert-clinical-core.json already uses.",
+   "messageText": null,
+   "_messageTextWhy": "Null in the template, and null until its queue entry reaches ratified. Unlike a Tier 1 rule's message, which lives solely in escalation.ts, a tenant rung's message has no other home — it lives here, in the tenant's own ratified layer file.",
+   "basisRef": null,
+   "queueEntryRef": null,
+   "itemStatus": "template"
+  }
+ ],
+
+ "mustNotSubtractFromTier1": {
+  "statement": "No item in this file may remove, weaken, silence, reorder ahead of, or reuse the identity of anything packages/catalog/gilbert-clinical-core.json inventories. An item that does is refused at proposal, per clinical-review-queue.json's tier-2-may-not-subtract refusal — not caught later at review.",
+  "concreteWays": [
+   "Reusing a Tier 1 rule id (for example 'cardiac-chest-pain') or group id (for example 'chest-pain') for a Tier 2 item — the id namespace is shared, and a collision is treated as an attempted override, never a coincidence.",
+   "An extraEscalationRungs entry with severity emergency or action call_emergency, which both oversteps what additive means and, for a presentation Tier 1 already covers, would silently interpose a weaker or differently-worded answer ahead of Tier 1's own.",
+   "An additiveProtocolSteps entry whose addsAfterStepRef points before, or in place of, a step the ratified global protocol itself carries.",
+   "A formularyExclusions entry that claims to exclude an entry Tier 1's formulary does not offer, or that is used to reintroduce, under another id, something Tier 1 already excludes.",
+   "Any item whose basisRef, stepText or messageText contradicts, restates more weakly, or omits a refusal Tier 1 already states for the same presentation."
+  ]
+ },
+
+ "ratification": {
+  "process": "Every item above moves through packages/catalog/clinical-review-queue.json as a tier 2 entry naming this tenant (tenantRef) and this item (proposedChangeRef naming this file's path and the item's id, for example 'tenant-clinical-layers/<tenantId>.json#example-rung-1'). It is proposed, put in review, and ratified or rejected exactly as any other queue entry — there is no second sign-off path for a tenant's own layer, and no lighter one.",
+  "capability": "sign-clinical-review",
+  "_capabilityWhy": "The same capability clinical-review-queue.json names, held by whoever packages/catalog/clinical.json's review-confirmer setting names in force — never a reviewer a tenant appoints for itself. A tenant's own clinical safety is reviewed by the same standing as the global core, not a lighter one because the change is scoped to one site.",
+  "liveIsNotRatified": "An item changes what GilbertOne says to a patient only once it is both ratified here and adopted by whatever eventually merges Tier 1 and Tier 2 at runtime — which today is nothing. itemStatus on every entry above stays \"template\", and on a real tenant file tracks its queue entry's own state (proposed / in-review / ratified / rejected / live / rolled-back); only \"live\" may ever be cited as the reason GilbertOne said something."
+ },
+
+ "refusals": [
+  {
+   "id": "template-carries-no-tenant",
+   "statement": "This file is never read for a real tenant. tenantRef stays null here; a real layer is a different file naming exactly one tenant.",
+   "why": "A template with a filled-in tenantRef is one careless copy away from being mistaken for a live layer — the same reason packages/catalog/protocols.json seeds every protocol as draft rather than as a plausible-looking ratified row."
+  },
+  {
+   "id": "no-content-before-ratification",
+   "statement": "stepText, messageText and reason stay null until the queue entry naming them reaches ratified. A proposed or in-review item does not reach a patient through GilbertOne or a nurse's screen while it waits.",
+   "why": "packages/catalog/clinical-review-queue.json's a-proposed-entry-carries-no-authority, applied to a tenant's own content: a tenant's clinician proposing a step is not the same event as that tenant's site adopting it."
+  },
+  {
+   "id": "no-merge-service-no-effect",
+   "statement": "Even a live item changes nothing until a service reads this file, gilbert-clinical-core.json, and merges them in the order that file's referencedBy.orderingRule requires. That service — apps/assistant-api/src/lib/clinical-config.ts in the founder's plan — does not exist.",
+   "why": "Naming a service in a plan does not build it. A tenant told an item of theirs is 'ratified' or 'live' must not be led to believe, or shown anything implying, that GilbertOne already answers differently for their site."
+  }
+ ],
+
+ "preview": "No tenant has ever been onboarded. This directory holds this template and nothing else."
+}

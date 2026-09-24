@@ -1,0 +1,135 @@
+{
+ "_note": "The Compliance Pack Generator, schema only. Proposed 24 September 2026, from the founder's Control Tower & GilbertOne Commercialization plan, Module 7, which names the problem plainly: 'the scope named the output and not the inputs. Without these, a hospital cannot buy.' This file writes the inputs — the shape a pack would take once it can be filled with something true — and nothing else. No generator exists: there is no script under scripts/ that reads this file and writes a pack, no route in packages/catalog/apis/ answers a request for one, and no pack has ever been produced, downloaded or shown to anybody. Every section below names, by document and section number, the governance decision that keeps it empty today, because a compliance pack is only as honest as the gate in front of it, and a schema that did not say so would be the overstatement CLAUDE.md's 'nothing here is a real service' rule exists to catch.",
+ "version": 1,
+ "_registerMirrorWhy": "Each decision's registerMirror says where the governance register records the same decision, by record and field, without naming the register's file. scripts/check-boundaries.mjs keeps the list of files that name it short and argued for, because a file that reads the register could start gating something on it — and this schema reads nothing from it.",
+
+ "gatesOn": {
+  "decisions": [
+   { "id": "dpia", "document": "docs/governance/DPIA-DRAFT.md", "section": "12 (Sign-off)", "state": "Every field in section 12 is blank: no responsible party, no Information Officer, no residual-risk acceptance, no 'processing may proceed' answer.", "registerMirror": "the governance register record dpia, field status, blank value not-started" },
+   { "id": "information-officer", "document": "docs/governance/INFORMATION-OFFICER.md", "section": "1 (Appoint and register) and 5 (Sign-off)", "state": "IO-1 through IO-7 are unchecked; nobody is named, nobody is registered with the Information Regulator, and no PAIA manual exists.", "registerMirror": "the governance register record information-officer, field appointed, blank value false" },
+   { "id": "data-residency", "document": "docs/governance/DATA-RESIDENCY-OPTIONS.md", "section": "7 (Decision)", "state": "No option (A, B or C) is chosen, no provider or region is named, and the conditions R1 to R8 are neither accepted nor rejected.", "registerMirror": "the governance register record data-residency, field decided, blank value false" },
+   { "id": "key-custody", "document": "docs/governance/KEY-CUSTODY-OPTIONS.md", "section": "5 (Decision)", "state": "No option (1, 2, 3 or a combination) is chosen and controls K1 to K10 are neither accepted, amended nor rejected.", "registerMirror": "None. the governance register records dpia, information-officer and data-residency only; it has no key-custody record yet, so this gate is read from the document alone until one exists — a gap this file states rather than papers over by inventing a register entry nobody wrote." }
+  ],
+  "why": "docs/governance/README.md orders these four itself: residency and key custody first, because the DPIA cannot rate hosting, backup, transfer or key-compromise risk until they are decided; the DPIA next; the Information Officer throughout, because the office is consulted on residency and signs the DPIA. A pack assembled before all four close would be handing a hospital's procurement team a document that cites decisions nobody made, which is worse than handing them nothing — nothing is at least honest about not existing yet.",
+  "allFourRequired": "Every section below names its own subset of these four. The generator overall is gated on all four, because the least complete section decides what the pack as a whole may claim: a retention schedule with a DPIA behind it and a kill-switch doc with a residency decision behind it do not add up to a pack, they add up to two finished sections and four unfinished ones bundled together."
+ },
+
+ "perTenant": {
+  "sentence": "The plan calls this a per-tenant generator. Nothing in this repository is multi-tenant yet — packages/catalog/clinical-review-queue.json's Tier 2 entries are the only place a tenantRef exists at all, for a clinical protocol addition, and there is no tenant registry, no tenant onboarding route and no tenant-scoped data store. This schema is written as if a tenant existed, because that is the shape a real pack will need, but tenantRef below resolves to nothing until a tenancy contract is written elsewhere and this file is told where to read it from."
+ },
+
+ "sections": [
+  {
+   "id": "retention-deletion-schedule",
+   "label": "Retention and deletion schedule per data class",
+   "sentence": "A table a hospital's Information Officer reads before they buy: for every class of information MyThuso would hold about their patients and staff, how long it is kept, from when the clock starts, under what instrument, and what happens to it after.",
+   "gatedBy": ["dpia", "information-officer"],
+   "gatedWhy": "apps/api/src/personalData.ts already computes a disposal date per identity-service table, but a period the register marks 'MyThuso's own setting' — most of them — is exactly what docs/governance/INFORMATION-OFFICER.md decision D-8 asks the Information Officer to confirm or change, and the DPIA's section 6 (Retention) lists the same periods as undecided. A schedule handed to a hospital before D-8 is answered would be MyThuso's own guess dressed as a policy.",
+   "fields": [
+    { "field": "dataClass", "type": "string", "why": "One row per class of information named in the DPIA's data inventory (DPIA-DRAFT.md section 2) — identity, vetting evidence, health passport records, consent decisions, access logs, payments, and so on, never a table name a hospital would have to reverse-engineer." },
+    { "field": "heldWhere", "type": "string", "why": "apps/api or apps/passport, from the DPIA's own inventory column, so the identity/health split POPIA draws is visible in the pack itself rather than assumed." },
+    { "field": "retentionBasis", "type": "string", "why": "The instrument that requires or permits keeping it — a statute, a contract term, or 'MyThuso's own setting' written out in those words when that is what it is, exactly as apps/api/src/personalData.ts already refuses to disguise its own undecided periods as settled ones." },
+    { "field": "retentionPeriod", "type": "string", "nullable": true, "why": "Null wherever apps/api/src/personalData.ts computes null today, because a disposal date invented for a pack that the code itself cannot compute is a number nobody could defend if asked." },
+    { "field": "deletionMechanism", "type": "string", "why": "erase, anonymise or retain, from the same Disposition type personalData.ts already declares — a fourth word invented for this pack would be a second vocabulary for the same three facts." },
+    { "field": "disposalEvidence", "type": "string", "nullable": true, "why": "What a hospital's own auditor could check against — a sweep log reference. Null today: apps/api/src/retention.ts's sweep is a dry run unless committed, and it has never been committed against real data." }
+   ],
+   "todayItWouldSay": "Every row in this section would read: no retention schedule can be issued because the periods it would cite are not yet decided (DPIA-DRAFT.md section 6, 'Undecided') and the Information Officer who decides them has not been appointed (INFORMATION-OFFICER.md decision D-8)."
+  },
+  {
+   "id": "dpa-template",
+   "label": "Data Processing Agreement template fields",
+   "sentence": "The skeleton of the agreement a hospital's procurement team would sign naming MyThuso an operator under POPIA section 21: what MyThuso may do with the hospital's data, on whose instruction, for how long, and what happens to it at the end.",
+   "gatedBy": ["dpia", "information-officer", "data-residency"],
+   "gatedWhy": "A DPA cannot honestly state where data is processed until docs/governance/DATA-RESIDENCY-OPTIONS.md section 7 is decided — the document's own words are 'the residency question is not yet about moving anything' — nor can it state the lawful basis and purposes a hospital is contracting for until the DPIA and decision D-1 (INFORMATION-OFFICER.md) settle those.",
+   "fields": [
+    { "field": "responsibleParty", "type": "string", "why": "The hospital, as the data subjects' responsible party for care they deliver, per DPIA-DRAFT.md section 1's framing." },
+    { "field": "operator", "type": "string", "why": "MyThuso (or the entity DATA-RESIDENCY-OPTIONS.md section 6 question 3 resolves the responsible party to be, once the founder decides the corporate structure INFORMATION-OFFICER.md IO-1 also names as undecided)." },
+    { "field": "processingLocation", "type": "string", "nullable": true, "why": "Null until DATA-RESIDENCY-OPTIONS.md section 7's option (A, B, C or other) is chosen. A DPA that named a location this file cannot yet name would be a contract term nobody could stand behind." },
+    { "field": "purposesOfProcessing", "type": "list", "why": "Drawn from packages/catalog/consent.json purposes, each already carrying a lawfulBasis the consent contract itself calls 'not advice' — a DPA cites the same purposes only once decision D-1 confirms each basis." },
+    { "field": "subProcessors", "type": "list", "why": "packages/catalog/feeds.json's eleven suppliers, every one of which has operator.section72 recorded as undetermined today; a DPA cannot list a sub-processor whose own cross-border question is still open." },
+    { "field": "securityMeasures", "type": "reference", "shapeFrom": "docs/PRIVACY-AND-SECURITY.md 'Which of these controls actually exists' table", "why": "Cites the Implemented/Partly/Absent state of each control rather than restating it, so a DPA never claims a control that table marks Absent or Partly." },
+    { "field": "terminationAndReturn", "type": "reference", "shapeFrom": "packages/catalog/offboarding.json", "why": "The exit path a DPA promises is the one offboarding.json actually contracts, never a second promise invented for this document." }
+   ],
+   "todayItWouldSay": "No processing location can be named (DATA-RESIDENCY-OPTIONS.md section 7 blank) and no sub-processor's cross-border position can be stated (packages/catalog/feeds.json, every operator.section72 undetermined)."
+  },
+  {
+   "id": "model-card",
+   "label": "Model card fields",
+   "sentence": "What a hospital's clinical governance committee would need to approve GilbertOne's use: what the model is, what it was trained or evaluated on, its intended use, its known limits, and who signed off on deploying it at their site.",
+   "gatedBy": ["dpia", "information-officer"],
+   "gatedWhy": "apps/assistant-api ships with the model tier refusing to serve in production without MYTHUSO_ASSISTANT_PRODUCTION=acknowledged written by hand, and packages/catalog/clinical-review-queue.json is the only door through which anything that changes clinical behaviour may move — a model card that described GilbertOne as clinically reviewed before that queue has ever seen an entry (its own preview line: 'No entry has ever been proposed') would misstate the one fact a clinical governance committee actually needs.",
+   "fields": [
+    { "field": "modelIdentity", "type": "string", "why": "Which model tier is running, from packages/catalog/apis/assistant.json's engine declaration, never a marketing name." },
+    { "field": "intendedUse", "type": "string", "why": "packages/gilbertone's own boundary: emergency recognition, essential refusals and safe offline fallback, answered from the message and the contract alone — the deterministic half is what is actually built; the model tier above it is dark in production until the acknowledgement flag is set by hand." },
+    { "field": "clinicalReviewState", "type": "reference", "shapeFrom": "packages/catalog/clinical-review-queue.json states", "why": "A model card that could claim 'ratified' before an entry exists in that queue is exactly the borrowed authority the queue's own refusal a-proposed-entry-carries-no-authority exists to refuse." },
+    { "field": "emergencyTermsVersion", "type": "reference", "shapeFrom": "packages/catalog/gilbert-emergency-terms.json version and changelog", "why": "CLAUDE.md: the list has no clinical reviewer yet, and a model card owes a hospital that fact in the same words rather than a paraphrase that could soften it." },
+    { "field": "knownLimitations", "type": "list", "why": "The 30-second (45-second under the speech amendment) listening cap, the on-device-only speech pipeline, and every refusal in packages/catalog/assistant.json's refusals array — a model card that omitted a refusal the contract already states would tell a hospital less than the contract already tells a patient." },
+    { "field": "siteApproval", "type": "object", "nullable": true, "why": "Name, role and date of the hospital's own sign-off. Null in every generated pack until a hospital exists to sign one." }
+   ],
+   "todayItWouldSay": "No model card can claim a clinical review state beyond 'proposed, not ratified' (packages/catalog/clinical-review-queue.json preview: no entry has ever been proposed) and no emergency-term list here has a clinical reviewer (packages/catalog/gilbert-emergency-terms.json clinicalReview)."
+  },
+  {
+   "id": "incident-response-plan",
+   "label": "Incident response plan fields",
+   "sentence": "Who at MyThuso decides a compromise reached personal information, who tells the Information Regulator and the people affected, how, and how fast — the plan a hospital's own security team would co-ordinate with during a real incident.",
+   "gatedBy": ["information-officer"],
+   "gatedWhy": "docs/governance/INFORMATION-OFFICER.md decision D-4 names this exactly: 'who decides that a compromise reached personal information, who tells the Regulator and the people affected, how, and how fast' is the Information Officer's decision to take, and apps/api/src/incidents.ts already says plainly what it does not give — detection of a breach, paging anybody, or delivering a notification.",
+   "fields": [
+    { "field": "detectionMechanism", "type": "string", "nullable": true, "why": "Null: docs/PRIVACY-AND-SECURITY.md and apps/api/src/incidents.ts both record breach detection as not built." },
+    { "field": "decisionMaker", "type": "string", "nullable": true, "why": "Null until decision D-4 names who decides a compromise reached personal information." },
+    { "field": "notificationProcedure", "type": "reference", "shapeFrom": "apps/api/src/incidents.ts register shape", "why": "A hospital reads the same register MyThuso's own operator would use — a compromise register that cannot close until both the Regulator and the affected people are recorded as told — rather than a second document invented to look more finished than the code." },
+    { "field": "timeToNotify", "type": "string", "nullable": true, "why": "POPIA section 22 says 'as soon as reasonably possible' and names no period; apps/api/src/incidents.ts counts days and refuses to invent a deadline, and this field does the same." },
+    { "field": "escalationContacts", "type": "list", "nullable": true, "why": "Null until an Information Officer and deputies are registered (INFORMATION-OFFICER.md IO-4, IO-5) — a contact list naming nobody appointed is a list a hospital could not actually call." }
+   ],
+   "todayItWouldSay": "No detection exists to trigger this plan, and the person who would decide a compromise reached personal information has not been appointed (INFORMATION-OFFICER.md decision D-4)."
+  },
+  {
+   "id": "per-tenant-kill-switch",
+   "label": "Per-tenant kill-switch document",
+   "sentence": "What a hospital's own administrator could do, this minute, to stop MyThuso serving their site — and what MyThuso itself can do to the same effect, and who at MyThuso may do it.",
+   "gatedBy": ["information-officer", "key-custody"],
+   "gatedWhy": "There is no tenant boundary to switch off (see perTenant above), and a kill switch that revokes a tenant's access is, structurally, the same operation break-glass or key revocation would need — which is why this section is gated on key custody as well as on the Information Officer: docs/governance/KEY-CUSTODY-OPTIONS.md section 5 has not chosen who administers a key, and a kill-switch document that named an administrator this file cannot yet name would be naming somebody nobody has appointed.",
+   "fields": [
+    { "field": "tenantScope", "type": "string", "nullable": true, "why": "Null: no tenant registry exists yet (see perTenant above)." },
+    { "field": "revocationMechanism", "type": "string", "nullable": true, "why": "What is actually revoked — a grant, a key, a route. Today the closest built analogue is packages/catalog/consent.json's grant revocation, which propagates on the next read, not the next sync; a kill switch inherits that same limit rather than promising something faster that is not built." },
+    { "field": "whoMayPull", "type": "string", "nullable": true, "why": "Null until KEY-CUSTODY-OPTIONS.md section 5 names key administrators and how many must act together — the same people a kill switch would need." },
+    { "field": "auditedIn", "type": "reference", "shapeFrom": "packages/catalog/break-glass.json auditLog", "why": "A kill switch pulled outside the ordinary support flow is exactly the emergency-access shape break-glass.json already contracts, and this pack cites it rather than describing a second log." }
+   ],
+   "todayItWouldSay": "No tenant exists to scope a kill switch to, and no key administrator is named who could pull one (KEY-CUSTODY-OPTIONS.md section 5)."
+  },
+  {
+   "id": "audit-extract",
+   "label": "Audit extract shape",
+   "sentence": "What a hospital's own auditor could ask for and be handed: a scoped slice of the access log, verifiable against the chain it came from, covering their own patients and their own staff only.",
+   "gatedBy": ["dpia", "data-residency"],
+   "gatedWhy": "The extract is a slice of apps/api/src/protection/audit.ts's hash chain and apps/passport/src/audit.ts's patient-readable chain, both of which docs/PRIVACY-AND-SECURITY.md already calls tamper-evident, not tamper-proof, and neither of which is anchored anywhere MyThuso does not control — DPIA-DRAFT.md risk R-3 and its proposed measure ('publish the chain head to a second organisation') stand exactly here. Handing a hospital an extract without saying so would let their auditor believe a guarantee the chain does not make, and the residency decision decides where the underlying log even sits.",
+   "fields": [
+    { "field": "chainSegment", "type": "reference", "shapeFrom": "apps/api/src/protection/audit.ts AuditRow, packages/catalog/break-glass.json auditLog entryShape", "why": "The extract is rows from an existing chain, in the existing allowlisted shape — never a reformatted copy that could drift from what the chain actually holds." },
+    { "field": "verificationResult", "type": "reference", "shapeFrom": "apps/api/src/protection/audit.ts verify() return shape", "why": "{ intact, length, head } or { intact: false, brokenAt, length } exactly as verify() returns it, so an auditor checking the extract is checking the same function the service checks itself with." },
+    { "field": "scopeStatement", "type": "string", "why": "Which subject ids or tenant scope the extract covers, and the plain sentence that nothing outside it is included — never a promise the underlying chain cannot back, because the chain today has no tenant column to filter on." },
+    { "field": "chainNotAnchoredCaveat", "type": "string", "why": "The DPIA's own words, carried rather than softened: tamper-evident, not tamper-proof, and the chain head is not published anywhere MyThuso does not control (DPIA-DRAFT.md risk R-3)." }
+   ],
+   "todayItWouldSay": "An extract can be technically produced from the identity service's chain today, but this pack refuses to issue one for a real hospital until the DPIA rates R-3 and the residency decision says where the log MyThuso would be extracting from actually sits."
+  }
+ ],
+
+ "refusals": [
+  {
+   "id": "no-pack-before-all-four-close",
+   "statement": "This generator produces nothing — not a draft, not a partial pack, not a preview — until the DPIA is signed, the Information Officer is registered, the residency decision is made and key custody is decided.",
+   "why": "A partial pack handed to a hospital procurement team reads as more finished than it is, precisely because a schema this careful about its own fields would otherwise look authoritative. docs/governance/README.md's own order — residency and key custody first, then the DPIA, with the Information Officer throughout — is the order this refusal enforces: nothing here decides faster than that order allows."
+  },
+  {
+   "id": "no-content-invented-to-fill-a-blank",
+   "statement": "Wherever a field above is null or a section says 'todayItWouldSay,' that is the pack's actual output today. Nothing in this schema may be used to write a plausible-sounding placeholder into a field the governance state has not settled.",
+   "why": "CLAUDE.md: 'a health service that overstates its readiness is not a marketing problem.' A compliance pack is the one document a hospital's procurement and legal teams take at face value; a placeholder that reads like an answer is the overstatement this rule exists to refuse."
+  },
+  {
+   "id": "no-tenant-scoping-without-a-tenant-contract",
+   "statement": "No section above may be generated per-tenant until a tenancy contract exists elsewhere in this catalog naming what a tenant is, what it isolates and how a tenantRef resolves. Until then every section is, at most, MyThuso-wide.",
+   "why": "packages/catalog/clinical-review-queue.json's tenantRef is the only tenant concept in this repository, and it names one Tier 2 clinical protocol addition — not a data boundary, a billing boundary or a kill-switch boundary. Reusing that field for a compliance pack would borrow a word that means something narrower than this schema needs."
+  }
+ ],
+
+ "preview": "No pack has ever been generated, downloaded, previewed or shown to a hospital. This file describes the shape a generator would fill; the generator itself does not exist."
+}

@@ -1,0 +1,99 @@
+{
+ "_note": "The certificate/credential design a device fleet would need, the deny-list and quarantine shape that design implies, unpair and decommission as two distinct recorded actions, and the one rule this whole file exists to protect: a consumer-tier device never auto-creates an incident. Everything under credentialDesign and revocation below is explicitly not built — see builtToday. Sits beside packages/catalog/devices.json (deviceClasses, clinicalWeight, kits) and packages/catalog/devices/pairing-paths.json (the possession-proof step a credential would be issued after), and is written to be read alongside docs/security/ADVERSARY-REGISTER.md and docs/governance/DPIA-DRAFT.md §9, which this file quotes rather than paraphrases wherever it depends on them.",
+
+ "version": 1,
+ "engine": "devices",
+
+ "builtToday": {
+  "sentence": "No device holds a credential. No route checks one. No deny-list, quarantine or revocation exists in any engine, contract or database. docs/security/ADVERSARY-REGISTER.md's own words: 'No route accepts a device-originated write carrying its own credential... the device itself proves nothing and holds no key.' Everything below this line is a design for the day that changes, not a description of anything running.",
+  "why": "Stated first and in the plan's own register's words, rather than this file's paraphrase of them, so nobody skimming this contract mistakes a design section for a shipped one — the same discipline packages/catalog/devices.json keeps for its own wearableLinks ('No HealthKit or Health Connect library, entitlement or permission prompt is in this build') and packages/catalog/clinical-review-queue.json keeps for its own queue ('No entry has ever been proposed')."
+ },
+
+ "adversariesThisAnswers": {
+  "_note": "Read docs/security/DEVICE-TRUST-MODEL.md for the full discussion. Summarised here only enough to justify why this file exists.",
+  "compromisedDevice": {
+   "row": "docs/security/ADVERSARY-REGISTER.md, 'Compromised device'",
+   "quote": "Device binding — a per-device credential distinct from the capturer's, so a route can refuse a reading whose device key does not match its claimed serial.",
+   "answeredByDesignBelow": "credentialDesign",
+   "status": "not-yet-started, per the register's own status column — this file is the design that status is waiting on, not a claim that the status has changed."
+  },
+  "spoofedDevice": {
+   "row": "docs/security/ADVERSARY-REGISTER.md, 'Spoofed device'",
+   "quote": "The real-device allowlist becoming a cryptographic identity rather than a label: a registered device's serial paired with a key, checked on every reading rather than trusted from the registry row.",
+   "answeredByDesignBelow": "credentialDesign",
+   "status": "not-yet-started, for the same reason."
+  },
+  "doesNotAnswer": {
+   "rows": ["Malicious insider", "Compromised tenant key", "Rogue BLE advertiser", "Stolen field device with buffered data", "External attacker", "Curious admin", "Replayed reading (only partly)"],
+   "why": "Named so this file is not read as broader than it is. Replayed reading needs this credential plus a nonce or sequence check this file does not design; the other six depend on key custody, hosting, tenancy or permission decisions this file has no authority over — see docs/governance/DPIA-DRAFT.md §9 for what each is actually blocked on."
+  }
+ },
+
+ "credentialDesign": {
+  "_note": "A design, not a build. No key format below has been chosen for real; the two options are described so the eventual decision is a decision between named things rather than an open question with no shape.",
+  "whatItProves": "That a request claiming to be device X was made using a secret only device X (or whoever provisioned it) holds — the thing docs/governance/DPIA-DRAFT.md §9 calls 'a device id on a request is a claim' and names as the missing 'key per device.'",
+  "issuedWhen": "At the end of a successful pairing, after packages/catalog/devices/pairing-paths.json's possession-proof step for that device's transport completes. A credential issued before possession proof completes would be exactly the gap pairing-paths.json's pairing-without-possession-proof refusal exists to close — the two files are designed to be read as one sequence: prove possession, then issue.",
+  "candidateForms": [
+   { "id": "per-device-x509", "label": "Per-device X.509 certificate, signed by a MyThuso device CA", "tradeoff": "Standard, revocable via CRL/OCSP-style checking, heavier to provision on constrained hardware." },
+   { "id": "per-device-symmetric-key", "label": "Per-device symmetric key (HMAC) provisioned at pairing", "tradeoff": "Lighter for constrained instruments, no CA to run, but a compromised gateway that holds the key list can forge any device it holds a key for — a different residual risk than the certificate option's, not a strictly better one."
+  }],
+  "decisionOwner": "Not decided by this file. A choice between the two candidates above needs the same kind of decision packages/catalog/devices.json's settings block already shows the pattern for — proposed, with a reason, by whoever owns the device gateway build, and reviewed rather than defaulted into silently.",
+  "bindingCheck": "Once issued, every subsequent reading-carrying request would be refused unless its credential matches the deviceRef it claims, per the register's own words. This file does not add that refusal to packages/catalog/apis/devices.json — that is a routes-and-checks change explicitly out of this task's scope — it only names the refusal a future route would need: device-credential-mismatch."
+ },
+
+ "denyListAndQuarantine": {
+  "_note": "The shape a gateway would enforce once credentials exist. Nothing below is a live list; there is nothing to deny or quarantine because there is no credential to revoke yet.",
+  "denyList": {
+   "purpose": "A device whose credential is revoked (lost kit, decommissioned instrument, confirmed compromise) is refused at the gateway before its reading is even parsed, not merely marked after acceptance the way devices.json's recall marks a reading after the fact.",
+   "why": "A recall, as devices.json already implements it, is the right answer for 'this instrument's readings are no longer trusted clinically' — it marks and keeps, deliberately, because the reading already happened and hiding it would be worse. A deny-list answers a different question: 'this credential must not be allowed to speak to us at all,' which is a security decision, not a clinical one, and the two must not be merged into one mechanism or a security revocation would start inheriting a recall's keep-everything discipline where it should not, or a recall would start refusing traffic where devices.json's own design says it should mark and keep instead."
+  },
+  "quarantine": {
+   "purpose": "A device that authenticates correctly but whose traffic looks wrong (repeated integrity failures, a nonce reused, a rate anomaly) is held in a quarantine state — accepted at the transport level, its readings recorded but not passed to devices.json's clinicalWeight arithmetic — while a human decides whether to restore it or move it to the deny-list.",
+   "why": "Named 'rogue-device quarantine' in this task's brief; designed here as a third state between trusted and denied so a false-positive integrity failure (a firmware bug, not an attack) does not require the same ceremony as a confirmed compromise to recover from."
+  },
+  "revocationLatencySlo": {
+   "value": null,
+   "decidedBy": null,
+   "proposedBy": null,
+   "proposedBecause": "Deliberately left unproposed by this file, unlike devices.json's three settings, which were proposed with a number on 15 September 2026 because an engine and a screen needed something to be built and tested against. No gateway, no deny-list and no credential exist yet for a latency figure to describe the enforcement of, and a number proposed against nothing real would be exactly the kind of premature default packages/catalog/clinical-review-queue.json's device tier exists to prevent for clinical thresholds — this file extends that caution to a security SLO for the same reason, even though the queue itself does not govern this number.",
+   "whatItWouldMeasure": "Time from a revocation decision (a kit reported lost, a credential confirmed compromised) being recorded to every gateway instance refusing that credential's traffic. Named because docs/security/THREAT-MODEL.md's 'Living document' section already commits to revisiting the device rows the day a real gateway ships; this field is where that gateway's SLO would be recorded once it is proposed with a reason, the way every other open number in this catalog is."
+  }
+ },
+
+ "unpairAndDecommission": {
+  "_note": "Two actions this task's brief asked to be kept distinct, because they mean different things and neither exists as a route today.",
+  "unpair": {
+   "label": "Unpair",
+   "meaning": "Removes an active pairing between a device and whoever is currently holding it (a nurse's kit, a patient's phone), without revoking the device's registration or its credential. The device stays known to the registry and can be paired again, by the same or a different holder, by repeating pairing-paths.json's possession-proof step.",
+   "recordedAs": "An audit row, on the same append-only pattern devices.json already uses for kits.auditMeans ('Every issue, return and loss is a row added to the kit's audit with who, when and why. Nothing in it is edited or removed') — this action reuses that discipline rather than inventing a second audit shape.",
+   "existingRouteToday": "None. devices.json's kits.states (issued, returned, lost) are kit-level, not device-credential-level, and a kit return does not revoke or reissue any device's pairing state, because no device has pairing state yet."
+  },
+  "decommission": {
+   "label": "Decommission",
+   "meaning": "Permanently revokes a device's credential and marks the registry entry as never to be paired again. Distinct from devices.json's existing recall: a recall says a reading's clinical weight is not trusted from a point in time onward while the device stays registered and its history stays readable exactly as devices.json's recall.neverUndone already requires; a decommission additionally says the credential itself must never authenticate again, which a recall does not touch because a recall exists to answer a clinical-trust question and this answers a security one.",
+   "recordedAs": "An audit row, append-only, naming who decommissioned it, when and why — and, unlike a recall, added to denyListAndQuarantine's denyList the moment it is recorded, per the 'lost field device' row in docs/security/ADVERSARY-REGISTER.md, which already names the exact gap this closes at the design level: 'a kit marked lost automatically revoking its instruments' standing in the allowlist... is not specified anywhere in the current contract.' This file specifies it; nothing wires it up yet.",
+   "existingRouteToday": "None. POST /v1/devices/kits/{kitRef}/loss@2 records a loss and charges nobody, per devices.json's kits.lossNeverCharges; it does not touch any device's registration, because a device-credential concept does not exist for it to touch."
+  },
+  "lostKitLinkage": {
+   "proposedRule": "Reporting a kit lost (POST /v1/devices/kits/{kitRef}/loss@2) would, once device credentials exist, automatically decommission every device registered in that kit rather than leaving decommissioning to a separate, rememberable step.",
+   "why": "Directly closes the gap docs/security/ADVERSARY-REGISTER.md's 'Lost field device' row names as 'the cheapest of the ten rows to close once somebody decides it.' This file is that decision described, not yet made — the register's own status column still reads 'proposed, not built' and this file does not change that status, only records the shape the fix would take."
+  }
+ },
+
+ "consumerDisclosure": {
+  "requirement": "Every consumer-tier pairing flow, and every screen that displays a consumer-tier reading, carries the advisory disclosure before or alongside the reading — never after.",
+  "sentence": "Advisory only. Not medical-grade. Never creates an alert, a dispatch or an incident by itself.",
+  "why": "docs/COMMERCIAL-AND-CONTROL-TOWER-SCOPE.md §3 states this as a founder instruction directly: 'Consumer devices are disclosed as advisory, not medical-grade. This disclosure is a flag, not a footnote.' devices.json's own marks array already carries the words for this — the consumer-device mark's sentence, 'From a device MyThuso did not issue. It guides a conversation and carries no clinical weight,' — and this file points at that existing sentence rather than writing a second one; a screen renders devices.json's mark, not a new sentence invented here."
+ },
+
+ "hardRule": {
+  "id": "consumer-tier-never-auto-creates-an-incident",
+  "statement": "A consumer-tier device reading never auto-creates a Dispatch & Incident, or any equivalent, regardless of its value, its trend, or how many consumer devices agree with each other.",
+  "why": "This is not a new control this file is proposing — it is already true today, structurally, and this file's job is to make sure nothing proposed above (the credential design, the deny-list, the quarantine state) is ever allowed to create a second path around it. packages/catalog/devices.json's clinicalWeight.requires already makes class-carries-weight a precondition of any clinical weight at all, and its neverPublishes statement is explicit: a reading without clinical weight 'is published on no event... the only way to be sure none of them acts on a reading without weight is never to put that reading on the bus.' packages/catalog/events.json confirms reading.ingested@1's subscribers are exactly ['safety', 'clinical', 'core'] — the three engines a Dispatch & Incident mechanism would be built from — and a consumer reading is never on that event to begin with, by construction, not by a check somebody has to remember to run.",
+  "closestExistingMechanism": "packages/catalog/closed-loop.json's Core opens a 'concern' from an alert with an owner, an SLA and an escalation ladder — the nearest thing this catalog has to the plan's 'Dispatch & Incident' language, since no file of that exact name exists yet. A consumer reading, never publishing to the bus, never reaches Core's router at all, so it never becomes a concern in the first place.",
+  "protectsAgainst": "Nothing in credentialDesign, denyListAndQuarantine or unpairAndDecommission above may be read as creating a route by which a trusted (credentialed, non-quarantined) consumer device's reading gains clinical weight it would not otherwise have. Trusting a device's identity is an answer to 'is this really the device it claims to be,' never to 'does this device's class carry clinical weight' — those are different questions and this file answers only the first.",
+  "answeredByToday": "packages/catalog/devices.json clinicalWeight, class-carries-weight; packages/catalog/apis/devices.json refusal consumer-device-clinical-weight (POST /v1/devices/readings@2, status 422): 'A consumer device does not carry clinical weight or trigger dispatch.'"
+ },
+
+ "preview": "No certificate has been issued, no key has been generated, no deny-list has ever held an entry, and no kit's loss has ever revoked anything. This file describes what would have to exist before any of those sentences could change, and confirms which sentence in this catalog already stops a consumer device from mattering clinically whether or not any of the rest of this file is ever built."
+}

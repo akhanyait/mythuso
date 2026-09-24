@@ -1,0 +1,56 @@
+{
+ "_note": "The shape a device-reading threshold rule would take, with no threshold in it. Named directly by packages/catalog/clinical-review-queue.json's device tier and its refusal device-threshold-carries-no-number-until-ratified: 'A device-class allowlist entry (packages/catalog/devices/thresholds.json) carries no numeric threshold until a ratified entry here names it. Until then the class exists with no threshold, and a reading against it is recorded but never auto-creates an incident.' This file is that entry as it stands today: the reading types and device classes a threshold could someday apply to, and the rule that gates one, with the thresholds array itself empty.",
+ "_populatedNote": "THIS FILE HOLDS NO LIVE NUMERIC THRESHOLD. The thresholds array below is empty and stays empty until a clinical-review-queue.json entry reaches state ratified with tier \"device\" and names a specific reading type and device class. scripts/check-boundaries.mjs (not touched by this change) is the intended enforcement point for that rule; this file only states it. Anybody populating a row in the thresholds array without a ratifiedEntryRef pointing at a ratified queue entry is doing exactly what the queue's refusal exists to prevent.",
+ "version": 1,
+ "engine": "devices",
+ "governedBy": "packages/catalog/clinical-review-queue.json#tiers (tier: \"device\")",
+ "_governedByWhy": "Reuses the queue's existing device tier rather than inventing a second gate. The queue's own tiersNote already says scripts/check-boundaries.mjs 'fails the build if a device-class allowlist entry (packages/catalog/devices/thresholds.json, once it exists) carries a number with no ratified entry here naming it' — this file is the 'once it exists' the queue was written ahead of, and it exists now holding nothing.",
+
+ "readingTypesFrom": {
+  "source": "packages/catalog/records.json#observations.measures",
+  "why": "A threshold is a rule about a reading type, and records.json already owns every reading type MyThuso records and the unit each is recorded in (packages/catalog/devices.json metrics already reuses this same source rather than retyping a measure list). This file does not restate that list; a threshold row, once one exists, names a measure by the id records.json gives it."
+ },
+
+ "deviceClassesFrom": {
+  "source": "packages/catalog/devices.json#deviceClasses",
+  "why": "certified, consumer, simulator — devices.json's own three classes, and the only ones any reading is ever registered under. A threshold row, once one exists, names one of these three, or the device tier this catalog's packages/catalog/devices/pairing-paths.json proposes as a finer distinction within them; it never invents a fourth class of its own.",
+  "consumerNeverThresholded": "A threshold naming deviceClass consumer would be meaningless before it is even ratified: packages/catalog/devices.json's clinicalWeight already ensures a consumer reading never carries clinical weight and is never published on reading.ingested@1, so there is no event for any threshold rule to ever act on. This file states that plainly rather than leaving a reader to work out why a consumer row would never appear."
+ },
+
+ "ruleShape": {
+  "_note": "What a threshold row would hold once one is ratified. Documented as a shape, not populated, so a later generator or boundary check has something to target without any of it being live today.",
+  "fields": [
+   { "field": "thresholdRef", "type": "string", "why": "This rule's own reference, once one exists." },
+   { "field": "readingType", "type": "string", "why": "A measure id from packages/catalog/records.json#observations.measures. Required; a threshold with no reading type names nothing." },
+   { "field": "deviceClass", "type": "string", "why": "certified or the medical-grade tiers packages/catalog/devices/pairing-paths.json names within it. Never consumer, per consumerNeverThresholded above." },
+   { "field": "direction", "type": "string", "why": "Whether the rule fires above, below, or outside a range — the shape of the comparison, not the number, so the shape itself can be reviewed by the clinical governance board ahead of any number being proposed." },
+   { "field": "boundValue", "type": "number", "nullable": true, "why": "The number itself. Always null in this file and in any entry that is not live — see boundValueAlwaysNull below." },
+   { "field": "boundValueAlwaysNull", "value": true, "why": "Restated as its own field, deliberately redundant with the nullable annotation above, because a generator that only checks a JSON Schema's nullable flag could still be handed a non-null number by a careless edit; a human or a script reading this file sees the constraint twice before it could ever be missed once." },
+   { "field": "onBreach", "type": "string", "why": "What firing the rule does once it is live — today the only value this file describes is 'record only,' matching the queue's own words that 'a reading against it is recorded but never auto-creates an incident' until ratification. Any stronger action (auto-creating an incident) is exactly what the queue's device tier exists to gate, and this field never carries one until a ratified entry says so." },
+   { "field": "ratifiedEntryRef", "type": "string", "nullable": false, "why": "A reference into packages/catalog/clinical-review-queue.json naming the entry, at state ratified, tier device, that authorised this specific rule. Required on every row that is not empty; a row with no ratified entry to point at is not a row this file may hold, per the queue's own refusal." },
+   { "field": "proposedByRef", "type": "string", "why": "Who proposed it, mirroring the queue entry's own proposedByRef so the two records agree on authorship rather than each keeping a separate copy." }
+  ]
+ },
+
+ "thresholds": [],
+ "_thresholdsEmptyWhy": "Zero rows, on purpose, today. Nothing in packages/catalog/clinical-review-queue.json has ever reached state ratified — its own preview says so: 'No entry has ever been proposed. This file describes a queue with nobody in it.' A thresholds array with rows in it while the queue has never ratified anything would be this file breaking the exact discipline it exists to hold.",
+
+ "refusals": [
+  {
+   "id": "unratified-threshold-not-populated",
+   "statement": "No row is added to thresholds until a clinical-review-queue.json entry naming it reaches state ratified.",
+   "why": "Restates packages/catalog/clinical-review-queue.json's own device-threshold-carries-no-number-until-ratified refusal from this file's side, so a reader who opens thresholds.json first, without having read the queue, still sees the rule that governs it rather than an empty array with no stated reason.",
+   "answeredBy": [],
+   "answeredByWhy": "No route reads or writes this file today — no device threshold route exists anywhere in packages/catalog/apis/devices.json. This refusal is enforced, when it is enforced, by scripts/check-boundaries.mjs against the queue, which this task does not touch; it is stated here for whoever writes that check, not claimed as already firing."
+  },
+  {
+   "id": "no-threshold-on-consumer-class",
+   "statement": "A threshold never names deviceClass consumer.",
+   "why": "See deviceClassesFrom.consumerNeverThresholded above: a consumer reading never reaches the event bus a threshold rule would act on, so a rule naming it would be dead on arrival, and dead rules invite someone to wire a second, unaccountable path for a consumer reading to matter clinically.",
+   "answeredBy": [],
+   "answeredByWhy": "Same as above — enforcement is scripts/check-boundaries.mjs's, once written."
+  }
+ ],
+
+ "preview": "No device class carries a numeric threshold. No reading against any device today auto-creates an incident, and this file's whole purpose is to keep that true until a named clinician's name, role and day appear in a ratified entry saying otherwise."
+}

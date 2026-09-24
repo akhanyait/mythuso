@@ -1,0 +1,125 @@
+{
+ "_note": "The discovery and pairing discipline for the device fleet, ahead of any pairing route existing. Sits beside packages/catalog/devices.json, which already owns deviceClasses (certified, consumer, simulator), sources, qualities and clinicalWeight — this file does not restate any of them and adds nothing a reading's weight is worked out from. Proposed for the founder's Control Tower & GilbertOne Commercialization plan, Module 1's device tier and §3 ('IoT control in the Control Tower'), Modules 12-15 of the device lifecycle work this catalog entry is scoped for. packages/catalog/apis/devices.json holds the one route that exists today for bringing a device into the registry, POST /v1/devices/registry@2, and it is named throughout this file so the gap between what it asks for and what physical-possession proof would ask for is visible rather than assumed closed.",
+ "_honestSourceNote": "docs/COMMERCIAL-AND-CONTROL-TOWER-SCOPE.md, the tracked copy of the founder's plan read in full for this file, does not contain a numbered §10 device-lifecycle section, and no tracked document names 'Modules 12-15,' BLE GATT, WiFi mDNS/QR-DPP, NFC, a numeric-comparison fallback, or 'physical possession proof' anywhere in this tree (checked by grep across docs/ and the untracked GilbertOne/ and docs/GilbertOne_Developer_Scope_v1.md, which cover the assistant widget, not device pairing). The tracked plan's only device-fleet section is §3, four short paragraphs naming telemetry ingestion, an MQTT/device-gateway, admin-scoped device classes per site, and IoT vitals enrichment with a consumer-device advisory disclosure — and its own flag line reads 'devices are contracted but none is contacted.' The transport list, the possession-proof requirement and the four-tier model below are this file's own design, built to be the shape §3's admin-scoped device classes and the adversary register's 'compromised device' and 'spoofed device' rows (docs/security/ADVERSARY-REGISTER.md) would need if device binding is ever built, not a transcription of a founder section that does not exist in the tracked tree. Anybody continuing this work should treat the missing §10 as a discrepancy to raise with the founder, not as ground truth to reconcile against silently.",
+ "version": 1,
+ "engine": "devices",
+
+ "builtToday": {
+  "sentence": "No pairing happens anywhere in this codebase. POST /v1/devices/registry@2 takes an operator-typed serial, model, firmware, deviceClass and, for a certified or simulated instrument, an instrumentKind — every one of them typed, none of them proven. Nothing about that call is tied to a physical device: no wire is opened, no code is exchanged, no key is generated, and the 'certified' class that lets a reading later carry clinical weight is, in docs/security/ADVERSARY-REGISTER.md's own words, 'a label an operator asserts, not a proof the system checks.'",
+  "why": "This file is a design ahead of any of that changing. Reading it should never suggest more is built than POST /v1/devices/registry@2, whose actual request and refusal fields are in packages/catalog/apis/devices.json, and this file adds no route, no handler and no field to that contract."
+ },
+
+ "deviceTiers": [
+  {
+   "id": "medical-grade-site-owned",
+   "label": "Medical-grade, site-owned",
+   "mapsToDeviceClass": "certified",
+   "why": "The closest existing thing is packages/catalog/devices.json's certified class: 'an instrument in a Thuso Kit, registered by serial and calibrated on the cadence packages/catalog/capture.json gives its kind.' A site-owned instrument is a certified instrument the operator, not the patient, holds custody of between visits.",
+   "mayPair": ["operator"],
+   "escalationWeight": "full",
+   "escalationWhy": "Matches devices.json clinicalWeight.requires class-carries-weight: the only class whose readings may carry clinical weight today, and the only tier this file proposes keeping that true for."
+  },
+  {
+   "id": "medical-grade-personally-owned",
+   "label": "Medical-grade, personally owned",
+   "mapsToDeviceClass": "certified",
+   "why": "A certified instrument devices.json's deviceClasses does not yet distinguish by custody — its certified class says nothing about who holds the device between readings. This tier is this file's proposal to split that distinction out for pairing purposes only; it does not add a field to devices.json's deviceClasses, which stays the one place clinical weight is decided.",
+   "mayPair": ["patient"],
+   "pairingRequiresConfirmation": "nurse-or-clinician",
+   "escalationWeight": "full, pending calibration and recall marks exactly as devices.json already governs",
+   "escalationWhy": "A patient owning the instrument does not change whether it is certified. It changes who is trusted to complete physical-possession proof without a nurse standing in the room, which is why this tier asks for a clinician confirmation the site-owned tier does not."
+  },
+  {
+   "id": "consumer-personally-owned",
+   "label": "Consumer, personally owned",
+   "mapsToDeviceClass": "consumer",
+   "why": "devices.json's consumer class already exists and already says a reading from it 'never carries clinical weight, never raises an alert and never sends anybody, whatever the reading says.' This tier is that class, named for pairing purposes.",
+   "mayPair": ["patient"],
+   "escalationWeight": "none",
+   "escalationWhy": "Unchanged by this file. See trust-model.json's hard-rule for why no pairing design may weaken this."
+  },
+  {
+   "id": "infrastructure",
+   "label": "Infrastructure (ward or site gateway)",
+   "mapsToDeviceClass": null,
+   "why": "Not a reading-producing instrument and not one of devices.json's three deviceClasses (certified, consumer, simulator) at all — a gateway that relays other devices' traffic, of the kind docs/COMMERCIAL-AND-CONTROL-TOWER-SCOPE.md §3 calls an 'MQTT / device-gateway.' Naming it here is this file getting ahead of devices.json, honestly: a gateway would need its own deviceClass or its own registry entirely, and neither exists. Nothing in devices.json today can register one.",
+   "mayPair": ["operator"],
+   "escalationWeight": "not applicable — a gateway carries no reading of its own",
+   "escalationWhy": "Listed for completeness of the tier model the plan's admin-scoped device classes (§3) implies a site needs, not because any contract currently has anywhere to put one."
+  }
+ ],
+ "_deviceTiersNote": "Four tiers, three of which map onto devices.json's existing three deviceClasses along a dimension devices.json has never needed — who holds the device between readings — and a fourth, infrastructure, that devices.json has no room for at all. Nothing here edits deviceClasses or clinicalWeight; a reading's clinical weight is decided exactly as devices.json's clinicalWeight.statement already says, by class, source, quality, recall state and intended use. This file's tiers are a pairing-time question layered on top: which of those classes may this pairing attempt claim, and who is trusted to complete its possession proof.",
+
+ "transports": [
+  {
+   "id": "ble-gatt",
+   "label": "Bluetooth Low Energy (GATT)",
+   "priority": 1,
+   "possessionProof": "pairing-code-match",
+   "possessionProofSentence": "A code the instrument displays or prints, entered on the phone that is pairing it. Matching the code is what proves the phone doing the pairing is next to the instrument, not merely in radio range of it.",
+   "why": "The nearest-term realistic transport for a Thuso Kit instrument, and the one docs/security/ADVERSARY-REGISTER.md's 'rogue BLE advertiser' row already discusses: today 'there is no navigator.bluetooth call anywhere in this repository and no native bridge to one,' and neither native app declares a Bluetooth permission. This entry describes the discipline that transport would need the day that changes; it authorises none of it.",
+   "justWorksForbidden": true,
+   "forbiddenWhy": "'Just works' BLE pairing accepts any device in range with no code and no confirmation. docs/security/ADVERSARY-REGISTER.md's rogue-BLE row is explicit that a control here 'without a device credential to check the connection against is decoration' — so this transport is never offered for a device whose reading could carry clinical weight, whatever code confirmation is used, until device binding (trust-model.json) exists to check the pairing against."
+  },
+  {
+   "id": "wifi-mdns-qr-dpp",
+   "label": "Wi-Fi (mDNS discovery, WPA3 Device Provisioning Protocol via QR code)",
+   "priority": 2,
+   "possessionProof": "qr-scan-plus-dpp-exchange",
+   "possessionProofSentence": "Scanning a QR code printed on or displayed by the instrument, then completing the DPP cryptographic exchange that code seeds. The code is single-use and short-lived, so a photograph of it taken from across a room is not enough on its own — the exchange still has to complete within the code's window.",
+   "why": "Named highest-trust of the transports here because the QR code is itself a possession proof (whoever photographs it must have had the instrument in view) and DPP's exchange is cryptographic rather than a typed digit match, unlike ble-gatt's pairing code.",
+   "justWorksForbidden": true,
+   "forbiddenWhy": "A device that joins the network the moment it is powered on, with no code and no exchange, proves nothing about who is holding it. Never offered for any tier above consumer-personally-owned."
+  },
+  {
+   "id": "nfc-tap",
+   "label": "NFC tap",
+   "priority": 3,
+   "possessionProof": "tap-proximity",
+   "possessionProofSentence": "NFC's own physical range (a few centimetres) is the possession proof: a tap cannot happen from across a room, so the proof is the transport's own physics rather than a code typed afterward.",
+   "why": "The strongest possession proof of the four by physics alone, and the least available — most instruments this fleet would use do not carry an NFC radio, and neither native app has an NFC entitlement today. Listed for completeness against devices this catalog does not yet describe.",
+   "justWorksForbidden": false,
+   "forbiddenWhy": "Not applicable: NFC's proximity requirement is itself the possession proof, so there is no 'just works' mode to forbid separately, unlike the other three transports."
+  },
+  {
+   "id": "cellular-registration",
+   "label": "Cellular (registration + provisioning code)",
+   "priority": 4,
+   "possessionProof": "provisioning-code-entry",
+   "possessionProofSentence": "A one-time provisioning code printed on the instrument or its packaging, entered through the registering app before the instrument's SIM or eSIM is allowed to register against MyThuso's device gateway.",
+   "why": "For a device that has its own cellular connection rather than pairing through a phone — the case docs/COMMERCIAL-AND-CONTROL-TOWER-SCOPE.md §3's MQTT/device-gateway path implies for a site fleet not tethered to any one nurse's phone.",
+   "justWorksForbidden": true,
+   "forbiddenWhy": "A SIM registering against the gateway with no provisioning code is a SIM, not a proof of who unboxed the instrument it is in."
+  },
+  {
+   "id": "numeric-comparison-fallback",
+   "label": "Numeric comparison (fallback)",
+   "priority": 5,
+   "possessionProof": "operator-confirmed-number-match",
+   "possessionProofSentence": "A number shown on both the instrument and the pairing screen, confirmed identical by the person pairing it. Weakest of the five because it depends on a human actually comparing the two numbers rather than a code being copied or a cryptographic exchange completing, and it is offered only when none of the other four transports is available on the instrument.",
+   "why": "Every pairing path needs a fallback for an instrument with no BLE, no Wi-Fi radio, no NFC and no cellular modem — a plain serial cable or a manufacturer's companion app being the realistic case. Ranked last on purpose.",
+   "justWorksForbidden": true,
+   "forbiddenWhy": "Skipping the comparison step reduces this transport to typing a serial number into a form, which is exactly what POST /v1/devices/registry@2 already does today and exactly what docs/security/ADVERSARY-REGISTER.md's 'spoofed device' row says proves nothing."
+  }
+ ],
+ "_transportsNote": "Priority order is trust order, highest first, not build order — nothing says wifi-mdns-qr-dpp ships before ble-gatt. Every transport row exists so a future pairing route has one refusal sentence to answer with when a pairing attempt skips its proof step, named next.",
+
+ "refusals": [
+  {
+   "id": "pairing-without-possession-proof",
+   "statement": "A pairing is not completed until its transport's possession proof is completed. Proximity is not identity, and a device answering on a radio is not a device somebody is holding.",
+   "why": "This is the plan's own instruction restated as a refusal in this catalog's house style: every transport above lists what its proof is precisely so that 'the device answered' is never mistaken for 'the device is confirmed held by the person pairing it.' A device paired without completing this step has been discovered, not paired.",
+   "answeredBy": [],
+   "answeredByWhy": "No route enforces this today. packages/catalog/apis/devices.json's POST /v1/devices/registry@2 has four refusals — duplicate-serial, device-class-not-declared, instrument-kind-not-in-the-kit, calibration-in-the-future — and none of them is this one, because that route accepts a typed class with no possession step at all. This refusal is left unanswered on purpose, as a flag for whoever writes the pairing route: it is the sentence that route will need, not a claim that route exists."
+  },
+  {
+   "id": "just-works-forbidden-for-clinical-weight",
+   "statement": "No device whose class may carry clinical weight is paired by a transport's 'just works' mode.",
+   "why": "packages/catalog/devices.json's clinicalWeight already decides which readings count; this refusal exists so nothing upstream of that arithmetic — the pairing step — can hand a device the 'certified' label without ever proving anyone held it. A weight decided honestly downstream is worth nothing if the device it was decided about was never actually confirmed present.",
+   "answeredBy": [],
+   "answeredByWhy": "Same as above: no route exists to answer it. Consumer-tier devices are unaffected, since devices.json already ensures they never carry clinical weight regardless of how they were paired."
+  }
+ ],
+
+ "preview": "No transport listed here has ever opened a connection. This file describes what a pairing attempt would have to prove before packages/catalog/devices.json would be told about the result, not something that happens today."
+}

@@ -4627,6 +4627,48 @@
         }
       ],
       "subscribers": ["money"]
+    },
+    {
+      "type": "clinical.review_queue.entry_proposed",
+      "version": 1,
+      "owner": "clinical",
+      "summary": "A change to Tier 1 global escalation behaviour, a tenant's Tier 2 layer, or a device threshold rule was proposed to the Clinician Review Queue. Decides nothing by itself.",
+      "payload": [
+        { "field": "entryRef", "type": "string", "required": true, "why": "The queue entry." },
+        { "field": "configScope", "type": "string", "required": true, "why": "1, 2 or device." },
+        { "field": "tenantRef", "type": "string", "required": false, "why": "Present only for a Tier 2 entry." }
+      ],
+      "neverCarries": [
+        { "field": "proposedChangeContent", "why": "The queue never carries a change's own wording, threshold or number, per packages/catalog/clinical-review-queue.json whereContentLives." }
+      ],
+      "subscribers": ["core"]
+    },
+    {
+      "type": "clinical.review_queue.entry_ratified",
+      "version": 1,
+      "owner": "clinical",
+      "summary": "The clinical governance board signed a Clinician Review Queue entry. Only a ratified entry may ever be cited as the reason a clinical behaviour changed.",
+      "payload": [
+        { "field": "entryRef", "type": "string", "required": true, "why": "The queue entry." },
+        { "field": "configScope", "type": "string", "required": true, "why": "1, 2 or device." },
+        { "field": "proposedChangeRef", "type": "string", "required": true, "why": "Where the ratified change is written, so the file it belongs to can adopt it and move the entry to live." }
+      ],
+      "neverCarries": [
+        { "field": "proposedChangeContent", "why": "Same as entry_proposed: the event names where the change lives, never the change itself." }
+      ],
+      "subscribers": ["core"]
+    },
+    {
+      "type": "clinical.review_queue.entry_rejected",
+      "version": 1,
+      "owner": "clinical",
+      "summary": "The clinical governance board declined a Clinician Review Queue entry. Kept, because a change proposed and refused is itself worth knowing happened.",
+      "payload": [
+        { "field": "entryRef", "type": "string", "required": true, "why": "The queue entry." },
+        { "field": "reason", "type": "string", "required": true, "why": "Why it was declined." }
+      ],
+      "neverCarries": [],
+      "subscribers": ["core"]
     }
   ]
 }

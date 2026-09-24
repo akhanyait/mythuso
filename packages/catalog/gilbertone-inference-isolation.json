@@ -1,0 +1,128 @@
+{
+ "_note": "Decision 6.3 in code, Module 3 of the founder's Control Tower & GilbertOne Commercialization plan (proposed 23 September 2026): 'No cross-tenant read is a database claim; the inference layer has its own channels.' Phase 0, contract-authoring only, proposed as gating on nothing external. That framing needs one correction before anything else in this file can be read honestly: packages/catalog/compliance-pack.json and packages/catalog/offboarding.json, authored the same day against the same plan for their own modules, both independently reached the same finding this file reaches again from the inference side — there is no tenant registry anywhere in this repository. packages/catalog/clinical-review-queue.json's tenantRef is the only tenant concept in the whole catalog, and it names one Tier 2 clinical-protocol addition, not a data boundary, a cache boundary or an embedding-index boundary. So this file, like those two, is written as if a tenant existed — the shape a real isolation layer will need — while saying plainly that 'per-tenant' resolves to nothing until a tenancy contract exists elsewhere naming what a tenant is and how a tenantRef is minted and checked. What this file can honestly do today is narrower than the plan's title promises: inventory the one cache and the one embedding-index mechanism apps/assistant-api already has, in their present single-tenant form, and state precisely what each would have to become once a tenant boundary exists to namespace them against — not build that boundary, because there is nothing yet to namespace.",
+ "_source": "Decision 6.3, verbatim: 'Prompt/context cache — No cross-tenant reuse. Cache keys namespaced by tenant. Embedding index — Per-tenant partitions. No cross-partition retrieval. Model fine-tuning — No cross-tenant fine-tuning without recorded consent and a legal basis. Retrieval provenance — Per-tenant. Timing/latency — Constant-time where a record's existence could be inferred. Hardening target.' And: 'A test proves tenant A's prompt cannot retrieve tenant B's data through the model, not just through the database.'",
+ "version": 1,
+ "engine": "assistant",
+ "api": "packages/catalog/apis/assistant.json",
+
+ "_verifiedAgainstTheTree": "Checked on 24 September 2026, per this task's own instruction rather than trusted from the plan text. grep for \"tenant\" across apps/assistant-api/src turns up exactly two hits, both incidental: server.ts's comment about liqzar-server's other co-tenant sites, and deploy.test.ts's comment about the same. Neither is this module's kind of tenant. No route, no store and no cache anywhere under apps/assistant-api reads, writes or checks a tenant identifier of any kind. The Module 7 finding this task quoted at the outset — 'no multi-tenancy exists anywhere in the repo' — holds; this file does not soften it.",
+
+ "existingMechanismsToday": [
+  {
+   "id": "turn-session-store",
+   "file": "apps/assistant-api/src/lib/session-store.ts",
+   "holds": "A single process-wide Map<sessionId, {state, lastActive}>, extracted from routes/turn.ts on 22 September 2026. sessionId names one conversation and is supplied or generated per request; it never names a person and carries no identity of any kind. Two numbers are its whole policy: a session idle for 30 minutes is evicted, and the map never holds more than 1,000 sessions, oldest-first out.",
+   "tenancyToday": "None. The map has no tenant column and no per-tenant limit — every caller of this process, whichever hospital or deployment eventually owns them, shares the same 1,000-session ceiling and the same eviction clock. A session id is opaque and effectively unguessable in practice, so this is not a live cross-tenant read today, but it is not an isolation boundary either: nothing about the store's shape prevents two tenants' sessions from sitting in the same map, because the map does not know tenants exist.",
+   "whatWouldChange": "Once a tenant identifier exists to key by, SessionStore's two calls (read, write) would need to take it alongside sessionId, and the store's own eviction and limit policy would need to decide whether the 1,000-session ceiling is per-tenant or platform-wide before any hospital could be told what capacity it is buying — a pricing and fairness question this file does not answer, only names as a consequence of namespacing this mechanism."
+  },
+  {
+   "id": "retrieval-cache",
+   "file": "apps/assistant-api/src/lib/knowledge.ts",
+   "holds": "A single process-wide LRU (a plain Map, insertion order as recency) over retrieveKnowledge()'s results, added in the 23 September 2026 speed pass. Capped at 200 entries, keyed by cacheKey(query, topK) — the normalised query text and the requested result count, nothing else.",
+   "tenancyToday": "None, and this is the module's clearest concrete example of decision 6.3's opening sentence. Two different callers who ask the same normalised words receive the identical cached array — not filtered, not re-derived, the same object reference. If two tenants existed today and asked the same question in the same words, the second tenant's request would be answered from the first tenant's cache entry with no check of any kind, because cacheKey carries no tenant segment to check. This is exactly the channel decision 6.3's 'Cache keys namespaced by tenant' rule exists to close, sitting in code that already runs, gated only by the fact that nothing calling it today is multi-tenant.",
+   "whatWouldChange": "cacheKey(query, topK) would need to become cacheKey(tenantId, query, topK), and the 200-entry cap would need the same per-tenant-or-platform-wide decision session-store's limit needs above — a shared 200-entry ceiling across many tenants means one tenant's traffic can evict another's cache before it is ever reused, which is a fairness question this file does not decide."
+  },
+  {
+   "id": "embedding-index",
+   "file": "scripts/ingest-knowledge-embeddings.mjs and the Qdrant section of apps/assistant-api/src/lib/knowledge.ts",
+   "holds": "One Qdrant collection (QDRANT_COLLECTION, defaulting to \"gilbertone-knowledge\") that scripts/ingest-knowledge-embeddings.mjs populates by embedding every entry knowledgeChunks() returns and upserting each as one point, keyed by a version-5 UUID derived deterministically from the catalog's own entry id. retrieveKnowledge() queries this one collection at answer time, falling back to the in-memory keyword index (also one shared corpus) on any failure.",
+   "tenancyToday": "None. One collection, one namespace, every point's payload carrying only id/title/source/file/snippet — no tenant field exists in the point schema, the ingestion script, or the query path. There is nothing today that could even be called a partition: 'per-tenant partitions, no cross-partition retrieval' describes a structure this codebase has not built the first tenant of.",
+   "whatWouldChange": "Either a separate Qdrant collection per tenant (structurally the stronger isolation, because an unfiltered query against tenant A's collection cannot physically return tenant B's points) or a single collection with a tenant field in every point's payload plus a mandatory filter on every search call (weaker, because it depends on every query path remembering to apply the filter — the same distinction packages/catalog/knowledge-corpus-tiers.json draws for the clinical/non-clinical split). This file does not choose between them; both need a tenant identifier to key by, which does not exist."
+  },
+  {
+   "id": "model-fine-tuning",
+   "file": "apps/assistant-api/src/lib/llm-adapter.ts",
+   "holds": "No fine-tuning pipeline of any kind. Every call this file makes is a stock chat-completion or embeddings call against the Azure OpenAI deployment an operator configures — the same base model for every caller, every time, with no per-tenant or per-customer model artifact ever trained, stored or selected.",
+   "tenancyToday": "Not applicable — there is nothing to namespace because there is nothing built. This is stated plainly because 'no cross-tenant fine-tuning' could otherwise be misread as a fix for a leak that exists; it is not. The refusal below is preventative, aimed at a capability nobody has proposed building yet, so that if fine-tuning is ever added, the consent-and-legal-basis gate is already on record rather than retrofitted after the fact.",
+   "whatWouldChange": "Nothing here changes anything — the refusal stands regardless of whether or when fine-tuning is ever built, and this file's job is only to make sure the day it is proposed, the gate is already written down rather than argued for after a tenant's data has already been used to train something."
+  }
+ ],
+
+ "isolationRules": [
+  {
+   "id": "cache-namespacing",
+   "axis": "Prompt/context cache",
+   "rule": "No cross-tenant reuse. Cache keys namespaced by tenant.",
+   "why": "A cache exists to skip work already done for an identical question; it is never meant to let one caller's question be answered from another caller's answer. Today's retrieval-cache mechanism proves the risk is concrete, not theoretical: it already returns one caller's cached result to any other caller who asks the same normalised words, which is precisely the shape a cross-tenant leak through a shared cache takes.",
+   "mapsToMechanism": ["retrieval-cache", "turn-session-store"],
+   "enforcementToday": "None. Neither mechanism carries a tenant segment in its key, because neither mechanism nor anything calling it knows what a tenant is."
+  },
+  {
+   "id": "embedding-partitioning",
+   "axis": "Embedding index",
+   "rule": "Per-tenant partitions. No cross-partition retrieval.",
+   "why": "An embedding index is searched by semantic nearness, not by an exact key a caller supplies — which means a tenant boundary has to be enforced by the index's own structure (separate collections) or by a filter every query path applies without exception (one collection, a tenant field), because a nearest-neighbour search that is merely asked nicely to stay in its lane is one missed filter away from returning the nearest point regardless of whose it is.",
+   "mapsToMechanism": ["embedding-index"],
+   "enforcementToday": "None. One collection, no tenant field, no partitioning of any kind."
+  },
+  {
+   "id": "no-cross-tenant-fine-tuning",
+   "axis": "Model fine-tuning",
+   "rule": "No cross-tenant fine-tuning without recorded consent and a legal basis.",
+   "why": "A model fine-tuned on tenant B's traffic and then served to tenant A's callers can leak tenant B's phrasing, facts or patterns through the model's own weights — a channel no cache key or database filter touches, which is this whole module's point restated for the training side rather than the serving side.",
+   "mapsToMechanism": ["model-fine-tuning"],
+   "enforcementToday": "Not applicable — no fine-tuning pipeline exists to enforce this against. The rule is recorded now so it is already in force the day one is proposed."
+  },
+  {
+   "id": "per-tenant-provenance",
+   "axis": "Retrieval provenance",
+   "rule": "Per-tenant.",
+   "why": "packages/catalog/knowledge-corpus-tiers.json's own citation work (knowledge-provenance.ts) already attaches a per-entry citation — authority, jurisdiction, evidence grade — to every retrieved result. Decision 6.3 asks for a second axis on top of that: which tenant's own corpus, cache or partition a given answer's evidence actually came from, so a hospital reviewing what GilbertOne told one of its patients can confirm the evidence was theirs and not another tenant's.",
+   "mapsToMechanism": null,
+   "enforcementToday": "None, and none is possible yet: provenance is currently a fact about a catalog entry, never about a tenant, because no read path carries a tenant identifier to stamp a result with."
+  },
+  {
+   "id": "constant-time-hardening",
+   "axis": "Timing/latency",
+   "rule": "Constant-time where a record's existence could be inferred. Hardening target.",
+   "why": "A cache hit answers faster than a cache miss, and a populated embedding partition answers a well-matched query faster than an empty one — both are timing differences an attentive caller could use to infer that a record exists in another tenant's data without ever reading its content. The plan itself names this a hardening target rather than a hard gate, which this file preserves rather than upgrading it into a claim nothing here can back.",
+   "mapsToMechanism": null,
+   "enforcementToday": "None attempted anywhere in this codebase, for any route, tenant-related or not. No timing-safety work exists to check against."
+  }
+ ],
+
+ "refusals": [
+  {
+   "id": "no-cross-tenant-cache-reuse",
+   "statement": "Once a tenant identifier exists, no cache entry created for one tenant may be returned to a request carrying a different tenant identifier, however identical the query text.",
+   "why": "The retrieval-cache mechanism already demonstrates this exact failure mode in its present single-tenant form — a repeat of the same words is answered from memory regardless of who asked the first time. Adding tenants without namespacing the key would not create this risk; it would only give it something real to leak."
+  },
+  {
+   "id": "no-cross-partition-embedding-retrieval",
+   "statement": "A vector search scoped to one tenant's partition never returns a point from another tenant's partition, even when that point is the nearest neighbour in the whole index.",
+   "why": "A partition that is filtered rather than physically separated is only as isolated as the discipline of every caller who queries it. Stating the refusal now, before a second tenant or a second partition exists, is what makes it something a future implementation is built to satisfy rather than a rule discovered missing after the first cross-tenant search."
+  },
+  {
+   "id": "no-cross-tenant-fine-tuning-without-consent-and-basis",
+   "statement": "No model artifact trained wholly or partly on one tenant's data is loaded, selected or served for another tenant's inference call, unless a recorded consent from the first tenant and a recorded legal basis both name that specific cross-tenant use.",
+   "why": "Fine-tuning turns a tenant's own traffic into a durable artifact that outlives the request that produced it; the consent and legal-basis test is the same POPIA-shaped discipline CLAUDE.md already applies to health data, applied here to the model weights a tenant's own conversations would otherwise be baked into without being asked."
+  },
+  {
+   "id": "no-cross-tenant-provenance-bleed",
+   "statement": "A retrieval result's provenance names the tenant whose corpus, cache or partition it was actually served from. It is never silent about tenancy, and it is never attributed to a tenant it did not come from.",
+   "why": "A hospital auditing what GilbertOne told its own patient needs to be able to confirm the evidence was theirs. A provenance record that could not say whose data it drew from would be exactly the kind of unfalsifiable claim the rest of this catalog's citation work exists to prevent for a single tenant, restated for many."
+  },
+  {
+   "id": "no-inference-isolation-without-a-tenant-contract",
+   "statement": "Nothing above may be built, and nothing may claim inference isolation exists, until a tenancy contract is authored elsewhere in this catalog naming what a tenant is, how a tenantRef is minted, and which store, cache and index it resolves against. Until then, every rule in isolationRules is a design this catalog holds, not a control anything enforces.",
+   "why": "packages/catalog/compliance-pack.json's no-tenant-scoping-without-a-tenant-contract and packages/catalog/offboarding.json's no-tenant-wide-action-without-a-tenant-contract already state this discipline for their own modules, from clinical-review-queue.json's tenantRef being the only tenant concept in the repository. This file states the same refusal from the inference side rather than assuming its own module is somehow exempt from a gap the other two modules already found."
+  }
+ ],
+
+ "crossTenantInferenceTest": {
+  "statement": "Decision 6.3's own words: 'A test proves tenant A's prompt cannot retrieve tenant B's data through the model, not just through the database.' This section specifies what such a test would have to prove once a tenant contract and real per-tenant infrastructure exist. It is a specification for a future test-authoring pass, not a test — writing the test itself is out of this file's scope, and no test could be written honestly today because there is no tenant, no per-tenant cache and no per-tenant partition for it to exercise.",
+  "distinctFromADatabaseTest": "A database-level cross-tenant test (does a query filtered by tenantRef ever return another tenant's row) proves the database's own WHERE clause is correct. It says nothing about whether tenant B's content can still reach tenant A's caller through the cache, the embedding index, a fine-tuned model, or the model's own generated text — the four channels this module exists because a database claim does not cover them.",
+  "mustProve": [
+   "Issued as tenant A, a query engineered to be answerable only from a synthetic canary fact seeded exclusively into tenant B's corpus, cache or partition returns no trace of that fact — not in the model's generated answer text, not in a retrieved snippet, not in a citation, not in any field of the response.",
+   "The proof runs the real inference path end to end (retrieval, then generation) and inspects the model's output, not a database row count — a test that only checks a WHERE clause proves database isolation, which this test is explicitly not standing in for.",
+   "A prompt/context cache entry written under tenant B's key is never returned as a hit for a structurally identical query issued under tenant A's key, even when the normalised query text is byte-identical.",
+   "A vector search issued under tenant A's embedding partition never returns a point from tenant B's partition, tested specifically with a canary point seeded to be the nearest neighbour globally, so the partition boundary is proven to override raw similarity rather than merely being untested by coincidence.",
+   "No model artifact fine-tuned using tenant B's data is ever loaded or selected for a tenant A inference call in the absence of a recorded consent-and-legal-basis entry naming that exact cross-tenant use.",
+   "A timing measurement compares tenant A's observed latency for a query matching an existing tenant-B-only record against a query matching nothing anywhere, from tenant A's own vantage point — recorded and flagged as a hardening-target finding rather than a pass/fail gate, consistent with decision 6.3 naming this axis a hardening target rather than a hard requirement.",
+   "The test is re-run whenever the cache key shape, the embedding-index structure or the fine-tuning pipeline changes, because each of those three is a channel this module named specifically to stop a database-only test from being mistaken for coverage of it."
+  ],
+  "gatedOn": "A tenancy contract naming what a tenant is and how a tenantRef resolves (see no-inference-isolation-without-a-tenant-contract above); at least two real tenant partitions or cache namespaces to test between; and the embedding-index and fine-tuning mechanisms this file describes as not yet namespaced. None of the three exists on 24 September 2026."
+ },
+
+ "preview": "No tenant has ever been created, no cache key has ever carried a tenant segment, and no Qdrant collection has ever been partitioned. This file names the one cache and the one embedding index apps/assistant-api actually has today, in their current single-tenant form, and the isolation rules each would need to satisfy the day a tenant exists to isolate against."
+}
