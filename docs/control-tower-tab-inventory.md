@@ -133,7 +133,9 @@ Tower, 12 Nurse/Doctor/Partner).
   pre-scoped to the field-safety settings group (`Admin.tsx:150-153`, `openSettings`). Once
   Operations is gone, nothing in `StaffShell.tsx`'s Dispatch or Incidents sections offers an
   equivalent way into Configuration — the consolidated portal needs to decide which merged section
-  carries that link forward, and this inventory does not propose one.
+  carries that link forward, and this inventory does not propose one. _Phase 3, 24 September 2026:
+  the portal carries it under Incidents, recorded in `packages/catalog/control-tower-portal.json`
+  `#decisions` for whoever signs the cutover to accept or change._
 - **Whether Admin's Clinical tab (oversight of the doctor review queue) gets a real home or stays
   a standalone tab.** It is genuinely unique — no Control Tower section reports on doctor
   throughput or AI/doctor agreement — but it is also the one Admin tab with no natural neighbour

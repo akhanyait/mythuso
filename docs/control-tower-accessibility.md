@@ -1,10 +1,17 @@
 # Control Tower accessibility — the WCAG 2.1 AA floor and the keyboard rules
 
 **Status: proposed. Written 24 September 2026, Phase 2 of `docs/PROMPT-CONTROL-TOWER-UI.md` (§5.2,
-§5.5).** The merged Control Tower portal and the GilbertOne API Administration screens are not built.
-This is the floor they are built to and the rules their tests hold, written before the first screen so
-that accessibility is a condition of the build rather than a review after it. Where something below is
-already true of the product today, it says so and names the test; where it is not, it says that too.
+§5.5).** This is the floor the merged Control Tower portal and the GilbertOne API Administration screens
+are built to, and the rules their tests hold, written before the first screen so that accessibility is a
+condition of the build rather than a review after it. Where something below is already true of the
+product, it says so and names the test; where it is not, it says that too.
+
+**Updated 24 September 2026, Phase 3.** The merged portal is **built**
+(`apps/web/src/shells/PortalShell.tsx`, `apps/web/src/features/portal/`), and the automated half of this
+floor is held by `tests/control-tower-portal.spec.ts` on both viewports. The GilbertOne API
+Administration sub-screens are still not built (Phase 4). The manual half — a keyboard-only pass by
+somebody who did not build it, and a screen-reader pass on a real device — has **not** been done, so no
+portal screen is called done here; the table under _How it is tested_ is still empty and says why.
 
 ## Why this is not optional
 
@@ -24,15 +31,15 @@ to more — it does on target size — the stricter rule stands and this documen
 | Area | The rule | Where it is held | True today? |
 | --- | --- | --- | --- |
 | Contrast | Text at 4.5:1 or better, large text and non-text UI (focus rings, borders of inputs, status dots) at 3:1 | `packages/design-tokens/tokens.json#contrast`, computed from the hexes on every build by `scripts/check-boundaries.mjs` | **built** for every pair listed there; a new pair is a new row before it is used |
-| Colour alone | No state is carried by colour alone. Every status in the portal vocabulary (`packages/catalog/control-tower-overview.json#statusVocabulary`) is a word first and a colour second | Journey tests assert the word | proposed |
-| Target size | 44×44 CSS pixels, the product's own floor, above WCAG 2.2's 24×24; exemptions are rows in `tokens.json#targets.knownUndersized` with a reason | `tests/accessibility.spec.ts` | **built** for today's screens |
-| Reflow | No horizontal scroll at 320 CSS pixels or at 200% zoom | `tests/accessibility.spec.ts` | **built** for today's screens |
+| Colour alone | No state is carried by colour alone. Every status in the portal vocabulary (`packages/catalog/control-tower-overview.json#statusVocabulary`) is a word first and a colour second | `tests/control-tower-portal.spec.ts` asserts the word; `scripts/check-boundaries.mjs` fails a portal file that owns a second list of status words | **built** for the portal |
+| Target size | 44×44 CSS pixels, the product's own floor, above WCAG 2.2's 24×24; exemptions are rows in `tokens.json#targets.knownUndersized` with a reason | `tests/accessibility.spec.ts`, and the same measurement (moved to `tests/audit.ts`) on every new portal screen in `tests/control-tower-portal.spec.ts` | **built** for today's screens and the portal's new ones |
+| Reflow | No horizontal scroll at 320 CSS pixels or at 200% zoom | `tests/accessibility.spec.ts`; `tests/control-tower-portal.spec.ts` at the configured viewports and at 200% | **built** for today's screens and the portal's new ones |
 | Text size | Nothing rendered below `tokens.json#typography.minimumRendered` | `tests/accessibility.spec.ts` | **built** |
-| Motion | Every animation honours `prefers-reduced-motion`; nothing essential is conveyed by motion | `tokens.json#motion.respectReducedMotion`, `tests/motion.spec.ts` | **built** for today's motion |
-| Names | Every interactive element has an accessible name; icon-only buttons carry `aria-label` | Journey tests query by role and name | partly: today's journeys query by role, the portal adds a sweep (below) |
-| Status messages | A panel that fills, a check that finishes, a save that fails is announced through a live region without moving focus | Journey tests | proposed |
-| Loading | Every panel has a skeleton or a spinner with an accessible name, never a blank region (§5.2); the skeleton is `aria-busy` on its region | Journey tests | proposed |
-| Empty states | Every list and panel has a written empty state (§5.2), read as text, not an image | The contracts carry the sentences (`control-tower-overview.json`, `voice.json`, `api-registry.json`) | the sentences exist; the screens do not |
+| Motion | Every animation honours `prefers-reduced-motion`; nothing essential is conveyed by motion | `tokens.json#motion.respectReducedMotion`, `tests/motion.spec.ts`; the portal sweep asserts no running animation with reduced motion asked for | **built** for today's motion; the portal adds none (its loading skeleton stands still) |
+| Names | Every interactive element has an accessible name; icon-only buttons carry `aria-label` | Journey tests query by role and name; the portal sweep checks every button, link, field, tab and tree item on each new screen | **built** for the portal's new screens; partly elsewhere |
+| Status messages | A panel that fills, a check that finishes, a save that fails is announced through a live region without moving focus | Journey tests | partly: the portal's loading state and the Overview's health check are `role="status"`; announcing the moment a category finishes loading is not tested |
+| Loading | Every panel has a skeleton or a spinner with an accessible name, never a blank region (§5.2); the skeleton is `aria-busy` on its region | `tests/control-tower-portal.spec.ts` waits for the named loading state to leave each category | **built** for the portal: every category is a dynamic import behind a named, `aria-busy`, still skeleton |
+| Empty states | Every list and panel has a written empty state (§5.2), read as text, not an image | The contracts carry the sentences (`control-tower-overview.json`, `control-tower-portal.json`, `voice.json`, `api-registry.json`); `tests/control-tower-portal.spec.ts` asserts each one on its screen | **built** for the portal's new screens; the GilbertOne sub-screens' do not exist |
 | Errors | An error names the field and says what to do, in a sentence, and is tied to its field with `aria-describedby` | Journey tests | proposed |
 
 ## Keyboard rules
@@ -139,12 +146,38 @@ this repository today, and adding one is a dependency decision recorded in
 | --- | --- | --- | --- | --- | --- |
 | | | | | | |
 
-No row exists yet because no portal screen exists yet.
+No row exists yet. The portal is built (Phase 3) and nobody has made a manual pass of it.
+
+### What the portal's journeys hold, 24 September 2026
+
+`tests/control-tower-portal.spec.ts`, on the desktop (1440×1100) and mobile (390×844) projects:
+
+- **Keyboard, categories.** The first Tab reaches the skip link. From the selected category the arrows
+  walk all fourteen categories in the plan's order, each activating as it is reached and each updating
+  the address; focus wraps; Home and End go to the ends; only the selected category is a Tab stop.
+- **Keyboard, tabs inside a category.** The arrows move and activate; the address follows; Back returns.
+- **Keyboard, lists.** A list is one Tab stop; Up and Down, Home and End move between rows.
+- **Keyboard, the Configuration tree.** Up and Down move and select; every node shows its own written
+  empty state.
+- **The measurements** `tests/accessibility.spec.ts` takes — sideways overflow, target size, text size —
+  on every new screen, at the configured viewport and at 200%, from the shared `tests/audit.ts`.
+- **The sweep** on every new screen: no nameless control, no positive tabindex, no running animation
+  with reduced motion asked for.
+
+The screens moved in unchanged (Dispatch, Incidents, the vetting queue, Quality, Audit exports and the
+back office's panels) keep the journeys they already had; `tests/journeys.spec.ts` now walks every
+category and tab of the portal as one application.
 
 ## What is outstanding
 
-- Every portal screen: none is built.
-- The automated sweep and keyboard journeys in _How it is tested_: they arrive with the screens.
+- The GilbertOne API Administration sub-screens: Phase 4.
+- The manual passes: a keyboard-only pass by somebody who did not build the portal, and a screen-reader
+  pass on a real device. Neither has been done, and no portal screen is called done until both are rows
+  in the table above.
+- Dialogs: the portal opens the old surfaces' dialogs unchanged (`components/UI.tsx`'s `Modal` on a
+  native `<dialog>`). Focus returning to the opener is the native dialog's; default focus on Cancel for a
+  destructive action does not arise, because no portal screen offers one.
+- An automated accessibility engine remains named-but-absent, as above.
 - Manual screen-reader testing on a real device: not done for the portal (nothing to test) and, for
   today's product, partly done and partly not — `docs/ACCESSIBILITY.md` records what is measured on iOS
   and Android and what is still not.

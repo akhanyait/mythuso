@@ -7,6 +7,33 @@ somebody discovers. It is one of the three documents gate G15 lists; the other t
 `docs/control-tower-tab-inventory.md` and `docs/control-tower-session-model.md`, are already written.
 G15 stays open until whoever runs the cutover accepts this plan in writing (see _Sign-off_ below).
 
+**Updated 24 September 2026, Phase 3: the portal is built, and the plan below is what it was built to.**
+What that means, section by section, so the person who signs this can check each promise against the
+tree rather than against this paragraph:
+
+- **The addresses.** `?role=control-tower` opens the portal on Dispatch & Incidents and `?role=back-office`
+  on Overview, each with the one-line notice, whose sentence is `packages/catalog/control-tower-portal.json`
+  `#notice`. An old tab named the old way — `?role=back-office&category=operations` — lands where the tab
+  inventory says (`#legacyAddresses`). `/staff` and `/admin` are unchanged. Held by
+  `tests/control-tower-portal.spec.ts` on both viewports, every address in the table below.
+- **The parallel run.** `&legacy=1` opens either old surface, read-only, with this plan's own refusal
+  sentence and a link to the same place in the portal; every control inside a section is disabled and
+  the ones a screen draws for itself are stopped (`apps/web/src/components/ReadOnly.tsx`). The role
+  picker's two entries both open the portal, so the picker offers only the portal. The same fixtures give
+  the same figures in the old place and the new, and the journey fails if they do not.
+- **Rollback.** One change, not two: point `control-tower` and `back-office`'s `surface` in
+  `apps/web/src/lib/roles.ts` at `'clinical'` and `'back-office'` again and deploy. `Doorway.tsx` does not
+  change for it — the portal's door (`apps/web/src/shells/PortalShell.tsx`) opens the old shells whenever
+  the role's surface is not the portal's, and opens them acting as they did rather than read-only.
+- **The blocker this plan named.** Where the Operations tab's link to the field-safety settings lands is
+  decided, for acceptance at sign-off: under the Incidents tab (`control-tower-portal.json#decisions`).
+- **Training.** The Overview's _What moved where_ tab is the in-portal half of the note — every old tab,
+  its new place and whether it moved or merged, read from the same table the portal resolves old
+  addresses by. The one-page note itself has not been sent to anybody, and nobody has been walked
+  through the portal. Those are the two steps of _Training and communication_ still undone.
+
+G15 is still open: the sign-off below is blank.
+
 Status words are the plan's: **built** (in the tree, held by tests), **proposed** (declared, not built),
 **dark** (built, unreachable by default), **gated** (built, blocked on a named gate), **named-but-absent**
 (named, no artefact).
