@@ -360,3 +360,10 @@ GET /v1/devices/simulator-presets@1 2f19d4c076c399e2
 POST /v1/devices/simulations@1 ecf45542cfa8cdfb
 POST /v1/devices/simulations/{simulationRef}/stop@1 979d4a029f82dcbf
 GET /v1/devices/simulations/{simulationRef}/outputs@1 f0a06d9d9e57661f
+GET /v1/clinical/review-queue@1 4bea4077e6e22f66
+POST /v1/clinical/review-queue@1 78182e7bede0be6f
+POST /v1/clinical/review-queue/{entryRef}/review@1 f889c9c85c642a88
+POST /v1/clinical/review-queue/{entryRef}/sign@1 3f0b604cea1fe9dd
+POST /v1/clinical/review-queue/{entryRef}/rollback@1 4500bfa4ae374467
+GET /health@2 682d86ec52ee5fbf
+GET /v1/status@2 3cd6afb9899acf09

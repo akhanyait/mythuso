@@ -111,6 +111,11 @@ object ApisData {
     val GET_CLINICAL_REVIEW_CONFIRMERS_V2 = Route("getClinicalReviewConfirmersV2", "GET", "/v1/clinical/review-confirmers", "/v1/clinical/review-confirmers", 2, "clinical", listOf("engine:access", "engine:care", "engine:medicines", "engine:safety"), listOf("audit"), false, "built")
     val GET_CLINICAL_SETTINGS_V2 = Route("getClinicalSettingsV2", "GET", "/v1/clinical/settings", "/v1/clinical/settings", 2, "clinical", listOf("admin", "doctor", "nurse"), listOf("audit"), false, "built")
     val POST_CLINICAL_SETTING_REVIEWS_V2 = Route("postClinicalSettingReviewsV2", "POST", "/v1/clinical/setting-reviews", "/v1/clinical/setting-reviews", 2, "clinical", listOf("doctor", "nurse"), listOf("audit"), true, "built")
+    val GET_CLINICAL_REVIEW_QUEUE = Route("getClinicalReviewQueue", "GET", "/v1/clinical/review-queue", "/v1/clinical/review-queue", 1, "clinical", listOf("doctor", "nurse", "admin"), listOf("audit", "treatment"), false, "proposed")
+    val POST_CLINICAL_REVIEW_QUEUE = Route("postClinicalReviewQueue", "POST", "/v1/clinical/review-queue", "/v1/clinical/review-queue", 1, "clinical", listOf("doctor", "nurse"), listOf("audit", "treatment"), true, "proposed")
+    val POST_CLINICAL_REVIEW_QUEUE_BY_ENTRY_REF_REVIEW = Route("postClinicalReviewQueueByEntryRefReview", "POST", "/v1/clinical/review-queue/{entryRef}/review", "/v1/clinical/review-queue/{entryRef}/review", 1, "clinical", listOf("doctor"), listOf("audit"), true, "proposed")
+    val POST_CLINICAL_REVIEW_QUEUE_BY_ENTRY_REF_SIGN = Route("postClinicalReviewQueueByEntryRefSign", "POST", "/v1/clinical/review-queue/{entryRef}/sign", "/v1/clinical/review-queue/{entryRef}/sign", 1, "clinical", listOf("doctor"), listOf("audit", "treatment"), true, "proposed")
+    val POST_CLINICAL_REVIEW_QUEUE_BY_ENTRY_REF_ROLLBACK = Route("postClinicalReviewQueueByEntryRefRollback", "POST", "/v1/clinical/review-queue/{entryRef}/rollback", "/v1/clinical/review-queue/{entryRef}/rollback", 1, "clinical", listOf("doctor", "nurse"), listOf("audit", "treatment"), true, "proposed")
     val GET_SAFETY_CHECKINS = Route("getSafetyCheckins", "GET", "/v1/safety/checkins", "/v1/safety/checkins", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), false, "built")
     val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND_V2 = Route("postSafetyCheckinsByCheckinRefExtendV2", "POST", "/v1/safety/checkins/{checkinRef}/extend", "/v1/safety/checkins/{checkinRef}/extend", 2, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "built")
     val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_SAFE = Route("postSafetyCheckinsByCheckinRefSafe", "POST", "/v1/safety/checkins/{checkinRef}/safe", "/v1/safety/checkins/{checkinRef}/safe", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "built")
@@ -263,7 +268,7 @@ object ApisData {
     val POST_MONEY_CLAIMS_BY_CLAIM_REF_SUBMIT = Route("postMoneyClaimsByClaimRefSubmit", "POST", "/v1/money/claims/{claimRef}/submit", "/v1/money/claims/{claimRef}/submit", 1, "money", listOf("doctor", "admin"), listOf("billing"), true, "built")
     val GET_MONEY_CLAIMS = Route("getMoneyClaims", "GET", "/v1/money/claims", "/v1/money/claims", 1, "money", listOf("patient", "doctor"), listOf("billing"), false, "built")
     val GET_MONEY_HELD_CASH_PAYMENTS = Route("getMoneyHeldCashPayments", "GET", "/v1/money/held-cash-payments", "/v1/money/held-cash-payments", 1, "money", listOf("ops-desk"), listOf("billing"), false, "built")
-    val GET_ASSISTANT_HEALTH = Route("getAssistantHealth", "GET", "/health", "/assistant/health", 1, "assistant", listOf("anonymous"), listOf("audit"), false, "built")
+    val GET_ASSISTANT_HEALTH_V2 = Route("getAssistantHealthV2", "GET", "/health", "/assistant/health", 2, "assistant", listOf("anonymous"), listOf("audit"), false, "built")
     val POST_ASSISTANT_TURN = Route("postAssistantTurn", "POST", "/turn", "/assistant/turn", 1, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
     val POST_TURN = Route("postTurn", "POST", "/v1/turn", "/assistant/v1/turn", 1, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
     val POST_LISTEN_V3 = Route("postListenV3", "POST", "/v1/listen", "/assistant/v1/listen", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
@@ -274,7 +279,7 @@ object ApisData {
     val POST_HANDOVER_PREPARE_V3 = Route("postHandoverPrepareV3", "POST", "/v1/handover/prepare", "/assistant/v1/handover/prepare", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
     val POST_HANDOVER_SUBMIT_V3 = Route("postHandoverSubmitV3", "POST", "/v1/handover/submit", "/assistant/v1/handover/submit", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
     val POST_KNOWLEDGE_SEARCH_V2 = Route("postKnowledgeSearchV2", "POST", "/v1/knowledge/search", "/assistant/v1/knowledge/search", 2, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
-    val GET_STATUS = Route("getStatus", "GET", "/v1/status", "/assistant/v1/status", 1, "assistant", listOf("anonymous"), listOf("audit"), false, "built")
+    val GET_STATUS_V2 = Route("getStatusV2", "GET", "/v1/status", "/assistant/v1/status", 2, "assistant", listOf("anonymous"), listOf("audit"), false, "built")
 
     val routes = listOf(
         POST_CORE_EVENTS,
@@ -366,6 +371,11 @@ object ApisData {
         GET_CLINICAL_REVIEW_CONFIRMERS_V2,
         GET_CLINICAL_SETTINGS_V2,
         POST_CLINICAL_SETTING_REVIEWS_V2,
+        GET_CLINICAL_REVIEW_QUEUE,
+        POST_CLINICAL_REVIEW_QUEUE,
+        POST_CLINICAL_REVIEW_QUEUE_BY_ENTRY_REF_REVIEW,
+        POST_CLINICAL_REVIEW_QUEUE_BY_ENTRY_REF_SIGN,
+        POST_CLINICAL_REVIEW_QUEUE_BY_ENTRY_REF_ROLLBACK,
         GET_SAFETY_CHECKINS,
         POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND_V2,
         POST_SAFETY_CHECKINS_BY_CHECKIN_REF_SAFE,
@@ -518,7 +528,7 @@ object ApisData {
         POST_MONEY_CLAIMS_BY_CLAIM_REF_SUBMIT,
         GET_MONEY_CLAIMS,
         GET_MONEY_HELD_CASH_PAYMENTS,
-        GET_ASSISTANT_HEALTH,
+        GET_ASSISTANT_HEALTH_V2,
         POST_ASSISTANT_TURN,
         POST_TURN,
         POST_LISTEN_V3,
@@ -529,7 +539,7 @@ object ApisData {
         POST_HANDOVER_PREPARE_V3,
         POST_HANDOVER_SUBMIT_V3,
         POST_KNOWLEDGE_SEARCH_V2,
-        GET_STATUS
+        GET_STATUS_V2
     )
 
     data class PostCoreEventsRequest(
@@ -1264,6 +1274,54 @@ object ApisData {
     data class PostClinicalSettingReviewsV2Response(
         val settingsVersion: Int,
         val reviewedAt: String
+    )
+    data class GetClinicalReviewQueueRequest(
+        val configScope: String? = null,
+        val tenantRef: String? = null,
+        val stateCode: String? = null
+    )
+    data class GetClinicalReviewQueueResponse(
+        val entries: List<Map<String, Any?>>
+    )
+    data class PostClinicalReviewQueueRequest(
+        val idempotencyKey: String,
+        val configScope: String,
+        val tenantRef: String? = null,
+        val proposedChangeRef: String,
+        val basisRef: String
+    )
+    data class PostClinicalReviewQueueResponse(
+        val entryRef: String,
+        val stateCode: String
+    )
+    data class PostClinicalReviewQueueByEntryRefReviewRequest(
+        val entryRef: String,
+        val idempotencyKey: String
+    )
+    data class PostClinicalReviewQueueByEntryRefReviewResponse(
+        val entryRef: String,
+        val stateCode: String
+    )
+    data class PostClinicalReviewQueueByEntryRefSignRequest(
+        val entryRef: String,
+        val idempotencyKey: String,
+        val outcome: String,
+        val reason: String
+    )
+    data class PostClinicalReviewQueueByEntryRefSignResponse(
+        val entryRef: String,
+        val stateCode: String,
+        val signOff: Map<String, Any?>
+    )
+    data class PostClinicalReviewQueueByEntryRefRollbackRequest(
+        val entryRef: String,
+        val idempotencyKey: String,
+        val basisRef: String
+    )
+    data class PostClinicalReviewQueueByEntryRefRollbackResponse(
+        val entryRef: String,
+        val rollbackRef: String,
+        val stateCode: String
     )
     data class GetSafetyCheckinsRequest(
         val appointmentRef: String
@@ -2641,14 +2699,15 @@ object ApisData {
     data class GetMoneyHeldCashPaymentsResponse(
         val payments: List<Map<String, Any?>>
     )
-    class GetAssistantHealthRequest
-    data class GetAssistantHealthResponse(
+    class GetAssistantHealthV2Request
+    data class GetAssistantHealthV2Response(
         val ok: Boolean,
         val mode: String,
         val azure: Boolean,
         val ollama: Boolean,
         val production: Boolean,
-        val activated: Boolean
+        val activated: Boolean,
+        val speech: Boolean
     )
     data class PostAssistantTurnRequest(
         val sessionId: String? = null,
@@ -2773,13 +2832,14 @@ object ApisData {
         val sources: List<Map<String, Any?>>,
         val withheld: Int
     )
-    class GetStatusRequest
-    data class GetStatusResponse(
+    class GetStatusV2Request
+    data class GetStatusV2Response(
         val ok: Boolean,
         val mode: String,
         val azure: Boolean,
         val ollama: Boolean,
         val production: Boolean,
-        val activated: Boolean
+        val activated: Boolean,
+        val speech: Boolean
     )
 }

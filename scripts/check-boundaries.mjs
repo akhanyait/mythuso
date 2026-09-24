@@ -74,6 +74,7 @@ import { emitMovement } from "./emit-movement.mjs";
 import { emitContractTests } from "./emit-contract-tests.mjs";
 import { emitEventPrivacyTests } from "./emit-event-privacy-tests.mjs";
 import { emitPlugins } from "./emit-plugins.mjs";
+import { emitCrisisLines } from "./emit-crisis-lines.mjs";
 function files(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
     e.isDirectory() ? files(join(dir, e.name)) : [join(dir, e.name)],
@@ -2986,6 +2987,13 @@ const generated = [
     source: "packages/catalog/plugins.json",
     command: "npm run plugins",
     files: emitPlugins(),
+  },
+  /* The crisis lines the emergency answer adds when the crisis words matched: a number somebody in a
+     crisis rings, so it is generated into Swift and Kotlin and never typed there. */
+  {
+    source: "packages/catalog/crisis-lines.json",
+    command: "npm run crisis-lines",
+    files: emitCrisisLines(),
   },
 ];
 for (const { source, command, files } of generated) {
@@ -31458,5 +31466,348 @@ console.log(
 
   console.log(
     `Gated clinical flows · ${gatedPaths.length} built assistant routes read from their own branches, every one of them gated on a contract and not on a flag: the triage register designates ${designated.length} of ${registeredIds.size} protocols as triage protocols, ${ratifiedCount} ratified under a board that is ${protocolRegister.governance?.board?.status} and a Medical Director who is ${protocolRegister.governance?.medicalDirector?.status}, so the gate is ${gateOpen ? "open" : "shut"} and the live seam ${seamStubbed ? "refuses to ask a question" : "is wired to the ratified protocol's content"} — ${registerSwept} files swept in ${gatedTree} and ${gateModule} alone reads either register; ${vitalTypes.length} vital-sign types carry exactly six keys each with a LOINC code passing its check digit, a UCUM-shaped unit and an inclusive bound, no key in the contract names a score or a threshold, the real-device allowlist holds ${deviceAllowlist.length} devices against an assessment reading "${dpiA}", and the only door is the exact switch the contract words; the handover preparing assembles and stores a pack and reaches no network, the submission is one unconditional ${routingRefusal.status} that reads no body, touches no store, answers no 200 and declares no refusal it cannot give; and no scoring word survives the stripping of a single comment in any of the five branches, no field on any of them is named for one, and every refusal id they answer with is declared.`,
+  );
+}
+
+/* Control Tower & GilbertOne Commercialization, Phase 0 (23-24 September 2026): five invariants
+   checkable today against the contracts packages/catalog/clinical-review-queue.json,
+   gilbert-clinical-core.json, tenant-clinical-layers/, devices/pairing-paths.json and
+   devices/thresholds.json already hold — not against runtime code that does not exist yet. The
+   plan names eleven invariants; the other six (cross-tenant inference, certificate-mismatch on a
+   device gateway, the clinical-corpus-refresh path, and a general hex-literal/design-token sweep)
+   have no built mechanism to check yet and are left for the phase that builds one, named rather
+   than faked here. */
+
+/* 1. A Tier 2 layer never reuses a Tier 1 id, never claims emergency severity or a call_emergency
+   action, and every file in tenant-clinical-layers/ says so of itself. */
+{
+  const core = JSON.parse(
+    read("packages/catalog/gilbert-clinical-core.json"),
+  );
+  const tier1Ids = new Set(
+    core.lockedArtifacts.flatMap((a) =>
+      (a.ruleOrder ?? a.groupOrder ?? []).map((r) =>
+        typeof r === "string" ? r : r.id,
+      ),
+    ),
+  );
+  if (tier1Ids.size === 0)
+    throw new Error(
+      "packages/catalog/gilbert-clinical-core.json's locked artifacts name no ids between them. Nothing here would let the id-collision check below ever fire, which is the same as not having it.",
+    );
+  const layersDir = "packages/catalog/tenant-clinical-layers";
+  for (const file of files(layersDir).filter((f) => f.endsWith(".json"))) {
+    const layer = JSON.parse(read(file));
+    if (layer.mustNotSubtractFromTier1 === undefined)
+      throw new Error(
+        `${file} carries no mustNotSubtractFromTier1 statement. Every file in ${layersDir} is a Tier 2 layer, and a Tier 2 layer that does not say it cannot subtract from Tier 1 is not distinguishable from one that can.`,
+      );
+    const ids = [
+      ...(layer.additiveProtocolSteps ?? []),
+      ...(layer.extraEscalationRungs ?? []),
+    ]
+      .map((item) => item.id)
+      .filter(Boolean);
+    for (const id of ids)
+      if (tier1Ids.has(id))
+        throw new Error(
+          `${file}'s item "${id}" reuses a Tier 1 id from packages/catalog/gilbert-clinical-core.json's ruleOrder or groupOrder. gilbert-clinical-core.json's own referencedBy.rule calls an id collision an attempted override, never a coincidence, and this is that check.`,
+        );
+    for (const rung of layer.extraEscalationRungs ?? []) {
+      if (rung.severity === "emergency")
+        throw new Error(
+          `${file}'s rung "${rung.id}" claims severity "emergency". Tier 1 owns every emergency presentation escalation.ts recognises; a Tier 2 rung claiming one is a tenant deciding what counts as an emergency, which clinical-review-queue.json's no-auto-promotion-without-a-signature refusal exists to stop.`,
+        );
+      if (rung.action === "call_emergency")
+        throw new Error(
+          `${file}'s rung "${rung.id}" claims action "call_emergency", a Tier 1 action. A Tier 2 layer may only add "urgent_care" or "clinician_soon", per tenant-clinical-layers/_template.json's own _actionWhy.`,
+        );
+    }
+  }
+}
+
+/* 2. A device threshold carries no number until a ratified device-tier queue entry names it —
+   clinical-review-queue.json's own device-threshold-carries-no-number-until-ratified refusal,
+   checked against the file that would hold the number. */
+{
+  const thresholds = JSON.parse(
+    read("packages/catalog/devices/thresholds.json"),
+  );
+  for (const row of thresholds.thresholds ?? []) {
+    if (row.boundValue !== null && row.boundValue !== undefined)
+      throw new Error(
+        `packages/catalog/devices/thresholds.json's ${row.thresholdRef ?? "(unnamed)"} carries a live boundValue. clinical-review-queue.json's device-threshold-carries-no-number-until-ratified refusal means this file holds no number until a ratified entry there names it — and the queue has never ratified anything yet.`,
+      );
+    if (!row.ratifiedEntryRef)
+      throw new Error(
+        `packages/catalog/devices/thresholds.json's ${row.thresholdRef ?? "(unnamed)"} names no ratifiedEntryRef. A row this file holds without one to point at is not a row it may hold, per the queue's own refusal.`,
+      );
+  }
+}
+
+/* 3. Every pairing transport in devices/pairing-paths.json declares a physical-possession proof.
+   Proximity is not identity, and "just works" pairing is what that plan section exists to forbid. */
+{
+  const pairing = JSON.parse(
+    read("packages/catalog/devices/pairing-paths.json"),
+  );
+  for (const transport of pairing.transports ?? []) {
+    if (!transport.possessionProof || !transport.possessionProofSentence)
+      throw new Error(
+        `packages/catalog/devices/pairing-paths.json's transport "${transport.id}" declares no possessionProof, or no sentence explaining it. A pairing path with nothing proving the pairing phone is in the same hand as the device is exactly the "just works" pairing this contract exists to forbid.`,
+      );
+  }
+}
+
+/* 4. A consumer-tier reading has no route to clinical weight or an incident — a regression guard
+   on the mechanism devices/trust-model.json's hardRule says already answers this today, so a
+   future edit to any of its three parts is caught here rather than trusted to stay caught. */
+{
+  const devices = JSON.parse(read("packages/catalog/devices.json"));
+  if (!(devices.clinicalWeight?.requires ?? []).some(
+    (r) => r.id === "class-carries-weight",
+  ))
+    throw new Error(
+      "packages/catalog/devices.json's clinicalWeight.requires no longer names class-carries-weight. devices/trust-model.json's hardRule cites exactly this precondition as the reason a consumer reading can never carry clinical weight — remove it there and this check has nothing left to stand on.",
+    );
+  const events = JSON.parse(read("packages/catalog/events.json"));
+  const readingIngested = events.events?.find(
+    (e) => e.type === "reading.ingested" && e.version === 1,
+  );
+  const subs = (readingIngested?.subscribers ?? []).slice().sort();
+  if (JSON.stringify(subs) !== JSON.stringify(["clinical", "core", "safety"]))
+    throw new Error(
+      `reading.ingested@1's subscribers are now [${subs.join(", ")}], not the safety/clinical/core set devices/trust-model.json's hardRule was written against. A consumer reading never publishes to this event at all — but a fourth subscriber added here is a fourth place a future author could assume an unweighted reading is safe to act on.`,
+    );
+  const pairing = JSON.parse(
+    read("packages/catalog/devices/pairing-paths.json"),
+  );
+  const consumerTier = pairing.deviceTiers?.find(
+    (t) => t.id === "consumer-personally-owned",
+  );
+  if (!consumerTier || consumerTier.escalationWeight !== "none")
+    throw new Error(
+      "packages/catalog/devices/pairing-paths.json's consumer-personally-owned tier no longer carries escalationWeight \"none\". A consumer-tier device reading may never auto-create a Dispatch & Incident, whatever pairing tier it is filed under.",
+    );
+}
+
+/* 5. Nothing writes to a Tier 1 locked artifact programmatically. The queue's own
+   no-auto-promotion-without-a-signature refusal is a claim about every code path, not one; this
+   is a static sweep for the day a self-learning or generator script starts writing where today
+   only a human editor and git history do. */
+{
+  const lockedPaths = [
+    "packages/gilbertone/src/escalation.ts",
+    "packages/catalog/gilbert-emergency-terms.json",
+  ];
+  const writeCall =
+    /\b(writeFileSync|writeFile|appendFileSync|appendFile)\s*\(\s*[^,)]*(escalation\.ts|gilbert-emergency-terms\.json)/;
+  const swept = [
+    ...files("scripts").filter((f) => f.endsWith(".mjs")),
+    ...files("apps/assistant-api/src").filter((f) => f.endsWith(".ts")),
+    ...files("packages/gilbertone/src").filter((f) => f.endsWith(".ts")),
+  ].filter((f) => !f.endsWith(".test.ts"));
+  for (const file of swept)
+    if (writeCall.test(read(file)))
+      throw new Error(
+        `${file} writes programmatically to one of ${lockedPaths.join(" or ")}. Nothing may promote a change to a Tier 1 locked artifact except a human editor acting on a ratified packages/catalog/clinical-review-queue.json entry — a script that can write there is the auto-promotion path the queue's no-auto-promotion-without-a-signature refusal exists to close.`,
+      );
+}
+
+/* 6. The retrieval cache is keyed by tenant before a tenant reaches the service, not after.
+   apps/assistant-api/src/lib/knowledge.ts caches results under query text and topK alone, which leaks
+   nothing while every caller shares one deployment and one catalogue.
+   packages/catalog/gilbertone-inference-isolation.json's no-cross-tenant-cache-reuse refusal names that
+   cache as the live instance of the risk. Comments are stripped on both sides: a sentence about a
+   co-hosted website is not a tenant in the request path, and a sentence about tenants beside the cache
+   is not a key that carries one. */
+const phase0 = { tenantFilesSwept: 0 };
+{
+  const stripComments = (src) =>
+    src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+  const tenantWord = /tenant/i;
+  const knowledgeFile = "apps/assistant-api/src/lib/knowledge.ts";
+  const knowledgeCode = stripComments(read(knowledgeFile));
+  const keyAt = knowledgeCode.indexOf("const cacheKey");
+  if (keyAt === -1)
+    throw new Error(
+      `${knowledgeFile} no longer declares cacheKey. packages/catalog/gilbertone-inference-isolation.json's no-cross-tenant-cache-reuse refusal is written against that function; move this check with it rather than letting it pass over nothing.`,
+    );
+  const keyDeclaration = knowledgeCode.slice(
+    keyAt,
+    knowledgeCode.indexOf(";", keyAt) + 1,
+  );
+  const keyIsTenantAware = tenantWord.test(keyDeclaration);
+  for (const file of files("apps/assistant-api/src").filter(
+    (f) => f.endsWith(".ts") && !f.endsWith(".test.ts") && f !== knowledgeFile,
+  )) {
+    phase0.tenantFilesSwept++;
+    if (tenantWord.test(stripComments(read(file))) && !keyIsTenantAware)
+      throw new Error(
+        `${file} names a tenant in code, and ${knowledgeFile}'s cacheKey still keys on query text and topK alone. Two tenants asking the same words would be handed one cached array — the cross-tenant reuse packages/catalog/gilbertone-inference-isolation.json refuses. Namespace the key by tenant in the same change that brings the tenant in.`,
+      );
+  }
+}
+
+/* 7. escalation.ts is the file gilbert-clinical-core.json says it is. The Tier 1 inventory lists every
+   rule by id, severity and action in order, and pins the file's code by a hash taken with comments
+   stripped. Without this, a regex edit to the deterministic ruleset — the one clinical file in the
+   tree with no version of its own — passed the build unsigned. */
+{
+  const core = JSON.parse(read("packages/catalog/gilbert-clinical-core.json"));
+  const artifact = core.lockedArtifacts.find((a) => a.id === "escalation-ruleset");
+  const file = artifact?.file;
+  if (!artifact || file !== "packages/gilbertone/src/escalation.ts")
+    throw new Error(
+      "packages/catalog/gilbert-clinical-core.json no longer inventories packages/gilbertone/src/escalation.ts as escalation-ruleset. Tier 1 has two locked artefacts; losing one silently unlocks it.",
+    );
+  const code = read(file)
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:])\/\/.*$/gm, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+  const hash = createHash("sha256").update(code).digest("hex").slice(0, 16);
+  if (hash !== artifact.codeHash)
+    throw new Error(
+      `${file}'s code hashes to ${hash}, and packages/catalog/gilbert-clinical-core.json pins ${artifact.codeHash}. A change to a pattern, a message, an emergency number or the first-match order is a Tier 1 change: it goes through packages/catalog/clinical-review-queue.json, and the ratified entry is recorded by updating the inventory and this hash together. A comment-only edit does not change the hash.`,
+    );
+  const block = code.slice(
+    code.indexOf("ESCALATION_RULES"),
+    code.indexOf("];", code.indexOf("ESCALATION_RULES")),
+  );
+  const rules = [
+    ...block.matchAll(
+      /id: "([^"]+)", severity: "([^"]+)"[\s\S]*?action: "([^"]+)"/g,
+    ),
+  ].map(([, id, severity, action]) => ({ id, severity, action }));
+  if (JSON.stringify(rules) !== JSON.stringify(artifact.ruleOrder))
+    throw new Error(
+      `${file} declares ${rules.length} rules in the order [${rules.map((r) => r.id).join(", ")}], and packages/catalog/gilbert-clinical-core.json's ruleOrder does not match them id for id, severity for severity and action for action. First match wins in checkEscalation, so the order is part of the clinical behaviour.`,
+    );
+  phase0.escalationRules = rules.length;
+}
+
+console.log(
+  `Control Tower Phase 0 · escalation.ts is pinned to its Tier 1 inventory of ${phase0.escalationRules} rules and its code hash; a Tier 2 layer reuses no Tier 1 id and claims no emergency rung; no device threshold carries a number without a ratified queue entry; every pairing transport declares a physical-possession proof; a consumer reading still has no route to clinical weight or an incident; nothing writes to the escalation ruleset or the emergency terms by script; and ${phase0.tenantFilesSwept} assistant files name no tenant in code while the retrieval cache is keyed without one. Cross-tenant inference, certificate mismatch at a device gateway, the clinical-corpus refresh path and a design-token sweep have no mechanism yet to check, and are not pretended here.`,
+);
+
+/* Crisis lines on the emergency answer (24 September 2026). A message about harming yourself matched
+   the crisis words and got an ambulance and nothing else; packages/catalog/crisis-lines.json adds the
+   two South African crisis lines after the ambulance numbers, never instead of them. Five things it
+   must never stop being, asked of the files that decide them. The numbers are not in sos.json, and the
+   check above that holds sos.json to the three emergency services is deliberately left as it is. */
+{
+  const crisis = JSON.parse(read("packages/catalog/crisis-lines.json"));
+  const crisisTerms = JSON.parse(
+    read("packages/catalog/gilbert-emergency-terms.json"),
+  );
+  const crisisAssistant = JSON.parse(read("packages/catalog/assistant.json"));
+  const digitsOf = (n) => n.replace(/\D/g, "");
+  const spaced = (n) => new RegExp(digitsOf(n).split("").join("[\\s-]?"));
+
+  /* 1. Each line says who it is, what it is for and where the number came from, the list says it has
+     not been reviewed unless somebody clinical has, and the numbers agree with the knowledge file
+     that already carried them with their sources — two copies of a crisis number that disagree are
+     one wrong number, and nobody finds out which until somebody rings it. */
+  if (!crisis.lines?.length)
+    throw new Error(
+      "packages/catalog/crisis-lines.json lists no crisis lines. A message about harming yourself would be answered with an ambulance and nothing else, which is the defect this file exists to close.",
+    );
+  if (!crisis.clinicalReview || !("reviewedBy" in crisis.clinicalReview))
+    throw new Error(
+      "packages/catalog/crisis-lines.json does not say whether a clinician has reviewed it. Say so plainly, as gilbert-emergency-terms.json does: reviewedBy null until somebody has.",
+    );
+  const mentalHealth = read("packages/catalog/knowledge/mental-health.json");
+  for (const line of crisis.lines) {
+    for (const key of ["id", "name", "number", "whenToUse"])
+      if (!line[key])
+        throw new Error(
+          `packages/catalog/crisis-lines.json has a line without a ${key}. A crisis line is shown to somebody who may not be able to ask what it is for.`,
+        );
+    if (!line.source?.authority)
+      throw new Error(
+        `packages/catalog/crisis-lines.json's ${line.id} names no authority for its number. Every number on the emergency answer says where it came from.`,
+      );
+    if (!mentalHealth.includes(line.number))
+      throw new Error(
+        `packages/catalog/crisis-lines.json lists ${line.name} on ${line.number}, and packages/catalog/knowledge/mental-health.json does not carry that number. The two files hold the same crisis lines with the same sources; change them together or not at all.`,
+      );
+  }
+  const crisisDigits = new Set(crisis.lines.map((l) => digitsOf(l.number)));
+  /* Every sentence a person reads, which is everything but the underscored notes — they carry dates. */
+  const crisisRead = JSON.stringify(
+    Object.fromEntries(
+      Object.entries(crisis).filter(([key]) => !key.startsWith("_")),
+    ),
+  );
+  for (const run of crisisRead.match(/\d[\d ]{2,}\d/g) ?? [])
+    if (!crisisDigits.has(digitsOf(run)))
+      throw new Error(
+        `packages/catalog/crisis-lines.json contains the number ${run}, which is not one of its crisis lines. The emergency numbers are {ambulance} and {mobile} there, filled from sos.json — a second copy of 10177 is how two screens come to disagree about it.`,
+      );
+
+  /* 2. The lines are shown for the crisis words and nothing else: `showsWhen` names a group the
+     emergency terms actually have, so renaming the group cannot silently take the lines away. */
+  if (crisis.showsWhen?.terms !== "packages/catalog/gilbert-emergency-terms.json")
+    throw new Error(
+      "packages/catalog/crisis-lines.json's showsWhen does not name packages/catalog/gilbert-emergency-terms.json. The lines are shown when that file's crisis words match, and nowhere else decides it.",
+    );
+  if (!crisisTerms.groups.some((g) => g.id === crisis.showsWhen.group))
+    throw new Error(
+      `packages/catalog/crisis-lines.json is shown when the "${crisis.showsWhen.group}" group matched, and packages/catalog/gilbert-emergency-terms.json has no such group. No message would ever match it, so no message about harming yourself would ever be shown a crisis line.`,
+    );
+
+  /* 3. The emergency answer still lists the ambulance, then the mobile number, first. The crisis lines
+     are added after them; an answer that lost either would be a crisis line instead of an ambulance. */
+  const emergencyNumbers = crisisAssistant.answers?.emergency?.numbers ?? [];
+  if (emergencyNumbers[0] !== "ambulance" || emergencyNumbers[1] !== "mobile")
+    throw new Error(
+      `packages/catalog/assistant.json's emergency answer lists [${emergencyNumbers.join(", ")}]. It must begin with ambulance and then mobile: the crisis lines are added after the emergency numbers and never stand in for them.`,
+    );
+
+  /* 4. No hand-written web or native source types a crisis number. The web reads crisis-lines.json and
+     the phones read what emit-crisis-lines.mjs writes, so a number typed anywhere else is a copy with
+     nothing holding it to the source. */
+  const crisisGenerated = new Set(emitCrisisLines().map((f) => f.path));
+  const crisisSwept = [
+    ...files("apps/web/src").filter((f) => /\.(ts|tsx)$/.test(f)),
+    ...files("apps/ios/MyThuso").filter((f) => f.endsWith(".swift")),
+    ...files("apps/android/app/src/main").filter((f) => f.endsWith(".kt")),
+  ].filter((f) => !crisisGenerated.has(f));
+  for (const f of crisisSwept) {
+    const text = read(f);
+    for (const line of crisis.lines)
+      if (spaced(line.number).test(text))
+        throw new Error(
+          `${f} types ${line.name}'s number, ${line.number}. It lives in packages/catalog/crisis-lines.json: read it there on the web, and use the generated CrisisLinesData on a phone.`,
+        );
+  }
+
+  /* 5. Every screen and every spoken reading puts the crisis lines after the ambulance numbers. Asked of
+     the order the code writes them in, because that is the order a person sees or hears them. */
+  const after = [
+    ["apps/web/src/features/Assistant.tsx", "<Lines ids={emergencyAnswer.numbers} />", "<CrisisLines />"],
+    ["apps/web/src/lib/assistant.ts", "numbers(emergencyAnswer.numbers);", "add(crisisLines.heading);"],
+    ["apps/web/src/features/PublicAssistant.tsx", "lines(emergencyAnswer.numbers)", "crisisLines.lines.map"],
+    ["apps/ios/MyThuso/Features/AssistantView.swift", "lines(Gilbert.emergency.lines)", "lines(Gilbert.Crisis.lines)"],
+    ["apps/ios/MyThuso/Features/AssistantView.swift", "Gilbert.emergency.lines.map", "Gilbert.Crisis.lines.map"],
+    ["apps/android/app/src/main/java/za/co/mythuso/ui/GilbertScreens.kt", "Lines(GilbertData.emergency.lines)", "Lines(CrisisLinesData.lines)"],
+    ["apps/android/app/src/main/java/za/co/mythuso/ui/GilbertScreens.kt", "GilbertData.emergency.lines.map", "CrisisLinesData.lines.map"],
+  ];
+  for (const [f, first, second] of after) {
+    const text = read(f);
+    const a = text.indexOf(first);
+    const b = text.indexOf(second);
+    if (b < 0)
+      throw new Error(
+        `${f} no longer shows the crisis lines (${second}). A message about harming yourself would get the ambulance numbers and nothing else on this platform.`,
+      );
+    if (a < 0 || a > b)
+      throw new Error(
+        `${f} writes the crisis lines (${second}) without the ambulance numbers (${first}) ahead of them. The crisis lines come after the emergency numbers, never before and never instead.`,
+      );
+  }
+  console.log(
+    `Crisis lines · ${crisis.lines.length} lines in packages/catalog/crisis-lines.json agree with knowledge/mental-health.json, are shown for the "${crisis.showsWhen.group}" group of the emergency terms and nothing else, come after [${emergencyNumbers.join(", ")}] on ${after.length} screens and readings, and are typed in none of ${crisisSwept.length} hand-written web and native files. Not reviewed by a clinician yet.`,
   );
 }

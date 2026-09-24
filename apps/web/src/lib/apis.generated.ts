@@ -843,6 +843,59 @@ export interface PostClinicalSettingReviewsV2Response {
  readonly reviewedAt: string;
 }
 
+export interface GetClinicalReviewQueueRequest {
+ readonly configScope?: string;
+ readonly tenantRef?: string;
+ readonly stateCode?: string;
+}
+export interface GetClinicalReviewQueueResponse {
+ readonly entries: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostClinicalReviewQueueRequest {
+ readonly idempotencyKey: string;
+ readonly configScope: string;
+ readonly tenantRef?: string;
+ readonly proposedChangeRef: string;
+ readonly basisRef: string;
+}
+export interface PostClinicalReviewQueueResponse {
+ readonly entryRef: string;
+ readonly stateCode: string;
+}
+
+export interface PostClinicalReviewQueueByEntryRefReviewRequest {
+ readonly entryRef: string;
+ readonly idempotencyKey: string;
+}
+export interface PostClinicalReviewQueueByEntryRefReviewResponse {
+ readonly entryRef: string;
+ readonly stateCode: string;
+}
+
+export interface PostClinicalReviewQueueByEntryRefSignRequest {
+ readonly entryRef: string;
+ readonly idempotencyKey: string;
+ readonly outcome: string;
+ readonly reason: string;
+}
+export interface PostClinicalReviewQueueByEntryRefSignResponse {
+ readonly entryRef: string;
+ readonly stateCode: string;
+ readonly signOff: Readonly<Record<string, unknown>>;
+}
+
+export interface PostClinicalReviewQueueByEntryRefRollbackRequest {
+ readonly entryRef: string;
+ readonly idempotencyKey: string;
+ readonly basisRef: string;
+}
+export interface PostClinicalReviewQueueByEntryRefRollbackResponse {
+ readonly entryRef: string;
+ readonly rollbackRef: string;
+ readonly stateCode: string;
+}
+
 export interface GetSafetyCheckinsRequest {
  readonly appointmentRef: string;
 }
@@ -2371,14 +2424,15 @@ export interface GetMoneyHeldCashPaymentsResponse {
  readonly payments: ReadonlyArray<Readonly<Record<string, unknown>>>;
 }
 
-export type GetAssistantHealthRequest = Record<string, never>;
-export interface GetAssistantHealthResponse {
+export type GetAssistantHealthV2Request = Record<string, never>;
+export interface GetAssistantHealthV2Response {
  readonly ok: boolean;
  readonly mode: string;
  readonly azure: boolean;
  readonly ollama: boolean;
  readonly production: boolean;
  readonly activated: boolean;
+ readonly speech: boolean;
 }
 
 export interface PostAssistantTurnRequest {
@@ -2514,14 +2568,15 @@ export interface PostKnowledgeSearchV2Response {
  readonly withheld: number;
 }
 
-export type GetStatusRequest = Record<string, never>;
-export interface GetStatusResponse {
+export type GetStatusV2Request = Record<string, never>;
+export interface GetStatusV2Response {
  readonly ok: boolean;
  readonly mode: string;
  readonly azure: boolean;
  readonly ollama: boolean;
  readonly production: boolean;
  readonly activated: boolean;
+ readonly speech: boolean;
 }
 
 export const apiRoutes = {
@@ -2614,6 +2669,11 @@ export const apiRoutes = {
  getClinicalReviewConfirmersV2: { name: "getClinicalReviewConfirmersV2", method: "GET", path: "/v1/clinical/review-confirmers", mountedPath: "/v1/clinical/review-confirmers", version: 2, engine: "clinical", callers: ["engine:access","engine:care","engine:medicines","engine:safety"], purpose: ["audit"], idempotent: false, status: "built" },
  getClinicalSettingsV2: { name: "getClinicalSettingsV2", method: "GET", path: "/v1/clinical/settings", mountedPath: "/v1/clinical/settings", version: 2, engine: "clinical", callers: ["admin","doctor","nurse"], purpose: ["audit"], idempotent: false, status: "built" },
  postClinicalSettingReviewsV2: { name: "postClinicalSettingReviewsV2", method: "POST", path: "/v1/clinical/setting-reviews", mountedPath: "/v1/clinical/setting-reviews", version: 2, engine: "clinical", callers: ["doctor","nurse"], purpose: ["audit"], idempotent: true, status: "built" },
+ getClinicalReviewQueue: { name: "getClinicalReviewQueue", method: "GET", path: "/v1/clinical/review-queue", mountedPath: "/v1/clinical/review-queue", version: 1, engine: "clinical", callers: ["doctor","nurse","admin"], purpose: ["audit","treatment"], idempotent: false, status: "proposed" },
+ postClinicalReviewQueue: { name: "postClinicalReviewQueue", method: "POST", path: "/v1/clinical/review-queue", mountedPath: "/v1/clinical/review-queue", version: 1, engine: "clinical", callers: ["doctor","nurse"], purpose: ["audit","treatment"], idempotent: true, status: "proposed" },
+ postClinicalReviewQueueByEntryRefReview: { name: "postClinicalReviewQueueByEntryRefReview", method: "POST", path: "/v1/clinical/review-queue/{entryRef}/review", mountedPath: "/v1/clinical/review-queue/{entryRef}/review", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "proposed" },
+ postClinicalReviewQueueByEntryRefSign: { name: "postClinicalReviewQueueByEntryRefSign", method: "POST", path: "/v1/clinical/review-queue/{entryRef}/sign", mountedPath: "/v1/clinical/review-queue/{entryRef}/sign", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["audit","treatment"], idempotent: true, status: "proposed" },
+ postClinicalReviewQueueByEntryRefRollback: { name: "postClinicalReviewQueueByEntryRefRollback", method: "POST", path: "/v1/clinical/review-queue/{entryRef}/rollback", mountedPath: "/v1/clinical/review-queue/{entryRef}/rollback", version: 1, engine: "clinical", callers: ["doctor","nurse"], purpose: ["audit","treatment"], idempotent: true, status: "proposed" },
  getSafetyCheckins: { name: "getSafetyCheckins", method: "GET", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: false, status: "built" },
  postSafetyCheckinsByCheckinRefExtendV2: { name: "postSafetyCheckinsByCheckinRefExtendV2", method: "POST", path: "/v1/safety/checkins/{checkinRef}/extend", mountedPath: "/v1/safety/checkins/{checkinRef}/extend", version: 2, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "built" },
  postSafetyCheckinsByCheckinRefSafe: { name: "postSafetyCheckinsByCheckinRefSafe", method: "POST", path: "/v1/safety/checkins/{checkinRef}/safe", mountedPath: "/v1/safety/checkins/{checkinRef}/safe", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "built" },
@@ -2766,7 +2826,7 @@ export const apiRoutes = {
  postMoneyClaimsByClaimRefSubmit: { name: "postMoneyClaimsByClaimRefSubmit", method: "POST", path: "/v1/money/claims/{claimRef}/submit", mountedPath: "/v1/money/claims/{claimRef}/submit", version: 1, engine: "money", callers: ["doctor","admin"], purpose: ["billing"], idempotent: true, status: "built" },
  getMoneyClaims: { name: "getMoneyClaims", method: "GET", path: "/v1/money/claims", mountedPath: "/v1/money/claims", version: 1, engine: "money", callers: ["patient","doctor"], purpose: ["billing"], idempotent: false, status: "built" },
  getMoneyHeldCashPayments: { name: "getMoneyHeldCashPayments", method: "GET", path: "/v1/money/held-cash-payments", mountedPath: "/v1/money/held-cash-payments", version: 1, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: false, status: "built" },
- getAssistantHealth: { name: "getAssistantHealth", method: "GET", path: "/health", mountedPath: "/assistant/health", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built" },
+ getAssistantHealthV2: { name: "getAssistantHealthV2", method: "GET", path: "/health", mountedPath: "/assistant/health", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built" },
  postAssistantTurn: { name: "postAssistantTurn", method: "POST", path: "/turn", mountedPath: "/assistant/turn", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
  postTurn: { name: "postTurn", method: "POST", path: "/v1/turn", mountedPath: "/assistant/v1/turn", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
  postListenV3: { name: "postListenV3", method: "POST", path: "/v1/listen", mountedPath: "/assistant/v1/listen", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
@@ -2777,5 +2837,5 @@ export const apiRoutes = {
  postHandoverPrepareV3: { name: "postHandoverPrepareV3", method: "POST", path: "/v1/handover/prepare", mountedPath: "/assistant/v1/handover/prepare", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
  postHandoverSubmitV3: { name: "postHandoverSubmitV3", method: "POST", path: "/v1/handover/submit", mountedPath: "/assistant/v1/handover/submit", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
  postKnowledgeSearchV2: { name: "postKnowledgeSearchV2", method: "POST", path: "/v1/knowledge/search", mountedPath: "/assistant/v1/knowledge/search", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
- getStatus: { name: "getStatus", method: "GET", path: "/v1/status", mountedPath: "/assistant/v1/status", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built" }
+ getStatusV2: { name: "getStatusV2", method: "GET", path: "/v1/status", mountedPath: "/assistant/v1/status", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built" }
 } as const satisfies Record<string, ApiRoute>;

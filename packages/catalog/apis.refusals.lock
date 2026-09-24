@@ -484,3 +484,10 @@ GET /v1/devices/simulator-presets@1 fd2c9b342314470a
 POST /v1/devices/simulations@1 79b858beaa264b2d
 POST /v1/devices/simulations/{simulationRef}/stop@1 f020d9cfcec807b4
 GET /v1/devices/simulations/{simulationRef}/outputs@1 2b5e409cc0021b13
+GET /v1/clinical/review-queue@1 7cf246e5dad82258
+POST /v1/clinical/review-queue@1 3fcb22e842d7fe81
+POST /v1/clinical/review-queue/{entryRef}/review@1 171a9f323e7cd49f
+POST /v1/clinical/review-queue/{entryRef}/sign@1 2c6a9338cf474b66
+POST /v1/clinical/review-queue/{entryRef}/rollback@1 76c6c01e1e4e0a5b
+GET /health@2 f47dfe39277a1d2a
+GET /v1/status@2 0c356b20b13f3a78

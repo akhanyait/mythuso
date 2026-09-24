@@ -111,6 +111,11 @@ enum ApisData {
     static let getClinicalReviewConfirmersV2 = Route(id: "getClinicalReviewConfirmersV2", method: "GET", path: "/v1/clinical/review-confirmers", mountedPath: "/v1/clinical/review-confirmers", version: 2, engine: "clinical", callers: ["engine:access", "engine:care", "engine:medicines", "engine:safety"], purpose: ["audit"], idempotent: false, status: "built")
     static let getClinicalSettingsV2 = Route(id: "getClinicalSettingsV2", method: "GET", path: "/v1/clinical/settings", mountedPath: "/v1/clinical/settings", version: 2, engine: "clinical", callers: ["admin", "doctor", "nurse"], purpose: ["audit"], idempotent: false, status: "built")
     static let postClinicalSettingReviewsV2 = Route(id: "postClinicalSettingReviewsV2", method: "POST", path: "/v1/clinical/setting-reviews", mountedPath: "/v1/clinical/setting-reviews", version: 2, engine: "clinical", callers: ["doctor", "nurse"], purpose: ["audit"], idempotent: true, status: "built")
+    static let getClinicalReviewQueue = Route(id: "getClinicalReviewQueue", method: "GET", path: "/v1/clinical/review-queue", mountedPath: "/v1/clinical/review-queue", version: 1, engine: "clinical", callers: ["doctor", "nurse", "admin"], purpose: ["audit", "treatment"], idempotent: false, status: "proposed")
+    static let postClinicalReviewQueue = Route(id: "postClinicalReviewQueue", method: "POST", path: "/v1/clinical/review-queue", mountedPath: "/v1/clinical/review-queue", version: 1, engine: "clinical", callers: ["doctor", "nurse"], purpose: ["audit", "treatment"], idempotent: true, status: "proposed")
+    static let postClinicalReviewQueueByEntryRefReview = Route(id: "postClinicalReviewQueueByEntryRefReview", method: "POST", path: "/v1/clinical/review-queue/{entryRef}/review", mountedPath: "/v1/clinical/review-queue/{entryRef}/review", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "proposed")
+    static let postClinicalReviewQueueByEntryRefSign = Route(id: "postClinicalReviewQueueByEntryRefSign", method: "POST", path: "/v1/clinical/review-queue/{entryRef}/sign", mountedPath: "/v1/clinical/review-queue/{entryRef}/sign", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["audit", "treatment"], idempotent: true, status: "proposed")
+    static let postClinicalReviewQueueByEntryRefRollback = Route(id: "postClinicalReviewQueueByEntryRefRollback", method: "POST", path: "/v1/clinical/review-queue/{entryRef}/rollback", mountedPath: "/v1/clinical/review-queue/{entryRef}/rollback", version: 1, engine: "clinical", callers: ["doctor", "nurse"], purpose: ["audit", "treatment"], idempotent: true, status: "proposed")
     static let getSafetyCheckins = Route(id: "getSafetyCheckins", method: "GET", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: false, status: "built")
     static let postSafetyCheckinsByCheckinRefExtendV2 = Route(id: "postSafetyCheckinsByCheckinRefExtendV2", method: "POST", path: "/v1/safety/checkins/{checkinRef}/extend", mountedPath: "/v1/safety/checkins/{checkinRef}/extend", version: 2, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "built")
     static let postSafetyCheckinsByCheckinRefSafe = Route(id: "postSafetyCheckinsByCheckinRefSafe", method: "POST", path: "/v1/safety/checkins/{checkinRef}/safe", mountedPath: "/v1/safety/checkins/{checkinRef}/safe", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "built")
@@ -263,7 +268,7 @@ enum ApisData {
     static let postMoneyClaimsByClaimRefSubmit = Route(id: "postMoneyClaimsByClaimRefSubmit", method: "POST", path: "/v1/money/claims/{claimRef}/submit", mountedPath: "/v1/money/claims/{claimRef}/submit", version: 1, engine: "money", callers: ["doctor", "admin"], purpose: ["billing"], idempotent: true, status: "built")
     static let getMoneyClaims = Route(id: "getMoneyClaims", method: "GET", path: "/v1/money/claims", mountedPath: "/v1/money/claims", version: 1, engine: "money", callers: ["patient", "doctor"], purpose: ["billing"], idempotent: false, status: "built")
     static let getMoneyHeldCashPayments = Route(id: "getMoneyHeldCashPayments", method: "GET", path: "/v1/money/held-cash-payments", mountedPath: "/v1/money/held-cash-payments", version: 1, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: false, status: "built")
-    static let getAssistantHealth = Route(id: "getAssistantHealth", method: "GET", path: "/health", mountedPath: "/assistant/health", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built")
+    static let getAssistantHealthV2 = Route(id: "getAssistantHealthV2", method: "GET", path: "/health", mountedPath: "/assistant/health", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built")
     static let postAssistantTurn = Route(id: "postAssistantTurn", method: "POST", path: "/turn", mountedPath: "/assistant/turn", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postTurn = Route(id: "postTurn", method: "POST", path: "/v1/turn", mountedPath: "/assistant/v1/turn", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postListenV3 = Route(id: "postListenV3", method: "POST", path: "/v1/listen", mountedPath: "/assistant/v1/listen", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
@@ -274,7 +279,7 @@ enum ApisData {
     static let postHandoverPrepareV3 = Route(id: "postHandoverPrepareV3", method: "POST", path: "/v1/handover/prepare", mountedPath: "/assistant/v1/handover/prepare", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postHandoverSubmitV3 = Route(id: "postHandoverSubmitV3", method: "POST", path: "/v1/handover/submit", mountedPath: "/assistant/v1/handover/submit", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postKnowledgeSearchV2 = Route(id: "postKnowledgeSearchV2", method: "POST", path: "/v1/knowledge/search", mountedPath: "/assistant/v1/knowledge/search", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
-    static let getStatus = Route(id: "getStatus", method: "GET", path: "/v1/status", mountedPath: "/assistant/v1/status", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built")
+    static let getStatusV2 = Route(id: "getStatusV2", method: "GET", path: "/v1/status", mountedPath: "/assistant/v1/status", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built")
 
     static let routes: [Route] = [
         postCoreEvents,
@@ -366,6 +371,11 @@ enum ApisData {
         getClinicalReviewConfirmersV2,
         getClinicalSettingsV2,
         postClinicalSettingReviewsV2,
+        getClinicalReviewQueue,
+        postClinicalReviewQueue,
+        postClinicalReviewQueueByEntryRefReview,
+        postClinicalReviewQueueByEntryRefSign,
+        postClinicalReviewQueueByEntryRefRollback,
         getSafetyCheckins,
         postSafetyCheckinsByCheckinRefExtendV2,
         postSafetyCheckinsByCheckinRefSafe,
@@ -518,7 +528,7 @@ enum ApisData {
         postMoneyClaimsByClaimRefSubmit,
         getMoneyClaims,
         getMoneyHeldCashPayments,
-        getAssistantHealth,
+        getAssistantHealthV2,
         postAssistantTurn,
         postTurn,
         postListenV3,
@@ -529,7 +539,7 @@ enum ApisData {
         postHandoverPrepareV3,
         postHandoverSubmitV3,
         postKnowledgeSearchV2,
-        getStatus
+        getStatusV2
     ]
 
     struct PostCoreEventsRequest {
@@ -1264,6 +1274,54 @@ enum ApisData {
     struct PostClinicalSettingReviewsV2Response {
         let settingsVersion: Int
         let reviewedAt: String
+    }
+    struct GetClinicalReviewQueueRequest {
+        let configScope: String?
+        let tenantRef: String?
+        let stateCode: String?
+    }
+    struct GetClinicalReviewQueueResponse {
+        let entries: [[String: Any]]
+    }
+    struct PostClinicalReviewQueueRequest {
+        let idempotencyKey: String
+        let configScope: String
+        let tenantRef: String?
+        let proposedChangeRef: String
+        let basisRef: String
+    }
+    struct PostClinicalReviewQueueResponse {
+        let entryRef: String
+        let stateCode: String
+    }
+    struct PostClinicalReviewQueueByEntryRefReviewRequest {
+        let entryRef: String
+        let idempotencyKey: String
+    }
+    struct PostClinicalReviewQueueByEntryRefReviewResponse {
+        let entryRef: String
+        let stateCode: String
+    }
+    struct PostClinicalReviewQueueByEntryRefSignRequest {
+        let entryRef: String
+        let idempotencyKey: String
+        let outcome: String
+        let reason: String
+    }
+    struct PostClinicalReviewQueueByEntryRefSignResponse {
+        let entryRef: String
+        let stateCode: String
+        let signOff: [String: Any]
+    }
+    struct PostClinicalReviewQueueByEntryRefRollbackRequest {
+        let entryRef: String
+        let idempotencyKey: String
+        let basisRef: String
+    }
+    struct PostClinicalReviewQueueByEntryRefRollbackResponse {
+        let entryRef: String
+        let rollbackRef: String
+        let stateCode: String
     }
     struct GetSafetyCheckinsRequest {
         let appointmentRef: String
@@ -2641,14 +2699,15 @@ enum ApisData {
     struct GetMoneyHeldCashPaymentsResponse {
         let payments: [[String: Any]]
     }
-    struct GetAssistantHealthRequest {}
-    struct GetAssistantHealthResponse {
+    struct GetAssistantHealthV2Request {}
+    struct GetAssistantHealthV2Response {
         let ok: Bool
         let mode: String
         let azure: Bool
         let ollama: Bool
         let production: Bool
         let activated: Bool
+        let speech: Bool
     }
     struct PostAssistantTurnRequest {
         let sessionId: String?
@@ -2773,13 +2832,14 @@ enum ApisData {
         let sources: [[String: Any]]
         let withheld: Int
     }
-    struct GetStatusRequest {}
-    struct GetStatusResponse {
+    struct GetStatusV2Request {}
+    struct GetStatusV2Response {
         let ok: Bool
         let mode: String
         let azure: Bool
         let ollama: Bool
         let production: Bool
         let activated: Bool
+        let speech: Bool
     }
 }

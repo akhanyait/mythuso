@@ -128,3 +128,5 @@ GET /v1/access/sponsors@1 caab3aaf2d663bce
 POST /v1/access/bill-splits@2 274296393f345466
 POST /v1/knowledge/search@2 d6deaabcf62d97bb
 POST /v1/handover/prepare@3 f91974a6700b7dc5
+GET /v1/clinical/review-queue@1 023ccc230d166449
+POST /v1/clinical/review-queue/{entryRef}/sign@1 820208b29662dd9e
