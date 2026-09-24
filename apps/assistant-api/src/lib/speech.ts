@@ -130,12 +130,23 @@ export type SpeechSeam = {
    box with no key, rather than sending the audio somewhere the DPIA did not assess. */
 const SPEECH_REGIONS: readonly string[] = ["southafricanorth"];
 
+/* A key that could be an Azure Speech key: letters and digits only, 32 characters (the older hex
+   form) up to 84 and a little beyond (the current form), and never a space. Added 24 September 2026,
+   when production's key turned out to be 140 characters with spaces in it — something pasted in
+   with it — while /assistant/health said `speech:true` because a value was present. Every request
+   it made failed, and the panel asked it on every reply. A key that cannot be a key is now "not
+   configured", so health says so and the panel does not ask. This checks shape only; whether Azure
+   accepts the key is still settled by the first request. */
+const PLAUSIBLE_SPEECH_KEY = /^[A-Za-z0-9]{32,128}$/;
+
 function cloudCredentials(
   env: Record<string, string | undefined>,
 ): { region: string; key: string } | null {
   const region = (env.AZURE_SPEECH_REGION ?? "").trim().toLowerCase();
   const key = (env.AZURE_SPEECH_KEY ?? "").trim();
-  return key && SPEECH_REGIONS.includes(region) ? { region, key } : null;
+  return PLAUSIBLE_SPEECH_KEY.test(key) && SPEECH_REGIONS.includes(region)
+    ? { region, key }
+    : null;
 }
 
 /* The contract's own language entry a declared language names — by one of its recognition locales

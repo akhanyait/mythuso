@@ -40,7 +40,7 @@ const KEY = "fixture-key-0123456789abcdef";
    and a key that is a fixed nonsense token, so scripts/check-boundaries.mjs still sees no concrete
    Azure URL and no credential-shaped value in this file. */
 const SPEECH_REGION = "fixture-region-1";
-const SPEECH_KEY = "fixture-speech-key-0123456789abcdef";
+const SPEECH_KEY = "fixturespeechkey0123456789abcdef";
 
 /* The script, run in its test mode with `input` on stdin — the three prompts answered the way a
    person at a terminal would answer them, in order. */

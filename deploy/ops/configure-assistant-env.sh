@@ -130,7 +130,10 @@ if [ -n "$speech_region" ]; then
   read -rs speech_key || true
   printf '\n'
   [ -n "$speech_key" ] || fail "A Speech region was given but the Speech key was empty — that pair could never work. Nothing was written."
-  if printf '%s' "$speech_key" | grep -qvE '^[A-Za-z0-9_-]{20,200}$'; then
+  # The same shape the service accepts (apps/assistant-api/src/lib/speech.ts PLAUSIBLE_SPEECH_KEY):
+  # letters and digits, 32 to 128 of them. A key the script writes and the service then refuses is a
+  # voice that is silently off, which is what production had until 24 September 2026.
+  if printf '%s' "$speech_key" | grep -qvE '^[A-Za-z0-9]{32,128}$'; then
     fail "That does not look like an Azure Speech key (unexpected characters or length). Nothing was written — and if what was pasted really was a key, it is now in this shell's memory only, which dies with it."
   fi
 fi

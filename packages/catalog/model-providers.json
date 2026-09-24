@@ -58,11 +58,11 @@
    "productionEvidence": "docs/governance/ASSISTANT-ACTIVATION.md",
    "models": {
     "from": "apps/assistant-api/src/lib/llm-adapter.ts AZURE_DEFAULT_MODEL and AZURE_DEFAULT_EMBEDDING_MODEL, each overridden by AZURE_OPENAI_MODEL and AZURE_OPENAI_EMBEDDING_MODEL",
-    "productionDeployment": null,
-    "_productionDeploymentWhy": "The activation record read the credentials file for the acknowledgement line and the speech region only, never for a model or a key. Which deployment production runs is not recorded, so it is not stated here."
+    "productionDeployment": "gpt-4.1-mini",
+    "_productionDeploymentWhy": "Read off the box on 24 September 2026: the value of AZURE_OPENAI_MODEL in /etc/mythuso/assistant.env, which llm-adapter.ts sends as the Azure deployment name. A deployment name is not a secret. It is a fact about production, and it changes only when that file does, so docs/governance/ASSISTANT-ACTIVATION.md is updated in the same change."
    },
-   "region": null,
-   "_regionWhy": "Not recorded. The endpoint was not read off the box, and a region guessed from the plan's summary ('southafricanorth') would be the plan's claim, not the box's. The cloud voice's region is pinned in code; this provider's is not.",
+   "region": "southafricanorth",
+   "_regionWhy": "Observed on 24 September 2026, not inferred: Azure answered a free metadata request (GET /openai/models) from the box with the header x-ms-region: South Africa North. The endpoint and the key were read on the box and never left it. The region is a fact about where the model runs; it is not a residency decision. residency.tier below stays null until docs/governance/DATA-RESIDENCY-OPTIONS.md §7 is decided, and the build holds it there.",
    "residency": { "tier": null, "section72Determined": false, "dpaRef": null },
    "residencyWhy": "Patient text — redacted of identifiers, not of anything clinical — reaches this provider in production today. That is the gap docs/governance/ASSISTANT-ACTIVATION.md records as open: no residency decision, no DPIA, no approval on file. This file makes the gap citable; it does not close it."
   },

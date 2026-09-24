@@ -18,7 +18,9 @@ import assistant from "../../../../packages/catalog/assistant.json" with { type:
    and not on file fails here. */
 
 const ENV = {
-  AZURE_SPEECH_KEY: "fixture-speech-key",
+  /* Shaped like a real key — 32 letters and digits — because a value that could not be a key is
+     not a configured cloud voice (speech.ts PLAUSIBLE_SPEECH_KEY). */
+  AZURE_SPEECH_KEY: "fixturespeechkey0123456789abcdef",
   AZURE_SPEECH_REGION: "southafricanorth",
 } as const;
 
@@ -53,6 +55,29 @@ const sttAnswer = (payload: unknown, status = 200) =>
 /* The contract's own recognition locales, read here exactly as the module reads them. */
 const RECOGNITION_LOCALES: readonly string[] =
   assistant.voice.languages?.[0]?.recognitionLocales ?? [];
+
+test("a value that cannot be a Speech key is not a configured cloud voice, and no door opens", async () => {
+  /* Production's key on 24 September 2026 was 140 characters with spaces in it: text pasted in with
+     the key. Health said configured, and every request it made failed. */
+  const pasted = `${"a".repeat(32)} -s ${"b".repeat(104)}`;
+  for (const key of [pasted, "short-key", "a".repeat(31), "a".repeat(129), "abc def".repeat(6)]) {
+    const speech = cloudSpeech(mustNotFetch, {
+      AZURE_SPEECH_KEY: key,
+      AZURE_SPEECH_REGION: "southafricanorth",
+    });
+    assert.equal(speech.configured(), false, `a ${key.length}-character value is not a key`);
+    assert.deepEqual(
+      await speech.synthesize({ text: "Hello", language: "en-ZA" }),
+      { ok: false },
+    );
+  }
+  for (const key of ["a".repeat(32), "A1".repeat(42)])
+    assert.equal(
+      cloudSpeech(mustNotFetch, { AZURE_SPEECH_KEY: key, AZURE_SPEECH_REGION: "southafricanorth" }).configured(),
+      true,
+      `a ${key.length}-character key of letters and digits is a plausible key`,
+    );
+});
 
 test("a key in a region outside South Africa is not a configured cloud voice, so no audio leaves for it", async () => {
   for (const region of ["westeurope", "eastus", "uksouth", "southafricawest"]) {
