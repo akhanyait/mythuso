@@ -32817,28 +32817,13 @@ const p3Files = [
   }
 }
 
-/* 6. GilbertOne API Administration is a category with a written "not built" state and nothing else
-   until Phase 4: no control, no sub-screen, and every sub-screen it names reads a contract that exists
-   under a gate a register holds. */
-{
-  const g1 = p3.portal.gilbertone;
-  if (g1.status !== "proposed" || g1.phase !== 4)
-    throw new Error("packages/catalog/control-tower-portal.json#gilbertone is no longer proposed for Phase 4. Its sub-screens are built in Phase 4, behind their gates, and not before.");
-  const registers = read("docs/PROMPT-CONTROL-TOWER-UI.md") + read("docs/PROMPT-CONTROL-TOWER.md");
-  for (const s of g1.subScreens) {
-    if (!existsSync(s.contract))
-      throw new Error(`packages/catalog/control-tower-portal.json says GilbertOne's ${s.label} would read ${s.contract}, which does not exist.`);
-    if (!new RegExp(`\\| ${s.gate} \\|`).test(registers))
-      throw new Error(`packages/catalog/control-tower-portal.json gates GilbertOne's ${s.label} on ${s.gate}, which neither gate register holds.`);
-  }
-  const screen = uncommented(read("apps/web/src/features/portal/GilbertOne.tsx"));
-  const control = /<(button|input|select|textarea|form)\b|onClick=|onChange=/.exec(screen);
-  if (control)
-    throw new Error(`apps/web/src/features/portal/GilbertOne.tsx carries a control (${control[0]}). The assistant is live in production; before Phase 4 this category may say what it will be and nothing else.`);
-  const subScreenFile = files("apps/web/src").find((f) => /(Voice|ModelProviders|Intelligence|Knowledge|ApiRegistry|ApiKeys)(Admin|Screen)?\.tsx$/.test(f) && /portal|admin/i.test(f));
-  if (subScreenFile)
-    throw new Error(`${subScreenFile} looks like a GilbertOne administration sub-screen. Those are Phase 4, behind G29 to G32, G35, G14 and G10.`);
-}
+/* 6. GilbertOne API Administration. Until Phase 4 this check held the category to a written "not built"
+   state — proposed, no control, no sub-screen file anywhere under apps/web/src. Phase 4 (24 September
+   2026, on the founder's instruction) built the seven sub-screens, so that check was replaced, in the
+   same change, by the Phase 4 block at the end of this file: the sub-screens are held to their contracts
+   and gates there (what this check's surviving half held — every sub-screen reads a contract that
+   exists, under a gate a register holds — moved there unweakened), and every control on them to being
+   disabled while its gate is open. */
 
 /* 7. The portal costs the patient nothing. It is reached only through Doorway.tsx's dynamic import, no
    module on the first load imports any of it, and every category inside it is a dynamic import of its
@@ -32931,5 +32916,340 @@ const p3Files = [
 }
 
 console.log(
-  `The merged Control Tower, Phase 3 · ${p3Summary.categories} categories in the plan's order with GilbertOne carrying its mark; ${p3Summary.legacy} old tabs and sections each land where the tab inventory says; one status vocabulary and the plan's build words, exactly; no device count or DPIA state typed and no device control; no action on the review queue while the board is not formed; no GilbertOne sub-screen before Phase 4; the portal and every category behind a dynamic import; colour from the tokens alone; and the cutover's, the feature map's and the capability's sentences quoted word for word.`,
+  `The merged Control Tower, Phase 3 · ${p3Summary.categories} categories in the plan's order with GilbertOne carrying its mark; ${p3Summary.legacy} old tabs and sections each land where the tab inventory says; one status vocabulary and the plan's build words, exactly; no device count or DPIA state typed and no device control; no action on the review queue while the board is not formed; the portal and every category behind a dynamic import; colour from the tokens alone; and the cutover's, the feature map's and the capability's sentences quoted word for word.`,
+);
+
+/* ==== GilbertOne API Administration, Phase 4 (24 September 2026) ================================
+   docs/PROMPT-CONTROL-TOWER-UI.md §7 and §10 Phase 4: the seven sub-screens of the G1 category —
+   Overview, Voice, Model Providers, Intelligence, Knowledge, Compliance and API Registry — built
+   against the contracts and the assistant's two self-describing routes, with the vault, the key
+   registry, the health-check runner, the tenant and the kill switch all still named-but-absent. The
+   assistant these screens administer is live in production, so every check below is about what the
+   screens must NOT do: take a key, show one, act while a gate is open, save a locked voice, call a
+   speak route, call a provider configured that the contracts do not, read anything from the service
+   but booleans, or type a number a contract owns. It replaces Phase 3's check 6, which held the
+   category to "not built", in the same change. Each was proved by breaking its source and restoring it
+   byte for byte (docs/FEATURE-MAP.md, the Phase 4 entry). */
+const p4 = {
+  portal: JSON.parse(read("packages/catalog/control-tower-portal.json")),
+  overview: JSON.parse(read("packages/catalog/control-tower-overview.json")),
+  voice: JSON.parse(read("packages/catalog/voice.json")),
+  providers: JSON.parse(read("packages/catalog/model-providers.json")),
+  registry: JSON.parse(read("packages/catalog/api-registry.json")),
+  apis: JSON.parse(read("packages/catalog/apis/assistant.json")),
+};
+const p4Dir = "apps/web/src/features/portal/gilbertone";
+const p4Lib = "apps/web/src/lib/gilbertone-admin.ts";
+const p4Category = "apps/web/src/features/portal/GilbertOne.tsx";
+const p4Screens = files(p4Dir).filter((f) => /\.tsx?$/.test(f));
+const p4Files = [...p4Screens, p4Category, p4Lib];
+const p4G1 = p4.portal.gilbertone;
+const p4Summary = {};
+/* Code with its comments and its import lines gone, for the sweeps that must not trip over prose
+   explaining why a thing is refused, or over a module path. */
+const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "");
+
+/* 1. The category is its seven sub-screens, each a real file behind its own dynamic import. The tabs
+   are the contract's subScreens in the same order; every sub-screen reads a contract that exists under
+   a gate a register holds (what Phase 3's check 6 held, kept); every file exists and is reached only
+   through GilbertOne.tsx's dynamic import; and nothing on the patient's first load imports any of it. */
+{
+  if (p4G1.status !== "built" || p4G1.phase !== 4)
+    throw new Error("packages/catalog/control-tower-portal.json#gilbertone is not recorded as built in Phase 4, and seven sub-screens are in the tree. Built means in the tree and held by tests; say so or remove them.");
+  const category = p4.portal.categories.find((c) => c.id === "gilbertone");
+  const tabIds = category.tabs.map((t) => t.id).join();
+  const subIds = p4G1.subScreens.map((s) => s.id).join();
+  if (tabIds !== subIds)
+    throw new Error(`packages/catalog/control-tower-portal.json's GilbertOne tabs are [${tabIds}] and its subScreens [${subIds}]. §7's seven sub-screens are the category's tabs, one for one, in one order.`);
+  if (p4G1.subScreens.length !== 7)
+    throw new Error(`packages/catalog/control-tower-portal.json#gilbertone lists ${p4G1.subScreens.length} sub-screens; §7 names seven.`);
+  const registers = read("docs/PROMPT-CONTROL-TOWER-UI.md") + read("docs/PROMPT-CONTROL-TOWER.md");
+  const categoryCode = uncommented(read(p4Category));
+  for (const s of p4G1.subScreens) {
+    if (!existsSync(s.contract))
+      throw new Error(`packages/catalog/control-tower-portal.json says GilbertOne's ${s.label} reads ${s.contract}, which does not exist.`);
+    if (!new RegExp(`\\| ${s.gate} \\|`).test(registers))
+      throw new Error(`packages/catalog/control-tower-portal.json gates GilbertOne's ${s.label} on ${s.gate}, which neither gate register holds.`);
+    if (!s.file || !existsSync(s.file) || !s.file.startsWith(`${p4Dir}/`))
+      throw new Error(`packages/catalog/control-tower-portal.json says GilbertOne's ${s.label} is drawn by ${s.file}, which is not a file under ${p4Dir}.`);
+    const base = s.file.slice(p4Dir.length + 1).replace(/\.tsx$/, "");
+    const key = /^[a-z]+$/.test(s.id) ? s.id : `'${s.id}'`;
+    if (!new RegExp(`${key.replace(/[-']/g, "\\$&")}: lazySub\\(\\(\\) => import\\('\\./gilbertone/${base}'\\)`).test(categoryCode))
+      throw new Error(`${p4Category} does not load GilbertOne's ${s.label} (${s.file}) on a dynamic import of its own, keyed by its tab "${s.id}".`);
+  }
+  if (/^\s*import (?!type\b)[^;]*from '\.\/gilbertone\//m.test(read(p4Category)))
+    throw new Error(`${p4Category} imports a GilbertOne sub-screen statically. Each arrives when its tab is opened.`);
+  const firstLoad = ["apps/web/src/main.tsx", "apps/web/src/App.tsx", "apps/web/src/Doorway.tsx", "apps/web/src/shells/PatientShell.tsx", "apps/web/src/lib/roles.ts", "apps/web/src/features/DemoLogin.tsx", "apps/web/src/shells/PortalShell.tsx"];
+  for (const f of firstLoad)
+    if (/^\s*import (?!type\b)[^;]*from '[^']*(lib\/gilbertone-admin|features\/portal\/gilbertone\/)/m.test(read(f)))
+      throw new Error(`${f} imports GilbertOne API Administration statically. A patient's first load must not carry a byte of it, and the portal's shell reaches it only through the category's dynamic import.`);
+  p4Summary.subScreens = p4G1.subScreens.length;
+}
+
+/* 2. No administration screen renders a key-shaped value or accepts one. Swept in every GilbertOne
+   file and in the contract section they read: the shapes a real credential or a deployment's address
+   takes (the Phase 2 catalogue sweep's list), a masked fragment like the wireframe's, a fingerprint,
+   and a key-material property the registry's own neverFields names. A field that could take a key is
+   a password field drawn by ShapeField in Controls.tsx, which is disabled and never given a value; no
+   other file draws an input, and none sets a password type itself. What waits for the vault: a key
+   submitted once and never echoed, which needs something to submit it to. */
+{
+  const keyShapes = [
+    [/\bsk-(?:ant-)?[A-Za-z0-9_-]{16,}/, "an OpenAI- or Anthropic-style secret key"],
+    [/\bsk-\.{3}/, "the wireframe's unmasked key prefix"],
+    [/(?<![0-9A-Fa-f])[0-9a-f]{32}(?![0-9A-Fa-f])/, "a 32-hex-character string, the shape of an Azure key"],
+    [/AKIA[0-9A-Z]{16}/, "an AWS access key id"],
+    [/AIza[0-9A-Za-z_-]{30,}/, "a Google API key"],
+    [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, "a private key"],
+    [/https?:\/\/[a-z0-9-]+\.(?:openai\.azure\.com|cognitiveservices\.azure\.com|api\.cognitive\.microsoft\.com)/i, "the address of a real Azure deployment"],
+    [/(?:\u2022|\\u2022|\*){3,}\s*[0-9A-Za-z]{4}\b/, "a masked key fragment"],
+    [/SHA-256[:\s]+[0-9a-f]{4,}/i, "a key fingerprint"],
+  ];
+  const swept = [...p4Files.map((f) => [f, read(f)]), ["packages/catalog/control-tower-portal.json#gilbertone", JSON.stringify(p4G1)]];
+  for (const [f, text] of swept)
+    for (const [shape, what] of keyShapes)
+      if (shape.test(text))
+        throw new Error(`${f} contains ${what}. No administration screen shows a key, a fragment of one or a deployment's address — ${p4.portal.refusals.find((r) => r.id === "no-key-on-an-admin-screen").statement}`);
+  const never = new Set(p4.registry.keyMetadata.neverFields.map(p2Canon));
+  for (const f of p4Files) {
+    const code = p4Code(f);
+    for (const m of code.matchAll(/\b([A-Za-z]+)=\{|\b([A-Za-z]+)\s*:/g)) {
+      const name = m[1] ?? m[2];
+      /* Two of the registry's names are also React's own: "key", the reconciliation key every list
+         row carries, and "value", the preview panel's select and textarea, which hold a register and
+         an administrator's test sentence. Every other name the registry lists is key material. */
+      if (never.has(p2Canon(name)) && name !== "value" && name !== "key")
+        throw new Error(`${f} passes or holds "${name}", a field packages/catalog/api-registry.json#keyMetadata.neverFields names as key material. A screen may describe a key's metadata; it never carries the key.`);
+    }
+    if (/type=["'{]\s*["']?password/.test(code))
+      throw new Error(`${f} sets an input's type to password itself. The one key field is ShapeField's, in Controls.tsx, disabled and without a value.`);
+    for (const [tag, kind] of code.matchAll(/<(input|textarea|select)\b[^>]*>/g)) {
+      const where = f.endsWith("/Controls.tsx") ? "controls" : f.endsWith("/VoicePreview.tsx") && kind !== "input" ? "preview" : null;
+      if (!where)
+        throw new Error(`${f} draws a <${kind}> of its own. A GilbertOne screen draws a field only through Controls.tsx (disabled) — the one exception is the voice preview's own sentence and register, which no key can reach.`);
+      if (where === "controls" && (!/\sdisabled[\s/>]/.test(tag) || /\b(value|defaultValue)=/.test(tag)))
+        throw new Error(`${f} draws an input that is not disabled, or gives one a value: ${tag}. While no vault exists, no field on a GilbertOne screen accepts anything and none shows anything.`);
+      if (where === "preview" && /password/.test(tag))
+        throw new Error(`${f}'s preview field is a password field. The preview takes an administrator's test sentence, never a key.`);
+    }
+  }
+  const shape = uncommented(read(`${p4Dir}/Controls.tsx`));
+  if (!/function ShapeField[\s\S]*?<input type=\{kind\} disabled autoComplete="off"/.test(shape))
+    throw new Error(`${p4Dir}/Controls.tsx's ShapeField no longer draws its input disabled with autocomplete off. It is the only place a key field is drawn.`);
+}
+
+/* 3. Every GilbertOne action control is disabled while its gate is open, with the contract's refusal
+   rendered beside it. The gates are the contract's: G29 to G32 are open while the Overview contract's
+   open-gates rows say so, and Module 8 — which has no register row — while the tenancy contract and the
+   kill switch's runtime it names are both missing. An action whose gate has closed fails the build:
+   the button would be disabled for a reason that has stopped being true, and what it does has to be
+   built first. Every button and checkbox is drawn in Controls.tsx, disabled by a bare attribute (never
+   an expression that could be false), tied to its sentence by aria-describedby; no GilbertOne file has a
+   click or submit handler or a form; and every action a screen names is the contract's, on its screen,
+   and every action the contract declares is drawn somewhere. */
+{
+  const openGates = new Map((p4.overview.sections.find((s) => s.id === "open-gates").gates ?? []).map((g) => [g.id, g.state]));
+  const gates = new Map(p4G1.gates.map((g) => [g.id, g]));
+  for (const g of p4G1.gates) {
+    if (!g.sentence?.trim() || !g.label?.trim())
+      throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.gates "${g.id}" has no label or no sentence. A disabled control is drawn with the reason it is disabled, or not at all.`);
+    if (/^G\d+$/.test(g.id)) {
+      if (openGates.get(g.id) !== "open")
+        throw new Error(`packages/catalog/control-tower-overview.json records gate ${g.id} as "${openGates.get(g.id) ?? "absent"}", and GilbertOne's actions are still drawn disabled behind it. When a gate closes, build what its actions do, then let them act.`);
+    } else {
+      const missing = g.openWhileMissing ?? [];
+      if (!missing.length)
+        throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.gates "${g.id}" has no register row and no openWhileMissing, so nothing says whether it is open.`);
+      const present = missing.find((f) => existsSync(f));
+      if (present)
+        throw new Error(`${present} exists, and ${g.label} is still recorded as open with its actions drawn disabled. The kill switch has something behind it now: wire it, and close the gate in the same change.`);
+    }
+  }
+  const registryIds = new Set(p4.registry.actions.map((a) => a.id));
+  const mapped = new Set();
+  for (const a of p4G1.actions) {
+    if (!gates.has(a.gate))
+      throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.actions "${a.id}" is held by "${a.gate}", which is not one of its gates.`);
+    if (!p4G1.subScreens.some((s) => s.id === a.screen))
+      throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.actions "${a.id}" belongs to screen "${a.screen}", which is not a sub-screen.`);
+    if (a.registryAction) {
+      if (!registryIds.has(a.registryAction) || a.gate !== "G32")
+        throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.actions "${a.id}" maps to the registry action "${a.registryAction}" under ${a.gate}; packages/catalog/api-registry.json#actions holds every card action under G32.`);
+      mapped.add(a.registryAction);
+    }
+  }
+  for (const id of registryIds)
+    if (!mapped.has(id))
+      throw new Error(`packages/catalog/api-registry.json's card action "${id}" is drawn by no GilbertOne action. Every action the contract gives a card is on the card, disabled with its gate.`);
+  const controls = uncommented(read(`${p4Dir}/Controls.tsx`));
+  for (const [tag] of controls.matchAll(/<(button|input)\b[^>]*>/g))
+    if (!/\sdisabled[\s/>]/.test(tag) || /disabled=\{/.test(tag) || !/aria-describedby=/.test(tag))
+      throw new Error(`${p4Dir}/Controls.tsx draws ${tag} — not disabled by a bare attribute, or not described by its refusal. Every GilbertOne control is disabled, and says why.`);
+  if ((controls.match(/refusalFor\(/g) ?? []).length < 3)
+    throw new Error(`${p4Dir}/Controls.tsx no longer renders the gate's sentence beside its controls through refusalFor().`);
+  const screenOf = new Map(p4G1.subScreens.map((s) => [s.file, s.id]));
+  const actions = new Map(p4G1.actions.map((a) => [a.id, a]));
+  const used = new Set();
+  for (const f of p4Files) {
+    const code = p4Code(f);
+    if (!f.endsWith("/Controls.tsx")) {
+      const own = /<(button|form)\b|\bon(Click|Submit|KeyUp|Input)=/.exec(code);
+      if (own)
+        throw new Error(`${f} draws ${own[0]} of its own. A GilbertOne control is drawn by Controls.tsx, disabled beside its gate, and nothing here has a handler: ${p4.portal.refusals.find((r) => r.id === "no-gilbertone-action-while-its-gate-is-open").statement}`);
+      if (/\bonChange=/.test(code) && !f.endsWith("/VoicePreview.tsx"))
+        throw new Error(`${f} changes state on input. Only the voice preview takes typing, and it keeps what is typed on the screen.`);
+    }
+    for (const m of code.matchAll(/<Gated(?:Action|Button|Refusal|Checkbox)\s+id="([^"]+)"/g)) {
+      const a = actions.get(m[1]);
+      if (!a) throw new Error(`${f} draws the action "${m[1]}", which packages/catalog/control-tower-portal.json#gilbertone.actions does not declare.`);
+      const screen = screenOf.get(f) ?? (f.endsWith("/VoicePreview.tsx") ? "voice" : null);
+      if (screen && a.screen !== screen)
+        throw new Error(`${f} draws "${a.id}", which the contract places on the ${a.screen} screen.`);
+      used.add(a.id);
+    }
+    for (const m of code.matchAll(/<GatedActions\s+ids=\{\[([^\]]*)\]\}/g))
+      for (const id of [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1])) {
+        if (!actions.has(id)) throw new Error(`${f} draws the action "${id}", which the contract does not declare.`);
+        used.add(id);
+      }
+    if (/<GatedActions\s+ids=\{actions\}/.test(code) && /registryActions\(\)/.test(code))
+      p4G1.actions.filter((a) => a.registryAction).forEach((a) => used.add(a.id));
+  }
+  for (const a of p4G1.actions)
+    if (!used.has(a.id))
+      throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.actions declares "${a.id}", and no GilbertOne screen draws it. An action the plan asks for is shown, disabled with its gate, rather than silently left off.`);
+  p4Summary.actions = p4G1.actions.length;
+}
+
+/* 4. The locked voice classes have no save control. Emergency, refusal and escalation — voice.json's
+   clinical-delivery zone — may be heard in the preview and never saved as a default. Every place a
+   GilbertOne screen draws Save as default, it draws it only under the class's own
+   previewMaySaveAsDefault, never by name; and no GilbertOne file names a class to decide it. */
+{
+  for (const f of [`${p4Dir}/Voice.tsx`, `${p4Dir}/VoicePreview.tsx`]) {
+    const code = p4Code(f);
+    const saves = (code.match(/<Gated(?:Action|Button)\s+id="voice-save-as-default"/g) ?? []).length;
+    const guarded = (code.match(/previewMaySaveAsDefault\s*\?\s*<Gated(?:Action|Button)\s+id="voice-save-as-default"/g) ?? []).length;
+    if (!saves || saves !== guarded)
+      throw new Error(`${f} draws Save as default ${saves} times, ${guarded} of them under the class's previewMaySaveAsDefault. The emergency, refusal and escalation rows play the locked register and offer nothing to save — ${p4.voice.refusals.find((r) => r.id === "no-save-as-default-on-a-locked-row").statement}`);
+  }
+  for (const f of p4Files) {
+    const named = p4Code(f).match(/(['"`])(emergency|refusal|escalation)\1/);
+    if (named)
+      throw new Error(`${f} names the class ${named[0]}. Which classes are locked is packages/catalog/voice.json's to say, read from its zones and its previewMaySaveAsDefault, so a fourth locked class is locked here the day it is added.`);
+  }
+  for (const c of p4.voice.queryClasses.filter((k) => k.zone === "clinical-delivery"))
+    if (c.previewMaySaveAsDefault !== false)
+      throw new Error(`packages/catalog/voice.json offers Save as default on "${c.id}", a clinical-delivery class, and the Voice screen would draw it.`);
+}
+
+/* 5. The voice preview never calls a speak route, and no GilbertOne screen makes a request of its own.
+   The preview plays nothing: there is no admin-authenticated speak route and the patients' route is
+   not the administration screen's to use. So no GilbertOne file names a speak or listen route, the
+   browser's synthesiser, an audio element or a network call, and none imports a module that speaks or
+   calls the service. The one request the category makes is lib/gilbertone-admin.ts reading the two
+   self-describing routes the contract lists — and only those two. */
+{
+  const speaking = /\/speak\b|\/listen\b|speechSynthesis|SpeechSynthesisUtterance|new\s+Audio\b|<audio\b|\bsendBeacon\b|XMLHttpRequest|WebSocket|EventSource/;
+  const speakers = /from '[^']*(lib\/gilbertone-service|lib\/voice|lib\/apis\.generated|lib\/gilbertone-bridge|components\/AssistantLauncher|features\/GilbertWidget)'/;
+  for (const f of p4Files) {
+    const code = uncommented(read(f));
+    const hit = code.match(speaking);
+    if (hit)
+      throw new Error(`${f} names ${hit[0]}. The voice preview plays nothing and no GilbertOne screen asks the service to speak: there is no speak route an administrator signs in to, and the patients' is not this screen's to use.`);
+    const imported = code.match(speakers);
+    if (imported)
+      throw new Error(`${f} imports ${imported[1]}, which speaks or calls the assistant service. The administration screens reach the service through lib/gilbertone-admin.ts's two status reads and nothing else.`);
+    if (f !== p4Lib && /\bfetch\s*\(/.test(code))
+      throw new Error(`${f} makes a request of its own. The one request GilbertOne administration makes is lib/gilbertone-admin.ts's read of the health and status routes.`);
+  }
+  const lib = uncommented(read(p4Lib));
+  const fetches = lib.match(/\bfetch\s*\(/g) ?? [];
+  if (fetches.length !== 1 || !/fetch\(`\$\{base\}\$\{g1\.overview\.prefix\}\$\{path\}`/.test(lib))
+    throw new Error(`${p4Lib} makes ${fetches.length} requests, or builds one from anything but the contract's prefix and a route it lists. It reads the two self-describing routes and nothing else.`);
+  const paths = p4G1.overview.routes.map((r) => r.path).sort().join();
+  if (paths !== "/health,/v1/status" || p4G1.overview.prefix !== "/assistant")
+    throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.overview reads [${paths}] under ${p4G1.overview.prefix}. The Overview asks the assistant's health and status routes, and no other — a speak or turn route in this list would be the administration screen talking to patients' routes.`);
+  if (!/readServiceBooleans\(/.test(uncommented(read(`${p4Dir}/EngineOverview.tsx`))))
+    throw new Error(`${p4Dir}/EngineOverview.tsx no longer reads the service through readServiceBooleans().`);
+}
+
+/* 6. A provider is shown as configured only where the contracts say so. The Model Providers and API
+   Registry screens draw a card's state from its statusToday and nothing else — never a typed status
+   word — and the contracts behind them agree: a card is configured only if it is built and either
+   configured in production on the activation record's evidence or needs no key at all; a model
+   provider's card says configured exactly when the provider says it is configured in production; and
+   every proposed card is not-configured. */
+{
+  for (const f of p4Screens) {
+    const code = p4Code(f);
+    for (const m of code.matchAll(/<(CardStatusWord|Status)\s+id=(\{[^}]*\}|"[^"]*"|'[^']*')/g)) {
+      const value = m[2];
+      const fromData = m[1] === "CardStatusWord" ? /statusToday\}$|^\{s\.id\}$/.test(value) : /serviceStateOf\(/.test(value);
+      if (!fromData)
+        throw new Error(`${f} draws <${m[1]} id=${value}>. A provider's or the service's state is read — a card's statusToday, the route's answer — never typed.`);
+    }
+  }
+  const lib = uncommented(read(p4Lib));
+  if (!/providerStatus = \(providerId: string\): CardStatus => cardStatusOf\(cardOf\(providerId\)\.statusToday\)/.test(lib))
+    throw new Error(`${p4Lib}'s providerStatus no longer reads a model provider's state from its api-registry.json card. One provider, one status, read in one place.`);
+  let configured = 0;
+  for (const card of p4.registry.cards) {
+    const provider = p4.providers.providers.find((p) => p.id === card.id);
+    if (card.statusToday === "configured") {
+      configured++;
+      const evidence = card.keyRequired === false || card.productionConfigured === true || provider?.productionConfigured === true;
+      if (card.buildStatus !== "built" || !evidence)
+        throw new Error(`packages/catalog/api-registry.json shows "${card.id}" as configured, and it is ${card.buildStatus} with no production evidence${card.keyRequired === false ? "" : " and a key required"}. The screens draw configured only where the contracts can back it.`);
+    }
+    if (provider && (card.statusToday === "configured") !== (provider.productionConfigured === true))
+      throw new Error(`packages/catalog/api-registry.json shows "${card.id}" as ${card.statusToday}, and packages/catalog/model-providers.json says productionConfigured ${provider.productionConfigured}. The Model Providers and API Registry screens draw the same provider; they draw it the same way.`);
+    if (card.buildStatus === "proposed" && card.statusToday !== "not-configured")
+      throw new Error(`packages/catalog/api-registry.json shows the proposed "${card.id}" as ${card.statusToday}.`);
+  }
+  p4Summary.configured = configured;
+}
+
+/* 7. The Overview reads the service's booleans and nothing else. Every route it asks is a built route
+   in packages/catalog/apis/assistant.json at the version the contract names; every field it draws is a
+   boolean that route returns (never mode, the one string); the read takes only those fields, each as
+   true only when the answer holds the boolean true, and never spreads, stores or prints the body. */
+{
+  for (const r of p4G1.overview.routes) {
+    const route = p4.apis.routes.find((x) => x.method === "GET" && x.path === r.path && x.version === r.version && x.status === "built");
+    if (!route)
+      throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.overview reads GET ${r.path}@${r.version}, which packages/catalog/apis/assistant.json has no built route for.`);
+    for (const f of p4G1.overview.fields) {
+      const field = route.response.find((x) => x.field === f.field);
+      if (!field || field.type !== "boolean")
+        throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.overview draws "${f.field}" from GET ${r.path}@${r.version}, which ${field ? `returns it as ${field.type}` : "does not return it"}. The Overview reads presence as booleans, only.`);
+    }
+  }
+  const lib = uncommented(read(p4Lib));
+  const reader = lib.slice(lib.indexOf("export async function readServiceBooleans"), lib.indexOf("export const serviceStateOf"));
+  if (!/const wanted = g1\.overview\.fields\.map\(f => f\.field\)/.test(reader) || !/body\[f\] === true/.test(reader))
+    throw new Error(`${p4Lib}'s readServiceBooleans no longer takes only the contract's fields, each as true only when it is the boolean true.`);
+  if (/\.\.\.body|JSON\.stringify\(body|console\.|Object\.(entries|keys|values)\(body/.test(reader))
+    throw new Error(`${p4Lib}'s readServiceBooleans passes the answer's body on beyond the contract's booleans. A field the route grows must not reach a screen by accident.`);
+}
+
+/* 8. No GilbertOne screen types a number the contracts own. A corpus size, a level, a ceiling, a rate
+   limit, a deployment name or a region is read from its contract; the screens hold no digit but a 0 or
+   a 1 used as an index, in code or in copy, and name no deployment, region, voice or price by hand.
+   (Class names are left out of the sweep: the G1 mark's own classes carry its digit.) */
+{
+  const owned = /southafricanorth|South Africa North|gpt-[0-9]|[a-z]{2}-[A-Z]{2}-[A-Za-z]+Neural|\bR\s?\d/;
+  for (const f of p4Files) {
+    const code = p4Code(f).replace(/className=("[^"]*"|\{`[^`]*`\})/g, "");
+    const typed = owned.exec(code);
+    if (typed)
+      throw new Error(`${f} types "${typed[0]}". A deployment, a region, a voice and a price are read from the contract that records them, never typed on an administration screen.`);
+    const digits = [...code.matchAll(/(?<![\w$.#-])(\d+(?:\.\d+)?)(?![\w])/g)].map((m) => m[1]).filter((n) => n !== "0" && n !== "1");
+    if (digits.length)
+      throw new Error(`${f} types the number${digits.length > 1 ? "s" : ""} ${[...new Set(digits)].join(", ")}. Every figure a GilbertOne screen shows is read from the contract that owns it, so the screen changes the day the contract does.`);
+  }
+}
+
+console.log(
+  `GilbertOne API Administration, Phase 4 · ${p4Summary.subScreens} sub-screens behind dynamic imports, each reading a contract under a gate a register holds; no key, fragment, fingerprint or deployment address on any of them and no field that takes one; ${p4Summary.actions} actions, every one disabled beside its gate while G29, G30, G31, G32 or Module 8 is open; no Save as default on a locked voice; no speak route, synthesiser or request but the two status reads; ${p4Summary.configured} cards configured, each backed by its contract; the Overview reads booleans only; and no number typed that a contract owns.`,
 );
