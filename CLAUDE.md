@@ -47,16 +47,19 @@ Three native apps and three services:
   `packages/catalog/apis/assistant.json`, and the web, iOS and Android applications as its clients.
   `node:http` with no web framework; the LangChain tier and the catalog it reads are the only
   dependencies it carries, which is why `npm run assistant-runtime` bundles it into one self-contained
-  file before a deploy touches the box. **Installed dark by every deploy** — loopback only, nginx's
+  file before a deploy touches the box. **Installed by every deploy, and live in production since 21
+  September 2026** (corrected 24 September; it said "installed dark" until then —
+  `docs/governance/ASSISTANT-ACTIVATION.md` is the record). Loopback only, nginx's
   `location /assistant/` the sole way in, and the model tier refusing to serve in production without
-  `MYTHUSO_ASSISTANT_PRODUCTION=acknowledged` written by hand. Built is not live: triage, the
+  `MYTHUSO_ASSISTANT_PRODUCTION=acknowledged` written by hand — which it is. Every change here is a
+  production change, and a deploy does not restart the service. Built is not live: triage, the
   vital-sign reading and the handover submission are each gated on a contract that does not exist
   yet, and the three allowlisted external knowledge sources all ship `"active": false`.
 - `packages/gilbertone` — the deterministic half of GilbertOne, compiled into all three platforms:
   emergency recognition, essential refusals and safe offline fallback, answered from the message and
   the contract alone. **No dependencies, no network, no environment variable**, and the build fails if
   anything under `src/` calls `fetch()`, imports a network or model module, or reads one. This is what
-  answers while the engine above is dark, which — today — it always is.
+  answers when the engine above is dark or unreachable, and first on every message either way.
 - `packages/catalog` — the contracts everything else derives from, as JSON. `apis.json` and
   `apis/<engine>.json` hold every engine's frozen API contract (who may call each route, for which
   purpose, what it refuses and what it emits), locked in `apis.lock` beside `events.lock`, with each
@@ -208,6 +211,8 @@ namespaces.** Use `#private` fields.
 hosts five unrelated production sites. Never edit another site's config; `nginx -t` before any
 reload. The identity service is installed but deliberately switched off until DNS, TLS and an SMS
 provider exist — a one-time-code endpoint over plain http hands out accounts. The GilbertOne engine
-is installed the same way and left dark for a different reason: no model provider is configured, and
-activation is a sequence done by hand at a terminal on the box (`deploy/RUNBOOK.md`, _Activating the
-assistant service_). See `deploy/README.md`.
+is installed the same way and was activated by hand on 21 September 2026 (`deploy/RUNBOOK.md`,
+_Activating the assistant service_; who and under what approval are not recorded —
+`docs/governance/ASSISTANT-ACTIVATION.md`). A deploy publishes its runtime but never restarts it, and
+warns when the running process is behind: restart it by hand and read `/assistant/health`. See
+`deploy/README.md`.

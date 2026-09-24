@@ -246,8 +246,23 @@ else
     echo "!! the assistant runtime arrived altered (sha256 ${remote_digest:-none}, expected $local_digest) — nothing published"
     exit 1
   fi
+  # The digest of the file being replaced, read before the move, so the deploy can tell a running
+  # service it is now behind. On 24 September 2026 a deploy published a new runtime to a service
+  # that had been live since 21 September, printed success, and left the old code answering patients
+  # until somebody noticed /assistant/health lacked a field the new code reports. Publishing a file
+  # does not change a running process; saying so, loudly, is the difference between a fix that
+  # landed and one everybody believes landed. The restart itself stays a person's act, as the
+  # activation sequence in deploy/RUNBOOK.md is: this deploy never starts or restarts the model tier.
+  previous_digest=$(ssh "$TARGET" "if [ -f $ASSISTANT/server.mjs ]; then if command -v sha256sum >/dev/null 2>&1; then sha256sum $ASSISTANT/server.mjs; else shasum -a 256 $ASSISTANT/server.mjs; fi; fi" | cut -d' ' -f1) || previous_digest=""
   ssh "$TARGET" "chmod 0755 $ASSISTANT && chmod 0644 $ASSISTANT/server.mjs.next && chown root:root $ASSISTANT/server.mjs.next && mv -f $ASSISTANT/server.mjs.next $ASSISTANT/server.mjs"
   echo "assistant runtime  $ASSISTANT/server.mjs  sha256 ${local_digest:0:16}…"
+  if [ "$previous_digest" != "$local_digest" ] && ssh "$TARGET" "systemctl is-active --quiet assistant-api.service"; then
+    assistant_behind=1
+    echo "!! assistant-api.service is RUNNING THE PREVIOUS RUNTIME. Its code changed in this deploy and the"
+    echo "   process has not been restarted, so patients are still answered by the old code. To apply it:"
+    echo "     ssh $TARGET \"systemctl restart assistant-api.service\""
+    echo "     ssh $TARGET \"curl -s http://127.0.0.1:8791/assistant/health\""
+  fi
 fi
 
 # ── The scheduled jobs, on every deploy ────────────────────────────────────────────────────────
@@ -703,6 +718,12 @@ if [ "$key_failed" = 1 ]; then
   echo "   the site is published and the neighbours are unchanged — but the service is running" >&2
   echo "   without a key it can seal with. See docs/DATA-PROTECTION.md." >&2
   exit 1
+fi
+
+if [ "${assistant_behind:-0}" = 1 ]; then
+  echo
+  echo "!! Published, but assistant-api.service is still running the previous runtime — see the"
+  echo "   warning under 'Publishing the assistant runtime'. Restart it, then read /assistant/health."
 fi
 
 cat <<NOTE

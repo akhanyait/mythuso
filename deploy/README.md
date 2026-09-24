@@ -423,7 +423,14 @@ refuses every write that needs sealing, with a 503 that reads like an applicatio
 failure discovered by the first person trying to enrol a second factor, days later. The deploy finds
 it while somebody is still looking at the output.
 
-## The GilbertOne engine is installed dark
+## The GilbertOne engine is installed dark — and on this box it is live
+
+> **Corrected 24 September 2026.** Everything below describes how the service is installed, and it is
+> still installed that way. But on `liqzar-server` it was activated on 21 September 2026 and has
+> answered the public since: `/assistant/health` reports `production`, `activated`, `azure` and
+> `speech` all true. `docs/governance/ASSISTANT-ACTIVATION.md` is the record, including what is not
+> known (who activated it, and under what approval). A deploy publishes the runtime and does not restart
+> the service. When the running process is behind the file just published, the deploy says so twice.
 
 GilbertOne is its own service — `apps/assistant-api`, with an address family authored in
 `packages/catalog/apis/assistant.json` and three applications consuming it — and the thing that
