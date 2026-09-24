@@ -474,6 +474,83 @@ back out is in _Backing it out_ below.
 
 ---
 
+## Founder access
+
+Not part of any deploy, and off on every box until the founder switches it on here, by hand.
+Founder access lets the founder — and nobody else — sign in to the assistant service from the
+Control Tower (GilbertOne → Model Providers, or the Azure OpenAI and Azure Speech cards on API
+Registry) with a password and an authenticator code, and reveal the Azure OpenAI key or the Azure
+Speech key, one at a time, with a fresh code each time. `docs/governance/FOUNDER-ACCESS.md` is the
+account of what it is, what it refuses and what it cannot protect against; read it first.
+
+Two lines in `/etc/mythuso/founder.env` switch it on, and they are two separate acts: the
+credential, which the script writes, and the enable line, which only the founder writes. Every
+founder route answers "Founder access is switched off on this server" until both are there and the
+service has been restarted to read them. A deploy writes neither, and installs the script without
+running it.
+
+### Switching it on
+
+After a deploy that carried this build (it installs the script, the runtime and the unit that reads
+the file, and restarts nothing):
+
+```sh
+ssh liqzar-server
+sudo /opt/mythuso/ops/configure-founder-access.sh
+```
+
+The password is typed twice with the echo off, at least fourteen characters, and stored only as an
+scrypt hash. The script then prints an `otpauth://` line — and a QR code, if `qrencode` is installed
+(`sudo apt install qrencode`) — **once**. Add it to the founder's authenticator app there and then,
+and clear the terminal's scrollback afterwards: that line is the second factor. The script prints a
+sixteen-character credential fingerprint for the register, never the password or the hash.
+
+Then the decision, by hand, and a restart so the service reads both lines:
+
+```sh
+sudo sh -c "printf 'MYTHUSO_FOUNDER_ACCESS=enabled\n' >> /etc/mythuso/founder.env"
+sudo systemctl restart assistant-api.service
+```
+
+A restart ends every session — founder access keeps sessions in memory only — and briefly
+interrupts the assistant for patients; the web panel falls back to the on-device answer while it
+restarts, as it always has.
+
+### Proving it worked, with commands that reveal no secrets
+
+```sh
+curl -s -o /dev/null -w '%{http_code}\n' -H 'X-MyThuso-Founder: 1' https://mythuso.co.za/assistant/v1/founder/keys
+```
+
+Expected: `401` — founder access is on and asks for a session. `503` means it is still dark: the
+enable line is missing or mistyped (it is exact: `enabled`), the credential did not parse, or the
+service was not restarted. `403` means the header was left off. Then sign in from the Control
+Tower. Every attempt, sign-out, metadata read and reveal writes one line to the journal, carrying
+the event, the outcome and — for a reveal — the key's name and fingerprint, and never a password,
+a code, a cookie or a key:
+
+```sh
+journalctl -u assistant-api.service --no-pager | grep '"event":"founder.'
+```
+
+### Switching it off, rotating, and a lost phone
+
+- **Off:** `sudo sed -i '/^MYTHUSO_FOUNDER_ACCESS=/d' /etc/mythuso/founder.env` then
+  `sudo systemctl restart assistant-api.service`. The credential stays; every route is dark again.
+- **Right now, whatever the file says:** `sudo systemctl restart assistant-api.service` ends every
+  founder session at once.
+- **New password, or a lost or replaced phone:** run the script again. It writes a new hash and a
+  new authenticator secret, keeps the enable line as it was, and the old password and the old
+  authenticator stop working at the next restart. There is no recovery code and no reset by email:
+  the way back in is root on this box, on purpose.
+- **Locked out after five failures:** wait fifteen minutes, or restart the service. If the lock
+  keeps coming back when the founder is not trying, somebody else is — switch founder access off
+  and read the journal.
+- **A key was revealed somewhere it should not have been:** rotate it in the Azure portal and run
+  `configure-assistant-env.sh` with the new one. Founder access cannot un-show a key.
+
+---
+
 ## What the site does, and what it does not, on day one
 
 Somebody will open this link tonight and some of them will be deciding whether to fund it. What they

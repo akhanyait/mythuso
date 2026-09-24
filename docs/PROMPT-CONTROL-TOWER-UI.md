@@ -22,7 +22,7 @@ Read this document in full. Read CLAUDE.md. Read docs/PROMPT-CONTROL-TOWER.md (t
 - The look and feel is fixed. The token palette in packages/design-tokens/tokens.json governs. A token-drift CI check fails the build if a hex literal appears in component code that is not sourced from the tokens.
 - The clinical boundary is non-negotiable. The engine never autonomously rewrites clinical rules, triage logic, emergency handling or device thresholds. Any such change flows through the Clinician Review Queue.
 - Tenant isolation extends to the inference layer. Per-tenant caches, per-tenant embedding partitions, no cross-tenant fine-tuning, per-tenant provenance.
-- API keys never reach the browser in full. The mask/unmask toggle is a display convenience. The vault is the security boundary. If you build a screen that could expose a key, it fails review before it fails the build.
+- API keys never reach the browser in full. The mask/unmask toggle is a display convenience. The vault is the security boundary. If you build a screen that could expose a key, it fails review before it fails the build. *(Amended 24 September 2026, on the founder's decision, for one exception only: founder access, through which the founder alone — signed in with a password and an authenticator code, with a fresh code for each reveal, and only while the service has it switched on by hand — may reveal the Azure OpenAI and Azure Speech keys. `docs/governance/FOUNDER-ACCESS.md` is the account; every other screen, key and person is held to this rule unchanged.)*
 - Default-deny. A user with no assigned role sees nothing.
 - If you cannot verify a claim against the tree, say so plainly rather than repeating it as though it were built. This is the discipline that produced the plan.
 - Say what is refused, and why. Every screen that could be mistaken for real, every panel that shows a value, every action that could be taken — the refusal is written in the contract and shown on the screen, not hidden.
@@ -508,7 +508,7 @@ Never claim done without the test. Never claim working without the harness. Neve
 - Do not enable a device class at a site without a DPIA.
 - Do not cross-tenant read, cross-tenant cache, cross-tenant retrieve, or cross-tenant fine-tune.
 - Do not store a key in a database column, browser storage, log line or URL.
-- Do not reveal a full key to the browser — masked metadata only.
+- Do not reveal a full key to the browser — masked metadata only. *(Except founder access, on the founder's decision of 24 September 2026 — §1 and `docs/governance/FOUNDER-ACCESS.md`.)*
 - Do not preview an emergency voice as if it were configurable.
 - Do not allow a patient-facing clinical-assist turn above level 2 without a clinician.
 - Do not allow a signed-out visitor turn above level 1.
