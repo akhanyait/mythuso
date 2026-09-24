@@ -76,11 +76,15 @@ async function start(page: Page, sub = subScreens[0]!.label) {
 }
 
 /* Every sub-screen's controls: none enabled, every one described by a sentence the contract holds, no
-   password field enabled, and nothing key-shaped anywhere in what is drawn. */
+   password field enabled, and nothing key-shaped anywhere in what is drawn. Founder access's panel
+   (.g1-founder, packages/catalog/founder-access.json) is the one exception — its sign-in and reveal
+   are live when the service answers, and tests/founder-access.spec.ts holds them — so it alone is left
+   out of the three control counts. The key-shape sweep still reads the whole screen. */
+const OUTSIDE_FOUNDER = ':not(.g1-founder *)';
 async function holdsNothingOpen(page: Page, where: string) {
- await expect(panel(page).locator('button:not([disabled])'), `${where}: an enabled button`).toHaveCount(0);
- await expect(page.locator('input[type="password"]:not([disabled])'), `${where}: an enabled password field`).toHaveCount(0);
- await expect(panel(page).locator('input:not([disabled])'), `${where}: an enabled input`).toHaveCount(0);
+ await expect(panel(page).locator(`button:not([disabled])${OUTSIDE_FOUNDER}`), `${where}: an enabled button`).toHaveCount(0);
+ await expect(page.locator(`input[type="password"]:not([disabled])${OUTSIDE_FOUNDER}`), `${where}: an enabled password field`).toHaveCount(0);
+ await expect(panel(page).locator(`input:not([disabled])${OUTSIDE_FOUNDER}`), `${where}: an enabled input`).toHaveCount(0);
  const described = await panel(page).locator('button[disabled], input[disabled][type="checkbox"]').evaluateAll(els => els.map(el => {
   const id = el.getAttribute('aria-describedby');
   return { name: el.textContent?.trim() || el.closest('label')?.textContent?.trim() || '', why: id ? document.getElementById(id)?.textContent?.trim() ?? '' : '' };
