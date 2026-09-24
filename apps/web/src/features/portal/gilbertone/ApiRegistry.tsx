@@ -1,4 +1,6 @@
+import { Suspense, lazy } from 'react';
 import registry from '../../../../../../packages/catalog/api-registry.json' with { type: 'json' };
+import founder from '../../../../../../packages/catalog/founder-access.json' with { type: 'json' };
 import providers from '../../../../../../packages/catalog/model-providers.json' with { type: 'json' };
 import { noticeFor } from '../../../lib/capabilities';
 import { cardsByCategory, g1, registryActions, type Card } from '../../../lib/gilbertone-admin';
@@ -24,6 +26,10 @@ import { VoicePreview } from './VoicePreview';
  * configured — and like the Voice screen's, it plays nothing yet. */
 
 const isTts = (card: Card) => (card.serves ?? []).includes('tts');
+/* The two cards whose key founder access can reveal, read from its contract: the panel is drawn on
+   those and on no other, behind its own dynamic import. */
+const founderCard = (card: Card) => founder.keys.some(k => k.card === card.id);
+const FounderAccessPanel = lazy(() => import('./founder/FounderAccess').then(m => ({ default: m.FounderAccessPanel })));
 
 export function ApiRegistryScreen() {
  const words = g1.apiRegistry;
@@ -51,6 +57,8 @@ export function ApiRegistryScreen() {
       <div className="g1-fact"><dt>Key</dt><dd>{card.keyRequired === false ? words.noKey : g1.modelProviders.keyRegistryEmpty}</dd></div>
      </dl>
      <GatedActions ids={actions} label={`${card.name} actions`}/>
+     {founderCard(card) && <details className="g1-founder-details"><summary>{founder.words.heading}</summary>
+      <Suspense fallback={<p className="helper">{founder.words.checking}</p>}><FounderAccessPanel cardId={card.id}/></Suspense></details>}
      {isTts(card) && <details className="g1-details"><summary>{words.previewSummary}</summary><VoicePreview placement={card.name}/></details>}
     </article> };
    })}/>

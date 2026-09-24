@@ -286,9 +286,13 @@ const BUILT: Record<string, string[]> = {
   'POST /v1/access/witness-statements@1',
  ],
  assistant: [
+  'DELETE /v1/founder/session@1',
   'GET /health@2',
+  'GET /v1/founder/keys@1',
   'GET /v1/status@2',
   'POST /turn@1',
+  'POST /v1/founder/reveal@1',
+  'POST /v1/founder/session@1',
   'POST /v1/handover/prepare@3',
   'POST /v1/handover/submit@3',
   'POST /v1/knowledge/search@2',

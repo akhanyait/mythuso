@@ -130,3 +130,4 @@ POST /v1/knowledge/search@2 d6deaabcf62d97bb
 POST /v1/handover/prepare@3 f91974a6700b7dc5
 GET /v1/clinical/review-queue@1 023ccc230d166449
 POST /v1/clinical/review-queue/{entryRef}/sign@1 820208b29662dd9e
+GET /v1/founder/keys@1 d7899b89493193fd

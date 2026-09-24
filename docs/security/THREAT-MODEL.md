@@ -34,6 +34,18 @@ machinery is what any device or tenant control would extend, not something Modul
 nothing — and the register says, adversary by adversary, how far that extension already reaches and
 how far it does not.
 
+### Added 24 September 2026: founder access
+
+Not device or tenant work, but the first thing on the assistant service that authenticates anybody:
+a sign-in for the founder and a guarded reveal of the two Azure keys the service holds
+(`packages/catalog/founder-access.json`, `docs/governance/FOUNDER-ACCESS.md`). It changes three rows
+of the register — the external attacker (a new reachable surface, dark until switched on by hand),
+the curious admin (a key path that answers to no portal role) and the compromised tenant key (a
+two-name allowlist that refuses any key a tenant might one day hold) — and each row says what is
+built. Its controls are proved by `scripts/check-boundaries.mjs` (the Founder access block) and by
+`apps/assistant-api/src/founder-access.test.ts`, which is the first piece of this register's
+"test suite" half to exist for any row.
+
 ## What is out of scope for this pass
 
 **Firmware and over-the-air update integrity are explicitly deferred.** The founder's plan places

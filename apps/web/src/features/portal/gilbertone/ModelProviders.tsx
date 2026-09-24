@@ -1,5 +1,7 @@
+import { Suspense, lazy } from 'react';
 import providers from '../../../../../../packages/catalog/model-providers.json' with { type: 'json' };
 import registry from '../../../../../../packages/catalog/api-registry.json' with { type: 'json' };
+import founder from '../../../../../../packages/catalog/founder-access.json' with { type: 'json' };
 import { cardOf, g1, modelProviders } from '../../../lib/gilbertone-admin';
 import { portalRefusal } from '../../../lib/portal';
 import { BuildWord, Empty, Region, RovingList } from '../Parts';
@@ -18,7 +20,19 @@ import { CardStatusWord, GatedAction, GatedActions, GatedCheckbox, ShapeField } 
  * is no key to enter, rotate, test or describe. The one key field is a disabled password field, and
  * this file holds no key, no fragment of one and no endpoint — scripts/check-boundaries.mjs sweeps it
  * for their shapes. There is no key metadata to show because no key registry exists, and the screen
- * says so rather than drawing the wireframe's masked fragments. */
+ * says so rather than drawing the wireframe's masked fragments.
+ *
+ * The one exception, on the founder's decision of 24 September 2026, is founder access: a panel in its
+ * own file (./founder/FounderAccess.tsx), loaded only when this screen is, through which the founder —
+ * and nobody else, and only while the service has it switched on by hand — may read the two Azure
+ * keys' metadata and reveal either with a fresh authenticator code. This file draws the region it
+ * sits in and nothing of it. */
+
+/* Founder access (packages/catalog/founder-access.json), the one exception to "no key on this screen":
+   the founder, signed in with two factors, may reveal the two Azure keys with a fresh code each time.
+   It arrives on a dynamic import of its own, so opening this tab without it costs nothing, and every
+   control on it is the service's to refuse. */
+const FounderAccessPanel = lazy(() => import('./founder/FounderAccess').then(m => ({ default: m.FounderAccessPanel })));
 
 const tierLabel = (id: string | null) => id === null ? g1.modelProviders.residencyUnassigned : providers.residencyTiers.find(t => t.id === id)?.label ?? id;
 
@@ -47,6 +61,10 @@ export function ModelProvidersScreen() {
     </article> };
    })}/>
    <p className="helper">{providers.residencyToday.sentence}</p>
+  </Region>
+
+  <Region title={founder.words.heading}>
+   <Suspense fallback={<p className="helper">{founder.words.checking}</p>}><FounderAccessPanel/></Suspense>
   </Region>
 
   <Region title={words.keyEntryHeading}>

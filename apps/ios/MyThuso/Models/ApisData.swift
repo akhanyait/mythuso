@@ -280,6 +280,10 @@ enum ApisData {
     static let postHandoverSubmitV3 = Route(id: "postHandoverSubmitV3", method: "POST", path: "/v1/handover/submit", mountedPath: "/assistant/v1/handover/submit", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postKnowledgeSearchV2 = Route(id: "postKnowledgeSearchV2", method: "POST", path: "/v1/knowledge/search", mountedPath: "/assistant/v1/knowledge/search", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
     static let getStatusV2 = Route(id: "getStatusV2", method: "GET", path: "/v1/status", mountedPath: "/assistant/v1/status", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postFounderSession = Route(id: "postFounderSession", method: "POST", path: "/v1/founder/session", mountedPath: "/assistant/v1/founder/session", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
+    static let deleteFounderSession = Route(id: "deleteFounderSession", method: "DELETE", path: "/v1/founder/session", mountedPath: "/assistant/v1/founder/session", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
+    static let getFounderKeys = Route(id: "getFounderKeys", method: "GET", path: "/v1/founder/keys", mountedPath: "/assistant/v1/founder/keys", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postFounderReveal = Route(id: "postFounderReveal", method: "POST", path: "/v1/founder/reveal", mountedPath: "/assistant/v1/founder/reveal", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
 
     static let routes: [Route] = [
         postCoreEvents,
@@ -539,7 +543,11 @@ enum ApisData {
         postHandoverPrepareV3,
         postHandoverSubmitV3,
         postKnowledgeSearchV2,
-        getStatusV2
+        getStatusV2,
+        postFounderSession,
+        deleteFounderSession,
+        getFounderKeys,
+        postFounderReveal
     ]
 
     struct PostCoreEventsRequest {
@@ -2841,5 +2849,32 @@ enum ApisData {
         let production: Bool
         let activated: Bool
         let speech: Bool
+    }
+    struct PostFounderSessionRequest {
+        let password: String
+        let code: String
+    }
+    struct PostFounderSessionResponse {
+        let signedIn: Bool
+        let expiresAt: String
+    }
+    struct DeleteFounderSessionRequest {}
+    struct DeleteFounderSessionResponse {
+        let signedIn: Bool
+    }
+    struct GetFounderKeysRequest {}
+    struct GetFounderKeysResponse {
+        let keys: [[String: Any]]
+        let expiresAt: String
+    }
+    struct PostFounderRevealRequest {
+        let name: String
+        let code: String
+    }
+    struct PostFounderRevealResponse {
+        let name: String
+        let revealedKey: String
+        let lastFour: String
+        let fingerprint: String
     }
 }

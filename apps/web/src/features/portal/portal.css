@@ -210,3 +210,22 @@
 .portal .g1-cost { margin: 0; }
 .portal .g1-details { margin-top: var(--space-12); }
 .portal .g1-details > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 500; color: var(--charcoal); }
+
+/* ---- Founder access (packages/catalog/founder-access.json) -------------------------------------
+   The one live form on the GilbertOne screens. Every colour is a token; the revealed key breaks
+   anywhere so a long key never scrolls a phone sideways; every control is at least 44px. */
+.portal .g1-founder { display: flex; flex-direction: column; gap: var(--space-12); min-width: 0; }
+.portal .g1-founder-session { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12); }
+.portal .g1-founder-session p { margin: 0; color: var(--charcoal); }
+.portal .g1-founder-keys { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-12); }
+.portal .g1-founder-key { padding: var(--space-16); border-radius: var(--r-card); border: 1px solid var(--pane-line); background: var(--pane); color: var(--charcoal); min-width: 0; }
+.portal .g1-founder-key-name { margin: 0 0 var(--space-8); display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: baseline; }
+.portal .g1-founder-form { margin-top: var(--space-12); }
+.portal .g1-founder-button { min-height: 44px; min-width: 44px; padding: var(--space-8) var(--space-16); display: inline-flex; align-items: center; gap: var(--space-8); font-size: 15px; }
+.portal .g1-founder-button svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.portal .g1-founder-revealed { display: flex; flex-direction: column; gap: var(--space-8); margin-top: var(--space-12); }
+.portal .g1-founder-secret { display: block; padding: var(--space-8) var(--space-12); border-radius: var(--r-control); background: var(--cloud); color: var(--ink); font-size: 15px; overflow-wrap: anywhere; word-break: break-all; }
+.portal .g1-founder-refusal { margin: 0; padding: var(--space-8) var(--space-12); border-radius: var(--r-control); background: var(--mango-soft); color: var(--ink); font-size: 14px; line-height: 1.5; }
+.portal .g1-founder-note { margin: var(--space-8) 0 0; color: var(--charcoal); font-size: 14px; }
+.portal .g1-founder-details { margin-top: var(--space-12); }
+.portal .g1-founder-details > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 500; color: var(--charcoal); }

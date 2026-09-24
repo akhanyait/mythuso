@@ -1,0 +1,119 @@
+{
+  "_note": "Founder access: a sign-in for the founder alone, and a guarded reveal of the two Azure keys the assistant service holds, in the Control Tower's GilbertOne screens. Every number and every name the feature runs on lives here once — the service (apps/assistant-api/src/lib/founder-access.ts), the provisioning script (deploy/ops/configure-founder-access.sh, which cannot read JSON on the box and is held to these values by scripts/check-boundaries.mjs) and the screen (apps/web/src/lib/founder-access.ts) all read it. The refusal sentences are the routes' own, in packages/catalog/apis/assistant.json. It is dark by default: nothing a deploy does can switch it on, and the four routes refuse until the service's environment carries both the enable line and a credential. docs/governance/FOUNDER-ACCESS.md is the account of what it is and what it is not.",
+  "decision": {
+    "by": "Founder",
+    "on": "2026-09-24",
+    "what": "A founder login and a guarded eye reveal of the two Azure keys in the Control Tower, built production-grade and dark by default.",
+    "amends": "docs/PROMPT-CONTROL-TOWER-UI.md §1 (\"API keys never reach the browser in full\") and §12 (\"Do not reveal a full key to the browser\") for exactly one caller — the founder, signed in with a password and an authenticator code, typing a fresh code for each reveal — and exactly two keys. Every other administration screen, every other key and every other person is held to §1 and §12 unchanged.",
+    "why": "The founder holds the Azure resources and is the one person who re-enters a key when one is malformed (docs/governance/ASSISTANT-ACTIVATION.md: the speech key stored on 22 September was 140 characters with spaces in it). Reading the key back without a terminal on the box is what was asked for; the controls below are what make it something other than a key on a web page."
+  },
+  "enable": {
+    "variable": "MYTHUSO_FOUNDER_ACCESS",
+    "value": "enabled",
+    "file": "/etc/mythuso/founder.env",
+    "why": "The switch is its own line, written by hand, exactly as the production acknowledgement is: configure-founder-access.sh writes the credential and never this line, and no deploy writes either file. A credential typed and a feature switched on are two decisions, taken as two acts."
+  },
+  "credential": {
+    "file": "/etc/mythuso/founder.env",
+    "passwordHashVariable": "MYTHUSO_FOUNDER_PASSWORD_HASH",
+    "totpSecretVariable": "MYTHUSO_FOUNDER_TOTP_SECRET",
+    "passwordMinimumLength": 14,
+    "scrypt": {
+      "log2N": 17,
+      "r": 8,
+      "p": 1,
+      "keyLength": 64,
+      "saltBytes": 16,
+      "format": "scrypt:<log2N>:<r>:<p>:<salt, base64url>:<derived key, base64url>",
+      "why": "scrypt from node:crypto, at the parameters OWASP's password storage guidance gives as its floor for scrypt (N = 2^17, r = 8, p = 1): 128 MiB and a noticeable fraction of a second per guess, paid only on a sign-in the lockout has not already refused. The parameters travel inside the stored hash, so a stronger hash written later is read without a code change; the service refuses to treat anything weaker than these as a credential at all. The separator is a colon, not a dollar sign, because the hash lives in a systemd EnvironmentFile and a dollar sign there is a character somebody will one day expect to be expanded."
+    },
+    "totpSecretBytes": 20,
+    "_totpSecretBytesWhy": "Twenty random bytes, base32-encoded — RFC 4226's recommendation for HMAC-SHA1 and exactly what apps/api/src/totp.ts's generateSecret() issues. The service refuses a shorter secret."
+  },
+  "totp": {
+    "implementation": "apps/api/src/totp.ts",
+    "codeDigits": 6,
+    "stepSeconds": 30,
+    "driftSteps": 1,
+    "why": "RFC 6238 through the identity service's own implementation, imported rather than written again: one TOTP in this repository, checked against the RFC's vectors in one place. The three numbers are that module's DIGITS, STEP_SECONDS and DRIFT_STEPS, repeated here only because the screen cannot import a module that needs node:crypto — scripts/check-boundaries.mjs fails the build when they disagree. Every accepted code is burned: the step it came from, and every step before it, is refused afterwards."
+  },
+  "session": {
+    "cookie": "__Host-mythuso_founder",
+    "idBytes": 32,
+    "lifetimeSeconds": 900,
+    "attributes": ["HttpOnly", "Secure", "SameSite=Strict", "Path=/"],
+    "concurrent": 1,
+    "why": "A random 256-bit id, held in the service's memory only — a restart signs the founder out, and nothing about a session is ever written down. Fifteen minutes from sign-in and not a second more: there is no renewal, because a session that renews itself is one that outlives the person who opened it. One session at a time: a new sign-in ends the previous one. The __Host- prefix makes the browser refuse the cookie unless it is Secure, has Path=/ and names no Domain, so no other name under mythuso.co.za can set or read it; HttpOnly keeps it from every script, SameSite=Strict from every other site's page."
+  },
+  "lockout": {
+    "consecutiveFailures": 5,
+    "lockSeconds": 900,
+    "why": "Five consecutive failures — a wrong password, a wrong or reused code at sign-in, or a wrong or reused code at a reveal — lock founder access for fifteen minutes, for the whole account rather than per address, because there is one account and an attacker has as many addresses as they like. The lock ends every open session. It is refused before any password is hashed, so it is also what keeps a stranger from spending the box's memory on scrypt. The price is that a stranger can keep the founder locked out: that is the residual risk docs/governance/FOUNDER-ACCESS.md records, and it is the right way round."
+  },
+  "request": {
+    "header": "X-MyThuso-Founder",
+    "headerValue": "1",
+    "secFetchSite": "same-origin",
+    "why": "Every founder route refuses a request that does not carry the custom header, or whose Sec-Fetch-Site is present and anything but same-origin. A page on another site cannot send the header without a CORS preflight, and the service's origin policy grants no such header to anybody (lib/origin-policy.ts allows content-type alone), so a cross-site form or fetch is refused before a password is read. The cookie's SameSite=Strict is the second lock on the same door."
+  },
+  "reveal": {
+    "allowlist": ["AZURE_OPENAI_KEY", "AZURE_SPEECH_KEY"],
+    "fingerprintHexLength": 16,
+    "lastCharacters": 4,
+    "wipeAfterSeconds": 30,
+    "why": "Exactly two names, and a name outside them is refused before the environment is read: never the password hash, never the TOTP secret, never an endpoint, never anything a future line in an env file might hold. The fingerprint is the first sixteen hex characters of the key's SHA-256 — the same sixteen configure-assistant-env.sh prints and the register records — so the founder can compare without revealing. A revealed key lives in one React component's state and is wiped after thirty seconds, on sign-out, when the tab is hidden and when the screen is left."
+  },
+  "keys": [
+    {
+      "name": "AZURE_OPENAI_KEY",
+      "card": "azure-openai",
+      "label": "Azure OpenAI key"
+    },
+    {
+      "name": "AZURE_SPEECH_KEY",
+      "card": "azure-speech",
+      "label": "Azure Speech key"
+    }
+  ],
+  "routes": {
+    "prefix": "/assistant",
+    "session": "/v1/founder/session",
+    "keys": "/v1/founder/keys",
+    "reveal": "/v1/founder/reveal"
+  },
+  "audit": {
+    "events": ["founder.sign-in", "founder.sign-out", "founder.keys", "founder.reveal"],
+    "why": "One line per sign-in attempt, sign-out, metadata read and reveal, each carrying the event, the outcome, and — for a reveal — the key's name and fingerprint prefix. Never a password, a code, a cookie or a value: the line is built by one function whose parameters cannot carry any of them."
+  },
+  "words": {
+    "heading": "Founder access",
+    "intro": "The founder may sign in here and reveal the two Azure keys the assistant service holds, one at a time, with a fresh authenticator code for each. Nobody else can, and nothing on this panel is stored in the browser.",
+    "checking": "Asking the assistant service whether founder access is switched on…",
+    "notAnswered": "The assistant service did not answer, so founder access cannot be reached from here.",
+    "signInHeading": "Sign in as the founder",
+    "passwordLabel": "Password",
+    "codeLabel": "Authenticator code",
+    "codeHint": "The code your authenticator app shows now. Each code works once.",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "signOut": "Sign out",
+    "signedIn": "Signed in as the founder. The session ends by itself {minutes} minutes after sign-in.",
+    "setLabel": "On the server",
+    "lastFourLabel": "Last four",
+    "present": "Present",
+    "absent": "Not set on the server",
+    "fingerprint": "SHA-256",
+    "revealHeading": "Reveal",
+    "revealCodeLabel": "Fresh authenticator code",
+    "revealCodeHint": "A code you have not used yet — wait for your app to show the next one if you have just signed in.",
+    "reveal": "Reveal",
+    "revealing": "Revealing…",
+    "show": "Show key",
+    "hide": "Hide key",
+    "copy": "Copy",
+    "copied": "Copied. Clear your clipboard when you are done with it.",
+    "copyFailed": "The browser would not copy it.",
+    "wipes": "This key is wiped from the screen after {seconds} seconds, when you sign out, when you leave this screen and when the tab is hidden.",
+    "wiped": "The key was wiped from the screen."
+  }
+}

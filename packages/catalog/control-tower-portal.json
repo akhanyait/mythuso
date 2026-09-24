@@ -402,7 +402,7 @@
    "previewAccepted": "Nothing in this sentence looks like a person's details."
   },
   "modelProviders": {
-   "keyRegistryEmpty": "There is no key metadata to show, because no key registry exists: the vault and the metadata store the plan names are named-but-absent. No field on this screen accepts a key and none displays one — not in full, not in part.",
+   "keyRegistryEmpty": "There is no key metadata to show from a registry, because none exists: the vault and the metadata store the plan names are named-but-absent. No field on this screen accepts a key. None displays one, except founder access below, which shows the two Azure keys to the signed-in founder alone.",
    "keyEntryHeading": "Entering a key, as the contract draws it",
    "keyFieldLabel": "API key",
    "residencyUnassigned": "Unassigned",
@@ -528,7 +528,7 @@
   },
   {
    "id": "no-key-on-an-admin-screen",
-   "statement": "No administration screen accepts, shows or keeps a key, a fragment of one or a deployment's address. The only key field drawn is disabled, and there is no key metadata to show because no key registry exists.",
+   "statement": "No administration screen accepts, shows or keeps a key, a fragment of one or a deployment's address, with one exception: founder access, through which the founder alone — signed in with a password and an authenticator code, while the service has it switched on by hand — may reveal the two Azure keys, one at a time, with a fresh code. The only key-entry field drawn is disabled, and there is no key registry to show metadata from.",
    "why": "§1: API keys never reach the browser. The vault is the security boundary and does not exist, so the honest screen is one with nowhere to type a key and nothing about one to read."
   }
  ],
