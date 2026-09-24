@@ -112,6 +112,12 @@ Each phase is independently verifiable and committable. Run `node scripts/check-
 
 **Total: ~16–20 batches.** At a credit-smart pace (no re-exploration, reuse existing primitives from `Surface.tsx` / `Chart.tsx` / `ChartMotion.tsx` / `motion.ts` / `Controls.tsx`), this is multi-session work. Each batch ends with checks green + a commit, so any session resumes cold.
 
+### Phase 5 progress — 24 Sep 2026
+
+**Shipped:** the Intelligence level selector, as `GatedSlider` in `gilbertone/Controls.tsx` — a `role="slider"` div (not an `<input>`, which the boundary check forbids a value on and which would rest at its midpoint) whose ends are `intelligence-levels.json`'s own, resting at the locked level, `aria-disabled` and described by G31. The thumb is placed by a `--pt-ratio` the sheet turns into a percentage, so no GilbertOne screen types a digit but a 0 or a 1. Committed `361840ba`; `gilbertone-admin.spec.ts` (24) and `control-tower-portal.spec.ts` (38) green.
+
+**Blocked — the Voice configurator (sliders + toggles) cannot be drawn honestly yet.** `voice.json#parameters.tts` points rate and pitch at `user-preferences.json#axes`, and both axes hold `bounds: null` with `_boundsWhy: "Not decided… a range written here before anybody has listened at the edges is a number nobody tested"` and `builtToday: false`. A slider needs ends; inventing them would type a number the contract deliberately refuses to hold. The toggles are refused too: the `captions` axis says `userMayTurnOff: false` and "Listed so nobody builds a toggle for it", and `mute` is the device's and the playback switch's, not a tenant setting. So the Voice screen correctly renders its parameters as text with their reasons. **Drawing Voice sliders/toggles is a contract change** (add bounds to the axes, decide the toggles) — a founder decision that also triggers regeneration of the derived artifacts. Until then the Voice screen stays as it is.
+
 ## Credit-smart notes
 
 - The full codebase picture is in this spec + the research report from 24 Sep. **Do not re-explore** — read this file, read the named source file, edit, verify, commit.
