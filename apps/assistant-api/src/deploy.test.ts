@@ -35,6 +35,12 @@ const SCRIPT = resolve(
 );
 const ENDPOINT = "https://assistant-fixture.invalid";
 const KEY = "fixture-key-0123456789abcdef";
+/* The Azure Speech pair the natural cloud voice reads (AZURE_SPEECH_REGION / AZURE_SPEECH_KEY).
+   Synthetic on the same discipline as the OpenAI fixtures: a region that is a bare lowercase label
+   and a key that is a fixed nonsense token, so scripts/check-boundaries.mjs still sees no concrete
+   Azure URL and no credential-shaped value in this file. */
+const SPEECH_REGION = "fixture-region-1";
+const SPEECH_KEY = "fixture-speech-key-0123456789abcdef";
 
 /* The script, run in its test mode with `input` on stdin — the three prompts answered the way a
    person at a terminal would answer them, in order. */
@@ -97,7 +103,7 @@ test("reports the key only as its fingerprint — the value never appears in the
       .digest("hex")
       .slice(0, 16);
     assert.ok(
-      result.stdout.includes("Key fingerprint: " + fingerprint),
+      result.stdout.includes("OpenAI key fingerprint: " + fingerprint),
       "the fingerprint is the SHA-256 the register records, computed the same way on both sides",
     );
   } finally {
@@ -238,6 +244,151 @@ test(
     );
   },
 );
+
+/* ── Azure Speech: the natural cloud voice's own credential ─────────────────────────────────
+
+   Added with the voice provisioning path on 23 September 2026. The cloud voice (POST
+   /assistant/v1/speak) reads AZURE_SPEECH_REGION and AZURE_SPEECH_KEY; without them the service
+   answers speech-not-configured and the panel falls back to the browser's robotic voice — the fault
+   this provisioning path exists to end. These hold the script's Speech behaviour to the same
+   standard as its OpenAI behaviour: the pair lands in the one 0600 file, the key is never echoed,
+   a half-entered pair is refused, and a run that skips Speech cannot drop a voice already there. */
+
+test("writes the Azure Speech pair at mode 0600, the region echo-on and the key hidden", () => {
+  const box = sandbox();
+  try {
+    const result = run(
+      `${ENDPOINT}\n${KEY}\n\n${SPEECH_REGION}\n${SPEECH_KEY}\n`,
+      box.file,
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(
+      statSync(box.file).mode & 0o777,
+      0o600,
+      "the Speech key lands in the same root-only file as the OpenAI key",
+    );
+    assert.deepEqual(
+      readFileSync(box.file, "utf8").split("\n").filter(Boolean),
+      [
+        "AZURE_OPENAI_ENDPOINT=" + ENDPOINT,
+        "AZURE_OPENAI_KEY=" + KEY,
+        "AZURE_OPENAI_MODEL=gpt-4.1-mini",
+        "AZURE_SPEECH_REGION=" + SPEECH_REGION,
+        "AZURE_SPEECH_KEY=" + SPEECH_KEY,
+      ],
+      "the three OpenAI lines then the two Speech lines, in the order the service was configured",
+    );
+    assert.ok(
+      !result.stdout.includes(SPEECH_KEY),
+      "the Speech key must never be echoed",
+    );
+    assert.ok(
+      !result.stderr.includes(SPEECH_KEY),
+      "nor reach the error stream either",
+    );
+    const fingerprint = createHash("sha256")
+      .update(SPEECH_KEY)
+      .digest("hex")
+      .slice(0, 16);
+    assert.ok(
+      result.stdout.includes("Speech key fingerprint: " + fingerprint),
+      "the register records the Speech fingerprint, computed the same way, never the key",
+    );
+  } finally {
+    box.done();
+  }
+});
+
+test("refuses a Speech region given with no key, and writes nothing at all", () => {
+  const box = sandbox();
+  try {
+    const result = run(`${ENDPOINT}\n${KEY}\n\n${SPEECH_REGION}\n\n`, box.file);
+    assert.equal(
+      result.status,
+      1,
+      "a half-entered Speech pair could never work — it is refused, not written",
+    );
+    assert.ok(
+      !existsSync(box.file),
+      "a refused run leaves no file behind, exactly as the OpenAI refusals do",
+    );
+    assert.ok(!result.stdout.includes(SPEECH_REGION));
+  } finally {
+    box.done();
+  }
+});
+
+test("refuses a Speech region that is not a bare lowercase label", () => {
+  const box = sandbox();
+  try {
+    /* The region is interpolated into the Speech endpoint's host name, so it is held to a bare
+       label — the same reason the OpenAI endpoint is held to a host name. */
+    const result = run(
+      `${ENDPOINT}\n${KEY}\n\nnot a region!\n${SPEECH_KEY}\n`,
+      box.file,
+    );
+    assert.equal(
+      result.status,
+      1,
+      "a region that is not a label could build no valid host",
+    );
+    assert.ok(!existsSync(box.file));
+  } finally {
+    box.done();
+  }
+});
+
+test("skipping Speech leaves any AZURE_SPEECH_ lines already in the file untouched", () => {
+  const box = sandbox();
+  try {
+    writeFileSync(
+      box.file,
+      "AZURE_SPEECH_REGION=an-old-region\nAZURE_SPEECH_KEY=an-old-speech-key-value\n",
+      { mode: 0o600 },
+    );
+    const result = run(`${ENDPOINT}\n${KEY}\n\n\n`, box.file);
+    assert.equal(result.status, 0, result.stderr);
+    const lines = readFileSync(box.file, "utf8").split("\n").filter(Boolean);
+    assert.ok(
+      lines.includes("AZURE_SPEECH_REGION=an-old-region"),
+      "a run that only refreshes the OpenAI pair cannot silently drop a working voice",
+    );
+    assert.ok(lines.includes("AZURE_SPEECH_KEY=an-old-speech-key-value"));
+    assert.ok(lines.includes("AZURE_OPENAI_ENDPOINT=" + ENDPOINT));
+  } finally {
+    box.done();
+  }
+});
+
+test("writing a new Speech pair replaces the old one rather than duplicating it", () => {
+  const box = sandbox();
+  try {
+    writeFileSync(
+      box.file,
+      "QDRANT_URL=https://vector.invalid\nAZURE_SPEECH_REGION=an-old-region\nAZURE_SPEECH_KEY=an-old-speech-key-value\n",
+      { mode: 0o600 },
+    );
+    const result = run(
+      `${ENDPOINT}\n${KEY}\n\n${SPEECH_REGION}\n${SPEECH_KEY}\n`,
+      box.file,
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(
+      readFileSync(box.file, "utf8").split("\n").filter(Boolean),
+      [
+        "QDRANT_URL=https://vector.invalid",
+        "AZURE_OPENAI_ENDPOINT=" + ENDPOINT,
+        "AZURE_OPENAI_KEY=" + KEY,
+        "AZURE_OPENAI_MODEL=gpt-4.1-mini",
+        "AZURE_SPEECH_REGION=" + SPEECH_REGION,
+        "AZURE_SPEECH_KEY=" + SPEECH_KEY,
+      ],
+      "the hand-written line survives, the old Speech pair is gone, the new one is written once",
+    );
+  } finally {
+    box.done();
+  }
+});
 
 /* ── The deploy's wiring and the edge ────────────────────────────────────────────────────────────
 

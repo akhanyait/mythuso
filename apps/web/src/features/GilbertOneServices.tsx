@@ -9,6 +9,7 @@ import {
   UserRound,
 } from "lucide-react";
 import ui from "../../../../packages/catalog/assistant-chat-ui.json";
+import { NotConnected } from "../components/NotConnected";
 import {
   fetchStatus,
   prepareHandover,
@@ -97,6 +98,61 @@ function Refusal({ refusal }: { readonly refusal: ServiceRefusal }) {
   );
 }
 
+/* The status readout, shared by the conversation region below and the first tab's capability list so
+   the four facts (cloud model, local model, production, acknowledgement) are rendered one way and
+   cannot drift between the two surfaces. `idle` is the button that fetches them, `loading` the
+   promise in flight, and the rest is what the service's own status route answered — a refusal in its
+   own words, or the booleans. It reads the same route the voice readiness check does, so a person
+   who presses it sees the truth the panel is already acting on. */
+type StatusState = "idle" | "loading" | StatusAnswer | ServiceRefusal;
+
+function StatusReadout({
+  status,
+  onCheck,
+}: {
+  readonly status: StatusState;
+  readonly onCheck: () => void;
+}) {
+  if (status === "idle")
+    return (
+      <button type="button" className="gos-button" onClick={onCheck}>
+        <Radio size={16} aria-hidden="true" />
+        {copy.statusButton}
+      </button>
+    );
+  if (status === "loading")
+    return (
+      <p className="gos-loading" role="status">
+        {copy.statusButton}…
+      </p>
+    );
+  if (!status.ok) return <Refusal refusal={status} />;
+  const rows: [string, boolean][] = [
+    [copy.statusAzure, status.azure],
+    [copy.statusOllama, status.ollama],
+    [copy.statusProduction, status.production],
+    [copy.statusActivated, status.activated],
+  ];
+  return (
+    <div className="gos-status-read">
+      <dl className="gos-status-list">
+        {rows.map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd data-yes={value || undefined}>
+              {value ? copy.statusYes : copy.statusNo}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <p className="gos-note">{copy.statusGated}</p>
+      <button type="button" className="gos-button subtle" onClick={onCheck}>
+        {copy.statusRecheck}
+      </button>
+    </div>
+  );
+}
+
 export function GilbertOneServices({
   sessionId,
   audience,
@@ -138,7 +194,8 @@ export function GilbertOneServices({
   const beginAssessment = useCallback(() => {
     setAssessment({ state: "loading" });
     void startTriage(sessionId).then((result) => {
-      if (result.ok) setAssessment({ state: "active", triage: result, step: null });
+      if (result.ok)
+        setAssessment({ state: "active", triage: result, step: null });
       else setAssessment({ state: "refused", refusal: result });
     });
   }, [sessionId]);
@@ -176,44 +233,17 @@ export function GilbertOneServices({
      not offered a guided assessment or a clinician handover from here. */
   if (audience !== "patient" || !consented) return null;
 
-  const statusView = () => {
-    if (status === "idle")
-      return (
-        <button type="button" className="gos-button" onClick={checkStatus}>
-          <Radio size={16} aria-hidden="true" />
-          {copy.statusButton}
-        </button>
-      );
-    if (status === "loading")
-      return <p className="gos-loading" role="status">{copy.statusButton}…</p>;
-    if (!status.ok) return <Refusal refusal={status} />;
-    const rows: [string, boolean][] = [
-      [copy.statusAzure, status.azure],
-      [copy.statusOllama, status.ollama],
-      [copy.statusProduction, status.production],
-      [copy.statusActivated, status.activated],
-    ];
-    return (
-      <div className="gos-status-read">
-        <dl className="gos-status-list">
-          {rows.map(([label, value]) => (
-            <div key={label}>
-              <dt>{label}</dt>
-              <dd data-yes={value || undefined}>{value ? copy.statusYes : copy.statusNo}</dd>
-            </div>
-          ))}
-        </dl>
-        <p className="gos-note">{copy.statusGated}</p>
-        <button type="button" className="gos-button subtle" onClick={checkStatus}>
-          {copy.statusRecheck}
-        </button>
-      </div>
-    );
-  };
+  const statusView = () => (
+    <StatusReadout status={status} onCheck={checkStatus} />
+  );
 
   const knowledgeView = () => {
     if (knowledge === "loading")
-      return <p className="gos-loading" role="status">{copy.knowledgeButton}…</p>;
+      return (
+        <p className="gos-loading" role="status">
+          {copy.knowledgeButton}…
+        </p>
+      );
     if (knowledge === "idle") return null;
     if (!knowledge.ok) return <Refusal refusal={knowledge} />;
     if (!knowledge.sources.length)
@@ -246,7 +276,11 @@ export function GilbertOneServices({
 
   const assessmentView = () => {
     if (assessment.state === "loading")
-      return <p className="gos-loading" role="status">{copy.triageAccept}…</p>;
+      return (
+        <p className="gos-loading" role="status">
+          {copy.triageAccept}…
+        </p>
+      );
     if (assessment.state === "active") {
       /* Reached only if the triage gate ever opens on a ratified protocol. The question is the
          protocol's own, carried through the client; the answer step is wired but the gate answers
@@ -257,9 +291,7 @@ export function GilbertOneServices({
       return (
         <div className="gos-triage-active">
           <p className="gos-question">{question}</p>
-          <p className="gos-note">
-            {copy.triageOfferBody}
-          </p>
+          <p className="gos-note">{copy.triageOfferBody}</p>
         </div>
       );
     }
@@ -283,7 +315,11 @@ export function GilbertOneServices({
 
   const handoverView = () => {
     if (handover.state === "loading")
-      return <p className="gos-loading" role="status">{copy.handoverPrepareButton}…</p>;
+      return (
+        <p className="gos-loading" role="status">
+          {copy.handoverPrepareButton}…
+        </p>
+      );
     if (handover.state === "refused") {
       /* A session with nothing to hand over, or a service that did not answer: either way the
          person reads the reason, and the device prompt below explains the gate that keeps a real
@@ -341,7 +377,9 @@ export function GilbertOneServices({
             <Refusal refusal={submit.refusal} />
           </div>
         ) : submit.state === "sent" ? (
-          <p className="gos-note" role="status">{copy.handoverSubmittedHeading}</p>
+          <p className="gos-note" role="status">
+            {copy.handoverSubmittedHeading}
+          </p>
         ) : (
           <button
             type="button"
@@ -350,7 +388,9 @@ export function GilbertOneServices({
             disabled={submit.state === "loading"}
           >
             <Stethoscope size={16} aria-hidden="true" />
-            {submit.state === "loading" ? `${copy.handoverSubmitButton}…` : copy.handoverSubmitButton}
+            {submit.state === "loading"
+              ? `${copy.handoverSubmitButton}…`
+              : copy.handoverSubmitButton}
           </button>
         )}
       </div>
@@ -378,7 +418,11 @@ export function GilbertOneServices({
               </p>
               <p className="gos-lead">{copy.triageOfferBody}</p>
               <div className="gos-actions">
-                <button type="button" className="gos-button" onClick={beginAssessment}>
+                <button
+                  type="button"
+                  className="gos-button"
+                  onClick={beginAssessment}
+                >
                   {copy.triageAccept}
                 </button>
                 <button
@@ -397,7 +441,10 @@ export function GilbertOneServices({
         </div>
       )}
 
-      <details className="gos-block" open={handover.state !== "idle" || undefined}>
+      <details
+        className="gos-block"
+        open={handover.state !== "idle" || undefined}
+      >
         <summary>
           <UserRound size={16} aria-hidden="true" />
           {copy.handoverHeading}
@@ -439,6 +486,74 @@ export function GilbertOneServices({
           )}
         </details>
       )}
+    </section>
+  );
+}
+
+/* The first tab's consolidated capability list. The welcome surface used to leave a person guessing
+   about what GilbertOne is wired to: the status, the gated assessment, the nurse summary, the device
+   gate, the sources and the voice note were scattered across collapsed <details> blocks that only
+   appear once a conversation has begun, plus a voice disclosure folded away at the foot of the panel.
+   This is the one visible list that names all six up front, in the catalogue's own sentences
+   (ui.service and ui.voiceDetails) — not one word of it is typed here. It is orientation rather than
+   action: the only live control is “Check what is connected”, which reads the service's own status
+   route; the conversation-scoped actions (preparing a handover, seeing the sources, starting an
+   assessment) stay in GilbertOneServices beside the transcript they belong to, and are named here
+   only so the person knows they exist and where the honest limits are. Nothing is softened: an
+   unavailable capability says it is unavailable, in the contract's words. */
+export function GilbertOneCapabilities() {
+  const [status, setStatus] = useState<StatusState>("idle");
+  const checkStatus = useCallback(() => {
+    setStatus("loading");
+    void fetchStatus().then(setStatus);
+  }, []);
+  return (
+    <section className="gos-capabilities" aria-label={copy.regionLabel}>
+      <ul className="gos-capability-list">
+        <li className="gos-capability">
+          <p className="gos-capability-heading">
+            <Radio size={15} aria-hidden="true" />
+            {copy.statusHeading}
+          </p>
+          <p className="gos-capability-body">{copy.statusLead}</p>
+          <StatusReadout status={status} onCheck={checkStatus} />
+        </li>
+        <li className="gos-capability">
+          <p className="gos-capability-heading">
+            <HeartPulse size={15} aria-hidden="true" />
+            {copy.triageRefusedHeading}
+          </p>
+          <p className="gos-capability-body">{copy.nurseOfferBody}</p>
+        </li>
+        <li className="gos-capability">
+          <p className="gos-capability-heading">
+            <UserRound size={15} aria-hidden="true" />
+            {copy.handoverHeading}
+          </p>
+          <p className="gos-capability-body">{copy.handoverReviewLead}</p>
+        </li>
+        <li className="gos-capability">
+          <p className="gos-capability-heading">
+            <Activity size={15} aria-hidden="true" />
+            {copy.vitalsConnectHeading}
+          </p>
+          <p className="gos-capability-body">{copy.vitalsConnectBody}</p>
+        </li>
+        <li className="gos-capability">
+          <p className="gos-capability-heading">
+            <BookOpen size={15} aria-hidden="true" />
+            {copy.knowledgeHeading}
+          </p>
+          <p className="gos-capability-body">{copy.knowledgeLead}</p>
+        </li>
+        <li className="gos-capability">
+          <p className="gos-capability-heading">
+            <Info size={15} aria-hidden="true" />
+            {ui.voiceDetails}
+          </p>
+          <NotConnected of="voice" tone="inline" />
+        </li>
+      </ul>
     </section>
   );
 }

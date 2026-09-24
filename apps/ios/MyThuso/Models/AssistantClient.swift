@@ -32,7 +32,7 @@ enum AssistantApi {
     /// scripts/check-boundaries.mjs. The paths below are the same routes minus method and version.
     static let turnAddress = "POST /assistant/v1/turn@1"
     static let knowledgeSearchAddress = "POST /assistant/v1/knowledge/search@2"
-    static let statusAddress = "GET /assistant/v1/status@1"
+    static let statusAddress = "GET /assistant/v1/status@2"
     /// Push-to-talk's two built addresses travel even though no phone calls them yet: the voice
     /// itself is web-only for now, and scripts/check-boundaries.mjs holds every built /v1 route's
     /// literal to the contract — a client that did not name a route the service answers would be

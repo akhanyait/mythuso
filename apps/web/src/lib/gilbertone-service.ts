@@ -56,6 +56,12 @@ export type StatusAnswer = {
   readonly ollama: boolean;
   readonly production: boolean;
   readonly activated: boolean;
+  /* Whether THIS process read an Azure Speech region and key from its environment — the cloud
+     voice's own truth, added 23 September 2026. It is a separate fact from `activated` (the OpenAI
+     acknowledgement gate): a service can be activated for the language model and still have no
+     speech credential, which is exactly the dark-cloud case that made the panel fall back to the
+     browser's robotic voice. Presence only, never a value. */
+  readonly speech: boolean;
 };
 
 export type KnowledgeSource = {
@@ -177,6 +183,7 @@ export function fetchStatus(): Promise<StatusAnswer | ServiceRefusal> {
       ollama: b.ollama === true,
       production: b.production === true,
       activated: b.activated === true,
+      speech: b.speech === true,
     };
   });
 }
@@ -384,6 +391,35 @@ export type ListenAnswer = {
    held up by a second status call, and a service that answered "not configured" is not asked again. */
 let speechConfigured: boolean | null = null;
 
+/* The cloud voice NAME a caller's "female"/"male" label resolves to, for the reply's own language.
+   The panel chooses the label (lib/voice.ts, CLOUD_VOICE); this maps it to the contract's own voice
+   name for that language — voice.languages[<id>].ttsVoices[<label>] — so an Afrikaans reply is sent
+   an Afrikaans voice and never an English one, which is what sending voice.cloud.voices for every
+   language did before 24 September 2026. A language the contract carries no neural voice for
+   (isiZulu, isiXhosa, Sesotho) falls back to voice.cloud.voices, but the service answers
+   voiceUnavailable for it before any voice is used, so the name is moot there. The label→name
+   mapping stays a decision on file, never a string in this module. */
+function cloudVoiceName(voice: "female" | "male", language: string): string {
+  const asked = language.trim().toLowerCase();
+  type CatalogLanguage = {
+    id: string;
+    recognitionLocales?: string[];
+    ttsAvailable?: boolean;
+    ttsVoices?: { female: string; male: string };
+  };
+  const languages = voicePolicy.languages as CatalogLanguage[];
+  const entry = languages.find(
+    (candidate) =>
+      candidate.id.toLowerCase() === asked ||
+      (candidate.recognitionLocales ?? []).some(
+        (locale) => locale.toLowerCase() === asked,
+      ),
+  );
+  const named =
+    entry && entry.ttsAvailable ? entry.ttsVoices?.[voice] : undefined;
+  return named ?? voicePolicy.cloud.voices[voice];
+}
+
 /** POST /assistant/v1/speak — read `text` aloud in one of the contract's two en-ZA voices and hand
  *  back the audio itself rather than a reference to it. An unreachable service, a refusal and a voice
  *  the service does not have are all one shape back — a ServiceRefusal — so the caller falls through
@@ -398,7 +434,7 @@ export async function speakText(
     post({
       text,
       language,
-      voice: voicePolicy.cloud.voices[voice],
+      voice: cloudVoiceName(voice, language),
       userConsent: true,
     }),
     (body) => {
@@ -467,13 +503,17 @@ export function listenAudio(
 }
 
 /** Whether the cloud voice is worth asking, cached for the session so a reply is never held up by a
- *  second status call. The status route reports the service's reachability and the acknowledgement
- *  gate — not the speech keys, which no route exposes — so a service that is unreachable or not
- *  activated is the honest floor for "not configured", and whether the cloud voice is truly switched
- *  on is settled by the first speak, whose speech-not-configured refusal is remembered above. */
+ *  second status call. Since 23 September 2026 this gates on the status route's own `speech` field —
+ *  the honest reading of whether THIS process was given an Azure Speech region and key — rather than
+ *  on `activated`, which is the OpenAI acknowledgement gate and said nothing about speech. Gating on
+ *  `activated` was the bug behind the robotic voice: an activated service with no speech credential
+ *  read as "configured", so the panel asked the cloud, met the 501, and fell back to the browser's
+ *  voice on every reply. A service that is unreachable answers `speech:false`, the honest floor, and
+ *  whether the cloud voice is truly switched on is still settled for certain by the first speak,
+ *  whose speech-not-configured refusal is remembered above. */
 export async function isSpeechConfigured(): Promise<boolean> {
   if (speechConfigured !== null) return speechConfigured;
   const status = await fetchStatus();
-  speechConfigured = status.ok === true && status.activated;
+  speechConfigured = status.ok === true && status.speech;
   return speechConfigured;
 }

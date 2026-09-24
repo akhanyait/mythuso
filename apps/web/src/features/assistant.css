@@ -199,7 +199,6 @@
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 1.4px;
-  text-transform: uppercase;
   color: var(--brand-mint);
 }
 .as-figure {
@@ -328,7 +327,6 @@
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 1.2px;
-  text-transform: uppercase;
   color: var(--brand-mint);
 }
 .as-reasons {
@@ -1849,7 +1847,7 @@
   opacity: 0.6;
 }
 .as-welcome-hero .as-rig {
-  --rig: 176px;
+  --rig: 152px;
 }
 .as-welcome-hero .as-rig text {
   display: none;
@@ -2127,7 +2125,7 @@
     padding: 14px;
   }
   .as-welcome-hero .as-rig {
-    --rig: 114px;
+    --rig: 104px;
   }
   .as-hello {
     font-size: 17px;
@@ -2639,4 +2637,53 @@
 .gos-submit-refused {
   display: grid;
   gap: var(--space-4);
+}
+
+/* ---- GilbertOne first-tab capability list ------------------------------------------------------
+   The welcome surface's consolidated capability list, added 23 September 2026 with the founder's
+   first-tab fix. It names the six capabilities the conversation region above acts on — status, the
+   gated assessment, the clinician summary, the device gate, the sources and voice/privacy — in one
+   visible list rather than folded into collapsed <details> that only appear once a conversation has
+   begun. It reuses the region's tokens and the same top-rule-per-item rhythm as .gos-block, so the
+   two surfaces read as one; the only live control inside it is the status button, which keeps the
+   44px touch target .gos-button already gives it. */
+.gos-capabilities {
+  margin-top: var(--space-16);
+}
+.gos-capability-list {
+  display: grid;
+  gap: var(--space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gos-capability {
+  border-top: 1px solid var(--stone);
+  padding-top: var(--space-12);
+  font-size: 14px;
+  color: var(--brand-ink);
+}
+.gos-capability-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+}
+.gos-capability-heading svg {
+  flex: none;
+  color: var(--brand-mint);
+}
+.gos-capability-body {
+  margin: var(--space-4) 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--brand-ink) 78%, var(--stone));
+}
+.gos-capability .not-connected {
+  margin: var(--space-4) 0 0;
+}
+.gos-capability .gos-button {
+  margin-top: var(--space-8);
 }

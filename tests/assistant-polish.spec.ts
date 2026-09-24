@@ -6,7 +6,8 @@ test('transparent robot blinks, offers one dismissible greeting, and stops with 
  const launcher = page.getByRole('button', { name: 'Ask GilbertOne', exact: true });
  await expect(launcher).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
  await expect(launcher).toHaveCSS('width', '104px');
- await expect(launcher.locator('.al-orb')).toHaveCSS('background-image', /gilbert-robot-v2\.webp/);
+ /* The G1 icon since a314ad8e (23 September 2026), which replaced gilbert-robot-v2.webp on the launcher. */
+ await expect(launcher.locator('.al-orb')).toHaveCSS('background-image', /gilbert-icon\.webp/);
  await expect.poll(() => launcher.locator('.al-orb').evaluate(el => getComputedStyle(el, '::before').animationName)).toBe('al-blink');
  const greeting = page.locator('.assistant-greeting');
  await expect(greeting).toBeVisible({ timeout: 7000 });
@@ -122,6 +123,31 @@ test('compact composer reveals microphone privacy and keeps attachments local', 
  await panel.getByRole('button', { name: 'Remove attachment' }).click();
  await expect(panel.locator('.as-attachment-preview')).toHaveCount(0);
  expect(transfers).toEqual([]);
+});
+
+test('the welcome screen names the six capabilities from the catalogue and gives way once a conversation starts', async ({ page }) => {
+ const ui = JSON.parse(readFileSync(new URL('../packages/catalog/assistant-chat-ui.json', import.meta.url), 'utf8'));
+ const copy = ui.service;
+ await page.goto('/app/?open=assistant');
+ const panel = page.locator('#assistant-panel');
+ await panel.getByRole('checkbox', { name: 'I understand GilbertOne is not a doctor.' }).check();
+ await panel.getByRole('checkbox', { name: 'I know what to do in an emergency.' }).check();
+ await panel.getByRole('button', { name: 'I Accept and Continue' }).click();
+ /* The welcome list and the conversation's own capability region share one accessible name and are
+    never on the screen together, so the list is found by its own class: after a message, the other
+    region arrives lazily under the same name and must not be mistaken for the list staying put. */
+ const region = panel.locator('section.gos-capabilities');
+ await expect(region).toBeVisible();
+ await expect(region).toHaveAttribute('aria-label', copy.regionLabel);
+ await expect(region.locator('.gos-capability')).toHaveCount(6);
+ /* Every heading is the catalogue's own sentence, never one typed into the screen. */
+ for (const heading of [copy.statusHeading, copy.triageRefusedHeading, copy.handoverHeading, copy.vitalsConnectHeading, copy.knowledgeHeading, ui.voiceDetails])
+  await expect(region.locator('.gos-capability-heading', { hasText: heading })).toHaveCount(1);
+ /* The status check is a button the person presses, and nothing is asked of the service before it. */
+ await expect(region.getByRole('button', { name: copy.statusButton })).toBeVisible();
+ await panel.locator('#as-input').fill('Hello');
+ await panel.getByRole('button', { name: 'Send', exact: true }).click();
+ await expect(region).toHaveCount(0);
 });
 
 test('patient suggestions answer the six navigation questions and keep extra symptoms on the safety path', async ({ page }) => {

@@ -23,7 +23,7 @@
    "path": "/health",
    "version": 1,
    "summary": "Whether the assistant service is up, and what it found configured: provider presence, production and the activation gate's own answer.",
-   "callers": ["anonymous"],
+   "callers": [],
    "purpose": ["audit"],
    "request": [],
    "response": [
@@ -33,6 +33,38 @@
     {"field": "ollama", "type": "boolean", "required": true, "why": "Whether the local provider's URL was set, reported the same cheap way, without a probe."},
     {"field": "production", "type": "boolean", "required": true, "why": "Whether the process believes it is in production."},
     {"field": "activated", "type": "boolean", "required": true, "why": "The acknowledgement gate's own answer, so the activation runbook can see it without anything printing a credential."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL, and a health check is no exception."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed",
+   "withdrawn": {
+    "on": "2026-09-24",
+    "supersededBy": "GET /health@2",
+    "why": "The handler began answering `speech` on 23 September 2026 — whether this process read an Azure Speech region and key — and version one was frozen without it. A field on the wire that the contract does not declare is a shape nobody froze, so the answer is version two. Every field version one was frozen with is unchanged there, with the same callers and refusal."
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/health",
+   "version": 2,
+   "summary": "Whether the assistant service is up, and what it found configured: provider presence, production, the activation gate's own answer, and whether the cloud voice has its credentials.",
+   "callers": ["anonymous"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "ok", "type": "boolean", "required": true, "why": "Whether the service answered at all."},
+    {"field": "mode", "type": "string", "required": true, "why": "The mode the service was started in."},
+    {"field": "azure", "type": "boolean", "required": true, "why": "Whether this process read an endpoint and a key for the primary provider from its environment — presence only, never a value."},
+    {"field": "ollama", "type": "boolean", "required": true, "why": "Whether the local provider's URL was set, reported the same cheap way, without a probe."},
+    {"field": "production", "type": "boolean", "required": true, "why": "Whether the process believes it is in production."},
+    {"field": "activated", "type": "boolean", "required": true, "why": "The acknowledgement gate's own answer, so the activation runbook can see it without anything printing a credential."},
+    {"field": "speech", "type": "boolean", "required": true, "why": "Whether this process read an Azure Speech key and a region the service will use (southafricanorth only) — presence only, never a value. Reported apart from `activated` because a service can be activated for the language model with no speech credential, and a panel that could not tell the two apart asked the cloud for a voice it did not have."}
    ],
    "refusals": [
     {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL, and a health check is no exception."}
@@ -868,7 +900,7 @@
    "path": "/v1/status",
    "version": 1,
    "summary": "The service's versioned status address, answering what the health route answers.",
-   "callers": ["anonymous"],
+   "callers": [],
    "purpose": ["audit"],
    "request": [],
    "response": [
@@ -878,6 +910,38 @@
     {"field": "ollama", "type": "boolean", "required": true, "why": "Whether the local provider's URL was set."},
     {"field": "production", "type": "boolean", "required": true, "why": "Whether the process believes it is in production."},
     {"field": "activated", "type": "boolean", "required": true, "why": "The acknowledgement gate's own answer."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed",
+   "withdrawn": {
+    "on": "2026-09-24",
+    "supersededBy": "GET /v1/status@2",
+    "why": "The handler answers what the health route answers, and since 23 September 2026 that includes `speech`, which version one was frozen without. The web panel now decides whether to ask the cloud for a voice from that field, so it is declared at version two rather than left on the wire unfrozen. Every field version one was frozen with is unchanged there, with the same callers and refusal."
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/v1/status",
+   "version": 2,
+   "summary": "The service's versioned status address, answering what the health route answers, including whether the cloud voice has its credentials.",
+   "callers": ["anonymous"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "ok", "type": "boolean", "required": true, "why": "Whether the service answered at all."},
+    {"field": "mode", "type": "string", "required": true, "why": "The mode the service was started in."},
+    {"field": "azure", "type": "boolean", "required": true, "why": "Whether the primary provider was found configured — presence only, never a value."},
+    {"field": "ollama", "type": "boolean", "required": true, "why": "Whether the local provider's URL was set."},
+    {"field": "production", "type": "boolean", "required": true, "why": "Whether the process believes it is in production."},
+    {"field": "activated", "type": "boolean", "required": true, "why": "The acknowledgement gate's own answer."},
+    {"field": "speech", "type": "boolean", "required": true, "why": "Whether this process read an Azure Speech key and a region the service will use (southafricanorth only) — presence only, never a value. The web panel asks the cloud for a voice only when this is true, rather than when `activated` is, which said nothing about speech."}
    ],
    "refusals": [
     {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL."}

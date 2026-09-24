@@ -12,48 +12,132 @@
    --go-blend, which the controller sets per step: 150–300 ms for an ordinary transition and 0 for a
    stop or a safety event, which §04 says may not wait. */
 
-.go-rig { display: block; overflow: visible; --go-blend: var(--t-settle); }
-.go-rig g, .go-rig path, .go-rig ellipse, .go-rig rect {
- transform-box: view-box;
- transition: transform var(--go-blend) var(--ease-soft), opacity var(--go-blend) var(--ease-soft);
+.go-rig {
+  display: block;
+  overflow: visible;
+  --go-blend: var(--t-settle);
+}
+.go-rig g,
+.go-rig path,
+.go-rig ellipse,
+.go-rig rect {
+  transform-box: view-box;
+  transition:
+    transform var(--go-blend) var(--ease-soft),
+    opacity var(--go-blend) var(--ease-soft);
 }
 
 /* Each group turns about the part of the head it belongs to: the neck for a tilt, the eye's own top
    edge for a lid, the mouth's centre for a jaw. An origin left at the default is how a small nod
    becomes a swing. */
-.go-head { transform-origin: 100px 150px; }
-.go-face, .go-brows, .go-eyes { transform-origin: 100px 90px; }
-.go-lid { transform-origin: 80px 76px; }
-.go-lid-right { transform-origin: 120px 76px; }
-.go-mouth-open { transform-origin: 100px 130px; }
+.go-head {
+  transform-origin: 100px 150px;
+}
+.go-face,
+.go-brows,
+.go-eyes {
+  transform-origin: 100px 90px;
+}
+.go-lid {
+  transform-origin: 80px 76px;
+}
+.go-lid-right {
+  transform-origin: 120px 76px;
+}
+.go-mouth-open {
+  transform-origin: 100px 130px;
+}
 
-.go-shadow { fill: color-mix(in srgb, var(--ink) 16%, transparent); }
-.go-shell { fill: var(--surface); stroke: var(--stone); stroke-width: 1.2; }
-.go-ear { fill: var(--brand-green); }
-.go-neck rect { fill: var(--brand-green); }
-.go-collar { fill: var(--brand-mint); }
-.go-visor, .go-lid, .go-mouth-open { fill: var(--brand-ink); }
-.go-eye { fill: var(--brand-mint); }
-.go-brow, .go-mouth-line { fill: none; stroke: var(--brand-mint); stroke-linecap: round; }
-.go-brow { stroke-width: 3.4; }
-.go-mouth-line { stroke-width: 4; }
-.go-accent { fill: var(--brand-orange); }
-.go-lime { fill: var(--brand-lime); }
+.go-shadow {
+  fill: color-mix(in srgb, var(--ink) 16%, transparent);
+}
+.go-shell {
+  fill: var(--surface);
+  stroke: var(--stone);
+  stroke-width: 1.2;
+}
+.go-ear {
+  fill: var(--brand-green);
+}
+.go-neck rect {
+  fill: var(--brand-green);
+}
+.go-collar {
+  fill: var(--brand-mint);
+}
+.go-visor,
+.go-lid,
+.go-mouth-open {
+  fill: var(--brand-ink);
+}
+.go-eye {
+  fill: var(--brand-mint);
+}
+.go-brow,
+.go-mouth-line {
+  fill: none;
+  stroke: var(--brand-mint);
+  stroke-linecap: round;
+}
+.go-brow {
+  stroke-width: 3.4;
+}
+.go-mouth-line {
+  stroke-width: 4;
+}
+.go-accent {
+  fill: var(--brand-orange);
+}
+.go-lime {
+  fill: var(--brand-lime);
+}
 
 /* A blink is faster than a blend and must not be slowed by one: 75 ms shut, 75 ms open, which is the
    150 ms §03 A03 asks for. */
-.go-lid { transition: transform 75ms linear; }
+.go-lid {
+  transition: transform 75ms linear;
+}
 
 /* The second line of defence, after the controller's own. A reader who has asked for less motion
    gets a still character even if a timer somewhere survives — and the character is still a
    character, with an expression, rather than a blank. */
 @media (prefers-reduced-motion: reduce) {
- .go-rig g, .go-rig path, .go-rig ellipse, .go-rig rect { transition: none; }
+  .go-rig g,
+  .go-rig path,
+  .go-rig ellipse,
+  .go-rig rect {
+    transition: none;
+  }
 }
 
-/* The reference robot has a black visor; cyan articulation remains owned by the pose controller. */
-.go-shell { stroke: none; }
-.go-visor, .go-lid, .go-mouth-open { fill: #020b0e; }
-.go-eye { fill: #62fff3; }
-.go-eye-arc { fill: none; stroke: #62fff3; stroke-width: 4; stroke-linecap: round; }
-.go-brow, .go-mouth-line { stroke: #62fff3; }
+/* The character is drawn on a genuine alpha canvas in GilbertAvatar.tsx: a deep-teal head, a light
+   visor plate, green ear pods and one orange antenna, each an explicit fill in the shell group, so
+   nothing here paints a background or a tile. What lives here is the face's own palette, chosen to
+   read against that light plate — deep-teal eyes, brows and mouth, and a lid the colour of the plate
+   so a closed eye is the visor rather than a shutter. The pose controller still owns every transform
+   and every blink; only the colours are stated here. */
+.go-shell {
+  stroke: none;
+}
+.go-visor {
+  fill: var(--brand-ink);
+}
+.go-lid {
+  fill: var(--teal-soft);
+}
+.go-mouth-open {
+  fill: var(--brand-ink);
+}
+.go-eye {
+  fill: var(--brand-ink);
+}
+.go-eye-arc {
+  fill: none;
+  stroke: var(--brand-ink);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.go-brow,
+.go-mouth-line {
+  stroke: var(--brand-ink);
+}

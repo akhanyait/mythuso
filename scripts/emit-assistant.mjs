@@ -267,7 +267,7 @@ export function emitAssistant(root = "") {
     2,
     "the knowledge search",
   );
-  const statusRoute = builtRoute("/v1/status", 1, "the status call");
+  const statusRoute = builtRoute("/v1/status", 2, "the status call");
   const listenRoute = builtRoute(
     "/v1/listen",
     3,

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Type Azure OpenAI credentials into /etc/mythuso/assistant.env with the key never on screen.
+# Type Azure OpenAI credentials — and, optionally, the Azure Speech credential the natural cloud
+# voice needs — into /etc/mythuso/assistant.env, with every key never on screen.
 #
 # Run as root, on the server, by hand:
 #
@@ -62,9 +63,10 @@ fail() { echo "$1" >&2; exit 1; }
 # typo they are about to save. The key is typed with echo off (`read -s`), which is the whole point
 # of this script existing.
 
-say "Azure OpenAI credentials for GilbertOne's second tier."
-say "Nothing you type here is sent anywhere; it is written to $ENV_FILE (0600 root:root) for the"
-say "assistant-api service to read. Ctrl-C at any prompt leaves any existing file untouched."
+say "Azure OpenAI credentials for GilbertOne's second tier, and the Azure Speech credential its"
+say "natural cloud voice reads. Nothing you type here is sent anywhere; it is written to $ENV_FILE"
+say "(0600 root:root) for the assistant-api service to read. Ctrl-C at any prompt leaves any"
+say "existing file untouched."
 say ""
 
 printf 'Azure OpenAI endpoint (https://<resource-name>.openai.azure.com): '
@@ -94,6 +96,45 @@ model=${model:-gpt-4.1-mini}
 printf '%s' "$model" | grep -qE '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$' \
   || fail "A deployment name is letters, digits, dots, hyphens and underscores. Nothing was written."
 
+# ── Azure Speech, for the natural cloud voice ─────────────────────────────────────────────────
+#
+# POST /assistant/v1/speak reads AZURE_SPEECH_REGION and AZURE_SPEECH_KEY (apps/assistant-api/src/
+# lib/speech.ts): both present means the cloud voice is configured, either missing means the routes
+# answer speech-not-configured and the panel falls back to the browser's robotic voice — the exact
+# fault this provisioning path exists to end. It is a separate Azure resource from the OpenAI pair
+# above, so it gets its own region and key.
+#
+# Both are optional HERE so an operator configuring only the language model can skip them (leave the
+# region blank), but a half-entered pair is refused: a region with no key, or a key with no region,
+# would write a credential that can never work and silently leave the voice robotic. Skipping leaves
+# any AZURE_SPEECH_ lines already in the file exactly as they were.
+#
+# The region is not a secret — it is the resource's own location and appears in no response — so it
+# is typed with echo on, like the endpoint. The key is typed with echo off (`read -s`), like the
+# OpenAI key. `|| true` keeps `read` from tripping `set -e` when stdin ends at the optional prompt.
+#
+# Since 24 September 2026 the service uses the cloud voice only in southafricanorth — the region the
+# Watchful DPIA assessed — and treats any other region as no region at all (speech.ts
+# SPEECH_REGIONS). The script still writes what it is given, so that it stays a credential writer
+# and not a second policy, but says so before the key is typed; it never echoes the region back.
+printf 'Azure Speech region (AZURE_SPEECH_REGION; only southafricanorth is used) [blank to skip]: '
+read -r speech_region || true
+speech_region=$(printf '%s' "$speech_region" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+speech_key=""
+if [ -n "$speech_region" ]; then
+  printf '%s' "$speech_region" | grep -qE '^[a-z0-9-]{3,64}$' \
+    || fail "A Speech region is lowercase letters, digits and hyphens (e.g. southafricanorth). Nothing was written."
+  [ "$speech_region" = "southafricanorth" ] \
+    || printf 'That is not southafricanorth. It will be written, but the service will treat the cloud voice as not configured and send no audio to it.\n'
+  printf 'Azure Speech key (AZURE_SPEECH_KEY, input hidden): '
+  read -rs speech_key || true
+  printf '\n'
+  [ -n "$speech_key" ] || fail "A Speech region was given but the Speech key was empty — that pair could never work. Nothing was written."
+  if printf '%s' "$speech_key" | grep -qvE '^[A-Za-z0-9_-]{20,200}$'; then
+    fail "That does not look like an Azure Speech key (unexpected characters or length). Nothing was written — and if what was pasted really was a key, it is now in this shell's memory only, which dies with it."
+  fi
+fi
+
 # ── The fingerprint: how two people compare keys without disclosing them ───────────────────────
 #
 # Sixteen characters of the key's SHA-256, the same ceremony /etc/mythuso/key.fingerprint uses for
@@ -101,6 +142,12 @@ printf '%s' "$model" | grep -qE '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$' \
 # memory and never appears in a process argument or a `ps` listing. shasum is the fallback because
 # macOS has no sha256sum; the server does, and the digest is the same either way.
 fingerprint=$(printf '%s' "$key" | { command -v sha256sum >/dev/null && sha256sum || shasum -a 256; } | cut -c1-16)
+# The Speech key gets the same treatment when one was entered: a fingerprint for the register, the
+# value nowhere. Empty when the operator skipped Speech, so the summary below can say so honestly.
+speech_fingerprint=""
+if [ -n "$speech_key" ]; then
+  speech_fingerprint=$(printf '%s' "$speech_key" | { command -v sha256sum >/dev/null && sha256sum || shasum -a 256; } | cut -c1-16)
+fi
 
 # ── Write it, atomically ───────────────────────────────────────────────────────────────────────
 #
@@ -112,10 +159,16 @@ tmp=$(mktemp "${ENV_FILE}.new.XXXXXX")
 trap 'rm -f "$tmp"' EXIT
 
 # Preserve anything else an operator put in this file by hand — QDRANT_URL, an OLLAMA_MODEL — and
-# replace only the three Azure lines. A script that silently dropped the rest of the file would be
-# the BidZA .env lesson learned again: the server's configuration is the server's.
+# replace only the lines this script owns. When a Speech credential is being written its old lines go
+# too; when Speech is skipped any AZURE_SPEECH_ lines already here are left untouched, so a run that
+# only refreshes the OpenAI pair cannot silently drop a working voice. A script that dropped the rest
+# of the file would be the BidZA .env lesson learned again: the server's configuration is the server's.
 if [ -f "$ENV_FILE" ]; then
-  grep -v '^AZURE_OPENAI_' "$ENV_FILE" > "$tmp" || true
+  if [ -n "$speech_key" ]; then
+    grep -vE '^AZURE_(OPENAI|SPEECH)_' "$ENV_FILE" > "$tmp" || true
+  else
+    grep -v '^AZURE_OPENAI_' "$ENV_FILE" > "$tmp" || true
+  fi
   # A file that was readable by others has to be treated as a key that was read — the same rule
   # deploy.sh applies to the identity service's env file. The new file below fixes the mode; this
   # note is the part that cannot be fixed by chmod.
@@ -128,6 +181,12 @@ if [ -f "$ENV_FILE" ]; then
 fi
 printf 'AZURE_OPENAI_ENDPOINT=%s\nAZURE_OPENAI_KEY=%s\nAZURE_OPENAI_MODEL=%s\n' \
   "$endpoint" "$key" "$model" >> "$tmp"
+# The Speech pair, only when it was entered — appended after the OpenAI lines so the file reads in the
+# order the service was configured: the language model first, then the voice it speaks with.
+if [ -n "$speech_key" ]; then
+  printf 'AZURE_SPEECH_REGION=%s\nAZURE_SPEECH_KEY=%s\n' \
+    "$speech_region" "$speech_key" >> "$tmp"
+fi
 
 chmod 0600 "$tmp"
 chown root:root "$tmp" 2>/dev/null || true
@@ -148,10 +207,25 @@ trap - EXIT
 # and the service refuses to start until the line is there. A script that appended it would make
 # one command out of two decisions, which is the thing the gate exists to prevent.
 say ""
-say "Wrote $ENV_FILE — 0600 root:root, the Azure key and nothing else beside it."
-say "Key fingerprint: $fingerprint (sixteen characters that identify the key without"
+say "Wrote $ENV_FILE — 0600 root:root, the Azure credentials and nothing else beside them."
+say "OpenAI key fingerprint: $fingerprint (sixteen characters that identify the key without"
 say "disclosing it — the thing to write in the register, not the key itself)."
-unset endpoint key model fingerprint
+if [ -n "$speech_fingerprint" ]; then
+  say "Speech region: $speech_region"
+  say "Speech key fingerprint: $speech_fingerprint — the same discipline: the register records the"
+  say "fingerprint, never the key."
+  if [ "$speech_region" = "southafricanorth" ]; then
+    say "The cloud voice is now configured; /assistant/health answers \"speech\":true once the"
+    say "service restarts."
+  else
+    say "That region is not southafricanorth, so the service will treat the cloud voice as not"
+    say "configured and /assistant/health will answer \"speech\":false. Re-run with southafricanorth."
+  fi
+else
+  say "No Azure Speech credential was entered, so the cloud voice stays unconfigured and the panel"
+  say "keeps the browser's own voice. Re-run and enter a region and key to switch the natural voice on."
+fi
+unset endpoint key model fingerprint speech_region speech_key speech_fingerprint
 say ""
 if systemctl is-enabled --quiet assistant-api.service 2>/dev/null; then
   say "To put the new credentials to work:"
@@ -165,7 +239,7 @@ else
   say "  2. systemctl enable --now assistant-api.service   # first activation"
 fi
 say "Then check it, from the box, with commands that reveal no secrets:"
-say "  curl -s http://127.0.0.1:8791/assistant/health        # expect \"azure\":true and \"activated\":true"
+say "  curl -s http://127.0.0.1:8791/assistant/health        # expect \"azure\":true, \"activated\":true, \"speech\":true"
 say "  curl -s https://mythuso.co.za/assistant/health        # the same, through nginx"
 say ""
 say "If the service will not be enabled, the file can wait: the unit reads it only at start."

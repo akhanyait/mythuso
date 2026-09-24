@@ -330,7 +330,7 @@ test('the versioned status address answers exactly what the health route answers
   assert.deepEqual(body, await health.json(), 'one reading, two addresses — written once');
   assert.equal(body.ok, true);
   assert.equal(typeof body.mode, 'string');
-  for (const field of ['azure', 'ollama', 'production', 'activated'])
+  for (const field of ['azure', 'ollama', 'production', 'activated', 'speech'])
    assert.equal(
     typeof body[field],
     'boolean',

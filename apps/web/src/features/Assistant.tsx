@@ -41,6 +41,7 @@ import { AssistantAttachments } from "../components/AssistantAttachments";
 import { AssistantVoiceButton } from "../components/AssistantVoiceButton";
 import { GilbertAvatar, GilbertStill, useGilbertRig } from "./GilbertAvatar";
 import { GilbertOneWordmark } from "../components/GilbertOneWordmark";
+import { crisisLines, showsCrisisLines } from "../lib/crisis-lines";
 import {
   affect,
   answers,
@@ -101,6 +102,16 @@ import "./gilbertone-theme.css";
    rather than to the panel around it: the transcript, the emergency numbers and the refusals are
    the product, and they do not depend on a service region that may not arrive. */
 const GilbertOneServices = lazy(() => import("./GilbertOneServices"));
+
+/* The first tab's capability list shares the region's chunk: it names the same six capabilities the
+   conversation region acts on, so it arrives on the same dynamic import and adds nothing further to
+   the patient entry. It is drawn on the welcome surface only, before a conversation has begun, and a
+   failure to download it degrades to nothing rather than to the welcome around it. */
+const GilbertOneCapabilities = lazy(() =>
+  import("./GilbertOneServices").then((m) => ({
+    default: m.GilbertOneCapabilities,
+  })),
+);
 
 /* The consent gate's emergency sentence with its numbers as tap-to-call links — the founder-approved
    improvement of 23 September 2026. The numbers are the contract's, read from sos.json by id through
@@ -850,6 +861,22 @@ export default function Assistant({
               </button>
             )}
 
+            {/* The first tab's consolidated capability list, for the patient on the welcome surface
+                before a conversation has begun. It names the six capabilities the conversation
+                region below acts on — what is connected, the gated assessment, the clinician
+                summary, the device gate, where an answer may stand, and voice and privacy — in the
+                catalogue's own sentences, so a person is oriented up front rather than finding them
+                folded into collapsed blocks that only appear once they have asked something. The
+                credit that used to sit inside the voice disclosure moves out here beside it. */}
+            {!asked && gated && (
+              <>
+                <Suspense fallback={null}>
+                  <GilbertOneCapabilities />
+                </Suspense>
+                <p className="as-foot-powered">{identity.poweredBy}</p>
+              </>
+            )}
+
             {/* The connected-capability region, only once there is a conversation to be about and the
                 person has consented. It carries the service's own status, the sources an answer may
                 stand on, the guided-assessment offer and the clinician-handover preparation — each
@@ -867,13 +894,19 @@ export default function Assistant({
               </Suspense>
             )}
 
-            <details className="as-voice-details">
-              <summary>{ui.voiceDetails}</summary>
-              <NotConnected of="voice" />
-              {!asked && (
-                <p className="as-foot-powered">{identity.poweredBy}</p>
-              )}
-            </details>
+            {/* Voice and privacy. On the patient's welcome the capability list above already carries
+                this in its own row, so the disclosure is drawn only once a conversation has begun
+                (the patient's) or for an audience that never sees the capability list (a nurse's
+                preview) — one telling of it per surface, never two. */}
+            {(asked || !gated) && (
+              <details className="as-voice-details">
+                <summary>{ui.voiceDetails}</summary>
+                <NotConnected of="voice" />
+                {!asked && (
+                  <p className="as-foot-powered">{identity.poweredBy}</p>
+                )}
+              </details>
+            )}
 
             {/* Said once to whoever is reading — the decision of 21 September 2026. This block used
                 to be drawn for every audience, including the patient, who had just read the same nine
@@ -1153,6 +1186,24 @@ function Lines({ ids }: { ids: string[] }) {
   );
 }
 
+/* The crisis lines, after the ambulance numbers and in the same list style, printed rather than
+   dialled — packages/catalog/crisis-lines.json, shown only when the crisis words raised the answer. */
+function CrisisLines() {
+  return (
+    <div className="as-crisis">
+      <p>{crisisLines.heading}</p>
+      <ul className="as-numbers">
+        {crisisLines.lines.map((line) => (
+          <li key={line.id}>
+            <strong>{line.number}</strong>
+            <span>{line.name}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 type ReplyProps = {
   reply: Reply;
   audience: AudienceId;
@@ -1216,6 +1267,7 @@ function ReplyBody({
           <p>{emergencyAnswer.lead}</p>
           <Lines ids={emergencyAnswer.numbers} />
           <p className="as-quiet">{emergencyAnswer.notAnAmbulance}</p>
+          {showsCrisisLines(reply.groups) && <CrisisLines />}
           {allowSos && (
             <button type="button" className="as-go" onClick={sos}>
               <Ambulance size={17} aria-hidden="true" />

@@ -313,6 +313,13 @@ export function createAssistantServer(
     ollama: new OllamaProvider().available,
     production: activation.production,
     activated: modelTierAllowed(),
+    /* The cloud voice's own truth, added 23 September 2026: whether THIS process read an Azure
+       Speech region and key. It is reported separately from `activated` (the OpenAI acknowledgement
+       gate) because a service activated for the language model can still have no speech credential,
+       and a client that could not tell the two apart fell back to the browser's robotic voice while
+       believing a natural one was configured. Presence only, through the same seam the speak and
+       listen routes gate on — never a value. */
+    speech: speech.configured(),
   });
 
   return createServer(async (req, res) => {
