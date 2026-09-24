@@ -2579,6 +2579,37 @@ export interface GetStatusV2Response {
  readonly speech: boolean;
 }
 
+export interface PostFounderSessionRequest {
+ readonly password: string;
+ readonly code: string;
+}
+export interface PostFounderSessionResponse {
+ readonly signedIn: boolean;
+ readonly expiresAt: string;
+}
+
+export type DeleteFounderSessionRequest = Record<string, never>;
+export interface DeleteFounderSessionResponse {
+ readonly signedIn: boolean;
+}
+
+export type GetFounderKeysRequest = Record<string, never>;
+export interface GetFounderKeysResponse {
+ readonly keys: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly expiresAt: string;
+}
+
+export interface PostFounderRevealRequest {
+ readonly name: string;
+ readonly code: string;
+}
+export interface PostFounderRevealResponse {
+ readonly name: string;
+ readonly revealedKey: string;
+ readonly lastFour: string;
+ readonly fingerprint: string;
+}
+
 export const apiRoutes = {
  postCoreEvents: { name: "postCoreEvents", method: "POST", path: "/v1/core/events", mountedPath: "/v1/core/events", version: 1, engine: "core", callers: ["engine:access","engine:pulse","engine:care","engine:clinical","engine:safety","engine:movement","engine:trust","engine:record","engine:medicines","engine:devices","engine:money"], purpose: ["audit"], idempotent: false, status: "built" },
  postCoreLoops: { name: "postCoreLoops", method: "POST", path: "/v1/core/loops", mountedPath: "/v1/core/loops", version: 1, engine: "core", callers: ["engine:care","engine:safety","engine:medicines","engine:access","engine:movement"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
@@ -2837,5 +2868,9 @@ export const apiRoutes = {
  postHandoverPrepareV3: { name: "postHandoverPrepareV3", method: "POST", path: "/v1/handover/prepare", mountedPath: "/assistant/v1/handover/prepare", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
  postHandoverSubmitV3: { name: "postHandoverSubmitV3", method: "POST", path: "/v1/handover/submit", mountedPath: "/assistant/v1/handover/submit", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
  postKnowledgeSearchV2: { name: "postKnowledgeSearchV2", method: "POST", path: "/v1/knowledge/search", mountedPath: "/assistant/v1/knowledge/search", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
- getStatusV2: { name: "getStatusV2", method: "GET", path: "/v1/status", mountedPath: "/assistant/v1/status", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built" }
+ getStatusV2: { name: "getStatusV2", method: "GET", path: "/v1/status", mountedPath: "/assistant/v1/status", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built" },
+ postFounderSession: { name: "postFounderSession", method: "POST", path: "/v1/founder/session", mountedPath: "/assistant/v1/founder/session", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
+ deleteFounderSession: { name: "deleteFounderSession", method: "DELETE", path: "/v1/founder/session", mountedPath: "/assistant/v1/founder/session", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
+ getFounderKeys: { name: "getFounderKeys", method: "GET", path: "/v1/founder/keys", mountedPath: "/assistant/v1/founder/keys", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
+ postFounderReveal: { name: "postFounderReveal", method: "POST", path: "/v1/founder/reveal", mountedPath: "/assistant/v1/founder/reveal", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" }
 } as const satisfies Record<string, ApiRoute>;

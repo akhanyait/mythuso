@@ -280,6 +280,10 @@ object ApisData {
     val POST_HANDOVER_SUBMIT_V3 = Route("postHandoverSubmitV3", "POST", "/v1/handover/submit", "/assistant/v1/handover/submit", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
     val POST_KNOWLEDGE_SEARCH_V2 = Route("postKnowledgeSearchV2", "POST", "/v1/knowledge/search", "/assistant/v1/knowledge/search", 2, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
     val GET_STATUS_V2 = Route("getStatusV2", "GET", "/v1/status", "/assistant/v1/status", 2, "assistant", listOf("anonymous"), listOf("audit"), false, "built")
+    val POST_FOUNDER_SESSION = Route("postFounderSession", "POST", "/v1/founder/session", "/assistant/v1/founder/session", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
+    val DELETE_FOUNDER_SESSION = Route("deleteFounderSession", "DELETE", "/v1/founder/session", "/assistant/v1/founder/session", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
+    val GET_FOUNDER_KEYS = Route("getFounderKeys", "GET", "/v1/founder/keys", "/assistant/v1/founder/keys", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
+    val POST_FOUNDER_REVEAL = Route("postFounderReveal", "POST", "/v1/founder/reveal", "/assistant/v1/founder/reveal", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
 
     val routes = listOf(
         POST_CORE_EVENTS,
@@ -539,7 +543,11 @@ object ApisData {
         POST_HANDOVER_PREPARE_V3,
         POST_HANDOVER_SUBMIT_V3,
         POST_KNOWLEDGE_SEARCH_V2,
-        GET_STATUS_V2
+        GET_STATUS_V2,
+        POST_FOUNDER_SESSION,
+        DELETE_FOUNDER_SESSION,
+        GET_FOUNDER_KEYS,
+        POST_FOUNDER_REVEAL
     )
 
     data class PostCoreEventsRequest(
@@ -2841,5 +2849,32 @@ object ApisData {
         val production: Boolean,
         val activated: Boolean,
         val speech: Boolean
+    )
+    data class PostFounderSessionRequest(
+        val password: String,
+        val code: String
+    )
+    data class PostFounderSessionResponse(
+        val signedIn: Boolean,
+        val expiresAt: String
+    )
+    class DeleteFounderSessionRequest
+    data class DeleteFounderSessionResponse(
+        val signedIn: Boolean
+    )
+    class GetFounderKeysRequest
+    data class GetFounderKeysResponse(
+        val keys: List<Map<String, Any?>>,
+        val expiresAt: String
+    )
+    data class PostFounderRevealRequest(
+        val name: String,
+        val code: String
+    )
+    data class PostFounderRevealResponse(
+        val name: String,
+        val revealedKey: String,
+        val lastFour: String,
+        val fingerprint: String
     )
 }

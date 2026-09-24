@@ -491,3 +491,7 @@ POST /v1/clinical/review-queue/{entryRef}/sign@1 2c6a9338cf474b66
 POST /v1/clinical/review-queue/{entryRef}/rollback@1 76c6c01e1e4e0a5b
 GET /health@2 f47dfe39277a1d2a
 GET /v1/status@2 0c356b20b13f3a78
+POST /v1/founder/session@1 5cb2d574a5ca7614
+DELETE /v1/founder/session@1 0271a089a93f7479
+GET /v1/founder/keys@1 f55f977c895a7a8b
+POST /v1/founder/reveal@1 d3f608464994c742

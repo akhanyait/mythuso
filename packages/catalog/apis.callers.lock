@@ -463,3 +463,7 @@ GET /health@2 callers=anonymous purpose=audit because=-
 GET /v1/status@2 callers=anonymous purpose=audit because=-
 GET /health@1 callers=- purpose=audit because=-
 GET /v1/status@1 callers=- purpose=audit because=-
+POST /v1/founder/session@1 callers=founder purpose=audit because=-
+DELETE /v1/founder/session@1 callers=founder purpose=audit because=-
+GET /v1/founder/keys@1 callers=founder purpose=audit because=-
+POST /v1/founder/reveal@1 callers=founder purpose=audit because=-

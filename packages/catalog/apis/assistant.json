@@ -2,7 +2,7 @@
  "engine": "assistant",
  "_note": "The assistant engine's routes. The service answers seven of them today, exactly as apps/assistant-api/src/server.ts registers them: GET /assistant/health and one turn at POST /assistant/turn, and at the plan's own versioned addresses POST /assistant/v1/turn, POST /assistant/v1/knowledge/search, GET /assistant/v1/status and push-to-talk's two — POST /assistant/v1/listen and POST /assistant/v1/speak, built on 22 September 2026 against Azure Speech. The rest of the /v1/* family — triage conducted over Clinical's rules, a reading written through the Passport gateway, handover prepare and submit — is declared and not built: the engine's not-yet-available refusal answers each of them with 501, so a caller meets a sentence it can read rather than a 404 it cannot tell from a typo, and packages/mock-api answers them on loopback with synthetic data until each is built. Those five routes were re-declared at version two because that refusal's answeredBy now names them, and adding a refusal is a change as much as rewording one: each version one is withdrawn in its favour, with no callers, its shape and its refusals unchanged. listen and speak are at version three for the same kind of reason: the shape a built capture arrives in is audio rather than the captureMs window version two was frozen with, so their version two entries are withdrawn in version three's favour with no callers, and the engine's cloud-speech refusal, added with them, answers version three alone. /v1/knowledge/search is at version two for the same reason, with the three refusals its handler actually answers and its sources now declared as objects rather than as text; its version one is withdrawn in the same way. The turn's declared shape is this contract's reading of the service it captures; the service's own request type also accepts an optional visitId, and this contract refuses that name — another engine's resource under an Id name, per packages/catalog/apis.json#_contractIdsNote — so it is not declared here.",
  "version": 1,
- "resources": ["health", "turn", "listen", "speak", "triage", "vitals", "handover", "knowledge", "status"],
+ "resources": ["health", "turn", "listen", "speak", "triage", "vitals", "handover", "knowledge", "status", "founder"],
  "doors": [],
  "doorsToAdd": [],
  "refusals": [
@@ -957,6 +957,149 @@
     "handler": "req.method === 'GET' && req.url === '/assistant/v1/status'"
    },
    "enforcedBy": { "mechanism": "anonymous" }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/founder/session",
+   "version": 1,
+   "summary": "The founder signs in with a password and an authenticator code; the service answers with a session cookie that lasts a fixed time and is never renewed.",
+   "callers": ["founder"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "password", "type": "string", "required": true, "why": "The founder's password, checked against the scrypt hash in the service's environment and never kept, logged or echoed."},
+    {"field": "code", "type": "string", "required": true, "why": "The code the founder's authenticator app shows now, checked under RFC 6238 and burned once accepted."}
+   ],
+   "response": [
+    {"field": "signedIn", "type": "boolean", "required": true, "why": "True: the session cookie was set in the Set-Cookie header, the only place its id travels."},
+    {"field": "expiresAt", "type": "instant", "required": true, "why": "When the session ends by itself, with no renewal."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL, and founder access is no exception."},
+    {"id": "founder-request-cross-site", "status": 403, "statement": "Founder access answers only a request the Control Tower makes from its own page.", "why": "Every founder route refuses a request without the X-MyThuso-Founder header, or whose Sec-Fetch-Site is present and is not same-origin, before it reads anything. A page on another site cannot send that header without a preflight the origin policy never grants, so a cross-site form or script is refused before a password or a cookie is looked at (packages/catalog/founder-access.json#request)."},
+    {"id": "founder-access-dark", "status": 503, "statement": "Founder access is switched off on this server. It is switched on by hand, on the box, and never by a deploy.", "why": "Founder access is dark by default: every founder route answers this refusal unless the service's environment carries both MYTHUSO_FOUNDER_ACCESS=enabled and a well-formed founder credential. deploy/ops/configure-founder-access.sh writes the credential and never the enable line, and no deploy writes either, so a deploy cannot switch it on (packages/catalog/founder-access.json#enable)."},
+    {"id": "invalid-request", "status": 400, "statement": "The request could not be processed safely.", "why": "A body that is not JSON is refused with its own status rather than guessed at."},
+    {"id": "payload-too-large", "status": 413, "statement": "The request could not be processed safely.", "why": "A body over the ceiling is refused before it is parsed."},
+    {"id": "founder-locked-out", "status": 429, "statement": "Founder access is locked after repeated failed attempts, and every open session has ended. Wait for the lock to lift before trying again.", "why": "Consecutive failures — at sign-in or at a reveal — lock the whole account for a fixed time and end every session, and the lock is checked before any password is hashed. It is per account rather than per address because there is one account and an attacker has as many addresses as they like (packages/catalog/founder-access.json#lockout)."},
+    {"id": "founder-credentials-refused", "status": 401, "statement": "Those details did not sign you in. Which of them was wrong is not said, on purpose.", "why": "The password and the authenticator code are checked together and refused in one sentence, whichever failed — a wrong password, a wrong code, or a code already used. A refusal that named the factor would tell a stranger which half they already hold."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Signing in changes nothing on the bus; the audit line the service writes is its own record, not an event.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "apps/assistant-api/src/server.ts",
+    "handler": "req.method === 'POST' && req.url === '/assistant/v1/founder/session'"
+   },
+   "enforcedBy": { "mechanism": "founder-credential" },
+   "secretRequestFields": [
+    {"field": "password", "why": "The founder's password. It is hashed and compared, and never kept or written anywhere."},
+    {"field": "code", "why": "A six-digit code; an unsalted hash of it would be the code."}
+   ]
+  },
+  {
+   "method": "DELETE",
+   "path": "/v1/founder/session",
+   "version": 1,
+   "summary": "The founder signs out: the live session ends and the cookie is cleared.",
+   "callers": ["founder"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "signedIn", "type": "boolean", "required": true, "why": "False: there is no session any more."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL, and founder access is no exception."},
+    {"id": "founder-request-cross-site", "status": 403, "statement": "Founder access answers only a request the Control Tower makes from its own page.", "why": "Every founder route refuses a request without the X-MyThuso-Founder header, or whose Sec-Fetch-Site is present and is not same-origin, before it reads anything. A page on another site cannot send that header without a preflight the origin policy never grants, so a cross-site form or script is refused before a password or a cookie is looked at (packages/catalog/founder-access.json#request)."},
+    {"id": "founder-access-dark", "status": 503, "statement": "Founder access is switched off on this server. It is switched on by hand, on the box, and never by a deploy.", "why": "Founder access is dark by default: every founder route answers this refusal unless the service's environment carries both MYTHUSO_FOUNDER_ACCESS=enabled and a well-formed founder credential. deploy/ops/configure-founder-access.sh writes the credential and never the enable line, and no deploy writes either, so a deploy cannot switch it on (packages/catalog/founder-access.json#enable)."},
+    {"id": "founder-no-session", "status": 401, "statement": "There is no live founder session. Sign in again: a session ends by itself, and whenever the service restarts.", "why": "Sessions live in the service's memory only, for a fixed time from sign-in with no renewal, one at a time, and a restart ends them. A cookie that names no live session is refused rather than read as anybody."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Signing out changes nothing on the bus.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "apps/assistant-api/src/server.ts",
+    "handler": "req.method === 'DELETE' && req.url === '/assistant/v1/founder/session'"
+   },
+   "enforcedBy": { "mechanism": "founder-session" }
+  },
+  {
+   "method": "GET",
+   "path": "/v1/founder/keys",
+   "version": 1,
+   "summary": "What may be said about the two Azure keys without revealing either: whether each is set, its last four characters and its SHA-256 fingerprint prefix.",
+   "callers": ["founder"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "keys", "type": "list", "required": true, "why": "One row for each allowlisted key, in the allowlist's order.", "object": true, "fields": [{"field": "name", "type": "string", "required": true, "why": "The environment variable's name, one of the allowlist's two."}, {"field": "present", "type": "boolean", "required": true, "why": "Whether the service's environment holds a value for it."}, {"field": "lastFour", "type": "string", "required": true, "why": "The value's last four characters, or null when it is not set.", "nullable": true}, {"field": "fingerprint", "type": "string", "required": true, "why": "The first sixteen hex characters of the value's SHA-256 — the ones configure-assistant-env.sh printed and the register records — or null when it is not set.", "nullable": true}]},
+    {"field": "expiresAt", "type": "instant", "required": true, "why": "When the session ends by itself."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL, and founder access is no exception."},
+    {"id": "founder-request-cross-site", "status": 403, "statement": "Founder access answers only a request the Control Tower makes from its own page.", "why": "Every founder route refuses a request without the X-MyThuso-Founder header, or whose Sec-Fetch-Site is present and is not same-origin, before it reads anything. A page on another site cannot send that header without a preflight the origin policy never grants, so a cross-site form or script is refused before a password or a cookie is looked at (packages/catalog/founder-access.json#request)."},
+    {"id": "founder-access-dark", "status": 503, "statement": "Founder access is switched off on this server. It is switched on by hand, on the box, and never by a deploy.", "why": "Founder access is dark by default: every founder route answers this refusal unless the service's environment carries both MYTHUSO_FOUNDER_ACCESS=enabled and a well-formed founder credential. deploy/ops/configure-founder-access.sh writes the credential and never the enable line, and no deploy writes either, so a deploy cannot switch it on (packages/catalog/founder-access.json#enable)."},
+    {"id": "founder-no-session", "status": 401, "statement": "There is no live founder session. Sign in again: a session ends by itself, and whenever the service restarts.", "why": "Sessions live in the service's memory only, for a fixed time from sign-in with no renewal, one at a time, and a restart ends them. A cookie that names no live session is refused rather than read as anybody."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "apps/assistant-api/src/server.ts",
+    "handler": "req.method === 'GET' && req.url === '/assistant/v1/founder/keys'"
+   },
+   "enforcedBy": { "mechanism": "founder-session" }
+  },
+  {
+   "method": "POST",
+   "path": "/v1/founder/reveal",
+   "version": 1,
+   "summary": "One allowlisted Azure key, revealed to a live founder session that has just typed a fresh authenticator code, under no-store.",
+   "callers": ["founder"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "name", "type": "string", "required": true, "why": "AZURE_OPENAI_KEY or AZURE_SPEECH_KEY, and nothing else."},
+    {"field": "code", "type": "string", "required": true, "why": "A fresh authenticator code, not used before; it is burned once accepted."}
+   ],
+   "response": [
+    {"field": "name", "type": "string", "required": true, "why": "The key's variable name."},
+    {"field": "revealedKey", "type": "string", "required": true, "why": "The key itself, exactly as the environment holds it. It travels in this response only, under Cache-Control: no-store and Pragma: no-cache, and the screen wipes it after a fixed time."},
+    {"field": "lastFour", "type": "string", "required": true, "why": "Its last four characters."},
+    {"field": "fingerprint", "type": "string", "required": true, "why": "The first sixteen hex characters of its SHA-256."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This service answers its own site only.", "why": "A browser origin this deployment does not answer is refused before any route reads the URL, and founder access is no exception."},
+    {"id": "founder-request-cross-site", "status": 403, "statement": "Founder access answers only a request the Control Tower makes from its own page.", "why": "Every founder route refuses a request without the X-MyThuso-Founder header, or whose Sec-Fetch-Site is present and is not same-origin, before it reads anything. A page on another site cannot send that header without a preflight the origin policy never grants, so a cross-site form or script is refused before a password or a cookie is looked at (packages/catalog/founder-access.json#request)."},
+    {"id": "founder-access-dark", "status": 503, "statement": "Founder access is switched off on this server. It is switched on by hand, on the box, and never by a deploy.", "why": "Founder access is dark by default: every founder route answers this refusal unless the service's environment carries both MYTHUSO_FOUNDER_ACCESS=enabled and a well-formed founder credential. deploy/ops/configure-founder-access.sh writes the credential and never the enable line, and no deploy writes either, so a deploy cannot switch it on (packages/catalog/founder-access.json#enable)."},
+    {"id": "founder-no-session", "status": 401, "statement": "There is no live founder session. Sign in again: a session ends by itself, and whenever the service restarts.", "why": "Sessions live in the service's memory only, for a fixed time from sign-in with no renewal, one at a time, and a restart ends them. A cookie that names no live session is refused rather than read as anybody."},
+    {"id": "invalid-request", "status": 400, "statement": "The request could not be processed safely.", "why": "A body that is not JSON is refused with its own status rather than guessed at."},
+    {"id": "payload-too-large", "status": 413, "statement": "The request could not be processed safely.", "why": "A body over the ceiling is refused before it is parsed."},
+    {"id": "founder-name-not-allowed", "status": 400, "statement": "Only the Azure OpenAI key and the Azure Speech key can be revealed, and nothing else the server holds.", "why": "The allowlist is exactly AZURE_OPENAI_KEY and AZURE_SPEECH_KEY (packages/catalog/founder-access.json#reveal.allowlist), and a name outside it is refused before the environment is read — never the password hash, the authenticator secret, an endpoint or a line added to an env file later."},
+    {"id": "founder-key-not-set", "status": 404, "statement": "That key is not set on this server, so there is nothing to reveal.", "why": "An allowlisted key the environment does not hold is said to be absent rather than revealed as an empty string, and no code is spent on it."},
+    {"id": "founder-code-refused", "status": 401, "statement": "That authenticator code was not accepted: it was wrong, already used, or too old. Wait for the next code your app shows.", "why": "Every reveal asks for a fresh code on top of the session, and every accepted code is burned — its step and every step before it are refused afterwards — so a stolen cookie reveals nothing and a code read over a shoulder cannot be spent twice. A refused code counts toward the lock."},
+    {"id": "founder-locked-out", "status": 429, "statement": "Founder access is locked after repeated failed attempts, and every open session has ended. Wait for the lock to lift before trying again.", "why": "Consecutive failures — at sign-in or at a reveal — lock the whole account for a fixed time and end every session, and the lock is checked before any password is hashed. It is per account rather than per address because there is one account and an attacker has as many addresses as they like (packages/catalog/founder-access.json#lockout)."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Revealing changes nothing on the bus; the audit line records the key's name and fingerprint, never it.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "apps/assistant-api/src/server.ts",
+    "handler": "req.method === 'POST' && req.url === '/assistant/v1/founder/reveal'"
+   },
+   "enforcedBy": { "mechanism": "founder-session" },
+   "secretRequestFields": [
+    {"field": "code", "why": "A six-digit code; an unsalted hash of it would be the code."}
+   ]
   }
  ]
 }
