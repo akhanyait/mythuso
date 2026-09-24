@@ -117,7 +117,15 @@
    "label": "GilbertOne API Administration",
    "mark": "G1",
    "from": ["new, §7"],
-   "tabs": [ { "id": "phase-4", "label": "GilbertOne API Administration", "blurb": "The assistant engine's own administration: its state, its voice, its model providers, its reasoning level, its knowledge, its compliance and every external API it talks to.", "new": true } ]
+   "tabs": [
+    { "id": "overview", "label": "Engine overview", "heading": "The engine today", "blurb": "What the assistant's health and status routes answer when this screen opens, where its model and its voice run, how much it knows, and the one switch it does not have yet.", "new": true },
+    { "id": "voice", "label": "Voice", "blurb": "Which kinds of answer may have their voice set, which are locked to the clinical register, and the preview panel that plays nothing yet.", "new": true },
+    { "id": "model-providers", "label": "Model Providers", "blurb": "Every language-model provider the plan names, the one that is configured, where it runs, and the key controls a vault would stand behind.", "new": true },
+    { "id": "intelligence", "label": "Intelligence", "blurb": "The five reasoning levels, which conversation may reach which, and the ceilings nothing on this screen can raise.", "new": true },
+    { "id": "knowledge", "label": "Knowledge", "blurb": "The clinical and the non-clinical corpus, the three external sources, and the lock on the clinical half.", "new": true },
+    { "id": "compliance", "label": "Engine compliance", "blurb": "The compliance pack, the audit extract, the kill switch, and where each provider processes what it is sent.", "new": true },
+    { "id": "api-registry", "label": "API Registry", "blurb": "Every external API the platform talks to, or has been asked to, as a card with its honest state.", "new": true }
+   ]
   },
   {
    "id": "configuration",
@@ -243,6 +251,7 @@
   "recordedLabel": "What the activation record says",
   "whatChangedWindow": "No release date is recorded anywhere this screen can read — deploys happen at a terminal on the server — so what changed is the feature map's Delivered entries from the Control Tower plan's Phase 0 onwards, newest first.",
   "whatChanged": [
+   { "kind": "contract", "on": "2026-09-24", "ref": "packages/catalog/control-tower-portal.json", "heading": "Delivered — GilbertOne API Administration, Phase 4: the seven sub-screens, 24 September 2026 (web only)" },
    { "kind": "contract", "on": "2026-09-24", "ref": "packages/catalog/control-tower-portal.json", "heading": "Delivered — the merged MyThuso Control Tower portal, Phase 3, 24 September 2026 (web only)" },
    { "kind": "contract", "on": "2026-09-24", "ref": "packages/catalog/control-tower-overview.json", "heading": "Delivered — GilbertOne API Administration, Phase 2: five contracts, the Overview schema and the cutover documents, 24 September 2026" },
    { "kind": "boundary-check", "on": "2026-09-24", "ref": "packages/catalog/crisis-lines.json", "heading": "Delivered — crisis lines on the emergency answer, 24 September 2026 (all three platforms, founder request)" },
@@ -294,20 +303,155 @@
  },
 
  "gilbertone": {
-  "status": "proposed",
+  "status": "built",
   "phase": 4,
-  "sentence": "Not built yet — Phase 4. Its seven sub-screens are declared in contracts and none is drawn. The assistant is live in production, and this category can neither see it, configure it nor switch it off.",
+  "_statusWhy": "Built in Phase 4 (24 September 2026): seven sub-screens in the tree, held by tests/gilbertone-admin.spec.ts on both viewports. Built is not live. Each sub-screen reads contracts and, on the Overview, two routes that answer booleans; every action it draws is disabled beside the gate that holds it, and scripts/check-boundaries.mjs fails the build the day a gate closes while its action still has nothing behind it.",
+  "sentence": "Built, and administering nothing. These seven screens read the assistant's contracts and ask its health and status routes for their booleans. Every action they draw is disabled, beside the gate that holds it: there is no key vault, no key registry, no health-check runner, no tenant and no kill switch, so nothing here can configure the assistant, spend money on it or switch it off.",
   "subScreens": [
-   { "id": "overview", "label": "Overview", "contract": "packages/catalog/control-tower-overview.json", "gate": "G15" },
-   { "id": "voice", "label": "Voice", "contract": "packages/catalog/voice.json", "gate": "G29" },
-   { "id": "model-providers", "label": "Model Providers", "contract": "packages/catalog/model-providers.json", "gate": "G30" },
-   { "id": "intelligence", "label": "Intelligence", "contract": "packages/catalog/intelligence-levels.json", "gate": "G31" },
-   { "id": "knowledge", "label": "Knowledge", "contract": "packages/catalog/knowledge-corpus-tiers.json", "gate": "G10" },
-   { "id": "compliance", "label": "Compliance", "contract": "packages/catalog/compliance-pack.json", "gate": "G14" },
-   { "id": "api-registry", "label": "API Registry", "contract": "packages/catalog/api-registry.json", "gate": "G32" }
+   { "id": "overview", "label": "Engine overview", "contract": "packages/catalog/control-tower-overview.json", "gate": "G15", "file": "apps/web/src/features/portal/gilbertone/EngineOverview.tsx" },
+   { "id": "voice", "label": "Voice", "contract": "packages/catalog/voice.json", "gate": "G29", "file": "apps/web/src/features/portal/gilbertone/Voice.tsx" },
+   { "id": "model-providers", "label": "Model Providers", "contract": "packages/catalog/model-providers.json", "gate": "G30", "file": "apps/web/src/features/portal/gilbertone/ModelProviders.tsx" },
+   { "id": "intelligence", "label": "Intelligence", "contract": "packages/catalog/intelligence-levels.json", "gate": "G31", "file": "apps/web/src/features/portal/gilbertone/Intelligence.tsx" },
+   { "id": "knowledge", "label": "Knowledge", "contract": "packages/catalog/knowledge-corpus-tiers.json", "gate": "G10", "file": "apps/web/src/features/portal/gilbertone/Knowledge.tsx" },
+   { "id": "compliance", "label": "Engine compliance", "contract": "packages/catalog/compliance-pack.json", "gate": "G14", "file": "apps/web/src/features/portal/gilbertone/Compliance.tsx" },
+   { "id": "api-registry", "label": "API Registry", "contract": "packages/catalog/api-registry.json", "gate": "G32", "file": "apps/web/src/features/portal/gilbertone/ApiRegistry.tsx" }
   ],
-  "_subScreensWhy": "The seven sub-screens of §7, each with the contract it would read and the gate §7 names for it. Listed so the category says what it will be; none is a screen, and scripts/check-boundaries.mjs fails the build if a file under apps/web/src renders one before Phase 4.",
-  "why": "§4 and §10: GilbertOne API Administration is Phase 4, gated. Phase 3 places it in the portal with its mark and says so."
+  "_subScreensWhy": "The seven sub-screens of §7, each with the contract it reads, the gate §7 names for it and the file that draws it. The category's tabs above are these seven in this order, and scripts/check-boundaries.mjs holds the two lists to each other and every file to a dynamic import of its own.",
+  "gates": [
+   { "id": "G29", "label": "Gate G29", "sentence": "Not available while gate G29 is open. Nobody clinical has reviewed the clinical-delivery register, no tenant exists to choose a presentation voice for, and no voice has been approved by anybody, so nothing on this screen saves a voice." },
+   { "id": "G30", "label": "Gate G30", "sentence": "Not available while gate G30 is open. There is no key vault, so no key can be entered, rotated, tested or described here; and there is no per-tenant scoping, no residency decision and no DPIA per provider behind any of them." },
+   { "id": "G31", "label": "Gate G31", "sentence": "Not available while gate G31 is open. No tenant exists to set a level or a ceiling for, and no clinician session exists to test the clinical-assist lock against, so every level on this screen is read and none is set." },
+   { "id": "G32", "label": "Gate G32", "sentence": "Not available while gate G32 is open. There is no secret vault, no health-check runner and no enable, disable or balance control behind any card, so none of these actions can do anything." },
+   { "id": "module-8", "label": "Module 8", "sentence": "Not available: Module 8, the per-tenant kill switch, does not exist. There is no tenant to switch and nothing that could switch one. Today the assistant goes dark only when somebody at a terminal on the server stops it, and that is recorded by hand in docs/governance/ASSISTANT-ACTIVATION.md.", "openWhileMissing": ["packages/catalog/tenancy.json", "apps/assistant-api/src/lib/kill-switch.ts"] }
+  ],
+  "_gatesWhy": "The refusal each disabled action shows, one per gate. A G-numbered gate is open while packages/catalog/control-tower-overview.json#open-gates records it open; Module 8 has no row in either register, so it is open while the tenancy contract and the kill switch's runtime it would need are both missing. scripts/check-boundaries.mjs fails the build if a gate an action names is no longer open, because then the action is drawn disabled for a reason that has stopped being true and somebody has to build what it would do.",
+  "actions": [
+   { "id": "tenant-dark-mode", "screen": "overview", "label": "Revert a tenant to the deterministic layer", "gate": "module-8" },
+   { "id": "voice-save-as-default", "screen": "voice", "label": "Save as default", "gate": "G29" },
+   { "id": "voice-play", "screen": "voice", "label": "Play", "gate": "G29", "refusal": "Play is not offered. There is no speak route an administrator signs in to, and the cloud voice is not configured for previews. This panel never asks the patients' speak route to read an administrator's sentence, and it plays nothing through the browser either, because a preview of a voice nobody chose would be a promise §07's V03 refusal does not make." },
+   { "id": "provider-enter-key", "screen": "model-providers", "label": "Save the key", "gate": "G30" },
+   { "id": "provider-rotate-key", "screen": "model-providers", "label": "Rotate key", "gate": "G30" },
+   { "id": "provider-test", "screen": "model-providers", "label": "Test", "gate": "G30" },
+   { "id": "provider-show-metadata", "screen": "model-providers", "label": "Show metadata", "gate": "G30" },
+   { "id": "provider-health-check", "screen": "model-providers", "label": "Test every configured provider", "gate": "G30" },
+   { "id": "local-agent-test", "screen": "model-providers", "label": "Test the local agent", "gate": "G30" },
+   { "id": "set-level", "screen": "intelligence", "label": "Change a level", "gate": "G31" },
+   { "id": "kill-switch", "screen": "compliance", "label": "Switch a tenant to the deterministic layer", "gate": "module-8" },
+   { "id": "registry-enable", "screen": "api-registry", "label": "Enable", "gate": "G32", "registryAction": "enable" },
+   { "id": "registry-disable", "screen": "api-registry", "label": "Disable", "gate": "G32", "registryAction": "disable" },
+   { "id": "registry-rotate-key", "screen": "api-registry", "label": "Rotate key", "gate": "G32", "registryAction": "rotate-key" },
+   { "id": "registry-test", "screen": "api-registry", "label": "Test", "gate": "G32", "registryAction": "test" },
+   { "id": "registry-view-logs", "screen": "api-registry", "label": "View logs", "gate": "G32", "registryAction": "view-logs" },
+   { "id": "registry-configure-scopes", "screen": "api-registry", "label": "Configure scopes", "gate": "G32", "registryAction": "configure-scopes" },
+   { "id": "registry-add-provider", "screen": "api-registry", "label": "Save and test", "gate": "G32" }
+  ],
+  "_actionsWhy": "Every control a GilbertOne screen draws that would change something, with the gate that holds it. A screen draws an action only by naming it here, and draws it disabled with the gate's sentence (or the action's own refusal, where it has one) tied to it by aria-describedby — a disabled button with no sentence is skipped by some screen readers and says nothing about why. The six card actions are api-registry.json#actions, each named by its registryAction.",
+  "overview": {
+   "prefix": "/assistant",
+   "routes": [
+    { "path": "/health", "version": 2, "label": "Health route" },
+    { "path": "/v1/status", "version": 2, "label": "Status route" }
+   ],
+   "fields": [
+    { "field": "ok", "label": "Answering" },
+    { "field": "activated", "label": "Activated" },
+    { "field": "production", "label": "Production" },
+    { "field": "azure", "label": "Model credentials present" },
+    { "field": "speech", "label": "Cloud voice credentials present" },
+    { "field": "ollama", "label": "Local model address set" }
+   ],
+   "_fieldsWhy": "The boolean fields both built routes return (packages/catalog/apis/assistant.json), and nothing else: not mode, which is a string, and nothing the routes might grow. Each is read as true only if the answer holds the boolean true, so a field that arrives as anything else is drawn as not, never as its value.",
+   "checkingSentence": "Asking the route.",
+   "notAnswered": "The route did not answer. Nothing below it is read from the service.",
+   "trueWord": "yes",
+   "falseWord": "no",
+   "versionEmpty": "No screen can read which build the service is running, when it was last deployed or when it last restarted. Deploys and restarts happen at a terminal on the server, and the restarts seen so far are written down by hand in docs/governance/ASSISTANT-ACTIVATION.md.",
+   "modelHeading": "Model tier",
+   "speechHeading": "Speech tier",
+   "regionObservedLabel": "Region, as observed",
+   "deploymentLabel": "Production deployment",
+   "acknowledgedLabel": "Production acknowledgement",
+   "acknowledgedSentence": "Written by hand on the server when activated answers yes; this screen cannot read the file it is written in, only the route's answer.",
+   "speechRegionSentence": "Pinned in code to South Africa, so audio cannot be sent to another region; a pinned region is not a residency decision.",
+   "knowledgeHeading": "Knowledge",
+   "refreshEmpty": "No refresh of either corpus is recorded anywhere this screen can read, so there is no last refresh to show.",
+   "usageHeading": "Today's usage",
+   "tenantsHeading": "Tenants",
+   "darkModeHeading": "The per-tenant dark mode"
+  },
+  "voice": {
+   "zonesHeading": "Three zones",
+   "mappingHeading": "Query-to-voice mapping",
+   "lockedWord": "Locked",
+   "clinicianOnlyWord": "Clinician only",
+   "tenantWord": "Per tenant",
+   "lockedRowSentence": "Changes only through a ratified entry in the Clinician Review Queue.",
+   "lockedSettingsHeading": "Locked settings",
+   "providersHeading": "Providers",
+   "voicesHeading": "Voices by language",
+   "notAvailableWord": "Not available",
+   "parametersHeading": "Parameters",
+   "notDecided": "Not decided.",
+   "previewHeading": "Voice preview",
+   "previewClassLabel": "Register",
+   "previewTextLabel": "Your own sentence",
+   "previewTextHint": "Typed here, kept in this screen only, and never sent anywhere.",
+   "previewCostLabel": "Estimated cost and speed, shown before Play",
+   "previewTotalLabel": "This session",
+   "previewTotalEmpty": "Nothing has been played in this session, so the running total is nothing.",
+   "previewAccepted": "Nothing in this sentence looks like a person's details."
+  },
+  "modelProviders": {
+   "keyRegistryEmpty": "There is no key metadata to show, because no key registry exists: the vault and the metadata store the plan names are named-but-absent. No field on this screen accepts a key and none displays one — not in full, not in part.",
+   "keyEntryHeading": "Entering a key, as the contract draws it",
+   "keyFieldLabel": "API key",
+   "residencyUnassigned": "Unassigned",
+   "routingHeading": "Routing",
+   "localAgentHeading": "Local agent",
+   "panelsHeading": "Health, usage, balance and audit"
+  },
+  "intelligence": {
+   "levelsHeading": "The five levels",
+   "typesHeading": "Per conversation type",
+   "clinicianRequired": "Needs a clinician signed in",
+   "purposeRequired": "and a purpose recorded",
+   "noModel": "No model is asked",
+   "ceilingWithClinicianLabel": "With a clinician"
+  },
+  "knowledge": {
+   "tiersHeading": "Two corpora",
+   "sourcesHeading": "Federation sources",
+   "inactiveWord": "Not active",
+   "endpointSentence": "Its address is recorded in packages/catalog/knowledge/federation.json and is not drawn here: nothing calls it.",
+   "refreshHeading": "Refresh history",
+   "lockHeading": "The clinical-corpus lock"
+  },
+  "compliance": {
+   "auditHeading": "The audit extract",
+   "auditEmpty": "The audit extract is for layer 13, the Auditor, and for nobody else. No session exists that could say somebody is layer 13, so this panel shows nothing to anybody. When it exists it is a read-only view of the append-only store, filtered by date range, tenant and event type.",
+   "killSwitchHeading": "The kill switch",
+   "residencyHeading": "The residency map",
+   "residencyObserved": "Observed on the server, not decided",
+   "flowsHeading": "What goes where"
+  },
+  "apiRegistry": {
+   "categories": [
+    { "id": "llm", "label": "Language models" },
+    { "id": "speech", "label": "Speech — text to speech and speech to text" },
+    { "id": "payments", "label": "Payments" },
+    { "id": "sms", "label": "SMS" },
+    { "id": "maps", "label": "Maps" },
+    { "id": "push", "label": "Push" },
+    { "id": "email", "label": "Email" },
+    { "id": "device-gateway", "label": "Device gateway" },
+    { "id": "vector-store", "label": "Vector store" },
+    { "id": "knowledge-source", "label": "Knowledge sources" }
+   ],
+   "noKey": "No key is needed.",
+   "addHeading": "Add a provider",
+   "previewSummary": "Preview a voice before this provider is configured"
+  },
+  "why": "§4, §7 and §10 Phase 4: GilbertOne API Administration, built against contracts and the service's own health and status routes, with the vault, the key registry and the health-check runner still named-but-absent. The screens can be built against a stub; the live path waits for G30 and G32, and this category says so rather than drawing the wireframes' values."
  },
 
  "configuration": {
@@ -378,11 +522,16 @@
    "why": "A cost per bed with no bed and no meter is an invented number on a finance screen."
   },
   {
-   "id": "no-gilbertone-sub-screen-before-phase-4",
-   "statement": "No GilbertOne administration sub-screen is drawn before Phase 4 and its gates.",
-   "why": "§9: nothing in this phase is built as more than documentation until its gate is green."
+   "id": "no-gilbertone-action-while-its-gate-is-open",
+   "statement": "No GilbertOne administration action does anything while its gate is open. Each is drawn disabled, beside the sentence that names the gate holding it and why.",
+   "why": "§9: nothing in this phase is built as more than documentation until its gate is green. The assistant is live in production, and a control on its administration screen that looked as if it worked would be the most dangerous thing in the portal to mistake for real. Replaced, on 24 September 2026 in Phase 4, the refusal no-gilbertone-sub-screen-before-phase-4, which Phase 4 retired by building the sub-screens."
+  },
+  {
+   "id": "no-key-on-an-admin-screen",
+   "statement": "No administration screen accepts, shows or keeps a key, a fragment of one or a deployment's address. The only key field drawn is disabled, and there is no key metadata to show because no key registry exists.",
+   "why": "§1: API keys never reach the browser. The vault is the security boundary and does not exist, so the honest screen is one with nowhere to type a key and nothing about one to read."
   }
  ],
 
- "preview": "The portal is the two old surfaces' screens, unchanged, under one navigation, with six new screens that are each a written empty state or a contract read aloud: the Overview, Devices & Fleet, the Configuration tree, cost allocation, the compliance pack preview and the Clinician Review Queue. Nothing in it acts on a real service."
+ "preview": "The portal is the two old surfaces' screens, unchanged, under one navigation, with six new screens that are each a written empty state or a contract read aloud — the Overview, Devices & Fleet, the Configuration tree, cost allocation, the compliance pack preview and the Clinician Review Queue — and, since Phase 4, GilbertOne API Administration's seven sub-screens, whose every action is disabled beside its gate. Nothing in it acts on a real service."
 }
