@@ -3002,13 +3002,17 @@ test("the spoken reading of a crisis answer says the ambulance numbers, then the
     };
     return { crisis: say("I want to kill myself"), chest: say("I have chest pain") };
   });
+  /* Every number is read as a telephone number, digit by digit (sos.json and crisis-lines.json
+     carry the spoken forms), so the order is checked on those, and no digit run is read at all. */
+  const [sadag, lifeline] = crisisContract.lines.map((line: { spoken: string }) => line.spoken);
   const at = (text: string) => read.crisis.indexOf(text);
-  expect(at("10177")).toBeGreaterThan(-1);
-  expect(at("112")).toBeGreaterThan(at("10177"));
-  expect(at(crisisContract.heading)).toBeGreaterThan(at("112"));
-  expect(at("0800 567 567")).toBeGreaterThan(at(crisisContract.heading));
-  expect(at("0861 322 322")).toBeGreaterThan(at("0800 567 567"));
-  expect(read.chest).toContain("10177");
+  expect(at("one zero one seven seven")).toBeGreaterThan(-1);
+  expect(at("one one two")).toBeGreaterThan(at("one zero one seven seven"));
+  expect(at(crisisContract.heading)).toBeGreaterThan(at("one one two"));
+  expect(at(sadag)).toBeGreaterThan(at(crisisContract.heading));
+  expect(at(lifeline)).toBeGreaterThan(at(sadag));
+  expect(read.crisis).not.toMatch(/\d{3}/);
+  expect(read.chest).toContain("one zero one seven seven");
   expect(read.chest).not.toContain(crisisContract.heading);
-  expect(read.chest).not.toContain("0800 567 567");
+  expect(read.chest).not.toContain(sadag);
 });

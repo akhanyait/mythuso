@@ -780,8 +780,10 @@ export function spokenOf(turn: Turn, audience: AudienceId): string {
          when the crisis words raised this answer — packages/catalog/crisis-lines.json. */
       if (showsCrisisLines(turn.reply.groups)) {
         add(crisisLines.heading);
+        /* Read as a telephone number, digit by digit — the spoken form beside each number in
+           crisis-lines.json, as sos.json's emergency numbers are — never as a quantity. */
         for (const line of crisisLines.lines)
-          words.push(`${line.number}, ${line.name}.`);
+          words.push(`${line.spoken}, ${line.name}.`);
       }
       break;
     case "unmatched":

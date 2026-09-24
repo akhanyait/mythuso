@@ -15,8 +15,8 @@ extension Gilbert {
         static let group = "crisis"
         static let heading = "If you are thinking about harming yourself, you can also talk to someone now:"
         static let lines: [GilbertLine] = [
-            GilbertLine(number: "0800 567 567", name: "SADAG helpline"),
-            GilbertLine(number: "0861 322 322", name: "Lifeline South Africa")
+            GilbertLine(number: "0800 567 567", spoken: "zero eight zero zero five six seven five six seven", name: "SADAG helpline"),
+            GilbertLine(number: "0861 322 322", spoken: "zero eight six one three two two three two two", name: "Lifeline South Africa")
         ]
     }
 }

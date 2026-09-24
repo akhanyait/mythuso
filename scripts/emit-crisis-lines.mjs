@@ -46,7 +46,7 @@ extension Gilbert {
         static let group = ${swift(contract.showsWhen.group)}
         static let heading = ${swift(contract.heading)}
         static let lines: [GilbertLine] = [
-${contract.lines.map(l => `            GilbertLine(number: ${swift(l.number)}, name: ${swift(l.name)})`).join(',\n')}
+${contract.lines.map(l => `            GilbertLine(number: ${swift(l.number)}, spoken: ${swift(l.spoken)}, name: ${swift(l.name)})`).join(',\n')}
         ]
     }
 }
@@ -62,7 +62,7 @@ object CrisisLinesData {
     const val group = ${kotlin(contract.showsWhen.group)}
     const val heading = ${kotlin(contract.heading)}
     val lines = listOf(
-${contract.lines.map(l => `        GilbertLine(${kotlin(l.number)}, ${kotlin(l.name)})`).join(',\n')}
+${contract.lines.map(l => `        GilbertLine(${kotlin(l.number)}, ${kotlin(l.spoken)}, ${kotlin(l.name)})`).join(',\n')}
     )
 }
 `;

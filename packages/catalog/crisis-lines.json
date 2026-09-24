@@ -20,6 +20,7 @@
       "id": "sadag",
       "name": "SADAG helpline",
       "number": "0800 567 567",
+   "spoken": "zero eight zero zero five six seven five six seven",
       "whenToUse": "Free counselling and referrals, from the South African Depression and Anxiety Group.",
       "source": {
         "authority": "SADAG (South African Depression and Anxiety Group)",
@@ -30,6 +31,7 @@
       "id": "lifeline",
       "name": "Lifeline South Africa",
       "number": "0861 322 322",
+   "spoken": "zero eight six one three two two three two two",
       "whenToUse": "24-hour crisis counselling.",
       "source": {
         "authority": "Lifeline South Africa",

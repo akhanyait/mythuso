@@ -31804,6 +31804,14 @@ console.log(
     throw new Error(
       "packages/catalog/crisis-lines.json does not say whether a clinician has reviewed it. Say so plainly, as gilbert-emergency-terms.json does: reviewedBy null until somebody has.",
     );
+  /* Each line's spoken form spells its own digits, word for word, as sos.json's emergency numbers
+     must: a voice that reads "0800 567 567" as a quantity reads a number nobody can dial. */
+  const digitWords = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+  for (const line of crisis.lines)
+    if (line.spoken !== digitsOf(line.number).split("").map((d) => digitWords[d]).join(" "))
+      throw new Error(
+        `packages/catalog/crisis-lines.json's ${line.id} is read aloud as "${line.spoken}", which is not ${line.number} digit by digit. A crisis line is read as a telephone number — the same rule sos.json's emergency numbers are held to.`,
+      );
   const mentalHealth = read("packages/catalog/knowledge/mental-health.json");
   for (const line of crisis.lines) {
     for (const key of ["id", "name", "number", "whenToUse"])

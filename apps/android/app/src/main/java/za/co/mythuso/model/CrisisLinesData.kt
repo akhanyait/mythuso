@@ -14,7 +14,7 @@ object CrisisLinesData {
     const val group = "crisis"
     const val heading = "If you are thinking about harming yourself, you can also talk to someone now:"
     val lines = listOf(
-        GilbertLine("0800 567 567", "SADAG helpline"),
-        GilbertLine("0861 322 322", "Lifeline South Africa")
+        GilbertLine("0800 567 567", "zero eight zero zero five six seven five six seven", "SADAG helpline"),
+        GilbertLine("0861 322 322", "zero eight six one three two two three two two", "Lifeline South Africa")
     )
 }
