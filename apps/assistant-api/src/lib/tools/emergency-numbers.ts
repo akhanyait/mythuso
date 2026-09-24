@@ -1,12 +1,15 @@
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import sos from "../../../../../packages/catalog/sos.json" with { type: "json" };
+import crisisLines from "../../../../../packages/catalog/crisis-lines.json" with { type: "json" };
 
 /* The emergency-numbers tool. The three emergency numbers are sos.json's own — the same contract
-   the emergency screen and the system prompt fill from, by id, so no copy can drift. The support
-   lines below them are typed here, and the test suite pins each one against the catalog's
-   mental-health resources, so a number that changes in the catalog fails a test here rather than
-   quietly going stale on a person in crisis. */
+   the emergency screen and the system prompt fill from, by id, so no copy can drift. Since 24
+   September 2026 the two crisis lines are packages/catalog/crisis-lines.json's own too, the contract
+   the emergency answer shows them from on every platform; only the GBV line, which that contract does
+   not hold, is typed here. The test suite still pins every number against the catalog's mental-health
+   resources, so a number that changes there fails a test here rather than going stale on a person in
+   crisis. */
 
 type SosNumber = {
   id: string;
@@ -21,14 +24,10 @@ const EMERGENCY_NUMBERS = sos.emergency.numbers as SosNumber[];
 /* Support lines, worded as the catalog's mental-health resources word them. Order is by how many
    people each one can help: the SADAG line answers any mental-health question. */
 const SUPPORT_LINES: { label: string; number: string }[] = [
-  {
-    label: "SADAG mental health helpline (free counselling and referrals)",
-    number: "0800 567 567",
-  },
-  {
-    label: "Lifeline South Africa (24-hour crisis counselling)",
-    number: "0861 322 322",
-  },
+  ...(crisisLines.lines as { name: string; number: string; whenToUse: string }[]).map((line) => ({
+    label: `${line.name} (${line.whenToUse.replace(/\.$/, "")})`,
+    number: line.number,
+  })),
   {
     label: "GBV Command Centre (gender-based violence, 24 hours)",
     number: "0800 428 428",

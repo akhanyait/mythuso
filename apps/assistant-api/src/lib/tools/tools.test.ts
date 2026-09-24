@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import sos from "../../../../../packages/catalog/sos.json" with { type: "json" };
 import mentalHealth from "../../../../../packages/catalog/knowledge/mental-health.json" with { type: "json" };
+import crisisLines from "../../../../../packages/catalog/crisis-lines.json" with { type: "json" };
 import {
   formatKnowledgeResults,
   knowledgeSearchTool,
@@ -219,9 +220,12 @@ test("emergency-numbers carries sos.json’s own three, by the contract’s orde
       catalogResources.includes(number),
       `${number} should be the catalog's own number for a support line`,
     );
-  assert.ok(output.includes("SADAG mental health helpline"));
+  /* The two crisis lines are packages/catalog/crisis-lines.json's own, name and number. */
+  for (const line of crisisLines.lines) {
+    assert.ok(output.includes(line.name), `${line.name} should be read from crisis-lines.json`);
+    assert.ok(output.includes(line.number));
+  }
   assert.ok(output.includes("0800 567 567"));
-  assert.ok(output.includes("Lifeline South Africa"));
   assert.ok(output.includes("0861 322 322"));
   assert.ok(output.includes("Sources: "));
   /* A support-shaped question gets the support sentence; a plain ask does not. */
