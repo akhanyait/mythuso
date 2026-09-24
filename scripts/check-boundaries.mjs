@@ -12498,6 +12498,20 @@ const METRIC_STRIPS = [
     after: "const metricsOf = ",
     what: "the staff shell's metric strip",
   },
+  /* The Control Tower's three figures moved out of metricsOf in Phase 3, because the merged portal
+     draws the same strip over the same boards; both shells read this one block now. */
+  {
+    file: "apps/web/src/features/Dispatch.tsx",
+    after: "export const controlTowerFigures = ",
+    what: "the Control Tower strip the workspace and the merged portal share",
+  },
+  /* And the two figures the back office's Operations tab carried, which joined the portal's Dispatch
+     strip when that tab was merged into it. */
+  {
+    file: "apps/web/src/features/portal/Operations.tsx",
+    after: "<TowerStrip extra=",
+    what: "the merged portal's Dispatch strip",
+  },
   {
     file: "apps/ios/MyThuso/Features/WorkspaceView.swift",
     after: "static func figures(_ role: String)",
@@ -32584,4 +32598,338 @@ const p2Summary = {};
 
 console.log(
   `GilbertOne administration, Phase 2 · ${p2Summary.catalogueSwept} catalogue files hold no key or deployment address; push-to-talk and captions are locked and no application wires a wake word while the founder's two records disagree (${p2Summary.wakeWordSwept} files); the emergency, refusal and escalation voice is pinned and changes only through the review queue; a signed-out visitor is held at level 1 and a patient's clinical assist at 2; no level changes the emergency path; ${p2Summary.proposedCards} proposed providers are named in none of ${p2Summary.codeSwept} source files; every provider variable the service reads has a card; ${p2Summary.phiFlows} health-information flows reach no Tier 3 provider${p2Summary.phiUndecided ? `, and ${p2Summary.phiUndecided} of them reach a provider with no residency decision — open, recorded in docs/governance/ASSISTANT-ACTIVATION.md` : ""}; no preference re-voices a clinical answer and no native file overrides the screen reader (${p2Summary.screenReaderSwept} files); and the Overview's ${p2Summary.gates} gates agree with their registers. Not checkable until the runtime exists: a per-turn level, an enable switch, the vault, a clinician session.`,
+);
+
+/* ==== The merged Control Tower portal, Phase 3 (24 September 2026) ===============================
+   docs/PROMPT-CONTROL-TOWER-UI.md §5, §6 and §10 Phase 3: the Control Tower workspace and the back
+   office become one portal, packages/catalog/control-tower-portal.json. Each check below is an
+   invariant the portal's screens could quietly break, and each was proved by breaking its source and
+   restoring it (docs/FEATURE-MAP.md, the Phase 3 entry). */
+const p3 = {
+  portal: JSON.parse(read("packages/catalog/control-tower-portal.json")),
+  overview: JSON.parse(read("packages/catalog/control-tower-overview.json")),
+  vitals: JSON.parse(read("packages/catalog/vitals.json")),
+  protocols: JSON.parse(read("packages/catalog/protocols.json")),
+  capabilities: JSON.parse(read("packages/catalog/capabilities.json")),
+};
+const p3Summary = {};
+const p3Files = [
+  ...files("apps/web/src/features/portal"),
+  "apps/web/src/shells/PortalShell.tsx",
+  "apps/web/src/lib/portal.ts",
+].filter((f) => /\.(tsx?|css)$/.test(f));
+
+/* 1. The categories are the plan's, in the plan's order. The first eleven are §5.1's tree, read from
+   the plan itself; the rest are exactly the tabs docs/control-tower-tab-inventory.md moves in that the
+   tree does not name. A category reordered, renamed or dropped here is the plan reargued by a screen. */
+{
+  const tree = read("docs/PROMPT-CONTROL-TOWER-UI.md")
+    .split("\n")
+    .map((l) => l.match(/^[├└]── ([^←]+?)\s*(←.*)?$/))
+    .filter(Boolean)
+    .map((m) => m[1].trim());
+  if (tree.length !== 11)
+    throw new Error(`scripts/check-boundaries.mjs read ${tree.length} categories from the §5.1 tree in docs/PROMPT-CONTROL-TOWER-UI.md, not eleven, so the portal's order is held to nothing.`);
+  const labels = p3.portal.categories.map((c) => c.label);
+  tree.forEach((label, i) => {
+    if (labels[i] !== label)
+      throw new Error(
+        `packages/catalog/control-tower-portal.json's category ${i + 1} is "${labels[i]}", and the plan's §5.1 tree puts "${label}" there. The portal's categories are the plan's, in the plan's order.`,
+      );
+  });
+  const movedIn = labels.slice(tree.length);
+  const expectedMovedIn = ["Clinical oversight", "Catalogue", "Growth"];
+  if (JSON.stringify(movedIn) !== JSON.stringify(expectedMovedIn))
+    throw new Error(
+      `packages/catalog/control-tower-portal.json appends ${JSON.stringify(movedIn)} after the plan's eleven; the tab inventory moves in exactly ${JSON.stringify(expectedMovedIn)} that the plan's tree does not name.`,
+    );
+  const g1 = p3.portal.categories.find((c) => c.label === "GilbertOne API Administration");
+  if (!g1 || g1.mark !== "G1")
+    throw new Error("packages/catalog/control-tower-portal.json's GilbertOne API Administration category does not carry the G1 mark (§5.1).");
+  for (const c of p3.portal.categories) {
+    if (!c.tabs.length) throw new Error(`packages/catalog/control-tower-portal.json's ${c.label} has no tab.`);
+    const ids = new Set(c.tabs.map((t) => t.id));
+    if (ids.size !== c.tabs.length) throw new Error(`packages/catalog/control-tower-portal.json's ${c.label} repeats a tab id.`);
+  }
+  p3Summary.categories = labels.length;
+}
+
+/* 2. Every tab and section the tab inventory marks moved or merged has a place in the portal, and the
+   portal names no old tab the inventory does not. Held three ways: against the inventory's tables,
+   against the back office's own tab list, and against the Control Tower workspace's own sections and
+   More tools — so a tab cannot be dropped on the way in, and one cannot be invented. */
+{
+  const inventory = read("docs/control-tower-tab-inventory.md");
+  const between = (from, to) => inventory.slice(inventory.indexOf(from), inventory.indexOf(to));
+  const rows = (block, dispositionColumn) =>
+    block
+      .split("\n")
+      .filter((l) => /^\| /.test(l) && !/^\| (Tab|Section|Item|Role) \|/.test(l) && !/^\| ---/.test(l))
+      .map((l) => l.split("|").map((c) => c.trim()))
+      .map((cells) => ({ name: cells[1], disposition: cells[dispositionColumn] }));
+  const admin = rows(between("## Admin.tsx", "## StaffShell.tsx — Control Tower workspace"), 4);
+  const tower = rows(between("## StaffShell.tsx — Control Tower workspace", "### Control Tower's \"More tools\""), 4);
+  const tools = rows(between("### Control Tower's \"More tools\"", "## StaffShell.tsx — Nurse, Doctor"), 3);
+  if (admin.length !== 10 || tower.length !== 5 || tools.length !== 4)
+    throw new Error(
+      `scripts/check-boundaries.mjs read ${admin.length}, ${tower.length} and ${tools.length} rows from docs/control-tower-tab-inventory.md's three in-scope tables, not 10, 5 and 4, so the portal's legacy addresses are held to nothing.`,
+    );
+  const expected = new Map([
+    ...admin.map((r) => [`back-office:${r.name}`, r.disposition]),
+    ...tower.map((r) => [`control-tower:${r.name}`, r.disposition]),
+    ...tools.map((r) => [`control-tower:${r.name}`, r.disposition]),
+  ]);
+  const legacy = new Map(p3.portal.legacyAddresses.map((e) => [e.legacy, e]));
+  for (const [name, disposition] of expected) {
+    const entry = legacy.get(name);
+    const word = disposition.split(" ")[0];
+    if (!entry)
+      throw new Error(
+        `docs/control-tower-tab-inventory.md marks ${name} ${word}, and packages/catalog/control-tower-portal.json#legacyAddresses gives it nowhere to land. No tab is retired without a reason, and the inventory gives none.`,
+      );
+    if (!/^(moved|merged)$/.test(word) || entry.disposition !== word)
+      throw new Error(
+        `packages/catalog/control-tower-portal.json records ${name} as "${entry.disposition}", and the tab inventory's verdict is "${word}". The inventory's verdicts are honoured, not restated.`,
+      );
+  }
+  for (const name of legacy.keys())
+    if (!expected.has(name))
+      throw new Error(`packages/catalog/control-tower-portal.json#legacyAddresses names ${name}, which docs/control-tower-tab-inventory.md does not list.`);
+  for (const e of p3.portal.legacyAddresses) {
+    const c = p3.portal.categories.find((x) => x.id === e.category);
+    if (!c || !c.tabs.some((t) => t.id === e.tab))
+      throw new Error(`packages/catalog/control-tower-portal.json sends ${e.legacy} to ${e.category}/${e.tab}, which the portal does not have.`);
+    if (e.tool && !(c.tools ?? []).includes(e.legacy.split(":")[1]))
+      throw new Error(`packages/catalog/control-tower-portal.json sends the More tool ${e.legacy} to ${c.label}, and ${c.label} does not offer it.`);
+  }
+  const adminTabs = JSON.parse(
+    read("apps/web/src/features/Admin.tsx").match(/export const adminTabs = (\[[^\]]+\])/)[1].replace(/'/g, '"'),
+  );
+  const staff = read("apps/web/src/shells/StaffShell.tsx");
+  const towerBlock = staff.slice(staff.indexOf("'Control Tower': { subjectId"), staff.indexOf("} as const satisfies"));
+  const towerSections = [...towerBlock.matchAll(/\{ id: '([^']+)'/g)].map((m) => m[1]);
+  const extrasLine = read("apps/web/src/features/Workspaces.tsx").match(/'Control Tower':\[([^\]]+)\]/)[1];
+  const towerTools = extrasLine
+    .split(",")
+    .map((s) => s.trim().replace(/^'|'$/g, ""))
+    .map((s) => (s === "HL7_QUARANTINE_HEADING" ? "HL7 quarantine (development)" : s));
+  if (towerSections.length !== 5 || towerTools.length !== 4)
+    throw new Error("scripts/check-boundaries.mjs can no longer read the Control Tower workspace's sections and More tools, so the portal's legacy addresses are held to nothing.");
+  for (const tab of adminTabs)
+    if (!legacy.has(`back-office:${tab}`))
+      throw new Error(`apps/web/src/features/Admin.tsx draws a "${tab}" tab that the merged portal gives nowhere to land.`);
+  for (const s of [...towerSections, ...towerTools])
+    if (!legacy.has(`control-tower:${s}`))
+      throw new Error(`apps/web/src/shells/StaffShell.tsx's Control Tower draws "${s}", and the merged portal gives it nowhere to land.`);
+  const landing = p3.portal.roleLanding;
+  if (landing["control-tower"]?.category !== "dispatch" || landing["back-office"]?.category !== "overview")
+    throw new Error(
+      "packages/catalog/control-tower-portal.json#roleLanding does not open ?role=control-tower on Dispatch & Incidents and ?role=back-office on Overview, as docs/control-tower-cutover.md's address table says it must.",
+    );
+  p3Summary.legacy = legacy.size;
+}
+
+/* 3. One status vocabulary: the Overview contract's, and no portal file owns another. A list or union
+   of status words typed into a screen is a second vocabulary; a word outside the contract's — green,
+   operational, online — is the drift §5.2 names. And the plan's §2 build words are the plan's table,
+   word for word. */
+{
+  const vocabulary = p3.overview.statusVocabulary.map((s) => s.id);
+  const word = `(['"\`])(${vocabulary.join("|")})\\1`;
+  const listOfWords = new RegExp(`${word}\\s*[|,]\\s*(['"\`])(${vocabulary.join("|")})\\3`);
+  const offVocabulary = /(['"`])(green|red|amber|operational|online|healthy|up|down|ok|running|active|inactive|offline)\1/i;
+  for (const f of p3Files.filter((f) => /\.tsx?$/.test(f))) {
+    const code = uncommented(read(f));
+    const list = code.match(listOfWords);
+    if (list)
+      throw new Error(`${f} declares its own list of status words (${list[0]}). The portal has one vocabulary, packages/catalog/control-tower-overview.json#statusVocabulary, read through lib/portal.ts.`);
+    const hit = code.match(offVocabulary);
+    if (hit)
+      throw new Error(`${f} uses the status word ${hit[0]}, which is not in packages/catalog/control-tower-overview.json#statusVocabulary. A service is never "green" on one screen and "connected" on another.`);
+    for (const m of code.matchAll(/<Status id=['"]([^'"]+)['"]/g))
+      if (!vocabulary.includes(m[1]))
+        throw new Error(`${f} draws the status "${m[1]}", which packages/catalog/control-tower-overview.json#statusVocabulary does not define.`);
+  }
+  if (!/statusVocabulary: readonly StatusWord\[\] = overview\.statusVocabulary/.test(read("apps/web/src/lib/portal.ts")))
+    throw new Error("apps/web/src/lib/portal.ts no longer reads the status vocabulary from packages/catalog/control-tower-overview.json.");
+  const planWords = new Map(
+    read("docs/PROMPT-CONTROL-TOWER-UI.md")
+      .split("## §3")[0]
+      .split("## §2")[1]
+      .split("\n")
+      .map((l) => l.match(/^\| ([a-z-]+) \| (.+?) \|$/))
+      .filter(Boolean)
+      .map((m) => [m[1], m[2]]),
+  );
+  if (planWords.size !== 5) throw new Error("scripts/check-boundaries.mjs can no longer read the §2 status table in docs/PROMPT-CONTROL-TOWER-UI.md.");
+  for (const w of p3.portal.buildVocabulary)
+    if (planWords.get(w.id) !== w.sentence)
+      throw new Error(`packages/catalog/control-tower-portal.json's build word "${w.id}" reads "${w.sentence}", and the plan's §2 says "${planWords.get(w.id)}". The status vocabulary is exact.`);
+  if (p3.portal.buildVocabulary.length !== planWords.size)
+    throw new Error("packages/catalog/control-tower-portal.json#buildVocabulary does not carry every word of the plan's §2 table.");
+}
+
+/* 4. No portal screen types a device count or the DPIA's state. Both are packages/catalog/vitals.json's,
+   and the day the allowlist gains a device the Devices & Fleet screens have to change by themselves.
+   The contract's sentences hold a {real} and a {dpia} where the facts go, and no digit. And nothing in
+   the category is a control: a class cannot be enabled at a site until the DPIA covers it. */
+{
+  for (const f of p3Files.filter((f) => /\.tsx?$/.test(f))) {
+    const code = uncommented(read(f));
+    const typedCount = code.match(/\b\d+\s+(real\s+)?(devices?|device classes|instruments?)\b/i);
+    if (typedCount)
+      throw new Error(`${f} types "${typedCount[0]}". How many devices are allowlisted is packages/catalog/vitals.json#deviceAllowlist.real, read, never typed.`);
+    const typedDpia = code.match(/(['"`])(not-done|not done|done)\1|DPIA (is )?not done|DPIA is done/i);
+    if (typedDpia)
+      throw new Error(`${f} types the DPIA's state (${typedDpia[0]}). It is packages/catalog/vitals.json#darkForRealDevices.dpiA, read, never typed.`);
+  }
+  const devicesScreen = read("apps/web/src/features/portal/Devices.tsx");
+  if (!/vitals\.deviceAllowlist\.real\.length/.test(devicesScreen) || !/vitals\.darkForRealDevices\.dpiA/.test(devicesScreen))
+    throw new Error("apps/web/src/features/portal/Devices.tsx no longer reads the allowlist and the DPIA's state from packages/catalog/vitals.json.");
+  const d = p3.portal.devices;
+  for (const key of ["fleetEmpty", "provisioningEmpty", "allowlistEmpty"])
+    if (!d[key].includes("{real}") || !d[key].includes("{dpia}"))
+      throw new Error(`packages/catalog/control-tower-portal.json#devices.${key} names the allowlist and the DPIA without the {real} and {dpia} they are read into.`);
+  for (const [key, sentence] of Object.entries(d))
+    if (!key.startsWith("_") && typeof sentence === "string" && /\d/.test(sentence))
+      throw new Error(`packages/catalog/control-tower-portal.json#devices.${key} carries a digit. A device fact is read from the contract that owns it.`);
+  if (!(p3.vitals.darkForRealDevices.dpiA in d.dpiaWords))
+    throw new Error(`packages/catalog/vitals.json's DPIA state "${p3.vitals.darkForRealDevices.dpiA}" has no words in packages/catalog/control-tower-portal.json#devices.dpiaWords.`);
+  const enabling = /<(button|input|select)\b|onClick=/.exec(uncommented(devicesScreen));
+  if (enabling)
+    throw new Error(`apps/web/src/features/portal/Devices.tsx carries a control (${enabling[0]}). Nothing in Devices & Fleet enables, pairs or assigns a device: a class cannot be enabled at a site until the DPIA covers it.`);
+}
+
+/* 5. The review-queue screen offers no sign, ratify, reject or roll-back action while the governance
+   board is not formed. Read from packages/catalog/protocols.json#governance, so the day the board is
+   formed this check steps aside rather than being edited. */
+{
+  const queueScreen = "apps/web/src/features/portal/ReviewQueue.tsx";
+  const code = uncommented(read(queueScreen));
+  if (!/protocols\.governance/.test(code))
+    throw new Error(`${queueScreen} no longer reads the governance board's state from packages/catalog/protocols.json#governance.`);
+  if (p3.protocols.governance.board.status !== "formed") {
+    const action = code.match(/<(button|form|input|select|a)\b|onClick=|onSubmit=|onKeyDown=/);
+    if (action)
+      throw new Error(
+        `${queueScreen} offers an action (${action[0]}) while the governance board is "${p3.protocols.governance.board.status}". Nobody may sign an entry, so the screen offers nothing to sign with: ${p3.portal.refusals.find((r) => r.id === "no-signature-while-board-not-formed").statement}`,
+      );
+  }
+}
+
+/* 6. GilbertOne API Administration is a category with a written "not built" state and nothing else
+   until Phase 4: no control, no sub-screen, and every sub-screen it names reads a contract that exists
+   under a gate a register holds. */
+{
+  const g1 = p3.portal.gilbertone;
+  if (g1.status !== "proposed" || g1.phase !== 4)
+    throw new Error("packages/catalog/control-tower-portal.json#gilbertone is no longer proposed for Phase 4. Its sub-screens are built in Phase 4, behind their gates, and not before.");
+  const registers = read("docs/PROMPT-CONTROL-TOWER-UI.md") + read("docs/PROMPT-CONTROL-TOWER.md");
+  for (const s of g1.subScreens) {
+    if (!existsSync(s.contract))
+      throw new Error(`packages/catalog/control-tower-portal.json says GilbertOne's ${s.label} would read ${s.contract}, which does not exist.`);
+    if (!new RegExp(`\\| ${s.gate} \\|`).test(registers))
+      throw new Error(`packages/catalog/control-tower-portal.json gates GilbertOne's ${s.label} on ${s.gate}, which neither gate register holds.`);
+  }
+  const screen = uncommented(read("apps/web/src/features/portal/GilbertOne.tsx"));
+  const control = /<(button|input|select|textarea|form)\b|onClick=|onChange=/.exec(screen);
+  if (control)
+    throw new Error(`apps/web/src/features/portal/GilbertOne.tsx carries a control (${control[0]}). The assistant is live in production; before Phase 4 this category may say what it will be and nothing else.`);
+  const subScreenFile = files("apps/web/src").find((f) => /(Voice|ModelProviders|Intelligence|Knowledge|ApiRegistry|ApiKeys)(Admin|Screen)?\.tsx$/.test(f) && /portal|admin/i.test(f));
+  if (subScreenFile)
+    throw new Error(`${subScreenFile} looks like a GilbertOne administration sub-screen. Those are Phase 4, behind G29 to G32, G35, G14 and G10.`);
+}
+
+/* 7. The portal costs the patient nothing. It is reached only through Doorway.tsx's dynamic import, no
+   module on the first load imports any of it, and every category inside it is a dynamic import of its
+   own. tests/states.spec.ts holds the bytes; this holds the shape that keeps them. */
+{
+  const door = read("apps/web/src/Doorway.tsx");
+  if (!/const ControlTower = lazy\(\(\) => import\('\.\/shells\/PortalShell'\)\)/.test(door))
+    throw new Error("apps/web/src/Doorway.tsx no longer reaches the merged Control Tower through a dynamic import.");
+  const firstLoad = [
+    "apps/web/src/main.tsx",
+    "apps/web/src/App.tsx",
+    "apps/web/src/Doorway.tsx",
+    "apps/web/src/shells/PatientShell.tsx",
+    "apps/web/src/lib/roles.ts",
+    "apps/web/src/features/DemoLogin.tsx",
+  ];
+  for (const f of firstLoad)
+    if (/^\s*import (?!type\b)[^;]*from '[^']*(features\/portal\/|shells\/PortalShell|lib\/portal|control-tower-portal\.json|control-tower-overview\.json)/m.test(read(f)))
+      throw new Error(`${f} imports the merged Control Tower statically. A patient's first load must not carry a byte of it.`);
+  const shell = read("apps/web/src/shells/PortalShell.tsx");
+  for (const c of p3.portal.categories)
+    if (!new RegExp(`\\b${c.id}: lazyCategory\\(\\(\\) => import\\('\\.\\./features/portal/`).test(shell))
+      throw new Error(`apps/web/src/shells/PortalShell.tsx does not load the ${c.label} category on a dynamic import of its own.`);
+  if (/^\s*import (?!type\b)[^;]*from '\.\.\/features\/portal\/(Overview|Operations|Devices|GilbertOne|Configuration|BackOffice|ReviewQueue|Modals)'/m.test(shell))
+    throw new Error("apps/web/src/shells/PortalShell.tsx imports a category screen statically; every category arrives when it is opened.");
+}
+
+/* 8. Colour from the tokens and nowhere else, and never the palette the plan's Appendix C refuses. No
+   hex literal in a portal file, no portal rule reaching for indigo or the information blue, no focus
+   outline removed and no positive tabindex. */
+{
+  for (const f of p3Files) {
+    const code = uncommented(read(f));
+    const hex = code.match(/#[0-9a-fA-F]{3,8}\b/);
+    if (hex) throw new Error(`${f} carries the colour ${hex[0]}. Every colour in the portal is a token from packages/design-tokens/tokens.json.`);
+    const blue = code.match(/var\(--(indigo[a-z-]*|info[a-z-]*)\)/);
+    if (blue) throw new Error(`${f} paints with ${blue[0]}. The navy, blue and violet palette is not the Control Tower's (docs/PROMPT-CONTROL-TOWER-UI.md Appendix C).`);
+    if (/outline:\s*(none|0)\b/.test(code)) throw new Error(`${f} removes the focus outline. The portal's focus ring is core.css's two rings, drawn from the tokens.`);
+    if (/tabIndex=\{?["']?[1-9]/.test(code)) throw new Error(`${f} sets a positive tabindex. Reading order is DOM order (docs/control-tower-accessibility.md).`);
+  }
+}
+
+/* 9. The sentences the portal borrows are the documents' own. The parallel run's refusal is
+   docs/control-tower-cutover.md's word for word; every "what changed" item is a Delivered heading in
+   docs/FEATURE-MAP.md word for word, newest first, about a file that exists; the preview picker's
+   refusal is the accounts capability's own; and the portal's shell renders both halves of it. */
+{
+  const cutover = read("docs/control-tower-cutover.md").replace(/\s+/g, " ");
+  if (!cutover.includes(p3.portal.legacy.sentence))
+    throw new Error("packages/catalog/control-tower-portal.json#legacy.sentence is not docs/control-tower-cutover.md's own refusal, word for word.");
+  const map = read("docs/FEATURE-MAP.md");
+  const changed = p3.portal.overview.whatChanged;
+  changed.forEach((c, i) => {
+    if (!map.includes(`\n## ${c.heading}\n`))
+      throw new Error(`packages/catalog/control-tower-portal.json's what-changed item "${c.heading}" is not a heading in docs/FEATURE-MAP.md.`);
+    if (!existsSync(c.ref)) throw new Error(`packages/catalog/control-tower-portal.json's what-changed item names ${c.ref}, which does not exist.`);
+    if (i && changed[i - 1].on < c.on) throw new Error("packages/catalog/control-tower-portal.json's what-changed items are not newest first.");
+  });
+  const accounts = p3.capabilities.capabilities.find((c) => c.id === "accounts");
+  if (!accounts.simulation.refuses.some((s) => s.startsWith(p3.portal.previewPicker.refusalStartsWith)))
+    throw new Error("packages/catalog/capabilities.json's accounts capability no longer carries the refusal the portal's preview-picker notice quotes.");
+  const shell = uncommented(read("apps/web/src/shells/PortalShell.tsx"));
+  if (!/pickerRefusal\(\)/.test(shell) || !/previewPicker\.sentence/.test(shell))
+    throw new Error("apps/web/src/shells/PortalShell.tsx no longer says, beside the categories, that the role picker grants nobody anything.");
+}
+
+/* 10. §6.2's three additions carry what §6.2 asks and no figure they cannot back: Configuration's tree
+   has its seven nodes, each with its own empty state, and the settings screen still reachable in it;
+   cost allocation has its three axes and draws no money; the compliance pack preview has no generate
+   control. */
+{
+  const tree = p3.portal.configuration.tree;
+  for (const id of ["sites", "wards", "beds", "staff", "roles", "branding", "integrations"]) {
+    const node = tree.find((n) => n.id === id);
+    if (!node || !node.emptyState)
+      throw new Error(`packages/catalog/control-tower-portal.json's Configuration tree has no "${id}" node with its own empty state (§6.2).`);
+  }
+  if (!tree.some((n) => n.body === "settings"))
+    throw new Error("packages/catalog/control-tower-portal.json's Configuration tree no longer reaches the settings screen the old Configuration tab was.");
+  const axes = p3.portal.costAllocation.axes.map((a) => a.id).join(",");
+  if (axes !== "per-bed,per-seat,per-call")
+    throw new Error(`packages/catalog/control-tower-portal.json's cost allocation has the axes ${axes}; §6.2 names per bed, per seat and per call.`);
+  const backOffice = uncommented(read("apps/web/src/features/portal/BackOffice.tsx"));
+  const costBlock = backOffice.slice(backOffice.indexOf("function CostAllocation"), backOffice.indexOf("export function ComplianceCategory"));
+  if (/\b(money|bigMoney)\(|\bR\s?\d/.test(costBlock))
+    throw new Error("apps/web/src/features/portal/BackOffice.tsx's cost allocation draws an amount. No meter exists behind any axis, so no figure is drawn.");
+  const packBlock = backOffice.slice(backOffice.indexOf("function CompliancePackPreview"), backOffice.indexOf("export function GovernanceCategory"));
+  if (/<(button|form)\b|onClick=/.test(packBlock))
+    throw new Error("apps/web/src/features/portal/BackOffice.tsx's compliance pack preview offers an action. The pack produces nothing — not a draft, not a preview — until its four decisions close.");
+}
+
+console.log(
+  `The merged Control Tower, Phase 3 · ${p3Summary.categories} categories in the plan's order with GilbertOne carrying its mark; ${p3Summary.legacy} old tabs and sections each land where the tab inventory says; one status vocabulary and the plan's build words, exactly; no device count or DPIA state typed and no device control; no action on the review queue while the board is not formed; no GilbertOne sub-screen before Phase 4; the portal and every category behind a dynamic import; colour from the tokens alone; and the cutover's, the feature map's and the capability's sentences quoted word for word.`,
 );
