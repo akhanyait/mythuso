@@ -1042,7 +1042,10 @@ test('every address the contract declares is built, and none of them answers not
    assistantContract.routes.map((route) => [`${route.method} ${route.path}`, route] as const),
   ).values(),
  ];
- assert.equal(declared.length, 12, 'twelve addresses, and the test below walks every one');
+ /* Twelve addresses the conversation surface answers, and founder access's four (24 September 2026),
+    which a server started without its switch answers with the dark refusal — never a 404 and never
+    not-yet-available — so the walk below holds them to the same rule. */
+ assert.equal(declared.length, 16, 'sixteen addresses, and the test below walks every one');
  const errors = await withServer(
   async () => QUIET_ANSWER,
   async (base) => {

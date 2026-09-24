@@ -17,6 +17,12 @@ import {
   createObservationStore,
   type ObservationStore,
 } from "./lib/observations.ts";
+import {
+  clearedCookie as clearedFounderCookie,
+  createFounderAccess,
+  founderLine,
+  type FounderAccess,
+} from "./lib/founder-access.ts";
 import { corsFor } from "./lib/origin-policy.ts";
 import { cloudSpeech, SPEECH_VOICES, type SpeechSeam } from "./lib/speech.ts";
 import { triageGate } from "./lib/triage-gate.ts";
@@ -92,6 +98,32 @@ const statementOf = (refusalId: string, fallback: string): string =>
    sends already uses. The contract's id is the truth and this is only its spelling as a JSON word,
    so the two can never disagree about which refusal was met. */
 const errorWord = (refusalId: string): string => refusalId.replace(/-/g, "_");
+/* The status each refusal is declared at, indexed the same way as its sentence, so a founder route
+   answers a refusal with the contract's status as well as its words. Founder access's refusals are
+   the only ones answered through refuse() below; every older branch spells its status out, and is
+   held to the contract by the checks that read it. */
+const refusalStatusCodes = new Map<string, number>();
+for (const refusal of assistantContract.refusals)
+  refusalStatusCodes.set(refusal.id, refusal.status);
+for (const route of assistantContract.routes) {
+  for (const refusal of route.refusals) {
+    if (!refusalStatusCodes.has(refusal.id))
+      refusalStatusCodes.set(refusal.id, refusal.status);
+  }
+}
+/* A founder route's refusal: the contract's status, its id and its sentence, and nothing else — no
+   hint of which factor failed, whether a key exists, or how many attempts are left. */
+function refuse(
+  res: ServerResponse,
+  headers: Record<string, string>,
+  refusalId: string,
+): void {
+  send(res, refusalStatusCodes.get(refusalId) ?? 500, headers, {
+    error: errorWord(refusalId),
+    refusalId,
+    message: statementOf(refusalId, "The request could not be processed safely."),
+  });
+}
 
 /* Browser origins are answered per ./lib/origin-policy.ts: the site's own two names in production,
    localhost shapes in development, a 403 for every other Origin before any route reads the URL. A
@@ -290,6 +322,7 @@ export function createAssistantServer(
   speech: SpeechSeam = cloudSpeech(),
   clinical: ClinicalFlowSeam = liveClinicalFlows(),
   turnStream: typeof handleTurnStream = handleTurnStream,
+  founder: FounderAccess = createFounderAccess(),
 ): Server {
   /* Read once, per server: the facts the status routes report are facts about how this process was
     configured, and they cannot change while it runs. */
@@ -1106,6 +1139,149 @@ export function createAssistantServer(
           "A handover reaches no clinician from here: the identity, roster and destination contracts it would need do not exist.",
         ),
       });
+    }
+    if (req.method === "POST" && req.url === "/assistant/v1/founder/session") {
+      /* Founder sign-in, added 24 September 2026 (lib/founder-access.ts has the whole account). The
+      gate comes first and reads nothing: a request a page on another site could have made is refused,
+      and so is every request while founder access is dark — both halves of the switch are needed,
+      and the provisioning script writes only one of them. Then the lock, before any password is
+      hashed. Then the two factors together, refused in one sentence that never says which failed.
+      The session id travels only in the Set-Cookie header; the body says when it ends and nothing
+      else, and the audit line says what happened and nothing else. */
+      const gated = founder.gate(req.headers);
+      if (gated) {
+        console.log(founderLine("founder.sign-in", gated.refusalId));
+        return refuse(res, cors.headers, gated.refusalId);
+      }
+      const body = await readJsonBody(req);
+      if (!body.ok) {
+        const refusalId = body.status === 413 ? "payload-too-large" : "invalid-request";
+        console.log(founderLine("founder.sign-in", refusalId));
+        return refuse(res, cors.headers, refusalId);
+      }
+      const asked = (body.value ?? {}) as { password?: unknown; code?: unknown };
+      if (typeof asked.password !== "string" || typeof asked.code !== "string") {
+        console.log(founderLine("founder.sign-in", "required-field-missing"));
+        return send(res, 400, cors.headers, {
+          error: "required_field_missing",
+          refusalId: "required-field-missing",
+          message: "A field this route needs was not sent.",
+        });
+      }
+      const signed = await founder.signIn(asked.password, asked.code);
+      if (!signed.ok) {
+        console.log(founderLine("founder.sign-in", signed.refusalId));
+        return refuse(res, cors.headers, signed.refusalId);
+      }
+      console.log(founderLine("founder.sign-in", "accepted"));
+      return send(
+        res,
+        200,
+        { ...cors.headers, "set-cookie": signed.cookie, pragma: "no-cache" },
+        { signedIn: true, expiresAt: signed.expiresAt },
+      );
+    }
+    if (req.method === "DELETE" && req.url === "/assistant/v1/founder/session") {
+      /* Founder sign-out: the live session ends and the cookie is cleared. Without a live session there
+      is nothing to end, and the answer says so — with the cookie cleared anyway, so a stale one does
+      not linger in the browser. */
+      const gated = founder.gate(req.headers);
+      if (gated) {
+        console.log(founderLine("founder.sign-out", gated.refusalId));
+        return refuse(res, cors.headers, gated.refusalId);
+      }
+      if (!founder.sessionFrom(req.headers.cookie)) {
+        console.log(founderLine("founder.sign-out", "founder-no-session"));
+        return refuse(
+          res,
+          { ...cors.headers, "set-cookie": clearedFounderCookie() },
+          "founder-no-session",
+        );
+      }
+      founder.signOut();
+      console.log(founderLine("founder.sign-out", "accepted"));
+      return send(
+        res,
+        200,
+        { ...cors.headers, "set-cookie": clearedFounderCookie(), pragma: "no-cache" },
+        { signedIn: false },
+      );
+    }
+    if (req.method === "GET" && req.url === "/assistant/v1/founder/keys") {
+      /* What may be said about the two keys without revealing either: present or not, the last four
+      characters and the SHA-256 fingerprint prefix — the same sixteen characters the provisioning
+      script printed and the register records. A live session is enough for this, and no code is
+      asked, because none of it is the key. */
+      const gated = founder.gate(req.headers);
+      if (gated) {
+        console.log(founderLine("founder.keys", gated.refusalId));
+        return refuse(res, cors.headers, gated.refusalId);
+      }
+      if (!founder.sessionFrom(req.headers.cookie)) {
+        console.log(founderLine("founder.keys", "founder-no-session"));
+        return refuse(res, cors.headers, "founder-no-session");
+      }
+      console.log(founderLine("founder.keys", "accepted"));
+      return send(
+        res,
+        200,
+        { ...cors.headers, pragma: "no-cache" },
+        { keys: founder.keys(), expiresAt: founder.sessionExpiresAt() },
+      );
+    }
+    if (req.method === "POST" && req.url === "/assistant/v1/founder/reveal") {
+      /* The reveal: one allowlisted key, to a live session that has just typed a fresh code. The
+      session alone is not enough — a stolen cookie reveals nothing — and the code is burned, so it
+      cannot be spent twice. The value travels in this one response body, under no-store and
+      no-cache, and nowhere else: the audit line carries the key's name and fingerprint, never it. */
+      const gated = founder.gate(req.headers);
+      if (gated) {
+        console.log(founderLine("founder.reveal", gated.refusalId));
+        return refuse(res, cors.headers, gated.refusalId);
+      }
+      if (!founder.sessionFrom(req.headers.cookie)) {
+        console.log(founderLine("founder.reveal", "founder-no-session"));
+        return refuse(res, cors.headers, "founder-no-session");
+      }
+      const body = await readJsonBody(req);
+      if (!body.ok) {
+        const refusalId = body.status === 413 ? "payload-too-large" : "invalid-request";
+        console.log(founderLine("founder.reveal", refusalId));
+        return refuse(res, cors.headers, refusalId);
+      }
+      const asked = (body.value ?? {}) as { name?: unknown; code?: unknown };
+      if (typeof asked.name !== "string" || typeof asked.code !== "string") {
+        console.log(founderLine("founder.reveal", "required-field-missing"));
+        return send(res, 400, cors.headers, {
+          error: "required_field_missing",
+          refusalId: "required-field-missing",
+          message: "A field this route needs was not sent.",
+        });
+      }
+      const revealed = founder.reveal(asked.name, asked.code);
+      if (!revealed.ok) {
+        console.log(
+          founderLine("founder.reveal", revealed.refusalId, { name: asked.name, fingerprint: null }),
+        );
+        return refuse(res, cors.headers, revealed.refusalId);
+      }
+      console.log(
+        founderLine("founder.reveal", "accepted", {
+          name: revealed.name,
+          fingerprint: revealed.fingerprint,
+        }),
+      );
+      return send(
+        res,
+        200,
+        { ...cors.headers, pragma: "no-cache" },
+        {
+          name: revealed.name,
+          revealedKey: revealed.value,
+          lastFour: revealed.lastFour,
+          fingerprint: revealed.fingerprint,
+        },
+      );
     }
     const refusedRoute = `${req.method} ${req.url}`;
     if (req.method && notYetAvailable.has(refusedRoute)) {
