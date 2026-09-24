@@ -13,6 +13,12 @@ Administration sub-screens are still not built (Phase 4). The manual half — a 
 somebody who did not build it, and a screen-reader pass on a real device — has **not** been done, so no
 portal screen is called done here; the table under _How it is tested_ is still empty and says why.
 
+**Updated 24 September 2026, Phase 4.** GilbertOne API Administration's seven sub-screens are **built**
+(`apps/web/src/features/portal/gilbertone/`) and held by `tests/gilbertone-admin.spec.ts` on both
+viewports: each reached by the keyboard, each measured and swept. Every action on them is a disabled
+button tied to its gate's sentence by `aria-describedby`, and every locked setting is text. The manual
+passes have still not been made.
+
 ## Why this is not optional
 
 A person who relies on a keyboard, a switch or a screen reader must be able to administer the
@@ -39,8 +45,9 @@ to more — it does on target size — the stricter rule stands and this documen
 | Names | Every interactive element has an accessible name; icon-only buttons carry `aria-label` | Journey tests query by role and name; the portal sweep checks every button, link, field, tab and tree item on each new screen | **built** for the portal's new screens; partly elsewhere |
 | Status messages | A panel that fills, a check that finishes, a save that fails is announced through a live region without moving focus | Journey tests | partly: the portal's loading state and the Overview's health check are `role="status"`; announcing the moment a category finishes loading is not tested |
 | Loading | Every panel has a skeleton or a spinner with an accessible name, never a blank region (§5.2); the skeleton is `aria-busy` on its region | `tests/control-tower-portal.spec.ts` waits for the named loading state to leave each category | **built** for the portal: every category is a dynamic import behind a named, `aria-busy`, still skeleton |
-| Empty states | Every list and panel has a written empty state (§5.2), read as text, not an image | The contracts carry the sentences (`control-tower-overview.json`, `control-tower-portal.json`, `voice.json`, `api-registry.json`); `tests/control-tower-portal.spec.ts` asserts each one on its screen | **built** for the portal's new screens; the GilbertOne sub-screens' do not exist |
-| Errors | An error names the field and says what to do, in a sentence, and is tied to its field with `aria-describedby` | Journey tests | proposed |
+| Empty states | Every list and panel has a written empty state (§5.2), read as text, not an image | The contracts carry the sentences (`control-tower-overview.json`, `control-tower-portal.json`, `voice.json`, `api-registry.json`); `tests/control-tower-portal.spec.ts` and `tests/gilbertone-admin.spec.ts` assert each one on its screen | **built** for the portal's new screens and the seven GilbertOne sub-screens |
+| Errors | An error names the field and says what to do, in a sentence, and is tied to its field with `aria-describedby` | Journey tests | partly: the voice preview's refusal of a person's details is `role="alert"`, tied to the field by `aria-describedby` with `aria-invalid` set (`tests/gilbertone-admin.spec.ts`); no other portal field accepts input |
+| Disabled actions | A control that cannot act yet is disabled by the attribute, never merely styled, and its reason is on the screen as text and tied to it with `aria-describedby`, so a screen reader that skips the disabled control still reads why | `scripts/check-boundaries.mjs` (Phase 4, check 3); `tests/gilbertone-admin.spec.ts` asserts every disabled control's description is its gate's sentence | **built** for the GilbertOne sub-screens |
 
 ## Keyboard rules
 
@@ -80,14 +87,18 @@ A roving tab index:
 
 - Buttons act on **Enter** and **Space**; links on **Enter**.
 - A destructive or production-changing action (disable a provider, the per-tenant kill switch, rotate
-  a key) opens a confirmation dialog whose default focus is **Cancel**, never the action.
+  a key) opens a confirmation dialog whose default focus is **Cancel**, never the action. _Phase 4:_ every
+  such action is disabled behind its gate, so no confirmation dialog exists yet; this rule applies the
+  day one is enabled.
 - A locked setting (push-to-talk, captions, the clinical-delivery voice — `packages/catalog/voice.json`)
   is rendered as text with its reason, not as a disabled control. A disabled control is skipped by
   some screen readers and says nothing about why; a sentence says both.
 
 **Sliders** (the intelligence level). **Left**/**Down** and **Right**/**Up** move one level; **Home** and
 **End** go to the ends; the value is announced with its name ("Level 2, Standard"), and a level above
-the ceiling is not reachable rather than reachable and refused.
+the ceiling is not reachable rather than reachable and refused. _Phase 4:_ no slider is drawn. The
+selector is gated (G31), so the levels, defaults and ceilings are a list and a table with named levels,
+and the one control is a disabled button with its sentence. These rules apply the day it is built.
 
 **Dialogs.** `role="dialog"` with `aria-modal="true"` and a label; focus moves to the first field (or
 Cancel, as above) on open, is held inside while open, and returns to the opener on close.
@@ -164,13 +175,28 @@ No row exists yet. The portal is built (Phase 3) and nobody has made a manual pa
 - **The sweep** on every new screen: no nameless control, no positive tabindex, no running animation
   with reduced motion asked for.
 
+### What the GilbertOne administration journeys hold, 24 September 2026
+
+`tests/gilbertone-admin.spec.ts`, on both projects:
+
+- **Keyboard, sub-screens.** From the selected sub-screen the arrows walk all seven in the contract's
+  order, each activating, updating the address and replacing its own named, still loading state; focus
+  wraps; only the selected tab is a Tab stop; Back returns; an address naming a sub-screen lands on it.
+- **Disabled actions.** On every sub-screen: no enabled button, no enabled input, no enabled password
+  field anywhere on the page, and every disabled button and checkbox described by its gate's sentence.
+- **The voice preview.** Its register and sentence fields are labelled; a person's details raise a
+  `role="alert"` refusal tied to the field; nothing is spoken or requested.
+- **The measurements and the sweep** of `tests/audit.ts` on all seven, at the configured viewport with
+  reduced motion asked for, and at 200%. The sweep now also names textareas and disclosure summaries.
+
 The screens moved in unchanged (Dispatch, Incidents, the vetting queue, Quality, Audit exports and the
 back office's panels) keep the journeys they already had; `tests/journeys.spec.ts` now walks every
 category and tab of the portal as one application.
 
 ## What is outstanding
 
-- The GilbertOne API Administration sub-screens: Phase 4.
+- The GilbertOne API Administration sub-screens are built (Phase 4) and have the same automated floor;
+  they need the same manual passes before any is called done.
 - The manual passes: a keyboard-only pass by somebody who did not build the portal, and a screen-reader
   pass on a real device. Neither has been done, and no portal screen is called done until both are rows
   in the table above.
