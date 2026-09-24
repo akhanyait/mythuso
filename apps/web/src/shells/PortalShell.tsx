@@ -2,6 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useState, type Compone
 import { Activity, BarChart3, BookOpen, CalendarRange, Cpu, Info, Landmark, LayoutGrid, LogOut, Radar, ScrollText, ShieldAlert, ShieldCheck, SlidersHorizontal, TrendingUp } from 'lucide-react';
 import { AssistantLauncher } from '../components/AssistantLauncher';
 import { G1Mark } from '../components/G1Mark';
+import { MotionPause } from '../components/MotionPause';
 import { DemoBar, useRole } from '../features/DemoLogin';
 import { useVettingState } from '../features/Vetting';
 import { PortalContext, type PortalContextValue } from '../features/portal/context';
@@ -9,6 +10,7 @@ import { Loading, Tablist } from '../features/portal/Parts';
 import { categories, categoryById, contextParam, headingOf, overviewRefusal, pickerRefusal, placeFromSearch, portalContract, searchForPlace, tabOf, tabsOf, type ContextId, type PortalPlace } from '../lib/portal';
 import { t } from '../lib/i18n';
 import { endSession } from '../lib/auth';
+import { useChapter, useDecor } from '../lib/motion';
 import { roleOf, whoIs, type RoleId } from '../lib/roles';
 import '../surface/clinical.css';
 import '../surface/clinical-screens.css';
@@ -109,6 +111,9 @@ function PortalShell({ audience }: { audience: RoleId }) {
  const [settingsEngine, setSettingsEngine] = useState('');
  const vetting = useVettingState();
  const { setRole } = useRole();
+ /* The portal declares it has decorative motion, so the pause control in the topbar governs it and
+    the charts later phases add arrive gated on [data-decor='on'] rather than running unstoppable. */
+ useDecor();
 
  /* Back and forward walk the tabs, because every tab is an address. */
  useEffect(() => {
@@ -119,6 +124,10 @@ function PortalShell({ audience }: { audience: RoleId }) {
 
  const category = categoryById(place.category);
  const tab = tabOf(category, place.tab);
+ /* A category change is genuinely new content, so the panel replays its entrance — keyed from React
+    rather than restarted from CSS. Under reduced motion the key never changes and nothing remounts,
+    which is the difference between switching an entrance off and never starting it. */
+ const chapter = useChapter(category.id);
  useEffect(() => { document.title = `${headingOf(tab)} · ${category.label} · ${portalContract.name}`; }, [tab, category]);
 
  const navigate = useCallback((next: PortalPlace) => {
@@ -163,6 +172,7 @@ function PortalShell({ audience }: { audience: RoleId }) {
      {identity && <div className="staff-who">{identity}</div>}
      <div className="breadcrumb"><span className="pt-name">{portalContract.name}</span><span>/</span>{category.label}<span>/</span><strong>{headingOf(tab)}</strong></div>
      <div className="topbar-actions">
+      <MotionPause className="pt-pause"/>
       <button className="icon-button" aria-label="Leave the Control Tower" onClick={leave}><LogOut size={19}/></button>
      </div>
     </header>
@@ -183,7 +193,7 @@ function PortalShell({ audience }: { audience: RoleId }) {
        <span>{portalContract.notice.sentence}</span>
        <button type="button" className="text-button" onClick={() => go('overview', 'moves')}>{portalContract.notice.linkLabel}</button>
       </p>}
-      <div className="pt-category" id="pt-category" role="tabpanel" aria-label={category.label}>
+      <div className="pt-category rise" id="pt-category" role="tabpanel" aria-label={category.label} key={chapter}>
        {/* Keyed by category so a category's screen starts from its own first state, and wrapped in
            its own Suspense so the loading state is this panel's, not the page's. */}
        <Suspense key={category.id} fallback={<Loading/>}>{Body ? <Body/> : null}</Suspense>

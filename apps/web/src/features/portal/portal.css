@@ -7,9 +7,20 @@
  *
  * Every colour is a token from packages/design-tokens/tokens.json through tokens.generated.css, and
  * every text-on-ground pair below is a row in tokens.json#contrast: charcoal and faint on the aurora
- * and on the glass floor, surface on charcoal, and each status word on its own soft ground. No hex, no
- * indigo — indigo is the palette the plan's Appendix C says the Control Tower must not wear — and no
- * outline: none anywhere: the focus ring is core.css's two rings. Nothing here animates. */
+ * and on the glass floor, surface on charcoal, and each status word on its own soft ground. No hex and
+ * no outline: none anywhere — the focus ring is core.css's two rings.
+ *
+ * Indigo, once banned here, is a token accent since the founder's CI ruling of 24 September 2026
+ * (docs/ROADMAP.md, docs/design-review/CONTROL-TOWER-REDESIGN.md): the shipped teal-navy-lime palette
+ * governs, and GilbertOne's brand is an accent within it, never a replacement for it.
+ *
+ * Motion runs through the one system in surface/motion.css and never starts a second: token durations
+ * (--t-quick/--t-settle/--t-enter) and --ease-soft only, no curve typed here, transform and opacity
+ * only, decorative motion gated on [data-decor='on'], and reduced motion REMOVES rather than shortens.
+ * This sheet loads after motion.css, so every transition it adds carries its own !important removal at
+ * the foot of the file — a reduced-motion block a later sheet can overrule is a suggestion, not a
+ * removal. This sheet is not in check-boundaries.mjs's cubic-bezier or sage-fill scope, so those two
+ * rules are self-enforced here: no cubic-bezier literal, and charcoal on every sage fill. */
 
 /* ---- The category list ------------------------------------------------------------------------ */
 .portal .pt-side-nav { display: none; }
@@ -157,7 +168,7 @@
    translucent grey; a locked setting is text on the soft teal, with a lock icon that is decoration. The
    registry's card states reuse the portal's status grounds where the word means the same thing, and
    the one word the registry adds — configured — takes the gated ground: present, and not checked.
-   Nothing here animates. */
+   Motion here is the shared system's settle, added once at the foot of this sheet. */
 .portal .g1-grid { display: grid; gap: var(--space-16); grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 1000px) { .portal .g1-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .portal .g1-card { padding: var(--space-16); border-radius: var(--r-card); border: 1px solid var(--pane-line); background: var(--pane); color: var(--charcoal); min-width: 0; }
@@ -229,3 +240,29 @@
 .portal .g1-founder-note { margin: var(--space-8) 0 0; color: var(--charcoal); font-size: 14px; }
 .portal .g1-founder-details { margin-top: var(--space-12); }
 .portal .g1-founder-details > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 500; color: var(--charcoal); }
+
+/* ---- The motion this sheet adds ------------------------------------------------------------------
+   One settle, written once, on the controls that change ground, border or ink when a reader moves
+   over them or selects them. Token duration and token curve, no cubic-bezier typed here; only
+   compositor-friendly properties plus the two a selection repaints. Removed, not shortened, below. */
+.portal .pt-tab,
+.portal .pt-node,
+.portal .pt-row,
+.portal .g1-card {
+ transition: background-color var(--t-settle) var(--ease-soft),
+             border-color var(--t-settle) var(--ease-soft),
+             color var(--t-settle) var(--ease-soft),
+             transform var(--t-quick) var(--ease-soft),
+             box-shadow var(--t-settle) var(--ease-soft);
+}
+
+/* ---- Removal -------------------------------------------------------------------------------------
+   This sheet loads after motion.css, whose own reduced-motion block cannot reach selectors written
+   here. So the removal is repeated, with !important, for everything above that moves: reduced motion
+   REMOVES the settle rather than shortening it. */
+@media (prefers-reduced-motion: reduce) {
+ .portal .pt-tab,
+ .portal .pt-node,
+ .portal .pt-row,
+ .portal .g1-card { transition: none !important; }
+}
