@@ -32,9 +32,9 @@
 .landing .editorial-hero .landing-hero-marks { margin: 0; gap: 26px; }
 .landing .editorial-hero .landing-hero-marks[hidden] { display: none; }
 .landing .studio-bar { background: var(--studio-night); border-radius: 20px; }
-.landing .landing-figures { background: transparent; border-bottom: 1px solid var(--studio-line); padding-block: 46px; }
-.landing .landing-figure-source { background: transparent; padding: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
-.landing .landing-figures strong { font-weight: 500; font-size: 62px; letter-spacing: -3px; }
+.landing .landing-figures { background: transparent; border-bottom: 1px solid var(--studio-line); padding-block: 46px; gap: clamp(14px, 1.6vw, 20px); }
+.landing .landing-figure-source { background: transparent; padding: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; display: inline-flex; align-items: center; gap: 8px; min-height: 20px; }
+.landing .landing-figures strong { font-weight: 600; font-size: 62px; letter-spacing: -3px; }
 .landing .landing-figures .landing-figure-value { margin-top: 24px; font-size: clamp(68px, 7vw, 96px); line-height: 1.08; letter-spacing: -.055em; }
 .figure-value-visual { display: inline-flex; align-items: baseline; white-space: nowrap; }
 .figure-character { display: inline-block; overflow: hidden; vertical-align: bottom; }
@@ -43,12 +43,120 @@
 .landing-figure-unit { margin: 12px 0 0; font-size: 14px; line-height: 1.5; font-weight: 600; color: var(--studio-ink); }
 .landing .landing-figures .landing-figure-detail { margin-top: 8px; max-width: 25ch; }
 @media (max-width: 600px) {
- .landing .landing-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 0; padding-block: 32px; }
- .landing .landing-figures > div { padding-right: 14px; }
- .landing .landing-figures > div:nth-child(even) { padding: 0 0 0 14px; border-left: 1px solid var(--studio-line); }
+ .landing .landing-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding-block: 32px; }
  .landing .landing-figures .landing-figure-source { display: block; min-height: 36px; line-height: 1.4; letter-spacing: .6px; }
- .landing .landing-figures .landing-figure-value { font-size: clamp(52px, 16vw, 68px); margin-top: 10px; }
+ .landing .landing-figures .landing-figure-value { font-size: clamp(36px, 11.5vw, 60px); margin-top: 10px; }
  .landing-figure-unit { min-height: 42px; }
+}
+/* ---- The figures band as dashboard cards ----
+   The four figures are metric cards now: a white card on the paper ground, a tinted wash in the
+   top corner, a coloured status dot on the chip, and an equalizer of seven bars at the foot whose
+   heights are the same on every card — decoration borrowed from the dashboard language, not data.
+   The figures themselves are unchanged: four numbers, none typed, each naming the contract file it
+   is read out of. The tint is keyed to the named figure, never to a position in an array, for the
+   same reason the step tints are: a colour that changes when a card moves tells two readers two
+   different things.
+
+   Every word on a card sits on white or near-white. The strongest corner of each wash, mixed into
+   --surface, measures charcoal at better than 13:1, so nothing in this section guesses where in
+   the gradient the screenshot was taken. */
+.landing .landing-figure-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--studio-line);
+  border-radius: var(--r-panel);
+  padding: clamp(22px, 2.4vw, 30px);
+  transition: translate .25s var(--ease), box-shadow .25s var(--ease), border-color .25s var(--ease);
+}
+.landing .landing-figure-card:hover {
+  translate: 0 -4px;
+  border-color: var(--charcoal);
+  box-shadow: var(--shadow);
+}
+.landing .landing-figure-card[data-tint="mint"] {
+  background: radial-gradient(120% 100% at 100% 0%, color-mix(in srgb, var(--brand-mint) 55%, var(--surface)) 0%, transparent 56%), var(--surface);
+}
+.landing .landing-figure-card[data-tint="peach"] {
+  background: radial-gradient(120% 100% at 100% 0%, color-mix(in srgb, var(--studio-peach) 62%, var(--surface)) 0%, transparent 56%), var(--surface);
+}
+.landing .landing-figure-card[data-tint="lime"] {
+  background: radial-gradient(120% 100% at 100% 0%, color-mix(in srgb, var(--brand-lime) 46%, var(--surface)) 0%, transparent 56%), var(--surface);
+}
+.landing .landing-figure-card[data-tint="lilac"] {
+  background: radial-gradient(120% 100% at 100% 0%, color-mix(in srgb, var(--studio-lilac) 82%, var(--surface)) 0%, transparent 56%), var(--surface);
+}
+/* The status dot before the source label. It repeats the label it sits beside, so it owes
+   SC 1.4.11 nothing; the fills are the brand's own marks on their own tints. */
+.landing .landing-figure-source::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--studio-ink-muted);
+  flex-shrink: 0;
+  vertical-align: 2px;
+}
+.landing .landing-figure-card[data-tint="mint"] .landing-figure-source::before { background: var(--brand-green); }
+.landing .landing-figure-card[data-tint="peach"] .landing-figure-source::before { background: var(--brand-orange); }
+.landing .landing-figure-card[data-tint="lime"] .landing-figure-source::before { background: var(--studio-olive); }
+.landing .landing-figure-card[data-tint="lilac"] .landing-figure-source::before { background: var(--studio-ink-muted); }
+/* The equalizer. The same seven heights on every card, tinted to the card, aria-hidden in the
+   markup: an empty element carries no text for a walker to trip on and no claim for a reader to
+   check. It borrows the dashboard's life without pretending to chart anything. */
+.landing .landing-figure-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 34px;
+  margin-top: auto;
+}
+.landing .landing-figure-detail {
+  margin-bottom: 22px;
+}
+.landing .landing-figure-bars i {
+  flex: 1;
+  min-width: 3px;
+  border-radius: var(--r-pill);
+  background: var(--studio-line);
+  transform: scaleY(1);
+  transform-origin: bottom;
+}
+.landing .landing-figure-card[data-tint="mint"] .landing-figure-bars i { background: color-mix(in srgb, var(--brand-green) 32%, var(--surface)); }
+.landing .landing-figure-card[data-tint="peach"] .landing-figure-bars i { background: color-mix(in srgb, var(--brand-orange) 30%, var(--surface)); }
+.landing .landing-figure-card[data-tint="lime"] .landing-figure-bars i { background: color-mix(in srgb, var(--studio-olive) 34%, var(--surface)); }
+.landing .landing-figure-card[data-tint="lilac"] .landing-figure-bars i { background: color-mix(in srgb, var(--studio-ink-muted) 30%, var(--surface)); }
+/* The cards arrive left to right, and the arrival and the hover share one transition list so the
+   reveal does not quietly cancel the hover's easing. Only opacity and transform take the stagger
+   delay; the hover properties stay immediate. */
+[data-motion="on"] .landing .landing-figure-card[data-reveal] {
+  transition: opacity .6s var(--ease), transform .6s var(--ease), translate .25s var(--ease), box-shadow .25s var(--ease), border-color .25s var(--ease);
+  transition-delay: calc(var(--figure-order, 0) * 80ms), calc(var(--figure-order, 0) * 80ms), 0s, 0s, 0s;
+}
+/* Between the two-column and the comfortable four-column width the cards are narrow enough that
+   the 96px cap would not fit: the numeral is brought down to match the card it stands in. */
+@media (min-width: 860px) and (max-width: 1079px) {
+  .landing .landing-figure-card { padding: clamp(18px, 2.2vw, 24px); }
+  .landing .landing-figure-card .landing-figure-value { font-size: clamp(44px, 5.6vw, 68px); }
+}
+@keyframes figure-bar-rise {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  html[data-decor="on"][data-motion="on"]
+    .landing-figure-card[data-reveal="shown"]
+    .landing-figure-bars i {
+    animation: figure-bar-rise calc(var(--t-enter) * 1.3) var(--ease-soft)
+      both;
+    animation-delay: calc(var(--figure-order) * 100ms + var(--bar-i) * 60ms);
+  }
 }
 @keyframes figure-number-arrive {
  from { transform: translateY(105%); opacity: 0; }

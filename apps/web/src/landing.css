@@ -13,13 +13,13 @@
  *   1. The ground is --mist, not white. The cards are the white. A page that is white all the way
  *      down has to draw a border to say where a card is; a grey ground lets the card say it by
  *      being lighter, and the hairline only confirms it.
- *   2. Separation is a 1px --stone hairline and almost never a shadow. There is exactly one shadow
- *      in this file and it is on the sticky navigation, where a reader needs to know the bar is in
- *      front of the page rather than part of it.
- *   3. A figure is set large and light with a small label beneath and a small chip above. That
- *      contrast — one big thin numeral against small dense type — is most of what makes the
- *      reference read as calm rather than busy, and it is why nothing here is bold. Emphasis comes
- *      from size and from space.
+ *   2. Separation is a 1px --stone hairline and almost never a shadow. The resting shadows are the
+ *      sticky navigation and the hover lift of the interactive cards — a card that rises toward the
+ *      reader earns the elevation; a card at rest stays a hairline.
+ *   3. A figure is set large with a small label beneath and a small chip above. The numerals took
+ *      the bolder cut when the band became dashboard cards, because a tinted card is a louder
+ *      ground than an open column and the numeral is what has to win it back. Emphasis still comes
+ *      from size first.
  *   4. Sage is a fill and never a label. The darkest of the four sages measures 2.54:1 as text on
  *      --mist, which clears nothing, so it appears only as an icon tile, a portrait wash and a
  *      chip — always with charcoal on top of it, which clears 11.11:1 on --pale-sage and 5.89:1 on
@@ -67,13 +67,12 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
 }
 .landing section[id]{scroll-margin-top:88px}
 .landing a{text-decoration:none}
-/* The headings are bold now, and the figures are still light. That reads as a contradiction of the
-   paragraph this replaces — "nothing on this page is bold" — so here is what changed and why.
-   The sage generation put its emphasis entirely in size and space, because a near-monochrome page
-   has nothing else to put it in. Care Studio has a second lever: two inks. So a heading is set
-   heavy and split across two colours, and the *figures* keep the light weight, which is what stops
-   the page reading as one shouted block. Emphasis is still not decoration — it is the difference
-   between the thing a person came for and the thing beside it.
+/* The headings are bold and, since the band became dashboard cards, the figures are bolder too —
+   a 600 cut rather than the light weight the open-column band used. The tinted card is a louder
+   ground, and the numeral is what has to carry it; the heading keeps 700 and the figure stops at
+   600, so the page still reads as one bold thing with evidence rather than one shouted block.
+   Emphasis is still not decoration — it is the difference between the thing a person came for and
+   the thing beside it.
 
    700 rather than 800: the self-hosted Inter subset carries the whole axis, and at clamp(36,64) the
    heavier cut closes the counters at a reading distance. */
@@ -97,7 +96,7 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
 /* Sections arrive as you reach them. The rule that hides anything is scoped to the data-motion flag
    that apps/web/src/lib/motion.ts sets, so a page whose script never runs is a page that is simply
    already visible — never a blank one waiting for an observer that will not fire. */
-[data-motion=on] .landing [data-reveal]{opacity:0;transform:translate3d(0,20px,0);transition:opacity .6s var(--ease),transform .6s var(--ease);transition-delay:calc(var(--i,0) * 70ms)}
+[data-motion=on] .landing [data-reveal]{opacity:0;transform:translate3d(0,20px,0);transition:opacity .6s var(--ease),transform .6s var(--ease),translate .25s var(--ease),box-shadow .25s var(--ease),border-color .25s var(--ease);transition-delay:calc(var(--i,0) * 70ms),calc(var(--i,0) * 70ms),0s,0s,0s}
 [data-motion=on] .landing [data-reveal=shown]{opacity:1;transform:none}
 
 /* ---- The three disclosures ----
@@ -341,16 +340,19 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
 .landing-slide-step:hover{background:var(--cloud);border-color:var(--charcoal)}
 
 /* ---- The figures ----
-   The page's signature, and the reference's: a chip above, a large light numeral, a small label
-   below. Four numbers, none of them typed, each one naming the contract file it is read out of —
-   which is a claim a reader can go and check rather than a statistic nothing can hold to account. */
+   The page's signature, and the reference's: a chip above, a large numeral, a small label below.
+   Four numbers, none of them typed, each one naming the contract file it is read out of — which is
+   a claim a reader can go and check rather than a statistic nothing can hold to account. The band
+   is four dashboard cards now; the card itself — its corner wash, status dot and equalizer — lives
+   in surface/public-revamp.css with the rest of the editorial layer, and this file keeps the grid,
+   the chip and the type they stand on. */
 /* One column on a phone, not two. The chip carries a file name — "business-model.json" is 146px of
    13px type and will not go into half of a 320px screen, and a chip that wraps onto two lines is
    not a chip. The band is taller this way and that is the trade the design language asks for. */
-.landing-figures{display:grid;grid-template-columns:minmax(0,1fr);gap:36px 0;padding:clamp(40px,5vw,64px) var(--pad);border-block:1px solid var(--stone)}
+.landing-figures{display:grid;grid-template-columns:minmax(0,1fr);gap:clamp(14px,1.6vw,20px);padding:clamp(40px,5vw,64px) var(--pad);border-block:1px solid var(--stone)}
 .landing-figure-source{display:inline-block;font-size:13px;font-weight:500;line-height:1;color:var(--charcoal);background:var(--pale-sage);border-radius:var(--r-pill);padding:6px 12px;font-variant-numeric:tabular-nums}
-.landing-figures strong{display:block;font-family:var(--font-display);font-size:clamp(40px,5.4vw,64px);font-weight:400;line-height:1;letter-spacing:-.04em;color:var(--charcoal);font-variant-numeric:tabular-nums;margin:18px 0 0}
-.landing-figures > div > span:last-child{display:block;max-width:26ch;margin-top:14px;font-size:14px;line-height:1.6;color:var(--body)}
+.landing-figures strong{display:block;font-family:var(--font-display);font-size:clamp(40px,5.4vw,64px);font-weight:600;line-height:1;letter-spacing:-.04em;color:var(--charcoal);font-variant-numeric:tabular-nums;margin:18px 0 0}
+.landing-figure-detail{display:block;max-width:26ch;margin-top:14px;font-size:14px;line-height:1.6;color:var(--body)}
 .landing-figures-note{grid-column:1 / -1;margin:0;padding-top:28px;border-top:1px solid var(--stone);font-size:13px;line-height:1.6;color:var(--body)}
 
 /* ---- Sections and headings ----
@@ -373,7 +375,8 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
    index is the large light figure and the title is the small dense one, which is the same pairing
    the figures band uses and the reason the two sections feel related without matching. */
 .landing-steps{list-style:none;display:grid;gap:16px;padding:0;margin:0}
-.landing-steps li{position:relative;background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-panel);padding:clamp(24px,2.6vw,32px)}
+.landing-steps li{position:relative;background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-panel);padding:clamp(24px,2.6vw,32px);transition:translate .25s var(--ease),box-shadow .25s var(--ease),border-color .25s var(--ease)}
+.landing-steps li:hover{translate:0 -3px;border-color:var(--charcoal);box-shadow:var(--shadow)}
 .landing-step-index{display:block;font-family:var(--font-display);font-size:32px;font-weight:400;line-height:1;letter-spacing:-.03em;color:var(--body);font-variant-numeric:tabular-nums;margin-bottom:24px}
 .landing-steps .tile-icon{margin-bottom:20px}
 .landing-steps h3{margin-bottom:10px}
@@ -387,7 +390,7 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
 /* `translate`, not `transform`. The reveal rule above sets transform:none on a shown element with
    three selectors of specificity, which quietly beats a two-class hover rule and leaves the lift
    dead everywhere motion is on. The independent property composes with it instead of fighting it. */
-.landing-services li:hover{border-color:var(--charcoal);translate:0 -3px}
+.landing-services li:hover{border-color:var(--charcoal);translate:0 -3px;box-shadow:var(--shadow)}
 .landing-services .service-icon{margin-bottom:20px}
 .landing-services h3{font-size:16px;margin-bottom:8px}
 .landing-services p{font-size:14px;line-height:1.6;color:var(--body)}
@@ -426,7 +429,8 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
    start", and that is a claim about how many people use a service that has never run. Each card
    carries the phase it arrives in instead, which is a fact the catalogue actually holds. */
 .landing-plans{list-style:none;display:grid;gap:16px;padding:0;margin:0}
-.landing-plans li{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-panel);padding:clamp(20px,2.2vw,26px)}
+.landing-plans li{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-panel);padding:clamp(20px,2.2vw,26px);transition:translate .25s var(--ease),box-shadow .25s var(--ease),border-color .25s var(--ease)}
+.landing-plans li:hover{translate:0 -3px;border-color:var(--charcoal);box-shadow:var(--shadow)}
 /* Two lines of room whether the name needs them or not, so the four prices sit on one line across
    the row. Four large numerals at four different heights is the thing that makes a price table look
    assembled rather than designed, and it is the whole reason the figure is set large in the first
@@ -494,17 +498,12 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
  .landing-services,.landing-plans{grid-template-columns:repeat(2,minmax(0,1fr))}
  .landing-checks{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:clamp(24px,4vw,56px)}
  .landing-figures{grid-template-columns:repeat(2,minmax(0,1fr))}
- .landing-figures>div{padding-right:clamp(16px,2.4vw,32px)}
- .landing-figures>div:nth-child(2n){padding:0 0 0 clamp(16px,2.4vw,32px);border-left:1px solid var(--stone)}
 }
 @media(min-width:860px){
  .landing-nav nav{display:flex;flex-direction:row}
  .landing-cta{display:inline-flex}
  .landing-menu{display:none}
  .landing-figures{grid-template-columns:repeat(4,minmax(0,1fr))}
- .landing-figures>div,.landing-figures>div:nth-child(2n){padding:0 clamp(16px,2.2vw,32px);border-left:1px solid var(--stone)}
- .landing-figures>div:first-child{padding-left:0;border-left:0}
- .landing-figures>div:nth-child(4){padding-right:0}
  .landing-figures-note{margin-top:12px}
  .landing-steps{grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(16px,2vw,24px)}
  .landing-split{grid-template-columns:minmax(0,1fr) minmax(0,.72fr)}
@@ -562,7 +561,8 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
  html:has(.landing){scroll-behavior:auto}
  .landing,.landing *,.landing *::before,.landing *::after{animation:none!important;transition:none!important}
  .landing [data-reveal]{opacity:1!important;transform:none!important}
- .landing-services li:hover{translate:none}
+ .landing-services li:hover,.landing-steps li:hover,.landing-plans li:hover{translate:none}
+ .landing .landing-figure-card:hover{translate:none}
  .landing-progress{display:none}
 }
 

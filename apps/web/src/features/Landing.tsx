@@ -83,13 +83,21 @@ const passPoints = [
  { icon: Users, title: 'Pay for someone without reading their file', body: 'Booking and paying for a family member is one decision. Seeing their record is a different one, and only they can make it.' },
  { icon: ClipboardList, title: 'Take all of it with you', body: 'Every visit, reading, result and document, exported whenever you want it, in a form another clinician can read.' }
 ];
-/* Prices and counts are derived from the service contracts; labels use patient-facing language. */
+/* Prices and counts are derived from the service contracts; labels use patient-facing language.
+   Each card carries a named tint for its corner wash and its status dot — the same ordered set the
+   steps use, keyed to the figure rather than to its position, so the colour is stable and never the
+   only difference between two cards. */
+const figureTints = ['mint', 'peach', 'lime', 'lilac'] as const;
 const figures = [
- { source: 'Clear pricing', contract: 'services.json', value: money(fromPrice), unit: 'Starting price · per visit', label: 'Know the full price before you confirm.' },
- { source: 'For our nurses', contract: 'business-model.json', value: `${nurseShare}%`, unit: 'Of each launch visit fee', label: 'Paid to the nurse who cares for you.' },
- { source: 'Care at home', contract: 'services.json', value: String(liveServices.length), unit: 'Services at launch', label: `Available for home visits, from a catalogue of ${services.length}.` },
- { source: 'Carefully checked', contract: 'vetting.json', value: String(nurseChecks.length), unit: 'Required checks', label: 'Must pass before a nurse’s first visit.' }
+ { source: 'Clear pricing', contract: 'services.json', value: money(fromPrice), unit: 'Starting price · per visit', label: 'Know the full price before you confirm.', tint: figureTints[0] },
+ { source: 'For our nurses', contract: 'business-model.json', value: `${nurseShare}%`, unit: 'Of each launch visit fee', label: 'Paid to the nurse who cares for you.', tint: figureTints[1] },
+ { source: 'Care at home', contract: 'services.json', value: String(liveServices.length), unit: 'Services at launch', label: `Available for home visits, from a catalogue of ${services.length}.`, tint: figureTints[2] },
+ { source: 'Carefully checked', contract: 'vetting.json', value: String(nurseChecks.length), unit: 'Required checks', label: 'Must pass before a nurse’s first visit.', tint: figureTints[3] }
 ];
+/* The equalizer under each figure is decoration rather than data: the same seven heights on every
+   card, tinted to the card, rendered as empty elements hidden from assistive technology. It borrows
+   the dashboard look without claiming a measurement the catalogue does not hold. */
+const figureBars = [38, 62, 46, 78, 56, 88, 66];
 
 function FigureValue({ value }: { value: string }) {
  return <strong className="landing-figure-value">
@@ -319,11 +327,14 @@ export function Landing() {
   <Hero/>
 
   <section className="landing-figures" aria-label="Care, clearly explained">
-   {figures.map((f, index) => <div key={f.source} data-reveal style={{ ['--figure-order' as string]: index }}>
+   {figures.map((f, index) => <div key={f.source} className="landing-figure-card" data-tint={f.tint} data-reveal style={{ ['--figure-order' as string]: index }}>
     <span className="landing-figure-source" data-source={f.contract}>{f.source}</span>
     <FigureValue value={f.value}/>
     <p className="landing-figure-unit">{f.unit}</p>
     <span className="landing-figure-detail">{f.label}</span>
+    <span className="landing-figure-bars" aria-hidden="true">
+     {figureBars.map((height, bar) => <i key={bar} style={{ height: `${height}%`, ['--bar-i' as string]: bar }}/>)}
+    </span>
    </div>)}
    <p className="landing-figures-note" data-reveal>Planned launch pricing and services. You will always see the full price before confirming a visit.</p>
   </section>
