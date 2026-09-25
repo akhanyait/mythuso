@@ -517,3 +517,85 @@ Verification: `node scripts/check-boundaries.mjs` exits 0 — including a new ch
 - **Component vocabulary**: sliders (stone track, charcoal fill, circular thumb, floating mango-soft value chip), toggle switches (brandGreen ON / stone OFF), segmented controls, progress rings, numeric steppers, status chips (six-word vocabulary), sage area sparklines, dark vault panel — all 44px targets, two-ring focus, token-only colors, contract-driven values.
 - **Motion**: runs through the existing system (`lib/motion.ts`, `surface/motion.css`, `components/ChartMotion.tsx`) — only `transform`/`opacity`, gated on `[data-decor='on']`, removed under reduced motion, no `cubic-bezier` literals in stylesheets, token durations only. `portal.css` is excluded from the cubic-bezier and sage-fill boundary checks, so the rules are self-enforced there.
 - **Phased plan** (8 phases, ~16–20 batches, each independently verifiable and committable): Phase 0 spec (done) → Phase 1 auth gate → Phase 2 shell + IA + CSS → Phase 3 Overview + charts → Phase 4 Dispatch & Incidents → Phase 5 GilbertOne Admin → Phase 6 Configuration → Phase 7 Founder → Phase 8 remaining screens. Legacy shells stay at `?legacy=1` until G15 closes. Patient entry budget ≤ 282.16 kB; Control Tower stays behind dynamic imports.
+
+
+## Founder-requested — extended scope captured, and what gates each part, 25 September 2026
+
+**Handed over by the founder** as a DeepThink planning pass and captured verbatim in
+`docs/scope/06-Extended-Scope-2026-09.md` (eight domains: the security ladder, the online consultation
+screen, nurse/doctor field safety, IoT devices and triage scoring, the device marketplace and the free
+band, load-shedding/crime deployment intelligence, the Control Tower's five new capabilities, and the
+cost/build order). **It is a proposal, not a ratified contract.** Nothing in it has been written into
+`packages/catalog`, and no figure in it — triage weight, crime threshold, device price, margin, fee
+percentage, session lifetime — is a decided number. Each is a founder, clinical-lead or commercial
+ruling that has to be taken before it can become a contract value, because the rule here is that a
+number lives in one place and is decided, never typed by whoever is building. This entry is the gating
+analysis: what already exists, what each part waits on, and the honest order.
+
+**Where it already agrees with what is decided.** The ladder's Tier 1 (founder: password + TOTP, dark by
+default) is built. The Control Tower authenticator gate started tonight — `26594a9a`, the dark
+`control-tower-access` contract + lib + tests — is that same Tier 1 extended to Control Tower
+administrators, and §1.6's `MYTHUSO_AUTH_MODE=demo|production` cutover is exactly the live pass (Phase
+1c) already designed in `docs/design-review/CONTROL-TOWER-REDESIGN.md`. The consumer-device advisory
+boundary (§4.3), the advisory-with-documented-override rule (§3.3, §5.3) and GilbertOne's
+summarise-suggest-flag-but-never-decide role (§5.5) all restate boundaries already in the contracts and
+in the 23 September self-learning decision.
+
+**What gates each domain — and none of it is code that can be fabricated:**
+
+- **Part 1, the security ladder.** Tier 3 (real staff IAM) and Tier 4 (patient phone + OTP) wait on the
+  identity service (`apps/api`, deliberately dark) and an **SMS provider** — the founder's standing
+  deferral. Before the *first real patient*, §1.7's four governance gates must close: a **signed DPIA**
+  (`docs/governance/DPIA-DRAFT.md` is a draft), an **appointed Information Officer**
+  (`docs/governance/INFORMATION-OFFICER.md`), a **unified audit trail**, and a **tested breach drill**.
+  All four are governance, not code, and all four are unowned today. §1.5's field-level encryption gap —
+  `apps/api/src/sensitive.ts` is a single unversioned key — needs the versioned key ring the protection
+  module already supports before real identity or medical-aid numbers are stored.
+- **Part 2, the consultation screen.** A teleconsult *preview* surface exists; the **consultation
+  service, the WebRTC/DTLS-SRTP stack and the live per-consultation IoT reading pipeline do not** (the
+  document says so). This is a Phase-2 build in its own right and cannot start before the service is
+  scoped and the DPIA covers live video plus real-time device data.
+- **Part 3, field safety.** The field-safety **engine is built**; the gap is the Control Tower's live
+  map, check-in/escalation screens and the analytics. Three external dependencies already recorded here
+  need **founder green-light and pricing**: a real SAPS/crime-data source, an armed-response partner
+  agreement, and a hardware-fob decision. The pre-visit risk *score* is a clinical-adjacent threshold
+  and is not to be invented.
+- **Part 4, IoT devices and triage scoring.** Device contracts and the consumer/medical tiering exist;
+  triage stays gated behind **clinical ratification + a wired seam + the DPIA** (the governance model
+  that keeps the clinical flows dark). The "adapted SATS" scoring engine and every clinical weight in
+  §4.1–§4.2 are **Clinical Safety lead decisions** — writing them into a contract unratified would break
+  the hardest rule in the repo.
+- **Parts 4.3–4.4, the free band and the marketplace.** The commerce kernel and shop exist. The free-band
+  rule, the device prices (R300 band, R500 cuff…), the 10–20% margin and the kit economics are
+  **commercial decisions**, not yet taken. The band's clinical boundary (tier-3 consumer, advisory, never
+  auto-creates an incident) is consistent with what the device contracts already draw.
+- **Part 5, deployment intelligence.** Needs **external data contracts** — Eskom/EskomSePush and
+  SAPS/StreetSignal — each with an access decision and a cost, plus the risk / load-shedding / logistics
+  thresholds, which are decisions. The three deployment modes and the fee model (online at 60% of
+  standard) are **commercial rulings**. None of this can be authored as a contract until the sources and
+  the numbers are chosen.
+- **Part 6, the Control Tower's five new capabilities.** Each is gated exactly as the document's own
+  table says: Deployment Intelligence on the Eskom/SAPS data contracts; Field Safety Live on the engine
+  (built) plus a screen; Device Fleet on the device contracts plus the DPIA; Consultation Monitor on the
+  consultation service (not built); Safety Analytics on an analytics layer (not built).
+- **Part 7, the ten additions** (consent receipt, AI decision audit trail, explainability, device-recall
+  register, safety training, second-opinion request, band-limits screen, load-shedding scheduler, CPF
+  integration, safe-return confirmation) are good proposals and each needs its own scoping before it is
+  more than a line here.
+
+**Decisions the founder has to take before any of this becomes code** (each is a ruling, not a build):
+1. an SMS provider (unblocks Tier 3/4); 2. a SAPS/crime-data source and its pricing; 3. an
+armed-response partner agreement; 4. the hardware-fob and founder hardware-key decisions; 5. Eskom data
+access and tier; 6. the commercial numbers — device prices, margin, free-band cost, the mode fee
+percentages; 7. the clinical numbers — triage scoring model and per-device clinical weights, which route
+to the Clinical Safety lead and the DPIA and may not be fabricated; 8. appoint the Information Officer
+and sign the DPIA before the first real patient; 9. whether to proceed to Control Tower Phase 1b (the
+routes), which pulls in the `assistant.json` append-only lock and native client regeneration.
+
+**What was done tonight, and what was deliberately not.** Phase 1a of the Control Tower gate (the dark
+`control-tower-access` contract, lib and 12 tests, `26594a9a`) — the one piece of this scope that is
+pure Tier-1 machinery, needs no ruling and touches no live surface — was built, verified and committed.
+This document was preserved and gated. **No contract numbers were invented and no live surface was
+half-migrated.** The build order the document ends with — IAM first, then the data contracts, then the
+screens — is the right one, and every step after Phase 1a waits on a decision above rather than on
+effort.
