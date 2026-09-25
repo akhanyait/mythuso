@@ -1,0 +1,104 @@
+{
+  "_note": "Control Tower access: a sign-in for the people who administer the Control Tower portal, and nothing else. It is the same shape as founder access (packages/catalog/founder-access.json) minus the key reveal — this session grants the portal, not a secret, so there is no per-reveal code and no allowlist. Every number and every name the feature runs on lives here once: the service (apps/assistant-api/src/lib/control-tower-access.ts) reads it, and the sign-in screen (added in the live pass) will read the words below. It is dark by default: nothing a deploy does can switch it on, and the routes refuse until the service's environment carries both the enable line and a well-formed credential. The password hash and the TOTP check reuse founder access's own scrypt floor and apps/api/src/totp.ts — one password hash and one TOTP in this repository, not two to keep in sync.",
+  "decision": {
+    "by": "Founder",
+    "on": "2026-09-24",
+    "what": "An authenticator-only sign-in in front of the Control Tower portal, built production-grade and dark by default, with no SMS and no identity service.",
+    "amends": "The Control Tower's role switcher, which is a preview picker: today anything the portal can fetch, anybody on the internet can fetch. This adds a real gate in the service's own process for the one mode where the portal is administered rather than demonstrated.",
+    "why": "The founder ruled on 24 September 2026 that authentication waits until the SMS provider exists, and that until then the Control Tower uses an authenticator only — a password and an RFC 6238 code — through the identity service's own TOTP. The identity service stays off; this gate lives in the assistant service, in memory, and grants nothing but the portal."
+  },
+  "enable": {
+    "variable": "MYTHUSO_CONTROL_TOWER_ACCESS",
+    "value": "enabled",
+    "file": "/etc/mythuso/control-tower.env",
+    "why": "The switch is its own line, written by hand, exactly as founder access's is: a provisioning script writes the credential and never this line, and no deploy writes either file. A credential typed and a feature switched on are two decisions, taken as two acts."
+  },
+  "credential": {
+    "file": "/etc/mythuso/control-tower.env",
+    "passwordHashVariable": "MYTHUSO_CONTROL_TOWER_PASSWORD_HASH",
+    "totpSecretVariable": "MYTHUSO_CONTROL_TOWER_TOTP_SECRET",
+    "passwordMinimumLength": 14,
+    "scrypt": {
+      "log2N": 17,
+      "r": 8,
+      "p": 1,
+      "keyLength": 64,
+      "saltBytes": 16,
+      "format": "scrypt:<log2N>:<r>:<p>:<salt, base64url>:<derived key, base64url>",
+      "why": "The same floor founder access holds, and the same parse: apps/assistant-api/src/lib/control-tower-access.ts imports parsePasswordHash and verifyPassword from founder-access.ts rather than writing a second scrypt, so these five numbers are recorded here to be held equal to founder access's by the build, not to be read at runtime. OWASP's password storage guidance gives this as its floor for scrypt (N = 2^17, r = 8, p = 1). The separator is a colon, not a dollar sign, because the hash lives in a systemd EnvironmentFile and a dollar sign there is a character somebody will one day expect to be expanded."
+    },
+    "totpSecretBytes": 20,
+    "_totpSecretBytesWhy": "Twenty random bytes, base32-encoded — RFC 4226's recommendation for HMAC-SHA1 and exactly what apps/api/src/totp.ts's generateSecret() issues. The service refuses a shorter secret."
+  },
+  "totp": {
+    "implementation": "apps/api/src/totp.ts",
+    "codeDigits": 6,
+    "stepSeconds": 30,
+    "driftSteps": 1,
+    "why": "RFC 6238 through the identity service's own implementation, imported rather than written again: one TOTP in this repository, checked against the RFC's vectors in one place. The three numbers are that module's DIGITS, STEP_SECONDS and DRIFT_STEPS, repeated here so a reader of this contract sees them; the build holds them to the module. Every accepted code is burned: the step it came from, and every step before it, is refused afterwards."
+  },
+  "session": {
+    "cookie": "__Host-mythuso_control_tower",
+    "idBytes": 32,
+    "lifetimeSeconds": 900,
+    "attributes": ["HttpOnly", "Secure", "SameSite=Strict", "Path=/"],
+    "concurrent": 1,
+    "why": "A random 256-bit id, held in the service's memory only — a restart signs the administrator out, and nothing about a session is ever written down. Fifteen minutes from sign-in and not a second more: there is no renewal, because a session that renews itself is one that outlives the person who opened it. One session at a time: a new sign-in ends the previous one. The __Host- prefix makes the browser refuse the cookie unless it is Secure, has Path=/ and names no Domain, so no other name under mythuso.co.za can set or read it; HttpOnly keeps it from every script, SameSite=Strict from every other site's page."
+  },
+  "lockout": {
+    "consecutiveFailures": 5,
+    "lockSeconds": 900,
+    "why": "Five consecutive failures — a wrong password or a wrong or reused code at sign-in — lock Control Tower access for fifteen minutes, for the whole account rather than per address, because an attacker has as many addresses as they like. The lock ends every open session. It is refused before any password is hashed, so it is also what keeps a stranger from spending the box's memory on scrypt. The price is that a stranger can keep an administrator locked out: that is the residual risk, and it is the right way round."
+  },
+  "request": {
+    "header": "X-MyThuso-Control-Tower",
+    "headerValue": "1",
+    "secFetchSite": "same-origin",
+    "why": "Every Control Tower route refuses a request that does not carry the custom header, or whose Sec-Fetch-Site is present and anything but same-origin. A page on another site cannot send the header without a CORS preflight, and the service's origin policy grants no such header to anybody (lib/origin-policy.ts allows content-type alone), so a cross-site form or fetch is refused before a password is read. The cookie's SameSite=Strict is the second lock on the same door."
+  },
+  "refusals": [
+    {
+      "id": "control-tower-access-dark",
+      "statement": "Control Tower sign-in is not switched on on this server.",
+      "why": "The enable line is missing, or the credential is missing or malformed. A missing half is a refusal, never a 200."
+    },
+    {
+      "id": "control-tower-request-cross-site",
+      "statement": "This request did not come from the Control Tower itself.",
+      "why": "The custom header is absent, or Sec-Fetch-Site is present and not same-origin."
+    },
+    {
+      "id": "control-tower-locked-out",
+      "statement": "Too many attempts. Control Tower sign-in is locked for a while — try again later.",
+      "why": "Five consecutive failures. The lock is checked before any password is hashed and ends every session."
+    },
+    {
+      "id": "control-tower-credentials-refused",
+      "statement": "That password and code did not sign you in.",
+      "why": "A wrong password, a wrong code or a reused code, refused in the same words so a stranger learns which factor they already hold."
+    },
+    {
+      "id": "control-tower-no-session",
+      "statement": "You are not signed in to the Control Tower.",
+      "why": "No live session cookie: absent, expired, from a previous sign-in, or ended by a lock or a sign-out."
+    }
+  ],
+  "_refusalsWhy": "These sentences live here only until the routes do (the live pass). When the Control Tower routes are added to packages/catalog/apis/assistant.json, the sentences become that contract's route refusals — one source — and this block keeps only the ids the service returns.",
+  "audit": {
+    "events": ["control-tower.sign-in", "control-tower.sign-out", "control-tower.session"],
+    "why": "One line per sign-in attempt, sign-out and session check, each carrying the event and the outcome — 'accepted' or the refusal's own id. Never a password, a code or a cookie: the line is built by one function whose parameters cannot carry any of them."
+  },
+  "words": {
+    "heading": "Control Tower sign-in",
+    "intro": "Sign in with your password and the code your authenticator app shows now. Each code works once. Nothing on this panel is stored in the browser.",
+    "checking": "Asking the assistant service whether Control Tower sign-in is switched on…",
+    "notAnswered": "The assistant service did not answer, so the Control Tower cannot be reached from here.",
+    "passwordLabel": "Password",
+    "codeLabel": "Authenticator code",
+    "codeHint": "The code your authenticator app shows now. Each code works once.",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "signOut": "Sign out",
+    "signedIn": "Signed in to the Control Tower. The session ends by itself {minutes} minutes after sign-in."
+  }
+}
