@@ -244,6 +244,34 @@ This is a founder ruling, not a tidy-up. Pick one:
 **Until this is ruled, the safe overnight work is (B)-shaped and self-contained** (Phase 1a's dark auth lib
 is done; docs and gating are done). No data-viz that needs an invented number will be built unattended.
 
+### Phase 6 inventory — verified, 25 Sep 2026 (what is honestly drawable today)
+
+Counted programmatically across the 11 engine contracts `settings.json#sources` names (**67 settings**),
+so the Phase 6 line above is a number, not an assertion:
+
+- **42** settings carry numeric `bounds` (`lowest.value` + `highest.value`) — a slider/stepper *shape* fits.
+- **0 of those 42** have both bounds `decided`. **Every bound is a `proposal`** (`decidedBy: null`, with
+  `proposedBy` / `proposedBecause`). The same holds for the **9** allowed-list settings (segmented/toggle
+  shape): **0** have every option decided.
+- **7 of 67** defaults are `decided`; **60** are proposals. **62** carry a real `guardrail` whose `forbids`
+  values *are* decided hard limits (e.g. field-safety `grace` forbids `[0, 121, 1440]`).
+
+**Consequence:** a Phase 6 slider drawn from `bounds.lowest`/`bounds.highest` would present a *proposed*
+number as a live, settable bound — which `settings.json`'s provenance rule forbids outright ("a number
+cannot become policy by having the question deleted around it"; a proposal keeps `decidedBy: null`). So the
+slider/toggle/stepper controls are **not** honestly drawable as live controls yet, for the same reason the
+Voice sliders were not.
+
+**What *is* honestly buildable under option (B), with no ruling and no invented number** — a provenance
+review screen, mirroring the Phase 5 gated pattern: each setting shows its label/help, its proposed default
+and proposed bounds **marked "proposed, not decided"**, its decided `guardrail` (`forbids`) as a real
+read-only constraint, its `changedBy` history, and the actual control drawn **gated/disabled** with the
+provenance sentence beside it (exactly `gilbertone/Controls.tsx`'s gated-wrapper pattern). That makes the
+dense Configuration screen make sense — you see every number, who proposed it, why, and what is hard —
+without fabricating a live bound. **Caveat before building:** `Configuration.tsx` is pinned by
+`tests/configuration.spec.ts` (10 tests); read those pins first and do not restructure against them
+unattended. This is the one remaining phase with honest, un-pinned-after-review work that needs no ruling.
+
 ## Credit-smart notes
 
 - The full codebase picture is in this spec + the research report from 24 Sep. **Do not re-explore** — read this file, read the named source file, edit, verify, commit.
