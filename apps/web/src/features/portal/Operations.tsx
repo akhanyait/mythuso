@@ -20,6 +20,7 @@ import { settingsScreen } from "../../lib/settings";
 import { usePortal } from "./context";
 import { Frame } from "./Frame";
 import { DispatchDemo } from "./DispatchDemo";
+import { ProvinceDemo } from "./ProvinceDemo";
 
 /* The four operational categories — Dispatch & Incidents, Vetting, Quality and Audit — drawn from the
  * Control Tower workspace's own screens, unchanged (§6.3: "they move into the merged portal
@@ -126,6 +127,7 @@ export function DispatchCategory() {
           },
         ]}
       />
+      <ProvinceDemo />
       <DispatchBoard subjects={vetting.subjects} />
       <ShiftBoard />
       <Suspense fallback={null}>

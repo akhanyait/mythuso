@@ -644,3 +644,10 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
  .landing-cta { padding-inline: 12px; }
  .landing-cta svg { display: none; }
 }
+
+/* The approved Life kit carries into the public introduction: soft coloured cards,
+   equal service weight and the existing motion controls and readiness disclosures. */
+.landing-steps li:nth-child(3n + 1), .landing-services li:nth-child(3n + 1) { background: color-mix(in srgb, var(--brand-mint) 20%, var(--surface)); }
+.landing-steps li:nth-child(3n + 2), .landing-services li:nth-child(3n + 2) { background: color-mix(in srgb, var(--brand-orange) 11%, var(--surface)); }
+.landing-steps li:nth-child(3n), .landing-services li:nth-child(3n) { background: color-mix(in srgb, var(--brand-lime) 16%, var(--surface)); }
+.landing-steps li, .landing-services li { border-color: color-mix(in srgb, var(--brand-ink) 10%, transparent); }

@@ -15,6 +15,7 @@ import { usePortal } from "./context";
 import { Frame } from "./Frame";
 import { Empty, Region, RovingList, Status } from "./Parts";
 import { FounderDashboardDemo } from "./FounderDemo";
+import "./design-widgets.css";
 
 /* The portal's landing screen (§5.3), rendered from packages/catalog/control-tower-overview.json.
  *
@@ -84,110 +85,20 @@ function DemoBanner() {
   );
 }
 
-function MetricCard({
-  label,
-  value,
-  chip,
-  tone,
-}: {
-  label: string;
-  value: string;
-  chip?: string;
-  tone?: "teal" | "info" | "sage";
-}) {
-  return (
-    <div className={`pt-metric-card${tone ? ` is-${tone}` : ""}`}>
-      {chip && <span className="pt-metric-chip">{chip}</span>}
-      <span className="pt-metric-value">{value}</span>
-      <span className="pt-metric-label">{label}</span>
-    </div>
-  );
-}
-
-/* A small area chart drawn from the demo visit series. The SVG is decorative; a table beneath it
-   carries every value so a screen reader hears the same picture. */
-function DemoAreaChart({
-  visits,
-}: {
-  visits: { date: string; count: number }[];
-}) {
-  const W = 280,
-    H = 80,
-    pad = 4;
-  const values = visits.map((v) => v.count);
-  const max = Math.max(...values, 1);
-  const min = 0;
-  const range = max - min || 1;
-  const step = (W - pad * 2) / Math.max(visits.length - 1, 1);
-  const points = visits.map((v, i) => ({
-    x: pad + i * step,
-    y: pad + (1 - (v.count - min) / range) * (H - pad * 2),
-  }));
-  const line = points
-    .map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`)
-    .join(" ");
-  const area = `${line} L${points.at(-1)!.x},${H - pad} L${points[0]!.x},${H - pad} Z`;
-  const dayLabel = (d: string) => {
-    const dt = new Date(d);
-    return dt.toLocaleDateString("en-ZA", { weekday: "short" });
-  };
-  return (
-    <div className="pt-demo-chart">
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        role="img"
-        aria-label="Visits this week, demonstration data"
-        className="chart-plot"
-      >
-        <defs>
-          <linearGradient id="pt-chart-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop
-              offset="0%"
-              style={{ stopColor: "var(--teal)", stopOpacity: 0.4 }}
-            />
-            <stop
-              offset="100%"
-              style={{ stopColor: "var(--teal)", stopOpacity: 0.02 }}
-            />
-          </linearGradient>
-        </defs>
-        <path d={area} className="pt-demo-area" />
-        <path d={line} className="pt-demo-line" fill="none" />
-        {points.map((p, i) => (
-          <circle
-            key={visits[i]!.date}
-            cx={p.x}
-            cy={p.y}
-            r={3}
-            className="pt-demo-dot"
-          />
-        ))}
-      </svg>
-      <div className="pt-demo-chart-labels">
-        {visits.map((v) => (
-          <span key={v.date}>{dayLabel(v.date)}</span>
-        ))}
-      </div>
-      {/* Accessible table fallback */}
-      <table className="pt-sr-table">
-        <caption>Visits this week (demo data)</caption>
-        <thead>
-          <tr>
-            <th scope="col">Day</th>
-            <th scope="col">Visits</th>
-          </tr>
-        </thead>
-        <tbody>
-          {visits.map((v) => (
-            <tr key={v.date}>
-              <td>{dayLabel(v.date)}</td>
-              <td>{v.count}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+/* Every widget derives from the same series. No totals are copied into presentation code. */
+function WeeklyWidgets() {
+ const visits=visitDemo.visits;
+ const total=visits.reduce((n,v)=>n+v.count,0);
+ const peak=visits.reduce((a,b)=>a.count>b.count?a:b);
+ const weekday=visits.filter(v=>![0,6].includes(new Date(v.date+'T12:00:00Z').getUTCDay())).reduce((n,v)=>n+v.count,0);
+ const share=total?weekday/total*100:0;
+ const day=(date:string)=>new Date(date+'T12:00:00Z').toLocaleDateString('en-ZA',{weekday:'short',timeZone:'UTC'});
+ return <section className="pt-weekly" aria-labelledby="weekly-heading">
+  <header><span className="pt-widget-kicker">CONTROL TOWER / SAMPLE WEEK</span><h2 id="weekly-heading">The week, at a glance.</h2><p>{visitDemo.period.from} — {visitDemo.period.to} · Demonstration data</p></header>
+  <div className="pt-weekly-metrics">{[{label:'Total sample visits',value:total,note:'Across the sample week'},{label:'Daily average',value:(total/visits.length).toFixed(1),note:'Derived from the same series'},{label:'Highest sample day',value:peak.count,note:day(peak.date)}].map(m=><div key={m.label}><span>{m.label}</span><strong>{m.value}</strong><small>{m.note}</small></div>)}</div>
+  <div className="pt-weekly-charts"><section><h3>Visits through the week</h3><p className="helper">Illustrative visit counts</p><div className="pt-week-bars" aria-hidden="true">{visits.map(v=><div key={v.date}><strong>{v.count}</strong><i style={{height:`${v.count/peak.count*150}px`}}/><span>{day(v.date)}</span></div>)}</div></section><section className="pt-week-share"><h3>A clearer view of the mix</h3><div className="pt-week-donut" style={{background:`conic-gradient(var(--teal) 0 ${share}%, var(--mango) ${share}% 100%)`}} role="img" aria-label={`Sample visits: ${weekday} on weekdays, ${total-weekday} at the weekend`}><div><strong>{total}</strong><span>sample visits</span></div></div><dl><div><dt>Weekdays</dt><dd>{weekday}</dd></div><div><dt>Weekend</dt><dd>{total-weekday}</dd></div></dl></section></div>
+  <details className="pt-week-values"><summary>Exact sample values</summary><table className="result-table"><caption>Visits in the demonstration week</caption><thead><tr><th scope="col">Date</th><th scope="col">Visits</th></tr></thead><tbody>{visits.map(v=><tr key={v.date}><th scope="row">{v.date} · {day(v.date)}</th><td>{v.count}</td></tr>)}</tbody></table></details>
+ </section>;
 }
 
 function StateOfTheWorld() {
@@ -209,44 +120,11 @@ function StateOfTheWorld() {
   const activity = section("recent-activity");
   const gates = section("open-gates").gates ?? [];
   const changed = portalContract.overview.whatChanged;
-  /* ── DEMO DATA — for show and tell only ── */
-  const demoVisits = (
-    visitDemo as {
-      visits: { date: string; count: number }[];
-      total: number;
-      average: number;
-    }
-  ).visits;
-  const demoTotal = (visitDemo as { total: number }).total;
-  const demoAvg = (visitDemo as { average: number }).average;
-  const demoToday = demoVisits.at(-1)?.count ?? 0;
   return (
     <>
       {/* ── DEMO DATA — for show and tell only. Replace with real metrics when a feed exists. ── */}
       <DemoBanner />
-      <Region title="At a glance (demo)" count={3}>
-        <div className="pt-metric-row">
-          <MetricCard
-            label="Total visits this week"
-            value={String(demoTotal)}
-            chip="demo"
-            tone="teal"
-          />
-          <MetricCard
-            label="Daily average"
-            value={demoAvg.toFixed(1)}
-            chip="demo"
-            tone="info"
-          />
-          <MetricCard
-            label="Today so far"
-            value={String(demoToday)}
-            chip="demo"
-            tone="sage"
-          />
-        </div>
-        <DemoAreaChart visits={demoVisits} />
-      </Region>
+      <WeeklyWidgets />
       <Region title="Services" count={services.length}>
         <RovingList
           label={`${services.length} services`}

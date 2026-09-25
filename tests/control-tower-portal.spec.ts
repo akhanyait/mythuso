@@ -224,7 +224,7 @@ test.describe('every new screen says what it holds, and why it is empty', () => 
   const section = (id: string) => overview.sections.find((x: { id: string }) => x.id === id);
   await expect(panel(page)).toContainText(section('active-tenants').emptyState);
   await expect(panel(page)).toContainText(section('recent-activity').emptyState);
-  await expect(page.locator('#pt-category table').first().locator('tbody tr')).toHaveCount(section('open-gates').gates.length);
+  await expect(page.getByRole('table', { name: section('open-gates').why }).locator('tbody tr')).toHaveCount(section('open-gates').gates.length);
   for (const item of portal.overview.whatChanged) await expect(panel(page)).toContainText(item.heading.replace(/^Delivered — /, ''));
  });
 

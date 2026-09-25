@@ -57,8 +57,9 @@ export function Services({book,open,navigate,query='',forPerson,clearPerson}:{bo
  const filtered=services.filter(s=>(category==='All services'||s.category===category)&&`${s.name} ${s.description}`.toLowerCase().includes(search.trim().toLowerCase()));
  const bookable=filtered.filter(s=>s.phase===1);
  const planned=filtered.filter(s=>s.phase!==1);
- return <>
-  <div className="page-intro"><div className="eyebrow">Care, on your terms</div><h1>Professional care at your door</h1><p>Choose a service and we’ll match you with the nearest qualified nurse.</p></div>
+ return <div className="approved-catalog">
+  <header className="approved-catalog-hero"><img src="/banners/support-at-home.webp" alt=""/><div className="approved-catalog-copy"><div className="eyebrow">CARE, AT YOUR OWN PACE</div><p className="approved-support-title">Find a little support.</p><h1>Professional care at your door</h1><p>For your everyday. And your unexpected.</p><span className="approved-preview-note">Preview · No real visit is booked here</span></div><span className="care-photo-note">AI-generated illustrative image</span></header>
+  <div className="approved-catalog-sheet">
   {/* Who the catalogue was opened for, said out loud and reversible in one press. A booking that
       arrives at the review step with somebody else's name on it is the one mistake this journey can
       make that nobody would notice until a nurse knocked. */}
@@ -83,7 +84,7 @@ export function Services({book,open,navigate,query='',forPerson,clearPerson}:{bo
       and hands over the three things that do exist. */}
   <button className="menu-row panel space-top" onClick={()=>navigate('Help & support')}><span className="tile-icon"><CircleHelp size={19}/></span><span><strong>Not sure what you need?</strong><small>What MyThuso can answer today, and what it cannot</small></span><ChevronRight size={17}/></button>
   <div className="privacy-note space-top"><ShieldCheck size={19}/>Only phase-one services can be booked. Later-phase services are shown so the plan is visible, not because a nurse can be sent for one today.</div>
- </>}
+ </div></div>}
 /* A row is built from a visit, not typed beside one. The date block and the time both come from
    the same ISO date and start, so the weekday shown can never disagree with the day it names —
    which it did, in three different places, before this.

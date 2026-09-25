@@ -318,3 +318,20 @@
     animation: go-float 4.5s ease-in-out infinite;
   }
 }
+
+/* Approved Life kit: colour belongs to the invitation; safety keeps its own register.
+   Only surfaces change here so the phone conversation and voice disclosure keep their space. */
+.as-panel { --go-mint: var(--surface); --go-mint-2: color-mix(in srgb, var(--brand-mint) 12%, var(--surface)); }
+.as-panel .as-welcome-hero {
+  background: linear-gradient(115deg, var(--go-icon-bg), var(--go-card) 76%);
+  border: 1px solid var(--go-line);
+  box-shadow: none;
+}
+.as-panel .as-ask:not(.urgent):nth-child(3n + 1) { background: color-mix(in srgb, var(--brand-mint) 24%, var(--surface)); }
+.as-panel .as-ask:not(.urgent):nth-child(3n + 2) { background: color-mix(in srgb, var(--brand-orange) 13%, var(--surface)); }
+.as-panel .as-ask:not(.urgent):nth-child(3n) { background: color-mix(in srgb, var(--brand-lime) 18%, var(--surface)); }
+.as-panel .as-ask { box-shadow: none; }
+.as-panel .as-reply { border: 1px solid var(--go-line); box-shadow: none; }
+.as-panel .as-compose .as-field input:not([type="file"]) { border-radius: var(--r-pill); }
+.as-panel .as-compose .as-send { border-radius: var(--r-pill); background: var(--go-teal); }
+.as-panel .as-who { color: var(--go-teal); }

@@ -1,3 +1,4 @@
+import '../surface/approved-care.css';
 import { Activity, Ambulance, ArrowRight, ArrowUpRight, CalendarPlus, ChevronDown, ChevronRight, Clock3, Heart, MapPin, Plus, Search, ShieldCheck, Zap } from 'lucide-react';
 import { SectionTitle, Pill, ServiceIcon } from '../components/UI';
 import { Metric, Metrics } from '../surface/Surface';
@@ -37,7 +38,7 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
  const t = useT();
  const next = visits[0];
  const nurse = next ? nurseOfVisit(next) : null;
- return <div className="home">
+ return <div className="home approved-home">
   <header className="home-head rise">
    <div>
     <p className="home-eyebrow">YOUR EVERYDAY CARE</p>
@@ -64,14 +65,14 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
   </section>
   <div className="care-desk">
    <section className="care-cover">
-    <img src="/editorial/care-at-home.png" alt=""/>
+    <img src="/banners/family-panorama.webp" alt=""/>
     <div className="care-cover-copy">
      <span className="home-eyebrow">HELP. HEALTH. HOME.</span>
-     <h2>Care that<br/>feels like home.</h2>
-     <p>A familiar space.<br/>A little more support.</p>
+     <h2>Good care.<br/>Closer to you.</h2>
+     <p>Support for you.<br/>And the people you love.</p>
      <button className="primary" onClick={() => navigate('Book a nurse')}>{t('nav.Book a nurse')}<ArrowUpRight size={19}/></button>
     </div>
-    <span className="care-photo-note">Illustrative image</span>
+    <span className="care-photo-note">AI-generated illustrative image</span>
    </section>
    <section className="wellbeing-invite">
     <div className="lunar-art" aria-hidden="true"><i/><span>＋</span></div>
@@ -118,6 +119,7 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
      <p className="visit-ready-hint">View preparation, clinician details and contact options<ArrowRight size={15}/></p>
     </button> : <div className="panel glass lead empty-visit">
      <span className="glow"><span className="tile-icon"><CalendarPlus size={21}/></span></span>
+     <span className="fresh-start-title">A fresh start.</span>
      <strong>{scheduling.noUpcoming}</strong>
      <p>{scheduling.noUpcomingDetail}</p>
      <button className="secondary full" onClick={() => navigate('Book a nurse')}>{t('nav.Book a nurse')}<ArrowRight size={16}/></button>
@@ -129,6 +131,12 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
      <span><strong>Your next check-in</strong><small>Chronic Routine</small></span><ArrowUpRight size={19}/>
     </button>
    </div>
+   <section className="approved-journey" aria-label="How care works">
+    <SectionTitle title="Care, made simple."/>
+    <ol><li><span>01</span><div><strong>Find your care</strong><p>Understand the options.</p></div></li><li><span>02</span><div><strong>A nurse comes to you</strong><p>Support in a familiar place.</p></div></li><li><span>03</span><div><strong>A doctor reviews</strong><p>The clinician makes the decision.</p></div></li></ol>
+    <p className="helper">The intended care journey. This preview does not deliver care.</p>
+    <button className="secondary full" onClick={() => navigate('Book a nurse')}>Explore care options<ArrowRight size={16}/></button>
+   </section>
    <section className="desk-services">
     <form className="search-field" role="search" onSubmit={e => { e.preventDefault(); navigate('Book a nurse'); }}>
      <Search size={19}/>

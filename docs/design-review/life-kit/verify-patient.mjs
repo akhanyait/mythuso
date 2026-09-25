@@ -1,0 +1,34 @@
+import { chromium } from 'playwright';
+import assert from 'node:assert/strict';
+import { appendFileSync } from 'node:fs';
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+const origin = process.env.KIT_ORIGIN || 'http://127.0.0.1:8192';
+try {
+ await page.goto(`${origin}/docs/design-review/life-kit/#patient`);
+ await page.waitForTimeout(1000);
+ await page.screenshot({path:new URL('screenshots/patient-phone-viewport.png',import.meta.url).pathname});
+ await page.screenshot({path:new URL('screenshots/patient-mobile.png',import.meta.url).pathname,fullPage:true});
+ await page.getByRole('button',{name:'Support my family',exact:true}).click();
+ assert.equal(await page.getByRole('button',{name:'Support my family',exact:true}).getAttribute('aria-pressed'),'true');
+ assert.match(await page.locator('#care-choice-copy').innerText(),/consent boundaries/);
+ await page.getByRole('button',{name:'Explore family care',exact:true}).last().click();
+ assert.equal(await page.locator('dialog').evaluate(e=>e.open),true);
+ assert.match(await page.locator('#detail-title').innerText(),/family/i);
+ await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'Understand my care',exact:true}).click();
+ assert.match(await page.locator('#care-choice-action').innerText(),/care journey/);
+ await page.getByRole('button',{name:'Motion on',exact:true}).click();
+ assert.equal(await page.locator('.p-care-hero').evaluate(e=>getComputedStyle(e).animationName),'none');
+ await page.getByRole('button',{name:'Motion off',exact:true}).click();
+ await page.emulateMedia({reducedMotion:'reduce'});
+ assert.equal(await page.locator('.p-hero-art img').evaluate(e=>getComputedStyle(e).animationName),'none');
+ await page.getByRole('navigation',{name:'MyThuso phone navigation'}).getByRole('link',{name:'GilbertOne'}).click();
+ await page.waitForURL('**/#gilbert');
+ await page.setViewportSize({width:1440,height:1100});
+ await page.goto(`${origin}/docs/design-review/life-kit/#patient`);
+ await page.screenshot({path:new URL('screenshots/patient-desktop.png',import.meta.url).pathname,fullPage:true});
+ const result='Patient revision: family/personal choice updates, correct detail dialog, Escape, motion off, reduced motion and phone navigation passed.';
+ appendFileSync(new URL('verification.txt',import.meta.url),result+'\n');
+ console.log(result);
+}finally{await browser.close();}

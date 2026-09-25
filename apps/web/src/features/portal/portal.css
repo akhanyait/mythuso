@@ -1308,7 +1308,7 @@
 .portal .pt-demo-toggle {
   position: relative;
   width: 52px;
-  height: 30px;
+  height: 44px;
   border-radius: var(--r-pill);
   border: 2px solid var(--stone);
   cursor: pointer;
@@ -1324,7 +1324,7 @@
 }
 .portal .pt-demo-toggle-thumb {
   position: absolute;
-  top: 2px;
+  top: 9px;
   left: 2px;
   width: 22px;
   height: 22px;
@@ -1514,3 +1514,16 @@
     transition: none !important;
   }
 }
+
+/* Approved Life, considered shell: the work starts below a compact, truthful context strip. */
+.portal{--aurora-cool:var(--studio-paper);--aurora-sage:var(--studio-paper);--aurora-warm:var(--studio-paper)}
+.portal .sidebar{background:var(--surface);border-right:1px solid var(--stone);backdrop-filter:none}
+.portal .sidebar .pt-tab{border-radius:var(--r-pill);min-height:44px}
+.portal .sidebar .pt-tab[aria-selected=true]{background:var(--brand-ink);color:var(--surface)}
+.portal .pt-top{background:var(--surface);backdrop-filter:none;border-bottom:1px solid var(--stone)}
+.portal .pt-body{max-width:1600px;margin-inline:auto}
+.portal .pt-preview{padding:var(--space-12) var(--space-16);background:var(--mango-soft);border:0;border-radius:var(--r-control);font-size:13px;line-height:1.45;margin-block:0 var(--space-12)}
+.portal .pt-context{padding:var(--space-12) var(--space-16);border-radius:var(--r-control);background:var(--surface);margin-bottom:var(--space-16);gap:var(--space-16)}
+.portal .pt-context-field small{font-size:13px;line-height:1.4}
+.portal .pt-category .page-header{margin-bottom:var(--space-16)}
+.portal .pt-notice{background:var(--teal-soft);border-radius:var(--r-control);padding:var(--space-8) var(--space-16)}

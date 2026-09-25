@@ -326,3 +326,15 @@
   color: var(--go-emergency) !important;
   font-weight: 700;
 }
+
+/* Match the approved conversation kit without changing the header or scroll budget. */
+.public-assistant { --go-mint: var(--surface); }
+.public-assistant-greeting { background: linear-gradient(115deg, var(--go-icon-bg), var(--go-card)); box-shadow: none; }
+.public-assistant nav button { box-shadow: none; }
+.public-assistant nav button:nth-child(3n + 1) { background: color-mix(in srgb, var(--brand-mint) 24%, var(--surface)); }
+.public-assistant nav button:nth-child(3n + 2) { background: color-mix(in srgb, var(--brand-orange) 13%, var(--surface)); }
+.public-assistant nav button:nth-child(3n) { background: color-mix(in srgb, var(--brand-lime) 18%, var(--surface)); }
+.public-assistant input, .public-assistant-send { border-radius: var(--r-pill); }
+.public-assistant .public-assistant-send { background: var(--go-teal); }
+.public-assistant-answer { box-shadow: none; border: 1px solid var(--go-line); }
+.public-assistant-answer strong { color: var(--go-teal); }
