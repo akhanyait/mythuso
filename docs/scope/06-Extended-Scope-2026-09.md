@@ -564,3 +564,153 @@ Part 9 — The one-paragraph version
 The security posture moves from demo to production the moment a real patient's data enters the system, and that moment triggers four governance gates (DPIA, Information Officer, unified audit, breach drill) that are all cheap and all unowned. The consultation screen is a clinical workspace, not a video call — patient context, live device readings, structured notes, and actions in one screen. The free band is the on-ramp to the marketplace: it measures heart rate and SpO₂, it creates the app habit, and it funds itself through the device kit. The deployment engine combines SAPS crime data, Eskom load-shedding schedules, and logistics to recommend physical, online, or deferred — and the recommendation is advisory. The Control Tower's new power is the live safety map, the deployment intelligence, and the fleet view. None of it is built. All of it is scoped. The order is: IAM first, then the data contracts, then the screens.
 
 This response is AI-generated, for reference only.
+
+
+---
+
+## Implementation phases — scoped 25 September 2026 (for Alibaba meeting)
+
+The original document (above) is the scope. This section breaks the remaining work into buildable phases with contracts, files, gates, and build order. **Phase 1a (dark auth) and Phase 4 data sources (Eskom + SAPS) are done.** The phases below are what remains.
+
+### Phase A — Consultation screen (Part 2 of the scope)
+
+**What**: a clinical encounter workspace (prepare, connect, assess, decide, document, follow up) that survives SA networks, load-shedding, and mobile use. Not a video call — a structured clinical workspace with patient context, live device readings, structured notes, and actions.
+
+**Contracts**:
+- `packages/catalog/consultation.json` — the consultation's structure: phases (prepare/connect/assess/decide/document/follow-up), participant roles (doctor/nurse/patient), device readings schema, note template types (chronic/acute/mental-health/maternal), action vocabulary (prescribe/order-test/refer/book-follow-up/escalate/end), connection-resilience rules (3G adaptation, load-shedding drop/resume, 15-minute abandon threshold), mobile layout rules.
+- `packages/catalog/apis/consultation.json` — the consultation service API: start/resume/end consultation, subscribe to device readings (WebSocket), submit note, trigger action. WebRTC signaling for video.
+
+**Files**:
+- `apps/consultation-api/src/server.ts` — the consultation service (node:http, like assistant-api). WebRTC signaling, WebSocket for device readings, consultation lifecycle.
+- `apps/web/src/features/portal/Consultation.tsx` — the Control Tower consultation monitor (live and recent consultations, one row per active consultation).
+- `apps/web/src/features/consultation/ConsultationWorkspace.tsx` — the doctor's/nurse's consultation workspace (patient context, live readings, note, actions).
+- `apps/web/src/features/consultation/DeviceReadings.tsx` — live device readings panel (value, age, device, tier, plausibility flag).
+- `apps/web/src/features/consultation/NoteEditor.tsx` — structured note editor (dictation, templates, attach).
+
+**Gates**:
+- G37 (new) — the consultation service is dark by default. No video, no device readings, no note until the service is activated. The gate is the founder's decision to turn it on.
+- The consultation screen must not record passive audio/video. Recording requires explicit, recorded, two-party consent. The default is off.
+- GilbertOne's role is narrow: suggest a differential or flag a red flag only if the doctor asks, only with the clinical-assist level and a clinician signed in. The consultation screen is not a chatbot.
+
+**Build order**:
+1. `consultation.json` contract (structure, phases, roles, device readings schema, note templates, actions, resilience rules).
+2. `apis/consultation.json` (API shape, WebRTC signaling, WebSocket for device readings).
+3. `apps/consultation-api/src/server.ts` (dark service, lifecycle, signaling).
+4. `apps/web/src/features/consultation/*` (workspace, device readings, note editor).
+5. `apps/web/src/features/portal/Consultation.tsx` (Control Tower monitor).
+
+**Estimate**: 3–4 batches. Each batch ends with checks green + a commit.
+
+---
+
+### Phase B — Full nurse/doctor safety toolkit (Part 3 of the scope)
+
+**What**: the complete field-safety toolkit (pre-visit risk score, two-person rule, no-lone-visits-after-dark, scheduled check-ins, silent panic, live GPS trip tracking, escort/buddy protocol, verified parking, next-of-kin trip-window sharing, battery monitoring, load-shedding routing, post-incident care). The Control Tower's live safety map (one row per field worker, alerts, map with nurse positions/risk zones/load-shedding overlay/nearest responders).
+
+**Contracts**:
+- `packages/catalog/field-safety-toolkit.json` — the full toolkit: each feature's vocabulary (risk-score levels, check-in types, panic triggers, escort protocols), the Control Tower's safety view schema (live map, alerts, responder distance), the override/record pattern (advisory-with-documented-override).
+- Extends `packages/catalog/field-safety.json` (the existing engine) with the additional features.
+
+**Files**:
+- `apps/web/src/features/portal/FieldSafetyLive.tsx` — the Control Tower's live safety map (one row per field worker, alerts, map).
+- `apps/web/src/features/field-safety/SafetyToolkit.tsx` — the nurse's/doctor's safety toolkit (risk score, check-ins, panic, GPS, escort, etc.).
+- `packages/engines/src/field-safety-toolkit/` — the engine runtime for the additional features (risk score computation, check-in timer, panic escalation, GPS tracking).
+
+**Gates**:
+- G22 (already open) — no crime-data source, armed-response partner, fob decision or legal review of armed dispatch. **Now unblocked**: SAPS crime data is confirmed as the source (Phase 4 data sources).
+- G38 (new) — the silent panic fob hardware is not chosen. The software is ready; the fob is a founder decision.
+- The risk score is advisory, not gating. The nurse can override. The override is recorded. The manager sees overrides in aggregate.
+
+**Build order**:
+1. `field-safety-toolkit.json` contract (feature vocabulary, Control Tower view schema, override pattern).
+2. `packages/engines/src/field-safety-toolkit/` (engine runtime).
+3. `apps/web/src/features/field-safety/SafetyToolkit.tsx` (nurse's/doctor's toolkit).
+4. `apps/web/src/features/portal/FieldSafetyLive.tsx` (Control Tower live map).
+
+**Estimate**: 2–3 batches.
+
+---
+
+### Phase C — IoT marketplace + free band (Part 4 of the scope)
+
+**What**: the patient-facing marketplace (recommended devices, current coverage, add a device with clinical justification), the free band distribution flow (every patient gets a free MyThuso Band), the patient-facing "what my band can and cannot do" screen, the device capability matrix (what each device measures, triage contribution, cost), the triage score model (composite from available measurements).
+
+**Contracts**:
+- `packages/catalog/marketplace.json` — the marketplace: device catalog (what each device measures, price, margin, clinical justification), the free band rule (every patient gets one, cost R300, funded by kit margin), the patient-facing band explanation (what it measures, what it doesn't, its clinical boundary).
+- `packages/catalog/device-capability-matrix.json` — the device capability matrix: each device's measurements, triage contribution, cost, tier (consumer/advisory/medical-grade).
+- Extends `packages/catalog/devices.json` (the existing device contracts) with the marketplace and triage scoring.
+
+**Files**:
+- `apps/web/src/features/marketplace/Marketplace.tsx` — the patient-facing marketplace (recommended, current coverage, add a device).
+- `apps/web/src/features/marketplace/BandExplanation.tsx` — the "what my band can and cannot do" screen.
+- `packages/engines/src/triage-score/` — the triage score engine (composite from available measurements).
+
+**Gates**:
+- G39 (new) — the free band's manufacturer is not chosen. The software is ready; the band is a founder decision.
+- The band is a consumer device, tier 3. It is advisory. It never auto-creates an incident. Its readings are trend data, not diagnosis.
+- A device cannot be sold unless its model is on the allowlist, its DPIA is recorded, and its physiological ranges are declared.
+
+**Build order**:
+1. `device-capability-matrix.json` contract.
+2. `marketplace.json` contract (device catalog, free band rule, band explanation).
+3. `packages/engines/src/triage-score/` (triage score engine).
+4. `apps/web/src/features/marketplace/Marketplace.tsx` (patient-facing marketplace).
+5. `apps/web/src/features/marketplace/BandExplanation.tsx` (band explanation).
+
+**Estimate**: 2–3 batches.
+
+---
+
+### Phase D — Additional features (Part 7 of the scope)
+
+**What**: the features the scope document says "I would build that you have not asked for": consent receipts, AI decision audit trail, explainability layer, device-recall register, nurse-safety training module, doctor's second-opinion request, load-shedding-aware scheduler, community-policing-forum integration, safe-return confirmation.
+
+**Contracts**:
+- `packages/catalog/consent-receipts.json` — the consent receipt schema (what the patient consented to, when, why, the record they can check).
+- `packages/catalog/ai-audit-trail.json` — the AI decision audit trail (model, prompt, evidence, doctor's decision, outcome).
+- `packages/catalog/explainability.json` — the "why this recommendation" layer (crime rate, load-shedding stage, nurse distance, patient history).
+- Extends existing contracts (consent, devices, field-safety) with the additional features.
+
+**Files**:
+- `apps/web/src/features/consent/ConsentReceipt.tsx` — the patient-facing consent receipt.
+- `apps/web/src/features/clinical-review/AIAuditTrail.tsx` — the AI decision audit trail (for the medical director).
+- `apps/web/src/features/dispatch/Explainability.tsx` — the "why this recommendation" layer.
+- `apps/web/src/features/field-safety/SafeReturn.tsx` — the safe-return confirmation.
+- `apps/web/src/features/scheduling/LoadSheddingAwareScheduler.tsx` — the load-shedding-aware appointment scheduler.
+
+**Gates**:
+- G40 (new) — the AI audit trail's clinical sign-off flow is not built. The software is ready; the medical director's sign-off is a founder decision.
+- The consent receipt is a POPIA obligation. It must be built before the first real patient.
+
+**Build order**:
+1. `consent-receipts.json` contract (POPIA obligation — build first).
+2. `ai-audit-trail.json` contract.
+3. `explainability.json` contract.
+4. `apps/web/src/features/consent/ConsentReceipt.tsx`.
+5. `apps/web/src/features/clinical-review/AIAuditTrail.tsx`.
+6. `apps/web/src/features/dispatch/Explainability.tsx`.
+7. Remaining features (safe-return, scheduler, CPF integration, nurse training, second opinion, device recall).
+
+**Estimate**: 3–4 batches.
+
+---
+
+### Build order summary (for the Alibaba meeting)
+
+| Phase | What | Estimate | Dependencies |
+|-------|------|----------|--------------|
+| **1a** | Dark auth lib | **DONE** | — |
+| **4** | Eskom + SAPS data sources | **DONE** | — |
+| **3** | Overview (care visit log) | 1 batch | Care visit log exists |
+| **7** | Founder (deploy.sh logging) | 1 batch | deploy.sh modification |
+| **A** | Consultation screen | 3–4 batches | WebRTC, consultation service |
+| **B** | Full safety toolkit | 2–3 batches | SAPS data (done), panic fob decision |
+| **C** | IoT marketplace + free band | 2–3 batches | Device contracts exist, band manufacturer decision |
+| **D** | Additional features | 3–4 batches | Consent receipts (POPIA) first |
+
+**Total remaining**: 12–18 batches. At a credit-smart pace (verified batches, each committed locally), this is 2–3 sessions of work.
+
+**The order**: IAM (done) → data contracts (done) → screens (Phases 3, 7, A, B, C, D). The consent receipt (Phase D) is a POPIA obligation and should be built before the first real patient, so it may move earlier.
+
+**What's needed from Alibaba**: infrastructure for the consultation service (WebRTC signaling, WebSocket for device readings), IoT device integration (MQTT gateway, device pairing flow), and the marketplace (payment processing, device fulfillment). The contracts and screens are buildable now; the infrastructure is what Alibaba can provide.
+
