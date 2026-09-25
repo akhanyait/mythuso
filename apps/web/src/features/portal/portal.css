@@ -1089,6 +1089,9 @@
   display: grid;
   gap: var(--space-16);
   grid-template-columns: minmax(0, 1fr);
+  padding: var(--space-24);
+  border-radius: var(--r-panel);
+  background: var(--aurora-warm);
 }
 @media (min-width: 600px) {
   .portal .pt-metric-row {
@@ -1098,14 +1101,25 @@
 .portal .pt-metric-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-8);
   align-items: flex-start;
-  padding: var(--space-16);
+  padding: var(--space-20);
   border-radius: var(--r-card);
   border: 1px solid var(--pane-line);
-  background: var(--pane);
-  color: var(--charcoal);
   min-width: 0;
+  box-shadow: var(--shadow);
+}
+.portal .pt-metric-card.is-teal {
+  background: var(--teal-soft);
+  border-color: var(--teal-light);
+}
+.portal .pt-metric-card.is-info {
+  background: var(--accent-soft);
+  border-color: var(--line);
+}
+.portal .pt-metric-card.is-sage {
+  background: var(--pale-sage);
+  border-color: var(--soft-sage);
 }
 .portal .pt-metric-chip {
   align-self: flex-end;
@@ -1119,43 +1133,57 @@
   text-transform: uppercase;
 }
 .portal .pt-metric-value {
-  font-size: 32px;
+  font-size: 40px;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.05;
   color: var(--charcoal);
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
 }
 .portal .pt-metric-label {
   font-size: 14px;
-  color: var(--faint);
+  color: var(--charcoal);
+  font-weight: 500;
+}
+.portal .pt-metric-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-raised);
 }
 
 .portal .pt-demo-chart {
-  margin-top: var(--space-16);
+  margin-top: var(--space-20);
+  padding: var(--space-16);
+  border-radius: var(--r-card);
+  border: 1px solid var(--pane-line);
+  background: var(--pane);
+  box-shadow: var(--shadow);
 }
 .portal .pt-demo-chart svg {
   display: block;
   width: 100%;
-  height: auto;
+  height: 180px;
 }
 .portal .pt-demo-area {
-  fill: var(--pale-sage);
-  opacity: 0.45;
+  fill: url(#pt-chart-grad);
 }
 .portal .pt-demo-line {
-  stroke: var(--charcoal);
-  stroke-width: 2;
+  stroke: var(--teal-ink);
+  stroke-width: 2.5;
   stroke-linejoin: round;
+  stroke-linecap: round;
 }
 .portal .pt-demo-dot {
-  fill: var(--charcoal);
+  fill: var(--teal-ink);
+  stroke: var(--surface);
+  stroke-width: 2;
 }
 .portal .pt-demo-chart-labels {
   display: flex;
   justify-content: space-between;
-  padding: var(--space-4) var(--space-4) 0;
+  padding: var(--space-8) var(--space-4) 0;
   color: var(--faint);
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
 }
 /* Visually hidden but accessible — the table a screen reader hears instead of the SVG. */
 .portal .pt-sr-table {
@@ -1463,7 +1491,8 @@
 .portal .pt-tab,
 .portal .pt-node,
 .portal .pt-row,
-.portal .g1-card {
+.portal .g1-card,
+.portal .pt-metric-card {
   transition:
     background-color var(--t-settle) var(--ease-soft),
     border-color var(--t-settle) var(--ease-soft),
@@ -1480,7 +1509,8 @@
   .portal .pt-tab,
   .portal .pt-node,
   .portal .pt-row,
-  .portal .g1-card {
+  .portal .g1-card,
+  .portal .pt-metric-card {
     transition: none !important;
   }
 }

@@ -88,13 +88,15 @@ function MetricCard({
   label,
   value,
   chip,
+  tone,
 }: {
   label: string;
   value: string;
   chip?: string;
+  tone?: "teal" | "info" | "sage";
 }) {
   return (
-    <div className="pt-metric-card">
+    <div className={`pt-metric-card${tone ? ` is-${tone}` : ""}`}>
       {chip && <span className="pt-metric-chip">{chip}</span>}
       <span className="pt-metric-value">{value}</span>
       <span className="pt-metric-label">{label}</span>
@@ -137,6 +139,18 @@ function DemoAreaChart({
         aria-label="Visits this week, demonstration data"
         className="chart-plot"
       >
+        <defs>
+          <linearGradient id="pt-chart-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop
+              offset="0%"
+              style={{ stopColor: "var(--teal)", stopOpacity: 0.4 }}
+            />
+            <stop
+              offset="100%"
+              style={{ stopColor: "var(--teal)", stopOpacity: 0.02 }}
+            />
+          </linearGradient>
+        </defs>
         <path d={area} className="pt-demo-area" />
         <path d={line} className="pt-demo-line" fill="none" />
         {points.map((p, i) => (
@@ -216,16 +230,19 @@ function StateOfTheWorld() {
             label="Total visits this week"
             value={String(demoTotal)}
             chip="demo"
+            tone="teal"
           />
           <MetricCard
             label="Daily average"
             value={demoAvg.toFixed(1)}
             chip="demo"
+            tone="info"
           />
           <MetricCard
             label="Today so far"
             value={String(demoToday)}
             chip="demo"
+            tone="sage"
           />
         </div>
         <DemoAreaChart visits={demoVisits} />
