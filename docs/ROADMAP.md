@@ -624,19 +624,14 @@ The founder has named the two data sources that gate Phase 4 (Dispatch & Inciden
 
 ### What remains unnamed — the data sources Phases 3 and 7 still wait on
 
-**Phase 3 (Overview + charts)**: the "Visits this week" area chart and metric cards need a time-series source. What generates the visit count? Is it:
-- The care visit log (apps/web/src/features/CareVisit.tsx — visits started by nurses)?
-- A derived metric from the assistant health route (apps/assistant-api/src/server.ts)?
-- A new metric service that aggregates visit starts, offer accepts, panic activations?
+**Phase 3 (Overview + charts)**: the "Visits this week" area chart and metric cards need a time-series source. **Suggested: the care visit log** (`apps/web/src/features/CareVisit.tsx`) — the care engine already tracks every visit started by a nurse (timestamp, nurse identity, visit code, duration). The chart would show visits started by nurses, aggregated by day, for the last 7 days. No invented numbers — the data exists. Alternatives: offer log, panic activations, or a new metric service (all less natural).
 
-**Phase 7 (Founder)**: the deploy sparkline and system health panel need a deploy/health history source. What records deploys and restarts? Is it:
-- The deploy.sh script's output (deploy/RUNBOOK.md — currently terminal-only, not persisted)?
-- A new deploy log service that records each deploy.sh run (who, when, what changed)?
-- systemd journal logs (journald — currently the open G36 gate on retention)?
+**Phase 7 (Founder)**: the deploy sparkline and system health panel need a deploy/health history source. **Suggested: modify `deploy.sh` to log each deploy to a JSON-lines file** (`deploy/log.jsonl`) — timestamp, commit hash, who ran it, exit code, what changed. The Founder screen would show the last 10 deploys. No invented numbers — the data exists. Alternatives: new deploy log service, systemd journald (open G36 gate), or git log of deployed commits (all less practical).
 
-**These are the "rest" the founder needs to name** before Phases 3 and 7 can be scoped against real sources. Until then, those phases remain blocked by the same hard constraint: "must not be built as shown — they display values the tree does not hold."
+**Pending founder confirmation**: these are suggestions. The founder needs to approve the care visit log for Phase 3 and deploy.sh logging for Phase 7 before those phases can be scoped against real sources. Until then, those phases remain blocked by the same hard constraint: "must not be built as shown — they display values the tree does not hold."
 
-## Awaiting the founder — one ruling unblocks (or redirects) the Control Tower data-viz phases, 25 September 2026
+
+## Decided — Control Tower data-viz ruling and remaining sources, 25 September 2026
 
 Working the approved redesign overnight reached the same wall twice: **Phase 5's Voice sliders** and now
 **Phase 3's Overview metric cards + "Visits this week" chart** both ask for a number the contracts
@@ -649,7 +644,7 @@ Phase 4 (needs a real crime/Eskom feed, G22 open), Phase 6 (real bounds live per
 provenance is `decided`, not `proposal`) and Phase 7 (no deploy/health history is recorded anywhere a
 screen can read).
 
-**This is a founder ruling, not a tidy-up.** The full analysis and the three options are in
+**Founder ruling (25 Sep 2026): option B — structural/visual polish only, no invented numerals.** The full analysis and the three options were in
 `docs/design-review/CONTROL-TOWER-REDESIGN.md`, "Phase 3 finding, and the pattern across the data-viz
 phases — 25 Sep 2026". In short: **(A)** authorise clearly-marked non-live preview figures per contract
 (makes the mockups buildable, but each invented number needs your provenance sign-off); **(B, recommended)**
