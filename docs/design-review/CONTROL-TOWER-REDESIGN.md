@@ -118,6 +118,37 @@ Each phase is independently verifiable and committable. Run `node scripts/check-
 
 **Blocked — the Voice configurator (sliders + toggles) cannot be drawn honestly yet.** `voice.json#parameters.tts` points rate and pitch at `user-preferences.json#axes`, and both axes hold `bounds: null` with `_boundsWhy: "Not decided… a range written here before anybody has listened at the edges is a number nobody tested"` and `builtToday: false`. A slider needs ends; inventing them would type a number the contract deliberately refuses to hold. The toggles are refused too: the `captions` axis says `userMayTurnOff: false` and "Listed so nobody builds a toggle for it", and `mute` is the device's and the playback switch's, not a tenant setting. So the Voice screen correctly renders its parameters as text with their reasons. **Drawing Voice sliders/toggles is a contract change** (add bounds to the axes, decide the toggles) — a founder decision that also triggers regeneration of the derived artifacts. Until then the Voice screen stays as it is.
 
+## Phase 1 — auth gate design (decision-complete, 24 Sep 2026)
+
+The founder ruled: **authenticator only** (password + 6-digit TOTP), no SMS; the identity service stays
+off. Mirror `apps/assistant-api/src/lib/founder-access.ts` — it is the one hardened sign-in in the repo
+and the Control Tower gate is the same shape minus the key reveal.
+
+- **Contract** `packages/catalog/control-tower-access.json`, mirroring `founder-access.json`'s blocks:
+  `credential` (scrypt floor + `passwordHashVariable` + `totpSecretVariable` + `totpSecretBytes`),
+  `enable` (exact-value variable), `request` (Sec-Fetch-Site + custom header), `session` (cookie name,
+  attributes, `idBytes`, `lifetimeSeconds`), `lockout` (5 failures / 15 min), `refusals`, `audit.events`.
+  **No reveal allowlist** — this session grants the portal, not keys, so there is no per-reveal code.
+- **Lib** `apps/assistant-api/src/lib/control-tower-access.ts`: reuse `parsePasswordHash`/`verifyPassword`/
+  `crossSite`/session-digest logic and `verifyTotp` from `apps/api/src/totp.ts`. Dark by default (enable
+  line AND a well-formed credential, both read once at construction). Expose `gate`, `signIn`,
+  `sessionFrom`, `signOut`. No logging in the lib; an audit-line helper whose parameters cannot carry a
+  secret, written by `server.ts`.
+- **Server** `apps/assistant-api/src/server.ts`: control-tower sign-in / sign-out / session routes beside
+  the founder routes, same gate-first ordering (cross-site, then dark).
+- **Web** `apps/web/src/features/portal/SignIn.tsx` (password + code, refusal that never says which factor
+  failed) shown when `MYTHUSO_AUTH_MODE=production` and no live session; `demo` keeps the `?role=` picker.
+  `PortalShell`/`BackOffice` gate on the session. This is the only live-surface change — do it last and
+  finish it in one pass (never half-migrate).
+- **Boundaries**: add a control-tower-access block to `scripts/check-boundaries.mjs` mirroring the founder
+  one (the contract holds every number; the lib reads them; dark by default; nothing under `deploy/`
+  writes the enable line or the credential; no secret in any log line).
+- **Tests**: `control-tower-access.test.ts` (mirror `founder-access.test.ts`) + a Playwright sign-in spec.
+
+**Safe incremental order** (each ends green + committed, so any session resumes cold):
+1a contract + lib + unit tests (dark, no live change) → 1b server routes (dark) → 1c web SignIn +
+`MYTHUSO_AUTH_MODE` + portal gate (the live surface, last, in one pass).
+
 ## Credit-smart notes
 
 - The full codebase picture is in this spec + the research report from 24 Sep. **Do not re-explore** — read this file, read the named source file, edit, verify, commit.
