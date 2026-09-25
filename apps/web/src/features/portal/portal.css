@@ -240,6 +240,12 @@
 .portal .pt-slider-ticks { display: flex; justify-content: space-between; padding: 0 var(--space-4); }
 .portal .pt-slider-tick { color: var(--faint); font-size: 13px; font-variant-numeric: tabular-nums; }
 
+/* The Voice screen's parameters, as gated cards: who may set each, and — where user-preferences.json
+   holds no range — the axis's own "not decided" reason in a mango notice. Every colour is a token and
+   both pairs (charcoal on the card, ink on mango) are rows the notices and cards already use. */
+.portal .g1-card .g1-param-who { color: var(--charcoal); font-size: 13px; }
+.portal .g1-card .g1-param-range { margin: 0 0 var(--space-8); padding: var(--space-8) var(--space-12); border-radius: var(--r-control); background: var(--mango-soft); color: var(--ink); font-size: 14px; line-height: 1.5; }
+
 /* ---- Founder access (packages/catalog/founder-access.json) -------------------------------------
    The one live form on the GilbertOne screens. Every colour is a token; the revealed key breaks
    anywhere so a long key never scrolls a phone sideways; every control is at least 44px. */

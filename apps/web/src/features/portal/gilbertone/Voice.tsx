@@ -92,11 +92,32 @@ export function VoiceScreen() {
    <Empty heading={prefs.refusals.find(r => r.id === 'no-voice-chooser-for-a-person')!.statement}>{prefs.voiceChoice.sentence} {prefs.voiceChoice.why} {voice.languages.why}</Empty>
   </Region>
 
-  <Region title={words.parametersHeading}>
-   <ul className="pt-refusals">
-    {voice.parameters.tts.map(p => <li key={p.id}><strong>{p.id}</strong> <span>{p.who}. {p.why}</span></li>)}
-    {voice.parameters.stt.map(p => <li key={p.id}><strong>{p.id}</strong> <span>{'value' in p && p.value === null ? `${words.notDecided} ` : ''}{p.why}</span></li>)}
-   </ul>
+  <Region title={words.parametersHeading} count={voice.parameters.tts.length + voice.parameters.stt.length}>
+   {/* Each parameter as its own gated card: what it is, who may set it, and — where the contract holds
+       no range — the axis's own "not decided" reason in a notice. No slider and no number is drawn,
+       because user-preferences.json's rate and pitch axes hold bounds:null on purpose: a range nobody
+       has listened at the edges is a figure nobody tested. The cards read as a configurator's shape
+       while staying exactly as honest as the list they replace. */}
+   <div className="g1-grid">
+    {voice.parameters.tts.map(p => {
+     const axis = p.boundsFrom ? prefs.axes.find(a => a.id === p.id) : undefined;
+     const undecided = axis !== undefined && 'bounds' in axis && axis.bounds === null;
+     return <article key={p.id} className="g1-card g1-param">
+      <h3>{p.id}{undecided && <span className="g1-tag">{words.notDecided}</span>}</h3>
+      <p className="g1-param-who">{p.who}</p>
+      {axis !== undefined && '_boundsWhy' in axis && <p className="g1-param-range">{axis._boundsWhy}</p>}
+      <p>{p.why}</p>
+     </article>;
+    })}
+    {voice.parameters.stt.map(p => {
+     const undecided = 'value' in p && p.value === null;
+     return <article key={p.id} className="g1-card g1-param">
+      <h3>{p.id}{undecided && <span className="g1-tag">{words.notDecided}</span>}</h3>
+      {'from' in p && <p className="g1-param-who">{p.from}</p>}
+      <p>{p.why}</p>
+     </article>;
+    })}
+   </div>
    <p className="helper">{prefs.persistence.sentence}</p>
   </Region>
 
