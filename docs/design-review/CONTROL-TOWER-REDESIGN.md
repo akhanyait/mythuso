@@ -179,6 +179,71 @@ Built and verified while the founder slept; **stops before any live surface**, a
 **Cold resume:** 1a is self-contained and green on `26594a9a`. Next safe step is 1b, but read the
 assistant.json lock/governance implications above and confirm with the founder before touching it.
 
+## Phase 3 finding, and the pattern across the data-viz phases — 25 Sep 2026
+
+**Phase 3 (Overview + charts) cannot be built as its mockup shows it, and the reason is the repo's own
+hardest rule — not a missing skill.** This is the same wall that blocked the Phase 5 Voice sliders, so it
+is recorded once here as a pattern with a single decision, rather than rediscovered phase by phase.
+
+### Why the Overview's headline features are refused
+
+The approved mockup wants four metric cards with large numerals and a "Visits this week" area chart plus a
+stacked segment bar. Three independent things forbid drawing them:
+
+1. **Hard constraint (this file, "Hard constraints", the Appendix D line):** the wireframes the mockups are
+   generated from *"must not be built as shown — they display values the tree does not hold. Real screens
+   render contract-driven values and written empty states."* A metric card with a numeral and an area chart
+   are exactly that.
+2. **The contract's own refusals** (`packages/catalog/control-tower-overview.json#refusals`):
+   `no-status-typed` (never show a status it did not read), `no-invented-tenant` (no tenant shown, named or
+   counted), `no-secret-on-the-overview`, `no-per-viewer-memory-without-a-session`. Its `preview` field is a
+   single prose sentence, **not** demo figures — the contract holds no metrics, no visit time-series, no
+   business counts anywhere. There is no honest number to put in a card or plot on an axis.
+3. **Two spec pins** (`tests/control-tower-portal.spec.ts`): services must stay a `list` role named
+   "N services" with `li` rows carrying `.pt-status` (lines 91, 218, 234), and gates must stay a `table`
+   with one `tbody tr` per gate (line 227). Turning services into a `StatusGrid` or gates into a
+   `GatesList` of cards — which the Phase 3 component list asks for — breaks both. Rewriting pinning tests
+   unattended to match a redesign is the half-migration AGENTS.md forbids.
+
+So of Phase 3's four named components: `MetricCard` and `AreaChart` have no data to hold; `StatusGrid` and
+`GatesList` would break a pin. The Overview already renders every fact the contract holds, as written
+states, and already animates in (Phase 2's `.rise` chapter entrance covers it). **There is nothing left to
+build here that is both honest and un-pinned.**
+
+### The pattern — this gates Phases 3, 4, 6 and 7 alike
+
+Every data-visualisation the approved mockups ask for needs a number the contracts deliberately refuse to
+hold, because a number lives in one place and none of these has been decided:
+
+- **Phase 3 Overview** — metric cards, visits chart: no metrics or time-series in `control-tower-overview.json`.
+- **Phase 4 Dispatch** — schematic live map, deployment risk: needs a real crime/load-shedding data source
+  (already founder-gated in `docs/ROADMAP.md`; G22 open, no SAPS/Eskom feed).
+- **Phase 6 Configuration** — sliders/steppers/toggles: `settings.json` is the *shape*; real bounds live in
+  each of the 11 engine contracts and are only drawable where provenance is `decided`, not `proposal`
+  (`decidedBy: null`). Per-setting audit needed before any control is drawn.
+- **Phase 7 Founder** — progress rings, deploy sparkline: needs deploy/health history that is not recorded
+  anywhere a screen can read (`control-tower-overview.json#recent-activity` says so explicitly).
+
+### The one decision that unblocks (or redirects) all of them
+
+This is a founder ruling, not a tidy-up. Pick one:
+
+- **(A) Authorise clearly-marked preview data.** Add an explicit `preview`/`demo` block to the relevant
+  contracts, holding figures labelled non-live, and let the cards/charts render *only* from it with a
+  "demonstration data" mark. This makes the mockups buildable but is a contract change per phase, and the
+  figures are still invented until a real feed exists — so it needs your sign-off on each number's provenance.
+- **(B) Redesign as structural/visual polish only — no invented numerals (recommended).** Keep every
+  contract-driven value and written empty state; spend the redesign on layout, hierarchy, motion, status
+  chips, gated controls and the refusal sentences — the parts that make a dense screen make sense without
+  fabricating data. This is what Phase 5 shipped (Intelligence slider from real level bounds; Voice as
+  gated cards surfacing the contract's own "not decided" sentences) and it needs no ruling to continue.
+- **(C) Sequence the real data sources first.** Treat the crime/Eskom feed, the deploy/health log and the
+  per-engine decided bounds as prerequisites, and build each chart only behind its real source. Slowest,
+  but nothing is ever drawn that is not true.
+
+**Until this is ruled, the safe overnight work is (B)-shaped and self-contained** (Phase 1a's dark auth lib
+is done; docs and gating are done). No data-viz that needs an invented number will be built unattended.
+
 ## Credit-smart notes
 
 - The full codebase picture is in this spec + the research report from 24 Sep. **Do not re-explore** — read this file, read the named source file, edit, verify, commit.

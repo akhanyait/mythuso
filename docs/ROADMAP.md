@@ -599,3 +599,28 @@ This document was preserved and gated. **No contract numbers were invented and n
 half-migrated.** The build order the document ends with — IAM first, then the data contracts, then the
 screens — is the right one, and every step after Phase 1a waits on a decision above rather than on
 effort.
+
+
+## Awaiting the founder — one ruling unblocks (or redirects) the Control Tower data-viz phases, 25 September 2026
+
+Working the approved redesign overnight reached the same wall twice: **Phase 5's Voice sliders** and now
+**Phase 3's Overview metric cards + "Visits this week" chart** both ask for a number the contracts
+deliberately refuse to hold. The redesign's own hard constraint says the Appendix-D-derived wireframes
+*"must not be built as shown — they display values the tree does not hold,"* `control-tower-overview.json`
+carries four refusals (`no-status-typed`, `no-invented-tenant`, `no-secret-on-the-overview`,
+`no-per-viewer-memory-without-a-session`) and holds no metrics or time-series, and two
+`control-tower-portal.spec.ts` pins keep services a `list` and gates a `table`. The same shape gates
+Phase 4 (needs a real crime/Eskom feed, G22 open), Phase 6 (real bounds live per-engine and only where
+provenance is `decided`, not `proposal`) and Phase 7 (no deploy/health history is recorded anywhere a
+screen can read).
+
+**This is a founder ruling, not a tidy-up.** The full analysis and the three options are in
+`docs/design-review/CONTROL-TOWER-REDESIGN.md`, "Phase 3 finding, and the pattern across the data-viz
+phases — 25 Sep 2026". In short: **(A)** authorise clearly-marked non-live preview figures per contract
+(makes the mockups buildable, but each invented number needs your provenance sign-off); **(B, recommended)**
+treat the redesign as structural/visual polish — layout, hierarchy, motion, status chips, gated controls,
+refusal sentences — with written empty states wherever a number would go, which is what Phase 5 shipped and
+needs no ruling to continue; **(C)** sequence the real data sources first and draw each chart only behind
+its live feed. **Nothing was fabricated and no pinned live surface was restructured unattended while this
+waits.** The safe overnight work stayed self-contained: Phase 1a's dark auth lib (`26594a9a`), the
+extended-scope capture (`5bb98742`) and this gating analysis.
