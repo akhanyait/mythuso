@@ -272,6 +272,36 @@ without fabricating a live bound. **Caveat before building:** `Configuration.tsx
 `tests/configuration.spec.ts` (10 tests); read those pins first and do not restructure against them
 unattended. This is the one remaining phase with honest, un-pinned-after-review work that needs no ruling.
 
+### Phase 6 correction — the provenance screen already exists, 25 Sep 2026 (verified)
+
+The inventory above said a provenance review screen was the honest thing to build. **Reading
+`apps/web/src/features/Configuration.tsx` (360 lines) and its 10-test `tests/configuration.spec.ts` shows
+it is already built** — the note above is corrected here rather than left implying work remains:
+
+- Every setting already renders in force, its default **and who decided it**, its limits, and their
+  provenance in three honest states — `limitsAreProposals` / `limitsPartlyDecided` / `limitsDecided`
+  (spec lines 113–123) — plus `appliesTo`, the `guardrail` statement, and a change history.
+- Changes are already gated behind **review-then-confirm** and refused in the contract's own words
+  (out of range, not above zero, wrong type, without reason, unchanged, steps not rising, schedule leaves a
+  gap), with version increments and applies-to-next-start semantics, and a clinical-review flow for
+  clinical-scope settings (`notReviewed` → a doctor confirms).
+- Its controls are plain accessible form widgets — numeric/text `input`, `textarea`, `radio`, `checkbox`,
+  `select` (Configuration.tsx lines 151–197, 237–242, 341). **There is no slider, switch or spinbutton.**
+
+**So Phase 6 is not a build task; it is at most a cosmetic restyle, and that restyle would make the screen
+worse.** Turning the numeric inputs into sliders or the radios into switches would (1) break the 10 pins —
+the tests `fill()` the numeric input, `check()` radios/checkboxes by role and name, and `selectOption()` the
+engine filter, none of which a slider or switch supports — and (2) draw a *proposed* bound as a live,
+draggable track, the exact provenance violation the inventory above names. **Recommendation: leave
+Configuration as it is.** It is the densest screen in the portal and already the most honest one; the
+"make it make sense" win here was taken when the provenance and guardrail were surfaced, not by restyling
+the widgets.
+
+**Net across the redesign:** Phase 2 (motion) and Phase 5 (GilbertOne Admin) are shipped; Phase 1a (dark
+auth) is shipped; Phase 6 is already done and must not be restyled; Phases 3, 4 and 7 wait on the data-viz
+ruling above; Phase 8 needs mockups first. **No un-pinned, ruling-free code work remains that would not
+regress an honest screen** — which is the honest place to stop overnight.
+
 ## Credit-smart notes
 
 - The full codebase picture is in this spec + the research report from 24 Sep. **Do not re-explore** — read this file, read the named source file, edit, verify, commit.
