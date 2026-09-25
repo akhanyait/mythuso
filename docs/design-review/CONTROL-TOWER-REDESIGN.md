@@ -149,6 +149,36 @@ and the Control Tower gate is the same shape minus the key reveal.
 1a contract + lib + unit tests (dark, no live change) → 1b server routes (dark) → 1c web SignIn +
 `MYTHUSO_AUTH_MODE` + portal gate (the live surface, last, in one pass).
 
+### Phase 1a progress — 25 Sep 2026 (done, dark, committed 26594a9a)
+
+Built and verified while the founder slept; **stops before any live surface**, as promised.
+
+- **Done (1a):** `packages/catalog/control-tower-access.json` (one place for every number, name and
+  refusal sentence; mirrors `founder-access.json` minus the key reveal) +
+  `apps/assistant-api/src/lib/control-tower-access.ts` (dark by default; reuses founder access's
+  `parsePasswordHash`/`verifyPassword` — one scrypt floor — and `apps/api/src/totp.ts` — one TOTP;
+  its own gate/signIn/session/lockout/burned-codes/secret-free audit line; **no reveal, no allowlist**)
+  + `apps/assistant-api/src/control-tower-access.test.ts` (12 lib-only tests). Nothing imports the lib
+  yet, so no route, no web change and no live surface moved.
+- **Verified:** `tsc` clean; **330/330** assistant-api tests pass; `check-boundaries` exit 0. Committed
+  by name (three new files, no formatter churn), local only — **not pushed**.
+- **Not done, and why (needs the founder awake):**
+  - **1b server routes** is *not* dark-trivial. Adding Control Tower routes means editing
+    `packages/catalog/apis/assistant.json`, which triggers the append-only lock process
+    (`apis.lock`/`callers.lock`/`refusals.lock`/`shapes.lock`), refusal + caller parity gates and
+    native Swift/Kotlin client regeneration via `emit-assistant.mjs`. That is founder-scope governance,
+    not an overnight tidy-up. The refusal sentences currently parked in
+    `control-tower-access.json#refusals` move into that route contract when 1b lands (one source).
+  - A `check-boundaries` block pinning control-tower-access (as the founder block at
+    `scripts/check-boundaries.mjs:33027` pins founder-access) belongs with 1b, when routes exist to pin.
+    Until then the shared scrypt floor and TOTP numbers are held by the unit test alone.
+  - **1c live web gate** (`SignIn.tsx` + `MYTHUSO_AUTH_MODE` + `PortalShell`/`BackOffice` gating) is the
+    one live-surface change. Per AGENTS.md it must be finished in one pass and never half-migrated — so
+    it waits for a session where the founder can confirm the blast radius.
+
+**Cold resume:** 1a is self-contained and green on `26594a9a`. Next safe step is 1b, but read the
+assistant.json lock/governance implications above and confirm with the founder before touching it.
+
 ## Credit-smart notes
 
 - The full codebase picture is in this spec + the research report from 24 Sep. **Do not re-explore** — read this file, read the named source file, edit, verify, commit.
