@@ -659,3 +659,29 @@ needs no ruling to continue; **(C)** sequence the real data sources first and dr
 its live feed. **Nothing was fabricated and no pinned live surface was restructured unattended while this
 waits.** The safe overnight work stayed self-contained: Phase 1a's dark auth lib (`26594a9a`), the
 extended-scope capture (`5bb98742`) and this gating analysis.
+
+## Environment problem — IDE formatter contamination, recorded 25 September 2026
+
+**Recurring issue**: the IDE auto-formats on save with a non-project Prettier config (double quotes, expanded imports, exploded compact arrays/objects to multi-line, trailing commas in function params). This re-flows files after they're committed, creating phantom diffs that must be restored to HEAD before each commit.
+
+**Observed behavior**:
+- Files committed with single quotes, compact arrays, no trailing commas in function params.
+- After commit, the IDE re-formats them: double quotes, multi-line arrays, trailing commas in function params.
+- `git status` shows the files as modified immediately after commit.
+- Must `git restore` the files to HEAD before the next commit to avoid contaminating the diff.
+
+**Affected files** (observed this session):
+- `packages/catalog/control-tower-access.json` (compact array exploded to multi-line)
+- `apps/assistant-api/src/lib/control-tower-access.ts` (line wrapping, trailing commas)
+- `apps/assistant-api/src/control-tower-access.test.ts` (same)
+- `docs/design-review/CONTROL-TOWER-REDESIGN.md` (markdown tables re-padded, emphasis `*x*` → `_x_`)
+
+**Workaround used**: python shell writes bypass the IDE formatter, so semantic changes are applied via python heredocs rather than SearchReplace/Write tools. This is credit-inefficient and error-prone.
+
+**Fix options** (founder decision needed):
+1. **Add a project `.prettierrc`** that locks the code style (single quotes, `trailingComma: 'es5'`, `printWidth: 120`, `tabWidth: 1`, `semi: true`). This is a project-wide change but prevents the contamination.
+2. **Disable format-on-save in the IDE** (user setting). No repo change, but requires the founder to adjust their IDE.
+3. **Configure the IDE to use the project's formatter** (if one exists). No repo change, but requires the founder to adjust their IDE.
+
+**Recommendation**: option 1 (add `.prettierrc`). It's a small, safe change that prevents the issue going forward, and it makes the code style explicit rather than implicit. The observed code style is: single quotes, no trailing commas in function params, single-space indentation, semicolons, print width ~120.
+
