@@ -601,6 +601,41 @@ screens — is the right one, and every step after Phase 1a waits on a decision 
 effort.
 
 
+
+
+### Phase 4 data sources — decided, 25 September 2026
+
+The founder has named the two data sources that gate Phase 4 (Dispatch & Incidents, deployment intelligence):
+
+**1. Eskom load-shedding data — EskomSePush API (https://eskomsepush.gumroad.com/l/api)**
+- REST API with JSON responses; free tier available via Gumroad, Business API (esp.info/business-api) for commercial use.
+- Endpoints: `/business/3.1/reports` (area-level outage intelligence), loadshedding schedules, area lookup, GPS coordinate lookup.
+- Real-time electricity, water, internet signals from community reports.
+- **Integration path**: straightforward REST client; the free tier is sufficient for internal Control Tower use.
+
+**2. SAPS crime statistics — no public REST API; quarterly downloads or DataFirst research data**
+- Official portal: saps.gov.za/services/crimestats.php (quarterly PDF/Excel downloads, detailed stats available).
+- DataFirst (UCT): clean research-ready CSV spanning 2005-2026, aggregated by police station, local municipality, and geographic coordinates (https://www.datafirst.uct.ac.za/dataportal/index.php/catalog/1012).
+- Third-party aggregators: Crime Stats SA, ISS Crime Hub Wizard (crimehub.org), SafeSuburb — all process SAPS quarterly releases.
+- Stats SA publishes the Governance, Public Safety, and Justice Survey (GPSJS) — accounts for unreported crimes via household victimization surveys.
+- **Integration path**: batch import from DataFirst CSV (cleanest) or manual quarterly update from SAPS portal; no real-time API.
+
+**Consequence for Phase 4**: the deployment intelligence screen can now be scoped against real sources. The Eskom feed is a straightforward REST integration; the SAPS feed is a batch import (quarterly refresh from DataFirst or manual SAPS portal download). Both are internal Control Tower use, so the Eskom free tier suffices.
+
+### What remains unnamed — the data sources Phases 3 and 7 still wait on
+
+**Phase 3 (Overview + charts)**: the "Visits this week" area chart and metric cards need a time-series source. What generates the visit count? Is it:
+- The care visit log (apps/web/src/features/CareVisit.tsx — visits started by nurses)?
+- A derived metric from the assistant health route (apps/assistant-api/src/server.ts)?
+- A new metric service that aggregates visit starts, offer accepts, panic activations?
+
+**Phase 7 (Founder)**: the deploy sparkline and system health panel need a deploy/health history source. What records deploys and restarts? Is it:
+- The deploy.sh script's output (deploy/RUNBOOK.md — currently terminal-only, not persisted)?
+- A new deploy log service that records each deploy.sh run (who, when, what changed)?
+- systemd journal logs (journald — currently the open G36 gate on retention)?
+
+**These are the "rest" the founder needs to name** before Phases 3 and 7 can be scoped against real sources. Until then, those phases remain blocked by the same hard constraint: "must not be built as shown — they display values the tree does not hold."
+
 ## Awaiting the founder — one ruling unblocks (or redirects) the Control Tower data-viz phases, 25 September 2026
 
 Working the approved redesign overnight reached the same wall twice: **Phase 5's Voice sliders** and now
