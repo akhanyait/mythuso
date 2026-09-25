@@ -1,0 +1,88 @@
+{
+  "_demo": true,
+  "_demoWhy": "DEMO DATA — for show and tell only. This is not a real map, real roster or real alerts. Replace with the SAPS crime feed and Eskom load-shedding API when they exist (gate G22).",
+  "map": {
+    "label": "Schematic precinct map",
+    "precincts": [
+      { "id": "zone-a", "label": "Zone A", "risk": "low", "nurses": 3 },
+      { "id": "zone-b", "label": "Zone B", "risk": "medium", "nurses": 2 },
+      { "id": "zone-c", "label": "Zone C", "risk": "high", "nurses": 4 },
+      { "id": "zone-d", "label": "Zone D", "risk": "low", "nurses": 1 }
+    ]
+  },
+  "roster": [
+    {
+      "id": "nurse-1",
+      "name": "Nurse K. Mthembu",
+      "zone": "zone-a",
+      "status": "on-duty",
+      "riskChip": "low"
+    },
+    {
+      "id": "nurse-2",
+      "name": "Nurse T. Nkosi",
+      "zone": "zone-b",
+      "status": "on-duty",
+      "riskChip": "medium"
+    },
+    {
+      "id": "nurse-3",
+      "name": "Nurse S. Dlamini",
+      "zone": "zone-c",
+      "status": "missed-check-in",
+      "riskChip": "warning"
+    },
+    {
+      "id": "nurse-4",
+      "name": "Nurse L. van der Merwe",
+      "zone": "zone-c",
+      "status": "on-duty",
+      "riskChip": "medium"
+    },
+    {
+      "id": "nurse-5",
+      "name": "Nurse P. Molefe",
+      "zone": "zone-d",
+      "status": "off-duty",
+      "riskChip": "low"
+    }
+  ],
+  "alerts": [
+    {
+      "id": "alert-1",
+      "severity": "warning",
+      "title": "Missed check-in",
+      "detail": "Nurse S. Dlamini — Zone C, 14 minutes overdue.",
+      "time": "2 min ago"
+    },
+    {
+      "id": "alert-2",
+      "severity": "escalation",
+      "title": "Escalation",
+      "detail": "Zone C risk level elevated to high at 14:32.",
+      "time": "18 min ago"
+    }
+  ],
+  "deploymentMode": {
+    "current": "physical",
+    "options": [
+      { "id": "physical", "label": "Physical" },
+      { "id": "online", "label": "Online" },
+      { "id": "deferred", "label": "Deferred" }
+    ]
+  },
+  "riskTrend": [
+    { "date": "Mon", "level": 2 },
+    { "date": "Tue", "level": 3 },
+    { "date": "Wed", "level": 2 },
+    { "date": "Thu", "level": 4 },
+    { "date": "Fri", "level": 3 },
+    { "date": "Sat", "level": 2 },
+    { "date": "Sun", "level": 3 }
+  ],
+  "loadShedding": {
+    "active": false,
+    "stage": 0,
+    "overlay": "No load-shedding overlay active."
+  }
+}

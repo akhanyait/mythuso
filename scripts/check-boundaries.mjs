@@ -12582,7 +12582,7 @@ const METRIC_STRIPS = [
      strip when that tab was merged into it. */
   {
     file: "apps/web/src/features/portal/Operations.tsx",
-    after: "<TowerStrip extra=",
+    after: "extra={[",
     what: "the merged portal's Dispatch strip",
   },
   {

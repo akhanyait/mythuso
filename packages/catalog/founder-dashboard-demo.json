@@ -1,0 +1,91 @@
+{
+  "_demo": true,
+  "_demoWhy": "DEMO DATA — for show and tell only. This is not real system health, deploy history or key data. Replace with the deploy/health log when it exists.",
+  "rings": [
+    {
+      "id": "systems-nominal",
+      "label": "Systems nominal",
+      "value": 83,
+      "total": 100,
+      "unit": "%"
+    },
+    {
+      "id": "open-gates",
+      "label": "Open gates",
+      "value": 14,
+      "total": 14,
+      "unit": "gates"
+    },
+    {
+      "id": "keys-configured",
+      "label": "Keys configured",
+      "value": 2,
+      "total": 8,
+      "unit": "of 8"
+    }
+  ],
+  "vault": [
+    {
+      "id": "azure-openai-key",
+      "label": "Azure OpenAI key",
+      "masked": "•••••••••••••••••••• abcd",
+      "status": "configured"
+    },
+    {
+      "id": "azure-speech-key",
+      "label": "Azure Speech key",
+      "masked": "•••••••••••••••••••• ef12",
+      "status": "configured"
+    },
+    {
+      "id": "sms-provider-key",
+      "label": "SMS provider key",
+      "masked": "—",
+      "status": "not-configured"
+    },
+    {
+      "id": "payment-provider-key",
+      "label": "Payment provider key",
+      "masked": "—",
+      "status": "not-configured"
+    }
+  ],
+  "breakGlass": {
+    "state": "off",
+    "label": "Break-glass access",
+    "audited": true,
+    "why": "Every break-glass grant is recorded. Turning it on starts an audited session that expires."
+  },
+  "systemHealth": [
+    {
+      "id": "assistant-api",
+      "label": "Assistant API",
+      "state": "connected",
+      "uptime": "99.7%"
+    },
+    {
+      "id": "web-app",
+      "label": "Web app",
+      "state": "connected",
+      "uptime": "99.9%"
+    },
+    {
+      "id": "identity-service",
+      "label": "Identity service",
+      "state": "dark",
+      "uptime": "—"
+    },
+    {
+      "id": "health-passport",
+      "label": "Health Passport",
+      "state": "dark",
+      "uptime": "—"
+    },
+    { "id": "devices", "label": "Devices", "state": "gated", "uptime": "—" }
+  ],
+  "deploySparkline": {
+    "label": "Recent deploys",
+    "target": "live · mythuso.co.za",
+    "points": [0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 0, 0, 3, 0, 1, 0, 0, 1, 0, 0, 2, 0]
+  }
+}
