@@ -101,20 +101,6 @@
 .patient-surface .wb-habit { border-radius: 999px; }
 .patient-surface .wb-habit.selected { background: var(--studio-lime); }
 .patient-surface .wb-write textarea { background: var(--studio-paper); border-radius: 22px; padding: 22px; min-height: 170px; }
-@keyframes care-heart-breathe {
- 0%, 100% { transform: scale(1); }
- 50% { transform: scale(1.07); }
-}
-.service-icon-orbit { position: relative; isolation: isolate; flex-shrink: 0; }
-.service-icon-orbit > svg { position: relative; z-index: 1; }
-.service-icon-orbit > i { position: absolute; inset: -4px -10px; border: 1px solid #46664765; border-radius: 50%; transform: rotate(35deg); pointer-events: none; }
-.service-icon-orbit > i:nth-child(2) { inset: -10px -4px; transform: rotate(-35deg); }
-.service-icon-orbit > i:nth-child(3) { inset: -7px; transform: rotate(0deg); }
-@media (prefers-reduced-motion: no-preference) {
- html[data-decor="on"] .service-icon-orbit > i { --orbit-start: 35deg; animation: care-orbit-turn 22s linear infinite; animation-delay: calc(var(--i, 0) * -2s); }
- html[data-decor="on"] .service-icon-orbit > i:nth-child(2) { --orbit-start: -35deg; animation-duration: 28s; animation-direction: reverse; }
- html[data-decor="on"] .service-icon-orbit > i:nth-child(3) { --orbit-start: 0deg; animation-duration: 34s; }
-}
 .step-portrait-note { margin: 14px 0 0; text-align: right; font-size: 13px; color: var(--studio-ink-muted); }
 .door-aside { background: linear-gradient(160deg,var(--studio-lime),var(--studio-paper)); }
 @media (min-width: 1000px) {

@@ -64,15 +64,39 @@ test.describe('the motion system', () => {
 
   await expect(page.locator('html')).toHaveAttribute('data-decor', 'on');
   await page.keyboard.press('Enter');
-  /* The flag is gone, the ambient drift with it, and the control now says what the next press does
-     rather than what the last one did. */
+  /* The flag is gone, both endless movements with it, and the control now says what the next press
+     does rather than what the last one did. */
   await expect(page.locator('html')).not.toHaveAttribute('data-decor', 'on');
   await expect(page.getByRole('button', { name: 'Play motion' })).toBeFocused();
-  expect(await running(page)).not.toContain('hero-lines');
-  expect(await running(page)).not.toContain('portrait-drift');
+  expect(await running(page)).not.toContain('hero-ledge-glow-drift');
+  expect(await running(page)).not.toContain('hero-photo-drift');
 
   await page.keyboard.press(' ');
   await expect(page.locator('html')).toHaveAttribute('data-decor', 'on');
+ });
+
+ /* The motion budget, held. Three things on the landing page move on their own once the entrance
+    has settled: the carousel's clock, which is finite, and the two endless drifts — the banner's
+    photograph and the glow behind the ledge. Nothing else. There were six on 25 September, and the
+    twenty-two orbit rings that made up three of them ran wherever the reader had scrolled to; a
+    seventh loop added for texture now fails here rather than in a review. And the two endless ones
+    hold still while the hero is off-screen, which the old pair never did. */
+ test('the landing page runs exactly its budgeted motion, and none of it off-screen', async ({ page }) => {
+  await page.goto('/');
+  /* The hero's entrance cascade ends about 1.9 s after first paint (the ledge rises last, at
+     1160 ms for 720), so "at rest" is measured after it — the budget is what keeps moving, not
+     what arrived. */
+  await page.waitForTimeout(ENTER_MS * 7);
+  const budget = ['slide-clock', 'hero-ledge-glow-drift', 'hero-photo-drift'];
+  const atRest = (await running(page)).filter(name => name !== 'unnamed' && /^[a-z-]+$/.test(name));
+  expect(atRest.length).toBeGreaterThan(0);
+  for (const name of atRest) expect(budget, `${name} is not in the motion budget`).toContain(name);
+  expect(atRest).toContain('hero-photo-drift');
+  expect(atRest).toContain('hero-ledge-glow-drift');
+  await page.locator('#safety').scrollIntoViewIfNeeded();
+  await expect(page.locator('.landing-hero')).toHaveAttribute('data-ambient', 'paused');
+  await expect.poll(() => running(page)).not.toContain('hero-photo-drift');
+  await expect.poll(() => running(page)).not.toContain('hero-ledge-glow-drift');
  });
 
  test('the landing page is complete and still under reduced motion', async ({ page }) => {

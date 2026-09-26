@@ -48,6 +48,11 @@ export const slides = contract.slides as readonly HeroSlide[];
    contract says why: a sentence declaring that nobody in these photographs is a MyThuso nurse is
    not something a rotation may carry off the screen. */
 export const standing = contract.standing;
+/* The third standing line, as a template. It says who comes and what it costs, under the headline
+   on every slide, and the one word it does not carry is the number: {price} is filled by the page
+   from the lowest launch price in packages/catalog/services.json, because a price typed into a
+   sentence in a JSON file is still a second copy of a price. */
+export const priceLine = (price: string) => standing.priceLine.replace('{price}', price);
 
 /* The photograph, WebP first. scripts/render-illustrations.mjs publishes both from the one crop in
    packages/banners, and the .jpg stays as the fallback for a browser that cannot decode the other —

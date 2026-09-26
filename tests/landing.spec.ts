@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 
 /* The landing page is the one screen a stranger reads before anybody explains anything, so what is
    checked here is what it claims. Every figure below is read out of the same contracts the page
@@ -15,7 +15,7 @@ const hero: {
   slides: { id: string; eyebrow: string; headline: { lead: string; accent: string }; body: string;
             action: { label: string; goes: string }; marks: { lines: string[] }[];
             cards: { title: string; lines: string[] }[] }[];
-  standing: { place: string; photographNote: string };
+  standing: { place: string; photographNote: string; priceLine: string };
 } = contract('hero');
 const live = services.filter(s => s.phase === 1);
 const fromPrice = Math.min(...live.map(s => s.price));
@@ -41,12 +41,47 @@ test('the landing page says what MyThuso is, and what it is not', async ({ page 
   expect(errors).toEqual([]);
 });
 
-/* The price left the headline when the hero became the founder's four banners, so the page is held
-   to still quoting it where it does quote it. It is on the figures band and in the services list,
-   both read out of the catalogue, and neither is a sentence anybody typed. */
-test('the price it advertises is still the catalogue\u2019s, now that the headline is not', async ({ page }) => {
-  await expect(page.locator('.landing-figures > div').first()).toContainText(money(fromPrice));
+/* The price is on the first screen, under whichever banner is showing, in the contract's own
+   sentence with the catalogue's own number in it \u2014 and it is in the services list. Neither is a
+   sentence anybody typed. The first-viewport assertion is the point of the line: four reviews of
+   this page on 26 September found a stranger could read the whole first screen and not learn what
+   this costs, so the line is measured against the viewport rather than merely found. */
+test('the price it advertises is still the catalogue\u2019s, and it is on the first screen', async ({ page }) => {
+  const line = page.locator('.landing-hero-price');
+  await expect(line).toHaveText(hero.standing.priceLine.replace('{price}', money(fromPrice)));
+  expect(hero.standing.priceLine).toContain('{price}');
+  const box = (await line.boundingBox())!;
+  const viewport = page.viewportSize()!;
+  expect(box.y + box.height, 'the price line is below the first screen').toBeLessThanOrEqual(viewport.height);
   await expect(page.locator('.landing-services li').first()).toContainText(money(live[0].price));
+});
+
+/* The photographs are the contract's crops, WebP first with the JPEG behind it, and never the 2 MB
+   editorial PNGs the page carried until 26 September. Only the banner showing and the next one are
+   asked for at all, so the first view costs two small pictures rather than four large ones. */
+test('the hero serves the contract\u2019s WebP crops, two at a time', async ({ page }) => {
+  const sources = page.locator('.landing-portrait .landing-slide picture source');
+  await expect(sources).toHaveCount(2);
+  await expect(sources.first()).toHaveAttribute('srcset', `/banners/${hero.slides[0].photograph}.webp`);
+  await expect(page.locator('.landing-portrait .landing-slide.is-on img')).toHaveAttribute('src', `/banners/${hero.slides[0].photograph}.jpg`);
+  expect(await page.locator('img[src*="/editorial/"][src$=".png"]').count()).toBe(0);
+});
+
+/* On a slow connection a tap on a link is followed by nothing, and a reader who sees nothing taps
+   again. The two primary calls to action say so after 300 ms. The destination is held back here so
+   that the label has something to wait for. */
+test('a primary call to action says it is opening when the app is slow to arrive', async ({ page }) => {
+  /* A navigation that never arrives is modelled by cancelling the link's default in a capturing
+     listener: the page's own click handler still runs, nothing leaves, and the label is read from the
+     document that is still on screen. Holding the request instead was tried first \u2014 Playwright will
+     not read a frame while its navigation is pending, so the test could see nothing at all. */
+  await page.evaluate(() => addEventListener('click', e => e.preventDefault(), true));
+  const cta = page.locator('.landing-hero-slide.is-on .primary');
+  const label = hero.slides[0].action.label;
+  await expect(cta).toContainText(label);
+  await cta.click();
+  await expect(cta).toContainText('Opening\u2026');
+  await expect(cta).not.toContainText(label);
 });
 
 /* One primary action above the fold. The nav offers the same one, and everything else on the page
@@ -88,43 +123,33 @@ test('it prices honestly from the same catalogue the app uses', async ({ page })
   await expect(page.locator('.landing-plans li').first()).toContainText(money(model.subscriptions[0].price!));
 });
 
-/* The figures band is the page's evidence, so it is held to the contracts rather than to itself.
-   A number that can be typed into a marketing page is a number nothing can hold to account. */
+/* Every number the page quotes comes from a contract. The figures band that used to carry four of
+   them in a row is gone — it was the fourth place the same four numbers appeared — so each is now
+   held where it lives: the share in the nurses' heading, the checks in Safety, the services in the
+   footer. A number that can be typed into a marketing page is a number nothing can hold to account. */
 test('every figure it quotes comes from a contract', async ({ page }) => {
-  const band = page.locator('.landing-figures > div');
-  await expect(band.nth(0)).toContainText(money(fromPrice));
-  await expect(band.nth(1)).toContainText(`${nurseShare}%`);
-  await expect(band.nth(2)).toContainText(String(live.length));
-  await expect(band.nth(3)).toContainText(String(nurseChecks));
+  await expect(page.locator('#nurses h2')).toContainText(`${nurseShare}%`);
+  await expect(page.locator('.landing-footer')).toContainText(`${live.length} of them at launch`);
+  await expect(page.locator('.safety-standard')).toContainText(`All ${nurseChecks} nurse checks`);
   // and the vetting contract's own check names are on the page, not a paraphrase of them
   await expect(page.locator('.landing-checks li')).toHaveCount(nurseChecks);
   await expect(page.locator('.landing-checks li').first()).toContainText('SANC registration');
   // including what the platform refuses, word for word out of the contract
   await expect(page.getByText('It is not a directory a nurse may browse.')).toBeVisible();
+  // and nothing on the page names a contract file to a reader
+  expect(await page.locator('.landing').innerText()).not.toMatch(/\w+\.json/);
 });
 
-/* The band now prints the contract file each figure was read out of, in a chip above the numeral.
-   That is a claim a reader can go and check, which makes it worth more than the sentence next to it
-   — and worth nothing at all if a chip can name a file that is not there. So the chip is resolved
-   against the catalogue directory rather than compared to a string typed here: rename a contract
-   and this fails, which is exactly when the page has started citing something that does not exist. */
-test('each figure remains traceable to its source without exposing filenames in the interface', async ({ page }) => {
-  const chips = page.locator('.landing-figures .landing-figure-source');
-  await expect(chips).toHaveCount(4);
-  for (const chip of await chips.all()) {
-    const source = await chip.getAttribute('data-source');
-    expect(source).toBeTruthy();
-    expect(existsSync(new URL(`../packages/catalog/${source}`, import.meta.url))).toBe(true);
-    await expect(chip).not.toContainText('.json');
-  }
-});
-
+/* The cost question opens first, because it is the question a stranger arrives with; the new one
+   after it answers "is this live yet?" with the notice bar's own words rather than softer ones. */
 test('the questions answer, and only one at a time', async ({ page }) => {
   const faq = page.locator('.landing-faq > div');
+  await expect(faq.first().getByRole('button')).toHaveText(/What does it cost/);
   await expect(faq.first().getByRole('button')).toHaveAttribute('aria-expanded', 'true');
-  await expect(page.getByText(/routine visits that cost you a day in a queue/)).toBeVisible();
-  await faq.nth(2).getByRole('button').click();
-  await expect(page.getByText(/Visits start at R.?249/)).toBeVisible();
+  await expect(page.getByText(new RegExp(`Visits start at ${money(fromPrice).replace(/\\s/g, '\\s?')}`))).toBeVisible();
+  await faq.nth(1).getByRole('button').click();
+  await expect(faq.nth(1).getByRole('button')).toHaveText(/Is this live yet/);
+  await expect(page.locator('.landing-faq').getByText(/nothing here books a visit, takes a payment or sends a nurse anywhere/)).toBeVisible();
   await expect(faq.first().getByRole('button')).toHaveAttribute('aria-expanded', 'false');
 });
 
@@ -309,7 +334,7 @@ test.describe('when the reader has asked for less motion', () => {
     // the reveal styles are keyed off this flag, so leaving it unset is what keeps the page visible
     expect(await page.evaluate(() => document.documentElement.dataset.motion)).toBeUndefined();
     await expect(page.getByRole('heading', { name: 'Safety is a condition of care.' })).toBeVisible();
-    await expect(page.locator('.landing-figures > div').first()).toContainText(money(fromPrice));
+    await expect(page.locator('.landing-hero-price')).toContainText(money(fromPrice));
     const moving = await page.evaluate(() => document.getAnimations()
       .filter(a => a.playState === 'running').map(a => (a as CSSAnimation).animationName ?? 'transition'));
     expect(moving).toEqual([]);

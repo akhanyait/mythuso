@@ -1078,6 +1078,45 @@ if (
         );
     }
   }
+  /* Every picture the public page asks for, weighed. Until 26 September the hero fetched four
+    editorial PNGs of 2.2 to 2.8 MB each — while the contract's own WebP crops, 35 kB apiece, sat
+    published and unused — and two more 2.2 MB PNGs hung off sections further down. The first view
+    of the one page a stranger reads on a metered South African connection was about 2.4 MB. So
+    every path under apps/web/public that Landing.tsx or lib/hero.ts names, by literal or by the
+    two banner templates, must exist and weigh no more than 150 kB, and the editorial PNGs may not
+    be named at all: a photograph belongs in packages/banners, published in both formats by
+    scripts/render-illustrations.mjs, or it does not belong on this page. */
+  {
+    const LIMIT = 150 * 1024;
+    const named = new Set();
+    for (const match of landing.matchAll(/["'`](\/(?:banners|editorial|brand)\/[^"'`$]+?)["'`]/g))
+      named.add(match[1]);
+    for (const match of landing.matchAll(/`\/editorial\/step-\$\{[^}]+\}\.jpg`/g)) {
+      void match;
+      for (const step of ["patient", "nurse", "doctor"])
+        named.add(`/editorial/step-${step}.jpg`);
+    }
+    for (const slide of hero.slides)
+      for (const ext of ["webp", "jpg"])
+        named.add(`/banners/${slide.photograph}.${ext}`);
+    if (/\/editorial\/[\w-]+\.png/.test(landing))
+      throw new Error(
+        `apps/web/src/features/Landing.tsx names an editorial PNG — ${landing.match(/\/editorial\/[\w-]+\.png/)[0]}. Those are 2 MB each; the page's photographs are the contract's crops in packages/banners, published as WebP and JPEG by scripts/render-illustrations.mjs.`,
+      );
+    for (const path of named) {
+      if (/\.svg$/.test(path)) continue;
+      const file = `apps/web/public${path}`;
+      if (!existsSync(file))
+        throw new Error(
+          `apps/web/src/features/Landing.tsx asks for ${path} and ${file} does not exist — a blank frame on the one page a stranger reads first.`,
+        );
+      const bytes = statSync(file).size;
+      if (bytes > LIMIT)
+        throw new Error(
+          `${file} is ${Math.round(bytes / 1024)} kB, and the landing page may not ask for a picture over ${LIMIT / 1024} kB. Its first view is read on metered connections; crop it into packages/banners and run scripts/render-illustrations.mjs.`,
+        );
+    }
+  }
   /* The names the contract uses, against the names the web can draw. The union in lib/hero.ts is what
     TypeScript holds the glyph table to, so checking the union against the contract closes the loop
     from the JSON to the rendered disc. */

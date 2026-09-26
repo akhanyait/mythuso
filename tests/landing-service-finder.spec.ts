@@ -20,20 +20,18 @@ test('service discovery combines categories and search, then recovers without lo
  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('ambient service artwork rests offscreen and honours pause and runtime reduced motion', async ({ page }) => {
+/* The rings that used to turn behind every service icon are gone; what the section has instead is
+   one finite settle when a filter resolves. It runs on the list, never on a card a reader is about
+   to press, and under reduced motion it is not applied at all — the list is simply there. */
+test('a resolved filter settles once, and not at all under reduced motion', async ({ page }) => {
  await page.goto('/');
  const section = page.locator('#services');
- const ring = section.locator('.service-icon-orbit > i').first();
- await expect(section).toHaveAttribute('data-ambient', 'paused');
- await expect(ring).toHaveCSS('animation-play-state', 'paused');
- await section.scrollIntoViewIfNeeded();
- await expect(section).toHaveAttribute('data-ambient', 'visible');
- await expect(ring).toHaveCSS('animation-play-state', 'running');
- await expect(ring).toHaveCSS('animation-name', 'care-orbit-turn');
- await page.getByRole('button', { name: 'Pause motion', exact: true }).click();
- await expect(ring).toHaveCSS('animation-name', 'none');
- await page.getByRole('button', { name: 'Play motion', exact: true }).click();
+ const list = section.locator('.landing-services');
+ await expect(section.locator('.service-icon-orbit')).toHaveCount(0);
+ await section.getByRole('button', { name: 'Recovery', exact: true }).click();
+ await expect(list).toHaveCSS('animation-name', 'service-settle');
+ await expect(list.locator('li').last()).toBeVisible();
  await page.emulateMedia({ reducedMotion: 'reduce' });
- await expect(ring).toHaveCSS('animation-name', 'none');
- await expect(page.getByRole('button', { name: 'Pause motion', exact: true })).toHaveCount(0);
+ await expect(list).toHaveCSS('animation-name', 'none');
+ await expect(list.locator('li').last()).toBeVisible();
 });

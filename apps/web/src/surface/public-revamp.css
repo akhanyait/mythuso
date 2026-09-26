@@ -60,57 +60,6 @@
   font-weight: 600;
   letter-spacing: 1px;
 }
-.care-orbit {
-  position: relative;
-  height: 150px;
-  width: 180px;
-  align-self: center;
-  display: grid;
-  place-items: center;
-}
-.care-orbit i {
-  position: absolute;
-  inset: 12px 30px;
-  border: 1px solid #46664775;
-  border-radius: 50%;
-  transform: rotate(35deg);
-}
-.care-orbit i:nth-child(2) {
-  transform: rotate(-35deg);
-  inset: 26px 12px;
-}
-.care-orbit i:nth-child(3) {
-  transform: rotate(0);
-  inset: 0 18px;
-}
-@keyframes care-orbit-turn {
-  from {
-    transform: rotate(var(--orbit-start));
-  }
-  to {
-    transform: rotate(calc(var(--orbit-start) + 360deg));
-  }
-}
-@media (prefers-reduced-motion: no-preference) {
-  html[data-decor="on"] .care-orbit i {
-    --orbit-start: 35deg;
-    animation: care-orbit-turn 22s linear infinite;
-  }
-  html[data-decor="on"] .care-orbit i:nth-child(2) {
-    --orbit-start: -35deg;
-    animation-duration: 28s;
-    animation-direction: reverse;
-  }
-  html[data-decor="on"] .care-orbit i:nth-child(3) {
-    --orbit-start: 0deg;
-    animation-duration: 34s;
-  }
-  html[data-decor="on"] .care-orbit > svg {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: care-heart-breathe 3.6s ease-in-out infinite;
-  }
-}
 .editorial-care-note > div > span {
   font-size: 13px;
 }
@@ -158,329 +107,8 @@
   background: var(--studio-night);
   border-radius: 20px;
 }
-.landing .landing-figures {
-  background: transparent;
-  border-bottom: 1px solid var(--studio-line);
-  padding-block: 46px;
-  gap: clamp(14px, 1.6vw, 20px);
-}
-.landing .landing-figure-source {
-  background: transparent;
-  padding: 0;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 20px;
-}
-.landing .landing-figures strong {
-  font-weight: 600;
-  font-size: 62px;
-  letter-spacing: -3px;
-}
-.landing .landing-figures .landing-figure-value {
-  margin-top: 24px;
-  font-size: clamp(68px, 7vw, 96px);
-  line-height: 1.08;
-  letter-spacing: -0.055em;
-}
-.figure-value-visual {
-  display: inline-flex;
-  align-items: baseline;
-  white-space: nowrap;
-}
-.figure-character {
-  display: inline-block;
-  overflow: hidden;
-  vertical-align: bottom;
-}
-.figure-character-ink {
-  display: inline-block;
-}
-.figure-character.is-affix {
-  font-size: 0.48em;
-  letter-spacing: -0.035em;
-  color: var(--studio-olive);
-  align-self: flex-start;
-  padding-top: 0.18em;
-}
-.landing-figure-unit {
-  margin: 12px 0 0;
-  font-size: 14px;
-  line-height: 1.5;
-  font-weight: 600;
-  color: var(--studio-ink);
-}
-.landing .landing-figures .landing-figure-detail {
-  margin-top: 8px;
-  max-width: 25ch;
-}
-@media (max-width: 600px) {
-  .landing .landing-figures {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-    padding-block: 32px;
-  }
-  .landing .landing-figures .landing-figure-source {
-    display: block;
-    min-height: 36px;
-    line-height: 1.4;
-    letter-spacing: 0.6px;
-  }
-  .landing .landing-figures .landing-figure-value {
-    font-size: clamp(36px, 11.5vw, 60px);
-    margin-top: 10px;
-  }
-  .landing-figure-unit {
-    min-height: 42px;
-  }
-}
-
-/* ---- The figures band as dashboard cards ----
-   The four figures are metric cards now: a white card on the paper ground, a tinted wash in the
-   top corner, a coloured status dot on the chip, and an equalizer of seven bars at the foot whose
-   heights are the same on every card — decoration borrowed from the dashboard language, not data.
-   The figures themselves are unchanged: four numbers, none typed, each naming the contract file it
-   is read out of. The tint is keyed to the named figure, never to a position in an array, for the
-   same reason the step tints are: a colour that changes when a card moves tells two readers two
-   different things.
-
-   Every word on a card sits on white or near-white. The strongest corner of each wash, mixed into
-   --surface, measures charcoal at better than 13:1, so nothing in this section guesses where in
-   the gradient the screenshot was taken. */
-.landing .landing-figure-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  background: var(--surface);
-  border: 1px solid var(--studio-line);
-  border-radius: var(--r-panel);
-  padding: clamp(22px, 2.4vw, 30px);
-  /* A shadow tinted from the card's own wash rather than plain charcoal — the reference's cards
-     never cast a black shadow, and a tint this faint (10% of the card's own colour into the resting
-     --shadow) still reads as "this card" rather than "a card". Set once here so every tint below
-     only has to name its own colour, and rotate/scale are independent CSS properties rather than
-     transform functions, so they survive the reveal transition's `transform: none` untouched — see
-     the fan rule further down. */
-  --figure-tint: var(--studio-ink-muted);
-  box-shadow: var(--shadow);
-  transition:
-    translate 0.3s var(--ease),
-    rotate 0.3s var(--ease),
-    scale 0.3s var(--ease),
-    box-shadow 0.3s var(--ease),
-    border-color 0.3s var(--ease);
-}
-.landing .landing-figure-card:hover {
-  translate: 0 -6px;
-  scale: 1.015;
-  border-color: var(--charcoal);
-  box-shadow:
-    0 1px 2px color-mix(in srgb, var(--figure-tint) 20%, transparent),
-    0 20px 32px -16px color-mix(in srgb, var(--figure-tint) 45%, transparent);
-}
-/* The fan: four cards laid down very slightly askew and at staggered heights, as if dealt from a
-   hand rather than snapped to a grid — the reference's stat cards do this and a perfectly level row
-   of four identical white boxes was the very "no hierarchy" failure this page was rebuilt away from.
-   rotate and translate are their own CSS properties, composited independently of the transform the
-   reveal transition drives, so the tilt survives the entrance and the hover both. Confined to the
-   width where four columns have room to sit slightly apart without a rotated corner touching its
-   neighbour — narrower than that the cards stack in one column edge to edge, where a tilt would
-   only look like a mistake. Hovering a card settles it flat and lifts it above the rest, which is
-   the whole point of dealing them askew: there is somewhere for "attention" to visibly go. */
-@media (min-width: 900px) {
-  .landing-figures {
-    align-items: start;
-    padding-block: clamp(56px, 6vw, 84px) clamp(72px, 7vw, 96px);
-  }
-  .landing .landing-figure-card {
-    rotate: -1.1deg;
-  }
-  .landing .landing-figure-card:nth-child(2) {
-    rotate: 0.8deg;
-    margin-top: 22px;
-  }
-  .landing .landing-figure-card:nth-child(3) {
-    rotate: -0.7deg;
-    margin-top: -10px;
-  }
-  .landing .landing-figure-card:nth-child(4) {
-    rotate: 1.3deg;
-    margin-top: 14px;
-  }
-  .landing .landing-figure-card:hover {
-    rotate: 0deg;
-    z-index: 1;
-  }
-}
-.landing .landing-figure-card[data-tint="mint"] {
-  --figure-tint: var(--brand-mint);
-  background:
-    radial-gradient(
-      120% 100% at 100% 0%,
-      color-mix(in srgb, var(--brand-mint) 55%, var(--surface)) 0%,
-      transparent 56%
-    ),
-    var(--surface);
-}
-.landing .landing-figure-card[data-tint="peach"] {
-  --figure-tint: var(--studio-peach);
-  background:
-    radial-gradient(
-      120% 100% at 100% 0%,
-      color-mix(in srgb, var(--studio-peach) 62%, var(--surface)) 0%,
-      transparent 56%
-    ),
-    var(--surface);
-}
-.landing .landing-figure-card[data-tint="lime"] {
-  --figure-tint: var(--brand-lime);
-  background:
-    radial-gradient(
-      120% 100% at 100% 0%,
-      color-mix(in srgb, var(--brand-lime) 46%, var(--surface)) 0%,
-      transparent 56%
-    ),
-    var(--surface);
-}
-.landing .landing-figure-card[data-tint="lilac"] {
-  --figure-tint: var(--studio-lilac);
-  background:
-    radial-gradient(
-      120% 100% at 100% 0%,
-      color-mix(in srgb, var(--studio-lilac) 82%, var(--surface)) 0%,
-      transparent 56%
-    ),
-    var(--surface);
-}
-/* The status dot before the source label. It repeats the label it sits beside, so it owes
-   SC 1.4.11 nothing; the fills are the brand's own marks on their own tints. */
-.landing .landing-figure-source::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--studio-ink-muted);
-  flex-shrink: 0;
-  vertical-align: 2px;
-}
-.landing .landing-figure-card[data-tint="mint"] .landing-figure-source::before {
-  background: var(--brand-green);
-}
-.landing
-  .landing-figure-card[data-tint="peach"]
-  .landing-figure-source::before {
-  background: var(--brand-orange);
-}
-.landing .landing-figure-card[data-tint="lime"] .landing-figure-source::before {
-  background: var(--studio-olive);
-}
-.landing
-  .landing-figure-card[data-tint="lilac"]
-  .landing-figure-source::before {
-  background: var(--studio-ink-muted);
-}
-/* The equalizer. The same seven heights on every card, tinted to the card, aria-hidden in the
-   markup: an empty element carries no text for a walker to trip on and no claim for a reader to
-   check. It borrows the dashboard's life without pretending to chart anything. */
-.landing .landing-figure-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 5px;
-  height: 34px;
-  margin-top: auto;
-}
-.landing .landing-figure-detail {
-  margin-bottom: 22px;
-}
-.landing .landing-figure-bars i {
-  flex: 1;
-  min-width: 3px;
-  border-radius: var(--r-pill);
-  background: var(--studio-line);
-  transform: scaleY(1);
-  transform-origin: bottom;
-}
-.landing .landing-figure-card[data-tint="mint"] .landing-figure-bars i {
-  background: color-mix(in srgb, var(--brand-green) 32%, var(--surface));
-}
-.landing .landing-figure-card[data-tint="peach"] .landing-figure-bars i {
-  background: color-mix(in srgb, var(--brand-orange) 30%, var(--surface));
-}
-.landing .landing-figure-card[data-tint="lime"] .landing-figure-bars i {
-  background: color-mix(in srgb, var(--studio-olive) 34%, var(--surface));
-}
-.landing .landing-figure-card[data-tint="lilac"] .landing-figure-bars i {
-  background: color-mix(in srgb, var(--studio-ink-muted) 30%, var(--surface));
-}
-/* The cards arrive left to right, and the arrival and the hover share one transition list so the
-   reveal does not quietly cancel the hover's easing. Only opacity and transform take the stagger
-   delay; the hover properties stay immediate. */
-[data-motion="on"] .landing .landing-figure-card[data-reveal] {
-  transition:
-    opacity 0.6s var(--ease),
-    transform 0.6s var(--ease),
-    translate 0.25s var(--ease),
-    box-shadow 0.25s var(--ease),
-    border-color 0.25s var(--ease);
-  transition-delay:
-    calc(var(--figure-order, 0) * 80ms), calc(var(--figure-order, 0) * 80ms),
-    0s, 0s, 0s;
-}
-/* Between the two-column and the comfortable four-column width the cards are narrow enough that
-   the 96px cap would not fit: the numeral is brought down to match the card it stands in. */
-@media (min-width: 860px) and (max-width: 1079px) {
-  .landing .landing-figure-card {
-    padding: clamp(18px, 2.2vw, 24px);
-  }
-  .landing .landing-figure-card .landing-figure-value {
-    font-size: clamp(44px, 5.6vw, 68px);
-  }
-}
-@keyframes figure-bar-rise {
-  from {
-    transform: scaleY(0);
-  }
-  to {
-    transform: scaleY(1);
-  }
-}
-@media (prefers-reduced-motion: no-preference) {
-  html[data-decor="on"][data-motion="on"]
-    .landing-figure-card[data-reveal="shown"]
-    .landing-figure-bars
-    i {
-    animation: figure-bar-rise calc(var(--t-enter) * 1.3) var(--ease-soft) both;
-    animation-delay: calc(var(--figure-order) * 100ms + var(--bar-i) * 60ms);
-  }
-}
-@keyframes figure-number-arrive {
-  from {
-    transform: translateY(105%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-@media (prefers-reduced-motion: no-preference) {
-  html[data-decor="on"][data-motion="on"]
-    .landing-figures
-    [data-reveal="shown"]
-    .figure-character-ink {
-    animation: figure-number-arrive calc(var(--t-enter) * 2) var(--ease-soft)
-      both;
-    animation-delay: calc(
-      var(--figure-order) * 90ms + var(--digit-order) * 45ms
-    );
-  }
-}
 .landing .landing-head h2,
-.landing .landing-split h2 {
+.landing .landing-nurses h2 {
   letter-spacing: -0.06em;
   font-size: clamp(36px, 4.8vw, 68px);
   line-height: 1.02;
@@ -494,29 +122,6 @@
 }
 .landing-service-finder {
   margin: 32px 0 24px;
-}
-.landing-story-photo {
-  overflow: hidden;
-  border-radius: 26px;
-  background: #e6ede2;
-  border: 1px solid var(--studio-line);
-}
-.landing-story-photo img {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-.landing-split .landing-portrait {
-  display: block;
-}
-.landing-split .landing-portrait figcaption {
-  margin: 0;
-  padding: 10px 4px;
-  border: 0;
-  background: transparent;
-  border-radius: 0;
-  box-shadow: none;
-  text-align: right;
 }
 .landing-service-search {
   display: grid;
@@ -614,12 +219,6 @@
   outline: 3px solid #466647;
   outline-offset: 4px;
 }
-.landing
-  [data-ambient="paused"]
-  :is(.care-orbit, .step-person-orbit, .service-icon-orbit)
-  > :is(i, svg) {
-  animation-play-state: paused !important;
-}
 .landing .landing-services li {
   background: white;
   border-radius: 26px;
@@ -698,21 +297,6 @@
   aspect-ratio: 1;
   object-fit: cover;
   border-radius: 50%;
-}
-.step-person-orbit i {
-  position: absolute;
-  inset: 20px 2px;
-  border: 1px solid #46664765;
-  border-radius: 50%;
-  transform: rotate(35deg);
-}
-.step-person-orbit i:nth-child(2) {
-  inset: 2px 20px;
-  transform: rotate(-35deg);
-}
-.step-person-orbit i:nth-child(3) {
-  inset: 10px;
-  transform: rotate(0deg);
 }
 .landing-steps h3 {
   line-height: 1.35;
@@ -913,21 +497,6 @@
     padding: 24px;
   }
 }
-@media (prefers-reduced-motion: no-preference) {
-  html[data-decor="on"] .step-person-orbit i {
-    --orbit-start: 35deg;
-    animation: care-orbit-turn 22s linear infinite;
-  }
-  html[data-decor="on"] .step-person-orbit i:nth-child(2) {
-    --orbit-start: -35deg;
-    animation-duration: 28s;
-    animation-direction: reverse;
-  }
-  html[data-decor="on"] .step-person-orbit i:nth-child(3) {
-    --orbit-start: 0deg;
-    animation-duration: 34s;
-  }
-}
 .landing .landing-plans li {
   border-radius: 28px;
   background: white;
@@ -964,9 +533,6 @@
   .editorial-note-top {
     grid-column: 1 / -1;
   }
-  .care-orbit {
-    display: none;
-  }
   .editorial-care-note > div > strong {
     font-size: 46px;
   }
@@ -981,9 +547,6 @@
   .editorial-care-note > small {
     grid-column: 1 / -1;
     margin: 0;
-  }
-  .landing .landing-figures strong {
-    font-size: 48px;
   }
   .landing .landing-final {
     border-radius: 26px;
@@ -1010,7 +573,10 @@
   /* The picture's own band in the stacked composition, and the width of the ink panel in the split
     one. The panel is zero below the split breakpoint, which is what makes one set of rules serve
     both: every offset below is written against --hero-panel, and at nought it simply falls away. */
-  --hero-band: clamp(250px, 34vh, 330px);
+  /* 28vh rather than the 34 it was: the price line under the call to action has to sit inside the
+     first screen of a 390×844 phone, and tests/landing.spec.ts measures that it does. The fifty
+     pixels came off the photograph rather than off the words. */
+  --hero-band: clamp(220px, 28vh, 300px);
   --hero-panel: 0px;
   --hero-feather: 72px;
   display: grid;
@@ -1377,9 +943,6 @@
 .editorial-care-note > small {
   grid-column: 1 / -1;
 }
-.editorial-care-note .care-orbit {
-  display: none;
-}
 .editorial-care-note > div > strong {
   font-size: clamp(40px, 6vw, 52px);
   letter-spacing: -0.04em;
@@ -1567,9 +1130,6 @@
   .editorial-photo-footer {
     bottom: calc(var(--hero-pad) + 110px);
   }
-  .editorial-care-note .care-orbit {
-    display: grid;
-  }
   .editorial-care-note > div > strong {
     font-size: 52px;
   }
@@ -1649,39 +1209,95 @@
   }
 }
 
+/* The entrance, in two halves.
+
+   What stands outside the four slides — the photograph's first arrival, the place pill, the
+   caption, the disclosure, the price line and the ledge — runs once, on first paint, and is gated
+   on data-motion like every other entrance on the page.
+
+   What belongs to a slide — the eyebrow, the two lines of the headline, the lede, the call to
+   action and the two cards — is scoped to the slide that is showing. Until 26 September these
+   selectors matched all four slides, so at first paint three banners nobody could see ran the
+   whole cascade behind the one they could. Scoping it to .is-on means it runs on the banner
+   showing, and runs again each time the carousel turns: the words rise in under the new
+   picture, which is the choreography a rotation was missing. Because it now replays, it is also
+   gated on data-decor: a reader who has pressed pause has stopped the page moving, and a headline
+   that still lifted itself into place on every turn they made by hand would not have heard them.
+   Nothing is hidden by it — without either flag every element is simply there. */
 @media (prefers-reduced-motion: no-preference) {
-  html[data-motion="on"] .landing .editorial-hero .editorial-photo-visual {
+  html[data-motion="on"]
+    .landing
+    .editorial-hero
+    .landing-slide:first-child
+    .editorial-photo-visual {
     animation: hero-photo-in 1500ms var(--ease-soft) both;
   }
   html[data-motion="on"] .landing .editorial-hero .landing-portrait-place {
     animation: hero-chip-in 620ms var(--ease-soft) 260ms both;
   }
-  html[data-motion="on"] .landing .editorial-hero .landing-hero-eyebrow {
-    animation: hero-rise-in 620ms var(--ease-soft) 200ms both;
-  }
   html[data-motion="on"] .landing .editorial-hero .h1-line {
     overflow: hidden;
   }
-  html[data-motion="on"] .landing .editorial-hero .h1-line > span {
+  html[data-decor="on"][data-motion="on"]
+    .landing
+    .editorial-hero
+    .landing-hero-slide.is-on
+    .landing-hero-eyebrow {
+    animation: hero-rise-in 620ms var(--ease-soft) 200ms both;
+  }
+  html[data-decor="on"][data-motion="on"]
+    .landing
+    .editorial-hero
+    .landing-hero-slide.is-on
+    .h1-line
+    > span {
     animation: hero-line-up 880ms var(--ease-soft) 300ms both;
   }
-  html[data-motion="on"] .landing .editorial-hero .landing-h1-accent > span {
+  html[data-decor="on"][data-motion="on"]
+    .landing
+    .editorial-hero
+    .landing-hero-slide.is-on
+    .landing-h1-accent
+    > span {
     animation-delay: 400ms;
   }
-  html[data-motion="on"] .landing .editorial-hero .landing-hero-lede {
+  html[data-decor="on"][data-motion="on"]
+    .landing
+    .editorial-hero
+    .landing-hero-slide.is-on
+    .landing-hero-lede {
     animation: hero-rise-in 700ms var(--ease-soft) 660ms both;
   }
-  html[data-motion="on"] .landing .editorial-hero .landing-hero-slide .primary {
+  html[data-decor="on"][data-motion="on"]
+    .landing
+    .editorial-hero
+    .landing-hero-slide.is-on
+    .primary {
     animation: hero-rise-in 700ms var(--ease-soft) 780ms both;
   }
-  html[data-motion="on"] .landing .editorial-hero .editorial-photo-caption {
+  html[data-motion="on"]
+    .landing
+    .editorial-hero
+    .landing-slide:first-child
+    .editorial-photo-caption {
     animation: hero-rise-in 700ms var(--ease-soft) 860ms both;
   }
-  html[data-motion="on"] .landing .editorial-hero .landing-hero-card.at-top {
+  html[data-decor="on"][data-motion="on"]
+    .landing
+    .editorial-hero
+    .landing-slide.is-on
+    .landing-hero-card.at-top {
     animation: hero-card-in 760ms var(--ease-soft) 940ms both;
   }
-  html[data-motion="on"] .landing .editorial-hero .landing-hero-card.at-foot {
+  html[data-decor="on"][data-motion="on"]
+    .landing
+    .editorial-hero
+    .landing-slide.is-on
+    .landing-hero-card.at-foot {
     animation: hero-card-in 760ms var(--ease-soft) 1040ms both;
+  }
+  html[data-motion="on"] .landing .editorial-hero .landing-hero-price {
+    animation: hero-rise-in 700ms var(--ease-soft) 900ms both;
   }
   html[data-motion="on"] .landing .editorial-hero .landing-portrait figcaption {
     animation: hero-rise-in 700ms var(--ease-soft) 1100ms both;
@@ -1689,6 +1305,9 @@
   html[data-motion="on"] .hero-ledge > * {
     animation: hero-rise-in 720ms var(--ease-soft) 1160ms both;
   }
+  /* The picture breathes: one of the two endless movements this page keeps. Transform only, on
+     the banner showing, stopped by the pause control with everything else, and — the same rule
+     the ledge glow already followed — held still while the hero is off-screen. */
   html[data-decor="on"]
     .landing
     .editorial-hero
@@ -1697,5 +1316,31 @@
     img {
     animation: hero-photo-drift 34s var(--ease-soft) infinite alternate;
     will-change: transform;
+  }
+  /* !important because the drift above is a shorthand, and a shorthand resets play-state to running
+     at its own, higher specificity — which is how the old hero loops were measured still running
+     at full page scroll. The same reason the orbit rules used it before they went. */
+  .landing-hero[data-ambient="paused"] .editorial-photo-visual img {
+    animation-play-state: paused !important;
+  }
+}
+
+/* Safety's checks stack as cards on a phone. The register is a three-column table from 760px and
+   a bordered list below it; under 600px the list's rows ran together into one long grey column,
+   which is what the mobile review meant by "a wall". A card each, with air between. */
+@media (max-width: 599px) {
+  .safety-section .landing-checks {
+    display: grid;
+    gap: 12px;
+    border: 0;
+    background: transparent;
+  }
+  .safety-section .landing-checks li {
+    border: 1px solid var(--studio-line);
+    border-radius: var(--r-card);
+    background: var(--surface);
+  }
+  .safety-section .landing-checks li:last-child {
+    border-bottom: 1px solid var(--studio-line);
   }
 }

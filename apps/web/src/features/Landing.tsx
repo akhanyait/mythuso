@@ -7,7 +7,6 @@ import {
   CalendarClock,
   CalendarDays,
   ChevronDown,
-  ClipboardList,
   Clock3,
   FileText,
   Heart,
@@ -42,6 +41,9 @@ import {
 } from "../lib/motion";
 import { searchForSection } from "../lib/roles";
 import {
+  photographJpeg,
+  photographWebp,
+  priceLine,
   roleFor,
   sectionFor,
   slides,
@@ -49,9 +51,6 @@ import {
   type HeroDestination,
   type HeroIcon,
 } from "../lib/hero";
-/* Editorial photographs share the hero's natural light and retain the full composition. */
-const familyRecord = "/editorial/family-care.png";
-const nursingStory = "/editorial/nursing-care.png";
 /* Seven seconds. Long enough to read a sentence of banner copy, short enough that a reader who
    wants the next one does not reach for the arrow — and it only ever runs while the page's
    decorative-motion flag is up, so a reader who has stopped motion, or asked their system for
@@ -131,12 +130,12 @@ const refusals = (
       ?.refusal ?? "",
 }));
 
-/* The three steps and the three Thuso Pass points each carry a tint. It is keyed to a named, ordered
-   thing — step 01, step 02, step 03 — rather than to a position in an array, which is the
-   distinction core.css records the last tint rotation being deleted for: colouring a service by its
-   index told two readers two different things and neither of them anything. Here the colour is a
-   second way of saying what the number and the heading already say, it is stable, and it is never
-   the only difference between two rows. */
+/* The three steps each carry a tint. It is keyed to a named, ordered thing — step 01, step 02,
+   step 03 — rather than to a position in an array, which is the distinction core.css records the
+   last tint rotation being deleted for: colouring a service by its index told two readers two
+   different things and neither of them anything. Here the colour is a second way of saying what the
+   number and the heading already say, it is stable, and it is never the only difference between two
+   rows. */
 const tints = ["lime", "peach", "lilac"] as const;
 const steps = [
   {
@@ -161,91 +160,30 @@ const steps = [
     body: "A registered doctor reviews your readings and decides what comes next. They may also decide to visit you at home. Their decisions and visit notes stay in your Health Passport.",
   },
 ];
-const passPoints = [
-  {
-    icon: ShieldCheck,
-    title: "Share one visit, not a history",
-    body: "Access is granted entry by entry, for as long as you say, and withdrawn the moment you withdraw it.",
-  },
-  {
-    icon: Users,
-    title: "Pay for someone without reading their file",
-    body: "Booking and paying for a family member is one decision. Seeing their record is a different one, and only they can make it.",
-  },
-  {
-    icon: ClipboardList,
-    title: "Take all of it with you",
-    body: "Every visit, reading, result and document, exported whenever you want it, in a form another clinician can read.",
-  },
-];
-/* Prices and counts are derived from the service contracts; labels use patient-facing language.
-   Each card carries a named tint for its corner wash and its status dot — the same ordered set the
-   steps use, keyed to the figure rather than to its position, so the colour is stable and never the
-   only difference between two cards. */
-const figureTints = ["mint", "peach", "lime", "lilac"] as const;
-const figures = [
-  {
-    source: "Clear pricing",
-    contract: "services.json",
-    value: money(fromPrice),
-    unit: "Starting price · per visit",
-    label: "Know the full price before you confirm.",
-    tint: figureTints[0],
-  },
-  {
-    source: "For our nurses",
-    contract: "business-model.json",
-    value: `${nurseShare}%`,
-    unit: "Of each launch visit fee",
-    label: "Paid to the nurse who cares for you.",
-    tint: figureTints[1],
-  },
-  {
-    source: "Care at home",
-    contract: "services.json",
-    value: String(liveServices.length),
-    unit: "Services at launch",
-    label: `Available for home visits, from a catalogue of ${services.length}.`,
-    tint: figureTints[2],
-  },
-  {
-    source: "Carefully checked",
-    contract: "vetting.json",
-    value: String(nurseChecks.length),
-    unit: "Required checks",
-    label: "Must pass before a nurse’s first visit.",
-    tint: figureTints[3],
-  },
-];
-/* The equalizer under each figure is decoration rather than data: the same seven heights on every
-   card, tinted to the card, rendered as empty elements hidden from assistive technology. It borrows
-   the dashboard look without claiming a measurement the catalogue does not hold. */
-const figureBars = [38, 62, 46, 78, 56, 88, 66];
-
-function FigureValue({ value }: { value: string }) {
-  return (
-    <strong className="landing-figure-value">
-      <span className="visually-hidden">{value}</span>
-      <span className="figure-value-visual" aria-hidden="true">
-        {Array.from(value).map((character, index) => (
-          <span
-            key={index}
-            className={`figure-character${/\d/.test(character) ? " is-digit" : " is-affix"}`}
-          >
-            <span
-              className="figure-character-ink"
-              style={{ ["--digit-order" as string]: index }}
-            >
-              {character === " " ? "\u00a0" : character}
-            </span>
-          </span>
-        ))}
-      </span>
-    </strong>
-  );
-}
-
+/* The cost question is first and open by default. It is the question every review of this page
+   said a stranger arrives with, and an accordion that opened on "is this instead of my clinic" was
+   answering a question nobody had asked yet. "Is this live yet?" is new and answers with the notice
+   bar's own words rather than softer ones, because a reader who scrolled past the strip at the top
+   has not been told twice. */
 const questions: [string, React.ReactNode][] = [
+  [
+    "What does it cost?",
+    <>
+      Visits start at {money(fromPrice)} and the price is shown in full before
+      you book. Care plans start at {money(fromPlan)} a month. There is no
+      membership fee and no call-out charge.
+    </>,
+  ],
+  [
+    "Is this live yet?",
+    <>
+      No. MyThuso is in development. This page describes a service being built
+      in Johannesburg, and nothing here books a visit, takes a payment or sends
+      a nurse anywhere. The status page lists what is connected —{" "}
+      {connectedCount} of {capabilities.length} capabilities today — read from
+      the same contract the app is built from.
+    </>,
+  ],
   [
     "Is this instead of my clinic or my doctor?",
     "No. MyThuso is designed for the routine visits that cost you a day in a queue — an injection, a chronic check, a dressing change, bloods. Anything beyond that is referred, and you are told plainly when something needs a clinic or a hospital.",
@@ -257,14 +195,6 @@ const questions: [string, React.ReactNode][] = [
       all {nurseChecks.length} of the checks listed under Safety above. You
       would see their name and photograph before they arrived, and they would
       confirm a code with you at the door.
-    </>,
-  ],
-  [
-    "What does it cost?",
-    <>
-      Visits start at {money(fromPrice)} and the price is shown in full before
-      you book. Care plans start at {money(fromPlan)} a month. There is no
-      membership fee and no call-out charge.
     </>,
   ],
   [
@@ -322,28 +252,44 @@ const heroHref = (goes: HeroDestination) => {
   return section ? `${appHref}&${searchForSection(section).slice(1)}` : appHref;
 };
 
+/* The two primary calls to action say "Opening…" when the page they lead to has not arrived within
+   300 ms of the press. On the connections this is built for a tap on a link is followed by nothing
+   for a second or more, and a reader who sees nothing taps again. A modifier click opens a new tab
+   and leaves this page where it is, so it is not counted; and a page restored from the back-forward
+   cache gets its label back, because "Opening…" on a link nobody is pressing is a lie. */
+function useOpening() {
+  const [opening, setOpening] = useState(false);
+  useEffect(() => {
+    const restore = () => setOpening(false);
+    addEventListener("pageshow", restore);
+    return () => removeEventListener("pageshow", restore);
+  }, []);
+  const onClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0)
+      return;
+    setTimeout(() => setOpening(true), 300);
+  };
+  return { opening, onClick };
+}
+
 /* Editorial cover: one full-bleed photograph with the banner's words composed on it, and a ledge
    of secondary matter beneath. The four contract-backed stories retain their real destinations and
    accessible controls. */
-const editorialPhotos: Record<string, string> = {
-  "care-that-comes-to-you": "/editorial/care-at-home.png",
-  "for-your-family": "/editorial/family-care.png",
-  "everyday-wellbeing": "/editorial/everyday-wellbeing.png",
-  "for-the-nurses": "/editorial/nursing-care.png",
-};
-
 function Hero() {
   const { playing } = useDecor();
   const [index, setIndex] = useState(0);
   const [held, setHeld] = useState(false);
+  const { opening, onClick: opened } = useOpening();
   /* Which slides' photographs have actually been asked for. All four sit in the same absolutely-
      positioned box (surface/public-revamp.css .editorial-hero .landing-slide), cross-faded with
      opacity rather than moved off-screen, so the browser's own geometric lazy-load sees every one
-     of them as already in the viewport and fetches all four — 2.2 to 2.8 MB each — the moment the
-     page opens, on the exact metered connections this product is built for. Warming only the slide
-     showing now and the one showing next spreads that cost across the 7-second dwell between
-     slides instead of paying all of it on arrival, and a slide already warmed stays warmed so the
-     cross-fade back to it never re-fetches. */
+     of them as already in the viewport and fetches all four the moment the page opens, on the exact
+     metered connections this product is built for. Warming only the slide showing now and the one
+     showing next spreads that cost across the 7-second dwell between slides instead of paying all
+     of it on arrival, and a slide already warmed stays warmed so the cross-fade back to it never
+     re-fetches. The pictures are the contract's own crops from packages/banners — about 35 kB each
+     as WebP, 60 as JPEG — and never the 2 MB editorial PNGs this page carried until 26 September;
+     scripts/check-boundaries.mjs refuses those by path and by size. */
   const [warmed, setWarmed] = useState(() => new Set([0, 1 % slides.length]));
   const canHover =
     typeof matchMedia === "function" &&
@@ -401,19 +347,22 @@ function Hero() {
               >
                 <div className="editorial-photo-visual">
                   {warmed.has(i) && (
-                    <img
-                      src={editorialPhotos[slide.id]}
-                      alt=""
-                      aria-hidden="true"
-                      loading={i === index ? "eager" : "lazy"}
-                      fetchPriority={i === index ? "high" : "low"}
-                      decoding="async"
-                      onError={(event) => {
-                        const img = event.currentTarget;
-                        if (!img.src.endsWith("/care-at-home.png"))
-                          img.src = "/editorial/care-at-home.png";
-                      }}
-                    />
+                    <picture>
+                      <source
+                        srcSet={photographWebp(slide)}
+                        type="image/webp"
+                      />
+                      <img
+                        src={photographJpeg(slide)}
+                        alt=""
+                        aria-hidden="true"
+                        width="1774"
+                        height="887"
+                        loading={i === index ? "eager" : "lazy"}
+                        fetchPriority={i === index ? "high" : "low"}
+                        decoding="async"
+                      />
+                    </picture>
                   )}
                 </div>
                 <div className="editorial-photo-footer">
@@ -479,16 +428,21 @@ function Hero() {
               <div className="editorial-intro">
                 <p className="landing-hero-lede">{slide.body}</p>
                 <a
-                  className="primary"
+                  className="primary m-press"
                   href={heroHref(slide.action.goes)}
                   tabIndex={i === index ? undefined : -1}
+                  onClick={opened}
                 >
-                  {slide.action.label}
+                  {opening && i === index ? "Opening…" : slide.action.label}
                   <ArrowRight size={18} />
                 </a>
               </div>
             </article>
           ))}
+          {/* The third standing line. Under whichever banner is showing, never rotated away, and the
+          only sentence on the first screen that says both who comes and what it costs. The words
+          are the contract's; the number is the catalogue's. */}
+          <p className="landing-hero-price">{priceLine(money(fromPrice))}</p>
         </div>
       </div>
 
@@ -502,12 +456,6 @@ function Hero() {
             CARE, ON YOUR TERMS
             <House size={22} />
           </span>
-          <div className="care-orbit" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-            <Heart size={45} strokeWidth={1.2} />
-          </div>
           <div>
             <span>Home visits from</span>
             <strong>
@@ -642,6 +590,7 @@ export function Landing() {
   const [serviceQuery, setServiceQuery] = useState("");
   const [serviceCategory, setServiceCategory] = useState("All care");
   const serviceSearch = useRef<HTMLInputElement>(null);
+  const { opening, onClick: opened } = useOpening();
   const query = serviceQuery.trim().toLocaleLowerCase();
   const matchingServices = liveServices.filter(
     (s) =>
@@ -724,44 +673,20 @@ export function Landing() {
       )}
       <Hero />
 
-      <section className="landing-figures" aria-label="Care, clearly explained">
-        {figures.map((f, index) => (
-          <div
-            key={f.source}
-            className="landing-figure-card"
-            data-tint={f.tint}
-            data-reveal
-            style={{ ["--figure-order" as string]: index }}
-          >
-            <span className="landing-figure-source" data-source={f.contract}>
-              {f.source}
-            </span>
-            <FigureValue value={f.value} />
-            <p className="landing-figure-unit">{f.unit}</p>
-            <span className="landing-figure-detail">{f.label}</span>
-            <span className="landing-figure-bars" aria-hidden="true">
-              {figureBars.map((height, bar) => (
-                <i
-                  key={bar}
-                  style={{ height: `${height}%`, ["--bar-i" as string]: bar }}
-                />
-              ))}
-            </span>
-          </div>
-        ))}
-        <p className="landing-figures-note" data-reveal>
-          Planned launch pricing and services. You will always see the full
-          price before confirming a visit.
-        </p>
-      </section>
-
-      <section id="how" className="landing-section" data-ambient="paused">
+      {/* No figures band between the hero and the steps any more. Its four numbers were the fourth
+      place on this page the same four numbers appeared, and every one of them is still here: the
+      price is under the headline and on every service, the checks are counted in Safety, the share
+      is the nurses' heading and the services are counted in the footer. */}
+      <section id="how" className="landing-section">
         <Head
           index="01"
           eyebrow="How it works"
           title="Your care. A team around you."
           body="Your nurse and doctor work together around your needs, including a doctor’s home visit when they decide it is needed. Software supports the team; it never diagnoses or prescribes."
         />
+        {/* The connector between the three cards is drawn by the stylesheet and fills once, left to
+        right, as each card arrives — the one orienting movement this section has, in place of the
+        three rings that used to turn behind each portrait for as long as the page was open. */}
         <ol className="landing-steps">
           {steps.map((s, i) => (
             <li key={s.title} data-reveal style={{ ["--i" as string]: i }}>
@@ -779,9 +704,6 @@ export function Landing() {
                 data-tint={tints[i]}
                 aria-hidden="true"
               >
-                <i />
-                <i />
-                <i />
                 <img
                   src={`/editorial/step-${s.portrait}.jpg`}
                   alt=""
@@ -804,11 +726,7 @@ export function Landing() {
         </p>
       </section>
 
-      <section
-        id="services"
-        className="landing-section tinted"
-        data-ambient="paused"
-      >
+      <section id="services" className="landing-section tinted">
         <Head
           index="02"
           eyebrow="What a nurse is sent to do"
@@ -869,20 +787,21 @@ export function Landing() {
             )}
           </div>
         </div>
-        <ul id="landing-service-results" className="landing-services">
+        {/* Keyed to the filter, so a search or a category that resolves remounts the list and its
+        short settle runs once — the reader sees the result land rather than the cards silently
+        swapping under the cursor. */}
+        <ul
+          id="landing-service-results"
+          className="landing-services"
+          key={`${serviceCategory}|${query}`}
+        >
           {matchingServices.map((s, i) => (
             <li
               key={s.id}
               data-reveal="shown"
               style={{ ["--i" as string]: i % 3 }}
             >
-              <span
-                className="service-icon service-icon-orbit"
-                aria-hidden="true"
-              >
-                <i />
-                <i />
-                <i />
+              <span className="service-icon" aria-hidden="true">
                 <ServiceIcon name={s.icon} size={20} />
               </span>
               <h3>{s.name}</h3>
@@ -912,49 +831,12 @@ export function Landing() {
         </p>
       </section>
 
-      <section className="landing-split">
-        <div data-reveal>
-          <p className="landing-eyebrow">
-            <i>03</i>Thuso Pass
-          </p>
-          <h2>Your record is yours, entry by entry.</h2>
-          <p className="landing-lede">
-            Every visit, reading, result and document would land in a Health
-            Passport that belongs to the patient rather than to MyThuso. Access
-            is something granted, not something assumed.
-          </p>
-          <ul className="landing-points">
-            {passPoints.map((p, i) => (
-              <li key={p.title}>
-                <span className="landing-point-tile" data-tint={tints[i]}>
-                  <p.icon size={18} />
-                </span>
-                <span>
-                  <strong>{p.title}</strong>
-                  {p.body}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <figure className="landing-portrait" data-reveal>
-          <div className="landing-story-photo">
-            <img
-              src={familyRecord}
-              alt=""
-              aria-hidden="true"
-              loading="lazy"
-              width="1792"
-              height="1024"
-            />
-          </div>
-          <figcaption>Illustrative photograph.</figcaption>
-        </figure>
-      </section>
-
+      {/* The "Thuso Pass" split that stood here is gone with its 2.2 MB photograph. What it said —
+      that a record is the patient's, entry by entry, and that paying for someone is not the same
+      as reading their file — is said in Safety's boundaries below, in the contract's own words. */}
       <section id="plans" className="landing-section tinted">
         <Head
-          index="04"
+          index="03"
           eyebrow="Thuso Routine"
           title="Care that keeps showing up."
           body={
@@ -997,10 +879,13 @@ export function Landing() {
         </ul>
       </section>
 
-      <section id="nurses" className="landing-split reverse">
+      {/* One strip rather than a split with a photograph: the share, the range and the door. The
+      three bullets that used to follow described a kit, a rota and an escalation route that the
+      nurse's own workspace shows properly, behind the link. */}
+      <section id="nurses" className="landing-section landing-nurses">
         <div data-reveal>
           <p className="landing-eyebrow">
-            <i>05</i>For nurses
+            <i>04</i>For nurses
           </p>
           {/* The share is the catalogue's, and it is said about the services this page lists — the ones a
         nurse can be sent to at launch. Some later services pay a smaller share, so "of every fee" would
@@ -1017,52 +902,22 @@ export function Landing() {
           {/* The range below is written as two literals on purpose. scripts/check-boundaries.mjs reads
         this exact pattern out of this file and compares it against every phase-one nurse share in
         the catalogue, so the claim cannot outlive the prices it is made about. */}
-          <ul className="landing-points">
-            <li>
-              <Wallet size={18} />
+          <div className="landing-nurse-row">
+            <p className="landing-nurse-range">
+              <Wallet size={18} aria-hidden="true" />
               <span>
                 <strong>
                   {money(187)}–{money(299)} a visit
                 </strong>
-                The nurse&rsquo;s share of each catalogue price, paid out
-                weekly.
+                The nurse&rsquo;s share of each launch price, paid out weekly.
               </span>
-            </li>
-            <li>
-              <Clock3 size={18} />
-              <span>
-                <strong>The hours and areas you choose</strong>Dispatch never
-                crosses your registered scope of practice, and the Control Tower
-                cannot override that.
-              </span>
-            </li>
-            <li>
-              <ClipboardList size={18} />
-              <span>
-                <strong>A kit, training and an escalation route</strong>A
-                connected diagnostic kit, device and protocol training, and a
-                doctor to escalate to.
-              </span>
-            </li>
-          </ul>
-          <a className="secondary landing-secondary" href={nurseHref}>
-            See the nurse's side
-            <ArrowRight size={16} />
-          </a>
-        </div>
-        <figure className="landing-portrait" data-reveal>
-          <div className="landing-story-photo">
-            <img
-              src={nursingStory}
-              alt=""
-              aria-hidden="true"
-              loading="lazy"
-              width="1792"
-              height="1024"
-            />
+            </p>
+            <a className="secondary landing-secondary" href={nurseHref}>
+              See the nurse's side
+              <ArrowRight size={16} />
+            </a>
           </div>
-          <figcaption>Illustrative photograph.</figcaption>
-        </figure>
+        </div>
       </section>
 
       <section
@@ -1073,7 +928,7 @@ export function Landing() {
         <div className="safety-heading">
           <header>
             <p className="landing-eyebrow">
-              <i>06</i>Patient safety
+              <i>05</i>Patient safety
             </p>
             <h2 id="safety-title">Safety is a condition of care.</h2>
             <p className="safety-intro">
@@ -1140,7 +995,7 @@ export function Landing() {
 
       <section className="landing-section landing-questions">
         <Head
-          index="07"
+          index="06"
           eyebrow="Questions"
           title="The things people actually ask."
         />
@@ -1173,8 +1028,8 @@ export function Landing() {
             A nurse at your door, a doctor on the screen, your record in your
             pocket. Being built in Johannesburg, for South Africa.
           </p>
-          <a className="primary" href={appHref}>
-            Open the app
+          <a className="primary m-press" href={appHref} onClick={opened}>
+            {opening ? "Opening…" : "Open the app"}
             <ArrowRight size={17} />
           </a>
           <p className="landing-final-note">

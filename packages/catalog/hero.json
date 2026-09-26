@@ -81,7 +81,9 @@
   "place": "Johannesburg · Launch preview",
   "placeWhy": "Top right of every slide in the supplied art. It says where and it says preview, which is two disclosures in five words.",
   "photographNote": "Design preview · Illustrative photography",
-  "photographNoteWhy": "Bottom right of every slide. It is the same refusal the landing page already makes about its photographs — nobody in them is a MyThuso nurse and nobody is a patient — and it stays on the picture rather than in a footnote, because that is where somebody looks."
+  "photographNoteWhy": "Bottom right of every slide. It is the same refusal the landing page already makes about its photographs — nobody in them is a MyThuso nurse and nobody is a patient — and it stays on the picture rather than in a footnote, because that is where somebody looks.",
+  "priceLine": "A SANC-registered nurse at your door, from {price}. A registered doctor reviews what they find.",
+  "priceLineWhy": "Under the headline on every slide, and never rotated away. Four reviews of the public page on 26 September agreed on one thing: a stranger could read the whole first screen and not learn what this costs or who comes. {price} is a placeholder the page fills from packages/catalog/services.json — the lowest launch price — so the sentence lives here and the number lives where every other number does."
  },
 
  "_iconNote": "Names rather than glyphs. Each app already has an icon set and a way of drawing a tinted disc; naming the idea lets three platforms each draw it their own way, and stops a fourth copy of an SVG appearing in a JSON file.",

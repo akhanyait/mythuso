@@ -847,63 +847,6 @@ html:has(.landing) {
   border-color: var(--charcoal);
 }
 
-/* ---- The figures ----
-   The page's signature, and the reference's: a chip above, a large numeral, a small label below.
-   Four numbers, none of them typed, each one naming the contract file it is read out of — which is
-   a claim a reader can go and check rather than a statistic nothing can hold to account. The band
-   is four dashboard cards now; the card itself — its corner wash, status dot and equalizer — lives
-   in surface/public-revamp.css with the rest of the editorial layer, and this file keeps the grid,
-   the chip and the type they stand on. */
-/* One column on a phone, not two. The chip carries a file name — "business-model.json" is 146px of
-   13px type and will not go into half of a 320px screen, and a chip that wraps onto two lines is
-   not a chip. The band is taller this way and that is the trade the design language asks for. */
-.landing-figures {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: clamp(14px, 1.6vw, 20px);
-  padding: clamp(40px, 5vw, 64px) var(--pad);
-  border-block: 1px solid var(--stone);
-}
-.landing-figure-source {
-  display: inline-block;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1;
-  color: var(--charcoal);
-  background: var(--pale-sage);
-  border-radius: var(--r-pill);
-  padding: 6px 12px;
-  font-variant-numeric: tabular-nums;
-}
-.landing-figures strong {
-  display: block;
-  font-family: var(--font-display);
-  font-size: clamp(40px, 5.4vw, 64px);
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  color: var(--charcoal);
-  font-variant-numeric: tabular-nums;
-  margin: 18px 0 0;
-}
-.landing-figure-detail {
-  display: block;
-  max-width: 26ch;
-  margin-top: 14px;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--body);
-}
-.landing-figures-note {
-  grid-column: 1 / -1;
-  margin: 0;
-  padding-top: 28px;
-  border-top: 1px solid var(--stone);
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--body);
-}
-
 /* ---- Sections and headings ----
    A tinted section is a recessed --cloud panel rather than a full-bleed band, from the width where
    there is room either side of it for the ground to show. Below that the inset would eat a fifth
@@ -1084,63 +1027,6 @@ html:has(.landing) {
   border-radius: var(--r-control);
 }
 
-/* ---- Split sections ---- */
-.landing-split {
-  display: grid;
-  gap: clamp(36px, 5vw, 72px);
-  padding: clamp(64px, 7vw, 112px) var(--pad);
-  align-items: center;
-}
-.landing-split h2 {
-  margin-top: 0;
-}
-.landing-points {
-  list-style: none;
-  padding: 0;
-  margin: 32px 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-.landing-points li {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  padding: 20px 0;
-  border-top: 1px solid var(--stone);
-}
-.landing-points li:last-child {
-  border-bottom: 1px solid var(--stone);
-}
-.landing-points svg {
-  color: var(--charcoal);
-  margin-top: 0;
-  flex-shrink: 0;
-}
-/* The icon takes a tile so the three points read as the reference's cards do — a tinted square, a
-   heading, a sentence — rather than as a glyph loose beside a paragraph. 40 rather than 44: it is
-   decoration inside a list item, not a control, so the target floor does not reach it. */
-.landing-point-tile {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  border-radius: var(--r-tile);
-  color: var(--charcoal);
-}
-.landing-points strong {
-  display: block;
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--charcoal);
-  margin-bottom: 6px;
-}
-.landing-points span {
-  font-size: 14px;
-  line-height: 1.65;
-  color: var(--body);
-}
 .landing-secondary {
   margin-top: 32px;
   min-height: 48px;
@@ -1455,9 +1341,6 @@ html:has(.landing) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: clamp(24px, 4vw, 56px);
   }
-  .landing-figures {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 @media (min-width: 860px) {
   .landing-nav nav {
@@ -1470,26 +1353,9 @@ html:has(.landing) {
   .landing-menu {
     display: none;
   }
-  .landing-figures {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  .landing-figures-note {
-    margin-top: 12px;
-  }
   .landing-steps {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: clamp(16px, 2vw, 24px);
-  }
-  .landing-split {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 0.72fr);
-  }
-  /* The reversed split swaps the track widths as well as the order, so the photograph keeps the
-    narrower column and the reading measure keeps the wider one whichever side each is on. */
-  .landing-split.reverse {
-    grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
-  }
-  .landing-split.reverse > figure {
-    order: -1;
   }
   .landing-refusals ul {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1605,14 +1471,6 @@ html:has(.landing) {
   .landing-plans li:hover {
     translate: none;
   }
-  .landing .landing-figure-card:hover {
-    translate: none;
-    rotate: none;
-    scale: none;
-  }
-  .landing .landing-figure-card {
-    rotate: none !important;
-  }
   .landing .editorial-hero .primary:hover,
   .landing-final .primary:hover {
     translate: none;
@@ -1623,72 +1481,27 @@ html:has(.landing) {
   }
 }
 
-/* ---- Ambient motion ----
+/* ---- Ambient motion: the budget ----
  *
- * Asked for twice: "the greenish bubbles and lines to have animation just to give the app some
- * texture". The bubbles that used to do it were nine SVG circles and three currents on an infinite
- * loop, and they went — they were dead code by then, they were part of what read as cartoonish, and
- * an element that never stops moving is one Playwright will wait forever to click.
+ * Three things on this page move on their own, and the list is the point. The carousel's clock
+ * below, which is finite — one fill per banner and then it stops. The slow drift on the banner's
+ * photograph and the glow behind the price ledge, both in surface/public-revamp.css, both endless,
+ * both on transform alone, both gated on data-decor so the page's one pause control stops them, and
+ * both paused by useAmbientVisibility the moment the hero leaves the viewport.
  *
- * It is greenish now, which it could not be before: on the old indigo hero, teal at eight per cent
- * lifted the ground to a place where the kicker measured 4.47:1 against an AA floor of 4.5. What
- * makes it safe here is not a smaller number, it is where the sage is allowed to go. The drift is
- * inside the portrait frame, which is the one box on this page with no text in it at all, so a
- * ground that is changing colour is never a ground somebody is reading off.
+ * Until 26 September there were six: a field of drifting hairlines over the whole hero, a sage wash
+ * drifting inside the portrait frame, three rings turning behind the price panel's heart, three
+ * behind each step's portrait and three behind every service icon — twenty-two rings in all, and
+ * the two hero loops never paused off-screen. Four reviews of the page said the same thing about it
+ * in four vocabularies: busy. What stayed is the motion that means something — the banners turn,
+ * the picture breathes, the ledge catches light — and tests/motion.spec.ts holds the running set to
+ * exactly that, so a seventh loop fails the build rather than a review.
  *
- * The hero itself gets the lines, and they are --stone rather than sage. --stone is the densest
- * they can reach, and charcoal on --stone measures 12.5:1 and --body 5.56:1 — both clear AA at the
- * darkest frame of the animation, so no contrast figure in this file is a guess about where in the
- * cycle the screenshot was taken.
- *
- * Both are pseudo-elements with pointer-events:none and nothing inside them, so no control's box
- * ever moves — which is what made the old bubbles a test hazard rather than the fact that they
- * moved.
- *
- * Gated on data-decor rather than data-motion. They are two different questions and they were being
- * answered by one flag: data-motion means "the script is running, so an entrance may hide something
- * until it arrives", and data-decor means "this reader has not asked the motion to stop". These two
- * are the only things on this page that move on their own and never end, which is exactly what WCAG
- * 2.2.2 wants a control for — and that control is beside the portrait. See surface/motion.css. */
-[data-decor="on"] .landing-hero::after {
-  content: "";
-  position: absolute;
-  inset: -25%;
-  z-index: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    118deg,
-    transparent 0 78px,
-    color-mix(in srgb, var(--stone) 46%, transparent) 78px 79px
-  );
-  animation: hero-lines 46s linear infinite alternate;
-  will-change: transform;
-}
-/* Every other ambient loop this page added the same week (surface/public-revamp.css's ledge glow,
-   care-orbit rings, step/service icon orbits) pauses when its container leaves the viewport, per
-   useAmbientVisibility's own doc comment. This one and portrait-drift below did not — measured
-   still animationPlayState:"running" at full page scroll — so they ran forever in a background
-   tab's still-visible corner and off-screen alike. Matching the existing pattern rather than a new
-   one. */
-.landing-hero[data-ambient="paused"]::after {
-  animation-play-state: paused;
-}
-
-[data-decor="on"] .landing-portrait-frame::before {
-  content: "";
-  position: absolute;
-  inset: -30%;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(42% 46% at 26% 28%, var(--soft-sage), transparent 68%),
-    radial-gradient(36% 40% at 76% 72%, var(--muted-sage), transparent 70%);
-  animation: portrait-drift 30s ease-in-out infinite alternate;
-  will-change: transform;
-}
-.landing-hero[data-ambient="paused"] .landing-portrait-frame::before {
-  animation-play-state: paused;
-}
+ * Gated on data-decor rather than data-motion. They are two different questions: data-motion means
+ * "the script is running, so an entrance may hide something until it arrives", and data-decor means
+ * "this reader has not asked the motion to stop". Anything endless answers to the second, which is
+ * what WCAG 2.2.2 wants a control for — and that control is beside the portrait. See
+ * surface/motion.css. */
 
 /* The carousel's clock. Finite by construction — it runs once per picture and stops — and it moves
    a transform on an empty element inside an aria-hidden row, so no box anything is measured
@@ -1699,23 +1512,6 @@ html:has(.landing) {
   }
   to {
     transform: scaleX(1);
-  }
-}
-
-@keyframes hero-lines {
-  from {
-    transform: translate3d(-2%, 0, 0);
-  }
-  to {
-    transform: translate3d(2%, 0, 0);
-  }
-}
-@keyframes portrait-drift {
-  from {
-    transform: translate3d(-4%, -3%, 0) scale(1.05);
-  }
-  to {
-    transform: translate3d(4%, 3%, 0) scale(1.14);
   }
 }
 
@@ -1751,4 +1547,138 @@ html:has(.landing) {
 .landing-steps li,
 .landing-services li {
   border-color: color-mix(in srgb, var(--brand-ink) 10%, transparent);
+}
+
+/* ---- 26 September: the leaner page ----
+   What follows is what the reduction added. Everything it removed — the figures band, the two
+   split sections with their photographs, the orbit rings — is simply gone from above, and the
+   sections that stayed were left where they were. */
+
+/* The third standing line, under whichever banner is showing. It sits in the copy column's second
+   row while the four slides share the first, so it never fades, never moves and is never in a
+   slide's tab order — it is the one sentence on the first screen that says who comes and what it
+   costs, and it is the last thing to arrive in the entrance, after the call to action. Paper on
+   the ink panel, as the lede is. */
+.landing-hero-price {
+  margin: 26px 0 0;
+  padding-top: 18px;
+  max-width: 46ch;
+  border-top: 1px solid color-mix(in srgb, var(--studio-paper) 24%, transparent);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--studio-paper);
+}
+
+/* The nurses' strip. A heading, a lede, the range and the door, in one measure — no photograph and
+   no bullets. The range is the one figure on the page written as two literals, and
+   scripts/check-boundaries.mjs reads them back against the catalogue. */
+.landing-nurses > div {
+  max-width: 880px;
+}
+.landing-nurse-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px 40px;
+  margin-top: 32px;
+}
+.landing-nurse-range {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--body);
+}
+.landing-nurse-range svg {
+  flex-shrink: 0;
+  margin-top: 6px;
+  color: var(--charcoal);
+}
+.landing-nurse-range strong {
+  display: block;
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--charcoal);
+  font-variant-numeric: tabular-nums;
+}
+.landing-nurses .landing-secondary {
+  margin-top: 0;
+}
+
+/* The price is the largest thing on a service card. It was 20px under a 16px name, which made a
+   card about a price look like a card about a name; the reviews asked for the number to be what
+   the eye lands on, and the name to be what it reads second. */
+.landing-services .landing-price strong {
+  font-size: clamp(24px, 2.2vw, 30px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+/* How it works, joined up. A line from each card to the next that fills left to right as the card
+   arrives, on the width where the three stand in a row. It is the one orienting movement this
+   section has: 01 leads to 02 leads to 03, drawn once, and never again. Finite, transform only,
+   token durations, and nothing to click sits on it. */
+@media (min-width: 860px) {
+  .landing-steps li:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    width: clamp(16px, 2vw, 24px);
+    height: 2px;
+    background: var(--studio-olive);
+    transform: scaleX(0);
+    transform-origin: left;
+    pointer-events: none;
+  }
+  [data-motion="on"] .landing-steps li[data-reveal="shown"]:not(:last-child)::after {
+    transform: scaleX(1);
+    transition: transform calc(var(--t-enter) * 2) var(--ease-soft)
+      calc(var(--t-enter) * 0.5 + var(--i, 0) * var(--t-settle));
+  }
+  html:not([data-motion="on"]) .landing-steps li:not(:last-child)::after {
+    transform: scaleX(1);
+  }
+}
+
+/* A result that lands. The list is remounted when a search or a category resolves, so this runs
+   once per answer: four pixels and a fade, over --t-settle, and the reader sees the cards arrive
+   rather than swap. Finite; the reduced-motion block above removes it with everything else. */
+@keyframes service-settle {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 4px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+[data-motion="on"] .landing-services {
+  animation: service-settle var(--t-settle) var(--ease-soft) both;
+}
+
+/* The two primary calls to action press. surface/motion.css's .m-press gives every control the
+   0.98 scale over --t-quick; these two carry their own transition lists for the hover lift, which
+   would otherwise leave the press to snap. The lift and the press are both transforms of a kind,
+   and they are listed together so neither cancels the other's easing. */
+.landing .editorial-hero .primary.m-press,
+.landing-final .primary.m-press {
+  transition:
+    translate var(--t-settle) var(--ease-soft),
+    background var(--t-settle) var(--ease-soft),
+    box-shadow var(--t-settle) var(--ease-soft),
+    transform var(--t-quick) var(--ease-soft);
+}
+/* On a phone the line is tighter, so that it is on the first screen and not the second: the whole
+   point of it is being read before anybody scrolls. */
+@media (max-width: 899px) {
+  .landing-hero-price {
+    margin-top: 18px;
+    padding-top: 14px;
+    font-size: 14px;
+  }
 }
