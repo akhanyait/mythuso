@@ -722,7 +722,6 @@ export function Landing() {
           <LoginPanel onClose={() => setLogin(false)} />
         </Suspense>
       )}
-      <main>
       <Hero />
 
       <section className="landing-figures" aria-label="Care, clearly explained">
@@ -1184,7 +1183,6 @@ export function Landing() {
           </p>
         </div>
       </section>
-      </main>
 
       <Suspense fallback={null}>
         <PublicAssistant />
