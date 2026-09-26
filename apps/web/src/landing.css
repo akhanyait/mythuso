@@ -42,31 +42,46 @@
  * two ambient drifts on the hero — every one of them transform or opacity only, and the
  * reduced-motion block switches all of it off wholesale. */
 
-html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
-.landing{
- background:var(--mist);min-height:100dvh;overflow-x:clip;
- --wrap:1200px;--gutter:clamp(20px,4.4vw,40px);--pad:max(var(--gutter),calc((100vw - var(--wrap)) / 2));
- /* The page's own curve, which was its own curve: cubic-bezier(.22,.68,0,1), written here and used
+html:has(.landing) {
+  scroll-behavior: smooth;
+  background: var(--mist);
+}
+.landing {
+  background: var(--mist);
+  min-height: 100dvh;
+  overflow-x: clip;
+  --wrap: 1200px;
+  --gutter: clamp(20px, 4.4vw, 40px);
+  --pad: max(var(--gutter), calc((100vw - var(--wrap)) / 2));
+  /* The page's own curve, which was its own curve: cubic-bezier(.22,.68,0,1), written here and used
     five times, a hair away from the one every other surface accelerates on and different enough to
     feel it side by side. It is an alias now. The name stays because five rules spend it and a local
     name for a shared value is not a copy of it. */
- --ease:var(--ease-soft);
- /* The radius the reference uses on a card sits between --r-card (12) and --r-pill, and the token
+  --ease: var(--ease-soft);
+  /* The radius the reference uses on a card sits between --r-card (12) and --r-pill, and the token
     contract has no step there. Rather than type 18px into a marketing page — the exact way three
     platforms end up disagreeing about a corner — it is derived from the card radius, so a change
     to the token still moves it. A --r-panel step in packages/design-tokens/tokens.json would
     retire this line. */
- --r-panel:calc(var(--r-card) * 1.5);
- /* Two values mixed rather than added to the palette: a hairline that reads on the night ground,
+  --r-panel: calc(var(--r-card) * 1.5);
+  /* Two values mixed rather than added to the palette: a hairline that reads on the night ground,
     and the quiet text that sits on it. Both are mixed from studioNight now rather than from the ink,
     because the three dark surfaces on this page are studioNight and a quiet colour computed against
     a ground it is not on is a figure about nothing. Paper at 72% over night measures 7.94:1, which
     is the smallest thing on a dark ground here and still well clear of AA. */
- --on-dark:color-mix(in srgb,var(--surface) 16%,transparent);
- --on-dark-quiet:color-mix(in srgb,var(--studio-paper) 72%,var(--studio-night));
+  --on-dark: color-mix(in srgb, var(--surface) 16%, transparent);
+  --on-dark-quiet: color-mix(
+    in srgb,
+    var(--studio-paper) 72%,
+    var(--studio-night)
+  );
 }
-.landing section[id]{scroll-margin-top:88px}
-.landing a{text-decoration:none}
+.landing section[id] {
+  scroll-margin-top: 88px;
+}
+.landing a {
+  text-decoration: none;
+}
 /* The headings are bold and, since the band became dashboard cards, the figures are bolder too —
    a 600 cut rather than the light weight the open-column band used. The tinted card is a louder
    ground, and the numeral is what has to carry it; the heading keeps 700 and the figure stops at
@@ -76,17 +91,38 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
 
    700 rather than 800: the self-hosted Inter subset carries the whole axis, and at clamp(36,64) the
    heavier cut closes the counters at a reading distance. */
-.landing h1,.landing h2{font-family:var(--font-display);font-weight:700;letter-spacing:-.04em;color:var(--charcoal);text-wrap:balance}
-.landing h1{font-size:clamp(36px,5.6vw,64px);line-height:1.0}
+.landing h1,
+.landing h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--charcoal);
+  text-wrap: balance;
+}
+.landing h1 {
+  font-size: clamp(36px, 5.6vw, 64px);
+  line-height: 1;
+}
 /* The headline's second tone, and it is the brand's own green rather than the olive the page used
    to mix for itself: the four banners this hero is drawn from set the second half of every headline
    in it, and a mark is not repainted to match a screen it happens to sit on. brandGreen measures
    3.19:1 on this ground, which SC 1.4.3 allows for large text and nothing else — so it appears on
    the <h1> and on nothing smaller anywhere in this product. The pair is declared in
    packages/design-tokens/tokens.json and computed on every build. */
-.landing h1 .landing-h1-accent{color:var(--brand-green)}
-.landing h2{font-size:clamp(28px,3.6vw,42px);line-height:1.08}
-.landing h3{font-size:18px;font-weight:500;letter-spacing:-.015em;color:var(--charcoal);line-height:1.35}
+.landing h1 .landing-h1-accent {
+  color: var(--brand-green);
+}
+.landing h2 {
+  font-size: clamp(28px, 3.6vw, 42px);
+  line-height: 1.08;
+}
+.landing h3 {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--charcoal);
+  line-height: 1.35;
+}
 /* Every paragraph on this page is coloured by the rule for the block it is in, and there is no
    blanket `.landing p` above them. There was: it beat .landing-lede and .landing-final-note on
    specificity — one class against a class and a type — and quietly decided the colour of two things
@@ -96,8 +132,22 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
 /* Sections arrive as you reach them. The rule that hides anything is scoped to the data-motion flag
    that apps/web/src/lib/motion.ts sets, so a page whose script never runs is a page that is simply
    already visible — never a blank one waiting for an observer that will not fire. */
-[data-motion=on] .landing [data-reveal]{opacity:0;transform:translate3d(0,20px,0);transition:opacity .6s var(--ease),transform .6s var(--ease),translate .25s var(--ease),box-shadow .25s var(--ease),border-color .25s var(--ease);transition-delay:calc(var(--i,0) * 70ms),calc(var(--i,0) * 70ms),0s,0s,0s}
-[data-motion=on] .landing [data-reveal=shown]{opacity:1;transform:none}
+[data-motion="on"] .landing [data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 20px, 0);
+  transition:
+    opacity 0.6s var(--ease),
+    transform 0.6s var(--ease),
+    translate 0.25s var(--ease),
+    box-shadow 0.25s var(--ease),
+    border-color 0.25s var(--ease);
+  transition-delay:
+    calc(var(--i, 0) * 70ms), calc(var(--i, 0) * 70ms), 0s, 0s, 0s;
+}
+[data-motion="on"] .landing [data-reveal="shown"] {
+  opacity: 1;
+  transform: none;
+}
 
 /* ---- The three disclosures ----
    The banner, the caption under each photograph and the footer note. None of them is decoration and
@@ -108,57 +158,209 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
    studioNight rather than the ink, because the page now has three dark moments — this banner, the
    bar of sections in the hero and the closing panel — and three near-blacks a few points apart read
    as a mistake rather than as a system. Paper on night measures 13.96. */
-.landing-notice{display:flex;align-items:center;gap:4px 18px;flex-wrap:wrap;background:var(--studio-night);color:var(--studio-paper);font-size:13px;line-height:1.55;padding:6px var(--pad)}
+.landing-notice {
+  display: flex;
+  align-items: center;
+  gap: 4px 18px;
+  flex-wrap: wrap;
+  background: var(--studio-night);
+  color: var(--studio-paper);
+  font-size: 13px;
+  line-height: 1.55;
+  padding: 6px var(--pad);
+}
 /* The dot marks the first line of the sentence rather than the middle of the block. On a phone the
    sentence is four lines and a bullet floating beside line three reads as a stray mark. */
-.landing-notice .status-dot{align-self:flex-start;margin-top:7px}
-.landing-notice p{margin:0;flex:1 1 26ch;min-width:0}
-.landing-notice strong{color:var(--surface);font-weight:500}
+.landing-notice .status-dot {
+  align-self: flex-start;
+  margin-top: 7px;
+}
+.landing-notice p {
+  margin: 0;
+  flex: 1 1 26ch;
+  min-width: 0;
+}
+.landing-notice strong {
+  color: var(--surface);
+  font-weight: 500;
+}
 /* The door out of the disclosure, and the reason the strip's block padding came down from 13 to 6.
    The link is a control and takes the 44px floor, which is taller than the sentence beside it — so
    the padding that used to make the bar slim is now made by the target itself, and the bar is 56px
    on a wide screen rather than 46. Its outline is paper at 38% over night, which measures 3.28:1
    against the bar (SC 1.4.11 asks 3:1 of a control's visual boundary); the label itself is paper
    at 13.96. Not a filled pill: the one filled control above the fold is "See the app". */
-.landing-notice a{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 15px;border-radius:var(--r-pill);border:1px solid color-mix(in srgb,var(--studio-paper) 38%,var(--studio-night));color:var(--studio-paper);font-weight:500;white-space:nowrap;transition:background-color .18s var(--ease),border-color .18s var(--ease)}
-.landing-notice a:hover{background:color-mix(in srgb,var(--studio-paper) 12%,transparent);border-color:var(--studio-paper)}
+.landing-notice a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 15px;
+  border-radius: var(--r-pill);
+  border: 1px solid
+    color-mix(in srgb, var(--studio-paper) 38%, var(--studio-night));
+  color: var(--studio-paper);
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background-color 0.18s var(--ease),
+    border-color 0.18s var(--ease);
+}
+.landing-notice a:hover {
+  background: color-mix(in srgb, var(--studio-paper) 12%, transparent);
+  border-color: var(--studio-paper);
+}
 /* Mango, not the teal the shared dot ships with. A teal dot is the app's "live" indicator, and this
    is the one statement on the page that says the opposite. Mango is the attention colour, it is the
    only place mango appears here outside the focus ring, and on --charcoal it measures 9.57:1. */
-.landing-notice .status-dot{background:var(--mango);width:8px;height:8px}
-.landing-portrait figcaption{font-size:13px;line-height:1.5;color:var(--body)}
-.landing-footer-note strong{color:var(--charcoal);font-weight:500}
+.landing-notice .status-dot {
+  background: var(--mango);
+  width: 8px;
+  height: 8px;
+}
+.landing-portrait figcaption {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--body);
+}
+.landing-footer-note strong {
+  color: var(--charcoal);
+  font-weight: 500;
+}
 
 /* ---- Navigation ----
    A pill bar. The section links are pill rows that take a --cloud chip when you reach them; the one
    call to action is a filled charcoal pill, which is the only filled control above the fold. */
-.landing-nav{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:16px;padding:14px var(--pad);background:color-mix(in srgb,var(--mist) 88%,transparent);backdrop-filter:blur(16px);border-bottom:1px solid var(--stone);transition:padding .3s var(--ease)}
-.landing-nav.is-condensed{padding-block:9px;box-shadow:var(--shadow)}
+.landing-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px var(--pad);
+  background: color-mix(in srgb, var(--mist) 88%, transparent);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--stone);
+  transition: padding 0.3s var(--ease);
+}
+.landing-nav.is-condensed {
+  padding-block: 9px;
+  box-shadow: var(--shadow);
+}
 /* 44 square is the floor packages/design-tokens/tokens.json sets, and none of the exemptions in it
    covers a marketing nav. So the brand link, the section links and the menu button are all given
    the height rather than the height they happened to inherit from a 32px logo and a 14px label. */
-.landing-brand{display:flex;align-items:center;min-height:44px}
-.landing-brand img{height:32px;width:auto;display:block}
+.landing-brand {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+.landing-brand img {
+  height: 32px;
+  width: auto;
+  display: block;
+}
 /* Progress as a row of rounded segments rather than a continuous bar, which is how the reference
    draws it. The element is full width and clipped rather than scaled: scaling it would stretch the
    segments as the reader descends, so the segments would say something different at the bottom of
    the page than at the top. --scroll is a plain number set by useScrollProgress on every frame, so
    this is a live style rather than an animation and the endless-animation rule does not reach it. */
-.landing-progress{position:absolute;left:0;right:0;bottom:-2px;height:3px;background:repeating-linear-gradient(90deg,var(--charcoal) 0 20px,transparent 20px 26px);clip-path:inset(0 calc(100% - var(--scroll,0) * 100%) 0 0);will-change:clip-path}
+.landing-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--charcoal) 0 20px,
+    transparent 20px 26px
+  );
+  clip-path: inset(0 calc(100% - var(--scroll, 0) * 100%) 0 0);
+  will-change: clip-path;
+}
 /* flex-direction is stated rather than left to the default: the shared stylesheet gives the app's
    sidebar a bare `nav{flex-direction:column}` from tablet up, and that rule reaches this one too. */
-.landing-nav nav{display:none;flex-direction:row;align-items:center;gap:2px;margin-left:auto}
-.landing-nav nav a{display:inline-flex;align-items:center;min-height:44px;font-size:14px;font-weight:500;color:var(--body);padding:10px 15px;border-radius:var(--r-pill);transition:color .18s,background .18s}
-.landing-nav nav a:hover{color:var(--charcoal);background:var(--cloud)}
-.landing-cta{display:inline-flex;margin-left:auto;flex-shrink:0;min-height:44px;padding:11px 20px;font-size:14px;border-radius:var(--r-pill);background:var(--charcoal);color:var(--surface)}
-.landing-cta:hover:not(:disabled){background:color-mix(in srgb,var(--charcoal) 82%,var(--surface))}
+.landing-nav nav {
+  display: none;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+.landing-nav nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--body);
+  padding: 10px 15px;
+  border-radius: var(--r-pill);
+  transition:
+    color 0.18s,
+    background 0.18s;
+}
+.landing-nav nav a:hover {
+  color: var(--charcoal);
+  background: var(--cloud);
+}
+.landing-cta {
+  display: inline-flex;
+  margin-left: auto;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 11px 20px;
+  font-size: 14px;
+  border-radius: var(--r-pill);
+  background: var(--charcoal);
+  color: var(--surface);
+}
+.landing-cta:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--charcoal) 82%, var(--surface));
+}
 /* Circular, hairline, no fill — the reference's icon button. --shadow is removed rather than
    inherited, because a shadow on a 44px circle over a grey ground reads as a smudge. */
-.landing-menu{margin-left:0;flex-shrink:0;width:44px;height:44px;box-shadow:none;background:transparent;border:1px solid var(--stone);color:var(--charcoal)}
-.landing-menu:hover{background:var(--cloud)}
-.landing-nav nav.is-open{display:flex;flex-direction:column;align-items:stretch;position:absolute;left:0;right:0;top:100%;gap:0;background:var(--mist);border-bottom:1px solid var(--stone);padding:4px var(--pad) 16px;margin:0}
-.landing-nav nav.is-open a{padding:15px 0;border-radius:0;border-bottom:1px solid var(--stone);font-size:16px;min-height:44px;display:flex;align-items:center}
-.landing-nav nav.is-open a:hover{background:none}
+.landing-menu {
+  margin-left: 0;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  box-shadow: none;
+  background: transparent;
+  border: 1px solid var(--stone);
+  color: var(--charcoal);
+}
+.landing-menu:hover {
+  background: var(--cloud);
+}
+.landing-nav nav.is-open {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  gap: 0;
+  background: var(--mist);
+  border-bottom: 1px solid var(--stone);
+  padding: 4px var(--pad) 16px;
+  margin: 0;
+}
+.landing-nav nav.is-open a {
+  padding: 15px 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--stone);
+  font-size: 16px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.landing-nav nav.is-open a:hover {
+  background: none;
+}
 
 /* ---- Hero ----
  *
@@ -176,11 +378,24 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
  * anywhere, brandGreen is large text only at 3.19 on this ground and appears on nothing smaller than
  * the headline, brandOrange is never a word, and brandLime is a fill whose label is brandInk at
  * 10.47. */
-.landing-hero{position:relative;overflow:clip;padding:clamp(40px,5.2vw,76px) var(--pad) clamp(40px,4.5vw,64px);display:grid;gap:clamp(30px,4.2vw,54px);align-items:start}
-.landing-hero>*{position:relative;z-index:1}
+.landing-hero {
+  position: relative;
+  overflow: clip;
+  padding: clamp(40px, 5.2vw, 76px) var(--pad) clamp(40px, 4.5vw, 64px);
+  display: grid;
+  gap: clamp(30px, 4.2vw, 54px);
+  align-items: start;
+}
+.landing-hero > * {
+  position: relative;
+  z-index: 1;
+}
 /* The dark bar runs the whole width of the hero under both columns, and its own gap to them is
    smaller than the gap between the columns — it belongs to the hero rather than following it. */
-.landing-hero>.studio-bar-wrap{grid-column:1 / -1;margin-top:calc(clamp(30px,4.2vw,54px) * -.3)}
+.landing-hero > .studio-bar-wrap {
+  grid-column: 1 / -1;
+  margin-top: calc(clamp(30px, 4.2vw, 54px) * -0.3);
+}
 
 /* One column until the picture has somewhere to stand beside the words.
    `display:contents` is doing real work here rather than saving a wrapper: the copy and the
@@ -189,14 +404,24 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
    a phone, because a reader on 390px should see the banner before they see a control for changing
    it. Dissolving the column below that width is the only way to have both without rendering either
    half twice. */
-.landing-hero-column{display:contents}
+.landing-hero-column {
+  display: contents;
+}
 /* Everything in the hero carries an explicit order, including the bar, because `order` decides
    where a grid item is auto-placed as well as where a flex item sits — a bar left at the default
    was placed before the three things written above it and appeared at the top of the banner. */
-.landing-hero-copy{order:1}
-.landing-hero .landing-portrait{order:2}
-.landing-hero-foot{order:3}
-.landing-hero>.studio-bar-wrap{order:4}
+.landing-hero-copy {
+  order: 1;
+}
+.landing-hero .landing-portrait {
+  order: 2;
+}
+.landing-hero-foot {
+  order: 3;
+}
+.landing-hero > .studio-bar-wrap {
+  order: 4;
+}
 
 /* The four slides, stacked in one grid cell and cross-faded.
    Nothing here moves a box: every slide is in the same cell, so the column is the height of its
@@ -207,83 +432,261 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
    of the tab order, out of the accessibility tree, and out of the text walkers in
    tests/landing.spec.ts — and it is what keeps exactly one <h1> and exactly one call to action on
    the page at a time. The delay on visibility is what lets the fade finish first. */
-.landing-hero-copy{display:grid;grid-template-columns:minmax(0,1fr);min-width:0}
-.landing-hero-slide{grid-area:1 / 1;min-width:0;opacity:0;visibility:hidden;transition:opacity .55s var(--ease),visibility 0s .55s}
-.landing-hero-slide.is-on{opacity:1;visibility:visible;transition:opacity .55s var(--ease)}
+.landing-hero-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+.landing-hero-slide {
+  grid-area: 1 / 1;
+  min-width: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.55s var(--ease),
+    visibility 0s 0.55s;
+}
+.landing-hero-slide.is-on {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.55s var(--ease);
+}
 
 /* The eyebrow. A peach pill with the word in ink.
    It is orange in the supplied art and it cannot be: brandOrange measures 2.67:1 on this ground and
    the brand's own rule is that it is the chevron and never a word. The tint it sat on is kept, so
    the pill still reads warm — peach at 42% over paper, with studioInk on it at 11.04. */
-.landing-hero-eyebrow{display:inline-block;margin:0 0 clamp(16px,2vw,24px);padding:9px 18px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--studio-peach) 42%,var(--studio-paper));color:var(--studio-ink);font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;line-height:1.25}
+.landing-hero-eyebrow {
+  display: inline-block;
+  margin: 0 0 clamp(16px, 2vw, 24px);
+  padding: 9px 18px;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--studio-peach) 42%, var(--studio-paper));
+  color: var(--studio-ink);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.25;
+}
 
 /* The headline, two lines in two tones, exactly as the art sets it. Each half is its own block
    because the contract splits the sentence there — a headline coloured by where the text happens to
    wrap means something different on every screen. The space between the two spans stays in the
    markup, so the accessible name is still one sentence. */
-.landing-hero h1{margin:0}
-.landing-hero h1 span{display:block}
-.landing-hero-lede{margin:clamp(18px,2.2vw,26px) 0 0;max-width:44ch;font-size:18px;line-height:1.6;color:var(--body)}
+.landing-hero h1 {
+  margin: 0;
+}
+.landing-hero h1 span {
+  display: block;
+}
+.landing-hero-lede {
+  margin: clamp(18px, 2.2vw, 26px) 0 0;
+  max-width: 44ch;
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--body);
+}
 
 /* The action. The brand lime rather than the interface's studioLime, and the two are separate on
    purpose: this is the founder's mark on his own banner, and packages/design-tokens/tokens.json
    says plainly that a mark is not repainted to match a screen it happens to sit on. brandInk on
    brandLime measures 10.47 and is a declared pair. It is the only filled control in the hero. */
-.landing-hero .primary{display:inline-flex;align-items:center;gap:10px;margin:clamp(24px,2.8vw,34px) 0 0;border-radius:var(--r-pill);background:var(--brand-lime);color:var(--brand-ink);min-height:56px;padding:16px 28px;font-size:16px;font-weight:600}
-.landing-hero .primary:hover{background:color-mix(in srgb,var(--brand-lime) 86%,var(--brand-ink));color:var(--brand-ink)}
+.landing-hero .primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: clamp(24px, 2.8vw, 34px) 0 0;
+  border-radius: var(--r-pill);
+  background: var(--brand-lime);
+  color: var(--brand-ink);
+  min-height: 56px;
+  padding: 16px 28px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.landing-hero .primary:hover {
+  background: color-mix(in srgb, var(--brand-lime) 86%, var(--brand-ink));
+  color: var(--brand-ink);
+}
 
 /* The three trust marks. A tinted disc, then two short lines beside it.
    The tint alternates mint, peach, mint by position. That is rhythm and not meaning: each mark
    already carries its own glyph and its own two words, so the colour is never the only difference
    between two of them, and the contract gives a mark no tint of its own to be faithful to. */
-.landing-hero-marks{list-style:none;display:flex;flex-wrap:wrap;gap:16px clamp(16px,2.2vw,30px);margin:clamp(30px,3.8vw,50px) 0 0;padding:0}
-.landing-hero-marks li{display:flex;align-items:center;gap:12px;min-width:0}
-.landing-hero-marks li>span:last-child{display:flex;flex-direction:column;font-size:15px;line-height:1.3;font-weight:500;color:var(--studio-ink);min-width:0}
-.landing-hero-marks i{font-style:normal}
+.landing-hero-marks {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px clamp(16px, 2.2vw, 30px);
+  margin: clamp(30px, 3.8vw, 50px) 0 0;
+  padding: 0;
+}
+.landing-hero-marks li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.landing-hero-marks li > span:last-child {
+  display: flex;
+  flex-direction: column;
+  font-size: 15px;
+  line-height: 1.3;
+  font-weight: 500;
+  color: var(--studio-ink);
+  min-width: 0;
+}
+.landing-hero-marks i {
+  font-style: normal;
+}
 /* The disc, on both the marks and the floating cards. Mixed into --surface rather than into the
    ground each one sits on, so a disc is the same colour on the page as it is on a white card.
    The glyph is the brand colour the art uses — green at 3.01 on the mint disc, orange at 2.44 on
    the peach one. Neither owes SC 1.4.11's 3:1 because neither is the only thing saying what the
    mark is: every disc on this banner sits against words that say the same thing. */
-.landing-hero-disc{flex-shrink:0;border-radius:var(--r-pill)}
+.landing-hero-disc {
+  flex-shrink: 0;
+  border-radius: var(--r-pill);
+}
 /* Each tint carries its own size and centring rather than inheriting them, which is how .tile-icon
    in surface/core.css is written and what lets scripts/check-boundaries.mjs see what these are: a
    fixed square that centres one child holds a glyph and cannot hold a sentence. A tint that painted
    a fill and left the foreground to a shorthand elsewhere is the failure that check exists for. */
-.landing-hero-disc.tint-mint{display:grid;place-items:center;width:50px;height:50px;background:color-mix(in srgb,var(--brand-mint) 32%,var(--surface));color:var(--brand-green)}
-.landing-hero-disc.tint-peach{display:grid;place-items:center;width:50px;height:50px;background:color-mix(in srgb,var(--studio-peach) 44%,var(--surface));color:var(--brand-orange)}
+.landing-hero-disc.tint-mint {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  background: color-mix(in srgb, var(--brand-mint) 32%, var(--surface));
+  color: var(--brand-green);
+}
+.landing-hero-disc.tint-peach {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  background: color-mix(in srgb, var(--studio-peach) 44%, var(--surface));
+  color: var(--brand-orange);
+}
 
 /* ---- The picture, and the two lines that stand on every slide ----
    The place note above it and the photography disclosure below it, both right-aligned against the
    picture, which is where the founder put them. They are outside the four slides on purpose: a
    sentence saying nobody in these photographs is a MyThuso nurse is not something a rotation may
    carry off the screen. */
-.landing-portrait{position:relative;display:grid;grid-template-columns:minmax(0,1fr);margin:0;min-width:0}
-.landing-portrait-frame{grid-area:1 / 1;position:relative;overflow:hidden;border-radius:var(--r-panel);background:var(--pale-sage);border:1px solid var(--stone);aspect-ratio:4 / 5;color:var(--charcoal)}
-.landing-portrait figcaption{grid-area:1 / 1;align-self:end;z-index:3;margin:14px;background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-card);padding:12px 14px;box-shadow:var(--shadow);color:var(--body)}
-.landing-portrait-frame img{position:relative;z-index:1;display:block;width:100%;height:100%;object-fit:contain;object-position:bottom center}
-.landing-portrait-frame.soft{background:var(--cloud)}
+.landing-portrait {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+  min-width: 0;
+}
+.landing-portrait-frame {
+  grid-area: 1 / 1;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-panel);
+  background: var(--pale-sage);
+  border: 1px solid var(--stone);
+  aspect-ratio: 4 / 5;
+  color: var(--charcoal);
+}
+.landing-portrait figcaption {
+  grid-area: 1 / 1;
+  align-self: end;
+  z-index: 3;
+  margin: 14px;
+  background: var(--surface);
+  border: 1px solid var(--stone);
+  border-radius: var(--r-card);
+  padding: 12px 14px;
+  box-shadow: var(--shadow);
+  color: var(--body);
+}
+.landing-portrait-frame img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom center;
+}
+.landing-portrait-frame.soft {
+  background: var(--cloud);
+}
 
 /* The hero's own figure is three rows rather than one overlaid cell: the note, the picture, the
    disclosure. The two splits further down this page keep the overlaid treatment above. */
-.landing-hero .landing-portrait{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto;gap:10px}
-.landing-hero .landing-portrait-place,.landing-hero .landing-portrait figcaption{grid-area:auto;justify-self:end;text-align:right;margin:0;background:none;border:0;box-shadow:none;padding:0;font-size:13px;line-height:1.5;color:var(--body);max-width:100%}
-.landing-hero .landing-portrait-place{display:inline-flex;align-items:center;gap:7px;font-weight:500}
-.landing-hero .landing-portrait-place svg{flex-shrink:0;color:var(--studio-ink)}
+.landing-hero .landing-portrait {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  gap: 10px;
+}
+.landing-hero .landing-portrait-place,
+.landing-hero .landing-portrait figcaption {
+  grid-area: auto;
+  justify-self: end;
+  text-align: right;
+  margin: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--body);
+  max-width: 100%;
+}
+.landing-hero .landing-portrait-place {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 500;
+}
+.landing-hero .landing-portrait-place svg {
+  flex-shrink: 0;
+  color: var(--studio-ink);
+}
 /* The blob. The art's photograph is a rounded shape with one small corner, and the crops in
    packages/banners keep a sliver of the mint ground the founder set it on — so the frame is washed
    the same mint rather than bordered, and the crop's own edge disappears into it instead of being
    cut off. brandMint at 20% over paper; no text is ever inside this box, which is also what makes
    the drift on it safe to animate. */
-.landing-hero .landing-portrait-frame{grid-area:auto;aspect-ratio:4 / 5;border:0;background:color-mix(in srgb,var(--brand-mint) 29%,var(--surface));border-radius:clamp(30px,6vw,88px) var(--r-panel) clamp(30px,6vw,88px) clamp(30px,6vw,88px)}
+.landing-hero .landing-portrait-frame {
+  grid-area: auto;
+  aspect-ratio: 4 / 5;
+  border: 0;
+  background: color-mix(in srgb, var(--brand-mint) 29%, var(--surface));
+  border-radius: clamp(30px, 6vw, 88px) var(--r-panel) clamp(30px, 6vw, 88px)
+    clamp(30px, 6vw, 88px);
+}
 /* Anchored right. These crops carry the composition's mint ground down their left edge — the part
    of each frame the floating cards never covered — so the frame is narrower than the crop and the
    difference is taken off that side. */
-.landing-hero .landing-portrait-frame img{object-fit:cover;object-position:100% 50%}
+.landing-hero .landing-portrait-frame img {
+  object-fit: cover;
+  object-position: 100% 50%;
+}
 
 /* The four photographs, stacked and cross-faded in the same way the copy is. */
-.landing-slide{position:absolute;inset:0;z-index:1;opacity:0;visibility:hidden;transition:opacity .55s var(--ease),visibility 0s .55s}
-.landing-slide.is-on{opacity:1;visibility:visible;transition:opacity .55s var(--ease)}
+.landing-slide {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.55s var(--ease),
+    visibility 0s 0.55s;
+}
+.landing-slide.is-on {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.55s var(--ease);
+}
 
 /* The two floating cards. White, opaque, one shadow, a tinted disc and two or three short lines —
    the art's other signature, and the reason the crops are portraits: these are what covered the
@@ -291,12 +694,47 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
    They stay inside the frame rather than hanging off its edge as they do in the art. A card that
    overhangs is a box outside a clipped container, and at 320px that is a horizontal scrollbar on
    the one page a stranger reads first. studioInk on white measures 12.76 and studioInkMuted 6.92. */
-.landing-hero-card{position:absolute;z-index:2;right:clamp(10px,2.4%,16px);display:flex;align-items:flex-start;gap:12px;width:max-content;max-width:min(300px,74%);background:var(--surface);border-radius:var(--r-panel);padding:14px 18px 14px 14px;box-shadow:var(--shadow);font-size:14px;line-height:1.45;color:var(--studio-ink-muted)}
-.landing-hero-card.at-top{top:clamp(10px,3%,26px)}
-.landing-hero-card.at-foot{bottom:clamp(10px,3%,26px)}
-.landing-hero-card>span:last-child{display:flex;flex-direction:column;min-width:0}
-.landing-hero-card i{font-style:normal;margin-bottom:3px;font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--studio-ink)}
-.landing-hero-card .landing-hero-disc.tint-mint,.landing-hero-card .landing-hero-disc.tint-peach{width:40px;height:40px}
+.landing-hero-card {
+  position: absolute;
+  z-index: 2;
+  right: clamp(10px, 2.4%, 16px);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: max-content;
+  max-width: min(300px, 74%);
+  background: var(--surface);
+  border-radius: var(--r-panel);
+  padding: 14px 18px 14px 14px;
+  box-shadow: var(--shadow);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--studio-ink-muted);
+}
+.landing-hero-card.at-top {
+  top: clamp(10px, 3%, 26px);
+}
+.landing-hero-card.at-foot {
+  bottom: clamp(10px, 3%, 26px);
+}
+.landing-hero-card > span:last-child {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.landing-hero-card i {
+  font-style: normal;
+  margin-bottom: 3px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--studio-ink);
+}
+.landing-hero-card .landing-hero-disc.tint-mint,
+.landing-hero-card .landing-hero-disc.tint-peach {
+  width: 40px;
+  height: 40px;
+}
 
 /* ---- The controls ----
    One row at the foot of the copy: which of four, how long this one has left, the page's pause
@@ -305,13 +743,41 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
    than the four controls laid end to end. Wrapping was tried first and it put the forward arrow
    alone on a line under a 390px phone; a grid says where each piece goes instead of leaving it to
    whatever happens to fit. */
-.landing-hero-foot{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:14px 12px;margin-top:clamp(22px,2.6vw,34px)}
-.landing-slide-index{grid-area:1 / 1}
-.landing-slide-rule{grid-area:1 / 2}
-.landing-hero-foot .m-pause{grid-area:2 / 1}
-.landing-slide-steps{grid-area:2 / 2;justify-self:end;display:flex;gap:10px}
-.landing-slide-index{margin:0;font-size:13px;font-weight:500;letter-spacing:.08em;color:var(--charcoal);font-variant-numeric:tabular-nums}
-.landing-slide-index i{font-style:normal;color:var(--body);margin:0 5px}
+.landing-hero-foot {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px 12px;
+  margin-top: clamp(22px, 2.6vw, 34px);
+}
+.landing-slide-index {
+  grid-area: 1 / 1;
+}
+.landing-slide-rule {
+  grid-area: 1 / 2;
+}
+.landing-hero-foot .m-pause {
+  grid-area: 2 / 1;
+}
+.landing-slide-steps {
+  grid-area: 2 / 2;
+  justify-self: end;
+  display: flex;
+  gap: 10px;
+}
+.landing-slide-index {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--charcoal);
+  font-variant-numeric: tabular-nums;
+}
+.landing-slide-index i {
+  font-style: normal;
+  color: var(--body);
+  margin: 0 5px;
+}
 /* Progress as a row of rounded segments, which is how this page draws it under the navigation and
    how docs/DESIGN-LANGUAGE.md draws it everywhere. The current segment fills across the seven
    seconds, so the next banner is something a reader can see coming rather than something that
@@ -325,19 +791,61 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
    The filled segment is the brand lime over ink, which is what the art marks the current banner
    with. A 3px rule is not text and carries no ratio; what it must clear is SC 1.4.11's 3:1 against
    the track beside it, and lime on the --stone track measures well past that. */
-.landing-slide-rule{flex:1 1 56px;min-width:44px;display:flex;align-items:center;gap:5px}
-.landing-slide-rule i{flex:1;height:4px;border-radius:var(--r-pill);background:var(--stone);overflow:hidden}
-.landing-slide-rule b{display:block;height:100%;border-radius:inherit;background:var(--brand-lime);transform:scaleX(0);transform-origin:left}
-.landing-slide-rule i.is-on b{transform:scaleX(1)}
-[data-decor=on] .landing-slide-rule i.is-on b{animation:slide-clock var(--slide-ms) linear both}
-.landing-slide-rule.is-still i.is-on b{animation-play-state:paused}
+.landing-slide-rule {
+  flex: 1 1 56px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.landing-slide-rule i {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--stone);
+  overflow: hidden;
+}
+.landing-slide-rule b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand-lime);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.landing-slide-rule i.is-on b {
+  transform: scaleX(1);
+}
+[data-decor="on"] .landing-slide-rule i.is-on b {
+  animation: slide-clock var(--slide-ms) linear both;
+}
+.landing-slide-rule.is-still i.is-on b {
+  animation-play-state: paused;
+}
 /* 44 square, and an outline that can be seen. These two are the only icon-only controls in the
    hero, so the boundary is the whole of what says they are controls — SC 1.4.11 asks 3:1 of it,
    and the page's --stone hairline measures 1.58 on white, which is a line for separating cards and
    not for drawing a button. Ink at half strength over the line colour measures 3.23 on the page
    ground and 3.43 on a card. */
-.landing-slide-step{width:44px;height:44px;flex-shrink:0;display:grid;place-items:center;border-radius:var(--r-pill);background:var(--surface);border:1px solid color-mix(in srgb,var(--studio-ink) 50%,var(--studio-line));color:var(--charcoal);transition:background-color .18s var(--ease),border-color .18s var(--ease)}
-.landing-slide-step:hover{background:var(--cloud);border-color:var(--charcoal)}
+.landing-slide-step {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  border: 1px solid
+    color-mix(in srgb, var(--studio-ink) 50%, var(--studio-line));
+  color: var(--charcoal);
+  transition:
+    background-color 0.18s var(--ease),
+    border-color 0.18s var(--ease);
+}
+.landing-slide-step:hover {
+  background: var(--cloud);
+  border-color: var(--charcoal);
+}
 
 /* ---- The figures ----
    The page's signature, and the reference's: a chip above, a large numeral, a small label below.
@@ -349,55 +857,216 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
 /* One column on a phone, not two. The chip carries a file name — "business-model.json" is 146px of
    13px type and will not go into half of a 320px screen, and a chip that wraps onto two lines is
    not a chip. The band is taller this way and that is the trade the design language asks for. */
-.landing-figures{display:grid;grid-template-columns:minmax(0,1fr);gap:clamp(14px,1.6vw,20px);padding:clamp(40px,5vw,64px) var(--pad);border-block:1px solid var(--stone)}
-.landing-figure-source{display:inline-block;font-size:13px;font-weight:500;line-height:1;color:var(--charcoal);background:var(--pale-sage);border-radius:var(--r-pill);padding:6px 12px;font-variant-numeric:tabular-nums}
-.landing-figures strong{display:block;font-family:var(--font-display);font-size:clamp(40px,5.4vw,64px);font-weight:600;line-height:1;letter-spacing:-.04em;color:var(--charcoal);font-variant-numeric:tabular-nums;margin:18px 0 0}
-.landing-figure-detail{display:block;max-width:26ch;margin-top:14px;font-size:14px;line-height:1.6;color:var(--body)}
-.landing-figures-note{grid-column:1 / -1;margin:0;padding-top:28px;border-top:1px solid var(--stone);font-size:13px;line-height:1.6;color:var(--body)}
+.landing-figures {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(14px, 1.6vw, 20px);
+  padding: clamp(40px, 5vw, 64px) var(--pad);
+  border-block: 1px solid var(--stone);
+}
+.landing-figure-source {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--charcoal);
+  background: var(--pale-sage);
+  border-radius: var(--r-pill);
+  padding: 6px 12px;
+  font-variant-numeric: tabular-nums;
+}
+.landing-figures strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(40px, 5.4vw, 64px);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--charcoal);
+  font-variant-numeric: tabular-nums;
+  margin: 18px 0 0;
+}
+.landing-figure-detail {
+  display: block;
+  max-width: 26ch;
+  margin-top: 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--body);
+}
+.landing-figures-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-top: 28px;
+  border-top: 1px solid var(--stone);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--body);
+}
 
 /* ---- Sections and headings ----
    A tinted section is a recessed --cloud panel rather than a full-bleed band, from the width where
    there is room either side of it for the ground to show. Below that the inset would eat a fifth
    of a 320px screen to prove a point about depth. */
-.landing-section{padding:clamp(64px,7vw,112px) var(--pad)}
+.landing-section {
+  padding: clamp(64px, 7vw, 112px) var(--pad);
+}
 /* The recessed band is a wash of the ground rather than the hairline colour. --cloud is studioLine,
    which is the greige a border is drawn in; a whole section of it against cream reads as a dirty
    patch rather than as a step back. Ink on this measures 10.84 and --body 5.87. */
-.landing-section.tinted{background:color-mix(in srgb,var(--studio-line) 55%,var(--studio-paper));color:var(--charcoal)}
-.landing-head{max-width:62ch;margin-bottom:clamp(36px,4vw,56px)}
-.landing-eyebrow{display:flex;align-items:baseline;gap:14px;font-size:13px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--body);margin:0 0 16px}
-.landing-eyebrow i{font-style:normal;color:var(--charcoal);font-variant-numeric:tabular-nums;letter-spacing:.1em}
-.landing-lede{margin-top:20px;font-size:16px;line-height:1.7;color:var(--body)}
-.landing-note{margin-top:32px;max-width:70ch;font-size:14px;line-height:1.7;color:var(--body)}
+.landing-section.tinted {
+  background: color-mix(in srgb, var(--studio-line) 55%, var(--studio-paper));
+  color: var(--charcoal);
+}
+.landing-head {
+  max-width: 62ch;
+  margin-bottom: clamp(36px, 4vw, 56px);
+}
+.landing-eyebrow {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--body);
+  margin: 0 0 16px;
+}
+.landing-eyebrow i {
+  font-style: normal;
+  color: var(--charcoal);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.1em;
+}
+.landing-lede {
+  margin-top: 20px;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--body);
+}
+.landing-note {
+  margin-top: 32px;
+  max-width: 70ch;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--body);
+}
 
 /* ---- How it works ----
    A numbered list, kept as one, so the reading order and the visual order are the same thing. The
    index is the large light figure and the title is the small dense one, which is the same pairing
    the figures band uses and the reason the two sections feel related without matching. */
-.landing-steps{list-style:none;display:grid;gap:16px;padding:0;margin:0}
-.landing-steps li{position:relative;background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-panel);padding:clamp(24px,2.6vw,32px);transition:translate .25s var(--ease),box-shadow .25s var(--ease),border-color .25s var(--ease)}
-.landing-steps li:hover{translate:0 -3px;border-color:var(--charcoal);box-shadow:var(--shadow)}
-.landing-step-index{display:block;font-family:var(--font-display);font-size:32px;font-weight:400;line-height:1;letter-spacing:-.03em;color:var(--body);font-variant-numeric:tabular-nums;margin-bottom:24px}
-.landing-steps .tile-icon{margin-bottom:20px}
-.landing-steps h3{margin-bottom:10px}
-.landing-steps p{font-size:14px;line-height:1.7;color:var(--body);max-width:44ch}
+.landing-steps {
+  list-style: none;
+  display: grid;
+  gap: 16px;
+  padding: 0;
+  margin: 0;
+}
+.landing-steps li {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--stone);
+  border-radius: var(--r-panel);
+  padding: clamp(24px, 2.6vw, 32px);
+  transition:
+    translate 0.25s var(--ease),
+    box-shadow 0.25s var(--ease),
+    border-color 0.25s var(--ease);
+}
+.landing-steps li:hover {
+  translate: 0 -3px;
+  border-color: var(--charcoal);
+  box-shadow: var(--shadow);
+}
+.landing-step-index {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--body);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 24px;
+}
+.landing-steps .tile-icon {
+  margin-bottom: 20px;
+}
+.landing-steps h3 {
+  margin-bottom: 10px;
+}
+.landing-steps p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--body);
+  max-width: 44ch;
+}
 
 /* ---- Services ----
    Nine cells on one hairline grid at equal weight. A bento that makes one service four times the
    size of another is a claim about the services that is not true. */
-.landing-services{list-style:none;display:grid;gap:16px;padding:0;margin:0}
-.landing-services li{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-panel);padding:clamp(20px,2.2vw,26px);transition:border-color .25s,translate .25s var(--ease)}
+.landing-services {
+  list-style: none;
+  display: grid;
+  gap: 16px;
+  padding: 0;
+  margin: 0;
+}
+.landing-services li {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--stone);
+  border-radius: var(--r-panel);
+  padding: clamp(20px, 2.2vw, 26px);
+  transition:
+    border-color 0.25s,
+    translate 0.25s var(--ease);
+}
 /* `translate`, not `transform`. The reveal rule above sets transform:none on a shown element with
    three selectors of specificity, which quietly beats a two-class hover rule and leaves the lift
    dead everywhere motion is on. The independent property composes with it instead of fighting it. */
-.landing-services li:hover{border-color:var(--charcoal);translate:0 -3px;box-shadow:var(--shadow)}
-.landing-services .service-icon{margin-bottom:20px}
-.landing-services h3{font-size:16px;margin-bottom:8px}
-.landing-services p{font-size:14px;line-height:1.6;color:var(--body)}
-.landing-price{display:flex;align-items:baseline;gap:10px;margin-top:auto;padding-top:18px;font-variant-numeric:tabular-nums}
-.landing-services .landing-price{margin-top:20px;border-top:1px solid var(--stone)}
-.landing-price strong{font-size:20px;font-weight:400;letter-spacing:-.02em;color:var(--charcoal)}
-.landing-price span{font-size:13px;color:var(--body)}
+.landing-services li:hover {
+  border-color: var(--charcoal);
+  translate: 0 -3px;
+  box-shadow: var(--shadow);
+}
+.landing-services .service-icon {
+  margin-bottom: 20px;
+}
+.landing-services h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+.landing-services p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--body);
+}
+.landing-price {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.landing-services .landing-price {
+  margin-top: 20px;
+  border-top: 1px solid var(--stone);
+}
+.landing-price strong {
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--charcoal);
+}
+.landing-price span {
+  font-size: 13px;
+  color: var(--body);
+}
 /* The accent fills. An icon tile is a shape, and a shape is what the accent is for — the glyph on
    top of it stays ink, which measures 11.75:1 on the default lime wash and 11.46, 9.04 and 8.92 on
    the three named tints. */
@@ -405,165 +1074,553 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
    this rule outranked it — the three "how it works" tiles were all painted the same wash while the
    markup said lime, peach, lilac. A default that wins arguments is not a default; the same sentence
    is above `.landing p` in this file for the same reason. */
-.landing .service-icon:not([data-tint]),.landing .tile-icon:not([data-tint]){background:var(--pale-sage);color:var(--charcoal);border-radius:var(--r-control)}
-.landing [data-tint]{border-radius:var(--r-control)}
+.landing .service-icon:not([data-tint]),
+.landing .tile-icon:not([data-tint]) {
+  background: var(--pale-sage);
+  color: var(--charcoal);
+  border-radius: var(--r-control);
+}
+.landing [data-tint] {
+  border-radius: var(--r-control);
+}
 
 /* ---- Split sections ---- */
-.landing-split{display:grid;gap:clamp(36px,5vw,72px);padding:clamp(64px,7vw,112px) var(--pad);align-items:center}
-.landing-split h2{margin-top:0}
-.landing-points{list-style:none;padding:0;margin:32px 0 0;display:flex;flex-direction:column;gap:0}
-.landing-points li{display:flex;gap:16px;align-items:flex-start;padding:20px 0;border-top:1px solid var(--stone)}
-.landing-points li:last-child{border-bottom:1px solid var(--stone)}
-.landing-points svg{color:var(--charcoal);margin-top:0;flex-shrink:0}
+.landing-split {
+  display: grid;
+  gap: clamp(36px, 5vw, 72px);
+  padding: clamp(64px, 7vw, 112px) var(--pad);
+  align-items: center;
+}
+.landing-split h2 {
+  margin-top: 0;
+}
+.landing-points {
+  list-style: none;
+  padding: 0;
+  margin: 32px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.landing-points li {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 20px 0;
+  border-top: 1px solid var(--stone);
+}
+.landing-points li:last-child {
+  border-bottom: 1px solid var(--stone);
+}
+.landing-points svg {
+  color: var(--charcoal);
+  margin-top: 0;
+  flex-shrink: 0;
+}
 /* The icon takes a tile so the three points read as the reference's cards do — a tinted square, a
    heading, a sentence — rather than as a glyph loose beside a paragraph. 40 rather than 44: it is
    decoration inside a list item, not a control, so the target floor does not reach it. */
-.landing-point-tile{width:40px;height:40px;flex-shrink:0;display:grid;place-items:center;border-radius:var(--r-tile);color:var(--charcoal)}
-.landing-points strong{display:block;font-size:15px;font-weight:500;color:var(--charcoal);margin-bottom:6px}
-.landing-points span{font-size:14px;line-height:1.65;color:var(--body)}
-.landing-secondary{margin-top:32px;min-height:48px;padding:13px 24px;font-size:14px;border-radius:var(--r-pill);background:transparent;border:1px solid var(--stone);color:var(--charcoal)}
-.landing-secondary:hover:not(:disabled){background:var(--surface);border-color:var(--charcoal)}
+.landing-point-tile {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-tile);
+  color: var(--charcoal);
+}
+.landing-points strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--charcoal);
+  margin-bottom: 6px;
+}
+.landing-points span {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--body);
+}
+.landing-secondary {
+  margin-top: 32px;
+  min-height: 48px;
+  padding: 13px 24px;
+  font-size: 14px;
+  border-radius: var(--r-pill);
+  background: transparent;
+  border: 1px solid var(--stone);
+  color: var(--charcoal);
+}
+.landing-secondary:hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--charcoal);
+}
 
 /* ---- Care plans ----
    No plan is singled out. The obvious move here is to fill one card and flag it "where most people
    start", and that is a claim about how many people use a service that has never run. Each card
    carries the phase it arrives in instead, which is a fact the catalogue actually holds. */
-.landing-plans{list-style:none;display:grid;gap:16px;padding:0;margin:0}
-.landing-plans li{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-panel);padding:clamp(20px,2.2vw,26px);transition:translate .25s var(--ease),box-shadow .25s var(--ease),border-color .25s var(--ease)}
-.landing-plans li:hover{translate:0 -3px;border-color:var(--charcoal);box-shadow:var(--shadow)}
+.landing-plans {
+  list-style: none;
+  display: grid;
+  gap: 16px;
+  padding: 0;
+  margin: 0;
+}
+.landing-plans li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--stone);
+  border-radius: var(--r-panel);
+  padding: clamp(20px, 2.2vw, 26px);
+  transition:
+    translate 0.25s var(--ease),
+    box-shadow 0.25s var(--ease),
+    border-color 0.25s var(--ease);
+}
+.landing-plans li:hover {
+  translate: 0 -3px;
+  border-color: var(--charcoal);
+  box-shadow: var(--shadow);
+}
 /* Two lines of room whether the name needs them or not, so the four prices sit on one line across
    the row. Four large numerals at four different heights is the thing that makes a price table look
    assembled rather than designed, and it is the whole reason the figure is set large in the first
    place. The height is stated in em rather than pixels so it follows the size above it. */
-.landing-plans h3{font-size:16px;line-height:1.35;min-height:2.7em;margin:16px 0 0;padding-right:84px}
-.landing-plans .landing-price{margin:14px 0 16px;padding-top:0}
-.landing-plans .landing-price strong{font-family:var(--font-display);font-size:40px;font-weight:400;line-height:1;letter-spacing:-.04em;color:var(--charcoal)}
-.landing-plans p:last-child{font-size:14px;line-height:1.65;color:var(--body)}
-.landing-phase{position:absolute;top:20px;right:20px;font-size:13px;font-weight:500;line-height:1;color:var(--charcoal);background:var(--cloud);border-radius:var(--r-pill);padding:6px 12px}
-.landing-plans li .landing-phase{background:var(--mist)}
+.landing-plans h3 {
+  font-size: 16px;
+  line-height: 1.35;
+  min-height: 2.7em;
+  margin: 16px 0 0;
+  padding-right: 84px;
+}
+.landing-plans .landing-price {
+  margin: 14px 0 16px;
+  padding-top: 0;
+}
+.landing-plans .landing-price strong {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--charcoal);
+}
+.landing-plans p:last-child {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--body);
+}
+.landing-phase {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--charcoal);
+  background: var(--cloud);
+  border-radius: var(--r-pill);
+  padding: 6px 12px;
+}
+.landing-plans li .landing-phase {
+  background: var(--mist);
+}
 
 /* ---- Safety ----
    The checks and the refusals are quoted out of packages/catalog/vetting.json, so they are set like
    a schedule rather than like marketing: hairlines, tabular rhythm, no card shadows. */
-.landing-checks{list-style:none;display:grid;gap:0;padding:0;margin:0;border-top:1px solid var(--stone)}
-.landing-checks li{padding:22px 0;border-bottom:1px solid var(--stone)}
-.landing-checks h3{font-size:16px;margin-bottom:8px}
-.landing-checks p{font-size:14px;line-height:1.6;color:var(--body)}
+.landing-checks {
+  list-style: none;
+  display: grid;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  border-top: 1px solid var(--stone);
+}
+.landing-checks li {
+  padding: 22px 0;
+  border-bottom: 1px solid var(--stone);
+}
+.landing-checks h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+.landing-checks p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--body);
+}
 /* The renewal cadence is the one thing on a check that is a status rather than a description, so it
    is the one thing set as a chip. Charcoal on --pale-sage, 11.11:1. */
-.landing-checks .landing-cadence{display:inline-block;margin-top:12px;font-size:13px;line-height:1;font-weight:500;color:var(--charcoal);background:var(--pale-sage);border-radius:var(--r-pill);padding:6px 12px}
-.landing-refusals{margin-top:clamp(40px,4.5vw,56px);background:var(--charcoal);border-radius:var(--r-panel);padding:clamp(28px,3.4vw,48px)}
-.landing-refusals h3{color:var(--surface);font-size:22px;font-weight:500;margin-bottom:8px}
-.landing-refusals ul{list-style:none;padding:0;margin:0;display:grid;gap:0}
-.landing-refusals li{padding:22px 0;border-top:1px solid var(--on-dark)}
-.landing-refusals strong{display:block;font-size:13px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--on-dark-quiet);margin-bottom:10px}
-.landing-refusals p{font-size:15px;line-height:1.65;color:var(--mist);max-width:62ch}
+.landing-checks .landing-cadence {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 500;
+  color: var(--charcoal);
+  background: var(--pale-sage);
+  border-radius: var(--r-pill);
+  padding: 6px 12px;
+}
+.landing-refusals {
+  margin-top: clamp(40px, 4.5vw, 56px);
+  background: var(--charcoal);
+  border-radius: var(--r-panel);
+  padding: clamp(28px, 3.4vw, 48px);
+}
+.landing-refusals h3 {
+  color: var(--surface);
+  font-size: 22px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.landing-refusals ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0;
+}
+.landing-refusals li {
+  padding: 22px 0;
+  border-top: 1px solid var(--on-dark);
+}
+.landing-refusals strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--on-dark-quiet);
+  margin-bottom: 10px;
+}
+.landing-refusals p {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--mist);
+  max-width: 62ch;
+}
 
 /* ---- Questions ---- */
-.landing-faq{max-width:80ch;border-top:1px solid var(--stone)}
-.landing-faq>div{border-bottom:1px solid var(--stone)}
-.landing-faq h3{margin:0;font-size:16px}
-.landing-faq button{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:44px;text-align:left;padding:22px 0;font-size:16px;font-weight:500;letter-spacing:-.015em;color:var(--charcoal);transition:opacity .18s}
-.landing-faq button:hover{opacity:.62}
-.landing-faq button svg{color:var(--charcoal);flex-shrink:0;transition:transform .28s var(--ease)}
-.landing-faq .is-open button svg{transform:rotate(180deg)}
-.landing-answer{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s var(--ease)}
-.landing-faq .is-open .landing-answer{grid-template-rows:1fr}
-.landing-answer>div{overflow:hidden}
-.landing-faq .landing-answer p{padding:0 0 24px;font-size:15px;line-height:1.75;color:var(--body);max-width:72ch}
+.landing-faq {
+  max-width: 80ch;
+  border-top: 1px solid var(--stone);
+}
+.landing-faq > div {
+  border-bottom: 1px solid var(--stone);
+}
+.landing-faq h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.landing-faq button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  min-height: 44px;
+  text-align: left;
+  padding: 22px 0;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--charcoal);
+  transition: opacity 0.18s;
+}
+.landing-faq button:hover {
+  opacity: 0.62;
+}
+.landing-faq button svg {
+  color: var(--charcoal);
+  flex-shrink: 0;
+  transition: transform 0.28s var(--ease);
+}
+.landing-faq .is-open button svg {
+  transform: rotate(180deg);
+}
+.landing-answer {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.32s var(--ease);
+}
+.landing-faq .is-open .landing-answer {
+  grid-template-rows: 1fr;
+}
+.landing-answer > div {
+  overflow: hidden;
+}
+.landing-faq .landing-answer p {
+  padding: 0 0 24px;
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--body);
+  max-width: 72ch;
+}
 
 /* ---- Closing panel and footer ---- */
-.landing-final{padding:clamp(72px,8vw,128px) var(--pad);background:var(--studio-night);color:var(--surface);text-align:center}
-.landing-final>div{max-width:56ch;margin:0 auto}
-.landing-final h2{color:var(--surface);font-size:clamp(32px,4.8vw,64px)}
-.landing-final p{margin:24px 0 0;font-size:16px;line-height:1.7;color:var(--studio-paper)}
+.landing-final {
+  padding: clamp(72px, 8vw, 128px) var(--pad);
+  background: var(--studio-night);
+  color: var(--surface);
+  text-align: center;
+}
+.landing-final > div {
+  max-width: 56ch;
+  margin: 0 auto;
+}
+.landing-final h2 {
+  color: var(--surface);
+  font-size: clamp(32px, 4.8vw, 64px);
+}
+.landing-final p {
+  margin: 24px 0 0;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--studio-paper);
+}
 /* Lime on the dark panel, which is the one ground in the palette where lime is also allowed to be
    a word. The label stays ink at 11.46 either way; what changes is that the closing action is the
    same pill as the opening one rather than a white rectangle that reads as a third kind of button. */
-.landing-final .primary{margin-top:36px;background:var(--studio-lime);color:var(--studio-ink-deep)}
-.landing-final .primary:hover:not(:disabled){background:color-mix(in srgb,var(--studio-lime) 84%,var(--studio-paper));color:var(--studio-ink-deep)}
+.landing-final .primary {
+  margin-top: 36px;
+  background: var(--studio-lime);
+  color: var(--studio-ink-deep);
+  transition:
+    translate 0.25s var(--ease),
+    background 0.25s var(--ease),
+    box-shadow 0.25s var(--ease);
+}
+.landing-final .primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--studio-lime) 84%, var(--studio-paper));
+  color: var(--studio-ink-deep);
+  translate: 0 -3px;
+  box-shadow: 0 16px 26px -14px
+    color-mix(in srgb, var(--studio-ink-deep) 40%, transparent);
+}
 /* Two classes, so it outranks `.landing-final p` above it rather than losing to it. */
-.landing-final .landing-final-note{font-size:14px;color:var(--on-dark-quiet)}
+.landing-final .landing-final-note {
+  font-size: 14px;
+  color: var(--on-dark-quiet);
+}
 /* The footer is light. It used to be the same near-black as the panel above it, and the two ran
    together into one dark block with a rounded corner cut out of the middle of it — the closing
    panel is the page's one dark moment and it only reads as one if the page comes back to its own
    ground underneath. */
-.landing-footer{display:grid;gap:32px;padding:clamp(48px,5.5vw,72px) var(--pad);background:var(--mist);color:var(--body);font-size:14px;line-height:1.7;border-top:1px solid var(--stone);margin-top:clamp(48px,5.5vw,72px)}
-.landing-footer img{height:34px;width:auto}
-.landing-footer p{font-size:14px;line-height:1.7;color:var(--body);margin-top:18px;max-width:52ch}
-.landing-footer-note p:last-child{margin-top:16px;font-size:13px;color:var(--body)}
+.landing-footer {
+  display: grid;
+  gap: 32px;
+  padding: clamp(48px, 5.5vw, 72px) var(--pad);
+  /* The GilbertOne launcher (features/public-assistant.css .public-assistant-launcher) is
+     fixed at right:20px; bottom:20px on every scroll position, including this one — the last
+     content on the page, carrying the "people shown are illustrative" disclaimer and the
+     copyright line. Extra bottom padding here is the whole fix: nothing about the launcher
+     needs to move or hide, the disclaimer just needs somewhere to sit that isn't under it. */
+  padding-bottom: calc(clamp(48px, 5.5vw, 72px) + 96px);
+  background: var(--mist);
+  color: var(--body);
+  font-size: 14px;
+  line-height: 1.7;
+  border-top: 1px solid var(--stone);
+  margin-top: clamp(48px, 5.5vw, 72px);
+}
+.landing-footer img {
+  height: 34px;
+  width: auto;
+}
+.landing-footer p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--body);
+  margin-top: 18px;
+  max-width: 52ch;
+}
+.landing-footer-note p:last-child {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--body);
+}
 
 /* ---- Layout at width ---- */
-@media(min-width:600px){
- .landing-services,.landing-plans{grid-template-columns:repeat(2,minmax(0,1fr))}
- .landing-checks{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:clamp(24px,4vw,56px)}
- .landing-figures{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (min-width: 600px) {
+  .landing-services,
+  .landing-plans {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .landing-checks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(24px, 4vw, 56px);
+  }
+  .landing-figures {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
-@media(min-width:860px){
- .landing-nav nav{display:flex;flex-direction:row}
- .landing-cta{display:inline-flex}
- .landing-menu{display:none}
- .landing-figures{grid-template-columns:repeat(4,minmax(0,1fr))}
- .landing-figures-note{margin-top:12px}
- .landing-steps{grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(16px,2vw,24px)}
- .landing-split{grid-template-columns:minmax(0,1fr) minmax(0,.72fr)}
- /* The reversed split swaps the track widths as well as the order, so the photograph keeps the
+@media (min-width: 860px) {
+  .landing-nav nav {
+    display: flex;
+    flex-direction: row;
+  }
+  .landing-cta {
+    display: inline-flex;
+  }
+  .landing-menu {
+    display: none;
+  }
+  .landing-figures {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .landing-figures-note {
+    margin-top: 12px;
+  }
+  .landing-steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(16px, 2vw, 24px);
+  }
+  .landing-split {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.72fr);
+  }
+  /* The reversed split swaps the track widths as well as the order, so the photograph keeps the
     narrower column and the reading measure keeps the wider one whichever side each is on. */
- .landing-split.reverse{grid-template-columns:minmax(0,.72fr) minmax(0,1fr)}
- .landing-split.reverse>figure{order:-1}
- .landing-refusals ul{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:clamp(24px,4vw,56px)}
- .landing-footer{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:clamp(32px,5vw,72px)}
- /* The recessed panels. Inset by the gutter and rounded, with the inside padding reduced by the
+  .landing-split.reverse {
+    grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
+  }
+  .landing-split.reverse > figure {
+    order: -1;
+  }
+  .landing-refusals ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(24px, 4vw, 56px);
+  }
+  .landing-footer {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+    gap: clamp(32px, 5vw, 72px);
+  }
+  /* The recessed panels. Inset by the gutter and rounded, with the inside padding reduced by the
     same amount so the text inside a panel stays on the same column as the text outside one. */
- .landing-section.tinted,.landing-final{margin-inline:var(--gutter);border-radius:var(--r-panel);padding-inline:max(var(--gutter),calc(var(--pad) - var(--gutter)))}
+  .landing-section.tinted,
+  .landing-final {
+    margin-inline: var(--gutter);
+    border-radius: var(--r-panel);
+    padding-inline: max(var(--gutter), calc(var(--pad) - var(--gutter)));
+  }
 }
 /* The banner takes two columns here and not a step earlier. Below this the picture is full width
    under the words, which is what the four crops want: they are portraits, and a portrait squeezed
    into a third of a phone is a face nobody can see. The copy column is the wider of the two, as it
    is in the supplied art — the words are what a stranger reads first. */
-@media(min-width:980px){
- /* Both columns take the row's full height so the foot of the words and the foot of the picture
+@media (min-width: 980px) {
+  /* Both columns take the row's full height so the foot of the words and the foot of the picture
     land on one line; the figure's own rows stay at their content height inside it, or the frame
     would be stretched out of the aspect its crop was made for. */
- .landing-hero{grid-template-columns:minmax(0,1fr) minmax(0,.68fr);align-items:stretch}
- .landing-hero .landing-portrait{align-content:start}
- /* The column becomes real, and the controls sit at its foot rather than after the picture. */
- .landing-hero-column{display:flex;flex-direction:column;justify-content:space-between;min-width:0}
- .landing-hero-copy{flex:1}
- /* The crops are portraits where the supplied art's photograph is a landscape, so the picture is
+  .landing-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.68fr);
+    align-items: stretch;
+  }
+  .landing-hero .landing-portrait {
+    align-content: start;
+  }
+  /* The column becomes real, and the controls sit at its foot rather than after the picture. */
+  .landing-hero-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+  }
+  .landing-hero-copy {
+    flex: 1;
+  }
+  /* The crops are portraits where the supplied art's photograph is a landscape, so the picture is
     always a little taller than the words beside it. The counter goes to the foot of the column, so
     the bottom of the words and the bottom of the picture land on one line and the difference reads
     as air above a control rather than as a hole in the middle of a sentence. Pushing the trust
     marks down there too was tried and it was worse: it opened the same gap between the call to
     action and the marks, where the eye is actually travelling. */
- .landing-hero-foot{margin-top:clamp(30px,3.4vw,46px)}
+  .landing-hero-foot {
+    margin-top: clamp(30px, 3.4vw, 46px);
+  }
 }
-@media(min-width:1080px){
- .landing-hero-foot{grid-template-columns:auto minmax(44px,1fr) auto auto}
- .landing-hero-foot .m-pause{grid-area:1 / 3}
- .landing-slide-steps{grid-area:1 / 4}
- .landing-services{grid-template-columns:repeat(3,minmax(0,1fr))}
- .landing-plans{grid-template-columns:repeat(4,minmax(0,1fr))}
- .landing-checks{grid-template-columns:repeat(4,minmax(0,1fr))}
- /* The questions take the heading beside them rather than under it. A column of accordion rows
+@media (min-width: 1080px) {
+  .landing-hero-foot {
+    grid-template-columns: auto minmax(44px, 1fr) auto auto;
+  }
+  .landing-hero-foot .m-pause {
+    grid-area: 1 / 3;
+  }
+  .landing-slide-steps {
+    grid-area: 1 / 4;
+  }
+  .landing-services {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .landing-plans {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .landing-checks {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  /* The questions take the heading beside them rather than under it. A column of accordion rows
     eighty characters wide under a heading leaves the right half of a 1440px page empty, and empty
     is only air when something else is using the space. */
- .landing-questions{display:grid;grid-template-columns:minmax(0,.62fr) minmax(0,1fr);column-gap:clamp(40px,5vw,88px);align-items:start}
- .landing-questions .landing-head{margin-bottom:0;position:sticky;top:112px}
- .landing-questions .landing-faq{max-width:none}
+  .landing-questions {
+    display: grid;
+    grid-template-columns: minmax(0, 0.62fr) minmax(0, 1fr);
+    column-gap: clamp(40px, 5vw, 88px);
+    align-items: start;
+  }
+  .landing-questions .landing-head {
+    margin-bottom: 0;
+    position: sticky;
+    top: 112px;
+  }
+  .landing-questions .landing-faq {
+    max-width: none;
+  }
 }
 
 /* Everything above is switched off here rather than merely slowed. A reader who has asked for less
    motion gets none: no arrival, no hover lift, no accordion slide, no smooth scroll, no drift on
    the hero, and no progress bar filling in under the navigation. Nothing depends on an animation to
    become visible, so removing all of it removes nothing but the movement. */
-@media(prefers-reduced-motion:reduce){
- html:has(.landing){scroll-behavior:auto}
- .landing,.landing *,.landing *::before,.landing *::after{animation:none!important;transition:none!important}
- .landing [data-reveal]{opacity:1!important;transform:none!important}
- .landing-services li:hover,.landing-steps li:hover,.landing-plans li:hover{translate:none}
- .landing .landing-figure-card:hover{translate:none}
- .landing-progress{display:none}
+@media (prefers-reduced-motion: reduce) {
+  html:has(.landing) {
+    scroll-behavior: auto;
+  }
+  .landing,
+  .landing *,
+  .landing *::before,
+  .landing *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .landing [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .landing-services li:hover,
+  .landing-steps li:hover,
+  .landing-plans li:hover {
+    translate: none;
+  }
+  .landing .landing-figure-card:hover {
+    translate: none;
+    rotate: none;
+    scale: none;
+  }
+  .landing .landing-figure-card {
+    rotate: none !important;
+  }
+  .landing .editorial-hero .primary:hover,
+  .landing-final .primary:hover {
+    translate: none;
+    box-shadow: none;
+  }
+  .landing-progress {
+    display: none;
+  }
 }
 
 /* ---- Ambient motion ----
@@ -593,61 +1650,105 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
  * until it arrives", and data-decor means "this reader has not asked the motion to stop". These two
  * are the only things on this page that move on their own and never end, which is exactly what WCAG
  * 2.2.2 wants a control for — and that control is beside the portrait. See surface/motion.css. */
-[data-decor=on] .landing-hero::after {
- content: '';
- position: absolute;
- inset: -25%;
- z-index: 0;
- pointer-events: none;
- background: repeating-linear-gradient(
-  118deg,
-  transparent 0 78px,
-  color-mix(in srgb, var(--stone) 46%, transparent) 78px 79px
- );
- animation: hero-lines 46s linear infinite alternate;
- will-change: transform;
+[data-decor="on"] .landing-hero::after {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  z-index: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    118deg,
+    transparent 0 78px,
+    color-mix(in srgb, var(--stone) 46%, transparent) 78px 79px
+  );
+  animation: hero-lines 46s linear infinite alternate;
+  will-change: transform;
+}
+/* Every other ambient loop this page added the same week (surface/public-revamp.css's ledge glow,
+   care-orbit rings, step/service icon orbits) pauses when its container leaves the viewport, per
+   useAmbientVisibility's own doc comment. This one and portrait-drift below did not — measured
+   still animationPlayState:"running" at full page scroll — so they ran forever in a background
+   tab's still-visible corner and off-screen alike. Matching the existing pattern rather than a new
+   one. */
+.landing-hero[data-ambient="paused"]::after {
+  animation-play-state: paused;
 }
 
-[data-decor=on] .landing-portrait-frame::before {
- content: '';
- position: absolute;
- inset: -30%;
- z-index: 0;
- pointer-events: none;
- background:
-  radial-gradient(42% 46% at 26% 28%, var(--soft-sage), transparent 68%),
-  radial-gradient(36% 40% at 76% 72%, var(--muted-sage), transparent 70%);
- animation: portrait-drift 30s ease-in-out infinite alternate;
- will-change: transform;
+[data-decor="on"] .landing-portrait-frame::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(42% 46% at 26% 28%, var(--soft-sage), transparent 68%),
+    radial-gradient(36% 40% at 76% 72%, var(--muted-sage), transparent 70%);
+  animation: portrait-drift 30s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.landing-hero[data-ambient="paused"] .landing-portrait-frame::before {
+  animation-play-state: paused;
 }
 
 /* The carousel's clock. Finite by construction — it runs once per picture and stops — and it moves
    a transform on an empty element inside an aria-hidden row, so no box anything is measured
    against, or clicked, ever changes size. */
 @keyframes slide-clock {
- from { transform: scaleX(0); }
- to   { transform: scaleX(1); }
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 @keyframes hero-lines {
- from { transform: translate3d(-2%, 0, 0); }
- to   { transform: translate3d(2%, 0, 0); }
+  from {
+    transform: translate3d(-2%, 0, 0);
+  }
+  to {
+    transform: translate3d(2%, 0, 0);
+  }
 }
 @keyframes portrait-drift {
- from { transform: translate3d(-4%, -3%, 0) scale(1.05); }
- to   { transform: translate3d(4%, 3%, 0) scale(1.14); }
+  from {
+    transform: translate3d(-4%, -3%, 0) scale(1.05);
+  }
+  to {
+    transform: translate3d(4%, 3%, 0) scale(1.14);
+  }
 }
 
 @media (max-width: 480px) {
- .landing-nav { gap: 8px; }
- .landing-brand img { height: 26px; }
- .landing-cta { padding-inline: 12px; }
- .landing-cta svg { display: none; }
+  .landing-nav {
+    gap: 8px;
+  }
+  .landing-brand img {
+    height: 26px;
+  }
+  .landing-cta {
+    padding-inline: 12px;
+  }
+  .landing-cta svg {
+    display: none;
+  }
 }
 
 /* The approved Life kit carries into the public introduction: soft coloured cards,
    equal service weight and the existing motion controls and readiness disclosures. */
-.landing-steps li:nth-child(3n + 1), .landing-services li:nth-child(3n + 1) { background: color-mix(in srgb, var(--brand-mint) 20%, var(--surface)); }
-.landing-steps li:nth-child(3n + 2), .landing-services li:nth-child(3n + 2) { background: color-mix(in srgb, var(--brand-orange) 11%, var(--surface)); }
-.landing-steps li:nth-child(3n), .landing-services li:nth-child(3n) { background: color-mix(in srgb, var(--brand-lime) 16%, var(--surface)); }
-.landing-steps li, .landing-services li { border-color: color-mix(in srgb, var(--brand-ink) 10%, transparent); }
+.landing-steps li:nth-child(3n + 1),
+.landing-services li:nth-child(3n + 1) {
+  background: color-mix(in srgb, var(--brand-mint) 20%, var(--surface));
+}
+.landing-steps li:nth-child(3n + 2),
+.landing-services li:nth-child(3n + 2) {
+  background: color-mix(in srgb, var(--brand-orange) 11%, var(--surface));
+}
+.landing-steps li:nth-child(3n),
+.landing-services li:nth-child(3n) {
+  background: color-mix(in srgb, var(--brand-lime) 16%, var(--surface));
+}
+.landing-steps li,
+.landing-services li {
+  border-color: color-mix(in srgb, var(--brand-ink) 10%, transparent);
+}
