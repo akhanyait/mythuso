@@ -43,7 +43,7 @@
    "id": "presentation",
    "label": "Presentation",
    "configurable": "tenant",
-   "sentence": "Routine answers, navigation, what a signed-out visitor hears and what an administrator hears may have their voice set per tenant, from the voices packages/catalog/assistant.json lists for each language. No tenant exists, so today every one of them uses the platform's own voice in voice.voicePreference's order.",
+   "sentence": "Routine answers, navigation, what a signed-out visitor hears and what an administrator hears may have their voice set from the two voices packages/catalog/assistant.json lists for each language that has one. No tenant exists, so the platform default is the administrator's setting on the Control Tower — one of the four presentation-voice settings in this file's settings block, changed on the Voice screen and on the Configuration tab — and it is the language's female voice until an administrator changes it, as the founder decided on 27 September 2026.",
    "changedOnlyThrough": null,
    "why": "How the booking steps or a greeting sound is a brand decision a hospital may reasonably want to make, and it changes nothing a clinician would have to review."
   }
@@ -100,6 +100,7 @@
    "label": "Routine",
    "zone": "presentation",
    "register": "tenant-chosen",
+   "setting": "presentation-voice-routine",
    "conversationType": "patient-general",
    "accessibilityAxes": ["rate", "pitch"],
    "previewMaySaveAsDefault": true,
@@ -110,6 +111,7 @@
    "label": "Navigation",
    "zone": "presentation",
    "register": "tenant-chosen",
+   "setting": "presentation-voice-navigation",
    "conversationType": "patient-general",
    "accessibilityAxes": ["rate", "pitch"],
    "previewMaySaveAsDefault": true,
@@ -120,6 +122,7 @@
    "label": "Signed-out visitor",
    "zone": "presentation",
    "register": "tenant-chosen",
+   "setting": "presentation-voice-signed-out-visitor",
    "conversationType": "signed-out-visitor",
    "accessibilityAxes": ["rate", "pitch"],
    "previewMaySaveAsDefault": true,
@@ -130,6 +133,7 @@
    "label": "Admin",
    "zone": "presentation",
    "register": "tenant-chosen",
+   "setting": "presentation-voice-admin",
    "conversationType": "admin-facing",
    "accessibilityAxes": ["rate", "pitch"],
    "previewMaySaveAsDefault": true,
@@ -213,7 +217,7 @@
   },
   "costAndLatency": {
    "value": null,
-   "why": "No price has been recorded for any provider and no latency has been measured through this panel, because the panel does not exist. A figure shown here would be typed, not measured."
+   "why": "No price has been measured through this panel and no latency has been measured at all. The estimate the panel shows before Play — since 27 September 2026 — is a list price copied by hand onto the provider's card in packages/catalog/api-registry.json (pricing), multiplied by the sentence's characters; it is what a reading would cost at the published rate, never what one did. A measured figure arrives with a bill that has been read, and this value stays null until one has."
   }
  },
 
@@ -268,8 +272,114 @@
    "id": "no-wake-word-while-the-question-is-open",
    "statement": "No application listens for a wake word while the founder's two records on it disagree.",
    "why": "An always-listening microphone is a change of privacy posture that needs one decision on file, not two that contradict each other."
+  },
+  {
+   "id": "presentation-voice-never-reaches-the-clinical-register",
+   "statement": "A presentation voice setting reaches routine answers, navigation, what a signed-out visitor hears and what an administrator hears. It never reaches an emergency, refusal or escalation answer, whatever it is set to.",
+   "why": "The four settings below each name one presentation class and nothing else, and the clinical-delivery classes are pinned by hash with no setting at all. A change on the Configuration tab moves how a greeting sounds; it cannot move how the words that send somebody to an ambulance sound."
   }
  ],
 
- "preview": "No Voice screen exists. No tenant has chosen a voice, no class has a voice of its own, and no preview has been played. The voices GilbertOne speaks in today are the browser's, the phone's and, in production, the cloud pair in packages/catalog/assistant.json."
+ "settings": {
+  "_note": "The founder decided on 27 September 2026 that the four presentation registers above — routine, navigation, signed-out visitor and admin — are an admin setting, under the standing rule that an open policy question becomes an admin setting with a proposed default: which of the two voice labels every language with a voice carries in packages/catalog/assistant.json#voice.languages[].ttsVoices reads that register, with the language's female voice as the default. A value is a label and never a voice name; whoever speaks resolves it per language, and a language with ttsAvailable false stays text whatever the label says. The clinical-delivery classes and clinical assist are not here and cannot be added here: their register is pinned by hash above. In this preview a change is kept in this tab's memory for the session, and the shipped default is this contract's.",
+  "heading": "Voice settings",
+  "intro": "Which of a language's two voices reads each presentation register: routine answers, navigation, what a signed-out visitor hears and what an administrator hears. Emergency, refusal and escalation answers are not here, because their voice is not a setting.",
+  "items": [
+   {
+    "key": "presentation-voice-routine",
+    "label": "Routine answers",
+    "help": "Which of the language's two voices reads a routine answer — what a visit costs, what to expect?",
+    "owner": "assistant",
+    "type": "enum",
+    "unit": null,
+    "default": { "value": "female", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "The founder's decision of 27 September 2026: every presentation register starts on the language's female voice, and an administrator changes it from there rather than the platform guessing per register." },
+    "allowed": [
+     { "value": "female", "label": "The language's female voice", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "One of the two labels every language with a voice carries in packages/catalog/assistant.json; the voice itself is read from there, per language, when the answer is spoken." },
+     { "value": "male", "label": "The language's male voice", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "The other of the two. No third label exists in assistant.json, so no third choice exists here." }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "A change reaches the next spoken routine answer, and never an emergency, refusal or escalation answer. In this preview a change is kept in memory for the session, and the shipped default is the contract's.",
+    "guardrail": {
+     "statement": "An emergency, refusal or escalation answer is never read in a presentation voice.",
+     "forbids": ["neutral-clear", "clinical-delivery", ""]
+    }
+   },
+   {
+    "key": "presentation-voice-navigation",
+    "label": "Navigation",
+    "help": "Which of the language's two voices reads navigation — where a screen is and how to get there?",
+    "owner": "assistant",
+    "type": "enum",
+    "unit": null,
+    "default": { "value": "female", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "The founder's decision of 27 September 2026: every presentation register starts on the language's female voice, and an administrator changes it from there rather than the platform guessing per register." },
+    "allowed": [
+     { "value": "female", "label": "The language's female voice", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "One of the two labels every language with a voice carries in packages/catalog/assistant.json; the voice itself is read from there, per language, when the answer is spoken." },
+     { "value": "male", "label": "The language's male voice", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "The other of the two. No third label exists in assistant.json, so no third choice exists here." }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "A change reaches the next spoken navigation answer, and never an emergency, refusal or escalation answer. In this preview a change is kept in memory for the session, and the shipped default is the contract's.",
+    "guardrail": {
+     "statement": "An emergency, refusal or escalation answer is never read in a presentation voice.",
+     "forbids": ["neutral-clear", "clinical-delivery", ""]
+    }
+   },
+   {
+    "key": "presentation-voice-signed-out-visitor",
+    "label": "Signed-out visitor",
+    "help": "Which of the language's two voices reads what somebody on the public page hears before they have an account?",
+    "owner": "assistant",
+    "type": "enum",
+    "unit": null,
+    "default": { "value": "female", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "The founder's decision of 27 September 2026: every presentation register starts on the language's female voice, and an administrator changes it from there rather than the platform guessing per register." },
+    "allowed": [
+     { "value": "female", "label": "The language's female voice", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "One of the two labels every language with a voice carries in packages/catalog/assistant.json; the voice itself is read from there, per language, when the answer is spoken." },
+     { "value": "male", "label": "The language's male voice", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "The other of the two. No third label exists in assistant.json, so no third choice exists here." }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "A change reaches the next spoken answer to a signed-out visitor, and never an emergency, refusal or escalation answer. Its level stays under 1 whatever the voice, which packages/catalog/intelligence-levels.json holds. In this preview a change is kept in memory for the session, and the shipped default is the contract's.",
+    "guardrail": {
+     "statement": "An emergency, refusal or escalation answer is never read in a presentation voice.",
+     "forbids": ["neutral-clear", "clinical-delivery", ""]
+    }
+   },
+   {
+    "key": "presentation-voice-admin",
+    "label": "Admin",
+    "help": "Which of the language's two voices reads what an administrator hears in the Control Tower?",
+    "owner": "assistant",
+    "type": "enum",
+    "unit": null,
+    "default": { "value": "female", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "The founder's decision of 27 September 2026: every presentation register starts on the language's female voice, and an administrator changes it from there rather than the platform guessing per register." },
+    "allowed": [
+     { "value": "female", "label": "The language's female voice", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "One of the two labels every language with a voice carries in packages/catalog/assistant.json; the voice itself is read from there, per language, when the answer is spoken." },
+     { "value": "male", "label": "The language's male voice", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "The other of the two. No third label exists in assistant.json, so no third choice exists here." }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "A change reaches the next spoken answer to an administrator, and never an emergency, refusal or escalation answer. Nothing here is a patient's. In this preview a change is kept in memory for the session, and the shipped default is the contract's.",
+    "guardrail": {
+     "statement": "An emergency, refusal or escalation answer is never read in a presentation voice.",
+     "forbids": ["neutral-clear", "clinical-delivery", ""]
+    }
+   }
+  ],
+  "defaults": {
+   "version": 1,
+   "changelog": [
+    {
+     "version": 1,
+     "on": "2026-09-27",
+     "by": "Founder",
+     "changed": [
+      { "setting": "presentation-voice-routine", "from": null, "to": "female" },
+      { "setting": "presentation-voice-navigation", "from": null, "to": "female" },
+      { "setting": "presentation-voice-signed-out-visitor", "from": null, "to": "female" },
+      { "setting": "presentation-voice-admin", "from": null, "to": "female" }
+     ],
+     "why": "The founder's decision of 27 September 2026 that the four presentation registers are an admin setting, each starting on the language's female voice. The clinical-delivery registers are not in this log and never will be: they are not settings."
+    }
+   ]
+  }
+ },
+
+ "preview": "The Voice screen exists, and each of the four presentation registers has a setting an administrator changes on it and on the Configuration tab, kept in this tab's memory for the session. The clinical-delivery registers have no setting, no tenant has chosen anything, and no preview has been played through a paid provider. The voices GilbertOne speaks in today are the browser's, the phone's and, in production, the cloud pair in packages/catalog/assistant.json."
 }

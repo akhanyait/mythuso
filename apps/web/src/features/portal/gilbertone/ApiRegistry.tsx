@@ -22,8 +22,10 @@ import { VoicePreview } from './VoicePreview';
  * The six card actions and the add-a-provider form are the contract's shapes, drawn and disabled
  * behind G32: no vault, no health-check runner, no enable or disable control, no balance reading. The
  * form's key field is a disabled password field. A text-to-speech card carries the voice preview
- * panel, the same component the Voice screen uses, so a voice could be heard before its provider is
- * configured — and like the Voice screen's, it plays nothing yet. */
+ * panel, the same component the Voice screen uses. Since 27 September 2026 it plays — through the one
+ * text-to-speech provider that is built and configured, and only on that provider's card: on any other
+ * card the panel says so in the contract's sentence and offers no Play, because a preview that called
+ * a provider the registry records as proposed would be the call its refusal exists to stop. */
 
 const isTts = (card: Card) => (card.serves ?? []).includes('tts');
 /* The two cards whose key founder access can reveal, read from its contract: the panel is drawn on
@@ -59,7 +61,7 @@ export function ApiRegistryScreen() {
      <GatedActions ids={actions} label={`${card.name} actions`}/>
      {founderCard(card) && <details className="g1-founder-details"><summary>{founder.words.heading}</summary>
       <Suspense fallback={<p className="helper">{founder.words.checking}</p>}><FounderAccessPanel cardId={card.id}/></Suspense></details>}
-     {isTts(card) && <details className="g1-details"><summary>{words.previewSummary}</summary><VoicePreview placement={card.name}/></details>}
+     {isTts(card) && <details className="g1-details"><summary>{words.previewSummary}</summary><VoicePreview placement={card.name} cardId={card.id}/></details>}
     </article> };
    })}/>
   </Region>)}

@@ -284,6 +284,8 @@ object ApisData {
     val DELETE_FOUNDER_SESSION = Route("deleteFounderSession", "DELETE", "/v1/founder/session", "/assistant/v1/founder/session", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
     val GET_FOUNDER_KEYS = Route("getFounderKeys", "GET", "/v1/founder/keys", "/assistant/v1/founder/keys", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
     val POST_FOUNDER_REVEAL = Route("postFounderReveal", "POST", "/v1/founder/reveal", "/assistant/v1/founder/reveal", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
+    val GET_ASSISTANT_SETTINGS = Route("getAssistantSettings", "GET", "/v1/assistant/settings", "/v1/assistant/settings", 1, "assistant", listOf("admin"), listOf("audit"), false, "built")
+    val POST_ASSISTANT_SETTING_CHANGES = Route("postAssistantSettingChanges", "POST", "/v1/assistant/setting-changes", "/v1/assistant/setting-changes", 1, "assistant", listOf("admin"), listOf("audit"), true, "built")
 
     val routes = listOf(
         POST_CORE_EVENTS,
@@ -547,7 +549,9 @@ object ApisData {
         POST_FOUNDER_SESSION,
         DELETE_FOUNDER_SESSION,
         GET_FOUNDER_KEYS,
-        POST_FOUNDER_REVEAL
+        POST_FOUNDER_REVEAL,
+        GET_ASSISTANT_SETTINGS,
+        POST_ASSISTANT_SETTING_CHANGES
     )
 
     data class PostCoreEventsRequest(
@@ -2876,5 +2880,29 @@ object ApisData {
         val revealedKey: String,
         val lastFour: String,
         val fingerprint: String
+    )
+    class GetAssistantSettingsRequest
+    data class GetAssistantSettingsResponse(
+        val settingsVersion: Int,
+        val settings: List<Map<String, Any?>>,
+        val history: List<Map<String, Any?>>
+    )
+    data class PostAssistantSettingChangesRequest(
+        val idempotencyKey: String,
+        val setting: String,
+        val wholeNumber: Int? = null,
+        val switchedOn: Boolean? = null,
+        val choice: String? = null,
+        val wording: String? = null,
+        val roles: List<String>? = null,
+        val windows: List<Map<String, Any?>>? = null,
+        val items: List<String>? = null,
+        val parts: Map<String, Any?>? = null,
+        val reason: String? = null,
+        val expectedVersion: Int
+    )
+    data class PostAssistantSettingChangesResponse(
+        val settingsVersion: Int,
+        val appliesFrom: String
     )
 }

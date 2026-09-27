@@ -26,6 +26,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MEMORY, createClock, createRuntime, type EngineModule, type RouteKey, type Runtime } from './runtime/index.ts';
 import { engine as access } from './access/engine.ts';
+import { engine as assistant } from './assistant/engine.ts';
 import { engine as care } from './care/engine.ts';
 import { engine as clinical } from './clinical/engine.ts';
 import { engine as core } from './core/engine.ts';
@@ -39,7 +40,7 @@ import { engine as trust } from './trust/engine.ts';
 
 const MORNING = '2026-09-15T09:00:00+02:00';
 const NO_ROUTE_MESSAGE = 'No route in the contract answers that method and path.';
-const ENGINES: Record<string, EngineModule> = { access, care, clinical, core, devices, medicines, money, movement, record, safety, trust };
+const ENGINES: Record<string, EngineModule> = { access, assistant, care, clinical, core, devices, medicines, money, movement, record, safety, trust };
 
 const REGISTERED: Record<string, string[]> = {
  access: [
@@ -60,6 +61,10 @@ const REGISTERED: Record<string, string[]> = {
   'POST /v1/access/sponsors/{sponsorshipRef}/answer@1',
   'POST /v1/access/sponsors@2',
   'POST /v1/access/visit-threads/{bookingRef}/messages@1',
+ ],
+ assistant: [
+  'GET /v1/assistant/settings@1',
+  'POST /v1/assistant/setting-changes@1',
  ],
  care: [
   'GET /v1/care/circuits@1',
@@ -288,9 +293,11 @@ const BUILT: Record<string, string[]> = {
  assistant: [
   'DELETE /v1/founder/session@1',
   'GET /health@2',
+  'GET /v1/assistant/settings@1',
   'GET /v1/founder/keys@1',
   'GET /v1/status@2',
   'POST /turn@1',
+  'POST /v1/assistant/setting-changes@1',
   'POST /v1/founder/reveal@1',
   'POST /v1/founder/session@1',
   'POST /v1/handover/prepare@3',
@@ -673,6 +680,10 @@ const PROBES: { engine: string; key: string; role: string; purpose: string; fiel
  { engine: 'access', key: 'POST /v1/access/bookings/{bookingRef}/cancel@1', role: 'patient', purpose: 'dispatch', fields: {}, expect: { status: 400, error: 'idempotency-key-required', message: 'A money or dispatch write needs an idempotency key.' } },
  { engine: 'access', key: 'GET /v1/access/bookings/{bookingRef}@1', role: 'patient', purpose: 'subject-access', fields: {}, expect: { status: 400, error: 'required-field-missing', message: 'A field this route needs was not sent.' } },
  { engine: 'access', key: 'GET /v1/access/bookings/{bookingRef}@1', role: 'patient', purpose: 'subject-access', fields: { bookingRef: 123 }, expect: { status: 400, error: 'field-of-the-wrong-type', message: 'A field this route needs was sent in the wrong shape.' } },
+ { engine: 'assistant', key: 'GET /v1/assistant/settings@1', role: 'nobody-synthetic-0', purpose: 'audit', fields: {}, expect: { status: 403, error: 'caller-not-allowed', message: 'This route does not take calls from your role.' } },
+ { engine: 'assistant', key: 'GET /v1/assistant/settings@1', role: 'admin', purpose: 'purpose-not-served-synthetic', fields: {}, expect: { status: 403, error: 'purpose-not-allowed', message: 'This route does not serve the purpose you gave.' } },
+ { engine: 'assistant', key: 'POST /v1/assistant/setting-changes@1', role: 'admin', purpose: 'audit', fields: {}, expect: { status: 400, error: 'required-field-missing', message: 'A field this route needs was not sent.' } },
+ { engine: 'assistant', key: 'POST /v1/assistant/setting-changes@1', role: 'admin', purpose: 'audit', fields: { idempotencyKey: 'synthetic-compliance', expectedVersion: 1, setting: 123 }, expect: { status: 400, error: 'field-of-the-wrong-type', message: 'A field this route needs was sent in the wrong shape.' } },
  { engine: 'care', key: 'GET /v1/care/circuits@1', role: 'nobody-synthetic-0', purpose: 'dispatch', fields: {}, expect: { status: 403, error: 'caller-not-allowed', message: 'This route does not take calls from your role.' } },
  { engine: 'care', key: 'GET /v1/care/circuits@1', role: 'nurse', purpose: 'purpose-not-served-synthetic', fields: {}, expect: { status: 403, error: 'purpose-not-allowed', message: 'This route does not serve the purpose you gave.' } },
  { engine: 'care', key: 'POST /v1/care/offers/{offerRef}/accept@1', role: 'nurse', purpose: 'dispatch', fields: {}, expect: { status: 400, error: 'idempotency-key-required', message: 'A money or dispatch write needs an idempotency key.' } },
@@ -757,6 +768,35 @@ test('access: a proposed route is registered nowhere, and the mock answers it â€
 test('access: the binder refuses as the catalog declares, on the routes access has built', () => {
  const runtime = world('access');
  for (const probe of PROBES.filter((entry) => entry.engine === 'access')) {
+  const answer = callWith(runtime, probe.key, { role: probe.role, purpose: probe.purpose, fields: probe.fields });
+  assert.deepEqual([answer.status, answer.body['error'], answer.body['message'], answer.answeredBy], [probe.expect.status, probe.expect.error, probe.expect.message, 'engine'], `${probe.key} (${probe.expect.error})`);
+ }
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('assistant: the registered table is exactly the one this file was generated with', () => {
+ const runtime = world('assistant');
+ const bound = runtime.bound().sort();
+ assert.deepEqual(bound, REGISTERED['assistant'], 'the registered table');
+ for (const key of bound) assert.ok((BUILT['assistant'] ?? []).includes(key), `${key} is registered, and the catalog does not mark it built and live`);
+ runtime.close();
+});
+
+test('assistant: a withdrawn route is registered nowhere, and the runtime answers none of them', () => {
+ const runtime = world('assistant');
+ for (const key of WITHDRAWN['assistant']!) {
+  assert.ok(!runtime.bound().includes(key as RouteKey), `${key} is withdrawn and must not be registered`);
+  const answer = callWith(runtime, key, { role: 'nobody-synthetic-0', purpose: 'purpose-not-served-synthetic', fields: {} });
+  assert.deepEqual([answer.status, answer.body['error'], answer.body['message'], answer.answeredBy], [404, 'no-route', NO_ROUTE_MESSAGE, 'runtime'], key);
+ }
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('assistant: the binder refuses as the catalog declares, on the routes assistant has built', () => {
+ const runtime = world('assistant');
+ for (const probe of PROBES.filter((entry) => entry.engine === 'assistant')) {
   const answer = callWith(runtime, probe.key, { role: probe.role, purpose: probe.purpose, fields: probe.fields });
   assert.deepEqual([answer.status, answer.body['error'], answer.body['message'], answer.answeredBy], [probe.expect.status, probe.expect.error, probe.expect.message, 'engine'], `${probe.key} (${probe.expect.error})`);
  }

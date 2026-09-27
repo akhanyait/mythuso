@@ -1,19 +1,27 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { audit, controlSweep, zoomedTo200 } from './audit';
-import { goPortal } from './nav';
+import { chooseRole, goPortal } from './nav';
+import { fill, say, settingsContract, timingItem } from './safety-settings';
 
 /* GilbertOne API Administration's seven sub-screens, on both viewports (docs/PROMPT-CONTROL-TOWER-UI.md
  * §7, Phase 4).
  *
  * What is held here is what the screens refuse, because the assistant they administer is live in
- * production and nothing on them may act on it. Every sub-screen is reached by the keyboard alone. Every
- * action is disabled, and its gate's sentence is on the screen and tied to it. No password field is
- * enabled anywhere, and nothing key-shaped is ever drawn — not even when the health route is made to
- * answer with a planted field it should not have. The locked voice rows offer nothing to save; the
- * preview refuses a person's details and never asks anything to speak. A provider is configured only
- * where its contract says so. And the accessibility measurements and sweep of tests/audit.ts are taken
- * on every one of the seven.
+ * production and nothing on them may act on it — with the two exceptions the founder decided on
+ * 27 September 2026, held here as tightly as the refusals around them. Every sub-screen is reached by
+ * the keyboard alone. Every gated action is disabled, and its gate's sentence is on the screen and tied
+ * to it; the two live actions are enabled beside the founder's own sentence, and nothing else is. No
+ * password field is enabled anywhere, and nothing key-shaped is ever drawn — not even when the health
+ * route is made to answer with a planted field it should not have. On the Voice screen a presentation
+ * row chooses one of the contract's two labels and saves it as a setting with a reason, which the
+ * Configuration tab then shows in its history; a locked row offers nothing to choose and nothing to
+ * save; the preview refuses a person's details, says the cost before Play, asks the contract's speak
+ * route with the contract's voice name — the platform's default on a locked register whatever the
+ * setting says — and asks nothing else to speak. In the patient's own panel, in the same tab, a routine
+ * answer reads in the voice the administrator chose and the emergency answer in the platform's default.
+ * A provider is configured only where its contract says so. And the accessibility measurements and
+ * sweep of tests/audit.ts are taken on every one of the seven.
  *
  * Every sentence and every figure asserted is read from the contracts, never typed here. */
 
@@ -28,18 +36,30 @@ const federation = json('../packages/catalog/knowledge/federation.json');
 const pack = json('../packages/catalog/compliance-pack.json');
 const registry = json('../packages/catalog/api-registry.json');
 const assistant = json('../packages/catalog/assistant.json');
+const sos = json('../packages/catalog/sos.json');
 
 type Gate = { id: string; label: string; sentence: string };
-type Action = { id: string; screen: string; label: string; gate: string; refusal?: string };
-type Card = { id: string; name: string; category: string; statusToday: string; serves?: string[] };
+type Action = { id: string; screen: string; label: string; gate: string | null; refusal?: string; live?: { since: string; decidedBy: string; sentence: string } };
+type Card = { id: string; name: string; category: string; statusToday: string; serves?: string[]; pricing?: { perMillionCharactersUsd: number; unitCharacters: number; recordedOn: string } };
+type QueryClass = { id: string; label: string; zone: string; previewMaySaveAsDefault: boolean; setting?: string };
+type Language = { id: string; name: string; ttsAvailable: boolean; ttsVoices?: Record<string, string> };
 const g1 = portal.gilbertone;
 const CATEGORY = 'GilbertOne API Administration';
 const subScreens = g1.subScreens as { id: string; label: string }[];
 const tabs = (portal.categories as { id: string; tabs: { id: string; label: string; heading?: string }[] }[]).find(c => c.id === 'gilbertone')!.tabs;
 const gate = (id: string) => (g1.gates as Gate[]).find(g => g.id === id)!;
 const action = (id: string) => (g1.actions as Action[]).find(a => a.id === id)!;
-const refusalOf = (a: Action) => a.refusal ?? gate(a.gate).sentence;
+const refusalOf = (a: Action) => a.refusal ?? gate(a.gate!).sentence;
 const cards = registry.cards as Card[];
+const classes = voice.queryClasses as QueryClass[];
+const languages = assistant.voice.languages as Language[];
+const english = languages[0]!;
+/* The platform's default label and the other one, from the contract; the voice NAMES are read from the
+   language's own list and never typed here — scripts/check-boundaries.mjs sweeps this file for one. */
+const platformLabel = assistant.voice.cloud.defaultVoice as string;
+const otherLabel = Object.keys(assistant.voice.cloud.voices).find(label => label !== platformLabel)!;
+const voiceSettings = (voice.settings.items as { key: string; label: string; allowed: { value: string; label: string }[] }[]);
+const liveActions = (g1.actions as Action[]).filter(a => a.live);
 
 const panel = (page: Page) => page.locator('#pt-subpanel');
 const tablist = (page: Page) => page.getByRole('tablist', { name: `${CATEGORY} tabs` });
@@ -54,12 +74,26 @@ async function answering(page: Page) {
  await page.route('**/assistant/health', route => route.fulfill({ json: answer }));
  await page.route('**/assistant/v1/status', route => route.fulfill({ json: answer }));
 }
-/* Anything that would make the browser speak or send a sentence to be spoken is recorded, so a test
-   can say none was made. */
+/* Anything that would make the browser speak or send a sentence to be spoken is recorded — the address
+   and, for the speak route, the voice asked for — so a test can say none was made, or exactly which. */
+type Spoken = { url: string; voice: string | null; text: string | null };
 function speakRequests(page: Page) {
- const seen: string[] = [];
- page.on('request', request => { if (/\/speak\b|\/listen\b|\/turn\b/.test(request.url())) seen.push(request.url()); });
+ const seen: Spoken[] = [];
+ page.on('request', request => {
+  if (!/\/speak\b|\/listen\b|\/turn\b/.test(request.url())) return;
+  const body = request.postDataJSON() as { voice?: string; text?: string } | null;
+  seen.push({ url: request.url(), voice: body?.voice ?? null, text: body?.text ?? null });
+ });
  return seen;
+}
+/* The speak route, answered with a small fake reading that names the voice it was asked for. The bytes
+   are not audio, so the browser will not play them; what the journeys assert is what was asked and what
+   the screen said, never that a sound came out. */
+async function speaking(page: Page) {
+ await page.route('**/assistant/v1/speak', route => {
+  const body = route.request().postDataJSON() as { voice?: string; language?: string };
+  return route.fulfill({ json: { ok: true, audioBase64: 'AAAA', format: 'audio/mpeg', voice: body.voice ?? '', language: body.language ?? '' } });
+ });
 }
 async function openSub(page: Page, label: string) {
  await goPortal(page, CATEGORY, label);
@@ -75,17 +109,28 @@ async function start(page: Page, sub = subScreens[0]!.label) {
  else await expect(page.locator('#pt-category .pt-loading')).toHaveCount(0);
 }
 
-/* Every sub-screen's controls: none enabled, every one described by a sentence the contract holds, no
-   password field enabled, and nothing key-shaped anywhere in what is drawn. Founder access's panel
-   (.g1-founder, packages/catalog/founder-access.json) is the one exception — its sign-in and reveal
-   are live when the service answers, and tests/founder-access.spec.ts holds them — so it alone is left
-   out of the three control counts. The key-shape sweep still reads the whole screen. */
+/* Every sub-screen's controls: none enabled but a live action's, every gated one described by a
+   sentence the contract holds and every live one by the founder's, no password field enabled, and
+   nothing key-shaped anywhere in what is drawn. Founder access's panel (.g1-founder,
+   packages/catalog/founder-access.json) is the one exception — its sign-in and reveal are live when the
+   service answers, and tests/founder-access.spec.ts holds them — so it alone is left out of the three
+   control counts. The key-shape sweep still reads the whole screen. */
 const OUTSIDE_FOUNDER = ':not(.g1-founder *)';
 async function holdsNothingOpen(page: Page, where: string) {
- await expect(panel(page).locator(`button:not([disabled])${OUTSIDE_FOUNDER}`), `${where}: an enabled button`).toHaveCount(0);
+ await expect(panel(page).locator(`button:not([disabled]):not(.g1-live)${OUTSIDE_FOUNDER}`), `${where}: an enabled button that is not a live action`).toHaveCount(0);
  await expect(page.locator(`input[type="password"]:not([disabled])${OUTSIDE_FOUNDER}`), `${where}: an enabled password field`).toHaveCount(0);
  await expect(panel(page).locator(`input:not([disabled])${OUTSIDE_FOUNDER}`), `${where}: an enabled input`).toHaveCount(0);
- const described = await panel(page).locator('button[disabled], input[disabled][type="checkbox"]').evaluateAll(els => els.map(el => {
+ /* A live button is one of the contract's live actions, by name, and is described by that action's own
+    sentence — or, while it waits, by a sentence the screen gives it — never by nothing. */
+ const live = await panel(page).locator('button.g1-live').evaluateAll(els => els.map(el => {
+  const id = el.getAttribute('aria-describedby');
+  return { name: el.textContent?.trim() ?? '', why: id ? document.getElementById(id)?.textContent?.trim() ?? '' : '' };
+ }));
+ for (const l of live) {
+  expect(liveActions.some(a => l.name === a.label || l.name.startsWith(`${a.label}:`)), `${where}: "${l.name}" is enabled and is not a live action`).toBe(true);
+  expect(l.why.length > 0, `${where}: "${l.name}" is live and described by nothing`).toBe(true);
+ }
+ const described = await panel(page).locator('button[disabled]:not(.g1-live), input[disabled][type="checkbox"]').evaluateAll(els => els.map(el => {
   const id = el.getAttribute('aria-describedby');
   return { name: el.textContent?.trim() || el.closest('label')?.textContent?.trim() || '', why: id ? document.getElementById(id)?.textContent?.trim() ?? '' : '' };
  }));
@@ -165,48 +210,189 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   }
  });
 
- test('Voice: the clinical rows are locked with nothing to save, and the preview refuses a person\'s details and plays nothing', async ({ page }) => {
+ test('Voice: a presentation row chooses and saves a voice with a reason, a locked row offers nothing, and the preview says the cost, refuses a person\'s details and plays through the contract\'s route in the contract\'s voice', async ({ page }) => {
   const spoken = speakRequests(page);
+  await speaking(page);
   await start(page, 'Voice');
   const table = panel(page).locator('table').first();
-  for (const c of voice.queryClasses as { id: string; label: string; previewMaySaveAsDefault: boolean }[]) {
+  const words = g1.voice;
+  const routine = classes.find(c => c.previewMaySaveAsDefault)!;
+  const locked = classes.filter(c => !c.previewMaySaveAsDefault);
+  /* Every presentation row: a select of the setting's own choices showing the platform's default in
+     force, and a live Save that waits while the choice is the one in force. Every locked row: no control
+     at all, and the contract's sentence. */
+  for (const c of classes) {
    const row = table.getByRole('row', { name: new RegExp(`^${c.label}`) });
-   if (c.previewMaySaveAsDefault) await expect(row.getByRole('button')).toBeDisabled();
-   else {
+   if (c.previewMaySaveAsDefault) {
+    const select = row.getByRole('combobox', { name: fill(words.voiceSelectLabel, { class: c.label }) });
+    await expect(select).toBeEnabled();
+    await expect(select).toHaveValue(platformLabel);
+    const setting = voiceSettings.find(s => s.key === c.setting)!;
+    await expect(select.locator('option')).toHaveText(setting.allowed.map(a => a.label));
+    const save = row.getByRole('button', { name: `${action('voice-save-as-default').label}: ${c.label}` });
+    await expect(save).toBeDisabled();
+    await expect(save).toHaveClass(/g1-live/);
+   } else {
     await expect(row.getByRole('button'), `${c.label} offers a save`).toHaveCount(0);
-    await expect(row).toContainText(g1.voice.lockedRowSentence);
+    await expect(row.getByRole('combobox'), `${c.label} offers a chooser`).toHaveCount(0);
+    await expect(row).toContainText(words.lockedRowSentence);
    }
   }
+  await expect(panel(page)).toContainText(action('voice-save-as-default').live!.sentence);
+  await expect(panel(page)).toContainText(words.sessionSentence);
+  /* Saving without a reason is refused in the shared rules' sentence; with one, the change is recorded
+     and the row shows the new value in force. */
+  const routineRow = table.getByRole('row', { name: new RegExp(`^${routine.label}`) });
+  const routineSelect = routineRow.getByRole('combobox');
+  const routineSave = routineRow.getByRole('button', { name: `${action('voice-save-as-default').label}: ${routine.label}` });
+  await routineSelect.selectOption(otherLabel);
+  await expect(routineSave).toBeEnabled();
+  await routineSave.click();
+  await expect(panel(page).getByRole('alert')).toHaveText((settingsContract.refusals as { id: string; statement: string }[]).find(r => r.id === 'setting-change-without-reason')!.statement);
+  const reason = 'The routine greeting sounded like every other clinic; the founder asked to hear the other voice.';
+  await panel(page).getByRole('group', { name: words.saveHeading }).getByLabel(say.reason).fill(reason);
+  await routineSave.click();
+  await expect(panel(page).getByRole('status')).toContainText(fill(say.applied.split('{at}')[0]!, { version: '2' }).trim());
+  await expect(routineSave).toBeDisabled();
+  const routineSetting = voiceSettings.find(s => s.key === routine.setting)!;
+  await expect(routineRow).toContainText(fill(words.inForceSentence, { label: routineSetting.allowed.find(a => a.value === otherLabel)!.label }));
+  /* The other presentation rows are untouched: one setting per class. */
+  for (const c of classes.filter(x => x.previewMaySaveAsDefault && x.id !== routine.id))
+   await expect(table.getByRole('row', { name: new RegExp(`^${c.label}`) }).getByRole('combobox')).toHaveValue(platformLabel);
+
   await expect(panel(page)).toContainText(voice.lockedSettings.pushToTalk.sentence);
   await expect(panel(page)).toContainText(voice.lockedSettings.captions.sentence);
-  for (const l of assistant.voice.languages.filter((x: { ttsAvailable: boolean }) => !x.ttsAvailable))
+  for (const l of languages.filter(x => !x.ttsAvailable))
    await expect(panel(page).locator('li').filter({ hasText: l.name })).toContainText(assistant.voice.voiceUnavailableNotice);
 
   const preview = panel(page).getByRole('region', { name: /the Voice screen/ });
   for (const q of voice.previewPanel.questions) await expect(preview).toContainText(q);
-  const sentence = preview.getByLabel(g1.voice.previewTextLabel);
-  /* A synthetic phone number: the shape the service's own detector refuses. */
+  const play = preview.getByRole('button', { name: action('voice-play').label, exact: true });
+  const sentence = preview.getByLabel(words.previewTextLabel);
+  await expect(preview).toContainText(words.previewCostEmpty);
+  await expect(play).toBeDisabled();
+  /* A synthetic phone number: the shape the service's own detector refuses, and Play stays shut. */
   await sentence.fill('Please call me on 082 555 0123 about my results');
   await expect(preview.getByRole('alert')).toHaveText(voice.previewPanel.rejectsPatientIdentifiers.sentence);
   await expect(sentence).toHaveAttribute('aria-invalid', 'true');
-  await sentence.fill('Your nurse is on the way.');
-  await expect(preview.getByRole('alert')).toHaveCount(0);
-  await expect(preview).toContainText(g1.voice.previewAccepted);
-  /* The cost is said before Play, and Play is refused. */
-  await expect(preview).toContainText(voice.previewPanel.costAndLatency.why);
-  const play = preview.getByRole('button', { name: action('voice-play').label, exact: true });
   await expect(play).toBeDisabled();
-  await expect(preview).toContainText(action('voice-play').refusal!);
-  /* The locked register offers no save in the preview; a presentation register offers it disabled. */
-  const register = preview.getByLabel(g1.voice.previewClassLabel);
-  for (const c of voice.queryClasses as { id: string; previewMaySaveAsDefault: boolean }[]) {
+  const text = 'Your nurse is on the way.';
+  await sentence.fill(text);
+  await expect(preview.getByRole('alert')).toHaveCount(0);
+  await expect(preview).toContainText(words.previewAccepted);
+  /* The cost is said before Play, from the configured provider's recorded list price, and the session
+     total is nothing yet. */
+  const provider = cards.find(c => (c.serves ?? []).includes('tts') && c.statusToday === 'configured' && c.pricing)!;
+  await expect(preview).toContainText(`${text.length} characters at`);
+  await expect(preview).toContainText(provider.pricing!.recordedOn);
+  await expect(preview).toContainText(provider.name);
+  await expect(preview).toContainText(voice.refusals.find((r: { id: string }) => r.id === 'no-billed-preview-without-its-cost').statement);
+  await expect(preview).toContainText(words.previewTotalEmpty);
+  await expect(preview).toContainText(action('voice-play').live!.sentence);
+  /* The language select offers the languages with a voice, and only those. */
+  const language = preview.getByRole('combobox', { name: words.previewLanguageLabel, exact: true });
+  await expect(language.locator('option')).toHaveText(languages.filter(l => l.ttsAvailable).map(l => l.name));
+  /* On the presentation register the voice select follows the setting just saved; Play asks the
+     contract's route with that label's name for the language. */
+  const register = preview.getByRole('combobox', { name: words.previewClassLabel, exact: true });
+  await register.selectOption(routine.id);
+  const voiceSelect = preview.getByRole('combobox', { name: words.previewVoiceLabel, exact: true });
+  await expect(voiceSelect).toBeEnabled();
+  await expect(voiceSelect).toHaveValue(otherLabel);
+  await expect(preview).toContainText(english.ttsVoices![otherLabel]!);
+  await expect(play).toBeEnabled();
+  await play.click();
+  await expect.poll(() => spoken.length).toBe(1);
+  expect(spoken[0]!.url).toMatch(new RegExp(`${g1.overview.prefix}${words.previewRoute.path}$`));
+  expect(spoken[0]!.voice).toBe(english.ttsVoices![otherLabel]);
+  expect(spoken[0]!.text).toBe(text);
+  await expect(preview).toContainText(fill(words.previewTotalSentence.split('{cost}')[0]!, { plays: '1' }).trim());
+  /* On a locked register the voice select is disabled on the platform's default, no Save is offered,
+     and Play asks for the platform's voice whatever the setting says. */
+  for (const c of locked) {
    await register.selectOption(c.id);
-   const save = preview.getByRole('button', { name: action('voice-save-as-default').label });
-   if (c.previewMaySaveAsDefault) await expect(save).toBeDisabled();
-   else { await expect(save).toHaveCount(0); await expect(preview).toContainText(voice.refusals.find((r: { id: string }) => r.id === 'no-save-as-default-on-a-locked-row').statement); }
+   await expect(voiceSelect).toBeDisabled();
+   await expect(voiceSelect.locator('option')).toHaveText([words.platformDefaultWord]);
+   await expect(preview).toContainText(words.lockedRowSentence);
+   await expect(preview.getByRole('button', { name: action('voice-save-as-default').label })).toHaveCount(0);
+   await expect(preview).toContainText(voice.refusals.find((r: { id: string }) => r.id === 'no-save-as-default-on-a-locked-row').statement);
   }
+  await play.click();
+  await expect.poll(() => spoken.length).toBe(2);
+  expect(spoken[1]!.voice).toBe(english.ttsVoices![platformLabel]);
+  /* And the preview's own Save on a presentation register goes through the same door. */
+  await register.selectOption(routine.id);
+  const previewSave = preview.getByRole('button', { name: action('voice-save-as-default').label, exact: true });
+  await expect(previewSave).toBeDisabled();
+  await voiceSelect.selectOption(platformLabel);
+  await expect(previewSave).toBeEnabled();
+  await preview.getByLabel(say.reason).fill('Back to the platform voice: the other one read the booking steps too fast.');
+  await previewSave.click();
+  await expect(preview.getByRole('status').last()).toContainText(fill(say.applied.split('{at}')[0]!, { version: '3' }).trim());
+  await expect(routineSelect).toHaveValue(platformLabel);
   await holdsNothingOpen(page, 'Voice');
-  expect(spoken, 'the Voice screen asked something to speak').toEqual([]);
+  expect(spoken.filter(s => !new RegExp(`${words.previewRoute.path}$`).test(s.url)), 'the Voice screen asked something other than the preview route to speak').toEqual([]);
+  expect(spoken, 'the Voice screen spoke more than it was asked to').toHaveLength(2);
+
+  /* The Configuration tab shows the same history: two changes on the routine setting, with the reason. */
+  await goPortal(page, say.tab);
+  const block = page.getByRole('region', { name: voice.settings.heading });
+  await expect(block).toContainText(fill(say.version, { version: '3' }));
+  const item = timingItem(block, routineSetting);
+  await item.locator('summary').click();
+  const history = item.locator('table tbody tr');
+  await expect(history).toHaveCount(2);
+  await expect(history.first()).toContainText(reason);
+ });
+
+ test('Voice: a saved presentation voice reaches the patient\'s routine answer in the same tab, and the emergency answer reads in the platform\'s default', async ({ page }) => {
+  /* The cloud voice is configured for this journey, so the panel asks the speak route rather than the
+     browser's own voice; the turn route is dark, so every answer is the deterministic layer's. The
+     browser's synthesiser is replaced with a silent stand-in before the app runs, as
+     tests/assistant.spec.ts does, so no reply depends on what a test browser does on its own. */
+  await page.addInitScript(() => {
+   class StandInUtterance { text: string; constructor(text: string) { this.text = text; } }
+   Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak() {}, cancel() {}, getVoices() { return []; }, pause() {}, resume() {} } });
+   Object.defineProperty(window, 'SpeechSynthesisUtterance', { configurable: true, value: StandInUtterance });
+  });
+  const spoken = speakRequests(page);
+  await speaking(page);
+  await page.route('**/assistant/v1/turn', route => route.abort());
+  await page.route('**/assistant/health', route => route.fulfill({ json: { ...answer, speech: true } }));
+  await page.route('**/assistant/v1/status', route => route.fulfill({ json: { ...answer, speech: true } }));
+  await page.goto('/app/?role=back-office&category=gilbertone&tab=voice');
+  await expect(page.locator('#pt-category .pt-loading')).toHaveCount(0);
+  const routine = classes.find(c => c.previewMaySaveAsDefault)!;
+  const table = panel(page).locator('table').first();
+  const row = table.getByRole('row', { name: new RegExp(`^${routine.label}`) });
+  await row.getByRole('combobox').selectOption(otherLabel);
+  await panel(page).getByRole('group', { name: g1.voice.saveHeading }).getByLabel(say.reason).fill('Hearing the other voice on the patient panel before deciding.');
+  await row.getByRole('button', { name: `${action('voice-save-as-default').label}: ${routine.label}` }).click();
+  await expect(panel(page).getByRole('status')).toBeVisible();
+
+  /* The patient, in the same tab: the setting is still in this tab's memory. */
+  await chooseRole(page, 'Patient');
+  const gilbert = assistant;
+  await page.getByRole('button', { name: gilbert.identity.callToAction, exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: gilbert.identity.name });
+  await expect(sheet).toBeVisible();
+  await sheet.getByRole('checkbox', { name: gilbert.consent.checkboxDoctor }).check();
+  await sheet.getByRole('checkbox', { name: gilbert.consent.checkboxEmergency }).check();
+  await sheet.getByRole('button', { name: gilbert.consent.accept }).click();
+  const ask = async (words: string) => {
+   await sheet.getByLabel(gilbert.conversation.inputLabel).fill(words);
+   await sheet.getByRole('button', { name: gilbert.conversation.sendLabel, exact: true }).click();
+  };
+  const log = sheet.getByRole('log', { name: gilbert.conversation.logLabel });
+  /* A routine answer — a situation — is asked for in the voice the administrator chose. */
+  await ask('Are my results back?');
+  await expect.poll(() => spoken.filter(s => /\/speak\b/.test(s.url)).length).toBe(1);
+  expect(spoken.filter(s => /\/speak\b/.test(s.url))[0]!.voice).toBe(english.ttsVoices![otherLabel]);
+  /* The emergency answer is asked for in the platform's default, whatever was saved. */
+  await ask('What if it cannot wait?');
+  await expect(log.locator('.as-reply').last()).toContainText(sos.emergency.headline);
+  await expect.poll(() => spoken.filter(s => /\/speak\b/.test(s.url)).length).toBe(2);
+  expect(spoken.filter(s => /\/speak\b/.test(s.url))[1]!.voice).toBe(english.ttsVoices![platformLabel]);
  });
 
  test('Model Providers: configured only where the contract says so, and no key anywhere', async ({ page }) => {
@@ -286,12 +472,22 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   }
   await expect(panel(page).locator('article.g1-card .g1-card-status', { hasText: /^configured$/ })).toHaveCount(cards.filter(c => c.statusToday === 'configured').length);
   await expect(panel(page)).toContainText(gate('G32').sentence);
-  /* The preview travels with every text-to-speech card, and plays nothing there either. */
+  /* The preview travels with every text-to-speech card. It plays only on the card of the one provider
+     that is built and configured; on every other card it says so in the contract's sentence and offers
+     no Play, because nothing may call a provider the registry records as proposed. */
   const tts = cards.filter(c => (c.serves ?? []).includes('tts'));
   await expect(panel(page).locator('details.g1-details')).toHaveCount(tts.length);
-  const first = panel(page).getByRole('article', { name: tts[0]!.name, exact: true });
-  await first.locator('details.g1-details > summary').click();
-  await expect(first.getByRole('button', { name: action('voice-play').label, exact: true })).toBeDisabled();
+  const configured = tts.find(c => c.statusToday === 'configured' && c.pricing)!;
+  for (const c of tts) {
+   const card = panel(page).getByRole('article', { name: c.name, exact: true });
+   await card.locator('details.g1-details > summary').click();
+   const play = card.getByRole('button', { name: action('voice-play').label, exact: true });
+   if (c.id === configured.id) { await expect(play).toHaveCount(1); await expect(play).toBeDisabled(); }
+   else {
+    await expect(play).toHaveCount(0);
+    await expect(card).toContainText(fill(g1.voice.previewOnlyThrough, { provider: configured.name, card: c.name }));
+   }
+  }
   /* The add-a-provider form: every field disabled, the key field a disabled, empty password field. */
   const form = panel(page).getByRole('group', { name: g1.apiRegistry.addHeading });
   await expect(form.locator('input')).toHaveCount(registry.addProvider.fields.length + 1);

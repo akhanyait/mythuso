@@ -19,6 +19,7 @@ import { clinicalInForce, type ClinicalInForce } from '../../../../packages/engi
 import { clinicalRoleHolds, refusal as clinicalRefusal } from '../../../../packages/engines/src/clinical/domain/contract.ts';
 import type { Decision, VettingSubject } from './vetting';
 import { movementInForce, type MovementInForce } from '../../../../packages/engines/src/movement/domain/settings.ts';
+import { presentationVoiceInForce, type PresentationVoiceInForce } from '../../../../packages/engines/src/assistant/domain/settings.ts';
 import { roleOf, whoIs } from './roles';
 import { can } from './vetting';
 /* Whether a rota's post is on duty, and when a shut one opens: the shared settings code's one rule, which the
@@ -50,6 +51,10 @@ export { rotaAt } from '../../../../packages/engines/src/settings/shape.ts';
  * it hears. The nurse's earnings ask nurseShareSentenceNow(). None of these screens is on the patient's
  * first load: the plans panel is a dynamic import, and the fee and earnings screens are in the clinical
  * workspace.
+ *
+ * The assistant's four are read by presentationVoiceNow(): the patient panel's cloud voice (lib/voice.ts) asks
+ * it once when a spoken answer of a presentation register is read, and the Voice screen shows what it answers;
+ * an emergency, refusal or escalation answer never asks.
  *
  * WHO. The admin a change is recorded against is the party the back office opens as, and the reviewer a
  * confirmation is recorded against is the party the doctor's workspace opens as — each read from the role
@@ -138,6 +143,11 @@ export const sentinelSettingsNow = (): SentinelSettings => sentinelSettingsOf(hi
 /* Movement's five, read the same way: a trip asks movementSettingsNow() once when it is requested and keeps the
    offers, the window and the retention it answered; the responder's phone asks it for the interval when it beats. */
 export const movementSettingsNow = (): MovementInForce => movementInForce(historyOf('movement'));
+/* The assistant's four, read the same way: which of a language's two voices reads each presentation register — a label
+   resolved per language by whoever speaks, never a voice name — asked once when the next spoken answer of that register
+   is read. The clinical-delivery classes have no setting, so nothing here can be asked for them. */
+export type { PresentationVoiceInForce } from '../../../../packages/engines/src/assistant/domain/settings.ts';
+export const presentationVoiceNow = (): PresentationVoiceInForce => presentationVoiceInForce(historyOf('assistant'));
 
 /* Whether the value a setting held at a settings version has been clinically reviewed. Something that started
    under an older version — an offer on a nurse's screen — is described by the value it started under, not

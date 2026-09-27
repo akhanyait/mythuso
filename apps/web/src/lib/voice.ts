@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { voice as voicePolicy } from "../../../../packages/catalog/assistant.json";
+import {
+  spokenRegister,
+  voice as voicePolicy,
+} from "../../../../packages/catalog/assistant.json";
+import voiceMap from "../../../../packages/catalog/voice.json";
 import { isSpeechConfigured, speakText } from "./gilbertone-service";
+import { presentationVoiceNow, type PresentationVoiceInForce } from "./settings";
 
 /* The browser's own microphone and the browser's own voice, for the two web surfaces allowed one.
  *
@@ -216,14 +221,70 @@ function preferredVoice(
   return null;
 }
 
-/* The cloud voice the panel asks for, since push-to-talk's two doors were built on 22 September 2026:
-   the founder's female en-ZA voice — the first of the two the contract names and the one an absent
-   preference defaults to. This file chooses the label; lib/gilbertone-service.ts maps it to the
-   contract's own voice name, so no en-ZA voice is typed here and the preference stays a decision on
-   file rather than a string in the one module that reaches for a voice. The cloud reading is an
-   upgrade of the browser's own voice and never a dependency of it: where the cloud is not configured
-   the browser carries the same words exactly as it did before this door existed. */
-const CLOUD_VOICE: "female" | "male" = "female";
+/* WHICH CLOUD VOICE, since the founder's decision of 27 September 2026.
+ *
+ * Until that day one label, "female", was typed here for every reply — the founder's en-ZA voice of
+ * 22 September, the one an absent preference defaulted to. Now the label is looked up at the moment
+ * a sentence is spoken, and the lookup is built out of two contracts and one setting:
+ *
+ *   The ANSWER'S REGISTER — emergency, refusal, escalation, routine — is the contract's spokenRegister
+ *   map, read by the panel through lib/assistant.ts's voiceClassOf and handed in as `voiceClass`. It
+ *   names a class in packages/catalog/voice.json, and that file's zones say whether the class's voice
+ *   may be set by anybody. Only a class in a zone a tenant may configure reads in a chosen voice.
+ *   An emergency, a refusal or an escalation is in the locked clinical-delivery zone, and so reads in
+ *   PLATFORM_VOICE — voice.cloud.defaultVoice, the contract's own default — whatever any setting says.
+ *   That is the whole of voice.json's clinical-delivery-voice-is-not-configurable refusal, kept here
+ *   in three lines, and scripts/check-boundaries.mjs holds the three lines to this shape.
+ *
+ *   The SURFACE'S PRESENTATION CLASS — routine for the patient's panel and the demonstrator, admin
+ *   for the Control Tower's — is spokenRegister's map from a surface or an audience to a conversation
+ *   type, matched to the presentation class voice.json gives that type. A surface with no
+ *   presentation class (a nurse's, a doctor's, a partner's panel) reads in PLATFORM_VOICE.
+ *
+ *   The SETTING — presentationVoiceNow(), the assistant engine's four settings in lib/settings.ts —
+ *   is asked at the moment of speaking and never cached, so an administrator's change on the Voice
+ *   screen reaches the next spoken answer in this tab and never the one already being read.
+ *
+ * The label is still a label: lib/gilbertone-service.ts maps it to the contract's own voice name for
+ * the reply's language, so no neural voice is typed here. The cloud reading stays an upgrade of the
+ * browser's own voice and never a dependency of it: where the cloud is not configured the browser
+ * carries the same words exactly as it did before this door existed, and the browser's voice is not
+ * chosen by any setting — voice.voicePreference's order, quietly, and never a promise. */
+type CloudVoice = keyof typeof voicePolicy.cloud.voices;
+type PresentationClass = keyof PresentationVoiceInForce["byClass"];
+const PLATFORM_VOICE = voicePolicy.cloud.defaultVoice as CloudVoice;
+/* The zones whose voice a tenant may set, read from voice.json's own configurable word rather than
+   named here, so a zone locked there is locked here the day it is. */
+const TENANT_ZONES = new Set(
+  voiceMap.zones.filter((z) => z.configurable === "tenant").map((z) => z.id),
+);
+/* A class nobody declared is no class at all, and an empty zone is in no tenant zone: the unknown
+   falls to the platform's voice, never to a setting. */
+const zoneOfClass = (id: string | null): string =>
+  voiceMap.queryClasses.find((c) => c.id === id)?.zone ?? "";
+const presentationClassFor = (
+  conversationType: string | null,
+): PresentationClass | null => {
+  if (conversationType === null) return null;
+  const found = voiceMap.queryClasses.find(
+    (c) =>
+      TENANT_ZONES.has(c.zone) &&
+      "conversationType" in c &&
+      c.conversationType === conversationType,
+  );
+  return found ? (found.id as PresentationClass) : null;
+};
+/** The conversation type a surface speaks for: the demonstrator's own, or the audience's for the
+ *  live assistant, both from the contract's spokenRegister map. An audience the map gives null — or
+ *  none at all — speaks for no presentation register. */
+const conversationTypeOf = (
+  surface: VoiceSurface,
+  audience: string | undefined,
+): string | null => {
+  if (surface === "demonstrator") return spokenRegister.surfaces.demonstrator;
+  const types = spokenRegister.audiences as Record<string, string | null>;
+  return audience !== undefined ? (types[audience] ?? null) : null;
+};
 
 /** The first voice in a spoken language's own order — voice.spokenLanguages, since 23 September
  *  2026 — with the contract's English order standing behind it. A reply written in isiZulu is asked
@@ -257,9 +318,23 @@ export type SpeakOptions = {
      in first, with the contract's English order standing behind it. Absent means English, which is
      every approved sentence the contract carries. */
   readonly language?: readonly string[];
+  /** The register the words are read in — a class id of packages/catalog/voice.json, from
+     lib/assistant.ts's voiceClassOf for a reply. Absent means the surface's own presentation
+     register, which is what a sentence with no kind is: the demonstrator's fixed sentence, never
+     an emergency. The panel passes it for every reply, and the build holds that it does. */
+  readonly voiceClass?: string;
 };
 
-export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
+export function useVoiceAdapter(
+  surface: VoiceSurface = "demonstrator",
+  audience?: string,
+) {
+  /* Which presentation register this surface reads routine words in, decided once from the surface
+     and the audience it was opened for. The setting itself is not read here: it is asked at the
+     moment of speaking, below, so a change reaches the next reading. */
+  const presentationClass = presentationClassFor(
+    conversationTypeOf(surface, audience),
+  );
   const [state, setState] = useState<VoiceStateId>("off");
   const [transcript, setTranscript] = useState("");
   const [failure, setFailure] = useState<VoiceFailureId | null>(null);
@@ -606,9 +681,22 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
          moment covers the request as well as the first sound, because the gap between the words
          arriving and the voice starting is one the panel has a sentence for. */
       setResponding(true);
+      /* The label the reading is asked for in, decided now and not earlier. The answer's class only
+         says which zone it is in; a locked zone reads in the platform's voice and asks no setting,
+         and a tenant zone reads in whatever the surface's presentation register is set to at this
+         moment. scripts/check-boundaries.mjs holds this function to exactly this shape. */
+      const cloudVoiceFor = (answerClass: string | null): CloudVoice => {
+        if (!TENANT_ZONES.has(zoneOfClass(answerClass))) return PLATFORM_VOICE;
+        if (presentationClass === null) return PLATFORM_VOICE;
+        return presentationVoiceNow().byClass[presentationClass];
+      };
       /* The reply's own language travels, so an Afrikaans answer is asked for in an Afrikaans voice
          and a language the cloud has no voice for is told apart from a cloud that is down. */
-      const result = await speakText(text, CLOUD_VOICE, language);
+      const result = await speakText(
+        text,
+        cloudVoiceFor(options.voiceClass ?? presentationClass),
+        language,
+      );
       /* Abandoned while the service was being asked — a barge-in, a replacement, the panel shutting.
          Play nothing, stand the responding moment back down, and answer true so the caller does not
          fall through to the browser's voice for a reply the person has already moved past. */
@@ -727,7 +815,7 @@ export function useVoiceAdapter(surface: VoiceSurface = "demonstrator") {
       }
       return true;
     },
-    [],
+    [presentationClass],
   );
 
   /* Ask the service whether the cloud voice is there, in the background, and remember the answer for

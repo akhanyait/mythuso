@@ -467,3 +467,5 @@ POST /v1/founder/session@1 callers=founder purpose=audit because=-
 DELETE /v1/founder/session@1 callers=founder purpose=audit because=-
 GET /v1/founder/keys@1 callers=founder purpose=audit because=-
 POST /v1/founder/reveal@1 callers=founder purpose=audit because=-
+GET /v1/assistant/settings@1 callers=admin purpose=audit because=-
+POST /v1/assistant/setting-changes@1 callers=admin purpose=audit because=-

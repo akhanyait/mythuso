@@ -495,3 +495,5 @@ POST /v1/founder/session@1 5cb2d574a5ca7614
 DELETE /v1/founder/session@1 0271a089a93f7479
 GET /v1/founder/keys@1 f55f977c895a7a8b
 POST /v1/founder/reveal@1 d3f608464994c742
+GET /v1/assistant/settings@1 d6cf2aed407bf93b
+POST /v1/assistant/setting-changes@1 9b071193e3714d2a

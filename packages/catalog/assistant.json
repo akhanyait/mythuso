@@ -616,6 +616,34 @@
       "quickHeading": "Popular questions"
     }
   },
+  "spokenRegister": {
+    "decidedBy": "Founder",
+    "on": "2026-09-27",
+    "why": "Which register of packages/catalog/voice.json each kind of answer is read aloud in, decided the day the presentation registers became an administrator's setting. It is the voice's map the way affect is the face's: deterministic from the answer kind alone, no model, and written here where somebody accountable can read it. What the register means is voice.json's to say — its zones decide whether a register's voice may be set at all — and this section only says which register each kind belongs to. The emergency answer is the emergency register; every answer that carries a refusal (what GilbertOne is not, what it keeps, what it could not assess or could not read) is the refusal register; the handover to a nurse is the escalation register, because telling somebody to be seen is a clinical act however warm the summary; the situations, the greeting and a model's routine sentence are the routine register. The classes for a surface say which presentation register a routine answer reads in: the patient's panel and the demonstrator are patient-general, the Control Tower's and the back office's panels are admin-facing, a nurse's, a doctor's and a partner's panel name no presentation register and read in the platform's own voice — and the public page's sheet, which has no voice today, is the signed-out visitor's the day it gets one.",
+    "answers": {
+      "situation": "routine",
+      "greeting": "routine",
+      "identity": "refusal",
+      "voice": "refusal",
+      "emergency": "emergency",
+      "unmatched": "refusal",
+      "unread": "refusal",
+      "handover": "escalation",
+      "service": "routine"
+    },
+    "surfaces": {
+      "demonstrator": "patient-general",
+      "public": "signed-out-visitor"
+    },
+    "audiences": {
+      "patient": "patient-general",
+      "nurse": null,
+      "doctor": null,
+      "partner": null,
+      "control-tower": "admin-facing",
+      "back-office": "admin-facing"
+    }
+  },
   "affect": {
     "decidedBy": "Founder",
     "on": "2026-09-19",
@@ -886,6 +914,8 @@
         "female": "en-ZA-LeahNeural",
         "male": "en-ZA-LukeNeural"
       },
+      "defaultVoice": "female",
+      "_defaultVoiceWhy": "Which of the two labels reads when nothing has chosen one: the platform's own voice, the one the web panel has asked for since push-to-talk's two doors were built on 22 September 2026, and — since the founder's decision of 27 September 2026 — the one every emergency, refusal and escalation answer is read in whatever a presentation setting says. Written here rather than left as the first entry above, so the default is a line somebody can read and the build can hold, not an accident of key order.",
       "audioStored": false,
       "fallback": "Without both variables the routes answer the speech-not-configured refusal written in packages/catalog/apis/assistant.json, and the browser carries the sentence exactly as it does today: recognition through voice.webRecognition, playback through the browser's own synthesiser in voice.voicePreference's order. Nothing in the web panel is built on the cloud voice being there — it hears and speaks through the browser either way, and where the cloud voice is configured it is a better reading of the same words rather than a different route.",
       "why": "Added on 22 September 2026, the day the two routes were built: the plan's premium push-to-talk voice, arriving the way the plan asks — behind the existing secure credential mechanism and activation gate, as an upgrade of the browser's own voice and never a dependency of it. One capture is heard once and kept nowhere, the same promise voice.audioStored has always made, and the locale and the two voices live here rather than in code, so which voice reads a health answer in South Africa stays a decision on file."

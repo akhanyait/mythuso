@@ -2610,6 +2610,32 @@ export interface PostFounderRevealResponse {
  readonly fingerprint: string;
 }
 
+export type GetAssistantSettingsRequest = Record<string, never>;
+export interface GetAssistantSettingsResponse {
+ readonly settingsVersion: number;
+ readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostAssistantSettingChangesRequest {
+ readonly idempotencyKey: string;
+ readonly setting: string;
+ readonly wholeNumber?: number;
+ readonly switchedOn?: boolean;
+ readonly choice?: string;
+ readonly wording?: string;
+ readonly roles?: readonly string[];
+ readonly windows?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly items?: readonly string[];
+ readonly parts?: Readonly<Record<string, unknown>>;
+ readonly reason?: string;
+ readonly expectedVersion: number;
+}
+export interface PostAssistantSettingChangesResponse {
+ readonly settingsVersion: number;
+ readonly appliesFrom: string;
+}
+
 export const apiRoutes = {
  postCoreEvents: { name: "postCoreEvents", method: "POST", path: "/v1/core/events", mountedPath: "/v1/core/events", version: 1, engine: "core", callers: ["engine:access","engine:pulse","engine:care","engine:clinical","engine:safety","engine:movement","engine:trust","engine:record","engine:medicines","engine:devices","engine:money"], purpose: ["audit"], idempotent: false, status: "built" },
  postCoreLoops: { name: "postCoreLoops", method: "POST", path: "/v1/core/loops", mountedPath: "/v1/core/loops", version: 1, engine: "core", callers: ["engine:care","engine:safety","engine:medicines","engine:access","engine:movement"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
@@ -2872,5 +2898,7 @@ export const apiRoutes = {
  postFounderSession: { name: "postFounderSession", method: "POST", path: "/v1/founder/session", mountedPath: "/assistant/v1/founder/session", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
  deleteFounderSession: { name: "deleteFounderSession", method: "DELETE", path: "/v1/founder/session", mountedPath: "/assistant/v1/founder/session", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
  getFounderKeys: { name: "getFounderKeys", method: "GET", path: "/v1/founder/keys", mountedPath: "/assistant/v1/founder/keys", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
- postFounderReveal: { name: "postFounderReveal", method: "POST", path: "/v1/founder/reveal", mountedPath: "/assistant/v1/founder/reveal", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" }
+ postFounderReveal: { name: "postFounderReveal", method: "POST", path: "/v1/founder/reveal", mountedPath: "/assistant/v1/founder/reveal", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
+ getAssistantSettings: { name: "getAssistantSettings", method: "GET", path: "/v1/assistant/settings", mountedPath: "/v1/assistant/settings", version: 1, engine: "assistant", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
+ postAssistantSettingChanges: { name: "postAssistantSettingChanges", method: "POST", path: "/v1/assistant/setting-changes", mountedPath: "/v1/assistant/setting-changes", version: 1, engine: "assistant", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" }
 } as const satisfies Record<string, ApiRoute>;

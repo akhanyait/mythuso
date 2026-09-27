@@ -70,6 +70,7 @@ import {
   spokenOf,
   stateSpec,
   unmatchedDetail,
+  voiceClassOf,
   voice,
   type AudienceId,
   type Question,
@@ -285,7 +286,10 @@ export default function Assistant({
      microphone rule, one everSpoke and one close-on-unmount rather than two controls each holding
      half of it. lib/voice.ts still reads the flag before anything is reached for, so switching it
      off again leaves this wiring inert; the microphone half is the 18 September decision, unchanged. */
-  const voiceAdapter = useVoiceAdapter("assistant");
+  /* The audience travels with the surface since 27 September 2026: it is what decides which
+     presentation register a routine reply is read in — the patient's or the administrator's — and
+     the adapter reads that register's setting at the moment of speaking, never here. */
+  const voiceAdapter = useVoiceAdapter("assistant", audienceId);
   const lastTurn = turns[turns.length - 1];
   const reply = lastTurn.reply;
   const waitingForReply = pendingReplies.has(lastTurn.id);
@@ -390,6 +394,12 @@ export default function Assistant({
           /* The reply's own language, when its words are one of voice.spokenLanguages — decided
              from the reply alone, so the browser's voice is asked for in that language first. */
           language: spokenLanguageOf(last.reply)?.localeOrder,
+          /* The register the reply is read in, from the reply alone — the contract's spokenRegister
+             map, read the way `cueOf` reads the face. An emergency, a refusal or an escalation is
+             read in the platform's own voice whatever an administrator has set; only a routine
+             reply reads in the surface's presentation register. The adapter decides which is which
+             from voice.json's zones; this call only says what kind of reply it is. */
+          voiceClass: voiceClassOf(last.reply, last.unread),
           onStart: () => {
             opened = true;
             play(affect.voiceMoments.speaking.cue, { caption });

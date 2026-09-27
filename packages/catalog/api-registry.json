@@ -112,6 +112,14 @@
    "productionEvidence": "docs/governance/ASSISTANT-ACTIVATION.md",
    "regionFrom": "apps/assistant-api/src/lib/speech.ts SPEECH_REGIONS",
    "voicesFrom": "packages/catalog/assistant.json#voice.cloud.voices and #voice.languages[].ttsVoices",
+   "pricing": {
+    "perMillionCharactersUsd": 16,
+    "unitCharacters": 1000000,
+    "currency": "USD",
+    "source": "https://azure.microsoft.com/en-us/pricing/details/cognitive-services/speech-services/",
+    "recordedOn": "2026-09-27",
+    "why": "Azure's list price for neural text to speech on the standard tier, per million characters, copied from the pricing page by hand on the day recorded. It is a list price and not a measurement: no bill has been read, no discount, free grant or currency movement is in it, and it is what the Voice screen's preview multiplies by a sentence's characters to say what a reading would cost before it is played. The day the figure is checked again, this record is the one to change."
+   },
    "residency": { "tier": null, "section72Determined": false, "dpaRef": null },
    "codeNames": [],
    "capabilityRef": null,

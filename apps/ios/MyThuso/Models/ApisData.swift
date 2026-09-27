@@ -284,6 +284,8 @@ enum ApisData {
     static let deleteFounderSession = Route(id: "deleteFounderSession", method: "DELETE", path: "/v1/founder/session", mountedPath: "/assistant/v1/founder/session", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
     static let getFounderKeys = Route(id: "getFounderKeys", method: "GET", path: "/v1/founder/keys", mountedPath: "/assistant/v1/founder/keys", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
     static let postFounderReveal = Route(id: "postFounderReveal", method: "POST", path: "/v1/founder/reveal", mountedPath: "/assistant/v1/founder/reveal", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
+    static let getAssistantSettings = Route(id: "getAssistantSettings", method: "GET", path: "/v1/assistant/settings", mountedPath: "/v1/assistant/settings", version: 1, engine: "assistant", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postAssistantSettingChanges = Route(id: "postAssistantSettingChanges", method: "POST", path: "/v1/assistant/setting-changes", mountedPath: "/v1/assistant/setting-changes", version: 1, engine: "assistant", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
 
     static let routes: [Route] = [
         postCoreEvents,
@@ -547,7 +549,9 @@ enum ApisData {
         postFounderSession,
         deleteFounderSession,
         getFounderKeys,
-        postFounderReveal
+        postFounderReveal,
+        getAssistantSettings,
+        postAssistantSettingChanges
     ]
 
     struct PostCoreEventsRequest {
@@ -2876,5 +2880,29 @@ enum ApisData {
         let revealedKey: String
         let lastFour: String
         let fingerprint: String
+    }
+    struct GetAssistantSettingsRequest {}
+    struct GetAssistantSettingsResponse {
+        let settingsVersion: Int
+        let settings: [[String: Any]]
+        let history: [[String: Any]]
+    }
+    struct PostAssistantSettingChangesRequest {
+        let idempotencyKey: String
+        let setting: String
+        let wholeNumber: Int?
+        let switchedOn: Bool?
+        let choice: String?
+        let wording: String?
+        let roles: [String]?
+        let windows: [[String: Any]]?
+        let items: [String]?
+        let parts: [String: Any]?
+        let reason: String?
+        let expectedVersion: Int
+    }
+    struct PostAssistantSettingChangesResponse {
+        let settingsVersion: Int
+        let appliesFrom: String
     }
 }

@@ -1,27 +1,38 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import voice from '../../../../../../packages/catalog/voice.json' with { type: 'json' };
 import prefs from '../../../../../../packages/catalog/user-preferences.json' with { type: 'json' };
-import { cardOf, g1 } from '../../../lib/gilbertone-admin';
+import { cardOf, g1, voiceChoicesOf, type VoiceLabel } from '../../../lib/gilbertone-admin';
+import { fill } from '../../../lib/portal';
+import { presentationVoiceNow, settingsScreen } from '../../../lib/settings';
 import { BuildWord, Empty, Loading, Region, RovingList } from '../Parts';
-import { CardStatusWord, GatedButton, GatedRefusal, Locked } from './Controls';
+import { CardStatusWord, LiveButton, LiveSentence, Locked } from './Controls';
 import { VoicePreview } from './VoicePreview';
 import { useAssistantVoice } from './useAssistantVoice';
+import { useVoiceSaving } from './useVoiceSaving';
 
 /* GilbertOne · Voice (§7.3): the query-to-voice mapping, where the clinical boundary is enforced.
  *
  * Every row is packages/catalog/voice.json's. Emergency, refusal and escalation are the clinical-
  * delivery zone: locked to a neutral register, answered at level 0, changed only through the Clinician
- * Review Queue — and so drawn as a sentence with no control at all. Whether a row may offer Save as
- * default is the class's own previewMaySaveAsDefault, read here and held by the build, never decided by
- * its label. The presentation rows offer it disabled, held by G29, because no tenant exists to save a
- * voice for and nobody has approved one.
+ * Review Queue — and so drawn as a sentence with no control at all. Whether a row may offer a voice to
+ * choose and save is the class's own previewMaySaveAsDefault, read here and held by the build, never
+ * decided by its label.
+ *
+ * Since the founder's decision of 27 September 2026 the four presentation rows are live: each draws a
+ * select of the two labels the class's setting allows, showing the value in force from lib/settings.ts,
+ * and a Save as default that records the choice as a setting with a reason — the same door, the same
+ * rules and the same words as the Configuration tab, where the same four settings are also drawn. The
+ * value saved is a label, never a voice name: whoever speaks resolves it per language against
+ * assistant.json, and an emergency, a refusal or an escalation never asks it. What this preview keeps is
+ * said on the screen in the contract's sentence: this tab's memory for the session, the shipped default
+ * being the contract's.
  *
  * No voice is named in this file. The voices are packages/catalog/assistant.json's, per language, and
  * a language with no voice is shown as not available with the contract's own notice rather than hidden
  * (§07's V03, in user-preferences.json's and voice.json's words — read from the contracts rather than
  * from the demonstrator's lib/gilbertone.ts, whose import would split that module into a chunk of its own
- * and add its name to what the patient's first load carries). Push-to-talk and the caption rule are locked settings, drawn as text. The wake-word
- * question is drawn as what it is: open, and the founder's. */
+ * and add its name to what the patient's first load carries). Push-to-talk and the caption rule are locked
+ * settings, drawn as text. The wake-word question is drawn as what it is: open, and the founder's. */
 
 const zoneWord = (configurable: string) =>
  configurable === 'locked' ? g1.voice.lockedWord : configurable === 'clinician-only' ? g1.voice.clinicianOnlyWord : g1.voice.tenantWord;
@@ -30,8 +41,21 @@ export function VoiceScreen() {
  const words = g1.voice;
  const zone = (id: string) => voice.zones.find(z => z.id === id)!;
  const locked = voice.lockedSettings;
- const saveRefusal = useId();
+ const saving = useVoiceSaving();
+ const saveWhy = useId();
+ const reasonField = useId();
+ const outcomeId = useId();
  const assistantVoice = useAssistantVoice();
+ /* Each presentation row's chosen-but-unsaved label, keyed by class and by the settings version it was
+    chosen against: a choice made before the value in force moved — the preview below saved, or the
+    Configuration tab did in the same session — is dropped rather than shown as if it were still pending
+    over a value it was never compared with. A row with no choice shows the value in force; Save is
+    described by nothingToSave while the two are the same. */
+ const now = presentationVoiceNow();
+ const [choices, setChoices] = useState<{ version: number; byClass: Readonly<Record<string, VoiceLabel>> }>({ version: now.settingsVersion, byClass: {} });
+ const chosen = choices.version === now.settingsVersion ? choices.byClass : {};
+ const setChosen = (byClass: Readonly<Record<string, VoiceLabel>>) => setChoices({ version: now.settingsVersion, byClass });
+ const inForce = now.byClass as Readonly<Record<string, VoiceLabel>>;
  return <>
   <Locked title={zone('clinical-delivery').label}>{voice.refusals.find(r => r.id === 'clinical-delivery-voice-is-not-configurable')!.statement} {voice.clinicalDeliveryRegister.sentence}</Locked>
 
@@ -43,22 +67,40 @@ export function VoiceScreen() {
   </Region>
 
   <Region title={words.mappingHeading} count={voice.queryClasses.length}>
-   <div className="table-scroll"><table className="result-table admin-table pt-table">
+   <div className="table-scroll"><table className="result-table admin-table pt-table g1-voice-table">
     <caption>{voice.reads.why}</caption>
     <thead><tr><th scope="col">Class</th><th scope="col">Zone</th><th scope="col">Register</th><th scope="col">Voice</th></tr></thead>
     <tbody>{voice.queryClasses.map(c => {
      const z = zone(c.zone);
+     const shown = chosen[c.id] ?? inForce[c.id];
+     const unchanged = shown === inForce[c.id];
      return <tr key={c.id}>
       <th scope="row">{c.label}</th>
       <td>{z.label} · <span className="g1-tag">{zoneWord(z.configurable)}</span></td>
       <td>{c.register}</td>
       <td>{c.previewMaySaveAsDefault
-       ? <GatedButton id="voice-save-as-default" name={`Save as default: ${c.label}`} describedBy={saveRefusal}/>
+       ? <div className="g1-voice-cell">
+        <select aria-label={fill(words.voiceSelectLabel, { class: c.label })} value={shown} onChange={event => { setChosen({ ...chosen, [c.id]: event.target.value as VoiceLabel }); saving.clear(); }}>
+         {voiceChoicesOf(c.id).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        <LiveButton id="voice-save-as-default" name={`Save as default: ${c.label}`} describedBy={unchanged ? `${saveWhy}-same` : saveWhy} disabled={unchanged} onClick={() => saving.save(c.id, shown!)}/>
+        <small>{fill(words.inForceSentence, { label: voiceChoicesOf(c.id).find(o => o.value === inForce[c.id])?.label ?? inForce[c.id]! })}</small>
+       </div>
        : <span className="g1-locked-cell">{words.lockedRowSentence}</span>}</td>
      </tr>;
     })}</tbody>
    </table></div>
-   <GatedRefusal id="voice-save-as-default" refusalId={saveRefusal}/>
+   <div className="g1-save" role="group" aria-label={words.saveHeading}>
+    <label className="g1-field" htmlFor={reasonField}>
+     <span>{settingsScreen.reason}</span>
+     <textarea id={reasonField} value={saving.reason} onChange={event => { saving.setReason(event.target.value); saving.clear(); }} aria-describedby={`${reasonField}-help`} autoComplete="off" spellCheck={false}/>
+     <small id={`${reasonField}-help`}>{settingsScreen.reasonHelp}</small>
+    </label>
+    <LiveSentence id="voice-save-as-default" sentenceId={saveWhy}/>
+    <p id={`${saveWhy}-same`} className="g1-refusal">{words.nothingToSave}</p>
+    <p className="helper">{words.sessionSentence}</p>
+    {saving.sentence && <p id={outcomeId} className={saving.outcome?.ok ? 'g1-verdict' : 'g1-rejected'} role={saving.outcome?.ok ? 'status' : 'alert'}>{saving.sentence}</p>}
+   </div>
    <p className="helper">{voice.clinicalDeliveryRegister._reviewedByWhy}</p>
   </Region>
 

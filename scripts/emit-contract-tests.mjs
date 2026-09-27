@@ -47,11 +47,13 @@ const { needsIdempotencyKey } =
 const CATALOG = "packages/catalog/apis.json";
 const OUTPUT = "packages/engines/src/contract-compliance.generated.test.ts";
 const MORNING = "2026-09-15T09:00:00+02:00";
-/* The eleven engine modules. pulse owns no route in the catalog, and the assistant's routes are served
-   outside packages/engines — apps/assistant-api answers two of them today — so neither engine has a module
-   here and none is bound for either. */
+/* The twelve engine modules. pulse owns no route in the catalog, so it has no module here and none is bound
+   for it. The assistant's own routes are served outside packages/engines by apps/assistant-api; its module
+   here binds only its two settings routes (27 September 2026), and every other assistant route stays in the
+   absent partition below. */
 const MODULE_IDS = [
   "access",
+  "assistant",
   "care",
   "clinical",
   "core",

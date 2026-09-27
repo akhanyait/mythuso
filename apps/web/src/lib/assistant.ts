@@ -434,6 +434,18 @@ export function cueOf(reply: Reply, unread = false): string {
   const mapped = unread ? affect.answers.unread : affect.answers[reply.kind];
   return mapped.cue;
 }
+/* The register an answer is read aloud in — the voice's map, the way `cueOf` is the face's, and
+   decided the same way: from the answer kind alone, in the contract's spokenRegister section of
+   27 September 2026. The answer is a class id in packages/catalog/voice.json; whether that class's
+   voice may be set by anybody is voice.json's zones' to say, and lib/voice.ts reads it there. A turn
+   with unread words reads in the refusal's register whatever it matched, for the reason it wears the
+   refusal's face: the unread block in that turn is itself a refusal. */
+export const spokenRegister = contract.spokenRegister;
+export function voiceClassOf(reply: Reply, unread = false): string {
+  return unread
+    ? spokenRegister.answers.unread
+    : spokenRegister.answers[reply.kind];
+}
 /* What the cue that owns the face means, for the readable surface the tests key on. Reversed from
    the affect mapping: the greeting cues are conversation rather than answers, so a face they own has
    no posture on record — which is honest, a greeting is not an answer. */

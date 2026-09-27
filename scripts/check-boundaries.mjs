@@ -9723,11 +9723,31 @@ if (
      reveal. So they are left out of what a native client must call, and a native client that names
      one fails below — the same literal the rule above would demand, refused. */
   const founderOnly = (route) => (route.callers ?? []).includes("founder");
+  /* The assistant's two settings routes are the other exception, for a reason the settings contract
+     already holds: they are not the service's addresses at all. They are bound on the development engine
+     runtime by packages/engines/src/assistant/engine.ts through the shared settings code, as every
+     engine's settings routes are, and no native app reaches any engine's settings route — a phone uses
+     the contract's defaults and says so (scripts/settings-defaults.mjs). The exception is exactly the
+     routes whose evidence is the engine runtime, and it may hold nothing but a settings route: a
+     conversation route claiming engine-runtime evidence fails here rather than slipping out of the
+     clients' obligation. */
+  const onEngineRuntime = (route) =>
+    (route.evidence?.file ?? "").startsWith("packages/engines/src/");
+  for (const route of contract.routes.filter(onEngineRuntime))
+    if (
+      !/^\/v1\/assistant\/(settings|setting-changes|setting-reviews)$/.test(
+        route.path,
+      )
+    )
+      throw new Error(
+        `packages/catalog/apis/assistant.json declares ${route.method} ${route.path}@${route.version} with its evidence on the engine runtime. Only the assistant's settings routes live there; every conversation route is apps/assistant-api's and is called by both native clients.`,
+      );
   const built = contract.routes.filter(
     (route) =>
       route.status === "built" &&
       route.path.startsWith("/v1/") &&
-      !founderOnly(route),
+      !founderOnly(route) &&
+      !onEngineRuntime(route),
   );
   for (const file of clients) {
     const source = read(file);
@@ -32024,16 +32044,59 @@ const p2Summary = {};
     throw new Error(
       `packages/catalog/api-registry.json's keyMetadata.neverFields names ${never.size} fields. It is the list this check reads to know what a key looks like as a property; emptying it would let every check that reads it pass over nothing.`,
     );
+  /* The settings block of a contract packages/catalog/settings.json lists is the shared settings shape, whose
+     properties are named key (a setting's name) and value (a default, or an allowed choice) by that shape's
+     design — voice.json gained one on 27 September 2026 when the presentation registers became an admin
+     setting. So that block, in a listed file and nowhere else, is walked with the shape's own rule instead:
+     a key is a lower-case hyphenated setting name and a value is one of the block's own allowed choices, so
+     neither can be key material; anything else under those names, anywhere in the block, is still refused. */
+  const settingsSourceFiles = new Set(
+    JSON.parse(read("packages/catalog/settings.json")).sources.map((s) => s.file),
+  );
+  const settingsKeyShape = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
   const walk = (node, path, file) => {
     if (Array.isArray(node)) node.forEach((v, i) => walk(v, `${path}[${i}]`, file));
     else if (node && typeof node === "object")
       for (const [k, v] of Object.entries(node)) {
+        if (path === "" && k === "settings" && settingsSourceFiles.has(file)) {
+          walkSettingsBlock(v, `${path}.${k}`, file);
+          continue;
+        }
         if (never.has(p2Canon(k)) && typeof v === "string" && v.trim())
           throw new Error(
             `${file} carries a value at ${path}.${k}, a field packages/catalog/api-registry.json's keyMetadata.neverFields names as key material. A contract may describe a key's metadata; it never holds the key.`,
           );
         walk(v, `${path}.${k}`, file);
       }
+  };
+  const walkSettingsBlock = (block, path, file) => {
+    for (const [i, item] of (block?.items ?? []).entries()) {
+      const at = `${path}.items[${i}]`;
+      if (!settingsKeyShape.test(item.key ?? ""))
+        throw new Error(
+          `${file} carries a value at ${at}.key that is not a setting's lower-case hyphenated name. In a settings block key names a setting and nothing else; anything else there is read as key material.`,
+        );
+      const choices = (item.allowed ?? []).map((c) => c.value);
+      const { key, default: given, allowed, ...rest } = item;
+      const valued = [
+        [`${at}.default`, given],
+        ...(allowed ?? []).map((c, j) => [`${at}.allowed[${j}]`, c]),
+      ];
+      for (const [where, holder] of valued) {
+        const { value, ...others } = holder ?? {};
+        if (
+          typeof value === "string" &&
+          !(settingsKeyShape.test(value) && choices.includes(value))
+        )
+          throw new Error(
+            `${file} carries a value at ${where}.value that is not one of the setting's own allowed choices. In a settings block value is a default or a choice a setting names; anything else there is read as key material.`,
+          );
+        walk(others, where, file);
+      }
+      walk(rest, at, file);
+    }
+    const { items, ...others } = block ?? {};
+    walk(others, path, file);
   };
   for (const [name, file] of Object.entries(p2Files)) walk(p2[name], "", file);
   p2Summary.catalogueSwept = swept;
@@ -33049,7 +33112,15 @@ console.log(
    speak route, call a provider configured that the contracts do not, read anything from the service
    but booleans, or type a number a contract owns. It replaces Phase 3's check 6, which held the
    category to "not built", in the same change. Each was proved by breaking its source and restoring it
-   byte for byte (docs/FEATURE-MAP.md, the Phase 4 entry). */
+   byte for byte (docs/FEATURE-MAP.md, the Phase 4 entry).
+
+   Amended on 27 September 2026 for the founder's decision of that day: the four presentation registers
+   of voice.json get a working voice selector and Save, and the preview's Play works. Checks 2, 3, 4 and
+   5 now allow exactly that — a select and a live Save on a row under previewMaySaveAsDefault, one live
+   Play, one POST to the contract's speak route from lib/gilbertone-admin.ts, one audio element in the
+   preview — and forbid everything else exactly as before; checks 9 and 10 hold the patient side and
+   the voice names. A live action carries the founder's dated record in place of a gate, and the build
+   refuses it without one. */
 const p4 = {
   portal: JSON.parse(read("packages/catalog/control-tower-portal.json")),
   overview: JSON.parse(read("packages/catalog/control-tower-overview.json")),
@@ -33057,12 +33128,19 @@ const p4 = {
   providers: JSON.parse(read("packages/catalog/model-providers.json")),
   registry: JSON.parse(read("packages/catalog/api-registry.json")),
   apis: JSON.parse(read("packages/catalog/apis/assistant.json")),
+  assistant: JSON.parse(read("packages/catalog/assistant.json")),
+  levels: JSON.parse(read("packages/catalog/intelligence-levels.json")),
 };
 const p4Dir = "apps/web/src/features/portal/gilbertone";
 const p4Lib = "apps/web/src/lib/gilbertone-admin.ts";
 const p4Category = "apps/web/src/features/portal/GilbertOne.tsx";
 const p4Screens = files(p4Dir).filter((f) => /\.tsx?$/.test(f));
 const p4Files = [...p4Screens, p4Category, p4Lib];
+const p4VoiceLib = "apps/web/src/lib/voice.ts";
+/* The two files the decision made live, and the two actions it named. A third of either is a new
+   founder decision, recorded by extending these lists in the same change as the record in the contract. */
+const p4LiveFiles = [`${p4Dir}/Voice.tsx`, `${p4Dir}/VoicePreview.tsx`];
+const p4LiveActions = ["voice-save-as-default", "voice-play"];
 /* Founder access (24 September 2026, packages/catalog/founder-access.json#decision) is the one file under
    the GilbertOne screens that draws live inputs and buttons: the founder's sign-in and the key reveal.
    It is named here, once, and exempted from exactly three sweeps below — the password-type sweep and
@@ -33154,13 +33232,16 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
     if (/type=["'{]\s*["']?password/.test(code))
       throw new Error(`${f} sets an input's type to password itself. The one key field is ShapeField's, in Controls.tsx, disabled and without a value.`);
     for (const [tag, kind] of code.matchAll(/<(input|textarea|select)\b[^>]*>/g)) {
-      const where = f.endsWith("/Controls.tsx") ? "controls" : f.endsWith("/VoicePreview.tsx") && kind !== "input" ? "preview" : null;
+      /* The Voice screen and the voice preview draw selects and textareas of their own since 27
+         September 2026 — a register, a language, one of two voice labels, a sentence and a reason —
+         and never an <input>: nothing key-shaped has a field to arrive in. */
+      const where = f.endsWith("/Controls.tsx") ? "controls" : p4LiveFiles.includes(f) && kind !== "input" ? "voice" : null;
       if (!where)
-        throw new Error(`${f} draws a <${kind}> of its own. A GilbertOne screen draws a field only through Controls.tsx (disabled) — the one exception is the voice preview's own sentence and register, which no key can reach.`);
+        throw new Error(`${f} draws a <${kind}> of its own. A GilbertOne screen draws a field only through Controls.tsx (disabled) — the exceptions are the Voice screen's and the voice preview's own selects and sentences, which no key can reach.`);
       if (where === "controls" && (!/\sdisabled[\s/>]/.test(tag) || /\b(value|defaultValue)=/.test(tag)))
         throw new Error(`${f} draws an input that is not disabled, or gives one a value: ${tag}. While no vault exists, no field on a GilbertOne screen accepts anything and none shows anything.`);
-      if (where === "preview" && /password/.test(tag))
-        throw new Error(`${f}'s preview field is a password field. The preview takes an administrator's test sentence, never a key.`);
+      if (where === "voice" && /password/.test(tag))
+        throw new Error(`${f}'s field is a password field. The Voice screen takes a register, a language, a voice label, a sentence and a reason, never a key.`);
     }
   }
   const shape = uncommented(read(`${p4Dir}/Controls.tsx`));
@@ -33176,7 +33257,13 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
    built first. Every button and checkbox is drawn in Controls.tsx, disabled by a bare attribute (never
    an expression that could be false), tied to its sentence by aria-describedby; no GilbertOne file has a
    click or submit handler or a form; and every action a screen names is the contract's, on its screen,
-   and every action the contract declares is drawn somewhere. */
+   and every action the contract declares is drawn somewhere.
+
+   Since 27 September 2026, with one exception the founder decided: an action recorded live — gate
+   null, decidedBy Founder, a since day, a sentence saying what it does and what it never does, and no
+   refusal — is drawn by Controls.tsx's LiveButton alone, enabled with its handler and described by that
+   sentence. Exactly the two actions the decision named are live, only the Voice screen and the voice
+   preview may hand a handler to a LiveButton, and every other action and file is held as before. */
 {
   const openGates = new Map((p4.overview.sections.find((s) => s.id === "open-gates").gates ?? []).map((g) => [g.id, g.state]));
   const gates = new Map(p4G1.gates.map((g) => [g.id, g]));
@@ -33197,7 +33284,17 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
   }
   const registryIds = new Set(p4.registry.actions.map((a) => a.id));
   const mapped = new Set();
+  const liveIds = new Set();
   for (const a of p4G1.actions) {
+    if (a.live !== undefined || a.gate === null) {
+      const live = a.live ?? {};
+      if (a.gate !== null || live.decidedBy !== "Founder" || !/^\d{4}-\d{2}-\d{2}$/.test(String(live.since)) || !/^[A-Z][\s\S]*\.$/.test(String(live.sentence ?? "")) || !/\bnever\b/.test(String(live.sentence)))
+        throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.actions "${a.id}" is recorded as live without the founder's record: gate null, decidedBy Founder, a since day, and a sentence that says what it does and what it never does. An action is enabled on that record or on nothing.`);
+      if (a.refusal)
+        throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.actions "${a.id}" is live and still carries a refusal. A live action's sentence is its live record's; a refusal beside it is a control saying two things.`);
+      liveIds.add(a.id);
+      continue;
+    }
     if (!gates.has(a.gate))
       throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.actions "${a.id}" is held by "${a.gate}", which is not one of its gates.`);
     if (!p4G1.subScreens.some((s) => s.id === a.screen))
@@ -33211,10 +33308,23 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
   for (const id of registryIds)
     if (!mapped.has(id))
       throw new Error(`packages/catalog/api-registry.json's card action "${id}" is drawn by no GilbertOne action. Every action the contract gives a card is on the card, disabled with its gate.`);
+  if ([...liveIds].sort().join() !== [...p4LiveActions].sort().join())
+    throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.actions records [${[...liveIds].join(", ")}] as live; the founder's decision of 27 September 2026 named exactly [${p4LiveActions.join(", ")}]. A further live action is a further decision, recorded in this check with the contract.`);
   const controls = uncommented(read(`${p4Dir}/Controls.tsx`));
-  for (const [tag] of controls.matchAll(/<(button|input)\b[^>]*>/g))
+  const liveStart = controls.indexOf("export function LiveButton");
+  const liveEnd = controls.indexOf("export function LiveSentence");
+  if (liveStart < 0 || liveEnd < liveStart)
+    throw new Error(`${p4Dir}/Controls.tsx no longer draws live actions through LiveButton, followed by LiveSentence. The one enabled control on these screens is drawn there and nowhere else.`);
+  const liveBlock = controls.slice(liveStart, liveEnd);
+  const gatedControls = controls.slice(0, liveStart) + controls.slice(liveEnd);
+  for (const [tag] of gatedControls.matchAll(/<(button|input)\b[^>]*>/g))
     if (!/\sdisabled[\s/>]/.test(tag) || /disabled=\{/.test(tag) || !/aria-describedby=/.test(tag))
-      throw new Error(`${p4Dir}/Controls.tsx draws ${tag} — not disabled by a bare attribute, or not described by its refusal. Every GilbertOne control is disabled, and says why.`);
+      throw new Error(`${p4Dir}/Controls.tsx draws ${tag} — not disabled by a bare attribute, or not described by its refusal. Every gated GilbertOne control is disabled, and says why.`);
+  const liveButtons = [...liveBlock.matchAll(/<(button|input)\b[^>]*>/g)].map((m) => m[0]);
+  if (liveButtons.length !== 1 || !/onClick=\{onClick\}/.test(liveButtons[0]) || !/disabled=\{disabled\}/.test(liveButtons[0]) || !/aria-describedby=\{describedBy\}/.test(liveButtons[0]) || !/className="primary g1-live"/.test(liveButtons[0]))
+    throw new Error(`${p4Dir}/Controls.tsx's LiveButton draws ${liveButtons.length} controls, or one that is not the caller's onClick, disabled by the caller's reason, described by the live sentence and marked g1-live. A live control is enabled on exactly that shape.`);
+  if (!/liveOf\(action\);/.test(liveBlock))
+    throw new Error(`${p4Dir}/Controls.tsx's LiveButton no longer asks liveOf() before drawing. The founder's record is checked before an enabled control exists, not after.`);
   if ((controls.match(/refusalFor\(/g) ?? []).length < 3)
     throw new Error(`${p4Dir}/Controls.tsx no longer renders the gate's sentence beside its controls through refusalFor().`);
   const screenOf = new Map(p4G1.subScreens.map((s) => [s.file, s.id]));
@@ -33223,18 +33333,27 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
   for (const f of p4Files) {
     const code = p4Code(f);
     if (!f.endsWith("/Controls.tsx") && f !== p4Founder) {
-      const own = /<(button|form)\b|\bon(Click|Submit|KeyUp|Input)=/.exec(code);
+      const live = p4LiveFiles.includes(f);
+      const own = (live ? /<(button|form)\b|\bon(Submit|KeyUp|Input)=/ : /<(button|form)\b|\bon(Click|Submit|KeyUp|Input)=/).exec(code);
       if (own)
-        throw new Error(`${f} draws ${own[0]} of its own. A GilbertOne control is drawn by Controls.tsx, disabled beside its gate, and nothing here has a handler: ${p4.portal.refusals.find((r) => r.id === "no-gilbertone-action-while-its-gate-is-open").statement}`);
-      if (/\bonChange=/.test(code) && !f.endsWith("/VoicePreview.tsx"))
-        throw new Error(`${f} changes state on input. Only the voice preview takes typing, and it keeps what is typed on the screen.`);
+        throw new Error(`${f} draws ${own[0]} of its own. A GilbertOne control is drawn by Controls.tsx — disabled beside its gate, or live on the founder's record — and nothing here has a handler of its own: ${p4.portal.refusals.find((r) => r.id === "no-gilbertone-action-while-its-gate-is-open").statement}`);
+      if (/\bonChange=/.test(code) && !live)
+        throw new Error(`${f} changes state on input. Only the Voice screen and the voice preview take typing, and they keep what is typed on the screen.`);
+      /* Every handler a live file hands out goes to a LiveButton, and every LiveButton gets one: a
+         handler on anything else is a control drawn outside Controls.tsx. */
+      if (live && (code.match(/\bonClick=/g) ?? []).length !== (code.match(/<LiveButton\b/g) ?? []).length)
+        throw new Error(`${f} has an onClick that is not a LiveButton's, or a LiveButton with none. The only enabled control on a GilbertOne screen is a live action's button.`);
     }
-    for (const m of code.matchAll(/<Gated(?:Action|Button|Refusal|Checkbox)\s+id="([^"]+)"/g)) {
+    if (!p4LiveFiles.includes(f) && f !== p4Founder && /<LiveButton\b/.test(code))
+      throw new Error(`${f} draws a LiveButton. Only the Voice screen and the voice preview draw one.`);
+    for (const m of code.matchAll(/<(?:Gated(?:Action|Button|Refusal|Checkbox)|Live(?:Button|Sentence))\s+id="([^"]+)"/g)) {
       const a = actions.get(m[1]);
       if (!a) throw new Error(`${f} draws the action "${m[1]}", which packages/catalog/control-tower-portal.json#gilbertone.actions does not declare.`);
       const screen = screenOf.get(f) ?? (f.endsWith("/VoicePreview.tsx") ? "voice" : null);
       if (screen && a.screen !== screen)
         throw new Error(`${f} draws "${a.id}", which the contract places on the ${a.screen} screen.`);
+      if (/^<Live/.test(m[0]) !== liveIds.has(a.id))
+        throw new Error(`${f} draws "${a.id}" ${/^<Live/.test(m[0]) ? "live, and the contract holds it behind a gate" : "gated, and the contract records it live"}. A control's shape is its record's.`);
       used.add(a.id);
     }
     for (const m of code.matchAll(/<GatedActions\s+ids=\{\[([^\]]*)\]\}/g))
@@ -33251,17 +33370,32 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
   p4Summary.actions = p4G1.actions.length;
 }
 
-/* 4. The locked voice classes have no save control. Emergency, refusal and escalation — voice.json's
-   clinical-delivery zone — may be heard in the preview and never saved as a default. Every place a
-   GilbertOne screen draws Save as default, it draws it only under the class's own
-   previewMaySaveAsDefault, never by name; and no GilbertOne file names a class to decide it. */
+/* 4. The locked voice classes have no save control and no chooser. Emergency, refusal and escalation
+   — voice.json's clinical-delivery zone — may be heard in the preview and never saved as a default.
+   Every place a GilbertOne screen draws Save as default, or a select of voice labels, it draws it only
+   under the class's own previewMaySaveAsDefault, never by name; the preview's voice select on a locked
+   register is disabled and shows the platform's default; and no GilbertOne file names a class to
+   decide it. */
 {
-  for (const f of [`${p4Dir}/Voice.tsx`, `${p4Dir}/VoicePreview.tsx`]) {
-    const code = p4Code(f);
-    const saves = (code.match(/<Gated(?:Action|Button)\s+id="voice-save-as-default"/g) ?? []).length;
-    const guarded = (code.match(/previewMaySaveAsDefault\s*\?\s*<Gated(?:Action|Button)\s+id="voice-save-as-default"/g) ?? []).length;
+  const locked = p4.voice.refusals.find((r) => r.id === "no-save-as-default-on-a-locked-row").statement;
+  {
+    const code = p4Code(`${p4Dir}/Voice.tsx`);
+    const selects = (code.match(/<select\b/g) ?? []).length;
+    const saves = (code.match(/<LiveButton\s+id="voice-save-as-default"/g) ?? []).length;
+    const guarded = (code.match(/previewMaySaveAsDefault\s*\?\s*<div className="g1-voice-cell">\s*<select\b[^>]*>[\s\S]*?<\/select>\s*<LiveButton\s+id="voice-save-as-default"/g) ?? []).length;
+    if (!saves || saves !== guarded || selects !== guarded)
+      throw new Error(`${p4Dir}/Voice.tsx draws ${selects} voice selects and ${saves} Save as default buttons, ${guarded} of them together under the class's previewMaySaveAsDefault. A row chooses and saves a voice only where its class allows it, and the emergency, refusal and escalation rows offer nothing to choose and nothing to save — ${locked}`);
+  }
+  {
+    const code = p4Code(`${p4Dir}/VoicePreview.tsx`);
+    const saves = (code.match(/<LiveButton\s+id="voice-save-as-default"/g) ?? []).length;
+    const guarded = (code.match(/previewMaySaveAsDefault\s*\?\s*<div className="g1-save g1-action"[\s\S]*?<LiveButton\s+id="voice-save-as-default"/g) ?? []).length;
     if (!saves || saves !== guarded)
-      throw new Error(`${f} draws Save as default ${saves} times, ${guarded} of them under the class's previewMaySaveAsDefault. The emergency, refusal and escalation rows play the locked register and offer nothing to save — ${p4.voice.refusals.find((r) => r.id === "no-save-as-default-on-a-locked-row").statement}`);
+      throw new Error(`${p4Dir}/VoicePreview.tsx draws Save as default ${saves} times, ${guarded} of them under the class's previewMaySaveAsDefault. The emergency, refusal and escalation registers play and offer nothing to save — ${locked}`);
+    if (!/chosen\.previewMaySaveAsDefault\s*\?\s*<select id=\{voiceField\}[^>]*\bonChange=[\s\S]*?:\s*<select id=\{voiceField\}[^>]*\sdisabled\s*>/.test(code))
+      throw new Error(`${p4Dir}/VoicePreview.tsx's voice select is no longer enabled only under the class's previewMaySaveAsDefault, with a disabled select otherwise. A locked register shows the platform's default and lets nobody choose.`);
+    if (!/const asked: VoiceLabel \| null = chosen\.previewMaySaveAsDefault \? \(label \?\? inForce!\) : \(platform as VoiceLabel \| null\);/.test(code))
+      throw new Error(`${p4Dir}/VoicePreview.tsx no longer sends a locked register's reading in the platform's own voice. What Play asks for on a locked register is the contract's defaultVoice, whatever any setting or choice says.`);
   }
   for (const f of p4Files) {
     const named = p4Code(f).match(/(['"`])(emergency|refusal|escalation)\1/);
@@ -33273,33 +33407,49 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
       throw new Error(`packages/catalog/voice.json offers Save as default on "${c.id}", a clinical-delivery class, and the Voice screen would draw it.`);
 }
 
-/* 5. The voice preview never calls a speak route, and no GilbertOne screen makes a request of its own.
-   The preview plays nothing: there is no admin-authenticated speak route and the patients' route is
-   not the administration screen's to use. So no GilbertOne file names a speak or listen route, the
-   browser's synthesiser, an audio element or a network call, and none imports a module that speaks or
-   calls the service. The one request the category makes is lib/gilbertone-admin.ts reading the two
-   self-describing routes the contract lists — and only those two. */
+/* 5. The voice preview's one request is the contract's speak route, and no GilbertOne screen makes a
+   request of its own. Until 27 September 2026 the preview played nothing; since the founder's decision
+   it POSTs the assistant service's own speak route — the patients' route, there being no other — with
+   the administrator's sentence, through lib/gilbertone-admin.ts and at the path and version the portal
+   contract names, and plays the answer through one audio element made and revoked in VoicePreview.tsx.
+   So: no GilbertOne file types a speak or listen path, names the browser's synthesiser, a socket or a
+   beacon, or imports a module that speaks or calls the service; `new Audio` appears once, in the
+   preview, beside its revoke; lib/gilbertone-admin.ts makes exactly two kinds of request — the status
+   read of the two self-describing routes, and the POST of the preview route — and the preview route is
+   a built POST route in packages/catalog/apis/assistant.json that takes text, language and voice and
+   answers audio. */
 {
-  const speaking = /\/speak\b|\/listen\b|speechSynthesis|SpeechSynthesisUtterance|new\s+Audio\b|<audio\b|\bsendBeacon\b|XMLHttpRequest|WebSocket|EventSource/;
+  const speaking = /\/speak\b|\/listen\b|\/turn\b|speechSynthesis|SpeechSynthesisUtterance|<audio\b|\bsendBeacon\b|XMLHttpRequest|WebSocket|EventSource/;
   const speakers = /from '[^']*(lib\/gilbertone-service|lib\/voice|lib\/apis\.generated|lib\/gilbertone-bridge|components\/AssistantLauncher|features\/GilbertWidget)'/;
   for (const f of p4Files) {
     const code = uncommented(read(f));
     const hit = code.match(speaking);
     if (hit)
-      throw new Error(`${f} names ${hit[0]}. The voice preview plays nothing and no GilbertOne screen asks the service to speak: there is no speak route an administrator signs in to, and the patients' is not this screen's to use.`);
+      throw new Error(`${f} names ${hit[0]}. The preview asks the one route the contract names, through lib/gilbertone-admin.ts, and no GilbertOne screen types a speak, listen or turn path or reaches for a synthesiser or a socket.`);
     const imported = code.match(speakers);
     if (imported)
-      throw new Error(`${f} imports ${imported[1]}, which speaks or calls the assistant service. The administration screens reach the service through lib/gilbertone-admin.ts's two status reads and nothing else.`);
+      throw new Error(`${f} imports ${imported[1]}, which speaks or calls the assistant service. The administration screens reach the service through lib/gilbertone-admin.ts's status reads and its one preview request, and nothing else.`);
     if (f !== p4Lib && /\bfetch\s*\(/.test(code))
-      throw new Error(`${f} makes a request of its own. The one request GilbertOne administration makes is lib/gilbertone-admin.ts's read of the health and status routes.`);
+      throw new Error(`${f} makes a request of its own. GilbertOne administration's requests are lib/gilbertone-admin.ts's: the two status reads, and the preview's one POST.`);
+    const audios = (code.match(/new\s+Audio\b/g) ?? []).length;
+    if (f.endsWith("/VoicePreview.tsx") ? audios !== 1 || !/URL\.revokeObjectURL\(/.test(code) : audios)
+      throw new Error(`${f} makes ${audios} audio elements${f.endsWith("/VoicePreview.tsx") ? " or never revokes the blob it plays" : ""}. The preview plays a reading through one element of its own, revoked when it ends; nothing else on a GilbertOne screen plays sound.`);
   }
   const lib = uncommented(read(p4Lib));
   const fetches = lib.match(/\bfetch\s*\(/g) ?? [];
-  if (fetches.length !== 1 || !/fetch\(`\$\{base\}\$\{g1\.overview\.prefix\}\$\{path\}`/.test(lib))
-    throw new Error(`${p4Lib} makes ${fetches.length} requests, or builds one from anything but the contract's prefix and a route it lists. It reads the two self-describing routes and nothing else.`);
+  if (fetches.length !== 2 || !/fetch\(`\$\{base\}\$\{g1\.overview\.prefix\}\$\{path\}`, \{ signal, headers: \{ accept: 'application\/json' \} \}\)/.test(lib))
+    throw new Error(`${p4Lib} makes ${fetches.length} requests, or its status read is no longer the contract's prefix and a route it lists with an accept header and nothing else. It reads the two self-describing routes and POSTs the preview route, and nothing else.`);
+  if (!/fetch\(`\$\{base\}\$\{g1\.overview\.prefix\}\$\{g1\.voice\.previewRoute\.path\}`, \{\s*method: 'POST', signal, headers: \{ 'content-type': 'application\/json', accept: 'application\/json' \},\s*body: JSON\.stringify\(\{ text, language, voice: voiceName, userConsent: true \}\)\s*\}\)/.test(lib))
+    throw new Error(`${p4Lib}'s preview request is no longer a POST of the contract's preview route carrying the sentence, the language, the voice name and the administrator's consent, and nothing else. What the preview sends a provider is exactly those four.`);
   const paths = p4G1.overview.routes.map((r) => r.path).sort().join();
   if (paths !== "/health,/v1/status" || p4G1.overview.prefix !== "/assistant")
     throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.overview reads [${paths}] under ${p4G1.overview.prefix}. The Overview asks the assistant's health and status routes, and no other — a speak or turn route in this list would be the administration screen talking to patients' routes.`);
+  const preview = p4G1.voice.previewRoute ?? {};
+  const previewRoute = p4.apis.routes.find((x) => x.method === "POST" && x.path === preview.path && x.version === preview.version && x.status === "built");
+  const takes = (field) => previewRoute?.request.some((x) => x.field === field);
+  const answers = (field) => previewRoute?.response.some((x) => x.field === field);
+  if (!previewRoute || !takes("text") || !takes("language") || !takes("voice") || !answers("audioBase64") || !answers("format") || /listen|turn/.test(String(preview.path)))
+    throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.voice.previewRoute names POST ${preview.path}@${preview.version}, which packages/catalog/apis/assistant.json has no built route for taking text, language and voice and answering audioBase64 and format. Play asks one route, and it is the speak route at the version the contract declares.`);
   if (!/readServiceBooleans\(/.test(uncommented(read(`${p4Dir}/EngineOverview.tsx`))))
     throw new Error(`${p4Dir}/EngineOverview.tsx no longer reads the service through readServiceBooleans().`);
 }
@@ -33380,8 +33530,83 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
   }
 }
 
+/* 9. The patient side of the decision of 27 September 2026: a presentation setting reaches a routine
+   answer and never an emergency, a refusal or an escalation. lib/voice.ts decides which cloud label a
+   reading is asked in inside one function of one shape — the answer's class looked up in voice.json's
+   zones, a zone no tenant may configure answered with the contract's defaultVoice before any setting
+   is asked, the setting asked once, at the moment of speaking, and only for the surface's own
+   presentation class — and presentationVoiceNow appears in that file exactly there. The panel hands
+   every reading its class from the contract's spokenRegister map, read through lib/assistant.ts's
+   voiceClassOf the way cueOf reads the face; the map names only classes voice.json declares, puts the
+   emergency kind in a locked zone, and maps every audience and surface to a conversation type
+   intelligence-levels.json defines, or to none. No label is typed in voice.ts, and the defaultVoice
+   the contract names is one of the two voices it carries. */
+{
+  const code = uncommented(read(p4VoiceLib)).replace(/^\s*import\s[^;]*;\s*$/gm, "");
+  const shape = /const cloudVoiceFor = \(answerClass: string \| null\): CloudVoice => \{\s*if \(!TENANT_ZONES\.has\(zoneOfClass\(answerClass\)\)\) return PLATFORM_VOICE;\s*if \(presentationClass === null\) return PLATFORM_VOICE;\s*return presentationVoiceNow\(\)\.byClass\[presentationClass\];\s*\};/;
+  if (!shape.test(code))
+    throw new Error(`${p4VoiceLib} no longer decides the cloud voice in the one shape the founder's decision allows: the answer's zone first, the platform's voice for any zone a tenant may not configure and for a surface with no presentation class, and the setting only after both. ${p4.voice.refusals.find((r) => r.id === "clinical-delivery-voice-is-not-configurable").statement}`);
+  if ((code.match(/presentationVoiceNow\(/g) ?? []).length !== 1)
+    throw new Error(`${p4VoiceLib} asks presentationVoiceNow() somewhere other than cloudVoiceFor, or not at all. The setting is read once, at the moment of speaking, behind the zone test — a second read is a way past it.`);
+  if (!/const PLATFORM_VOICE = voicePolicy\.cloud\.defaultVoice as CloudVoice;/.test(code))
+    throw new Error(`${p4VoiceLib}'s PLATFORM_VOICE is no longer packages/catalog/assistant.json's voice.cloud.defaultVoice. The voice a locked register reads in is a line in the contract, never a label in code.`);
+  if (!/const TENANT_ZONES = new Set\(\s*voiceMap\.zones\.filter\(\(z\) => z\.configurable === "tenant"\)\.map\(\(z\) => z\.id\),?\s*\);/.test(code))
+    throw new Error(`${p4VoiceLib} no longer reads which zones a tenant may configure from packages/catalog/voice.json's own configurable word. A zone locked there is locked in the panel the same day, or the panel has taken the decision into code.`);
+  if (!/speakText\(\s*text,\s*cloudVoiceFor\(options\.voiceClass \?\? presentationClass\),\s*language,?\s*\)/.test(code))
+    throw new Error(`${p4VoiceLib} no longer asks the cloud voice with cloudVoiceFor(options.voiceClass ?? presentationClass). A reading's label is decided there and handed straight to the request.`);
+  const label = code.match(/(['"])(female|male)\1/);
+  if (label)
+    throw new Error(`${p4VoiceLib} types the label ${label[0]}. Which voice reads is the contract's default or an administrator's setting, and a label typed here would be a third answer.`);
+  const cloud = p4.assistant.voice.cloud;
+  if (!(cloud.defaultVoice in (cloud.voices ?? {})))
+    throw new Error(`packages/catalog/assistant.json's voice.cloud.defaultVoice is "${cloud.defaultVoice}", which is not one of its voices (${Object.keys(cloud.voices ?? {}).join(", ")}). The platform's default is one of the voices the platform has.`);
+  for (const l of p4.assistant.voice.languages)
+    if (l.ttsAvailable && !(cloud.defaultVoice in (l.ttsVoices ?? {})))
+      throw new Error(`packages/catalog/assistant.json's ${l.name} carries no "${cloud.defaultVoice}" voice, the platform's default. Every language with a voice carries the label a locked register is read in.`);
+  const register = p4.assistant.spokenRegister ?? {};
+  if (!/founder/i.test(String(register.decidedBy)) || !/^\d{4}-\d{2}-\d{2}$/.test(String(register.on)) || !register.why)
+    throw new Error("packages/catalog/assistant.json has lost its spokenRegister section, or the record of who decided it, when and why. Which register an answer is read in is the founder's decision on file, like the face it wears.");
+  const classes = new Map(p4.voice.queryClasses.map((c) => [c.id, c]));
+  const lockedZones = new Set(p4.voice.zones.filter((z) => z.configurable !== "tenant").map((z) => z.id));
+  for (const kind of Object.keys(p4.assistant.affect.answers))
+    if (!classes.has(register.answers?.[kind]))
+      throw new Error(`packages/catalog/assistant.json's spokenRegister gives the ${kind} answer the register "${register.answers?.[kind]}", which packages/catalog/voice.json does not declare. Every kind the face map knows, the voice map knows, and only by a class the voice contract holds.`);
+  for (const kind of Object.keys(register.answers ?? {}))
+    if (!p4.assistant.affect.answers[kind])
+      throw new Error(`packages/catalog/assistant.json's spokenRegister names the answer kind "${kind}", which the affect section does not. The two maps cover the same kinds.`);
+  if (!lockedZones.has(classes.get(register.answers.emergency)?.zone))
+    throw new Error(`packages/catalog/assistant.json's spokenRegister reads the emergency answer in "${register.answers.emergency}", whose zone a tenant may configure. The emergency answer reads in a locked register, or the ambulance numbers are read in a brand voice.`);
+  const types = new Set(p4.levels.conversationTypes.map((t) => t.id));
+  const audienceIds = p4.assistant.audiences.list.map((a) => a.id).sort().join();
+  if (Object.keys(register.audiences ?? {}).sort().join() !== audienceIds)
+    throw new Error(`packages/catalog/assistant.json's spokenRegister.audiences names [${Object.keys(register.audiences ?? {}).join(", ")}]; the audiences section has [${audienceIds}]. Every audience says which presentation register it reads in, or that it reads in none.`);
+  for (const [name, type] of [...Object.entries(register.audiences ?? {}), ...Object.entries(register.surfaces ?? {})])
+    if (type !== null && !types.has(type))
+      throw new Error(`packages/catalog/assistant.json's spokenRegister maps "${name}" to the conversation type "${type}", which packages/catalog/intelligence-levels.json does not define.`);
+  const panel = uncommented(read("apps/web/src/features/Assistant.tsx"));
+  if (!/useVoiceAdapter\("assistant", audienceId\)/.test(panel) || !/voiceClass: voiceClassOf\(last\.reply, last\.unread\),/.test(panel))
+    throw new Error("apps/web/src/features/Assistant.tsx no longer opens its voice adapter for its audience and hands every reading its class from voiceClassOf(last.reply, last.unread). A reading with no class is read as the surface's own presentation register, which an emergency must never be.");
+  const model = uncommented(read("apps/web/src/lib/assistant.ts"));
+  if (!/export function voiceClassOf\(reply: Reply, unread = false\): string \{\s*return unread\s*\? spokenRegister\.answers\.unread\s*: spokenRegister\.answers\[reply\.kind\];\s*\}/.test(model))
+    throw new Error("apps/web/src/lib/assistant.ts's voiceClassOf no longer reads the contract's spokenRegister map from the reply kind alone, with the unread turn in the refusal's register. The register is the contract's, never a ternary in a component.");
+}
+
+/* 10. No neural voice name is typed on a GilbertOne screen, in the two libs behind the Voice screen,
+   or in the journey that holds them. The names are packages/catalog/assistant.json's, per language;
+   the Voice screen reads them from there over a dynamic import, the preview hands them on, and the
+   setting stores a label. Swept with comments in, because a name in a comment is a name the next
+   edit copies. Phase 2's check 6 holds the contracts and the service the same way. */
+{
+  const neural = /\b[a-z]{2}-[A-Z]{2}-[A-Za-z]+Neural\b/;
+  for (const f of [...p4Files, p4VoiceLib, "apps/web/src/lib/assistant.ts", "tests/gilbertone-admin.spec.ts"]) {
+    const found = read(f).match(neural);
+    if (found)
+      throw new Error(`${f} names the voice ${found[0]}. Voices are read from packages/catalog/assistant.json, per language, and a second copy is how two screens come to disagree about which voice reads an emergency.`);
+  }
+}
+
 console.log(
-  `GilbertOne API Administration, Phase 4 · ${p4Summary.subScreens} sub-screens behind dynamic imports, each reading a contract under a gate a register holds; no key, fragment, fingerprint or deployment address on any of them and no field that takes one; ${p4Summary.actions} actions, every one disabled beside its gate while G29, G30, G31, G32 or Module 8 is open, and founder access's one file the only live form, held by its own block below; no Save as default on a locked voice; no speak route, synthesiser or request but the two status reads; ${p4Summary.configured} cards configured, each backed by its contract; the Overview reads booleans only; and no number typed that a contract owns.`,
+  `GilbertOne API Administration, Phase 4 · ${p4Summary.subScreens} sub-screens behind dynamic imports, each reading a contract under a gate a register holds; no key, fragment, fingerprint or deployment address on any of them and no field that takes one; ${p4Summary.actions} actions, ${p4LiveActions.length} of them live on the founder's dated record of 27 September 2026 and every other one disabled beside its gate while G29, G30, G31, G32 or Module 8 is open, and founder access's one file the only live form, held by its own block below; a voice chosen and saved only under previewMaySaveAsDefault, never on a locked row; the preview's one POST to the contract's speak route and one audio element, and no other request but the two status reads; the panel's clinical-delivery readings in the contract's default voice and never a setting's; no neural voice name typed; ${p4Summary.configured} cards configured, each backed by its contract; the Overview reads booleans only; and no number typed that a contract owns.`,
 );
 
 /* ==== Founder access (24 September 2026) ============================================================

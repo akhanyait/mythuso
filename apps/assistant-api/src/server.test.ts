@@ -1071,11 +1071,24 @@ test('every address the contract declares is built, and none of them answers not
    `${route.method} ${route.path}@${route.version} is ${route.status} and has no built version beside it`,
   );
  }
+ /* Since 27 September 2026 the assistant engine has settings, and its two settings routes are built
+    on the engine runtime under packages/engines — the same runtime every other engine's settings
+    answer on — and not by this service. They are told apart by where their evidence lives, never by
+    name, so a third route built there is left out the same way and a route built here is walked. */
+ const servedHere = (route: { evidence?: { file?: string } }) =>
+  !route.evidence?.file?.startsWith('packages/engines/');
  const declared = [
   ...new Map(
-   assistantContract.routes.map((route) => [`${route.method} ${route.path}`, route] as const),
+   assistantContract.routes
+    .filter(servedHere)
+    .map((route) => [`${route.method} ${route.path}`, route] as const),
   ).values(),
  ];
+ const elsewhere = assistantContract.routes.filter((route) => !servedHere(route));
+ assert.ok(
+  elsewhere.every((route) => /^\/v1\/assistant\/(settings|setting-changes|setting-reviews)$/.test(route.path)),
+  'the only addresses built elsewhere are the settings routes the engine runtime answers',
+ );
  /* Twelve addresses the conversation surface answers, and founder access's four (24 September 2026),
     which a server started without its switch answers with the dark refusal — never a 404 and never
     not-yet-available — so the walk below holds them to the same rule. */

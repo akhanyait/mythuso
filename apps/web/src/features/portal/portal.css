@@ -854,6 +854,9 @@
   font-weight: 600;
 }
 .portal .g1-cost {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
   margin: 0;
 }
 .portal .g1-details {
@@ -948,6 +951,10 @@
 .portal .g1-card .g1-param-who {
   color: var(--charcoal);
   font-size: 13px;
+  /* A "from" line is a contract path — packages/catalog/assistant.json#voice.languages[].recognitionLocales
+     — with nothing in it a browser will break at, and on a 390 px phone it was the one thing on the
+     Voice screen that widened main and scrolled the whole page sideways. */
+  overflow-wrap: anywhere;
 }
 .portal .g1-card .g1-param-range {
   margin: 0 0 var(--space-8);
@@ -1531,3 +1538,63 @@
 .portal .pt-context-field small{font-size:13px;line-height:1.4}
 .portal .pt-category .page-header{margin-bottom:var(--space-16)}
 .portal .pt-notice{background:var(--teal-soft);border-radius:var(--r-control);padding:var(--space-8) var(--space-16)}
+
+/* ---- The live voice controls (GilbertOne · Voice, 27 September 2026) ------------------------------
+   The two live actions the founder decided: a select and a Save as default on each presentation row of
+   the mapping table, and the preview's Play. A live button is the portal's primary button; a disabled
+   live button is described by the reason it waits. The row's cell wraps on a phone so the table never
+   widens the page: the select and the button stack, and the table-scroll around it does the rest. */
+.portal .g1-live {
+  min-height: 44px;
+  padding: var(--space-8) var(--space-16);
+  font-size: 15px;
+}
+.portal .g1-live:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.portal .g1-live-why {
+  margin: 0;
+  color: var(--charcoal);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.portal .g1-voice-cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+  min-width: 16rem;
+}
+.portal .g1-voice-cell select {
+  min-height: 44px;
+  max-width: 100%;
+  padding: var(--space-8) var(--space-12);
+  font-size: 15px;
+}
+.portal .g1-voice-cell small {
+  flex: 1 0 100%;
+  color: var(--faint);
+  font-size: 13px;
+}
+.portal .g1-save {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  max-width: 36rem;
+  margin-top: var(--space-12);
+}
+.portal .g1-field select:disabled {
+  background: var(--cloud);
+  border-color: var(--stone);
+  color: var(--faint);
+  cursor: not-allowed;
+}
+@media (min-width: 1000px) {
+  .portal .g1-preview-fields {
+    grid-template-columns: repeat(3, minmax(0, 14rem));
+  }
+  .portal .g1-preview-fields .wide {
+    grid-column: 1 / -1;
+  }
+}

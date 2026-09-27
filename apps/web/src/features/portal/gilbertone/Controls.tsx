@@ -1,17 +1,24 @@
 import { useId, type CSSProperties, type ReactNode } from 'react';
 import { Lock } from 'lucide-react';
-import { actionOf, cardStatusOf, gateIsOpen, gateOf, refusalFor, type Action } from '../../../lib/gilbertone-admin';
+import { actionOf, cardStatusOf, gateIsOpen, gateOf, liveOf, refusalFor, type Action } from '../../../lib/gilbertone-admin';
 
 /* The only way a GilbertOne administration screen draws something that would change anything.
  *
  * Every button, checkbox and key field on these seven screens comes from here, named by an action in
- * packages/catalog/control-tower-portal.json#gilbertone.actions, and every one is disabled with the
- * gate's sentence beside it and tied to it by aria-describedby. There is no `disabled={false}` path and
- * no handler: while the vault, the key registry, the health-check runner, the tenant and the kill
- * switch are all named-but-absent there is nothing for a handler to call, and the assistant these
- * screens administer is answering patients in production. scripts/check-boundaries.mjs fails the build
- * if a GilbertOne screen draws a control any other way, or if a gate one of these names stops being
- * open while the control still has nothing behind it.
+ * packages/catalog/control-tower-portal.json#gilbertone.actions. A gated action is disabled with the
+ * gate's sentence beside it and tied to it by aria-describedby, with no `disabled={false}` path and no
+ * handler: while the vault, the key registry, the health-check runner, the tenant and the kill switch
+ * are all named-but-absent there is nothing for a handler to call, and the assistant these screens
+ * administer is answering patients in production. scripts/check-boundaries.mjs fails the build if a
+ * GilbertOne screen draws a control any other way, or if a gate one of these names stops being open
+ * while the control still has nothing behind it.
+ *
+ * Since the founder's decision of 27 September 2026 there is a second path, and only one: <LiveButton/>
+ * draws an action the contract records as live — gate null, decided by the founder on a day, with a
+ * sentence saying what it does and what it never does — enabled, with a handler, and described by that
+ * sentence. Two actions are live today, the Voice screen's Save as default and Play, and the build
+ * refuses a live button for an action whose record is missing any of the three, exactly as it refuses a
+ * gated button for a gate that has closed.
  *
  * Why disabled buttons at all, when docs/control-tower-accessibility.md prefers a sentence to a
  * disabled control: these are not locked settings, they are the plan's controls waiting on a gate, and
@@ -20,9 +27,28 @@ import { actionOf, cardStatusOf, gateIsOpen, gateOf, refusalFor, type Action } f
  * talk, captions, the clinical register, the clinical corpus — are <Locked/> below: text, no control. */
 
 const assertOpen = (action: Action) => {
+ if (action.gate === null)
+  throw new Error(`"${action.id}" is a live action, and a gated control is being drawn for it. Draw it with LiveButton, or record the gate that holds it.`);
  if (!gateIsOpen(action.gate))
   throw new Error(`"${action.id}" is held by ${action.gate}, and ${action.gate} is no longer open. Build what the action does before drawing it enabled.`);
 };
+
+/* The one enabled control on these screens: a live action, with its handler and the founder's sentence
+   tied to it. It may be disabled by its caller for a moment — nothing typed to play, a reading already
+   in flight, a choice that is already the one in force — and then it is described by the caller's own
+   reason, never left mute. liveOf throws before anything is drawn when the record is not complete. */
+export function LiveButton({ id, name, describedBy, onClick, disabled = false }: {
+ id: string; name?: string; describedBy: string; onClick: () => void; disabled?: boolean;
+}) {
+ const action = actionOf(id);
+ liveOf(action);
+ return <button type="button" className="primary g1-live" onClick={onClick} disabled={disabled} aria-describedby={describedBy}>{name ?? action.label}</button>;
+}
+/* A live action's record, drawn once beside its button: who decided it, when, and the sentence. */
+export function LiveSentence({ id, sentenceId }: { id: string; sentenceId: string }) {
+ const live = liveOf(actionOf(id));
+ return <p id={sentenceId} className="g1-live-why"><strong>Live since {live.since}, decided by the {live.decidedBy}.</strong> {live.sentence}</p>;
+}
 
 /* One action and its refusal. */
 export function GatedAction({ id, name }: { id: string; name?: string }) {
@@ -48,20 +74,6 @@ export function GatedActions({ ids, label }: { ids: readonly string[]; label: st
    <button key={a.id} type="button" className="secondary g1-disabled" disabled aria-describedby={why}>{a.label}</button>)}</div>
   <p id={why} className="g1-refusal"><strong>{gateOf(gates[0]!).label}.</strong> {refusalFor(actions[0]!)}</p>
  </div>;
-}
-
-/* One action drawn in several places — the Save as default on each presentation row of the voice
-   table — with its refusal written once, below them, by <GatedRefusal/>. Each button names the sentence
-   it is held by, so a screen reader on any row hears why. */
-export function GatedButton({ id, name, describedBy }: { id: string; name: string; describedBy: string }) {
- const action = actionOf(id);
- assertOpen(action);
- return <button type="button" className="secondary g1-disabled" disabled aria-describedby={describedBy}>{name}</button>;
-}
-export function GatedRefusal({ id, refusalId }: { id: string; refusalId: string }) {
- const action = actionOf(id);
- assertOpen(action);
- return <p id={refusalId} className="g1-refusal"><strong>{gateOf(action.gate).label}.</strong> {refusalFor(action)}</p>;
 }
 
 /* The plan's Show metadata checkbox (§7.4), drawn and disabled: no key registry exists, so there is
