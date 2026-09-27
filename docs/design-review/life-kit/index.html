@@ -1,3 +1,62 @@
 <!doctype html>
-<html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MyThuso · Life, considered — UI/UX kit</title><link rel="stylesheet" href="../../../apps/web/src/tokens.generated.css"><link rel="stylesheet" href="kit.css"><link rel="stylesheet" href="patient.css"><link rel="stylesheet" href="motion-polish.css"><link rel="stylesheet" href="scenes.css"><link rel="stylesheet" href="colour-polish.css"><link rel="stylesheet" href="widgets.css"><link rel="stylesheet" href="province.css"></head>
-<body><a class="skip" href="#main">Skip to design</a><header class="review-bar"><a href="#tower" class="review-brand">MyThuso <span>Design studio / 01</span></a><nav aria-label="Design concepts"><a href="#province">ControlTower</a><a href="#tower">Analytics</a><a href="#dispatch">Dispatch</a><a href="#patient">MyThuso</a><a href="#care">Care</a><a href="#gilbert">GilbertOne</a><a href="#landing">Public site</a><a href="#kit">UI kit</a></nav><label class="p-review-picker"><span>Preview screen</span><select id="preview-screen" aria-label="Preview screen"><option value="province">Province map</option><option value="tower">Analytics</option><option value="dispatch">Dispatch</option><option value="patient">MyThuso</option><option value="care">Explore care</option><option value="activity">Weekly review</option><option value="gilbert">GilbertOne</option><option value="landing">Public site</option><option value="kit">UI kit</option></select></label><button id="motion-toggle" class="motion-toggle" aria-pressed="true">Motion on</button></header><div id="app"></div><dialog id="detail"><form method="dialog"><button class="close" aria-label="Close details">×</button></form><span class="eyebrow">DESIGN WALKTHROUGH</span><h2 id="detail-title"></h2><div id="detail-body"></div></dialog><script src="data.js"></script><script src="province-data.js"></script><script src="province.js"></script><script src="kit.js"></script></body></html>
+<html lang="en-ZA">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>MyThuso · Life, considered — UI/UX kit</title>
+    <link rel="stylesheet" href="../../../apps/web/src/tokens.generated.css" />
+    <link rel="stylesheet" href="kit.css" />
+    <link rel="stylesheet" href="patient.css" />
+    <link rel="stylesheet" href="motion-polish.css" />
+    <link rel="stylesheet" href="scenes.css" />
+    <link rel="stylesheet" href="colour-polish.css" />
+    <link rel="stylesheet" href="widgets.css" />
+    <link rel="stylesheet" href="province.css" />
+    <link rel="stylesheet" href="vitals.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to design</a>
+    <header class="review-bar">
+      <a href="#tower" class="review-brand"
+        >MyThuso <span>Design studio / 01</span></a
+      >
+      <nav aria-label="Design concepts">
+        <a href="#province">ControlTower</a><a href="#tower">Analytics</a
+        ><a href="#dispatch">Dispatch</a><a href="#patient">MyThuso</a
+        ><a href="#vitals">Vitals</a><a href="#care">Care</a
+        ><a href="#gilbert">GilbertOne</a><a href="#landing">Public site</a
+        ><a href="#kit">UI kit</a>
+      </nav>
+      <label class="p-review-picker"
+        ><span>Preview screen</span
+        ><select id="preview-screen" aria-label="Preview screen">
+          <option value="province">Province map</option>
+          <option value="tower">Analytics</option>
+          <option value="dispatch">Dispatch</option>
+          <option value="patient">MyThuso</option>
+          <option value="vitals">Vital cards</option>
+          <option value="care">Explore care</option>
+          <option value="activity">Weekly review</option>
+          <option value="gilbert">GilbertOne</option>
+          <option value="landing">Public site</option>
+          <option value="kit">UI kit</option>
+        </select></label
+      ><button id="motion-toggle" class="motion-toggle" aria-pressed="true">
+        Motion on
+      </button>
+    </header>
+    <div id="app"></div>
+    <dialog id="detail">
+      <form method="dialog">
+        <button class="close" aria-label="Close details">×</button>
+      </form>
+      <span class="eyebrow">DESIGN WALKTHROUGH</span>
+      <h2 id="detail-title"></h2>
+      <div id="detail-body"></div>
+    </dialog>
+    <script src="data.js"></script>
+    <script src="province-data.js"></script>
+    <script src="province.js"></script>
+    <script src="kit.js"></script>
+  </body>
+</html>

@@ -7,6 +7,7 @@ kit @ 1440px: no overflow, undersized text/targets or broken images
 care @ 1440px: no overflow, undersized text/targets or broken images
 activity @ 1440px: no overflow, undersized text/targets or broken images
 province @ 1440px: no overflow, undersized text/targets or broken images
+vitals @ 1440px: no overflow, undersized text/targets or broken images
 tower @ 720px: no overflow, undersized text/targets or broken images
 dispatch @ 720px: no overflow, undersized text/targets or broken images
 patient @ 720px: no overflow, undersized text/targets or broken images
@@ -16,6 +17,7 @@ kit @ 720px: no overflow, undersized text/targets or broken images
 care @ 720px: no overflow, undersized text/targets or broken images
 activity @ 720px: no overflow, undersized text/targets or broken images
 province @ 720px: no overflow, undersized text/targets or broken images
+vitals @ 720px: no overflow, undersized text/targets or broken images
 tower @ 390px: no overflow, undersized text/targets or broken images
 dispatch @ 390px: no overflow, undersized text/targets or broken images
 patient @ 390px: no overflow, undersized text/targets or broken images
@@ -25,6 +27,7 @@ kit @ 390px: no overflow, undersized text/targets or broken images
 care @ 390px: no overflow, undersized text/targets or broken images
 activity @ 390px: no overflow, undersized text/targets or broken images
 province @ 390px: no overflow, undersized text/targets or broken images
+vitals @ 390px: no overflow, undersized text/targets or broken images
 tower @ 320px: no overflow, undersized text/targets or broken images
 dispatch @ 320px: no overflow, undersized text/targets or broken images
 patient @ 320px: no overflow, undersized text/targets or broken images
@@ -34,5 +37,7 @@ kit @ 320px: no overflow, undersized text/targets or broken images
 care @ 320px: no overflow, undersized text/targets or broken images
 activity @ 320px: no overflow, undersized text/targets or broken images
 province @ 320px: no overflow, undersized text/targets or broken images
+vitals @ 320px: no overflow, undersized text/targets or broken images
 Navigation, queue filtering, modal/Escape, scripted prompts, form clearing, density explanation, reduced motion and keyboard focus: passed
+Vital card opens the explanation dialog and Escape closes it
 No browser page errors or HTTP failures

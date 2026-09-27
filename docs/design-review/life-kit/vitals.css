@@ -1,0 +1,269 @@
+/* Vital-card concept: the reference's clean white cards, translated into MyThuso tokens.
+   Colours are token custom properties only — no hex literals, no invented clinical status.
+   Status is a range statement ("Within range" / "Outside range"), never Normal/Low/High. */
+.v-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-20);
+  margin-bottom: var(--space-20);
+}
+.v-card {
+  background: var(--surface);
+  border: 1px solid var(--stone);
+  border-radius: var(--r-card);
+  padding: var(--space-24);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+.v-card-hit {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-16);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  min-height: 44px;
+  border-radius: var(--r-control);
+}
+.v-chip {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: var(--r-control);
+  display: grid;
+  place-items: center;
+}
+.v-chip svg {
+  width: 24px;
+  height: 24px;
+}
+.v-chip-teal {
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+}
+.v-chip-mango {
+  background: var(--mango-soft);
+  color: var(--mango-ink);
+}
+.v-chip-accent {
+  background: var(--accent-soft);
+  color: var(--teal-ink);
+}
+.v-chip-sage {
+  background: var(--aurora-sage);
+  color: var(--studio-ink);
+}
+.v-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+  flex: 1;
+}
+.v-label {
+  font-size: var(--type-caption);
+  color: var(--body);
+}
+.v-value {
+  font-size: var(--type-metric);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--brand-ink);
+}
+.v-value small {
+  font-size: var(--type-body);
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--body);
+}
+.v-pill {
+  margin-left: auto;
+  flex-shrink: 0;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--r-pill);
+  font-size: var(--type-caption);
+  padding: var(--space-4) var(--space-12);
+  white-space: nowrap;
+}
+.v-within {
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+}
+.v-outside {
+  background: var(--mango-soft);
+  color: var(--mango-ink);
+}
+.v-chart {
+  min-width: 0;
+}
+.v-svg {
+  width: 100%;
+  height: 110px;
+  display: block;
+}
+.v-grid {
+  stroke: var(--stone);
+  stroke-dasharray: 3 6;
+  fill: none;
+}
+.v-trace {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.v-trace-a {
+  stroke: var(--teal-ink);
+}
+.v-trace-b {
+  stroke: var(--mango-ink);
+}
+.v-dot-a {
+  fill: var(--teal-ink);
+}
+.v-dot-b {
+  fill: var(--mango-ink);
+}
+.v-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-size: var(--type-caption);
+  color: var(--body);
+  margin-top: var(--space-4);
+}
+.v-ecg {
+  border-top: 1px dashed var(--stone);
+  padding-top: var(--space-12);
+  display: grid;
+  gap: var(--space-4);
+}
+.v-ecg-svg {
+  width: 100%;
+  height: 64px;
+  display: block;
+}
+.v-ecg-path {
+  fill: none;
+  stroke: var(--teal-mid);
+  stroke-width: 2;
+  stroke-linejoin: miter;
+}
+.v-ecg-note {
+  font-size: var(--type-caption);
+  color: var(--mango-ink);
+}
+.v-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-12);
+  font-size: var(--type-caption);
+  color: var(--body);
+}
+.v-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: var(--space-4);
+}
+.v-swatch-a {
+  background: var(--teal-ink);
+}
+.v-swatch-b {
+  background: var(--mango-ink);
+}
+.v-legend small {
+  flex-basis: 100%;
+  font-size: var(--type-caption);
+  color: var(--body);
+}
+.v-legend strong {
+  color: var(--brand-ink);
+}
+.v-table-card {
+  margin-bottom: var(--space-20);
+}
+.v-table-scroll {
+  overflow-x: auto;
+}
+.v-table-scroll table {
+  min-width: 560px;
+}
+.v-boundary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-20);
+  border-radius: var(--r-control);
+  background: var(--teal-soft);
+}
+.v-boundary svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: var(--teal-ink);
+}
+.v-boundary p {
+  font-size: var(--type-caption);
+}
+@media (max-width: 760px) {
+  .v-cards {
+    grid-template-columns: 1fr;
+    gap: var(--space-16);
+  }
+  .v-card {
+    padding: var(--space-20);
+  }
+  .v-card-hit {
+    gap: var(--space-12);
+  }
+}
+@media (max-width: 350px) {
+  .v-card {
+    padding: var(--space-16);
+  }
+  .v-pill {
+    white-space: normal;
+  }
+}
+/* Finite entrance and draw-on, gated on the global motion toggle; no loops, no clinical meaning. */
+html[data-motion="on"] .v-card {
+  animation: colour-arrive var(--t-enter) var(--ease-soft) both;
+}
+html[data-motion="on"] .v-card:nth-child(2) {
+  animation-delay: var(--t-quick);
+}
+html[data-motion="on"] .v-card:nth-child(3) {
+  animation-delay: var(--t-settle);
+}
+html[data-motion="on"] .v-card:nth-child(4) {
+  animation-delay: calc(var(--t-settle) + var(--t-quick));
+}
+html[data-motion="on"] .v-trace {
+  stroke-dasharray: 1;
+  animation: trace-in calc(var(--t-enter) * 2) var(--ease-soft) both;
+}
+html[data-motion="on"] .v-table-card {
+  animation: colour-arrive var(--t-enter) var(--ease-soft) both;
+  animation-delay: var(--t-enter);
+}
+@media (prefers-reduced-motion: reduce) {
+  .v-card,
+  .v-trace,
+  .v-table-card {
+    animation: none !important;
+  }
+}
+html[data-motion="off"] .v-card,
+html[data-motion="off"] .v-trace,
+html[data-motion="off"] .v-table-card {
+  animation: none !important;
+}

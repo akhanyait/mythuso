@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sips -g pixelWidth -g pixelHeight -g format care-at-home.png everyday-wellbeing.png family-care.png nursing-care.png step-doctor.jpg step-nurse.jpg step-patient.jpg)"
+    ]
+  }
+}
