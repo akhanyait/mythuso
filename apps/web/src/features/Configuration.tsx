@@ -1,4 +1,4 @@
-import { Suspense, lazy, useId, useState, type FormEvent } from 'react';
+import { Suspense, lazy, useId, useState, type CSSProperties, type FormEvent } from 'react';
 import { ArrowRight, CircleAlert, Search, ShieldAlert, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import vetting from '../../../../packages/catalog/vetting.json' with { type: 'json' };
 import {
@@ -8,6 +8,7 @@ import {
 import { adminOnDuty, applyChange, doctorOnDuty, engineIds, previewChange, reviewsOf, settingsEngineOf, useSettingsHistories, useSettingsReviews } from '../lib/settings';
 import { whoIs } from '../lib/roles';
 import { useFounderGate } from '../lib/founder-gate';
+import { useWideLayout } from '../lib/layout';
 
 /* The founder's sign-in, drawn where the editor would be while the gate is shut, on a dynamic import so
    nobody who does not open a settings screen downloads it. */
@@ -307,6 +308,10 @@ export function Configuration({ engine, onEngine, fixed = false }: { engine: str
  /* The founder's gate, 28 September 2026: the editor opens only when the service says the founder is signed
     in, or as a preview where founder access is dark or nothing answers. lib/founder-gate.ts decides. */
  const gate = useFounderGate();
+ /* Embedded (fixed), the editor is the narrower of two columns on a wide screen, where a card's two halves
+    never sit side by side — so each card's default and limits start folded there, as on a phone, and the
+    column beside the editor carries what is in force. */
+ const wide = useWideLayout() && !fixed;
  /* A doctor's confirmation changes what a setting says about its review, so the screen redraws on one. */
  useSettingsReviews();
  const id = useId();
@@ -319,9 +324,13 @@ export function Configuration({ engine, onEngine, fixed = false }: { engine: str
   .map(block => ({ block, items: block.items.filter(setting => matches(block, setting)) }))
   .filter(group => group.items.length);
  const shown = groups.reduce((sum, group) => sum + group.items.length, 0);
- return <div className="cf-area">
-  <div className="privacy-note"><SlidersHorizontal size={19}/>{say.intro}</div>
-  <div className="privacy-note alert"><CircleAlert size={19}/>{say.preview}</div>
+ /* What an administrator came to do comes first (the founder, 28 September 2026): the gate — which is the
+    sign-in while it is shut, and says the screen is a preview while it is open — then the search, then
+    the settings. The two sentences about the screen as a whole follow the search rather than lead it, side
+    by side where there is room, and still above every setting: the preview sentence is the screen saying a
+    change reaches nobody, and it is never below a Change button. */
+ return <div className="cf-area" data-layout={wide ? 'wide' : 'narrow'}>
+  <div className="cf-work">
   <Suspense fallback={null}><FounderGatePanel sentence={gate.sentence} phase={gate.phase}/></Suspense>
   {/* One bar, two fields: what a setting is called and which engine owns it. Each keeps its own visible
       label, and the bar is only how they sit together — so a phone stacks them without losing either. */}
@@ -343,14 +352,21 @@ export function Configuration({ engine, onEngine, fixed = false }: { engine: str
    </div>
    <p className="helper" id={id + '-query-help'}>{say.searchHelp}</p>
   </div>
-  <p className="ss-version" role="status">{fill(say.shown, { shown: String(shown), total: String(total) })}</p>
+  </div>
+  <div className="cf-notes">
+   <div className="privacy-note"><SlidersHorizontal size={19}/>{say.intro}</div>
+   <div className="privacy-note alert"><CircleAlert size={19}/>{say.preview}</div>
+  </div>
+  {/* The count's share of every setting is drawn as a bar under its words (--cf-share), so a search that
+      narrows the list is seen narrowing it. The words say the same, so the bar is decoration beside them. */}
+  <p className="ss-version" role="status" style={{ '--cf-share': total ? shown / total : 0 } as CSSProperties}>{fill(say.shown, { shown: String(shown), total: String(total) })}</p>
   {groups.length
-   ? groups.map(group => <EngineGroup key={group.block.engine} block={group.block} items={group.items} history={histories[group.block.engine] ?? []} locked={gate.locked}/>)
+   ? groups.map(group => <EngineGroup key={group.block.engine} block={group.block} items={group.items} history={histories[group.block.engine] ?? []} locked={gate.locked} wide={wide}/>)
    : <p className="helper">{say.noMatch}</p>}
  </div>;
 }
 
-function EngineGroup({ block, items, history, locked }: { block: SettingsBlock; items: readonly Setting[]; history: readonly Change[]; locked: boolean }) {
+function EngineGroup({ block, items, history, locked, wide }: { block: SettingsBlock; items: readonly Setting[]; history: readonly Change[]; locked: boolean; wide: boolean }) {
  const id = useId();
  const [open, setOpen] = useState<string | null>(null);
  const [applied, setApplied] = useState<Change | null>(null);
@@ -359,7 +375,7 @@ function EngineGroup({ block, items, history, locked }: { block: SettingsBlock; 
   <div className="section-title"><h2 id={id + '-title'}>{block.heading}</h2></div>
   <p className="helper">{block.intro}</p>
   <p className="ss-version" role="status">{fill(say.version, { version: String(snapshot.settingsVersion) })}{applied ? ` · ${fill(say.applied, { version: String(applied.settingsVersion), at: clockOf(applied.at) })}` : ''}</p>
-  <ol className="panel ss-timings">{items.map(setting => <SettingItem key={setting.key} engine={block.engine} setting={setting} snapshot={snapshot} locked={locked}
+  <ol className="panel ss-timings">{items.map(setting => <SettingItem key={setting.key} engine={block.engine} setting={setting} snapshot={snapshot} locked={locked} wide={wide}
    history={history.filter(change => change.setting === setting.key)} open={open === setting.key && !locked}
    onOpen={() => { setOpen(setting.key); setApplied(null); }} onClose={() => setOpen(null)} onApplied={change => { setApplied(change); setOpen(null); }}/>)}</ol>
  </section>;
@@ -370,8 +386,20 @@ function EngineGroup({ block, items, history, locked }: { block: SettingsBlock; 
    "Last changed by" or "Not changed from the default" — so the tint is never the only difference. */
 const standingOf = (waitsOnReview: boolean, changed: boolean) => waitsOnReview ? 'review' : changed ? 'changed' : 'default';
 
-function SettingItem({ engine, setting, snapshot, history, open, locked, onOpen, onClose, onApplied }: {
- engine: string; setting: Setting; snapshot: Snapshot; history: readonly Change[]; open: boolean; locked: boolean; onOpen: () => void; onClose: () => void; onApplied: (change: Change) => void;
+/* A card in two halves, on the founder's instruction of 28 September 2026 that what an administrator can
+   change comes first. The first half is the setting as somebody deciding whether to change it reads it:
+   its name, what it decides, the value in force, where it stands — the review pill and "Last changed by"
+   or "Not changed from the default", the words that say what the card's tint says — and the Change button,
+   or the form once it is open. The second half is what is merely in force around it: the default and who
+   decided it, what an admin may set, what a change reaches and what no value may do, and the history.
+
+   Beside the first half where the card is wide enough (a container query in portal.css), under it where it
+   is not; and on a narrow screen the default, the limits and the rules fold into a disclosure that starts
+   closed, so a phone shows forty settings as forty short cards rather than forty long ones. Nothing is
+   left out of either: a closed disclosure is one press from every word it holds, and the standing words
+   never fold, because a tint with its words folded away would be colour saying something alone. */
+function SettingItem({ engine, setting, snapshot, history, open, locked, wide, onOpen, onClose, onApplied }: {
+ engine: string; setting: Setting; snapshot: Snapshot; history: readonly Change[]; open: boolean; locked: boolean; wide: boolean; onOpen: () => void; onClose: () => void; onApplied: (change: Change) => void;
 }) {
  const inForce = snapshot.values[setting.key];
  const last = history.at(-1);
@@ -380,46 +408,57 @@ function SettingItem({ engine, setting, snapshot, history, open, locked, onOpen,
  const bounds = limitProvenance(setting);
  const numeral = typeof inForce === 'number' && NUMBERS.has(setting.type);
  return <li className="ss-timing" data-standing={standingOf(!!review.required && !review.reviewed, !!last)} data-figure={numeral ? 'number' : 'words'}>
-  <div className="ss-timing-head">
-   <div className="ss-timing-name">
-    <strong>{setting.label}</strong>
-    <p className="ss-help">{setting.help}</p>
+  <div className="ss-timing-main">
+   <div className="ss-timing-head">
+    <div className="ss-timing-name">
+     <strong>{setting.label}</strong>
+     <p className="ss-help">{setting.help}</p>
+    </div>
+    {/* Keyed by the setting's own last change, so the figure arrives anew when — and only when — the value
+        in force is a different one: a confirmed change is seen landing where the old value stood. */}
+    <span className="ss-in-force"><small>{say.inForce}</small><Figure key={last?.settingsVersion ?? 0} limits={setting} value={inForce}/></span>
    </div>
-   <span className="ss-in-force"><small>{say.inForce}</small><Figure limits={setting} value={inForce}/></span>
+   <div className="ss-standing">
+    {review.required && (review.reviewed
+     ? <span className="pill cf-review"><ShieldCheck size={15}/>{fill(say.reviewed, { who: review.reviewed.byRef, on: review.reviewed.on ? dayOf(review.reviewed.on) : review.reviewed.at === null ? '' : whenOf(review.reviewed.at) })}</span>
+     : <span className="pill cf-review is-unreviewed"><ShieldAlert size={15}/>{say.notReviewed}</span>)}
+    <p className="ss-meta">{last ? fill(say.lastChanged, { who: personOf(last.byRef), when: whenOf(last.at) }) : say.neverChanged}</p>
+   </div>
+   {/* While the founder's gate is shut there is no Change button at all: the gate's own panel at the top of
+       the screen says why and carries the sign-in, so nothing here explains an absence twice. */}
+   {locked ? null : open
+    ? <ChangeForm engine={engine} setting={setting} expectedVersion={snapshot.settingsVersion} from={inForce} onClose={onClose} onApplied={onApplied}/>
+    : <button className="secondary m-press cf-open" onClick={onOpen}>{say.change}<span className="visually-hidden"> {setting.label}</span></button>}
   </div>
-  {review.required && (review.reviewed
-   ? <span className="pill cf-review"><ShieldCheck size={15}/>{fill(say.reviewed, { who: review.reviewed.byRef, on: review.reviewed.on ? dayOf(review.reviewed.on) : review.reviewed.at === null ? '' : whenOf(review.reviewed.at) })}</span>
-   : <span className="pill cf-review is-unreviewed"><ShieldAlert size={15}/>{say.notReviewed}</span>)}
-  <p className="ss-meta">{fill(say.defaultIs, { value: valueText(setting, setting.default.value) })} · {provenanceText(setting.default)}</p>
-  {/* Limits that carry no provenance — a rota's posts — were never decided by anybody, so they read as a
-      proposal rather than borrowing the word "decided" from an empty list. A mix is said as a mix: Record's lifetimes
-      take the founder's grant ceiling for their highest bound and a proposal for their lowest, and calling the pair
-      decided would tell an admin somebody agreed to a limit nobody has. */}
-  {limits && <p className="ss-meta">{limits}. {bounds.every(entry => entry.decidedBy === null) ? say.limitsAreProposals
-   : bounds.some(entry => entry.decidedBy === null) ? say.limitsPartlyDecided : say.limitsDecided}</p>}
-  <dl className="cf-rules">
-   <div><dt>{say.appliesTo}</dt><dd>{setting.appliesTo}</dd></div>
-   {setting.guardrail && <div><dt>{say.guardrail}</dt><dd>{setting.guardrail.statement}</dd></div>}
-   {review.required && !review.reviewed && <div><dt>{say.notReviewed}</dt><dd>{fill(say.reviewWaitsOn, { capability: capabilityName(review.required) })}</dd></div>}
-  </dl>
-  <p className="ss-meta">{last ? fill(say.lastChanged, { who: personOf(last.byRef), when: whenOf(last.at) }) : say.neverChanged}</p>
-  <details className="cf-history">
-   <summary>{say.historyHeading} ({history.length})</summary>
-   {history.length
-    ? <div className="table-scroll"><table className="result-table admin-table ss-history cf-timeline">
-      <caption>{say.historyNeverEdited}</caption>
-      <thead><tr><th scope="col">{say.when}</th><th scope="col">{say.who}</th><th scope="col">{say.from}</th><th scope="col">{say.to}</th><th scope="col">{say.why}</th></tr></thead>
-      <tbody>{history.map(change => <tr key={change.settingsVersion}>
-       <td>{whenOf(change.at)}</td><td>{personOf(change.byRef)}</td><td>{valueText(setting, change.from)}</td><td>{valueText(setting, change.to)}</td><td>{change.reason}</td>
-      </tr>)}</tbody>
-     </table></div>
-    : <p className="helper">{say.historyEmpty} {say.historyNeverEdited}</p>}
-  </details>
-  {/* While the founder's gate is shut there is no Change button at all: the gate's own panel at the top of
-      the screen says why and carries the sign-in, so nothing here explains an absence twice. */}
-  {locked ? null : open
-   ? <ChangeForm engine={engine} setting={setting} expectedVersion={snapshot.settingsVersion} from={inForce} onClose={onClose} onApplied={onApplied}/>
-   : <button className="secondary m-press cf-open" onClick={onOpen}>{say.change}<span className="visually-hidden"> {setting.label}</span></button>}
+  <div className="ss-timing-side">
+   <details className="cf-about" open={wide}>
+    <summary>{say.about}</summary>
+    <p className="ss-meta">{fill(say.defaultIs, { value: valueText(setting, setting.default.value) })} · {provenanceText(setting.default)}</p>
+    {/* Limits that carry no provenance — a rota's posts — were never decided by anybody, so they read as a
+        proposal rather than borrowing the word "decided" from an empty list. A mix is said as a mix: Record's lifetimes
+        take the founder's grant ceiling for their highest bound and a proposal for their lowest, and calling the pair
+        decided would tell an admin somebody agreed to a limit nobody has. */}
+    {limits && <p className="ss-meta">{limits}. {bounds.every(entry => entry.decidedBy === null) ? say.limitsAreProposals
+     : bounds.some(entry => entry.decidedBy === null) ? say.limitsPartlyDecided : say.limitsDecided}</p>}
+    <dl className="cf-rules">
+     <div><dt>{say.appliesTo}</dt><dd>{setting.appliesTo}</dd></div>
+     {setting.guardrail && <div><dt>{say.guardrail}</dt><dd>{setting.guardrail.statement}</dd></div>}
+     {review.required && !review.reviewed && <div><dt>{say.notReviewed}</dt><dd>{fill(say.reviewWaitsOn, { capability: capabilityName(review.required) })}</dd></div>}
+    </dl>
+   </details>
+   <details className="cf-history">
+    <summary>{say.historyHeading} ({history.length})</summary>
+    {history.length
+     ? <div className="table-scroll"><table className="result-table admin-table ss-history cf-timeline">
+       <caption>{say.historyNeverEdited}</caption>
+       <thead><tr><th scope="col">{say.when}</th><th scope="col">{say.who}</th><th scope="col">{say.from}</th><th scope="col">{say.to}</th><th scope="col">{say.why}</th></tr></thead>
+       <tbody>{history.map(change => <tr key={change.settingsVersion}>
+        <td>{whenOf(change.at)}</td><td>{personOf(change.byRef)}</td><td>{valueText(setting, change.from)}</td><td>{valueText(setting, change.to)}</td><td>{change.reason}</td>
+       </tr>)}</tbody>
+      </table></div>
+     : <p className="helper">{say.historyEmpty} {say.historyNeverEdited}</p>}
+   </details>
+  </div>
  </li>;
 }
 
@@ -444,6 +483,10 @@ function ChangeForm({ engine, setting, expectedVersion, from, onClose, onApplied
   onApplied(result.change);
  };
  return <form className="ss-form" onSubmit={check} aria-label={`${say.change} ${setting.label}`}>
+  {/* Where the change is in its two steps — the value and its reason, then the confirmation — as two
+      segments, the second filling when the review is asked for. The buttons and the confirmation already
+      say which step this is in words, so the segments are hidden from a screen reader rather than said twice. */}
+  <div className="cf-steps" aria-hidden="true" data-step={review ? 'confirm' : 'change'}><i/><i/></div>
   <Editor limits={setting} raw={raw} id={id + '-value'} label={editorLabel(setting)} disabled={!!review} onRaw={next => { setRaw(next); setRefused(null); }}
    context={{ label: setting.label, from, defaultValue: setting.default.value, guardrail: setting.guardrail?.statement }}/>
   <label htmlFor={id + '-reason'}>{say.reason}</label>
