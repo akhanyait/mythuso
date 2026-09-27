@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState, type ComponentType } from 'react';
-import { Activity, BarChart3, BookOpen, CalendarRange, Cpu, Info, Landmark, LayoutGrid, LogOut, Radar, ScrollText, ShieldAlert, ShieldCheck, SlidersHorizontal, TrendingUp } from 'lucide-react';
+import { Activity, BarChart3, BookOpen, CalendarRange, Cpu, Info, KeyRound, Landmark, LayoutGrid, LogOut, Radar, ScrollText, ShieldAlert, ShieldCheck, SlidersHorizontal, TrendingUp } from 'lucide-react';
 import { AssistantLauncher } from '../components/AssistantLauncher';
 import { G1Mark } from '../components/G1Mark';
 import { MotionPause } from '../components/MotionPause';
@@ -141,6 +141,24 @@ function PortalShell({ audience }: { audience: RoleId }) {
  const setContext = (id: ContextId, value: string) => navigate({ ...place, [id]: value });
 
  const leave = () => { void endSession(); setRole('patient'); };
+ /* The founder's own door, one press from anywhere in the Control Tower. The sign-in panel lives inside
+    the API Registry tab, folded under the two Azure cards — the founder could not find it on 28
+    September 2026 — so the sidebar's foot names it and takes the founder there: the tab first, then,
+    once the registry's lazy chunk has drawn the panel, its disclosure is opened and focused. Nothing
+    here signs anybody in; the two factors are the panel's and the service's. */
+ const founderDoor = () => {
+  go('gilbertone', 'api-registry');
+  let tries = 0;
+  const open = () => {
+   const details = document.querySelector<HTMLDetailsElement>('.g1-founder-details');
+   if (details) {
+    details.open = true;
+    details.scrollIntoView({ block: 'start' });
+    details.querySelector<HTMLElement>('summary')?.focus();
+   } else if (tries++ < 40) setTimeout(open, 50);
+  };
+  setTimeout(open, 50);
+ };
  const person = roleOf(audience).subjectId;
  const who = person ? whoIs(person, 'Everything this role could act on is withdrawn until that is put right.') : null;
  const value: PortalContextValue = useMemo(() => ({ audience, place, go, open: setModal, vetting, settingsEngine, setSettingsEngine }),
@@ -164,6 +182,7 @@ function PortalShell({ audience }: { audience: RoleId }) {
       idPrefix="pt-side" panelId="pt-category" orientation="vertical"/>
     </nav>
     <div className="sidebar-bottom">
+     <button className="settings-link" onClick={founderDoor}><KeyRound size={18}/>Founder sign-in · 2FA</button>
      <button className="settings-link" onClick={leave}><LogOut size={18}/>Leave the Control Tower</button>
     </div>
    </aside>
@@ -173,6 +192,8 @@ function PortalShell({ audience }: { audience: RoleId }) {
      <div className="breadcrumb"><span className="pt-name">{portalContract.name}</span><span>/</span>{category.label}<span>/</span><strong>{headingOf(tab)}</strong></div>
      <div className="topbar-actions">
       <MotionPause className="pt-pause"/>
+      {/* The same door on a phone, where the sidebar's foot is not drawn. */}
+      <button className="icon-button" aria-label="Founder sign-in · 2FA" onClick={founderDoor}><KeyRound size={19}/></button>
       <button className="icon-button" aria-label="Leave the Control Tower" onClick={leave}><LogOut size={19}/></button>
      </div>
     </header>
