@@ -277,6 +277,16 @@ const degradedResult = (
   degraded: true,
 });
 
+/* The short code a failed provider call is logged under: the error's constructor name, and the HTTP
+   status when the client attached one (LangChain's OpenAI client sets `status`; a fetch failure
+   sets `cause.code`). Never the message: a provider's error text can quote the request. */
+const errorCode = (error: unknown): string => {
+  const e = error as { name?: unknown; status?: unknown; code?: unknown; cause?: { code?: unknown } } | null;
+  const name = typeof e?.name === "string" && e.name ? e.name : "Error";
+  const status = typeof e?.status === "number" ? String(e.status) : typeof e?.code === "string" ? e.code : typeof e?.cause?.code === "string" ? e.cause.code : "";
+  return `provider-error:${name}${status ? `:${status}` : ""}`;
+};
+
 /* ════════════════════════════════════════════════════════════════════════════════════════════════
    THE STATE GRAPH
    ════════════════════════════════════════════════════════════════════════════════════════════════ */
@@ -313,6 +323,12 @@ const OrchestratorState = Annotation.Root({
   confidence: Annotation<number>({ reducer: (_, b) => b, default: () => 0 }),
   /* True when the orchestration degraded — no provider, timeout, or failure. */
   degraded: Annotation<boolean>({ reducer: (_, b) => b, default: () => false }),
+  /* Why it degraded, as a short code for one log line — never a person's words, never a key: the
+     gate that refused, the provider that was missing, or the error's own type name and HTTP status.
+     Added 28 September 2026 when a headache turn came back with the classifier's sentence and the
+     journal held nothing to say which link had failed; a tier that fails silently is a tier nobody
+     can repair. */
+  degradedReason: Annotation<string>({ reducer: (_, b) => b, default: () => "" }),
   /* True when an early-exit path (escalation, entity red-flag) produced the final answer and
      subsequent nodes should be skipped. */
   earlyExit: Annotation<boolean>({ reducer: (_, b) => b, default: () => false }),
@@ -328,12 +344,12 @@ type GraphState = typeof OrchestratorState.State;
    the system prompt. Any failure here sets degraded and short-circuits to END. */
 async function nodeCheckActivation(state: GraphState): Promise<Partial<GraphState>> {
   if (!modelTierAllowed()) {
-    return { degraded: true, providerName: "", earlyExit: true };
+    return { degraded: true, degradedReason: "activation-not-acknowledged", providerName: "", earlyExit: true };
   }
 
   const resolved = await resolveChatModel();
   if (!resolved) {
-    return { degraded: true, providerName: "", earlyExit: true };
+    return { degraded: true, degradedReason: "no-provider-configured", providerName: "", earlyExit: true };
   }
 
   const systemPrompt = orchestratorSystemPrompt(
@@ -344,7 +360,7 @@ async function nodeCheckActivation(state: GraphState): Promise<Partial<GraphStat
     sessionContextRef,
   );
   if (!systemPrompt.trim()) {
-    return { degraded: true, providerName: resolved.name, model: resolved, earlyExit: true };
+    return { degraded: true, degradedReason: "empty-system-prompt", providerName: resolved.name, model: resolved, earlyExit: true };
   }
 
   return {
@@ -380,7 +396,7 @@ async function nodeExtract(state: GraphState): Promise<Partial<GraphState>> {
   if (state.degraded || state.earlyExit) return {};
 
   const resolved = state.model;
-  if (!resolved) return { degraded: true, earlyExit: true };
+  if (!resolved) return { degraded: true, degradedReason: "no-model-in-state", earlyExit: true };
 
   const remainingForNer = state.deadline - Date.now();
   const extraction =
@@ -437,7 +453,7 @@ async function nodeInvokeTools(state: GraphState): Promise<Partial<GraphState>> 
   if (state.degraded || state.earlyExit) return {};
 
   const resolved = state.model;
-  if (!resolved) return { degraded: true, earlyExit: true };
+  if (!resolved) return { degraded: true, degradedReason: "no-model-in-state", earlyExit: true };
 
   const messages = [...state.messages];
   const toolsUsed: string[] = [];
@@ -448,7 +464,7 @@ async function nodeInvokeTools(state: GraphState): Promise<Partial<GraphState>> 
     for (let step = 0; step < MAX_STEPS; step += 1) {
       const remaining = state.deadline - Date.now();
       if (remaining < MIN_STEP_BUDGET_MS)
-        return { degraded: true, providerName: resolved.name, toolsUsed, sources: [...sources] };
+        return { degraded: true, degradedReason: "budget-exhausted", providerName: resolved.name, toolsUsed, sources: [...sources] };
 
       const ai = (await toolsBound.invoke(messages, {
         signal: AbortSignal.timeout(remaining),
@@ -508,15 +524,17 @@ async function nodeInvokeTools(state: GraphState): Promise<Partial<GraphState>> 
         }
       }
     }
-  } catch {
+  } catch (error) {
     /* A provider that timed out, refused or failed mid-loop is a tier that did not answer: the
-       caller keeps the classifier's reply. */
-    return { degraded: true, toolsUsed, sources: [...sources] };
+       caller keeps the classifier's reply. What is kept of the error is its type name and, where the
+       provider's client attached one, the HTTP status — enough to tell a wrong deployment name from
+       a timed-out network from a rejected key, and nothing that could hold a person's words. */
+    return { degraded: true, degradedReason: errorCode(error), toolsUsed, sources: [...sources] };
   }
 
   /* The loop ran out of steps without a final answer — a model that only ever called tools is a
      model that never answered, and the classifier's reply stands. */
-  return { degraded: true, toolsUsed, sources: [...sources] };
+  return { degraded: true, degradedReason: "steps-exhausted", toolsUsed, sources: [...sources] };
 }
 
 /* ---- Node: gate ----
@@ -626,8 +644,13 @@ export async function orchestrate(
     started,
   });
 
-  /* Map the graph's final state to the OrchestratorResult contract. */
+  /* Map the graph's final state to the OrchestratorResult contract. A degraded tier says so in
+     one journal line — the reason code, the provider's name and the time it took — because the turn
+     route logs only the tier's successes, and a tier that only ever fails leaves no trace at all. */
   if (finalState.degraded || finalState.result === null) {
+    console.warn(
+      `[gilbertone:orchestrator] degraded ${finalState.degradedReason || (finalState.result === null ? "no-result" : "unspecified")} ${finalState.providerName || "-"} ${Date.now() - started}ms`,
+    );
     return degradedResult(finalState.providerName ?? "", started);
   }
 
