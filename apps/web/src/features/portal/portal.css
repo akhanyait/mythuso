@@ -1724,7 +1724,7 @@
   padding: var(--space-12) var(--space-20);
 }
 .portal .pt-notice,
-.portal .cf-area > .privacy-note.alert {
+.portal .cf-notes > .privacy-note.alert {
   padding: var(--space-20) var(--space-24);
   border: 0;
   border-radius: var(--r-panel);
@@ -1738,7 +1738,7 @@
   text-decoration: underline;
   font-weight: 600;
 }
-.portal .cf-area > .privacy-note.alert > svg {
+.portal .cf-notes > .privacy-note.alert > svg {
   color: var(--studio-lime);
 }
 .portal .pt-context {
@@ -2437,12 +2437,12 @@
   line-height: 1.6;
   text-transform: uppercase;
 }
-.portal .ss-timing > .cf-review {
+.portal .ss-timing .cf-review {
   background: var(--surface);
   border-color: var(--surface);
   color: var(--charcoal);
 }
-.portal .ss-timing > .cf-review.is-unreviewed {
+.portal .ss-timing .cf-review.is-unreviewed {
   background: var(--surface);
   border-color: var(--surface);
   color: var(--mango-ink);
@@ -2628,7 +2628,7 @@
   background: var(--surface);
   color: var(--charcoal);
 }
-.portal .ss-timing > .cf-open {
+.portal .ss-timing-main > .cf-open {
   justify-self: start;
 }
 
@@ -2895,4 +2895,523 @@
 .portal .pt-strip-figure .s-metric-value,
 .portal .pt-strip-figure .s-metric-figure {
   align-self: end;
+}
+
+/* ==== Change first, and the settings that move (28 September 2026) =================================
+   The founder, of the Configuration tab and GilbertOne's Speech settings: what an administrator can change
+   at the top, what is merely in force to the side on a wide screen and folded on a phone, and the forms
+   given the life of the Jitter UI-element templates — toggles that slide, buttons that glow, a progress
+   bar that fills, cards that arrive. What this section keeps, because the build does not read this sheet
+   for all of it:
+
+   - The second column is keyed off data-layout="wide", written by lib/layout.ts, the same answer that
+     opens or closes the disclosures, so a column and a fold can never disagree about the screen. A card's
+     own two halves are a container query instead, because a card is wide or narrow by the column it sits
+     in — the Configuration tab's, or the narrower one beside the Speech settings' state.
+   - No new text pair. Every word sits on a ground it already sat on: charcoal on surface, the card tints'
+     own inks, surface on charcoal and on brand ink. The two translucent grounds a hover lays down are said
+     where they are laid, with their arithmetic, because a mix is not a token and cannot be a row in
+     tokens.json#contrast.
+   - One shadow on anything, never two, and never on a control while it holds focus: core.css draws the
+     focus ring's outer ring as a box-shadow, so every glow here is :not(:focus-visible).
+   - Motion is the token durations and --ease-soft, finite, on transform, opacity and background-size,
+     started only under [data-decor='on'] — which the portal's pause control and the reduced-motion query
+     both clear — and removed with !important at the foot of this section. Nothing here is the only way
+     anything becomes visible: every entrance ends where the element already is. */
+
+/* ---- Configuration: the work, then the notes ------------------------------------------------------ */
+.portal .cf-area {
+  container: cf-area / inline-size;
+}
+.portal .cf-work,
+.portal .cf-notes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-16);
+  min-width: 0;
+}
+.portal .cf-notes > .privacy-note {
+  margin: 0;
+  max-width: none;
+}
+.portal .cf-notes > .privacy-note:not(.alert) {
+  padding: var(--space-16) var(--space-20);
+  border: 0;
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  color: var(--charcoal);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.portal .cf-notes > .privacy-note:not(.alert) > svg {
+  color: var(--charcoal);
+}
+.portal .cf-notes > .privacy-note.alert {
+  padding: var(--space-16) var(--space-20);
+}
+@container cf-area (min-width: 720px) {
+  .portal .cf-notes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* The count, and its share of every setting as a bar under it: brand green on stone, filled by
+   background-size so a search narrowing the list is seen narrowing it. The words say the same. */
+.portal .cf-area > .ss-version {
+  display: grid;
+  gap: var(--space-8);
+  max-width: 20rem;
+}
+.portal .cf-area > .ss-version::after {
+  content: "";
+  height: 6px;
+  border-radius: var(--r-pill);
+  background:
+    linear-gradient(var(--brand-green), var(--brand-green)) 0 0 / calc(var(--cf-share, 1) * 100%) 100% no-repeat,
+    var(--stone);
+}
+[data-decor="on"] .portal .cf-area > .ss-version::after {
+  transition: background-size var(--t-settle) var(--ease-soft);
+}
+
+/* ---- The setting card, in two halves ---------------------------------------------------------------- */
+.portal ol.panel.ss-timings {
+  container: cf-cards / inline-size;
+}
+.portal .ss-timing-main,
+.portal .ss-timing-side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
+  align-content: start;
+  min-width: 0;
+}
+.portal .ss-timing-main {
+  gap: var(--space-16);
+}
+.portal .ss-standing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8) var(--space-12);
+}
+.portal .ss-standing > .ss-meta {
+  margin: 0;
+}
+.portal .ss-timing :is(.cf-about > summary, .cf-about > .ss-meta) {
+  color: inherit;
+}
+@container cf-cards (min-width: 760px) {
+  .portal .ss-timing {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+    gap: var(--space-24) var(--space-32);
+  }
+  /* A hairline in the card's own ink, a seventh of it: a divider, never a word. */
+  .portal .ss-timing-side {
+    padding-left: var(--space-24);
+    border-left: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  }
+  .portal .ss-timing-side .cf-rules > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
+.portal .cf-about {
+  display: grid;
+  gap: var(--space-8);
+  min-width: 0;
+}
+.portal .cf-about > .ss-meta {
+  margin: 0;
+}
+.portal .cf-about > .cf-rules {
+  margin-top: var(--space-4);
+}
+
+/* Both disclosures on the card, and the Speech settings' blocks below, share one summary: a 44px row, the
+   words, and a drawn chevron that turns when it opens. display:flex drops the browser's own triangle, which
+   is why the history's summary had no mark at all until this; the chevron is a border, so it is the
+   text's own colour on whatever ground it sits. */
+.portal :is(.cf-about, .cf-history) > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
+  padding-inline: var(--space-4);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+  list-style: none;
+}
+.portal :is(.cf-about, .cf-history, .g1-side > details) > summary::-webkit-details-marker {
+  display: none;
+}
+.portal :is(.cf-about, .cf-history, .g1-side > details) > summary::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  margin: -3px var(--space-4) 0;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.portal :is(.cf-about, .cf-history, .g1-side > details)[open] > summary::after {
+  margin-top: 3px;
+  transform: rotate(-135deg);
+}
+.portal :is(.cf-about, .cf-history) > summary:focus-visible {
+  border-radius: var(--r-control);
+}
+
+/* ---- The form: two steps, a refusal that is felt, a figure that lands ------------------------------ */
+.portal .cf-steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 12rem;
+}
+.portal .cf-steps > i {
+  position: relative;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  background: var(--stone);
+}
+.portal .cf-steps > i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--brand-green);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+.portal .cf-steps > i:first-child::after,
+.portal .cf-steps[data-step="confirm"] > i:last-child::after {
+  transform: none;
+}
+@keyframes cf-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+[data-decor="on"] .portal .cf-steps > i:first-child::after {
+  animation: cf-fill var(--t-enter) var(--ease-soft) both;
+}
+[data-decor="on"] .portal .cf-steps > i:last-child::after {
+  transition: transform var(--t-settle) var(--ease-soft);
+}
+
+@keyframes cf-arrive {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+}
+@keyframes cf-unfold {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -4px, 0);
+  }
+}
+@keyframes cf-land {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0) scale(0.96);
+  }
+}
+/* A refusal is nudged sideways once, four pixels and back inside a settle, so a sentence that replaced
+   nothing visible is noticed arriving. It is the alert's own role that says it; this only draws the eye. */
+@keyframes cf-refused {
+  20% {
+    transform: translate3d(-4px, 0, 0);
+  }
+  45% {
+    transform: translate3d(4px, 0, 0);
+  }
+  70% {
+    transform: translate3d(-2px, 0, 0);
+  }
+}
+/* The cards arrive in three steps and no more, as the patient's home does (motion.css, m-stagger): the
+   first at once, the second a third of a quick later, every other two thirds — so the last is never
+   waiting behind ninety others. */
+[data-decor="on"] .portal .ss-timing {
+  animation: cf-arrive var(--t-enter) var(--ease-soft) both;
+}
+[data-decor="on"] .portal .ss-timing:nth-child(2) {
+  animation-delay: calc(var(--t-quick) / 3);
+}
+[data-decor="on"] .portal .ss-timing:nth-child(n + 3) {
+  animation-delay: calc(var(--t-quick) * 2 / 3);
+}
+[data-decor="on"] .portal .ss-figure {
+  animation: cf-land var(--t-settle) var(--ease-soft) both;
+}
+[data-decor="on"] .portal :is(.ss-form, .ss-confirm, .cf-about[open] > .ss-meta, .cf-about[open] > .cf-rules, .cf-history[open] > :not(summary)) {
+  animation: cf-unfold var(--t-settle) var(--ease-soft) both;
+}
+[data-decor="on"] .portal .ss-form .fs-refused {
+  animation: cf-refused var(--t-settle) var(--ease-soft) both;
+}
+[data-decor="on"] .portal .cf-history[open] .cf-timeline tbody tr {
+  animation: cf-arrive var(--t-settle) var(--ease-soft) both;
+}
+
+/* ---- Buttons that answer a pointer ---------------------------------------------------------------
+   The primary — Configuration's and the live GilbertOne action's — lifts a pixel on a soft green glow and
+   a band of light crosses it once. The band is a pseudo-element under the word (isolation puts it above
+   the button's ground and below its text), lime at a fifth over brand ink at its brightest: white on that
+   mix is 6.4:1, and the band is gone inside an entrance. On the dark confirmation's lime primary the band
+   is white, which only raises brand ink's contrast on it.
+
+   The secondary is glass: the ground under it lightens to a translucent white with a blur. Its word keeps
+   the card's own ink, and a mix of a tint with white is lighter than the tint and darker than white, so
+   the ink's contrast on it lies between its measured rows on the tint and on surface. On the dark
+   confirmation the glass is an eighth of white over brand ink — white on that is 8.2:1 — and the word
+   keeps its underline. */
+.portal :is(.cf-area .primary, .g1-live) {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  --cf-sheen: color-mix(in srgb, var(--brand-lime) 22%, transparent);
+}
+.portal .cf-area .ss-confirm .primary {
+  --cf-sheen: color-mix(in srgb, var(--surface) 40%, transparent);
+}
+.portal :is(.cf-area .primary, .g1-live)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(105deg, transparent 30%, var(--cf-sheen) 50%, transparent 70%);
+  transform: translate3d(-110%, 0, 0);
+  pointer-events: none;
+}
+@media (hover: hover) {
+  .portal :is(.cf-area .primary, .g1-live):hover:not(:disabled):not(:focus-visible) {
+    box-shadow: 0 10px 24px -12px color-mix(in srgb, var(--brand-green) 85%, transparent);
+  }
+  .portal :is(.cf-area .primary, .g1-live):hover:not(:disabled)::before {
+    transform: translate3d(110%, 0, 0);
+  }
+  .portal .cf-area .secondary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--surface) 62%, transparent);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    color: inherit;
+  }
+  .portal .cf-area .ss-confirm .secondary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--surface) 12%, transparent);
+    color: var(--surface);
+  }
+  [data-decor="on"] .portal :is(.cf-area .primary, .g1-live):hover:not(:disabled) {
+    transform: translate3d(0, -1px, 0);
+  }
+}
+[data-decor="on"] .portal :is(.cf-area .primary, .g1-live) {
+  transition:
+    transform var(--t-quick) var(--ease-soft),
+    box-shadow var(--t-settle) var(--ease-soft),
+    background-color var(--t-quick) var(--ease-soft);
+}
+[data-decor="on"] .portal :is(.cf-area .primary, .g1-live):hover:not(:disabled)::before {
+  transition: transform var(--t-enter) var(--ease-soft);
+}
+[data-decor="on"] .portal :is(.cf-area .primary, .g1-live):active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* ---- GilbertOne · Speech settings: the editor, and what is in force beside it -------------------- */
+.portal .g1-speech {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-32);
+  align-items: start;
+  margin-top: var(--space-40);
+}
+.portal .g1-speech[data-layout="wide"] {
+  grid-template-columns: minmax(0, 8fr) minmax(0, 5fr);
+}
+.portal .g1-speech-editor > .pt-region {
+  margin: 0;
+}
+.portal .g1-speech-state {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
+  align-content: start;
+  min-width: 0;
+}
+.portal .g1-speech-state > .g1-side {
+  min-width: 0;
+  margin: 0;
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  color: var(--charcoal);
+}
+.portal .g1-side > details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  min-height: 56px;
+  padding: var(--space-12) var(--space-20);
+  border-radius: var(--r-panel);
+  cursor: pointer;
+  list-style: none;
+}
+.portal .g1-side > details > summary:focus-visible {
+  border-radius: var(--r-panel);
+}
+.portal .g1-side > details > summary > h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+  line-height: 1.35;
+  color: var(--charcoal);
+}
+@media (hover: hover) {
+  .portal .g1-side > details > summary:hover {
+    background: var(--studio-paper);
+  }
+}
+.portal .g1-side-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
+  min-width: 0;
+  padding: 0 var(--space-20) var(--space-20);
+  /* A card inside a block inside a column is three paddings in from the screen's edge, and the words name
+     environment variables and contract paths no browser breaks on its own. */
+  overflow-wrap: anywhere;
+}
+@media (max-width: 599px) {
+  .portal .g1-side-body {
+    padding: 0 var(--space-12) var(--space-16);
+  }
+  .portal .g1-side > details > summary {
+    padding-inline: var(--space-16);
+  }
+}
+.portal .g1-side-body > .helper,
+.portal .g1-side-body > p {
+  margin: 0;
+}
+/* Inside a white block the rows and cards are drawn by a stone line rather than a second white ground,
+   so the words keep charcoal on surface and nothing new is measured. */
+.portal .g1-side-body .pt-row,
+.portal .g1-side-body .g1-card {
+  border: 1px solid var(--stone);
+  background: var(--surface);
+}
+.portal .g1-side-body .g1-card {
+  padding: var(--space-16);
+  border-radius: var(--r-card);
+}
+.portal .g1-speech-state .g1-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
+}
+.portal .g1-speech-state .g1-fact {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+}
+.portal .g1-side-body .g1-locked {
+  margin: 0;
+}
+/* A locked item's words name contract paths — packages/catalog/assistant.json#voice — that a browser will
+   not break, and at 320px the words' column is narrower than the path. */
+.portal .g1-locked > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* The own-voice facts were a two-column grid of two-column rows, which on a wide screen left "In force"
+   one letter wide. A list of facts is a column of rows. */
+.portal .pt-facts.g1-facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  margin: 0;
+}
+
+/* On a phone the category's state card put a 64px mark beside its words, which left the words a column a
+   third of the screen wide and the card six hundred pixels tall above every sub-screen. The mark goes
+   above the words, smaller, and the words take the width. */
+@media (max-width: 599px) {
+  .portal .pt-g1-state {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-12);
+    padding: var(--space-16) var(--space-20);
+  }
+  .portal .pt-g1-large {
+    width: 40px;
+    height: 36px;
+  }
+}
+
+/* ---- GilbertOne: sub-screens and cards that arrive ------------------------------------------------
+   Everything a sub-screen draws under the category's state card arrives once when its tab is opened (the
+   screen is keyed by its tab), in the same three steps; a provider card, a row of a list and a block's
+   body arrive as they are unfolded. */
+[data-decor="on"] .portal #pt-subpanel > .pt-g1-state ~ * {
+  animation: cf-arrive var(--t-enter) var(--ease-soft) both;
+}
+[data-decor="on"] .portal #pt-subpanel > .pt-g1-state ~ * ~ * {
+  animation-delay: calc(var(--t-quick) / 3);
+}
+[data-decor="on"] .portal #pt-subpanel > .pt-g1-state ~ * ~ * ~ * {
+  animation-delay: calc(var(--t-quick) * 2 / 3);
+}
+[data-decor="on"] .portal .g1-speech-state > .g1-side {
+  animation: cf-arrive var(--t-enter) var(--ease-soft) both;
+}
+[data-decor="on"] .portal .g1-speech-state > .g1-side + .g1-side {
+  animation-delay: calc(var(--t-quick) / 3);
+}
+[data-decor="on"] .portal .g1-speech-state > .g1-side + .g1-side + .g1-side {
+  animation-delay: calc(var(--t-quick) * 2 / 3);
+}
+[data-decor="on"] .portal :is(.g1-side > details[open] > .g1-side-body, .g1-details[open] > :not(summary)) {
+  animation: cf-unfold var(--t-settle) var(--ease-soft) both;
+}
+[data-decor="on"] .portal #pt-subpanel :is(.g1-grid > .g1-card, .pt-list > .pt-row) {
+  animation: cf-arrive var(--t-enter) var(--ease-soft) both;
+}
+[data-decor="on"] .portal #pt-subpanel :is(.g1-grid > .g1-card, .pt-list > .pt-row):nth-child(2) {
+  animation-delay: calc(var(--t-quick) / 3);
+}
+[data-decor="on"] .portal #pt-subpanel :is(.g1-grid > .g1-card, .pt-list > .pt-row):nth-child(n + 3) {
+  animation-delay: calc(var(--t-quick) * 2 / 3);
+}
+[data-decor="on"] .portal :is(.cf-about, .cf-history, .g1-side > details, .g1-details) > summary::after {
+  transition: transform var(--t-quick) var(--ease-soft), margin var(--t-quick) var(--ease-soft);
+}
+
+/* ---- Removal ---------------------------------------------------------------------------------------
+   Everything above that moves, removed rather than shortened, and with !important because a reduced-motion
+   block a later sheet can overrule is a suggestion. Wider than the list above on purpose: anything under
+   the two screens that moves stops, including whatever the next change adds without listing it here. */
+@media (prefers-reduced-motion: reduce) {
+  .portal :is(.cf-area, .g1-speech, #pt-subpanel),
+  .portal :is(.cf-area, .g1-speech, #pt-subpanel) *,
+  .portal :is(.cf-area, .g1-speech, #pt-subpanel) *::before,
+  .portal :is(.cf-area, .g1-speech, #pt-subpanel) *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .portal :is(.cf-area .primary, .g1-live):hover::before {
+    transform: translate3d(-110%, 0, 0) !important;
+  }
+  .portal :is(.cf-area .primary, .g1-live):is(:hover, :active) {
+    transform: none !important;
+  }
 }

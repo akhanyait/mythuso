@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { audit, controlSweep, zoomedTo200 } from './audit';
 import { chooseRole, goPortal } from './nav';
@@ -349,7 +349,7 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   const block = page.getByRole('region', { name: voice.settings.heading });
   await expect(block).toContainText(fill(say.version, { version: '3' }));
   const item = timingItem(block, routineSetting);
-  await item.locator('summary').click();
+  await item.locator('.cf-history > summary').click();
   const history = item.locator('table tbody tr');
   await expect(history).toHaveCount(2);
   await expect(history.first()).toContainText(reason);
@@ -410,6 +410,20 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
  test('Speech settings: the provider in force per register, every built provider\'s card and settings, the locked items, the founder\'s own-voice record, and a setting changed through the shared editor with a reason', async ({ page }) => {
   await start(page, 'Speech settings');
   const words = g1.speech as Record<string, string>;
+  /* The editor comes first since 28 September 2026, and what is in force sits beside it on a wide screen and
+     under it on a phone, each block a disclosure that starts closed there. A block is unfolded before a
+     card inside it is found by its role, as a person would unfold it to read it. */
+  const unfold = async (region: Locator) => {
+   const block = region.locator(':scope > details');
+   if (!(await block.evaluate(el => (el as HTMLDetailsElement).open))) await block.locator(':scope > summary').click();
+   await expect(block).toHaveAttribute('open', '');
+  };
+  const editorFirst = await page.evaluate(() => {
+   const editor = document.querySelector('.g1-speech-editor');
+   const state = document.querySelector('.g1-speech-state');
+   return !!editor && !!state && !!(editor.compareDocumentPosition(state) & Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+  expect(editorFirst, 'the editor comes before what is in force').toBe(true);
   const ttsCards = (voice.providers.tts as string[]).map(id => cards.find(c => c.id === id)!).filter(c => c.buildStatus === 'built');
   const azure = ttsCards[0]!;
   const settings = voice.settings.items as { key: string; label: string; help: string; type: string; unit: string | null; appliesTo: string; allowed?: { value: string | boolean; label: string }[]; default: { value: unknown } }[];
@@ -424,6 +438,7 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   await expect(inForce).toContainText((voice.refusals as { id: string; statement: string }[]).find(r => r.id === 'no-provider-setting-on-a-clinical-register')!.statement);
   /* Every built speaking provider is a card with its state, its residency and its own settings. */
   const providers = panel(page).getByRole('region', { name: words.providersHeading });
+  await unfold(providers);
   for (const card of ttsCards) {
    const article = providers.getByRole('article', { name: card.name });
    await expect(article).toContainText(card.statusToday);

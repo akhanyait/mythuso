@@ -126,7 +126,10 @@ test('every engine’s settings are drawn from its contract: in force, the defau
       await expect(item).toContainText(row.appliesTo);
       if (row.guardrail) await expect(item).toContainText(row.guardrail.statement);
       await expect(item).toContainText(say.neverChanged);
-      await expect(item.locator('summary')).toHaveText(`${say.historyHeading} (0)`);
+      /* A card has two disclosures since 28 September 2026 — its default, limits and rules (say.about), folded
+         on a phone, and its history — so the history's summary is found by its own disclosure. */
+      await expect(item.locator('.cf-about > summary')).toHaveText(say.about);
+      await expect(item.locator('.cf-history > summary')).toHaveText(`${say.historyHeading} (0)`);
       /* A default that waits on a clinical review and names no reviewer is shown as not reviewed from the first
          load, because nobody has reviewed it; everything else never says it. */
       if (row.reviewRequired && !row.default.reviewedBy) await expect(item).toContainText(say.notReviewed);
@@ -191,7 +194,7 @@ test('a change is refused in the contract’s words: out of bounds, nought, the 
   await stepsForm.getByRole('button', { name: say.review }).click();
   await expect(stepsForm.getByRole('alert')).toHaveText(safetyOwn('extension-steps-not-rising'));
 
-  await expect(timingItem(panel, grace).locator('summary')).toHaveText(`${say.historyHeading} (0)`);
+  await expect(timingItem(panel, grace).locator('.cf-history > summary')).toHaveText(`${say.historyHeading} (0)`);
   await expect(panel).toContainText(fill(say.version, { version: '1' }));
 });
 
@@ -208,7 +211,7 @@ test('a confirmed change is recorded with who and why, and the next visit a nurs
   await expect(panel).toContainText(fill(say.version, { version: '2' }));
   await expect(panel).toContainText(fill(say.applied, { version: '2', at: clock(START) }));
   const item = timingItem(panel, grace);
-  await item.locator('summary').click();
+  await item.locator('.cf-history > summary').click();
   const history = item.locator('table tbody tr');
   await expect(history).toHaveCount(1);
   for (const cell of [minutesText(from), minutesText(to), reason]) await expect(history.first()).toContainText(cell);

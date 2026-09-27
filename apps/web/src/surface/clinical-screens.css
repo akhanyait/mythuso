@@ -815,7 +815,7 @@
 .clinical .ss-in-force small { font-size: 13px; color: var(--faint); }
 .clinical .ss-in-force b { font-size: 18px; font-weight: 600; color: var(--charcoal); }
 .clinical .ss-meta { margin: 0; font-size: 13px; line-height: 1.5; color: var(--faint); }
-.clinical .ss-timing > button { justify-self: start; min-height: 44px; }
+.clinical .ss-timing-main > button { justify-self: start; min-height: 44px; }
 .clinical .ss-form { display: grid; gap: var(--space-8); max-width: 560px; padding-top: var(--space-12); border-top: 1px solid var(--line); min-width: 0; }
 .clinical .ss-form > label { font-size: 14px; font-weight: 500; color: var(--charcoal); }
 .clinical .ss-form > input, .clinical .ss-form > textarea { width: 100%; min-width: 0; }
@@ -899,7 +899,8 @@
  * one control. The only new pieces are the ones a generic editor needs: a search above the groups, a
  * list of choices, and a rota window. At a phone's width every two-column arrangement becomes one. */
 .clinical .cf-area { display: grid; gap: var(--space-12); max-width: 1080px; min-width: 0; }
-.clinical .cf-area > .privacy-note, .clinical .cf-area > .helper, .clinical .cf-area > .ss-version { margin: 0; }
+.clinical .cf-notes > .privacy-note, .clinical .cf-area > .helper, .clinical .cf-area > .ss-version { margin: 0; }
+.clinical .cf-work, .clinical .cf-notes, .clinical .ss-timing-main, .clinical .ss-timing-side { display: grid; gap: var(--space-12); align-content: start; min-width: 0; }
 .clinical .cf-area > .ss-panel { margin-top: var(--space-16); }
 /* The search and the engine sit in one bar since 28 September 2026, the helper under both; the portal
    draws that bar as a pill (features/portal/portal.css), and the parallel run's read-only back office —

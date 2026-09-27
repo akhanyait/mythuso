@@ -227,6 +227,7 @@
   "limitsAreProposals": "What an admin may set is a proposal nobody has decided.",
   "limitsDecided": "What an admin may set was decided.",
   "limitsPartlyDecided": "Some of what an admin may set was decided; the rest is a proposal nobody has decided.",
+  "about": "Its default, its limits and what a change reaches",
   "appliesTo": "What a change reaches",
   "guardrail": "What no value may do",
   "notReviewed": "Not clinically reviewed",
