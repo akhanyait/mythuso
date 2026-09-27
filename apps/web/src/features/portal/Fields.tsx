@@ -17,19 +17,34 @@ import './fields.css';
 /* A slider with its track filled to the value and the value in a chip that follows the thumb. The
    chip is aria-hidden because the input already announces the same words as its aria-valuetext; a
    second copy would be read twice. The fill and the chip are placed by one ratio handed to the sheet,
-   so nothing measures the thumb in script and nothing moves but the thumb and the chip. */
-export function RangeSlider({ id, label, min, max, step = 1, value, valueText, onChange, disabled = false, describedBy, tone = 'paper' }: {
+   so nothing measures the thumb in script and nothing moves but the thumb and the chip.
+
+   Marks are ticks on the track at values the caller names — Configuration names the two bounds and the
+   default — each with its words under it. They are aria-hidden for the chip's reason: the bounds are in
+   the slider's own name and the default is in the setting's card, so a screen reader already has them.
+   The ends' words sit at the ends of the row and any other mark's words on a line of their own under its
+   tick, because a default a step from a bound would otherwise print on top of the bound's words. */
+export type Mark = { readonly value: number; readonly label: string };
+export function RangeSlider({ id, label, min, max, step = 1, value, valueText, onChange, disabled = false, describedBy, tone = 'paper', marks = [] }: {
  id?: string; label: string; min: number; max: number; step?: number; value: number; valueText: string;
- onChange: (value: number) => void; disabled?: boolean; describedBy?: string; tone?: 'paper' | 'night';
+ onChange: (value: number) => void; disabled?: boolean; describedBy?: string; tone?: 'paper' | 'night'; marks?: readonly Mark[];
 }) {
  const span = max - min;
+ const ratioOf = (v: number) => span > 0 ? (Math.min(max, Math.max(min, v)) - min) / span : 0;
  const at = Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
- const ratio = span > 0 ? (at - min) / span : 0;
+ const ratio = ratioOf(at);
+ const ends = marks.filter(m => m.value <= min || m.value >= max);
+ const inner = marks.filter(m => m.value > min && m.value < max);
  return <div className={`fc-range is-${tone}`} style={{ '--fc-ratio': ratio } as CSSProperties}>
   <span className="fc-range-chip" aria-hidden="true">{valueText}</span>
   <input type="range" id={id} min={min} max={max} step={step} value={at} disabled={disabled}
    aria-label={label} aria-valuetext={valueText} aria-describedby={describedBy}
    onChange={event => onChange(Number(event.target.value))}/>
+  {marks.length > 0 && <div className="fc-marks" aria-hidden="true">
+   {marks.map(m => <i key={`tick-${m.value}`} className={`fc-tick${m.value > min && m.value < max ? ' is-inner' : ''}`} style={{ '--fc-at': ratioOf(m.value) } as CSSProperties}/>)}
+   <span className="fc-mark-ends">{ends.map(m => <span key={m.value}>{m.label}</span>)}</span>
+   {inner.map(m => <span key={m.value} className="fc-mark-inner" style={{ '--fc-at': ratioOf(m.value) } as CSSProperties}>{m.label}</span>)}
+  </div>}
  </div>;
 }
 

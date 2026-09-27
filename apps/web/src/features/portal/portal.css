@@ -2110,6 +2110,44 @@
 .portal textarea:focus-visible {
   border-radius: var(--r-control);
 }
+
+/* ---- Focus, in the brand's green (28 September 2026) ----------------------------------------------
+   The founder: "there is this orange border that comes up when you click settings". A text field matches
+   :focus-visible on every click — it takes the keyboard whichever way it was reached — so core.css's
+   keyboard ring, amber with a 7px ink halo, was drawn round the search field the moment anybody clicked
+   it. The rules above only rounded that ring; none of them recoloured it or took the halo away, so the
+   amber and the halo won on order.
+
+   So the portal draws two rings of its own, both from the tokens:
+   - A FIELD — anything that takes typing, a select, a slider, a chip, a switch — gets one calm ring:
+     2px of brand green, 2px out, no halo. A field is reached by clicking as often as by Tab, and a ring
+     that shouts on every click is the one the founder saw. Brand green clears 3:1 (SC 1.4.11) on white
+     (3.39) and on paper (3.08), both rows in tokens.json#contrast, and every portal field sits on one of
+     those two: Configuration's editor is a paper panel precisely so no field sits on a tint, where green
+     clears nothing. Its border turns ink as well, so the ring is not the only thing that changes.
+   - EVERYTHING ELSE — a button, a tab, a tree node, a row, a summary — keeps core.css's two rings, with
+     the portal's green as the inner ring in place of amber. That is --focus, redefined here and read by
+     every sheet that draws the two rings (core.css, clinical.css, surface.css, motion.css), so no copy of
+     the ring is repeated. It still clears 3:1 on every ground the portal paints: on a light ground the
+     outer ring, --focus-edge, carries it (17.85 on white, 16.21 on paper, 11.99 or more on every tint);
+     on the dark cards, where the outer ring is lost, the green does — 3.55 on brand ink and 4.42 on
+     studio night. Those two are computed, not yet rows in tokens.json#contrast, and should be. */
+.portal {
+  --focus: var(--brand-green);
+}
+.portal input:not([type="range"], [type="checkbox"], [type="radio"], [type="button"], [type="submit"], [type="reset"]):focus-visible,
+.portal textarea:focus-visible,
+.portal select:focus-visible,
+.portal input:is([type="range"], [type="checkbox"], [type="radio"]):focus-visible {
+  outline: 2px solid var(--brand-green);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+.portal input:not([type="range"], [type="checkbox"], [type="radio"], [type="button"], [type="submit"], [type="reset"]):focus-visible,
+.portal textarea:focus-visible,
+.portal select:not([multiple]):focus-visible {
+  border-color: var(--brand-ink);
+}
 .portal .primary,
 .portal .secondary {
   min-height: 44px;
@@ -2121,22 +2159,145 @@
   border-radius: var(--r-pill);
 }
 
-/* ---- Configuration: each setting its own card, the value in force as a lime pill, the change form a
-   paper panel inside it, and the confirmation the dark card — the moment a change is about to reach
-   every desk it names. */
+/* ---- Configuration (28 September 2026): the founder's "fresh form styling" --------------------------
+   Each setting is a tinted card whose hero is the value in force, set as one light numeral with its unit
+   small beside it, under a small lime "In force" chip. The card's tint is where the setting stands —
+   lavender at its default, mint once changed, peach while it waits on a clinical review
+   (Configuration.tsx#standingOf) — and each of those is also said in words on the card. The editor is a
+   paper panel inside the card, so every field and its focus ring sit on paper and never on a tint: the
+   field ring is brand green, and brand green clears 3:1 on paper and on white but on no tint.
+
+   The pairs this section relies on, all rows in tokens.json#contrast unless marked: studio ink on studio
+   lilac (9.12) and on studio peach (8.91) — the lavender and peach cards' every word; brand ink on brand
+   mint (8.09, declared as mint on ink) — the mint card's; brand ink on brand lime (10.47) — the "In
+   force" chip and the confirmation's primary; surface on brand ink (12.04) — the primary's word; brand
+   lime on brand ink (10.47) — the primary's arrow disc on the dark confirmation; brand green on surface
+   (3.39) and on studio paper (3.08) — the field ring (SC 1.4.11). Brand orange is only ever the small
+   edge mark beside the guardrail's words: at 2.84:1 on white it is a mark and never a word. */
+.portal .cf-area {
+  gap: var(--space-16);
+}
+.portal .cf-area > .ss-version {
+  font-size: 13px;
+  color: var(--charcoal);
+}
+
+/* The search and the engine, one pill bar. Each field is the whole of its half of the bar — its label
+   sits inside it, over the value — so the field's own ring is the half's ring, and nothing draws a ring
+   round a box the reader did not click. */
 .portal .cf-tools {
-  padding: var(--space-20) var(--space-24);
-  border-radius: var(--r-panel);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-8);
+  padding: 0;
+  border-radius: 0;
+  background: none;
+}
+.portal .cf-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--stone);
+  border-radius: var(--r-pill);
   background: var(--surface);
   color: var(--charcoal);
 }
+.portal .cf-bar-field {
+  position: relative;
+  min-width: 0;
+}
+.portal .cf-bar-field + .cf-bar-field::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--space-4) / 2);
+  top: var(--space-16);
+  bottom: var(--space-16);
+  width: 1px;
+  background: var(--stone);
+}
+.portal .cf-bar-field > label {
+  position: absolute;
+  z-index: 1;
+  top: var(--space-8);
+  left: var(--space-24);
+  margin: 0;
+  color: var(--charcoal);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+.portal .cf-bar-query > label {
+  left: 52px;
+}
+.portal .cf-bar-input {
+  position: relative;
+  display: block;
+}
+.portal .cf-bar-input > svg {
+  position: absolute;
+  left: var(--space-20);
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--charcoal);
+  pointer-events: none;
+}
+.portal .cf-bar input[type="search"],
+.portal .cf-bar select:not([multiple]) {
+  width: 100%;
+  min-height: 60px;
+  margin: 0;
+  padding: 26px var(--space-24) var(--space-8);
+  border: 0;
+  border-radius: var(--r-pill);
+  background-color: transparent;
+  color: var(--charcoal);
+  font-size: 15px;
+}
+.portal .cf-bar input[type="search"] {
+  padding-left: 52px;
+}
+.portal .cf-bar select:not([multiple]) {
+  padding-right: 44px;
+}
+@media (hover: hover) {
+  .portal .cf-bar input[type="search"]:hover,
+  .portal .cf-bar select:not([multiple]):hover {
+    background-color: var(--studio-paper);
+  }
+}
+.portal .cf-tools > .helper {
+  margin: 0;
+  padding-inline: var(--space-24);
+  color: var(--charcoal);
+}
+@media (max-width: 640px) {
+  .portal .cf-bar {
+    grid-template-columns: minmax(0, 1fr);
+    border-radius: var(--r-panel);
+  }
+  .portal .cf-bar-field + .cf-bar-field::before {
+    left: var(--space-24);
+    right: var(--space-24);
+    top: calc(-1 * var(--space-4) / 2);
+    bottom: auto;
+    width: auto;
+    height: 1px;
+  }
+  .portal .cf-tools > .helper {
+    padding-inline: var(--space-16);
+  }
+}
+
 .portal .ss-panel > .section-title h2 {
   font-size: 22px;
   font-weight: 500;
   letter-spacing: -0.4px;
 }
 .portal ol.panel.ss-timings {
-  gap: var(--space-12);
+  gap: var(--space-16);
   padding: 0;
   border: 0;
   background: none;
@@ -2145,78 +2306,400 @@
 .portal ol.panel.ss-timings::before {
   display: none;
 }
+
+/* ---- The setting card ---- */
 .portal .ss-timing {
-  gap: var(--space-12);
+  gap: var(--space-16);
   padding: var(--space-24);
   border-radius: var(--r-panel);
-  background: var(--surface);
-  color: var(--charcoal);
+  background: var(--pt-tint-lavender);
+  color: var(--pt-tint-ink);
+}
+.portal .ss-timing[data-standing="changed"] {
+  background: var(--pt-tint-mint);
+  color: var(--brand-ink);
+}
+.portal .ss-timing[data-standing="review"] {
+  background: var(--pt-tint-peach);
+  color: var(--pt-tint-ink);
 }
 .portal .ss-timing + .ss-timing {
   border-top: 0;
 }
+/* Every word on a tint is the tint's own ink, so the grey the clinical sheet gives a meta line or a term
+   never lands on a tint it was not measured on. */
+.portal .ss-timing :is(.ss-timing-head strong, .ss-help, .ss-meta, .cf-rules dt, .cf-rules dd, .cf-history > summary, .cf-history > .helper) {
+  color: inherit;
+}
+.portal .ss-timing-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-12) var(--space-32);
+}
+.portal .ss-timing[data-figure="words"] .ss-timing-head {
+  grid-template-columns: minmax(0, 1fr);
+}
+.portal .ss-timing-name {
+  display: grid;
+  gap: var(--space-8);
+  min-width: 0;
+}
 .portal .ss-timing-head strong {
-  font-size: 17px;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+  line-height: 1.3;
+}
+.portal .ss-help {
+  max-width: 62ch;
+  font-size: 15px;
+  line-height: 1.55;
 }
 .portal .ss-in-force {
+  display: grid;
+  justify-items: end;
+  align-content: start;
+  gap: var(--space-8);
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+}
+.portal .ss-timing[data-figure="words"] .ss-in-force {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-16);
-  border-radius: var(--r-pill);
-  background: var(--studio-lime);
-  color: var(--studio-ink);
+  justify-content: flex-start;
+  gap: var(--space-8) var(--space-12);
 }
 .portal .ss-in-force small {
-  color: var(--studio-ink-muted);
-}
-.portal .ss-in-force b {
-  padding: var(--space-4) var(--space-12);
+  padding: 3px var(--space-12);
   border-radius: var(--r-pill);
-  background: var(--surface);
-  color: var(--studio-ink);
-  font-size: 18px;
+  background: var(--brand-lime);
+  color: var(--brand-ink);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+.portal .ss-figure {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: 0;
+  background: none;
+  color: inherit;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.portal .ss-figure-n {
+  font-size: 42px;
+  line-height: 1;
+  letter-spacing: -1.5px;
+}
+.portal .ss-figure-unit {
+  font-size: 16px;
   font-weight: 500;
 }
+.portal .ss-figure.is-words {
+  display: inline;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.portal .ss-meta {
+  font-size: 13px;
+  line-height: 1.55;
+}
+.portal .cf-rules {
+  gap: var(--space-8);
+  padding-top: var(--space-16);
+  border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+}
+.portal .cf-rules > div {
+  grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+  font-size: 14px;
+}
+@media (max-width: 640px) {
+  .portal .cf-rules > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.portal .cf-rules dt {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+  text-transform: uppercase;
+}
+.portal .ss-timing > .cf-review {
+  background: var(--surface);
+  border-color: var(--surface);
+  color: var(--charcoal);
+}
+.portal .ss-timing > .cf-review.is-unreviewed {
+  background: var(--surface);
+  border-color: var(--surface);
+  color: var(--mango-ink);
+}
+
+/* The history as a timeline: a rail down the first column with a dot at each change, and the table
+   underneath it still a table — the header cells, the order and every word are what they were. */
+.portal .cf-history > summary {
+  width: fit-content;
+  padding-inline: var(--space-4);
+  font-weight: 600;
+}
+.portal .cf-history > .table-scroll {
+  margin-top: var(--space-8);
+}
+.portal .cf-timeline {
+  border-spacing: 0;
+}
+.portal .cf-timeline caption {
+  color: inherit;
+  text-align: left;
+}
+.portal .cf-timeline thead th {
+  padding: var(--space-4) var(--space-12);
+  color: inherit;
+}
+.portal .cf-timeline thead th:first-child {
+  padding-left: 32px;
+}
+.portal .cf-timeline tbody td {
+  padding: var(--space-8) var(--space-12);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+}
+.portal .cf-timeline tbody tr > :first-child,
+.portal .cf-timeline tbody tr > :last-child {
+  border-radius: 0;
+}
+/* A value is read whole: "60 min" broken over two lines reads as two values. A rota's long value still
+   wraps, and the table scrolls inside its card before the card ever widens. */
+.portal .cf-timeline tbody td:is(:nth-child(3), :nth-child(4)) {
+  min-width: 6rem;
+}
+.portal .cf-timeline tbody td:first-child {
+  position: relative;
+  padding-left: 32px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.portal .cf-timeline tbody td:first-child::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: color-mix(in srgb, currentColor 22%, transparent);
+}
+.portal .cf-timeline tbody td:first-child::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 14px;
+  width: 12px;
+  height: 12px;
+  box-sizing: border-box;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--brand-green);
+}
+.portal .cf-timeline tbody tr:first-child td:first-child::before {
+  top: 14px;
+}
+.portal .cf-timeline tbody tr:last-child td:first-child::before {
+  bottom: calc(100% - 20px);
+}
+
+/* ---- The editor: a paper panel inside the card ---- */
 .portal .ss-form {
   gap: var(--space-12);
-  max-width: 640px;
-  padding: var(--space-20);
+  max-width: none;
+  padding: var(--space-24);
   border: 0;
   border-radius: var(--r-card);
   background: var(--studio-paper);
   color: var(--studio-ink);
 }
-.portal .ss-form > label {
-  color: var(--studio-ink);
-  font-weight: 600;
+.portal .ss-form > * {
+  max-width: 44rem;
 }
+.portal .ss-form > label,
+.portal .ss-form .fc-chips > legend,
+.portal .ss-form .cf-choices > legend {
+  color: var(--studio-ink);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+.portal .ss-form > label:not(:first-child) {
+  margin-top: var(--space-8);
+}
+.portal .ss-form textarea {
+  min-height: 104px;
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--r-card);
+  line-height: 1.55;
+}
+.portal .ss-form > .helper {
+  color: var(--studio-ink);
+}
+.portal .ss-form .button-row,
+.portal .ss-confirm .button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-12);
+  margin-top: var(--space-4);
+}
+.portal .ss-form .button-row > button,
+.portal .ss-confirm .button-row > button {
+  flex: 0 0 auto;
+}
+
+/* ---- Buttons: the primary is the landing's — an ink pill with the lime arrow in a disc beside its
+   word; the secondary is an outlined pill in whatever ink it stands on; both press through .m-press. */
+.portal .cf-area .primary,
+.portal .cf-area .secondary {
+  min-height: 48px;
+  border-radius: var(--r-pill);
+  font-size: 15px;
+  font-weight: 600;
+  transition:
+    transform var(--t-quick) var(--ease-soft),
+    background-color var(--t-quick) var(--ease-soft),
+    border-color var(--t-quick) var(--ease-soft);
+}
+.portal .cf-area .primary {
+  gap: var(--space-12);
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-24);
+  border: 0;
+  background: var(--brand-ink);
+  color: var(--surface);
+}
+.portal .cf-area .primary:hover:not(:disabled) {
+  background: var(--brand-ink);
+}
+.portal .cf-go {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--brand-lime);
+  color: var(--brand-ink);
+  transition: transform var(--t-quick) var(--ease-soft);
+}
+.portal .cf-area .primary:hover:not(:disabled) .cf-go {
+  transform: translateX(3px);
+}
+/* Disabled still reads: the word stays charcoal on the recessed ground, and the arrow loses its lime, so
+   the button says it cannot act by more than being paler. */
+.portal .cf-area .primary:disabled {
+  background: var(--cloud);
+  color: var(--charcoal);
+  cursor: not-allowed;
+}
+.portal .cf-area .primary:disabled .cf-go {
+  background: transparent;
+  color: var(--charcoal);
+}
+.portal .cf-area .secondary {
+  padding: var(--space-8) var(--space-24);
+  border: 1.5px solid currentColor;
+  background: transparent;
+  color: inherit;
+}
+.portal .cf-area .secondary:hover:not(:disabled) {
+  border-color: currentColor;
+  background: var(--surface);
+  color: var(--charcoal);
+}
+.portal .ss-timing > .cf-open {
+  justify-self: start;
+}
+
+/* The confirmation is the dark card: the moment a change is about to reach every desk it names. Its
+   primary turns over — a lime pill with the ink word and the arrow ink — and its secondary is paper. */
 .portal .ss-confirm {
   gap: var(--space-12);
-  padding: var(--space-20);
+  padding: var(--space-24);
   border: 0;
   border-radius: var(--r-card);
-  background: var(--studio-night);
-  color: var(--studio-paper);
+  background: var(--brand-ink);
+  color: var(--surface);
+}
+.portal .ss-confirm strong {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.4;
 }
 .portal .ss-confirm strong,
 .portal .ss-confirm p {
-  color: var(--studio-paper);
+  color: var(--surface);
 }
-.portal .ss-confirm .secondary {
+.portal .cf-area .ss-confirm .secondary {
+  border-color: var(--surface);
   background: transparent;
-  border-color: var(--studio-paper);
-  color: var(--studio-paper);
+  color: var(--surface);
 }
-.portal .ss-confirm .primary {
-  background: var(--studio-lime);
-  color: var(--studio-ink);
+.portal .cf-area .ss-confirm .secondary:hover:not(:disabled) {
+  background: transparent;
+  color: var(--surface);
+  text-decoration: underline;
+}
+.portal .cf-area .ss-confirm .primary {
+  background: var(--brand-lime);
+  color: var(--brand-ink);
+}
+.portal .cf-area .ss-confirm .primary .cf-go {
+  background: var(--brand-ink);
+  color: var(--brand-lime);
 }
 .portal .cf-window {
   display: grid;
   gap: var(--space-12);
   padding: var(--space-16);
+  border: 0;
   border-radius: var(--r-card);
   background: var(--surface);
   color: var(--charcoal);
+}
+
+/* A phone: the figure moves under the name, chip and numeral on one line, and the card's padding comes in. */
+@media (max-width: 599px) {
+  .portal .ss-timing {
+    padding: var(--space-20) var(--space-16);
+    border-radius: var(--r-card);
+  }
+  .portal .ss-timing-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .portal .ss-in-force {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .portal .ss-figure-n {
+    font-size: 40px;
+  }
+  .portal .ss-form {
+    padding: var(--space-16);
+  }
 }
 
 /* ---- GilbertOne ---------------------------------------------------------------------------------- */
@@ -2298,6 +2781,14 @@
   .portal .pt-ring-fill,
   [data-decor="on"] .portal .pt-ring-fill {
     animation: none !important;
+  }
+  .portal .cf-area .primary,
+  .portal .cf-area .secondary,
+  .portal .cf-go {
+    transition: none !important;
+  }
+  .portal .cf-area .primary:hover .cf-go {
+    transform: none !important;
   }
 }
 /* A contract path in a refusal or a discrepancy has nowhere a browser will break it; on a phone it was

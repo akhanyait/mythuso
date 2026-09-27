@@ -4,6 +4,8 @@
  * Every colour is a token. Every text pair is a row in tokens.json#contrast: charcoal on surface, surface
  * on charcoal, studio paper on studio night (the slider's chip), studio ink on studio lime (a chosen
  * chip's tick disc sits on lime and carries no word) and teal ink on teal soft (the switch's "on" word).
+ * The slider's knob is ringed in brand green with a hairline of brand ink outside it, so the knob stands
+ * off the green fill it rides on as well as off the paper beside it.
  * The thumb, the chosen pill and the switch's knob are what carry a value; the track fills are
  * decoration beside them, so no state is told by a fill alone.
  *
@@ -19,7 +21,8 @@
 .fc-range {
   --fc-on: var(--brand-green);
   --fc-off: var(--stone);
-  --fc-knob: var(--charcoal);
+  --fc-knob: var(--brand-green);
+  --fc-knob-edge: var(--brand-ink);
   position: relative;
   display: block;
   min-width: 0;
@@ -29,6 +32,7 @@
   --fc-on: var(--studio-lime);
   --fc-off: var(--sage-slate);
   --fc-knob: var(--studio-lime);
+  --fc-knob-edge: var(--studio-lime);
 }
 /* The chip rides the thumb: its left edge at the thumb at the low end, its right edge at the high end,
    centred between — so it never leaves the track's box, and a phone never scrolls sideways for it. */
@@ -84,7 +88,7 @@
   margin-top: -16px;
   border: 0;
   border-radius: 50%;
-  background: radial-gradient(circle closest-side, var(--surface) 0 44%, var(--fc-knob) 47% 62%, transparent 65%);
+  background: radial-gradient(circle closest-side, var(--surface) 0 40%, var(--fc-knob) 43% 56%, var(--fc-knob-edge) 58% 63%, transparent 66%);
 }
 .fc-range input[type="range"]::-moz-range-track {
   height: 12px;
@@ -101,7 +105,7 @@
   height: 44px;
   border: 0;
   border-radius: 50%;
-  background: radial-gradient(circle closest-side, var(--surface) 0 44%, var(--fc-knob) 47% 62%, transparent 65%);
+  background: radial-gradient(circle closest-side, var(--surface) 0 40%, var(--fc-knob) 43% 56%, var(--fc-knob-edge) 58% 63%, transparent 66%);
 }
 .fc-range input[type="range"]:disabled {
   cursor: not-allowed;
@@ -303,9 +307,11 @@
   border-color: var(--charcoal);
   color: var(--surface);
 }
+/* The chosen pill's disc is the wordmark's lime, the one CI accent a chosen thing wears; the tick on it is
+   studio ink, which is brand ink inside the staff shells (brand ink on brand lime, 10.47). */
 .fc-chip:has(input:checked) > span::before {
-  border-color: var(--studio-lime);
-  background: var(--studio-lime);
+  border-color: var(--brand-lime);
+  background: var(--brand-lime);
 }
 /* The tick, drawn — so a chosen pill differs from an unchosen one by a mark as well as by its fill. */
 .fc-chip:has(input:checked) > span::after {
@@ -337,10 +343,110 @@
   padding-top: 0;
 }
 
-/* The number field a slider sits beside: core.css's field, sized to the number it holds. */
+/* The number field a slider sits beside: core.css's field, sized to the number it holds, and a pill like
+   the chip riding the thumb, so the two read as one control said twice. */
 .fc-number {
   min-height: 44px;
   font-variant-numeric: tabular-nums;
+}
+.fc-slide-pair > input.fc-number[inputmode] {
+  align-self: start;
+  margin-top: 36px;
+  border-radius: var(--r-pill);
+  font-size: 18px;
+  font-weight: 500;
+  text-align: center;
+}
+@media (max-width: 420px) {
+  .fc-slide-pair > input.fc-number[inputmode] {
+    margin-top: 0;
+  }
+}
+
+/* ---- Ticks: the bounds and the default, marked on the track -------------------------------------
+   Each tick sits under the thumb's centre at its value — the same 22px-in arithmetic as the chip — and
+   the words under the ends sit at the ends. A mark between the ends has its words on a line of its own,
+   anchored the way the chip is, so they never leave the track's box on a phone. */
+.fc-marks {
+  position: relative;
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  margin-top: var(--space-4);
+  color: var(--faint);
+  font-size: 13px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+.fc-tick {
+  position: absolute;
+  top: -17px;
+  left: calc(22px + var(--fc-at, 0) * (100% - 44px));
+  width: 2px;
+  height: 8px;
+  margin-left: -1px;
+  border-radius: var(--r-pill);
+  background: currentColor;
+  pointer-events: none;
+}
+.fc-tick.is-inner {
+  top: -19px;
+  height: 12px;
+  background: var(--brand-ink);
+}
+.fc-mark-ends {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+.fc-mark-inner {
+  justify-self: start;
+  margin-left: calc(var(--fc-at, 0) * 100%);
+  transform: translateX(calc(var(--fc-at, 0) * -100%));
+  max-width: 100%;
+  color: var(--brand-ink);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.fc-range.is-night .fc-tick.is-inner {
+  background: var(--studio-paper);
+}
+.fc-range.is-night .fc-mark-inner {
+  color: var(--studio-paper);
+}
+
+/* ---- What the value means, under the slider ---------------------------------------------------- */
+.fc-meaning {
+  display: grid;
+  gap: var(--space-8);
+  min-width: 0;
+}
+.fc-meaning > p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--studio-ink);
+  overflow-wrap: anywhere;
+}
+.fc-meaning > p.is-change {
+  font-weight: 500;
+}
+/* Empty, it stays in the tree — a live region that is not there when its words arrive is never heard —
+   and gives back the gap it would otherwise hold open. */
+.fc-meaning > .fc-meaning-edge:empty {
+  margin-top: calc(-1 * var(--space-8));
+}
+.fc-meaning-edge {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-12);
+}
+/* The one place brand orange is spent on this screen: a short bar beside the words that say an edge is
+   near. It is a mark, never a word, and the words beside it say everything it does. */
+.fc-edge-mark {
+  flex: 0 0 4px;
+  border-radius: var(--r-pill);
+  background: var(--brand-orange);
 }
 .fc-select {
   min-height: 44px;

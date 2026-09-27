@@ -396,3 +396,67 @@ test('an admin narrows who may be offered an injection, Configuration says it is
   await expect(reviewed.locator('.cf-review')).toContainText('D-401');
   await expect(timingItem(group(page, care.settings.heading), planning)).toContainText(say.notReviewed);
 });
+
+/* The founder, 28 September 2026: "there is this orange border that comes up when you click settings". A text
+   field matches :focus-visible on every click, so core.css's keyboard ring — amber with a 7px halo — was drawn
+   round the search field by a mouse. Inside the portal a field now wears one calm ring of brand green and no
+   halo, however it was reached; a button reached by Tab keeps the two rings, green inside the ink. The colours
+   are read from the token file, so this holds the rule rather than a hex. */
+test('a field clicked into wears one calm green ring and no halo; a button reached by Tab keeps two rings', async ({ page }) => {
+  const tokens = JSON.parse(readFileSync(new URL('../packages/design-tokens/tokens.json', import.meta.url), 'utf8')) as { color: Record<string, string> };
+  const rgb = (hex: string) => `rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(', ')})`;
+  const ringOf = (el: Element) => { const s = getComputedStyle(el); return { width: s.outlineWidth, style: s.outlineStyle, color: s.outlineColor, offset: s.outlineOffset, halo: s.boxShadow }; };
+  const area = await openSettings(page);
+  const search = area.getByRole('searchbox', { name: say.search });
+  await search.click();
+  await expect(search).toBeFocused();
+  expect(await search.evaluate(ringOf)).toEqual({ width: '2px', style: 'solid', color: rgb(tokens.color.brandGreen), offset: '2px', halo: 'none' });
+  const engine = area.getByRole('combobox', { name: say.engine });
+  await page.keyboard.press('Tab');
+  await expect(engine).toBeFocused();
+  expect(await engine.evaluate(ringOf)).toMatchObject({ width: '2px', color: rgb(tokens.color.brandGreen), halo: 'none' });
+
+  const panel = await openSettingsPanel(page);
+  const form = await openChangeForm(panel, timingRow('grace'));
+  await form.getByLabel(say.reason, { exact: true }).click();
+  await page.keyboard.press('Tab');
+  const cancel = form.getByRole('button', { name: say.cancel });
+  await expect(cancel).toBeFocused();
+  const ring = await cancel.evaluate(ringOf);
+  expect(ring).toMatchObject({ width: '3px', style: 'solid', color: rgb(tokens.color.brandGreen) });
+  expect(ring.halo, 'a button reached by Tab keeps its outer ring').toContain('7px');
+  expect(ring.halo).toContain(rgb(tokens.color.focusEdge));
+});
+
+/* The slider says what its value means as it moves, in the contract's words: the change it would make, asked
+   as the confirmation asks it; that it is the value in force; and, at an edge, what an admin may set and what
+   no value may do. It is still the native range input, so Home and End reach the bounds and its value is
+   announced with its unit. */
+test('the slider says what its value means, marks the default and the bounds, and names the guardrail at an edge', async ({ page }) => {
+  await page.clock.install({ time: START });
+  await openAdminConsole(page);
+  const panel = await openSettingsPanel(page);
+  const grace = timingRow('grace') as TimingRow & { guardrail: { statement: string }; bounds: { lowest: Bound; highest: Bound } };
+  const from = grace.default.value as number;
+  const form = await openChangeForm(panel, grace);
+  const slider = form.getByRole('slider');
+  const meaning = form.locator('.fc-meaning');
+  const range = fill(say.range, { lowest: minutesText(grace.bounds.lowest.value), highest: minutesText(grace.bounds.highest.value) });
+  await expect(form).toContainText(fill(say.defaultIs, { value: minutesText(from) }));
+  await expect(meaning).toContainText(`${say.inForce} · ${minutesText(from)}`);
+  await expect(meaning).not.toContainText(grace.guardrail.statement);
+
+  await slider.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(slider).toHaveAttribute('aria-valuetext', minutesText(from + 1));
+  await expect(meaning).toContainText(fill(say.confirmQuestion, { setting: grace.label, from: minutesText(from), to: minutesText(from + 1) }));
+  await expect(form.getByLabel(editorLabel(grace), { exact: true })).toHaveValue(String(from + 1));
+
+  for (const [key, edge] of [['End', grace.bounds.highest.value], ['Home', grace.bounds.lowest.value]] as const) {
+    await page.keyboard.press(key);
+    await expect(slider).toHaveAttribute('aria-valuetext', minutesText(edge));
+    await expect(meaning).toContainText(range);
+    await expect(meaning).toContainText(grace.guardrail.statement);
+  }
+  expect(await noOverflow(page), 'the slider and its marks scroll the page sideways').toBe(true);
+});

@@ -1,5 +1,5 @@
 import { useId, useState, type FormEvent } from 'react';
-import { CircleAlert, ShieldAlert, ShieldCheck, SlidersHorizontal } from 'lucide-react';
+import { ArrowRight, CircleAlert, Search, ShieldAlert, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import vetting from '../../../../packages/catalog/vetting.json' with { type: 'json' };
 import {
  reviewStateOf, settingsContract, settingsScreen, snapshotOf,
@@ -144,7 +144,40 @@ function valueOf(limits: Limits, raw: Raw): unknown {
 
 const editorLabel = (limits: Limits) => fill(say.editors[limits.type as keyof typeof say.editors] ?? say.editors.record, { unit: limits.unit ?? '' });
 
-function Editor({ limits, raw, onRaw, id, label, disabled }: { limits: Limits; raw: Raw; onRaw: (raw: Raw) => void; id: string; label: string; disabled: boolean }) {
+/* What the setting being changed brings to its editor: its name, the value in force, its default and what
+   no value may do. Only the top-level editor has one; a record's parts are read inside their record. */
+type Context = { readonly label: string; readonly from: unknown; readonly defaultValue: unknown; readonly guardrail?: string };
+
+/* A bound is "near" inside the outer tenth of the way between the two. Not a contract number — nothing is
+   refused or allowed by it — only where the screen starts saying what no value may do, so that an admin
+   dragging towards an edge reads the edge's reason before arriving at it rather than after. */
+const NEAR = 0.1;
+
+/* What the value on the slider means, under it, in the contract's own words and nothing else: the change
+   it would make, asked as the confirmation will ask it, or that it is the value in force; and, near or
+   past a bound, what an admin may set and what no value may do. Its first line is not live — the slider
+   already announces its value on every step, and a sentence read again with it would double every
+   keypress. The second line is polite and live, and its words change only when a bound is reached or
+   left, so a screen reader hears the guardrail once, on the way in. */
+function Meaning({ id, limits, typed, context }: { id: string; limits: Limits; typed: number; context: Context }) {
+ const bounds = limits.bounds;
+ if (!Number.isFinite(typed) || !bounds) return null;
+ const value = limits.type === 'moneyCents' ? Math.round(typed * 100) : typed;
+ const span = bounds.highest.value - bounds.lowest.value;
+ const near = span > 0 && (value - bounds.lowest.value <= span * NEAR || bounds.highest.value - value <= span * NEAR);
+ const inForce = value === context.from;
+ return <div className="fc-meaning" id={id}>
+  <p className={inForce ? 'is-same' : 'is-change'}>{inForce
+   ? <><b>{say.inForce}</b> · {valueText(limits, value)}</>
+   : fill(say.confirmQuestion, { setting: context.label, from: valueText(limits, context.from), to: valueText(limits, value) })}</p>
+  <p className="fc-meaning-edge" aria-live="polite">{near && <>
+   <span className="fc-edge-mark" aria-hidden="true"/>
+   <span>{limitsText(limits)}.{context.guardrail ? <> <b>{say.guardrail}:</b> {context.guardrail}</> : ''}</span>
+  </>}</p>
+ </div>;
+}
+
+function Editor({ limits, raw, onRaw, id, label, disabled, context }: { limits: Limits; raw: Raw; onRaw: (raw: Raw) => void; id: string; label: string; disabled: boolean; context?: Context }) {
  switch (limits.type) {
   /* A number with bounds is a slider beside its exact field. The field is still the value: the slider
      writes into it and reads from it, so what reaches the rules is exactly what it was before — the text
@@ -159,16 +192,22 @@ function Editor({ limits, raw, onRaw, id, label, disabled }: { limits: Limits; r
    const [low, high] = [scale(bounds.lowest.value), scale(bounds.highest.value)];
    const typed = String(raw).trim() === '' ? Number.NaN : Number(String(raw).trim().replace(',', '.'));
    const at = Number.isFinite(typed) ? Math.min(high, Math.max(low, typed)) : low;
+   /* The ticks: both bounds, and the default where the setting has a single number for one. */
+   const byDefault = typeof context?.defaultValue === 'number' ? context.defaultValue : null;
+   const marks = [
+    { value: low, label: valueText(limits, bounds.lowest.value) },
+    ...(byDefault !== null && byDefault > bounds.lowest.value && byDefault < bounds.highest.value ? [{ value: scale(byDefault), label: fill(say.defaultIs, { value: valueText(limits, byDefault) }) }] : []),
+    { value: high, label: valueText(limits, bounds.highest.value) }
+   ];
    return <>
     <label htmlFor={id}>{label}</label>
     <div className="fc-slide-pair">
-     <div>
-      <RangeSlider label={`${label}, ${limitsText(limits)}`} min={low} max={high} step={cents ? 0.01 : 1} value={at} disabled={disabled}
-       valueText={valueText(limits, cents ? Math.round(at * 100) : at)} onChange={next => onRaw(cents ? next.toFixed(2) : String(next))}/>
-      <p className="fc-range-ends" aria-hidden="true"><span>{valueText(limits, bounds.lowest.value)}</span><span>{valueText(limits, bounds.highest.value)}</span></p>
-     </div>
+     <RangeSlider label={`${label}, ${limitsText(limits)}`} min={low} max={high} step={cents ? 0.01 : 1} value={at} disabled={disabled} marks={marks}
+      describedBy={context && !disabled ? id + '-meaning' : undefined}
+      valueText={valueText(limits, cents ? Math.round(at * 100) : at)} onChange={next => onRaw(cents ? next.toFixed(2) : String(next))}/>
      {field}
     </div>
+    {context && !disabled && <Meaning id={id + '-meaning'} limits={limits} typed={typed} context={context}/>}
    </>;
   }
   case 'list':
@@ -234,6 +273,23 @@ function Editor({ limits, raw, onRaw, id, label, disabled }: { limits: Limits; r
  }
 }
 
+/* The value in force, as the card's figure. A single number is set large with its unit small beside it,
+   and both halves are cut from the contract's own words for the type — "{value} min", "R{rand}",
+   "{value} {unit}" — so no unit is typed here and the figure reads exactly as the history and the
+   confirmation do. Anything that is not one number (a choice, a rota, a list, a sentence) is words, and
+   words are not set as a numeral. */
+function Figure({ limits, value }: { limits: Limits; value: unknown }) {
+ const text = valueText(limits, value);
+ const number = typeof value !== 'number' || !NUMBERS.has(limits.type) ? null : limits.type === 'moneyCents' ? (value / 100).toFixed(2) : String(value);
+ const at = number === null ? -1 : text.indexOf(number);
+ if (number === null || at < 0) return <b className="ss-figure is-words">{text}</b>;
+ return <b className="ss-figure">
+  {at > 0 && <span className="ss-figure-unit">{text.slice(0, at)}</span>}
+  <span className="ss-figure-n">{number}</span>
+  <span className="ss-figure-unit">{text.slice(at + number.length)}</span>
+ </b>;
+}
+
 /* ---- The screen ----------------------------------------------------------------------------------- */
 
 export function Configuration({ engine, onEngine }: { engine: string; onEngine: (engine: string) => void }) {
@@ -253,19 +309,25 @@ export function Configuration({ engine, onEngine }: { engine: string; onEngine: 
  return <div className="cf-area">
   <div className="privacy-note"><SlidersHorizontal size={19}/>{say.intro}</div>
   <div className="privacy-note alert"><CircleAlert size={19}/>{say.preview}</div>
+  {/* One bar, two fields: what a setting is called and which engine owns it. Each keeps its own visible
+      label, and the bar is only how they sit together — so a phone stacks them without losing either. */}
   <div className="cf-tools" role="search">
-   <div>
-    <label htmlFor={id + '-query'}>{say.search}</label>
-    <input id={id + '-query'} type="search" value={query} aria-describedby={id + '-query-help'} onChange={event => setQuery(event.target.value)}/>
-    <p className="helper" id={id + '-query-help'}>{say.searchHelp}</p>
+   <div className="cf-bar">
+    <div className="cf-bar-field cf-bar-query">
+     <label htmlFor={id + '-query'}>{say.search}</label>
+     <span className="cf-bar-input"><Search size={18} aria-hidden="true"/>
+      <input id={id + '-query'} type="search" value={query} aria-describedby={id + '-query-help'} onChange={event => setQuery(event.target.value)}/>
+     </span>
+    </div>
+    <div className="cf-bar-field cf-bar-engine">
+     <label htmlFor={id + '-engine'}>{say.engine}</label>
+     <select id={id + '-engine'} value={engine} onChange={event => onEngine(event.target.value)}>
+      <option value="">{say.everyEngine}</option>
+      {blocks.map(block => <option key={block.engine} value={block.engine}>{block.heading}</option>)}
+     </select>
+    </div>
    </div>
-   <div>
-    <label htmlFor={id + '-engine'}>{say.engine}</label>
-    <select id={id + '-engine'} value={engine} onChange={event => onEngine(event.target.value)}>
-     <option value="">{say.everyEngine}</option>
-     {blocks.map(block => <option key={block.engine} value={block.engine}>{block.heading}</option>)}
-    </select>
-   </div>
+   <p className="helper" id={id + '-query-help'}>{say.searchHelp}</p>
   </div>
   <p className="ss-version" role="status">{fill(say.shown, { shown: String(shown), total: String(total) })}</p>
   {groups.length
@@ -289,6 +351,11 @@ function EngineGroup({ block, items, history }: { block: SettingsBlock; items: r
  </section>;
 }
 
+/* A card's ground says where the setting stands, never where it sits on the page: waiting on a clinical
+   review, changed from its default, or neither. The words say the same on every card — the review pill,
+   "Last changed by" or "Not changed from the default" — so the tint is never the only difference. */
+const standingOf = (waitsOnReview: boolean, changed: boolean) => waitsOnReview ? 'review' : changed ? 'changed' : 'default';
+
 function SettingItem({ engine, setting, snapshot, history, open, onOpen, onClose, onApplied }: {
  engine: string; setting: Setting; snapshot: Snapshot; history: readonly Change[]; open: boolean; onOpen: () => void; onClose: () => void; onApplied: (change: Change) => void;
 }) {
@@ -297,12 +364,15 @@ function SettingItem({ engine, setting, snapshot, history, open, onOpen, onClose
  const review = reviewStateOf(setting, snapshot, reviewsOf(engine));
  const limits = limitsText(setting);
  const bounds = limitProvenance(setting);
- return <li className="ss-timing">
+ const numeral = typeof inForce === 'number' && NUMBERS.has(setting.type);
+ return <li className="ss-timing" data-standing={standingOf(!!review.required && !review.reviewed, !!last)} data-figure={numeral ? 'number' : 'words'}>
   <div className="ss-timing-head">
-   <strong>{setting.label}</strong>
-   <span className="ss-in-force"><small>{say.inForce}</small><b>{valueText(setting, inForce)}</b></span>
+   <div className="ss-timing-name">
+    <strong>{setting.label}</strong>
+    <p className="ss-help">{setting.help}</p>
+   </div>
+   <span className="ss-in-force"><small>{say.inForce}</small><Figure limits={setting} value={inForce}/></span>
   </div>
-  <p className="ss-help">{setting.help}</p>
   {review.required && (review.reviewed
    ? <span className="pill cf-review"><ShieldCheck size={15}/>{fill(say.reviewed, { who: review.reviewed.byRef, on: review.reviewed.on ? dayOf(review.reviewed.on) : review.reviewed.at === null ? '' : whenOf(review.reviewed.at) })}</span>
    : <span className="pill cf-review is-unreviewed"><ShieldAlert size={15}/>{say.notReviewed}</span>)}
@@ -322,7 +392,7 @@ function SettingItem({ engine, setting, snapshot, history, open, onOpen, onClose
   <details className="cf-history">
    <summary>{say.historyHeading} ({history.length})</summary>
    {history.length
-    ? <div className="table-scroll"><table className="result-table admin-table ss-history">
+    ? <div className="table-scroll"><table className="result-table admin-table ss-history cf-timeline">
       <caption>{say.historyNeverEdited}</caption>
       <thead><tr><th scope="col">{say.when}</th><th scope="col">{say.who}</th><th scope="col">{say.from}</th><th scope="col">{say.to}</th><th scope="col">{say.why}</th></tr></thead>
       <tbody>{history.map(change => <tr key={change.settingsVersion}>
@@ -333,7 +403,7 @@ function SettingItem({ engine, setting, snapshot, history, open, onOpen, onClose
   </details>
   {open
    ? <ChangeForm engine={engine} setting={setting} expectedVersion={snapshot.settingsVersion} from={inForce} onClose={onClose} onApplied={onApplied}/>
-   : <button className="secondary" onClick={onOpen}>{say.change}<span className="visually-hidden"> {setting.label}</span></button>}
+   : <button className="secondary m-press cf-open" onClick={onOpen}>{say.change}<span className="visually-hidden"> {setting.label}</span></button>}
  </li>;
 }
 
@@ -358,7 +428,8 @@ function ChangeForm({ engine, setting, expectedVersion, from, onClose, onApplied
   onApplied(result.change);
  };
  return <form className="ss-form" onSubmit={check} aria-label={`${say.change} ${setting.label}`}>
-  <Editor limits={setting} raw={raw} id={id + '-value'} label={editorLabel(setting)} disabled={!!review} onRaw={next => { setRaw(next); setRefused(null); }}/>
+  <Editor limits={setting} raw={raw} id={id + '-value'} label={editorLabel(setting)} disabled={!!review} onRaw={next => { setRaw(next); setRefused(null); }}
+   context={{ label: setting.label, from, defaultValue: setting.default.value, guardrail: setting.guardrail?.statement }}/>
   <label htmlFor={id + '-reason'}>{say.reason}</label>
   <textarea id={id + '-reason'} value={reason} rows={3} disabled={!!review} aria-describedby={id + '-help'}
    onChange={event => { setReason(event.target.value); setRefused(null); }}/>
@@ -370,13 +441,17 @@ function ChangeForm({ engine, setting, expectedVersion, from, onClose, onApplied
      <p>{setting.appliesTo}</p>
      {setting.reviewRequired && <p>{say.notReviewed}. {fill(say.reviewWaitsOn, { capability: capabilityName(setting.reviewRequired) })}</p>}
      <div className="button-row">
-      <button type="button" className="secondary" onClick={() => setReview(null)}>{say.cancel}</button>
-      <button type="button" className="primary" autoFocus onClick={confirm}>{say.confirm}</button>
+      <button type="button" className="secondary m-press" onClick={() => setReview(null)}>{say.cancel}</button>
+      <button type="button" className="primary m-press" autoFocus onClick={confirm}>{say.confirm}<Go/></button>
      </div>
     </div>
    : <div className="button-row">
-     <button type="button" className="secondary" onClick={onClose}>{say.cancel}</button>
-     <button type="submit" className="primary">{say.review}</button>
+     <button type="button" className="secondary m-press" onClick={onClose}>{say.cancel}</button>
+     <button type="submit" className="primary m-press">{say.review}<Go/></button>
     </div>}
  </form>;
 }
+
+/* The primary's arrow, the landing's: a mark in a disc beside the word, never a word itself, so it is
+   hidden from a screen reader and the button's name stays exactly the contract's sentence. */
+const Go = () => <span className="cf-go" aria-hidden="true"><ArrowRight size={16} strokeWidth={2.25}/></span>;
