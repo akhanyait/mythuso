@@ -54,7 +54,7 @@
   },
   "gate": {
     "_note": "Since 28 September 2026 the founder's session also unlocks the settings editors in the Control Tower. The gate lives in the browser (apps/web/src/lib/founder-gate.ts): it asks the same session state the reveal panel does, and opens the editor only when the service says the founder is signed in. Where the service says founder access is dark, or does not answer at all — a local preview, a test — the editor is open as a preview, because every setting in the web preview lives in the tab's memory and reaches no patient; the screen says so in previewSentence. This is a gate on a preview until the service keeps a settings history, at which point the settings routes take the session cookie and the browser's gate stops being the only one.",
-    "unlocks": ["apps/web/src/features/Configuration.tsx", "apps/web/src/features/portal/gilbertone/Voice.tsx", "apps/web/src/features/portal/gilbertone/VoicePreview.tsx", "apps/web/src/features/portal/gilbertone/SpeechSettings.tsx"],
+    "unlocks": ["apps/web/src/features/Configuration.tsx", "apps/web/src/features/portal/gilbertone/VoicePreview.tsx", "apps/web/src/features/portal/gilbertone/SpeechSettings.tsx"],
     "words": {
       "lockedHeading": "Sign in to change a setting",
       "lockedSentence": "Founder access is switched on for this server, so a setting is changed only by the founder, signed in with the password and an authenticator code. One sign-in lasts {minutes} minutes and unlocks every settings editor in the Control Tower.",
@@ -110,11 +110,67 @@
     "prefix": "/assistant",
     "session": "/v1/founder/session",
     "keys": "/v1/founder/keys",
-    "reveal": "/v1/founder/reveal"
+    "reveal": "/v1/founder/reveal",
+    "settings": "/v1/founder/settings",
+    "settingsChanges": "/v1/founder/settings/changes",
+    "providers": "/v1/founder/providers",
+    "providerKey": "/v1/founder/providers/{card}/key",
+    "providerEnabled": "/v1/founder/providers/{card}/enabled",
+    "providerTest": "/v1/founder/providers/{card}/test",
+    "providerLogs": "/v1/founder/providers/{card}/logs"
   },
   "audit": {
-    "events": ["founder.sign-in", "founder.sign-out", "founder.keys", "founder.reveal"],
-    "why": "One line per sign-in attempt, sign-out, metadata read and reveal, each carrying the event, the outcome, and — for a reveal — the key's name and fingerprint prefix. Never a password, a code, a cookie or a value: the line is built by one function whose parameters cannot carry any of them."
+    "events": ["founder.sign-in", "founder.sign-out", "founder.keys", "founder.reveal", "founder.settings", "founder.settings.change", "founder.providers", "founder.provider.key-set", "founder.provider.key-deleted", "founder.provider.enabled", "founder.provider.test", "founder.provider.logs"],
+    "why": "One line per sign-in attempt, sign-out, metadata read and reveal, each carrying the event, the outcome, and — for a reveal — the key's name and fingerprint prefix. Never a password, a code, a cookie or a value: the line is built by one function whose parameters cannot carry any of them. Since 28 September 2026 the same function writes one line per settings read and change (carrying the setting's key), and per provider read, key set, key deletion, enable change, test and log read (carrying the card and, for a key set, the new key's fingerprint prefix) — and every line is also appended to the audit file in the service's state directory, which is what GET /v1/founder/providers/{card}/logs reads back.",
+    "file": "founder-audit.jsonl",
+    "logsTail": 200
+  },
+  "ownership": {
+    "by": "Founder",
+    "on": "2026-09-28",
+    "what": "I need to be able to control all these aspects, I am the owner.",
+    "why": "Two facts made the Control Tower's settings and provider controls a preview: a setting saved there lived only in the browser tab while the speak route read the contract's defaults, so a founder who made every presentation voice male still heard a female voice on the test; and a provider key could be set only over SSH, so every registry action was disabled for want of a vault. Both are now the assistant service's, behind the same founder session: a signed, append-only settings history the speak route reads, and a key vault whose values never leave the box. Where the service has no state directory or no vault key, each refuses and says so; nothing here changes what a clinical-delivery register is read with."
+  },
+  "state": {
+    "variable": "MYTHUSO_ASSISTANT_STATE_DIR",
+    "systemdStateDirectory": "mythuso-assistant",
+    "settingsFile": "settings-history.jsonl",
+    "vaultFile": "vault.json",
+    "auditFile": "founder-audit.jsonl",
+    "fileMode": "0600",
+    "why": "The service kept nothing on disk until 28 September 2026, and it still keeps nothing a patient said: the state directory holds the founder's settings history, the encrypted vault and the founder audit, and nothing else. deploy/ops/assistant-api.service declares it as a systemd StateDirectory and hands its path to the process in this variable; a process started without the variable — a developer's shell, a test — reads the contract's defaults, answers every founder read, and refuses every founder write with founder-state-unavailable rather than keeping a change it would lose at the next restart. Every file is written 0600, appended to or replaced atomically, and never edited."
+  },
+  "settings": {
+    "engine": "assistant",
+    "block": "packages/catalog/voice.json#settings",
+    "rules": "packages/engines/src/settings/shape.ts",
+    "byRole": "admin",
+    "byRef": "founder",
+    "why": "The founder's changes are held to the same shared rules the web preview and every engine's settings route use — proposeChange() over the assistant block, so a refused change is refused with the shared sentence — and recorded against the administrator role the block names with the founder as the reference, because the founder is the only administrator today. The history is a JSON-lines file: one accepted change per line, in the shared Change shape, replayed at start-up over the contract's defaults, and a file with a gap or a repeat stops the service starting rather than being read around. The speak route reads the presentation voice and the speech settings in force from it; a clinical-delivery register still reads the platform default whatever the history says.",
+    "readIsFounderGated": "GET /v1/founder/settings carries no secret, and it is still the founder's: the history names who changed how the assistant speaks and why, and the founder's session is the only authentication this service has — an unauthenticated read would be readable by anybody on the internet, and the Control Tower's own reads already are. The web reads what is in force through it when signed in and falls back to the contract's defaults when it is not."
+  },
+  "vault": {
+    "keyVariable": "MYTHUSO_VAULT_KEY",
+    "keyBytes": 32,
+    "keyFile": "/etc/mythuso/founder.env",
+    "cipher": "aes-256-gcm",
+    "fingerprintHexLengthFrom": "reveal.fingerprintHexLength",
+    "keyShape": {
+      "minimumLength": 16,
+      "maximumLength": 512,
+      "why": "A provider key is printable ASCII with no space in it, at least sixteen characters and at most five hundred and twelve. The key stored on 22 September 2026 was 140 characters with spaces in it — text pasted in beside it — and the health route said the voice was configured while every request failed; a value that cannot be a key is refused at the door with founder-key-malformed."
+    },
+    "precedence": ["vault", "environment"],
+    "cards": [
+      { "card": "azure-openai", "keyVariable": "AZURE_OPENAI_KEY" },
+      { "card": "azure-speech", "keyVariable": "AZURE_SPEECH_KEY" },
+      { "card": "elevenlabs", "keyVariable": "ELEVENLABS_API_KEY" },
+      { "card": "alibaba-qwen-tts", "keyVariable": "DASHSCOPE_API_KEY" },
+      { "card": "alibaba-qwen-asr", "keyVariable": "DASHSCOPE_API_KEY" },
+      { "card": "openai-whisper", "keyVariable": "OPENAI_API_KEY" }
+    ],
+    "testTimeoutMs": 8000,
+    "why": "vault.json in the state directory holds each provider key encrypted with AES-256-GCM under a master key the founder's env file carries — thirty-two random bytes, base64, written once by configure-founder-access.sh and never printed — so root reads ciphertext in one file and the key in another, and a backup of the state directory alone reveals nothing. The cards are exactly the built providers whose card in packages/catalog/api-registry.json names a key variable; the two Alibaba cards share one DashScope key, so setting it on either configures both. Every adapter and configured() read a credential through one function whose precedence is the vault's value, then the environment, then not configured; a card the founder has disabled answers not configured for every variable of its card, so a disabled provider is never called — the registry's own refusal. The reveal route's allowlist is unchanged and the vault never reveals: what the founder reads back is the last four characters, the SHA-256 fingerprint prefix (the same length the reveal shows), when and by whom, and never a value. Setting or deleting a key and changing whether a provider is enabled each ask for a fresh authenticator code on top of the session, as a reveal does; reading metadata, testing a provider and reading its logs do not. A test is one cheap authenticated call to the provider's own listing — voices, models, the account — never a patient's words, and answers ok, refused, unreachable or failed with the latency, never the key. The residency rule is unchanged: an offshore speech provider with a key in the vault is still refused for health-information routes in production while docs/governance/DATA-RESIDENCY-OPTIONS.md §7 is blank."
   },
   "words": {
     "heading": "Founder access",
@@ -145,6 +201,29 @@
     "copied": "Copied. Clear your clipboard when you are done with it.",
     "copyFailed": "The browser would not copy it.",
     "wipes": "This key is wiped from the screen after {seconds} seconds, when you sign out, when you leave this screen and when the tab is hidden.",
-    "wiped": "The key was wiped from the screen."
+    "wiped": "The key was wiped from the screen.",
+    "settingsHeading": "Settings in force on the server",
+    "settingsSaved": "Saved to the server. The next spoken answer of that register reads it.",
+    "settingsNotPersisted": "This server has no state directory, so a change cannot be kept: it would be lost at the next restart, and the service refuses it rather than pretend.",
+    "vaultHeading": "Provider keys",
+    "vaultIntro": "A key typed here is sent once to the assistant service, encrypted on the server, and never shown again — not to you, not to anybody. What you read back is its last four characters and a fingerprint.",
+    "vaultLocked": "The server has no vault key, so a provider key cannot be stored. Run configure-founder-access.sh on the box, then restart the service.",
+    "keyLabel": "New key",
+    "keyHint": "Paste the key exactly as the provider shows it, with nothing around it. It is checked for shape, stored encrypted, and never shown again.",
+    "setKey": "Store key",
+    "rotateKey": "Replace key",
+    "deleteKey": "Remove key",
+    "enable": "Switch on",
+    "disable": "Switch off",
+    "disabled": "Switched off: nothing in MyThuso calls this provider until it is switched on again.",
+    "test": "Test",
+    "testing": "Asking the provider…",
+    "testOk": "The provider answered in {ms} ms.",
+    "testRefused": "The provider refused the key ({status}). Check it in the provider's own console.",
+    "testUnreachable": "The provider did not answer within {seconds} seconds.",
+    "testFailed": "The provider answered with an error ({status}).",
+    "fromEnvironment": "Set in the server's environment file, not in the vault. Storing a key here takes precedence over it.",
+    "logsHeading": "Recent audit lines",
+    "noLogs": "Nothing recorded for this provider yet."
   }
 }

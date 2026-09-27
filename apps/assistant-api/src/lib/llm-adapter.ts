@@ -1,6 +1,7 @@
 import assistant from "../../../../packages/catalog/assistant.json" with { type: "json" };
 import sos from "../../../../packages/catalog/sos.json" with { type: "json" };
 import { redactPHI } from "../../../../packages/gilbertone/src/phi.ts";
+import { credentialEnv } from "./credentials.ts";
 
 /* The language-model tier's shared facts, as one small module: the two providers' availability
    flags, the system prompt read from the contract, the Ollama probe, the credentials reader and
@@ -114,7 +115,10 @@ export function llmSystemPrompt(): string {
    says "API key", and an operator who named the variable after what the screen called it has
    still configured it. */
 export function azureCredentials(
-  env: NodeJS.ProcessEnv = process.env,
+  /* Since 28 September 2026 the default view is ./credentials.ts's — the provider vault's value before
+     the environment, and nothing for a card the founder has switched off — so a key stored in the
+     Control Tower reaches this tier without a restart, and a disabled Azure OpenAI is never called. */
+  env: Record<string, string | undefined> = credentialEnv(),
 ): { endpoint: string; key: string } | null {
   const endpoint = (env.AZURE_OPENAI_ENDPOINT ?? "").trim().replace(/\/+$/, "");
   const key = (env.AZURE_OPENAI_KEY ?? env.AZURE_OPENAI_API_KEY ?? "").trim();
@@ -130,7 +134,7 @@ export class AzureOpenAIProvider {
   name = "azure-openai";
   available: boolean;
   constructor() {
-    this.available = Boolean(azureCredentials(process.env));
+    this.available = Boolean(azureCredentials());
   }
 }
 

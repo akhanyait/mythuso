@@ -1,9 +1,13 @@
 import {
+  isPresentationRegister,
   isRegister,
+  presentationVoiceByDefault,
   speechSettingsByDefault,
   tuningFor,
+  type PresentationVoiceInForce,
   type RegisterReading,
   type SpeechSettingsInForce,
+  type VoiceLabel,
 } from "../../../../packages/engines/src/assistant/domain/settings.ts";
 import type { RecognitionTuning } from "./providers/seam.ts";
 
@@ -34,6 +38,21 @@ import type { RecognitionTuning } from "./providers/seam.ts";
 
 export type SpeechSettingsSource = () => SpeechSettingsInForce;
 export const contractDefaults: SpeechSettingsSource = () => speechSettingsByDefault;
+
+/* SINCE 28 SEPTEMBER 2026 THE SERVICE KEEPS A HISTORY. ./settings-history.ts replays the founder's
+   accepted changes over the contract's defaults from the state directory, and server.ts hands its
+   speech() and presentationVoice() readers to the seam in place of the two defaults below. The
+   defaults stay as what a caller that passes nothing — a test, a process with no state directory —
+   reads, and as the values a clinical-delivery register is always read with. */
+
+/** Which of a language's two voices reads each presentation register, in force now. */
+export type PresentationVoiceSource = () => PresentationVoiceInForce;
+export const contractVoices: PresentationVoiceSource = () => presentationVoiceByDefault;
+
+/** The label a register is read in when the caller named no voice: the setting in force for a
+    presentation register, and nothing — the platform's default — for every other register. */
+export const voiceLabelFor = (voices: PresentationVoiceSource, register: string | null): VoiceLabel | undefined =>
+  isPresentationRegister(register) ? voices().byClass[register] : undefined;
 
 /** Whether a speak request's register is one the contract names. The door's own question. */
 export const knownRegister = (register: string): boolean => isRegister(register);

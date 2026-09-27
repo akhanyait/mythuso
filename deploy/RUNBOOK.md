@@ -604,6 +604,61 @@ journalctl -u assistant-api.service --no-pager | grep '"event":"founder.'
 - **A key was revealed somewhere it should not have been:** rotate it in the Azure portal and run
   `configure-assistant-env.sh` with the new one. Founder access cannot un-show a key.
 
+### The settings history and the provider vault, 28 September 2026
+
+> **Adding only the vault key, without re-pairing the authenticator.** `configure-founder-access.sh`
+> writes a new password and a new authenticator secret every time it runs; run it when that is what
+> you want. If founder access is already set up and only `MYTHUSO_VAULT_KEY` is missing, append it
+> alone, once, and restart — the line is generated on the box and never shown:
+>
+> ```
+> sudo sh -c 'grep -q "^MYTHUSO_VAULT_KEY=" /etc/mythuso/founder.env || printf "MYTHUSO_VAULT_KEY=%s\n" "$(node -e "process.stdout.write(require(\"node:crypto\").randomBytes(32).toString(\"base64\"))")" >> /etc/mythuso/founder.env'
+> sudo systemctl daemon-reload && sudo systemctl restart assistant-api.service
+> ```
+
+Since 28 September 2026 the founder's session also reaches the assistant's settings in force and a
+provider key vault (`docs/governance/FOUNDER-ACCESS.md`, _The founder's settings history and the
+provider vault_). Three things on the box make them work, and none is done by a deploy:
+
+- **The vault key.** `configure-founder-access.sh` now writes a third line into
+  `/etc/mythuso/founder.env` the first time it runs on a box — `MYTHUSO_VAULT_KEY=…`, thirty-two random
+  bytes in base64 — and leaves it exactly as it is on every later run. It is never printed. Without it
+  the vault is locked: storing or removing a provider key from the Control Tower answers "This server
+  has no vault key" (503) and nothing is stored in the clear. A box configured before this build has
+  the line added by running the script again (a new password and authenticator come with it), then a
+  restart. Never edit or rotate that line by hand: a rotated vault key is a vault nobody can read, and
+  every stored provider key would have to be entered again.
+- **The state directory.** The unit now declares `StateDirectory=mythuso-assistant`, so systemd creates
+  `/var/lib/mythuso-assistant` (0700, owned for the dynamic user) and hands its path to the process in
+  `MYTHUSO_ASSISTANT_STATE_DIR`. It holds `settings-history.jsonl`, `vault.json` and
+  `founder-audit.jsonl`, each 0600, and nothing else — never anything a patient said. Without it the
+  service answers every founder read with `persisted: false` and refuses every founder write (503,
+  "This server has no state directory"). Back it up with the box; a backup of it alone reveals nothing,
+  since the vault key is in `founder.env`.
+- **A restart.** A deploy publishes the runtime and the unit and restarts nothing. The first deploy
+  carrying this build therefore needs, by hand:
+
+```sh
+sudo systemctl daemon-reload
+sudo systemctl restart assistant-api.service
+```
+
+Check, with commands that reveal no secrets:
+
+```sh
+curl -s -o /dev/null -w '%{http_code}\n' -H 'X-MyThuso-Founder: 1' https://mythuso.co.za/assistant/v1/founder/settings
+curl -s -o /dev/null -w '%{http_code}\n' -H 'X-MyThuso-Founder: 1' https://mythuso.co.za/assistant/v1/founder/providers
+sudo ls -la /var/lib/mythuso-assistant/
+journalctl -u assistant-api.service --no-pager | grep '"event":"founder.provider\.\|"event":"founder.settings'
+```
+
+Expected: `401` from both routes (on, no session — `503` is dark, `404` is the old runtime still
+running); the directory present with any files in it mode `-rw-------`; and one journal line per
+founder act, carrying the event, the outcome, the card or the setting and — for a key stored — its
+fingerprint prefix, never a value. Then sign in from the Control Tower: the Speech settings and Voice
+saves reach the service, and the voice test reads what was saved. The reveal is unchanged and reads the
+environment's two Azure keys; a key stored in the vault is never shown to anybody again.
+
 ---
 
 ## What the site does, and what it does not, on day one

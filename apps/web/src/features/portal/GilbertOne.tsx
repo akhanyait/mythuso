@@ -6,9 +6,9 @@ import { Frame } from './Frame';
 import { BuildWord, Loading } from './Parts';
 
 /* GilbertOne API Administration (docs/PROMPT-CONTROL-TOWER-UI.md §7, Phase 4): the category, its mark,
- * and its eight sub-screens as tabs — the engine's overview, Voice, Model Providers, Intelligence,
- * Knowledge, the engine's compliance, API Registry and, since 28 September 2026, Speech settings, in
- * packages/catalog/control-tower-portal.json's order.
+ * and its seven sub-screens as tabs — the engine's overview, Speech settings (the Voice screen folded into
+ * it on 28 September 2026), Model Providers, Intelligence, Knowledge, the engine's compliance and API
+ * Registry, in packages/catalog/control-tower-portal.json's order.
  *
  * Each sub-screen is a dynamic import of its own inside this category's own dynamic import, so opening
  * GilbertOne fetches the tab asked for and nothing else, and a patient fetches none of it. This file
@@ -17,21 +17,21 @@ import { BuildWord, Loading } from './Parts';
  * shares with other screens on that list.
  *
  * What the whole category will not do is said once, above every sub-screen, in the contract's words:
- * it administers nothing. The assistant is live in production; every action below is drawn disabled
- * beside the gate that holds it, and scripts/check-boundaries.mjs fails the build if one is drawn any
- * other way. */
+ * it administers nothing but what the founder decided. The assistant is live in production; every action
+ * below is drawn disabled beside the gate that holds it, live on the founder's dated record, or enabled
+ * only inside the founder's signed-in session, and scripts/check-boundaries.mjs fails the build if one is
+ * drawn any other way. */
 
 const lazySub = <T extends Record<string, ComponentType>>(load: () => Promise<T>, name: keyof T) =>
  lazy(() => load().then(m => ({ default: m[name] as ComponentType })));
 const subScreens: Record<string, ComponentType> = {
  overview: lazySub(() => import('./gilbertone/EngineOverview'), 'EngineOverview'),
- voice: lazySub(() => import('./gilbertone/Voice'), 'VoiceScreen'),
+ speech: lazySub(() => import('./gilbertone/SpeechSettings'), 'SpeechSettingsScreen'),
  'model-providers': lazySub(() => import('./gilbertone/ModelProviders'), 'ModelProvidersScreen'),
  intelligence: lazySub(() => import('./gilbertone/Intelligence'), 'IntelligenceScreen'),
  knowledge: lazySub(() => import('./gilbertone/Knowledge'), 'KnowledgeScreen'),
  compliance: lazySub(() => import('./gilbertone/Compliance'), 'ComplianceScreen'),
- 'api-registry': lazySub(() => import('./gilbertone/ApiRegistry'), 'ApiRegistryScreen'),
- speech: lazySub(() => import('./gilbertone/SpeechSettings'), 'SpeechSettingsScreen')
+ 'api-registry': lazySub(() => import('./gilbertone/ApiRegistry'), 'ApiRegistryScreen')
 };
 
 export function GilbertOneCategory() {

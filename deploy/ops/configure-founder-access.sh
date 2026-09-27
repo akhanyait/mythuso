@@ -32,6 +32,14 @@
 # checking one here would mean a second TOTP implementation in shell, and the repository keeps one
 # (apps/api/src/totp.ts). If the first sign-in fails on the code, run this again: it writes a new
 # secret, and the old one stops working the moment the service restarts.
+#
+# THE VAULT KEY, since 28 September 2026 (packages/catalog/founder-access.json#vault). The provider
+# keys the founder stores from the Control Tower are encrypted in the service's state directory under
+# MYTHUSO_VAULT_KEY — thirty-two bytes from node's CSPRNG, base64 — which this script writes into the
+# same 0600 file ONCE, the first time it runs on a box, and then leaves exactly as it is on every later
+# run: a vault key rotated by accident is a vault nobody can read. It is never printed, not even
+# masked; there is nothing a person needs to do with it. Losing the file means every stored provider
+# key has to be entered again, which is the honest cost of a vault whose key is not in the vault.
 set -euo pipefail
 umask 077
 
@@ -66,6 +74,8 @@ TOTP_DIGITS=6
 TOTP_PERIOD=30
 HASH_VARIABLE=MYTHUSO_FOUNDER_PASSWORD_HASH
 SECRET_VARIABLE=MYTHUSO_FOUNDER_TOTP_SECRET
+VAULT_KEY_VARIABLE=MYTHUSO_VAULT_KEY
+VAULT_KEY_BYTES=32
 
 NODE=$(command -v node || true)
 [ -n "$NODE" ] || fail "node is not on this box's PATH, and the hash is computed with node's scrypt. Nothing was written."
@@ -117,9 +127,18 @@ process.stdout.write(out);"
 secret=$("$NODE" -e "$SECRET_JS")
 printf '%s' "$secret" | grep -qE '^[A-Z2-7]{32}$' || fail "The authenticator secret did not come out in the expected shape. Nothing was written."
 
+# ── The vault key: once, and never again ─────────────────────────────────────────────────────────
+# Thirty-two random bytes, base64, generated only when the file has no vault key yet. An existing
+# line is kept byte for byte below with every other line this script does not own. Never printed.
+vault_key=
+if [ ! -f "$ENV_FILE" ] || ! grep -qE "^${VAULT_KEY_VARIABLE}=" "$ENV_FILE"; then
+  vault_key=$("$NODE" -e "process.stdout.write(require('node:crypto').randomBytes(${VAULT_KEY_BYTES}).toString('base64'))")
+  printf '%s' "$vault_key" | grep -qE '^[A-Za-z0-9+/]{43}=$' || fail "The vault key did not come out in the expected shape. Nothing was written."
+fi
+
 # ── Write it, atomically ─────────────────────────────────────────────────────────────────────────
 # Every line this script does not own is kept — the enable line above all, so a rotation neither
-# switches founder access on nor off.
+# switches founder access on nor off — and the vault key, once written, is one of the lines it keeps.
 mkdir -p "$(dirname "$ENV_FILE")"
 tmp=$(mktemp "${ENV_FILE}.new.XXXXXX")
 trap 'rm -f "$tmp"' EXIT
@@ -133,6 +152,9 @@ if [ -f "$ENV_FILE" ]; then
   esac
 fi
 printf '%s=%s\n%s=%s\n' "$HASH_VARIABLE" "$hash" "$SECRET_VARIABLE" "$secret" >> "$tmp"
+if [ -n "$vault_key" ]; then
+  printf '%s=%s\n' "$VAULT_KEY_VARIABLE" "$vault_key" >> "$tmp"
+fi
 chmod 0600 "$tmp"
 chown root:root "$tmp" 2>/dev/null || true
 mv -f "$tmp" "$ENV_FILE"
@@ -155,7 +177,15 @@ if command -v qrencode >/dev/null 2>&1; then
   say ""
 fi
 say "Then clear this terminal's scrollback — the line above is the secret."
-unset hash secret uri fingerprint
+if [ -n "$vault_key" ]; then
+  say ""
+  say "A vault key for the provider keys the founder stores from the Control Tower was written to the"
+  say "same file. It is not shown, and it will not be written again: keep the file."
+else
+  say ""
+  say "The vault key already in $ENV_FILE was kept as it was."
+fi
+unset hash secret uri fingerprint vault_key
 say ""
 if grep -qE '^MYTHUSO_FOUNDER_ACCESS=' "$ENV_FILE"; then
   say "The enable line is already in $ENV_FILE and was left as it was. Restart the service to use"

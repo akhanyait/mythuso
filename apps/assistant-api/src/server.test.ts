@@ -1089,15 +1089,17 @@ test('every address the contract declares is built, and none of them answers not
   elsewhere.every((route) => /^\/v1\/assistant\/(settings|setting-changes|setting-reviews)$/.test(route.path)),
   'the only addresses built elsewhere are the settings routes the engine runtime answers',
  );
- /* Twelve addresses the conversation surface answers, and founder access's four (24 September 2026),
-    which a server started without its switch answers with the dark refusal — never a 404 and never
-    not-yet-available — so the walk below holds them to the same rule. */
- assert.equal(declared.length, 16, 'sixteen addresses, and the test below walks every one');
+ /* Twelve addresses the conversation surface answers, founder access's four (24 September 2026) and
+    the founder's eight settings and vault routes (28 September 2026), which a server started without
+    its switch answers with the dark refusal — never a 404 and never not-yet-available — so the walk
+    below holds them to the same rule. A path parameter is walked as a card the vault knows, since the
+    literal brace is an address nobody calls. */
+ assert.equal(declared.length, 24, 'twenty-four addresses, and the test below walks every one');
  const errors = await withServer(
   async () => QUIET_ANSWER,
   async (base) => {
    for (const route of declared) {
-    const path = `/assistant${route.path}`;
+    const path = `/assistant${route.path.replace('{card}', 'azure-speech')}`;
     const response = await fetch(`${base}${path}`, {
      method: route.method,
      headers: { 'content-type': 'application/json' },

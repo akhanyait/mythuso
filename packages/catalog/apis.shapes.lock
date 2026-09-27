@@ -133,3 +133,7 @@ POST /v1/clinical/review-queue/{entryRef}/sign@1 820208b29662dd9e
 GET /v1/founder/keys@1 d7899b89493193fd
 GET /v1/assistant/settings@1 f8872752e134ec1b
 POST /v1/assistant/setting-changes@1 e744ed52909fa24d
+GET /v1/founder/settings@1 528a4a2bc2474852
+POST /v1/founder/settings/changes@1 b42f340b268f4a70
+GET /v1/founder/providers@1 4e5c7ad7671ace9b
+GET /v1/founder/providers/{card}/logs@1 e27275675a200335

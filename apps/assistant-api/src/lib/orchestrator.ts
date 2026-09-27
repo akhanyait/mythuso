@@ -18,6 +18,7 @@ import {
   llmSystemPrompt,
   probeOllama,
 } from "./llm-adapter.ts";
+import { credentialEnv } from "./credentials.ts";
 import { drugCheckTool } from "./tools/drug-check.ts";
 import { symptomCheckTool } from "./tools/symptom-check.ts";
 import { medicationInfoTool } from "./tools/medication-info.ts";
@@ -179,7 +180,9 @@ const orchestratorSystemPrompt = (context: SessionContext): string => {
 type ResolvedModel = { name: string; model: AzureChatOpenAI | ChatOpenAI };
 
 async function resolveChatModel(): Promise<ResolvedModel | null> {
-  const env = process.env;
+  /* The credential view of ./credentials.ts, since 28 September 2026: the vault before the environment,
+     so the key the founder stored is the key this model is built with. */
+  const env = credentialEnv();
 
   const azure = new AzureOpenAIProvider();
   if (azure.available) {

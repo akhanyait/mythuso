@@ -119,13 +119,12 @@
    "from": ["new, §7"],
    "tabs": [
     { "id": "overview", "label": "Engine overview", "heading": "The engine today", "blurb": "What the assistant's health and status routes answer when this screen opens, where its model and its voice run, how much it knows, and the one switch it does not have yet.", "new": true },
-    { "id": "voice", "label": "Voice", "blurb": "Which kinds of answer may have their voice set, which are locked to the clinical register, and the preview panel that plays nothing yet.", "new": true },
+    { "id": "speech", "label": "Speech settings", "blurb": "Which of a language's two voices reads each presentation register and through which provider, the knobs — Azure Speech's and ElevenLabs' own, two ceilings and the administrator's own voice — and a sentence heard first; then, folded, the zones, the locked clinical register and everything that is not a setting.", "new": true },
     { "id": "model-providers", "label": "Model Providers", "blurb": "Every language-model provider the plan names, the one that is configured, where it runs, and the key controls a vault would stand behind.", "new": true },
     { "id": "intelligence", "label": "Intelligence", "blurb": "The five reasoning levels, which conversation may reach which, and the ceilings nothing on this screen can raise.", "new": true },
     { "id": "knowledge", "label": "Knowledge", "blurb": "The clinical and the non-clinical corpus, the three external sources, and the lock on the clinical half.", "new": true },
     { "id": "compliance", "label": "Engine compliance", "blurb": "The compliance pack, the audit extract, the kill switch, and where each provider processes what it is sent.", "new": true },
-    { "id": "api-registry", "label": "API Registry", "blurb": "Every external API the platform talks to, or has been asked to, as a card with its honest state.", "new": true },
-    { "id": "speech", "label": "Speech settings", "blurb": "Which provider reads each presentation register and how — Azure Speech's and ElevenLabs' own knobs, two ceilings and the administrator's own voice — every one an administrator's setting with its history, and what is locked beside them.", "new": true }
+    { "id": "api-registry", "label": "API Registry", "blurb": "Every external API the platform talks to, or has been asked to, as a card with its honest state.", "new": true }
    ]
   },
   {
@@ -306,19 +305,18 @@
  "gilbertone": {
   "status": "built",
   "phase": 4,
-  "_statusWhy": "Built in Phase 4 (24 September 2026): seven sub-screens in the tree, held by tests/gilbertone-admin.spec.ts on both viewports, and an eighth — Speech settings — since 28 September 2026. Built is not live, with two exceptions the founder decided on 27 September 2026: the Voice screen's Save as default and Play, each carrying its own dated record in actions below; and, since 28 September 2026, the Speech settings screen, which draws the Configuration tab's own editor over the assistant engine's settings rather than a control of its own, so every rule and every refusal there is the shared settings code's. Each sub-screen reads contracts and, on the Overview, two routes that answer booleans; every other action it draws is disabled beside the gate that holds it, and scripts/check-boundaries.mjs fails the build the day a gate closes while its action still has nothing behind it.",
-  "sentence": "Built, and administering two things. These eight screens read the assistant's contracts and ask its health and status routes for their booleans. Since 27 September 2026 an administrator may choose which of a language's two voices reads each presentation register — routine answers, navigation, the signed-out visitor and the administrator's own — and hear a sentence in it first; and since 28 September 2026 which provider reads each presentation register and how, within the ceilings the same screen sets. The emergency, refusal and escalation registers stay locked. Every other action is disabled, beside the gate that holds it: there is no key vault, no key registry, no health-check runner, no tenant and no kill switch, so nothing here can configure the assistant's providers, spend its money beyond a heard preview, or switch it off.",
+  "_statusWhy": "Built in Phase 4 (24 September 2026): seven sub-screens in the tree, held by tests/gilbertone-admin.spec.ts on both viewports. An eighth, Speech settings, was added on 28 September 2026 and the same day the founder had the Voice screen folded into it — \"Voice and Speech settings are duplicated; collapse them into one place, Speech settings\" — so the category is seven sub-screens again, with the merged one second where Voice stood. Built is not live, with the exceptions the founder decided: on 27 September 2026 the Save as default and Play that the Voice screen carried and the merged screen keeps, each with its own dated live record in actions below, and on 28 September 2026 the knobs' Save beside them; and, from the founder's instruction of 28 September 2026 (\"I need to be able to control all these aspects, I am the owner\"), the key, switch, test and log actions on Model Providers and the API Registry, each carrying a founder record and enabled only inside the founder's signed-in session, through the assistant service's founder routes. Each sub-screen reads contracts and, on the Overview, two routes that answer booleans; every other action it draws is disabled beside the gate that holds it, and scripts/check-boundaries.mjs fails the build the day a gate closes while its action still has nothing behind it.",
+  "sentence": "Built, and administering three things. These seven screens read the assistant's contracts and ask its health and status routes for their booleans. Since 27 September 2026 an administrator may choose which of a language's two voices reads each presentation register — routine answers, navigation, the signed-out visitor and the administrator's own — and hear a sentence in it first; since 28 September 2026 which provider reads each presentation register and how, within the ceilings the same screen sets; and, inside the founder's signed-in session and there alone, the founder may enter, rotate, test and remove a provider's key on the box, switch a provider on or off and read its log, through the assistant service's own founder routes. The emergency, refusal and escalation registers stay locked. Every other action is disabled, beside the gate that holds it: there is no key vault, no per-tenant scoping, no health-check runner, no tenant and no kill switch, so nothing here can scope a key, add a provider, spend money beyond a heard preview, or switch the assistant off.",
   "subScreens": [
    { "id": "overview", "label": "Engine overview", "contract": "packages/catalog/control-tower-overview.json", "gate": "G15", "file": "apps/web/src/features/portal/gilbertone/EngineOverview.tsx" },
-   { "id": "voice", "label": "Voice", "contract": "packages/catalog/voice.json", "gate": "G29", "file": "apps/web/src/features/portal/gilbertone/Voice.tsx" },
+   { "id": "speech", "label": "Speech settings", "contract": "packages/catalog/voice.json", "gate": "G29", "file": "apps/web/src/features/portal/gilbertone/SpeechSettings.tsx" },
    { "id": "model-providers", "label": "Model Providers", "contract": "packages/catalog/model-providers.json", "gate": "G30", "file": "apps/web/src/features/portal/gilbertone/ModelProviders.tsx" },
    { "id": "intelligence", "label": "Intelligence", "contract": "packages/catalog/intelligence-levels.json", "gate": "G31", "file": "apps/web/src/features/portal/gilbertone/Intelligence.tsx" },
    { "id": "knowledge", "label": "Knowledge", "contract": "packages/catalog/knowledge-corpus-tiers.json", "gate": "G10", "file": "apps/web/src/features/portal/gilbertone/Knowledge.tsx" },
    { "id": "compliance", "label": "Engine compliance", "contract": "packages/catalog/compliance-pack.json", "gate": "G14", "file": "apps/web/src/features/portal/gilbertone/Compliance.tsx" },
-   { "id": "api-registry", "label": "API Registry", "contract": "packages/catalog/api-registry.json", "gate": "G32", "file": "apps/web/src/features/portal/gilbertone/ApiRegistry.tsx" },
-   { "id": "speech", "label": "Speech settings", "contract": "packages/catalog/voice.json", "gate": "G33", "file": "apps/web/src/features/portal/gilbertone/SpeechSettings.tsx" }
+   { "id": "api-registry", "label": "API Registry", "contract": "packages/catalog/api-registry.json", "gate": "G32", "file": "apps/web/src/features/portal/gilbertone/ApiRegistry.tsx" }
   ],
-  "_subScreensWhy": "The seven sub-screens of §7 and, since 28 September 2026, Speech settings, each with the contract it reads, the gate it stands behind and the file that draws it. The category's tabs above are these eight in this order, and scripts/check-boundaries.mjs holds the two lists to each other and every file to a dynamic import of its own.",
+  "_subScreensWhy": "The seven sub-screens of §7, each with the contract it reads, the gate it stands behind and the file that draws it — except that §7's Voice is Speech settings since the founder's instruction of 28 September 2026 to collapse the two into one place: the merged screen stands where Voice stood, reads voice.json and stands behind G29, which holds the clinical-delivery register it draws locked. G33, which the separate Speech settings screen stood behind, still holds the offshore providers it offers and is the gate its provider rows name. The category's tabs above are these seven in this order, and scripts/check-boundaries.mjs holds the two lists to each other and every file to a dynamic import of its own.",
   "gates": [
    { "id": "G29", "label": "Gate G29", "sentence": "Not available while gate G29 is open. Nobody clinical has reviewed the clinical-delivery register, so the voice that reads an emergency, a refusal or an escalation is read here and set by nobody: it changes only through a ratified entry in the Clinician Review Queue." },
    { "id": "G30", "label": "Gate G30", "sentence": "Not available while gate G30 is open. There is no key vault, so no key can be entered, rotated, tested or described here; and there is no per-tenant scoping, no residency decision and no DPIA per provider behind any of them." },
@@ -331,28 +329,30 @@
     "sentence": "Open while gate G33 is open. A provider with no South African region — ElevenLabs, Alibaba Qwen — may be chosen for a register here and is refused by the service in production until the residency decision the responsible party and the Information Officer sign is recorded: the platform default reads the answer instead, and the refusal is printed at start-up."
    }
   ],
-  "_gatesWhy": "The refusal each disabled action shows, one per gate. A G-numbered gate is open while packages/catalog/control-tower-overview.json#open-gates records it open; Module 8 has no row in either register, so it is open while the tenancy contract and the kill switch's runtime it would need are both missing. scripts/check-boundaries.mjs fails the build if a gate an action names is no longer open, because then the action is drawn disabled for a reason that has stopped being true and somebody has to build what it would do. An action the founder has made live carries gate null and a live record instead — who decided it, on which day, and the one sentence saying what it does and what it never does — and the build refuses a live action without all three, or one that still names a gate. G29 holds no action since 27 September 2026: it still holds the clinical-delivery register, which no action on the Voice screen touches.",
+  "_gatesWhy": "The refusal each disabled action shows, one per gate. A G-numbered gate is open while packages/catalog/control-tower-overview.json#open-gates records it open; Module 8 has no row in either register, so it is open while the tenancy contract and the kill switch's runtime it would need are both missing. scripts/check-boundaries.mjs fails the build if a gate an action names is no longer open, because then the action is drawn disabled for a reason that has stopped being true and somebody has to build what it would do. An action the founder has made live carries gate null and a live record instead — who decided it, on which day, and the one sentence saying what it does and what it never does — and the build refuses a live action without all three, or one that still names a gate. An action the founder took for the founder alone, on 28 September 2026, carries gate null and a founder record of the same three parts instead: it is enabled only inside the founder's signed-in session, disabled beside the founder words below otherwise, and calls the assistant service's founder routes and nothing else. G29 holds no action since 27 September 2026: it still holds the clinical-delivery register, which no action on the Speech settings screen touches. G30 and G32 still hold what has no contract — scoping a key, adding a provider, testing every provider at once, the local agent — and are still open.",
   "actions": [
    { "id": "tenant-dark-mode", "screen": "overview", "label": "Revert a tenant to the deterministic layer", "gate": "module-8" },
-   { "id": "voice-save-as-default", "screen": "voice", "label": "Save as default", "gate": null, "live": { "since": "2026-09-27", "decidedBy": "Founder", "sentence": "Keeps the chosen voice for one presentation register as a setting in the assistant's history — who, when and why — and the next spoken answer in that register reads in it. It never touches the emergency, refusal or escalation register, which has no setting to save into, and it is not a person's chooser: no patient sees a voice list." } },
-   { "id": "voice-play", "screen": "voice", "label": "Play", "gate": null, "live": { "since": "2026-09-27", "decidedBy": "Founder", "sentence": "Reads the sentence typed here through the assistant service's own speak route, in the chosen language and voice, and shows the estimated cost before it does. It refuses text that looks like a person's details, never sends anything but that sentence, keeps no audio, and reads a locked register in the platform's own voice whatever any setting says." } },
-   { "id": "provider-enter-key", "screen": "model-providers", "label": "Save the key", "gate": "G30" },
-   { "id": "provider-rotate-key", "screen": "model-providers", "label": "Rotate key", "gate": "G30" },
-   { "id": "provider-test", "screen": "model-providers", "label": "Test", "gate": "G30" },
-   { "id": "provider-show-metadata", "screen": "model-providers", "label": "Show metadata", "gate": "G30" },
+   { "id": "voice-save-as-default", "screen": "speech", "label": "Save as default", "gate": null, "live": { "since": "2026-09-27", "decidedBy": "Founder", "sentence": "Keeps the chosen voice, and since 28 September 2026 the chosen provider, for one presentation register as a setting in the assistant's history — who, when and why — and the next spoken answer in that register reads in it. Inside the founder's signed-in session the history is the assistant service's own; otherwise it is this tab's. It never touches the emergency, refusal or escalation register, which has no setting to save into, and it is not a person's chooser: no patient sees a voice list." } },
+   { "id": "speech-save-settings", "screen": "speech", "label": "Save", "gate": null, "live": { "since": "2026-09-28", "decidedBy": "Founder", "sentence": "Keeps the knobs changed in one group — Azure Speech's, ElevenLabs', or the ceilings, timeouts, fallback and own voice every provider shares — as settings in the assistant's history, one change each with the same reason, and the next spoken answer of a presentation register is read with them. It never reaches an emergency, refusal or escalation answer, which is read with no knob whatever is saved, and it never holds a key or a region, which are not settings." } },
+   { "id": "voice-play", "screen": "speech", "label": "Play", "gate": null, "live": { "since": "2026-09-27", "decidedBy": "Founder", "sentence": "Reads the sentence typed here through the assistant service's own speak route, in the chosen language and voice, and shows the estimated cost before it does. It refuses text that looks like a person's details, never sends anything but that sentence, keeps no audio, and reads a locked register in the platform's own voice whatever any setting says." } },
+   { "id": "provider-enter-key", "screen": "model-providers", "label": "Save the key", "gate": null, "founder": { "since": "2026-09-28", "decidedBy": "Founder", "sentence": "Sends the key typed here once to the assistant service, inside the founder's signed-in session and with a fresh authenticator code, to be held on the box for this provider. The field is cleared as it is sent; the answer is the key's last four characters and fingerprint, never the key; and nothing here stores, logs or echoes what was typed." } },
+   { "id": "provider-rotate-key", "screen": "model-providers", "label": "Rotate key", "gate": null, "founder": { "since": "2026-09-28", "decidedBy": "Founder", "sentence": "Opens the key field for this provider so a new key can be entered in place of the one on the box. It never shows the key in force — the old key's last four and fingerprint stay readable for the audit — and revoking the old key at the provider is done in the provider's own console, never here." } },
+   { "id": "provider-remove-key", "screen": "model-providers", "label": "Remove the key", "gate": null, "founder": { "since": "2026-09-28", "decidedBy": "Founder", "sentence": "Asks the assistant service to remove this provider's key from the box, with a fresh authenticator code. The service decides what may be removed and answers in its own sentence; nothing here removes anything the service refuses, and a removed key is never shown as if it were still present." } },
+   { "id": "provider-test", "screen": "model-providers", "label": "Test", "gate": null, "founder": { "since": "2026-09-28", "decidedBy": "Founder", "sentence": "Asks the assistant service to make one minimal call to this provider with the key on the box, and says whether it answered. It never sends a patient's words, never spends beyond that one call, and never shows the key." } },
+   { "id": "provider-show-metadata", "screen": "model-providers", "label": "Show metadata", "gate": null, "founder": { "since": "2026-09-28", "decidedBy": "Founder", "sentence": "Shows, for each provider the assistant service holds a key slot for, whether a key is set on the box, its last four characters and its SHA-256 fingerprint prefix, read from the service inside the founder's session. It never shows the key, and it never reads anything from the browser." } },
    { "id": "provider-health-check", "screen": "model-providers", "label": "Test every configured provider", "gate": "G30" },
    { "id": "local-agent-test", "screen": "model-providers", "label": "Test the local agent", "gate": "G30" },
    { "id": "set-level", "screen": "intelligence", "label": "Change a level", "gate": "G31" },
    { "id": "kill-switch", "screen": "compliance", "label": "Switch a tenant to the deterministic layer", "gate": "module-8" },
-   { "id": "registry-enable", "screen": "api-registry", "label": "Enable", "gate": "G32", "registryAction": "enable" },
-   { "id": "registry-disable", "screen": "api-registry", "label": "Disable", "gate": "G32", "registryAction": "disable" },
-   { "id": "registry-rotate-key", "screen": "api-registry", "label": "Rotate key", "gate": "G32", "registryAction": "rotate-key" },
-   { "id": "registry-test", "screen": "api-registry", "label": "Test", "gate": "G32", "registryAction": "test" },
-   { "id": "registry-view-logs", "screen": "api-registry", "label": "View logs", "gate": "G32", "registryAction": "view-logs" },
+   { "id": "registry-enable", "screen": "api-registry", "label": "Enable", "gate": null, "registryAction": "enable", "founder": { "since": "2026-09-28", "decidedBy": "Founder", "sentence": "Asks the assistant service to switch this provider on, with a fresh authenticator code, and the service records who and why. It never switches on a provider the service refuses — one with no key on the box, or one the residency decision does not admit — and the card's state stays the registry's, not this button's." } },
+   { "id": "registry-disable", "screen": "api-registry", "label": "Disable", "gate": null, "registryAction": "disable", "founder": { "since": "2026-09-28", "decidedBy": "Founder", "sentence": "Asks the assistant service to switch this provider off, with a fresh authenticator code. Every route that depends on it returns to the safe state the registry records; it never touches a key on the box or money already spent, and it never switches off the deterministic layer that answers when everything else is dark." } },
+   { "id": "registry-rotate-key", "screen": "api-registry", "label": "Rotate key", "gate": null, "registryAction": "rotate-key", "founder": { "since": "2026-09-28", "decidedBy": "Founder", "sentence": "Opens the key field for this card so a new key can be entered in place of the one on the box, sent once with a fresh authenticator code and cleared as it goes. It never shows the key in force, and revoking the old key at the provider is done in the provider's own console, never here." } },
+   { "id": "registry-test", "screen": "api-registry", "label": "Test", "gate": null, "registryAction": "test", "founder": { "since": "2026-09-28", "decidedBy": "Founder", "sentence": "Asks the assistant service to make one minimal call to this provider with the key on the box, and says whether it answered. It never sends a patient's words, never spends beyond that one call, and never shows the key." } },
+   { "id": "registry-view-logs", "screen": "api-registry", "label": "View logs", "gate": null, "registryAction": "view-logs", "founder": { "since": "2026-09-28", "decidedBy": "Founder", "sentence": "Reads this provider's own audit lines from the assistant service inside the founder's session — key events, tests and switches, each with when and its outcome. It never carries a patient's words, a key or a code, and nothing read here is kept." } },
    { "id": "registry-configure-scopes", "screen": "api-registry", "label": "Configure scopes", "gate": "G32", "registryAction": "configure-scopes" },
    { "id": "registry-add-provider", "screen": "api-registry", "label": "Save and test", "gate": "G32" }
   ],
-  "_actionsWhy": "Every control a GilbertOne screen draws that would change something, with the gate that holds it or the founder's record that made it live. A screen draws an action only by naming it here. A gated action is drawn disabled with the gate's sentence (or the action's own refusal, where it has one) tied to it by aria-describedby — a disabled button with no sentence is skipped by some screen readers and says nothing about why. A live action is drawn enabled with its live sentence tied to it the same way, so the person pressing it reads what it does and what it never does. The six card actions are api-registry.json#actions, each named by its registryAction.",
+  "_actionsWhy": "Every control a GilbertOne screen draws that would change something, with the gate that holds it, the founder's record that made it live, or the founder's record that made it the founder's alone. A screen draws an action only by naming it here. A gated action is drawn disabled with the gate's sentence (or the action's own refusal, where it has one) tied to it by aria-describedby — a disabled button with no sentence is skipped by some screen readers and says nothing about why. A live action is drawn enabled with its live sentence tied to it the same way, so the person pressing it reads what it does and what it never does. A founder action (28 September 2026) is drawn enabled only while the assistant service says the founder is signed in, described by its founder sentence, and disabled beside founder.words otherwise; it calls the founder routes founder.routes names and nothing else, and the build refuses one drawn any other way. The six card actions are api-registry.json#actions, each named by its registryAction; configure-scopes has no contract behind it and stays gated, and the card says so.",
   "overview": {
    "prefix": "/assistant",
    "routes": [
@@ -426,7 +426,7 @@
    "platformDefaultWord": "Platform default",
    "voiceSelectLabel": "Voice for {class}",
    "saveHeading": "Saving a presentation voice",
-   "sessionSentence": "A saved voice is kept in this tab's memory for the session and nowhere else, beside every other setting on the Configuration screen. The shipped default is the contract's, and a reload puts it back.",
+   "sessionSentence": "Outside the founder's signed-in session a saved voice is kept in this tab's memory and nowhere else, beside every other setting on the Configuration screen; the shipped default is the contract's, and a reload puts it back. Inside it, the assistant service keeps the change in its own history and reads it for the next spoken answer.",
    "nothingToSave": "The voice shown is the one in force, so there is nothing to save.",
    "inForceSentence": "In force: {label}."
   },
@@ -445,7 +445,8 @@
    "clinicianRequired": "Needs a clinician signed in",
    "purposeRequired": "and a purpose recorded",
    "noModel": "No model is asked",
-   "ceilingWithClinicianLabel": "With a clinician"
+   "ceilingWithClinicianLabel": "With a clinician",
+   "founderNote": "The levels and the ceilings are not among the assistant engine's settings the founder's routes carry, so nothing here is the founder's to set yet: a level or a ceiling becomes a founder setting the day it is a setting in packages/catalog/intelligence-levels.json with a reader behind it, and until then the selector stays gated and says so."
   },
   "speech": {
    "providersHeading": "Providers and their settings",
@@ -461,7 +462,67 @@
    "onshoreSentence": "Pinned to a South African region: the platform default, and the one provider that answers in production today.",
    "notExercisedSentence": "Written from the vendor's published reference and not yet tried against the live API: the first operator to configure it finds out.",
    "noPriceSentence": "No per-character list price is recorded, so the preview has nothing to multiply and will not play through it.",
-   "serviceReadsDefaults": "The assistant service reads every setting on this screen from the contract's defaults: it holds no settings history of its own yet, so a change here reaches the web preview and the next spoken answer in this tab, and the service's own answers only on the day the service keeps the history too. That is said here rather than hidden."
+   "serviceReadsDefaults": "Outside the founder's signed-in session the assistant service reads every setting on this screen from the contract's defaults, as far as this screen can tell: it cannot read the service's history without the founder's session, so a change made here as a preview reaches the web preview and the next spoken answer in this tab, and never a patient. That is said here rather than hidden.",
+   "changeHeading": "Change the voice and the speech settings",
+   "changeIntro": "Choose, say why, and save. Each presentation register is saved on its own — its provider and its voice — and each group of knobs on its own. The rules and the refusals are the shared settings code's, and every change is kept with who made it, when and why.",
+   "registersHeading": "The four presentation registers",
+   "providerLabel": "Provider for {register}",
+   "voiceLabel": "Voice for {register}",
+   "knobsHeading": "The knobs",
+   "groupWord": "{group}: {count} settings",
+   "everyProviderWord": "Every provider",
+   "saveRegister": "Save as default: {register}",
+   "saveGroup": "Save: {group}",
+   "nothingChanged": "Nothing shown differs from what is in force, so there is nothing to save.",
+   "savedCount": "{count} saved. {applied}",
+   "sourceService": "In force on the assistant service: settings version {version}, read from the service's own history when this screen opened and again after every save. A change saved here is the service's, and the next spoken answer of a presentation register reads with it.",
+   "sourceTab": "In force in this tab's memory: settings version {version}. Founder access is not switched on here, so a change is a preview that reaches no patient, and a reload puts the contract's defaults back.",
+   "sourceLocked": "Shown below: the contract's shipped defaults. What the assistant service holds is read once the founder is signed in, and nothing here can be changed until then.",
+   "sourceReading": "Reading what the assistant service holds…",
+   "sourceRefused": "The assistant service would not hand over its settings: {message} Shown below: the contract's shipped defaults, and nothing here can be changed.",
+   "readOnlyHeading": "Everything else, read only",
+   "readOnlyIntro": "The zones, the locked clinical rows, the providers, the languages and their voices, the parameters and what this screen refuses. Nothing under this heading is a control, and nothing locked above it becomes one."
+  },
+  "founder": {
+   "since": "2026-09-28",
+   "decidedBy": "Founder",
+   "instruction": "API Registry, Compliance, Intelligence, Model Providers — I cannot set them. I need to be able to control all these aspects, I am the owner.",
+   "why": "The founder holds the Azure resources, the ElevenLabs account and the box, and is the one person who enters, rotates or removes a key or switches a provider today (docs/governance/FOUNDER-ACCESS.md). Until 28 September 2026 every such control was drawn disabled behind G30 or G32, because no vault and no runner existed; the founder's session, the service's founder routes and the founder's own instruction are what now stand behind exactly the actions above that carry a founder record. Each is enabled only while the assistant service says the founder is signed in, calls the service's founder routes and nothing else, sends a key once in a body and clears the field as it goes, and shows metadata and never a value. What still has no contract — scoping a key, adding a provider, testing every provider at once, the local agent, a reasoning level, a compliance sign-off — stays gated, and the screen says so where it is drawn.",
+   "routesFrom": "packages/catalog/founder-access.json#routes",
+   "_routesWhy": "The assistant service's founder routes for settings and providers are founder-access.json's — settings, settingsChanges, providers, providerKey, providerEnabled, providerTest and providerLogs, under its prefix — each refusing without the founder's session cookie and the founder header (founder-access.json#request), and the key, enabled and remove routes each asking a fresh authenticator code as a reveal does. Their request and response fields are packages/catalog/apis/assistant.json's; apps/web/src/lib/founder-settings.ts reads only the fields it names and never a key, and every path is read from that contract, never typed on a screen or copied here.",
+   "words": {
+    "heading": "The founder's controls",
+    "notSignedIn": "Available to the founder alone, inside a signed-in founder session. Nobody is signed in, so this does nothing: the founder's door — Founder sign-in · 2FA — is the way in.",
+    "checking": "Asking the assistant service whether the founder is signed in…",
+    "preview": "Founder access is not switched on here, so the founder's controls have nothing to act on. They are drawn, and they do nothing.",
+    "refused": "The assistant service refused the founder's session, so nothing here can act: {message}",
+    "notAnswered": "The assistant service did not answer, so nothing was changed.",
+    "reading": "Reading the service's record of each provider…",
+    "noSlot": "The assistant service holds no key slot for this card, so there is nothing here to enter, test, switch or read.",
+    "noContract": "No contract stands behind this yet, so it stays gated and does nothing; the gate's sentence above says what is missing.",
+    "codeLabel": "Fresh authenticator code",
+    "codeHint": "A code you have not used yet. Each key, switch and removal takes its own.",
+    "keyLabel": "New key",
+    "keyHint": "Typed here, sent once to the assistant service and cleared as it goes. It is never shown again, here or anywhere.",
+    "metadataHeading": "What the service holds for this provider",
+    "setLabel": "Key on the box",
+    "present": "Present",
+    "absent": "Not set",
+    "lastFourLabel": "Last four",
+    "fingerprintLabel": "SHA-256",
+    "enabledLabel": "Switched on",
+    "testPassed": "The provider answered the test call.",
+    "testFailed": "The provider did not answer the test call, or refused it.",
+    "testOutcome": "The service's word for it: {outcome}, after {latency} ms.",
+    "logsHeading": "The provider's log",
+    "logsEmpty": "The service holds no lines for this provider yet.",
+    "keySaved": "The key was saved on the box. Its last four and fingerprint are above; the key itself is not, and will not be shown again.",
+    "keyRemoved": "The key was removed from the box.",
+    "switched": "The provider is now switched {state}.",
+    "onWord": "on",
+    "offWord": "off",
+    "working": "Asking the assistant service…"
+   }
   },
   "knowledge": {
    "tiersHeading": "Two corpora",
@@ -477,7 +538,8 @@
    "killSwitchHeading": "The kill switch",
    "residencyHeading": "The residency map",
    "residencyObserved": "Observed on the server, not decided",
-   "flowsHeading": "What goes where"
+   "flowsHeading": "What goes where",
+   "founderNote": "Nothing on this screen is the founder's to sign yet. A sign-off — who signed, when and why — needs a contract naming what is being signed, and none of the six sections, the audit extract or the kill switch has one; the day one does, it is recorded against the founder's session like every other founder action, and never as a button that says it did something."
   },
   "apiRegistry": {
    "categories": [
@@ -569,14 +631,19 @@
   {
    "id": "no-gilbertone-action-while-its-gate-is-open",
    "statement": "No GilbertOne administration action does anything while its gate is open. Each is drawn disabled, beside the sentence that names the gate holding it and why.",
-   "why": "§9: nothing in this phase is built as more than documentation until its gate is green. The assistant is live in production, and a control on its administration screen that looked as if it worked would be the most dangerous thing in the portal to mistake for real. Replaced, on 24 September 2026 in Phase 4, the refusal no-gilbertone-sub-screen-before-phase-4, which Phase 4 retired by building the sub-screens. Since 27 September 2026 an action the founder made live carries a dated live record in place of a gate — the Voice screen's Save as default and Play — and this refusal holds every action that still names one."
+   "why": "§9: nothing in this phase is built as more than documentation until its gate is green. The assistant is live in production, and a control on its administration screen that looked as if it worked would be the most dangerous thing in the portal to mistake for real. Replaced, on 24 September 2026 in Phase 4, the refusal no-gilbertone-sub-screen-before-phase-4, which Phase 4 retired by building the sub-screens. Since 27 September 2026 an action the founder made live carries a dated live record in place of a gate — the Speech settings screen's Save as default, Save and Play — and since 28 September 2026 an action the founder took for the founder alone carries a founder record instead; this refusal holds every action that still names a gate."
+  },
+  {
+   "id": "founder-action-only-in-a-founder-session",
+   "statement": "An action the founder made the founder's on 28 September 2026 is enabled only while the assistant service says the founder is signed in, and calls the service's founder routes and nothing else. Signed out it is disabled beside the sentence that says so. A key it sends goes once, in the body of one request, and the field is cleared as it goes; what comes back is the key's last four characters and fingerprint, never the key, and nothing is stored, logged or put in an address.",
+   "why": "The founder's instruction — \"I need to be able to control all these aspects, I am the owner\" — is met by the founder's session and the service's routes, not by the browser trusting itself. The browser draws what the service decided; the service refuses without the cookie, the header and, for a key, a switch or a removal, a fresh authenticator code."
   },
   {
    "id": "no-key-on-an-admin-screen",
-   "statement": "No administration screen accepts, shows or keeps a key, a fragment of one or a deployment's address, with one exception: founder access, through which the founder alone — signed in with a password and an authenticator code, while the service has it switched on by hand — may reveal the two Azure keys, one at a time, with a fresh code. The only key-entry field drawn is disabled, and there is no key registry to show metadata from.",
+   "statement": "No administration screen accepts, shows or keeps a key, a fragment of one or a deployment's address, with one exception: founder access, through which the founder alone — signed in with a password and an authenticator code, while the service has it switched on by hand — may reveal the two Azure keys, one at a time, with a fresh code. The only key-entry field drawn is the founder's, inside a signed-in founder session, posted once to the assistant service and cleared as it is sent; the metadata shown is what the service answers, and there is no key registry beyond it.",
    "why": "§1: API keys never reach the browser. The vault is the security boundary and does not exist, so the honest screen is one with nowhere to type a key and nothing about one to read."
   }
  ],
 
- "preview": "The portal is the two old surfaces' screens, unchanged, under one navigation, with six new screens that are each a written empty state or a contract read aloud — the Overview, Devices & Fleet, the Configuration tree, cost allocation, the compliance pack preview and the Clinician Review Queue — and, since Phase 4, GilbertOne API Administration's seven sub-screens, whose every action is disabled beside its gate but the two the founder made live on 27 September 2026: a presentation voice chosen and saved as a setting, and a sentence heard in it first. Nothing else in it acts on a real service."
+ "preview": "The portal is the two old surfaces' screens, unchanged, under one navigation, with six new screens that are each a written empty state or a contract read aloud — the Overview, Devices & Fleet, the Configuration tree, cost allocation, the compliance pack preview and the Clinician Review Queue — and, since Phase 4, GilbertOne API Administration's seven sub-screens, whose every action is disabled beside its gate but the ones the founder made live: a presentation voice and provider chosen and saved as a setting, the knobs saved beside them, a sentence heard first, and — inside the founder's signed-in session alone — a provider's key entered, rotated, tested or removed, a provider switched on or off and its log read, through the assistant service's founder routes. Nothing else in it acts on a real service."
 }

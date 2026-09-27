@@ -178,6 +178,118 @@ rather than by carrying the parameter through the role switcher, which is on the
   so a reload after it opens the portal directly; the door is read once when it mounts and holds until
   the role changes. Production reads `import.meta.env.PROD` and needs no parameter.
 
+## The founder's settings history and the provider vault, 28 September 2026
+
+The founder's instruction, the same day the Control Tower went behind the door: "I need to be able to
+control all these aspects, I am the owner." Two facts stood in the way. A setting saved in the Control
+Tower lived in that browser tab while the speak route read the contract's defaults — the founder made
+every presentation voice male, pressed the voice test, and heard a female voice. And a provider key
+could be set only over SSH, so every registry action was drawn disabled for want of a vault. Both are
+now the assistant service's, behind the same founder session as everything above. The contract is
+`packages/catalog/founder-access.json#ownership`, `#state`, `#settings` and `#vault`; the routes are
+eight more in `packages/catalog/apis/assistant.json`, the founder's alone; the service's half is
+`apps/assistant-api/src/lib/founder-state.ts`, `settings-history.ts`, `provider-vault.ts`,
+`credentials.ts` and eight branches of `server.ts`; the unit and the script are `deploy/ops/
+assistant-api.service` and `deploy/ops/configure-founder-access.sh`.
+
+### What it is
+
+**A state directory.** The service kept nothing on disk until this day. It now keeps three files of
+the founder's, and nothing else, in a systemd `StateDirectory` (`/var/lib/mythuso-assistant`, handed
+to the process as `MYTHUSO_ASSISTANT_STATE_DIR`): the settings history, the encrypted vault and the
+founder audit. Each is 0600, appended to or replaced atomically, and never edited. Nothing a patient
+said, heard or was told is written by any code path that reaches it. A process started without the
+variable — a shell, a test, a box whose unit predates this — reads the contract's defaults, answers
+every founder read with `persisted: false`, and refuses every founder write with
+`founder-state-unavailable` rather than keeping a change it would lose at the next restart.
+
+**A founder-signed settings history.** `GET /v1/founder/settings` answers the assistant's settings in
+force — every presentation voice, provider and speech knob in the shared read shape of
+`packages/catalog/settings.json#routes.read`, with `persisted` and the session's `expiresAt` beside
+them — and every change made. `POST /v1/founder/settings/changes` takes one change: `setting`, `from`
+(the value the founder was looking at), `to`, `reason` and an optional `expectedVersion`. It is
+validated by the same shared rules the web preview and every engine's settings route use —
+`packages/engines/src/settings/shape.ts`'s `proposeChange()` over the assistant block — so a refused
+change is refused with the shared sentence, word for word; an accepted one is appended to
+`settings-history.jsonl` as one line in the shared `Change` shape, against the administrator role the
+block names with the founder as the reference (`byRole: admin, byRef: founder`), and replayed at
+start-up over the contract's defaults. A file with a gap or a repeat stops the service starting. **The
+speak route reads this history**: the presentation voice per register and every speech setting come
+from what is in force at the moment of the reading, so the founder's "male" reaches the voice test.
+A clinical-delivery register — emergency, refusal, escalation — still reads the platform default
+whatever the history says, which is `voice.json`'s own rule and not one this history could change.
+
+**A provider key vault.** `GET /v1/founder/providers` answers, per card the vault can hold a key for
+(`#vault.cards`: the built providers whose registry card names a key variable), what may be said about
+its key and never a value: `configured`, `source` (vault, environment or none), `enabled`, `lastFour`,
+`fingerprintPrefix` (the same sixteen hex characters the reveal shows), `createdAt`, `lastRotatedAt`,
+`setBy`. `PUT /v1/founder/providers/{card}/key` stores or replaces one (body `{key, code}`),
+`DELETE …/key` removes it (body `{code}`), `POST …/enabled` switches the provider on or off (body
+`{enabled, code}`), `POST …/test` makes one cheap authenticated call to the provider's own listing and
+answers ok, refused, unreachable or failed with the latency, and `GET …/logs` answers the founder
+audit lines that name the card. Values are encrypted with AES-256-GCM under `MYTHUSO_VAULT_KEY` —
+thirty-two random bytes, base64, written once into `/etc/mythuso/founder.env` by
+`configure-founder-access.sh` and never printed — into `vault.json` in the state directory, so root
+reads ciphertext in one file and the key in another. Every adapter and every `configured()` reads a
+credential through one view (`provider-vault.ts`'s `envFor()`, and `credentials.ts` for the
+language-model tier): the vault's value, then the environment, then not configured; a card the
+founder has switched off answers nothing for every variable of its card, so a disabled provider is
+never called — the registry's own refusal, made true in code. The two Alibaba cards share one
+DashScope key, so setting it on either configures both.
+
+### What it refuses, and why
+
+| Refusal | Where |
+|---|---|
+| **Every one of the eight asks the gate first** — cross-site, then dark — and then the session. `founder-access-dark` (503), `founder-request-cross-site` (403), `founder-no-session` (401), as the four routes above. | each branch; boundary check |
+| **A key set, a key deletion and an enable change need a fresh authenticator code** on top of the session, burned once accepted and counting toward the lock, exactly as a reveal does. Reading metadata, running a test and reading logs do not: nothing about the server changes. A stolen cookie can read what is configured and test it, and can store, remove or switch nothing. | `founder.confirmCode()`; boundary check; tests |
+| **No answer carries a value.** The metadata type has no field a key could travel in; the audit line carries the card and the new fingerprint prefix; the test never reads the provider's body. The build sweeps every founder response field against the registry's `keyMetadata.neverFields`; the one exception is the reveal's `revealedKey`, unchanged. | `provider-vault.ts`; boundary check; tests |
+| **The reveal is unchanged and the vault never reveals.** The allowlist is still the two Azure names in the environment; a key stored in the vault cannot be read back by anybody, the founder included. If it was pasted wrongly, it is replaced. | `founder-access.ts`; boundary check |
+| **No state directory, no write** (`founder-state-unavailable`, 503) — before the shared rules are asked. **No master key, no key write** (`founder-vault-locked`, 503) — a key stored in the clear because the master key was missing would be the file the vault exists to prevent. A switch needs no master key, since nothing is encrypted. | `settings-history.ts`, `provider-vault.ts`; tests |
+| **A value that cannot be a key is refused at the door** (`founder-key-malformed`, 400): printable ASCII, no space, sixteen to five hundred and twelve characters. The 140-character key with spaces in it of 22 September is the reason. | `#vault.keyShape`; tests |
+| **A card outside the vault's cards** — Ollama, a proposed provider, a typo — is refused (`founder-card-not-known`, 404) before anything is read. **A disabled provider is not tested** (`founder-provider-disabled`, 409); **an unconfigured one has nothing to test** (`founder-provider-not-configured`, 409). | `provider-vault.ts`; tests |
+| **The residency rule is unchanged.** A key in the vault configures a provider; it does not select one. An offshore speech provider is still refused for health-information routes in production while `docs/governance/DATA-RESIDENCY-OPTIONS.md` §7 is blank, whatever the vault holds. A test is a listing, not a patient's words, and is not a health-information flow. | `speech.ts`; existing checks |
+| **A clinical-delivery register reads none of this.** `tuningFor()` hands it the platform default with no knob; `voiceLabelFor()` answers a label for a presentation register alone. | `packages/engines/src/assistant/domain/settings.ts`, `speech-settings.ts`; tests |
+| **The settings read is founder-gated** although it carries no secret: the history names who changed how the assistant speaks and why, and the founder's session is the only authentication this service has — an open read would be readable by anybody on the internet. The web reads what is in force through it when signed in and falls back to the contract's defaults when it is not. | `#settings.readIsFounderGated` |
+
+### The audit
+
+The one function that built every founder line, `founderLine()`, now also names a card (checked
+against the vault's cards) and a setting (checked against a setting key's shape), and never a value.
+Every founder branch writes its line through `founderAudit()`, which is `console.log` plus an append
+to `founder-audit.jsonl` in the state directory, stamped with when; the build refuses a founder
+branch that calls the console directly. The logs route reads that file back, per card, capped at the
+contract's `audit.logsTail`. The journal is still what root reads; the file is what the founder reads.
+
+### What an attacker can and cannot do, amended
+
+| With… | They can, in addition | They still cannot |
+|---|---|---|
+| **A stolen session cookie** | Read every provider's metadata and the settings history; run a provider test; change a setting (no code is asked for a setting — the session is the founder's signature, as it is for the settings editors). | Store, remove or switch a provider key: each needs a fresh code. Read a key. |
+| **Root on the box** | Read `vault.json` and `founder.env`, and so every stored key — root is root. | Nothing new: the vault adds to what the founder can do, not to what root could already. |
+| **A backup of the state directory alone** | Nothing: ciphertext without its key, a settings history and an audit. | Read a key. |
+
+### What is honest but undone
+
+- **The Control Tower screens.** The web's half — reading in force from `GET /v1/founder/settings`,
+  writing through `POST …/changes`, the provider cards' buttons — is the web agent's change beside this
+  one. Until it lands, the Speech settings screen's sentence that the service reads the contract's
+  defaults is out of date: the service reads the founder's history wherever the state directory exists.
+- **The speak route honours a saved voice only when the caller names none.** A `voice` in the request
+  is honoured over the setting, as it always was; the web's voice test must send `register` and omit
+  `voice` for the founder's choice to be heard.
+- **`lastUsedAt`, scopes, rate limits and expiry** from the registry's `keyMetadata` are not tracked
+  and not answered; the metadata says what is true and leaves those out.
+- **The language-model tier reads the vault through a process-wide view** (`credentials.ts`), installed
+  when the server is built; a test that builds two servers in one process gets the last one's view for
+  that tier. The speech seam is handed its view explicitly.
+- **The vault key is not in a KMS or an HSM.** It is a line in a 0600 file beside the founder's
+  credential, which is what `docs/governance/KEY-CUSTODY-OPTIONS.md` still leaves open. Losing the file
+  means every stored provider key is entered again.
+- **A deploy never restarts the service**, so the first deploy carrying this build leaves the running
+  process without the routes until it is restarted by hand (`deploy/RUNBOOK.md`, _Founder access_), and
+  the unit's new `StateDirectory` takes effect at that restart.
+
 ## When this file is updated
 
 When founder access is switched on or off on a box (the date and who), when the credential is

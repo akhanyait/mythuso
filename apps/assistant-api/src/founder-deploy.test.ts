@@ -19,6 +19,7 @@ import {
   parsePasswordHash,
   verifyPassword,
 } from "./lib/founder-access.ts";
+import { isMasterKeyShape, masterKeyOf } from "./lib/provider-vault.ts";
 import contract from "../../../packages/catalog/founder-access.json" with { type: "json" };
 
 /* deploy/ops/configure-founder-access.sh, tested rather than trusted — the same way deploy.test.ts
@@ -37,6 +38,7 @@ const PASSWORD = "a synthetic founder passphrase";
 const HASH = contract.credential.passwordHashVariable;
 const SECRET = contract.credential.totpSecretVariable;
 const ENABLE = contract.enable.variable;
+const VAULT_KEY = contract.vault.keyVariable;
 
 const run = (input: string, envFile: string) =>
   spawnSync("bash", [SCRIPT], {
@@ -63,7 +65,11 @@ test("writes the hash and the secret at 0600, and the service verifies the one a
     assert.equal(result.status, 0, result.stderr);
     assert.equal(statSync(box.file).mode & 0o777, 0o600, "readable by root only");
     const env = parse(readFileSync(box.file, "utf8"));
-    assert.deepEqual(Object.keys(env).sort(), [HASH, SECRET].sort(), "the two credential lines and nothing else");
+    assert.deepEqual(Object.keys(env).sort(), [HASH, SECRET, VAULT_KEY].sort(), "the two credential lines, the vault key, and nothing else");
+    assert.ok(isMasterKeyShape(env[VAULT_KEY]!), "the vault key is thirty-two bytes, base64, as the service reads it");
+    assert.ok(masterKeyOf(env), "and the vault opens on it");
+    for (const stream of [result.stdout, result.stderr])
+      assert.ok(!stream.includes(env[VAULT_KEY]!), "the vault key is never printed");
     const parsed = parsePasswordHash(env[HASH]);
     assert.ok(parsed, "the hash is one the service accepts as a credential");
     assert.equal(parsed.log2N, contract.credential.scrypt.log2N);
@@ -114,12 +120,15 @@ test("two passwords that differ, or one shorter than the contract's minimum, wri
 test("a rotation replaces the credential and keeps every other line, the enable line included", () => {
   const box = sandbox();
   try {
-    writeFileSync(box.file, `${ENABLE}=${contract.enable.value}\n${HASH}=old\n${SECRET}=OLD\nOPERATOR_NOTE=kept\n`, { mode: 0o600 });
+    writeFileSync(box.file, `${ENABLE}=${contract.enable.value}\n${HASH}=old\n${SECRET}=OLD\n${VAULT_KEY}=existing-vault-key-kept-as-it-is\nOPERATOR_NOTE=kept\n`, { mode: 0o600 });
     const result = run(`${PASSWORD}\n${PASSWORD}\n`, box.file);
     assert.equal(result.status, 0, result.stderr);
     const lines = readFileSync(box.file, "utf8").split("\n").filter(Boolean);
     assert.ok(lines.includes(`${ENABLE}=${contract.enable.value}`), "the founder's own enable line is left alone");
     assert.ok(lines.includes("OPERATOR_NOTE=kept"));
+    assert.ok(lines.includes(`${VAULT_KEY}=existing-vault-key-kept-as-it-is`), "an existing vault key is never rotated: a rotated one is a vault nobody can read");
+    assert.equal(lines.filter((l) => l.startsWith(`${VAULT_KEY}=`)).length, 1);
+    assert.ok(result.stdout.includes("was kept as it was"));
     assert.ok(!lines.includes(`${HASH}=old`) && !lines.includes(`${SECRET}=OLD`), "the old credential is gone");
     assert.equal(lines.filter((l) => l.startsWith(`${HASH}=`)).length, 1);
     assert.equal(lines.filter((l) => l.startsWith(`${SECRET}=`)).length, 1);
@@ -137,4 +146,14 @@ test("the script never writes the enable line, in any branch", () => {
     .join("\n");
   assert.ok(!code.includes(`${ENABLE}=${contract.enable.value}`), "no line of code names the enable value beside the variable");
   assert.ok(!/printf[^\n]*MYTHUSO_FOUNDER_ACCESS/.test(code), "no printf writes the variable");
+});
+
+test("the vault key is written only when the file has none, and no say or echo line can print it", () => {
+  const source = readFileSync(SCRIPT, "utf8");
+  assert.match(source, /^VAULT_KEY_VARIABLE=MYTHUSO_VAULT_KEY$/m);
+  assert.match(source, new RegExp(`^VAULT_KEY_BYTES=${contract.vault.keyBytes}$`, "m"));
+  assert.match(source, /if \[ ! -f "\$ENV_FILE" \] \|\| ! grep -qE "\^\$\{VAULT_KEY_VARIABLE\}=" "\$ENV_FILE"; then/, "generated only when absent");
+  for (const line of source.split("\n"))
+    if (/^\s*(say|echo|printf)\b/.test(line) && !/>> "\$tmp"/.test(line) && !/grep -qE/.test(line))
+      assert.ok(!/\$vault_key|\$\{vault_key/.test(line), `a line prints the vault key: ${line.trim()}`);
 });

@@ -286,6 +286,14 @@ enum ApisData {
     static let postFounderReveal = Route(id: "postFounderReveal", method: "POST", path: "/v1/founder/reveal", mountedPath: "/assistant/v1/founder/reveal", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
     static let getAssistantSettings = Route(id: "getAssistantSettings", method: "GET", path: "/v1/assistant/settings", mountedPath: "/v1/assistant/settings", version: 1, engine: "assistant", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built")
     static let postAssistantSettingChanges = Route(id: "postAssistantSettingChanges", method: "POST", path: "/v1/assistant/setting-changes", mountedPath: "/v1/assistant/setting-changes", version: 1, engine: "assistant", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
+    static let getFounderSettings = Route(id: "getFounderSettings", method: "GET", path: "/v1/founder/settings", mountedPath: "/assistant/v1/founder/settings", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postFounderSettingsChanges = Route(id: "postFounderSettingsChanges", method: "POST", path: "/v1/founder/settings/changes", mountedPath: "/assistant/v1/founder/settings/changes", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
+    static let getFounderProviders = Route(id: "getFounderProviders", method: "GET", path: "/v1/founder/providers", mountedPath: "/assistant/v1/founder/providers", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
+    static let putFounderProvidersByCardKey = Route(id: "putFounderProvidersByCardKey", method: "PUT", path: "/v1/founder/providers/{card}/key", mountedPath: "/assistant/v1/founder/providers/{card}/key", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
+    static let deleteFounderProvidersByCardKey = Route(id: "deleteFounderProvidersByCardKey", method: "DELETE", path: "/v1/founder/providers/{card}/key", mountedPath: "/assistant/v1/founder/providers/{card}/key", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postFounderProvidersByCardEnabled = Route(id: "postFounderProvidersByCardEnabled", method: "POST", path: "/v1/founder/providers/{card}/enabled", mountedPath: "/assistant/v1/founder/providers/{card}/enabled", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
+    static let postFounderProvidersByCardTest = Route(id: "postFounderProvidersByCardTest", method: "POST", path: "/v1/founder/providers/{card}/test", mountedPath: "/assistant/v1/founder/providers/{card}/test", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
+    static let getFounderProvidersByCardLogs = Route(id: "getFounderProvidersByCardLogs", method: "GET", path: "/v1/founder/providers/{card}/logs", mountedPath: "/assistant/v1/founder/providers/{card}/logs", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
 
     static let routes: [Route] = [
         postCoreEvents,
@@ -551,7 +559,15 @@ enum ApisData {
         getFounderKeys,
         postFounderReveal,
         getAssistantSettings,
-        postAssistantSettingChanges
+        postAssistantSettingChanges,
+        getFounderSettings,
+        postFounderSettingsChanges,
+        getFounderProviders,
+        putFounderProvidersByCardKey,
+        deleteFounderProvidersByCardKey,
+        postFounderProvidersByCardEnabled,
+        postFounderProvidersByCardTest,
+        getFounderProvidersByCardLogs
     ]
 
     struct PostCoreEventsRequest {
@@ -2905,5 +2921,99 @@ enum ApisData {
     struct PostAssistantSettingChangesResponse {
         let settingsVersion: Int
         let appliesFrom: String
+    }
+    struct GetFounderSettingsRequest {}
+    struct GetFounderSettingsResponse {
+        let settingsVersion: Int
+        let settings: [[String: Any]]
+        let history: [[String: Any]]
+        let persisted: Bool
+        let expiresAt: String
+    }
+    struct PostFounderSettingsChangesRequest {
+        let setting: String
+        let from: [String: Any]
+        let to: [String: Any]
+        let reason: String?
+        let expectedVersion: Int?
+    }
+    struct PostFounderSettingsChangesResponse {
+        let settingsVersion: Int
+        let appliesFrom: String
+    }
+    struct GetFounderProvidersRequest {}
+    struct GetFounderProvidersResponse {
+        let providers: [[String: Any]]
+        let vaultUnlocked: Bool
+        let persisted: Bool
+        let expiresAt: String
+    }
+    struct PutFounderProvidersByCardKeyRequest {
+        let card: String
+        let key: String
+        let code: String
+    }
+    struct PutFounderProvidersByCardKeyResponse {
+        let card: String
+        let keyVariable: String
+        let configured: Bool
+        let source: String
+        let enabled: Bool
+        let lastFour: String
+        let fingerprintPrefix: String
+        let createdAt: String
+        let lastRotatedAt: String
+        let setBy: String
+    }
+    struct DeleteFounderProvidersByCardKeyRequest {
+        let card: String
+        let code: String
+    }
+    struct DeleteFounderProvidersByCardKeyResponse {
+        let card: String
+        let keyVariable: String
+        let configured: Bool
+        let source: String
+        let enabled: Bool
+        let lastFour: String
+        let fingerprintPrefix: String
+        let createdAt: String
+        let lastRotatedAt: String
+        let setBy: String
+    }
+    struct PostFounderProvidersByCardEnabledRequest {
+        let card: String
+        let enabled: Bool
+        let code: String
+    }
+    struct PostFounderProvidersByCardEnabledResponse {
+        let card: String
+        let keyVariable: String
+        let configured: Bool
+        let source: String
+        let enabled: Bool
+        let lastFour: String
+        let fingerprintPrefix: String
+        let createdAt: String
+        let lastRotatedAt: String
+        let setBy: String
+    }
+    struct PostFounderProvidersByCardTestRequest {
+        let card: String
+    }
+    struct PostFounderProvidersByCardTestResponse {
+        let card: String
+        let outcome: String
+        let status: Int
+        let latencyMs: Int
+        let testedAt: String
+    }
+    struct GetFounderProvidersByCardLogsRequest {
+        let card: String
+    }
+    struct GetFounderProvidersByCardLogsResponse {
+        let card: String
+        let lines: [[String: Any]]
+        let persisted: Bool
     }
 }

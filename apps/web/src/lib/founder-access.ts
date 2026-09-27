@@ -20,6 +20,12 @@ import founder from '../../../../packages/catalog/founder-access.json' with { ty
  * the one the route answered with — the contract's own sentence, as every refusal in this codebase is
  * read — or, when nothing answered, the contract's sentence for that.
  *
+ * Since 28 September 2026 the founder's settings and provider controls (lib/founder-settings.ts) send their
+ * requests through the same call() below — the same header, the same cookie, the same refusal shape — so
+ * the founder's routes are asked in exactly one way. That module is the one other importer of this file
+ * beside the settings gate and the Control Tower's door, and it carries no key either: a key it sends goes
+ * once, in a body, and the answer it reads is metadata.
+ *
  * Reached only through the reveal panel's dynamic import: a patient's first load carries none of it. */
 
 export const founderContract = founder;
@@ -37,9 +43,9 @@ declare const __ASSISTANT_API_URL__: string;
 const base = () => (typeof __ASSISTANT_API_URL__ === 'string' ? __ASSISTANT_API_URL__ : '');
 
 export type Refusal = { readonly ok: false; readonly refusalId: string | null; readonly message: string };
-type Answer<T> = { readonly ok: true; readonly body: T } | Refusal;
 
-async function call<T>(method: 'GET' | 'POST' | 'DELETE', path: string, body?: Record<string, string>): Promise<Answer<T>> {
+export type Answer<T> = { readonly ok: true; readonly body: T } | Refusal;
+export async function call<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, body?: Readonly<Record<string, unknown>>): Promise<Answer<T>> {
  const headers: Record<string, string> = { accept: 'application/json', [founder.request.header]: founder.request.headerValue };
  if (body) headers['content-type'] = 'application/json';
  try {

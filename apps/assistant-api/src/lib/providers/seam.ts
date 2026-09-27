@@ -105,6 +105,12 @@ export type SynthesisRequest = {
   voice?: string;
   register?: string | null;
   tuning?: SpeechTuning;
+  /* Since 28 September 2026: which of the language's two voices reads, when the caller named none —
+     the presentation-voice setting in force for the register, resolved by the composed selection in
+     ../speech.ts from the founder's settings history. A provider resolves the label per language
+     against the contract's own voices; a provider with no labelled voices ignores it. Absent, the
+     platform's default label reads, which is what every clinical-delivery register is handed. */
+  voiceLabel?: "female" | "male";
 };
 
 /* The contract's own language entry a declared language names — by one of its recognition locales

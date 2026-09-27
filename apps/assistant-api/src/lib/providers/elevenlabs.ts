@@ -133,7 +133,7 @@ export function elevenLabsTts(
        is refused here as every adapter refuses it. */
     const asked = request.voice?.trim() ?? "";
     const label: "female" | "male" | null =
-      !asked ? DEFAULT_LABEL
+      !asked ? (request.voiceLabel ?? DEFAULT_LABEL)
       : asked === entry.ttsVoices.female ? "female"
       : asked === entry.ttsVoices.male ? "male"
       : null;

@@ -1,6 +1,6 @@
 {
  "engine": "assistant",
- "_note": "The assistant engine's routes. The service answers seven of them today, exactly as apps/assistant-api/src/server.ts registers them: GET /assistant/health and one turn at POST /assistant/turn, and at the plan's own versioned addresses POST /assistant/v1/turn, POST /assistant/v1/knowledge/search, GET /assistant/v1/status and push-to-talk's two — POST /assistant/v1/listen and POST /assistant/v1/speak, built on 22 September 2026 against Azure Speech. The rest of the /v1/* family — triage conducted over Clinical's rules, a reading written through the Passport gateway, handover prepare and submit — is declared and not built: the engine's not-yet-available refusal answers each of them with 501, so a caller meets a sentence it can read rather than a 404 it cannot tell from a typo, and packages/mock-api answers them on loopback with synthetic data until each is built. Those five routes were re-declared at version two because that refusal's answeredBy now names them, and adding a refusal is a change as much as rewording one: each version one is withdrawn in its favour, with no callers, its shape and its refusals unchanged. listen is at version three and speak at version four for the same kind of reason: the shape a built capture arrives in is audio rather than the captureMs window version two was frozen with, so their version two entries are withdrawn in version three's favour with no callers, and the engine's cloud-speech refusal, added with them, answers version three alone. speak's version three is withdrawn in version four's favour since 28 September 2026: version four names the register the words belong to, so the administrator's speech settings reach a presentation register and never a clinical one, and it refuses at the monthly ceiling. /v1/knowledge/search is at version two for the same reason, with the three refusals its handler actually answers and its sources now declared as objects rather than as text; its version one is withdrawn in the same way. The turn's declared shape is this contract's reading of the service it captures; the service's own request type also accepts an optional visitId, and this contract refuses that name — another engine's resource under an Id name, per packages/catalog/apis.json#_contractIdsNote — so it is not declared here. The two settings routes at the end — GET /v1/assistant/settings and POST /v1/assistant/setting-changes, added 27 September 2026 when the founder made the four presentation voice registers of packages/catalog/voice.json an admin setting — are not the service's: they are bound on the development engine runtime by packages/engines/src/assistant/engine.ts through the shared settings code, exactly as every other engine's settings routes are, so the assistant's settings history lives where every engine's does and the Configuration screen changes it there. apps/assistant-api does not read that history yet; the web preview reads the same rules from memory.",
+ "_note": "The assistant engine's routes. The service answers seven of them today, exactly as apps/assistant-api/src/server.ts registers them: GET /assistant/health and one turn at POST /assistant/turn, and at the plan's own versioned addresses POST /assistant/v1/turn, POST /assistant/v1/knowledge/search, GET /assistant/v1/status and push-to-talk's two — POST /assistant/v1/listen and POST /assistant/v1/speak, built on 22 September 2026 against Azure Speech. The rest of the /v1/* family — triage conducted over Clinical's rules, a reading written through the Passport gateway, handover prepare and submit — is declared and not built: the engine's not-yet-available refusal answers each of them with 501, so a caller meets a sentence it can read rather than a 404 it cannot tell from a typo, and packages/mock-api answers them on loopback with synthetic data until each is built. Those five routes were re-declared at version two because that refusal's answeredBy now names them, and adding a refusal is a change as much as rewording one: each version one is withdrawn in its favour, with no callers, its shape and its refusals unchanged. listen is at version three and speak at version four for the same kind of reason: the shape a built capture arrives in is audio rather than the captureMs window version two was frozen with, so their version two entries are withdrawn in version three's favour with no callers, and the engine's cloud-speech refusal, added with them, answers version three alone. speak's version three is withdrawn in version four's favour since 28 September 2026: version four names the register the words belong to, so the administrator's speech settings reach a presentation register and never a clinical one, and it refuses at the monthly ceiling. /v1/knowledge/search is at version two for the same reason, with the three refusals its handler actually answers and its sources now declared as objects rather than as text; its version one is withdrawn in the same way. The turn's declared shape is this contract's reading of the service it captures; the service's own request type also accepts an optional visitId, and this contract refuses that name — another engine's resource under an Id name, per packages/catalog/apis.json#_contractIdsNote — so it is not declared here. The two settings routes at the end — GET /v1/assistant/settings and POST /v1/assistant/setting-changes, added 27 September 2026 when the founder made the four presentation voice registers of packages/catalog/voice.json an admin setting — are not the service's: they are bound on the development engine runtime by packages/engines/src/assistant/engine.ts through the shared settings code, exactly as every other engine's settings routes are, so the assistant's settings history lives where every engine's does and the Configuration screen changes it there. apps/assistant-api does not read that history yet; the web preview reads the same rules from memory. Since 28 September 2026 — the founder's instruction that the owner controls every aspect — eight more founder routes are the service's, behind the same founder session: GET /v1/founder/settings and POST /v1/founder/settings/changes, the founder-signed settings history the speak route reads (packages/catalog/founder-access.json#settings), and six under /v1/founder/providers — the provider key vault, its enable switch, its test and its audit lines (#vault). A key set, a key deletion and an enable change ask for a fresh authenticator code, as a reveal does; nothing in any answer is ever a key.",
  "version": 1,
  "resources": ["health", "turn", "listen", "speak", "triage", "vitals", "handover", "knowledge", "status", "founder", "settings", "setting-changes"],
  "doors": [],
@@ -1323,6 +1323,1411 @@
     "handler": "'POST /v1/assistant/setting-changes@1'"
    },
    "enforcedBy": { "mechanism": "engines-runtime:callers" }
+  },
+ {
+  "method": "GET",
+  "path": "/v1/founder/settings",
+  "version": 1,
+  "summary": "The assistant's settings in force on this server — each presentation voice, provider and speech knob with its default, limits and the version that set it — and every change the founder has made to them.",
+  "callers": [
+   "founder"
+  ],
+  "purpose": [
+   "audit"
+  ],
+  "request": [],
+  "response": [
+   {
+    "field": "settingsVersion",
+    "type": "integer",
+    "required": true,
+    "why": "The version in force. A change is made against it."
+   },
+   {
+    "field": "settings",
+    "type": "list",
+    "required": true,
+    "why": "Each setting: its key, type, unit, the value in force and the version that set it, its default and provenance, its limits, who may change it, what a change reaches, its guardrail, and its clinical review.",
+    "object": true,
+    "fields": [
+     {
+      "field": "setting",
+      "type": "string",
+      "required": true,
+      "why": "The setting's key, which a change names."
+     },
+     {
+      "field": "label",
+      "type": "string",
+      "required": true,
+      "why": "Its name on the Configuration screen."
+     },
+     {
+      "field": "help",
+      "type": "string",
+      "required": true,
+      "why": "The question it answers, as a sentence."
+     },
+     {
+      "field": "type",
+      "type": "string",
+      "required": true,
+      "why": "One of the types above."
+     },
+     {
+      "field": "unit",
+      "type": "string",
+      "required": true,
+      "nullable": true,
+      "why": "What the value is counted in, or null for a type that has none."
+     },
+     {
+      "field": "inForce",
+      "type": "string",
+      "required": true,
+      "object": true,
+      "shapeFrom": "packages/catalog/settings.json#types",
+      "why": "The value in force: a number, a switch, a word, a list, a rota or a record, as its type gives."
+     },
+     {
+      "field": "setAtVersion",
+      "type": "integer",
+      "required": true,
+      "why": "The settings version that set the value in force, 1 for the contract's default."
+     },
+     {
+      "field": "default",
+      "type": "string",
+      "required": true,
+      "object": true,
+      "shapeFrom": "packages/catalog/settings.json#types",
+      "why": "The contract's default, of the same kind as the value in force."
+     },
+     {
+      "field": "provenance",
+      "type": "string",
+      "required": true,
+      "object": true,
+      "shapeFrom": "packages/catalog/settings.json#provenance",
+      "why": "Who decided the default, when and why, or who proposed it and why, and who reviewed it where somebody did."
+     },
+     {
+      "field": "limits",
+      "type": "string",
+      "required": true,
+      "object": true,
+      "shapeFrom": "packages/catalog/settings.json#setting",
+      "why": "What an admin may set — the bounds, allowed values, roles, posts, items or parts its type carries — with their provenance."
+     },
+     {
+      "field": "changedBy",
+      "type": "list",
+      "required": true,
+      "why": "The roles that may change it, resolved from the contract and the settings in force."
+     },
+     {
+      "field": "appliesTo",
+      "type": "string",
+      "required": true,
+      "why": "What a change reaches, as a sentence."
+     },
+     {
+      "field": "guardrail",
+      "type": "string",
+      "required": true,
+      "nullable": true,
+      "why": "The sentence no value may break, or null for a setting with none."
+     },
+     {
+      "field": "reviewRequired",
+      "type": "string",
+      "required": true,
+      "nullable": true,
+      "why": "The capability whose holder confirms its clinical review, or null for a setting that waits on nobody."
+     },
+     {
+      "field": "reviewed",
+      "type": "string",
+      "required": true,
+      "nullable": true,
+      "object": true,
+      "why": "Who confirmed the clinical review of the value in force, or null while it is not clinically reviewed.",
+      "fields": [
+       {
+        "field": "byRef",
+        "type": "string",
+        "required": true,
+        "why": "The reviewer's reference."
+       },
+       {
+        "field": "at",
+        "type": "instant",
+        "required": true,
+        "nullable": true,
+        "why": "When the review was confirmed through the review route, or null for a default reviewed before it shipped."
+       },
+       {
+        "field": "on",
+        "type": "iso-date",
+        "required": true,
+        "nullable": true,
+        "why": "The day a default was reviewed before it shipped, or null for a review confirmed through the route."
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "field": "history",
+    "type": "list",
+    "required": true,
+    "why": "Every accepted change, oldest first: which setting, from, to, who, when and why. Nothing in it is edited or removed.",
+    "object": true,
+    "fields": [
+     {
+      "field": "settingsVersion",
+      "type": "integer",
+      "required": true,
+      "why": "The version this change made."
+     },
+     {
+      "field": "setting",
+      "type": "string",
+      "required": true,
+      "why": "The setting it changed."
+     },
+     {
+      "field": "from",
+      "type": "string",
+      "required": true,
+      "object": true,
+      "shapeFrom": "packages/catalog/settings.json#types",
+      "why": "The value before, of the kind its type gives."
+     },
+     {
+      "field": "to",
+      "type": "string",
+      "required": true,
+      "object": true,
+      "shapeFrom": "packages/catalog/settings.json#types",
+      "why": "The value after."
+     },
+     {
+      "field": "reason",
+      "type": "string",
+      "required": true,
+      "why": "Why, as it was written."
+     },
+     {
+      "field": "byRole",
+      "type": "string",
+      "required": true,
+      "why": "The role of the person who made it."
+     },
+     {
+      "field": "byRef",
+      "type": "string",
+      "required": true,
+      "why": "The reference of the person who made it, from the caller the runtime admitted."
+     },
+     {
+      "field": "at",
+      "type": "instant",
+      "required": true,
+      "why": "When it was made."
+     }
+    ]
+   },
+   {
+    "field": "persisted",
+    "type": "boolean",
+    "required": true,
+    "why": "Whether this server keeps a history at all: true where the state directory exists, false where a change would be refused with founder-state-unavailable."
+   },
+   {
+    "field": "expiresAt",
+    "type": "instant",
+    "required": true,
+    "why": "When the founder's session ends by itself."
+   }
+  ],
+  "refusals": [
+   {
+    "id": "origin-not-allowed",
+    "status": 403,
+    "statement": "This service answers its own site only.",
+    "why": "A browser origin this deployment does not answer is refused before any route reads the URL, and founder access is no exception."
+   },
+   {
+    "id": "founder-request-cross-site",
+    "status": 403,
+    "statement": "Founder access answers only a request the Control Tower makes from its own page.",
+    "why": "Every founder route refuses a request without the X-MyThuso-Founder header, or whose Sec-Fetch-Site is present and is not same-origin, before it reads anything. A page on another site cannot send that header without a preflight the origin policy never grants, so a cross-site form or script is refused before a password or a cookie is looked at (packages/catalog/founder-access.json#request)."
+   },
+   {
+    "id": "founder-access-dark",
+    "status": 503,
+    "statement": "Founder access is switched off on this server. It is switched on by hand, on the box, and never by a deploy.",
+    "why": "Founder access is dark by default: every founder route answers this refusal unless the service's environment carries both MYTHUSO_FOUNDER_ACCESS=enabled and a well-formed founder credential. deploy/ops/configure-founder-access.sh writes the credential and never the enable line, and no deploy writes either, so a deploy cannot switch it on (packages/catalog/founder-access.json#enable)."
+   },
+   {
+    "id": "founder-no-session",
+    "status": 401,
+    "statement": "There is no live founder session. Sign in again: a session ends by itself, and whenever the service restarts.",
+    "why": "Sessions live in the service's memory only, for a fixed time from sign-in with no renewal, one at a time, and a restart ends them. A cookie that names no live session is refused rather than read as anybody."
+   }
+  ],
+  "emits": [],
+  "emitsNoneBecause": "Reading changes nothing.",
+  "idempotent": false,
+  "endpointNamed": null,
+  "capabilityNamed": null,
+  "status": "built",
+  "evidence": {
+   "file": "apps/assistant-api/src/server.ts",
+   "handler": "req.method === 'GET' && req.url === '/assistant/v1/founder/settings'"
+  },
+  "enforcedBy": {
+   "mechanism": "founder-session"
   }
+ },
+ {
+  "method": "POST",
+  "path": "/v1/founder/settings/changes",
+  "version": 1,
+  "summary": "One change to one assistant setting, with a reason, validated by the shared settings rules and appended to the founder-signed history the speak route reads.",
+  "callers": [
+   "founder"
+  ],
+  "purpose": [
+   "audit"
+  ],
+  "request": [
+   {
+    "field": "setting",
+    "type": "string",
+    "required": true,
+    "why": "The setting's key, from packages/catalog/voice.json#settings."
+   },
+   {
+    "field": "from",
+    "type": "string",
+    "required": true,
+    "object": true,
+    "shapeFrom": "packages/catalog/settings.json#types",
+    "why": "The value the founder was looking at. It must be the value in force, or the change is refused as stale."
+   },
+   {
+    "field": "to",
+    "type": "string",
+    "required": true,
+    "object": true,
+    "shapeFrom": "packages/catalog/settings.json#types",
+    "why": "The new value, of the kind the setting's type gives."
+   },
+   {
+    "field": "reason",
+    "type": "string",
+    "required": false,
+    "why": "Why. Asked for by the handler rather than the binder, so a change without one is refused in the shared sentence for it."
+   },
+   {
+    "field": "expectedVersion",
+    "type": "integer",
+    "required": false,
+    "why": "The settings version the founder was looking at, when the screen has one. Absent, the version in force is assumed when `from` is the value in force."
+   }
+  ],
+  "response": [
+   {
+    "field": "settingsVersion",
+    "type": "integer",
+    "required": true,
+    "why": "The version this change made."
+   },
+   {
+    "field": "appliesFrom",
+    "type": "instant",
+    "required": true,
+    "why": "When it took effect. The next spoken answer of that register reads it."
+   }
+  ],
+  "refusals": [
+   {
+    "id": "origin-not-allowed",
+    "status": 403,
+    "statement": "This service answers its own site only.",
+    "why": "A browser origin this deployment does not answer is refused before any route reads the URL, and founder access is no exception."
+   },
+   {
+    "id": "founder-request-cross-site",
+    "status": 403,
+    "statement": "Founder access answers only a request the Control Tower makes from its own page.",
+    "why": "Every founder route refuses a request without the X-MyThuso-Founder header, or whose Sec-Fetch-Site is present and is not same-origin, before it reads anything. A page on another site cannot send that header without a preflight the origin policy never grants, so a cross-site form or script is refused before a password or a cookie is looked at (packages/catalog/founder-access.json#request)."
+   },
+   {
+    "id": "founder-access-dark",
+    "status": 503,
+    "statement": "Founder access is switched off on this server. It is switched on by hand, on the box, and never by a deploy.",
+    "why": "Founder access is dark by default: every founder route answers this refusal unless the service's environment carries both MYTHUSO_FOUNDER_ACCESS=enabled and a well-formed founder credential. deploy/ops/configure-founder-access.sh writes the credential and never the enable line, and no deploy writes either, so a deploy cannot switch it on (packages/catalog/founder-access.json#enable)."
+   },
+   {
+    "id": "founder-no-session",
+    "status": 401,
+    "statement": "There is no live founder session. Sign in again: a session ends by itself, and whenever the service restarts.",
+    "why": "Sessions live in the service's memory only, for a fixed time from sign-in with no renewal, one at a time, and a restart ends them. A cookie that names no live session is refused rather than read as anybody."
+   },
+   {
+    "id": "invalid-request",
+    "status": 400,
+    "statement": "The request could not be processed safely.",
+    "why": "A body that is not JSON is refused with its own status rather than guessed at."
+   },
+   {
+    "id": "payload-too-large",
+    "status": 413,
+    "statement": "The request could not be processed safely.",
+    "why": "A body over the ceiling is refused before it is parsed."
+   },
+   {
+    "id": "founder-state-unavailable",
+    "status": 503,
+    "statement": "This server has no state directory, so the change cannot be kept. It is refused rather than held in memory and lost at the next restart.",
+    "why": "The service persists a settings change, a provider key and an audit line only in the state directory deploy/ops/assistant-api.service declares and hands to it in MYTHUSO_ASSISTANT_STATE_DIR (packages/catalog/founder-access.json#state). A process started without it — a shell, a test — reads the contract's defaults and refuses every founder write, because a change kept only in memory would read as saved and vanish."
+   },
+   {
+    "id": "setting-change-not-permitted",
+    "status": 403,
+    "statement": "Only the role a setting names changes it, and the change is recorded against a named person.",
+    "why": "A setting decides how the platform treats people. The role or capability the setting names changes it, and a change is recorded against somebody who can be asked about it; everybody else only reads what is in force."
+   },
+   {
+    "id": "setting-not-known",
+    "status": 422,
+    "statement": "There is no setting by that name.",
+    "why": "An unknown setting is refused rather than stored, or the history fills with changes nothing reads."
+   },
+   {
+    "id": "setting-change-without-reason",
+    "status": 422,
+    "statement": "A change to a setting says why, or it is not made.",
+    "why": "The history is read after something has gone wrong. A change with no reason is a number somebody moved."
+   },
+   {
+    "id": "settings-version-stale",
+    "status": 409,
+    "statement": "These settings changed after you opened them. Read what is in force now and decide against that.",
+    "why": "Two admins changing one setting from screens opened at the same time would each overwrite a decision they never saw."
+   },
+   {
+    "id": "setting-value-wrong-type",
+    "status": 422,
+    "statement": "That is not the kind of value this setting holds.",
+    "why": "A word where a number belongs, or a list where one choice belongs, is a guess at what the admin meant, and a setting is never set by a guess."
+   },
+   {
+    "id": "setting-not-above-zero",
+    "status": 422,
+    "statement": "This setting is never nought or less, whatever its range says.",
+    "why": "A wait of nothing, an offer that lapses as it is made and a fee of nothing are never what anybody meant. The range is a proposal and could be set wrongly; this refusal does not depend on it."
+   },
+   {
+    "id": "setting-role-not-on-register",
+    "status": 422,
+    "statement": "Every role a setting names is a role on the vetting register.",
+    "why": "A role the register does not hold is a gate nobody can be vetted through, which looks like a shortage rather than a mistake."
+   },
+   {
+    "id": "setting-text-too-long",
+    "status": 422,
+    "statement": "That wording is longer than this setting allows.",
+    "why": "The maximum is the space the words are read in. Wording that does not fit is cut off where somebody reads it."
+   },
+   {
+    "id": "setting-text-loses-a-guardrail",
+    "status": 422,
+    "statement": "That wording drops a sentence this setting must always keep.",
+    "why": "Some wording carries a promise that protects somebody. It may be reworded around that sentence and never without it."
+   },
+   {
+    "id": "setting-schedule-leaves-a-gap",
+    "status": 422,
+    "statement": "That rota leaves hours uncovered that must always have somebody on them.",
+    "why": "A rota with a gap is an alert with nobody to go to, and nobody finds out until one arrives."
+   },
+   {
+    "id": "setting-out-of-range",
+    "status": 422,
+    "statement": "That is outside what an admin may set for this setting.",
+    "why": "The bounds, the allowed values and the allowed roles sit beside the default in the engine's contract. Moving a setting past them is a change to that contract, not a setting."
+   },
+   {
+    "id": "setting-unchanged",
+    "status": 409,
+    "statement": "That is already the value in force, so there is nothing to change.",
+    "why": "A change that changes nothing is a row in the history saying something happened when nothing did."
+   }
+  ],
+  "emits": [],
+  "emitsNoneBecause": "No engine acts on a settings change; the speak route reads the value in force when the next answer is read. The change is the row appended to the history, which the read route returns.",
+  "idempotent": false,
+  "endpointNamed": null,
+  "capabilityNamed": null,
+  "status": "built",
+  "evidence": {
+   "file": "apps/assistant-api/src/server.ts",
+   "handler": "req.method === 'POST' && req.url === '/assistant/v1/founder/settings/changes'"
+  },
+  "enforcedBy": {
+   "mechanism": "founder-session"
+  }
+ },
+ {
+  "method": "GET",
+  "path": "/v1/founder/providers",
+  "version": 1,
+  "summary": "Every provider the vault can hold a key for, with what may be said about its key: configured, from where, enabled, last four, fingerprint prefix, when and by whom. Never a value.",
+  "callers": [
+   "founder"
+  ],
+  "purpose": [
+   "audit"
+  ],
+  "request": [],
+  "response": [
+   {
+    "field": "providers",
+    "type": "list",
+    "required": true,
+    "object": true,
+    "why": "One row per vault card, in the contract's order.",
+    "fields": [
+     {
+      "field": "card",
+      "type": "string",
+      "required": true,
+      "why": "The card id."
+     },
+     {
+      "field": "keyVariable",
+      "type": "string",
+      "required": true,
+      "why": "The environment variable the provider's adapter reads the key under. The two Alibaba cards share one."
+     },
+     {
+      "field": "configured",
+      "type": "boolean",
+      "required": true,
+      "why": "Whether a key of a plausible shape is held for this card, in the vault or in the environment."
+     },
+     {
+      "field": "source",
+      "type": "string",
+      "required": true,
+      "nullable": true,
+      "why": "Where the key in force comes from: vault or environment, or null when none is held. The vault takes precedence."
+     },
+     {
+      "field": "enabled",
+      "type": "boolean",
+      "required": true,
+      "why": "Whether the provider may be called at all. False means every route that depends on it answers as if it were not configured."
+     },
+     {
+      "field": "lastFour",
+      "type": "string",
+      "required": true,
+      "nullable": true,
+      "why": "The key's last four characters, or null when none is held. What the founder matches against the provider's own console."
+     },
+     {
+      "field": "fingerprintPrefix",
+      "type": "string",
+      "required": true,
+      "nullable": true,
+      "why": "The first sixteen hex characters of the key's SHA-256 — the same length the reveal and configure-assistant-env.sh show — or null. Enough to tell two keys apart, useless for reconstructing either."
+     },
+     {
+      "field": "createdAt",
+      "type": "instant",
+      "required": true,
+      "nullable": true,
+      "why": "When the vault first stored a key for this variable, or null for a key that lives only in the environment."
+     },
+     {
+      "field": "lastRotatedAt",
+      "type": "instant",
+      "required": true,
+      "nullable": true,
+      "why": "When the vault's key was last replaced, or null until it has been."
+     },
+     {
+      "field": "setBy",
+      "type": "string",
+      "required": true,
+      "nullable": true,
+      "why": "Who stored it — the founder, the only person who can — or null for a key from the environment."
+     }
+    ]
+   },
+   {
+    "field": "vaultUnlocked",
+    "type": "boolean",
+    "required": true,
+    "why": "Whether this server carries a vault key, so a key can be stored. False means every set and delete answers founder-vault-locked."
+   },
+   {
+    "field": "persisted",
+    "type": "boolean",
+    "required": true,
+    "why": "Whether this server has a state directory to keep the vault in."
+   },
+   {
+    "field": "expiresAt",
+    "type": "instant",
+    "required": true,
+    "why": "When the founder's session ends by itself."
+   }
+  ],
+  "refusals": [
+   {
+    "id": "origin-not-allowed",
+    "status": 403,
+    "statement": "This service answers its own site only.",
+    "why": "A browser origin this deployment does not answer is refused before any route reads the URL, and founder access is no exception."
+   },
+   {
+    "id": "founder-request-cross-site",
+    "status": 403,
+    "statement": "Founder access answers only a request the Control Tower makes from its own page.",
+    "why": "Every founder route refuses a request without the X-MyThuso-Founder header, or whose Sec-Fetch-Site is present and is not same-origin, before it reads anything. A page on another site cannot send that header without a preflight the origin policy never grants, so a cross-site form or script is refused before a password or a cookie is looked at (packages/catalog/founder-access.json#request)."
+   },
+   {
+    "id": "founder-access-dark",
+    "status": 503,
+    "statement": "Founder access is switched off on this server. It is switched on by hand, on the box, and never by a deploy.",
+    "why": "Founder access is dark by default: every founder route answers this refusal unless the service's environment carries both MYTHUSO_FOUNDER_ACCESS=enabled and a well-formed founder credential. deploy/ops/configure-founder-access.sh writes the credential and never the enable line, and no deploy writes either, so a deploy cannot switch it on (packages/catalog/founder-access.json#enable)."
+   },
+   {
+    "id": "founder-no-session",
+    "status": 401,
+    "statement": "There is no live founder session. Sign in again: a session ends by itself, and whenever the service restarts.",
+    "why": "Sessions live in the service's memory only, for a fixed time from sign-in with no renewal, one at a time, and a restart ends them. A cookie that names no live session is refused rather than read as anybody."
+   }
+  ],
+  "emits": [],
+  "emitsNoneBecause": "Reading changes nothing.",
+  "idempotent": false,
+  "endpointNamed": null,
+  "capabilityNamed": null,
+  "status": "built",
+  "evidence": {
+   "file": "apps/assistant-api/src/server.ts",
+   "handler": "req.method === 'GET' && req.url === '/assistant/v1/founder/providers'"
+  },
+  "enforcedBy": {
+   "mechanism": "founder-session"
+  }
+ },
+ {
+  "method": "PUT",
+  "path": "/v1/founder/providers/{card}/key",
+  "version": 1,
+  "summary": "Store or replace one provider's key in the vault: encrypted on the server, in force for the next call, and answered with metadata only.",
+  "callers": [
+   "founder"
+  ],
+  "purpose": [
+   "audit"
+  ],
+  "request": [
+   {
+    "field": "card",
+    "type": "string",
+    "required": true,
+    "why": "The provider's card id in packages/catalog/api-registry.json, one of the cards packages/catalog/founder-access.json#vault.cards names. It travels in the path."
+   },
+   {
+    "field": "key",
+    "type": "string",
+    "required": true,
+    "why": "The provider's key, exactly as the provider shows it. It is checked for shape, encrypted, and never echoed, logged or shown again."
+   },
+   {
+    "field": "code",
+    "type": "string",
+    "required": true,
+    "why": "A fresh authenticator code, not used before; it is burned once accepted, as at a reveal."
+   }
+  ],
+  "response": [
+   {
+    "field": "card",
+    "type": "string",
+    "required": true,
+    "why": "The card id."
+   },
+   {
+    "field": "keyVariable",
+    "type": "string",
+    "required": true,
+    "why": "The environment variable the provider's adapter reads the key under. The two Alibaba cards share one."
+   },
+   {
+    "field": "configured",
+    "type": "boolean",
+    "required": true,
+    "why": "Whether a key of a plausible shape is held for this card, in the vault or in the environment."
+   },
+   {
+    "field": "source",
+    "type": "string",
+    "required": true,
+    "nullable": true,
+    "why": "Where the key in force comes from: vault or environment, or null when none is held. The vault takes precedence."
+   },
+   {
+    "field": "enabled",
+    "type": "boolean",
+    "required": true,
+    "why": "Whether the provider may be called at all. False means every route that depends on it answers as if it were not configured."
+   },
+   {
+    "field": "lastFour",
+    "type": "string",
+    "required": true,
+    "nullable": true,
+    "why": "The key's last four characters, or null when none is held. What the founder matches against the provider's own console."
+   },
+   {
+    "field": "fingerprintPrefix",
+    "type": "string",
+    "required": true,
+    "nullable": true,
+    "why": "The first sixteen hex characters of the key's SHA-256 — the same length the reveal and configure-assistant-env.sh show — or null. Enough to tell two keys apart, useless for reconstructing either."
+   },
+   {
+    "field": "createdAt",
+    "type": "instant",
+    "required": true,
+    "nullable": true,
+    "why": "When the vault first stored a key for this variable, or null for a key that lives only in the environment."
+   },
+   {
+    "field": "lastRotatedAt",
+    "type": "instant",
+    "required": true,
+    "nullable": true,
+    "why": "When the vault's key was last replaced, or null until it has been."
+   },
+   {
+    "field": "setBy",
+    "type": "string",
+    "required": true,
+    "nullable": true,
+    "why": "Who stored it — the founder, the only person who can — or null for a key from the environment."
+   }
+  ],
+  "refusals": [
+   {
+    "id": "origin-not-allowed",
+    "status": 403,
+    "statement": "This service answers its own site only.",
+    "why": "A browser origin this deployment does not answer is refused before any route reads the URL, and founder access is no exception."
+   },
+   {
+    "id": "founder-request-cross-site",
+    "status": 403,
+    "statement": "Founder access answers only a request the Control Tower makes from its own page.",
+    "why": "Every founder route refuses a request without the X-MyThuso-Founder header, or whose Sec-Fetch-Site is present and is not same-origin, before it reads anything. A page on another site cannot send that header without a preflight the origin policy never grants, so a cross-site form or script is refused before a password or a cookie is looked at (packages/catalog/founder-access.json#request)."
+   },
+   {
+    "id": "founder-access-dark",
+    "status": 503,
+    "statement": "Founder access is switched off on this server. It is switched on by hand, on the box, and never by a deploy.",
+    "why": "Founder access is dark by default: every founder route answers this refusal unless the service's environment carries both MYTHUSO_FOUNDER_ACCESS=enabled and a well-formed founder credential. deploy/ops/configure-founder-access.sh writes the credential and never the enable line, and no deploy writes either, so a deploy cannot switch it on (packages/catalog/founder-access.json#enable)."
+   },
+   {
+    "id": "founder-no-session",
+    "status": 401,
+    "statement": "There is no live founder session. Sign in again: a session ends by itself, and whenever the service restarts.",
+    "why": "Sessions live in the service's memory only, for a fixed time from sign-in with no renewal, one at a time, and a restart ends them. A cookie that names no live session is refused rather than read as anybody."
+   },
+   {
+    "id": "invalid-request",
+    "status": 400,
+    "statement": "The request could not be processed safely.",
+    "why": "A body that is not JSON is refused with its own status rather than guessed at."
+   },
+   {
+    "id": "payload-too-large",
+    "status": 413,
+    "statement": "The request could not be processed safely.",
+    "why": "A body over the ceiling is refused before it is parsed."
+   },
+   {
+    "id": "founder-card-not-known",
+    "status": 404,
+    "statement": "No provider by that name holds a key in the vault.",
+    "why": "The vault's cards are exactly the built providers packages/catalog/founder-access.json#vault.cards names with a key variable; a card outside them — a proposed provider, Ollama, a typo — is refused before anything is read, as the reveal refuses a name outside its allowlist."
+   },
+   {
+    "id": "founder-state-unavailable",
+    "status": 503,
+    "statement": "This server has no state directory, so the change cannot be kept. It is refused rather than held in memory and lost at the next restart.",
+    "why": "The service persists a settings change, a provider key and an audit line only in the state directory deploy/ops/assistant-api.service declares and hands to it in MYTHUSO_ASSISTANT_STATE_DIR (packages/catalog/founder-access.json#state). A process started without it — a shell, a test — reads the contract's defaults and refuses every founder write, because a change kept only in memory would read as saved and vanish."
+   },
+   {
+    "id": "founder-vault-locked",
+    "status": 503,
+    "statement": "This server has no vault key, so a provider key cannot be stored or removed. Run configure-founder-access.sh on the box and restart the service.",
+    "why": "Provider keys are encrypted with AES-256-GCM under MYTHUSO_VAULT_KEY in /etc/mythuso/founder.env (packages/catalog/founder-access.json#vault), written once by deploy/ops/configure-founder-access.sh. Without it the vault cannot encrypt, and a key stored in the clear would be a key in a file nobody meant to have one; so the write is refused and the answer says which step is missing."
+   },
+   {
+    "id": "founder-key-malformed",
+    "status": 400,
+    "statement": "That is not the shape of a provider key: printable characters with no space in them, at least sixteen and at most five hundred and twelve. Paste the key alone, with nothing around it.",
+    "why": "packages/catalog/founder-access.json#vault.keyShape. The key stored on 22 September 2026 was 140 characters with spaces in it, and the health route said the voice was configured while every request failed. A value that cannot be a key is refused at the door and never stored."
+   },
+   {
+    "id": "founder-code-refused",
+    "status": 401,
+    "statement": "That authenticator code was not accepted: it was wrong, already used, or too old. Wait for the next code your app shows.",
+    "why": "Every reveal asks for a fresh code on top of the session, and every accepted code is burned — its step and every step before it are refused afterwards — so a stolen cookie reveals nothing and a code read over a shoulder cannot be spent twice. A refused code counts toward the lock."
+   },
+   {
+    "id": "founder-locked-out",
+    "status": 429,
+    "statement": "Founder access is locked after repeated failed attempts, and every open session has ended. Wait for the lock to lift before trying again.",
+    "why": "Consecutive failures — at sign-in or at a reveal — lock the whole account for a fixed time and end every session, and the lock is checked before any password is hashed. It is per account rather than per address because there is one account and an attacker has as many addresses as they like (packages/catalog/founder-access.json#lockout)."
+   }
+  ],
+  "emits": [],
+  "emitsNoneBecause": "Storing a key changes nothing on the bus; the audit line carries the card and the new fingerprint prefix, never the key.",
+  "idempotent": false,
+  "endpointNamed": null,
+  "capabilityNamed": null,
+  "status": "built",
+  "evidence": {
+   "file": "apps/assistant-api/src/server.ts",
+   "handler": "req.method === 'PUT' && founderProvider?.action === 'key'"
+  },
+  "enforcedBy": {
+   "mechanism": "founder-session"
+  },
+  "secretRequestFields": [
+   {
+    "field": "key",
+    "why": "The provider's key. It is encrypted and stored, and never kept in any digest, log or answer."
+   },
+   {
+    "field": "code",
+    "why": "A six-digit code; an unsalted hash of it would be the code."
+   }
+  ]
+ },
+ {
+  "method": "DELETE",
+  "path": "/v1/founder/providers/{card}/key",
+  "version": 1,
+  "summary": "Remove one provider's key from the vault. A key in the environment, if any, is what remains in force.",
+  "callers": [
+   "founder"
+  ],
+  "purpose": [
+   "audit"
+  ],
+  "request": [
+   {
+    "field": "card",
+    "type": "string",
+    "required": true,
+    "why": "The provider's card id in packages/catalog/api-registry.json, one of the cards packages/catalog/founder-access.json#vault.cards names. It travels in the path."
+   },
+   {
+    "field": "code",
+    "type": "string",
+    "required": true,
+    "why": "A fresh authenticator code, not used before; it is burned once accepted, as at a reveal."
+   }
+  ],
+  "response": [
+   {
+    "field": "card",
+    "type": "string",
+    "required": true,
+    "why": "The card id."
+   },
+   {
+    "field": "keyVariable",
+    "type": "string",
+    "required": true,
+    "why": "The environment variable the provider's adapter reads the key under. The two Alibaba cards share one."
+   },
+   {
+    "field": "configured",
+    "type": "boolean",
+    "required": true,
+    "why": "Whether a key of a plausible shape is held for this card, in the vault or in the environment."
+   },
+   {
+    "field": "source",
+    "type": "string",
+    "required": true,
+    "nullable": true,
+    "why": "Where the key in force comes from: vault or environment, or null when none is held. The vault takes precedence."
+   },
+   {
+    "field": "enabled",
+    "type": "boolean",
+    "required": true,
+    "why": "Whether the provider may be called at all. False means every route that depends on it answers as if it were not configured."
+   },
+   {
+    "field": "lastFour",
+    "type": "string",
+    "required": true,
+    "nullable": true,
+    "why": "The key's last four characters, or null when none is held. What the founder matches against the provider's own console."
+   },
+   {
+    "field": "fingerprintPrefix",
+    "type": "string",
+    "required": true,
+    "nullable": true,
+    "why": "The first sixteen hex characters of the key's SHA-256 — the same length the reveal and configure-assistant-env.sh show — or null. Enough to tell two keys apart, useless for reconstructing either."
+   },
+   {
+    "field": "createdAt",
+    "type": "instant",
+    "required": true,
+    "nullable": true,
+    "why": "When the vault first stored a key for this variable, or null for a key that lives only in the environment."
+   },
+   {
+    "field": "lastRotatedAt",
+    "type": "instant",
+    "required": true,
+    "nullable": true,
+    "why": "When the vault's key was last replaced, or null until it has been."
+   },
+   {
+    "field": "setBy",
+    "type": "string",
+    "required": true,
+    "nullable": true,
+    "why": "Who stored it — the founder, the only person who can — or null for a key from the environment."
+   }
+  ],
+  "refusals": [
+   {
+    "id": "origin-not-allowed",
+    "status": 403,
+    "statement": "This service answers its own site only.",
+    "why": "A browser origin this deployment does not answer is refused before any route reads the URL, and founder access is no exception."
+   },
+   {
+    "id": "founder-request-cross-site",
+    "status": 403,
+    "statement": "Founder access answers only a request the Control Tower makes from its own page.",
+    "why": "Every founder route refuses a request without the X-MyThuso-Founder header, or whose Sec-Fetch-Site is present and is not same-origin, before it reads anything. A page on another site cannot send that header without a preflight the origin policy never grants, so a cross-site form or script is refused before a password or a cookie is looked at (packages/catalog/founder-access.json#request)."
+   },
+   {
+    "id": "founder-access-dark",
+    "status": 503,
+    "statement": "Founder access is switched off on this server. It is switched on by hand, on the box, and never by a deploy.",
+    "why": "Founder access is dark by default: every founder route answers this refusal unless the service's environment carries both MYTHUSO_FOUNDER_ACCESS=enabled and a well-formed founder credential. deploy/ops/configure-founder-access.sh writes the credential and never the enable line, and no deploy writes either, so a deploy cannot switch it on (packages/catalog/founder-access.json#enable)."
+   },
+   {
+    "id": "founder-no-session",
+    "status": 401,
+    "statement": "There is no live founder session. Sign in again: a session ends by itself, and whenever the service restarts.",
+    "why": "Sessions live in the service's memory only, for a fixed time from sign-in with no renewal, one at a time, and a restart ends them. A cookie that names no live session is refused rather than read as anybody."
+   },
+   {
+    "id": "invalid-request",
+    "status": 400,
+    "statement": "The request could not be processed safely.",
+    "why": "A body that is not JSON is refused with its own status rather than guessed at."
+   },
+   {
+    "id": "payload-too-large",
+    "status": 413,
+    "statement": "The request could not be processed safely.",
+    "why": "A body over the ceiling is refused before it is parsed."
+   },
+   {
+    "id": "founder-card-not-known",
+    "status": 404,
+    "statement": "No provider by that name holds a key in the vault.",
+    "why": "The vault's cards are exactly the built providers packages/catalog/founder-access.json#vault.cards names with a key variable; a card outside them — a proposed provider, Ollama, a typo — is refused before anything is read, as the reveal refuses a name outside its allowlist."
+   },
+   {
+    "id": "founder-state-unavailable",
+    "status": 503,
+    "statement": "This server has no state directory, so the change cannot be kept. It is refused rather than held in memory and lost at the next restart.",
+    "why": "The service persists a settings change, a provider key and an audit line only in the state directory deploy/ops/assistant-api.service declares and hands to it in MYTHUSO_ASSISTANT_STATE_DIR (packages/catalog/founder-access.json#state). A process started without it — a shell, a test — reads the contract's defaults and refuses every founder write, because a change kept only in memory would read as saved and vanish."
+   },
+   {
+    "id": "founder-vault-locked",
+    "status": 503,
+    "statement": "This server has no vault key, so a provider key cannot be stored or removed. Run configure-founder-access.sh on the box and restart the service.",
+    "why": "Provider keys are encrypted with AES-256-GCM under MYTHUSO_VAULT_KEY in /etc/mythuso/founder.env (packages/catalog/founder-access.json#vault), written once by deploy/ops/configure-founder-access.sh. Without it the vault cannot encrypt, and a key stored in the clear would be a key in a file nobody meant to have one; so the write is refused and the answer says which step is missing."
+   },
+   {
+    "id": "founder-code-refused",
+    "status": 401,
+    "statement": "That authenticator code was not accepted: it was wrong, already used, or too old. Wait for the next code your app shows.",
+    "why": "Every reveal asks for a fresh code on top of the session, and every accepted code is burned — its step and every step before it are refused afterwards — so a stolen cookie reveals nothing and a code read over a shoulder cannot be spent twice. A refused code counts toward the lock."
+   },
+   {
+    "id": "founder-locked-out",
+    "status": 429,
+    "statement": "Founder access is locked after repeated failed attempts, and every open session has ended. Wait for the lock to lift before trying again.",
+    "why": "Consecutive failures — at sign-in or at a reveal — lock the whole account for a fixed time and end every session, and the lock is checked before any password is hashed. It is per account rather than per address because there is one account and an attacker has as many addresses as they like (packages/catalog/founder-access.json#lockout)."
+   }
+  ],
+  "emits": [],
+  "emitsNoneBecause": "Removing a key changes nothing on the bus; the audit line carries the card.",
+  "idempotent": false,
+  "endpointNamed": null,
+  "capabilityNamed": null,
+  "status": "built",
+  "evidence": {
+   "file": "apps/assistant-api/src/server.ts",
+   "handler": "req.method === 'DELETE' && founderProvider?.action === 'key'"
+  },
+  "enforcedBy": {
+   "mechanism": "founder-session"
+  },
+  "secretRequestFields": [
+   {
+    "field": "code",
+    "why": "A six-digit code; an unsalted hash of it would be the code."
+   }
+  ]
+ },
+ {
+  "method": "POST",
+  "path": "/v1/founder/providers/{card}/enabled",
+  "version": 1,
+  "summary": "Switch one provider on or off. Off, it is never called: every route that depends on it answers as if it were not configured.",
+  "callers": [
+   "founder"
+  ],
+  "purpose": [
+   "audit"
+  ],
+  "request": [
+   {
+    "field": "card",
+    "type": "string",
+    "required": true,
+    "why": "The provider's card id in packages/catalog/api-registry.json, one of the cards packages/catalog/founder-access.json#vault.cards names. It travels in the path."
+   },
+   {
+    "field": "enabled",
+    "type": "boolean",
+    "required": true,
+    "why": "True to allow calls, false to refuse them all."
+   },
+   {
+    "field": "code",
+    "type": "string",
+    "required": true,
+    "why": "A fresh authenticator code, not used before; it is burned once accepted, as at a reveal."
+   }
+  ],
+  "response": [
+   {
+    "field": "card",
+    "type": "string",
+    "required": true,
+    "why": "The card id."
+   },
+   {
+    "field": "keyVariable",
+    "type": "string",
+    "required": true,
+    "why": "The environment variable the provider's adapter reads the key under. The two Alibaba cards share one."
+   },
+   {
+    "field": "configured",
+    "type": "boolean",
+    "required": true,
+    "why": "Whether a key of a plausible shape is held for this card, in the vault or in the environment."
+   },
+   {
+    "field": "source",
+    "type": "string",
+    "required": true,
+    "nullable": true,
+    "why": "Where the key in force comes from: vault or environment, or null when none is held. The vault takes precedence."
+   },
+   {
+    "field": "enabled",
+    "type": "boolean",
+    "required": true,
+    "why": "Whether the provider may be called at all. False means every route that depends on it answers as if it were not configured."
+   },
+   {
+    "field": "lastFour",
+    "type": "string",
+    "required": true,
+    "nullable": true,
+    "why": "The key's last four characters, or null when none is held. What the founder matches against the provider's own console."
+   },
+   {
+    "field": "fingerprintPrefix",
+    "type": "string",
+    "required": true,
+    "nullable": true,
+    "why": "The first sixteen hex characters of the key's SHA-256 — the same length the reveal and configure-assistant-env.sh show — or null. Enough to tell two keys apart, useless for reconstructing either."
+   },
+   {
+    "field": "createdAt",
+    "type": "instant",
+    "required": true,
+    "nullable": true,
+    "why": "When the vault first stored a key for this variable, or null for a key that lives only in the environment."
+   },
+   {
+    "field": "lastRotatedAt",
+    "type": "instant",
+    "required": true,
+    "nullable": true,
+    "why": "When the vault's key was last replaced, or null until it has been."
+   },
+   {
+    "field": "setBy",
+    "type": "string",
+    "required": true,
+    "nullable": true,
+    "why": "Who stored it — the founder, the only person who can — or null for a key from the environment."
+   }
+  ],
+  "refusals": [
+   {
+    "id": "origin-not-allowed",
+    "status": 403,
+    "statement": "This service answers its own site only.",
+    "why": "A browser origin this deployment does not answer is refused before any route reads the URL, and founder access is no exception."
+   },
+   {
+    "id": "founder-request-cross-site",
+    "status": 403,
+    "statement": "Founder access answers only a request the Control Tower makes from its own page.",
+    "why": "Every founder route refuses a request without the X-MyThuso-Founder header, or whose Sec-Fetch-Site is present and is not same-origin, before it reads anything. A page on another site cannot send that header without a preflight the origin policy never grants, so a cross-site form or script is refused before a password or a cookie is looked at (packages/catalog/founder-access.json#request)."
+   },
+   {
+    "id": "founder-access-dark",
+    "status": 503,
+    "statement": "Founder access is switched off on this server. It is switched on by hand, on the box, and never by a deploy.",
+    "why": "Founder access is dark by default: every founder route answers this refusal unless the service's environment carries both MYTHUSO_FOUNDER_ACCESS=enabled and a well-formed founder credential. deploy/ops/configure-founder-access.sh writes the credential and never the enable line, and no deploy writes either, so a deploy cannot switch it on (packages/catalog/founder-access.json#enable)."
+   },
+   {
+    "id": "founder-no-session",
+    "status": 401,
+    "statement": "There is no live founder session. Sign in again: a session ends by itself, and whenever the service restarts.",
+    "why": "Sessions live in the service's memory only, for a fixed time from sign-in with no renewal, one at a time, and a restart ends them. A cookie that names no live session is refused rather than read as anybody."
+   },
+   {
+    "id": "invalid-request",
+    "status": 400,
+    "statement": "The request could not be processed safely.",
+    "why": "A body that is not JSON is refused with its own status rather than guessed at."
+   },
+   {
+    "id": "payload-too-large",
+    "status": 413,
+    "statement": "The request could not be processed safely.",
+    "why": "A body over the ceiling is refused before it is parsed."
+   },
+   {
+    "id": "founder-card-not-known",
+    "status": 404,
+    "statement": "No provider by that name holds a key in the vault.",
+    "why": "The vault's cards are exactly the built providers packages/catalog/founder-access.json#vault.cards names with a key variable; a card outside them — a proposed provider, Ollama, a typo — is refused before anything is read, as the reveal refuses a name outside its allowlist."
+   },
+   {
+    "id": "founder-state-unavailable",
+    "status": 503,
+    "statement": "This server has no state directory, so the change cannot be kept. It is refused rather than held in memory and lost at the next restart.",
+    "why": "The service persists a settings change, a provider key and an audit line only in the state directory deploy/ops/assistant-api.service declares and hands to it in MYTHUSO_ASSISTANT_STATE_DIR (packages/catalog/founder-access.json#state). A process started without it — a shell, a test — reads the contract's defaults and refuses every founder write, because a change kept only in memory would read as saved and vanish."
+   },
+   {
+    "id": "founder-code-refused",
+    "status": 401,
+    "statement": "That authenticator code was not accepted: it was wrong, already used, or too old. Wait for the next code your app shows.",
+    "why": "Every reveal asks for a fresh code on top of the session, and every accepted code is burned — its step and every step before it are refused afterwards — so a stolen cookie reveals nothing and a code read over a shoulder cannot be spent twice. A refused code counts toward the lock."
+   },
+   {
+    "id": "founder-locked-out",
+    "status": 429,
+    "statement": "Founder access is locked after repeated failed attempts, and every open session has ended. Wait for the lock to lift before trying again.",
+    "why": "Consecutive failures — at sign-in or at a reveal — lock the whole account for a fixed time and end every session, and the lock is checked before any password is hashed. It is per account rather than per address because there is one account and an attacker has as many addresses as they like (packages/catalog/founder-access.json#lockout)."
+   }
+  ],
+  "emits": [],
+  "emitsNoneBecause": "Switching a provider changes nothing on the bus; the audit line carries the card and the new state.",
+  "idempotent": false,
+  "endpointNamed": null,
+  "capabilityNamed": null,
+  "status": "built",
+  "evidence": {
+   "file": "apps/assistant-api/src/server.ts",
+   "handler": "req.method === 'POST' && founderProvider?.action === 'enabled'"
+  },
+  "enforcedBy": {
+   "mechanism": "founder-session"
+  },
+  "secretRequestFields": [
+   {
+    "field": "code",
+    "why": "A six-digit code; an unsalted hash of it would be the code."
+   }
+  ]
+ },
+ {
+  "method": "POST",
+  "path": "/v1/founder/providers/{card}/test",
+  "version": 1,
+  "summary": "One cheap authenticated call to the provider's own listing — voices, models or the account — answering whether the key in force works, and how fast. Never a patient's words, never the key.",
+  "callers": [
+   "founder"
+  ],
+  "purpose": [
+   "audit"
+  ],
+  "reads": true,
+  "request": [
+   {
+    "field": "card",
+    "type": "string",
+    "required": true,
+    "why": "The provider's card id in packages/catalog/api-registry.json, one of the cards packages/catalog/founder-access.json#vault.cards names. It travels in the path."
+   }
+  ],
+  "response": [
+   {
+    "field": "card",
+    "type": "string",
+    "required": true,
+    "why": "The card tested."
+   },
+   {
+    "field": "outcome",
+    "type": "string",
+    "required": true,
+    "why": "ok, refused (the provider rejected the credential), unreachable (no answer within the timeout) or failed (another error)."
+   },
+   {
+    "field": "status",
+    "type": "integer",
+    "required": true,
+    "nullable": true,
+    "why": "The provider's HTTP status, or null when nothing answered."
+   },
+   {
+    "field": "latencyMs",
+    "type": "integer",
+    "required": true,
+    "why": "How long the call took, in milliseconds, timeout included."
+   },
+   {
+    "field": "testedAt",
+    "type": "instant",
+    "required": true,
+    "why": "When."
+   }
+  ],
+  "refusals": [
+   {
+    "id": "origin-not-allowed",
+    "status": 403,
+    "statement": "This service answers its own site only.",
+    "why": "A browser origin this deployment does not answer is refused before any route reads the URL, and founder access is no exception."
+   },
+   {
+    "id": "founder-request-cross-site",
+    "status": 403,
+    "statement": "Founder access answers only a request the Control Tower makes from its own page.",
+    "why": "Every founder route refuses a request without the X-MyThuso-Founder header, or whose Sec-Fetch-Site is present and is not same-origin, before it reads anything. A page on another site cannot send that header without a preflight the origin policy never grants, so a cross-site form or script is refused before a password or a cookie is looked at (packages/catalog/founder-access.json#request)."
+   },
+   {
+    "id": "founder-access-dark",
+    "status": 503,
+    "statement": "Founder access is switched off on this server. It is switched on by hand, on the box, and never by a deploy.",
+    "why": "Founder access is dark by default: every founder route answers this refusal unless the service's environment carries both MYTHUSO_FOUNDER_ACCESS=enabled and a well-formed founder credential. deploy/ops/configure-founder-access.sh writes the credential and never the enable line, and no deploy writes either, so a deploy cannot switch it on (packages/catalog/founder-access.json#enable)."
+   },
+   {
+    "id": "founder-no-session",
+    "status": 401,
+    "statement": "There is no live founder session. Sign in again: a session ends by itself, and whenever the service restarts.",
+    "why": "Sessions live in the service's memory only, for a fixed time from sign-in with no renewal, one at a time, and a restart ends them. A cookie that names no live session is refused rather than read as anybody."
+   },
+   {
+    "id": "founder-card-not-known",
+    "status": 404,
+    "statement": "No provider by that name holds a key in the vault.",
+    "why": "The vault's cards are exactly the built providers packages/catalog/founder-access.json#vault.cards names with a key variable; a card outside them — a proposed provider, Ollama, a typo — is refused before anything is read, as the reveal refuses a name outside its allowlist."
+   },
+   {
+    "id": "founder-provider-disabled",
+    "status": 409,
+    "statement": "This provider is switched off, so it is not called — not even to test it. Switch it on first.",
+    "why": "packages/catalog/api-registry.json's a-disabled-provider-is-never-called: a switch that turned a provider off on the screen and left a test button able to call it would be a switch that lies."
+   },
+   {
+    "id": "founder-provider-not-configured",
+    "status": 409,
+    "statement": "This provider has no key on this server — in the vault or in the environment — so there is nothing to test.",
+    "why": "A test is one authenticated call. Without a credential there is no call to make, and a test that answered anything but this would be guessing at what an unconfigured provider does."
+   }
+  ],
+  "emits": [],
+  "emitsNoneBecause": "A test changes nothing; its outcome is written to the audit line for the card.",
+  "idempotent": false,
+  "endpointNamed": null,
+  "capabilityNamed": null,
+  "status": "built",
+  "evidence": {
+   "file": "apps/assistant-api/src/server.ts",
+   "handler": "req.method === 'POST' && founderProvider?.action === 'test'"
+  },
+  "enforcedBy": {
+   "mechanism": "founder-session"
+  }
+ },
+ {
+  "method": "GET",
+  "path": "/v1/founder/providers/{card}/logs",
+  "version": 1,
+  "summary": "The founder audit lines that name this card — key set, deleted, enabled, tested, read, and the reveals and metadata reads of its Azure key — newest last, capped.",
+  "callers": [
+   "founder"
+  ],
+  "purpose": [
+   "audit"
+  ],
+  "request": [
+   {
+    "field": "card",
+    "type": "string",
+    "required": true,
+    "why": "The provider's card id in packages/catalog/api-registry.json, one of the cards packages/catalog/founder-access.json#vault.cards names. It travels in the path."
+   }
+  ],
+  "response": [
+   {
+    "field": "card",
+    "type": "string",
+    "required": true,
+    "why": "The card."
+   },
+   {
+    "field": "lines",
+    "type": "list",
+    "required": true,
+    "object": true,
+    "why": "The audit lines, oldest first, at most the contract's logsTail.",
+    "fields": [
+     {
+      "field": "at",
+      "type": "instant",
+      "required": true,
+      "why": "When the line was written."
+     },
+     {
+      "field": "event",
+      "type": "string",
+      "required": true,
+      "why": "One of packages/catalog/founder-access.json#audit.events."
+     },
+     {
+      "field": "outcome",
+      "type": "string",
+      "required": true,
+      "why": "accepted, or the refusal id the request met."
+     },
+     {
+      "field": "card",
+      "type": "string",
+      "required": false,
+      "why": "The card, where the event names one."
+     },
+     {
+      "field": "name",
+      "type": "string",
+      "required": false,
+      "why": "The allowlisted key name, on a reveal or a metadata read of the two Azure keys."
+     },
+     {
+      "field": "fingerprint",
+      "type": "string",
+      "required": false,
+      "why": "The key's fingerprint prefix, on a reveal or a key set."
+     },
+     {
+      "field": "setting",
+      "type": "string",
+      "required": false,
+      "why": "The setting's key, on a settings change."
+     }
+    ]
+   },
+   {
+    "field": "persisted",
+    "type": "boolean",
+    "required": true,
+    "why": "Whether this server keeps an audit file at all. False means the journal is the only record."
+   }
+  ],
+  "refusals": [
+   {
+    "id": "origin-not-allowed",
+    "status": 403,
+    "statement": "This service answers its own site only.",
+    "why": "A browser origin this deployment does not answer is refused before any route reads the URL, and founder access is no exception."
+   },
+   {
+    "id": "founder-request-cross-site",
+    "status": 403,
+    "statement": "Founder access answers only a request the Control Tower makes from its own page.",
+    "why": "Every founder route refuses a request without the X-MyThuso-Founder header, or whose Sec-Fetch-Site is present and is not same-origin, before it reads anything. A page on another site cannot send that header without a preflight the origin policy never grants, so a cross-site form or script is refused before a password or a cookie is looked at (packages/catalog/founder-access.json#request)."
+   },
+   {
+    "id": "founder-access-dark",
+    "status": 503,
+    "statement": "Founder access is switched off on this server. It is switched on by hand, on the box, and never by a deploy.",
+    "why": "Founder access is dark by default: every founder route answers this refusal unless the service's environment carries both MYTHUSO_FOUNDER_ACCESS=enabled and a well-formed founder credential. deploy/ops/configure-founder-access.sh writes the credential and never the enable line, and no deploy writes either, so a deploy cannot switch it on (packages/catalog/founder-access.json#enable)."
+   },
+   {
+    "id": "founder-no-session",
+    "status": 401,
+    "statement": "There is no live founder session. Sign in again: a session ends by itself, and whenever the service restarts.",
+    "why": "Sessions live in the service's memory only, for a fixed time from sign-in with no renewal, one at a time, and a restart ends them. A cookie that names no live session is refused rather than read as anybody."
+   },
+   {
+    "id": "founder-card-not-known",
+    "status": 404,
+    "statement": "No provider by that name holds a key in the vault.",
+    "why": "The vault's cards are exactly the built providers packages/catalog/founder-access.json#vault.cards names with a key variable; a card outside them — a proposed provider, Ollama, a typo — is refused before anything is read, as the reveal refuses a name outside its allowlist."
+   }
+  ],
+  "emits": [],
+  "emitsNoneBecause": "Reading changes nothing.",
+  "idempotent": false,
+  "endpointNamed": null,
+  "capabilityNamed": null,
+  "status": "built",
+  "evidence": {
+   "file": "apps/assistant-api/src/server.ts",
+   "handler": "req.method === 'GET' && founderProvider?.action === 'logs'"
+  },
+  "enforcedBy": {
+   "mechanism": "founder-session"
+  }
+ }
  ]
 }

@@ -21,13 +21,23 @@
 # bundle's syntax is that of the floor, so the process exits with a SyntaxError instead of running
 # something half-parsed.
 #
-# The service holds nothing at rest: sessions live in memory, no file is written, no socket is
-# passed to it but the one it binds. DynamicUser= is that fact expressed as a unit directive — an
-# ephemeral UID systemd allocates at start and forgets at stop, with no home, no files to own, and
-# no reason to exist between runs. It implies ProtectSystem=strict and PrivateTmp= as defaults;
-# they are written out below anyway, because the hardening should be readable here, not inferred.
-# The EnvironmentFile is read by systemd as root before the privileges drop, which is what lets it
-# stay 0600 root:root while the process it configures runs as nobody in particular.
+# The service holds nothing of a patient's at rest: sessions live in memory, no capture, transcript
+# or answer is ever written, no socket is passed to it but the one it binds. DynamicUser= is that
+# fact expressed as a unit directive — an ephemeral UID systemd allocates at start and forgets at
+# stop, with no home and no reason to exist between runs. It implies ProtectSystem=strict and
+# PrivateTmp= as defaults; they are written out below anyway, because the hardening should be
+# readable here, not inferred. The EnvironmentFile is read by systemd as root before the privileges
+# drop, which is what lets it stay 0600 root:root while the process it configures runs as nobody in
+# particular.
+#
+# Since 28 September 2026 the service keeps three files of the founder's, and nothing else, in the
+# StateDirectory below (packages/catalog/founder-access.json#state): the founder-signed settings
+# history the speak route reads, the provider key vault (AES-256-GCM under MYTHUSO_VAULT_KEY from
+# founder.env), and the founder audit. systemd creates /var/lib/mythuso-assistant, owns it for the
+# dynamic user across restarts, and the process is told where it is in MYTHUSO_ASSISTANT_STATE_DIR;
+# a process started without that variable reads the contract's defaults and refuses every founder
+# write rather than keeping a change it would lose. Every file in it is 0600 (UMask below, and set
+# again by the code that writes it). A deploy never touches the directory.
 [Unit]
 Description=MyThuso Assistant API (GilbertOne's second tier; dark until a model provider is configured)
 After=network.target
@@ -45,6 +55,9 @@ EnvironmentFile=-/etc/mythuso/assistant.env
 # normal state — the service starts, and every founder route answers that founder access is switched
 # off. Nothing a deploy does writes this file.
 EnvironmentFile=-/etc/mythuso/founder.env
+StateDirectory=mythuso-assistant
+StateDirectoryMode=0700
+Environment=MYTHUSO_ASSISTANT_STATE_DIR=%S/mythuso-assistant
 Restart=on-failure
 RestartSec=5
 

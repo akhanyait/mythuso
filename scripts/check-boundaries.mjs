@@ -33655,7 +33655,22 @@ console.log(
    Play, one POST to the contract's speak route from lib/gilbertone-admin.ts, one audio element in the
    preview — and forbid everything else exactly as before; checks 9 and 10 hold the patient side and
    the voice names. A live action carries the founder's dated record in place of a gate, and the build
-   refuses it without one. */
+   refuses it without one.
+
+   Amended on 28 September 2026 for the founder's three decisions of that day. (1) The Voice screen is folded
+   into Speech settings: the category is seven sub-screens again, the merged one second, and SpeechSettings.tsx
+   is the live file where Voice.tsx was — it draws the change fields first through the portal's shared
+   controls (Fields.tsx: chips, ranges and switches, none of which takes text), one reason textarea, and the
+   preview, and every chooser and Save for a register only under the class's previewMaySaveAsDefault; a third
+   live action, the knobs' Save, is recorded. (2) The founder's saved voice reaches the preview and the service:
+   the value in force comes from useSpeechSource() — the service's history inside the founder's session, the
+   tab's otherwise — and check 11 holds lib/founder-settings.ts to asking the founder routes through
+   lib/founder-access.ts's one caller and reading only the fields it names. (3) The founder's controls: an
+   action may carry a founder record in place of a gate — the same three parts as a live one — and is drawn
+   only by founder/FounderActions.tsx's FounderButton, enabled under phase === 'signed-in' alone; that file
+   is the second founder file, held by check 11 to one password field cleared before its request is sent, forms
+   that say method="post", no storage, no log, no address, and nothing key-shaped drawn. Everything else is
+   held exactly as before. */
 const p4 = {
   portal: JSON.parse(read("packages/catalog/control-tower-portal.json")),
   overview: JSON.parse(read("packages/catalog/control-tower-overview.json")),
@@ -33674,8 +33689,16 @@ const p4Files = [...p4Screens, p4Category, p4Lib];
 const p4VoiceLib = "apps/web/src/lib/voice.ts";
 /* The two files the decision made live, and the two actions it named. A third of either is a new
    founder decision, recorded by extending these lists in the same change as the record in the contract. */
-const p4LiveFiles = [`${p4Dir}/Voice.tsx`, `${p4Dir}/VoicePreview.tsx`];
-const p4LiveActions = ["voice-save-as-default", "voice-play"];
+const p4LiveFiles = [`${p4Dir}/SpeechSettings.tsx`, `${p4Dir}/VoicePreview.tsx`];
+const p4LiveActions = ["voice-save-as-default", "voice-play", "speech-save-settings"];
+/* The founder's own actions (28 September 2026): enabled only inside the founder's signed-in session, drawn by
+   founder/FounderActions.tsx alone. A further one is a further founder decision, recorded here with the contract. */
+const p4FounderActions = [
+  "provider-enter-key", "provider-rotate-key", "provider-remove-key", "provider-test", "provider-show-metadata",
+  "registry-enable", "registry-disable", "registry-rotate-key", "registry-test", "registry-view-logs",
+];
+const p4FounderActionsFile = `${p4Dir}/founder/FounderActions.tsx`;
+const p4FounderSettingsLib = "apps/web/src/lib/founder-settings.ts";
 /* Founder access (24 September 2026, packages/catalog/founder-access.json#decision) is the one file under
    the GilbertOne screens that draws live inputs and buttons: the founder's sign-in and the key reveal.
    It is named here, once, and exempted from exactly three sweeps below — the password-type sweep and
@@ -33685,6 +33708,9 @@ const p4LiveActions = ["voice-save-as-default", "voice-play"];
    block at the end of this file holds it to stricter rules of its own. Every other GilbertOne file is
    held exactly as before: no enabled control, no input outside Controls.tsx, no password field. */
 const p4Founder = `${p4Dir}/founder/FounderAccess.tsx`;
+/* Both founder files: the reveal panel and, since 28 September 2026, the founder's card controls. The sweeps that
+   exempted the first exempt both, and check 11 holds the second to its own rules. */
+const p4FounderFiles = [p4Founder, p4FounderActionsFile];
 const p4G1 = p4.portal.gilbertone;
 const p4Summary = {};
 /* Code with its comments and its import lines gone, for the sweeps that must not trip over prose
@@ -33703,10 +33729,10 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
   const subIds = p4G1.subScreens.map((s) => s.id).join();
   if (tabIds !== subIds)
     throw new Error(`packages/catalog/control-tower-portal.json's GilbertOne tabs are [${tabIds}] and its subScreens [${subIds}]. §7's seven sub-screens are the category's tabs, one for one, in one order.`);
-  /* §7's seven, and Speech settings since the founder's approval of 28 September 2026: the eighth is held
-     by the speech-settings block at the end of this file to draw no control of its own. */
-  if (p4G1.subScreens.length !== 8 || p4G1.subScreens[7].id !== "speech")
-    throw new Error(`packages/catalog/control-tower-portal.json#gilbertone lists ${p4G1.subScreens.length} sub-screens; §7 names seven, and the founder's decision of 28 September 2026 an eighth, Speech settings, last.`);
+  /* §7's seven, with Speech settings standing where Voice stood since the founder's instruction of 28 September
+     2026 to collapse the two into one place; the merged screen is held by check 4 and the speech-settings block. */
+  if (p4G1.subScreens.length !== 7 || p4G1.subScreens[1].id !== "speech" || p4G1.subScreens.some((x) => x.id === "voice"))
+    throw new Error(`packages/catalog/control-tower-portal.json#gilbertone lists ${p4G1.subScreens.length} sub-screens [${p4G1.subScreens.map((x) => x.id).join(", ")}]; §7 names seven, and since the founder's instruction of 28 September 2026 Speech settings is the second, where Voice stood, and there is no separate Voice screen.`);
   const registers = read("docs/PROMPT-CONTROL-TOWER-UI.md") + read("docs/PROMPT-CONTROL-TOWER.md");
   const categoryCode = uncommented(read(p4Category));
   for (const s of p4G1.subScreens) {
@@ -33765,14 +33791,16 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
       if (never.has(p2Canon(name)) && name !== "value" && name !== "key")
         throw new Error(`${f} passes or holds "${name}", a field packages/catalog/api-registry.json#keyMetadata.neverFields names as key material. A screen may describe a key's metadata; it never carries the key.`);
     }
-    if (f === p4Founder) continue; /* founder access's sign-in and reveal: held by the Founder access block instead */
+    if (p4FounderFiles.includes(f)) continue; /* the founder's sign-in, reveal and card controls: held by the Founder access block and check 11 instead */
     if (/type=["'{]\s*["']?password/.test(code))
       throw new Error(`${f} sets an input's type to password itself. The one key field is ShapeField's, in Controls.tsx, disabled and without a value.`);
     /* The portal's shared controls (features/portal/Fields.tsx) draw inputs this sweep cannot see from
-       here, so no GilbertOne file may reach for them: every field on these screens is written out in
-       the file that draws it, where the sweep below reads it. */
-    if (/^\s*import\b[^;]*from '\.\.\/Fields'/m.test(read(f)))
-      throw new Error(`${f} imports the portal's shared controls. A GilbertOne screen draws its fields itself, where this check reads them, or through Controls.tsx.`);
+       here, so no GilbertOne file may reach for them — except, since 28 September 2026, the merged Speech
+       settings screen, whose change fields are exactly those controls: a radio or checkbox chip, a range and
+       a switch, none of which takes text, and Fields.tsx is held below to drawing nothing else. Every other
+       field on these screens is written out in the file that draws it, where the sweep below reads it. */
+    if (/^\s*import\b[^;]*from '\.\.\/Fields'/m.test(read(f)) && f !== `${p4Dir}/SpeechSettings.tsx`)
+      throw new Error(`${f} imports the portal's shared controls. A GilbertOne screen draws its fields itself, where this check reads them, or through Controls.tsx; only the Speech settings screen draws the shared chips, ranges and switches.`);
     for (const [tag, kind] of code.matchAll(/<(input|textarea|select)\b[^>]*>/g)) {
       /* The Voice screen and the voice preview draw selects and textareas of their own since 27
          September 2026 — a register, a language, one of two voice labels, a sentence and a reason —
@@ -33790,6 +33818,13 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
   const shape = uncommented(read(`${p4Dir}/Controls.tsx`));
   if (!/function ShapeField[\s\S]*?<input type=\{kind\} disabled autoComplete="off"/.test(shape))
     throw new Error(`${p4Dir}/Controls.tsx's ShapeField no longer draws its input disabled with autocomplete off. It is the only place a key field is drawn.`);
+  /* Fields.tsx, which the Speech settings screen may draw: every input a range, a checkbox or the caller's
+     radio-or-checkbox kind, and never a text or password field a key could arrive in. */
+  for (const [tag] of uncommented(read("apps/web/src/features/portal/Fields.tsx")).matchAll(/<input\b[^>]*>/g))
+    if (!/type="range"|type="checkbox"|type=\{kind\}/.test(tag) || /password|type="text"/.test(tag))
+      throw new Error(`apps/web/src/features/portal/Fields.tsx draws ${tag}. The shared controls the Speech settings screen may draw are a range, a switch and chips; a field that takes text would be a field a key could reach.`);
+  if (!/kind\?: 'radio' \| 'checkbox'/.test(read("apps/web/src/features/portal/Fields.tsx")))
+    throw new Error("apps/web/src/features/portal/Fields.tsx's chips are no longer confined to radio or checkbox inputs.");
 }
 
 /* 3. Every GilbertOne action control is disabled while its gate is open, with the contract's refusal
@@ -33828,7 +33863,25 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
   const registryIds = new Set(p4.registry.actions.map((a) => a.id));
   const mapped = new Set();
   const liveIds = new Set();
+  const founderIds = new Set();
+  const founderRecordOk = (r) => r && r.decidedBy === "Founder" && /^\d{4}-\d{2}-\d{2}$/.test(String(r.since)) && /^[A-Z][\s\S]*\.$/.test(String(r.sentence ?? "")) && /\bnever\b/.test(String(r.sentence));
   for (const a of p4G1.actions) {
+    /* A founder action (28 September 2026): gate null, no live record, no refusal, and a founder record of the
+       same three parts a live one has. It is enabled only inside the founder's signed-in session, and a
+       registry action among them keeps its registryAction so the card still draws every action the registry
+       gives it. */
+    if (a.founder !== undefined) {
+      if (a.gate !== null || a.live !== undefined || a.refusal || !founderRecordOk(a.founder))
+        throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.actions "${a.id}" is recorded as the founder's without the founder's record: gate null, no live record, no refusal, decidedBy Founder, a since day, and a sentence that says what it does and what it never does.`);
+      if (!p4G1.subScreens.some((s) => s.id === a.screen))
+        throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.actions "${a.id}" belongs to screen "${a.screen}", which is not a sub-screen.`);
+      if (a.registryAction) {
+        if (!registryIds.has(a.registryAction)) throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.actions "${a.id}" maps to the registry action "${a.registryAction}", which packages/catalog/api-registry.json#actions does not have.`);
+        mapped.add(a.registryAction);
+      }
+      founderIds.add(a.id);
+      continue;
+    }
     if (a.live !== undefined || a.gate === null) {
       const live = a.live ?? {};
       if (a.gate !== null || live.decidedBy !== "Founder" || !/^\d{4}-\d{2}-\d{2}$/.test(String(live.since)) || !/^[A-Z][\s\S]*\.$/.test(String(live.sentence ?? "")) || !/\bnever\b/.test(String(live.sentence)))
@@ -33852,7 +33905,12 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
     if (!mapped.has(id))
       throw new Error(`packages/catalog/api-registry.json's card action "${id}" is drawn by no GilbertOne action. Every action the contract gives a card is on the card, disabled with its gate.`);
   if ([...liveIds].sort().join() !== [...p4LiveActions].sort().join())
-    throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.actions records [${[...liveIds].join(", ")}] as live; the founder's decision of 27 September 2026 named exactly [${p4LiveActions.join(", ")}]. A further live action is a further decision, recorded in this check with the contract.`);
+    throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.actions records [${[...liveIds].join(", ")}] as live; the founder's decisions of 27 and 28 September 2026 named exactly [${p4LiveActions.join(", ")}]. A further live action is a further decision, recorded in this check with the contract.`);
+  if ([...founderIds].sort().join() !== [...p4FounderActions].sort().join())
+    throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.actions records [${[...founderIds].join(", ")}] as the founder's; the founder's instruction of 28 September 2026 covers exactly [${p4FounderActions.join(", ")}]. A further founder action is a further decision, recorded in this check with the contract.`);
+  for (const a of p4G1.actions)
+    if (a.founder === undefined && a.gate === null && !liveIds.has(a.id))
+      throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.actions "${a.id}" has gate null and neither a live nor a founder record.`);
   const controls = uncommented(read(`${p4Dir}/Controls.tsx`));
   const liveStart = controls.indexOf("export function LiveButton");
   const liveEnd = controls.indexOf("export function LiveSentence");
@@ -33875,7 +33933,7 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
   const used = new Set();
   for (const f of p4Files) {
     const code = p4Code(f);
-    if (!f.endsWith("/Controls.tsx") && f !== p4Founder) {
+    if (!f.endsWith("/Controls.tsx") && !p4FounderFiles.includes(f)) {
       const live = p4LiveFiles.includes(f);
       const own = (live ? /<(button|form)\b|\bon(Submit|KeyUp|Input)=/ : /<(button|form)\b|\bon(Click|Submit|KeyUp|Input)=/).exec(code);
       if (own)
@@ -33887,16 +33945,22 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
       if (live && (code.match(/\bonClick=/g) ?? []).length !== (code.match(/<LiveButton\b/g) ?? []).length)
         throw new Error(`${f} has an onClick that is not a LiveButton's, or a LiveButton with none. The only enabled control on a GilbertOne screen is a live action's button.`);
     }
-    if (!p4LiveFiles.includes(f) && f !== p4Founder && /<LiveButton\b/.test(code))
-      throw new Error(`${f} draws a LiveButton. Only the Voice screen and the voice preview draw one.`);
-    for (const m of code.matchAll(/<(?:Gated(?:Action|Button|Refusal|Checkbox)|Live(?:Button|Sentence))\s+id="([^"]+)"/g)) {
+    if (!p4LiveFiles.includes(f) && !p4FounderFiles.includes(f) && /<LiveButton\b/.test(code))
+      throw new Error(`${f} draws a LiveButton. Only the Speech settings screen and the voice preview draw one.`);
+    if (f !== p4FounderActionsFile && /<Founder(?:Button|Sentence|CardControls)\b/.test(code) && !/lazy\(\(\) => import\('\.\/founder\/FounderActions'\)/.test(uncommented(read(f))))
+      throw new Error(`${f} draws a founder control itself. The founder's controls are drawn by founder/FounderActions.tsx alone, and a screen reaches them through a dynamic import of it.`);
+    for (const m of code.matchAll(/<(?:Gated(?:Action|Button|Refusal|Checkbox)|Live(?:Button|Sentence)|Founder(?:Button|Sentence))\s+id="([^"]+)"/g)) {
       const a = actions.get(m[1]);
       if (!a) throw new Error(`${f} draws the action "${m[1]}", which packages/catalog/control-tower-portal.json#gilbertone.actions does not declare.`);
-      const screen = screenOf.get(f) ?? (f.endsWith("/VoicePreview.tsx") ? "voice" : null);
+      const screen = screenOf.get(f) ?? (f.endsWith("/VoicePreview.tsx") ? "speech" : null);
       if (screen && a.screen !== screen)
         throw new Error(`${f} draws "${a.id}", which the contract places on the ${a.screen} screen.`);
-      if (/^<Live/.test(m[0]) !== liveIds.has(a.id))
-        throw new Error(`${f} draws "${a.id}" ${/^<Live/.test(m[0]) ? "live, and the contract holds it behind a gate" : "gated, and the contract records it live"}. A control's shape is its record's.`);
+      const drawnAs = /^<Live/.test(m[0]) ? "live" : /^<Founder/.test(m[0]) ? "founder" : "gated";
+      const recordedAs = liveIds.has(a.id) ? "live" : founderIds.has(a.id) ? "founder" : "gated";
+      if (drawnAs !== recordedAs)
+        throw new Error(`${f} draws "${a.id}" ${drawnAs}, and the contract records it ${recordedAs}. A control's shape is its record's.`);
+      if (drawnAs === "founder" && f !== p4FounderActionsFile)
+        throw new Error(`${f} draws the founder action "${a.id}". A FounderButton is drawn in founder/FounderActions.tsx and nowhere else.`);
       used.add(a.id);
     }
     for (const m of code.matchAll(/<GatedActions\s+ids=\{\[([^\]]*)\]\}/g))
@@ -33904,8 +33968,10 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
         if (!actions.has(id)) throw new Error(`${f} draws the action "${id}", which the contract does not declare.`);
         used.add(id);
       }
-    if (/<GatedActions\s+ids=\{actions\}/.test(code) && /registryActions\(\)/.test(code))
-      p4G1.actions.filter((a) => a.registryAction).forEach((a) => used.add(a.id));
+    /* The API Registry hands its cards the gated registry actions as one list and the founder's as another; each
+       list is the lib's own split of the contract's registryAction rows, so every one is drawn on every card. */
+    if (/<GatedActions\s+ids=\{gated\}/.test(code) && /gatedRegistryActions\(\)/.test(code))
+      p4G1.actions.filter((a) => a.registryAction && a.founder === undefined).forEach((a) => used.add(a.id));
   }
   for (const a of p4G1.actions)
     if (!used.has(a.id))
@@ -33922,12 +33988,31 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
 {
   const locked = p4.voice.refusals.find((r) => r.id === "no-save-as-default-on-a-locked-row").statement;
   {
-    const code = p4Code(`${p4Dir}/Voice.tsx`);
-    const selects = (code.match(/<select\b/g) ?? []).length;
+    /* The merged screen (28 September 2026): the register cards are drawn from exactly the classes whose own
+       previewMaySaveAsDefault allows a chooser, and every voice chooser and Save as default in the file sits
+       inside that map; the query-to-voice table draws no chooser and no Save at all, and a locked row keeps the
+       contract's sentence. */
+    const file = `${p4Dir}/SpeechSettings.tsx`;
+    const code = p4Code(file);
+    if (!/const registers = voice\.queryClasses\.filter\(c => c\.previewMaySaveAsDefault\);/.test(code))
+      throw new Error(`${file} no longer draws its register cards from voice.queryClasses.filter(c => c.previewMaySaveAsDefault). Which registers may have a voice chosen is the contract's to say, never a name's.`);
+    const start = code.indexOf("{registers.map(c => {");
+    const end = code.indexOf("</article>;", start);
+    if (start < 0 || end < 0) throw new Error(`${file} no longer draws a card per register inside registers.map.`);
+    const inside = code.slice(start, end);
+    const outside = code.slice(0, start) + code.slice(end);
     const saves = (code.match(/<LiveButton\s+id="voice-save-as-default"/g) ?? []).length;
-    const guarded = (code.match(/previewMaySaveAsDefault\s*\?\s*<div className="g1-voice-cell">\s*<select\b[^>]*>[\s\S]*?<\/select>\s*<LiveButton\s+id="voice-save-as-default"/g) ?? []).length;
-    if (!saves || saves !== guarded || selects !== guarded)
-      throw new Error(`${p4Dir}/Voice.tsx draws ${selects} voice selects and ${saves} Save as default buttons, ${guarded} of them together under the class's previewMaySaveAsDefault. A row chooses and saves a voice only where its class allows it, and the emergency, refusal and escalation rows offer nothing to choose and nothing to save — ${locked}`);
+    const choosers = (code.match(/voiceChoicesOf\(c\.id\)\.map\(o => \(\{ key: o\.value/g) ?? []).length;
+    if (saves !== 1 || choosers !== 1 || !/<LiveButton\s+id="voice-save-as-default"/.test(inside) || !/voiceChoicesOf\(c\.id\)\.map\(o => \(\{ key: o\.value/.test(inside))
+      throw new Error(`${file} draws ${choosers} voice choosers and ${saves} Save as default buttons, and not both inside the register cards alone. A voice is chosen and saved only where its class allows it — ${locked}`);
+    if (/<ChoiceChips\b|<LiveButton\s+id="voice-save-as-default"|<select\b/.test(outside.slice(outside.indexOf("<table"), outside.indexOf("</table>"))))
+      throw new Error(`${file}'s query-to-voice table draws a chooser or a Save. The table reads; the register cards change — ${locked}`);
+    if (!/c\.previewMaySaveAsDefault \? fill\(voiceWords\.inForceSentence, \{ label: inForceWords\(c\.id\) \}\) : <span className="g1-locked-cell">\{voiceWords\.lockedRowSentence\}<\/span>/.test(code))
+      throw new Error(`${file}'s table no longer draws a locked row as the contract's lockedRowSentence and a presentation row as the value in force. ${locked}`);
+    if ((code.match(/<LiveButton\s+id="speech-save-settings"/g) ?? []).length !== 1 || !/const changes = changesOf\(group\.keys\);/.test(code))
+      throw new Error(`${file} no longer saves the knobs one group at a time through one LiveButton over changesOf(group.keys).`);
+    if (!/const disabled = !source\.canSave \|\| saving\.busy;/.test(code))
+      throw new Error(`${file} no longer disables every change field while the source cannot be saved to — the founder signed out, the service unread or refused.`);
   }
   {
     const code = p4Code(`${p4Dir}/VoicePreview.tsx`);
@@ -34138,22 +34223,92 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
     throw new Error("apps/web/src/lib/assistant.ts's voiceClassOf no longer reads the contract's spokenRegister map from the reply kind alone, with the unread turn in the refusal's register. The register is the contract's, never a ternary in a component.");
 }
 
-/* 10. No neural voice name is typed on a GilbertOne screen, in the two libs behind the Voice screen,
+/* 10. No neural voice name is typed on a GilbertOne screen, in the two libs behind the Speech settings screen,
    or in the journey that holds them. The names are packages/catalog/assistant.json's, per language;
    the Voice screen reads them from there over a dynamic import, the preview hands them on, and the
    setting stores a label. Swept with comments in, because a name in a comment is a name the next
    edit copies. Phase 2's check 6 holds the contracts and the service the same way. */
 {
   const neural = /\b[a-z]{2}-[A-Z]{2}-[A-Za-z]+Neural\b/;
-  for (const f of [...p4Files, p4VoiceLib, "apps/web/src/lib/assistant.ts", "tests/gilbertone-admin.spec.ts"]) {
+  for (const f of [...p4Files, p4VoiceLib, p4FounderSettingsLib, "apps/web/src/lib/assistant.ts", "tests/gilbertone-admin.spec.ts", "tests/founder-access.spec.ts"]) {
     const found = read(f).match(neural);
     if (found)
       throw new Error(`${f} names the voice ${found[0]}. Voices are read from packages/catalog/assistant.json, per language, and a second copy is how two screens come to disagree about which voice reads an emergency.`);
   }
 }
 
+/* 11. The founder's controls (28 September 2026): where the founder's session reaches the browser's screens,
+   and what it may never carry. lib/founder-settings.ts asks the founder routes through lib/founder-access.ts's
+   one caller — no fetch of its own — at founder-access.json's paths, reads only the fields it names off each
+   answer (never a key, never a value the route should not return), and hands a key straight into one request
+   body. founder/FounderActions.tsx draws a founder action only through FounderButton, enabled under one
+   condition — the gate's phase is 'signed-in' — and disabled beside a contract sentence otherwise; its one
+   password field is the new key, autocomplete off, emptied before the request is sent, in a form that says
+   method="post"; it draws two numeric one-time-code fields and nothing else that takes typing; and neither file
+   stores, logs, posts elsewhere or puts anything in an address. The founder's saved voice reaches the preview
+   through useSpeechSource(), which reads the service's snapshot inside the session and the tab's otherwise. */
+{
+  const lib = uncommented(read(p4FounderSettingsLib));
+  if (/\bfetch\s*\(/.test(lib) || !/import \{ call, founderContract, sessionEnded, type Answer, type Refusal \} from '\.\/founder-access';/.test(lib))
+    throw new Error(`${p4FounderSettingsLib} makes a request of its own, or no longer asks through lib/founder-access.ts's call(). The founder routes are asked in exactly one way: the founder header, the same-origin cookie, the contract's refusal shape.`);
+  if (!/const routes = founderContract\.routes;/.test(lib) || /\/v1\/founder/.test(lib))
+    throw new Error(`${p4FounderSettingsLib} types a founder route's path. Every path is packages/catalog/founder-access.json#routes, read through the contract.`);
+  const routeNames = [...lib.matchAll(/path\('([a-zA-Z]+)'/g)].map((m) => m[1]);
+  const faRoutesForWeb = JSON.parse(read("packages/catalog/founder-access.json")).routes;
+  for (const name of routeNames)
+    if (!(name in faRoutesForWeb) || !String(faRoutesForWeb[name]).startsWith("/v1/founder/"))
+      throw new Error(`${p4FounderSettingsLib} asks the route "${name}", which packages/catalog/founder-access.json#routes does not name as a founder route.`);
+  if (!/const metadataOf = \(x: unknown\): ProviderMetadata \| null => \{[\s\S]*?return Object\.freeze\(\{ card, configured: x\.configured === true, lastFour: str\(x\.lastFour\), fingerprint: str\(x\.fingerprintPrefix\), enabled: x\.enabled === true \}\);/.test(lib))
+    throw new Error(`${p4FounderSettingsLib}'s metadataOf no longer reads exactly the card, configured, lastFour, fingerprintPrefix and enabled off a provider's row. A field the route grows — or should never send — must not reach a screen.`);
+  if (/\.\.\.answer\.body|\.\.\.body\b|JSON\.stringify\(answer|JSON\.stringify\(body/.test(lib))
+    throw new Error(`${p4FounderSettingsLib} passes an answer's body on whole. Each reader takes what it names and nothing else.`);
+  if (!/export const putKey = \(card: string, key: string, code: string\): Promise<Done> => call<Record<string, unknown>>\('PUT', path\('providerKey', card\), \{ key, code \}\)\.then\(settle\);/.test(lib))
+    throw new Error(`${p4FounderSettingsLib}'s putKey does more with the key than put it in one request's body. The key goes once, in the body of one PUT, and is kept nowhere.`);
+  const actionsCode = uncommented(read(p4FounderActionsFile));
+  for (const [f, code] of [[p4FounderSettingsLib, lib], [p4FounderActionsFile, actionsCode]]) {
+    const leak = code.match(/localStorage|sessionStorage|indexedDB|document\.cookie|history\.(pushState|replaceState)|location\.(href|assign|search|hash)|URLSearchParams|console\.|postMessage|sendBeacon|caches\.|dangerouslySetInnerHTML|revealedKey/);
+    if (leak) throw new Error(`${f} uses ${leak[0]}. A key, a code and the founder's session are never stored, logged, posted elsewhere or put in an address, and a revealed key is the reveal panel's alone.`);
+  }
+  const founderButton = actionsCode.slice(actionsCode.indexOf("export function FounderButton("), actionsCode.indexOf("export function FounderSentence("));
+  if (!/founderOf\(action\);/.test(founderButton) || !/const signedIn = phase === 'signed-in';/.test(founderButton) || !/disabled=\{!signedIn \|\| disabled\}/.test(founderButton) || !/aria-describedby=\{describedBy\}/.test(founderButton) || (founderButton.match(/<button\b/g) ?? []).length !== 1)
+    throw new Error(`${p4FounderActionsFile}'s FounderButton is no longer one button, checked against the founder's record first, enabled only under phase === 'signed-in' and described by its sentence. The founder's controls are enabled on that condition or on nothing.`);
+  const buttons = [...actionsCode.matchAll(/<button\b[^>]*>/g)].map((m) => m[0]);
+  if (buttons.length !== 1)
+    throw new Error(`${p4FounderActionsFile} draws ${buttons.length} buttons of its own; FounderButton's is the only one, so every control here is a founder action with its record.`);
+  const inputs = [...actionsCode.matchAll(/<input\b[^>]*>/g)].map((m) => m[0]);
+  const passwords = inputs.filter((i) => /type="password"/.test(i));
+  const codes = inputs.filter((i) => /autoComplete="one-time-code"/.test(i));
+  if (passwords.length !== 1 || !/autoComplete="off"/.test(passwords[0]) || !/value=\{key\}/.test(passwords[0]) || codes.length !== 2 || inputs.length !== 3 || codes.some((c) => !/inputMode="numeric"/.test(c)))
+    throw new Error(`${p4FounderActionsFile} draws inputs other than the one new-key password field (autocomplete off, holding this component's key state) and two numeric one-time-code fields.`);
+  const submitKey = actionsCode.slice(actionsCode.indexOf("const submitKey = async"), actionsCode.indexOf("const test = async"));
+  if (submitKey.indexOf("setKey('');") < 0 || submitKey.indexOf("setKey('');") > submitKey.indexOf("await putKey(card, typedKey, typedCode)"))
+    throw new Error(`${p4FounderActionsFile}'s submitKey no longer empties the key field before the request is sent. The field is cleared as the key goes, so nothing on the screen holds it while the service is asked.`);
+  if ((actionsCode.match(/<form\b/g) ?? []).length !== (actionsCode.match(/<form\b[^>]*method="post" onSubmit=\{submitKey\}/g) ?? []).length || !(actionsCode.match(/<form\b/g) ?? []).length)
+    throw new Error(`${p4FounderActionsFile} draws a form that is not method="post" with submitKey. A form that fell back to a plain submit must never put a key or a code in an address.`);
+  if (!/\{signedIn && keyOpen && <form/.test(actionsCode) || !/\{signedIn && meta && \(has\('provider-remove-key'\) \|\| has\('registry-enable'\) \|\| has\('registry-disable'\)\) && !keyOpen && <label/.test(actionsCode))
+    throw new Error(`${p4FounderActionsFile} draws a field while the founder is not signed in. Signed out, the controls are disabled beside the sentence and no field is drawn.`);
+  if (!/masked\(registry\.keyMetadata\.maskedDisplay, meta\.lastFour\)/.test(actionsCode) || /meta\.key\b|\.revealedKey|answer\.body/.test(actionsCode))
+    throw new Error(`${p4FounderActionsFile} shows something of a key other than the contract's masked last four and the fingerprint the service answered.`);
+  const source = uncommented(read(`${p4Dir}/useVoiceSaving.ts`));
+  if (!/if \(signedIn\) \{\s*if \(founder\.phase === 'read'\) return of\('service', founder\.settings\.snapshot/.test(source) || !/if \(gate\.phase === 'preview'\) \{\s*const snapshot = snapshotNow\('assistant'\);/.test(source) || !/return of\(gate\.phase === 'checking' \? 'checking' : 'locked', byDefault/.test(source))
+    throw new Error(`${p4Dir}/useVoiceSaving.ts's useSpeechSource no longer answers the service's snapshot inside the founder's session, the tab's as a preview, and the contract's defaults locked otherwise. That order is what makes the founder's saved voice the one the preview plays.`);
+  if (!/if \(source\.phase === 'service'\) \{[\s\S]*?await postFounderChange\(\{ setting: change\.setting, from: source\.snapshot\.values\[change\.setting\]!, to: change\.value, reason, expectedVersion \}\);/.test(source))
+    throw new Error(`${p4Dir}/useVoiceSaving.ts no longer saves through the service's change route inside the founder's session, with the value in force as from and the version it was read at. The service is the store there, and its rules decide.`);
+  const preview = uncommented(read(`${p4Dir}/VoicePreview.tsx`));
+  if (!/const now = source\.voices;/.test(preview) || !/const provider = previewProvider\(source\.speech, classId\);/.test(preview) || /presentationVoiceNow|speechSettingsNow/.test(preview))
+    throw new Error(`${p4Dir}/VoicePreview.tsx reads a setting from somewhere other than useSpeechSource(). The chip a preview shows and the voice Play asks for follow the same source the Save writes to, or the founder hears a voice nobody saved.`);
+  for (const f of ["apps/web/src/features/portal/gilbertone/ModelProviders.tsx", "apps/web/src/features/portal/gilbertone/ApiRegistry.tsx"])
+    if (!/lazy\(\(\) => import\('\.\/founder\/FounderActions'\)/.test(read(f)))
+      throw new Error(`${f} no longer reaches the founder's controls through a dynamic import.`);
+  for (const f of files("apps/web/src").filter((f) => /\.tsx?$/.test(f)))
+    if (f !== p4FounderActionsFile && /lib\/founder-settings['"]/.test(read(f)) && f !== `${p4Dir}/useVoiceSaving.ts`)
+      throw new Error(`${f} imports lib/founder-settings. Only the founder's card controls and the Speech settings source read the founder's settings and providers.`);
+  if (!/founderRegistryActions\(\)/.test(read(`${p4Dir}/ApiRegistry.tsx`)) || !/gatedRegistryActions\(\)/.test(read(`${p4Dir}/ApiRegistry.tsx`)))
+    throw new Error(`${p4Dir}/ApiRegistry.tsx no longer splits a card's actions into the founder's and the gated by the contract's records.`);
+}
+
 console.log(
-  `GilbertOne API Administration, Phase 4 · ${p4Summary.subScreens} sub-screens behind dynamic imports (§7's seven and Speech settings), each reading a contract under a gate a register holds; no key, fragment, fingerprint or deployment address on any of them and no field that takes one; ${p4Summary.actions} actions, ${p4LiveActions.length} of them live on the founder's dated record of 27 September 2026 and every other one disabled beside its gate while G29, G30, G31, G32 or Module 8 is open, and founder access's one file the only live form, held by its own block below; a voice chosen and saved only under previewMaySaveAsDefault, never on a locked row; the preview's one POST to the contract's speak route and one audio element, and no other request but the two status reads; the panel's clinical-delivery readings in the contract's default voice and never a setting's; no neural voice name typed; ${p4Summary.configured} cards configured, each backed by its contract; the Overview reads booleans only; and no number typed that a contract owns.`,
+  `GilbertOne API Administration, Phase 4 · ${p4Summary.subScreens} sub-screens behind dynamic imports (§7's seven, Voice folded into Speech settings on 28 September 2026), each reading a contract under a gate a register holds; no key, fragment, fingerprint or deployment address on any of them and no field that takes one but the founder's; ${p4Summary.actions} actions, ${p4LiveActions.length} of them live on the founder's dated records, ${p4FounderActions.length} the founder's alone — enabled only inside the founder's signed-in session through founder/FounderActions.tsx and the service's founder routes, one password field cleared as it is sent — and every other one disabled beside its gate while G30, G31, G32 or Module 8 is open; a voice chosen and saved only under previewMaySaveAsDefault, never on a locked row; the preview's one POST to the contract's speak route and one audio element, and no other request but the two status reads; the preview's in-force values from the service inside the founder's session; the panel's clinical-delivery readings in the contract's default voice and never a setting's; no neural voice name typed; ${p4Summary.configured} cards configured, each backed by its contract; the Overview reads booleans only; and no number typed that a contract owns.`,
 );
 
 /* ==== Speech settings (28 September 2026) ============================================================
@@ -34283,23 +34438,29 @@ console.log(
   const deployScan = read("deploy/deploy.sh");
   if (!/ELEVENLABS_API_KEY/.test(bundleScan) || !/ELEVENLABS_API_KEY/.test(deployScan))
     throw new Error("scripts/build-assistant.mjs or deploy/deploy.sh no longer scans the bundle for an ElevenLabs key's value beside the others. A fourth provider's key is a fourth thing the artifact must never carry.");
-  /* The eighth sub-screen draws no control of its own, and says the service reads the defaults. */
+  /* The merged sub-screen (28 September 2026, the Voice screen folded in) draws its change fields through the
+     portal's shared controls and one reason textarea, and saves through useVoiceSaving() — the shared rules over
+     this tab's history as a preview, the assistant service's own history inside the founder's session — with the
+     Configuration screen's valueText for every value it shows, so a value reads here as it does there. It draws
+     no button, form, input or select of its own, and outside the founder's session it still says, in the
+     contract's sentence, that the service reads the contract's defaults as far as this screen can tell. */
   const screen = "apps/web/src/features/portal/gilbertone/SpeechSettings.tsx";
   const screenCode = uncommented(read(screen));
-  if (!/import \{ Configuration as Settings, valueText \} from '\.\.\/\.\.\/Configuration';/.test(read(screen)) || !/<Settings engine="assistant" onEngine=\{\(\) => undefined\} fixed\/>/.test(screenCode))
-    throw new Error(`${screen} no longer embeds features/Configuration.tsx fixed to the assistant engine. The editor, the rules and the history are the Configuration tab's, or the screen is a second door.`);
-  if (/<(input|select|textarea|button|form)\b/.test(screenCode))
-    throw new Error(`${screen} draws a field or a control of its own. Everything an administrator changes here is changed through the embedded Configuration editor.`);
-  if (!/words\.serviceReadsDefaults/.test(screenCode) || !/reads every setting on this screen from the contract's defaults/.test(String(ss.portal.gilbertone.speech?.serviceReadsDefaults)))
-    throw new Error(`${screen} no longer says, in the contract's sentence, that the service reads these settings from the contract's defaults. Until the service keeps a history, an administrator must not believe a change here reached a patient.`);
-  const source = uncommented(read("apps/assistant-api/src/lib/speech-settings.ts"));
-  if (!/export const contractDefaults: SpeechSettingsSource = \(\) => speechSettingsByDefault;/.test(source) || !/settings: SpeechSettingsSource = contractDefaults,/.test(speechCode))
-    throw new Error("apps/assistant-api reads its speech settings from something other than the contract's defaults, and the Speech settings screen still says it reads the defaults. Change the sentence in the same change as the source.");
+  if (!/import \{ defaultValueOf, valueText \} from '\.\.\/\.\.\/Configuration';/.test(read(screen)) || !/import \{ ChoiceChips, RangeSlider, Switch \} from '\.\.\/Fields';/.test(read(screen)) || !/import \{ useVoiceSaving, type SettingChange \} from '\.\/useVoiceSaving';/.test(read(screen)))
+    throw new Error(`${screen} no longer draws its change fields with the portal's shared controls, reads values through the Configuration screen's valueText and saves through useVoiceSaving(). One set of controls, one reading of a value and one door for a change, or the screen is a second door.`);
+  if (/<(input|select|button|form)\b/.test(screenCode))
+    throw new Error(`${screen} draws a field or a control of its own. Its fields are the shared chips, ranges and switches and one reason textarea; its saves are LiveButtons.`);
+  if ((screenCode.match(/<textarea\b/g) ?? []).length !== 1)
+    throw new Error(`${screen} draws more than the one reason textarea. Nothing else on the screen takes typing.`);
+  if (!/source\.phase !== 'service' && <Empty heading=\{words\.serviceReadsDefaults\.split\(':'\)\[0\]!\}>\{words\.serviceReadsDefaults\}<\/Empty>/.test(screenCode) || !/reads every setting on this screen from the contract's defaults/.test(String(ss.portal.gilbertone.speech?.serviceReadsDefaults)))
+    throw new Error(`${screen} no longer says, outside the founder's session and in the contract's sentence, that the service reads these settings from the contract's defaults as far as it can tell. Inside the session the screen shows the service's own history instead.`);
+  if (!/<p className="g1-source" role="status">\{source\.sentence\}<\/p>/.test(screenCode))
+    throw new Error(`${screen} no longer says, first, where the values it shows came from — the service's history, this tab's, or the contract's defaults locked.`);
   const configuration = uncommented(read("apps/web/src/features/Configuration.tsx"));
   if (!/\{!fixed && <div className="cf-bar-field cf-bar-engine">/.test(configuration))
     throw new Error("apps/web/src/features/Configuration.tsx no longer hides its engine chooser when fixed. Embedded on the Speech settings screen it would offer every engine's settings under GilbertOne's heading.");
   console.log(
-    `Speech settings · ${domain.SPEECH_SETTING_KEYS.length} settings read by one domain reader, defaults held to the encoding and the two timeouts they restate, provider choices held to the ${builtTts.length} built speaking cards; no setting names a clinical register, the domain hands a non-presentation register no knob and no own voice, and the route refuses a register it does not know; the own voice is the founder's dated decision, carried by ${own.carriedBy.length} card${own.carriedBy.length === 1 ? "" : "s"} whose adapter reads the identifier only under the setting and never answers with one; ElevenLabs named on no phone and nowhere in packages/gilbertone; the eighth sub-screen embeds the Configuration editor and draws nothing of its own, and says the service reads the defaults.`,
+    `Speech settings · ${domain.SPEECH_SETTING_KEYS.length} settings read by one domain reader, defaults held to the encoding and the two timeouts they restate, provider choices held to the ${builtTts.length} built speaking cards; no setting names a clinical register, the domain hands a non-presentation register no knob and no own voice, and the route refuses a register it does not know; the own voice is the founder's dated decision, carried by ${own.carriedBy.length} card${own.carriedBy.length === 1 ? "" : "s"} whose adapter reads the identifier only under the setting and never answers with one; ElevenLabs named on no phone and nowhere in packages/gilbertone; the merged Speech settings screen draws its change fields with the shared controls and saves through one door, and outside the founder's session says the service reads the defaults as far as it can tell.`,
   );
 }
 
@@ -34339,15 +34500,31 @@ console.log(
     return source.slice(at, end < 0 ? undefined : at + 1 + end);
   };
   /* A founder branch of the server: from its condition to the next branch's. */
+  /* Located by the route's own evidence since 28 September 2026, when four founder routes took a card in
+     the path and their branches stopped being a literal URL comparison; quote-normalised as the
+     handler-exists check is. The per-card parser that sits between two branches is read as the tail of
+     the branch before it, which touches nothing of the founder module and so changes no verdict. */
+  const faServerNorm = faServer.replace(/['`]/g, '"');
   const faBranch = (method, path) => {
-    const at = faServer.indexOf(`req.method === "${method}" && req.url === "/assistant${path}"`);
+    const route = faRoutes.find((r) => r.method === method && r.path === path);
+    const handler = (route?.evidence?.handler ?? `req.method === "${method}" && req.url === "/assistant${path}"`).replace(/['`]/g, '"');
+    const at = faServerNorm.indexOf(handler);
     if (at < 0) return "";
-    const next = faServer.slice(at + 1).search(/\n {2,}(?:if \(req\.method|const refusedRoute|send\(res, 404)/);
-    return faServer.slice(at, next < 0 ? undefined : at + 1 + next);
+    const next = faServerNorm.slice(at + 1).search(/\n {2,}(?:if \(req\.method|const refusedRoute|send\(res, 404)/);
+    return faServerNorm.slice(at, next < 0 ? undefined : at + 1 + next);
   };
 
-  /* 1. Four routes, all the founder's, all built in server.ts, and nobody else calls them. */
-  const faKeys = ["POST /v1/founder/session", "DELETE /v1/founder/session", "GET /v1/founder/keys", "POST /v1/founder/reveal"];
+  /* 1. Four routes, all the founder's, all built in server.ts, and nobody else calls them — and, since 28
+     September 2026, the eight the founder's settings history and provider vault added (the block "The
+     founder's settings history and the provider vault" at the end of this file holds what is theirs
+     alone); every one is walked by every check below that reads a founder branch. */
+  const faOriginal = ["POST /v1/founder/session", "DELETE /v1/founder/session", "GET /v1/founder/keys", "POST /v1/founder/reveal"];
+  const faControl = [
+    "GET /v1/founder/settings", "POST /v1/founder/settings/changes", "GET /v1/founder/providers",
+    "PUT /v1/founder/providers/{card}/key", "DELETE /v1/founder/providers/{card}/key", "POST /v1/founder/providers/{card}/enabled",
+    "POST /v1/founder/providers/{card}/test", "GET /v1/founder/providers/{card}/logs",
+  ];
+  const faKeys = [...faOriginal, ...faControl];
   const declared = faRoutes.map((r) => `${r.method} ${r.path}`).sort().join();
   if (declared !== [...faKeys].sort().join())
     throw new Error(`packages/catalog/apis/assistant.json gives the founder caller [${declared}]; founder access is exactly ${faKeys.join(", ")}.`);
@@ -34374,7 +34551,7 @@ console.log(
     if (!branch) throw new Error(`${faServerFile} has no branch for ${key}.`);
     const gate = branch.indexOf("const gated = founder.gate(req.headers);");
     const firstStatement = uncommented(branch.slice(branch.indexOf("{") + 1)).trim();
-    if (gate < 0 || !firstStatement.startsWith("const gated = founder.gate(req.headers);") || !/if \(gated\) \{[^}]*return refuse\(res, cors\.headers, gated\.refusalId\);/.test(branch))
+    if (gate < 0 || !firstStatement.startsWith("const gated = founder.gate(req.headers);") || !/if \(gated\) \{[^]*?return refuse\(res, cors\.headers, gated\.refusalId\);/.test(branch))
       throw new Error(`${faServerFile}'s ${key} branch does not ask the founder gate first and refuse on it. Dark means every founder route refuses before it reads anything.`);
   }
   for (const f of files("deploy")) {
@@ -34454,24 +34631,38 @@ console.log(
   if (!setCookies.length || setCookies.some((v) => v !== "signed.cookie" && v !== "clearedFounderCookie()"))
     throw new Error(`${faServerFile} sets a cookie from something other than the founder module's own builders: ${setCookies.join(", ")}.`);
 
-  /* 6. No log line can carry a password, a code, a cookie or a value. The lib logs nothing; every console
-     call in a founder branch is console.log(founderLine(...)) with none of those in its arguments; and
-     founderLine drops a name outside the allowlist and a fingerprint of the wrong shape. */
+  /* 6. No log line can carry a password, a code, a cookie or a value. The lib logs nothing; every audit
+     call in a founder branch is founderAudit(founderLine(...)) — since 28 September 2026 the one function
+     that writes the line to the journal and, where the state directory exists, to the audit file the
+     logs route reads — with none of those in its arguments, no console call beside it; founderAudit
+     itself is console.log plus the state's append and nothing else; and founderLine drops a name outside
+     the allowlist, a fingerprint of the wrong shape, a card the vault does not hold and a setting key of
+     the wrong shape. */
   if (/console\./.test(faLibCode))
     throw new Error(`${faLibFile} writes to the console. Founder access's one log line is built by founderLine and written by server.ts.`);
+  if (!/const founderAudit = \(line: string\): void => \{\s*console\.log\(line\);\s*if \(state\) state\.appendLine\(founderContract\.audit\.file, JSON\.stringify\(\{ at: new Date\(now\(\)\)\.toISOString\(\), \.\.\.JSON\.parse\(line\) \}\)\);\s*\};/.test(uncommented(faServer)))
+    throw new Error(`${faServerFile}'s founderAudit is no longer console.log of the line plus its append to the contract's audit file, stamped with when, and nothing else. It is the one door a founder line leaves this process through.`);
   for (const key of faKeys) {
     const [method, path] = key.split(" ");
     const branch = uncommented(faBranch(method, path));
-    for (const call of branch.matchAll(/console\.(\w+)\(([^;]*?)\);/g)) {
-      if (call[1] !== "log" || !call[2].trim().startsWith("founderLine("))
-        throw new Error(`${faServerFile}'s ${key} branch logs with console.${call[1]}(${call[2].slice(0, 40)}…). A founder branch writes one line, through founderLine, and nothing else.`);
-      if (/password|asked\.code|\bcode\b|cookie|revealedKey|\.value\b|req\.headers/i.test(call[2]))
-        throw new Error(`${faServerFile}'s ${key} branch passes something that could be a password, a code, a cookie or a key to its log line: ${call[2].trim()}`);
+    if (/console\./.test(branch))
+      throw new Error(`${faServerFile}'s ${key} branch calls the console directly. A founder branch writes one line, through founderAudit(founderLine(…)), so the journal and the audit file cannot disagree.`);
+    let audited = 0;
+    for (const call of branch.matchAll(/founderAudit\(([^;]*?)\);/g)) {
+      audited++;
+      if (!call[1].trim().startsWith("founderLine("))
+        throw new Error(`${faServerFile}'s ${key} branch audits with founderAudit(${call[1].slice(0, 40)}…). A founder branch writes one line, through founderLine, and nothing else.`);
+      if (/password|asked\.code|\bcode\b|cookie|revealedKey|asked\.key|\.value\b|req\.headers/i.test(call[1]))
+        throw new Error(`${faServerFile}'s ${key} branch passes something that could be a password, a code, a cookie or a key to its log line: ${call[1].trim()}`);
     }
+    if (audited < 2)
+      throw new Error(`${faServerFile}'s ${key} branch writes ${audited} audit line${audited === 1 ? "" : "s"}. Every founder branch audits its gate refusal and its outcome at least.`);
   }
   const lineFn = faLibCode.slice(faLibCode.indexOf("export function founderLine("), faLibCode.indexOf("export type SignedIn"));
   if (!/if \(key && REVEAL_ALLOWLIST\.includes\(key\.name\)\) line\.name = key\.name;/.test(lineFn) || !lineFn.includes("^[0-9a-f]{${contract.reveal.fingerprintHexLength}}$"))
     throw new Error(`${faLibFile}'s founderLine no longer confines a line to the event, the outcome, an allowlisted name and a fingerprint of the right shape.`);
+  if (!/if \(about\?\.card && VAULT_CARD_IDS\.includes\(about\.card\)\) line\.card = about\.card;/.test(lineFn) || !/if \(about\?\.setting && SETTING_KEY\.test\(about\.setting\)\) line\.setting = about\.setting;/.test(lineFn) || !/const VAULT_CARD_IDS: readonly string\[\] = contract\.vault\.cards\.map\(\(c\) => c\.card\);/.test(faLibCode))
+    throw new Error(`${faLibFile}'s founderLine no longer confines the card it names to the vault's cards and the setting it names to a setting key's shape. Those two are the only things a founder line gained on 28 September 2026, and each is checked before it is written.`);
 
   /* 7. The TOTP is apps/api/src/totp.ts, imported, with the contract's numbers; no second HMAC here. The
      script's numbers are the contract's; it takes the password twice with echo off, as root, and
@@ -34517,8 +34708,11 @@ console.log(
        gate, held below to reading state and nothing else; and shells/FounderGate.tsx, the Control Tower's
        door, held in the Founder's door block at the end of this file to reading state, asking the probe,
        and drawing the reveal panel's own form through a dynamic import. */
-    if (/lib\/founder-access['"]/.test(text) && f !== "apps/web/src/lib/founder-gate.ts" && f !== "apps/web/src/shells/FounderGate.tsx")
-      throw new Error(`${f} imports lib/founder-access. Only the reveal panel, the settings gate and the Control Tower's door do.`);
+    /* And since the founder's controls of 28 September 2026 two more: lib/founder-settings.ts, which asks the founder's
+       settings and provider routes through this module's one caller, and founder/FounderActions.tsx, which reads the
+       code length and the masked display — both held by the Phase 4 block's check 11 to carrying no key. */
+    if (/lib\/founder-access['"]/.test(text) && f !== "apps/web/src/lib/founder-gate.ts" && f !== "apps/web/src/shells/FounderGate.tsx" && f !== "apps/web/src/lib/founder-settings.ts" && f !== "apps/web/src/features/portal/gilbertone/founder/FounderActions.tsx")
+      throw new Error(`${f} imports lib/founder-access. Only the reveal panel, the settings gate, the Control Tower's door, the founder's settings client and the founder's card controls do.`);
     if (/^\s*import (?!type\b)[^;]*founder\/FounderAccess/m.test(text))
       throw new Error(`${f} imports the founder panel statically. It arrives on a dynamic import, so nobody who does not open it downloads it.`);
   }
@@ -34568,7 +34762,7 @@ console.log(
     throw new Error("packages/catalog/control-tower-portal.json's no-key-on-an-admin-screen refusal no longer names founder access as its one exception, so the screen would claim no key is ever shown while one can be.");
 
   console.log(
-    `Founder access · ${faRoutes.length} routes, the founder's alone, each asking the gate first and dark unless ${fa.enable.variable}=${fa.enable.value} and a credential both hold, with nothing under deploy/ able to write either; a reveal allowlist of exactly ${fa.reveal.allowlist.join(" and ")}, checked before the environment is read; a reveal only with a live session and a fresh, burned code; ${fa.lockout.consecutiveFailures} failures lock for ${fa.lockout.lockSeconds / 60} minutes before any hash; the cookie ${fa.session.cookie} exactly ${fa.session.attributes.join("; ")}; Max-Age=${fa.session.lifetimeSeconds}, never renewed; one log line per act that cannot carry a secret; the identity service's TOTP and the script's numbers the contract's; and a revealed key held only in RevealKey's state, from the reveal route, wiped after ${fa.reveal.wipeAfterSeconds} seconds and stored nowhere.`,
+    `Founder access · ${faRoutes.length} routes (${faOriginal.length} of 24 September, ${faControl.length} of 28 September), the founder's alone, each asking the gate first and dark unless ${fa.enable.variable}=${fa.enable.value} and a credential both hold, with nothing under deploy/ able to write either; a reveal allowlist of exactly ${fa.reveal.allowlist.join(" and ")}, checked before the environment is read; a reveal only with a live session and a fresh, burned code; ${fa.lockout.consecutiveFailures} failures lock for ${fa.lockout.lockSeconds / 60} minutes before any hash; the cookie ${fa.session.cookie} exactly ${fa.session.attributes.join("; ")}; Max-Age=${fa.session.lifetimeSeconds}, never renewed; one log line per act that cannot carry a secret; the identity service's TOTP and the script's numbers the contract's; and a revealed key held only in RevealKey's state, from the reveal route, wiped after ${fa.reveal.wipeAfterSeconds} seconds and stored nowhere.`,
   );
 }
 
@@ -34794,5 +34988,240 @@ console.log(
 
   console.log(
     `Founder's door · the Control Tower and the back office behind the founder's sign-in on exactly import.meta.env.PROD || ${door.param}=${door.value}; one line draws the portal, under one condition, and dark or silence stays a door in the contract's words; no factor, no form and no request of its own — the reveal panel's SignIn through a dynamic import; nothing stored, logged or addressed; PortalShell renders nothing of the portal while the door holds; the roles exactly [${door.roles.join(", ")}]; nothing on the patient's first load names it; the sheet in the tokens' time only and every control 44px; only the portal's shell reaches it; the journeys hold it shut on dark, on silence and after the session's end.`,
+  );
+}
+
+/* ==== The founder's settings history and the provider vault (28 September 2026) =====================
+   The founder's instruction — "I need to be able to control all these aspects, I am the owner" — and the
+   two facts it fixes (packages/catalog/founder-access.json#ownership): a setting saved in the Control
+   Tower reached no patient because the speak route read the contract's defaults, and a provider key
+   could be set only over SSH for want of a vault. The Founder access block above already walks every
+   founder branch for the gate, the session and the audit door; what is held here is what the eight new
+   routes are alone: the state directory refused when absent and every file in it 0600; the vault file
+   and its key named nowhere a deploy or a browser reads; no founder answer with a field named like key
+   material; the speak route reading the founder's history and a clinical register reading none of it; a
+   fresh code on every write that changes what the server holds and on no read; the script writing the
+   vault key once and never printing it; the unit declaring the directory the contract names; and the
+   governance record and the runbook carrying the dated account. Each was proved by breaking its source
+   and restoring it (docs/FEATURE-MAP.md, the founder control entry). */
+{
+  const fa = JSON.parse(read("packages/catalog/founder-access.json"));
+  const registry = JSON.parse(read("packages/catalog/api-registry.json"));
+  const apiDoc = JSON.parse(read("packages/catalog/apis/assistant.json"));
+  const serverFile = "apps/assistant-api/src/server.ts";
+  const server = uncommented(read(serverFile)).replace(/['`]/g, '"');
+  const stateFile = "apps/assistant-api/src/lib/founder-state.ts";
+  const stateCode = uncommented(read(stateFile));
+  const historyFile = "apps/assistant-api/src/lib/settings-history.ts";
+  const historyCode = uncommented(read(historyFile));
+  const vaultFile = "apps/assistant-api/src/lib/provider-vault.ts";
+  const vaultCode = uncommented(read(vaultFile));
+  const speechFile = "apps/assistant-api/src/lib/speech.ts";
+  const speechCode = uncommented(read(speechFile));
+  const speechSettingsFile = "apps/assistant-api/src/lib/speech-settings.ts";
+  const speechSettingsCode = uncommented(read(speechSettingsFile));
+  const unitFile = "deploy/ops/assistant-api.service";
+  const unit = read(unitFile);
+  const scriptFile = "deploy/ops/configure-founder-access.sh";
+  const script = read(scriptFile);
+  const control = apiDoc.routes.filter((r) => r.path.startsWith("/v1/founder/") && !["/v1/founder/session", "/v1/founder/keys", "/v1/founder/reveal"].includes(r.path));
+  const branchOf = (route) => {
+    const at = server.indexOf(route.evidence.handler.replace(/['`]/g, '"'));
+    if (at < 0) throw new Error(`${serverFile} has no branch for ${route.method} ${route.path}.`);
+    const next = server.slice(at + 1).search(/\n {2,}(?:if \(req\.method|const refusedRoute|send\(res, 404)/);
+    return server.slice(at, next < 0 ? undefined : at + 1 + next);
+  };
+  const routeOf = (method, path) => {
+    const found = control.find((r) => r.method === method && r.path === path);
+    if (!found) throw new Error(`packages/catalog/apis/assistant.json no longer declares ${method} ${path}, one of the founder's eight control routes of 28 September 2026.`);
+    return found;
+  };
+
+  /* 1. The contract: the founder's dated instruction, the state directory, the settings source and the
+     vault's cards — each built, each reading the variable the vault holds — and the audit events every
+     branch writes. */
+  if (fa.ownership?.by !== "Founder" || fa.ownership.on !== "2026-09-28" || !/I am the owner/.test(fa.ownership.what))
+    throw new Error("packages/catalog/founder-access.json#ownership no longer carries the founder's instruction of 28 September 2026. A settings history the speak route obeys and a vault the browser writes to are a decision on file or they are features nobody asked for.");
+  if (fa.state?.variable !== "MYTHUSO_ASSISTANT_STATE_DIR" || fa.state.systemdStateDirectory !== "mythuso-assistant" || fa.state.fileMode !== "0600" || !fa.state.settingsFile || !fa.state.vaultFile || !fa.state.auditFile)
+    throw new Error("packages/catalog/founder-access.json#state no longer names the variable, the systemd directory, the three files and the 0600 mode the service and the unit are held to.");
+  if (fa.settings?.byRole !== "admin" || fa.settings.byRef !== "founder" || fa.settings.block !== "packages/catalog/voice.json#settings" || !/founder's session is the only authentication/.test(fa.settings.readIsFounderGated))
+    throw new Error("packages/catalog/founder-access.json#settings no longer records the administrator role a change is made under with the founder as the reference, the block it changes, or why the read is founder-gated.");
+  if (fa.vault?.keyVariable !== "MYTHUSO_VAULT_KEY" || fa.vault.keyBytes !== 32 || fa.vault.cipher !== "aes-256-gcm" || JSON.stringify(fa.vault.precedence) !== JSON.stringify(["vault", "environment"]))
+    throw new Error("packages/catalog/founder-access.json#vault is no longer AES-256-GCM under a thirty-two-byte MYTHUSO_VAULT_KEY with the vault before the environment.");
+  const builtWithKey = registry.cards.filter((c) => c.buildStatus === "built" && (c.environment ?? []).some((v) => /_KEY$/.test(v))).map((c) => c.id).sort();
+  if (JSON.stringify(fa.vault.cards.map((c) => c.card).sort()) !== JSON.stringify(builtWithKey))
+    throw new Error(`packages/catalog/founder-access.json#vault.cards names [${fa.vault.cards.map((c) => c.card).sort()}]; the built cards in packages/catalog/api-registry.json with a key variable are [${builtWithKey}]. The vault holds a key for every built provider that reads one, and for nothing that is proposed.`);
+  for (const { card, keyVariable } of fa.vault.cards) {
+    const found = registry.cards.find((c) => c.id === card);
+    if (!found || !(found.environment ?? []).includes(keyVariable) || !/_KEY$/.test(keyVariable))
+      throw new Error(`packages/catalog/founder-access.json#vault.cards puts ${keyVariable} on "${card}", which packages/catalog/api-registry.json's card does not read as a key.`);
+  }
+  if (JSON.stringify(fa.reveal.allowlist) !== JSON.stringify(["AZURE_OPENAI_KEY", "AZURE_SPEECH_KEY"]))
+    throw new Error("The reveal allowlist moved with the vault. It stays exactly the two Azure names, and the vault never reveals.");
+  const eventsUsed = [...server.matchAll(/founderLine\("([a-z.-]+)"/g)].map((m) => m[1]);
+  for (const event of new Set(eventsUsed))
+    if (!fa.audit.events.includes(event))
+      throw new Error(`${serverFile} writes the audit event "${event}", which packages/catalog/founder-access.json#audit.events does not list. founderLine() would write it as founder.unknown, and a line nobody can name is a line nobody reads.`);
+  for (const event of ["founder.settings", "founder.settings.change", "founder.providers", "founder.provider.key-set", "founder.provider.key-deleted", "founder.provider.enabled", "founder.provider.test", "founder.provider.logs"])
+    if (!eventsUsed.includes(event))
+      throw new Error(`${serverFile} no longer writes the audit event "${event}". Every founder act is one line.`);
+
+  /* 2. Eight routes, all built in server.ts on the founder's session, each carrying the three gate
+     refusals; a path parameter is a required string field; and the request fields of a write name the
+     code as a secret request field. */
+  if (control.length !== 8)
+    throw new Error(`packages/catalog/apis/assistant.json declares ${control.length} founder control routes; the founder's settings history and vault are exactly eight.`);
+  for (const r of control) {
+    if (r.status !== "built" || r.evidence?.file !== serverFile || r.enforcedBy?.mechanism !== "founder-session" || JSON.stringify(r.callers) !== JSON.stringify(["founder"]))
+      throw new Error(`${r.method} ${r.path}@${r.version} is not built in ${serverFile} on the founder's session for the founder alone.`);
+    for (const id of ["founder-request-cross-site", "founder-access-dark", "founder-no-session"])
+      if (!r.refusals.some((x) => x.id === id))
+        throw new Error(`${r.method} ${r.path}@${r.version} does not declare ${id}. Every founder route refuses cross-site, dark and no session, in the contract's words.`);
+    if (r.path.includes("{card}") && !r.request.some((f) => f.field === "card" && f.required === true && f.type === "string"))
+      throw new Error(`${r.method} ${r.path}@${r.version} takes a card in its path and no required card field.`);
+  }
+
+  /* 3. No founder answer carries a field named like key material — the registry's own neverFields, at
+     every depth — but the reveal's revealedKey, unchanged; and the vault's metadata type has none. */
+  const never = new Set(registry.keyMetadata.neverFields.map((n) => String(n).toLowerCase().replace(/[^a-z0-9]/g, "")));
+  const canon = (n) => String(n).toLowerCase().replace(/[^a-z0-9]/g, "");
+  const sweep = (fields, where) => {
+    for (const f of fields ?? []) {
+      if (never.has(canon(f.field)) && !(where === "POST /v1/founder/reveal" && f.field === "revealedKey"))
+        throw new Error(`${where} answers a field named "${f.field}", which packages/catalog/api-registry.json#keyMetadata.neverFields names as key material. A founder answer carries a key's last four and fingerprint, never the key; the reveal is the one exception and it is not this route.`);
+      if (Array.isArray(f.fields)) sweep(f.fields, where);
+    }
+  };
+  for (const r of apiDoc.routes.filter((x) => x.path.startsWith("/v1/founder/"))) sweep(r.response, `${r.method} ${r.path}`);
+  const metadataType = vaultCode.slice(vaultCode.indexOf("export type KeyMetadata = {"), vaultCode.indexOf("};", vaultCode.indexOf("export type KeyMetadata = {")));
+  for (const m of metadataType.matchAll(/^\s*([A-Za-z]+)[?]?:/gm))
+    if (never.has(canon(m[1])))
+      throw new Error(`${vaultFile}'s KeyMetadata carries "${m[1]}", a field the registry names as key material. The metadata type has no field a key could travel in.`);
+  if (!/export type VaultOutcome<T> = \{ ok: true; answer: T \}/.test(vaultCode))
+    throw new Error(`${vaultFile}'s outcome no longer carries its metadata as "answer". The word "value" beside a key's metadata is the word the founder branches are swept for.`);
+
+  /* 4. The vault: every file 0600, appended or replaced atomically, the directory never invented; the
+     vault file and its key named nowhere under deploy/ but the script and the runbook, and nowhere the
+     browser reads; a locked vault refuses every key write and a missing directory every write, before
+     anything is encrypted or validated. */
+  if (!/export const FILE_MODE = 0o600;/.test(stateCode) || !/openSync\(at\(file\), "a", FILE_MODE\)/.test(stateCode) || !/openSync\(temporary, "w", FILE_MODE\)/.test(stateCode) || (stateCode.match(/chmodSync\([^;]*FILE_MODE\)/g) ?? []).length < 2 || !/renameSync\(temporary, at\(file\)\)/.test(stateCode))
+    throw new Error(`${stateFile} no longer writes every state file 0600, appends the two logs and replaces the vault through a temporary file and a rename. ${fa.state.why}`);
+  const mkdirs = [...stateCode.matchAll(/mkdirSync\(/g)].length;
+  if (mkdirs !== 1 || !/export function ensureStateDirectory\(directory: string\): void \{\s*mkdirSync\(/.test(stateCode) || /mkdirSync\(/.test(stateCode.slice(0, stateCode.indexOf("export function ensureStateDirectory"))))
+    throw new Error(`${stateFile} creates a directory outside ensureStateDirectory, the test harness's own. The state directory the unit names must exist; a directory this process could invent is one nobody provisioned.`);
+  if (!/if \(!state\) return \{ ok: false, refusalId: "founder-state-unavailable" \};/.test(historyCode) || historyCode.indexOf('refusalId: "founder-state-unavailable"') > historyCode.indexOf("proposeChange("))
+    throw new Error(`${historyFile} no longer refuses a change with founder-state-unavailable before the shared rules when there is no state directory. A change this process cannot keep is not a change, whatever its value.`);
+  for (const method of ["setKey", "deleteKey", "setEnabled"]) {
+    const body = vaultCode.slice(vaultCode.indexOf(`\n    ${method}(`), vaultCode.indexOf("\n    }", vaultCode.indexOf(`\n    ${method}(`)));
+    if (!/if \(!state\) return \{ ok: false, refusalId: "founder-state-unavailable" \};/.test(body))
+      throw new Error(`${vaultFile}'s ${method} no longer refuses without a state directory.`);
+    if (method !== "setEnabled" && !/if \(!master\) return \{ ok: false, refusalId: "founder-vault-locked" \};/.test(body))
+      throw new Error(`${vaultFile}'s ${method} no longer refuses without the master key. A key stored in the clear because the master key was missing is the file the vault exists to prevent.`);
+    if (method === "setKey" && (body.indexOf('"founder-vault-locked"') > body.indexOf("KEY_SHAPE.test(value)") || body.indexOf("KEY_SHAPE.test(value)") > body.indexOf("encrypt(master")))
+      throw new Error(`${vaultFile}'s setKey reads or encrypts the key before every refusal has had its chance.`);
+  }
+  if (!/createCipheriv\("aes-256-gcm", master, iv\)/.test(vaultCode) || !/randomBytes\(12\)/.test(vaultCode) || !/setAAD\(AAD\(variable\)\)/.test(vaultCode) || /bytes\.length === KEY_BYTES/.test(vaultCode) === false)
+    throw new Error(`${vaultFile} no longer encrypts with AES-256-GCM under a twelve-byte random nonce and the variable as associated data, or no longer holds the master key to the contract's length.`);
+  if (/console\./.test(vaultCode) || /console\./.test(historyCode) || /console\./.test(stateCode))
+    throw new Error("The vault, the settings history and the state module log something. Nothing in them may write a line: the one founder line is server.ts's founderAudit.");
+  for (const f of files("deploy").filter((x) => !/\.md$/.test(x) && x !== scriptFile)) {
+    const code = read(f).split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
+    if (/MYTHUSO_VAULT_KEY|vault\.json/.test(code))
+      throw new Error(`${f} names the vault key or the vault file. The script writes the key once and the service alone reads the file; a deploy never touches either.`);
+  }
+  for (const f of files("apps/web/src").filter((x) => /\.(ts|tsx)$/.test(x)))
+    if (/MYTHUSO_VAULT_KEY|vault\.json|settings-history\.jsonl|founder-audit\.jsonl/.test(read(f)))
+      throw new Error(`${f} names a file of the service's state directory or the vault key. The browser reads what the founder routes answer, never a file on the box.`);
+  if (!/^StateDirectory=mythuso-assistant$/m.test(unit) || !/^StateDirectoryMode=0700$/m.test(unit) || !new RegExp(`^Environment=${fa.state.variable}=%S/${fa.state.systemdStateDirectory}$`, "m").test(unit))
+    throw new Error(`${unitFile} no longer declares StateDirectory=${fa.state.systemdStateDirectory} at 0700 and hands its path to the process in ${fa.state.variable}. Without it every founder write is refused on the box, honestly, and the founder's "male" reaches nothing.`);
+  if (!/^UMask=0077$/m.test(unit))
+    throw new Error(`${unitFile} has lost UMask=0077, the second thing that keeps every state file 0600.`);
+
+  /* 5. The script writes the vault key once — thirty-two bytes, only when the file has none — keeps it
+     on every later run, and no line of it can print the key. */
+  if ((script.match(/^VAULT_KEY_VARIABLE=(\S+)$/m) ?? [])[1] !== fa.vault.keyVariable || Number((script.match(/^VAULT_KEY_BYTES=(\d+)$/m) ?? [])[1]) !== fa.vault.keyBytes)
+    throw new Error(`${scriptFile} sets a vault key variable or length other than packages/catalog/founder-access.json#vault's. The script cannot read the contract on the box, so the build holds it to it.`);
+  if (!/if \[ ! -f "\$ENV_FILE" \] \|\| ! grep -qE "\^\$\{VAULT_KEY_VARIABLE\}=" "\$ENV_FILE"; then/.test(script) || !/randomBytes\(\$\{VAULT_KEY_BYTES\}\)\.toString\('base64'\)/.test(script))
+    throw new Error(`${scriptFile} no longer generates the vault key only when the file has none, from the CSPRNG. A vault key rotated by a re-run is a vault nobody can read.`);
+  if (!/if \[ -n "\$vault_key" \]; then\s*printf '%s=%s\\n' "\$VAULT_KEY_VARIABLE" "\$vault_key" >> "\$tmp"\s*fi/.test(script))
+    throw new Error(`${scriptFile} no longer writes the vault key into the credential file through the same atomic temporary file as the credential.`);
+  for (const line of script.split("\n"))
+    if (/^\s*(say|echo|printf)\b/.test(line) && !/>> "\$tmp"/.test(line) && !/grep -qE/.test(line) && /\$vault_key|\$\{vault_key/.test(line))
+      throw new Error(`${scriptFile} prints the vault key: ${line.trim()}. It is never shown, not even masked; there is nothing a person needs to do with it.`);
+  if (!/unset hash secret uri fingerprint vault_key/.test(script))
+    throw new Error(`${scriptFile} no longer clears the vault key from the shell with the other secrets.`);
+
+  /* 6. The speak route reads the founder's history: server.ts hands the history's two readers and the
+     vault's per-card view to the seam; the seam resolves a presentation register's label from the
+     history when the caller named no voice, and voiceLabelFor() answers a label for a presentation
+     register alone, so an emergency reads the platform default whatever the history says. */
+  if (!/const speech: SpeechSeam = speechSeam \?\? selectedSpeech\(fetch, vault\.envFor\(\), settings\.speech, now, \(card\) => vault\.envFor\(card\), settings\.presentationVoice\);/.test(server))
+    throw new Error(`${serverFile} no longer builds the cloud voice from the founder's settings history (settings.speech, settings.presentationVoice) and the vault's credential view. That line is what makes a saved "male" reach the voice test — and what keeps a key stored in the Control Tower in force without a restart.`);
+  if (!/installCredentialSource\(\(\) => vault\.envFor\(\)\);/.test(server))
+    throw new Error(`${serverFile} no longer installs the vault's view as the credential source for the language-model tier. A key stored in the vault would then reach the speech adapters and not Azure OpenAI.`);
+  if (!/const voiceLabel = request\.voice \? undefined : voiceLabelFor\(voices, request\.register \?\? null\);/.test(speechCode) || !/door\.synthesize\(\{ \.\.\.request, voiceLabel, tuning: request\.tuning \?\? reading\.tuning \}\)/.test(speechCode))
+    throw new Error(`${speechFile} no longer resolves the presentation voice from the settings in force when the caller named no voice, or no longer hands it to the door. The founder's "male" would stay in the history and never reach a reading.`);
+  if (!/export const voiceLabelFor = \(voices: PresentationVoiceSource, register: string \| null\): VoiceLabel \| undefined =>\s*isPresentationRegister\(register\) \? voices\(\)\.byClass\[register\] : undefined;/.test(speechSettingsCode))
+    throw new Error(`${speechSettingsFile}'s voiceLabelFor no longer answers a label for a presentation register alone. An emergency, a refusal and an escalation are read in the platform's default label whatever the history says: voice.json's own rule, and the one line here that keeps it.`);
+  if (!/const voice = asked \|\| voices\[request\.voiceLabel \?\? DEFAULT_LABEL\];/.test(speechCode) || !/const DEFAULT_LABEL = assistant\.voice\.cloud\.defaultVoice as "female" \| "male";/.test(speechCode))
+    throw new Error(`${speechFile}'s Azure door no longer reads the label it was handed, falling back to the contract's own default label. A default typed here is a locale setting nobody decided.`);
+  if (!/speech: \(\) => speechSettingsOf\(snapshot\(\)\),/.test(historyCode) || !/presentationVoice: \(\) => presentationVoiceOf\(snapshot\(\)\),/.test(historyCode) || !/const snapshot = \(\) => snapshotOf\(block, changes\);/.test(historyCode))
+    throw new Error(`${historyFile} no longer answers the speech settings and the presentation voice from a replay of the history at every reading. What is in force is a replay, never a copy that falls behind.`);
+  if (!/proposeChange\(\s*assistantSettings,\s*changes,\s*\{ setting: request\.setting, value: request\.to, reason: request\.reason, expectedVersion, byRole: BY_ROLE, byRef: BY_REF \},/.test(historyCode) || !/const BY_ROLE: string = contract\.settings\.byRole;/.test(historyCode))
+    throw new Error(`${historyFile} no longer validates a change through the shared proposeChange() over the assistant block, against the role and reference the contract names. A rule written here is a second set of rules, and a refused change would stop being refused in the shared sentence.`);
+  if (!/state\.appendLine\(SETTINGS_FILE, JSON\.stringify\(change\)\);\s*changes\.push\(change\);/.test(historyCode) || /writeJson|writeFileSync|unlink|truncate/.test(historyCode))
+    throw new Error(`${historyFile} no longer appends an accepted change to the file before the list, or can rewrite the history. It is added to and never edited.`);
+
+  /* 7. A fresh code on every write that changes what the server holds — a key set, a key removed, a
+     provider switched — and on no read: the metadata, the test and the logs ask for the session alone,
+     and so does a settings change, whose signature is the session as it is for the editors. */
+  const withCode = [["PUT", "/v1/founder/providers/{card}/key"], ["DELETE", "/v1/founder/providers/{card}/key"], ["POST", "/v1/founder/providers/{card}/enabled"]];
+  const withoutCode = [["GET", "/v1/founder/settings"], ["POST", "/v1/founder/settings/changes"], ["GET", "/v1/founder/providers"], ["POST", "/v1/founder/providers/{card}/test"], ["GET", "/v1/founder/providers/{card}/logs"]];
+  for (const [method, path] of withCode) {
+    const route = routeOf(method, path);
+    const branch = branchOf(route);
+    const confirm = branch.indexOf("founder.confirmCode(asked.code)");
+    const write = branch.search(/vault\.(setKey|deleteKey|setEnabled)\(/);
+    if (confirm < 0 || write < 0 || confirm > write || !/if \(!confirmed\.ok\) \{[^]*?return refuse\(res, cors\.headers, confirmed\.refusalId\);/.test(branch))
+      throw new Error(`${serverFile}'s ${method} ${path} branch no longer asks for a fresh authenticator code, and refuses on it, before it writes to the vault. A stolen cookie must store, remove and switch nothing.`);
+    if (!route.request.some((f) => f.field === "code" && f.required === true) || !(route.secretRequestFields ?? []).some((s) => s.field === "code") || !route.refusals.some((x) => x.id === "founder-code-refused") || !route.refusals.some((x) => x.id === "founder-locked-out"))
+      throw new Error(`${method} ${path}@${route.version} does not declare the code as a required secret request field with founder-code-refused and founder-locked-out. The contract says what a write costs.`);
+  }
+  for (const [method, path] of withoutCode) {
+    const route = routeOf(method, path);
+    if (/confirmCode\(/.test(branchOf(route)) || route.request.some((f) => f.field === "code"))
+      throw new Error(`${serverFile}'s ${method} ${path} asks for an authenticator code. A read, a test and a settings change take the founder's session alone: a code asked where nothing on the server changes is a code the founder learns to type without looking.`);
+  }
+  const keyRoute = routeOf("PUT", "/v1/founder/providers/{card}/key");
+  if (!(keyRoute.secretRequestFields ?? []).some((s) => s.field === "key"))
+    throw new Error("PUT /v1/founder/providers/{card}/key does not name the key as a secret request field. It is encrypted and stored, and never kept in any digest, log or answer.");
+  const confirmBody = uncommented(read("apps/assistant-api/src/lib/founder-access.ts"));
+  const confirmAt = confirmBody.indexOf("\n    confirmCode(code) {");
+  const confirmFn = confirmAt < 0 ? "" : confirmBody.slice(confirmAt, confirmBody.indexOf("\n    },", confirmAt));
+  if (!/if \(locked\(\)\) return \{ ok: false, refusalId: "founder-locked-out" \};/.test(confirmFn) || !/verifyTotp\(credential\.totpSecret, [^;]*now\(\), lastUsedStep\);\s*if \(!check\.ok\) return fail\("founder-code-refused"\);\s*lastUsedStep = check\.step;/.test(confirmFn))
+    throw new Error("apps/assistant-api/src/lib/founder-access.ts's confirmCode no longer checks the lock, then a fresh code against the last step used, burning it on success and counting a failure toward the lock — exactly as a reveal does.");
+
+  /* 8. A disabled provider is never called: the vault's view answers nothing for a disabled card's
+     variables, the seam hands every adapter its own card's view, and the residency gate still stands
+     between an offshore card and a patient's voice. */
+  if (!/if \(disabledFor\(name\)\) return undefined;/.test(vaultCode) || !/return vaultValue\(name\) \?\? env\[name\];/.test(vaultCode))
+    throw new Error(`${vaultFile}'s envFor no longer blanks a disabled card's variables before it reads the vault and then the environment. ${registry.refusals.find((r) => r.id === "a-disabled-provider-is-never-called").statement}`);
+  if (!/const stt = ADAPTERS\[selection\.stt\.card\]\(fetchImpl, envFor\(selection\.stt\.card\)\);/.test(speechCode) || !/ADAPTERS\[id\]\(fetchImpl, envFor\(id\)\)/.test(speechCode))
+    throw new Error(`${speechFile} no longer hands each adapter the credential view of its own card. A disabled card would then be read through another's view.`);
+  if (!/if \(!enabled\(entry\.card\)\) return \{ ok: false, refusalId: "founder-provider-disabled" \};/.test(vaultCode) || vaultCode.indexOf('"founder-provider-disabled"') > vaultCode.indexOf("testCallFor(entry.card"))
+    throw new Error(`${vaultFile}'s test no longer refuses a disabled card before any call is built.`);
+  if (/compatible-mode|text-generation\/generation|qwen-plus|qwen-max|qwen-turbo/.test(vaultCode))
+    throw new Error(`${vaultFile} names a door of the proposed Alibaba Qwen language model. A test call reaches only the doors a built adapter uses.`);
+
+  /* 9. The governance record and the runbook carry the dated account. */
+  const governance = read("docs/governance/FOUNDER-ACCESS.md");
+  if (!/## The founder's settings history and the provider vault, 28 September 2026/.test(governance) || !/founder-state-unavailable/.test(governance) || !/founder-vault-locked/.test(governance) || !/MYTHUSO_VAULT_KEY/.test(governance))
+    throw new Error("docs/governance/FOUNDER-ACCESS.md has no dated section for the settings history and the vault, or it no longer names the two refusals and the vault key. A change to what the founder can do to the server is written down where the founder's access is.");
+  const runbook = read("deploy/RUNBOOK.md");
+  if (!/### The settings history and the provider vault, 28 September 2026/.test(runbook) || !/MYTHUSO_VAULT_KEY/.test(runbook) || !/StateDirectory=mythuso-assistant/.test(runbook) || !/systemctl restart assistant-api\.service/.test(runbook) || !/\/v1\/founder\/providers/.test(runbook))
+    throw new Error("deploy/RUNBOOK.md no longer tells the operator about the vault key line, the state directory, the restart a deploy does not do, and how to check. A deploy never restarts the service, so the runbook is where the restart lives.");
+
+  console.log(
+    `Founder control · ${control.length} routes on the founder's session; a state directory the unit declares (${fa.state.systemdStateDirectory}, ${fa.state.fileMode}) and the service never invents, refused when absent before any rule; a vault of ${fa.vault.cards.length} cards under ${fa.vault.cipher}, locked without ${fa.vault.keyVariable}, its file and key named nowhere a deploy or the browser reads; no founder answer with a field named like key material; the speak route reading the founder's history and a clinical register reading none of it; a fresh code on ${withCode.length} writes and on no read; the script writing the vault key once and printing it never; the reveal allowlist unmoved; the governance record and the runbook dated.`,
   );
 }

@@ -374,3 +374,11 @@ POST /v1/founder/reveal@1 a928794f9bdc1d26
 GET /v1/assistant/settings@1 76132502bf95ab63
 POST /v1/assistant/setting-changes@1 e4b2e948585a5989
 POST /v1/speak@4 1c3f1e989ab713f1
+GET /v1/founder/settings@1 e64d2e51d8965cff
+POST /v1/founder/settings/changes@1 e392f772997c691e
+GET /v1/founder/providers@1 448db32c741f09cd
+PUT /v1/founder/providers/{card}/key@1 6c64eefc5a4627e4
+DELETE /v1/founder/providers/{card}/key@1 5277e5b52bbf7a75
+POST /v1/founder/providers/{card}/enabled@1 46a1d514320ae679
+POST /v1/founder/providers/{card}/test@1 1b0feabf253f5da4
+GET /v1/founder/providers/{card}/logs@1 8b84f16cc66c0868

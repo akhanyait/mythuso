@@ -16,8 +16,11 @@ import { elevenLabsTts, ELEVENLABS_CARD_ID } from "./providers/elevenlabs.ts";
 import {
   captureTuningFor,
   contractDefaults,
+  contractVoices,
   monthlyCeiling,
   readingFor,
+  voiceLabelFor,
+  type PresentationVoiceSource,
   type SpeechSettingsSource,
 } from "./speech-settings.ts";
 import {
@@ -115,6 +118,10 @@ export const SPEECH_VOICES: readonly string[] = [
   assistant.voice.cloud.voices.female,
   assistant.voice.cloud.voices.male,
 ];
+/* Which of the two labels reads when nothing has chosen one — the contract's own line, not the first
+   entry above. Since 28 September 2026 a presentation register may be handed the other label by the
+   founder's setting in force; a clinical-delivery register is always read in this one. */
+const DEFAULT_LABEL = assistant.voice.cloud.defaultVoice as "female" | "male";
 
 /* The registry's speech cards, as this file reads them: which directions each serves, whether it
    has a South African region, its residency tier, and — for a speaking provider other than Azure —
@@ -169,7 +176,7 @@ const SPOKEN_AUDIO_MIME = "audio/mpeg";
    (docs/scope/02, §4 and §8) names southafricanorth for cloud speech. Any other region is treated
    exactly as no region: the cloud voice is not configured and the route answers as it does on a
    box with no key, rather than sending the audio somewhere the DPIA did not assess. */
-const SPEECH_REGIONS: readonly string[] = ["southafricanorth"];
+export const SPEECH_REGIONS: readonly string[] = ["southafricanorth"];
 
 /* A key that could be an Azure Speech key: letters and digits only, 32 characters (the older hex
    form) up to 84 and a little beyond (the current form), and never a space. Added 24 September 2026,
@@ -303,7 +310,7 @@ export function cloudSpeech(
       asked !== voices.male
     )
       return { ok: false };
-    const voice = asked || voices.female;
+    const voice = asked || voices[request.voiceLabel ?? DEFAULT_LABEL];
     /* Speed and pitch travel as SSML prosody only for a presentation register — tuningFor() hands a
        clinical register none — and only away from a hundred, so the default changes nothing about
        what is sent. The encoding reaches every register: it changes what a phone downloads, not how
@@ -491,11 +498,17 @@ export function selectedSpeech(
   env: Record<string, string | undefined> = process.env,
   settings: SpeechSettingsSource = contractDefaults,
   now: () => number = Date.now,
+  /* Since 28 September 2026: the credential view each adapter reads through — the provider vault's
+     envFor(card), which puts the vault's value before the environment and blanks a disabled card's
+     variables — and the presentation voice in force per register, from the founder's settings history.
+     A caller passing neither gets the environment and the contract's default label, exactly as before. */
+  envFor: (card: string) => Record<string, string | undefined> = () => env,
+  voices: PresentationVoiceSource = contractVoices,
 ): SpeechSeam {
   const selection = speechSelection(env);
-  const stt = ADAPTERS[selection.stt.card](fetchImpl, env);
-  const tts = ADAPTERS[selection.tts.card](fetchImpl, env);
-  const speakers = new Map(selection.admittedTts.map((id) => [id, id === selection.tts.card ? tts : ADAPTERS[id](fetchImpl, env)]));
+  const stt = ADAPTERS[selection.stt.card](fetchImpl, envFor(selection.stt.card));
+  const tts = ADAPTERS[selection.tts.card](fetchImpl, envFor(selection.tts.card));
+  const speakers = new Map(selection.admittedTts.map((id) => [id, id === selection.tts.card ? tts : ADAPTERS[id](fetchImpl, envFor(id))]));
   const ceiling = monthlyCeiling(settings);
   return {
     configured: (direction) =>
@@ -512,12 +525,16 @@ export function selectedSpeech(
       if (!door) return { ok: false };
       const moment = now();
       if (!ceiling.admits(request.text.length, moment)) return { ok: false, ceilingReached: true };
-      const read = await door.synthesize({ ...request, tuning: request.tuning ?? reading.tuning });
+      /* The founder's presentation voice reaches a reading only when the caller named no voice and the
+         register is a presentation one: voiceLabelFor() answers undefined for every other register, so
+         an emergency answer is read in the platform's default label whatever the history says. */
+      const voiceLabel = request.voice ? undefined : voiceLabelFor(voices, request.register ?? null);
+      const read = await door.synthesize({ ...request, voiceLabel, tuning: request.tuning ?? reading.tuning });
       /* A chosen provider that did not answer — a fault, a timeout — is the default's turn, once,
          when the fallback setting says so; a language it has no voice for is not a fault, and is
          answered as such rather than read by another provider in another voice. */
       const final = !read.ok && !read.voiceUnavailable && door !== tts && reading.fallbackToDefault
-        ? await tts.synthesize({ ...request, tuning: request.tuning ?? reading.tuning })
+        ? await tts.synthesize({ ...request, voiceLabel, tuning: request.tuning ?? reading.tuning })
         : read;
       if (final.ok) ceiling.count(request.text.length, moment);
       return final;

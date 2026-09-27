@@ -3415,3 +3415,264 @@
     transform: none !important;
   }
 }
+
+/* ---- GilbertOne · Speech settings, merged (28 September 2026): the change fields on top -------------
+   The founder: "put the change fields on top; they are too at the bottom. Voice and Speech settings are
+   duplicated; collapse them into one place, Speech settings." So the screen is the founder's gate, one line
+   saying where the values came from, then a paper panel of change fields — a tinted card per presentation
+   register with its chips, then the knob groups — then the preview, then one closed fold holding everything
+   read-only. The same pastel system as the Configuration page: the panel is paper so every field and its
+   brand-green ring sit on paper and never on a tint (the ring clears 3:1 on paper and on white, on no tint);
+   the register cards take the four card tints by name (Parts.tsx#tintsFor), each with its own ink in the same
+   rule, and no word on a tint is grey. Every pair here is one already measured for the Configuration cards
+   and the figure cards above. Motion is the shared system's, and the removal at the foot of this sheet
+   covers #pt-subpanel, so nothing here needs its own. */
+.portal .g1-source {
+  margin: 0 0 var(--space-16);
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  color: var(--charcoal);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.portal .g1-change {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-16);
+  padding: var(--space-20);
+  border-radius: var(--r-panel);
+  background: var(--studio-paper);
+  color: var(--charcoal);
+}
+.portal .g1-change-intro {
+  margin: 0;
+  color: var(--charcoal);
+  line-height: 1.55;
+}
+.portal .g1-change .g1-reason {
+  max-width: 44rem;
+}
+.portal .g1-change-heading {
+  margin: var(--space-8) 0 0;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+  color: var(--charcoal);
+}
+.portal .g1-registers {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-16);
+}
+@media (min-width: 900px) {
+  .portal .g1-registers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.portal .g1-register {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
+  min-width: 0;
+  padding: var(--space-20);
+  border-radius: var(--r-panel);
+  background: var(--pt-tint-lavender);
+  color: var(--pt-tint-ink);
+}
+.portal .g1-register[data-tint="mint"] { background: var(--pt-tint-mint); color: var(--brand-ink); }
+.portal .g1-register[data-tint="peach"] { background: var(--pt-tint-peach); color: var(--pt-tint-ink); }
+.portal .g1-register[data-tint="lime"] { background: var(--pt-tint-lime); color: var(--pt-tint-ink); }
+.portal .g1-register h4 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+  color: inherit;
+}
+.portal .g1-register-why,
+.portal .g1-register-inforce {
+  margin: 0;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+}
+/* The chips on a tinted card sit on a paper strip, as the Configuration editor does, so the chosen pill's
+   ink and the ring stay on the grounds they were measured on. */
+.portal .g1-register .fc-chips,
+.portal .g1-knob {
+  margin: 0;
+  padding: var(--space-12) var(--space-16);
+  border: 0;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  color: var(--charcoal);
+}
+.portal .g1-register .fc-chips > legend,
+.portal .g1-knob-chips > legend,
+.portal .g1-knob > label {
+  display: block;
+  padding: 0 0 var(--space-8);
+  color: var(--charcoal);
+  font-size: 14px;
+  font-weight: 600;
+}
+.portal .g1-knob > label span,
+.portal .g1-knob-chips > legend span,
+.portal .g1-knob .fc-switch-label span {
+  display: block;
+  margin-top: 2px;
+  font-weight: 400;
+  color: var(--charcoal);
+}
+.portal .g1-knob .fc-chips {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.portal .g1-knob .fc-switch-label strong {
+  display: block;
+}
+.portal .g1-knob-groups {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-16);
+  align-items: start;
+}
+@media (min-width: 1200px) {
+  .portal .g1-knob-groups {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.portal .g1-knob-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
+  align-content: start;
+  min-width: 0;
+  padding: var(--space-16);
+  border: 1px solid var(--stone);
+  border-radius: var(--r-panel);
+  background: var(--surface);
+}
+.portal .g1-knob-group h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--charcoal);
+}
+.portal .g1-register .g1-live,
+.portal .g1-knob-group .g1-live {
+  justify-self: start;
+}
+/* The fold: one closed disclosure under the preview, drawn as the side blocks of the old screen were, and
+   the blocks inside it as the regions they always were. */
+.portal .g1-fold {
+  margin-top: var(--space-24);
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  color: var(--charcoal);
+}
+.portal .g1-fold > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  min-height: 56px;
+  padding: var(--space-16) var(--space-20);
+  border-radius: var(--r-panel);
+  cursor: pointer;
+  list-style: none;
+}
+.portal .g1-fold > summary::-webkit-details-marker {
+  display: none;
+}
+.portal .g1-fold > summary > h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+  color: var(--charcoal);
+}
+.portal .g1-fold > summary > span {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--charcoal);
+}
+.portal .g1-fold > summary:focus-visible {
+  border-radius: var(--r-panel);
+}
+@media (hover: hover) {
+  .portal .g1-fold > summary:hover {
+    background: var(--studio-paper);
+  }
+}
+.portal .g1-fold-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-16);
+  padding: 0 var(--space-20) var(--space-20);
+  overflow-wrap: anywhere;
+}
+.portal .g1-fold-body > .pt-region {
+  margin: 0;
+}
+@media (max-width: 599px) {
+  .portal .g1-change {
+    padding: var(--space-16);
+  }
+  .portal .g1-register {
+    padding: var(--space-16);
+  }
+  .portal .g1-fold > summary,
+  .portal .g1-fold-body {
+    padding-inline: var(--space-16);
+  }
+}
+
+/* ---- The founder's controls on a provider card (28 September 2026) -------------------------------
+   A founder button is the secondary pill; open — the founder signed in — it takes the brand ink like the
+   chosen navigation pill, so the difference between a control that acts and one that waits is shape and
+   word, never colour alone: a waiting one is disabled and described by the sentence beside it. */
+.portal .g1-founder-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
+  margin-top: var(--space-12);
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--r-card);
+  background: var(--studio-paper);
+  color: var(--charcoal);
+}
+.portal .g1-founder-live {
+  min-height: 44px;
+  min-width: 44px;
+  padding: var(--space-8) var(--space-16);
+  font-size: 15px;
+}
+.portal .g1-founder-live:disabled {
+  border: 1px solid var(--stone);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.portal .g1-founder-live.is-open:not(:disabled) {
+  background: var(--brand-ink);
+  border-color: var(--brand-ink);
+  color: var(--surface);
+}
+.portal .g1-founder-live[aria-pressed="true"]:not(:disabled) {
+  background: var(--brand-lime);
+  border-color: var(--brand-lime);
+  color: var(--brand-ink);
+}
+.portal .g1-founder-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  margin: 0;
+}
+.portal .g1-founder-code {
+  max-width: 20rem;
+}
+.portal .g1-founder-logs .pt-label {
+  margin: 0 0 var(--space-8);
+}

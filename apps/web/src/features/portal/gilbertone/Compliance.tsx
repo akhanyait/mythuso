@@ -38,6 +38,9 @@ export function ComplianceScreen() {
    <p>{killSection.sentence}</p>
    <GatedAction id="kill-switch"/>
    <p className="helper">{killSection.todayItWouldSay}</p>
+   {/* The founder asked to control this screen too (28 September 2026). What it holds is read, and nothing on it
+       has a contract that names a sign-off, so the contract says so here rather than a button pretending to. */}
+   <Empty>{words.founderNote}</Empty>
   </Region>
 
   <Region title={words.residencyHeading}>

@@ -286,6 +286,14 @@ object ApisData {
     val POST_FOUNDER_REVEAL = Route("postFounderReveal", "POST", "/v1/founder/reveal", "/assistant/v1/founder/reveal", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
     val GET_ASSISTANT_SETTINGS = Route("getAssistantSettings", "GET", "/v1/assistant/settings", "/v1/assistant/settings", 1, "assistant", listOf("admin"), listOf("audit"), false, "built")
     val POST_ASSISTANT_SETTING_CHANGES = Route("postAssistantSettingChanges", "POST", "/v1/assistant/setting-changes", "/v1/assistant/setting-changes", 1, "assistant", listOf("admin"), listOf("audit"), true, "built")
+    val GET_FOUNDER_SETTINGS = Route("getFounderSettings", "GET", "/v1/founder/settings", "/assistant/v1/founder/settings", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
+    val POST_FOUNDER_SETTINGS_CHANGES = Route("postFounderSettingsChanges", "POST", "/v1/founder/settings/changes", "/assistant/v1/founder/settings/changes", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
+    val GET_FOUNDER_PROVIDERS = Route("getFounderProviders", "GET", "/v1/founder/providers", "/assistant/v1/founder/providers", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
+    val PUT_FOUNDER_PROVIDERS_BY_CARD_KEY = Route("putFounderProvidersByCardKey", "PUT", "/v1/founder/providers/{card}/key", "/assistant/v1/founder/providers/{card}/key", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
+    val DELETE_FOUNDER_PROVIDERS_BY_CARD_KEY = Route("deleteFounderProvidersByCardKey", "DELETE", "/v1/founder/providers/{card}/key", "/assistant/v1/founder/providers/{card}/key", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
+    val POST_FOUNDER_PROVIDERS_BY_CARD_ENABLED = Route("postFounderProvidersByCardEnabled", "POST", "/v1/founder/providers/{card}/enabled", "/assistant/v1/founder/providers/{card}/enabled", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
+    val POST_FOUNDER_PROVIDERS_BY_CARD_TEST = Route("postFounderProvidersByCardTest", "POST", "/v1/founder/providers/{card}/test", "/assistant/v1/founder/providers/{card}/test", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
+    val GET_FOUNDER_PROVIDERS_BY_CARD_LOGS = Route("getFounderProvidersByCardLogs", "GET", "/v1/founder/providers/{card}/logs", "/assistant/v1/founder/providers/{card}/logs", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
 
     val routes = listOf(
         POST_CORE_EVENTS,
@@ -551,7 +559,15 @@ object ApisData {
         GET_FOUNDER_KEYS,
         POST_FOUNDER_REVEAL,
         GET_ASSISTANT_SETTINGS,
-        POST_ASSISTANT_SETTING_CHANGES
+        POST_ASSISTANT_SETTING_CHANGES,
+        GET_FOUNDER_SETTINGS,
+        POST_FOUNDER_SETTINGS_CHANGES,
+        GET_FOUNDER_PROVIDERS,
+        PUT_FOUNDER_PROVIDERS_BY_CARD_KEY,
+        DELETE_FOUNDER_PROVIDERS_BY_CARD_KEY,
+        POST_FOUNDER_PROVIDERS_BY_CARD_ENABLED,
+        POST_FOUNDER_PROVIDERS_BY_CARD_TEST,
+        GET_FOUNDER_PROVIDERS_BY_CARD_LOGS
     )
 
     data class PostCoreEventsRequest(
@@ -2905,5 +2921,99 @@ object ApisData {
     data class PostAssistantSettingChangesResponse(
         val settingsVersion: Int,
         val appliesFrom: String
+    )
+    class GetFounderSettingsRequest
+    data class GetFounderSettingsResponse(
+        val settingsVersion: Int,
+        val settings: List<Map<String, Any?>>,
+        val history: List<Map<String, Any?>>,
+        val persisted: Boolean,
+        val expiresAt: String
+    )
+    data class PostFounderSettingsChangesRequest(
+        val setting: String,
+        val from: Map<String, Any?>,
+        val to: Map<String, Any?>,
+        val reason: String? = null,
+        val expectedVersion: Int? = null
+    )
+    data class PostFounderSettingsChangesResponse(
+        val settingsVersion: Int,
+        val appliesFrom: String
+    )
+    class GetFounderProvidersRequest
+    data class GetFounderProvidersResponse(
+        val providers: List<Map<String, Any?>>,
+        val vaultUnlocked: Boolean,
+        val persisted: Boolean,
+        val expiresAt: String
+    )
+    data class PutFounderProvidersByCardKeyRequest(
+        val card: String,
+        val key: String,
+        val code: String
+    )
+    data class PutFounderProvidersByCardKeyResponse(
+        val card: String,
+        val keyVariable: String,
+        val configured: Boolean,
+        val source: String,
+        val enabled: Boolean,
+        val lastFour: String,
+        val fingerprintPrefix: String,
+        val createdAt: String,
+        val lastRotatedAt: String,
+        val setBy: String
+    )
+    data class DeleteFounderProvidersByCardKeyRequest(
+        val card: String,
+        val code: String
+    )
+    data class DeleteFounderProvidersByCardKeyResponse(
+        val card: String,
+        val keyVariable: String,
+        val configured: Boolean,
+        val source: String,
+        val enabled: Boolean,
+        val lastFour: String,
+        val fingerprintPrefix: String,
+        val createdAt: String,
+        val lastRotatedAt: String,
+        val setBy: String
+    )
+    data class PostFounderProvidersByCardEnabledRequest(
+        val card: String,
+        val enabled: Boolean,
+        val code: String
+    )
+    data class PostFounderProvidersByCardEnabledResponse(
+        val card: String,
+        val keyVariable: String,
+        val configured: Boolean,
+        val source: String,
+        val enabled: Boolean,
+        val lastFour: String,
+        val fingerprintPrefix: String,
+        val createdAt: String,
+        val lastRotatedAt: String,
+        val setBy: String
+    )
+    data class PostFounderProvidersByCardTestRequest(
+        val card: String
+    )
+    data class PostFounderProvidersByCardTestResponse(
+        val card: String,
+        val outcome: String,
+        val status: Int,
+        val latencyMs: Int,
+        val testedAt: String
+    )
+    data class GetFounderProvidersByCardLogsRequest(
+        val card: String
+    )
+    data class GetFounderProvidersByCardLogsResponse(
+        val card: String,
+        val lines: List<Map<String, Any?>>,
+        val persisted: Boolean
     )
 }

@@ -1668,7 +1668,7 @@ Added to a contract after this pack's generator was last taught about them. A re
 | `assistant:presentation-provider-admin` | Which text-to-speech provider reads what an administrator hears in the Control Tower? |
 | `assistant:speech-fallback-to-default-provider` | When the provider chosen for a register is not configured, is refused in production or does not answer, does the platform default read the answer instead? |
 | `assistant:spoken-answer-monthly-ceiling-characters` | How many characters may the cloud voice read in a calendar month before spoken answers stop and answers stay written? |
-| `assistant:preview-session-ceiling-characters` | How many characters may the Voice screen's preview read in one session before Play is refused? |
+| `assistant:preview-session-ceiling-characters` | How many characters may the Speech settings screen's preview read in one session before Play is refused? |
 | `assistant:azure-presentation-speed-percent` | How fast does Azure Speech read a presentation register, as a percentage of the voice's normal speed? |
 | `assistant:azure-presentation-pitch-percent` | How high does Azure Speech read a presentation register, as a percentage of the voice's normal pitch? |
 | `assistant:azure-audio-quality` | What does Azure Speech encode a reading as — lighter on a metered phone, or fuller on a good connection? |

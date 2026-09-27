@@ -19,7 +19,7 @@
   "providers": "packages/catalog/api-registry.json",
   "reviewQueue": "packages/catalog/clinical-review-queue.json",
   "v03": "apps/web/src/lib/gilbertone.ts#REFUSED V03",
-  "why": "Every fact the Voice screen needs that already has a home is read from it. A second copy of a voice name is a second answer to 'which voice reads an emergency in South Africa', and the day the two disagree nobody can say which was the decision."
+  "why": "Every fact the Speech settings screen needs that already has a home is read from it. A second copy of a voice name is a second answer to 'which voice reads an emergency in South Africa', and the day the two disagree nobody can say which was the decision."
  },
 
  "zones": [
@@ -43,7 +43,7 @@
    "id": "presentation",
    "label": "Presentation",
    "configurable": "tenant",
-   "sentence": "Routine answers, navigation, what a signed-out visitor hears and what an administrator hears may have their voice set from the two voices packages/catalog/assistant.json lists for each language that has one. No tenant exists, so the platform default is the administrator's setting on the Control Tower — one of the four presentation-voice settings in this file's settings block, changed on the Voice screen and on the Configuration tab — and it is the language's female voice until an administrator changes it, as the founder decided on 27 September 2026.",
+   "sentence": "Routine answers, navigation, what a signed-out visitor hears and what an administrator hears may have their voice set from the two voices packages/catalog/assistant.json lists for each language that has one. No tenant exists, so the platform default is the administrator's setting on the Control Tower — one of the four presentation-voice settings in this file's settings block, changed on the Speech settings screen and on the Configuration tab — and it is the language's female voice until an administrator changes it, as the founder decided on 27 September 2026.",
    "changedOnlyThrough": null,
    "why": "How the booking steps or a greeting sound is a brand decision a hospital may reasonably want to make, and it changes nothing a clinician would have to review."
   }
@@ -232,7 +232,7 @@
    "How does it compare with two or three alternatives on the same sentence?",
    "What does it cost, and how fast is it?"
   ],
-  "placements": ["the Voice screen", "every TTS card in packages/catalog/api-registry.json"],
+  "placements": ["the Speech settings screen", "every TTS card in packages/catalog/api-registry.json"],
   "costBeforePlay": true,
   "sessionRunningTotal": true,
   "rejectsPatientIdentifiers": {
@@ -248,7 +248,7 @@
 
  "languages": {
   "from": "packages/catalog/assistant.json#voice.languages",
-  "sentence": "A language with ttsAvailable false has no voice anywhere in MyThuso, and the Voice screen marks it not available rather than hiding it. Its answers are shown as text, with voice.voiceUnavailableNotice.",
+  "sentence": "A language with ttsAvailable false has no voice anywhere in MyThuso, and the Speech settings screen marks it not available rather than hiding it. Its answers are shown as text, with voice.voiceUnavailableNotice.",
   "why": "§07's V03 refusal stands: no voice is chosen by locale setting and no South African voice is promised to be installed. isiZulu, isiXhosa and Sesotho are understood and not spoken, and the screen says so in the contract's own words."
  },
 
@@ -696,7 +696,7 @@
    {
     "key": "preview-session-ceiling-characters",
     "label": "Preview per administrator session",
-    "help": "How many characters may the Voice screen's preview read in one session before Play is refused?",
+    "help": "How many characters may the Speech settings screen's preview read in one session before Play is refused?",
     "owner": "assistant",
     "type": "count",
     "unit": "characters",
@@ -1409,5 +1409,5 @@
   }
  },
 
- "preview": "The Voice screen exists, and each of the four presentation registers has a setting an administrator changes on it and on the Configuration tab, kept in this tab's memory for the session. The clinical-delivery registers have no setting, no tenant has chosen anything, and no preview has been played through a paid provider. Since 28 September 2026 the Speech settings screen and the Configuration tab carry the provider per presentation register, Azure's and ElevenLabs' tuning, two ceilings and the administrator's own voice, kept the same way; ElevenLabs is built and configured nowhere, and the service reads every one of these settings from the contract's defaults until it holds a settings history of its own. The voices GilbertOne speaks in today are the browser's, the phone's and, in production, the cloud pair in packages/catalog/assistant.json."
+ "preview": "The Speech settings screen exists — the Voice screen was folded into it on the founder's instruction of 28 September 2026 — and each of the four presentation registers has a setting an administrator changes on it and on the Configuration tab, kept in this tab's memory for the session or, inside the founder's signed-in session, in the assistant service's own history. The clinical-delivery registers have no setting, no tenant has chosen anything, and no preview has been played through a paid provider. Since 28 September 2026 the Speech settings screen and the Configuration tab carry the provider per presentation register, Azure's and ElevenLabs' tuning, two ceilings and the administrator's own voice, kept the same way; ElevenLabs is built and configured nowhere, and the service reads every one of these settings from the contract's defaults until it holds a settings history of its own. The voices GilbertOne speaks in today are the browser's, the phone's and, in production, the cloud pair in packages/catalog/assistant.json."
 }

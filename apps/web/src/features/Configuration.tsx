@@ -63,6 +63,11 @@ function amount(limits: Limits, value: string): string {
  }
 }
 
+/* A setting's shipped default, for the Speech settings screen's tick mark under a slider and nothing else: this is
+   the one screen file the build lets read a default off a contract, so the merged screen asks here rather than
+   reading the contract itself. What is in force is never read this way. */
+export const defaultValueOf = (setting: Setting): unknown => setting.default.value;
+
 export function valueText(limits: Limits, value: unknown): string {
  if (value === undefined || value === null) return say.values.empty;
  switch (limits.type) {

@@ -68,7 +68,15 @@ export type FounderRefusalId =
   | "founder-no-session"
   | "founder-code-refused"
   | "founder-name-not-allowed"
-  | "founder-key-not-set";
+  | "founder-key-not-set"
+  /* Since 28 September 2026 (founder-access.json#settings and #vault), the refusals the settings history
+     and the provider vault answer, so one audit line type carries every founder outcome. */
+  | "founder-state-unavailable"
+  | "founder-vault-locked"
+  | "founder-card-not-known"
+  | "founder-key-malformed"
+  | "founder-provider-disabled"
+  | "founder-provider-not-configured";
 export type Refused = { ok: false; refusalId: FounderRefusalId };
 
 /* ---- The credential ------------------------------------------------------------------------- */
@@ -203,23 +211,35 @@ export type KeyMetadata = {
 /* ---- The audit line ---------------------------------------------------------------------------- */
 
 export type FounderEvent = (typeof contract.audit.events)[number];
+/* The cards the vault holds a key for, and the shape of a setting's key: the two further things an
+   audit line may name since 28 September 2026, each checked here so a caller cannot write anything
+   else under those names. */
+const VAULT_CARD_IDS: readonly string[] = contract.vault.cards.map((c) => c.card);
+const SETTING_KEY = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 /* One line, one JSON object: the event, the outcome — "accepted" or the refusal's own id — and, for a
-   reveal or a metadata read of one key, its allowlisted name and fingerprint prefix. The parameters
-   are the whole of what can reach the log, and none of them can be a password, a code, a cookie or a
-   value: the name is checked against the allowlist and the fingerprint against its own shape here,
-   so a caller that passed anything else writes neither. */
+   reveal or a metadata read of one key, its allowlisted name and fingerprint prefix; since 28
+   September 2026 also, for a vault act, the card, and for a settings change, the setting's key. The
+   parameters are the whole of what can reach the log, and none of them can be a password, a code, a
+   cookie or a value: the name is checked against the allowlist, the fingerprint against its own
+   shape, the card against the vault's cards and the setting against a setting key's shape here, so a
+   caller that passed anything else writes none of them. */
 export function founderLine(
   event: string,
-  outcome: "accepted" | FounderRefusalId | "invalid-request" | "required-field-missing" | "payload-too-large",
+  outcome: "accepted" | FounderRefusalId | "invalid-request" | "required-field-missing" | "payload-too-large" | string,
   key?: { name: string; fingerprint: string | null },
+  about?: { card?: string; setting?: string; fingerprint?: string | null },
 ): string {
   const line: Record<string, string> = {
     event: (contract.audit.events as readonly string[]).includes(event) ? event : "founder.unknown",
-    outcome,
+    outcome: /^[a-z][a-z0-9-]{0,63}$/.test(outcome) ? outcome : "unknown",
   };
   if (key && REVEAL_ALLOWLIST.includes(key.name)) line.name = key.name;
   if (key?.fingerprint && new RegExp(`^[0-9a-f]{${contract.reveal.fingerprintHexLength}}$`).test(key.fingerprint))
     line.fingerprint = key.fingerprint;
+  if (about?.card && VAULT_CARD_IDS.includes(about.card)) line.card = about.card;
+  if (about?.setting && SETTING_KEY.test(about.setting)) line.setting = about.setting;
+  if (about?.fingerprint && new RegExp(`^[0-9a-f]{${contract.reveal.fingerprintHexLength}}$`).test(about.fingerprint))
+    line.fingerprint = about.fingerprint;
   return JSON.stringify(line);
 }
 
@@ -244,6 +264,10 @@ export interface FounderAccess {
   signOut(): void;
   keys(): KeyMetadata[];
   reveal(name: unknown, code: unknown): Revealed | Refused;
+  /* A fresh authenticator code on top of the session, for an act that changes what the server holds —
+     a provider key set or removed, a provider switched on or off — checked and burned exactly as a
+     reveal's is, and counting toward the lock the same way. */
+  confirmCode(code: unknown): { ok: true } | Refused;
 }
 
 export function createFounderAccess(
@@ -343,6 +367,16 @@ export function createFounderAccess(
       lastUsedStep = check.step;
       failures = 0;
       return { ok: true, name, value, lastFour: lastCharactersOf(value), fingerprint: fingerprintOf(value) };
+    },
+
+    confirmCode(code) {
+      if (!credential) return { ok: false, refusalId: "founder-access-dark" };
+      if (locked()) return { ok: false, refusalId: "founder-locked-out" };
+      const check = verifyTotp(credential.totpSecret, typeof code === "string" ? code : "", now(), lastUsedStep);
+      if (!check.ok) return fail("founder-code-refused");
+      lastUsedStep = check.step;
+      failures = 0;
+      return { ok: true };
     },
   };
 }

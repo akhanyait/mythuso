@@ -2637,6 +2637,108 @@ export interface PostAssistantSettingChangesResponse {
  readonly appliesFrom: string;
 }
 
+export type GetFounderSettingsRequest = Record<string, never>;
+export interface GetFounderSettingsResponse {
+ readonly settingsVersion: number;
+ readonly settings: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly history: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly persisted: boolean;
+ readonly expiresAt: string;
+}
+
+export interface PostFounderSettingsChangesRequest {
+ readonly setting: string;
+ readonly from: Readonly<Record<string, unknown>>;
+ readonly to: Readonly<Record<string, unknown>>;
+ readonly reason?: string;
+ readonly expectedVersion?: number;
+}
+export interface PostFounderSettingsChangesResponse {
+ readonly settingsVersion: number;
+ readonly appliesFrom: string;
+}
+
+export type GetFounderProvidersRequest = Record<string, never>;
+export interface GetFounderProvidersResponse {
+ readonly providers: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly vaultUnlocked: boolean;
+ readonly persisted: boolean;
+ readonly expiresAt: string;
+}
+
+export interface PutFounderProvidersByCardKeyRequest {
+ readonly card: string;
+ readonly key: string;
+ readonly code: string;
+}
+export interface PutFounderProvidersByCardKeyResponse {
+ readonly card: string;
+ readonly keyVariable: string;
+ readonly configured: boolean;
+ readonly source: string;
+ readonly enabled: boolean;
+ readonly lastFour: string;
+ readonly fingerprintPrefix: string;
+ readonly createdAt: string;
+ readonly lastRotatedAt: string;
+ readonly setBy: string;
+}
+
+export interface DeleteFounderProvidersByCardKeyRequest {
+ readonly card: string;
+ readonly code: string;
+}
+export interface DeleteFounderProvidersByCardKeyResponse {
+ readonly card: string;
+ readonly keyVariable: string;
+ readonly configured: boolean;
+ readonly source: string;
+ readonly enabled: boolean;
+ readonly lastFour: string;
+ readonly fingerprintPrefix: string;
+ readonly createdAt: string;
+ readonly lastRotatedAt: string;
+ readonly setBy: string;
+}
+
+export interface PostFounderProvidersByCardEnabledRequest {
+ readonly card: string;
+ readonly enabled: boolean;
+ readonly code: string;
+}
+export interface PostFounderProvidersByCardEnabledResponse {
+ readonly card: string;
+ readonly keyVariable: string;
+ readonly configured: boolean;
+ readonly source: string;
+ readonly enabled: boolean;
+ readonly lastFour: string;
+ readonly fingerprintPrefix: string;
+ readonly createdAt: string;
+ readonly lastRotatedAt: string;
+ readonly setBy: string;
+}
+
+export interface PostFounderProvidersByCardTestRequest {
+ readonly card: string;
+}
+export interface PostFounderProvidersByCardTestResponse {
+ readonly card: string;
+ readonly outcome: string;
+ readonly status: number;
+ readonly latencyMs: number;
+ readonly testedAt: string;
+}
+
+export interface GetFounderProvidersByCardLogsRequest {
+ readonly card: string;
+}
+export interface GetFounderProvidersByCardLogsResponse {
+ readonly card: string;
+ readonly lines: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly persisted: boolean;
+}
+
 export const apiRoutes = {
  postCoreEvents: { name: "postCoreEvents", method: "POST", path: "/v1/core/events", mountedPath: "/v1/core/events", version: 1, engine: "core", callers: ["engine:access","engine:pulse","engine:care","engine:clinical","engine:safety","engine:movement","engine:trust","engine:record","engine:medicines","engine:devices","engine:money"], purpose: ["audit"], idempotent: false, status: "built" },
  postCoreLoops: { name: "postCoreLoops", method: "POST", path: "/v1/core/loops", mountedPath: "/v1/core/loops", version: 1, engine: "core", callers: ["engine:care","engine:safety","engine:medicines","engine:access","engine:movement"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
@@ -2901,5 +3003,13 @@ export const apiRoutes = {
  getFounderKeys: { name: "getFounderKeys", method: "GET", path: "/v1/founder/keys", mountedPath: "/assistant/v1/founder/keys", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
  postFounderReveal: { name: "postFounderReveal", method: "POST", path: "/v1/founder/reveal", mountedPath: "/assistant/v1/founder/reveal", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
  getAssistantSettings: { name: "getAssistantSettings", method: "GET", path: "/v1/assistant/settings", mountedPath: "/v1/assistant/settings", version: 1, engine: "assistant", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
- postAssistantSettingChanges: { name: "postAssistantSettingChanges", method: "POST", path: "/v1/assistant/setting-changes", mountedPath: "/v1/assistant/setting-changes", version: 1, engine: "assistant", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" }
+ postAssistantSettingChanges: { name: "postAssistantSettingChanges", method: "POST", path: "/v1/assistant/setting-changes", mountedPath: "/v1/assistant/setting-changes", version: 1, engine: "assistant", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
+ getFounderSettings: { name: "getFounderSettings", method: "GET", path: "/v1/founder/settings", mountedPath: "/assistant/v1/founder/settings", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
+ postFounderSettingsChanges: { name: "postFounderSettingsChanges", method: "POST", path: "/v1/founder/settings/changes", mountedPath: "/assistant/v1/founder/settings/changes", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
+ getFounderProviders: { name: "getFounderProviders", method: "GET", path: "/v1/founder/providers", mountedPath: "/assistant/v1/founder/providers", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
+ putFounderProvidersByCardKey: { name: "putFounderProvidersByCardKey", method: "PUT", path: "/v1/founder/providers/{card}/key", mountedPath: "/assistant/v1/founder/providers/{card}/key", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
+ deleteFounderProvidersByCardKey: { name: "deleteFounderProvidersByCardKey", method: "DELETE", path: "/v1/founder/providers/{card}/key", mountedPath: "/assistant/v1/founder/providers/{card}/key", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
+ postFounderProvidersByCardEnabled: { name: "postFounderProvidersByCardEnabled", method: "POST", path: "/v1/founder/providers/{card}/enabled", mountedPath: "/assistant/v1/founder/providers/{card}/enabled", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
+ postFounderProvidersByCardTest: { name: "postFounderProvidersByCardTest", method: "POST", path: "/v1/founder/providers/{card}/test", mountedPath: "/assistant/v1/founder/providers/{card}/test", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
+ getFounderProvidersByCardLogs: { name: "getFounderProvidersByCardLogs", method: "GET", path: "/v1/founder/providers/{card}/logs", mountedPath: "/assistant/v1/founder/providers/{card}/logs", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" }
 } as const satisfies Record<string, ApiRoute>;

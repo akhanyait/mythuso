@@ -24,6 +24,10 @@ import {
   type FounderAccess,
 } from "./lib/founder-access.ts";
 import { corsFor } from "./lib/origin-policy.ts";
+import { founderStateFrom, type FounderState } from "./lib/founder-state.ts";
+import { openSettingsHistory, type SettingsHistory } from "./lib/settings-history.ts";
+import { openVault, type ProviderVault } from "./lib/provider-vault.ts";
+import { installCredentialSource } from "./lib/credentials.ts";
 import {
   selectedSpeech,
   speechSelection,
@@ -35,6 +39,7 @@ import { triageGate } from "./lib/triage-gate.ts";
 import { validateVital, type VitalInput } from "./lib/vitals.ts";
 import { handleTurn, handleTurnStream, RequiredFieldMissingError } from "./routes/turn.ts";
 import assistantContract from "../../../packages/catalog/apis/assistant.json" with { type: "json" };
+import founderContract from "../../../packages/catalog/founder-access.json" with { type: "json" };
 
 /* No web framework, the same way apps/api has none: two routes over node:http, and the only
    dependencies this service carries are the LangChain tier and the catalog it reads — every one of
@@ -337,11 +342,34 @@ export function liveClinicalFlows(): ClinicalFlowSeam {
 export function createAssistantServer(
   turn: typeof handleTurn = handleTurn,
   search: typeof retrieveKnowledge = retrieveKnowledge,
-  speech: SpeechSeam = selectedSpeech(),
+  speechSeam: SpeechSeam | null = null,
   clinical: ClinicalFlowSeam = liveClinicalFlows(),
   turnStream: typeof handleTurnStream = handleTurnStream,
   founder: FounderAccess = createFounderAccess(),
+  /* Since 28 September 2026 (packages/catalog/founder-access.json#state): the state directory the unit
+     hands this process, or null; the founder's settings history replayed from it; and the provider
+     vault kept in it. A test hands in its own; the real entry passes nothing and gets the three the
+     environment gives. */
+  state: FounderState | null = founderStateFrom(),
+  settings: SettingsHistory = openSettingsHistory(state),
+  vault: ProviderVault = openVault(state),
+  now: () => number = Date.now,
 ): Server {
+  /* Every credential the language-model tier reads goes through the vault's view from here on: the
+     vault's value before the environment, nothing for a card the founder switched off. */
+  installCredentialSource(() => vault.envFor());
+  /* The cloud voice, unless a test handed one in: the environment's selection, each adapter reading
+     its credentials through the vault's view of its own card, the speech settings and the presentation
+     voice read from the founder's history at every reading — which is what makes a saved "male" reach
+     the voice test, and what a clinical register never asks. */
+  const speech: SpeechSeam = speechSeam ?? selectedSpeech(fetch, vault.envFor(), settings.speech, now, (card) => vault.envFor(card), settings.presentationVoice);
+  /* One founder audit line: to the journal, as always, and — where this process has a state directory —
+     appended to the audit file the logs route reads back, stamped with when. founderLine() built the
+     line, so nothing that reaches either place can be a password, a code, a cookie or a value. */
+  const founderAudit = (line: string): void => {
+    console.log(line);
+    if (state) state.appendLine(founderContract.audit.file, JSON.stringify({ at: new Date(now()).toISOString(), ...JSON.parse(line) }));
+  };
   /* Read once, per server: the facts the status routes report are facts about how this process was
     configured, and they cannot change while it runs. */
   const activation = assistantActivation();
@@ -1190,18 +1218,18 @@ export function createAssistantServer(
       else, and the audit line says what happened and nothing else. */
       const gated = founder.gate(req.headers);
       if (gated) {
-        console.log(founderLine("founder.sign-in", gated.refusalId));
+        founderAudit(founderLine("founder.sign-in", gated.refusalId));
         return refuse(res, cors.headers, gated.refusalId);
       }
       const body = await readJsonBody(req);
       if (!body.ok) {
         const refusalId = body.status === 413 ? "payload-too-large" : "invalid-request";
-        console.log(founderLine("founder.sign-in", refusalId));
+        founderAudit(founderLine("founder.sign-in", refusalId));
         return refuse(res, cors.headers, refusalId);
       }
       const asked = (body.value ?? {}) as { password?: unknown; code?: unknown };
       if (typeof asked.password !== "string" || typeof asked.code !== "string") {
-        console.log(founderLine("founder.sign-in", "required-field-missing"));
+        founderAudit(founderLine("founder.sign-in", "required-field-missing"));
         return send(res, 400, cors.headers, {
           error: "required_field_missing",
           refusalId: "required-field-missing",
@@ -1210,10 +1238,10 @@ export function createAssistantServer(
       }
       const signed = await founder.signIn(asked.password, asked.code);
       if (!signed.ok) {
-        console.log(founderLine("founder.sign-in", signed.refusalId));
+        founderAudit(founderLine("founder.sign-in", signed.refusalId));
         return refuse(res, cors.headers, signed.refusalId);
       }
-      console.log(founderLine("founder.sign-in", "accepted"));
+      founderAudit(founderLine("founder.sign-in", "accepted"));
       return send(
         res,
         200,
@@ -1227,11 +1255,11 @@ export function createAssistantServer(
       not linger in the browser. */
       const gated = founder.gate(req.headers);
       if (gated) {
-        console.log(founderLine("founder.sign-out", gated.refusalId));
+        founderAudit(founderLine("founder.sign-out", gated.refusalId));
         return refuse(res, cors.headers, gated.refusalId);
       }
       if (!founder.sessionFrom(req.headers.cookie)) {
-        console.log(founderLine("founder.sign-out", "founder-no-session"));
+        founderAudit(founderLine("founder.sign-out", "founder-no-session"));
         return refuse(
           res,
           { ...cors.headers, "set-cookie": clearedFounderCookie() },
@@ -1239,7 +1267,7 @@ export function createAssistantServer(
         );
       }
       founder.signOut();
-      console.log(founderLine("founder.sign-out", "accepted"));
+      founderAudit(founderLine("founder.sign-out", "accepted"));
       return send(
         res,
         200,
@@ -1254,14 +1282,14 @@ export function createAssistantServer(
       asked, because none of it is the key. */
       const gated = founder.gate(req.headers);
       if (gated) {
-        console.log(founderLine("founder.keys", gated.refusalId));
+        founderAudit(founderLine("founder.keys", gated.refusalId));
         return refuse(res, cors.headers, gated.refusalId);
       }
       if (!founder.sessionFrom(req.headers.cookie)) {
-        console.log(founderLine("founder.keys", "founder-no-session"));
+        founderAudit(founderLine("founder.keys", "founder-no-session"));
         return refuse(res, cors.headers, "founder-no-session");
       }
-      console.log(founderLine("founder.keys", "accepted"));
+      founderAudit(founderLine("founder.keys", "accepted"));
       return send(
         res,
         200,
@@ -1276,22 +1304,22 @@ export function createAssistantServer(
       no-cache, and nowhere else: the audit line carries the key's name and fingerprint, never it. */
       const gated = founder.gate(req.headers);
       if (gated) {
-        console.log(founderLine("founder.reveal", gated.refusalId));
+        founderAudit(founderLine("founder.reveal", gated.refusalId));
         return refuse(res, cors.headers, gated.refusalId);
       }
       if (!founder.sessionFrom(req.headers.cookie)) {
-        console.log(founderLine("founder.reveal", "founder-no-session"));
+        founderAudit(founderLine("founder.reveal", "founder-no-session"));
         return refuse(res, cors.headers, "founder-no-session");
       }
       const body = await readJsonBody(req);
       if (!body.ok) {
         const refusalId = body.status === 413 ? "payload-too-large" : "invalid-request";
-        console.log(founderLine("founder.reveal", refusalId));
+        founderAudit(founderLine("founder.reveal", refusalId));
         return refuse(res, cors.headers, refusalId);
       }
       const asked = (body.value ?? {}) as { name?: unknown; code?: unknown };
       if (typeof asked.name !== "string" || typeof asked.code !== "string") {
-        console.log(founderLine("founder.reveal", "required-field-missing"));
+        founderAudit(founderLine("founder.reveal", "required-field-missing"));
         return send(res, 400, cors.headers, {
           error: "required_field_missing",
           refusalId: "required-field-missing",
@@ -1300,12 +1328,12 @@ export function createAssistantServer(
       }
       const revealed = founder.reveal(asked.name, asked.code);
       if (!revealed.ok) {
-        console.log(
+        founderAudit(
           founderLine("founder.reveal", revealed.refusalId, { name: asked.name, fingerprint: null }),
         );
         return refuse(res, cors.headers, revealed.refusalId);
       }
-      console.log(
+      founderAudit(
         founderLine("founder.reveal", "accepted", {
           name: revealed.name,
           fingerprint: revealed.fingerprint,
@@ -1322,6 +1350,292 @@ export function createAssistantServer(
           fingerprint: revealed.fingerprint,
         },
       );
+    }
+    if (req.method === "GET" && req.url === "/assistant/v1/founder/settings") {
+      /* The founder's settings in force and their history (lib/settings-history.ts), 28 September 2026.
+      The gate first, then the session: the history carries no secret, and it is still the founder's —
+      it names who changed how the assistant speaks and why, and this session is the only
+      authentication the service has, so an open read would be anybody's (founder-access.json#settings,
+      readIsFounderGated). persisted says whether a change could be kept on this box at all. */
+      const gated = founder.gate(req.headers);
+      if (gated) {
+        founderAudit(founderLine("founder.settings", gated.refusalId));
+        return refuse(res, cors.headers, gated.refusalId);
+      }
+      if (!founder.sessionFrom(req.headers.cookie)) {
+        founderAudit(founderLine("founder.settings", "founder-no-session"));
+        return refuse(res, cors.headers, "founder-no-session");
+      }
+      founderAudit(founderLine("founder.settings", "accepted"));
+      return send(
+        res,
+        200,
+        { ...cors.headers, pragma: "no-cache" },
+        { ...settings.describe(), persisted: settings.persisted, expiresAt: founder.sessionExpiresAt() },
+      );
+    }
+    if (req.method === "POST" && req.url === "/assistant/v1/founder/settings/changes") {
+      /* One change, through the shared rules (packages/engines/src/settings/shape.ts's proposeChange over
+      the assistant block) and appended to the history the speak route reads. A refusal is the shared
+      sentence, by its id, through the same refuse() every founder route answers with; the audit line
+      names the setting and the outcome, never the value. */
+      const gated = founder.gate(req.headers);
+      if (gated) {
+        founderAudit(founderLine("founder.settings.change", gated.refusalId));
+        return refuse(res, cors.headers, gated.refusalId);
+      }
+      if (!founder.sessionFrom(req.headers.cookie)) {
+        founderAudit(founderLine("founder.settings.change", "founder-no-session"));
+        return refuse(res, cors.headers, "founder-no-session");
+      }
+      const body = await readJsonBody(req);
+      if (!body.ok) {
+        const refusalId = body.status === 413 ? "payload-too-large" : "invalid-request";
+        founderAudit(founderLine("founder.settings.change", refusalId));
+        return refuse(res, cors.headers, refusalId);
+      }
+      const asked = (body.value ?? {}) as { setting?: unknown; from?: unknown; to?: unknown; reason?: unknown; expectedVersion?: unknown };
+      const setting = typeof asked.setting === "string" ? asked.setting : undefined;
+      if (setting === undefined || asked.from === undefined || asked.to === undefined) {
+        founderAudit(founderLine("founder.settings.change", "required-field-missing", undefined, { setting }));
+        return send(res, 400, cors.headers, {
+          error: "required_field_missing",
+          refusalId: "required-field-missing",
+          message: "A field this route needs was not sent.",
+        });
+      }
+      const changed = settings.propose(
+        { setting, from: asked.from, to: asked.to, reason: asked.reason, expectedVersion: asked.expectedVersion },
+        now(),
+      );
+      if (!changed.ok) {
+        founderAudit(founderLine("founder.settings.change", changed.refusalId, undefined, { setting }));
+        return refuse(res, cors.headers, changed.refusalId);
+      }
+      founderAudit(founderLine("founder.settings.change", "accepted", undefined, { setting }));
+      return send(
+        res,
+        200,
+        { ...cors.headers, pragma: "no-cache" },
+        { settingsVersion: changed.change.settingsVersion, appliesFrom: new Date(changed.change.at).toISOString() },
+      );
+    }
+    if (req.method === "GET" && req.url === "/assistant/v1/founder/providers") {
+      /* What may be said about every provider key the vault can hold (lib/provider-vault.ts): configured
+      and from where, enabled, last four, fingerprint prefix, when and by whom — never a value; the
+      metadata type has no field one could travel in. */
+      const gated = founder.gate(req.headers);
+      if (gated) {
+        founderAudit(founderLine("founder.providers", gated.refusalId));
+        return refuse(res, cors.headers, gated.refusalId);
+      }
+      if (!founder.sessionFrom(req.headers.cookie)) {
+        founderAudit(founderLine("founder.providers", "founder-no-session"));
+        return refuse(res, cors.headers, "founder-no-session");
+      }
+      founderAudit(founderLine("founder.providers", "accepted"));
+      return send(
+        res,
+        200,
+        { ...cors.headers, pragma: "no-cache" },
+        { providers: vault.cards(), vaultUnlocked: vault.unlocked, persisted: vault.persisted, expiresAt: founder.sessionExpiresAt() },
+      );
+    }
+    /* The four per-card provider routes share one address shape: the card in the path, the act after
+       it. Parsed here, once, so each branch below is one condition the contract's evidence names. */
+    const founderProvider = (() => {
+      const m = /^\/assistant\/v1\/founder\/providers\/([a-z0-9-]{1,64})\/(key|enabled|test|logs)$/.exec(req.url ?? "");
+      return m ? { card: m[1]!, action: m[2]! } : null;
+    })();
+    if (req.method === "PUT" && founderProvider?.action === "key") {
+      /* Store or replace a provider's key: the gate, the session, the body, then a fresh authenticator
+      code — burned, as at a reveal — and only then the vault, which checks the card, the state
+      directory, the master key and the key's shape before it encrypts. The key is read from the body
+      and handed to the vault and nowhere else; the answer and the audit line carry its fingerprint. */
+      const gated = founder.gate(req.headers);
+      if (gated) {
+        founderAudit(founderLine("founder.provider.key-set", gated.refusalId, undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, gated.refusalId);
+      }
+      if (!founder.sessionFrom(req.headers.cookie)) {
+        founderAudit(founderLine("founder.provider.key-set", "founder-no-session", undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, "founder-no-session");
+      }
+      const body = await readJsonBody(req);
+      if (!body.ok) {
+        const refusalId = body.status === 413 ? "payload-too-large" : "invalid-request";
+        founderAudit(founderLine("founder.provider.key-set", refusalId, undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, refusalId);
+      }
+      const asked = (body.value ?? {}) as { key?: unknown; code?: unknown };
+      if (typeof asked.key !== "string" || typeof asked.code !== "string") {
+        founderAudit(founderLine("founder.provider.key-set", "required-field-missing", undefined, { card: founderProvider.card }));
+        return send(res, 400, cors.headers, {
+          error: "required_field_missing",
+          refusalId: "required-field-missing",
+          message: "A field this route needs was not sent.",
+        });
+      }
+      const known = vault.card(founderProvider.card);
+      if (!known) {
+        founderAudit(founderLine("founder.provider.key-set", "founder-card-not-known"));
+        return refuse(res, cors.headers, "founder-card-not-known");
+      }
+      const confirmed = founder.confirmCode(asked.code);
+      if (!confirmed.ok) {
+        founderAudit(founderLine("founder.provider.key-set", confirmed.refusalId, undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, confirmed.refusalId);
+      }
+      const stored = vault.setKey(founderProvider.card, asked.key, now());
+      if (!stored.ok) {
+        founderAudit(founderLine("founder.provider.key-set", stored.refusalId, undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, stored.refusalId);
+      }
+      founderAudit(founderLine("founder.provider.key-set", "accepted", undefined, { card: founderProvider.card, fingerprint: stored.answer.fingerprintPrefix }));
+      return send(res, 200, { ...cors.headers, pragma: "no-cache" }, stored.answer);
+    }
+    if (req.method === "DELETE" && founderProvider?.action === "key") {
+      /* Remove a provider's key from the vault, with a fresh code; a key in the environment, if any, is
+      what remains in force, and the answer says so in `source`. */
+      const gated = founder.gate(req.headers);
+      if (gated) {
+        founderAudit(founderLine("founder.provider.key-deleted", gated.refusalId, undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, gated.refusalId);
+      }
+      if (!founder.sessionFrom(req.headers.cookie)) {
+        founderAudit(founderLine("founder.provider.key-deleted", "founder-no-session", undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, "founder-no-session");
+      }
+      const body = await readJsonBody(req);
+      if (!body.ok) {
+        const refusalId = body.status === 413 ? "payload-too-large" : "invalid-request";
+        founderAudit(founderLine("founder.provider.key-deleted", refusalId, undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, refusalId);
+      }
+      const asked = (body.value ?? {}) as { code?: unknown };
+      if (typeof asked.code !== "string") {
+        founderAudit(founderLine("founder.provider.key-deleted", "required-field-missing", undefined, { card: founderProvider.card }));
+        return send(res, 400, cors.headers, {
+          error: "required_field_missing",
+          refusalId: "required-field-missing",
+          message: "A field this route needs was not sent.",
+        });
+      }
+      if (!vault.card(founderProvider.card)) {
+        founderAudit(founderLine("founder.provider.key-deleted", "founder-card-not-known"));
+        return refuse(res, cors.headers, "founder-card-not-known");
+      }
+      const confirmed = founder.confirmCode(asked.code);
+      if (!confirmed.ok) {
+        founderAudit(founderLine("founder.provider.key-deleted", confirmed.refusalId, undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, confirmed.refusalId);
+      }
+      const removed = vault.deleteKey(founderProvider.card, now());
+      if (!removed.ok) {
+        founderAudit(founderLine("founder.provider.key-deleted", removed.refusalId, undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, removed.refusalId);
+      }
+      founderAudit(founderLine("founder.provider.key-deleted", "accepted", undefined, { card: founderProvider.card }));
+      return send(res, 200, { ...cors.headers, pragma: "no-cache" }, removed.answer);
+    }
+    if (req.method === "POST" && founderProvider?.action === "enabled") {
+      /* Switch a provider on or off, with a fresh code. Off, the vault's credential view answers nothing
+      for every variable of the card, so its adapter finds nothing to configure and it is never called:
+      api-registry.json's a-disabled-provider-is-never-called, made true in code. */
+      const gated = founder.gate(req.headers);
+      if (gated) {
+        founderAudit(founderLine("founder.provider.enabled", gated.refusalId, undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, gated.refusalId);
+      }
+      if (!founder.sessionFrom(req.headers.cookie)) {
+        founderAudit(founderLine("founder.provider.enabled", "founder-no-session", undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, "founder-no-session");
+      }
+      const body = await readJsonBody(req);
+      if (!body.ok) {
+        const refusalId = body.status === 413 ? "payload-too-large" : "invalid-request";
+        founderAudit(founderLine("founder.provider.enabled", refusalId, undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, refusalId);
+      }
+      const asked = (body.value ?? {}) as { enabled?: unknown; code?: unknown };
+      if (typeof asked.enabled !== "boolean" || typeof asked.code !== "string") {
+        founderAudit(founderLine("founder.provider.enabled", "required-field-missing", undefined, { card: founderProvider.card }));
+        return send(res, 400, cors.headers, {
+          error: "required_field_missing",
+          refusalId: "required-field-missing",
+          message: "A field this route needs was not sent.",
+        });
+      }
+      if (!vault.card(founderProvider.card)) {
+        founderAudit(founderLine("founder.provider.enabled", "founder-card-not-known"));
+        return refuse(res, cors.headers, "founder-card-not-known");
+      }
+      const confirmed = founder.confirmCode(asked.code);
+      if (!confirmed.ok) {
+        founderAudit(founderLine("founder.provider.enabled", confirmed.refusalId, undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, confirmed.refusalId);
+      }
+      const switched = vault.setEnabled(founderProvider.card, asked.enabled, now());
+      if (!switched.ok) {
+        founderAudit(founderLine("founder.provider.enabled", switched.refusalId, undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, switched.refusalId);
+      }
+      founderAudit(founderLine("founder.provider.enabled", asked.enabled ? "accepted" : "accepted-off", undefined, { card: founderProvider.card }));
+      return send(res, 200, { ...cors.headers, pragma: "no-cache" }, switched.answer);
+    }
+    if (req.method === "POST" && founderProvider?.action === "test") {
+      /* One authenticated call to the provider's own listing — voices, models, the account — through
+      the same credential view the adapter reads, so what is tested is what would be used. A live
+      session is enough: nothing is changed, and nothing about a patient travels. A disabled or
+      unconfigured card is refused before any call, in the route's own words. */
+      const gated = founder.gate(req.headers);
+      if (gated) {
+        founderAudit(founderLine("founder.provider.test", gated.refusalId, undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, gated.refusalId);
+      }
+      if (!founder.sessionFrom(req.headers.cookie)) {
+        founderAudit(founderLine("founder.provider.test", "founder-no-session", undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, "founder-no-session");
+      }
+      const tested = await vault.test(founderProvider.card, fetch, now);
+      if (!tested.ok) {
+        founderAudit(founderLine("founder.provider.test", tested.refusalId, undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, tested.refusalId);
+      }
+      founderAudit(founderLine("founder.provider.test", `accepted-${tested.answer.outcome}`, undefined, { card: founderProvider.card }));
+      return send(res, 200, { ...cors.headers, pragma: "no-cache" }, tested.answer);
+    }
+    if (req.method === "GET" && founderProvider?.action === "logs") {
+      /* The founder audit lines that name this card — and, for the two Azure cards, the reveals and
+      metadata reads of its key, which name the variable rather than the card — from the state
+      directory's audit file, oldest first, capped at the contract's tail. Without a state directory
+      there is nothing to read and the answer says so. */
+      const gated = founder.gate(req.headers);
+      if (gated) {
+        founderAudit(founderLine("founder.provider.logs", gated.refusalId, undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, gated.refusalId);
+      }
+      if (!founder.sessionFrom(req.headers.cookie)) {
+        founderAudit(founderLine("founder.provider.logs", "founder-no-session", undefined, { card: founderProvider.card }));
+        return refuse(res, cors.headers, "founder-no-session");
+      }
+      if (!vault.card(founderProvider.card)) {
+        founderAudit(founderLine("founder.provider.logs", "founder-card-not-known"));
+        return refuse(res, cors.headers, "founder-card-not-known");
+      }
+      const names = founderContract.keys.filter((k) => k.card === founderProvider.card).map((k) => k.name);
+      const lines = (state ? state.readLines(founderContract.audit.file) : [])
+        .map((line) => {
+          try {
+            return JSON.parse(line) as Record<string, string>;
+          } catch {
+            return null;
+          }
+        })
+        .filter((line): line is Record<string, string> => line !== null && (line.card === founderProvider.card || (line.name !== undefined && names.includes(line.name))))
+        .slice(-founderContract.audit.logsTail);
+      founderAudit(founderLine("founder.provider.logs", "accepted", undefined, { card: founderProvider.card }));
+      return send(res, 200, { ...cors.headers, pragma: "no-cache" }, { card: founderProvider.card, lines, persisted: state !== null });
     }
     const refusedRoute = `${req.method} ${req.url}`;
     if (req.method && notYetAvailable.has(refusedRoute)) {

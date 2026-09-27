@@ -5,17 +5,19 @@ import { chooseRole, goPortal } from './nav';
 import { fill, say, settingsContract, timingItem } from './safety-settings';
 
 /* GilbertOne API Administration's seven sub-screens, on both viewports (docs/PROMPT-CONTROL-TOWER-UI.md
- * §7, Phase 4).
+ * §7, Phase 4; the Voice screen folded into Speech settings on 28 September 2026).
  *
  * What is held here is what the screens refuse, because the assistant they administer is live in
- * production and nothing on them may act on it — with the two exceptions the founder decided on
- * 27 September 2026, held here as tightly as the refusals around them. Every sub-screen is reached by
+ * production and nothing on them may act on it — with the exceptions the founder decided on 27 and 28
+ * September 2026, held here as tightly as the refusals around them. Every sub-screen is reached by
  * the keyboard alone. Every gated action is disabled, and its gate's sentence is on the screen and tied
- * to it; the two live actions are enabled beside the founder's own sentence, and nothing else is. No
- * password field is enabled anywhere, and nothing key-shaped is ever drawn — not even when the health
- * route is made to answer with a planted field it should not have. On the Voice screen a presentation
- * row chooses one of the contract's two labels and saves it as a setting with a reason, which the
- * Configuration tab then shows in its history; a locked row offers nothing to choose and nothing to
+ * to it; the live actions are enabled beside the founder's own sentence; the founder's own actions are
+ * disabled here, because nobody is signed in (tests/founder-access.spec.ts signs in and holds them); and
+ * nothing else is enabled. No password field is drawn anywhere, and nothing key-shaped is ever drawn —
+ * not even when the health route is made to answer with a planted field it should not have. On the
+ * Speech settings screen a register card chooses a provider and one of the contract's two voice labels
+ * and saves them as settings with a reason, which the Configuration tab then shows in its history; the
+ * knobs are saved a group at a time; a locked row, in the fold, offers nothing to choose and nothing to
  * save; the preview refuses a person's details, says the cost before Play, asks the contract's speak
  * route with the contract's voice name — the platform's default on a locked register whatever the
  * setting says — and asks nothing else to speak. In the patient's own panel, in the same tab, a routine
@@ -101,6 +103,12 @@ async function openSub(page: Page, label: string) {
  await expect(page.locator('#pt-category .pt-loading')).toHaveCount(0);
  const tab = tabs.find(t => t.label === label)!;
  await expect(page.getByRole('heading', { level: 1, name: tab.heading ?? tab.label, exact: true })).toBeVisible();
+ /* A screen's cards arrive on a translate that interpolates through fractional pixels, and a chip's label
+    measured at 43.9995px mid-arrival once put its 42px inner radio on the audit's list. The audit measures a
+    screen at rest, so the arrival — the tokens' enter duration plus its two staggers, under a second — is let
+    finish first. A wait on the animations' own finished promises hung on ones that never settle, so this is a
+    plain wait for longer than the arrival takes; under reduced motion there is nothing to wait for. */
+ await page.waitForTimeout(900);
 }
 async function start(page: Page, sub = subScreens[0]!.label) {
  await answering(page);
@@ -111,19 +119,20 @@ async function start(page: Page, sub = subScreens[0]!.label) {
 }
 
 /* Every sub-screen's controls: none enabled but a live action's, every gated one described by a
-   sentence the contract holds and every live one by the founder's, no password field enabled, and
-   nothing key-shaped anywhere in what is drawn. Founder access's panel (.g1-founder,
-   packages/catalog/founder-access.json) is the one exception — its sign-in and reveal are live when the
-   service answers, and tests/founder-access.spec.ts holds them — so it alone is left out of the three
-   control counts. The key-shape sweep still reads the whole screen. */
+   sentence the contract holds, every founder one — disabled, since nobody is signed in — by the founder
+   words, and every live one by the founder's record; no password field drawn; and nothing key-shaped
+   anywhere in what is drawn. Founder access's panel (.g1-founder, packages/catalog/founder-access.json)
+   is the one exception — its sign-in and reveal are live when the service answers, and
+   tests/founder-access.spec.ts holds them — so it alone is left out of the three control counts. The
+   key-shape sweep still reads the whole screen. */
 const OUTSIDE_FOUNDER = ':not(.g1-founder *)';
 async function holdsNothingOpen(page: Page, where: string) {
  await expect(panel(page).locator(`button:not([disabled]):not(.g1-live)${OUTSIDE_FOUNDER}`), `${where}: an enabled button that is not a live action`).toHaveCount(0);
  await expect(page.locator(`input[type="password"]:not([disabled])${OUTSIDE_FOUNDER}`), `${where}: an enabled password field`).toHaveCount(0);
- /* The preview's voice chooser has been a group of radio chips since 27 September 2026, where it was a
-    select this count never read; its radios are the one enabled input, and only on a presentation
-    register's chooser, which the Voice test holds. Any other enabled input still fails here. */
- await expect(panel(page).locator(`input:not([disabled]):not(.g1-voice-chips input[type="radio"])${OUTSIDE_FOUNDER}`), `${where}: an enabled input`).toHaveCount(0);
+ /* The preview's voice chooser is a group of radio chips, and since 28 September 2026 the Speech settings
+    screen's change panel draws the portal's shared chips, ranges and switches — radio, range and checkbox
+    inputs, none of which takes text. Those are the enabled inputs; any other still fails here. */
+ await expect(panel(page).locator(`input:not([disabled]):not(.g1-voice-chips input[type="radio"]):not(.g1-change input[type="radio"]):not(.g1-change input[type="range"]):not(.g1-change input[type="checkbox"])${OUTSIDE_FOUNDER}`), `${where}: an enabled input`).toHaveCount(0);
  /* A live button is one of the contract's live actions, by name, and is described by that action's own
     sentence — or, while it waits, by a sentence the screen gives it — never by nothing. */
  const live = await panel(page).locator('button.g1-live').evaluateAll(els => els.map(el => {
@@ -138,7 +147,8 @@ async function holdsNothingOpen(page: Page, where: string) {
   const id = el.getAttribute('aria-describedby');
   return { name: el.textContent?.trim() || el.closest('label')?.textContent?.trim() || '', why: id ? document.getElementById(id)?.textContent?.trim() ?? '' : '' };
  }));
- const sentences = [...(g1.gates as Gate[]).map(g => g.sentence), ...(g1.actions as Action[]).flatMap(a => a.refusal ? [a.refusal] : [])];
+ const founderWords = Object.values(g1.founder.words as Record<string, string>).map(w => w.split('{')[0]!.trim()).filter(Boolean);
+ const sentences = [...(g1.gates as Gate[]).map(g => g.sentence), ...(g1.actions as Action[]).flatMap(a => a.refusal ? [a.refusal] : []), ...founderWords];
  for (const d of described)
   expect(sentences.some(s => d.why.includes(s)), `${where}: "${d.name}" is disabled without its gate's sentence`).toBe(true);
  const text = await page.locator('main').innerText();
@@ -147,7 +157,7 @@ async function holdsNothingOpen(page: Page, where: string) {
 }
 
 test.describe('every sub-screen, by the keyboard alone', () => {
- test('the arrows walk the eight sub-screens in the contract\'s order, each an address', async ({ page }) => {
+ test('the arrows walk the seven sub-screens in the contract\'s order, each an address', async ({ page }) => {
   await start(page);
   await tablist(page).getByRole('tab', { selected: true }).focus();
   await page.keyboard.press('Home');
@@ -214,62 +224,86 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   }
  });
 
- test('Voice: a presentation row chooses and saves a voice with a reason, a locked row offers nothing, and the preview says the cost, refuses a person\'s details and plays through the contract\'s route in the contract\'s voice', async ({ page }) => {
+ test('Speech settings: a register card chooses a provider and a voice and saves them with a reason, a locked row offers nothing, and the preview says the cost, refuses a person\'s details and plays through the contract\'s route in the contract\'s voice', async ({ page }) => {
   const spoken = speakRequests(page);
   await speaking(page);
-  await start(page, 'Voice');
-  const table = panel(page).locator('table').first();
+  await start(page, 'Speech settings');
   const words = g1.voice;
+  const speech = g1.speech as Record<string, string>;
   const routine = classes.find(c => c.previewMaySaveAsDefault)!;
   const locked = classes.filter(c => !c.previewMaySaveAsDefault);
-  /* Every presentation row: a select of the setting's own choices showing the platform's default in
-     force, and a live Save that waits while the choice is the one in force. Every locked row: no control
-     at all, and the contract's sentence. */
-  for (const c of classes) {
-   const row = table.getByRole('row', { name: new RegExp(`^${c.label}`) });
-   if (c.previewMaySaveAsDefault) {
-    const select = row.getByRole('combobox', { name: fill(words.voiceSelectLabel, { class: c.label }) });
-    await expect(select).toBeEnabled();
-    await expect(select).toHaveValue(platformLabel);
-    const setting = voiceSettings.find(s => s.key === c.setting)!;
-    await expect(select.locator('option')).toHaveText(setting.allowed.map(a => a.label));
-    const save = row.getByRole('button', { name: `${action('voice-save-as-default').label}: ${c.label}` });
-    await expect(save).toBeDisabled();
-    await expect(save).toHaveClass(/g1-live/);
-   } else {
-    await expect(row.getByRole('button'), `${c.label} offers a save`).toHaveCount(0);
-    await expect(row.getByRole('combobox'), `${c.label} offers a chooser`).toHaveCount(0);
-    await expect(row).toContainText(words.lockedRowSentence);
-   }
+  const routineSetting = voiceSettings.find(s => s.key === routine.setting)!;
+  const providerSettings = voice.settings.items as { key: string; allowed?: { value: string; label: string }[] }[];
+  const change = panel(page).getByRole('region', { name: new RegExp(`^${speech.changeHeading}`) });
+  const preview = panel(page).getByRole('region', { name: new RegExp(voice.previewPanel.placements[0]) });
+  const fold = panel(page).locator('details.g1-fold');
+  /* The founder's order: the change fields, then the preview, then the fold, and the fold starts closed. */
+  const order = await page.evaluate(() => {
+   const change = document.querySelector('.g1-change');
+   const preview = document.querySelector('.g1-preview');
+   const fold = document.querySelector('details.g1-fold') as HTMLDetailsElement | null;
+   const before = (a: Element | null, b: Element | null) => !!a && !!b && !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+   return { changeFirst: before(change, preview), previewBeforeFold: before(preview, fold), foldClosed: !!fold && !fold.open };
+  });
+  expect(order).toEqual({ changeFirst: true, previewBeforeFold: true, foldClosed: true });
+  await expect(panel(page)).toContainText(fill(speech.sourceTab!, { version: '1' }));
+  /* Every presentation register is a card: provider chips over the setting's own choices, voice chips over the
+     two labels, the platform's default checked, and a live Save that waits while nothing differs. */
+  for (const c of classes.filter(x => x.previewMaySaveAsDefault)) {
+   const card = change.getByRole('article', { name: c.label, exact: true });
+   const providerSetting = providerSettings.find(s => s.key === `presentation-provider-${c.id}`)!;
+   const providers = card.getByRole('group', { name: fill(speech.providerLabel!, { register: c.label }) });
+   await expect(providers.getByRole('radio')).toHaveCount(providerSetting.allowed!.length);
+   await expect(providers.getByRole('radio', { name: providerSetting.allowed![0]!.label, exact: true })).toBeChecked();
+   const voices = card.getByRole('group', { name: fill(speech.voiceLabel!, { register: c.label }) });
+   const setting = voiceSettings.find(s => s.key === c.setting)!;
+   await expect(voices.getByRole('radio')).toHaveCount(setting.allowed.length);
+   for (const radio of await voices.getByRole('radio').all()) await expect(radio).toBeEnabled();
+   await expect(voices.getByRole('radio', { name: setting.allowed.find(a => a.value === platformLabel)!.label, exact: true })).toBeChecked();
+   const save = card.getByRole('button', { name: fill(speech.saveRegister!, { register: c.label }) });
+   await expect(save).toBeDisabled();
+   await expect(save).toHaveClass(/g1-live/);
   }
   await expect(panel(page)).toContainText(action('voice-save-as-default').live!.sentence);
+  await expect(panel(page)).toContainText(action('speech-save-settings').live!.sentence);
   await expect(panel(page)).toContainText(words.sessionSentence);
-  /* Saving without a reason is refused in the shared rules' sentence; with one, the change is recorded
-     and the row shows the new value in force. */
-  const routineRow = table.getByRole('row', { name: new RegExp(`^${routine.label}`) });
-  const routineSelect = routineRow.getByRole('combobox');
-  const routineSave = routineRow.getByRole('button', { name: `${action('voice-save-as-default').label}: ${routine.label}` });
-  await routineSelect.selectOption(otherLabel);
+  /* The locked rows live in the fold, as a sentence with no control at all. */
+  await fold.locator('> summary').click();
+  await expect(fold).toHaveAttribute('open', '');
+  const table = fold.locator('table.g1-voice-table');
+  for (const c of locked) {
+   const row = table.getByRole('row', { name: new RegExp(`^${c.label}`) });
+   await expect(row.getByRole('button'), `${c.label} offers a save`).toHaveCount(0);
+   await expect(row.getByRole('radio'), `${c.label} offers a chooser`).toHaveCount(0);
+   await expect(row).toContainText(words.lockedRowSentence);
+  }
+  await expect(fold).toContainText(voice.lockedSettings.pushToTalk.sentence);
+  await expect(fold).toContainText(voice.lockedSettings.captions.sentence);
+  for (const l of languages.filter(x => !x.ttsAvailable))
+   await expect(fold.locator('li').filter({ hasText: l.name })).toContainText(assistant.voice.voiceUnavailableNotice);
+  /* Saving without a reason is refused in the shared rules' sentence; with one, the change is recorded and the
+     card shows the new value in force. */
+  const routineCard = change.getByRole('article', { name: routine.label, exact: true });
+  const routineVoices = routineCard.getByRole('group', { name: fill(speech.voiceLabel!, { register: routine.label }) });
+  const routineChip = (value: string) => routineVoices.getByRole('radio', { name: routineSetting.allowed.find(a => a.value === value)!.label, exact: true });
+  const routineSave = routineCard.getByRole('button', { name: fill(speech.saveRegister!, { register: routine.label }) });
+  await routineChip(otherLabel).check();
   await expect(routineSave).toBeEnabled();
   await routineSave.click();
-  await expect(panel(page).getByRole('alert')).toHaveText((settingsContract.refusals as { id: string; statement: string }[]).find(r => r.id === 'setting-change-without-reason')!.statement);
+  await expect(change.getByRole('alert')).toHaveText((settingsContract.refusals as { id: string; statement: string }[]).find(r => r.id === 'setting-change-without-reason')!.statement);
   const reason = 'The routine greeting sounded like every other clinic; the founder asked to hear the other voice.';
-  await panel(page).getByRole('group', { name: words.saveHeading }).getByLabel(say.reason).fill(reason);
+  await change.getByLabel(say.reason).fill(reason);
   await routineSave.click();
-  await expect(panel(page).getByRole('status')).toContainText(fill(say.applied.split('{at}')[0]!, { version: '2' }).trim());
+  await expect(change.getByRole('status')).toContainText(fill(say.applied.split('{at}')[0]!, { version: '2' }).trim());
   await expect(routineSave).toBeDisabled();
-  const routineSetting = voiceSettings.find(s => s.key === routine.setting)!;
-  await expect(routineRow).toContainText(fill(words.inForceSentence, { label: routineSetting.allowed.find(a => a.value === otherLabel)!.label }));
-  /* The other presentation rows are untouched: one setting per class. */
-  for (const c of classes.filter(x => x.previewMaySaveAsDefault && x.id !== routine.id))
-   await expect(table.getByRole('row', { name: new RegExp(`^${c.label}`) }).getByRole('combobox')).toHaveValue(platformLabel);
+  await expect(routineCard).toContainText(fill(words.inForceSentence, { label: `${cards.find(c => c.id === providerSettings.find(s => s.key === `presentation-provider-${routine.id}`)!.allowed![0]!.value)!.name}, ${routineSetting.allowed.find(a => a.value === otherLabel)!.label}` }));
+  await expect(panel(page)).toContainText(fill(speech.sourceTab!, { version: '2' }));
+  /* The other cards are untouched: one setting per class. */
+  for (const c of classes.filter(x => x.previewMaySaveAsDefault && x.id !== routine.id)) {
+   const setting = voiceSettings.find(s => s.key === c.setting)!;
+   await expect(change.getByRole('article', { name: c.label, exact: true }).getByRole('radio', { name: setting.allowed.find(a => a.value === platformLabel)!.label, exact: true })).toBeChecked();
+  }
 
-  await expect(panel(page)).toContainText(voice.lockedSettings.pushToTalk.sentence);
-  await expect(panel(page)).toContainText(voice.lockedSettings.captions.sentence);
-  for (const l of languages.filter(x => !x.ttsAvailable))
-   await expect(panel(page).locator('li').filter({ hasText: l.name })).toContainText(assistant.voice.voiceUnavailableNotice);
-
-  const preview = panel(page).getByRole('region', { name: /the Voice screen/ });
   for (const q of voice.previewPanel.questions) await expect(preview).toContainText(q);
   const play = preview.getByRole('button', { name: action('voice-play').label, exact: true });
   const sentence = preview.getByLabel(words.previewTextLabel);
@@ -284,8 +318,7 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   await sentence.fill(text);
   await expect(preview.getByRole('alert')).toHaveCount(0);
   await expect(preview).toContainText(words.previewAccepted);
-  /* The cost is said before Play, from the configured provider's recorded list price, and the session
-     total is nothing yet. */
+  /* The cost is said before Play, from the configured provider's recorded list price, and the session total is nothing yet. */
   const provider = cards.find(c => (c.serves ?? []).includes('tts') && c.statusToday === 'configured' && c.pricing)!;
   await expect(preview).toContainText(`${text.length} characters at`);
   await expect(preview).toContainText(provider.pricing!.recordedOn);
@@ -296,9 +329,8 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   /* The language select offers the languages with a voice, and only those. */
   const language = preview.getByRole('combobox', { name: words.previewLanguageLabel, exact: true });
   await expect(language.locator('option')).toHaveText(languages.filter(l => l.ttsAvailable).map(l => l.name));
-  /* On the presentation register the voice chooser — a radio chip per label, since 27 September 2026 a
-     group rather than a select — follows the setting just saved; Play asks the contract's route with
-     that label's name for the language. */
+  /* On the presentation register the preview's chooser follows the setting just saved; Play asks the contract's
+     route with that label's name for the language. */
   const register = preview.getByRole('combobox', { name: words.previewClassLabel, exact: true });
   await register.selectOption(routine.id);
   const voiceChooser = preview.getByRole('group', { name: words.previewVoiceLabel, exact: true });
@@ -313,8 +345,8 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   expect(spoken[0]!.voice).toBe(english.ttsVoices![otherLabel]);
   expect(spoken[0]!.text).toBe(text);
   await expect(preview).toContainText(fill(words.previewTotalSentence.split('{cost}')[0]!, { plays: '1' }).trim());
-  /* On a locked register the voice chooser is disabled on the platform's default alone, no Save is
-     offered, and Play asks for the platform's voice whatever the setting says. */
+  /* On a locked register the chooser is disabled on the platform's default alone, no Save is offered, and Play
+     asks for the platform's voice whatever the setting says. */
   for (const c of locked) {
    await register.selectOption(c.id);
    await expect(voiceChooser.getByRole('radio')).toHaveCount(1);
@@ -327,7 +359,7 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   await play.click();
   await expect.poll(() => spoken.length).toBe(2);
   expect(spoken[1]!.voice).toBe(english.ttsVoices![platformLabel]);
-  /* And the preview's own Save on a presentation register goes through the same door. */
+  /* And the preview's own Save on a presentation register goes through the same door, and the card follows. */
   await register.selectOption(routine.id);
   const previewSave = preview.getByRole('button', { name: action('voice-save-as-default').label, exact: true });
   await expect(previewSave).toBeDisabled();
@@ -336,13 +368,11 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   await preview.getByLabel(say.reason).fill('Back to the platform voice: the other one read the booking steps too fast.');
   await previewSave.click();
   await expect(preview.getByRole('status').last()).toContainText(fill(say.applied.split('{at}')[0]!, { version: '3' }).trim());
-  await expect(routineSelect).toHaveValue(platformLabel);
-  await holdsNothingOpen(page, 'Voice');
-  expect(spoken.filter(s => !new RegExp(`${words.previewRoute.path}$`).test(s.url)), 'the Voice screen asked something other than the preview route to speak').toEqual([]);
-  /* Since version four every reading names the register it is read as — the preview's chosen class —
-     so the service reads it through that register's provider and tuning, and never a clinical one's. */
+  await expect(routineChip(platformLabel)).toBeChecked();
+  await holdsNothingOpen(page, 'Speech settings');
+  expect(spoken.filter(s => !new RegExp(`${words.previewRoute.path}$`).test(s.url)), 'the Speech settings screen asked something other than the preview route to speak').toEqual([]);
   expect(spoken.every(s => classes.some(c => c.id === s.register)), `every preview reading named one of the contract's registers: ${spoken.map(s => s.register).join(', ')}`).toBe(true);
-  expect(spoken, 'the Voice screen spoke more than it was asked to').toHaveLength(2);
+  expect(spoken, 'the Speech settings screen spoke more than it was asked to').toHaveLength(2);
 
   /* The Configuration tab shows the same history: two changes on the routine setting, with the reason. */
   await goPortal(page, say.tab);
@@ -355,7 +385,7 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   await expect(history.first()).toContainText(reason);
  });
 
- test('Voice: a saved presentation voice reaches the patient\'s routine answer in the same tab, and the emergency answer reads in the platform\'s default', async ({ page }) => {
+ test('Speech settings: a saved presentation voice reaches the patient\'s routine answer in the same tab, and the emergency answer reads in the platform\'s default', async ({ page }) => {
   /* The cloud voice is configured for this journey, so the panel asks the speak route rather than the
      browser's own voice; the turn route is dark, so every answer is the deterministic layer's. The
      browser's synthesiser is replaced with a silent stand-in before the app runs, as
@@ -370,15 +400,17 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   await page.route('**/assistant/v1/turn', route => route.abort());
   await page.route('**/assistant/health', route => route.fulfill({ json: { ...answer, speech: true } }));
   await page.route('**/assistant/v1/status', route => route.fulfill({ json: { ...answer, speech: true } }));
-  await page.goto('/app/?role=back-office&category=gilbertone&tab=voice');
+  await page.goto('/app/?role=back-office&category=gilbertone&tab=speech');
   await expect(page.locator('#pt-category .pt-loading')).toHaveCount(0);
+  const speech = g1.speech as Record<string, string>;
   const routine = classes.find(c => c.previewMaySaveAsDefault)!;
-  const table = panel(page).locator('table').first();
-  const row = table.getByRole('row', { name: new RegExp(`^${routine.label}`) });
-  await row.getByRole('combobox').selectOption(otherLabel);
-  await panel(page).getByRole('group', { name: g1.voice.saveHeading }).getByLabel(say.reason).fill('Hearing the other voice on the patient panel before deciding.');
-  await row.getByRole('button', { name: `${action('voice-save-as-default').label}: ${routine.label}` }).click();
-  await expect(panel(page).getByRole('status')).toBeVisible();
+  const routineSetting = voiceSettings.find(s => s.key === routine.setting)!;
+  const change = panel(page).getByRole('region', { name: new RegExp(`^${speech.changeHeading}`) });
+  const card = change.getByRole('article', { name: routine.label, exact: true });
+  await card.getByRole('group', { name: fill(speech.voiceLabel!, { register: routine.label }) }).getByRole('radio', { name: routineSetting.allowed.find(a => a.value === otherLabel)!.label, exact: true }).check();
+  await change.getByLabel(say.reason).fill('Hearing the other voice on the patient panel before deciding.');
+  await card.getByRole('button', { name: fill(speech.saveRegister!, { register: routine.label }) }).click();
+  await expect(change.getByRole('status')).toBeVisible();
 
   /* The patient, in the same tab: the setting is still in this tab's memory. */
   await chooseRole(page, 'Patient');
@@ -407,106 +439,108 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   expect(zoneOf(spoken.filter(s => /\/speak\b/.test(s.url))[1]!.register), 'the emergency answer names a clinical-delivery register, which no speech setting reaches').toBe('clinical-delivery');
  });
 
- test('Speech settings: the provider in force per register, every built provider\'s card and settings, the locked items, the founder\'s own-voice record, and a setting changed through the shared editor with a reason', async ({ page }) => {
+ test('Speech settings: the knobs in three groups saved one group at a time with a reason, the provider in force per register, every built provider\'s card and settings, the locked items and the founder\'s own-voice record in the fold', async ({ page }) => {
   await start(page, 'Speech settings');
   const words = g1.speech as Record<string, string>;
-  /* The editor comes first since 28 September 2026, and what is in force sits beside it on a wide screen and
-     under it on a phone, each block a disclosure that starts closed there. A block is unfolded before a
-     card inside it is found by its role, as a person would unfold it to read it. */
-  const unfold = async (region: Locator) => {
-   const block = region.locator(':scope > details');
-   if (!(await block.evaluate(el => (el as HTMLDetailsElement).open))) await block.locator(':scope > summary').click();
-   await expect(block).toHaveAttribute('open', '');
-  };
-  const editorFirst = await page.evaluate(() => {
-   const editor = document.querySelector('.g1-speech-editor');
-   const state = document.querySelector('.g1-speech-state');
-   return !!editor && !!state && !!(editor.compareDocumentPosition(state) & Node.DOCUMENT_POSITION_FOLLOWING);
-  });
-  expect(editorFirst, 'the editor comes before what is in force').toBe(true);
+  const change = panel(page).getByRole('region', { name: new RegExp(`^${words.changeHeading}`) });
   const ttsCards = (voice.providers.tts as string[]).map(id => cards.find(c => c.id === id)!).filter(c => c.buildStatus === 'built');
   const azure = ttsCards[0]!;
   const settings = voice.settings.items as { key: string; label: string; help: string; type: string; unit: string | null; appliesTo: string; allowed?: { value: string | boolean; label: string }[]; default: { value: unknown } }[];
   const female = voiceSettings[0]!.allowed.find(a => a.value === platformLabel)!.label;
-  /* The honest sentence first: the service reads these from the contract's defaults. */
-  await expect(panel(page)).toContainText(words.serviceReadsDefaults!);
-  /* Every presentation register reads through the platform default, in the platform's voice, and no own voice. */
-  const inForce = panel(page).getByRole('region', { name: words.inForceHeading });
+  const knobKeys = (card: Card) => settings.filter(x => x.key.startsWith(`${card.id.split('-')[0]}-`));
+  const shared = settings.filter(x => !x.key.startsWith('presentation-') && !ttsCards.some(c => x.key.startsWith(`${c.id.split('-')[0]}-`)));
+  /* Every built speaking card with knobs is a group of its own, and the rest are every provider's. */
+  for (const card of ttsCards.filter(c => knobKeys(c).length)) {
+   const group = change.getByRole('region', { name: card.name, exact: true });
+   await expect(group).toContainText(fill(words.groupWord!, { group: card.name, count: String(knobKeys(card).length) }));
+   for (const s of knobKeys(card)) await expect(group).toContainText(s.label);
+   await expect(group.getByRole('button', { name: fill(words.saveGroup!, { group: card.name }) })).toBeDisabled();
+  }
+  const everyProvider = change.getByRole('region', { name: words.everyProviderWord!, exact: true });
+  for (const s of shared) await expect(everyProvider).toContainText(s.label);
+  /* The Azure speed to ninety by the slider's own keys, refused without a reason, saved with one, and the fold's
+     card shows the value in force. */
+  const speed = settings.find(s => s.key === 'azure-presentation-speed-percent')!;
+  const slider = change.getByRole('slider', { name: speed.label, exact: true });
+  await expect(slider).toHaveValue(String(speed.default.value));
+  await slider.focus();
+  for (let i = 0; i < 10; i += 1) await page.keyboard.press('ArrowLeft');
+  await expect(slider).toHaveValue('90');
+  const azureGroup = change.getByRole('region', { name: azure.name, exact: true });
+  const save = azureGroup.getByRole('button', { name: fill(words.saveGroup!, { group: azure.name }) });
+  await expect(save).toBeEnabled();
+  await save.click();
+  await expect(change.getByRole('alert')).toHaveText((settingsContract.refusals as { id: string; statement: string }[]).find(r => r.id === 'setting-change-without-reason')!.statement);
+  await change.getByLabel(say.reason).fill('Slower on the routine greeting, so a second-language listener can follow the price.');
+  await save.click();
+  await expect(change.getByRole('status')).toContainText(fill(say.applied.split('{at}')[0]!, { version: '2' }).trim());
+  await expect(save).toBeDisabled();
+  await expect(panel(page)).toContainText(fill(words.sourceTab!, { version: '2' }));
+  /* The fold: the honest sentence about the service, every register through the platform default in the platform's
+     voice with no own voice, every built provider's card with its settings in force, what is not a setting, and the
+     founder's own-voice record. */
+  const fold = panel(page).locator('details.g1-fold');
+  await fold.locator('> summary').click();
+  await expect(fold).toContainText(words.serviceReadsDefaults!);
+  const inForce = fold.getByRole('region', { name: new RegExp(`^${words.inForceHeading}`) });
   for (const c of classes.filter(x => x.zone === 'presentation'))
    await expect(inForce).toContainText(fill(words.registerSentence!, { register: c.label, provider: azure.name, voice: female }));
   await expect(inForce).not.toContainText(words.ownVoiceOnWord!);
   await expect(inForce).toContainText((voice.refusals as { id: string; statement: string }[]).find(r => r.id === 'no-provider-setting-on-a-clinical-register')!.statement);
-  /* Every built speaking provider is a card with its state, its residency and its own settings. */
-  const providers = panel(page).getByRole('region', { name: words.providersHeading });
-  await unfold(providers);
+  const providers = fold.getByRole('region', { name: new RegExp(`^${words.providersHeading}`) });
   for (const card of ttsCards) {
-   const article = providers.getByRole('article', { name: card.name });
+   const article = providers.getByRole('article', { name: card.name, exact: true });
    await expect(article).toContainText(card.statusToday);
    await expect(article).toContainText((card as { regions?: { southAfricanRegion?: boolean } }).regions?.southAfricanRegion ? words.onshoreSentence! : fill(words.residencySentence!, { default: azure.name }));
-   for (const s of settings.filter(x => x.key.startsWith(`${card.id.split('-')[0]}-`))) await expect(article).toContainText(`${s.label}:`);
+   for (const s of knobKeys(card)) await expect(article).toContainText(`${s.label}:`);
   }
-  const eleven = providers.getByRole('article', { name: cards.find(c => c.id === 'elevenlabs')!.name });
+  await expect(providers.getByRole('article', { name: azure.name, exact: true })).toContainText(`${speed.label}: 90`);
+  const eleven = providers.getByRole('article', { name: cards.find(c => c.id === 'elevenlabs')!.name, exact: true });
   await expect(eleven).toContainText(words.notExercisedSentence!);
   await expect(eleven).toContainText(cards.find(c => c.id === 'elevenlabs')!.buildStatus);
-  const shared = providers.getByRole('article', { name: 'Every provider' });
-  for (const s of settings.filter(x => !x.key.startsWith('presentation-voice-') && !ttsCards.some(c => x.key.startsWith(`${c.id.split('-')[0]}-`)))) await expect(shared).toContainText(`${s.label}:`);
-  /* What is not a setting, and the founder's own-voice record. */
+  const everyCard = providers.getByRole('article', { name: words.everyProviderWord!, exact: true });
+  for (const s of shared) await expect(everyCard).toContainText(`${s.label}:`);
   const locked = voice.lockedSettings as Record<string, { sentence: string }>;
-  for (const key of ['keysAndRegions', 'speakingStyle', 'utteranceCap', 'speechToTextProvider']) await expect(panel(page)).toContainText(locked[key]!.sentence);
+  for (const key of ['keysAndRegions', 'speakingStyle', 'utteranceCap', 'speechToTextProvider']) await expect(fold).toContainText(locked[key]!.sentence);
   const own = voice.ownVoice as { decidedBy: string; decidedOn: string; sentence: string; consent: { anotherPerson: string } };
-  const ownRegion = panel(page).getByRole('region', { name: words.ownVoiceHeading });
+  const ownRegion = fold.getByRole('region', { name: words.ownVoiceHeading });
   await expect(ownRegion).toContainText(`Decided by the ${own.decidedBy} on ${own.decidedOn}.`);
   await expect(ownRegion).toContainText(own.sentence);
   await expect(ownRegion).toContainText(own.consent.anotherPerson);
   const ownSetting = settings.find(s => s.key === 'own-voice')!;
   await expect(ownRegion).toContainText(ownSetting.allowed!.find(a => a.value === ownSetting.default.value)!.label);
-  /* No password field, nothing key-shaped, and the only enabled controls are the shared editor's own. */
-  await expect(page.locator('input[type="password"]:not([disabled])')).toHaveCount(0);
-  const text = await page.locator('main').innerText();
-  expect(text).not.toMatch(/\bsk-[A-Za-z0-9._-]{3,}|•{3,}\s*\w{4}|SHA-256\s+[0-9a-f]{4}/);
-  expect(text).not.toContain(PLANTED);
-  const editor = panel(page).getByRole('region', { name: new RegExp(`^${words.editorHeading}`) });
-  await expect(editor.getByRole('combobox', { name: say.engine })).toHaveCount(0);
-  await expect(editor.getByRole('heading', { level: 2, name: voice.settings.heading })).toBeVisible();
-  /* A change through the embedded editor: the Azure speed to ninety, with a reason, reviewed then
-     confirmed in the shared words, and the provider card shows the value in force. */
-  const speed = settings.find(s => s.key === 'azure-presentation-speed-percent')!;
-  const item = editor.locator('.ss-timing').filter({ has: page.locator('strong', { hasText: new RegExp(`^${speed.label}$`) }) });
-  await item.getByRole('button', { name: `${say.change} ${speed.label}` }).click();
-  const form = item.getByRole('form', { name: `${say.change} ${speed.label}` });
-  await form.getByLabel(fill(say.editors[speed.type]!, { unit: speed.unit ?? '' }), { exact: true }).fill('90');
-  await form.getByRole('button', { name: say.review }).click();
-  await expect(form.getByRole('alert')).toHaveText((settingsContract.refusals as { id: string; statement: string }[]).find(r => r.id === 'setting-change-without-reason')!.statement);
-  await form.getByLabel(say.reason, { exact: true }).fill('Slower on the routine greeting, so a second-language listener can follow the price.');
-  await form.getByRole('button', { name: say.review }).click();
-  await expect(form.getByRole('group')).toContainText(speed.appliesTo);
-  await form.getByRole('button', { name: say.confirm }).click();
-  await expect(item.locator('.ss-in-force')).toContainText('90');
-  await expect(providers.getByRole('article', { name: azure.name })).toContainText(`${speed.label}: 90`);
-  await expect(editor).toContainText(fill(say.version, { version: '2' }));
+  /* No password field, nothing key-shaped, and no enabled control but the change fields and the live saves. */
+  await expect(page.locator('input[type="password"]')).toHaveCount(0);
+  await holdsNothingOpen(page, 'Speech settings, knobs');
  });
 
- test('Model Providers: configured only where the contract says so, and no key anywhere', async ({ page }) => {
+ test('Model Providers: configured only where the contract says so, the founder\'s controls shut with nobody signed in, and no key anywhere', async ({ page }) => {
   await start(page, 'Model Providers');
+  const founderWords = g1.founder.words as Record<string, string>;
   for (const p of providers.providers as { id: string; name: string }[]) {
    const card = panel(page).getByRole('article', { name: p.name });
    await expect(card.locator('.g1-card-status').first()).toHaveText(cards.find(c => c.id === p.id)!.statusToday);
-   await expect(card.getByRole('button', { name: action('provider-rotate-key').label })).toBeDisabled();
+   /* The founder's controls are drawn on every card and every one is disabled: no service answers here, so the
+      gate is a preview and the founder is signed in nowhere. */
+   for (const id of ['provider-show-metadata', 'provider-test', 'provider-rotate-key', 'provider-remove-key'])
+    await expect(card.getByRole('button', { name: action(id).label, exact: true })).toBeDisabled();
+   await expect(card).toContainText(founderWords.preview!);
   }
   const configured = providers.providers.filter((p: { productionConfigured: boolean }) => p.productionConfigured).length;
   await expect(panel(page).locator('.g1-card .g1-card-status', { hasText: /^configured$/ })).toHaveCount(configured);
   await expect(panel(page)).toContainText(g1.modelProviders.keyRegistryEmpty);
-  const key = panel(page).getByLabel(g1.modelProviders.keyFieldLabel);
-  await expect(key).toHaveAttribute('type', 'password');
-  await expect(key).toBeDisabled();
-  await expect(key).toHaveValue('');
-  await expect(panel(page).getByRole('checkbox', { name: action('provider-show-metadata').label })).toBeDisabled();
+  /* No key field at all while nobody is signed in: the one password field is drawn inside the session, after
+     Rotate key, and tests/founder-access.spec.ts holds it. */
+  await expect(panel(page).locator('input[type="password"]')).toHaveCount(0);
+  await expect(panel(page).getByRole('button', { name: action('provider-health-check').label })).toBeDisabled();
   await expect(panel(page)).toContainText(gate('G30').sentence);
+  await expect(panel(page)).toContainText(portal.refusals.find((r: { id: string }) => r.id === 'founder-action-only-in-a-founder-session').statement);
   await holdsNothingOpen(page, 'Model Providers');
  });
 
  test('Intelligence: the five levels and every ceiling read, the selector refused, the invariants said', async ({ page }) => {
   await start(page, 'Intelligence');
+  await expect(panel(page)).toContainText(g1.intelligence.founderNote);
   await expect(panel(page).getByRole('list', { name: `${levels.levels.length} levels` }).locator('li')).toHaveCount(levels.levels.length);
   await expect(panel(page).locator('table tbody tr')).toHaveCount(levels.conversationTypes.length);
   for (const t of levels.conversationTypes) await expect(panel(page).getByRole('row', { name: new RegExp(`^${t.label}`) })).toContainText(t.why);
@@ -537,6 +571,7 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   await expect(panel(page)).toContainText(g1.compliance.auditEmpty);
   await expect(panel(page).getByRole('button', { name: action('kill-switch').label })).toBeDisabled();
   await expect(panel(page)).toContainText(gate('module-8').sentence);
+  await expect(panel(page)).toContainText(g1.compliance.founderNote);
   const residency = panel(page).getByRole('region', { name: g1.compliance.residencyHeading });
   for (const p of providers.providers) {
    /* The name and not a longer one: since 28 September 2026 the map also holds the registry's
@@ -563,8 +598,12 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
        speech providers built beside Azure render built · not-configured with theirs. */
     for (const variable of c.environment ?? []) await expect(card).toContainText(variable);
     if (c.gate) await expect(card).toContainText(c.gate);
+    /* Every registry action is on the card: the founder's five disabled because nobody is signed in, and
+       Configure scopes disabled behind G32 with the card saying it has no contract. */
     for (const a of (g1.actions as (Action & { registryAction?: string })[]).filter(x => x.registryAction))
      await expect(card.getByRole('button', { name: a.label, exact: true })).toBeDisabled();
+    await expect(card).toContainText((g1.founder.words as Record<string, string>).preview!);
+    await expect(card).toContainText((g1.founder.words as Record<string, string>).noContract!);
    }
   }
   await expect(panel(page).locator('article.g1-card .g1-card-status', { hasText: /^configured$/ })).toHaveCount(cards.filter(c => c.statusToday === 'configured').length);

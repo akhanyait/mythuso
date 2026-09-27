@@ -3,7 +3,7 @@ import registry from '../../../../../../packages/catalog/api-registry.json' with
 import founder from '../../../../../../packages/catalog/founder-access.json' with { type: 'json' };
 import providers from '../../../../../../packages/catalog/model-providers.json' with { type: 'json' };
 import { noticeFor } from '../../../lib/capabilities';
-import { cardsByCategory, g1, registryActions, type Card } from '../../../lib/gilbertone-admin';
+import { cardsByCategory, founderRegistryActions, g1, gatedRegistryActions, type Card } from '../../../lib/gilbertone-admin';
 import { BuildWord, Empty, Region, RovingList } from '../Parts';
 import { CardStatusWord, GatedAction, GatedActions, ShapeField } from './Controls';
 import { VoicePreview } from './VoicePreview';
@@ -19,10 +19,15 @@ import { VoicePreview } from './VoicePreview';
  * never a sentence of its own. There is no health, usage or balance reading for any card, and the card
  * says so instead of drawing the wireframe's figures.
  *
- * The six card actions and the add-a-provider form are the contract's shapes, drawn and disabled
- * behind G32: no vault, no health-check runner, no enable or disable control, no balance reading. The
- * form's key field is a disabled password field. A text-to-speech card carries the voice preview
- * panel, the same component the Voice screen uses. Since 27 September 2026 it plays — through the one
+ * Five of the six card actions are the founder's since the instruction of 28 September 2026 — "API
+ * Registry … I cannot set them. I need to be able to control all these aspects, I am the owner": Enable,
+ * Disable, Rotate key, Test and View logs are drawn by ./founder/FounderActions.tsx on a dynamic import,
+ * enabled only while the assistant service says the founder is signed in, each asking the service's founder
+ * routes for the card; what the card then shows — a key on the box or not, its last four, its fingerprint,
+ * whether it is switched on, its log — is what the service answered. Configure scopes and the add-a-provider
+ * form have no contract behind them and stay drawn disabled behind G32, and the card says so; the form's
+ * key field is a disabled password field. A text-to-speech card carries the voice preview panel, the same
+ * component the Speech settings screen uses. Since 27 September 2026 it plays — through the one
  * text-to-speech provider that is built and configured, and only on that provider's card: on any other
  * card the panel says so in the contract's sentence and offers no Play, because a preview that called
  * a provider the registry records as proposed would be the call its refusal exists to stop. */
@@ -32,11 +37,13 @@ const isTts = (card: Card) => (card.serves ?? []).includes('tts');
    those and on no other, behind its own dynamic import. */
 const founderCard = (card: Card) => founder.keys.some(k => k.card === card.id);
 const FounderAccessPanel = lazy(() => import('./founder/FounderAccess').then(m => ({ default: m.FounderAccessPanel })));
+const FounderCardControls = lazy(() => import('./founder/FounderActions').then(m => ({ default: m.FounderCardControls })));
 
 export function ApiRegistryScreen() {
  const words = g1.apiRegistry;
  const groups = cardsByCategory();
- const actions = registryActions().map(a => a.id);
+ const founderActions = founderRegistryActions();
+ const gated = gatedRegistryActions();
  const refusal = (id: string) => registry.refusals.find(r => r.id === id)!.statement;
  return <>
   <Empty heading={refusal('no-balance-or-usage-without-a-reading')}>{registry.usageAndBalance.usage.why} {registry.usageAndBalance.balance.why}</Empty>
@@ -59,7 +66,9 @@ export function ApiRegistryScreen() {
       <div className="g1-fact"><dt>Health check</dt><dd>{providers.panels.health.why}</dd></div>
       <div className="g1-fact"><dt>Key</dt><dd>{card.keyRequired === false ? words.noKey : g1.modelProviders.keyRegistryEmpty}</dd></div>
      </dl>
-     <GatedActions ids={actions} label={`${card.name} actions`}/>
+     <Suspense fallback={<p className="helper">{g1.founder.words.checking}</p>}><FounderCardControls card={card.id} actions={founderActions}/></Suspense>
+     <GatedActions ids={gated} label={`${card.name} gated actions`}/>
+     <p className="helper">{g1.founder.words.noContract}</p>
      {founderCard(card) && <details className="g1-founder-details"><summary>{founder.words.heading}</summary>
       <Suspense fallback={<p className="helper">{founder.words.checking}</p>}><FounderAccessPanel cardId={card.id}/></Suspense></details>}
      {isTts(card) && <details className="g1-details"><summary>{words.previewSummary}</summary><VoicePreview placement={card.name} cardId={card.id}/></details>}

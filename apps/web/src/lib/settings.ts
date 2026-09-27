@@ -19,7 +19,7 @@ import { clinicalInForce, type ClinicalInForce } from '../../../../packages/engi
 import { clinicalRoleHolds, refusal as clinicalRefusal } from '../../../../packages/engines/src/clinical/domain/contract.ts';
 import type { Decision, VettingSubject } from './vetting';
 import { movementInForce, type MovementInForce } from '../../../../packages/engines/src/movement/domain/settings.ts';
-import { presentationVoiceInForce, speechSettingsInForce, type PresentationVoiceInForce, type SpeechSettingsInForce } from '../../../../packages/engines/src/assistant/domain/settings.ts';
+import { presentationVoiceInForce, presentationVoiceOf as presentationVoiceOfSnapshot, speechSettingsInForce, speechSettingsOf as speechSettingsOfSnapshot, SPEECH_KEYS, type PresentationVoiceInForce, type SpeechSettingsInForce } from '../../../../packages/engines/src/assistant/domain/settings.ts';
 import { roleOf, whoIs } from './roles';
 import { can } from './vetting';
 /* Whether a rota's post is on duty, and when a shut one opens: the shared settings code's one rule, which the
@@ -53,8 +53,15 @@ export { rotaAt } from '../../../../packages/engines/src/settings/shape.ts';
  * workspace.
  *
  * The assistant's four are read by presentationVoiceNow(): the patient panel's cloud voice (lib/voice.ts) asks
- * it once when a spoken answer of a presentation register is read, and the Voice screen shows what it answers;
- * an emergency, refusal or escalation answer never asks.
+ * it once when a spoken answer of a presentation register is read, and the Speech settings screen shows what it
+ * answers; an emergency, refusal or escalation answer never asks.
+ *
+ * ONE HISTORY IS NOT THIS TAB'S. Since the founder's instruction of 28 September 2026 the assistant service keeps
+ * a settings history of its own, and inside the founder's signed-in session the Speech settings screen and the
+ * voice preview read and write that one (lib/founder-settings.ts) rather than this tab's. The readers that turn a
+ * snapshot into the voices and speech settings in force are handed on from here — assistantDefaults(),
+ * presentationVoiceOf() and speechSettingsOf() below — so a screen still reaches the settings code through this
+ * file alone, whichever history the snapshot came from, and the arithmetic over it is the engine's in both.
  *
  * WHO. The admin a change is recorded against is the party the back office opens as, and the reviewer a
  * confirmation is recorded against is the party the doctor's workspace opens as — each read from the role
@@ -157,6 +164,15 @@ export const presentationVoiceNow = (): PresentationVoiceInForce => presentation
    the service reads the same rules from the contract's defaults until it keeps a history of its own. */
 export type { SpeechSettingsInForce } from '../../../../packages/engines/src/assistant/domain/settings.ts';
 export const speechSettingsNow = (): SpeechSettingsInForce => speechSettingsInForce(historyOf('assistant'));
+/* The same two readers over a snapshot somebody else holds — the assistant service's, answered to the founder —
+   and the contract's defaults as a snapshot to lay it over, so a setting the service does not describe reads as
+   the contract says. The keys the speech settings live under are the engine's, handed on for the screen that
+   groups its knobs by them. */
+export const assistantDefaults = (): Snapshot => snapshotOf(engineOf('assistant').block, []);
+export const presentationVoiceOf = (snapshot: Snapshot): PresentationVoiceInForce => presentationVoiceOfSnapshot(snapshot);
+export const speechSettingsOf = (snapshot: Snapshot): SpeechSettingsInForce => speechSettingsOfSnapshot(snapshot);
+export const speechKeys = SPEECH_KEYS;
+export type { Change, Setting, SettingValue, Snapshot } from '../../../../packages/engines/src/settings/shape.ts';
 
 /* Whether the value a setting held at a settings version has been clinically reviewed. Something that started
    under an older version — an offer on a nurse's screen — is described by the value it started under, not

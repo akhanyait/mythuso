@@ -32,6 +32,9 @@ export function IntelligenceScreen() {
    <GatedSlider id="set-level" label="Reasoning level"
     min={levels.levels[0]!.id} max={levels.platformMaximum} value={lockedLevel}
     valueText={levelName(lockedLevel)} ticks={levels.levels.map(l => l.id)}/>
+   {/* The founder asked to set the levels too (28 September 2026); they are not settings the founder's routes
+       carry, and the contract says so beside the gated selector rather than drawing one that moves nothing. */}
+   <p className="helper">{words.founderNote}</p>
   </Region>
 
   <Region title={words.levelsHeading} count={levels.levels.length}>

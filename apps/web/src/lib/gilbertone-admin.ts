@@ -3,7 +3,7 @@ import registry from '../../../../packages/catalog/api-registry.json' with { typ
 import providers from '../../../../packages/catalog/model-providers.json' with { type: 'json' };
 import voice from '../../../../packages/catalog/voice.json' with { type: 'json' };
 import { portalContract } from './portal';
-import { applyChange, presentationVoiceNow, settingsEngineOf, speechSettingsNow, type PresentationVoiceInForce, type Proposed, type SpeechSettingsInForce } from './settings';
+import { applyChange, settingsEngineOf, snapshotNow, type PresentationVoiceInForce, type Proposed, type SettingValue, type SpeechSettingsInForce } from './settings';
 
 /* GilbertOne API Administration's reasoning (docs/PROMPT-CONTROL-TOWER-UI.md §7, Phase 4), read out of
  * packages/catalog/control-tower-portal.json#gilbertone and the contracts it points at.
@@ -11,10 +11,13 @@ import { applyChange, presentationVoiceNow, settingsEngineOf, speechSettingsNow,
  * Four things live here so that no screen can do them its own way:
  *
  *   Which gate holds an action, and whether it is still open — or, since the founder's decision of
- *   27 September 2026, whether the action is live. An action is drawn only by naming it in the
- *   contract. A gated action is drawn disabled with its gate's sentence; a live one carries the
- *   founder's dated record and its own sentence, and is refused here without all three. The state of
- *   a G-numbered gate is the Overview contract's open-gates row, never a word typed on a screen.
+ *   27 September 2026, whether the action is live — or, since the founder's instruction of 28 September
+ *   2026, whether it is the founder's alone. An action is drawn only by naming it in the contract. A
+ *   gated action is drawn disabled with its gate's sentence; a live one carries the founder's dated
+ *   record and its own sentence; a founder one carries a record of the same shape and is enabled only
+ *   inside the founder's signed-in session (features/portal/gilbertone/founder/FounderActions.tsx). Each
+ *   is refused here without all three parts of its record. The state of a G-numbered gate is the
+ *   Overview contract's open-gates row, never a word typed on a screen.
  *
  *   What a provider's state is. There is one answer, api-registry.json's statusToday, and the Model
  *   Providers screen reads the same card the API Registry screen does, so the two cannot disagree
@@ -25,10 +28,11 @@ import { applyChange, presentationVoiceNow, settingsEngineOf, speechSettingsNow,
  *   A key, an endpoint or a region cannot reach a screen through here, because nothing here would
  *   carry one. The address is the page's own origin, the same constant the assistant panel uses.
  *
- *   What the Voice screen may change and ask. The presentation voice is the assistant engine's
- *   setting, changed through lib/settings.ts with a reason like every other setting, and the preview's
- *   one request is the service's own speak route, at the path and version the contract names — the
- *   only request this module makes that is not a status read, and the build counts them.
+ *   What the Speech settings screen may change and ask. Every voice, provider and knob is the assistant
+ *   engine's setting, changed through lib/settings.ts with a reason like every other setting — or, inside
+ *   the founder's session, through lib/founder-settings.ts and the service's own history — and the
+ *   preview's one request is the service's own speak route, at the path and version the contract names —
+ *   the only request this module makes that is not a status read, and the build counts them.
  *
  * Reached only through the portal's dynamic imports, like lib/portal.ts, and the portal contract is read
  * through lib/portal.ts rather than imported again: a second importer would split the contract into a
@@ -40,7 +44,7 @@ export const g1 = portalContract.gilbertone;
 
 export type Gate = (typeof g1.gates)[number];
 export type Live = { readonly since: string; readonly decidedBy: string; readonly sentence: string };
-export type Action = Omit<(typeof g1.actions)[number], 'gate' | 'live'> & { gate: string | null; live?: Live; refusal?: string; registryAction?: string };
+export type Action = Omit<(typeof g1.actions)[number], 'gate' | 'live' | 'founder'> & { gate: string | null; live?: Live; founder?: Live; refusal?: string; registryAction?: string };
 
 export const gateOf = (id: string | null): Gate => {
  const found = g1.gates.find(g => g.id === id);
@@ -74,7 +78,20 @@ export const liveOf = (action: Action): Live => {
   throw new Error(`"${action.id}" is not a live action: it needs gate null and a live record with decidedBy Founder, a dated since and a sentence.`);
  return live;
 };
+/* A founder action's record, or a throw, held to the same three parts as a live one: gate null, the founder's
+   name and the day, and a sentence. The difference is where it is drawn — FounderActions.tsx, enabled only
+   while the service says the founder is signed in — and the build refuses it drawn anywhere else. */
+export const founderOf = (action: Action): Live => {
+ const record = action.founder;
+ if (action.gate !== null || !record || action.live || record.decidedBy !== 'Founder' || !/^\d\d\d\d-\d\d-\d\d$/.test(record.since) || !record.sentence.trim())
+  throw new Error(`"${action.id}" is not a founder action: it needs gate null, no live record, and a founder record with decidedBy Founder, a dated since and a sentence.`);
+ return record;
+};
+/* The card actions api-registry.json declares, split as the contract records them: the founder's, and the ones
+   still gated because nothing stands behind them. A screen draws each list with the control its record allows. */
 export const registryActions = (): readonly Action[] => (g1.actions as readonly Action[]).filter(a => a.registryAction);
+export const founderRegistryActions = (): readonly string[] => registryActions().filter(a => a.founder).map(a => a.id);
+export const gatedRegistryActions = (): readonly string[] => registryActions().filter(a => !a.founder && a.gate !== null).map(a => a.id);
 
 /* ---- Providers ------------------------------------------------------------------------------- */
 
@@ -155,11 +172,13 @@ export const settingOfClass = (classId: string) => {
    allowed list, so the words on the screen are the contract's and a third voice added there arrives here. */
 export const voiceChoicesOf = (classId: string): readonly { value: VoiceLabel; label: string }[] =>
  (settingOfClass(classId).allowed ?? []).map(c => ({ value: c.value as VoiceLabel, label: c.label }));
-/* Save a presentation voice: one change, with its reason, through the same door the Configuration screen
-   uses — so the refusal for a missing reason, a stale version or an unchanged value is the shared rules'
-   sentence, and the change lands in the assistant engine's history beside every other setting's. */
-export const savePresentationVoice = (classId: string, value: VoiceLabel, reason: string): Proposed =>
- applyChange('assistant', { setting: settingOfClass(classId).key, value, reason, expectedVersion: presentationVoiceNow().settingsVersion });
+/* Save one of the assistant engine's settings in this tab: one change, with its reason, through the same door
+   the Configuration screen uses — so the refusal for a missing reason, a stale version or an unchanged value is
+   the shared rules' sentence, and the change lands in the assistant engine's history beside every other
+   setting's. The version it is asked against is the history's now, so two saves in a row each see the last.
+   Inside the founder's session the same request goes to the service instead (lib/founder-settings.ts). */
+export const saveAssistantSetting = (setting: string, value: SettingValue, reason: string): Proposed =>
+ applyChange('assistant', { setting, value, reason, expectedVersion: snapshotNow('assistant').settingsVersion });
 
 /* The text-to-speech provider the preview reads through for a register, and its recorded list price: since
    28 September 2026 the card the administrator's setting names for a presentation register, where the
@@ -170,16 +189,19 @@ export const savePresentationVoice = (classId: string, value: VoiceLabel, reason
    screen and every TTS card's preview ask this rather than choosing a card, so a preview on ElevenLabs'
    card cannot call ElevenLabs while it is configured nowhere. */
 const priced = (c: Card): c is Card & { pricing: ReadPricing } => c.statusToday === 'configured' && typeof c.pricing?.perMillionCharactersUsd === 'number';
-export const previewProvider = (classId?: string): (Card & { pricing: ReadPricing }) | null => {
- const chosen = classId ? speechSettingsNow().providerByClass[classId as keyof SpeechSettingsInForce['providerByClass']] : undefined;
+/* The settings in force are handed in rather than read here, because since 28 September 2026 they come from
+   one of two places — this tab's history, or the assistant service's inside the founder's session — and the
+   screen that knows which is the one that asks. */
+export const previewProvider = (speech: SpeechSettingsInForce, classId?: string): (Card & { pricing: ReadPricing }) | null => {
+ const chosen = classId ? speech.providerByClass[classId as keyof SpeechSettingsInForce['providerByClass']] : undefined;
  const named = chosen && voice.providers.tts.includes(chosen) ? cardOf(chosen) : null;
  return (named && priced(named) ? named : null) ?? voice.providers.tts.map(cardOf).find(priced) ?? null;
 };
 /* The provider in force for every presentation register, in the contract's own card, for the Speech settings
    screen: the setting's value read once, and the card it names read from the registry, so the screen types
    neither a card id nor a status. */
-export const providersInForce = (): { readonly classId: string; readonly card: Card }[] =>
- Object.entries(speechSettingsNow().providerByClass).map(([classId, id]) => ({ classId, card: cardOf(id) }));
+export const providersInForce = (speech: SpeechSettingsInForce): { readonly classId: string; readonly card: Card }[] =>
+ Object.entries(speech.providerByClass).map(([classId, id]) => ({ classId, card: cardOf(id) }));
 export type { SpeechSettingsInForce } from './settings';
 
 export type PreviewAnswer =

@@ -2,15 +2,15 @@ import { useEffect, useId, useRef, useState } from 'react';
 import '../fields.css';
 import voice from '../../../../../../packages/catalog/voice.json' with { type: 'json' };
 import { containsPHI } from '../../../../../../packages/gilbertone/src/phi.ts';
-import { g1, previewProvider, previewSpeech, voiceChoicesOf, type VoiceLabel } from '../../../lib/gilbertone-admin';
+import { g1, previewProvider, previewSpeech, settingOfClass, voiceChoicesOf, type VoiceLabel } from '../../../lib/gilbertone-admin';
 import { fill } from '../../../lib/portal';
-import { presentationVoiceNow, settingsScreen, speechSettingsNow } from '../../../lib/settings';
+import { settingsScreen } from '../../../lib/settings';
 import { LiveButton, LiveSentence } from './Controls';
 import { platformVoiceOf, spokenLanguagesOf, useAssistantVoice } from './useAssistantVoice';
 import { useVoiceSaving } from './useVoiceSaving';
 
-/* The voice preview panel (§7.3.1), one component with two placements: the Voice screen, and every
- * text-to-speech card in the API Registry.
+/* The voice preview panel (§7.3.1), one component with two placements: the Speech settings screen, and
+ * every text-to-speech card in the API Registry.
  *
  * It answers the plan's five questions by doing what it can and saying what it cannot, and it holds
  * the panel's refusals as behaviour rather than as copy:
@@ -36,7 +36,13 @@ import { useVoiceSaving } from './useVoiceSaving';
  * the sentence, the language and the contract's voice name for it, and plays the answer through an
  * audio element made here and revoked here. It never imports the patient panel's client and never
  * reaches for the browser's own synthesiser. A language the cloud has no voice for is not offered; a
- * provider that is not the configured one gets no Play, in the contract's sentence. */
+ * provider that is not the configured one gets no Play, in the contract's sentence.
+ *
+ * WHOSE SETTINGS. The value in force a chip shows, the provider a reading goes through and the session
+ * ceiling come from useSpeechSource() — the assistant service's own history inside the founder's signed-in
+ * session, this tab's otherwise — so after the founder saves "male" the chip reads male back from the
+ * service and Play asks for the male voice's name (the founder, 28 September 2026: "I made everything
+ * male and the test is still female"). This file reads no setting on its own. */
 
 const cost = (characters: number, price: { perMillionCharactersUsd: number; unitCharacters: number }) =>
  (characters / price.unitCharacters) * price.perMillionCharactersUsd;
@@ -46,14 +52,15 @@ export function VoicePreview({ placement, cardId }: { placement: string; cardId?
  const panel = voice.previewPanel;
  const assistantVoice = useAssistantVoice();
  const saving = useVoiceSaving();
+ const source = saving.source;
  const [classId, setClassId] = useState(voice.queryClasses[0]!.id);
  /* The provider the reading would go through, for this register under the settings in force: the
     administrator's choice for a presentation register, the platform default for a locked one. */
- const provider = previewProvider(classId);
+ const provider = previewProvider(source.speech, classId);
  /* The session ceiling of packages/catalog/voice.json (preview-session-ceiling-characters), read at the
     moment Play is decided: characters read this session plus this sentence's must fit under it, or Play
     stays shut with the panel's own sentence. Nothing already playing stops. */
- const ceiling = speechSettingsNow().previewCeilingCharacters;
+ const ceiling = source.speech.previewCeilingCharacters;
  const [text, setText] = useState('');
  const [languageId, setLanguageId] = useState<string | null>(null);
  /* The label chosen for a presentation register in this panel, with the settings version it was chosen
@@ -93,7 +100,7 @@ export function VoicePreview({ placement, cardId }: { placement: string; cardId?
  const languages = assistantVoice ? spokenLanguagesOf(assistantVoice) : [];
  const language = languages.find(l => l.id === languageId) ?? languages[0] ?? null;
  const platform = assistantVoice ? platformVoiceOf(assistantVoice) : null;
- const now = presentationVoiceNow();
+ const now = source.voices;
  const inForce = chosen.previewMaySaveAsDefault ? (now.byClass as Readonly<Record<string, VoiceLabel>>)[classId]! : null;
  const label = choice.version === now.settingsVersion ? choice.label : null;
  const setLabel = (next: VoiceLabel | null) => setChoice({ version: now.settingsVersion, label: next });
@@ -221,12 +228,12 @@ export function VoicePreview({ placement, cardId }: { placement: string; cardId?
      <textarea id={reasonField} value={saving.reason} onChange={event => { saving.setReason(event.target.value); saving.clear(); }} aria-describedby={`${reasonField}-help`} autoComplete="off" spellCheck={false}/>
      <small id={`${reasonField}-help`}>{settingsScreen.reasonHelp}</small>
     </label>
-    <LiveButton id="voice-save-as-default" describedBy={saving.gate.locked ? `${saveWhy}-gate` : asked === inForce ? `${saveWhy}-same` : saveWhy} disabled={asked === inForce || saving.gate.locked} onClick={() => { if (asked) saving.save(classId, asked); }}/>
+    <LiveButton id="voice-save-as-default" describedBy={!source.canSave ? `${saveWhy}-gate` : asked === inForce ? `${saveWhy}-same` : saveWhy} disabled={asked === inForce || !source.canSave || saving.busy} onClick={() => { if (asked) void saving.save([{ setting: settingOfClass(classId).key, value: asked }]); }}/>
     <LiveSentence id="voice-save-as-default" sentenceId={saveWhy}/>
     <p id={`${saveWhy}-same`} className="g1-refusal">{words.nothingToSave}</p>
-    <p id={`${saveWhy}-gate`} className={saving.gate.locked ? 'g1-refusal' : 'helper'}>{saving.gate.sentence}</p>
+    <p id={`${saveWhy}-gate`} className={source.canSave ? 'helper' : 'g1-refusal'}>{source.canSave ? saving.gate.sentence : `${saving.gate.sentence} ${source.sentence}`}</p>
     <p className="helper">{words.sessionSentence}</p>
-    {saving.sentence && <p className={saving.outcome?.ok ? 'g1-verdict' : 'g1-rejected'} role={saving.outcome?.ok ? 'status' : 'alert'}>{saving.sentence}</p>}
+    {saving.sentence && <p className={saving.ok ? 'g1-verdict' : 'g1-rejected'} role={saving.ok ? 'status' : 'alert'}>{saving.sentence}</p>}
    </div>
    : <p className="g1-refusal">{lockedRefusal}</p>}
  </section>;
