@@ -272,7 +272,7 @@ object ApisData {
     val POST_ASSISTANT_TURN = Route("postAssistantTurn", "POST", "/turn", "/assistant/turn", 1, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
     val POST_TURN = Route("postTurn", "POST", "/v1/turn", "/assistant/v1/turn", 1, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
     val POST_LISTEN_V3 = Route("postListenV3", "POST", "/v1/listen", "/assistant/v1/listen", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
-    val POST_SPEAK_V3 = Route("postSpeakV3", "POST", "/v1/speak", "/assistant/v1/speak", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
+    val POST_SPEAK_V4 = Route("postSpeakV4", "POST", "/v1/speak", "/assistant/v1/speak", 4, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
     val POST_TRIAGE_START_V3 = Route("postTriageStartV3", "POST", "/v1/triage/start", "/assistant/v1/triage/start", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
     val POST_TRIAGE_ANSWER_V3 = Route("postTriageAnswerV3", "POST", "/v1/triage/answer", "/assistant/v1/triage/answer", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
     val POST_VITALS_V3 = Route("postVitalsV3", "POST", "/v1/vitals", "/assistant/v1/vitals", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
@@ -538,7 +538,7 @@ object ApisData {
         POST_ASSISTANT_TURN,
         POST_TURN,
         POST_LISTEN_V3,
-        POST_SPEAK_V3,
+        POST_SPEAK_V4,
         POST_TRIAGE_START_V3,
         POST_TRIAGE_ANSWER_V3,
         POST_VITALS_V3,
@@ -2773,12 +2773,13 @@ object ApisData {
         val text: String,
         val language: String
     )
-    data class PostSpeakV3Request(
+    data class PostSpeakV4Request(
         val text: String,
         val language: String,
-        val voice: String? = null
+        val voice: String? = null,
+        val register: String? = null
     )
-    data class PostSpeakV3Response(
+    data class PostSpeakV4Response(
         val audioBase64: String,
         val format: String,
         val voice: String,

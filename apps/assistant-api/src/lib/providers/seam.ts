@@ -1,4 +1,5 @@
 import assistant from "../../../../../packages/catalog/assistant.json" with { type: "json" };
+import type { SpeechTuning } from "../../../../../packages/engines/src/assistant/domain/settings.ts";
 
 /* The shape every speech provider fills, and the contract readings they share.
 
@@ -44,6 +45,10 @@ export const RECOGNITION_LOCALES: readonly string[] = CATALOG_LANGUAGES.flatMap(
    ceiling on both requests together. */
 export const STT_TIMEOUT_MS = 30 * 1000;
 export const TTS_TIMEOUT_MS = 15 * 1000;
+/* Since 28 September 2026 both are the defaults of two administrator's settings in
+   packages/catalog/voice.json (speech-capture-timeout-seconds, speech-stretch-timeout-seconds), which
+   scripts/check-boundaries.mjs holds equal to these two numbers; a request that carries tuning is run
+   under the setting in force, and one that carries none under these. */
 
 /* The two directions a provider may serve. A card in packages/catalog/api-registry.json lists the
    ones it serves; a provider that serves one answers { ok: false } for the other without a call. */
@@ -66,7 +71,7 @@ export type ReadSpeech =
       voice: string;
       language: string;
     }
-  | { ok: false; voiceUnavailable?: boolean; language?: string };
+  | { ok: false; voiceUnavailable?: boolean; ceilingReached?: boolean; language?: string };
 
 /* The two doors and the configuration question, as one injectable shape: server.ts holds a seam of
    this type, its own tests hand it a fake, and the production default is the selection ../speech.ts
@@ -76,16 +81,30 @@ export type ReadSpeech =
    own fields, minus the consent the route checks first. */
 export type SpeechSeam = {
   configured(direction?: SpeechDirection): boolean;
-  recognize(request: {
-    audioBase64: string;
-    language: string;
-    audioFormat: string;
-  }): Promise<RecognisedSpeech>;
-  synthesize(request: {
-    text: string;
-    language: string;
-    voice?: string;
-  }): Promise<ReadSpeech>;
+  recognize(request: RecognitionRequest): Promise<RecognisedSpeech>;
+  synthesize(request: SynthesisRequest): Promise<ReadSpeech>;
+};
+
+/* What a door is asked, since the speech settings of 28 September 2026. `tuning` is what the
+   administrator's settings decided for this reading — the timeout, each provider's encoding, and, for
+   a presentation register only, the knobs that change how it sounds — decided once, in
+   packages/engines/src/assistant/domain/settings.ts's tuningFor(), and handed down; an adapter reads
+   the fields it has a request parameter for and sends the vendor's own defaults for the rest. A
+   request with no tuning is read exactly as it was before the settings existed. `register` is what
+   the composed selection in ../speech.ts decides the provider from; a single adapter never reads it. */
+export type RecognitionTuning = { timeoutMs: number; profanity?: string };
+export type RecognitionRequest = {
+  audioBase64: string;
+  language: string;
+  audioFormat: string;
+  tuning?: RecognitionTuning;
+};
+export type SynthesisRequest = {
+  text: string;
+  language: string;
+  voice?: string;
+  register?: string | null;
+  tuning?: SpeechTuning;
 };
 
 /* The contract's own language entry a declared language names — by one of its recognition locales

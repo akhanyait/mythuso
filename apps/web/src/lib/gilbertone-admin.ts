@@ -3,7 +3,7 @@ import registry from '../../../../packages/catalog/api-registry.json' with { typ
 import providers from '../../../../packages/catalog/model-providers.json' with { type: 'json' };
 import voice from '../../../../packages/catalog/voice.json' with { type: 'json' };
 import { portalContract } from './portal';
-import { applyChange, presentationVoiceNow, settingsEngineOf, type PresentationVoiceInForce, type Proposed } from './settings';
+import { applyChange, presentationVoiceNow, settingsEngineOf, speechSettingsNow, type PresentationVoiceInForce, type Proposed, type SpeechSettingsInForce } from './settings';
 
 /* GilbertOne API Administration's reasoning (docs/PROMPT-CONTROL-TOWER-UI.md §7, Phase 4), read out of
  * packages/catalog/control-tower-portal.json#gilbertone and the contracts it points at.
@@ -161,11 +161,26 @@ export const voiceChoicesOf = (classId: string): readonly { value: VoiceLabel; l
 export const savePresentationVoice = (classId: string, value: VoiceLabel, reason: string): Proposed =>
  applyChange('assistant', { setting: settingOfClass(classId).key, value, reason, expectedVersion: presentationVoiceNow().settingsVersion });
 
-/* The one text-to-speech provider the preview reads through — the card voice.json lists for tts that the
-   registry records as configured — and its recorded list price. The Voice screen and every TTS card's
-   preview ask this rather than choosing a card, so a preview on ElevenLabs' card cannot call ElevenLabs. */
-export const previewProvider = (): (Card & { pricing: ReadPricing }) | null =>
- voice.providers.tts.map(cardOf).find((c): c is Card & { pricing: ReadPricing } => c.statusToday === 'configured' && typeof c.pricing?.perMillionCharactersUsd === 'number') ?? null;
+/* The text-to-speech provider the preview reads through for a register, and its recorded list price: since
+   28 September 2026 the card the administrator's setting names for a presentation register, where the
+   registry records it configured and its figure is a number — otherwise, and for a clinical register, the
+   platform default, the first configured card with a figure among those voice.json lists for tts. A card
+   the setting names that is not configured is not previewed through: the service would fall back to the
+   default, and a cost said in one provider's price for a reading another makes is the wrong cost. The Voice
+   screen and every TTS card's preview ask this rather than choosing a card, so a preview on ElevenLabs'
+   card cannot call ElevenLabs while it is configured nowhere. */
+const priced = (c: Card): c is Card & { pricing: ReadPricing } => c.statusToday === 'configured' && typeof c.pricing?.perMillionCharactersUsd === 'number';
+export const previewProvider = (classId?: string): (Card & { pricing: ReadPricing }) | null => {
+ const chosen = classId ? speechSettingsNow().providerByClass[classId as keyof SpeechSettingsInForce['providerByClass']] : undefined;
+ const named = chosen && voice.providers.tts.includes(chosen) ? cardOf(chosen) : null;
+ return (named && priced(named) ? named : null) ?? voice.providers.tts.map(cardOf).find(priced) ?? null;
+};
+/* The provider in force for every presentation register, in the contract's own card, for the Speech settings
+   screen: the setting's value read once, and the card it names read from the registry, so the screen types
+   neither a card id nor a status. */
+export const providersInForce = (): { readonly classId: string; readonly card: Card }[] =>
+ Object.entries(speechSettingsNow().providerByClass).map(([classId, id]) => ({ classId, card: cardOf(id) }));
+export type { SpeechSettingsInForce } from './settings';
 
 export type PreviewAnswer =
  | { readonly ok: true; readonly audioBase64: string; readonly format: string; readonly voice: string; readonly language: string }
@@ -176,12 +191,12 @@ export type PreviewAnswer =
    The answer is read the way the patient panel's client reads it, without importing that client: audio as
    base64 with its media type, or the language-has-no-voice flag, or nothing. A refusal, a fault and an
    unreachable service are all "not answered"; the preview says so in words and bills nothing. */
-export async function previewSpeech(text: string, language: string, voiceName: string, signal: AbortSignal): Promise<PreviewAnswer> {
+export async function previewSpeech(text: string, language: string, voiceName: string, register: string, signal: AbortSignal): Promise<PreviewAnswer> {
  const base = typeof __ASSISTANT_API_URL__ === 'string' ? __ASSISTANT_API_URL__ : '';
  try {
   const response = await fetch(`${base}${g1.overview.prefix}${g1.voice.previewRoute.path}`, {
    method: 'POST', signal, headers: { 'content-type': 'application/json', accept: 'application/json' },
-   body: JSON.stringify({ text, language, voice: voiceName, userConsent: true })
+   body: JSON.stringify({ text, language, voice: voiceName, register, userConsent: true })
   });
   const body = await response.json().catch(() => null) as Record<string, unknown> | null;
   if (body?.voiceUnavailable === true) return { ok: false, voiceUnavailable: true };

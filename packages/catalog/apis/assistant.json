@@ -1,6 +1,6 @@
 {
  "engine": "assistant",
- "_note": "The assistant engine's routes. The service answers seven of them today, exactly as apps/assistant-api/src/server.ts registers them: GET /assistant/health and one turn at POST /assistant/turn, and at the plan's own versioned addresses POST /assistant/v1/turn, POST /assistant/v1/knowledge/search, GET /assistant/v1/status and push-to-talk's two — POST /assistant/v1/listen and POST /assistant/v1/speak, built on 22 September 2026 against Azure Speech. The rest of the /v1/* family — triage conducted over Clinical's rules, a reading written through the Passport gateway, handover prepare and submit — is declared and not built: the engine's not-yet-available refusal answers each of them with 501, so a caller meets a sentence it can read rather than a 404 it cannot tell from a typo, and packages/mock-api answers them on loopback with synthetic data until each is built. Those five routes were re-declared at version two because that refusal's answeredBy now names them, and adding a refusal is a change as much as rewording one: each version one is withdrawn in its favour, with no callers, its shape and its refusals unchanged. listen and speak are at version three for the same kind of reason: the shape a built capture arrives in is audio rather than the captureMs window version two was frozen with, so their version two entries are withdrawn in version three's favour with no callers, and the engine's cloud-speech refusal, added with them, answers version three alone. /v1/knowledge/search is at version two for the same reason, with the three refusals its handler actually answers and its sources now declared as objects rather than as text; its version one is withdrawn in the same way. The turn's declared shape is this contract's reading of the service it captures; the service's own request type also accepts an optional visitId, and this contract refuses that name — another engine's resource under an Id name, per packages/catalog/apis.json#_contractIdsNote — so it is not declared here. The two settings routes at the end — GET /v1/assistant/settings and POST /v1/assistant/setting-changes, added 27 September 2026 when the founder made the four presentation voice registers of packages/catalog/voice.json an admin setting — are not the service's: they are bound on the development engine runtime by packages/engines/src/assistant/engine.ts through the shared settings code, exactly as every other engine's settings routes are, so the assistant's settings history lives where every engine's does and the Configuration screen changes it there. apps/assistant-api does not read that history yet; the web preview reads the same rules from memory.",
+ "_note": "The assistant engine's routes. The service answers seven of them today, exactly as apps/assistant-api/src/server.ts registers them: GET /assistant/health and one turn at POST /assistant/turn, and at the plan's own versioned addresses POST /assistant/v1/turn, POST /assistant/v1/knowledge/search, GET /assistant/v1/status and push-to-talk's two — POST /assistant/v1/listen and POST /assistant/v1/speak, built on 22 September 2026 against Azure Speech. The rest of the /v1/* family — triage conducted over Clinical's rules, a reading written through the Passport gateway, handover prepare and submit — is declared and not built: the engine's not-yet-available refusal answers each of them with 501, so a caller meets a sentence it can read rather than a 404 it cannot tell from a typo, and packages/mock-api answers them on loopback with synthetic data until each is built. Those five routes were re-declared at version two because that refusal's answeredBy now names them, and adding a refusal is a change as much as rewording one: each version one is withdrawn in its favour, with no callers, its shape and its refusals unchanged. listen is at version three and speak at version four for the same kind of reason: the shape a built capture arrives in is audio rather than the captureMs window version two was frozen with, so their version two entries are withdrawn in version three's favour with no callers, and the engine's cloud-speech refusal, added with them, answers version three alone. speak's version three is withdrawn in version four's favour since 28 September 2026: version four names the register the words belong to, so the administrator's speech settings reach a presentation register and never a clinical one, and it refuses at the monthly ceiling. /v1/knowledge/search is at version two for the same reason, with the three refusals its handler actually answers and its sources now declared as objects rather than as text; its version one is withdrawn in the same way. The turn's declared shape is this contract's reading of the service it captures; the service's own request type also accepts an optional visitId, and this contract refuses that name — another engine's resource under an Id name, per packages/catalog/apis.json#_contractIdsNote — so it is not declared here. The two settings routes at the end — GET /v1/assistant/settings and POST /v1/assistant/setting-changes, added 27 September 2026 when the founder made the four presentation voice registers of packages/catalog/voice.json an admin setting — are not the service's: they are bound on the development engine runtime by packages/engines/src/assistant/engine.ts through the shared settings code, exactly as every other engine's settings routes are, so the assistant's settings history lives where every engine's does and the Configuration screen changes it there. apps/assistant-api does not read that history yet; the web preview reads the same rules from memory.",
  "version": 1,
  "resources": ["health", "turn", "listen", "speak", "triage", "vitals", "handover", "knowledge", "status", "founder", "settings", "setting-changes"],
  "doors": [],
@@ -324,7 +324,7 @@
    "path": "/v1/speak",
    "version": 3,
    "summary": "The cloud voice reads back an answer that already exists, one request's words at a time; it writes no answer of its own.",
-   "callers": ["anonymous"],
+   "callers": [],
    "purpose": ["treatment"],
    "request": [
     {"field": "text", "type": "string", "required": true, "why": "The answer to read aloud, already written by the catalogue. One call is one stretch of it, so a caller wanting sound before the last sentence is voiced asks sentence by sentence."},
@@ -353,7 +353,117 @@
     "file": "apps/assistant-api/src/server.ts",
     "handler": "req.method === 'POST' && req.url === '/assistant/v1/speak'"
    },
-   "enforcedBy": { "mechanism": "anonymous" }
+   "enforcedBy": { "mechanism": "anonymous" },
+   "withdrawn": {"on": "2026-09-28", "supersededBy": "POST /v1/speak@4", "why": "The speech settings of 28 September 2026: version four's request names the register the words belong to, so the service can read a presentation register through the provider and tuning an administrator chose and never a clinical one, and it answers the administrator's monthly ceiling with a refusal of its own. Version three carried neither. Its callers are version four's; its shape and its refusals are unchanged."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/speak",
+   "version": 4,
+   "summary": "The cloud voice reads back an answer that already exists, one request's words at a time, through the provider and tuning the administrator's settings name for the register it belongs to; it writes no answer of its own.",
+   "callers": [
+    "anonymous"
+   ],
+   "purpose": [
+    "treatment"
+   ],
+   "request": [
+    {
+     "field": "text",
+     "type": "string",
+     "required": true,
+     "why": "The answer to read aloud, already written by the catalogue. One call is one stretch of it, so a caller wanting sound before the last sentence is voiced asks sentence by sentence."
+    },
+    {
+     "field": "language",
+     "type": "string",
+     "required": true,
+     "why": "The language to speak, declared by the caller."
+    },
+    {
+     "field": "voice",
+     "type": "string",
+     "required": false,
+     "why": "Which catalogue voice to read with — the founder's female or male en-ZA voice named in packages/catalog/assistant.json's voice.cloud — when the caller has a preference; absent means the first of them."
+    },
+    {
+     "field": "register",
+     "type": "string",
+     "required": false,
+     "why": "Which of packages/catalog/voice.json's registers the words belong to — routine, navigation, signed-out-visitor or admin, the presentation classes, or one of the clinical-delivery ones — so the service reads them through the provider and tuning the administrator's settings name for that register, and never for a clinical one. Absent means the platform default provider with no tuning; a value the contract does not name is refused as invalid-request."
+    }
+   ],
+   "response": [
+    {
+     "field": "audioBase64",
+     "type": "string",
+     "required": true,
+     "why": "The reading itself, base64, held nowhere: the answer's audio travels in the response and is not stored."
+    },
+    {
+     "field": "format",
+     "type": "string",
+     "required": true,
+     "why": "What the audio was encoded as, so the caller plays it rather than guessing."
+    },
+    {
+     "field": "voice",
+     "type": "string",
+     "required": true,
+     "why": "Which voice actually read it, so the words on the screen can say what spoke them."
+    },
+    {
+     "field": "language",
+     "type": "string",
+     "required": true,
+     "why": "The language it was read in."
+    }
+   ],
+   "refusals": [
+    {
+     "id": "origin-not-allowed",
+     "status": 403,
+     "statement": "This service answers its own site only.",
+     "why": "A browser origin this deployment does not answer is refused before any route reads the URL."
+    },
+    {
+     "id": "payload-too-large",
+     "status": 413,
+     "statement": "The request could not be processed safely.",
+     "why": "A body over the ceiling is refused before it is parsed: the voice reads an answer the catalogue already wrote, and that answer has a bound."
+    },
+    {
+     "id": "invalid-request",
+     "status": 400,
+     "statement": "The request could not be processed safely.",
+     "why": "A body that is not JSON, or that is missing the words to read, is refused with its own status rather than reaching the voice."
+    },
+    {
+     "id": "internal-error",
+     "status": 500,
+     "statement": "The request could not be processed safely.",
+     "why": "A fault out of the voice is this process's, never the caller's; the web panel's own browser voice carries on either way, which is why the caller gets the same generic sentence every route sends."
+    },
+    {
+     "id": "spoken-answer-ceiling-reached",
+     "status": 429,
+     "statement": "This month's spoken-answer ceiling has been reached, so this answer is written and not read aloud.",
+     "why": "The administrator's ceiling on what the cloud voice may read in a calendar month (packages/catalog/voice.json, spoken-answer-monthly-ceiling-characters), counted by the service since it started. The words are on the screen and the browser's own voice may still read them; only the paid reading stops."
+    }
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The voice reads an answer that already exists; nothing on the bus changes.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {
+    "file": "apps/assistant-api/src/server.ts",
+    "handler": "req.method === 'POST' && req.url === '/assistant/v1/speak'"
+   },
+   "enforcedBy": {
+    "mechanism": "anonymous"
+   }
   },
   {
    "method": "POST",

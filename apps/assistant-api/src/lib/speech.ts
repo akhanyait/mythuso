@@ -12,6 +12,14 @@ import {
   openaiWhisper,
   OPENAI_WHISPER_CARD_ID,
 } from "./providers/openai-whisper.ts";
+import { elevenLabsTts, ELEVENLABS_CARD_ID } from "./providers/elevenlabs.ts";
+import {
+  captureTuningFor,
+  contractDefaults,
+  monthlyCeiling,
+  readingFor,
+  type SpeechSettingsSource,
+} from "./speech-settings.ts";
 import {
   CATALOG_LANGUAGES,
   languageEntry,
@@ -198,6 +206,15 @@ const escapeXml = (value: string): string =>
 const safeFormat = (value: string): string =>
   value.replace(/[^A-Za-z0-9/+.;=_-]/g, "").slice(0, 128) ||
   "application/octet-stream";
+/* Azure's three words for strong language in a transcript, the values of the
+   azure-recognition-profanity setting; anything else sends no parameter. */
+const PROFANITY: readonly string[] = ["raw", "masked", "removed"];
+/* An Azure output-format name is one token of its own alphabet; a setting value is held to it
+   before it becomes a header. */
+const OUTPUT_FORMAT = /^[a-z0-9-]{8,64}$/;
+/* A speed or pitch setting is a whole percentage of normal; Azure wants the difference, signed. */
+const prosodyPercent = (percent: number): string | null =>
+  Number.isInteger(percent) && percent > 0 && percent < 1000 ? `${percent >= 100 ? "+" : ""}${percent - 100}%` : null;
 
 /* The Azure cloud voice, as a seam. fetch and the environment are parameters so the tests can hand
    this its own: one fake fetch to see exactly what would leave, one empty environment to prove the
@@ -218,8 +235,13 @@ export function cloudSpeech(
       /* Azure's one-shot recognition: the audio in the body, the locale in the query, "simple"
          so the answer is the words rather than a lattice of alternatives this service would
          have to pick from — and it picks nothing. */
+      /* Since 28 September 2026 the administrator's settings say how strong language is handed
+         back — raw, masked or removed, Azure's own three words — and how long the call may take;
+         a request with no tuning is heard exactly as before. */
+      const profanity = request.tuning?.profanity ?? "";
+      const query = `language=${encodeURIComponent(locale)}&format=simple${PROFANITY.includes(profanity) ? `&profanity=${profanity}` : ""}`;
       const response = await fetchImpl(
-        `https://${credentials.region}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=${encodeURIComponent(locale)}&format=simple`,
+        `https://${credentials.region}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?${query}`,
         {
           method: "POST",
           headers: {
@@ -229,7 +251,7 @@ export function cloudSpeech(
             "user-agent": "mythuso-assistant",
           },
           body: Buffer.from(request.audioBase64.trim(), "base64"),
-          signal: AbortSignal.timeout(STT_TIMEOUT_MS),
+          signal: AbortSignal.timeout(request.tuning?.timeoutMs ?? STT_TIMEOUT_MS),
         },
       );
       if (!response.ok) return { ok: false };
@@ -282,9 +304,20 @@ export function cloudSpeech(
     )
       return { ok: false };
     const voice = asked || voices.female;
+    /* Speed and pitch travel as SSML prosody only for a presentation register — tuningFor() hands a
+       clinical register none — and only away from a hundred, so the default changes nothing about
+       what is sent. The encoding reaches every register: it changes what a phone downloads, not how
+       the words sound. Both values were admitted by the settings rules before they got here and are
+       held to their shapes once more, because a value placed inside SSML or a header must be sure. */
+    const knobs = request.tuning?.presentation?.azure;
+    const rate = knobs && knobs.speedPercent !== 100 ? prosodyPercent(knobs.speedPercent) : null;
+    const pitch = knobs && knobs.pitchPercent !== 100 ? prosodyPercent(knobs.pitchPercent) : null;
+    const prosody = rate || pitch ? `<prosody${rate ? ` rate="${rate}"` : ""}${pitch ? ` pitch="${pitch}"` : ""}>` : "";
     const ssml =
       `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${locale}">` +
-      `<voice name="${voice}">${escapeXml(request.text)}</voice></speak>`;
+      `<voice name="${voice}">${prosody}${escapeXml(request.text)}${prosody ? "</prosody>" : ""}</voice></speak>`;
+    const asked_format = request.tuning?.azureAudioQuality ?? "";
+    const outputFormat = OUTPUT_FORMAT.test(asked_format) ? asked_format : SPEECH_OUTPUT_FORMAT;
     try {
       /* The voice endpoint, with the output format the contract decided. One call is one stretch
          of speech: the caller that wants sound before the last sentence of an answer is voiced
@@ -297,11 +330,11 @@ export function cloudSpeech(
           headers: {
             "ocp-apim-subscription-key": credentials.key,
             "content-type": "application/ssml+xml",
-            "x-microsoft-outputformat": SPEECH_OUTPUT_FORMAT,
+            "x-microsoft-outputformat": outputFormat,
             "user-agent": "mythuso-assistant",
           },
           body: ssml,
-          signal: AbortSignal.timeout(TTS_TIMEOUT_MS),
+          signal: AbortSignal.timeout(request.tuning?.timeoutMs ?? TTS_TIMEOUT_MS),
         },
       );
       if (!response.ok) return { ok: false };
@@ -358,6 +391,7 @@ const ADAPTERS: Record<string, Adapter> = {
   [OPENAI_WHISPER_CARD_ID]: openaiWhisper,
   [ALIBABA_QWEN_ASR_CARD_ID]: alibabaQwenAsr,
   [ALIBABA_QWEN_TTS_CARD_ID]: alibabaQwenTts,
+  [ELEVENLABS_CARD_ID]: elevenLabsTts,
 };
 
 export type SpeechSelection = {
@@ -365,6 +399,12 @@ export type SpeechSelection = {
      actually answer — the same unless the ask was refused. */
   stt: { asked: string; card: string };
   tts: { asked: string; card: string };
+  /* Since 28 September 2026 an administrator's setting may name a built speaking card for a
+     presentation register (packages/catalog/voice.json). These are the speaking cards that may answer
+     such a setting on this box: every built one in development, and in production only those the
+     residency rule below admits. A card outside the list falls back to the default, and the refusal
+     is printed once at start-up in `refused`, so nobody believes a setting sent a voice offshore. */
+  admittedTts: string[];
   /* A value naming no built speech card for its direction. The service does not start on this. */
   fatal: string | null;
   /* The production refusals, one sentence each, printed once at start-up. The service starts, on
@@ -416,20 +456,47 @@ export function speechSelection(
   };
   const stt = pick("stt");
   const tts = pick("tts");
-  return { stt, tts, fatal: fatal[0] ?? null, refused };
+  /* Which speaking cards a register's setting may reach: the same residency rule as pick(), asked of
+     every built speaking card rather than the one the environment named. */
+  const admittedTts: string[] = [];
+  const refusedForSettings: string[] = [];
+  for (const card of BUILT_SPEECH_CARDS.filter((c) => (c.serves ?? []).includes("tts") && ADAPTERS[c.id])) {
+    const offshore = card.regions?.southAfricanRegion === false;
+    const tier = card.residency?.tier ?? null;
+    if ((production && offshore && (!decided || tier === null)) || (production && tier === "contractual"))
+      refusedForSettings.push(card.id);
+    else admittedTts.push(card.id);
+  }
+  if (refusedForSettings.length)
+    refused.push(
+      `A presentation register's provider setting naming ${refusedForSettings.join(" or ")} is refused in production: ${OFFSHORE_STATEMENT} ${SPEECH_SELECTION.default} speaks for that register instead.`,
+    );
+  return { stt, tts, admittedTts, fatal: fatal[0] ?? null, refused };
 }
 
-/* The seam server.ts holds: one provider per direction, composed from the selection above. With
-   nothing selected it is Azure in both directions and behaves exactly as cloudSpeech() alone did.
+/* The seam server.ts holds. Hearing is one provider, composed from the selection above. Speaking,
+   since 28 September 2026, is decided per request from the administrator's settings: the register
+   the request names is read through the card the settings name for it, with the tuning
+   packages/engines/src/assistant/domain/settings.ts's tuningFor() decided — a presentation register
+   gets its provider and every knob, a clinical register or no register gets the environment's own
+   selection with the delivery mechanics alone — and a card the settings name that is not admitted on
+   this box, or not configured, or that does not answer, falls back to the environment's selection
+   when the fallback setting says so and to { ok: false } when it does not. The monthly ceiling is
+   asked before any provider is, and counted after one answered. With nothing selected and nothing
+   changed, this is Azure in both directions and behaves exactly as cloudSpeech() alone did.
    configured() with no direction is both doors — the health route's one boolean — and with a
    direction it is that door alone, which is what each route asks before it reads a body. */
 export function selectedSpeech(
   fetchImpl: typeof fetch = fetch,
   env: Record<string, string | undefined> = process.env,
+  settings: SpeechSettingsSource = contractDefaults,
+  now: () => number = Date.now,
 ): SpeechSeam {
   const selection = speechSelection(env);
   const stt = ADAPTERS[selection.stt.card](fetchImpl, env);
   const tts = ADAPTERS[selection.tts.card](fetchImpl, env);
+  const speakers = new Map(selection.admittedTts.map((id) => [id, id === selection.tts.card ? tts : ADAPTERS[id](fetchImpl, env)]));
+  const ceiling = monthlyCeiling(settings);
   return {
     configured: (direction) =>
       direction === "stt"
@@ -437,7 +504,23 @@ export function selectedSpeech(
         : direction === "tts"
           ? tts.configured("tts")
           : stt.configured("stt") && tts.configured("tts"),
-    recognize: (request) => stt.recognize(request),
-    synthesize: (request) => tts.synthesize(request),
+    recognize: (request) => stt.recognize({ ...request, tuning: request.tuning ?? captureTuningFor(settings) }),
+    synthesize: async (request) => {
+      const reading = readingFor(settings, request.register ?? null);
+      const chosen = reading.provider ? speakers.get(reading.provider) : undefined;
+      const door = chosen?.configured("tts") ? chosen : reading.fallbackToDefault ? tts : null;
+      if (!door) return { ok: false };
+      const moment = now();
+      if (!ceiling.admits(request.text.length, moment)) return { ok: false, ceilingReached: true };
+      const read = await door.synthesize({ ...request, tuning: request.tuning ?? reading.tuning });
+      /* A chosen provider that did not answer — a fault, a timeout — is the default's turn, once,
+         when the fallback setting says so; a language it has no voice for is not a fault, and is
+         answered as such rather than read by another provider in another voice. */
+      const final = !read.ok && !read.voiceUnavailable && door !== tts && reading.fallbackToDefault
+        ? await tts.synthesize({ ...request, tuning: request.tuning ?? reading.tuning })
+        : read;
+      if (final.ok) ceiling.count(request.text.length, moment);
+      return final;
+    },
   };
 }

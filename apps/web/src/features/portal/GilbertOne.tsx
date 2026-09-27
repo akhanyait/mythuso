@@ -6,9 +6,9 @@ import { Frame } from './Frame';
 import { BuildWord, Loading } from './Parts';
 
 /* GilbertOne API Administration (docs/PROMPT-CONTROL-TOWER-UI.md §7, Phase 4): the category, its mark,
- * and its seven sub-screens as tabs — the engine's overview, Voice, Model Providers, Intelligence,
- * Knowledge, the engine's compliance and API Registry, in packages/catalog/control-tower-portal.json's
- * order.
+ * and its eight sub-screens as tabs — the engine's overview, Voice, Model Providers, Intelligence,
+ * Knowledge, the engine's compliance, API Registry and, since 28 September 2026, Speech settings, in
+ * packages/catalog/control-tower-portal.json's order.
  *
  * Each sub-screen is a dynamic import of its own inside this category's own dynamic import, so opening
  * GilbertOne fetches the tab asked for and nothing else, and a patient fetches none of it. This file
@@ -30,7 +30,8 @@ const subScreens: Record<string, ComponentType> = {
  intelligence: lazySub(() => import('./gilbertone/Intelligence'), 'IntelligenceScreen'),
  knowledge: lazySub(() => import('./gilbertone/Knowledge'), 'KnowledgeScreen'),
  compliance: lazySub(() => import('./gilbertone/Compliance'), 'ComplianceScreen'),
- 'api-registry': lazySub(() => import('./gilbertone/ApiRegistry'), 'ApiRegistryScreen')
+ 'api-registry': lazySub(() => import('./gilbertone/ApiRegistry'), 'ApiRegistryScreen'),
+ speech: lazySub(() => import('./gilbertone/SpeechSettings'), 'SpeechSettingsScreen')
 };
 
 export function GilbertOneCategory() {

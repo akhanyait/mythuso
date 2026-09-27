@@ -279,7 +279,7 @@ export function emitAssistant(root = "") {
     3,
     "push-to-talk's hearing half",
   );
-  const speakRoute = builtRoute("/v1/speak", 3, "push-to-talk's speaking half");
+  const speakRoute = builtRoute("/v1/speak", 4, "push-to-talk's speaking half");
   /* The five gated addresses, looked up the same way and for the same reason: they are built in
      the service, and three of the five are refused by it — both triage steps while no triage
      protocol is ratified, and the handover submission always, because the identity, roster and

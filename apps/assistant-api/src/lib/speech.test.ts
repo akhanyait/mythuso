@@ -503,3 +503,38 @@ test("an Afrikaans answer is spoken in an Afrikaans voice, resolved from the con
     "the Afrikaans male voice the contract names is honoured",
   );
 });
+
+/* The administrator's speech settings, 28 September 2026, as the Azure adapter applies them: speed and
+   pitch as SSML prosody for a presentation register only and only away from a hundred, the encoding
+   header for every register, strong language as the recognition request's own parameter, and each
+   call's ceiling from the tuning. A request with no tuning is sent exactly as before. */
+import { speechSettingsByDefault, tuningFor } from "../../../../packages/engines/src/assistant/domain/settings.ts";
+const voiced = () => new Response(Buffer.from("fake-audio"), { status: 200 });
+
+test("speed and pitch reach a presentation register as prosody and never a clinical one; the encoding reaches both", async () => {
+  const tuned = { ...speechSettingsByDefault, azure: { ...speechSettingsByDefault.azure, speedPercent: 85, pitchPercent: 110, audioQuality: "audio-16khz-32kbitrate-mono-mp3" } };
+  const { calls, impl } = answering(voiced);
+  const speech = cloudSpeech(impl, ENV);
+  await speech.synthesize({ text: "Your nurse is on the way.", language: "en-ZA", tuning: tuningFor(tuned, "routine").tuning });
+  assert.ok(String(calls[0].init.body).includes('<prosody rate="-15%" pitch="+10%">Your nurse is on the way.</prosody>'), String(calls[0].init.body));
+  assert.equal((calls[0].init.headers as Record<string, string>)["x-microsoft-outputformat"], "audio-16khz-32kbitrate-mono-mp3");
+  await speech.synthesize({ text: "Call an ambulance.", language: "en-ZA", tuning: tuningFor(tuned, "emergency").tuning });
+  assert.ok(!String(calls[1].init.body).includes("<prosody"), "an emergency is read at the voice's own pace and pitch");
+  assert.equal((calls[1].init.headers as Record<string, string>)["x-microsoft-outputformat"], "audio-16khz-32kbitrate-mono-mp3", "but downloads at the lighter encoding too");
+  await speech.synthesize({ text: "Hello", language: "en-ZA", tuning: tuningFor(speechSettingsByDefault, "routine").tuning });
+  assert.ok(!String(calls[2].init.body).includes("<prosody"), "a hundred percent sends no prosody at all");
+  assert.equal((calls[2].init.headers as Record<string, string>)["x-microsoft-outputformat"], SPEECH_OUTPUT_FORMAT, "and the default encoding is the contract's");
+  await speech.synthesize({ text: "Hello", language: "en-ZA" });
+  assert.ok(!String(calls[3].init.body).includes("<prosody") && (calls[3].init.headers as Record<string, string>)["x-microsoft-outputformat"] === SPEECH_OUTPUT_FORMAT, "no tuning: exactly as before");
+});
+
+test("strong language is the recognition request's own parameter, from the setting, and absent without one", async () => {
+  const { calls, impl } = answering(() => sttAnswer({ RecognitionStatus: "Success", DisplayText: "hello" }));
+  const speech = cloudSpeech(impl, ENV);
+  await speech.recognize({ audioBase64: "AAAA", language: "en-ZA", audioFormat: "audio/wav", tuning: { timeoutMs: 30000, profanity: "masked" } });
+  assert.ok(calls[0].url.endsWith("&format=simple&profanity=masked"), calls[0].url);
+  await speech.recognize({ audioBase64: "AAAA", language: "en-ZA", audioFormat: "audio/wav", tuning: { timeoutMs: 30000, profanity: "shout" } });
+  assert.ok(calls[1].url.endsWith("&format=simple"), "a word Azure does not have sends no parameter");
+  await speech.recognize({ audioBase64: "AAAA", language: "en-ZA", audioFormat: "audio/wav" });
+  assert.ok(calls[2].url.endsWith("&format=simple"), "no tuning: exactly as before");
+});

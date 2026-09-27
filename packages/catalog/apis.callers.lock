@@ -469,3 +469,5 @@ GET /v1/founder/keys@1 callers=founder purpose=audit because=-
 POST /v1/founder/reveal@1 callers=founder purpose=audit because=-
 GET /v1/assistant/settings@1 callers=admin purpose=audit because=-
 POST /v1/assistant/setting-changes@1 callers=admin purpose=audit because=-
+POST /v1/speak@4 callers=anonymous purpose=treatment because=-
+POST /v1/speak@3 callers=- purpose=treatment because=-

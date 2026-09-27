@@ -76,16 +76,17 @@ async function answering(page: Page) {
 }
 /* Anything that would make the browser speak or send a sentence to be spoken is recorded — the address
    and, for the speak route, the voice asked for — so a test can say none was made, or exactly which. */
-type Spoken = { url: string; voice: string | null; text: string | null };
+type Spoken = { url: string; voice: string | null; text: string | null; register: string | null };
 function speakRequests(page: Page) {
  const seen: Spoken[] = [];
  page.on('request', request => {
   if (!/\/speak\b|\/listen\b|\/turn\b/.test(request.url())) return;
-  const body = request.postDataJSON() as { voice?: string; text?: string } | null;
-  seen.push({ url: request.url(), voice: body?.voice ?? null, text: body?.text ?? null });
+  const body = request.postDataJSON() as { voice?: string; text?: string; register?: string } | null;
+  seen.push({ url: request.url(), voice: body?.voice ?? null, text: body?.text ?? null, register: body?.register ?? null });
  });
  return seen;
 }
+const zoneOf = (classId: string | null) => classes.find(c => c.id === classId)?.zone ?? null;
 /* The speak route, answered with a small fake reading that names the voice it was asked for. The bytes
    are not audio, so the browser will not play them; what the journeys assert is what was asked and what
    the screen said, never that a sound came out. */
@@ -146,7 +147,7 @@ async function holdsNothingOpen(page: Page, where: string) {
 }
 
 test.describe('every sub-screen, by the keyboard alone', () => {
- test('the arrows walk the seven sub-screens in the contract\'s order, each an address', async ({ page }) => {
+ test('the arrows walk the eight sub-screens in the contract\'s order, each an address', async ({ page }) => {
   await start(page);
   await tablist(page).getByRole('tab', { selected: true }).focus();
   await page.keyboard.press('Home');
@@ -338,6 +339,9 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   await expect(routineSelect).toHaveValue(platformLabel);
   await holdsNothingOpen(page, 'Voice');
   expect(spoken.filter(s => !new RegExp(`${words.previewRoute.path}$`).test(s.url)), 'the Voice screen asked something other than the preview route to speak').toEqual([]);
+  /* Since version four every reading names the register it is read as — the preview's chosen class —
+     so the service reads it through that register's provider and tuning, and never a clinical one's. */
+  expect(spoken.every(s => classes.some(c => c.id === s.register)), `every preview reading named one of the contract's registers: ${spoken.map(s => s.register).join(', ')}`).toBe(true);
   expect(spoken, 'the Voice screen spoke more than it was asked to').toHaveLength(2);
 
   /* The Configuration tab shows the same history: two changes on the routine setting, with the reason. */
@@ -394,11 +398,77 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   await ask('Are my results back?');
   await expect.poll(() => spoken.filter(s => /\/speak\b/.test(s.url)).length).toBe(1);
   expect(spoken.filter(s => /\/speak\b/.test(s.url))[0]!.voice).toBe(english.ttsVoices![otherLabel]);
+  expect(zoneOf(spoken.filter(s => /\/speak\b/.test(s.url))[0]!.register), 'a routine answer names a presentation register, so the administrator\'s speech settings reach it').toBe('presentation');
   /* The emergency answer is asked for in the platform's default, whatever was saved. */
   await ask('What if it cannot wait?');
   await expect(log.locator('.as-reply').last()).toContainText(sos.emergency.headline);
   await expect.poll(() => spoken.filter(s => /\/speak\b/.test(s.url)).length).toBe(2);
   expect(spoken.filter(s => /\/speak\b/.test(s.url))[1]!.voice).toBe(english.ttsVoices![platformLabel]);
+  expect(zoneOf(spoken.filter(s => /\/speak\b/.test(s.url))[1]!.register), 'the emergency answer names a clinical-delivery register, which no speech setting reaches').toBe('clinical-delivery');
+ });
+
+ test('Speech settings: the provider in force per register, every built provider\'s card and settings, the locked items, the founder\'s own-voice record, and a setting changed through the shared editor with a reason', async ({ page }) => {
+  await start(page, 'Speech settings');
+  const words = g1.speech as Record<string, string>;
+  const ttsCards = (voice.providers.tts as string[]).map(id => cards.find(c => c.id === id)!).filter(c => c.buildStatus === 'built');
+  const azure = ttsCards[0]!;
+  const settings = voice.settings.items as { key: string; label: string; help: string; type: string; unit: string | null; appliesTo: string; allowed?: { value: string | boolean; label: string }[]; default: { value: unknown } }[];
+  const female = voiceSettings[0]!.allowed.find(a => a.value === platformLabel)!.label;
+  /* The honest sentence first: the service reads these from the contract's defaults. */
+  await expect(panel(page)).toContainText(words.serviceReadsDefaults!);
+  /* Every presentation register reads through the platform default, in the platform's voice, and no own voice. */
+  const inForce = panel(page).getByRole('region', { name: words.inForceHeading });
+  for (const c of classes.filter(x => x.zone === 'presentation'))
+   await expect(inForce).toContainText(fill(words.registerSentence!, { register: c.label, provider: azure.name, voice: female }));
+  await expect(inForce).not.toContainText(words.ownVoiceOnWord!);
+  await expect(inForce).toContainText((voice.refusals as { id: string; statement: string }[]).find(r => r.id === 'no-provider-setting-on-a-clinical-register')!.statement);
+  /* Every built speaking provider is a card with its state, its residency and its own settings. */
+  const providers = panel(page).getByRole('region', { name: words.providersHeading });
+  for (const card of ttsCards) {
+   const article = providers.getByRole('article', { name: card.name });
+   await expect(article).toContainText(card.statusToday);
+   await expect(article).toContainText((card as { regions?: { southAfricanRegion?: boolean } }).regions?.southAfricanRegion ? words.onshoreSentence! : fill(words.residencySentence!, { default: azure.name }));
+   for (const s of settings.filter(x => x.key.startsWith(`${card.id.split('-')[0]}-`))) await expect(article).toContainText(`${s.label}:`);
+  }
+  const eleven = providers.getByRole('article', { name: cards.find(c => c.id === 'elevenlabs')!.name });
+  await expect(eleven).toContainText(words.notExercisedSentence!);
+  await expect(eleven).toContainText(cards.find(c => c.id === 'elevenlabs')!.buildStatus);
+  const shared = providers.getByRole('article', { name: 'Every provider' });
+  for (const s of settings.filter(x => !x.key.startsWith('presentation-voice-') && !ttsCards.some(c => x.key.startsWith(`${c.id.split('-')[0]}-`)))) await expect(shared).toContainText(`${s.label}:`);
+  /* What is not a setting, and the founder's own-voice record. */
+  const locked = voice.lockedSettings as Record<string, { sentence: string }>;
+  for (const key of ['keysAndRegions', 'speakingStyle', 'utteranceCap', 'speechToTextProvider']) await expect(panel(page)).toContainText(locked[key]!.sentence);
+  const own = voice.ownVoice as { decidedBy: string; decidedOn: string; sentence: string; consent: { anotherPerson: string } };
+  const ownRegion = panel(page).getByRole('region', { name: words.ownVoiceHeading });
+  await expect(ownRegion).toContainText(`Decided by the ${own.decidedBy} on ${own.decidedOn}.`);
+  await expect(ownRegion).toContainText(own.sentence);
+  await expect(ownRegion).toContainText(own.consent.anotherPerson);
+  const ownSetting = settings.find(s => s.key === 'own-voice')!;
+  await expect(ownRegion).toContainText(ownSetting.allowed!.find(a => a.value === ownSetting.default.value)!.label);
+  /* No password field, nothing key-shaped, and the only enabled controls are the shared editor's own. */
+  await expect(page.locator('input[type="password"]:not([disabled])')).toHaveCount(0);
+  const text = await page.locator('main').innerText();
+  expect(text).not.toMatch(/\bsk-[A-Za-z0-9._-]{3,}|•{3,}\s*\w{4}|SHA-256\s+[0-9a-f]{4}/);
+  expect(text).not.toContain(PLANTED);
+  const editor = panel(page).getByRole('region', { name: words.editorHeading });
+  await expect(editor.getByRole('combobox', { name: say.engine })).toHaveCount(0);
+  await expect(editor.getByRole('heading', { level: 2, name: voice.settings.heading })).toBeVisible();
+  /* A change through the embedded editor: the Azure speed to ninety, with a reason, reviewed then
+     confirmed in the shared words, and the provider card shows the value in force. */
+  const speed = settings.find(s => s.key === 'azure-presentation-speed-percent')!;
+  const item = editor.locator('.ss-timing').filter({ has: page.locator('strong', { hasText: new RegExp(`^${speed.label}$`) }) });
+  await item.getByRole('button', { name: `${say.change} ${speed.label}` }).click();
+  const form = item.getByRole('form', { name: `${say.change} ${speed.label}` });
+  await form.getByLabel(fill(say.editors[speed.type]!, { unit: speed.unit ?? '' }), { exact: true }).fill('90');
+  await form.getByRole('button', { name: say.review }).click();
+  await expect(form.getByRole('alert')).toHaveText((settingsContract.refusals as { id: string; statement: string }[]).find(r => r.id === 'setting-change-without-reason')!.statement);
+  await form.getByLabel(say.reason, { exact: true }).fill('Slower on the routine greeting, so a second-language listener can follow the price.');
+  await form.getByRole('button', { name: say.review }).click();
+  await expect(form.getByRole('group')).toContainText(speed.appliesTo);
+  await form.getByRole('button', { name: say.confirm }).click();
+  await expect(item.locator('.ss-in-force')).toContainText('90');
+  await expect(providers.getByRole('article', { name: azure.name })).toContainText(`${speed.label}: 90`);
+  await expect(editor).toContainText(fill(say.version, { version: '2' }));
  });
 
  test('Model Providers: configured only where the contract says so, and no key anywhere', async ({ page }) => {
@@ -491,7 +561,7 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   await expect(panel(page).locator('details.g1-details')).toHaveCount(tts.length);
   const configured = tts.find(c => c.statusToday === 'configured' && typeof c.pricing?.perMillionCharactersUsd === 'number')!;
   const builtOffshore = cards.filter(c => c.category === 'speech' && c.buildStatus === 'built' && c.id !== configured.id);
-  expect(builtOffshore.map(c => c.id).sort(), 'the three providers built on 28 September 2026').toEqual(['alibaba-qwen-asr', 'alibaba-qwen-tts', 'openai-whisper']);
+  expect(builtOffshore.map(c => c.id).sort(), 'the four providers built on 28 September 2026 — Whisper and Qwen in the morning, ElevenLabs in the evening').toEqual(['alibaba-qwen-asr', 'alibaba-qwen-tts', 'elevenlabs', 'openai-whisper']);
   for (const c of builtOffshore) expect(c.statusToday, `${c.id} is configured nowhere`).toBe('not-configured');
   for (const c of tts) {
    const card = panel(page).getByRole('article', { name: c.name, exact: true });

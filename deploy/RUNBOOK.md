@@ -493,6 +493,25 @@ variable that overrides this, on purpose. On a development box the selection is 
 how the adapters are tried at all — and nobody had tried them against the live APIs when they were
 built; each adapter's header says so.
 
+Since 28 September 2026 a fourth speaking provider, ElevenLabs, is built the same way
+(`apps/assistant-api/src/lib/providers/elevenlabs.ts`), and the same script takes its five lines:
+`ELEVENLABS_REGION` (united-states, european-union, india or singapore — nowhere in South Africa),
+`ELEVENLABS_API_KEY`, and the account's own voice identifiers `ELEVENLABS_VOICE_FEMALE`,
+`ELEVENLABS_VOICE_MALE` and, for the administrator's own recorded voice, `ELEVENLABS_VOICE_OWN`. The
+identifiers are typed with echo off and live in the env file only: one of them identifies a person's
+voice, and no route returns any of them. Two things choose ElevenLabs: `MYTHUSO_TTS_PROVIDER=elevenlabs`
+written by hand, as above, for the platform default; or an administrator's setting in the Control
+Tower (GilbertOne → Speech settings, or Configuration → GilbertOne voice and speech settings) naming it
+for a presentation register — routine answers, navigation, the signed-out visitor or the
+administrator — with the speed, stability, model, encoding and the rest beside it. **In production
+both are refused for a patient's voice until the residency decision is signed**, in the same registry
+sentence, and the register is read by Azure Speech instead; the service prints one line at start-up
+saying so for the settings, beside the line for the env selection. The emergency, refusal and
+escalation registers never read through a chosen provider whatever either says. And the settings
+themselves: the service reads them from `packages/catalog/voice.json`'s defaults, because it keeps no
+settings history yet — the Speech settings screen says so — so a change made in the Control Tower
+reaches the web preview and not this box until the service holds the history too.
+
 ---
 
 ## Founder access

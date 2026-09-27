@@ -84,7 +84,10 @@ export function settingDefault(source, contract, key, { list = false } = {}) {
    throw new Error(`${source} setting ${key} must be a rota of windows that each end after they start to be written for a phone.`);
   }
  } else if (NUMBERS.has(setting.type) || (setting.type === 'list' && NUMBERS.has(setting.of))) {
-  const least = setting.type === 'count' && setting.positive === false ? 0 : 1;
+  /* packages/catalog/settings.json: minutes and money are always above nought; a count or a percentage carries its
+     own positive, and one that says false may be nought — ElevenLabs' style exaggeration is nought by the vendor's
+     own default, and a latency mode of nought is "no optimisation". */
+  const least = (setting.type === 'count' || setting.type === 'percentage') && setting.positive === false ? 0 : 1;
   const values = list ? value : [value];
   if (!Array.isArray(values) || !values.length || !values.every(v => Number.isInteger(v) && v >= least)) {
    throw new Error(`${source} setting ${key} must be ${list ? 'a list of whole numbers' : 'a whole number'} ${least ? 'above nought' : 'of nought or more'} to be written for a phone.`);

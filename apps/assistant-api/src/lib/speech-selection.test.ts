@@ -51,7 +51,7 @@ test("the variables and the default are the registry's own, and the default is t
 
 test("with nothing selected both directions are Azure, and the composed seam is the Azure adapter's own behaviour", async () => {
   const selection = speechSelection({ ...AZURE });
-  assert.deepEqual(selection, { stt: { asked: "azure-speech", card: "azure-speech" }, tts: { asked: "azure-speech", card: "azure-speech" }, fatal: null, refused: [] });
+  assert.deepEqual(selection, { stt: { asked: "azure-speech", card: "azure-speech" }, tts: { asked: "azure-speech", card: "azure-speech" }, admittedTts: ["azure-speech", "elevenlabs", "alibaba-qwen-tts"], fatal: null, refused: [] });
   const { hosts, impl } = recording();
   const speech = selectedSpeech(impl, { ...AZURE });
   assert.equal(speech.configured(), true);
@@ -97,10 +97,12 @@ test("in production an offshore selection is refused in the registry's words, th
     assert.equal(selection.fatal, null, "a refused selection is not a misconfiguration: the service starts");
     assert.deepEqual(selection.stt, { asked: "openai-whisper", card: "azure-speech" });
     assert.deepEqual(selection.tts, { asked: "alibaba-qwen-tts", card: "azure-speech" });
-    assert.equal(selection.refused.length, 2, "one sentence per refused direction");
-    const [stt, tts] = selection.refused;
+    assert.equal(selection.refused.length, 3, "one sentence per refused direction, and one for the register settings' offshore cards");
+    const [stt, tts, settings] = selection.refused;
     assert.ok(stt.startsWith("MYTHUSO_STT_PROVIDER=openai-whisper is refused in production: "), stt);
     assert.ok(tts.startsWith("MYTHUSO_TTS_PROVIDER=alibaba-qwen-tts is refused in production: "), tts);
+    assert.ok(settings.startsWith("A presentation register's provider setting naming elevenlabs or alibaba-qwen-tts is refused in production: "), settings);
+    assert.deepEqual(selection.admittedTts, ["azure-speech"], "in production only the South African card may answer a register's setting");
     for (const line of selection.refused) {
       assert.ok(line.includes(statement), "the reason is the registry's statement, read and not typed");
       assert.ok(line.includes("docs/governance/DATA-RESIDENCY-OPTIONS.md §7"), "and it names the document");
@@ -123,7 +125,8 @@ test("in production an offshore selection is refused in the registry's words, th
   assert.ok(hosts.length === 2 && hosts.every((h) => !offshoreHost(h)), `nothing reached an offshore host: ${hosts.join(", ")}`);
   /* Azure itself, selected by name in production, is not refused: its region is South African. */
   const azureNamed = speechSelection({ MYTHUSO_STT_PROVIDER: "azure-speech", MYTHUSO_TTS_PROVIDER: " azure-speech ", ...PRODUCTION, ...AZURE });
-  assert.deepEqual(azureNamed.refused, []);
+  assert.equal(azureNamed.refused.length, 1, "only the register settings' line remains: the offshore cards a setting could name");
+  assert.ok(azureNamed.refused[0].startsWith("A presentation register's provider setting naming "));
   assert.equal(azureNamed.tts.card, "azure-speech");
 });
 
@@ -153,4 +156,80 @@ test("the door's voice names are the contract's and every built card's, read and
       assert.ok(SPEECH_VOICE_NAMES.includes(language.ttsVoices.female) && SPEECH_VOICE_NAMES.includes(language.ttsVoices.male));
   assert.equal(new Set(SPEECH_VOICE_NAMES).size, SPEECH_VOICE_NAMES.length, "each name once");
   assert.ok(!SPEECH_VOICE_NAMES.includes("Sunny"), "a voice the card does not name is not admitted, however the vendor documents it");
+});
+
+/* Since 28 September 2026 speaking is decided per request from the administrator's settings: the
+   register names the provider, the tuning travels with it, a chosen provider that cannot answer falls
+   back to the environment's selection when the setting says so, and the monthly ceiling is asked
+   before any provider is. Held here against a settings source the test controls. */
+import { speechSettingsByDefault, type SpeechSettingsInForce } from "../../../../packages/engines/src/assistant/domain/settings.ts";
+const ELEVEN = {
+  ELEVENLABS_API_KEY: "fixture-elevenlabs-key-0123456789",
+  ELEVENLABS_REGION: "united-states",
+  ELEVENLABS_VOICE_FEMALE: "fixtureFemaleVoice01",
+} as const;
+const withRoutineOn = (provider: string, more: Partial<SpeechSettingsInForce> = {}): SpeechSettingsInForce =>
+  ({ ...speechSettingsByDefault, providerByClass: { ...speechSettingsByDefault.providerByClass, routine: provider }, ...more });
+const audioAnswering = () => {
+  const calls: { host: string; body: string }[] = [];
+  const impl = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+    calls.push({ host: new URL(input instanceof URL ? input.href : String(input)).hostname, body: String(init?.body ?? "") });
+    return new Response(Buffer.from("fake-audio"), { status: 200 });
+  }) as typeof fetch;
+  return { calls, impl };
+};
+
+test("a register's setting picks the provider in development, a clinical register and no register keep the default, and the tuning travels", async () => {
+  const { calls, impl } = audioAnswering();
+  const speech = selectedSpeech(impl, { ...AZURE, ...ELEVEN }, () => withRoutineOn("elevenlabs"));
+  assert.equal(speech.configured("tts"), true, "the default door is what health reports");
+  const routine = await speech.synthesize({ text: "Hello", language: "en-ZA", register: "routine" });
+  assert.ok(routine.ok && routine.voice === "en-ZA-LeahNeural");
+  assert.ok(/elevenlabs\.io$/.test(calls[0].host), "routine went to ElevenLabs");
+  assert.ok(calls[0].body.includes('"voice_settings"'), "with the presentation knobs");
+  await speech.synthesize({ text: "Call an ambulance.", language: "en-ZA", register: "emergency" });
+  assert.equal(calls[1].host, "southafricanorth.tts.speech.microsoft.com", "an emergency reads through the default whatever the setting says");
+  assert.ok(!calls[1].body.includes("<prosody"), "and with no knob");
+  await speech.synthesize({ text: "Hello", language: "en-ZA" });
+  assert.equal(calls[2].host, "southafricanorth.tts.speech.microsoft.com", "no register is the default");
+  await speech.synthesize({ text: "Hello", language: "en-ZA", register: "navigation" });
+  assert.equal(calls[3].host, "southafricanorth.tts.speech.microsoft.com", "a register whose setting still names the default");
+});
+
+test("in production a register's offshore setting is not admitted and the default reads; an unconfigured or failing chosen provider falls back when the setting says so, and stays silent when it does not", async () => {
+  const { calls, impl } = audioAnswering();
+  const production = selectedSpeech(impl, { ...AZURE, ...ELEVEN, ...PRODUCTION }, () => withRoutineOn("elevenlabs"));
+  const read = await production.synthesize({ text: "Hello", language: "en-ZA", register: "routine" });
+  assert.ok(read.ok);
+  assert.deepEqual(calls.map((c) => c.host), ["southafricanorth.tts.speech.microsoft.com"], "nothing reached ElevenLabs in production");
+  const unconfigured = selectedSpeech(impl, { ...AZURE }, () => withRoutineOn("elevenlabs"));
+  assert.ok((await unconfigured.synthesize({ text: "Hello", language: "en-ZA", register: "routine" })).ok, "ElevenLabs not configured: Azure reads");
+  assert.equal(calls.length, 2);
+  const noFallback = selectedSpeech(impl, { ...AZURE }, () => withRoutineOn("elevenlabs", { fallbackToDefault: false }));
+  assert.deepEqual(await noFallback.synthesize({ text: "Hello", language: "en-ZA", register: "routine" }), { ok: false }, "no fallback: the words stay written");
+  assert.equal(calls.length, 2, "and nothing was sent");
+  /* A chosen provider that answers badly is the default's turn, once. */
+  let n = 0;
+  const failingEleven = (async (input: Parameters<typeof fetch>[0]) => {
+    const host = new URL(input instanceof URL ? input.href : String(input)).hostname;
+    n++;
+    return /elevenlabs/.test(host) ? new Response("down", { status: 503 }) : new Response(Buffer.from("fake-audio"), { status: 200 });
+  }) as typeof fetch;
+  const recovering = selectedSpeech(failingEleven, { ...AZURE, ...ELEVEN }, () => withRoutineOn("elevenlabs"));
+  assert.ok((await recovering.synthesize({ text: "Hello", language: "en-ZA", register: "routine" })).ok);
+  assert.equal(n, 2, "ElevenLabs was asked, then Azure");
+  /* A language the chosen provider has no voice for is not a fault to fall back from. */
+  const zulu = await recovering.synthesize({ text: "Sawubona", language: "zu", register: "routine" });
+  assert.deepEqual(zulu, { ok: false, voiceUnavailable: true, language: "zu-ZA" });
+});
+
+test("the monthly ceiling is asked before any provider and counted after one answered", async () => {
+  const { calls, impl } = audioAnswering();
+  let ceiling = 12;
+  const speech = selectedSpeech(impl, { ...AZURE }, () => ({ ...speechSettingsByDefault, monthlyCeilingCharacters: ceiling }), () => Date.UTC(2026, 8, 28));
+  assert.ok((await speech.synthesize({ text: "Hello there", language: "en-ZA", register: "routine" })).ok, "eleven characters fit");
+  assert.deepEqual(await speech.synthesize({ text: "Hi", language: "en-ZA" }), { ok: false, ceilingReached: true }, "two more do not");
+  assert.equal(calls.length, 1, "the refused reading never reached a provider");
+  ceiling = 100;
+  assert.ok((await speech.synthesize({ text: "Hi", language: "en-ZA" })).ok, "a raised ceiling admits the next reading");
 });

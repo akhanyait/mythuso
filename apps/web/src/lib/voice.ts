@@ -696,6 +696,7 @@ export function useVoiceAdapter(
         text,
         cloudVoiceFor(options.voiceClass ?? presentationClass),
         language,
+        options.voiceClass ?? presentationClass,
       );
       /* Abandoned while the service was being asked — a barge-in, a replacement, the panel shutting.
          Play nothing, stand the responding moment back down, and answer true so the caller does not

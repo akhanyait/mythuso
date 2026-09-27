@@ -38,7 +38,7 @@ enum AssistantApi {
     /// literal to the contract — a client that did not name a route the service answers would be
     /// a client written for a smaller service than the one running.
     static let listenAddress = "POST /assistant/v1/listen@3"
-    static let speakAddress = "POST /assistant/v1/speak@3"
+    static let speakAddress = "POST /assistant/v1/speak@4"
     /// The five gated addresses, built in the service and refused by all but one of them: both
     /// triage steps answer the engine's triage-not-ratified refusal while no triage protocol is
     /// ratified, the vital reading answers device-data-needs-a-dpia in any process that has not

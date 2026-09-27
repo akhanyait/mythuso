@@ -2490,12 +2490,13 @@ export interface PostListenV3Response {
  readonly language: string;
 }
 
-export interface PostSpeakV3Request {
+export interface PostSpeakV4Request {
  readonly text: string;
  readonly language: string;
  readonly voice?: string;
+ readonly register?: string;
 }
-export interface PostSpeakV3Response {
+export interface PostSpeakV4Response {
  readonly audioBase64: string;
  readonly format: string;
  readonly voice: string;
@@ -2887,7 +2888,7 @@ export const apiRoutes = {
  postAssistantTurn: { name: "postAssistantTurn", method: "POST", path: "/turn", mountedPath: "/assistant/turn", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
  postTurn: { name: "postTurn", method: "POST", path: "/v1/turn", mountedPath: "/assistant/v1/turn", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
  postListenV3: { name: "postListenV3", method: "POST", path: "/v1/listen", mountedPath: "/assistant/v1/listen", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
- postSpeakV3: { name: "postSpeakV3", method: "POST", path: "/v1/speak", mountedPath: "/assistant/v1/speak", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postSpeakV4: { name: "postSpeakV4", method: "POST", path: "/v1/speak", mountedPath: "/assistant/v1/speak", version: 4, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
  postTriageStartV3: { name: "postTriageStartV3", method: "POST", path: "/v1/triage/start", mountedPath: "/assistant/v1/triage/start", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
  postTriageAnswerV3: { name: "postTriageAnswerV3", method: "POST", path: "/v1/triage/answer", mountedPath: "/assistant/v1/triage/answer", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
  postVitalsV3: { name: "postVitalsV3", method: "POST", path: "/v1/vitals", mountedPath: "/assistant/v1/vitals", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },

@@ -178,7 +178,7 @@ assistant_bundle=apps/assistant-api/dist/server.mjs
 if grep -qE 'https://[a-z0-9][a-z0-9-]+\.openai\.azure\.com' "$assistant_bundle"; then
   echo "the assistant runtime names a concrete Azure endpoint — refusing to publish it"; exit 1
 fi
-if grep -qE '(AZURE_OPENAI_KEY|AZURE_OPENAI_API_KEY|OLLAMA_URL)=[A-Za-z0-9_-]{20,}' "$assistant_bundle"; then
+if grep -qE '(AZURE_OPENAI_KEY|AZURE_OPENAI_API_KEY|OLLAMA_URL|ELEVENLABS_API_KEY)=[A-Za-z0-9_-]{20,}' "$assistant_bundle"; then
   echo "the assistant runtime carries what looks like a provider credential — refusing to publish it"; exit 1
 fi
 

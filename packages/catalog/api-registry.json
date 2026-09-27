@@ -151,16 +151,92 @@
   {
    "id": "elevenlabs",
    "category": "speech",
-   "serves": ["tts"],
+   "serves": [
+    "tts"
+   ],
    "name": "ElevenLabs",
-   "buildStatus": "proposed",
+   "buildStatus": "built",
    "statusToday": "not-configured",
-   "environment": [],
-   "codeNames": ["elevenlabs"],
+   "adapter": {
+    "file": "apps/assistant-api/src/lib/providers/elevenlabs.ts",
+    "symbol": "elevenLabsTts"
+   },
+   "environment": [
+    "ELEVENLABS_API_KEY",
+    "ELEVENLABS_REGION",
+    "ELEVENLABS_VOICE_FEMALE",
+    "ELEVENLABS_VOICE_MALE",
+    "ELEVENLABS_VOICE_OWN"
+   ],
+   "_environmentWhy": "The key and the region as every provider's; then the provider's own identifier for the voice that reads under each of the contract's two labels, and for the administrator's own recorded voice (packages/catalog/voice.json#ownVoice). Voice identifiers are the account's own library, not a public list, and one of them identifies a person, so none is written in this repository: the adapter reads them from the environment, a label with no identifier answers voiceUnavailable, and the own voice is used only where the own-voice setting names the register.",
+   "models": {
+    "eleven_multilingual_v2": {
+     "languages": [
+      "en"
+     ]
+    },
+    "eleven_flash_v2_5": {
+     "languages": [
+      "en"
+     ]
+    },
+    "eleven_v3": {
+     "languages": [
+      "en",
+      "af"
+     ]
+    }
+   },
+   "_modelsWhy": "Of the contract's five languages, which each model is documented to speak, read from the vendor's text-to-speech model page and its v3 language list on 2026-09-28, not measured: Multilingual v2 lists 29 languages and Flash v2.5 the same 29 with three more, English among them and no South African language; Eleven v3 lists Afrikaans. None lists isiZulu, isiXhosa or Sesotho, so those are answered voiceUnavailable whichever model is chosen. Which model reads is the elevenlabs-model setting in packages/catalog/voice.json.",
+   "regions": {
+    "hosts": {
+     "united-states": "api.elevenlabs.io",
+     "european-union": "api.eu.residency.elevenlabs.io",
+     "india": "api.in.residency.elevenlabs.io",
+     "singapore": "api.sg.residency.elevenlabs.io"
+    },
+    "selectedBy": "ELEVENLABS_REGION",
+    "southAfricanRegion": false,
+    "why": "ElevenLabs serves from the United States by default and offers isolated environments in the European Union, India and Singapore to enterprise customers only, each with its own account and key; the vendor's own documentation says processing may still occur outside the selected location. Nowhere in South Africa. GilbertOne's spoken answer sent to any of the four is a cross-border transfer of special personal information under POPIA section 72, and the section 72 register has no basis for it."
+   },
+   "voicesFrom": "The account's own voice library, named by identifier in the service's environment per label (ELEVENLABS_VOICE_FEMALE, ELEVENLABS_VOICE_MALE) and for the administrator's own voice (ELEVENLABS_VOICE_OWN); the door still admits only the contract's own voice names, which the adapter resolves to a label and then to the identifier.",
+   "ownVoice": {
+    "carried": true,
+    "recordedIn": "packages/catalog/voice.json#ownVoice",
+    "why": "The one provider on file that carries a person's own recorded voice. Recording it happens in the vendor's console, by the administrator, with the consent voice.json records; nothing here uploads audio."
+   },
+   "shapesFrom": {
+    "documentation": "https://elevenlabs.io/docs/api-reference/text-to-speech/convert",
+    "exercisedAgainstLiveApi": false,
+    "why": "The request — POST /v1/text-to-speech/{voice_id} with the key in the xi-api-key header, output_format and optimize_streaming_latency in the query, text, model_id, language_code and voice_settings in the body — and the audio reading were written from the published reference on 2026-09-28 and not tried against the live API in the change that built them; the adapter's header says so."
+   },
+   "pricing": {
+    "perMillionCharactersUsd": 100,
+    "unitCharacters": 1000000,
+    "currency": "USD",
+    "source": "https://elevenlabs.io/pricing/api",
+    "recordedOn": "2026-09-28",
+    "documented": {
+     "overagePerThousandCharactersUsd": {
+      "multilingual_v2_and_v3": 0.1,
+      "flash_v2_5": 0.05
+     },
+     "plansIncludeCharacters": true
+    },
+    "why": "ElevenLabs sells monthly plans with characters included and charges the figures above for characters beyond them, read from the pricing page by hand on the day recorded. The per-million figure is the pay-as-you-go rate for Multilingual v2 and v3 — ten cents a thousand characters — recorded rather than a plan's cheaper included rate, so the preview never understates what a reading might cost; Flash is half of it. A list price and not a measurement: no bill has been read."
+   },
+   "audioRetainedByProvider": "The vendor logs requests by default (enable_logging) and documents a zero-retention mode for enterprise plans; the adapter sends enable_logging=false on every request and the residency decision must weigh what the vendor keeps regardless.",
+   "residency": {
+    "tier": null,
+    "section72Determined": false,
+    "dpaRef": null
+   },
+   "gate": "G33",
+   "_gateWhy": "G33 is the residency gate: a signed residency decision (docs/governance/DATA-RESIDENCY-OPTIONS.md §7), the section 72 register updated and a DPA executed. Until it closes the adapter may be configured in development only; apps/assistant-api/src/lib/speech.ts refuses to select it in production.",
    "capabilityRef": null,
    "feedRef": null,
    "prohibitedFor": "the on-device conversation mode, by the founder's speech amendment of 21 September 2026 (CLAUDE.md)",
-   "why": "Named by the plan, and named by the founder as a cloud voice the on-device conversation mode may not use."
+   "why": "Built 28 September 2026 on the founder's ask and configured nowhere. Chosen for a presentation register by the administrator's setting in packages/catalog/voice.json, or by MYTHUSO_TTS_PROVIDER=elevenlabs for the default (speechSelection above). Speaks English of the contract's languages, and Afrikaans on its v3 model. Never the on-device conversation mode's voice, whatever its status."
   },
   {
    "id": "alibaba-qwen-tts",
@@ -516,10 +592,11 @@
   { "route": "POST /v1/knowledge/search", "version": 2, "field": "query", "providerRef": "azure-openai", "phi": true, "after": "redactPHI, then embedded", "why": "A search query is a question, and a question may be about somebody's health." },
   { "route": "POST /v1/knowledge/search", "version": 2, "field": "query", "providerRef": "qdrant", "phi": true, "after": "as an embedding, where QDRANT_URL is set", "why": "An embedding of a health question is still derived from it." },
   { "route": "POST /v1/listen", "version": 3, "field": "audioBase64", "providerRef": "azure-speech", "phi": true, "after": "held in memory for the one request, never stored", "why": "What somebody says about their health is health information whether it arrives typed or spoken." },
-  { "route": "POST /v1/speak", "version": 3, "field": "text", "providerRef": "azure-speech", "phi": true, "after": "the catalogue's answer, read aloud", "why": "An answer about somebody's health, sent to be spoken, carries the question's subject with it." },
+  { "route": "POST /v1/speak", "version": 4, "field": "text", "providerRef": "azure-speech", "phi": true, "after": "the catalogue's answer, read aloud", "why": "An answer about somebody's health, sent to be spoken, carries the question's subject with it." },
   { "route": "POST /v1/listen", "version": 3, "field": "audioBase64", "providerRef": "openai-whisper", "phi": true, "after": "held in memory for the one request, never stored here; only where MYTHUSO_STT_PROVIDER selects it, which production refuses while the residency decision is blank", "why": "The same capture, to a provider with no South African region: the flow exists in the tree the day the adapter does, and is recorded so the residency decision can weigh it rather than discover it." },
   { "route": "POST /v1/listen", "version": 3, "field": "audioBase64", "providerRef": "alibaba-qwen-asr", "phi": true, "after": "held in memory for the one request, never stored here; only where MYTHUSO_STT_PROVIDER selects it, which production refuses while the residency decision is blank", "why": "As above, to Singapore or Beijing." },
-  { "route": "POST /v1/speak", "version": 3, "field": "text", "providerRef": "alibaba-qwen-tts", "phi": true, "after": "the catalogue's answer, read aloud, and by the provider's own documentation kept at a link for 24 hours on its storage; only where MYTHUSO_TTS_PROVIDER selects it, which production refuses while the residency decision is blank", "why": "As above, and with a retained copy the Azure flow does not have." }
+  { "route": "POST /v1/speak", "version": 4, "field": "text", "providerRef": "alibaba-qwen-tts", "phi": true, "after": "the catalogue's answer, read aloud, and by the provider's own documentation kept at a link for 24 hours on its storage; only where MYTHUSO_TTS_PROVIDER selects it, which production refuses while the residency decision is blank", "why": "As above, and with a retained copy the Azure flow does not have." },
+  { "route": "POST /v1/speak", "version": 4, "field": "text", "providerRef": "elevenlabs", "phi": true, "after": "the catalogue's answer, read aloud, with enable_logging=false asked for on every request; only where an administrator's setting or MYTHUSO_TTS_PROVIDER selects it, which production refuses while the residency decision is blank", "why": "As above, to the United States or to an enterprise environment in the European Union, India or Singapore, and never South Africa."}
  ],
  "_dataFlowsWhy": "Every route in packages/catalog/apis/assistant.json that sends a request field to an external provider, tagged by whether it may carry health information. scripts/check-boundaries.mjs holds each flow to a built route and a real field, refuses a health-information flow to a Tier 3 provider or to any provider that is not built, and reports — without failing, because it is production's state and not a code defect — how many health-information flows reach a provider with no residency decision. Today that is all of them, which is the gap docs/governance/ASSISTANT-ACTIVATION.md records.",
 
@@ -561,5 +638,5 @@
   }
  ],
 
- "preview": "No key has been entered, rotated or revoked through any screen, no provider has been enabled or disabled from one, and no balance has been read. Azure OpenAI and Azure Speech are configured in production, OpenFreeMap's tiles are asked for from the browser without a key, Ollama, Qdrant and the knowledge sources are built and dark, OpenAI Whisper, Alibaba Qwen-ASR and Alibaba Qwen-TTS are built and configured nowhere — and refused in production for patient audio until the residency decision is signed — and every other card is a name in a plan."
+ "preview": "No key has been entered, rotated or revoked through any screen, no provider has been enabled or disabled from one, and no balance has been read. Azure OpenAI and Azure Speech are configured in production, OpenFreeMap's tiles are asked for from the browser without a key, Ollama, Qdrant and the knowledge sources are built and dark, OpenAI Whisper, Alibaba Qwen-ASR, Alibaba Qwen-TTS and ElevenLabs are built and configured nowhere — and refused in production for patient audio until the residency decision is signed — and every other card is a name in a plan."
 }

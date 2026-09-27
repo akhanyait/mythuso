@@ -1662,6 +1662,28 @@ Added to a contract after this pack's generator was last taught about them. A re
 | `assistant:presentation-voice-navigation` | Which of the language's two voices reads navigation — where a screen is and how to get there? |
 | `assistant:presentation-voice-signed-out-visitor` | Which of the language's two voices reads what somebody on the public page hears before they have an account? |
 | `assistant:presentation-voice-admin` | Which of the language's two voices reads what an administrator hears in the Control Tower? |
+| `assistant:presentation-provider-routine` | Which text-to-speech provider reads a routine answer — what a visit costs, what to expect? |
+| `assistant:presentation-provider-navigation` | Which text-to-speech provider reads navigation — where a screen is and how to get there? |
+| `assistant:presentation-provider-signed-out-visitor` | Which text-to-speech provider reads what a signed-out visitor hears? |
+| `assistant:presentation-provider-admin` | Which text-to-speech provider reads what an administrator hears in the Control Tower? |
+| `assistant:speech-fallback-to-default-provider` | When the provider chosen for a register is not configured, is refused in production or does not answer, does the platform default read the answer instead? |
+| `assistant:spoken-answer-monthly-ceiling-characters` | How many characters may the cloud voice read in a calendar month before spoken answers stop and answers stay written? |
+| `assistant:preview-session-ceiling-characters` | How many characters may the Voice screen's preview read in one session before Play is refused? |
+| `assistant:azure-presentation-speed-percent` | How fast does Azure Speech read a presentation register, as a percentage of the voice's normal speed? |
+| `assistant:azure-presentation-pitch-percent` | How high does Azure Speech read a presentation register, as a percentage of the voice's normal pitch? |
+| `assistant:azure-audio-quality` | What does Azure Speech encode a reading as — lighter on a metered phone, or fuller on a good connection? |
+| `assistant:azure-recognition-profanity` | When somebody swears into the microphone, does Azure hand back the word, mask it or drop it? |
+| `assistant:speech-stretch-timeout-seconds` | How long may a provider take to read one stretch of an answer before the service gives up and the browser's own voice carries on? |
+| `assistant:speech-capture-timeout-seconds` | How long may a provider take to turn one push-to-talk capture into words before the service gives up? |
+| `assistant:elevenlabs-model` | Which ElevenLabs model reads an answer? |
+| `assistant:elevenlabs-stability-percent` | How steady is the ElevenLabs voice between readings — high for the same delivery every time, low for more expression? |
+| `assistant:elevenlabs-similarity-percent` | How closely does ElevenLabs hold to the chosen voice's own sound? |
+| `assistant:elevenlabs-style-percent` | How much does ElevenLabs amplify the voice's own style — nought for none? |
+| `assistant:elevenlabs-speaker-boost` | Does ElevenLabs boost the similarity to the chosen speaker, at a cost in latency? |
+| `assistant:elevenlabs-speed-percent` | How fast does ElevenLabs read a presentation register, as a percentage of the voice's normal speed? |
+| `assistant:elevenlabs-audio-quality` | What does ElevenLabs encode a reading as — lighter on a metered phone, or fuller on a good connection? |
+| `assistant:elevenlabs-latency-mode` | How much of the vendor's latency optimisation is asked for — nought for none, four for the most, at which its text normaliser is switched off? |
+| `assistant:own-voice` | Which presentation registers does the administrator's own recorded voice read, where a provider carries it? |
 | `closed-loop.json panicResolved.closesAs` | Which of the closed loop's outcomes the concern opened for a panic is closed as when Safety's desk resolves the panic. |
 | `closed-loop.json sos.ownerRole` | Who owns the concern Core opens when a patient presses SOS. |
 | `closed-loop.json sos.fallbackRole` | Who holds an SOS concern the desk has not taken on in time. |

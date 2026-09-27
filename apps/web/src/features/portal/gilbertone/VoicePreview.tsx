@@ -4,7 +4,7 @@ import voice from '../../../../../../packages/catalog/voice.json' with { type: '
 import { containsPHI } from '../../../../../../packages/gilbertone/src/phi.ts';
 import { g1, previewProvider, previewSpeech, voiceChoicesOf, type VoiceLabel } from '../../../lib/gilbertone-admin';
 import { fill } from '../../../lib/portal';
-import { presentationVoiceNow, settingsScreen } from '../../../lib/settings';
+import { presentationVoiceNow, settingsScreen, speechSettingsNow } from '../../../lib/settings';
 import { LiveButton, LiveSentence } from './Controls';
 import { platformVoiceOf, spokenLanguagesOf, useAssistantVoice } from './useAssistantVoice';
 import { useVoiceSaving } from './useVoiceSaving';
@@ -45,9 +45,15 @@ export function VoicePreview({ placement, cardId }: { placement: string; cardId?
  const words = g1.voice;
  const panel = voice.previewPanel;
  const assistantVoice = useAssistantVoice();
- const provider = previewProvider();
  const saving = useVoiceSaving();
  const [classId, setClassId] = useState(voice.queryClasses[0]!.id);
+ /* The provider the reading would go through, for this register under the settings in force: the
+    administrator's choice for a presentation register, the platform default for a locked one. */
+ const provider = previewProvider(classId);
+ /* The session ceiling of packages/catalog/voice.json (preview-session-ceiling-characters), read at the
+    moment Play is decided: characters read this session plus this sentence's must fit under it, or Play
+    stays shut with the panel's own sentence. Nothing already playing stops. */
+ const ceiling = speechSettingsNow().previewCeilingCharacters;
  const [text, setText] = useState('');
  const [languageId, setLanguageId] = useState<string | null>(null);
  /* The label chosen for a presentation register in this panel, with the settings version it was chosen
@@ -57,6 +63,7 @@ export function VoicePreview({ placement, cardId }: { placement: string; cardId?
  const [outcome, setOutcome] = useState<string | null>(null);
  const [plays, setPlays] = useState(0);
  const [total, setTotal] = useState(0);
+ const [read, setRead] = useState(0);
  const classField = useId();
  const textField = useId();
  const languageField = useId();
@@ -103,7 +110,8 @@ export function VoicePreview({ placement, cardId }: { placement: string; cardId?
  const listPrice = price ? new Intl.NumberFormat('en-ZA', { style: 'currency', currency: price.currency }) : null;
  const characters = text.trim().length;
  const estimate = price && characters ? cost(characters, price) : null;
- const canPlay = onThisProvider && !busy && !refused && characters > 0 && voiceName !== null && estimate !== null;
+ const overCeiling = characters > 0 && read + characters > ceiling;
+ const canPlay = onThisProvider && !busy && !refused && !overCeiling && characters > 0 && voiceName !== null && estimate !== null;
 
  const play = async () => {
   if (!canPlay || !language || !voiceName || !provider || estimate === null) return;
@@ -113,7 +121,7 @@ export function VoicePreview({ placement, cardId }: { placement: string; cardId?
   inFlight.current = controller;
   setBusy(true);
   setOutcome(words.previewReading);
-  const answer = await previewSpeech(text.trim(), language.id, voiceName, controller.signal);
+  const answer = await previewSpeech(text.trim(), language.id, voiceName, classId, controller.signal);
   if (inFlight.current !== controller) return;
   inFlight.current = null;
   setBusy(false);
@@ -124,6 +132,7 @@ export function VoicePreview({ placement, cardId }: { placement: string; cardId?
   /* The provider has read it, so it is billed whether or not the browser plays it: the total moves here. */
   setPlays(n => n + 1);
   setTotal(t => t + estimate);
+  setRead(r => r + characters);
   let url: string;
   try {
    const binary = atob(answer.audioBase64);
@@ -194,13 +203,14 @@ export function VoicePreview({ placement, cardId }: { placement: string; cardId?
      ? fill(words.previewCostSentence, { characters, price: listPrice.format(price.perMillionCharactersUsd), unit: price.unitCharacters.toLocaleString('en-ZA'), provider: provider.name, recordedOn: price.recordedOn, cost: money.format(estimate) })
      : words.previewCostEmpty}
     {' '}{costRefusal}</dd></div>
-   <div className="g1-fact"><dt>{words.previewTotalLabel}</dt><dd>{plays && money ? fill(words.previewTotalSentence, { plays, cost: money.format(total) }) : words.previewTotalEmpty}</dd></div>
+   <div className="g1-fact"><dt>{words.previewTotalLabel}</dt><dd>{plays && money ? fill(words.previewTotalSentence, { plays, cost: money.format(total) }) : words.previewTotalEmpty} {fill(words.previewCeilingSentence, { read: read.toLocaleString('en-ZA'), ceiling: ceiling.toLocaleString('en-ZA') })}</dd></div>
   </dl>
   {price && <p className="helper">{price.why}</p>}
   {onThisProvider
    ? <div className="g1-action">
     <LiveButton id="voice-play" describedBy={playWhy} disabled={!canPlay} onClick={() => { void play(); }}/>
     <LiveSentence id="voice-play" sentenceId={playWhy}/>
+    {overCeiling && <p className="g1-refusal" role="alert">{fill(words.previewCeilingReached, { ceiling: ceiling.toLocaleString('en-ZA') })}</p>}
     {outcome && <p className="g1-verdict" role="status">{outcome}</p>}
    </div>
    : <p className="g1-refusal">{provider ? fill(words.previewOnlyThrough, { provider: provider.name, card: placement }) : words.previewNotAnswered}</p>}

@@ -19,7 +19,7 @@ import { clinicalInForce, type ClinicalInForce } from '../../../../packages/engi
 import { clinicalRoleHolds, refusal as clinicalRefusal } from '../../../../packages/engines/src/clinical/domain/contract.ts';
 import type { Decision, VettingSubject } from './vetting';
 import { movementInForce, type MovementInForce } from '../../../../packages/engines/src/movement/domain/settings.ts';
-import { presentationVoiceInForce, type PresentationVoiceInForce } from '../../../../packages/engines/src/assistant/domain/settings.ts';
+import { presentationVoiceInForce, speechSettingsInForce, type PresentationVoiceInForce, type SpeechSettingsInForce } from '../../../../packages/engines/src/assistant/domain/settings.ts';
 import { roleOf, whoIs } from './roles';
 import { can } from './vetting';
 /* Whether a rota's post is on duty, and when a shut one opens: the shared settings code's one rule, which the
@@ -148,6 +148,12 @@ export const movementSettingsNow = (): MovementInForce => movementInForce(histor
    is read. The clinical-delivery classes have no setting, so nothing here can be asked for them. */
 export type { PresentationVoiceInForce } from '../../../../packages/engines/src/assistant/domain/settings.ts';
 export const presentationVoiceNow = (): PresentationVoiceInForce => presentationVoiceInForce(historyOf('assistant'));
+/* The assistant's speech settings of 28 September 2026, read the same way: the provider each presentation register
+   reads through and how, the two ceilings, and the administrator's own voice. The Speech settings screen shows what
+   they answer; the preview panel asks the session ceiling once per Play and the provider in force for its register;
+   the service reads the same rules from the contract's defaults until it keeps a history of its own. */
+export type { SpeechSettingsInForce } from '../../../../packages/engines/src/assistant/domain/settings.ts';
+export const speechSettingsNow = (): SpeechSettingsInForce => speechSettingsInForce(historyOf('assistant'));
 
 /* Whether the value a setting held at a settings version has been clinically reviewed. Something that started
    under an older version — an offer on a nurse's screen — is described by the value it started under, not

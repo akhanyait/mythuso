@@ -373,3 +373,4 @@ GET /v1/founder/keys@1 77f2199f110f5751
 POST /v1/founder/reveal@1 a928794f9bdc1d26
 GET /v1/assistant/settings@1 76132502bf95ab63
 POST /v1/assistant/setting-changes@1 e4b2e948585a5989
+POST /v1/speak@4 1c3f1e989ab713f1

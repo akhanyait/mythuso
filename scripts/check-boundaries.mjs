@@ -9742,9 +9742,12 @@ if (
       throw new Error(
         `packages/catalog/apis/assistant.json declares ${route.method} ${route.path}@${route.version} with its evidence on the engine runtime. Only the assistant's settings routes live there; every conversation route is apps/assistant-api's and is called by both native clients.`,
       );
+  /* A withdrawn version keeps its status — speak@3 was built when it was withdrawn in favour of @4 on
+     28 September 2026 — and has no callers by the API rule, so a client is held to the live versions. */
   const built = contract.routes.filter(
     (route) =>
       route.status === "built" &&
+      !route.withdrawn &&
       route.path.startsWith("/v1/") &&
       !founderOnly(route) &&
       !onEngineRuntime(route),
@@ -32432,6 +32435,7 @@ const p2Summary = {};
     JSON.parse(read("packages/catalog/settings.json")).sources.map((s) => s.file),
   );
   const settingsKeyShape = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
+  const settingsChoiceShape = /^[a-z0-9][a-z0-9_.-]{0,63}$/;
   const walk = (node, path, file) => {
     if (Array.isArray(node)) node.forEach((v, i) => walk(v, `${path}[${i}]`, file));
     else if (node && typeof node === "object")
@@ -32462,9 +32466,12 @@ const p2Summary = {};
       ];
       for (const [where, holder] of valued) {
         const { value, ...others } = holder ?? {};
+        /* A choice is one the setting names, in a vendor's own spelling where the value is sent to one —
+           ElevenLabs' eleven_multilingual_v2 and mp3_22050_32 since 28 September 2026 — so a choice may carry
+           an underscore or a dot where a key may not; it still may not be anything the setting did not list. */
         if (
           typeof value === "string" &&
-          !(settingsKeyShape.test(value) && choices.includes(value))
+          !(settingsChoiceShape.test(value) && choices.includes(value))
         )
           throw new Error(
             `${file} carries a value at ${where}.value that is not one of the setting's own allowed choices. In a settings block value is a default or a choice a setting names; anything else there is read as key material.`,
@@ -33656,8 +33663,10 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
   const subIds = p4G1.subScreens.map((s) => s.id).join();
   if (tabIds !== subIds)
     throw new Error(`packages/catalog/control-tower-portal.json's GilbertOne tabs are [${tabIds}] and its subScreens [${subIds}]. §7's seven sub-screens are the category's tabs, one for one, in one order.`);
-  if (p4G1.subScreens.length !== 7)
-    throw new Error(`packages/catalog/control-tower-portal.json#gilbertone lists ${p4G1.subScreens.length} sub-screens; §7 names seven.`);
+  /* §7's seven, and Speech settings since the founder's approval of 28 September 2026: the eighth is held
+     by the speech-settings block at the end of this file to draw no control of its own. */
+  if (p4G1.subScreens.length !== 8 || p4G1.subScreens[7].id !== "speech")
+    throw new Error(`packages/catalog/control-tower-portal.json#gilbertone lists ${p4G1.subScreens.length} sub-screens; §7 names seven, and the founder's decision of 28 September 2026 an eighth, Speech settings, last.`);
   const registers = read("docs/PROMPT-CONTROL-TOWER-UI.md") + read("docs/PROMPT-CONTROL-TOWER.md");
   const categoryCode = uncommented(read(p4Category));
   for (const s of p4G1.subScreens) {
@@ -33937,8 +33946,8 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
   const fetches = lib.match(/\bfetch\s*\(/g) ?? [];
   if (fetches.length !== 2 || !/fetch\(`\$\{base\}\$\{g1\.overview\.prefix\}\$\{path\}`, \{ signal, headers: \{ accept: 'application\/json' \} \}\)/.test(lib))
     throw new Error(`${p4Lib} makes ${fetches.length} requests, or its status read is no longer the contract's prefix and a route it lists with an accept header and nothing else. It reads the two self-describing routes and POSTs the preview route, and nothing else.`);
-  if (!/fetch\(`\$\{base\}\$\{g1\.overview\.prefix\}\$\{g1\.voice\.previewRoute\.path\}`, \{\s*method: 'POST', signal, headers: \{ 'content-type': 'application\/json', accept: 'application\/json' \},\s*body: JSON\.stringify\(\{ text, language, voice: voiceName, userConsent: true \}\)\s*\}\)/.test(lib))
-    throw new Error(`${p4Lib}'s preview request is no longer a POST of the contract's preview route carrying the sentence, the language, the voice name and the administrator's consent, and nothing else. What the preview sends a provider is exactly those four.`);
+  if (!/fetch\(`\$\{base\}\$\{g1\.overview\.prefix\}\$\{g1\.voice\.previewRoute\.path\}`, \{\s*method: 'POST', signal, headers: \{ 'content-type': 'application\/json', accept: 'application\/json' \},\s*body: JSON\.stringify\(\{ text, language, voice: voiceName, register, userConsent: true \}\)\s*\}\)/.test(lib))
+    throw new Error(`${p4Lib}'s preview request is no longer a POST of the contract's preview route carrying the sentence, the language, the voice name, the register and the administrator's consent, and nothing else. What the preview sends a provider is exactly those five.`);
   const paths = p4G1.overview.routes.map((r) => r.path).sort().join();
   if (paths !== "/health,/v1/status" || p4G1.overview.prefix !== "/assistant")
     throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.overview reads [${paths}] under ${p4G1.overview.prefix}. The Overview asks the assistant's health and status routes, and no other — a speak or turn route in this list would be the administration screen talking to patients' routes.`);
@@ -33946,8 +33955,8 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
   const previewRoute = p4.apis.routes.find((x) => x.method === "POST" && x.path === preview.path && x.version === preview.version && x.status === "built");
   const takes = (field) => previewRoute?.request.some((x) => x.field === field);
   const answers = (field) => previewRoute?.response.some((x) => x.field === field);
-  if (!previewRoute || !takes("text") || !takes("language") || !takes("voice") || !answers("audioBase64") || !answers("format") || /listen|turn/.test(String(preview.path)))
-    throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.voice.previewRoute names POST ${preview.path}@${preview.version}, which packages/catalog/apis/assistant.json has no built route for taking text, language and voice and answering audioBase64 and format. Play asks one route, and it is the speak route at the version the contract declares.`);
+  if (!previewRoute || previewRoute.withdrawn || !takes("text") || !takes("language") || !takes("voice") || !takes("register") || !answers("audioBase64") || !answers("format") || /listen|turn/.test(String(preview.path)))
+    throw new Error(`packages/catalog/control-tower-portal.json#gilbertone.voice.previewRoute names POST ${preview.path}@${preview.version}, which packages/catalog/apis/assistant.json has no live built route for taking text, language, voice and register and answering audioBase64 and format. Play asks one route, and it is the speak route at the version the contract declares.`);
   if (!/readServiceBooleans\(/.test(uncommented(read(`${p4Dir}/EngineOverview.tsx`))))
     throw new Error(`${p4Dir}/EngineOverview.tsx no longer reads the service through readServiceBooleans().`);
 }
@@ -34050,8 +34059,8 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
     throw new Error(`${p4VoiceLib}'s PLATFORM_VOICE is no longer packages/catalog/assistant.json's voice.cloud.defaultVoice. The voice a locked register reads in is a line in the contract, never a label in code.`);
   if (!/const TENANT_ZONES = new Set\(\s*voiceMap\.zones\.filter\(\(z\) => z\.configurable === "tenant"\)\.map\(\(z\) => z\.id\),?\s*\);/.test(code))
     throw new Error(`${p4VoiceLib} no longer reads which zones a tenant may configure from packages/catalog/voice.json's own configurable word. A zone locked there is locked in the panel the same day, or the panel has taken the decision into code.`);
-  if (!/speakText\(\s*text,\s*cloudVoiceFor\(options\.voiceClass \?\? presentationClass\),\s*language,?\s*\)/.test(code))
-    throw new Error(`${p4VoiceLib} no longer asks the cloud voice with cloudVoiceFor(options.voiceClass ?? presentationClass). A reading's label is decided there and handed straight to the request.`);
+  if (!/speakText\(\s*text,\s*cloudVoiceFor\(options\.voiceClass \?\? presentationClass\),\s*language,\s*options\.voiceClass \?\? presentationClass,?\s*\)/.test(code))
+    throw new Error(`${p4VoiceLib} no longer asks the cloud voice with cloudVoiceFor(options.voiceClass ?? presentationClass) and the same class as the reading's register. A reading's label is decided there and handed straight to the request, and since 28 September 2026 the register travels beside it so the service applies a presentation setting to a presentation register and never a clinical one.`);
   const label = code.match(/(['"])(female|male)\1/);
   if (label)
     throw new Error(`${p4VoiceLib} types the label ${label[0]}. Which voice reads is the contract's default or an administrator's setting, and a label typed here would be a third answer.`);
@@ -34104,8 +34113,155 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
 }
 
 console.log(
-  `GilbertOne API Administration, Phase 4 · ${p4Summary.subScreens} sub-screens behind dynamic imports, each reading a contract under a gate a register holds; no key, fragment, fingerprint or deployment address on any of them and no field that takes one; ${p4Summary.actions} actions, ${p4LiveActions.length} of them live on the founder's dated record of 27 September 2026 and every other one disabled beside its gate while G29, G30, G31, G32 or Module 8 is open, and founder access's one file the only live form, held by its own block below; a voice chosen and saved only under previewMaySaveAsDefault, never on a locked row; the preview's one POST to the contract's speak route and one audio element, and no other request but the two status reads; the panel's clinical-delivery readings in the contract's default voice and never a setting's; no neural voice name typed; ${p4Summary.configured} cards configured, each backed by its contract; the Overview reads booleans only; and no number typed that a contract owns.`,
+  `GilbertOne API Administration, Phase 4 · ${p4Summary.subScreens} sub-screens behind dynamic imports (§7's seven and Speech settings), each reading a contract under a gate a register holds; no key, fragment, fingerprint or deployment address on any of them and no field that takes one; ${p4Summary.actions} actions, ${p4LiveActions.length} of them live on the founder's dated record of 27 September 2026 and every other one disabled beside its gate while G29, G30, G31, G32 or Module 8 is open, and founder access's one file the only live form, held by its own block below; a voice chosen and saved only under previewMaySaveAsDefault, never on a locked row; the preview's one POST to the contract's speak route and one audio element, and no other request but the two status reads; the panel's clinical-delivery readings in the contract's default voice and never a setting's; no neural voice name typed; ${p4Summary.configured} cards configured, each backed by its contract; the Overview reads booleans only; and no number typed that a contract owns.`,
 );
+
+/* ==== Speech settings (28 September 2026) ============================================================
+   The founder approved the speech-settings scope that day: ElevenLabs built beside Azure Speech and
+   Alibaba Qwen-TTS; which built provider reads each presentation register, the platform's fallback, two
+   ceilings, Azure's speed, pitch, encoding and profanity handling, the two call timeouts, ElevenLabs'
+   model and knobs, and the administrator's own voice — every one an administrator's setting in
+   packages/catalog/voice.json's block; and the own-voice feature an administrator's alone. What these
+   checks hold, and why each is here rather than trusted:
+
+   One reader. packages/engines/src/assistant/domain/settings.ts names every speech setting key once
+   (SPEECH_KEYS) and the contract's items are exactly those plus the four voice labels — a setting added to
+   the contract without a reader, or read without a setting, fails here. The defaults that restate a
+   number decided elsewhere — the Azure encoding in assistant.json, the two timeouts in the seam — are
+   held equal to it. The provider settings' allowed values are the built speaking cards voice.json lists,
+   in that order, and their default is the registry's own default card.
+
+   No setting reaches a clinical register. No provider or tuning setting's key, label or allowed value
+   names a clinical-delivery class; every one is the admin's and says what it never reaches; tuningFor()
+   in the domain hands a non-presentation register no knob and no own voice (its own tests hold that, and
+   this reads the shape); the service's seam decides the provider from readingFor() and the route refuses
+   a register the contract does not name.
+
+   The own voice is the administrator's alone: the contract's ownVoice record is the founder's, dated,
+   carries consent for the administrator's own voice and a refusal for anybody else's; the setting starts
+   off on the founder's decision and its guardrail forbids the clinical zone; the adapter reads the own
+   identifier only under tuning.ownVoice and never puts an identifier in an answer.
+
+   ElevenLabs never reaches a phone, the deterministic package or the on-device mode: no file under
+   apps/ios, apps/android or packages/gilbertone names it, and its card keeps the founder's prohibition.
+   The bundle's and the deploy's secret scans name its key beside the others.
+
+   The eighth sub-screen draws no control: SpeechSettings.tsx embeds features/Configuration.tsx fixed to the
+   assistant engine — the same editor, rules and history as the Configuration tab — and has no handler,
+   field or request of its own (the Phase 4 sweeps read it as any GilbertOne file). And the service says it
+   reads the contract's defaults: the screen's sentence and speech-settings.ts's source are held to that
+   until the service keeps a history. Each was proved by breaking its source and restoring it byte for
+   byte (docs/FEATURE-MAP.md, the speech-settings entry). */
+{
+  const ss = {
+    voice: JSON.parse(read("packages/catalog/voice.json")),
+    registry: JSON.parse(read("packages/catalog/api-registry.json")),
+    assistant: JSON.parse(read("packages/catalog/assistant.json")),
+    portal: JSON.parse(read("packages/catalog/control-tower-portal.json")),
+  };
+  const domain = await import("../packages/engines/src/assistant/domain/settings.ts");
+  const items = ss.voice.settings.items;
+  const keys = items.map((s) => s.key);
+  const voiceLabelKeys = ss.voice.queryClasses.filter((c) => c.setting).map((c) => c.setting);
+  const expected = [...voiceLabelKeys, ...domain.SPEECH_SETTING_KEYS].sort().join();
+  if ([...keys].sort().join() !== expected)
+    throw new Error(`packages/catalog/voice.json#settings.items are [${keys.join(", ")}]; the assistant domain reads [${domain.SPEECH_SETTING_KEYS.join(", ")}] beside the four voice labels. A setting nobody reads is a knob that moves nothing, and a reader with no setting is a value nobody can change.`);
+  const item = (key) => {
+    const found = items.find((s) => s.key === key);
+    if (!found) throw new Error(`packages/catalog/voice.json has no setting "${key}".`);
+    return found;
+  };
+  /* Defaults that restate a decision made elsewhere, held equal to it. */
+  if (item(domain.SPEECH_KEYS.azureQuality).default.value !== ss.assistant.voice.cloud.outputFormat)
+    throw new Error(`packages/catalog/voice.json's azure-audio-quality default is "${item(domain.SPEECH_KEYS.azureQuality).default.value}"; packages/catalog/assistant.json#voice.cloud.outputFormat is "${ss.assistant.voice.cloud.outputFormat}". One decided encoding, restated as the default, not two.`);
+  const seam = read("apps/assistant-api/src/lib/providers/seam.ts");
+  const seamSeconds = (name) => Number((seam.match(new RegExp(`export const ${name} = (\\d+) \\* 1000;`)) ?? [])[1]);
+  if (item(domain.SPEECH_KEYS.stretchTimeout).default.value !== seamSeconds("TTS_TIMEOUT_MS") || item(domain.SPEECH_KEYS.captureTimeout).default.value !== seamSeconds("STT_TIMEOUT_MS"))
+    throw new Error(`packages/catalog/voice.json's two timeout defaults (${item(domain.SPEECH_KEYS.stretchTimeout).default.value}s, ${item(domain.SPEECH_KEYS.captureTimeout).default.value}s) are not the seam's TTS_TIMEOUT_MS and STT_TIMEOUT_MS (${seamSeconds("TTS_TIMEOUT_MS")}s, ${seamSeconds("STT_TIMEOUT_MS")}s). A request with no tuning runs under the seam's numbers; one with tuning under the setting's; the two start equal.`);
+  /* The provider settings offer the built speaking cards, in the contract's order, and start on the default. */
+  const builtTts = ss.voice.providers.tts.filter((id) => ss.registry.cards.some((c) => c.id === id && c.buildStatus === "built" && (c.serves ?? []).includes("tts")));
+  for (const key of Object.values(domain.SPEECH_KEYS.providerByClass)) {
+    const s = item(key);
+    if (s.allowed.map((a) => a.value).join() !== builtTts.join())
+      throw new Error(`packages/catalog/voice.json's ${key} offers [${s.allowed.map((a) => a.value).join(", ")}]; the built speaking cards voice.json lists are [${builtTts.join(", ")}]. A register may be read by a card that is built, and by every one that is.`);
+    if (s.default.value !== ss.registry.speechSelection.default)
+      throw new Error(`packages/catalog/voice.json's ${key} starts on "${s.default.value}", not the registry's default ${ss.registry.speechSelection.default}.`);
+    for (const a of s.allowed)
+      if (a.label !== ss.registry.cards.find((c) => c.id === a.value).name)
+        throw new Error(`packages/catalog/voice.json's ${key} labels ${a.value} "${a.label}"; the registry names it "${ss.registry.cards.find((c) => c.id === a.value).name}". One name per provider.`);
+  }
+  /* Nothing here names a clinical register, and every setting is the admin's and says what it never reaches. */
+  const clinicalIds = ss.voice.queryClasses.filter((c) => c.zone !== "presentation").map((c) => c.id);
+  const clinicalWords = new RegExp(`\\b(${[...clinicalIds, "clinical-delivery"].join("|")})\\b`);
+  for (const key of domain.SPEECH_SETTING_KEYS) {
+    const s = item(key);
+    const named = [s.key, s.label, ...(s.allowed ?? []).map((a) => `${a.value} ${a.label}`)].join(" ").match(clinicalWords);
+    if (named)
+      throw new Error(`packages/catalog/voice.json's ${key} names the register ${named[0]} in its key, label or a choice. No speech setting reaches a clinical register.`);
+    if (s.changedBy !== "admin")
+      throw new Error(`packages/catalog/voice.json's ${key} is changed by "${s.changedBy}". Every speech setting is the administrator's, and the founder is the only administrator today.`);
+    if (!/never|always|whatever/i.test(s.appliesTo))
+      throw new Error(`packages/catalog/voice.json's ${key} says what a change reaches without saying what it never reaches. A setting that could be read as reaching an emergency answer is written to say it does not.`);
+  }
+  for (const c of ss.voice.queryClasses.filter((k) => k.zone !== "presentation"))
+    if (c.providerSetting || (c.setting && domain.SPEECH_SETTING_KEYS.includes(c.setting)))
+      throw new Error(`packages/catalog/voice.json's class "${c.id}" is in the ${c.zone} zone and names a speech setting. A locked register asks no setting.`);
+  const tuningShape = uncommented(read("packages/engines/src/assistant/domain/settings.ts"));
+  if (!/if \(!isPresentationRegister\(register\)\) return Object\.freeze\(\{ provider: null, fallbackToDefault: true, tuning: Object\.freeze\(\{ \.\.\.mechanics, ownVoice: false \}\) \}\);/.test(tuningShape))
+    throw new Error("packages/engines/src/assistant/domain/settings.ts's tuningFor no longer hands a non-presentation register the platform default with the delivery mechanics alone and no own voice. That line is the whole of no-provider-setting-on-a-clinical-register.");
+  const speechCode = uncommented(read("apps/assistant-api/src/lib/speech.ts"));
+  if (!/const reading = readingFor\(settings, request\.register \?\? null\);/.test(speechCode) || !/const chosen = reading\.provider \? speakers\.get\(reading\.provider\) : undefined;/.test(speechCode))
+    throw new Error("apps/assistant-api/src/lib/speech.ts no longer decides the speaking provider from readingFor() over the request's register. The service and the preview ask one function, or a knob reaches an emergency answer through one of them.");
+  const server = uncommented(read("apps/assistant-api/src/server.ts"));
+  if (!/\(register && !knownRegister\(register\)\)/.test(server) || !/register: register \|\| null,/.test(server))
+    throw new Error("apps/assistant-api/src/server.ts's speak route no longer refuses a register the contract does not name and hands a known one to the seam. A register nobody checked is a presentation setting applied to whatever a caller typed.");
+  /* The own voice. */
+  const own = ss.voice.ownVoice;
+  if (own?.decidedBy !== "Founder" || !/^\d{4}-\d{2}-\d{2}$/.test(String(own.decidedOn)) || own.consent?.required !== true || !own.consent.recordedBy?.trim() || !own.consent.anotherPerson?.trim() || !own.neverFor?.trim() || !Array.isArray(own.carriedBy))
+    throw new Error("packages/catalog/voice.json#ownVoice is missing the founder's dated decision, the consent it records for the administrator's own voice, the refusal of anybody else's, what it is never for, or which cards carry it. A person's voice is not switched on by a setting whose record is thinner than that.");
+  const ownSetting = item(domain.SPEECH_KEYS.ownVoice);
+  if (ownSetting.default.value !== "off" || ownSetting.default.decidedBy !== "Founder" || !(ownSetting.guardrail?.forbids ?? []).includes("clinical-delivery"))
+    throw new Error("packages/catalog/voice.json's own-voice setting no longer starts off on the founder's decision with a guardrail that forbids the clinical zone.");
+  for (const id of own.carriedBy) {
+    const card = ss.registry.cards.find((c) => c.id === id);
+    if (!card?.ownVoice?.carried || !(card.environment ?? []).some((v) => /_VOICE_OWN$/.test(v)))
+      throw new Error(`packages/catalog/voice.json#ownVoice says ${id} carries the administrator's own voice, and its card records no ownVoice or no _VOICE_OWN environment line.`);
+    const adapter = uncommented(read(card.adapter.file));
+    if (!/const own = tuning\?\.ownVoice \? voiceIdOf\(env\.ELEVENLABS_VOICE_OWN\) : null;/.test(adapter))
+      throw new Error(`${card.adapter.file} reads the own voice's identifier other than under tuning.ownVoice. The setting names the register; the adapter obeys it and nothing else.`);
+    if (/voice: voiceId/.test(adapter) || !/voice: name,/.test(adapter))
+      throw new Error(`${card.adapter.file} answers with something other than the contract's own voice name. An identifier identifies a person's voice and never leaves the adapter.`);
+  }
+  /* ElevenLabs stays off the phones, out of the deterministic package and prohibited for the on-device mode. */
+  const eleven = ss.registry.cards.find((c) => c.id === "elevenlabs");
+  if (eleven?.buildStatus !== "built" || !/on-device conversation mode/.test(String(eleven.prohibitedFor)))
+    throw new Error("packages/catalog/api-registry.json's elevenlabs card is not built, or has lost the founder's prohibition for the on-device conversation mode.");
+  for (const f of [...files("apps/ios/MyThuso"), ...files("apps/android/app/src/main"), ...files("packages/gilbertone/src")].filter((f) => /\.(swift|kt|ts)$/.test(f)))
+    if (/elevenlabs/i.test(read(f)))
+      throw new Error(`${f} names ElevenLabs. The phones speak through their own synthesisers and packages/gilbertone answers with no network; a cloud voice's name on either is the first step to a call.`);
+  const bundleScan = read("scripts/build-assistant.mjs");
+  const deployScan = read("deploy/deploy.sh");
+  if (!/ELEVENLABS_API_KEY/.test(bundleScan) || !/ELEVENLABS_API_KEY/.test(deployScan))
+    throw new Error("scripts/build-assistant.mjs or deploy/deploy.sh no longer scans the bundle for an ElevenLabs key's value beside the others. A fourth provider's key is a fourth thing the artifact must never carry.");
+  /* The eighth sub-screen draws no control of its own, and says the service reads the defaults. */
+  const screen = "apps/web/src/features/portal/gilbertone/SpeechSettings.tsx";
+  const screenCode = uncommented(read(screen));
+  if (!/import \{ Configuration as Settings, valueText \} from '\.\.\/\.\.\/Configuration';/.test(read(screen)) || !/<Settings engine="assistant" onEngine=\{\(\) => undefined\} fixed\/>/.test(screenCode))
+    throw new Error(`${screen} no longer embeds features/Configuration.tsx fixed to the assistant engine. The editor, the rules and the history are the Configuration tab's, or the screen is a second door.`);
+  if (/<(input|select|textarea|button|form)\b/.test(screenCode))
+    throw new Error(`${screen} draws a field or a control of its own. Everything an administrator changes here is changed through the embedded Configuration editor.`);
+  if (!/words\.serviceReadsDefaults/.test(screenCode) || !/reads every setting on this screen from the contract's defaults/.test(String(ss.portal.gilbertone.speech?.serviceReadsDefaults)))
+    throw new Error(`${screen} no longer says, in the contract's sentence, that the service reads these settings from the contract's defaults. Until the service keeps a history, an administrator must not believe a change here reached a patient.`);
+  const source = uncommented(read("apps/assistant-api/src/lib/speech-settings.ts"));
+  if (!/export const contractDefaults: SpeechSettingsSource = \(\) => speechSettingsByDefault;/.test(source) || !/settings: SpeechSettingsSource = contractDefaults,/.test(speechCode))
+    throw new Error("apps/assistant-api reads its speech settings from something other than the contract's defaults, and the Speech settings screen still says it reads the defaults. Change the sentence in the same change as the source.");
+  const configuration = uncommented(read("apps/web/src/features/Configuration.tsx"));
+  if (!/\{!fixed && <div className="cf-bar-field cf-bar-engine">/.test(configuration))
+    throw new Error("apps/web/src/features/Configuration.tsx no longer hides its engine chooser when fixed. Embedded on the Speech settings screen it would offer every engine's settings under GilbertOne's heading.");
+  console.log(
+    `Speech settings · ${domain.SPEECH_SETTING_KEYS.length} settings read by one domain reader, defaults held to the encoding and the two timeouts they restate, provider choices held to the ${builtTts.length} built speaking cards; no setting names a clinical register, the domain hands a non-presentation register no knob and no own voice, and the route refuses a register it does not know; the own voice is the founder's dated decision, carried by ${own.carriedBy.length} card${own.carriedBy.length === 1 ? "" : "s"} whose adapter reads the identifier only under the setting and never answers with one; ElevenLabs named on no phone and nowhere in packages/gilbertone; the eighth sub-screen embeds the Configuration editor and draws nothing of its own, and says the service reads the defaults.`,
+  );
+}
 
 /* ==== Founder access (24 September 2026) ============================================================
    packages/catalog/founder-access.json: a sign-in for the founder alone and a guarded reveal of the two

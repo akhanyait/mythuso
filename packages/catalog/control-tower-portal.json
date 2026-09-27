@@ -124,7 +124,8 @@
     { "id": "intelligence", "label": "Intelligence", "blurb": "The five reasoning levels, which conversation may reach which, and the ceilings nothing on this screen can raise.", "new": true },
     { "id": "knowledge", "label": "Knowledge", "blurb": "The clinical and the non-clinical corpus, the three external sources, and the lock on the clinical half.", "new": true },
     { "id": "compliance", "label": "Engine compliance", "blurb": "The compliance pack, the audit extract, the kill switch, and where each provider processes what it is sent.", "new": true },
-    { "id": "api-registry", "label": "API Registry", "blurb": "Every external API the platform talks to, or has been asked to, as a card with its honest state.", "new": true }
+    { "id": "api-registry", "label": "API Registry", "blurb": "Every external API the platform talks to, or has been asked to, as a card with its honest state.", "new": true },
+    { "id": "speech", "label": "Speech settings", "blurb": "Which provider reads each presentation register and how — Azure Speech's and ElevenLabs' own knobs, two ceilings and the administrator's own voice — every one an administrator's setting with its history, and what is locked beside them.", "new": true }
    ]
   },
   {
@@ -305,8 +306,8 @@
  "gilbertone": {
   "status": "built",
   "phase": 4,
-  "_statusWhy": "Built in Phase 4 (24 September 2026): seven sub-screens in the tree, held by tests/gilbertone-admin.spec.ts on both viewports. Built is not live, with two exceptions the founder decided on 27 September 2026: the Voice screen's Save as default and Play, each carrying its own dated record in actions below. Each sub-screen reads contracts and, on the Overview, two routes that answer booleans; every other action it draws is disabled beside the gate that holds it, and scripts/check-boundaries.mjs fails the build the day a gate closes while its action still has nothing behind it.",
-  "sentence": "Built, and administering one thing. These seven screens read the assistant's contracts and ask its health and status routes for their booleans. Since 27 September 2026 an administrator may choose which of a language's two voices reads each presentation register — routine answers, navigation, the signed-out visitor and the administrator's own — and hear a sentence in it first; the emergency, refusal and escalation registers stay locked. Every other action is disabled, beside the gate that holds it: there is no key vault, no key registry, no health-check runner, no tenant and no kill switch, so nothing here can configure the assistant's providers, spend its money beyond a heard preview, or switch it off.",
+  "_statusWhy": "Built in Phase 4 (24 September 2026): seven sub-screens in the tree, held by tests/gilbertone-admin.spec.ts on both viewports, and an eighth — Speech settings — since 28 September 2026. Built is not live, with two exceptions the founder decided on 27 September 2026: the Voice screen's Save as default and Play, each carrying its own dated record in actions below; and, since 28 September 2026, the Speech settings screen, which draws the Configuration tab's own editor over the assistant engine's settings rather than a control of its own, so every rule and every refusal there is the shared settings code's. Each sub-screen reads contracts and, on the Overview, two routes that answer booleans; every other action it draws is disabled beside the gate that holds it, and scripts/check-boundaries.mjs fails the build the day a gate closes while its action still has nothing behind it.",
+  "sentence": "Built, and administering two things. These eight screens read the assistant's contracts and ask its health and status routes for their booleans. Since 27 September 2026 an administrator may choose which of a language's two voices reads each presentation register — routine answers, navigation, the signed-out visitor and the administrator's own — and hear a sentence in it first; and since 28 September 2026 which provider reads each presentation register and how, within the ceilings the same screen sets. The emergency, refusal and escalation registers stay locked. Every other action is disabled, beside the gate that holds it: there is no key vault, no key registry, no health-check runner, no tenant and no kill switch, so nothing here can configure the assistant's providers, spend its money beyond a heard preview, or switch it off.",
   "subScreens": [
    { "id": "overview", "label": "Engine overview", "contract": "packages/catalog/control-tower-overview.json", "gate": "G15", "file": "apps/web/src/features/portal/gilbertone/EngineOverview.tsx" },
    { "id": "voice", "label": "Voice", "contract": "packages/catalog/voice.json", "gate": "G29", "file": "apps/web/src/features/portal/gilbertone/Voice.tsx" },
@@ -314,15 +315,21 @@
    { "id": "intelligence", "label": "Intelligence", "contract": "packages/catalog/intelligence-levels.json", "gate": "G31", "file": "apps/web/src/features/portal/gilbertone/Intelligence.tsx" },
    { "id": "knowledge", "label": "Knowledge", "contract": "packages/catalog/knowledge-corpus-tiers.json", "gate": "G10", "file": "apps/web/src/features/portal/gilbertone/Knowledge.tsx" },
    { "id": "compliance", "label": "Engine compliance", "contract": "packages/catalog/compliance-pack.json", "gate": "G14", "file": "apps/web/src/features/portal/gilbertone/Compliance.tsx" },
-   { "id": "api-registry", "label": "API Registry", "contract": "packages/catalog/api-registry.json", "gate": "G32", "file": "apps/web/src/features/portal/gilbertone/ApiRegistry.tsx" }
+   { "id": "api-registry", "label": "API Registry", "contract": "packages/catalog/api-registry.json", "gate": "G32", "file": "apps/web/src/features/portal/gilbertone/ApiRegistry.tsx" },
+   { "id": "speech", "label": "Speech settings", "contract": "packages/catalog/voice.json", "gate": "G33", "file": "apps/web/src/features/portal/gilbertone/SpeechSettings.tsx" }
   ],
-  "_subScreensWhy": "The seven sub-screens of §7, each with the contract it reads, the gate §7 names for it and the file that draws it. The category's tabs above are these seven in this order, and scripts/check-boundaries.mjs holds the two lists to each other and every file to a dynamic import of its own.",
+  "_subScreensWhy": "The seven sub-screens of §7 and, since 28 September 2026, Speech settings, each with the contract it reads, the gate it stands behind and the file that draws it. The category's tabs above are these eight in this order, and scripts/check-boundaries.mjs holds the two lists to each other and every file to a dynamic import of its own.",
   "gates": [
    { "id": "G29", "label": "Gate G29", "sentence": "Not available while gate G29 is open. Nobody clinical has reviewed the clinical-delivery register, so the voice that reads an emergency, a refusal or an escalation is read here and set by nobody: it changes only through a ratified entry in the Clinician Review Queue." },
    { "id": "G30", "label": "Gate G30", "sentence": "Not available while gate G30 is open. There is no key vault, so no key can be entered, rotated, tested or described here; and there is no per-tenant scoping, no residency decision and no DPIA per provider behind any of them." },
    { "id": "G31", "label": "Gate G31", "sentence": "Not available while gate G31 is open. No tenant exists to set a level or a ceiling for, and no clinician session exists to test the clinical-assist lock against, so every level on this screen is read and none is set." },
    { "id": "G32", "label": "Gate G32", "sentence": "Not available while gate G32 is open. There is no secret vault, no health-check runner and no enable, disable or balance control behind any card, so none of these actions can do anything." },
-   { "id": "module-8", "label": "Module 8", "sentence": "Not available: Module 8, the per-tenant kill switch, does not exist. There is no tenant to switch and nothing that could switch one. Today the assistant goes dark only when somebody at a terminal on the server stops it, and that is recorded by hand in docs/governance/ASSISTANT-ACTIVATION.md.", "openWhileMissing": ["packages/catalog/tenancy.json", "apps/assistant-api/src/lib/kill-switch.ts"] }
+   { "id": "module-8", "label": "Module 8", "sentence": "Not available: Module 8, the per-tenant kill switch, does not exist. There is no tenant to switch and nothing that could switch one. Today the assistant goes dark only when somebody at a terminal on the server stops it, and that is recorded by hand in docs/governance/ASSISTANT-ACTIVATION.md.", "openWhileMissing": ["packages/catalog/tenancy.json", "apps/assistant-api/src/lib/kill-switch.ts"] },
+   {
+    "id": "G33",
+    "label": "Gate G33",
+    "sentence": "Open while gate G33 is open. A provider with no South African region — ElevenLabs, Alibaba Qwen — may be chosen for a register here and is refused by the service in production until the residency decision the responsible party and the Information Officer sign is recorded: the platform default reads the answer instead, and the refusal is printed at start-up."
+   }
   ],
   "_gatesWhy": "The refusal each disabled action shows, one per gate. A G-numbered gate is open while packages/catalog/control-tower-overview.json#open-gates records it open; Module 8 has no row in either register, so it is open while the tenancy contract and the kill switch's runtime it would need are both missing. scripts/check-boundaries.mjs fails the build if a gate an action names is no longer open, because then the action is drawn disabled for a reason that has stopped being true and somebody has to build what it would do. An action the founder has made live carries gate null and a live record instead — who decided it, on which day, and the one sentence saying what it does and what it never does — and the build refuses a live action without all three, or one that still names a gate. G29 holds no action since 27 September 2026: it still holds the clinical-delivery register, which no action on the Voice screen touches.",
   "actions": [
@@ -400,13 +407,15 @@
    "previewTotalLabel": "This session",
    "previewTotalEmpty": "Nothing has been played in this session, so the running total is nothing.",
    "previewAccepted": "Nothing in this sentence looks like a person's details.",
-   "previewRoute": { "path": "/v1/speak", "version": 3 },
-   "_previewRouteWhy": "The one route Play asks, since the founder's decision of 27 September 2026: the assistant service's own speak route, at the built version packages/catalog/apis/assistant.json declares, under the same prefix the Overview reads. It is the patients' route — there is still no speak route an administrator signs in to — and the preview sends it nothing but the administrator's own sentence, the language and the contract's voice name. scripts/check-boundaries.mjs holds lib/gilbertone-admin.ts to this path and to no other request but the two status reads.",
+   "previewRoute": { "path": "/v1/speak", "version": 4 },
+   "_previewRouteWhy": "The one route Play asks, since the founder's decision of 27 September 2026: the assistant service's own speak route, at the built version packages/catalog/apis/assistant.json declares, under the same prefix the Overview reads. It is the patients' route — there is still no speak route an administrator signs in to — and the preview sends it nothing but the administrator's own sentence, the language, the contract's voice name and — since version four, 28 September 2026 — the register the sentence is read as, so the reading goes through the provider and tuning the administrator's settings name for that register. scripts/check-boundaries.mjs holds lib/gilbertone-admin.ts to this path and to no other request but the two status reads.",
    "previewLanguageLabel": "Language",
    "previewVoiceLabel": "Voice",
    "previewCostSentence": "{characters} characters at {price} per {unit} characters — {provider}'s list price, recorded by hand on {recordedOn}, not a measurement — is about {cost}. Nothing has been timed, so no speed is shown.",
    "previewCostEmpty": "Type a sentence to see what reading it would cost.",
    "previewTotalSentence": "{plays} read this session, about {cost} in all.",
+   "previewCeilingSentence": "{read} of this session's ceiling of {ceiling} characters read.",
+   "previewCeilingReached": "This sentence would take the session past its preview ceiling of {ceiling} characters, so Play stays shut. The ceiling is an administrator's setting; a new session starts the count again.",
    "previewCostDecimals": 5,
    "_previewCostDecimalsWhy": "Azure prices text to speech per million characters, so one sentence costs a fraction of a cent; a currency figure rounded to two places would show nothing and read as free. Five places show the fraction.",
    "previewReading": "Asking the service to read it.",
@@ -437,6 +446,22 @@
    "purposeRequired": "and a purpose recorded",
    "noModel": "No model is asked",
    "ceilingWithClinicianLabel": "With a clinician"
+  },
+  "speech": {
+   "providersHeading": "Providers and their settings",
+   "inForceHeading": "In force for each presentation register",
+   "lockedHeading": "Not a setting",
+   "ownVoiceHeading": "The administrator's own voice",
+   "editorHeading": "Change a setting",
+   "editorIntro": "The same editor as the Configuration tab, over the same rules and the same history: every change says why, is reviewed before it is confirmed, and is kept with who made it. In this preview a change is kept in this tab's memory for the session, and the shipped default is the contract's.",
+   "settingsOfWord": "{count} settings",
+   "registerSentence": "{register}: {provider}, {voice}.",
+   "ownVoiceOnWord": "own voice on",
+   "residencySentence": "No South African region. In production the service refuses it for a patient's voice until the residency decision is signed, and reads through {default} instead.",
+   "onshoreSentence": "Pinned to a South African region: the platform default, and the one provider that answers in production today.",
+   "notExercisedSentence": "Written from the vendor's published reference and not yet tried against the live API: the first operator to configure it finds out.",
+   "noPriceSentence": "No per-character list price is recorded, so the preview has nothing to multiply and will not play through it.",
+   "serviceReadsDefaults": "The assistant service reads every setting on this screen from the contract's defaults: it holds no settings history of its own yet, so a change here reaches the web preview and the next spoken answer in this tab, and the service's own answers only on the day the service keeps the history too. That is said here rather than hidden."
   },
   "knowledge": {
    "tiersHeading": "Two corpora",

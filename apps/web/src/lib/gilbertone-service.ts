@@ -428,13 +428,20 @@ export async function speakText(
   text: string,
   voice: "female" | "male",
   language: string = LANGUAGE,
+  register: string | null = null,
 ): Promise<SpeakAnswer | SpeakUnavailable | ServiceRefusal> {
+  /* Since 28 September 2026 (version four) the reading names the register the words belong to, so
+     the service reads a presentation register through the provider and tuning the administrator's
+     settings name for it and never a clinical one; a reading with no register is the platform
+     default with no tuning. The register travels as the contract's own class id, decided by the
+     caller in one place (lib/voice.ts) and never composed here. */
   const result = await call<SpeakAnswer | SpeakUnavailable>(
     "/assistant/v1/speak",
     post({
       text,
       language,
       voice: cloudVoiceName(voice, language),
+      ...(register ? { register } : {}),
       userConsent: true,
     }),
     (body) => {

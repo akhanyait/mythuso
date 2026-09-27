@@ -12,7 +12,7 @@ export const settingsContract = json('../packages/catalog/settings.json');
 export const say = settingsContract.screen as Record<string, string> & { editors: Record<string, string>; values: Record<string, string> };
 export type Bound = { value: number; decidedBy: string | null; decidedOn?: string; proposedBy?: string };
 export type TimingRow = {
-  key: string; label: string; help: string; type: 'minutes' | 'count' | 'moneyCents' | 'list' | 'boolean' | 'enum' | 'text' | 'roleList' | 'record' | 'schedule'; of?: string; unit: string | null; appliesTo: string;
+  key: string; label: string; help: string; type: 'minutes' | 'count' | 'moneyCents' | 'percentage' | 'list' | 'boolean' | 'enum' | 'text' | 'roleList' | 'record' | 'schedule'; of?: string; unit: string | null; appliesTo: string;
   posts?: { id: string; label: string; role: string | null }[];
   default: Omit<Bound, 'value'> & { value: number | number[] | boolean | string | string[] | Record<string, number | string> }; bounds: { lowest: Bound; highest: Bound };
   items?: { lowest: Bound; highest: Bound }; guardrail?: { statement: string };

@@ -40,6 +40,8 @@ const windowsText = (row: TimingRow, windows: Window[]) => windows.length ? wind
 const valueText = (row: TimingRow, value: unknown): string => {
   if (row.type === 'minutes' || (row.type === 'list' && row.of === 'minutes')) return minutesText(value as number | number[]);
   if (row.type === 'count') return fill(say.values.count, { value: String(value), unit: row.unit ?? '' });
+  /* The assistant's speech settings of 28 September 2026 are the first percentages an admin sets. */
+  if (row.type === 'percentage') return fill(say.values.percentage, { value: String(value) });
   /* Wave 5, Clinical: a list of counts — the days outcome questions are asked on — reads as its numbers and the unit once. */
   if (row.type === 'list' && row.of === 'count') return fill(say.values.count, { value: (value as number[]).join(', '), unit: row.unit ?? '' });
   if (row.type === 'moneyCents') return fill(say.values.moneyCents, { rand: ((value as number) / 100).toFixed(2) });

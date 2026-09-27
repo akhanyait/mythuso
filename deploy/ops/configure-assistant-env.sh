@@ -191,6 +191,55 @@ if [ -n "$dashscope_region" ]; then
   fi
 fi
 
+# ── ElevenLabs: the fourth built speech provider, speaking only ─────────────────────────────────
+#
+# Added 28 September 2026 (apps/assistant-api/src/lib/providers/elevenlabs.ts). Optional exactly as
+# the two above; a skipped section leaves any ELEVENLABS_ lines already in the file as they were.
+# Five lines, because ElevenLabs has no public list of voices a contract could name: the key, the
+# region (united-states, european-union, india or singapore — the four hosts the card records, none
+# in South Africa), and the account's own identifier for the voice that reads under each of the
+# contract's two labels, plus, optionally, the administrator's own recorded voice
+# (packages/catalog/voice.json#ownVoice). A voice identifier identifies a person's voice, so it is
+# typed here and lives on this box only; it is never echoed, never written to the register, and
+# never returned by any route. Which register reads through ElevenLabs is an administrator's setting
+# in the Control Tower, and in production the service refuses this provider for a patient's voice
+# while the residency decision is blank, exactly as it refuses the two above.
+printf 'ElevenLabs region (ELEVENLABS_REGION; united-states, european-union, india or singapore) [blank to skip]: '
+read -r elevenlabs_region || true
+elevenlabs_region=$(printf '%s' "$elevenlabs_region" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+elevenlabs_key=""
+elevenlabs_female=""
+elevenlabs_male=""
+elevenlabs_own=""
+if [ -n "$elevenlabs_region" ]; then
+  case "$elevenlabs_region" in
+    united-states|european-union|india|singapore) : ;;
+    *) fail "ElevenLabs serves from united-states, european-union, india or singapore and nowhere else; the service reads no other region. Nothing was written." ;;
+  esac
+  printf 'ElevenLabs API key (ELEVENLABS_API_KEY, input hidden): '
+  read -rs elevenlabs_key || true
+  printf '\n'
+  [ -n "$elevenlabs_key" ] || fail "An ElevenLabs region was given but the key was empty — that pair could never work. Nothing was written."
+  if printf '%s' "$elevenlabs_key" | grep -qvE '^[A-Za-z0-9._-]{20,256}$'; then
+    fail "That does not look like an ElevenLabs key (unexpected characters or length). Nothing was written — and if what was pasted really was a key, it is now in this shell's memory only, which dies with it."
+  fi
+  # A voice identifier is letters and digits, 8 to 64 of them (providers/elevenlabs.ts VOICE_ID); typed
+  # with echo off because one of them may identify a person's own voice.
+  printf 'Voice identifier for the female label (ELEVENLABS_VOICE_FEMALE, input hidden): '
+  read -rs elevenlabs_female || true
+  printf '\n'
+  [ -n "$elevenlabs_female" ] || fail "ElevenLabs needs at least the female label's voice identifier — it is the platform default label. Nothing was written."
+  printf '%s' "$elevenlabs_female" | grep -qE '^[A-Za-z0-9]{8,64}$' || fail "A voice identifier is letters and digits, 8 to 64 of them. Nothing was written."
+  printf 'Voice identifier for the male label (ELEVENLABS_VOICE_MALE, input hidden) [blank for none]: '
+  read -rs elevenlabs_male || true
+  printf '\n'
+  [ -z "$elevenlabs_male" ] || printf '%s' "$elevenlabs_male" | grep -qE '^[A-Za-z0-9]{8,64}$' || fail "A voice identifier is letters and digits, 8 to 64 of them. Nothing was written."
+  printf "Identifier for the administrator's own recorded voice (ELEVENLABS_VOICE_OWN, input hidden) [blank for none]: "
+  read -rs elevenlabs_own || true
+  printf '\n'
+  [ -z "$elevenlabs_own" ] || printf '%s' "$elevenlabs_own" | grep -qE '^[A-Za-z0-9]{8,64}$' || fail "A voice identifier is letters and digits, 8 to 64 of them. Nothing was written."
+fi
+
 # ── The fingerprint: how two people compare keys without disclosing them ───────────────────────
 #
 # Sixteen characters of the key's SHA-256, the same ceremony /etc/mythuso/key.fingerprint uses for
@@ -235,6 +284,7 @@ if [ -f "$ENV_FILE" ]; then
   [ -n "$speech_key" ] && owned="$owned|^AZURE_SPEECH_"
   [ -n "$openai_key" ] && owned="$owned|^OPENAI_"
   [ -n "$dashscope_key" ] && owned="$owned|^DASHSCOPE_"
+  [ -n "$elevenlabs_key" ] && owned="$owned|^ELEVENLABS_"
   grep -vE "$owned" "$ENV_FILE" > "$tmp" || true
   # A file that was readable by others has to be treated as a key that was read — the same rule
   # deploy.sh applies to the identity service's env file. The new file below fixes the mode; this
@@ -262,6 +312,14 @@ fi
 if [ -n "$dashscope_key" ]; then
   printf 'DASHSCOPE_REGION=%s\nDASHSCOPE_API_KEY=%s\n' \
     "$dashscope_region" "$dashscope_key" >> "$tmp"
+fi
+# ElevenLabs, only when it was entered: the two credentials, then the voice identifiers, the optional
+# ones left out rather than written empty so the service reads "no such voice" and not a blank.
+if [ -n "$elevenlabs_key" ]; then
+  printf 'ELEVENLABS_REGION=%s\nELEVENLABS_API_KEY=%s\nELEVENLABS_VOICE_FEMALE=%s\n' \
+    "$elevenlabs_region" "$elevenlabs_key" "$elevenlabs_female" >> "$tmp"
+  [ -z "$elevenlabs_male" ] || printf 'ELEVENLABS_VOICE_MALE=%s\n' "$elevenlabs_male" >> "$tmp"
+  [ -z "$elevenlabs_own" ] || printf 'ELEVENLABS_VOICE_OWN=%s\n' "$elevenlabs_own" >> "$tmp"
 fi
 
 chmod 0600 "$tmp"

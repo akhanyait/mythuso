@@ -1765,3 +1765,40 @@ test('the speak door admits a built provider’s voice name and still refuses on
  assert.equal(synthesises[0].voice, 'Cherry');
  assert.deepEqual(errors, []);
 });
+
+/* Version four of the speak route, 28 September 2026: a caller may say which register the words belong
+   to, the door refuses one the contract does not name and hands a known one to the seam untouched, and
+   the administrator's monthly ceiling is answered in the contract's own sentence at its own status. */
+test('the speak route hands a known register to the seam, refuses an unknown one, and answers the ceiling as the contract declares', async () => {
+ const { seam, synthesises } = fakeCloudVoice('nothing is heard here');
+ const errors = await withServer(
+  mustNotRun,
+  async (base) => {
+   const routine = await postTo(base, '/assistant/v1/speak', JSON.stringify({ text: 'Hello', language: 'en-ZA', register: 'routine' }));
+   assert.equal(routine.status, 200);
+   const emergency = await postTo(base, '/assistant/v1/speak', JSON.stringify({ text: 'Hello', language: 'en-ZA', register: ' emergency ' }));
+   assert.equal(emergency.status, 200, 'a register is trimmed before it is asked about');
+   const unknown = await postTo(base, '/assistant/v1/speak', JSON.stringify({ text: 'Hello', language: 'en-ZA', register: 'brand-voice' }));
+   assert.equal(unknown.status, 400, 'a register the contract does not name is refused at the door');
+   const none = await postTo(base, '/assistant/v1/speak', JSON.stringify({ text: 'Hello', language: 'en-ZA' }));
+   assert.equal(none.status, 200);
+  },
+  notSearching,
+  seam,
+ );
+ assert.deepEqual(synthesises.map((s) => (s as { register?: string | null }).register), ['routine', 'emergency', null], 'the seam is handed the register, or null');
+ assert.deepEqual(errors, []);
+ const ceiling = assistantContract.routes.find((r) => r.method === 'POST' && r.path === '/v1/speak' && !('withdrawn' in r))!.refusals.find((r) => r.id === 'spoken-answer-ceiling-reached')!;
+ const capped: SpeechSeam = { ...seam, synthesize: async () => ({ ok: false, ceilingReached: true }) };
+ const quiet = await withServer(
+  mustNotRun,
+  async (base) => {
+   const response = await postTo(base, '/assistant/v1/speak', JSON.stringify({ text: 'Hello', language: 'en-ZA', register: 'routine' }));
+   assert.equal(response.status, ceiling.status);
+   assert.deepEqual(await response.json(), { error: 'spoken_answer_ceiling_reached', refusalId: ceiling.id, message: ceiling.statement });
+  },
+  notSearching,
+  capped,
+ );
+ assert.deepEqual(quiet, [], 'the ceiling is an answer, and an answer writes nothing on the error stream');
+});

@@ -272,7 +272,7 @@ enum ApisData {
     static let postAssistantTurn = Route(id: "postAssistantTurn", method: "POST", path: "/turn", mountedPath: "/assistant/turn", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postTurn = Route(id: "postTurn", method: "POST", path: "/v1/turn", mountedPath: "/assistant/v1/turn", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postListenV3 = Route(id: "postListenV3", method: "POST", path: "/v1/listen", mountedPath: "/assistant/v1/listen", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
-    static let postSpeakV3 = Route(id: "postSpeakV3", method: "POST", path: "/v1/speak", mountedPath: "/assistant/v1/speak", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postSpeakV4 = Route(id: "postSpeakV4", method: "POST", path: "/v1/speak", mountedPath: "/assistant/v1/speak", version: 4, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postTriageStartV3 = Route(id: "postTriageStartV3", method: "POST", path: "/v1/triage/start", mountedPath: "/assistant/v1/triage/start", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postTriageAnswerV3 = Route(id: "postTriageAnswerV3", method: "POST", path: "/v1/triage/answer", mountedPath: "/assistant/v1/triage/answer", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postVitalsV3 = Route(id: "postVitalsV3", method: "POST", path: "/v1/vitals", mountedPath: "/assistant/v1/vitals", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
@@ -538,7 +538,7 @@ enum ApisData {
         postAssistantTurn,
         postTurn,
         postListenV3,
-        postSpeakV3,
+        postSpeakV4,
         postTriageStartV3,
         postTriageAnswerV3,
         postVitalsV3,
@@ -2773,12 +2773,13 @@ enum ApisData {
         let text: String
         let language: String
     }
-    struct PostSpeakV3Request {
+    struct PostSpeakV4Request {
         let text: String
         let language: String
         let voice: String?
+        let register: String?
     }
-    struct PostSpeakV3Response {
+    struct PostSpeakV4Response {
         let audioBase64: String
         let format: String
         let voice: String

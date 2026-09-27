@@ -156,7 +156,7 @@
   "stt": ["azure-speech", "deepgram-nova-3", "openai-whisper", "alibaba-qwen-asr"],
   "registry": "packages/catalog/api-registry.json",
   "perTenant": false,
-  "_perTenantWhy": "The plan asks for a provider chosen per tenant. There is no tenant, so there is one choice per direction, made by configuration on the box: api-registry.json's speechSelection names the two variables (MYTHUSO_STT_PROVIDER, MYTHUSO_TTS_PROVIDER) and the default, azure-speech, which answers when both its variables are set and its region is southafricanorth. Each id above is a card in api-registry.json, which says of each whether it is built and whether it is configured: since 28 September 2026 azure-speech, openai-whisper, alibaba-qwen-asr and alibaba-qwen-tts are built, and only azure-speech is configured. A built provider with no South African region is refused in production for these routes while the residency decision is blank; the registry's own refusal says so.",
+  "_perTenantWhy": "The plan asks for a provider chosen per tenant. There is no tenant, so there is one choice per direction, made by configuration on the box: api-registry.json's speechSelection names the two variables (MYTHUSO_STT_PROVIDER, MYTHUSO_TTS_PROVIDER) and the default, azure-speech, which answers when both its variables are set and its region is southafricanorth. Each id above is a card in api-registry.json, which says of each whether it is built and whether it is configured: since 28 September 2026 azure-speech, openai-whisper, alibaba-qwen-asr, alibaba-qwen-tts and elevenlabs are built, and only azure-speech is configured. Since the same day the text-to-speech provider for each presentation register is an administrator's setting below (presentation-provider-routine and the other three), applied by the service only where the residency decision admits the provider; the clinical-delivery registers always read through the default. A built provider with no South African region is refused in production for these routes while the residency decision is blank; the registry's own refusal says so.",
   "onDeviceConversationMode": "The founder's speech amendment of 21 September 2026 (CLAUDE.md) keeps cloud voices out of the on-device conversation mode — ElevenLabs is named there — and keeps Azure Speech's two routes as the server-side fallback. A cloud TTS or STT card in the registry is never a route for the on-device mode, whatever its status."
  },
 
@@ -174,6 +174,31 @@
  },
 
  "lockedSettings": {
+  "keysAndRegions": {
+   "locked": true,
+   "configurable": false,
+   "sentence": "A provider's key and the region it is called in are lines in the service's environment on the box, entered by hand through deploy/ops/configure-assistant-env.sh. No setting holds either, no screen shows either, and the region a patient's voice goes to is a residency decision the responsible party and the Information Officer sign, not a knob.",
+   "why": "A key in a setting is a key in a history table that every admin reads. A region in a setting is a cross-border transfer made by whoever holds the screen."
+  },
+  "speakingStyle": {
+   "locked": true,
+   "configurable": false,
+   "sentence": "Azure Speech's expressive styles — cheerful, calm, and the rest — are not a setting: neither of the two South African English voices nor either Afrikaans voice on file lists one, so there is nothing to choose, and the clinical-delivery register would refuse it if there were.",
+   "why": "A style setting with one allowed value is a control that can never change, and a control that can never change is drawn as a sentence."
+  },
+  "utteranceCap": {
+   "locked": true,
+   "configurable": false,
+   "sentence": "The 45-second cap on one push-to-talk capture is the founder's speech amendment of 21 September 2026 (CLAUDE.md), read from packages/catalog/assistant.json#voice, and no setting moves it.",
+   "why": "A founder decision, not an edit."
+  },
+  "speechToTextProvider": {
+   "locked": true,
+   "configurable": false,
+   "sentence": "Which provider hears a patient's capture is written by hand on the box (MYTHUSO_STT_PROVIDER, packages/catalog/api-registry.json#speechSelection) and is not a setting: a capture is a patient's voice, which is health information, and where it goes is decided by the people the residency decision names.",
+   "why": "The registry's own reason: selecting where a patient's voice goes is a decision written by hand, like the production acknowledgement."
+  }
+ ,
   "pushToTalk": {
    "locked": true,
    "configurable": false,
@@ -229,6 +254,37 @@
 
  "refusals": [
   {
+   "id": "no-provider-setting-on-a-clinical-register",
+   "statement": "An emergency, refusal or escalation answer is never read through a provider, at a speed, a pitch, a style or in a voice that a setting chose. It is read by the platform default provider in the language's own voice at the voice's own pace.",
+   "why": "How an emergency answer sounds is part of what it says. Every provider and tuning setting names the presentation registers alone, the guardrails forbid the clinical classes, and the service applies tuning only where the request names a presentation register."
+  },
+  {
+   "id": "no-key-or-region-in-a-setting",
+   "statement": "No setting holds a provider's key or the region it is called in, and no screen draws either.",
+   "why": "A key in the settings history is a key every administrator reads; a region in a setting is a border crossed by whoever holds the screen. Both are environment lines on the box, and where a voice goes is a residency decision."
+  },
+  {
+   "id": "an-offshore-provider-reads-no-patient-in-production-without-the-residency-decision",
+   "statement": "A provider with no South African region may be chosen for a register on this screen and, in production, is refused by the service until the residency decision is signed: the platform default reads the answer instead, and the refusal is printed at start-up.",
+   "why": "The setting is the administrator's to make and the transfer is the responsible party's to approve. The screen records the first; the service enforces the second in the registry's own sentence, and no setting overrides it."
+  },
+  {
+   "id": "a-ceiling-stops-sound-never-words",
+   "statement": "When a spending ceiling is reached the cloud voice stops and the answer stays written on the screen. Nothing is ever withheld from a person because a budget ran out.",
+   "why": "The written words are the answer; the voice is a second reading of them. A ceiling on the second reading is a ceiling on money, not on care."
+  },
+  {
+   "id": "own-voice-is-the-administrators-alone",
+   "statement": "The own-voice feature is switched on and off by an administrator only, reads only the presentation registers, and never carries a voice that is not the administrator's own.",
+   "why": "The founder's decision of 28 September 2026. A patient is never offered a person's voice; a clinical answer is never read in one; and recording somebody else's voice needs consent this setting cannot hold."
+  },
+  {
+   "id": "no-tuning-without-a-register",
+   "statement": "A speak request that names no register is read by the platform default provider with no tuning, and one that names a register the contract does not have is refused.",
+   "why": "Tuning follows the register, and a request that will not say which register it is for is not trusted to be a presentation one."
+  }
+ ,
+  {
    "id": "clinical-delivery-voice-is-not-configurable",
    "statement": "An emergency, refusal or escalation answer is never read in a voice a tenant, an administrator or a user chose. Rate and pitch may change; the voice may not.",
    "why": "How an emergency answer sounds is part of what it says. A setting that could make it sound calmer than it is would be a clinical change made in a brand menu."
@@ -280,10 +336,28 @@
   }
  ],
 
+ "ownVoice": {
+  "decidedBy": "Founder",
+  "decidedOn": "2026-09-28",
+  "sentence": "An administrator may have a provider read the presentation registers in the administrator's own recorded voice. Only an administrator changes it, and today the only administrator is the founder.",
+  "whoseVoice": "The administrator who switches it on, recording their own voice in the provider's own console with their own consent; today the founder.",
+  "consent": {
+   "required": true,
+   "recordedBy": "The setting's own history: the change that switched it on names the administrator, the day and the reason, and stands as the consent of the person whose voice it is, because it is the same person.",
+   "anotherPerson": "Refused. A voice that is not the administrator's own — a nurse's, an actor's, a patient's — is not switched on here: recording it needs that person's written consent and a decision about who owns the voice, neither of which this setting can hold."
+  },
+  "carriedBy": [
+   "elevenlabs"
+  ],
+  "howItIsNamed": "The provider's identifier for the recorded voice is a line in the service's environment on the box (the card's environment in packages/catalog/api-registry.json), never a value in this repository or on a screen: it identifies a person's voice, and the on-device conversation mode and the phones' own synthesisers never see it.",
+  "neverFor": "An emergency, a refusal or an escalation: the clinical-delivery register is pinned by hash above and no provider setting reaches it. A patient is never offered a person's voice as a choice.",
+  "why": "The founder's instruction of 28 September 2026: the own-voice features are only the admins who can change that, meaning currently the founder. Written here so the build can hold it — the setting's changedBy is admin, the guardrail forbids every clinical class, and the identifier is read by the adapter alone."
+ },
+
  "settings": {
   "_note": "The founder decided on 27 September 2026 that the four presentation registers above — routine, navigation, signed-out visitor and admin — are an admin setting, under the standing rule that an open policy question becomes an admin setting with a proposed default: which of the two voice labels every language with a voice carries in packages/catalog/assistant.json#voice.languages[].ttsVoices reads that register, with the language's female voice as the default. A value is a label and never a voice name; whoever speaks resolves it per language, and a language with ttsAvailable false stays text whatever the label says. The clinical-delivery classes and clinical assist are not here and cannot be added here: their register is pinned by hash above. In this preview a change is kept in this tab's memory for the session, and the shipped default is this contract's.",
-  "heading": "Voice settings",
-  "intro": "Which of a language's two voices reads each presentation register: routine answers, navigation, what a signed-out visitor hears and what an administrator hears. Emergency, refusal and escalation answers are not here, because their voice is not a setting.",
+  "heading": "GilbertOne voice and speech settings",
+  "intro": "Which of a language's two voices reads each presentation register, which provider reads it and how — speed, pitch, encoding, ElevenLabs' own knobs — the ceilings on what the cloud voice may spend, and the administrator's own voice. Emergency, refusal and escalation answers are not here, because how they sound is not a setting.",
   "items": [
    {
     "key": "presentation-voice-routine",
@@ -360,10 +434,846 @@
      "statement": "An emergency, refusal or escalation answer is never read in a presentation voice.",
      "forbids": ["neutral-clear", "clinical-delivery", ""]
     }
+   },
+   {
+    "key": "presentation-provider-routine",
+    "label": "Provider for routine answers",
+    "help": "Which text-to-speech provider reads a routine answer — what a visit costs, what to expect?",
+    "owner": "assistant",
+    "type": "enum",
+    "unit": null,
+    "default": {
+     "value": "azure-speech",
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "Azure Speech is the platform default in packages/catalog/api-registry.json#speechSelection: the one built provider with a South African region. Every register starts there, and an administrator moves one from there rather than the platform guessing."
+    },
+    "allowed": [
+     {
+      "value": "azure-speech",
+      "label": "Azure Speech",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The platform default: the one provider with a South African region, pinned there, and the one the Watchful DPIA assessed."
+     },
+     {
+      "value": "elevenlabs",
+      "label": "ElevenLabs",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "Built 28 September 2026 on the founder's ask. No South African region: in production the service refuses it while the residency decision is blank and the register falls back to the platform default, saying so at start-up."
+     },
+     {
+      "value": "alibaba-qwen-tts",
+      "label": "Alibaba Qwen-TTS",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "Built 28 September 2026. Singapore or Beijing and nowhere in South Africa, so the same production refusal applies; it speaks English of the contract's languages and no other."
+     }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "The next spoken answer of that register. In production a provider with no South African region is refused by the service while docs/governance/DATA-RESIDENCY-OPTIONS.md §7 is blank, and the answer is read by the platform's default provider instead — the refusal is printed at start-up and nothing is sent offshore. An emergency, refusal or escalation answer never asks this setting: it is read by the platform's default provider whatever is chosen here.",
+    "guardrail": {
+     "statement": "An emergency, refusal or escalation answer is never read through a provider a setting chose, and a provider that is not built is never chosen.",
+     "forbids": [
+      "google-cloud-tts",
+      "deepgram-nova-3",
+      ""
+     ]
+    }
+   },
+   {
+    "key": "presentation-provider-navigation",
+    "label": "Provider for navigation",
+    "help": "Which text-to-speech provider reads navigation — where a screen is and how to get there?",
+    "owner": "assistant",
+    "type": "enum",
+    "unit": null,
+    "default": {
+     "value": "azure-speech",
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "Azure Speech is the platform default in packages/catalog/api-registry.json#speechSelection: the one built provider with a South African region. Every register starts there, and an administrator moves one from there rather than the platform guessing."
+    },
+    "allowed": [
+     {
+      "value": "azure-speech",
+      "label": "Azure Speech",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The platform default: the one provider with a South African region, pinned there, and the one the Watchful DPIA assessed."
+     },
+     {
+      "value": "elevenlabs",
+      "label": "ElevenLabs",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "Built 28 September 2026 on the founder's ask. No South African region: in production the service refuses it while the residency decision is blank and the register falls back to the platform default, saying so at start-up."
+     },
+     {
+      "value": "alibaba-qwen-tts",
+      "label": "Alibaba Qwen-TTS",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "Built 28 September 2026. Singapore or Beijing and nowhere in South Africa, so the same production refusal applies; it speaks English of the contract's languages and no other."
+     }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "The next spoken answer of that register. In production a provider with no South African region is refused by the service while docs/governance/DATA-RESIDENCY-OPTIONS.md §7 is blank, and the answer is read by the platform's default provider instead — the refusal is printed at start-up and nothing is sent offshore. An emergency, refusal or escalation answer never asks this setting: it is read by the platform's default provider whatever is chosen here.",
+    "guardrail": {
+     "statement": "An emergency, refusal or escalation answer is never read through a provider a setting chose, and a provider that is not built is never chosen.",
+     "forbids": [
+      "google-cloud-tts",
+      "deepgram-nova-3",
+      ""
+     ]
+    }
+   },
+   {
+    "key": "presentation-provider-signed-out-visitor",
+    "label": "Provider for signed-out visitor",
+    "help": "Which text-to-speech provider reads what a signed-out visitor hears?",
+    "owner": "assistant",
+    "type": "enum",
+    "unit": null,
+    "default": {
+     "value": "azure-speech",
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "Azure Speech is the platform default in packages/catalog/api-registry.json#speechSelection: the one built provider with a South African region. Every register starts there, and an administrator moves one from there rather than the platform guessing."
+    },
+    "allowed": [
+     {
+      "value": "azure-speech",
+      "label": "Azure Speech",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The platform default: the one provider with a South African region, pinned there, and the one the Watchful DPIA assessed."
+     },
+     {
+      "value": "elevenlabs",
+      "label": "ElevenLabs",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "Built 28 September 2026 on the founder's ask. No South African region: in production the service refuses it while the residency decision is blank and the register falls back to the platform default, saying so at start-up."
+     },
+     {
+      "value": "alibaba-qwen-tts",
+      "label": "Alibaba Qwen-TTS",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "Built 28 September 2026. Singapore or Beijing and nowhere in South Africa, so the same production refusal applies; it speaks English of the contract's languages and no other."
+     }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "The next spoken answer of that register. In production a provider with no South African region is refused by the service while docs/governance/DATA-RESIDENCY-OPTIONS.md §7 is blank, and the answer is read by the platform's default provider instead — the refusal is printed at start-up and nothing is sent offshore. An emergency, refusal or escalation answer never asks this setting: it is read by the platform's default provider whatever is chosen here.",
+    "guardrail": {
+     "statement": "An emergency, refusal or escalation answer is never read through a provider a setting chose, and a provider that is not built is never chosen.",
+     "forbids": [
+      "google-cloud-tts",
+      "deepgram-nova-3",
+      ""
+     ]
+    }
+   },
+   {
+    "key": "presentation-provider-admin",
+    "label": "Provider for the administrator",
+    "help": "Which text-to-speech provider reads what an administrator hears in the Control Tower?",
+    "owner": "assistant",
+    "type": "enum",
+    "unit": null,
+    "default": {
+     "value": "azure-speech",
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "Azure Speech is the platform default in packages/catalog/api-registry.json#speechSelection: the one built provider with a South African region. Every register starts there, and an administrator moves one from there rather than the platform guessing."
+    },
+    "allowed": [
+     {
+      "value": "azure-speech",
+      "label": "Azure Speech",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The platform default: the one provider with a South African region, pinned there, and the one the Watchful DPIA assessed."
+     },
+     {
+      "value": "elevenlabs",
+      "label": "ElevenLabs",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "Built 28 September 2026 on the founder's ask. No South African region: in production the service refuses it while the residency decision is blank and the register falls back to the platform default, saying so at start-up."
+     },
+     {
+      "value": "alibaba-qwen-tts",
+      "label": "Alibaba Qwen-TTS",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "Built 28 September 2026. Singapore or Beijing and nowhere in South Africa, so the same production refusal applies; it speaks English of the contract's languages and no other."
+     }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "The next spoken answer of that register. In production a provider with no South African region is refused by the service while docs/governance/DATA-RESIDENCY-OPTIONS.md §7 is blank, and the answer is read by the platform's default provider instead — the refusal is printed at start-up and nothing is sent offshore. An emergency, refusal or escalation answer never asks this setting: it is read by the platform's default provider whatever is chosen here.",
+    "guardrail": {
+     "statement": "An emergency, refusal or escalation answer is never read through a provider a setting chose, and a provider that is not built is never chosen.",
+     "forbids": [
+      "google-cloud-tts",
+      "deepgram-nova-3",
+      ""
+     ]
+    }
+   },
+   {
+    "key": "speech-fallback-to-default-provider",
+    "label": "Fall back to the platform default provider",
+    "help": "When the provider chosen for a register is not configured, is refused in production or does not answer, does the platform default read the answer instead?",
+    "owner": "assistant",
+    "type": "boolean",
+    "unit": null,
+    "default": {
+     "value": true,
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "A spoken answer that falls silent because a second provider was misconfigured is the browser's own voice reading the same words, which is the fault the cloud voice exists to end. Falling back to the platform default keeps the reading, and the start-up line says which provider was refused."
+    },
+    "allowed": [
+     {
+      "value": true,
+      "label": "Yes, the platform default reads it",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The reading is kept."
+     },
+     {
+      "value": false,
+      "label": "No, the answer stays written",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "For a deployment that would rather show the words than pay a second provider for them."
+     }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "The next spoken answer of a presentation register whose provider did not answer. The clinical registers always read through the platform default and never ask this."
+   },
+   {
+    "key": "spoken-answer-monthly-ceiling-characters",
+    "label": "Spoken answers a month",
+    "help": "How many characters may the cloud voice read in a calendar month before spoken answers stop and answers stay written?",
+    "owner": "assistant",
+    "type": "count",
+    "unit": "characters",
+    "positive": true,
+    "default": {
+     "value": 2000000,
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "Two million characters is about thirty-two US dollars at Azure's recorded list price and about two hundred at ElevenLabs' pay-as-you-go rate: enough for a month of a small service, and small enough that a runaway loop cannot spend a quarter's budget in a night. A ceiling in characters rather than money, because that is what every provider bills and no currency has to be converted."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 10000,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "Ten thousand characters is a day of use; below it the ceiling would silence the voice on the first morning."
+     },
+     "highest": {
+      "value": 100000000,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "A hundred million characters is more than any provider's largest plan includes; above it the ceiling would not be one."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "Counted by the service from the moment it started, per calendar month, across every provider. When the ceiling is reached the speak route refuses in its own sentence and the answer stays written; the browser's own voice may still read it. A restart starts the count again, and the service says so rather than pretending to remember. The words are never withheld: only the paid reading stops.",
+    "guardrail": {
+     "statement": "The ceiling stops sound and never words: an answer is always written on the screen whatever the count.",
+     "forbids": [
+      0,
+      -1
+     ]
+    }
+   },
+   {
+    "key": "preview-session-ceiling-characters",
+    "label": "Preview per administrator session",
+    "help": "How many characters may the Voice screen's preview read in one session before Play is refused?",
+    "owner": "assistant",
+    "type": "count",
+    "unit": "characters",
+    "positive": true,
+    "default": {
+     "value": 20000,
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "Twenty thousand characters is about a hundred sentences: a long afternoon of comparing voices, and a fraction of a dollar at either provider's rate."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 500,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "A few sentences; below it the preview could not compare two voices on one paragraph."
+     },
+     "highest": {
+      "value": 1000000,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "A million characters in one session is a preview being used as a reading service."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "The preview panel's Play, counted in the tab's memory for the session. Reaching it disables Play with the panel's own sentence; nothing already playing stops. It never touches a patient's reading, only the administrator's preview."
+   },
+   {
+    "key": "azure-presentation-speed-percent",
+    "label": "Azure speaking speed",
+    "help": "How fast does Azure Speech read a presentation register, as a percentage of the voice's normal speed?",
+    "owner": "assistant",
+    "type": "count",
+    "unit": "percent",
+    "positive": true,
+    "default": {
+     "value": 100,
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "The voice's own pace until somebody has listened at the edges. Sent to Azure as an SSML prosody rate only when it is not a hundred, so the default changes nothing about what is sent today."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 70,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "Thirty percent slower is the slowest a sentence stays a sentence; below it the words come apart. A proposal until the founder has listened."
+     },
+     "highest": {
+      "value": 130,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "Thirty percent faster is the fastest a second-language listener can follow a health answer. A proposal until the founder has listened."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "The next Azure reading of a presentation register. The clinical-delivery registers are read at the voice's normal pace whatever this says; a person's own accessibility speed is packages/catalog/user-preferences.json's axis, not this setting.",
+    "guardrail": {
+     "statement": "An emergency, refusal or escalation answer is never read faster or slower by a tenant's setting.",
+     "forbids": [
+      0,
+      50,
+      200
+     ]
+    }
+   },
+   {
+    "key": "azure-presentation-pitch-percent",
+    "label": "Azure pitch",
+    "help": "How high does Azure Speech read a presentation register, as a percentage of the voice's normal pitch?",
+    "owner": "assistant",
+    "type": "count",
+    "unit": "percent",
+    "positive": true,
+    "default": {
+     "value": 100,
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "The voice's own pitch. Sent as an SSML prosody pitch only when it is not a hundred."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 80,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "Twenty percent lower keeps a neural voice sounding like itself; a proposal until listened to."
+     },
+     "highest": {
+      "value": 120,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "Twenty percent higher, for the same reason."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "The next Azure reading of a presentation register, and never a clinical-delivery one.",
+    "guardrail": {
+     "statement": "An emergency, refusal or escalation answer is never pitched by a tenant's setting.",
+     "forbids": [
+      0,
+      40,
+      300
+     ]
+    }
+   },
+   {
+    "key": "azure-audio-quality",
+    "label": "Azure audio quality",
+    "help": "What does Azure Speech encode a reading as — lighter on a metered phone, or fuller on a good connection?",
+    "owner": "assistant",
+    "type": "enum",
+    "unit": null,
+    "default": {
+     "value": "audio-24khz-48kbitrate-mono-mp3",
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "The format packages/catalog/assistant.json#voice.cloud.outputFormat decided on 22 September 2026, restated here as the default and held equal to it by the build: about 360 kilobytes a minute."
+    },
+    "allowed": [
+     {
+      "value": "audio-16khz-32kbitrate-mono-mp3",
+      "label": "Lighter — 16 kHz, 32 kbit/s, about 240 kB a minute",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "For a patient on a mid-range phone on metered data, who this is built for."
+     },
+     {
+      "value": "audio-24khz-48kbitrate-mono-mp3",
+      "label": "Standard — 24 kHz, 48 kbit/s, about 360 kB a minute",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The decided default."
+     },
+     {
+      "value": "audio-24khz-96kbitrate-mono-mp3",
+      "label": "Fuller — 24 kHz, 96 kbit/s, about 720 kB a minute",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "For an administrator's preview on a desk, comparing voices."
+     }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "The next Azure reading of any register: an encoding changes how much data a phone downloads, not how the words sound, so the clinical registers follow it too. It never changes which voice reads or how it sounds."
+   },
+   {
+    "key": "azure-recognition-profanity",
+    "label": "Azure recognition of strong language",
+    "help": "When somebody swears into the microphone, does Azure hand back the word, mask it or drop it?",
+    "owner": "assistant",
+    "type": "enum",
+    "unit": null,
+    "default": {
+     "value": "raw",
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "The person corrects the transcript on the screen before anything is sent, so masking edits their words before they have seen them; and a swear word about a symptom is part of the symptom."
+    },
+    "allowed": [
+     {
+      "value": "raw",
+      "label": "Hand back the word as heard",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "What the person said."
+     },
+     {
+      "value": "masked",
+      "label": "Mask it with asterisks",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "For a deployment whose transcripts are read aloud in a shared room."
+     },
+     {
+      "value": "removed",
+      "label": "Drop it",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "For a deployment that would rather lose the word than show it."
+     }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "The next capture Azure hears. Sent as the recognition request's profanity parameter. Every capture, whatever register the conversation is in; it never edits the words after the person has seen them."
+   },
+   {
+    "key": "speech-stretch-timeout-seconds",
+    "label": "Time allowed to voice one stretch",
+    "help": "How long may a provider take to read one stretch of an answer before the service gives up and the browser's own voice carries on?",
+    "owner": "assistant",
+    "type": "count",
+    "unit": "seconds",
+    "positive": true,
+    "default": {
+     "value": 15,
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "The ceiling apps/assistant-api/src/lib/providers/seam.ts has carried since 22 September 2026, restated here and held equal by the build: one call is one stretch of a sentence, and a caller wanting sound sooner asks for the next stretch itself."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 5,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "Below five seconds a provider on a slow evening never answers."
+     },
+     "highest": {
+      "value": 60,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "A minute is longer than any reading; above it a hung provider holds the panel silent."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "Every speak call started after the change, whichever provider reads. Never a call already under way."
+   },
+   {
+    "key": "speech-capture-timeout-seconds",
+    "label": "Time allowed to hear one capture",
+    "help": "How long may a provider take to turn one push-to-talk capture into words before the service gives up?",
+    "owner": "assistant",
+    "type": "count",
+    "unit": "seconds",
+    "positive": true,
+    "default": {
+     "value": 30,
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "The ceiling seam.ts has carried since 22 September 2026, held equal by the build: a full capture is uploaded and read in one request."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 10,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "A forty-five-second capture cannot be read in under ten."
+     },
+     "highest": {
+      "value": 60,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "Above a minute a hung recogniser holds the panel with nothing to show."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "Every listen call started after the change, whichever provider hears. Never a call already under way."
+   },
+   {
+    "key": "elevenlabs-model",
+    "label": "ElevenLabs model",
+    "help": "Which ElevenLabs model reads an answer?",
+    "owner": "assistant",
+    "type": "enum",
+    "unit": null,
+    "default": {
+     "value": "eleven_multilingual_v2",
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "The vendor's own default for the text-to-speech route on the day recorded, and the model whose overage price the card records. Flash halves the cost and the latency at some quality; v3 adds Afrikaans and is charged at the same rate as v2."
+    },
+    "allowed": [
+     {
+      "value": "eleven_multilingual_v2",
+      "label": "Multilingual v2 — 29 languages, English of the contract's",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The vendor's default."
+     },
+     {
+      "value": "eleven_flash_v2_5",
+      "label": "Flash v2.5 — 32 languages, English of the contract's, lowest latency, half the price",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "For a deployment that wants the reading to start sooner."
+     },
+     {
+      "value": "eleven_v3",
+      "label": "Eleven v3 — 70 and more languages, English and Afrikaans of the contract's",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The one model the vendor lists Afrikaans for, read from the vendor's own list on 28 September 2026."
+     }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "The next ElevenLabs reading. A language the chosen model does not list is answered as having no voice, and the words stay on the screen. The words always stay on the screen."
+   },
+   {
+    "key": "elevenlabs-stability-percent",
+    "label": "ElevenLabs stability",
+    "help": "How steady is the ElevenLabs voice between readings — high for the same delivery every time, low for more expression?",
+    "owner": "assistant",
+    "type": "percentage",
+    "unit": "percent",
+    "positive": false,
+    "default": {
+     "value": 50,
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "The vendor's documented default. A health answer read the same way every time is what a listener can rely on."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 0,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The vendor's range is nought to one, sent here as a percentage."
+     },
+     "highest": {
+      "value": 100,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The vendor's range is nought to one, sent here as a percentage."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "The next ElevenLabs reading of a presentation register, sent in the request's voice settings. A clinical-delivery register is read at the vendor's own defaults whatever this says."
+   },
+   {
+    "key": "elevenlabs-similarity-percent",
+    "label": "ElevenLabs similarity",
+    "help": "How closely does ElevenLabs hold to the chosen voice's own sound?",
+    "owner": "assistant",
+    "type": "percentage",
+    "unit": "percent",
+    "positive": false,
+    "default": {
+     "value": 75,
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "The vendor's documented default."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 0,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The vendor's range is nought to one, sent here as a percentage."
+     },
+     "highest": {
+      "value": 100,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The vendor's range is nought to one, sent here as a percentage."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "The next ElevenLabs reading of a presentation register, sent in the request's voice settings. A clinical-delivery register is read at the vendor's own defaults whatever this says."
+   },
+   {
+    "key": "elevenlabs-style-percent",
+    "label": "ElevenLabs style exaggeration",
+    "help": "How much does ElevenLabs amplify the voice's own style — nought for none?",
+    "owner": "assistant",
+    "type": "percentage",
+    "unit": "percent",
+    "positive": false,
+    "default": {
+     "value": 0,
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "The vendor's documented default, and the only value under which a presentation voice stays plain. The clinical registers never read through this setting at any value."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 0,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The vendor's range is nought to one, sent here as a percentage."
+     },
+     "highest": {
+      "value": 100,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The vendor's range is nought to one, sent here as a percentage."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "The next ElevenLabs reading of a presentation register, sent in the request's voice settings. A clinical-delivery register is read at the vendor's own defaults whatever this says."
+   },
+   {
+    "key": "elevenlabs-speaker-boost",
+    "label": "ElevenLabs speaker boost",
+    "help": "Does ElevenLabs boost the similarity to the chosen speaker, at a cost in latency?",
+    "owner": "assistant",
+    "type": "boolean",
+    "unit": null,
+    "default": {
+     "value": false,
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "The vendor documents the boost as adding latency, and a reading that starts sooner matters more to somebody waiting for a health answer than a closer likeness."
+    },
+    "allowed": [
+     {
+      "value": true,
+      "label": "On",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "A closer likeness to the chosen voice."
+     },
+     {
+      "value": false,
+      "label": "Off",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "A reading that starts sooner."
+     }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "The next ElevenLabs reading of a presentation register. It never reaches an emergency, refusal or escalation answer."
+   },
+   {
+    "key": "elevenlabs-speed-percent",
+    "label": "ElevenLabs speaking speed",
+    "help": "How fast does ElevenLabs read a presentation register, as a percentage of the voice's normal speed?",
+    "owner": "assistant",
+    "type": "count",
+    "unit": "percent",
+    "positive": true,
+    "default": {
+     "value": 100,
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "The voice's own pace, sent as the vendor's speed multiplier of one."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 70,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The vendor's documented range for a voice's speed setting is 0.7 to 1.2, read on 28 September 2026."
+     },
+     "highest": {
+      "value": 120,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The vendor's documented range for a voice's speed setting is 0.7 to 1.2, read on 28 September 2026."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "The next ElevenLabs reading of a presentation register, and never a clinical-delivery one.",
+    "guardrail": {
+     "statement": "An emergency, refusal or escalation answer is never read faster or slower by a tenant's setting.",
+     "forbids": [
+      0,
+      50,
+      200
+     ]
+    }
+   },
+   {
+    "key": "elevenlabs-audio-quality",
+    "label": "ElevenLabs audio quality",
+    "help": "What does ElevenLabs encode a reading as — lighter on a metered phone, or fuller on a good connection?",
+    "owner": "assistant",
+    "type": "enum",
+    "unit": null,
+    "default": {
+     "value": "mp3_22050_32",
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "The lightest MP3 the vendor documents, about 240 kilobytes a minute, because the patient this is built for is on a mid-range phone on metered data. The vendor's own default is the fullest."
+    },
+    "allowed": [
+     {
+      "value": "mp3_22050_32",
+      "label": "Lighter — 22 kHz, 32 kbit/s, about 240 kB a minute",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "For a metered phone."
+     },
+     {
+      "value": "mp3_44100_64",
+      "label": "Standard — 44 kHz, 64 kbit/s, about 480 kB a minute",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "A middle setting."
+     },
+     {
+      "value": "mp3_44100_128",
+      "label": "Fuller — 44 kHz, 128 kbit/s, about 960 kB a minute",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The vendor's default, for a desk comparing voices."
+     }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "The next ElevenLabs reading of any register: an encoding changes how much data a phone downloads, not how the words sound. It never changes which voice reads or how it sounds."
+   },
+   {
+    "key": "elevenlabs-latency-mode",
+    "label": "ElevenLabs latency mode",
+    "help": "How much of the vendor's latency optimisation is asked for — nought for none, four for the most, at which its text normaliser is switched off?",
+    "owner": "assistant",
+    "type": "count",
+    "unit": "level",
+    "positive": false,
+    "default": {
+     "value": 0,
+     "decidedBy": null,
+     "proposedBy": "Claude",
+     "proposedBecause": "No optimisation: the vendor documents that the highest level switches its text normaliser off, and a health answer with a dose in it needs its numbers read as numbers."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 0,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The vendor's documented range, read on 28 September 2026."
+     },
+     "highest": {
+      "value": 4,
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "The vendor's documented range, read on 28 September 2026."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "The next ElevenLabs reading, sent as the request's optimize_streaming_latency parameter. Every register, because it changes when the reading starts and never how it sounds.",
+    "guardrail": {
+     "statement": "A level the vendor does not document is never sent.",
+     "forbids": [
+      5,
+      10
+     ]
+    }
+   },
+   {
+    "key": "own-voice",
+    "label": "The administrator's own voice",
+    "help": "Which presentation registers does the administrator's own recorded voice read, where a provider carries it?",
+    "owner": "assistant",
+    "type": "enum",
+    "unit": null,
+    "default": {
+     "value": "off",
+     "decidedBy": "Founder",
+     "decidedOn": "2026-09-28",
+     "why": "The founder's decision of 28 September 2026: the own-voice feature is an administrator's setting and nobody else's, and today the only administrator is the founder. It starts off, because no recorded voice exists in any provider account until the founder records one there, with the consent packages/catalog/voice.json#ownVoice records."
+    },
+    "allowed": [
+     {
+      "value": "off",
+      "label": "Off — the language's own voices read every register",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "Nothing here names a person's voice."
+     },
+     {
+      "value": "admin-register",
+      "label": "The administrator's own register only",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "What an administrator hears in the Control Tower, and nothing a patient hears."
+     },
+     {
+      "value": "every-presentation-register",
+      "label": "Every presentation register",
+      "decidedBy": null,
+      "proposedBy": "Claude",
+      "proposedBecause": "Routine answers, navigation, the signed-out visitor and the administrator. Never an emergency, a refusal or an escalation."
+     }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "The next spoken answer of the registers chosen, only where that register's provider is one that carries a recorded voice (ElevenLabs today) and the service's environment names the voice; otherwise the language's own voice reads it and nothing fails. The clinical-delivery registers never ask this setting.",
+    "guardrail": {
+     "statement": "An emergency, refusal or escalation answer is never read in a person's own voice, and no clinical register is offered here.",
+     "forbids": [
+      "clinical-delivery",
+      "emergency",
+      "every-register",
+      ""
+     ]
+    }
    }
+  
   ],
   "defaults": {
-   "version": 1,
+   "version": 2,
    "changelog": [
     {
      "version": 1,
@@ -376,10 +1286,128 @@
       { "setting": "presentation-voice-admin", "from": null, "to": "female" }
      ],
      "why": "The founder's decision of 27 September 2026 that the four presentation registers are an admin setting, each starting on the language's female voice. The clinical-delivery registers are not in this log and never will be: they are not settings."
+    },
+    {
+     "version": 2,
+     "on": "2026-09-28",
+     "by": "Founder",
+     "changed": [
+      {
+       "setting": "presentation-provider-routine",
+       "from": null,
+       "to": "azure-speech"
+      },
+      {
+       "setting": "presentation-provider-navigation",
+       "from": null,
+       "to": "azure-speech"
+      },
+      {
+       "setting": "presentation-provider-signed-out-visitor",
+       "from": null,
+       "to": "azure-speech"
+      },
+      {
+       "setting": "presentation-provider-admin",
+       "from": null,
+       "to": "azure-speech"
+      },
+      {
+       "setting": "speech-fallback-to-default-provider",
+       "from": null,
+       "to": true
+      },
+      {
+       "setting": "spoken-answer-monthly-ceiling-characters",
+       "from": null,
+       "to": 2000000
+      },
+      {
+       "setting": "preview-session-ceiling-characters",
+       "from": null,
+       "to": 20000
+      },
+      {
+       "setting": "azure-presentation-speed-percent",
+       "from": null,
+       "to": 100
+      },
+      {
+       "setting": "azure-presentation-pitch-percent",
+       "from": null,
+       "to": 100
+      },
+      {
+       "setting": "azure-audio-quality",
+       "from": null,
+       "to": "audio-24khz-48kbitrate-mono-mp3"
+      },
+      {
+       "setting": "azure-recognition-profanity",
+       "from": null,
+       "to": "raw"
+      },
+      {
+       "setting": "speech-stretch-timeout-seconds",
+       "from": null,
+       "to": 15
+      },
+      {
+       "setting": "speech-capture-timeout-seconds",
+       "from": null,
+       "to": 30
+      },
+      {
+       "setting": "elevenlabs-model",
+       "from": null,
+       "to": "eleven_multilingual_v2"
+      },
+      {
+       "setting": "elevenlabs-stability-percent",
+       "from": null,
+       "to": 50
+      },
+      {
+       "setting": "elevenlabs-similarity-percent",
+       "from": null,
+       "to": 75
+      },
+      {
+       "setting": "elevenlabs-style-percent",
+       "from": null,
+       "to": 0
+      },
+      {
+       "setting": "elevenlabs-speaker-boost",
+       "from": null,
+       "to": false
+      },
+      {
+       "setting": "elevenlabs-speed-percent",
+       "from": null,
+       "to": 100
+      },
+      {
+       "setting": "elevenlabs-audio-quality",
+       "from": null,
+       "to": "mp3_22050_32"
+      },
+      {
+       "setting": "elevenlabs-latency-mode",
+       "from": null,
+       "to": 0
+      },
+      {
+       "setting": "own-voice",
+       "from": null,
+       "to": "off"
+      }
+     ],
+     "why": "The founder approved the speech-settings scope of 28 September 2026: ElevenLabs built beside Azure Speech and Alibaba Qwen-TTS, every knob either provider exposes that is not a key, a region or a clinical register made an administrator's setting with a proposed default, and the own-voice feature an administrator's alone. Every default below is a proposal until the founder has listened at the edges, except own-voice, which the founder decided."
     }
    ]
   }
  },
 
- "preview": "The Voice screen exists, and each of the four presentation registers has a setting an administrator changes on it and on the Configuration tab, kept in this tab's memory for the session. The clinical-delivery registers have no setting, no tenant has chosen anything, and no preview has been played through a paid provider. The voices GilbertOne speaks in today are the browser's, the phone's and, in production, the cloud pair in packages/catalog/assistant.json."
+ "preview": "The Voice screen exists, and each of the four presentation registers has a setting an administrator changes on it and on the Configuration tab, kept in this tab's memory for the session. The clinical-delivery registers have no setting, no tenant has chosen anything, and no preview has been played through a paid provider. Since 28 September 2026 the Speech settings screen and the Configuration tab carry the provider per presentation register, Azure's and ElevenLabs' tuning, two ceilings and the administrator's own voice, kept the same way; ElevenLabs is built and configured nowhere, and the service reads every one of these settings from the contract's defaults until it holds a settings history of its own. The voices GilbertOne speaks in today are the browser's, the phone's and, in production, the cloud pair in packages/catalog/assistant.json."
 }

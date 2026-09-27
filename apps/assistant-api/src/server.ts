@@ -30,6 +30,7 @@ import {
   SPEECH_VOICE_NAMES,
   type SpeechSeam,
 } from "./lib/speech.ts";
+import { knownRegister } from "./lib/speech-settings.ts";
 import { triageGate } from "./lib/triage-gate.ts";
 import { validateVital, type VitalInput } from "./lib/vitals.ts";
 import { handleTurn, handleTurnStream, RequiredFieldMissingError } from "./routes/turn.ts";
@@ -68,6 +69,17 @@ const speechNotConfiguredStatement: string =
     (refusal) => refusal.id === "speech-not-configured",
   )?.statement ??
   "Cloud speech is not configured here; the browser's own voice is the one to carry on with.";
+/* The speak route's own refusal at the administrator's monthly ceiling (packages/catalog/voice.json,
+   spoken-answer-monthly-ceiling-characters), read from the live speak version's refusals — the
+   route declares it, so it is not typed again here. */
+const ceilingRefusal: { id: string; status: number; statement: string } = (() => {
+  const found = assistantContract.routes
+    .find((route) => route.method === "POST" && route.path === "/v1/speak" && !("withdrawn" in route))
+    ?.refusals.find((refusal) => refusal.id === "spoken-answer-ceiling-reached");
+  if (!found)
+    throw new Error("packages/catalog/apis/assistant.json's live POST /v1/speak declares no spoken-answer-ceiling-reached refusal; the route answers the ceiling in the contract's words or not at all.");
+  return found;
+})();
 const builtAddresses = new Set(
   assistantContract.routes
     .filter((route) => route.status === "built")
@@ -701,14 +713,22 @@ export function createAssistantServer(
         text?: unknown;
         language?: unknown;
         voice?: unknown;
+        register?: unknown;
       };
       const text = typeof asked.text === "string" ? asked.text.trim() : "";
       const language =
         typeof asked.language === "string" ? asked.language.trim() : "";
       const voice = typeof asked.voice === "string" ? asked.voice.trim() : "";
+      /* Since 28 September 2026 (version four) a caller may say which register the words belong
+         to, so the administrator's speech settings reach a presentation register and never a
+         clinical one: the seam decides the provider and the tuning from it, and a register the
+         contract does not name is refused here rather than guessed at. Absent means the platform
+         default with no tuning. */
+      const register =
+        typeof asked.register === "string" ? asked.register.trim() : "";
       /* Any voice the contract names, in any language; the speech seam then holds the name to the
          language asked for. Checking the en-ZA pair alone here is what silenced Afrikaans. */
-      if (!text || !language || (voice && !SPEECH_VOICE_NAMES.includes(voice))) {
+      if (!text || !language || (voice && !SPEECH_VOICE_NAMES.includes(voice)) || (register && !knownRegister(register))) {
         return send(res, 400, cors.headers, {
           error: "invalid_request",
           refusalId: "invalid-request",
@@ -720,7 +740,16 @@ export function createAssistantServer(
           text,
           language,
           voice: voice || undefined,
+          register: register || null,
         });
+        /* The ceiling is an answer, not a fault: the words are on the screen and the browser's own
+           voice may read them; only the paid reading stops, in the contract's own sentence. */
+        if (!read.ok && read.ceilingReached)
+          return send(res, ceilingRefusal.status, cors.headers, {
+            error: "spoken_answer_ceiling_reached",
+            refusalId: ceilingRefusal.id,
+            message: ceilingRefusal.statement,
+          });
         if (!read.ok) throw new Error("the voice did not answer");
         return send(res, 200, cors.headers, {
           audioBase64: read.audioBase64,

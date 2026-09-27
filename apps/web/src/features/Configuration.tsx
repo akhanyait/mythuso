@@ -292,7 +292,12 @@ function Figure({ limits, value }: { limits: Limits; value: unknown }) {
 
 /* ---- The screen ----------------------------------------------------------------------------------- */
 
-export function Configuration({ engine, onEngine }: { engine: string; onEngine: (engine: string) => void }) {
+/* `fixed` draws the screen over one engine's settings with no engine chooser: the GilbertOne category's Speech
+   settings screen embeds this component that way, so an administrator changes the assistant's settings there
+   through exactly the editor, the rules and the history the Configuration tab has, rather than a copy of any of
+   them. Everything else — the search, the review-then-confirm form, the refusals in the contract's words — is the
+   same component. */
+export function Configuration({ engine, onEngine, fixed = false }: { engine: string; onEngine: (engine: string) => void; fixed?: boolean }) {
  const histories = useSettingsHistories();
  /* A doctor's confirmation changes what a setting says about its review, so the screen redraws on one. */
  useSettingsReviews();
@@ -319,13 +324,13 @@ export function Configuration({ engine, onEngine }: { engine: string; onEngine: 
       <input id={id + '-query'} type="search" value={query} aria-describedby={id + '-query-help'} onChange={event => setQuery(event.target.value)}/>
      </span>
     </div>
-    <div className="cf-bar-field cf-bar-engine">
+    {!fixed && <div className="cf-bar-field cf-bar-engine">
      <label htmlFor={id + '-engine'}>{say.engine}</label>
      <select id={id + '-engine'} value={engine} onChange={event => onEngine(event.target.value)}>
       <option value="">{say.everyEngine}</option>
       {blocks.map(block => <option key={block.engine} value={block.engine}>{block.heading}</option>)}
      </select>
-    </div>
+    </div>}
    </div>
    <p className="helper" id={id + '-query-help'}>{say.searchHelp}</p>
   </div>
